@@ -1,0 +1,30 @@
+# Source files (don't publish to npm)
+src/
+*.ts
+*.tsx
+!*.d.ts
+
+# Config files
+tsconfig.json
+.eslintrc.js
+.prettierrc
+
+# Development files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+__tests__/
+__mocks__/
+
+# CI/CD
+.github/
+.gitignore
+
+# Documentation (optional - some keep README)
+# README.md
+
+# Development dependencies
+node_modules/
+.vscode/
+.idea/
