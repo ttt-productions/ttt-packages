@@ -32,6 +32,18 @@ jobs:
       - name: Clean + build ui-core explicitly
         run: npm -w @ttt-productions/ui-core run prepublishOnly
 
+      - name: Debug ui-core sources
+        run: |
+          echo "== ui-core src tree =="
+          find packages/ui-core/src -maxdepth 2 -type f | sed -n '1,200p'
+
+      - name: Debug TypeScript emit for ui-core
+        run: |
+          echo "== show resolved config =="
+          npx tsc -p packages/ui-core/tsconfig.json --showConfig | head -200
+          echo "== list emitted files =="
+          npx tsc -p packages/ui-core/tsconfig.json --listEmittedFiles --pretty false
+
       - name: Assert dist exists (ui-core)
         run: |
           ls -la packages/ui-core
@@ -47,7 +59,7 @@ jobs:
         run: |
           test -f packages/ui-core/dist/index.js
           test -f packages/ui-core/dist/index.d.ts
-          
+
       - name: Publish to npm
         run: npm publish --access public --provenance --workspaces
         env:
