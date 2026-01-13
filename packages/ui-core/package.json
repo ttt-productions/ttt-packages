@@ -9,7 +9,7 @@
         "dist"
     ],
     "scripts": {
-        "build": "tsc -p tsconfig.json --force",
+        "build": "tsc",
         "clean": "rm -rf dist *.tsbuildinfo",
         "typecheck": "tsc --noEmit",
         "prepublishOnly": "npm run clean && npm run build"
