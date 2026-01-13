@@ -1,0 +1,6 @@
+# Only exclude source files and dev config
+src/
+tsconfig.json
+tsconfig.tsbuildinfo
+*.test.ts
+*.test.tsx
