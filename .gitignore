@@ -9,7 +9,6 @@ coverage/
 # Production
 dist/
 build/
-lib/
 
 # Misc
 .DS_Store
