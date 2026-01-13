@@ -1,0 +1,14 @@
+# Source files
+src/
+
+# Config files  
+tsconfig.json
+tsconfig.tsbuildinfo
+
+# Tests
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# NOTE: dist/ is NOT listed here - we want to publish it!
