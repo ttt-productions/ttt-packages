@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/ui-core",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "description": "Shared UI components for TTT Productions projects",
     "main": "dist/index.js",
     "module": "dist/index.js",
@@ -9,8 +9,8 @@
         "dist"
     ],
     "scripts": {
-        "build": "tsc",
-        "clean": "rm -rf dist",
+        "build": "tsc -p tsconfig.json --force",
+        "clean": "rm -rf dist *.tsbuildinfo",
         "typecheck": "tsc --noEmit",
         "prepublishOnly": "npm run clean && npm run build"
     },
