@@ -21,9 +21,6 @@ __mocks__/
 .github/
 .gitignore
 
-# Documentation (optional - some keep README)
-# README.md
-
 # Development dependencies
 node_modules/
 .vscode/
