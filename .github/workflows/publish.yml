@@ -3,7 +3,11 @@ name: Publish Packages to npm
 on:
   push:
     tags:
-      - 'v*.*.*'  # Triggers on version tags like v1.0.0
+      - 'v*.*.*'
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   publish:
@@ -26,6 +30,6 @@ jobs:
         run: npm run build
 
       - name: Publish to npm
-        run: npm publish --access public --workspaces
+        run: npm publish --access public --provenance --workspaces
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

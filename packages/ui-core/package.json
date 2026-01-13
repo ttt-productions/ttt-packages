@@ -1,48 +1,48 @@
 {
-    "name": "@ttt/ui-core",
-    "version": "0.1.0",
+    "name": "@ttt-productions/ui-core",
+    "version": "0.1.1",
     "description": "Shared UI components for TTT Productions projects",
     "main": "dist/index.js",
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
     "files": [
-      "dist"
+        "dist"
     ],
     "scripts": {
-      "build": "tsc",
-      "clean": "rm -rf dist",
-      "typecheck": "tsc --noEmit",
-      "prepublishOnly": "npm run clean && npm run build"
+        "build": "tsc",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
     },
     "keywords": [
-      "react",
-      "ui",
-      "components",
-      "shadcn",
-      "ttt"
+        "react",
+        "ui",
+        "components",
+        "shadcn",
+        "ttt"
     ],
     "author": "DJ (TTT Productions)",
     "license": "MIT",
     "repository": {
-      "type": "git",
-      "url": "https://github.com/ttt-productions/ttt-packages.git",
-      "directory": "packages/ui-core"
+        "type": "git",
+        "url": "https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/ui-core"
     },
     "peerDependencies": {
-      "react": "^19.0.0",
-      "react-dom": "^19.0.0"
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
     },
     "dependencies": {
-      "@radix-ui/react-slot": "^1.1.0",
-      "class-variance-authority": "^0.7.0",
-      "clsx": "^2.1.1",
-      "tailwind-merge": "^2.5.2"
+        "@radix-ui/react-slot": "^1.1.0",
+        "class-variance-authority": "^0.7.0",
+        "clsx": "^2.1.1",
+        "tailwind-merge": "^2.5.2"
     },
     "devDependencies": {
-      "@types/react": "^19.0.0",
-      "@types/react-dom": "^19.0.0",
-      "react": "^19.2.0",
-      "react-dom": "^19.2.0",
-      "typescript": "^5.8.3"
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "typescript": "^5.8.3"
     }
-  }
+}

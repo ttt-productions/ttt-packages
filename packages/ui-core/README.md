@@ -1,54 +1,53 @@
-# @ttt/ui-core
+# TTT Packages
 
-Shared UI components for TTT Productions projects.
+Shared packages for TTT Productions and Q-Sports projects.
 
-## 📦 Installation
+## Packages
+
+- `@ttt/ui-core` - Shared UI components (shadcn-based)
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Build all packages
+npm run build
+
+# Clean build artifacts
+npm run clean
+
+# Type check
+npm run typecheck
+```
+
+## Publishing
+
+Packages are automatically published to npm when you push a version tag:
+
+```bash
+# Update package version(s)
+cd packages/ui-core
+npm version patch  # or minor, major
+
+# Commit and tag
+git add .
+git commit -m "Release v1.0.1"
+git tag v1.0.1
+git push origin main --tags
+```
+
+## Usage in TTT Productions
+
 ```bash
 npm install @ttt/ui-core
 ```
 
-## 🎨 Components
-
-All shadcn/ui components are available:
-
-- Button
-- Dialog
-- Input
-- Select
-- Dropdown Menu
-- Avatar
-- Badge
-- Card
-- Checkbox
-- Label
-- Progress
-- Radio Group
-- Separator
-- Slider
-- Switch
-- Tabs
-- Textarea
-- Toast
-- Tooltip
-- And more...
-
-## 📖 Usage
-```typescript
+```tsx
 import { Button } from '@ttt/ui-core';
 
-function MyComponent() {
-  return (
-    <Button variant="default" size="lg">
-      Click me
-    </Button>
-  );
+export default function MyComponent() {
+  return <Button>Click me</Button>;
 }
 ```
-
-## 🎨 Styling
-
-Components use Tailwind CSS. Make sure your project has Tailwind configured.
-
-## 📄 License
-
-MIT © TTT Productions
