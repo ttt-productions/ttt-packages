@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/ui-core",
-    "version": "0.1.11",
+    "version": "0.1.12",
     "description": "Shared UI components for TTT Productions projects",
     "main": "dist/index.js",
     "module": "dist/index.js",
