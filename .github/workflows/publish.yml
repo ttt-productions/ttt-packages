@@ -39,33 +39,29 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "== Workspaces =="
-          npm -ws --silent pkg get name version | sed -n '1,200p'
+          echo "== Workspace names =="
+          npm -ws --silent pkg get name | sed -n '1,200p'
 
-          # Get workspace locations (paths) via npm
-          mapfile -t PKG_DIRS < <(node -p "Object.values(require('./package-lock.json').packages).filter(p=>p.name&&p.resolved===undefined).map(p=>p.name)" 2>/dev/null || true)
+          # Get workspace package names reliably (one per line)
+          mapfile -t NAMES < <(npm -ws --silent pkg get name | node -e '
+            const fs = require("fs");
+            const s = fs.readFileSync(0, "utf8").trim();
+            const j = JSON.parse(s);
+            for (const k of Object.keys(j)) console.log(j[k].name);
+          ')
 
-          # More reliable: use npm to list workspaces with their paths
-          node <<'NODE'
-          const { execSync } = require("child_process");
-          const workspaces = JSON.parse(execSync("npm query .workspace --json", { encoding: "utf8" }));
-          // Each item includes .location and .package.name/.package.version
-          for (const w of workspaces) {
-            console.log(`${w.location}::${w.package.name}::${w.package.version}`);
-          }
-          NODE
-          | while IFS="::" read -r loc name ver; do
-              echo ""
-              echo "== $name@$ver ($loc) =="
+          for name in "${NAMES[@]}"; do
+            ver=$(npm -w "$name" --silent pkg get version | tr -d '"')
+            echo ""
+            echo "== $name@$ver =="
 
-              # If the exact version exists on npm, skip
-              if npm view "$name@$ver" version >/dev/null 2>&1; then
-                echo "Already published: $name@$ver -> skip"
-                continue
-              fi
+            if npm view "$name@$ver" version --silent >/dev/null 2>&1; then
+              echo "Already published -> skip"
+              continue
+            fi
 
-              echo "Publishing $name@$ver ..."
-              npm publish --access public --provenance -w "$name"
-            done
+            echo "Publishing..."
+            npm publish --access public --provenance -w "$name"
+          done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
