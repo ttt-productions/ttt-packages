@@ -18,7 +18,7 @@ function warnMissingTokens() {
       `[theme-core] Missing/invalid required theme tokens.\n` +
         (missing.length ? `Missing: ${missing.join(", ")}\n` : "") +
         (loud.length ? `Still using loud fallbacks: ${loud.join(", ")}\n` : "") +
-        `Define these in the consuming app (brand contract).`
+        `Define these in the consuming app (brand contract)`
     );
   }
 }
