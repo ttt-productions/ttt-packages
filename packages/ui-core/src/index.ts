@@ -17,6 +17,15 @@ export * from "./components/select"
 export * from "./components/tabs"
 export * from "./components/tooltip"
 export * from "./components/form"
+export * from "./components/checkbox"
+export * from "./components/switch"
+export * from "./components/badge"
+export * from "./components/avatar"
+export * from "./components/separator"
+export * from "./components/accordion"
+export * from "./components/radio-group"
+export * from "./components/progress"
+export * from "./components/slider"
 
 
 // Export utilities
