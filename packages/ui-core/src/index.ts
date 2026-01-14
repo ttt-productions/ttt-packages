@@ -29,6 +29,9 @@ export * from "./components/slider"
 export * from "./components/date-picker"
 export * from './components/label';
 export * from './components/popover';
+export * from './components/alert';
+export * from './components/scroll-area';
+export * from './components/table';
 
 // Export utilities
 export * from "./lib/utils"
