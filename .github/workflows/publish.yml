@@ -12,7 +12,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,39 +26,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Option 1: keep your existing build
       - name: Build packages
         run: npm run build
 
-      - name: Clean + build ui-core explicitly
-        run: npm -w @ttt-productions/ui-core run prepublishOnly
-
-      - name: Debug ui-core sources
-        run: |
-          echo "== ui-core src tree =="
-          find packages/ui-core/src -maxdepth 2 -type f | sed -n '1,200p'
-
-      - name: Debug TypeScript emit for ui-core
-        run: |
-          echo "== show resolved config =="
-          npx tsc -p packages/ui-core/tsconfig.json --showConfig | head -200
-          echo "== list emitted files =="
-          npx tsc -p packages/ui-core/tsconfig.json --listEmittedFiles --pretty false
-
-      - name: Assert dist exists (ui-core)
-        run: |
-          ls -la packages/ui-core
-          ls -la packages/ui-core/dist
-
-      - name: Pack ui-core and list contents
-        run: |
-          cd packages/ui-core
-          npm pack
-          tar -tf *.tgz | head -200
-
-      - name: Assert expected build outputs
-        run: |
-          test -f packages/ui-core/dist/index.js
-          test -f packages/ui-core/dist/index.d.ts
+      # (Optional but nice) ensure workspace prepublish hooks run consistently
+      # - name: Run prepublish for all workspaces
+      #   run: npm -ws run prepublishOnly --if-present
 
       - name: Publish to npm
         run: npm publish --access public --provenance --workspaces

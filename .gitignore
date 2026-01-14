@@ -8,9 +8,8 @@ coverage/
 
 # Production
 dist/
+packages/*/dist/
 build/
-
-!packages/*/dist/
 
 # Misc
 .DS_Store
@@ -41,6 +40,7 @@ Thumbs.db
 
 # Build artifacts
 *.tsbuildinfo
+packages/*/*.tsbuildinfo
 
 # npm
 .npm
