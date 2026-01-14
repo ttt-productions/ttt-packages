@@ -39,19 +39,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "== Workspace names =="
-          npm -ws --silent pkg get name | sed -n '1,200p'
+          echo "== packages/* =="
+          for dir in packages/*; do
+            [ -f "$dir/package.json" ] || continue
+            name=$(node -p "require('./$dir/package.json').name")
+            ver=$(node -p "require('./$dir/package.json').version")
 
-          # Get workspace package names reliably (one per line)
-          mapfile -t NAMES < <(npm -ws --silent pkg get name | node -e '
-            const fs = require("fs");
-            const s = fs.readFileSync(0, "utf8").trim();
-            const j = JSON.parse(s);
-            for (const k of Object.keys(j)) console.log(j[k].name);
-          ')
-
-          for name in "${NAMES[@]}"; do
-            ver=$(npm -w "$name" --silent pkg get version | tr -d '"')
             echo ""
             echo "== $name@$ver =="
 
@@ -61,7 +54,7 @@ jobs:
             fi
 
             echo "Publishing..."
-            npm publish --access public --provenance -w "$name"
+            npm publish --access public --provenance --workspace "$name"
           done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
