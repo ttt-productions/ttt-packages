@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/theme-core",
-    "version": "0.1.14",
+    "version": "0.1.15",
     "description": "Theme provider + CSS token contract for TTT Productions apps",
     "main": "dist/index.js",
     "module": "dist/index.js",
