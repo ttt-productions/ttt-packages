@@ -1,7 +1,6 @@
-# @ttt-productions/theme-core
 
-Shared theme provider + CSS token contract.
-
+**NEW**
+```md
 ## Install
 ```bash
 npm install @ttt-productions/theme-core

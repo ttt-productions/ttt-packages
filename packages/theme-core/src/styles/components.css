@@ -1,0 +1,248 @@
+@layer components {
+    /* ===================
+       LAYOUT / CARDS
+       =================== */
+    .page-container {
+      @apply flex-1 w-full mx-auto py-4;
+    }
+  
+    .page-card {
+      @apply w-full bg-card text-card-foreground shadow-xl rounded-lg border-2 border-border;
+    }
+  
+    .page-card-header {
+      @apply text-center p-4 sm:p-6;
+    }
+  
+    .page-card-title {
+      @apply text-3xl font-bold text-foreground;
+    }
+  
+    .page-card-content {
+      @apply px-2 sm:px-6 pb-4;
+    }
+  
+    .inner-card-container {
+      @apply px-4 py-2;
+    }
+  
+    /* ===================
+       TEXT UTILITIES
+       =================== */
+    .card-title {
+      color: hsl(var(--foreground));
+    }
+  
+    .card-description {
+      @apply text-sm font-bold;
+      color: hsl(var(--muted-foreground));
+    }
+  
+    .input-description {
+      @apply text-xs;
+      color: hsl(var(--muted-foreground));
+    }
+  
+    .disclaimer-text {
+      @apply text-sm font-bold text-center;
+      color: hsl(var(--muted-foreground));
+    }
+  
+    .text-small {
+      @apply text-sm font-bold;
+      color: hsl(var(--foreground));
+    }
+  
+    .text-xs-bold {
+      @apply text-xs font-bold;
+      color: hsl(var(--foreground));
+    }
+  
+    .text-label {
+      @apply font-bold;
+      color: hsl(var(--foreground));
+    }
+  
+    .text-counter {
+      @apply text-sm font-bold;
+      color: hsl(var(--muted-foreground));
+    }
+  
+    .empty-state-text {
+      @apply text-center py-8 font-bold;
+      color: hsl(var(--muted-foreground));
+    }
+  
+    /* ===================
+       LINKS
+       =================== */
+    .auth-link {
+      @apply text-sm underline font-semibold;
+      color: hsl(var(--primary));
+    }
+  
+    /* ===================
+       POPOVERS
+       =================== */
+    .app-popover {
+      @apply w-80 p-2 border-2;
+      background-color: hsl(var(--card));
+      border-color: hsl(var(--border));
+      color: hsl(var(--card-foreground));
+    }
+  
+    /* ===================
+       ALERT DIALOGS
+       =================== */
+    .alert-dialog-overlay {
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+  
+    .alert-dialog-content {
+      background-color: hsl(var(--card)) !important;
+      border-color: hsl(var(--border)) !important;
+      color: hsl(var(--card-foreground)) !important;
+      @apply border-2;
+    }
+  
+    .alert-dialog-title {
+      color: hsl(var(--foreground)) !important;
+    }
+  
+    .alert-dialog-description {
+      color: hsl(var(--muted-foreground)) !important;
+      @apply font-bold;
+    }
+  
+    /* ===================
+       SELECTS (GENERIC)
+       =================== */
+    .form-select-trigger {
+      @apply font-semibold rounded-xl h-11 px-4 shadow-sm border-2;
+      background-color: hsl(var(--background));
+      border-color: hsl(var(--border)) !important;
+      color: hsl(var(--foreground));
+    }
+  
+    /* ===================
+       FILTER & SORT (GENERIC)
+       =================== */
+    .filter-select-trigger,
+    .sort-select-trigger {
+      @apply w-full sm:w-auto rounded-xl h-11 px-4 font-bold shadow-sm border-2;
+      background-color: hsl(var(--primary));
+      border-color: hsl(var(--border));
+      color: hsl(var(--primary-foreground));
+    }
+  
+    .filter-select-content,
+    .sort-select-content {
+      background-color: hsl(var(--popover));
+      border-color: hsl(var(--border));
+      color: hsl(var(--popover-foreground));
+    }
+  
+    .filter-select-item,
+    .sort-select-item {
+      @apply font-bold;
+      color: hsl(var(--foreground));
+    }
+  
+    .filter-select-item:hover,
+    .sort-select-item:hover {
+      background-color: hsl(var(--accent));
+      color: hsl(var(--accent-foreground));
+    }
+  
+    /* High contrast behavior */
+    .high-contrast .filter-select-trigger,
+    .high-contrast .sort-select-trigger {
+      background-color: hsl(var(--background));
+      border-color: hsl(var(--border));
+      color: hsl(var(--foreground));
+    }
+  
+    .high-contrast .filter-select-content,
+    .high-contrast .sort-select-content {
+      background-color: hsl(var(--background));
+      border-color: hsl(var(--border));
+      color: hsl(var(--foreground));
+    }
+  
+    .high-contrast .filter-select-item:hover,
+    .high-contrast .sort-select-item:hover {
+      background-color: hsl(var(--foreground));
+      color: hsl(var(--background));
+    }
+  
+    /* ===================
+       VIEW TOGGLE (GENERIC)
+       =================== */
+    .view-toggle-container {
+      @apply flex items-center p-1 rounded-xl border-2 shadow-sm;
+      background-color: hsl(var(--muted));
+      border-color: hsl(var(--border));
+    }
+  
+    .view-toggle-button {
+      @apply rounded-lg h-8 w-8;
+      color: hsl(var(--foreground));
+    }
+  
+    /* ===================
+       DATE PICKER (GENERIC)
+       =================== */
+    .date-picker-popover {
+      background-color: hsl(var(--card)) !important;
+      border-color: hsl(var(--border)) !important;
+      color: hsl(var(--card-foreground)) !important;
+      @apply border-2;
+    }
+  
+    .date-picker-caption {
+      color: hsl(var(--foreground)) !important;
+    }
+  
+    .date-picker-day-label {
+      color: hsl(var(--muted-foreground)) !important;
+      @apply font-bold text-center;
+    }
+  
+    .date-picker-day {
+      color: hsl(var(--foreground)) !important;
+      @apply font-semibold;
+    }
+  
+    .date-picker-day-today {
+      background-color: hsl(var(--accent)) !important;
+      color: hsl(var(--accent-foreground)) !important;
+      @apply font-bold;
+    }
+  
+    .date-picker-day-selected {
+      background-color: hsl(var(--primary)) !important;
+      color: hsl(var(--primary-foreground)) !important;
+      @apply font-bold;
+    }
+  
+    .date-picker-day:hover {
+      background-color: hsl(var(--primary) / 0.12) !important;
+      color: hsl(var(--foreground)) !important;
+    }
+  
+    .date-picker-day-disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+  
+    .date-picker-nav-button {
+      background-color: hsl(var(--primary)) !important;
+      color: hsl(var(--primary-foreground)) !important;
+      border: none !important;
+    }
+  
+    .high-contrast .date-picker-nav-button {
+      border: 2px solid hsl(var(--border)) !important;
+    }
+  }
+  

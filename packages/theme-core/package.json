@@ -13,7 +13,8 @@
             "types": "./dist/index.d.ts",
             "default": "./dist/index.js"
         },
-        "./styles.css": "./dist/styles/index.css"
+        "./styles.css": "./dist/styles/index.css",
+        "./components.css": "./dist/styles/components.css"
     },
     "scripts": {
         "build": "tsc && rm -rf dist/styles && mkdir -p dist/styles && cp -R src/styles/* dist/styles/",
