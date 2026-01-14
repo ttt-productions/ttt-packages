@@ -26,15 +26,36 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Option 1: keep your existing build
       - name: Build packages
         run: npm run build
 
-      # (Optional but nice) ensure workspace prepublish hooks run consistently
-      # - name: Run prepublish for all workspaces
-      #   run: npm -ws run prepublishOnly --if-present
+      - name: Publish changed workspace packages
+        shell: bash
+        run: |
+          set -euo pipefail
 
-      - name: Publish to npm
-        run: npm publish --access public --provenance --workspaces
+          echo "== Workspaces (name + version) =="
+          npm -ws --silent pkg get name version | sed -n '1,200p'
+
+          echo "== Publish loop =="
+          node <<'NODE'
+          const { execSync } = require("child_process");
+          const workspaces = JSON.parse(execSync("npm query .workspace --json", { encoding: "utf8" }));
+          for (const w of workspaces) {
+            console.log(`${w.package.name}::${w.package.version}`);
+          }
+          NODE
+          | while IFS="::" read -r name ver; do
+              echo ""
+              echo "== $name@$ver =="
+
+              if npm view "$name@$ver" version --silent >/dev/null 2>&1; then
+                echo "Already published -> skip"
+                continue
+              fi
+
+              echo "Publishing..."
+              npm publish --access public --provenance -w "$name"
+            done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
