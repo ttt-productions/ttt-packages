@@ -26,7 +26,9 @@ export * from "./components/accordion"
 export * from "./components/radio-group"
 export * from "./components/progress"
 export * from "./components/slider"
-
+export * from "./components/date-picker"
+export * from './components/label';
+export * from './components/popover';
 
 // Export utilities
 export * from "./lib/utils"
