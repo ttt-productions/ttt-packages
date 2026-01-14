@@ -110,8 +110,7 @@ function DatePicker({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowYearPicker(!showYearPicker)}
-            className="text-base font-bold hover:opacity-80 transition-opacity"
-            style={{ color: "hsl(var(--text-title-light))" }}
+            className="text-base font-bold hover:opacity-80 transition-opacity text-foreground"
           >
             {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
           </button>
@@ -137,8 +136,7 @@ function DatePicker({
         {DAYS.map((day) => (
           <div
             key={day}
-            className="text-center text-sm font-bold py-2"
-            style={{ color: "hsl(var(--brand-primary-deep))" }}
+            className="text-center text-sm font-bold py-2 text-foreground"
           >
             {day}
           </div>
@@ -162,21 +160,12 @@ function DatePicker({
                 "h-9 w-9 rounded-lg text-sm font-semibold transition-all",
                 "hover:scale-105 active:scale-95",
                 "flex items-center justify-center",
-                !disabled && !selected && !todayDate && "text-body hover:bg-primary/10",
-                todayDate && !selected && "bg-primary/20 text-primary font-bold ring-2 ring-primary/30",
+                !disabled && !selected && !todayDate && "text-foreground hover:bg-primary/10",
+                todayDate && !selected && "bg-accent text-foreground font-bold ring-2 ring-border",
                 selected && "bg-primary text-white font-bold shadow-lg",
                 disabled && "opacity-30 cursor-not-allowed hover:scale-100 hover:bg-transparent",
                 disabled && "relative"
               )}
-              style={{
-                color: disabled
-                  ? "hsl(var(--text-body-light))"
-                  : selected
-                    ? "white"
-                    : todayDate
-                      ? "hsl(var(--brand-primary))"
-                      : "hsl(var(--text-body-light))",
-              }}
             >
               {date.getDate()}
               {disabled && (
@@ -195,7 +184,7 @@ function DatePicker({
           <span className="text-muted-foreground">Selected</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-primary/20 ring-2 ring-primary/30" />
+          <div className="h-3 w-3 rounded bg-accent ring-2 ring-border" />
           <span className="text-muted-foreground">Today</span>
         </div>
         {(disablePast || disableFuture || disabled) && (
