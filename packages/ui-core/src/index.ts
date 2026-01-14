@@ -12,6 +12,11 @@ export * from "./components/alert-dialog"
 export * from "./components/toast"
 export * from "./components/toaster"
 export * from "./hooks/use-toast"
+export * from "./components/input"
+export * from "./components/select"
+export * from "./components/tabs"
+export * from "./components/tooltip"
+export * from "./components/form"
 
 
 // Export utilities
