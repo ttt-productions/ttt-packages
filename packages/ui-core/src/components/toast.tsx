@@ -30,7 +30,7 @@ const ToastViewport = React.forwardRef<
 ));
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
-type ToastProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
+type ToastRootProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
   VariantProps<typeof toastVariants> & {
     /** ms */
     duration?: number;
@@ -38,7 +38,7 @@ type ToastProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     dismissible?: boolean;
   };
 
-const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, ToastProps>(
+const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, ToastRootProps>(
   ({ className, variant, duration = 5000, dismissible = true, style, children, ...props }, ref) => {
     // pass duration to Radix AND to CSS countdown bar
     const mergedStyle: React.CSSProperties = {
@@ -103,6 +103,10 @@ const ToastDescription = React.forwardRef<
   <ToastPrimitives.Description ref={ref} className={cn(className)} {...props} />
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
+
+/** Exported types for consumers */
+export type ToastProps = React.ComponentPropsWithoutRef<typeof Toast>;
+export type ToastActionElement = React.ReactElement<typeof ToastAction>;
 
 export {
   ToastProvider,
