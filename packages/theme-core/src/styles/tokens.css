@@ -1,82 +1,110 @@
 @layer base {
-    :root {
-      /* Semantic tokens (default = light) */
-      --background: var(--neutral-white);
-      --foreground: var(--neutral-black);
-  
-      --card: var(--neutral-white);
-      --card-foreground: var(--neutral-black);
-  
-      --popover: var(--neutral-white);
-      --popover-foreground: var(--neutral-black);
-  
-      --muted: 0 0% 95%;
-      --muted-foreground: var(--neutral-black);
-  
-      --accent: var(--brand-accent);
-      --accent-foreground: var(--neutral-black);
-  
-      --primary: var(--brand-primary);
-      --primary-foreground: var(--neutral-white);
-  
-      --secondary: var(--brand-secondary);
-      --secondary-foreground: var(--neutral-white);
-  
-      --destructive: var(--status-error);
-      --destructive-foreground: var(--neutral-white);
-  
-      --border: var(--brand-primary);
-      --ring: var(--brand-primary);
-  
-      --radius: 1rem;
-    }
-  
-    .dark {
-      /* Keep semantic token mapping; apps can override brand tokens per-mode if they want */
-      --background: 240 6% 10%;
-      --foreground: 0 0% 100%;
-  
-      --card: 240 6% 12%;
-      --card-foreground: 0 0% 100%;
-  
-      --popover: 240 6% 12%;
-      --popover-foreground: 0 0% 100%;
-  
-      --muted: 240 4% 20%;
-      --muted-foreground: 0 0% 100%;
-  
-      --border: 0 0% 100%;
-      --ring: 0 0% 100%;
-    }
-  
-    .high-contrast {
-      /* You already had this approach in master-app and it’s correct: pure B/W semantic tokens */
-      --background: 0 0% 0%;
-      --foreground: 0 0% 100%;
-  
-      --card: 0 0% 0%;
-      --card-foreground: 0 0% 100%;
-  
-      --popover: 0 0% 0%;
-      --popover-foreground: 0 0% 100%;
-  
-      --muted: 0 0% 0%;
-      --muted-foreground: 0 0% 100%;
-  
-      --accent: 0 0% 0%;
-      --accent-foreground: 0 0% 100%;
-  
-      --primary: 0 0% 100%;
-      --primary-foreground: 0 0% 0%;
-  
-      --secondary: 0 0% 100%;
-      --secondary-foreground: 0 0% 0%;
-  
-      --destructive: 0 0% 100%;
-      --destructive-foreground: 0 0% 0%;
-  
-      --border: 0 0% 100%;
-      --ring: 0 0% 100%;
-    }
+  :root {
+    /* Semantic tokens (default = light) */
+    --background: var(--neutral-white);
+    --foreground: var(--neutral-black);
+
+    --card: var(--neutral-white);
+    --card-foreground: var(--neutral-black);
+
+    --popover: var(--neutral-white);
+    --popover-foreground: var(--neutral-black);
+
+    --muted: 0 0% 95%;
+    --muted-foreground: var(--neutral-black);
+
+    --accent: var(--brand-accent);
+    --accent-foreground: var(--neutral-black);
+
+    --primary: var(--brand-primary);
+    --primary-foreground: var(--neutral-white);
+
+    --secondary: var(--brand-secondary);
+    --secondary-foreground: var(--neutral-white);
+
+    /* canonical shadcn name */
+    --destructive: var(--status-error);
+    --destructive-foreground: var(--neutral-white);
+
+    /* extra semantic status tokens */
+    --success: var(--status-success);
+    --success-foreground: var(--neutral-white);
+
+    --warning: var(--status-warning);
+    --warning-foreground: var(--neutral-black);
+
+    --error: var(--status-error);
+    --error-foreground: var(--neutral-white);
+
+    --border: var(--brand-primary);
+    --ring: var(--brand-primary);
+
+    --radius: 1rem;
+
+    /* toast defaults (overridable per-toast via inline CSS var) */
+    --toast-duration: 5000ms;
   }
-  
+
+  .dark {
+    /* Keep semantic token mapping; apps can override brand tokens per-mode if they want */
+    --background: 240 6% 10%;
+    --foreground: 0 0% 100%;
+
+    --card: 240 6% 12%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 240 6% 12%;
+    --popover-foreground: 0 0% 100%;
+
+    --muted: 240 4% 20%;
+    --muted-foreground: 0 0% 100%;
+
+    --border: 0 0% 100%;
+    --ring: 0 0% 100%;
+
+    /* status foregrounds in dark */
+    --destructive-foreground: 0 0% 100%;
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 0 0% 0%;
+    --error-foreground: 0 0% 100%;
+  }
+
+  .high-contrast {
+    /* Pure B/W semantic tokens */
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 100%;
+
+    --muted: 0 0% 0%;
+    --muted-foreground: 0 0% 100%;
+
+    --accent: 0 0% 0%;
+    --accent-foreground: 0 0% 100%;
+
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 0%;
+
+    --secondary: 0 0% 100%;
+    --secondary-foreground: 0 0% 0%;
+
+    --destructive: 0 0% 100%;
+    --destructive-foreground: 0 0% 0%;
+
+    --success: 0 0% 100%;
+    --success-foreground: 0 0% 0%;
+
+    --warning: 0 0% 100%;
+    --warning-foreground: 0 0% 0%;
+
+    --error: 0 0% 100%;
+    --error-foreground: 0 0% 0%;
+
+    --border: 0 0% 100%;
+    --ring: 0 0% 100%;
+  }
+}
