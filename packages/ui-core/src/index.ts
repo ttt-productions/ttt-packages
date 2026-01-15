@@ -32,6 +32,8 @@ export * from './components/popover';
 export * from './components/alert';
 export * from './components/scroll-area';
 export * from './components/table';
+export * from "./components/layout/screen-adaptive-view";
+export * from "./hooks/use-media-query";
 
 // Export utilities
 export * from "./lib/utils";

@@ -186,6 +186,33 @@
     border: 2px solid hsl(var(--border));
   }
 
+  /* ===================
+    SCREEN ADAPTIVE VIEW
+  =================== */
+    .screen-adaptive-root {
+      @apply flex flex-1 flex-col w-full;
+    }
+  
+    .screen-adaptive-inner {
+      @apply mx-auto w-full;
+    }
+  
+    /* Max width variants */
+    .screen-max-w-none { max-width: none; }
+    .screen-max-w-full { max-width: 100%; }
+  
+    .screen-max-w-sm  { max-width: 24rem; }  /* 384px */
+    .screen-max-w-md  { max-width: 28rem; }  /* 448px */
+    .screen-max-w-lg  { max-width: 32rem; }  /* 512px */
+    .screen-max-w-xl  { max-width: 36rem; }  /* 576px */
+  
+    .screen-max-w-2xl { max-width: 42rem; }  /* 672px */
+    .screen-max-w-3xl { max-width: 48rem; }  /* 768px */
+    .screen-max-w-4xl { max-width: 56rem; }  /* 896px */
+    .screen-max-w-5xl { max-width: 64rem; }  /* 1024px */
+    .screen-max-w-6xl { max-width: 72rem; }  /* 1152px */
+    .screen-max-w-7xl { max-width: 80rem; }  /* 1280px */
+
   /* =========================================================
      RULE CARDS
      ========================================================= */
