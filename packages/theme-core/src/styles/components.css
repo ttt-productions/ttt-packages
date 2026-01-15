@@ -1,7 +1,41 @@
 @layer components {
-  /* ===================
-     LAYOUT / CARDS
-     =================== */
+  /* =========================================================
+     FOUNDATIONS (icon + layout bundles) — replaces inline utils
+     ========================================================= */
+
+  /* Icons */
+  .icon-xxs { @apply h-3 w-3; }
+  .icon-xs  { @apply h-4 w-4; }
+  .icon-sm  { @apply h-5 w-5; }
+  .icon-md  { @apply h-6 w-6; }
+  .icon-lg  { @apply h-8 w-8; }
+  .icon-xl  { @apply h-10 w-10; }
+  .icon-2xl { @apply h-12 w-12; }
+
+  /* Spinners */
+  .spinner-xs { @apply icon-xs animate-spin; color: hsl(var(--primary)); }
+  .spinner-sm { @apply icon-sm animate-spin; color: hsl(var(--primary)); }
+  .spinner-md { @apply icon-md animate-spin; color: hsl(var(--primary)); }
+  .spinner-lg { @apply icon-lg animate-spin; color: hsl(var(--primary)); }
+  .spinner-xl { @apply icon-xl animate-spin; color: hsl(var(--primary)); }
+  .spinner-with-gap { @apply mr-2; }
+
+  /* Common centering */
+  .center-row { @apply flex items-center justify-center; }
+  .center-col { @apply flex flex-col items-center justify-center; }
+  .loading-block { @apply center-row py-8; }
+  .loading-block-padded { @apply center-row p-8; }
+  .loading-screen { @apply flex flex-col h-screen-mobile w-screen items-center justify-center bg-background space-y-4; }
+
+  /* Stacks */
+  .stack-1 { @apply space-y-1; }
+  .stack-2 { @apply space-y-2; }
+  .stack-4 { @apply space-y-4; }
+  .stack-6 { @apply space-y-6; }
+
+  /* =========================================================
+     PAGE LAYOUT
+     ========================================================= */
   .page-container {
     @apply flex-1 w-full mx-auto py-4;
   }
@@ -11,7 +45,11 @@
   }
 
   .page-card-header {
-    @apply text-center p-4 sm:p-6;
+    @apply text-center p-4 sm:p-6 items-center;
+  }
+
+  .page-card-header-left {
+    @apply p-4 sm:p-6 text-left;
   }
 
   .page-card-title {
@@ -26,25 +64,21 @@
     @apply px-4 py-2;
   }
 
-  /* ===================
-     TEXT UTILITIES
-     =================== */
-  .card-title {
+  /* =========================================================
+     TYPOGRAPHY (high-level)
+     ========================================================= */
+  .text-body {
+    @apply text-sm font-medium;
     color: hsl(var(--foreground));
   }
 
-  .card-description {
-    @apply text-sm font-bold;
+  .text-muted {
+    @apply text-sm font-medium;
     color: hsl(var(--muted-foreground));
   }
 
-  .input-description {
-    @apply text-xs;
-    color: hsl(var(--muted-foreground));
-  }
-
-  .disclaimer-text {
-    @apply text-sm font-bold text-center;
+  .text-caption {
+    @apply text-xs font-medium;
     color: hsl(var(--muted-foreground));
   }
 
@@ -73,50 +107,326 @@
     color: hsl(var(--muted-foreground));
   }
 
-  /* ===================
+  .card-description {
+    @apply text-sm font-bold;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .input-description {
+    @apply text-xs;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .disclaimer-text {
+    @apply text-sm font-bold text-center;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Error blocks / inline */
+  .text-error {
+    @apply text-sm font-bold;
+    color: hsl(var(--destructive));
+  }
+
+  .text-error-block {
+    @apply text-center p-4 font-bold rounded-md border;
+    color: hsl(var(--destructive));
+    border-color: hsl(var(--destructive) / 0.5);
+    background-color: hsl(var(--destructive) / 0.10);
+  }
+
+  /* =========================================================
      LINKS
-     =================== */
+     ========================================================= */
   .auth-link {
     @apply text-sm underline font-semibold;
     color: hsl(var(--primary));
   }
 
-  /* ===================
-     POPOVERS
-     =================== */
-  .app-popover {
-    @apply w-80 p-2 border-2;
-    background-color: hsl(var(--card));
+  /* =========================================================
+     CHAT
+     ========================================================= */
+  .chat-date-separator {
+    @apply text-xs font-bold bg-muted px-3 py-1 rounded-full;
+    color: hsl(var(--foreground));
+  }
+
+  /* Status pills (replaces bg-blue-100/text-blue-700 etc.) */
+  .status-pill {
+    @apply text-xs-bold px-2 py-0.5 rounded-full inline-flex items-center;
+  }
+
+  .status-pill--info {
+    background-color: hsl(var(--info) / 0.15);
+    color: hsl(var(--info));
+  }
+
+  .status-pill--success {
+    background-color: hsl(var(--success) / 0.15);
+    color: hsl(var(--success));
+  }
+
+  .status-pill--warning {
+    background-color: hsl(var(--warning) / 0.15);
+    color: hsl(var(--warning));
+  }
+
+  .status-pill--muted {
+    background-color: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* High contrast pills: pure B/W */
+  .high-contrast .status-pill--info,
+  .high-contrast .status-pill--success,
+  .high-contrast .status-pill--warning,
+  .high-contrast .status-pill--muted {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    border: 2px solid hsl(var(--border));
+  }
+
+  /* =========================================================
+     RULE CARDS
+     ========================================================= */
+  .rule-card {
+    @apply p-4 rounded-lg border-2 border-border bg-card;
+  }
+
+  .rule-card-title {
+    @apply font-bold mb-2;
+    color: hsl(var(--foreground));
+  }
+
+  .rule-card-description {
+    @apply text-sm leading-relaxed font-bold;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* =========================================================
+     ACCORDION
+     ========================================================= */
+  .accordion-trigger {
+    @apply p-6 hover:no-underline rounded-t-lg;
+  }
+
+  .accordion-icon-container {
+    @apply p-2 rounded-lg;
+    background-color: hsl(var(--primary) / 0.10);
+    color: hsl(var(--primary));
+  }
+
+  .accordion-title {
+    @apply text-lg font-semibold;
+    color: hsl(var(--foreground));
+  }
+
+  .accordion-content-container {
+    @apply px-6 py-4 rounded-b-lg space-y-4 bg-card;
+  }
+
+  /* =========================================================
+     DETAILS (nested accordions)
+     ========================================================= */
+  .details-summary {
+    @apply flex items-center justify-between cursor-pointer list-none p-4 rounded-lg border-2 border-border bg-card transition-all;
+  }
+
+  .details-summary:hover {
+    border-color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.05);
+  }
+
+  .details-icon-container {
+    @apply p-2 rounded-lg transition-colors;
+    background-color: hsl(var(--primary) / 0.10);
+    color: hsl(var(--primary));
+  }
+
+  .group\/details:hover .details-icon-container {
+    background-color: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+
+  .details-title {
+    @apply font-semibold text-base;
+    color: hsl(var(--foreground));
+  }
+
+  .details-chevron {
+    color: hsl(var(--primary));
+  }
+
+  /* =========================================================
+     AGREEMENT LIST ITEMS
+     ========================================================= */
+  .agreement-list-item {
+    @apply flex gap-2 text-sm font-bold;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* =========================================================
+     FUTURE PLANS / MEDIA
+     ========================================================= */
+  .future-plan-description {
+    @apply text-base whitespace-pre-wrap leading-relaxed max-w-prose font-bold;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .future-plan-media {
+    @apply w-full aspect-video rounded-lg overflow-hidden border;
     border-color: hsl(var(--border));
-    color: hsl(var(--card-foreground));
+    background-color: hsl(var(--muted));
   }
 
-  /* ===================
-     ALERT DIALOGS
-     =================== */
-  .alert-dialog-overlay {
-    background-color: rgba(0, 0, 0, 0.8);
+  /* Media helpers (replaces repeated w/full/max-w/aspect) */
+  .media-image-sm-centered {
+    @apply w-full h-auto max-w-sm mx-auto;
   }
 
-  .alert-dialog-content {
-    background-color: hsl(var(--card)) !important;
-    border-color: hsl(var(--border)) !important;
-    color: hsl(var(--card-foreground)) !important;
-    @apply border-2;
+  .media-square-centered {
+    @apply w-full max-w-[400px] mx-auto aspect-square rounded-md overflow-hidden;
+    background-color: hsl(var(--muted));
   }
 
-  .alert-dialog-title {
-    color: hsl(var(--foreground)) !important;
+  .media-wide {
+    @apply w-full aspect-video rounded-lg overflow-hidden border;
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--muted));
   }
 
-  .alert-dialog-description {
-    color: hsl(var(--muted-foreground)) !important;
+  /* =========================================================
+     INFO SECTIONS
+     ========================================================= */
+  .info-section {
+    @apply flex items-start gap-4;
+  }
+
+  .info-section-icon {
+    @apply mt-1;
+    color: hsl(var(--primary));
+  }
+
+  .info-section-title {
+    @apply font-semibold;
+    color: hsl(var(--foreground));
+  }
+
+  .info-section-description {
+    @apply text-sm font-bold;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .info-section-divider {
+    @apply w-full h-px;
+    background-color: hsl(var(--border));
+  }
+
+  .info-section-header {
+    @apply text-lg font-semibold text-center pt-4;
+    color: hsl(var(--foreground));
+  }
+
+  /* =========================================================
+     ATTRIBUTION SECTIONS
+     ========================================================= */
+  .attribution-item {
+    @apply flex items-start gap-4;
+  }
+
+  .attribution-icon {
+    @apply mt-1;
+    color: hsl(var(--primary));
+  }
+
+  .attribution-title {
+    @apply font-semibold;
+    color: hsl(var(--foreground));
+  }
+
+  .attribution-cost {
+    @apply text-sm font-semibold;
+    color: hsl(var(--primary));
+  }
+
+  .attribution-description {
+    @apply text-sm mt-1 font-bold;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* =========================================================
+     DEDICATION SECTIONS
+     ========================================================= */
+  .dedication-section {
+    @apply text-center space-y-2;
+  }
+
+  .dedication-header {
+    @apply inline-flex items-center gap-2;
+  }
+
+  .dedication-title {
+    @apply font-semibold text-lg;
+    color: hsl(var(--foreground));
+  }
+
+  .dedication-content {
     @apply font-bold;
+    color: hsl(var(--muted-foreground));
   }
 
-  /* ===================
-     SELECTS (GENERIC)
-     =================== */
+  /* =========================================================
+     DMCA INFO
+     ========================================================= */
+  .dmca-section-title {
+    @apply text-lg font-semibold;
+    color: hsl(var(--foreground));
+  }
+
+  .dmca-info-container {
+    @apply space-y-2 pl-4 border-l-2;
+    border-color: hsl(var(--border));
+  }
+
+  .dmca-info-row {
+    @apply flex flex-col sm:flex-row sm:items-center;
+  }
+
+  .dmca-label {
+    @apply w-full sm:w-40 font-semibold shrink-0;
+    color: hsl(var(--foreground));
+  }
+
+  .dmca-value {
+    @apply break-all font-bold;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* =========================================================
+     BUTTONS
+     ========================================================= */
+  .primary-action-button {
+    @apply w-full text-lg py-6;
+  }
+
+  .secondary-action-grid {
+    @apply grid grid-cols-2 md:grid-cols-3 gap-4 mt-6;
+  }
+
+  .secondary-action-button {
+    @apply justify-center;
+  }
+
+  /* =========================================================
+     FOOTER
+     ========================================================= */
+  .app-footer {
+    @apply w-full h-12 flex-shrink-0 bg-secondary pt-4;
+  }
+
+  /* =========================================================
+     CUSTOM FORM ELEMENTS
+     ========================================================= */
   .form-select-trigger {
     @apply font-semibold rounded-xl h-11 px-4 shadow-sm border-2;
     background-color: hsl(var(--background));
@@ -124,9 +434,114 @@
     color: hsl(var(--foreground));
   }
 
-  /* ===================
+  /* =========================================================
+     SAFE AREA UTILITIES
+     ========================================================= */
+  .fixed-header {
+    padding-top: max(1rem, var(--sat));
+  }
+
+  .fixed-footer {
+    padding-bottom: max(1rem, var(--sab));
+  }
+
+  /* =========================================================
+     LANDING PAGE
+     ========================================================= */
+  .landing-tabs-list {
+    @apply grid w-full grid-cols-2 bg-transparent p-0 gap-2 mb-4;
+  }
+
+  .landing-tab-trigger {
+    @apply flex-1;
+  }
+
+  .landing-section-title {
+    @apply text-xl font-semibold text-center;
+    color: hsl(var(--foreground));
+  }
+
+  .landing-section-description {
+    @apply text-center font-bold;
+    color: hsl(var(--muted-foreground));
+  }
+
+  .landing-video-container {
+    @apply aspect-video w-full rounded-lg overflow-hidden border;
+    border-color: hsl(var(--border));
+    background-color: hsl(var(--muted));
+  }
+
+  /* =========================================================
+     APP HEADER
+     ========================================================= */
+  .app-header {
+    @apply flex items-center h-[60px] shadow-md;
+    background-color: hsl(var(--secondary));
+    border-bottom: 2px solid hsl(var(--border));
+  }
+
+  .app-header-container {
+    @apply flex items-center justify-between w-full px-0.5;
+  }
+
+  .app-header-actions {
+    @apply flex items-center space-x-3;
+  }
+
+  .app-header-menu-button {
+    @apply flex items-center space-x-2 h-10 px-3 rounded-full;
+  }
+
+  .app-dropdown-menu {
+    @apply w-56 border-2;
+    background-color: hsl(var(--card));
+    border-color: hsl(var(--border));
+  }
+
+  .app-dropdown-item {
+    @apply flex items-center cursor-pointer font-bold;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .app-dropdown-item:hover,
+  .app-dropdown-item:focus {
+    background-color: hsl(var(--accent));
+    color: hsl(var(--accent-foreground)) !important;
+  }
+
+  /* =========================================================
+     POPOVERS
+     ========================================================= */
+  .app-popover {
+    @apply w-80 p-2 border-2;
+    background-color: hsl(var(--card));
+    border-color: hsl(var(--border));
+    color: hsl(var(--card-foreground));
+  }
+
+  /* =========================================================
+     HELP DIALOG
+     ========================================================= */
+  .help-dialog-title {
+    @apply font-semibold;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .help-dialog-body {
+    font-weight: 700 !important;
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  @media (prefers-contrast: more) {
+    .help-dialog-body {
+      color: #ffffff !important;
+    }
+  }
+
+  /* =========================================================
      FILTER & SORT (GENERIC)
-     =================== */
+     ========================================================= */
   .filter-select-trigger,
   .sort-select-trigger {
     @apply w-full sm:w-auto rounded-xl h-11 px-4 font-bold shadow-sm border-2;
@@ -175,9 +590,9 @@
     color: hsl(var(--background));
   }
 
-  /* ===================
+  /* =========================================================
      VIEW TOGGLE (GENERIC)
-     =================== */
+     ========================================================= */
   .view-toggle-container {
     @apply flex items-center p-1 rounded-xl border-2 shadow-sm;
     background-color: hsl(var(--muted));
@@ -187,147 +602,5 @@
   .view-toggle-button {
     @apply rounded-lg h-8 w-8;
     color: hsl(var(--foreground));
-  }
-
-  /* ===================
-     DATE PICKER (GENERIC)
-     =================== */
-  .date-picker-popover {
-    background-color: hsl(var(--card)) !important;
-    border-color: hsl(var(--border)) !important;
-    color: hsl(var(--card-foreground)) !important;
-    @apply border-2;
-  }
-
-  .date-picker-caption {
-    color: hsl(var(--foreground)) !important;
-  }
-
-  .date-picker-day-label {
-    color: hsl(var(--muted-foreground)) !important;
-    @apply font-bold text-center;
-  }
-
-  .date-picker-day {
-    color: hsl(var(--foreground)) !important;
-    @apply font-semibold;
-  }
-
-  .date-picker-day-today {
-    background-color: hsl(var(--accent)) !important;
-    color: hsl(var(--accent-foreground)) !important;
-    @apply font-bold;
-  }
-
-  .date-picker-day-selected {
-    background-color: hsl(var(--primary)) !important;
-    color: hsl(var(--primary-foreground)) !important;
-    @apply font-bold;
-  }
-
-  .date-picker-day:hover {
-    background-color: hsl(var(--primary) / 0.12) !important;
-    color: hsl(var(--foreground)) !important;
-  }
-
-  .date-picker-day-disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-  }
-
-  .date-picker-nav-button {
-    background-color: hsl(var(--primary)) !important;
-    color: hsl(var(--primary-foreground)) !important;
-    border: none !important;
-  }
-
-  .high-contrast .date-picker-nav-button {
-    border: 2px solid hsl(var(--border)) !important;
-  }
-
-  /* ===================
-     TOAST (Radix/shadcn-friendly)
-     =================== */
-  .toast-viewport {
-    @apply fixed bottom-0 right-0 z-50 flex max-h-screen w-full flex-col p-4 sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col md:max-w-[420px];
-  }
-
-  .toast-root {
-    @apply relative overflow-hidden rounded-lg border-2 p-4 shadow-lg;
-    background-color: hsl(var(--card));
-    border-color: hsl(var(--border));
-    color: hsl(var(--card-foreground));
-  }
-
-  .toast-root[data-variant="success"] {
-    border-color: hsl(var(--success));
-  }
-
-  .toast-root[data-variant="warning"] {
-    border-color: hsl(var(--warning));
-  }
-
-  .toast-root[data-variant="error"],
-  .toast-root[data-variant="destructive"] {
-    border-color: hsl(var(--destructive));
-  }
-
-  .toast-dismiss {
-    @apply absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-bold;
-    background-color: transparent;
-    color: hsl(var(--muted-foreground));
-  }
-
-  .toast-dismiss:hover,
-  .toast-dismiss:focus-visible {
-    background-color: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
-  }
-
-  /* countdown bar (uses --toast-duration; can be overridden per-toast) */
-  .toast-progress {
-    @apply absolute bottom-0 left-0 h-1 w-full;
-    background-color: hsl(var(--foreground));
-    transform-origin: left center;
-    animation: toast-life var(--toast-duration) linear forwards;
-    opacity: 0.35;
-  }
-
-  .high-contrast .toast-progress {
-    opacity: 1;
-  }
-}
-
-/* Radix swipe support (works if toast root is Radix Toast.Root) */
-[data-swipe="move"] {
-  transform: translateX(var(--radix-toast-swipe-move-x));
-}
-
-[data-swipe="cancel"] {
-  transform: translateX(0);
-  transition: transform 200ms ease-out;
-}
-
-[data-swipe="end"] {
-  animation: toast-swipe-out 120ms ease-out forwards;
-}
-
-@keyframes toast-life {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
-  }
-}
-
-@keyframes toast-swipe-out {
-  from {
-    transform: translateX(var(--radix-toast-swipe-end-x));
-    opacity: 1;
-  }
-  to {
-    transform: translateX(calc(var(--radix-toast-swipe-end-x) * 1.2));
-    opacity: 0;
   }
 }

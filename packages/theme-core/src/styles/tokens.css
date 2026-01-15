@@ -11,7 +11,7 @@
     --popover-foreground: var(--neutral-black);
 
     --muted: 0 0% 95%;
-    --muted-foreground: var(--neutral-black);
+    --muted-foreground: 0 0% 25%;
 
     --accent: var(--brand-accent);
     --accent-foreground: var(--neutral-black);
@@ -22,31 +22,27 @@
     --secondary: var(--brand-secondary);
     --secondary-foreground: var(--neutral-white);
 
-    /* canonical shadcn name */
     --destructive: var(--status-error);
     --destructive-foreground: var(--neutral-white);
 
-    /* extra semantic status tokens */
+    /* Extra semantic status colors (used by pills/toasts/etc.) */
     --success: var(--status-success);
     --success-foreground: var(--neutral-white);
 
     --warning: var(--status-warning);
     --warning-foreground: var(--neutral-black);
 
-    --error: var(--status-error);
-    --error-foreground: var(--neutral-white);
+    --info: var(--status-info);
+    --info-foreground: var(--neutral-white);
 
     --border: var(--brand-primary);
     --ring: var(--brand-primary);
 
     --radius: 1rem;
-
-    /* toast defaults (overridable per-toast via inline CSS var) */
-    --toast-duration: 5000ms;
   }
 
   .dark {
-    /* Keep semantic token mapping; apps can override brand tokens per-mode if they want */
+    /* Dark base (brand tokens are still app-controlled) */
     --background: 240 6% 10%;
     --foreground: 0 0% 100%;
 
@@ -57,16 +53,15 @@
     --popover-foreground: 0 0% 100%;
 
     --muted: 240 4% 20%;
-    --muted-foreground: 0 0% 100%;
+    --muted-foreground: 0 0% 85%;
 
     --border: 0 0% 100%;
     --ring: 0 0% 100%;
 
-    /* status foregrounds in dark */
-    --destructive-foreground: 0 0% 100%;
-    --success-foreground: 0 0% 100%;
+    /* status foregrounds still reasonable in dark */
+    --success-foreground: 0 0% 0%;
     --warning-foreground: 0 0% 0%;
-    --error-foreground: 0 0% 100%;
+    --info-foreground: 0 0% 0%;
   }
 
   .high-contrast {
@@ -101,8 +96,8 @@
     --warning: 0 0% 100%;
     --warning-foreground: 0 0% 0%;
 
-    --error: 0 0% 100%;
-    --error-foreground: 0 0% 0%;
+    --info: 0 0% 100%;
+    --info-foreground: 0 0% 0%;
 
     --border: 0 0% 100%;
     --ring: 0 0% 100%;

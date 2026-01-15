@@ -1,4 +1,5 @@
 @import "./contract.css";
 @import "./tokens.css";
 @import "./base.css";
+@import "./hooks.css";
 /* components.css is a separate entrypoint: @ttt-productions/theme-core/components.css */

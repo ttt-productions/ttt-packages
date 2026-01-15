@@ -1,0 +1,94 @@
+
+@layer components {
+  /* ===================
+     BUTTONS
+     =================== */
+  .btn-destructive {
+    @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
+  }
+
+  /* ===================
+     MESSAGE BUBBLES
+     =================== */
+  .msg-bubble {
+    @apply p-3 rounded-lg;
+  }
+
+  .msg-bubble--mine {
+    background-color: hsl(var(--primary) / 0.10);
+  }
+
+  .msg-bubble--theirs {
+    @apply bg-muted;
+  }
+
+  /* ===================
+     STATUS PILLS
+     =================== */
+  .status-pill {
+    @apply text-xs-bold px-2 py-0.5 rounded-full;
+  }
+
+  /* map to semantic tokens (no blue/yellow/green hardcodes) */
+  .status-pill--open-user {
+    background-color: hsl(var(--info) / 0.15);
+    color: hsl(var(--info-foreground));
+  }
+
+  .status-pill--admin-reply {
+    background-color: hsl(var(--warning) / 0.20);
+    color: hsl(var(--warning-foreground));
+  }
+
+  .status-pill--user-reply {
+    background-color: hsl(var(--success) / 0.18);
+    color: hsl(var(--success-foreground));
+  }
+
+  .status-pill--closed {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  .status-pill--default {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  /* ===================
+     STATUS ICONS
+     =================== */
+  .status-icon {
+    @apply h-5 w-5;
+  }
+
+  .status-icon--success { color: hsl(var(--success)); }
+  .status-icon--warning { color: hsl(var(--warning)); }
+  .status-icon--info    { color: hsl(var(--info)); }
+  .status-icon--error   { color: hsl(var(--destructive)); }
+
+  /* ===================
+     NOTIFICATIONS
+     =================== */
+  .notify-dot {
+    @apply absolute top-1 right-1 h-2 w-2 rounded-full;
+    background-color: hsl(var(--destructive));
+  }
+
+  .notify-empty-icon {
+    color: hsl(var(--success));
+  }
+
+  /* ===================
+     MEDIA PREVIEW
+     =================== */
+  .media-preview {
+    @apply relative w-full h-full;
+  }
+
+  .media-preview--frame {
+    @apply w-full h-auto max-w-sm mx-auto;
+  }
+
+  .media-preview--fullwidth {
+    @apply w-full h-auto;
+  }
+}
