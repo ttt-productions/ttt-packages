@@ -5,10 +5,7 @@ export const REQUIRED_TOKENS = [
   
     "--status-success",
     "--status-warning",
-    "--status-error",
-  
-    "--neutral-white",
-    "--neutral-black"
+    "--status-error"
   ] as const;
   
   export type RequiredToken = (typeof REQUIRED_TOKENS)[number];

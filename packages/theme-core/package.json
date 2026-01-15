@@ -40,7 +40,10 @@
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/ttt-productions/ttt-packages.git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
         "directory": "packages/theme-core"
-    }
+    },
+    "sideEffects": [
+        "**/*.css"
+    ]
 }
