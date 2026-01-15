@@ -1,94 +1,93 @@
 
-@layer components {
-  /* ===================
-     BUTTONS
-     =================== */
-  .btn-destructive {
-    @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
-  }
 
-  /* ===================
-     MESSAGE BUBBLES
-     =================== */
-  .msg-bubble {
-    @apply p-3 rounded-lg;
-  }
+/* ===================
+    BUTTONS
+    =================== */
+.btn-destructive {
+  @apply bg-destructive text-destructive-foreground hover:bg-destructive/90;
+}
 
-  .msg-bubble--mine {
-    background-color: hsl(var(--primary) / 0.10);
-  }
+/* ===================
+    MESSAGE BUBBLES
+    =================== */
+.msg-bubble {
+  @apply p-3 rounded-lg;
+}
 
-  .msg-bubble--theirs {
-    @apply bg-muted;
-  }
+.msg-bubble--mine {
+  background-color: hsl(var(--primary) / 0.10);
+}
 
-  /* ===================
-     STATUS PILLS
-     =================== */
-  .status-pill {
-    @apply text-xs-bold px-2 py-0.5 rounded-full;
-  }
+.msg-bubble--theirs {
+  @apply bg-muted;
+}
 
-  /* map to semantic tokens (no blue/yellow/green hardcodes) */
-  .status-pill--open-user {
-    background-color: hsl(var(--info) / 0.15);
-    color: hsl(var(--info-foreground));
-  }
+/* ===================
+    STATUS PILLS
+    =================== */
+.status-pill {
+  @apply text-xs-bold px-2 py-0.5 rounded-full;
+}
 
-  .status-pill--admin-reply {
-    background-color: hsl(var(--warning) / 0.20);
-    color: hsl(var(--warning-foreground));
-  }
+/* map to semantic tokens (no blue/yellow/green hardcodes) */
+.status-pill--open-user {
+  background-color: hsl(var(--info) / 0.15);
+  color: hsl(var(--info-foreground));
+}
 
-  .status-pill--user-reply {
-    background-color: hsl(var(--success) / 0.18);
-    color: hsl(var(--success-foreground));
-  }
+.status-pill--admin-reply {
+  background-color: hsl(var(--warning) / 0.20);
+  color: hsl(var(--warning-foreground));
+}
 
-  .status-pill--closed {
-    @apply bg-muted text-muted-foreground;
-  }
+.status-pill--user-reply {
+  background-color: hsl(var(--success) / 0.18);
+  color: hsl(var(--success-foreground));
+}
 
-  .status-pill--default {
-    @apply bg-muted text-muted-foreground;
-  }
+.status-pill--closed {
+  @apply bg-muted text-muted-foreground;
+}
 
-  /* ===================
-     STATUS ICONS
-     =================== */
-  .status-icon {
-    @apply h-5 w-5;
-  }
+.status-pill--default {
+  @apply bg-muted text-muted-foreground;
+}
 
-  .status-icon--success { color: hsl(var(--success)); }
-  .status-icon--warning { color: hsl(var(--warning)); }
-  .status-icon--info    { color: hsl(var(--info)); }
-  .status-icon--error   { color: hsl(var(--destructive)); }
+/* ===================
+    STATUS ICONS
+    =================== */
+.status-icon {
+  @apply h-5 w-5;
+}
 
-  /* ===================
-     NOTIFICATIONS
-     =================== */
-  .notify-dot {
-    @apply absolute top-1 right-1 h-2 w-2 rounded-full;
-    background-color: hsl(var(--destructive));
-  }
+.status-icon--success { color: hsl(var(--success)); }
+.status-icon--warning { color: hsl(var(--warning)); }
+.status-icon--info    { color: hsl(var(--info)); }
+.status-icon--error   { color: hsl(var(--destructive)); }
 
-  .notify-empty-icon {
-    color: hsl(var(--success));
-  }
+/* ===================
+    NOTIFICATIONS
+    =================== */
+.notify-dot {
+  @apply absolute top-1 right-1 h-2 w-2 rounded-full;
+  background-color: hsl(var(--destructive));
+}
 
-  /* ===================
-     MEDIA PREVIEW
-     =================== */
-  .media-preview {
-    @apply relative w-full h-full;
-  }
+.notify-empty-icon {
+  color: hsl(var(--success));
+}
 
-  .media-preview--frame {
-    @apply w-full h-auto max-w-sm mx-auto;
-  }
+/* ===================
+    MEDIA PREVIEW
+    =================== */
+.media-preview {
+  @apply relative w-full h-full;
+}
 
-  .media-preview--fullwidth {
-    @apply w-full h-auto;
-  }
+.media-preview--frame {
+  @apply w-full h-auto max-w-sm mx-auto;
+}
+
+.media-preview--fullwidth {
+  @apply w-full h-auto;
 }

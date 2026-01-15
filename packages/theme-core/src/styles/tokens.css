@@ -1,105 +1,104 @@
-@layer base {
-  :root {
-    /* Semantic tokens (default = light) */
-    --background: var(--neutral-white);
-    --foreground: var(--neutral-black);
 
-    --card: var(--neutral-white);
-    --card-foreground: var(--neutral-black);
+:root {
+  /* Semantic tokens (default = light) */
+  --background: var(--neutral-white);
+  --foreground: var(--neutral-black);
 
-    --popover: var(--neutral-white);
-    --popover-foreground: var(--neutral-black);
+  --card: var(--neutral-white);
+  --card-foreground: var(--neutral-black);
 
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 25%;
+  --popover: var(--neutral-white);
+  --popover-foreground: var(--neutral-black);
 
-    --accent: var(--brand-accent);
-    --accent-foreground: var(--neutral-black);
+  --muted: 0 0% 95%;
+  --muted-foreground: 0 0% 25%;
 
-    --primary: var(--brand-primary);
-    --primary-foreground: var(--neutral-white);
+  --accent: var(--brand-accent);
+  --accent-foreground: var(--neutral-black);
 
-    --secondary: var(--brand-secondary);
-    --secondary-foreground: var(--neutral-white);
+  --primary: var(--brand-primary);
+  --primary-foreground: var(--neutral-white);
 
-    --destructive: var(--status-error);
-    --destructive-foreground: var(--neutral-white);
+  --secondary: var(--brand-secondary);
+  --secondary-foreground: var(--neutral-white);
 
-    /* Extra semantic status colors (used by pills/toasts/etc.) */
-    --success: var(--status-success);
-    --success-foreground: var(--neutral-white);
+  --destructive: var(--status-error);
+  --destructive-foreground: var(--neutral-white);
 
-    --warning: var(--status-warning);
-    --warning-foreground: var(--neutral-black);
+  /* Extra semantic status colors (used by pills/toasts/etc.) */
+  --success: var(--status-success);
+  --success-foreground: var(--neutral-white);
 
-    --info: var(--status-info);
-    --info-foreground: var(--neutral-white);
+  --warning: var(--status-warning);
+  --warning-foreground: var(--neutral-black);
 
-    --border: var(--brand-primary);
-    --ring: var(--brand-primary);
+  --info: var(--status-info);
+  --info-foreground: var(--neutral-white);
 
-    --radius: 1rem;
-  }
+  --border: var(--brand-primary);
+  --ring: var(--brand-primary);
 
-  .dark {
-    /* Dark base (brand tokens are still app-controlled) */
-    --background: 240 6% 10%;
-    --foreground: 0 0% 100%;
+  --radius: 1rem;
+}
 
-    --card: 240 6% 12%;
-    --card-foreground: 0 0% 100%;
+.dark {
+  /* Dark base (brand tokens are still app-controlled) */
+  --background: 240 6% 10%;
+  --foreground: 0 0% 100%;
 
-    --popover: 240 6% 12%;
-    --popover-foreground: 0 0% 100%;
+  --card: 240 6% 12%;
+  --card-foreground: 0 0% 100%;
 
-    --muted: 240 4% 20%;
-    --muted-foreground: 0 0% 85%;
+  --popover: 240 6% 12%;
+  --popover-foreground: 0 0% 100%;
 
-    --border: 0 0% 100%;
-    --ring: 0 0% 100%;
+  --muted: 240 4% 20%;
+  --muted-foreground: 0 0% 85%;
 
-    /* status foregrounds still reasonable in dark */
-    --success-foreground: 0 0% 0%;
-    --warning-foreground: 0 0% 0%;
-    --info-foreground: 0 0% 0%;
-  }
+  --border: 0 0% 100%;
+  --ring: 0 0% 100%;
 
-  .high-contrast {
-    /* Pure B/W semantic tokens */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
+  /* status foregrounds still reasonable in dark */
+  --success-foreground: 0 0% 0%;
+  --warning-foreground: 0 0% 0%;
+  --info-foreground: 0 0% 0%;
+}
 
-    --card: 0 0% 0%;
-    --card-foreground: 0 0% 100%;
+.high-contrast {
+  /* Pure B/W semantic tokens */
+  --background: 0 0% 0%;
+  --foreground: 0 0% 100%;
 
-    --popover: 0 0% 0%;
-    --popover-foreground: 0 0% 100%;
+  --card: 0 0% 0%;
+  --card-foreground: 0 0% 100%;
 
-    --muted: 0 0% 0%;
-    --muted-foreground: 0 0% 100%;
+  --popover: 0 0% 0%;
+  --popover-foreground: 0 0% 100%;
 
-    --accent: 0 0% 0%;
-    --accent-foreground: 0 0% 100%;
+  --muted: 0 0% 0%;
+  --muted-foreground: 0 0% 100%;
 
-    --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 0%;
+  --accent: 0 0% 0%;
+  --accent-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 100%;
-    --secondary-foreground: 0 0% 0%;
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 0%;
 
-    --destructive: 0 0% 100%;
-    --destructive-foreground: 0 0% 0%;
+  --secondary: 0 0% 100%;
+  --secondary-foreground: 0 0% 0%;
 
-    --success: 0 0% 100%;
-    --success-foreground: 0 0% 0%;
+  --destructive: 0 0% 100%;
+  --destructive-foreground: 0 0% 0%;
 
-    --warning: 0 0% 100%;
-    --warning-foreground: 0 0% 0%;
+  --success: 0 0% 100%;
+  --success-foreground: 0 0% 0%;
 
-    --info: 0 0% 100%;
-    --info-foreground: 0 0% 0%;
+  --warning: 0 0% 100%;
+  --warning-foreground: 0 0% 0%;
 
-    --border: 0 0% 100%;
-    --ring: 0 0% 100%;
-  }
+  --info: 0 0% 100%;
+  --info-foreground: 0 0% 0%;
+
+  --border: 0 0% 100%;
+  --ring: 0 0% 100%;
 }
