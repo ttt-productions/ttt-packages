@@ -9,6 +9,7 @@ export * from "./components/popover";
 export * from "./components/dropdown-menu";
 export * from "./components/menubar";
 export * from "./components/alert-dialog";
+export * from "./components/alert";
 export * from "./components/toast";
 export * from "./components/toaster";
 export * from "./hooks/use-toast";
@@ -27,12 +28,13 @@ export * from "./components/radio-group";
 export * from "./components/progress";
 export * from "./components/slider";
 export * from "./components/date-picker";
-export * from './components/label';
-export * from './components/popover';
-export * from './components/alert';
-export * from './components/scroll-area';
-export * from './components/table';
+export * from "./components/scroll-area";
+export * from "./components/table";
+
+// Layout
 export * from "./components/layout/screen-adaptive-view";
+
+// Hooks
 export * from "./hooks/use-media-query";
 
 // Export utilities
