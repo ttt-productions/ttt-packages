@@ -9,10 +9,6 @@ permissions:
   contents: read
   id-token: write
 
-concurrency:
-  group: publish-npm
-  cancel-in-progress: false
-
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -20,6 +16,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,9 +36,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          TAG="${GITHUB_REF_NAME}"          # e.g. chat-core-v0.2.1
+          TAG="${GITHUB_REF_NAME}"          # e.g. chat-core-v0.2.2
           SLUG="${TAG%-v*}"                 # chat-core
-          EXPECT_VER="${TAG#*-v}"           # 0.2.1
+          EXPECT_VER="${TAG##*-v}"           # 0.2.2
 
           PKGDIR="packages/${SLUG}"
           [[ -f "${PKGDIR}/package.json" ]] || { echo "No package.json at ${PKGDIR}"; exit 1; }
@@ -49,7 +47,7 @@ jobs:
           VER=$(node -p "require('./${PKGDIR}/package.json').version")
 
           echo "Tag: ${TAG}"
-          echo "Package: ${NAME}"
+          echo "Workspace: ${NAME}"
           echo "package.json version: ${VER}"
           echo "expected from tag: ${EXPECT_VER}"
 
