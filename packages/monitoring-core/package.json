@@ -6,6 +6,12 @@
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
         "directory": "packages/monitoring-core"
     },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "sideEffects": false,
