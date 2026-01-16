@@ -1,52 +1,57 @@
 {
     "name": "@ttt-productions/auth-core",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Shared Firebase authentication utilities and React hooks for TTT Productions apps",
     "repository": {
-      "type": "git",
-      "url": "git+https://github.com/ttt-productions/ttt-packages.git",
-      "directory": "packages/auth-core"
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/auth-core"
     },
     "type": "module",
     "main": "dist/index.js",
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
     "sideEffects": false,
-    "files": ["dist"],
+    "files": [
+        "dist"
+    ],
     "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      },
-      "./react": {
-        "types": "./dist/react/index.d.ts",
-        "default": "./dist/react/index.js"
-      }
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./react": {
+            "types": "./dist/react/index.d.ts",
+            "default": "./dist/react/index.js"
+        }
     },
     "scripts": {
-      "build": "tsc",
-      "clean": "rm -rf dist *.tsbuildinfo",
-      "typecheck": "tsc --noEmit",
-      "prepublishOnly": "npm run clean && npm run build"
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
     },
     "peerDependencies": {
-      "firebase": ">=10.0.0",
-      "react": ">=19.0.0",
-      "react-dom": ">=19.0.0"
+        "firebase": ">=10.0.0",
+        "react": ">=19.0.0",
+        "react-dom": ">=19.0.0"
     },
     "peerDependenciesMeta": {
-      "react": { "optional": true },
-      "react-dom": { "optional": true }
+        "react": {
+            "optional": true
+        },
+        "react-dom": {
+            "optional": true
+        }
     },
     "devDependencies": {
-      "@types/react": "^19.0.0",
-      "@types/react-dom": "^19.0.0",
-      "firebase": "^10.0.0",
-      "react": "^19.2.0",
-      "react-dom": "^19.2.0",
-      "typescript": "^5.8.3"
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "firebase": "^10.0.0",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "typescript": "^5.8.3"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"
-  }
-  
+}
