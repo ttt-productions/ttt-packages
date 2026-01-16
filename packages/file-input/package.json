@@ -1,0 +1,44 @@
+{
+    "name": "@ttt-productions/file-input",
+    "version": "0.0.0",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+      "directory": "packages/file-input"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+      "dist"
+    ],
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    },
+    "scripts": {
+      "build": "tsc",
+      "clean": "rm -rf dist *.tsbuildinfo",
+      "typecheck": "tsc --noEmit",
+      "prepublishOnly": "npm run clean && npm run build"
+    },
+    "peerDependencies": {
+      "react": ">=18.0.0",
+      "react-dom": ">=18.0.0",
+      "@ttt-productions/ui-core": ">=0.0.0",
+      "@ttt-productions/media-contracts": ">=0.0.0"
+    },
+    "dependencies": {
+      "react-easy-crop": "^5.5.0"
+    },
+    "devDependencies": {
+      "typescript": "^5.8.3"
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+  }
+  
