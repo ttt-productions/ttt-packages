@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/media-contracts",
-    "version": "0.0.3",
+    "version": "0.2.0",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
