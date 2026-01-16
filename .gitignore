@@ -46,3 +46,10 @@ packages/*/*.tsbuildinfo
 .npm
 
 *.tgz
+
+packages/*/*.tsbuildinfo
+
+# if a build ever emits into src/, ignore it
+packages/*/src/**/*.js
+packages/*/src/**/*.d.ts
+packages/*/src/**/*.map
