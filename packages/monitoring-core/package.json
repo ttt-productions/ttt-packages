@@ -1,6 +1,11 @@
 {
     "name": "@ttt-productions/monitoring-core",
     "version": "0.0.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/monitoring-core"
+    },
     "private": true,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
