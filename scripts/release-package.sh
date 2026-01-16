@@ -20,6 +20,13 @@ tag_exists_remote () {
   git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1
 }
 
+version_exists_npm () {
+  local pkg="$1"
+  local ver="$2"
+  # returns 0 if that exact version exists on npm
+  npm view "${pkg}@${ver}" version >/dev/null 2>&1
+}
+
 bump_once () {
   npm version "$BUMP" -w "$PKG" --no-git-tag-version >/dev/null
   VER=$(node -p "require('./$PKGDIR/package.json').version")
@@ -27,7 +34,7 @@ bump_once () {
 }
 
 bump_once
-while tag_exists_remote "$TAG"; do
+while tag_exists_remote "$TAG" || version_exists_npm "$PKG" "$VER"; do
   bump_once
 done
 
