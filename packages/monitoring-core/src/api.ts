@@ -29,3 +29,15 @@ export function withScope(fn: (scope: any) => any) {
     setContext: () => {},
   });
 }
+
+export function addBreadcrumb(breadcrumb: {
+  category?: string;
+  message?: string;
+  level?: "fatal" | "error" | "warning" | "info" | "debug";
+  data?: Record<string, unknown>;
+}) {
+  const a = getMonitoringAdapter();
+  if (a.addBreadcrumb) {
+    a.addBreadcrumb(breadcrumb);
+  }
+}

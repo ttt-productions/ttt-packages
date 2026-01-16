@@ -18,4 +18,11 @@ export const NoopAdapter: MonitoringAdapter = {
   setTag: (_key: string, _value: string) => {},
 
   withScope: <T>(fn: (scope: ScopeLike) => T) => fn(noopScope),
+  
+  addBreadcrumb: (_breadcrumb: {
+    category?: string;
+    message?: string;
+    level?: "fatal" | "error" | "warning" | "info" | "debug";
+    data?: Record<string, unknown>;
+  }) => {},
 };

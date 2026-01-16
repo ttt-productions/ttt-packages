@@ -13,4 +13,11 @@ export interface MonitoringAdapter {
   setTag(key: string, value: string): void;
 
   withScope?<T>(fn: (scope: ScopeLike) => T): T;
+  
+  addBreadcrumb?(breadcrumb: {
+    category?: string;
+    message?: string;
+    level?: "fatal" | "error" | "warning" | "info" | "debug";
+    data?: Record<string, unknown>;
+  }): void;
 }

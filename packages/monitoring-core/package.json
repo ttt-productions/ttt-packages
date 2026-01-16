@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/monitoring-core",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
@@ -17,6 +17,15 @@
     "sideEffects": false,
     "dependencies": {},
     "peerDependencies": {
-        "@sentry/nextjs": ">=8.0.0"
+        "@sentry/nextjs": ">=8.0.0",
+        "@sentry/node": ">=8.0.0"
+    },
+    "peerDependenciesMeta": {
+        "@sentry/nextjs": {
+            "optional": true
+        },
+        "@sentry/node": {
+            "optional": true
+        }
     }
 }

@@ -1,34 +1,33 @@
 import type { MonitoringAdapter } from "../adapter";
 import type { MonitoringInitOptions, MonitoringUser, ScopeLike } from "../types";
 
-type SentryLike = {
+type SentryNodeLike = {
   init: (opts: any) => void;
-  captureException: (e: unknown) => void;
+  captureException: (e: unknown, hint?: any) => void;
   captureMessage: (m: string, level?: any) => void;
   setUser: (u: any) => void;
   setTag: (k: string, v: string) => void;
-  withScope?: (fn: (scope: any) => void) => void;
-  addBreadcrumb?: (breadcrumb: any) => void;
+  withScope: (fn: (scope: any) => void) => void;
+  addBreadcrumb: (breadcrumb: any) => void;
 };
 
-let sentryPromise: Promise<SentryLike> | null = null;
+let sentryNodePromise: Promise<SentryNodeLike> | null = null;
 
-function getSentry(): Promise<SentryLike> {
-  if (!sentryPromise) {
-    // keep the import fully dynamic and untyped so TS doesn't require the module at build time
-    sentryPromise = (Function("return import('@sentry/nextjs')")() as Promise<any>).then(
-      (m) => m as SentryLike
+function getSentryNode(): Promise<SentryNodeLike> {
+  if (!sentryNodePromise) {
+    sentryNodePromise = (Function("return import('@sentry/node')")() as Promise<any>).then(
+      (m) => m as SentryNodeLike
     );
   }
-  return sentryPromise;
+  return sentryNodePromise;
 }
 
-export const SentryAdapter: MonitoringAdapter = {
+export const SentryNodeAdapter: MonitoringAdapter = {
   async init(options: MonitoringInitOptions) {
     const enabled = options.enabled ?? true;
     if (!enabled || !options.dsn) return;
 
-    const S = await getSentry();
+    const S = await getSentryNode();
     S.init({
       dsn: options.dsn,
       environment: options.environment,
@@ -39,9 +38,9 @@ export const SentryAdapter: MonitoringAdapter = {
 
   captureException(error: unknown, context?: Record<string, unknown>) {
     void (async () => {
-      const S = await getSentry();
+      const S = await getSentryNode();
 
-      if (context && S.withScope) {
+      if (context) {
         S.withScope((scope) => {
           for (const [k, v] of Object.entries(context)) {
             if (typeof scope?.setExtra === "function") scope.setExtra(k, v);
@@ -57,28 +56,26 @@ export const SentryAdapter: MonitoringAdapter = {
 
   captureMessage(message: string, level?: any) {
     void (async () => {
-      const S = await getSentry();
+      const S = await getSentryNode();
       S.captureMessage(message, level);
     })();
   },
 
   setUser(user: MonitoringUser | null) {
     void (async () => {
-      const S = await getSentry();
+      const S = await getSentryNode();
       S.setUser(user as any);
     })();
   },
 
   setTag(key: string, value: string) {
     void (async () => {
-      const S = await getSentry();
+      const S = await getSentryNode();
       S.setTag(key, value);
     })();
   },
 
   withScope<T>(fn: (scope: ScopeLike) => T): T {
-    // run immediately (sync) with a minimal scope.
-    // also try to run in real Sentry scope when available.
     const minimalScope: ScopeLike = {
       setTag: () => {},
       setUser: () => {},
@@ -87,8 +84,7 @@ export const SentryAdapter: MonitoringAdapter = {
     };
 
     void (async () => {
-      const S = await getSentry();
-      if (!S.withScope) return;
+      const S = await getSentryNode();
       S.withScope((scope) => fn(scope as any));
     })();
 
@@ -102,10 +98,8 @@ export const SentryAdapter: MonitoringAdapter = {
     data?: Record<string, unknown>;
   }) {
     void (async () => {
-      const S = await getSentry();
-      if (S.addBreadcrumb) {
-        S.addBreadcrumb(breadcrumb);
-      }
+      const S = await getSentryNode();
+      S.addBreadcrumb(breadcrumb);
     })();
   },
 };

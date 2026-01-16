@@ -1,4 +1,4 @@
-export type MonitoringProvider = "sentry" | "noop";
+export type MonitoringProvider = "sentry" | "sentry-node" | "noop";
 
 export type MonitoringInitOptions = {
   provider: MonitoringProvider;
