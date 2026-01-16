@@ -1,28 +1,29 @@
 {
     "name": "@ttt-productions/firebase-helpers",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "private": true,
     "sideEffects": false,
     "type": "module",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
     "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
     },
-    "files": ["dist"],
+    "files": [
+        "dist"
+    ],
     "scripts": {
-      "build": "tsc -p tsconfig.json",
-      "clean": "rm -rf dist",
-      "typecheck": "tsc -p tsconfig.json --noEmit"
+        "build": "tsc -p tsconfig.json",
+        "clean": "rm -rf dist",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
     },
     "peerDependencies": {
-      "firebase": "^10.0.0"
+        "firebase": "^10.0.0"
     },
     "devDependencies": {
-      "typescript": "^5.0.0"
+        "typescript": "^5.0.0"
     }
-  }
-  
+}
