@@ -6,7 +6,6 @@
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
         "directory": "packages/firebase-helpers"
     },
-    "private": true,
     "sideEffects": false,
     "type": "module",
     "main": "./dist/index.js",

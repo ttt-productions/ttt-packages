@@ -6,7 +6,6 @@
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
         "directory": "packages/mobile-core"
     },
-  "private": true,
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",

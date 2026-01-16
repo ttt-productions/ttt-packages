@@ -6,7 +6,6 @@
     "url": "git+https://github.com/ttt-productions/ttt-packages.git",
     "directory": "packages/auth-core"
   },
-  "private": true,
   "sideEffects": false,
   "main": "dist/index.cjs",
   "module": "dist/index.js",
