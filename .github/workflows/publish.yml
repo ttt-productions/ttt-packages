@@ -3,12 +3,15 @@ name: Publish Packages to npm
 on:
   push:
     tags:
-      - 'v*.*.*'
-      - '*-v*.*.*'
+      - "*-v*.*.*"
 
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -21,47 +24,42 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: npm ci
 
-      # Option 1: keep your existing build
       - name: Build packages
         run: npm run build
 
-      - name: Clean build cache
-        run: find packages -name "*.tsbuildinfo" -delete
-
-      - name: Build packages
-        run: npm run build
-
-      # (Optional but nice) ensure workspace prepublish hooks run consistently
-      # - name: Run prepublish for all workspaces
-      #   run: npm -ws run prepublishOnly --if-present
-
-      - name: Publish changed workspace packages
+      - name: Publish package for tag
         shell: bash
         run: |
           set -euo pipefail
 
-          echo "== packages/* =="
-          for dir in packages/*; do
-            [ -f "$dir/package.json" ] || continue
-            name=$(node -p "require('./$dir/package.json').name")
-            ver=$(node -p "require('./$dir/package.json').version")
+          TAG="${GITHUB_REF_NAME}"          # e.g. chat-core-v0.2.1
+          SLUG="${TAG%-v*}"                 # chat-core
+          EXPECT_VER="${TAG#*-v}"           # 0.2.1
 
-            echo ""
-            echo "== $name@$ver =="
+          PKGDIR="packages/${SLUG}"
+          [[ -f "${PKGDIR}/package.json" ]] || { echo "No package.json at ${PKGDIR}"; exit 1; }
 
-            if npm view "$name@$ver" version --silent >/dev/null 2>&1; then
-              echo "Already published -> skip"
-              continue
-            fi
+          NAME=$(node -p "require('./${PKGDIR}/package.json').name")
+          VER=$(node -p "require('./${PKGDIR}/package.json').version")
 
-            echo "Publishing..."
-            npm publish --access public --provenance --workspace "$name"
-          done
+          echo "Tag: ${TAG}"
+          echo "Package: ${NAME}"
+          echo "package.json version: ${VER}"
+          echo "expected from tag: ${EXPECT_VER}"
+
+          [[ "${VER}" == "${EXPECT_VER}" ]] || { echo "Version mismatch (tag vs package.json)"; exit 1; }
+
+          if npm view "${NAME}@${VER}" version >/dev/null 2>&1; then
+            echo "Already published -> skip"
+            exit 0
+          fi
+
+          npm publish --access public --provenance --workspace "${NAME}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
