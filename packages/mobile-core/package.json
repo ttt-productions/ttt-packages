@@ -1,20 +1,42 @@
 {
   "name": "@ttt-productions/mobile-core",
   "version": "0.0.1",
+  "description": "Shared mobile utilities and responsive helpers for TTT Productions apps",
   "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ttt-productions/ttt-packages.git",
-    "directory": "packages/mobile-core"
+      "type": "git",
+      "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+      "directory": "packages/mobile-core"
   },
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "sideEffects": false,
+  "files": [
+      "dist"
+  ],
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
-    }
-  }
+      ".": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+      }
+  },
+  "scripts": {
+      "build": "tsc",
+      "clean": "rm -rf dist *.tsbuildinfo",
+      "typecheck": "tsc --noEmit",
+      "prepublishOnly": "npm run clean && npm run build"
+  },
+  "peerDependencies": {
+      "react": ">=19.0.0",
+      "react-dom": ">=19.0.0"
+  },
+  "devDependencies": {
+      "@types/react": "^19.0.0",
+      "@types/react-dom": "^19.0.0",
+      "react": "^19.2.0",
+      "react-dom": "^19.2.0",
+      "typescript": "^5.8.3"
+  },
+  "author": "DJ (TTT Productions)",
+  "license": "MIT"
 }
