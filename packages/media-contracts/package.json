@@ -1,21 +1,25 @@
 {
     "name": "@ttt-productions/media-contracts",
-    "version": "0.0.0",
+    "version": "0.0.1",
     "sideEffects": false,
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
-    "files": ["dist"],
+    "files": [
+        "dist"
+    ],
     "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0"
     },
     "scripts": {
-      "clean": "rm -rf dist",
-      "build": "tsc -p tsconfig.json",
-      "typecheck": "tsc -p tsconfig.json --noEmit",
-      "prepublishOnly": "pnpm run build"
+        "clean": "rm -rf dist",
+        "build": "tsc -p tsconfig.json",
+        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "prepublishOnly": "pnpm run build"
     }
-  }
-  
+}
