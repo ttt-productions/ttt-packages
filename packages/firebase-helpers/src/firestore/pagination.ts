@@ -2,7 +2,8 @@ import type {
     DocumentData,
     Query,
     QueryConstraint,
-    QueryDocumentSnapshot
+    QueryDocumentSnapshot,
+    DocumentSnapshot
   } from "firebase/firestore";
   import {
     getDocs,
@@ -12,15 +13,9 @@ import type {
     startAfter
   } from "firebase/firestore";
   
-  /**
-   * Cursor-based pagination helper.
-   * - Keeps no global state.
-   * - Caller decides ordering fields.
-   */
-  
   export type PageResult<T> = {
     items: QueryDocumentSnapshot<T>[];
-    nextCursor: QueryDocumentSnapshot<T> | null;
+    nextCursor: DocumentSnapshot<T> | null; // ✅ broadened
     size: number;
   };
   
@@ -28,7 +23,7 @@ import type {
     baseQuery: Query<T>,
     opts: {
       pageSize: number;
-      cursor?: QueryDocumentSnapshot<T> | null;
+      cursor?: DocumentSnapshot<T> | null; // ✅ broadened
       constraints?: QueryConstraint[];
     }
   ): Promise<PageResult<T>> {
@@ -49,17 +44,13 @@ import type {
     };
   }
   
-  /**
-   * Convenience: build a query with orderBy + optional extra constraints, then paginate.
-   * Useful when you want to standardize orderBy in one place.
-   */
   export async function fetchOrderedPage<T extends DocumentData>(
     baseQuery: Query<T>,
     opts: {
       pageSize: number;
       orderByField: string;
       direction?: "asc" | "desc";
-      cursor?: QueryDocumentSnapshot<T> | null;
+      cursor?: DocumentSnapshot<T> | null; // ✅ broadened
       constraints?: QueryConstraint[];
     }
   ): Promise<PageResult<T>> {
