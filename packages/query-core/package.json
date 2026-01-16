@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/query-core",
-    "version": "0.1.6",
+    "version": "0.1.26",
     "description": "Shared TanStack Query (React Query) client defaults + query key helpers for TTT Productions apps",
     "main": "dist/index.js",
     "module": "dist/index.js",
