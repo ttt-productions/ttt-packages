@@ -1,23 +1,33 @@
 {
     "name": "@ttt-productions/chat-core",
     "version": "0.1.0",
-    "private": true,
-    "sideEffects": false,
+    "description": "Shared Firestore chat core (realtime newest window + infinite older pagination) for TTT Productions apps",
     "main": "dist/index.js",
+    "module": "dist/index.js",
     "types": "dist/index.d.ts",
+    "files": ["dist"],
     "exports": {
       ".": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
     },
+    "scripts": {
+      "build": "tsc",
+      "clean": "rm -rf dist *.tsbuildinfo",
+      "typecheck": "tsc --noEmit",
+      "prepublishOnly": "npm run clean && npm run build"
+    },
     "peerDependencies": {
-      "react": "^18.0.0",
       "@tanstack/react-query": "^5.0.0",
-      "firebase": "^10.0.0"
+      "firebase": "^10.0.0",
+      "react": "^19.0.0",
+      "react-dom": "^19.0.0"
     },
     "dependencies": {
       "@ttt-productions/ui-core": "^0.1.25"
-    }
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
   }
   

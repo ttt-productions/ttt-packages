@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { ChatCoreConfig, MessageRendererRegistry, ModerationHandlers } from "../types";
+import { Card, CardHeader, CardContent, CardFooter, Skeleton } from "@ttt-productions/ui-core";
 import { useChatMessages } from "../hooks/useChatMessages";
 import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
@@ -36,29 +37,41 @@ export function ChatShell(props: {
   const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder } = useChatMessages(config);
 
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
-  const listOuterRef = React.useRef<HTMLDivElement>(null);
 
   if (!allowed) {
     return <div className="p-4 text-sm opacity-70">You don’t have access to this thread.</div>;
   }
 
   if (isInitialLoading) {
-    return <div className="p-6 flex items-center justify-center text-sm opacity-70">Loading chat…</div>;
+    return (
+      <Card className="w-full">
+        <CardHeader className="space-y-2">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-3 w-56" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-[240px] w-full" />
+        </CardContent>
+        <CardFooter>
+          <Skeleton className="h-10 w-full" />
+        </CardFooter>
+      </Card>
+    );
   }
 
   return (
-    <div className="w-full border rounded-lg overflow-hidden">
+    <Card className="w-full">
       {(header || renderThreadActions || handlers) && (
-        <div className="p-4 border-b flex items-start justify-between gap-4">
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
           <div>{header}</div>
           <div className="flex flex-col items-end gap-2">
             {renderThreadActions?.()}
             <ThreadActions threadId={config.threadId} isAdmin={config.isAdmin} handlers={handlers} />
           </div>
-        </div>
+        </CardHeader>
       )}
 
-      <div ref={listOuterRef}>
+      <CardContent className="p-0">
         <MessageList
           messages={messages}
           currentUserId={config.currentUserId}
@@ -72,15 +85,13 @@ export function ChatShell(props: {
           onScrollToBottom={() => setShowScrollToBottom(false)}
           handlers={handlers}
         />
-      </div>
+      </CardContent>
 
-      <div className="p-4 border-t">
-        <Composer
-          disabled={false}
-          autoFocus={composerAutoFocus}
-          onSend={onSend}
-        />
-      </div>
-    </div>
+      <CardFooter className="border-t">
+        <div className="w-full">
+          <Composer disabled={false} autoFocus={composerAutoFocus} onSend={onSend} />
+        </div>
+      </CardFooter>
+    </Card>
   );
 }

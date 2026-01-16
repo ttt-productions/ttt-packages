@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Button, Textarea, cn } from "@ttt-productions/ui-core";
 
 export function Composer(props: {
   disabled?: boolean;
@@ -27,14 +28,14 @@ export function Composer(props: {
 
   return (
     <div className="flex items-end gap-2">
-      <textarea
+      <Textarea
         ref={ref}
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
-        className="min-h-[40px] resize-none flex-grow rounded-md border p-2"
+        className={cn("min-h-[40px] resize-none")}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
@@ -42,14 +43,14 @@ export function Composer(props: {
           }
         }}
       />
-      <button
+      <Button
         type="button"
-        className="rounded-md border px-3 py-2 disabled:opacity-50"
+        variant="default"
         disabled={disabled || !text.trim()}
         onClick={send}
       >
         Send
-      </button>
+      </Button>
     </div>
   );
 }

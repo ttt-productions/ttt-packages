@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import type { ChatMessageV1, MessageRendererRegistry, ModerationHandlers } from "../types";
+import { Button } from "@ttt-productions/ui-core";
 import { MessageItemDefault } from "./MessageItemDefault";
 
 export function MessageList(props: {
@@ -42,7 +43,6 @@ export function MessageList(props: {
   const prevScrollHeightRef = React.useRef<number | null>(null);
   const prevCountRef = React.useRef(0);
 
-  // Native IO for "scroll to top loads older"
   React.useEffect(() => {
     const root = scrollRef.current;
     const target = topSentinelRef.current;
@@ -55,7 +55,6 @@ export function MessageList(props: {
         if (!e?.isIntersecting) return;
         if (!hasOlder || isFetchingOlder) return;
 
-        // preserve scroll before pagination
         prevScrollHeightRef.current = root.scrollHeight;
         onLoadOlder?.();
       },
@@ -96,21 +95,13 @@ export function MessageList(props: {
 
   return (
     <div className="relative">
-      <div
-        ref={scrollRef}
-        className="h-[400px] overflow-y-auto p-4"
-        onScroll={onScroll}
-      >
-        {isFetchingOlder && (
-          <div className="text-center text-xs opacity-70 mb-2">Loading…</div>
-        )}
+      <div ref={scrollRef} className="h-[400px] overflow-y-auto p-4" onScroll={onScroll}>
+        {isFetchingOlder && <div className="text-center text-xs opacity-70 mb-2">Loading…</div>}
 
         <div ref={topSentinelRef} />
 
         {messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-sm opacity-70">
-            No messages yet
-          </div>
+          <div className="h-full flex items-center justify-center text-sm opacity-70">No messages yet</div>
         ) : (
           <div className="flex flex-col gap-3">
             {messages.map((m) => {
@@ -119,9 +110,7 @@ export function MessageList(props: {
               lastDay = day;
 
               const byType =
-                m.type && messageRenderers?.[m.type]
-                  ? messageRenderers[m.type]!(m)
-                  : null;
+                m.type && messageRenderers?.[m.type] ? messageRenderers[m.type]!(m) : null;
 
               const body =
                 renderMessage?.(m) ??
@@ -137,8 +126,11 @@ export function MessageList(props: {
               return (
                 <React.Fragment key={m.messageId}>
                   {showDay && (
-                    <div className="my-2 text-center text-xs opacity-60">
-                      --- {new Date(m.createdAt).toLocaleDateString()} ---
+                    <div className="my-2 flex justify-center">
+                      {/* theme-core: components.css */}
+                      <div className="chat-date-separator">
+                        {new Date(m.createdAt).toLocaleDateString()}
+                      </div>
                     </div>
                   )}
                   {body}
@@ -150,13 +142,15 @@ export function MessageList(props: {
       </div>
 
       {showScrollToBottom && (
-        <button
+        <Button
           type="button"
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border px-3 py-2 shadow-sm bg-background"
+          variant="outline"
+          size="icon"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-sm"
           onClick={onScrollToBottom}
         >
           ↓
-        </button>
+        </Button>
       )}
     </div>
   );

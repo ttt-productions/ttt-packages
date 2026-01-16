@@ -1,6 +1,7 @@
 "use client";
 
 import type { ModerationHandlers } from "../types";
+import { Button } from "@ttt-productions/ui-core";
 
 export function MessageActions(props: {
   messageId: string;
@@ -12,22 +13,26 @@ export function MessageActions(props: {
   return (
     <div className="flex items-center gap-2">
       {handlers?.onReportMessage && (
-        <button
+        <Button
           type="button"
-          className="text-xs underline opacity-70 hover:opacity-100"
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs opacity-70 hover:opacity-100"
           onClick={() => handlers.onReportMessage?.(messageId)}
         >
           Report
-        </button>
+        </Button>
       )}
       {isAdmin && handlers?.onDeleteMessage && (
-        <button
+        <Button
           type="button"
-          className="text-xs underline opacity-70 hover:opacity-100"
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs opacity-70 hover:opacity-100"
           onClick={() => handlers.onDeleteMessage?.(messageId)}
         >
           Delete
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -43,22 +48,26 @@ export function ThreadActions(props: {
   return (
     <div className="flex items-center gap-3">
       {handlers?.onReportThread && (
-        <button
+        <Button
           type="button"
-          className="text-xs underline opacity-70 hover:opacity-100"
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs opacity-70 hover:opacity-100"
           onClick={() => handlers.onReportThread?.(threadId)}
         >
           Report thread
-        </button>
+        </Button>
       )}
       {isAdmin && handlers?.onDeleteThread && (
-        <button
+        <Button
           type="button"
-          className="text-xs underline opacity-70 hover:opacity-100"
+          variant="link"
+          size="sm"
+          className="h-auto p-0 text-xs opacity-70 hover:opacity-100"
           onClick={() => handlers.onDeleteThread?.(threadId)}
         >
           Delete thread
-        </button>
+        </Button>
       )}
     </div>
   );
