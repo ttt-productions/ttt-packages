@@ -1,36 +1,37 @@
 {
     "name": "@ttt-productions/firebase-helpers",
-    "version": "0.1.7",
+    "version": "0.1.8",
     "repository": {
-      "type": "git",
-      "url": "git+https://github.com/ttt-productions/ttt-packages.git",
-      "directory": "packages/firebase-helpers"
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/firebase-helpers"
     },
     "type": "module",
     "main": "dist/index.js",
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
     "sideEffects": false,
-    "files": ["dist"],
+    "files": [
+        "dist"
+    ],
     "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
     },
     "scripts": {
-      "build": "tsc",
-      "clean": "rm -rf dist *.tsbuildinfo",
-      "typecheck": "tsc --noEmit",
-      "prepublishOnly": "npm run clean && npm run build"
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
     },
     "peerDependencies": {
-      "firebase": ">=10.0.0"
+        "firebase": ">=10.0.0"
     },
     "devDependencies": {
-      "typescript": "^5.8.3"
+        "typescript": "^5.8.3"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"
-  }
-  
+}
