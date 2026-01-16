@@ -1,0 +1,41 @@
+{
+    "name": "@ttt-productions/upload-core",
+    "version": "0.0.0",
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+      "directory": "packages/upload-core"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": ["dist"],
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./react": {
+        "types": "./dist/react/use-upload-file.d.ts",
+        "default": "./dist/react/use-upload-file.js"
+      }
+    },
+    "scripts": {
+      "build": "tsc",
+      "clean": "rm -rf dist *.tsbuildinfo",
+      "typecheck": "tsc --noEmit",
+      "prepublishOnly": "npm run clean && npm run build"
+    },
+    "peerDependencies": {
+      "firebase": ">=10.0.0",
+      "react": ">=18.0.0"
+    },
+    "devDependencies": {
+      "typescript": "^5.8.3"
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+  }
+  
