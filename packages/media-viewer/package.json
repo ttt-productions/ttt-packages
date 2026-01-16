@@ -1,38 +1,39 @@
 {
     "name": "@ttt-productions/media-viewer",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "repository": {
-      "type": "git",
-      "url": "git+https://github.com/ttt-productions/ttt-packages.git",
-      "directory": "packages/media-viewer"
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/media-viewer"
     },
     "type": "module",
     "main": "dist/index.js",
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
     "sideEffects": false,
-    "files": ["dist"],
+    "files": [
+        "dist"
+    ],
     "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
     },
     "scripts": {
-      "build": "tsc",
-      "clean": "rm -rf dist *.tsbuildinfo",
-      "typecheck": "tsc --noEmit",
-      "prepublishOnly": "npm run clean && npm run build"
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
     },
     "peerDependencies": {
-      "@ttt-productions/media-contracts": ">=0.0.0",
-      "react": ">=18.0.0",
-      "react-dom": ">=18.0.0"
+        "@ttt-productions/media-contracts": ">=0.0.0",
+        "react": ">=18.0.0",
+        "react-dom": ">=18.0.0"
     },
     "devDependencies": {
-      "typescript": "^5.8.3"
+        "typescript": "^5.8.3"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"
-  }
-  
+}
