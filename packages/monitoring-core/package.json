@@ -1,41 +1,46 @@
 {
     "name": "@ttt-productions/monitoring-core",
-    "version": "0.0.6",
+    "version": "0.0.7",
     "repository": {
-      "type": "git",
-      "url": "git+https://github.com/ttt-productions/ttt-packages.git",
-      "directory": "packages/monitoring-core"
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/monitoring-core"
     },
     "type": "module",
     "main": "dist/index.js",
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
     "sideEffects": false,
-    "files": ["dist"],
+    "files": [
+        "dist"
+    ],
     "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
-      }
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
     },
     "scripts": {
-      "build": "tsc",
-      "clean": "rm -rf dist *.tsbuildinfo",
-      "typecheck": "tsc --noEmit",
-      "prepublishOnly": "npm run clean && npm run build"
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
     },
     "peerDependencies": {
-      "@sentry/nextjs": ">=8.0.0",
-      "@sentry/node": ">=8.0.0"
+        "@sentry/nextjs": ">=8.0.0",
+        "@sentry/node": ">=8.0.0"
     },
     "peerDependenciesMeta": {
-      "@sentry/nextjs": { "optional": true },
-      "@sentry/node": { "optional": true }
+        "@sentry/nextjs": {
+            "optional": true
+        },
+        "@sentry/node": {
+            "optional": true
+        }
     },
     "devDependencies": {
-      "typescript": "^5.8.3"
+        "typescript": "^5.8.3"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"
-  }
-  
+}
