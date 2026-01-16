@@ -1,0 +1,30 @@
+{
+    "name": "@ttt-productions/media-viewer",
+    "version": "0.0.1",
+    "sideEffects": false,
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "peerDependencies": {
+        "react": ">=18.0.0",
+        "react-dom": ">=18.0.0",
+        "@ttt-productions/media-contracts": ">=0.0.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0"
+    },
+    "scripts": {
+        "clean": "rm -rf dist",
+        "build": "tsc -p tsconfig.json",
+        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "prepublishOnly": "pnpm run build"
+    }
+}
