@@ -1,0 +1,8 @@
+# Keep source out of the published package
+dist
+src
+*.tsbuildinfo
+
+# common
+node_modules
+.DS_Store
