@@ -1,3 +1,7 @@
-export function validateMime(_mime: string): boolean {
-  return true;
-}
+export function validateMime(
+    mime: string,
+    allowed: string[]
+  ): boolean {
+    return allowed.includes(mime);
+  }
+  

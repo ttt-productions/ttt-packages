@@ -1,3 +1,7 @@
-export function validateDuration(_seconds: number, _max: number): boolean {
-  return true;
-}
+export function validateDuration(
+    durationSec: number,
+    maxDurationSec: number
+  ): boolean {
+    return durationSec <= maxDurationSec;
+  }
+  

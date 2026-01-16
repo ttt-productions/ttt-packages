@@ -1,1 +1,1 @@
-// format / quality presets
+// shared image format / quality presets

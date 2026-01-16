@@ -1,1 +1,2 @@
-// sharp resize helpers will live here
+// sharp resize helpers extracted from existing image-processor
+// intentionally empty until extraction step

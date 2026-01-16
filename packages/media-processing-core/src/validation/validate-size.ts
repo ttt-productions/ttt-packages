@@ -1,3 +1,7 @@
-export function validateSize(_bytes: number, _max: number): boolean {
-  return true;
-}
+export function validateSize(
+    bytes: number,
+    maxBytes: number
+  ): boolean {
+    return bytes <= maxBytes;
+  }
+  
