@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/mobile-core",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "description": "Shared mobile utilities and responsive helpers for TTT Productions apps",
     "repository": {
         "type": "git",
