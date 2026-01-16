@@ -1,4 +1,5 @@
 import { Timestamp, serverTimestamp } from "firebase/firestore";
+import { format, formatDistanceToNowStrict } from "date-fns";
 import { isSerializedTimestamp, hasToDateMethod } from "./types";
 
 /** Firestore server timestamp field value */
@@ -119,3 +120,38 @@ export function toDate(value: unknown): Date {
 export function now(): number {
   return Date.now();
 }
+
+/**
+ * Format a timestamp for display.
+ * 
+ * @param millis - Milliseconds since epoch (or any TimestampLike value)
+ * @param formatType - 'short' for "MMM d, yyyy", 'long' for "MMM d, yyyy 'at' h:mm a"
+ * @returns Formatted date string, or 'Invalid Date' for invalid inputs
+ */
+export function formatDate(
+  millis: number | undefined | null,
+  formatType: "short" | "long" = "short"
+): string {
+  if (typeof millis !== "number" || millis === 0) {
+    return "Invalid Date";
+  }
+
+  try {
+    const date = new Date(millis);
+    if (isNaN(date.getTime())) {
+      return "Invalid Date";
+    }
+
+    return formatType === "long"
+      ? format(date, "MMM d, yyyy 'at' h:mm a")
+      : format(date, "MMM d, yyyy");
+  } catch {
+    return "Invalid Date";
+  }
+}
+
+/**
+ * Format relative time (e.g., "5 minutes ago", "2 days ago").
+ * Re-exported from date-fns for convenience.
+ */
+export { formatDistanceToNowStrict };
