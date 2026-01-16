@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/query-core",
-    "version": "0.1.27",
+    "version": "0.1.28",
     "description": "Shared TanStack Query (React Query) client defaults + query key helpers for TTT Productions apps",
     "main": "dist/index.js",
     "module": "dist/index.js",
@@ -21,9 +21,9 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "peerDependencies": {
-        "@tanstack/react-query": "^5.0.0",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0"
+        "@tanstack/react-query": ">=5.0.0",
+        "react": ">=19.0.0",
+        "react-dom": ">=19.0.0"
     },
     "devDependencies": {
         "@tanstack/react-query": "^5.0.0",
