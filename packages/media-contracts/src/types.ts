@@ -1,5 +1,9 @@
 export type SimplifiedMediaType = "image" | "video" | "audio" | "other";
 
+/**
+ * Stable, user-facing context category.
+ * Feature meaning stays in the app; contracts just carry it.
+ */
 export type FileCategory =
   | "profile"
   | "post"
@@ -9,12 +13,24 @@ export type FileCategory =
   | "admin"
   | "other";
 
-export type MediaProcessingStatus =
-  | "pending"
-  | "processing"
-  | "ready"
-  | "failed"
-  | "rejected";
+/**
+ * Kinds used by specs and capture UI.
+ * "file" means allow any file.
+ */
+export type MediaKind = "image" | "video" | "audio" | "file";
+
+export type MediaProcessingStatus = "pending" | "processing" | "ready" | "failed" | "rejected";
+
+export type MediaJobStatus = "selecting" | "uploading" | "queued" | "processing" | "ready" | "rejected" | "failed";
+
+export interface MediaJobStatusPayload {
+  status: MediaJobStatus;
+  progress?: number; // 0..1 (uploading only)
+  reasonCode?: string;
+  updatedAt?: TimestampLike;
+  mediaDocId?: string;
+  extra?: Record<string, unknown>;
+}
 
 export type MediaErrorCode =
   | "invalid_mime"
@@ -23,6 +39,9 @@ export type MediaErrorCode =
   | "processing_failed"
   | "not_found"
   | "permission_denied"
+  | "orientation_mismatch"
+  | "aspect_ratio_mismatch"
+  | "dimensions_mismatch"
   | "unknown";
 
 export type TimestampLike = number | string; // contracts-only (no Firebase Timestamp)
@@ -81,6 +100,45 @@ export interface MediaProcessingError {
   details?: Record<string, unknown>;
 }
 
+export interface MediaAccept {
+  /** If omitted/empty, accept anything. */
+  mimes?: string[];
+
+  /** If omitted/empty, accept anything. */
+  kinds?: MediaKind[];
+}
+
+export interface MediaCropSpec {
+  /** e.g. 9/16, 4/5, 1 */
+  aspectRatio: number;
+
+  /** final output */
+  outputWidth: number;
+  outputHeight: number;
+
+  format?: "jpeg" | "png" | "webp" | "avif";
+  quality?: number; // 1-100
+
+  /** UI hint only */
+  aspectRatioDisplay?: string;
+}
+
+export type VideoOrientation = "vertical" | "horizontal" | "any";
+
+export interface MediaClientConstraints {
+  /** Capture/record hints; UI-only. */
+  allowPick?: boolean;
+  allowCapturePhoto?: boolean;
+  allowRecordVideo?: boolean;
+  allowRecordAudio?: boolean;
+
+  /** Prefered camera on mobile. */
+  cameraFacingMode?: "user" | "environment";
+
+  /** Record hints. */
+  maxRecordDurationSec?: number;
+}
+
 export interface ImageVariantSpec {
   /** e.g. "thumb", "sm", "md", "lg", "original" */
   key: string;
@@ -103,19 +161,47 @@ export interface ImageVariantSpec {
 }
 
 export interface MediaProcessingSpec {
+  /** Spec version for forwards/backwards compatibility. */
+  specVersion?: 1;
+
   /** What the backend should do. Keep stable + additive. */
   kind: "image" | "video" | "audio" | "generic";
+
+  /** If omitted/empty -> accept anything. */
+  accept?: MediaAccept;
+
+  /** If omitted -> no limit. */
+  maxBytes?: number;
+
+  /** If omitted -> no limit. Applies to video/audio. */
+  maxDurationSec?: number;
+
+  /** Enforce output aspect ratio (uniform UI). */
+  requiredAspectRatio?: number;
+
+  /** Enforce output dimensions (uniform UI). */
+  requiredWidth?: number;
+  requiredHeight?: number;
+
+  /** Enforce source orientation (video). */
+  videoOrientation?: VideoOrientation;
+
+  /** If source doesn't match constraints, allow backend to auto-format. */
+  allowAutoFormat?: boolean;
+
+  /** Optional image crop/resize on client + backend. */
+  imageCrop?: MediaCropSpec;
+
+  /** UI hints for capture/record */
+  client?: MediaClientConstraints;
 
   /** Image pipeline (sharp etc) */
   image?: {
     variants: ImageVariantSpec[];
-    /** If true, allow stripping EXIF/metadata */
     stripMetadata?: boolean;
   };
 
-  /** Video/audio pipeline (may be stubbed initially) */
   video?: {
-    /** Optional maximum duration allowed (seconds) */
     maxDurationSec?: number;
   };
 
@@ -137,20 +223,16 @@ export interface MediaOutput {
 
   durationSec?: number;
 
-  /** Backend may provide more */
   extra?: Record<string, unknown>;
 }
 
 export interface MediaProcessingResult {
   ok: boolean;
 
-  /** Mirrors simplified type; useful for viewers */
   mediaType: SimplifiedMediaType;
 
-  /** Canonical outputs (variants, transcoded files, etc.) */
   outputs?: MediaOutput[];
 
-  /** Useful metadata surfaced by backend */
   meta?: {
     mime?: string;
     sizeBytes?: number;
@@ -159,18 +241,14 @@ export interface MediaProcessingResult {
     durationSec?: number;
   };
 
-  /** Non-fatal notes */
   warnings?: string[];
 
-  /** If !ok */
   error?: MediaProcessingError;
 }
 
 export interface ReportPayload {
-  /** Who is reporting */
   reporter: MediaOwnerRef;
 
-  /** What they are reporting */
   target: {
     mediaId: string;
     owner?: MediaOwnerRef;
@@ -182,6 +260,5 @@ export interface ReportPayload {
 
   createdAt?: TimestampLike;
 
-  /** Additive room for future */
   extra?: Record<string, unknown>;
 }

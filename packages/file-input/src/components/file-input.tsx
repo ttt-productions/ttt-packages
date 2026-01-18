@@ -55,7 +55,10 @@ export function FileInput(props: FileInputProps) {
 
   const [showDetails, setShowDetails] = useState(defaultShowDetails);
 
-  const acceptString = useMemo(() => acceptTypes.map((t) => MIME_MAP[t]).join(", "), [acceptTypes]);
+  const acceptString = useMemo(
+    () => (acceptTypes.length ? acceptTypes.map((t) => MIME_MAP[t]).join(", ") : undefined),
+    [acceptTypes]
+  );
 
   const detailsDescriptionParts = useMemo(() => {
     const parts: string[] = [];
@@ -136,7 +139,7 @@ export function FileInput(props: FileInputProps) {
     }
 
     const fileType = getSimplifiedMediaType(file);
-    if (!acceptTypes.includes(fileType)) {
+    if (acceptTypes.length && !acceptTypes.includes(fileType)) {
       emitError(err("invalid_type", `Invalid file type. Allowed: ${acceptTypes.join(", ")}.`), fileType);
       return;
     }

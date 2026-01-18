@@ -1,6 +1,17 @@
-import type { SimplifiedMediaType } from "@ttt-productions/media-contracts";
+import type {
+  FileCategory as ContractsFileCategory,
+  MediaKind,
+  MediaProcessingSpec,
+  SimplifiedMediaType,
+  VideoOrientation,
+  MediaCropSpec,
+} from "@ttt-productions/media-contracts";
 
-export type FileCategory = SimplifiedMediaType;
+/**
+ * Back-compat: file-input previously exported FileCategory incorrectly.
+ * It now matches contracts FileCategory.
+ */
+export type FileCategory = ContractsFileCategory;
 
 export interface CropConfig {
   aspectRatio: number;
@@ -33,6 +44,9 @@ export type FileInputErrorCode =
   | "invalid_type"
   | "too_large"
   | "too_long"
+  | "orientation_mismatch"
+  | "aspect_ratio_mismatch"
+  | "dimensions_mismatch"
   | "read_failed"
   | "crop_failed"
   | "unknown";
@@ -52,40 +66,77 @@ export interface FileInputChangePayload {
 }
 
 export interface FileInputProps {
-  /** Allowed simplified categories */
+  /**
+   * Allowed simplified categories.
+   * If empty -> accept anything.
+   */
   acceptTypes: SimplifiedMediaType[];
 
-  /** Max size per type (MB) */
+  /** Max size per type (MB). If missing -> no limit for that type. */
   maxSizeMB: Partial<Record<SimplifiedMediaType, number>>;
 
-  /** Controlled selected file (optional) */
   selectedFile?: File | null;
 
-  /** Called on any change (select/clear/crop/fail). */
   onChange: (payload: FileInputChangePayload) => void;
 
-  /** Optional error callback (no toasts inside package). */
   onError?: (error: FileInputError) => void;
 
-  /** UI/behavior */
   disabled?: boolean;
   isLoading?: boolean;
   buttonLabel?: string;
   className?: string;
-  variant?: any; // ButtonProps['variant'] (kept loose to avoid re-export coupling)
-  size?: any; // ButtonProps['size']
+  variant?: any;
+  size?: any;
   uploadProgress?: number | null;
 
-  /** Optional constraints */
   videoMaxDurationSec?: number;
   audioMaxDurationSec?: number;
 
-  /** Optional image crop */
   cropConfig?: CropConfig;
 
-  /** Optional: show “backend will do …” details, like app */
   backendProcessing?: BackendProcessingConfig;
 
-  /** Optional: show details toggle even if only sizes */
   defaultShowDetails?: boolean;
+}
+
+/** Used by MediaInput (spec-driven selection/capture/record). */
+export interface SelectedMediaMeta {
+  kind: MediaKind;
+  mime?: string;
+  sizeBytes: number;
+  width?: number;
+  height?: number;
+  durationSec?: number;
+  orientation?: VideoOrientation;
+  aspectRatio?: number;
+}
+
+export interface MediaInputChangePayload {
+  spec: MediaProcessingSpec;
+  file?: File;
+  previewUrl?: string;
+  meta?: SelectedMediaMeta;
+
+  /** If true, backend is expected to auto-format to match spec. */
+  autoFormat?: boolean;
+
+  /** Client-side crop applied (image only). */
+  croppedBlob?: Blob;
+
+  error?: FileInputError;
+}
+
+export interface MediaInputProps {
+  spec: MediaProcessingSpec;
+
+  /** Optional override for crop UI (if you don't want to use spec.imageCrop). */
+  cropOverride?: MediaCropSpec;
+
+  disabled?: boolean;
+  isLoading?: boolean;
+  className?: string;
+
+  buttonLabel?: string;
+
+  onChange: (payload: MediaInputChangePayload) => void;
 }
