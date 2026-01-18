@@ -1,5 +1,4 @@
-export * from "./types";
-
-export * from "./processing/process-media";
-export * from "./processing/result";
-export * from "./processing/errors";
+export * from "./image/image-processor";
+export * from "./image";
+export * from "./process-media";
+export * from "./workspace/temp";
