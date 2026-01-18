@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useId, useMemo, useRef, useState } from "react";
-import type { MediaProcessingSpec, VideoOrientation, MediaCropSpec } from "@ttt-productions/media-contracts";
+import React, { useCallback, useId, useMemo, useRef, useState } from "react";
+import type { MediaCropSpec, MediaProcessingSpec, VideoOrientation } from "@ttt-productions/media-contracts";
 import { getSimplifiedMediaType } from "@ttt-productions/media-contracts";
+import { Info, Camera, Mic, Video, Upload, X } from "lucide-react";
+
 import {
   Alert,
   AlertDescription,
@@ -17,16 +19,32 @@ import {
   Input,
   cn,
 } from "@ttt-productions/ui-core";
-import { Camera, Mic, Video, Upload, X } from "lucide-react";
 
 import type { FileInputError, MediaInputProps, SelectedMediaMeta } from "../types";
-import { ImageCropperModal } from "./image-cropper-modal";
 import { AutoFormatModal } from "./auto-format-modal";
-import { validateMediaDuration } from "../lib/validate-media-duration";
+import { ImageCropperModal } from "./image-cropper-modal";
+import { MediaConstraintsHint } from "./media-constraints-hint";
 import { readMediaMeta } from "../lib/read-media-meta";
+import { validateMediaDuration } from "../lib/validate-media-duration";
 
 function err(code: FileInputError["code"], message: string, details?: Record<string, unknown>): FileInputError {
   return { code, message, details };
+}
+
+function hasConstraints(spec: MediaProcessingSpec): boolean {
+  return Boolean(
+    spec.accept?.kinds?.length ||
+      spec.accept?.mimes?.length ||
+      spec.maxBytes ||
+      spec.maxDurationSec ||
+      spec.video?.maxDurationSec ||
+      spec.audio?.maxDurationSec ||
+      (spec.videoOrientation && spec.videoOrientation !== "any") ||
+      spec.requiredAspectRatio ||
+      (spec.requiredWidth && spec.requiredHeight) ||
+      spec.imageCrop ||
+      spec.allowAutoFormat
+  );
 }
 
 function matchMime(accepted: string, actual: string): boolean {
@@ -52,9 +70,13 @@ function accepts(spec: MediaProcessingSpec, file: File): boolean {
   const kindOk = kinds.length === 0 ? true : kinds.includes(kind);
   if (!kindOk) return false;
 
-  if (!file.type) return mimes.length === 0;
-  const mimeOk = mimes.length === 0 ? true : mimes.some((a) => matchMime(a, file.type));
-  return mimeOk;
+  // If mimes list is empty, accept anything (including unknown file.type)
+  if (mimes.length === 0) return true;
+
+  // If mimes list exists but browser doesn't know type, reject
+  if (!file.type) return false;
+
+  return mimes.some((a) => matchMime(a, file.type));
 }
 
 function computeAspect(width?: number, height?: number): number | undefined {
@@ -82,9 +104,12 @@ export function MediaInput(props: MediaInputProps) {
   const pickerRef = useRef<HTMLInputElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
 
+  const cropSpec: MediaCropSpec | undefined = cropOverride ?? spec.imageCrop;
+
   const [localError, setLocalError] = useState<FileInputError | null>(null);
 
-  const cropSpec: MediaCropSpec | undefined = cropOverride ?? spec.imageCrop;
+  const [showInfo, setShowInfo] = useState(false);
+  const showInfoToggle = hasConstraints(spec);
 
   const [cropOpen, setCropOpen] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -105,7 +130,6 @@ export function MediaInput(props: MediaInputProps) {
     const m = spec.accept?.mimes?.filter(Boolean) ?? [];
     const k = spec.accept?.kinds?.filter(Boolean) ?? [];
     if (m.length) return m.join(", ");
-    // fallback by kinds if mimes omitted
     if (k.includes("image") && k.length === 1) return "image/*";
     if (k.includes("video") && k.length === 1) return "video/*";
     if (k.includes("audio") && k.length === 1) return "audio/*";
@@ -113,7 +137,14 @@ export function MediaInput(props: MediaInputProps) {
   }, [spec]);
 
   const emit = useCallback(
-    (payload: { file?: File; previewUrl?: string; meta?: SelectedMediaMeta; autoFormat?: boolean; croppedBlob?: Blob; error?: FileInputError }) => {
+    (payload: {
+      file?: File;
+      previewUrl?: string;
+      meta?: SelectedMediaMeta;
+      autoFormat?: boolean;
+      croppedBlob?: Blob;
+      error?: FileInputError;
+    }) => {
       onChange({ spec, ...payload });
     },
     [onChange, spec]
@@ -130,64 +161,13 @@ export function MediaInput(props: MediaInputProps) {
   const resetRecordState = useCallback(() => {
     setRecording(false);
     mediaRecorderRef.current = null;
+
     const s = recordStreamRef.current;
     recordStreamRef.current = null;
     if (s) s.getTracks().forEach((t) => t.stop());
+
     recordChunksRef.current = [];
   }, []);
-
-  const startRecording = useCallback(
-    async (kind: "audio" | "video") => {
-      setLocalError(null);
-      setRecordPreviewUrl(null);
-      setRecordKind(kind);
-
-      const wantVideo = kind === "video";
-      const facingMode = spec.client?.cameraFacingMode ?? "user";
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: wantVideo ? { facingMode } : false,
-      });
-
-      recordStreamRef.current = stream;
-
-      const mr = new MediaRecorder(stream);
-      mediaRecorderRef.current = mr;
-      recordChunksRef.current = [];
-
-      mr.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) recordChunksRef.current.push(e.data);
-      };
-
-      mr.onstop = async () => {
-        const blob = new Blob(recordChunksRef.current, { type: mr.mimeType || (wantVideo ? "video/webm" : "audio/webm") });
-        const ext = wantVideo ? "webm" : "webm";
-        const file = new File([blob], `recording.${ext}`, { type: blob.type });
-
-        const url = URL.createObjectURL(file);
-        setRecordPreviewUrl(url);
-
-        // validate + emit immediately (user can cancel by closing)
-        await handleSelected(file, url);
-      };
-
-      mr.start();
-      setRecording(true);
-
-      const max = spec.client?.maxRecordDurationSec;
-      if (max && max > 0) {
-        setTimeout(() => {
-          try {
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-              mediaRecorderRef.current.stop();
-            }
-          } catch {}
-        }, Math.floor(max * 1000));
-      }
-    },
-    [spec.client, spec]
-  );
 
   const stopRecording = useCallback(() => {
     try {
@@ -211,7 +191,12 @@ export function MediaInput(props: MediaInputProps) {
 
       // bytes
       if (spec.maxBytes && file.size > spec.maxBytes) {
-        fail(err("too_large", `File too large. Max ${Math.round(spec.maxBytes / 1024 / 1024)}MB.`, { size: file.size, maxBytes: spec.maxBytes }));
+        fail(
+          err("too_large", `File too large. Max ${Math.round(spec.maxBytes / 1024 / 1024)}MB.`, {
+            size: file.size,
+            maxBytes: spec.maxBytes,
+          })
+        );
         return;
       }
 
@@ -250,9 +235,7 @@ export function MediaInput(props: MediaInputProps) {
 
         const okOri = orientationOk(requiredOri, actualOri);
         const okAspect = aspectOk(requiredAspect, actualAspect);
-
-        const okDims =
-          !requiredW || !requiredH ? true : meta.width === requiredW && meta.height === requiredH;
+        const okDims = !requiredW || !requiredH ? true : meta.width === requiredW && meta.height === requiredH;
 
         if (!okOri || !okAspect || !okDims) {
           if (spec.allowAutoFormat) {
@@ -262,15 +245,32 @@ export function MediaInput(props: MediaInputProps) {
           }
 
           if (!okOri) {
-            fail(err("orientation_mismatch", "Video orientation does not match the required format.", { requiredOri, actualOri }));
+            fail(
+              err("orientation_mismatch", "Video orientation does not match the required format.", {
+                requiredOri,
+                actualOri,
+              })
+            );
             return;
           }
           if (!okAspect) {
-            fail(err("aspect_ratio_mismatch", "Video aspect ratio does not match the required format.", { requiredAspect, actualAspect }));
+            fail(
+              err("aspect_ratio_mismatch", "Video aspect ratio does not match the required format.", {
+                requiredAspect,
+                actualAspect,
+              })
+            );
             return;
           }
           if (!okDims) {
-            fail(err("dimensions_mismatch", "Video dimensions do not match the required format.", { requiredW, requiredH, width: meta.width, height: meta.height }));
+            fail(
+              err("dimensions_mismatch", "Video dimensions do not match the required format.", {
+                requiredW,
+                requiredH,
+                width: meta.width,
+                height: meta.height,
+              })
+            );
             return;
           }
         }
@@ -295,6 +295,7 @@ export function MediaInput(props: MediaInputProps) {
   const onCropComplete = useCallback(
     (blob: Blob | null) => {
       setCropOpen(false);
+
       const original = pendingCropFile;
       setPendingCropFile(null);
 
@@ -306,11 +307,19 @@ export function MediaInput(props: MediaInputProps) {
 
       const type = blob.type || "image/jpeg";
       const name = original.name?.replace(/\.[^/.]+$/, "") || "image";
-      const ext = type.includes("png") ? "png" : type.includes("webp") ? "webp" : type.includes("avif") ? "avif" : "jpg";
+      const ext = type.includes("png")
+        ? "png"
+        : type.includes("webp")
+          ? "webp"
+          : type.includes("avif")
+            ? "avif"
+            : "jpg";
+
       const croppedFile = new File([blob], `${name}.cropped.${ext}`, { type });
 
       const url = URL.createObjectURL(croppedFile);
       readMediaMeta(croppedFile).then((meta) => emit({ file: croppedFile, previewUrl: url, meta, croppedBlob: blob }));
+
       setCropSrc(null);
     },
     [emit, fail, pendingCropFile]
@@ -321,6 +330,7 @@ export function MediaInput(props: MediaInputProps) {
     setAutoOpen(false);
     setPendingAutoFile(null);
     if (!p) return;
+
     const url = URL.createObjectURL(p.file);
     emit({ file: p.file, previewUrl: url, meta: p.meta, autoFormat: true });
   }, [emit, pendingAutoFile]);
@@ -329,6 +339,59 @@ export function MediaInput(props: MediaInputProps) {
     setAutoOpen(false);
     setPendingAutoFile(null);
   }, []);
+
+  const startRecording = useCallback(
+    async (kind: "audio" | "video") => {
+      setLocalError(null);
+      setRecordPreviewUrl(null);
+      setRecordKind(kind);
+
+      const wantVideo = kind === "video";
+      const facingMode = spec.client?.cameraFacingMode ?? "user";
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: wantVideo ? { facingMode } : false,
+      });
+
+      recordStreamRef.current = stream;
+
+      const mr = new MediaRecorder(stream);
+      mediaRecorderRef.current = mr;
+      recordChunksRef.current = [];
+
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) recordChunksRef.current.push(e.data);
+      };
+
+      mr.onstop = async () => {
+        const blob = new Blob(recordChunksRef.current, {
+          type: mr.mimeType || (wantVideo ? "video/webm" : "audio/webm"),
+        });
+
+        const file = new File([blob], `recording.webm`, { type: blob.type });
+        const url = URL.createObjectURL(file);
+
+        setRecordPreviewUrl(url);
+        await handleSelected(file, url);
+      };
+
+      mr.start();
+      setRecording(true);
+
+      const max = spec.client?.maxRecordDurationSec;
+      if (max && max > 0) {
+        setTimeout(() => {
+          try {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+              mediaRecorderRef.current.stop();
+            }
+          } catch {}
+        }, Math.floor(max * 1000));
+      }
+    },
+    [spec, handleSelected]
+  );
 
   const canPick = spec.client?.allowPick ?? true;
   const canPhoto = spec.client?.allowCapturePhoto ?? true;
@@ -349,11 +412,7 @@ export function MediaInput(props: MediaInputProps) {
               onChange={onPick}
               disabled={disabled || isLoading}
             />
-            <Button
-              variant="default"
-              onClick={() => pickerRef.current?.click()}
-              disabled={disabled || isLoading}
-            >
+            <Button variant="default" onClick={() => pickerRef.current?.click()} disabled={disabled || isLoading}>
               <Upload className="mr-2 icon-xs" />
               {buttonLabel}
             </Button>
@@ -372,11 +431,7 @@ export function MediaInput(props: MediaInputProps) {
               onChange={onPick}
               disabled={disabled || isLoading}
             />
-            <Button
-              variant="secondary"
-              onClick={() => photoRef.current?.click()}
-              disabled={disabled || isLoading}
-            >
+            <Button variant="secondary" onClick={() => photoRef.current?.click()} disabled={disabled || isLoading}>
               <Camera className="mr-2 icon-xs" />
               Take photo
             </Button>
@@ -384,16 +439,21 @@ export function MediaInput(props: MediaInputProps) {
         )}
 
         {(canRecVideo || canRecAudio) && (
-          <Button
-            variant="secondary"
-            onClick={() => setRecordOpen(true)}
-            disabled={disabled || isLoading}
-          >
+          <Button variant="secondary" onClick={() => setRecordOpen(true)} disabled={disabled || isLoading}>
             <Video className="mr-2 icon-xs" />
             Record
           </Button>
         )}
+
+        {showInfoToggle ? (
+          <Button variant="outline" onClick={() => setShowInfo((v) => !v)} disabled={disabled || isLoading}>
+            <Info className="mr-2 icon-xs" />
+            {showInfo ? "Hide info" : "Info"}
+          </Button>
+        ) : null}
       </div>
+
+      {showInfo && showInfoToggle ? <MediaConstraintsHint spec={spec} className="mt-3" /> : null}
 
       {localError && (
         <Alert variant="destructive" className="mt-3">
@@ -401,7 +461,6 @@ export function MediaInput(props: MediaInputProps) {
         </Alert>
       )}
 
-      {/* Cropper */}
       {cropSpec && (
         <ImageCropperModal
           isOpen={cropOpen}
@@ -418,11 +477,17 @@ export function MediaInput(props: MediaInputProps) {
         />
       )}
 
-      {/* Auto-format consent */}
       <AutoFormatModal open={autoOpen} onProceed={proceedAuto} onCancel={cancelAuto} />
 
-      {/* Recorder */}
-      <Dialog open={recordOpen} onOpenChange={(v) => !v && setRecordOpen(false)}>
+      <Dialog
+        open={recordOpen}
+        onOpenChange={(v) => {
+          if (!v) {
+            stopRecording();
+            setRecordOpen(false);
+          }
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Record</DialogTitle>
@@ -476,11 +541,7 @@ export function MediaInput(props: MediaInputProps) {
             </Button>
 
             {!recording ? (
-              <Button
-                variant="default"
-                onClick={() => startRecording(recordKind)}
-                disabled={disabled || isLoading}
-              >
+              <Button variant="default" onClick={() => startRecording(recordKind)} disabled={disabled || isLoading}>
                 {recordKind === "video" ? <Video className="mr-2 icon-xs" /> : <Mic className="mr-2 icon-xs" />}
                 Start
               </Button>
