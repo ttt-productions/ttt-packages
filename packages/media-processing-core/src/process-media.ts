@@ -1,9 +1,13 @@
 import type { MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-contracts";
 import { processImage } from "./image/image-processor";
+import { processVideo } from "./video/video-processor";
 
 export interface ProcessMediaContext {
   inputPath: string;
   outputBasePath: string;
+
+  /** optional mime hint from caller */
+  inputMime?: string;
 }
 
 export async function processMedia(
@@ -15,14 +19,13 @@ export async function processMedia(
       return processImage(spec, ctx);
 
     case "video":
+      return processVideo(spec, ctx);
+
     case "audio":
       return {
         ok: false,
-        mediaType: spec.kind,
-        error: {
-          code: "processing_failed",
-          message: `${spec.kind} processing not implemented yet.`,
-        },
+        mediaType: "audio",
+        error: { code: "processing_failed", message: "Audio processing not implemented yet." },
       };
 
     case "generic":
@@ -30,10 +33,7 @@ export async function processMedia(
       return {
         ok: false,
         mediaType: "other",
-        error: {
-          code: "processing_failed",
-          message: "Generic processing not implemented yet.",
-        },
+        error: { code: "processing_failed", message: "Generic processing not implemented yet." },
       };
   }
 }
