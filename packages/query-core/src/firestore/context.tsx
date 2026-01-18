@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import type { Firestore } from 'firebase/firestore';
 
 interface FirestoreContextValue {

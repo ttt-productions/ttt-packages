@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query';
+import { useMutation, useQueryClient, type QueryKey, type UseMutationResult } from '@tanstack/react-query';
 import {
   doc,
   setDoc,
@@ -14,25 +14,18 @@ import type { FirestoreMutationOptions, FirestoreBatchOptions, MutationOperation
 
 const DEFAULT_BATCH_SIZE = 450;
 
-/**
- * Set (create or overwrite) a Firestore document.
- * 
- * @example
- * ```tsx
- * const setUser = useFirestoreSet<User>({
- *   invalidateKeys: [['users']],
- * });
- * 
- * setUser.mutate({
- *   docPath: `users/${userId}`,
- *   data: { name: 'John', email: 'john@example.com' },
- *   merge: true, // optional: merge with existing data
- * });
- * ```
- */
+interface SetResult<T> {
+  id: string;
+  data: T;
+}
+
 export function useFirestoreSet<T extends DocumentData>({
   invalidateKeys = [],
-}: Pick<FirestoreMutationOptions<T>, 'invalidateKeys'> = {}) {
+}: Pick<FirestoreMutationOptions<T>, 'invalidateKeys'> = {}): UseMutationResult<
+  SetResult<T>,
+  Error,
+  { docPath: string; data: T; merge?: boolean }
+> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
@@ -48,7 +41,7 @@ export function useFirestoreSet<T extends DocumentData>({
     }) => {
       const docRef = doc(db, docPath);
       await setDoc(docRef, data, { merge });
-      return { id: docRef.id, ...data };
+      return { id: docRef.id, data };
     },
     onSuccess: () => {
       invalidateKeys.forEach((key) => {
@@ -58,29 +51,15 @@ export function useFirestoreSet<T extends DocumentData>({
   });
 }
 
-/**
- * Update a Firestore document with optimistic updates.
- * 
- * @example
- * ```tsx
- * const updateProject = useFirestoreUpdate<Project>({
- *   invalidateKeys: [['projects']],
- *   optimistic: {
- *     queryKey: ['project', projectId],
- *     updater: (old, newData) => ({ ...old, ...newData }),
- *   },
- * });
- * 
- * updateProject.mutate({
- *   docPath: `projects/${projectId}`,
- *   data: { title: 'New Title' },
- * });
- * ```
- */
 export function useFirestoreUpdate<T extends DocumentData>({
   invalidateKeys = [],
   optimistic,
-}: FirestoreMutationOptions<T> = {}) {
+}: FirestoreMutationOptions<T> = {}): UseMutationResult<
+  Partial<T>,
+  Error,
+  { docPath: string; data: Partial<T> },
+  { previousData: T | undefined } | undefined
+> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
@@ -97,15 +76,11 @@ export function useFirestoreUpdate<T extends DocumentData>({
       return data;
     },
     onMutate: async ({ data }) => {
-      if (!optimistic) return;
+      if (!optimistic) return undefined;
 
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: optimistic.queryKey });
-
-      // Snapshot previous value
       const previousData = queryClient.getQueryData<T>(optimistic.queryKey);
 
-      // Optimistically update
       queryClient.setQueryData<T>(optimistic.queryKey, (old) =>
         optimistic.updater(old, data as Partial<T>)
       );
@@ -113,13 +88,11 @@ export function useFirestoreUpdate<T extends DocumentData>({
       return { previousData };
     },
     onError: (_error, _variables, context) => {
-      // Rollback on error
       if (optimistic && context?.previousData !== undefined) {
         queryClient.setQueryData(optimistic.queryKey, context.previousData);
       }
     },
     onSettled: () => {
-      // Invalidate to refetch
       invalidateKeys.forEach((key) => {
         queryClient.invalidateQueries({ queryKey: key });
       });
@@ -130,22 +103,6 @@ export function useFirestoreUpdate<T extends DocumentData>({
   });
 }
 
-/**
- * Delete a Firestore document.
- * 
- * @example
- * ```tsx
- * const deletePost = useFirestoreDelete({
- *   invalidateKeys: [['posts']],
- *   optimistic: {
- *     queryKey: ['posts', 'feed'],
- *     updater: (old, docPath) => old?.filter(p => p.id !== docPath.split('/').pop()),
- *   },
- * });
- * 
- * deletePost.mutate({ docPath: `posts/${postId}` });
- * ```
- */
 export function useFirestoreDelete<T = unknown>({
   invalidateKeys = [],
   optimistic,
@@ -155,7 +112,12 @@ export function useFirestoreDelete<T = unknown>({
     queryKey: QueryKey;
     updater: (oldData: T | undefined, docPath: string) => T;
   };
-} = {}) {
+} = {}): UseMutationResult<
+  string,
+  Error,
+  { docPath: string },
+  { previousData: T | undefined } | undefined
+> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
@@ -166,7 +128,7 @@ export function useFirestoreDelete<T = unknown>({
       return docPath;
     },
     onMutate: async ({ docPath }) => {
-      if (!optimistic) return;
+      if (!optimistic) return undefined;
 
       await queryClient.cancelQueries({ queryKey: optimistic.queryKey });
       const previousData = queryClient.getQueryData<T>(optimistic.queryKey);
@@ -193,29 +155,19 @@ export function useFirestoreDelete<T = unknown>({
   });
 }
 
-/**
- * Execute multiple Firestore operations in batches.
- * Automatically chunks operations to stay within Firestore's 500 operation limit.
- * 
- * @example
- * ```tsx
- * const batchMutation = useFirestoreBatch({
- *   invalidateKeys: [['notifications']],
- * });
- * 
- * batchMutation.mutate({
- *   operations: [
- *     { type: 'update', docPath: 'posts/1', data: { read: true } },
- *     { type: 'update', docPath: 'posts/2', data: { read: true } },
- *     { type: 'delete', docPath: 'posts/3' },
- *   ],
- * });
- * ```
- */
+interface BatchResult {
+  committed: number;
+  batches: number;
+}
+
 export function useFirestoreBatch({
   invalidateKeys = [],
   batchSize = DEFAULT_BATCH_SIZE,
-}: FirestoreBatchOptions = {}) {
+}: FirestoreBatchOptions = {}): UseMutationResult<
+  BatchResult,
+  Error,
+  { operations: MutationOperation[] }
+> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
@@ -225,7 +177,6 @@ export function useFirestoreBatch({
     }: {
       operations: MutationOperation[];
     }) => {
-      // Chunk operations into batches
       const chunks: MutationOperation[][] = [];
       for (let i = 0; i < operations.length; i += batchSize) {
         chunks.push(operations.slice(i, i + batchSize));

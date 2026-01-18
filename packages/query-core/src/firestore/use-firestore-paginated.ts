@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import {
   collection,
   query,
@@ -16,11 +16,19 @@ import type { FirestorePaginatedOptions, WithId } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
 
-interface PaginatedState<T> {
-  items: WithId<T>[];
-  cursors: Map<number, DocumentSnapshot>; // page number -> cursor
-  hasMore: boolean;
-}
+/**
+ * Return type for useFirestorePaginated hook
+ */
+export type UseFirestorePaginatedResult<T> = UseQueryResult<WithId<T>[], Error> & {
+  page: number;
+  pageSize: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  setPage: (page: number) => void;
+  nextPage: () => void;
+  prevPage: () => void;
+  resetToFirstPage: () => void;
+};
 
 /**
  * Page-based pagination for Firestore collections.
@@ -58,7 +66,7 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
   staleTime,
   gcTime,
   select,
-}: FirestorePaginatedOptions<T>) {
+}: FirestorePaginatedOptions<T>): UseFirestorePaginatedResult<T> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
   

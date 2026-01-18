@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import {
   collection,
   query,
@@ -11,7 +11,6 @@ import {
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context';
 import type { FirestoreCollectionOptions, WithId } from './types';
-import { docWithId } from './types';
 
 /**
  * Fetch all documents from a Firestore collection with optional realtime updates.
@@ -44,7 +43,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
   staleTime,
   gcTime,
   select,
-}: FirestoreCollectionOptions<T>) {
+}: FirestoreCollectionOptions<T>): UseQueryResult<WithId<T>[], Error> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 

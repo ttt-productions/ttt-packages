@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { doc, getDoc, onSnapshot, type DocumentData } from 'firebase/firestore';
 import { useFirestoreDb } from './context';
 import type { FirestoreDocOptions, WithId } from './types';
@@ -40,7 +40,7 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
   staleTime,
   gcTime,
   select,
-}: FirestoreDocOptions<T>) {
+}: FirestoreDocOptions<T>): UseQueryResult<WithId<T> | null, Error> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 

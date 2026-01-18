@@ -27,6 +27,7 @@ export {
   getInfiniteDataCount 
 } from './use-firestore-infinite';
 export { useFirestorePaginated } from './use-firestore-paginated';
+export type { UseFirestorePaginatedResult } from './use-firestore-paginated';
 
 // Mutation Hooks
 export {

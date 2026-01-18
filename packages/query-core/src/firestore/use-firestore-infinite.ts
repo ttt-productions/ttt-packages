@@ -1,6 +1,6 @@
 'use client';
 
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, type UseInfiniteQueryResult } from '@tanstack/react-query';
 import {
   collection,
   query,
@@ -53,10 +53,10 @@ export function useFirestoreInfinite<T extends DocumentData = DocumentData>({
   staleTime,
   gcTime,
   select,
-}: FirestoreInfiniteOptions<T>) {
+}: FirestoreInfiniteOptions<T>): UseInfiniteQueryResult<{ pages: InfinitePage<T>[]; pageParams: (DocumentSnapshot | null)[] }, Error> {
   const db = useFirestoreDb();
 
-  return useInfiniteQuery<InfinitePage<T>, Error>({
+  return useInfiniteQuery({
     queryKey,
     queryFn: async ({ pageParam }): Promise<InfinitePage<T>> => {
       const collectionRef = collection(db, collectionPath);
