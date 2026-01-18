@@ -42,6 +42,7 @@ export type MediaErrorCode =
   | "orientation_mismatch"
   | "aspect_ratio_mismatch"
   | "dimensions_mismatch"
+  | "rejected"
   | "unknown";
 
 export type TimestampLike = number | string; // contracts-only (no Firebase Timestamp)
@@ -53,6 +54,26 @@ export interface MediaOwnerRef {
 export interface MediaThreadRef {
   threadId: string;
 }
+
+export type MediaModerationStatus = "passed" | "flagged" | "rejected" | "error";
+
+export interface MediaModerationFinding {
+  category?: string;
+  label?: string;
+  score?: number;
+  severity?: string;
+  reasons?: string[];
+  meta?: Record<string, unknown>;
+}
+
+export interface MediaModerationResult {
+  status: MediaModerationStatus;
+  provider?: string;
+  reasons?: string[];
+  findings?: MediaModerationFinding[];
+  reviewedAt?: TimestampLike;
+}
+
 
 export interface PendingMediaDoc {
   /** Stable id (doc id) */
@@ -244,6 +265,8 @@ export interface MediaProcessingResult {
   warnings?: string[];
 
   error?: MediaProcessingError;
+
+  moderation?: MediaModerationResult;
 }
 
 export interface ReportPayload {
