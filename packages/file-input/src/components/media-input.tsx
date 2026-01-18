@@ -126,6 +126,16 @@ export function MediaInput(props: MediaInputProps) {
   const recordChunksRef = useRef<BlobPart[]>([]);
   const [recordPreviewUrl, setRecordPreviewUrl] = useState<string | null>(null);
 
+  const lastObjectUrlRef = useRef<string | null>(null);
+  const lastRecordUrlRef = useRef<string | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (lastObjectUrlRef.current) URL.revokeObjectURL(lastObjectUrlRef.current);
+      if (lastRecordUrlRef.current) URL.revokeObjectURL(lastRecordUrlRef.current);
+    };
+  }, []);
+
   const acceptAttr = useMemo(() => {
     const m = spec.accept?.mimes?.filter(Boolean) ?? [];
     const k = spec.accept?.kinds?.filter(Boolean) ?? [];
