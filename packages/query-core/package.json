@@ -1,7 +1,7 @@
 {
     "name": "@ttt-productions/query-core",
-    "version": "0.2.3",
-    "description": "Shared TanStack Query (React Query) client defaults + query key helpers for TTT Productions apps",
+    "version": "0.3.0",
+    "description": "Shared TanStack Query (React Query) client defaults, query key helpers, and Firestore integration hooks for TTT Productions apps",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
@@ -29,13 +29,20 @@
     },
     "peerDependencies": {
         "@tanstack/react-query": ">=5.0.0",
-        "react": ">=19.0.0",
-        "react-dom": ">=19.0.0"
+        "firebase": ">=10.0.0",
+        "react": ">=18.0.0",
+        "react-dom": ">=18.0.0"
+    },
+    "peerDependenciesMeta": {
+        "firebase": {
+            "optional": true
+        }
     },
     "devDependencies": {
         "@tanstack/react-query": "^5.0.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
+        "firebase": "^11.0.0",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
         "typescript": "^5.8.3"
