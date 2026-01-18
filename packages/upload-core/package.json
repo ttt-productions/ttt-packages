@@ -18,8 +18,8 @@
         "default": "./dist/index.js"
       },
       "./react": {
-        "types": "./dist/react/use-upload-file.d.ts",
-        "default": "./dist/react/use-upload-file.js"
+        "types": "./dist/react/index.d.ts",
+        "default": "./dist/react/index.js"
       }
     },
     "scripts": {

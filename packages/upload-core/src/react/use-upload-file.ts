@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { UploadFileResumableArgs, UploadFileResumableResult } from "../types";
 import { uploadFileResumable } from "../storage/upload";
 
@@ -10,8 +10,13 @@ export function useUploadFile() {
   const [error, setError] = useState<unknown>(null);
 
   const mountedRef = useRef(true);
-  // no effect cleanup needed; simple guard
-  // (avoids setting state after unmount during long uploads)
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const upload = useCallback(
     async (args: Omit<UploadFileResumableArgs, "onProgress">): Promise<UploadFileResumableResult> => {
@@ -25,9 +30,11 @@ export function useUploadFile() {
           onProgress: ({ percent }) => {
             if (!mountedRef.current) return;
             setProgress(percent);
-          }
+          },
         });
+
         if (!mountedRef.current) return res;
+
         setProgress(100);
         setIsUploading(false);
         return res;
