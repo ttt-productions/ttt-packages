@@ -25,28 +25,35 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
+      - name: Extract package info from tag
+        id: pkg
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          SLUG="${TAG%-v*}"
+          VER="${TAG##*-v}"
+          echo "slug=${SLUG}" >> $GITHUB_OUTPUT
+          echo "version=${VER}" >> $GITHUB_OUTPUT
+          echo "dir=packages/${SLUG}" >> $GITHUB_OUTPUT
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Build packages
-        run: npm run build
+      - name: Build only the tagged package
+        run: npm run build -w packages/${{ steps.pkg.outputs.slug }}
 
-      - name: Publish package for tag
+      - name: Publish package
         shell: bash
         run: |
           set -euo pipefail
 
-          TAG="${GITHUB_REF_NAME}"          # e.g. chat-core-v0.2.2
-          SLUG="${TAG%-v*}"                 # chat-core
-          EXPECT_VER="${TAG##*-v}"           # 0.2.2
+          PKGDIR="${{ steps.pkg.outputs.dir }}"
+          EXPECT_VER="${{ steps.pkg.outputs.version }}"
 
-          PKGDIR="packages/${SLUG}"
           [[ -f "${PKGDIR}/package.json" ]] || { echo "No package.json at ${PKGDIR}"; exit 1; }
 
           NAME=$(node -p "require('./${PKGDIR}/package.json').name")
           VER=$(node -p "require('./${PKGDIR}/package.json').version")
 
-          echo "Tag: ${TAG}"
           echo "Workspace: ${NAME}"
           echo "package.json version: ${VER}"
           echo "expected from tag: ${EXPECT_VER}"
