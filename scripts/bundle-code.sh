@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Usage: ./scripts/bundle-code.sh [output_filename]
-OUTPUT="${1:-full_project_code.txt}"
+OUTPUT="${1:-full_ttt_packages_code.txt}"
 
 # Clear or create the output file
 : > "$OUTPUT"
