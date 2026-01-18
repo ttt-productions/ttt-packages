@@ -1,6 +1,7 @@
 import type { MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-contracts";
 import { processImage } from "./image/image-processor";
 import { processVideo } from "./video/video-processor";
+import { processAudio } from "./audio/audio-processor";
 
 export interface ProcessMediaContext {
   inputPath: string;
@@ -22,11 +23,7 @@ export async function processMedia(
       return processVideo(spec, ctx);
 
     case "audio":
-      return {
-        ok: false,
-        mediaType: "audio",
-        error: { code: "processing_failed", message: "Audio processing not implemented yet." },
-      };
+      return processAudio(spec, ctx);
 
     case "generic":
     default:

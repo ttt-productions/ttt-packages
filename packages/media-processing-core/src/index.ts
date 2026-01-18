@@ -6,3 +6,11 @@ export * from "./video/video-processor";
 
 export * from "./process-media";
 export * from "./workspace/temp";
+
+export * from "./audio";
+export * from "./audio/audio-processor";
+
+export * from "./io/types";
+export * from "./run-pipeline";
+
+export * from "./io/fs";

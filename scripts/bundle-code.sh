@@ -27,9 +27,10 @@ IGNORE_DIRS=(
   "coverage"
   ".git"
   ".turbo"
+  ".firebase"
 )
 
-# File extensions to include (add more if needed)
+# File extensions to include
 INCLUDE_EXTS=(
   "ts"
   "tsx"
@@ -38,22 +39,23 @@ INCLUDE_EXTS=(
   "json"
   "sh"
   "md"
+  "css"
 )
 
 # --- Functions ---
 
-# Function to format and append a file to the output
 append_file() {
   local file="$1"
-  
   if [[ -f "$file" ]]; then
     echo "  -> Adding: $file"
-    echo "" >> "$OUTPUT"
-    echo "================================================================================" >> "$OUTPUT"
-    echo "FILE PATH: $file"
-    echo "================================================================================" >> "$OUTPUT"
-    cat "$file" >> "$OUTPUT"
-    echo "" >> "$OUTPUT"
+    {
+      echo ""
+      echo "================================================================================"
+      echo "FILE PATH: $file"
+      echo "================================================================================"
+      cat "$file"
+      echo ""
+    } >> "$OUTPUT"
   fi
 }
 
@@ -71,13 +73,19 @@ done
 if [[ -d "packages" ]]; then
   echo "🔍 Scanning 'packages/' directory..."
 
-  # Construct find command arguments to ignore directories
+  # A. Construct Ignore Arguments: ( -name "dir1" -o -name "dir2" ... )
   FIND_IGNORE_ARGS=()
+  first=true
   for dir in "${IGNORE_DIRS[@]}"; do
-    FIND_IGNORE_ARGS+=( -name "$dir" -prune -o )
+    if [ "$first" = true ]; then
+      FIND_IGNORE_ARGS+=( -name "$dir" )
+      first=false
+    else
+      FIND_IGNORE_ARGS+=( -o -name "$dir" )
+    fi
   done
 
-  # Construct find command arguments to include extensions
+  # B. Construct Include Arguments: ( -name "*.ts" -o -name "*.tsx" ... )
   FIND_INCLUDE_ARGS=()
   first=true
   for ext in "${INCLUDE_EXTS[@]}"; do
@@ -89,14 +97,17 @@ if [[ -d "packages" ]]; then
     fi
   done
 
-  # Run find command
-  # Logic: find in packages/ -> (ignore bad dirs) -> OR -> (if file matches ext -> print)
+  # C. Run find command
+  # Logic: If dir matches IGNORE -> prune. ELSE if file matches INCLUDE -> print.
   find packages \
-    \( "${FIND_IGNORE_ARGS[@]}" \) \
+    -type d \( "${FIND_IGNORE_ARGS[@]}" \) -prune \
+    -o \
     -type f \( "${FIND_INCLUDE_ARGS[@]}" \) \
     -print0 | sort -z | while IFS= read -r -d '' file; do
-      # Exclude package-lock.json files explicitly if desired (usually noise for AI)
+      
+      # Exclude package-lock.json explicitly
       if [[ "$file" == *"package-lock.json" ]]; then continue; fi
+      
       append_file "$file"
     done
 else
