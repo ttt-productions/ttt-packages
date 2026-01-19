@@ -7,8 +7,8 @@
  * - `keys.user.list(filters?)` => ['user', 'list', filters]
  * - `keys.user.custom('accountStatus', id)` => ['user', 'accountStatus', id]
  */
-
 type KeyPart = string | number | boolean | null | undefined | Record<string, unknown>;
+
 export type QueryKey = readonly unknown[];
 
 function withScope(scope: string, ...parts: KeyPart[]): QueryKey {
@@ -124,6 +124,15 @@ export const keys = {
     detail: (id: string) => withScope('feedback', 'detail', id),
     list: (params?: Record<string, unknown>) => withScope('feedback', 'list', params),
     custom: (...parts: KeyPart[]) => withScope('feedback', ...parts),
+  },
+  // Added social scope for Streetz feed and trending posts
+  social: {
+    all: withScope('social'),
+    feed: (filter?: string) => withScope('social', 'feed', filter),
+    trending: () => withScope('social', 'trending'),
+    detail: (id: string) => withScope('social', 'detail', id),
+    list: (params?: Record<string, unknown>) => withScope('social', 'list', params),
+    custom: (...parts: KeyPart[]) => withScope('social', ...parts),
   },
 } as const;
 
