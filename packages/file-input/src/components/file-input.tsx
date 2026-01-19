@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState, useId } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useId } from "react";
 import { getSimplifiedMediaType, type SimplifiedMediaType } from "@ttt-productions/media-contracts";
 import { Alert, AlertDescription, Button, Card, Input, Progress, cn } from "@ttt-productions/ui-core";
 import { Info, X, Upload, Film, Music, Paperclip, AlertTriangle, Loader2 } from "lucide-react";
@@ -42,6 +42,26 @@ export function FileInput(props: FileInputProps) {
   } = props;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const lastPreviewUrlRef = useRef<string | null>(null);
+
+  const revokeLastPreviewUrl = useCallback(() => {
+    if (!lastPreviewUrlRef.current) return;
+    try {
+      URL.revokeObjectURL(lastPreviewUrlRef.current);
+    } catch {}
+    lastPreviewUrlRef.current = null;
+  }, []);
+
+  const makePreviewUrl = useCallback((blob: Blob) => {
+    revokeLastPreviewUrl();
+    const url = URL.createObjectURL(blob);
+    lastPreviewUrlRef.current = url;
+    return url;
+  }, [revokeLastPreviewUrl]);
+
+  useEffect(() => {
+    return () => revokeLastPreviewUrl();
+  }, [revokeLastPreviewUrl]);
   const uniqueId = useId();
   const inputId = `file-input-${uniqueId}`;
 
@@ -183,8 +203,9 @@ export function FileInput(props: FileInputProps) {
 
     // normal selection
     setInternalSelected(file);
-    onChange({ type: fileType, file, previewUrl: URL.createObjectURL(file) });
-  }, [acceptTypes, maxSizeMB, cropConfig, videoMaxDurationSec, audioMaxDurationSec, onChange]);
+    const previewUrl = makePreviewUrl(file);
+    onChange({ type: fileType, file, previewUrl, revokePreviewUrl: revokeLastPreviewUrl });
+  }, [acceptTypes, maxSizeMB, cropConfig, videoMaxDurationSec, audioMaxDurationSec, onChange, makePreviewUrl, revokeLastPreviewUrl]);
 
   const handleCropComplete = (blob: Blob | null) => {
     setIsCropperOpen(false);
@@ -201,7 +222,8 @@ export function FileInput(props: FileInputProps) {
       type: "image",
       file: original ?? undefined,
       blob,
-      previewUrl: URL.createObjectURL(blob),
+      previewUrl: makePreviewUrl(blob),
+      revokePreviewUrl: revokeLastPreviewUrl,
     });
   };
 

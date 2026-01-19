@@ -13,6 +13,16 @@ export interface UploadFileResumableArgs {
   file: Blob | File;
   metadata?: UploadMetadata;
   onProgress?: UploadProgressHandler;
+
+  /** Optional retry policy for transient failures. */
+  retry?: {
+    maxRetries?: number;
+    baseDelayMs?: number;
+    maxDelayMs?: number;
+  };
+
+  /** Optional cancellation signal. */
+  signal?: AbortSignal;
 }
 
 export interface UploadFileResumableResult {
@@ -40,6 +50,9 @@ export interface UploadSessionState {
   status: UploadSessionStatus;
   path: string;
 
+  /** Monotonic version counter for state updates. */
+  version: number;
+
   transferred: number;
   total: number;
   percent: number; // 0..100
@@ -49,6 +62,15 @@ export interface UploadSessionState {
 
   error?: unknown;
   result?: UploadFileResumableResult;
+}
+
+export interface DisposeUploadSessionArgs {
+  /** Session id to dispose. */
+  id: string;
+  /** If true, cancel any active upload task before disposal. Default true. */
+  cancel?: boolean;
+  /** If true, remove session state from the in-memory store. Default true. */
+  remove?: boolean;
 }
 
 export interface UploadController {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useId, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { MediaCropSpec, MediaProcessingSpec, VideoOrientation } from "@ttt-productions/media-contracts";
 import { getSimplifiedMediaType } from "@ttt-productions/media-contracts";
 import { Info, Camera, Mic, Video, Upload, X } from "lucide-react";
@@ -130,12 +130,48 @@ export function MediaInput(props: MediaInputProps) {
   const lastObjectUrlRef = useRef<string | null>(null);
   const lastRecordUrlRef = useRef<string | null>(null);
 
-  React.useEffect(() => {
-    return () => {
-      if (lastObjectUrlRef.current) URL.revokeObjectURL(lastObjectUrlRef.current);
-      if (lastRecordUrlRef.current) URL.revokeObjectURL(lastRecordUrlRef.current);
-    };
+  const revokeLastObjectUrl = useCallback(() => {
+    if (!lastObjectUrlRef.current) return;
+    try {
+      URL.revokeObjectURL(lastObjectUrlRef.current);
+    } catch {}
+    lastObjectUrlRef.current = null;
   }, []);
+
+  const makeObjectUrl = useCallback(
+    (blob: Blob) => {
+      revokeLastObjectUrl();
+      const url = URL.createObjectURL(blob);
+      lastObjectUrlRef.current = url;
+      return url;
+    },
+    [revokeLastObjectUrl]
+  );
+
+  const revokeLastRecordUrl = useCallback(() => {
+    if (!lastRecordUrlRef.current) return;
+    try {
+      URL.revokeObjectURL(lastRecordUrlRef.current);
+    } catch {}
+    lastRecordUrlRef.current = null;
+  }, []);
+
+  const makeRecordUrl = useCallback(
+    (blob: Blob) => {
+      revokeLastRecordUrl();
+      const url = URL.createObjectURL(blob);
+      lastRecordUrlRef.current = url;
+      return url;
+    },
+    [revokeLastRecordUrl]
+  );
+
+  useEffect(() => {
+    return () => {
+      revokeLastObjectUrl();
+      revokeLastRecordUrl();
+    };
+  }, [revokeLastObjectUrl, revokeLastRecordUrl]);
 
   const acceptAttr = useMemo(() => {
     const m = spec.accept?.mimes?.filter(Boolean) ?? [];
@@ -298,13 +334,11 @@ export function MediaInput(props: MediaInputProps) {
       e.target.value = "";
       if (!file) return;
 
-      if (lastObjectUrlRef.current) URL.revokeObjectURL(lastObjectUrlRef.current);
-      const url = URL.createObjectURL(file);
-      lastObjectUrlRef.current = url;
+      const url = makeObjectUrl(file);
 
       await handleSelected(file, url);
     },
-    [handleSelected]
+    [handleSelected, makeObjectUrl]
   );
 
   const onCropComplete = useCallback(
@@ -332,15 +366,13 @@ export function MediaInput(props: MediaInputProps) {
 
       const croppedFile = new File([blob], `${name}.cropped.${ext}`, { type });
 
-      if (lastObjectUrlRef.current) URL.revokeObjectURL(lastObjectUrlRef.current);
-      const url = URL.createObjectURL(croppedFile);
-      lastObjectUrlRef.current = url;
+      const url = makeObjectUrl(croppedFile);
 
       readMediaMeta(croppedFile).then((meta) => emit({ file: croppedFile, previewUrl: url, meta, croppedBlob: blob }));
 
       setCropSrc(null);
     },
-    [emit, fail, pendingCropFile]
+    [emit, fail, pendingCropFile, makeObjectUrl]
   );
 
   const proceedAuto = useCallback(() => {
@@ -349,12 +381,10 @@ export function MediaInput(props: MediaInputProps) {
     setPendingAutoFile(null);
     if (!p) return;
 
-    if (lastObjectUrlRef.current) URL.revokeObjectURL(lastObjectUrlRef.current);
-    const url = URL.createObjectURL(p.file);
-    lastObjectUrlRef.current = url;
+    const url = makeObjectUrl(p.file);
 
     emit({ file: p.file, previewUrl: url, meta: p.meta, autoFormat: true });
-  }, [emit, pendingAutoFile]);
+  }, [emit, pendingAutoFile, makeObjectUrl]);
 
   const cancelAuto = useCallback(() => {
     setAutoOpen(false);
@@ -392,9 +422,7 @@ export function MediaInput(props: MediaInputProps) {
 
         const file = new File([blob], `recording.webm`, { type: blob.type });
 
-        if (lastRecordUrlRef.current) URL.revokeObjectURL(lastRecordUrlRef.current);
-        const url = URL.createObjectURL(file);
-        lastRecordUrlRef.current = url;
+        const url = makeRecordUrl(file);
 
         setRecordPreviewUrl(url);
         await handleSelected(file, url);
@@ -414,7 +442,7 @@ export function MediaInput(props: MediaInputProps) {
         }, Math.floor(max * 1000));
       }
     },
-    [spec, handleSelected]
+    [spec, handleSelected, makeRecordUrl]
   );
 
   const canPick = spec.client?.allowPick ?? true;

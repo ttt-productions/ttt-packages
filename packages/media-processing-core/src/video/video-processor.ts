@@ -1,8 +1,9 @@
 import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec, VideoOrientation } from "@ttt-productions/media-contracts";
 import { mkdir, stat } from "node:fs/promises";
 import path from "node:path";
-import { runCmd } from "./ffmpeg";
+import { ensureFfmpegAvailable, runCmd } from "./ffmpeg";
 import { probeVideo } from "./probe";
+import { safeOutputPathFor } from "../utils/safe-path";
 
 function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();
@@ -47,7 +48,7 @@ function orientationOk(required: VideoOrientation | undefined, actual: VideoOrie
 }
 
 function outputPathFor(base: string, key: string, ext: string): string {
-  return `${base}_${key}.${ext}`;
+  return safeOutputPathFor(base, key, ext);
 }
 
 function mimeFromExt(ext: string): string | undefined {
@@ -78,6 +79,19 @@ export async function processVideo(
         ok: false,
         mediaType: "video",
         error: { code: "invalid_mime", message: "Video mime type is not allowed.", details: { inputMime: ctx.inputMime, accept: spec.accept } },
+      };
+    }
+
+    const ff = await ensureFfmpegAvailable();
+    if (!ff.ok) {
+      return {
+        ok: false,
+        mediaType: "video",
+        error: {
+          code: "processing_failed",
+          message: "ffmpeg is not available.",
+          details: { error: String((ff as any).error ?? "unknown") },
+        },
       };
     }
 
@@ -200,7 +214,7 @@ export async function processVideo(
         error: {
           code: "processing_failed",
           message: "ffmpeg video transcode failed.",
-          details: { stderr: r1.stderr?.slice(0, 2000) },
+          details: { stderr: r1.stderr, stdout: r1.stdout },
         },
       };
     }
@@ -232,6 +246,10 @@ export async function processVideo(
       },
     ];
 
+    const warnings: string[] = [];
+    if (needsAuto && spec.allowAutoFormat) warnings.push("auto_formatted");
+    if (r2.code !== 0) warnings.push("poster_failed");
+
     if (psSize > 0) {
       outputs.push({
         key: "poster",
@@ -253,7 +271,7 @@ export async function processVideo(
         height: probe.height,
         durationSec: probe.durationSec,
       },
-      warnings: needsAuto && spec.allowAutoFormat ? ["auto_formatted"] : undefined,
+      warnings: warnings.length ? warnings : undefined,
     };
   } catch (e: any) {
     return {

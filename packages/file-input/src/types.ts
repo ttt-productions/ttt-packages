@@ -62,6 +62,8 @@ export interface FileInputChangePayload {
   file?: File;
   blob?: Blob;
   previewUrl?: string;
+  /** Call when you no longer need previewUrl (releases memory). */
+  revokePreviewUrl?: () => void;
   error?: FileInputError;
 }
 

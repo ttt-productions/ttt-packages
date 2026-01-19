@@ -2,6 +2,7 @@ import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec } from "@t
 import sharp from "sharp";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { safeOutputPathFor } from "../utils/safe-path";
 
 type Gravity = "center" | "top" | "bottom" | "left" | "right";
 
@@ -59,7 +60,7 @@ function pickFormat(fmt?: string): { ext: string; format: "jpeg" | "png" | "webp
 }
 
 function outputPathFor(base: string, key: string, ext: string): string {
-  return `${base}_${key}.${ext}`;
+  return safeOutputPathFor(base, key, ext);
 }
 
 function mimeForImageFormat(fmt?: string): string | undefined {
@@ -97,8 +98,18 @@ async function buildBase(
   | { ok: true; base: sharp.Sharp; inputMeta: sharp.Metadata }
   | { ok: false; error: MediaProcessingResult["error"] }
 > {
-  const input = sharp(inputPath, { failOn: "none" });
+  const input = sharp(inputPath);
   const meta = await input.metadata();
+
+  if (!meta || !meta.width || !meta.height) {
+    return {
+      ok: false,
+      error: {
+        code: "processing_failed",
+        message: "Failed to read image metadata.",
+      },
+    };
+  }
 
   if (!acceptAllowsImage(spec)) {
     return {
@@ -144,7 +155,7 @@ async function buildBase(
   }
 
   // Start from raw input each time; callers can clone as needed.
-  let base = sharp(inputPath, { failOn: "none" });
+  let base = sharp(inputPath);
 
   // Keep metadata only if explicitly requested.
   if (spec.image?.stripMetadata === false) {

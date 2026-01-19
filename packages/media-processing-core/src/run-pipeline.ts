@@ -9,6 +9,7 @@ import type {
   import type { ModerationAdapter } from "./moderation/types";
   import { mergeModeration } from "./moderation/merge";
   import path from "node:path";
+  import { stat } from "node:fs/promises";
   
   export interface RunPipelineArgs {
     spec: MediaProcessingSpec;
@@ -75,6 +76,44 @@ import type {
         outputBasePath,
         inputMime: io.input.mime,
       });
+
+      // Basic output size enforcement (until contracts add maxOutputBytes).
+      // If spec.maxBytes is provided, treat it as an upper bound for each output and total outputs.
+      if (result.ok && result.outputs?.length) {
+        const perFileLimit = spec.maxBytes ?? 200 * 1024 * 1024; // 200MB default
+        const totalLimit = spec.maxBytes ?? 400 * 1024 * 1024; // 400MB default
+
+        let total = 0;
+        for (const o of result.outputs) {
+          if (!o.path) continue;
+          const s = await stat(o.path);
+          const size = Number(s.size ?? 0);
+          total += size;
+          if (!o.sizeBytes) o.sizeBytes = size;
+          if (size > perFileLimit) {
+            return {
+              ok: false,
+              mediaType: mediaTypeFromSpecKind(spec.kind),
+              error: {
+                code: "too_large",
+                message: "Processed output exceeds allowed size.",
+                details: { key: o.key, sizeBytes: size, limitBytes: perFileLimit },
+              },
+            };
+          }
+          if (total > totalLimit) {
+            return {
+              ok: false,
+              mediaType: mediaTypeFromSpecKind(spec.kind),
+              error: {
+                code: "too_large",
+                message: "Total processed outputs exceed allowed size.",
+                details: { totalBytes: total, limitBytes: totalLimit },
+              },
+            };
+          }
+        }
+      }
   
       if (!result.ok || !result.outputs?.length) {
         if (mIn) result.moderation = mIn;

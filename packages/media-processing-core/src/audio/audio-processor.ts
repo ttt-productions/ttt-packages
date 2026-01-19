@@ -1,6 +1,7 @@
 import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-contracts";
 import { mkdir, stat } from "node:fs/promises";
 import path from "node:path";
+import { safeOutputPathFor } from "../utils/safe-path";
 import { runCmd } from "../video/ffmpeg";
 import { probeAudio } from "./probe";
 
@@ -26,7 +27,7 @@ function acceptAllowsMime(spec: MediaProcessingSpec, actualMime?: string): boole
 }
 
 function outputPathFor(base: string, key: string, ext: string): string {
-  return `${base}_${key}.${ext}`;
+  return safeOutputPathFor(base, key, ext);
 }
 
 export async function processAudio(
