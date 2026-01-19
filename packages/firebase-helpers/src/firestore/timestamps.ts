@@ -1,6 +1,6 @@
 import { Timestamp, serverTimestamp } from "firebase/firestore";
 import { format, formatDistanceToNowStrict } from "date-fns";
-import { isSerializedTimestamp, hasToDateMethod } from "./types";
+import { isSerializedTimestamp, hasToDateMethod } from "./types.js";
 
 /** Firestore server timestamp field value */
 export const serverNow = () => serverTimestamp();

@@ -1,6 +1,6 @@
 import type { Firestore, DocumentData, DocumentReference } from "firebase/firestore";
 import { writeBatch } from "firebase/firestore";
-import { chunk } from "../utils/chunk";
+import { chunk } from "../utils/chunk.js";
 
 /**
  * Firestore writeBatch has an operation limit (commonly 500).
