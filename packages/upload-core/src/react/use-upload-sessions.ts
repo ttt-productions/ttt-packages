@@ -2,21 +2,21 @@
 
 import { useEffect, useState } from "react";
 import type { UploadSessionState } from "../types";
-import { listUploadSessions, subscribeUploadSession } from "../utils/upload-store";
+import { listUploadSessions, subscribeUploadSessionsList } from "../utils/upload-store";
 
 export function useUploadSessions() {
   const [sessions, setSessions] = useState<UploadSessionState[]>(() => listUploadSessions());
 
   useEffect(() => {
-    // naive: re-read list when any known session updates
-    const current = listUploadSessions();
-    setSessions(current);
+    const sync = () => setSessions(listUploadSessions());
 
-    const unsubs = current.map((s) =>
-      subscribeUploadSession(s.id, () => setSessions(listUploadSessions()))
-    );
+    // initial
+    sync();
 
-    return () => unsubs.forEach((u) => u());
+    // update whenever sessions are added/removed/rehydrated
+    const unsub = subscribeUploadSessionsList(sync);
+
+    return () => unsub();
   }, []);
 
   return { sessions };

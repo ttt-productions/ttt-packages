@@ -1,10 +1,12 @@
-import { now } from "@ttt-productions/firebase-helpers"; //
+import { now } from "@ttt-productions/firebase-helpers";
 import type { UploadSessionState, UploadSessionPersistenceAdapter } from "../types";
 
 type Listener = (s: UploadSessionState) => void;
+type ListListener = () => void;
 
 const sessions = new Map<string, UploadSessionState>();
 const listeners = new Map<string, Set<Listener>>();
+const listListeners = new Set<ListListener>();
 
 let persistence: UploadSessionPersistenceAdapter | null = null;
 
@@ -39,13 +41,17 @@ async function persistRemove(id: string) {
   }
 }
 
+function notifyList() {
+  for (const fn of listListeners) fn();
+}
+
 // ---- Session pruning (P0) ----
 const MAX_SESSIONS = 100;
 const SUCCESS_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const ERROR_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7d
 
 export function pruneOldUploadSessions() {
-  const t = now(); //
+  const t = now();
   const all = listUploadSessions();
 
   let pruned = 0;
@@ -71,11 +77,7 @@ export function pruneOldUploadSessions() {
   return pruned;
 }
 
-/** Load persisted sessions into the in-memory store.
- *
- * Note: Firebase resumable tasks cannot be reattached after a full reload.
- * Persisted sessions exist for UI recovery and restart flows.
- */
+/** Load persisted sessions into the in-memory store. */
 export async function rehydrateUploadSessions() {
   if (!persistence) return;
 
@@ -91,6 +93,7 @@ export async function rehydrateUploadSessions() {
   }
 
   pruneOldUploadSessions();
+  notifyList();
 }
 
 export function getUploadSession(id: string): UploadSessionState | undefined {
@@ -105,11 +108,8 @@ export function upsertUploadSession(partial: Partial<UploadSessionState> & Pick<
   const prev = sessions.get(partial.id);
 
   // Guard against out-of-order async updates.
-  if (prev && partial.updatedAt != null && partial.updatedAt < prev.updatedAt) {
-    return;
-  }
+  if (prev && partial.updatedAt != null && partial.updatedAt < prev.updatedAt) return;
 
-  // ---- Terminal status race fix (P0) ----
   const prevStatus = prev?.status ?? "idle";
   const nextStatus = partial.status ?? prevStatus;
 
@@ -117,17 +117,14 @@ export function upsertUploadSession(partial: Partial<UploadSessionState> & Pick<
   const prevIsTerminal = isTerminal(prevStatus);
   const nextIsTerminal = isTerminal(nextStatus);
 
-  // Once terminal, stay terminal. If we receive a terminal nextStatus first, accept it.
   const status = prevIsTerminal ? prevStatus : nextIsTerminal ? nextStatus : nextStatus;
 
-  // Progress values should never go backwards.
   const transferred = Math.max(partial.transferred ?? 0, prev?.transferred ?? 0);
   const total = Math.max(partial.total ?? 0, prev?.total ?? 0);
   const percent = Math.max(partial.percent ?? 0, prev?.percent ?? 0);
 
   const version = (prev?.version ?? 0) + 1;
-  
-  // Use robust now() helper
+
   const next: UploadSessionState = {
     id: partial.id,
     status,
@@ -136,23 +133,28 @@ export function upsertUploadSession(partial: Partial<UploadSessionState> & Pick<
     transferred,
     total,
     percent,
-    startedAt: partial.startedAt ?? prev?.startedAt ?? now(), //
-    updatedAt: partial.updatedAt ?? now(), //
+    startedAt: partial.startedAt ?? prev?.startedAt ?? now(),
+    updatedAt: partial.updatedAt ?? now(),
     error: partial.error ?? prev?.error,
     result: partial.result ?? prev?.result,
   };
+
+  const wasMissing = !sessions.has(partial.id);
 
   sessions.set(partial.id, next);
   void persistUpsert(next);
 
   const ls = listeners.get(partial.id);
   if (ls) for (const fn of ls) fn(next);
+
+  if (wasMissing) notifyList();
 }
 
 export function removeUploadSession(id: string) {
-  sessions.delete(id);
+  const existed = sessions.delete(id);
   clearUploadSessionListeners(id);
   void persistRemove(id);
+  if (existed) notifyList();
 }
 
 export function clearUploadSessionListeners(id: string) {
@@ -176,4 +178,10 @@ export function subscribeUploadSession(id: string, fn: Listener): () => void {
     s.delete(fn);
     if (s.size === 0) listeners.delete(id);
   };
+}
+
+/** Subscribe to changes in the *list* (new/removed sessions, rehydrate). */
+export function subscribeUploadSessionsList(fn: ListListener): () => void {
+  listListeners.add(fn);
+  return () => listListeners.delete(fn);
 }

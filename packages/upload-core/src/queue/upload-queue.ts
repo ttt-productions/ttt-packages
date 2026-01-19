@@ -122,7 +122,9 @@ export class UploadQueue {
       this.running += 1;
 
       try {
-        const c = startResumableUpload(job.args as any);
+        const { priority: _p, ...rest } = job.args as StartUploadArgs & { priority?: number };
+        const c = startResumableUpload({ ...(rest as any), id: job.id });
+        
         job.resolveController(c);
 
         c.done.finally(() => {
