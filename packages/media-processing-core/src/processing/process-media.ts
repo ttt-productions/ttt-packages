@@ -3,9 +3,9 @@ import type {
     MediaProcessingResult
   } from "@ttt-productions/media-contracts";
   
-  import { processImage } from "../image/image-processor";
-  import { processVideo } from "../video/video-processor";
-  import { processAudio } from "../audio/audio-processor";
+  import { processImage } from "../image/image-processor.js";
+  import { processVideo } from "../video/video-processor.js";
+  import { processAudio } from "../audio/audio-processor.js";
   
   export async function processMedia(
     spec: MediaProcessingSpec,

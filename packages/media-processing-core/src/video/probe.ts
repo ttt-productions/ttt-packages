@@ -1,4 +1,4 @@
-import { runCmd } from "./ffmpeg";
+import { runCmd } from "./ffmpeg.js";
 
 export interface VideoProbe {
   durationSec?: number;

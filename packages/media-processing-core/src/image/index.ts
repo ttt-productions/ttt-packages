@@ -1,1 +1,1 @@
-export * from "./image-processor";
+export * from "./image-processor.js";

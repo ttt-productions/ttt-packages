@@ -1,3 +1,3 @@
-export * from "./video-processor";
-export * from "./probe";
-export * from "./ffmpeg";
+export * from "./video-processor.js";
+export * from "./probe.js";
+export * from "./ffmpeg.js";

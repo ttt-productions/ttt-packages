@@ -1,10 +1,10 @@
 import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec, VideoOrientation } from "@ttt-productions/media-contracts";
 import { mkdir, stat } from "node:fs/promises";
 import path from "node:path";
-import { ensureFfmpegAvailable, runFfmpeg } from "./ffmpeg";
-import { probeVideo } from "./probe";
-import { safeOutputPathFor } from "../utils/safe-path";
-import type { ProcessMediaOptions } from "../types";
+import { ensureFfmpegAvailable, runFfmpeg } from "./ffmpeg.js";
+import { probeVideo } from "./probe.js";
+import { safeOutputPathFor } from "../utils/safe-path.js";
+import type { ProcessMediaOptions } from "../types.js";
 
 function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();

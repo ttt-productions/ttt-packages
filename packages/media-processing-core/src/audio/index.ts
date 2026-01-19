@@ -1,2 +1,2 @@
-export * from "./audio-processor";
-export * from "./probe";
+export * from "./audio-processor.js";
+export * from "./probe.js";

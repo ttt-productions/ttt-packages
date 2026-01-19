@@ -4,11 +4,11 @@ import type {
     MediaModerationResult,
   } from "@ttt-productions/media-contracts";
 import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
-  import { createTempWorkspace } from "./workspace/temp";
-  import { processMedia } from "./process-media";
-  import type { MediaIO } from "./io/types";
-  import type { ModerationAdapter } from "./moderation/types";
-  import { mergeModeration } from "./moderation/merge";
+  import { createTempWorkspace } from "./workspace/temp.js";
+  import { processMedia } from "./process-media.js";
+  import type { MediaIO } from "./io/types.js";
+  import type { ModerationAdapter } from "./moderation/types.js";
+  import { mergeModeration } from "./moderation/merge.js";
   import path from "node:path";
   import { stat } from "node:fs/promises";
   
@@ -18,7 +18,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
     outputBaseName?: string;
     moderation?: ModerationAdapter;
   signal?: AbortSignal;
-  onProgress?: (p: import("./types").MediaPipelineProgress) => void;
+  onProgress?: (p: import("./types.js").MediaPipelineProgress) => void;
   }
   
   function mediaTypeFromSpecKind(kind: MediaProcessingSpec["kind"]): "image" | "video" | "audio" | "other" {

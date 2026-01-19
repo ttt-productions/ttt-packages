@@ -1,10 +1,10 @@
 import type { MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-contracts";
-import { processImage } from "./image/image-processor";
-import { processVideo } from "./video/video-processor";
-import { processAudio } from "./audio/audio-processor";
-import type { ProcessMediaContext, ProcessMediaOptions } from "./types";
+import { processImage } from "./image/image-processor.js";
+import { processVideo } from "./video/video-processor.js";
+import { processAudio } from "./audio/audio-processor.js";
+import type { ProcessMediaContext, ProcessMediaOptions } from "./types.js";
 
-export type { MediaPipelineProgress, ProcessMediaContext, ProcessMediaOptions } from "./types";
+export type { MediaPipelineProgress, ProcessMediaContext, ProcessMediaOptions } from "./types.js";
 
 export async function processMedia(
   spec: MediaProcessingSpec,

@@ -1,7 +1,7 @@
-import type { MediaIO } from "./types";
+import type { MediaIO } from "./types.js";
 import { copyFile, mkdir } from "node:fs/promises";
 import path from "node:path";
-import { sanitizeKey } from "../utils/safe-path";
+import { sanitizeKey } from "../utils/safe-path.js";
 
 export function createFsIO(args: {
   inputPath: string;

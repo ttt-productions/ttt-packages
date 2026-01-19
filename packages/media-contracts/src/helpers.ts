@@ -1,4 +1,4 @@
-import type { SimplifiedMediaType } from "./types";
+import type { SimplifiedMediaType } from "./types.js";
 
 export type FileLike = {
   type?: string; // mime

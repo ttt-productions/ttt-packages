@@ -3,7 +3,10 @@
   "compilerOptions": {
     "composite": true,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "moduleResolution": "node16",      // ADD THIS
+    "module": "node16",                 // ADD THIS
+    "noEmitOnError": true               // ADD THIS
   },
   "include": ["src"]
 }

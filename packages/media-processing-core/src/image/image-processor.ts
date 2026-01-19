@@ -2,8 +2,8 @@ import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec } from "@t
 import sharp from "sharp";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import { safeOutputPathFor } from "../utils/safe-path";
-import type { ProcessMediaOptions } from "../types";
+import { safeOutputPathFor } from "../utils/safe-path.js";
+import type { ProcessMediaOptions } from "../types.js";
 
 type Gravity = "center" | "top" | "bottom" | "left" | "right";
 

@@ -1,12 +1,14 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "composite": true,
+    "composite": true,                  // KEEP THIS
     "outDir": "dist",
     "rootDir": "src",
+    "moduleResolution": "node16",       // ADD THIS
+    "module": "node16",                 // ADD THIS
     "noEmitOnError": true,
     "types": ["node"]
   },
-  "references": [{ "path": "../media-contracts" }],
+  "references": [{ "path": "../media-contracts" }],  // KEEP THIS
   "include": ["src"]
 }
