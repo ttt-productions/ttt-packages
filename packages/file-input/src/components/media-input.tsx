@@ -126,6 +126,7 @@ export function MediaInput(props: MediaInputProps) {
   const recordChunksRef = useRef<BlobPart[]>([]);
   const [recordPreviewUrl, setRecordPreviewUrl] = useState<string | null>(null);
 
+  // Prevent memory leaks from object URLs
   const lastObjectUrlRef = useRef<string | null>(null);
   const lastRecordUrlRef = useRef<string | null>(null);
 
@@ -296,7 +297,11 @@ export function MediaInput(props: MediaInputProps) {
       const file = e.target.files?.[0];
       e.target.value = "";
       if (!file) return;
+
+      if (lastObjectUrlRef.current) URL.revokeObjectURL(lastObjectUrlRef.current);
       const url = URL.createObjectURL(file);
+      lastObjectUrlRef.current = url;
+
       await handleSelected(file, url);
     },
     [handleSelected]
@@ -327,7 +332,10 @@ export function MediaInput(props: MediaInputProps) {
 
       const croppedFile = new File([blob], `${name}.cropped.${ext}`, { type });
 
+      if (lastObjectUrlRef.current) URL.revokeObjectURL(lastObjectUrlRef.current);
       const url = URL.createObjectURL(croppedFile);
+      lastObjectUrlRef.current = url;
+
       readMediaMeta(croppedFile).then((meta) => emit({ file: croppedFile, previewUrl: url, meta, croppedBlob: blob }));
 
       setCropSrc(null);
@@ -341,7 +349,10 @@ export function MediaInput(props: MediaInputProps) {
     setPendingAutoFile(null);
     if (!p) return;
 
+    if (lastObjectUrlRef.current) URL.revokeObjectURL(lastObjectUrlRef.current);
     const url = URL.createObjectURL(p.file);
+    lastObjectUrlRef.current = url;
+
     emit({ file: p.file, previewUrl: url, meta: p.meta, autoFormat: true });
   }, [emit, pendingAutoFile]);
 
@@ -380,7 +391,10 @@ export function MediaInput(props: MediaInputProps) {
         });
 
         const file = new File([blob], `recording.webm`, { type: blob.type });
+
+        if (lastRecordUrlRef.current) URL.revokeObjectURL(lastRecordUrlRef.current);
         const url = URL.createObjectURL(file);
+        lastRecordUrlRef.current = url;
 
         setRecordPreviewUrl(url);
         await handleSelected(file, url);
