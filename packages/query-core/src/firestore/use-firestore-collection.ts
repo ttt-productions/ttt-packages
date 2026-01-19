@@ -16,21 +16,19 @@ import type { FirestoreCollectionOptions, WithId } from './types';
  * Fetch all documents from a Firestore collection with optional realtime updates.
  * Use this for small collections where you need all documents at once.
  * For large collections, use useFirestoreInfinite or useFirestorePaginated.
- * 
- * @example
+ * * @example
  * ```tsx
  * // Fetch all channels in a project
  * const { data: channels } = useFirestoreCollection<Channel>({
- *   collectionPath: `projects/${projectId}/channels`,
- *   queryKey: ['channels', projectId],
- *   constraints: [orderBy('createdAt', 'asc')],
+ * collectionPath: `projects/${projectId}/channels`,
+ * queryKey: ['channels', projectId],
+ * constraints: [orderBy('createdAt', 'asc')],
  * });
- * 
- * // With realtime updates
+ * * // With realtime updates
  * const { data: members } = useFirestoreCollection<Member>({
- *   collectionPath: `projects/${projectId}/members`,
- *   queryKey: ['members', projectId],
- *   subscribe: true,
+ * collectionPath: `projects/${projectId}/members`,
+ * queryKey: ['members', projectId],
+ * subscribe: true,
  * });
  * ```
  */
@@ -70,11 +68,14 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
       },
       (error) => {
         console.error('[useFirestoreCollection] Subscription error:', error);
+        // Surface error so UI can react (clear stale data)
+        queryClient.setQueryData(queryKey, undefined);
       }
     );
 
     return () => unsubscribe();
-  }, [db, collectionPath, queryKey, constraints, enabled, subscribe, select, queryClient]);
+    // Note: select intentionally excluded to prevent re-subscribing on every render
+  }, [db, collectionPath, queryKey, constraints, enabled, subscribe, queryClient]);
 
   return useQuery({
     queryKey,

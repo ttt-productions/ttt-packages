@@ -8,27 +8,24 @@ import type { FirestoreDocOptions, WithId } from './types';
 
 /**
  * Fetch a single Firestore document with optional realtime updates.
- * 
- * @example
+ * * @example
  * ```tsx
  * // Simple fetch
  * const { data: user } = useFirestoreDoc<User>({
- *   docPath: `users/${userId}`,
- *   queryKey: ['user', userId],
+ * docPath: `users/${userId}`,
+ * queryKey: ['user', userId],
  * });
- * 
- * // With realtime updates
+ * * // With realtime updates
  * const { data: project } = useFirestoreDoc<Project>({
- *   docPath: `projects/${projectId}`,
- *   queryKey: ['project', projectId],
- *   subscribe: true,
+ * docPath: `projects/${projectId}`,
+ * queryKey: ['project', projectId],
+ * subscribe: true,
  * });
- * 
- * // Conditional fetch
+ * * // Conditional fetch
  * const { data: profile } = useFirestoreDoc<Profile>({
- *   docPath: `profiles/${userId}`,
- *   queryKey: ['profile', userId],
- *   enabled: !!userId,
+ * docPath: `profiles/${userId}`,
+ * queryKey: ['profile', userId],
+ * enabled: !!userId,
  * });
  * ```
  */
@@ -64,11 +61,19 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
       },
       (error) => {
         console.error('[useFirestoreDoc] Subscription error:', error);
+        // Surface error to React Query so UI can show error state
+        // Note: setQueryError isn't public API, so we clear data to force UI reaction
+        // or rely on the query failing naturally if we triggered a fetch.
+        // Clearing data to undefined forces a "loading" or "empty" state depending on app logic,
+        // which is better than stale data hiding the error.
+        queryClient.setQueryData(queryKey, undefined);
       }
     );
 
     return () => unsubscribe();
-  }, [db, docPath, queryKey, enabled, subscribe, select, queryClient]);
+    // Note: select intentionally excluded to prevent re-subscribing on every render
+    // if the caller passes an inline function.
+  }, [db, docPath, queryKey, enabled, subscribe, queryClient]);
 
   return useQuery({
     queryKey,
