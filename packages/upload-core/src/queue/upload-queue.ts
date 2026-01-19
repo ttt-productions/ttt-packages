@@ -1,4 +1,4 @@
-import type { UploadController, UploadFileResumableResult } from "../types";
+import type { UploadController, UploadFileResumableResult, UploadQueueOptions, StartUploadArgs } from "../types";
 import { getFileSize } from "../utils/file-size";
 import {
   upsertUploadSession,
@@ -14,16 +14,6 @@ function noopBool() {
   return false;
 }
 
-type StartUploadArgs = {
-  id?: string;
-  file: Blob;
-  path: string;
-  metadata?: Record<string, any>;
-  signal?: AbortSignal;
-  onProgress?: (p: { transferred: number; total: number; percent: number }) => void;
-  onState?: (s: any) => void;
-};
-
 type Job = {
   id: string;
   args: StartUploadArgs;
@@ -31,10 +21,6 @@ type Job = {
   seq: number; // FIFO within same priority
   resolveController: (c: UploadController) => void;
   rejectController: (e: unknown) => void;
-};
-
-export type UploadQueueOptions = {
-  concurrency?: number;
 };
 
 export class UploadQueue {
