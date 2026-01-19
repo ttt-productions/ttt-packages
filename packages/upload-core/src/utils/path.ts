@@ -1,3 +1,4 @@
+import { joinPath } from "@ttt-productions/firebase-helpers";
 import { normalizeFilename } from "./filename";
 
 function sanitizeSegment(seg: string): string {
@@ -17,12 +18,14 @@ export function buildUploadPath(args: {
   filename?: string;
 }) {
   const { basePath, ownerId, contentId, filename } = args;
-
-  const parts = [basePath, ownerId, contentId]
-    .filter(Boolean)
-    .map((p) => sanitizeSegment(p as string));
-  const prefix = parts.join("/").replace(/\/+/g, "/").replace(/\/$/, "");
+  
+  // Sanitize segments for security (traversal prevention)
+  const segments = [basePath, ownerId, contentId]
+    .filter((p): p is string => !!p)
+    .map(sanitizeSegment);
 
   const filePart = filename ? normalizeFilename(filename) : "file";
-  return `${prefix}/${filePart}`.replace(/\/+/g, "/");
+
+  // Use shared helper to robustly join them
+  return joinPath(...segments, filePart);
 }

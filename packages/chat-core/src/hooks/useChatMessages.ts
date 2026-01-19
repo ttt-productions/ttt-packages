@@ -16,6 +16,7 @@ import {
   limit,
 } from "firebase/firestore";
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { toMillis } from "@ttt-productions/firebase-helpers";
 import type { ChatCoreConfig, ChatMessageV1 } from "../types";
 import { canAccessThread } from "./useChatThreadAccess";
 import { messagesColPath, newestWindowQuery } from "../firestore/queries";
@@ -40,13 +41,14 @@ function mapMsg(
   threadId: string
 ): ChatMessageV1 {
   const d = doc.data() as any;
+  // Use toMillis to safely handle Timestamp, Date, string, or number.
+  // Fallback to Date.now() if 0 or invalid.
+  const createdAt = toMillis(d.createdAt) || Date.now(); 
+
   return {
     messageId: doc.id,
     threadId,
-    createdAt:
-      typeof d.createdAt === "number"
-        ? d.createdAt
-        : d.createdAt?.toMillis?.() ?? Date.now(),
+    createdAt,
     senderId: d.senderId,
     senderUsername: d.senderUsername,
     text: d.message ?? d.text ?? "",
