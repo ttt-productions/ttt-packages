@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/firebase-helpers",
-    "version": "0.2.11",
+    "version": "0.2.12",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
@@ -18,6 +18,10 @@
         ".": {
             "types": "./dist/index.d.ts",
             "default": "./dist/index.js"
+        },
+        "./admin": {
+            "types": "./dist/admin/index.d.ts",
+            "default": "./dist/admin/index.js"
         }
     },
     "scripts": {
@@ -28,11 +32,21 @@
     },
     "peerDependencies": {
         "firebase": ">=10.0.0",
+        "firebase-admin": ">=10.0.0",
         "date-fns": ">=3.0.0"
+    },
+    "peerDependenciesMeta": {
+        "firebase": {
+            "optional": true
+        },
+        "firebase-admin": {
+            "optional": true
+        }
     },
     "devDependencies": {
         "date-fns": "^4.1.0",
-        "typescript": "^5.8.3"
+        "typescript": "^5.8.3",
+        "firebase-admin": "^12.0.0"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"
