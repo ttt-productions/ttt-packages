@@ -61,12 +61,9 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
       },
       (error) => {
         console.error('[useFirestoreDoc] Subscription error:', error);
-        // Surface error to React Query so UI can show error state
-        // Note: setQueryError isn't public API, so we clear data to force UI reaction
-        // or rely on the query failing naturally if we triggered a fetch.
-        // Clearing data to undefined forces a "loading" or "empty" state depending on app logic,
-        // which is better than stale data hiding the error.
         queryClient.setQueryData(queryKey, undefined);
+        // Invalidate to trigger error state
+        queryClient.invalidateQueries({ queryKey });
       }
     );
 

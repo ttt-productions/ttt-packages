@@ -70,6 +70,8 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
         console.error('[useFirestoreCollection] Subscription error:', error);
         // Surface error so UI can react (clear stale data)
         queryClient.setQueryData(queryKey, undefined);
+        // Invalidate to trigger error state
+        queryClient.invalidateQueries({ queryKey });
       }
     );
 
