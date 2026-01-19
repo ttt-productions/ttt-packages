@@ -9,6 +9,8 @@ import type { UploadTaskSnapshot } from "firebase/storage";
 import { clearUploadSessionListeners, removeUploadSession, upsertUploadSession } from "../utils/upload-store";
 import { backoffDelayMs, sleep } from "../utils/retry";
 import type { DisposeUploadSessionArgs } from "../types";
+import { getFileSize } from "../utils/file-size";
+
 
 const controllerRegistry = new Map<string, UploadController>();
 
@@ -125,7 +127,7 @@ export async function uploadFileResumable(
               downloadURL,
               fullPath: task.snapshot.ref.fullPath,
               contentType: task.snapshot.metadata.contentType ?? null,
-              size: task.snapshot.totalBytes ?? file.size ?? 0,
+              size: task.snapshot.totalBytes ?? getFileSize(file),
             });
           }
         );
@@ -156,7 +158,7 @@ export function startResumableUpload(args: StartUploadArgs): UploadController {
     status: "uploading",
     path,
     transferred: 0,
-    total: file.size ?? 0,
+    total: getFileSize(file),
     percent: 0,
     startedAt,
     updatedAt: startedAt,
@@ -279,7 +281,7 @@ export function startResumableUpload(args: StartUploadArgs): UploadController {
           downloadURL,
           fullPath: task.snapshot.ref.fullPath,
           contentType: task.snapshot.metadata.contentType ?? null,
-          size: task.snapshot.totalBytes ?? file.size ?? 0,
+          size: task.snapshot.totalBytes ?? getFileSize(file),
         };
 
         upsertUploadSession({

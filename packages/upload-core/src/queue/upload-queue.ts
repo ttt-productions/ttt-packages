@@ -6,6 +6,7 @@ import type {
 } from "../types";
 import { removeUploadSession, upsertUploadSession } from "../utils/upload-store";
 import { disposeUploadSession, startResumableUpload } from "../storage/upload";
+import { getFileSize } from "../utils/file-size";
 
 type Job = {
   id: string;
@@ -57,7 +58,7 @@ export class UploadQueue {
       status: "queued",
       path: args.path,
       transferred: 0,
-      total: (args.file as Blob).size ?? 0,
+      total: getFileSize(args.file),
       percent: 0,
       startedAt,
       updatedAt: startedAt,

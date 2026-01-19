@@ -40,6 +40,8 @@ export async function processAudio(
   },
   opts?: ProcessMediaOptions
 ): Promise<MediaProcessingResult> {
+  const tempFiles: string[] = [];
+
   try {
     if (opts?.signal?.aborted) {
       return { ok: false, mediaType: "audio", error: { code: "processing_canceled", message: "Processing canceled." } };
@@ -93,6 +95,8 @@ export async function processAudio(
     // Normalize to AAC in m4a (small + widely supported)
     const outPath = outputPathFor(ctx.outputBasePath, "main", "m4a");
 
+    tempFiles.push(outPath);
+
     const args = [
       "-y",
       "-i",
@@ -138,6 +142,8 @@ export async function processAudio(
       },
     ];
 
+    tempFiles.length = 0;
+
     return {
       ok: true,
       mediaType: "audio",
@@ -157,5 +163,10 @@ export async function processAudio(
         details: { name: e?.name },
       },
     };
+  } finally {
+    if (tempFiles.length) {
+      const { rm } = await import("node:fs/promises");
+      await Promise.all(tempFiles.map((f) => rm(f, { force: true }).catch(() => {})));
+    }
   }
 }

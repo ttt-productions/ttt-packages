@@ -24,12 +24,9 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run clean && npm run build"
   },
-  "peerDependencies": {
-    "@ttt-productions/media-contracts": "*"
-  },
   "dependencies": {
     "sharp": "^0.34.1",
-    "@ttt-productions/media-contracts": "file:../media-contracts"
+    "@ttt-productions/media-contracts": "^0.2.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

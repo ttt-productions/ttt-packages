@@ -27,12 +27,12 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
-        "@ttt-productions/media-contracts": "file:../media-contracts"
+    "@ttt-productions/media-contracts": "^0.2.4"
     },
     "peerDependencies": {
-        "@ttt-productions/media-contracts": "file:../media-contracts",
-        "react": ">=18.0.0",
-        "react-dom": ">=18.0.0"
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "lucide-react": ">=0.0.0"
     },
     "devDependencies": {
         "typescript": "^5.8.3"

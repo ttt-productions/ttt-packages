@@ -67,6 +67,8 @@ export async function processVideo(
   },
   opts?: ProcessMediaOptions
 ): Promise<MediaProcessingResult> {
+  const tempFiles: string[] = [];
+
   try {
     if (opts?.signal?.aborted) {
       return { ok: false, mediaType: "video", error: { code: "processing_canceled", message: "Processing canceled." } };
@@ -179,6 +181,8 @@ export async function processVideo(
     const videoOut = outputPathFor(ctx.outputBasePath, "main", "mp4");
     const posterOut = outputPathFor(ctx.outputBasePath, "poster", "jpg");
 
+    tempFiles.push(videoOut, posterOut);
+
     // Build a basic filter graph to enforce size/aspect when auto-format is enabled.
     // - If exact WxH required: scale+crop to WxH
     // - Else if aspect required: crop to aspect then scale to original (or keep)
@@ -283,6 +287,8 @@ export async function processVideo(
       });
     }
 
+    tempFiles.length = 0;
+
     return {
       ok: true,
       mediaType: "video",
@@ -306,5 +312,10 @@ export async function processVideo(
         details: { name: e?.name },
       },
     };
+  } finally {
+    if (tempFiles.length) {
+      const { rm } = await import("node:fs/promises");
+      await Promise.all(tempFiles.map((f) => rm(f, { force: true }).catch(() => {})));
+    }
   }
 }

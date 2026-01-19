@@ -99,15 +99,27 @@ async function buildBase(
   | { ok: true; base: sharp.Sharp; inputMeta: sharp.Metadata }
   | { ok: false; error: MediaProcessingResult["error"] }
 > {
-  const input = sharp(inputPath);
+  const input = sharp(inputPath, { failOn: "none" });
   const meta = await input.metadata();
 
-  if (!meta || !meta.width || !meta.height) {
+  if (!meta.width || !meta.height || meta.width <= 0 || meta.height <= 0) {
     return {
       ok: false,
       error: {
         code: "processing_failed",
-        message: "Failed to read image metadata.",
+        message: "Unable to read valid image dimensions. File may be corrupt.",
+        details: { width: meta.width, height: meta.height, format: meta.format, path: inputPath },
+      },
+    };
+  }
+  
+  if (!meta.format) {
+    return {
+      ok: false,
+      error: {
+        code: "unsupported_format",
+        message: "Unable to determine image format. File may be corrupt.",
+        details: { path: inputPath },
       },
     };
   }
@@ -249,12 +261,14 @@ export async function processImage(
   },
   opts?: ProcessMediaOptions
 ): Promise<MediaProcessingResult> {
+  const tempFiles: string[] = [];
+
   try {
     if (opts?.signal?.aborted) {
       return { ok: false, mediaType: "image", error: { code: "processing_canceled", message: "Processing canceled." } };
     }
-    const variants =
-      spec.image?.variants?.length ? spec.image.variants : [{ key: "original" as const }];
+
+    const variants = spec.image?.variants?.length ? spec.image.variants : [{ key: "original" as const }];
 
     const outDir = path.dirname(ctx.outputBasePath);
     await mkdir(outDir, { recursive: true });
@@ -267,19 +281,26 @@ export async function processImage(
     const { base, inputMeta } = baseRes;
 
     const outputs: MediaOutput[] = [];
-
     const totalVariants = variants.length || 1;
     let idx = 0;
+
     for (const v of variants) {
       idx += 1;
+
       if (opts?.signal?.aborted) {
         return { ok: false, mediaType: "image", error: { code: "processing_canceled", message: "Processing canceled." } };
       }
-      opts?.onProgress?.({ phase: "process", percent: (idx - 1) / totalVariants, detail: { step: "image_variant", key: v.key } });
+
+      opts?.onProgress?.({
+        phase: "process",
+        percent: (idx - 1) / totalVariants,
+        detail: { step: "image_variant", key: v.key },
+      });
+
       const { ext, format } = pickFormat(v.format);
       const outPath = outputPathFor(ctx.outputBasePath, v.key, ext);
+      tempFiles.push(outPath);
 
-      // Clone from normalized base so each variant is consistent
       let p = base.clone();
 
       if (v.crop) {
@@ -326,6 +347,9 @@ export async function processImage(
       });
     }
 
+    // success: keep outputs
+    tempFiles.length = 0;
+
     return {
       ok: true,
       mediaType: "image",
@@ -346,5 +370,10 @@ export async function processImage(
         details: { name: e?.name },
       },
     };
+  } finally {
+    if (tempFiles.length) {
+      const { rm } = await import("node:fs/promises");
+      await Promise.all(tempFiles.map((f) => rm(f, { force: true }).catch(() => {})));
+    }
   }
 }
