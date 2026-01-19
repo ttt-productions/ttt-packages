@@ -1,79 +1,61 @@
 import * as React from "react";
 import type { MediaViewerBaseProps } from "./types";
-import { MediaFallbackLink, shouldShowFallback } from "./fallback";
 
-function withCacheBust(url: string, nonce: number): string {
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}mv_retry=${nonce}`;
-}
+type AudioViewerProps = MediaViewerBaseProps & {
+  controls?: boolean;
+  autoPlay?: boolean;
+  loop?: boolean;
+};
 
-export function AudioViewer(props: MediaViewerBaseProps) {
+export function AudioViewer(props: AudioViewerProps) {
   const {
     url,
     className,
     mediaClassName,
-    onError,
-    onLoad,
-    fallbackMode = "link",
-    fallbackLabel,
-    ariaLabel,
-    showLoading = true,
-    loadingFallback,
-    retryLabel,
-    showDownload,
-    downloadLabel,
-    filename,
+    controls = true,
+    autoPlay,
+    loop,
   } = props;
 
-  const [failed, setFailed] = React.useState(false);
-  const [loaded, setLoaded] = React.useState(false);
-  const [retryNonce, setRetryNonce] = React.useState(0);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
-  const effectiveUrl = withCacheBust(url, retryNonce);
-
-  const retry = React.useCallback(() => {
-    setFailed(false);
-    setLoaded(false);
-    setRetryNonce((n) => n + 1);
+  const togglePlay = React.useCallback(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (el.paused) {
+      void el.play().catch(() => {});
+    } else {
+      el.pause();
+    }
   }, []);
 
-  if (failed) {
-    return shouldShowFallback(fallbackMode) ? (
-      <div className={className}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <MediaFallbackLink url={url} filename={filename} label={fallbackLabel ?? "Open audio"} />
-          <button type="button" onClick={retry} aria-label={retryLabel ?? "Retry"}>
-            {retryLabel ?? "Retry"}
-          </button>
-        </div>
-      </div>
-    ) : null;
-  }
+  const onKeyDown = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        togglePlay();
+      }
+    },
+    [togglePlay]
+  );
 
   return (
-    <div className={className}>
-      {showDownload ? (
-        <div style={{ marginBottom: 8 }}>
-          <MediaFallbackLink url={url} filename={filename} label={downloadLabel ?? "Download"} />
-        </div>
-      ) : null}
-
-      {showLoading && !loaded ? loadingFallback ?? <div aria-busy="true">Loading…</div> : null}
-
+    <div
+      className={className}
+      role="button"
+      tabIndex={0}
+      aria-label="Toggle audio playback"
+      onClick={togglePlay}
+      onKeyDown={onKeyDown}
+      style={{ outline: "none" }}
+    >
       <audio
-        src={effectiveUrl}
+        ref={audioRef}
+        src={url}
         className={mediaClassName}
-        controls
-        preload="metadata"
-        aria-label={ariaLabel}
-        onLoadedData={(e) => {
-          setLoaded(true);
-          onLoad?.(e);
-        }}
-        onError={(e) => {
-          setFailed(true);
-          onError?.(e);
-        }}
+        controls={controls}
+        autoPlay={autoPlay}
+        loop={loop}
       />
     </div>
   );

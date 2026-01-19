@@ -1,116 +1,61 @@
 import * as React from "react";
 import type { MediaViewerBaseProps } from "./types";
-import { MediaFallbackLink, shouldShowFallback } from "./fallback";
 
-function canFullscreen(el: any): el is { requestFullscreen: () => Promise<void> } {
-  return !!el?.requestFullscreen;
-}
+type ImageViewerProps = MediaViewerBaseProps & {
+  enableZoom?: boolean;
+};
 
-function withCacheBust(url: string, nonce: number): string {
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}mv_retry=${nonce}`;
-}
-
-export function ImageViewer(props: MediaViewerBaseProps) {
+export function ImageViewer(props: ImageViewerProps) {
   const {
     url,
     alt,
     className,
     mediaClassName,
-    onError,
-    onLoad,
-    fallbackMode = "link",
-    fallbackLabel,
-    ariaLabel,
-    showLoading = true,
-    loadingFallback,
-    retryLabel,
-    showDownload,
-    downloadLabel,
-    enableImageZoom,
-    enableFullscreen,
-    filename,
+    enableZoom = true,
   } = props;
 
-  const wrapperRef = React.useRef<HTMLDivElement | null>(null);
-  const [failed, setFailed] = React.useState(false);
-  const [loaded, setLoaded] = React.useState(false);
-  const [retryNonce, setRetryNonce] = React.useState(0);
   const [zoomed, setZoomed] = React.useState(false);
 
-  const effectiveUrl = withCacheBust(url, retryNonce);
+  const toggleZoom = React.useCallback(() => {
+    if (!enableZoom) return;
+    setZoomed((z) => !z);
+  }, [enableZoom]);
 
-  const retry = React.useCallback(() => {
-    setFailed(false);
-    setLoaded(false);
-    setRetryNonce((n) => n + 1);
-  }, []);
-
-  const requestFs = React.useCallback(() => {
-    if (!enableFullscreen) return;
-    const el = wrapperRef.current;
-    if (canFullscreen(el)) el.requestFullscreen().catch(() => {});
-  }, [enableFullscreen]);
-
-  if (failed) {
-    return shouldShowFallback(fallbackMode) ? (
-      <div className={className}>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <MediaFallbackLink url={url} filename={filename} label={fallbackLabel ?? "Open image"} />
-          <button type="button" onClick={retry} aria-label={retryLabel ?? "Retry"}>
-            {retryLabel ?? "Retry"}
-          </button>
-        </div>
-      </div>
-    ) : null;
-  }
+  const onKeyDown = React.useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!enableZoom) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        toggleZoom();
+      }
+    },
+    [enableZoom, toggleZoom]
+  );
 
   return (
-    <div className={className} ref={wrapperRef}>
-      {showDownload ? (
-        <div style={{ marginBottom: 8 }}>
-          <MediaFallbackLink url={url} filename={filename} label={downloadLabel ?? "Download"} />
-        </div>
-      ) : null}
-
-      {showLoading && !loaded ? (
-        loadingFallback ?? <div aria-busy="true">Loading…</div>
-      ) : null}
-
+    <div
+      className={className}
+      role={enableZoom ? "button" : undefined}
+      tabIndex={enableZoom ? 0 : undefined}
+      aria-pressed={enableZoom ? zoomed : undefined}
+      aria-label={enableZoom ? (zoomed ? "Zoom out image" : "Zoom in image") : undefined}
+      onClick={toggleZoom}
+      onKeyDown={onKeyDown}
+      style={{ outline: "none" }}
+    >
       <img
-        src={effectiveUrl}
+        src={url}
         alt={alt ?? ""}
-        aria-label={ariaLabel}
-        loading="lazy"
-        decoding="async"
+        draggable={false}
         className={mediaClassName}
-        style={
-          enableImageZoom && zoomed
-            ? { transform: "scale(1.5)", transformOrigin: "center", cursor: "zoom-out" }
-            : enableImageZoom
-              ? { cursor: "zoom-in" }
-              : undefined
-        }
-        onClick={() => {
-          if (enableImageZoom) setZoomed((z) => !z);
-        }}
-        onError={(e) => {
-          setFailed(true);
-          onError?.(e);
-        }}
-        onLoad={(e) => {
-          setLoaded(true);
-          onLoad?.(e);
+        style={{
+          maxWidth: "100%",
+          maxHeight: "100%",
+          transition: "transform 0.15s ease",
+          transform: zoomed ? "scale(1.5)" : "scale(1)",
+          cursor: enableZoom ? (zoomed ? "zoom-out" : "zoom-in") : undefined,
         }}
       />
-
-      {enableFullscreen ? (
-        <div style={{ marginTop: 8 }}>
-          <button type="button" onClick={requestFs} aria-label="Fullscreen">
-            Fullscreen
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }
