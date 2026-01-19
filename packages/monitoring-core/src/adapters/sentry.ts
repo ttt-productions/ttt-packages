@@ -1,5 +1,5 @@
-import type { MonitoringAdapter } from "../adapter";
-import type { MonitoringInitOptions, MonitoringUser, ScopeLike } from "../types";
+import type { MonitoringAdapter } from "../adapter.js";
+import type { MonitoringInitOptions, MonitoringUser, ScopeLike } from "../types.js";
 
 type SentryLike = {
   init: (opts: any) => void;

@@ -1,5 +1,5 @@
-import type { MonitoringUser } from "./types";
-import { getMonitoringAdapter } from "./init";
+import type { MonitoringUser } from "./types.js";
+import { getMonitoringAdapter } from "./init.js";
 
 export function captureException(error: unknown, context?: Record<string, unknown>) {
   return getMonitoringAdapter().captureException(error, context);

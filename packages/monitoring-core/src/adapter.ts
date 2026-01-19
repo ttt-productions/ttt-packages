@@ -1,4 +1,4 @@
-import type { MonitoringInitOptions, MonitoringUser, ScopeLike } from "./types";
+import type { MonitoringInitOptions, MonitoringUser, ScopeLike } from "./types.js";
 
 export interface MonitoringAdapter {
   init(options: MonitoringInitOptions): void | Promise<void>;

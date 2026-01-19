@@ -1,4 +1,4 @@
-export type { MonitoringInitOptions, MonitoringUser, MonitoringProvider, ScopeLike } from "./types";
+export type { MonitoringInitOptions, MonitoringUser, MonitoringProvider, ScopeLike } from "./types.js";
 
-export { initMonitoring } from "./init";
-export { captureException, captureMessage, setUser, setTag, withScope, addBreadcrumb } from "./api";
+export { initMonitoring } from "./init.js";
+export { captureException, captureMessage, setUser, setTag, withScope, addBreadcrumb } from "./api.js";

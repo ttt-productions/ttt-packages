@@ -1,8 +1,8 @@
-import type { MonitoringAdapter } from "./adapter";
-import type { MonitoringInitOptions } from "./types";
-import { NoopAdapter } from "./adapters/noop";
-import { SentryAdapter } from "./adapters/sentry";
-import { SentryNodeAdapter } from "./adapters/sentry-node";
+import type { MonitoringAdapter } from "./adapter.js";
+import type { MonitoringInitOptions } from "./types.js";
+import { NoopAdapter } from "./adapters/noop.js";
+import { SentryAdapter } from "./adapters/sentry.js";
+import { SentryNodeAdapter } from "./adapters/sentry-node.js";
 
 let adapter: MonitoringAdapter = NoopAdapter;
 let initialized = false;
