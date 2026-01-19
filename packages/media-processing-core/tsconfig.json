@@ -1,10 +1,12 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "composite": true,
     "outDir": "dist",
     "rootDir": "src",
     "noEmitOnError": true,
     "types": ["node"]
   },
+  "references": [{ "path": "../media-contracts" }],
   "include": ["src"]
 }

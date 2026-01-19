@@ -1,9 +1,10 @@
 import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec, VideoOrientation } from "@ttt-productions/media-contracts";
 import { mkdir, stat } from "node:fs/promises";
 import path from "node:path";
-import { ensureFfmpegAvailable, runCmd } from "./ffmpeg";
+import { ensureFfmpegAvailable, runFfmpeg } from "./ffmpeg";
 import { probeVideo } from "./probe";
 import { safeOutputPathFor } from "../utils/safe-path";
+import type { ProcessMediaOptions } from "../types";
 
 function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();
@@ -63,9 +64,13 @@ export async function processVideo(
     inputPath: string;
     outputBasePath: string;
     inputMime?: string;
-  }
+  },
+  opts?: ProcessMediaOptions
 ): Promise<MediaProcessingResult> {
   try {
+    if (opts?.signal?.aborted) {
+      return { ok: false, mediaType: "video", error: { code: "processing_canceled", message: "Processing canceled." } };
+    }
     if (!acceptAllowsVideo(spec)) {
       return {
         ok: false,
@@ -99,6 +104,10 @@ export async function processVideo(
     await mkdir(outDir, { recursive: true });
 
     const probe = await probeVideo(ctx.inputPath);
+
+    if (opts?.signal?.aborted) {
+      return { ok: false, mediaType: "video", error: { code: "processing_canceled", message: "Processing canceled." } };
+    }
 
     // duration enforcement
     const maxDur = spec.maxDurationSec ?? spec.video?.maxDurationSec;
@@ -207,7 +216,14 @@ export async function processVideo(
       videoOut,
     ];
 
-    const r1 = await runCmd("ffmpeg", ffmpegArgs);
+    const r1 = await runFfmpeg(ffmpegArgs, {
+      signal: opts?.signal,
+      durationMs: probe.durationSec ? probe.durationSec * 1000 : undefined,
+      onProgress: (p) => {
+        opts?.onProgress?.({ phase: "process", percent: p.percent, detail: { step: "transcode", outTimeMs: p.outTimeMs } });
+      },
+      phase: "transcode",
+    });
     if (r1.code !== 0) {
       return {
         ok: false,
@@ -222,7 +238,13 @@ export async function processVideo(
 
     // Poster (frame at 1s; fallback to 0 if needed)
     const posterArgs = ["-y", "-ss", "1", "-i", videoOut, "-frames:v", "1", "-q:v", "2", posterOut];
-    const r2 = await runCmd("ffmpeg", posterArgs);
+    const r2 = await runFfmpeg(posterArgs, {
+      signal: opts?.signal,
+      onProgress: (p) => {
+        opts?.onProgress?.({ phase: "process", percent: p.percent, detail: { step: "poster", outTimeMs: p.outTimeMs } });
+      },
+      phase: "poster",
+    });
     if (r2.code !== 0) {
       // non-fatal; still succeed with video
     }

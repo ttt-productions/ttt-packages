@@ -3,6 +3,7 @@ import sharp from "sharp";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { safeOutputPathFor } from "../utils/safe-path";
+import type { ProcessMediaOptions } from "../types";
 
 type Gravity = "center" | "top" | "bottom" | "left" | "right";
 
@@ -24,7 +25,7 @@ function acceptAllowsMime(spec: MediaProcessingSpec, actualMime?: string): boole
   const mimes = spec.accept?.mimes?.filter(Boolean) ?? [];
   if (mimes.length === 0) return true; // empty => accept anything
   if (!actualMime) return false;
-  return mimes.some((a: string) => matchMime(a, actualMime));
+  return mimes.some((a) => matchMime(a, actualMime));
 }
 
 
@@ -245,9 +246,13 @@ export async function processImage(
   ctx: {
     inputPath: string;
     outputBasePath: string;
-  }
+  },
+  opts?: ProcessMediaOptions
 ): Promise<MediaProcessingResult> {
   try {
+    if (opts?.signal?.aborted) {
+      return { ok: false, mediaType: "image", error: { code: "processing_canceled", message: "Processing canceled." } };
+    }
     const variants =
       spec.image?.variants?.length ? spec.image.variants : [{ key: "original" as const }];
 
@@ -263,7 +268,14 @@ export async function processImage(
 
     const outputs: MediaOutput[] = [];
 
+    const totalVariants = variants.length || 1;
+    let idx = 0;
     for (const v of variants) {
+      idx += 1;
+      if (opts?.signal?.aborted) {
+        return { ok: false, mediaType: "image", error: { code: "processing_canceled", message: "Processing canceled." } };
+      }
+      opts?.onProgress?.({ phase: "process", percent: (idx - 1) / totalVariants, detail: { step: "image_variant", key: v.key } });
       const { ext, format } = pickFormat(v.format);
       const outPath = outputPathFor(ctx.outputBasePath, v.key, ext);
 

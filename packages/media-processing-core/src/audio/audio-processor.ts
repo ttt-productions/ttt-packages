@@ -2,8 +2,9 @@ import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec } from "@t
 import { mkdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { safeOutputPathFor } from "../utils/safe-path";
-import { runCmd } from "../video/ffmpeg";
+import { ensureFfmpegAvailable, runFfmpeg } from "../video/ffmpeg";
 import { probeAudio } from "./probe";
+import type { ProcessMediaOptions } from "../types";
 
 function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();
@@ -36,9 +37,25 @@ export async function processAudio(
     inputPath: string;
     outputBasePath: string;
     inputMime?: string;
-  }
+  },
+  opts?: ProcessMediaOptions
 ): Promise<MediaProcessingResult> {
   try {
+    if (opts?.signal?.aborted) {
+      return { ok: false, mediaType: "audio", error: { code: "processing_canceled", message: "Processing canceled." } };
+    }
+    const ff = await ensureFfmpegAvailable();
+    if (!ff.ok) {
+      return {
+        ok: false,
+        mediaType: "audio",
+        error: {
+          code: "processing_failed",
+          message: "ffmpeg is not available.",
+          details: { error: String((ff as any).error ?? "unknown") },
+        },
+      };
+    }
     if (!acceptAllowsAudio(spec)) {
       return {
         ok: false,
@@ -88,7 +105,14 @@ export async function processAudio(
       outPath,
     ];
 
-    const r = await runCmd("ffmpeg", args);
+    const r = await runFfmpeg(args, {
+      signal: opts?.signal,
+      durationMs: probe.durationSec ? probe.durationSec * 1000 : undefined,
+      onProgress: (p) => {
+        opts?.onProgress?.({ phase: "process", percent: p.percent, detail: { step: "audio_transcode", outTimeMs: p.outTimeMs } });
+      },
+      phase: "transcode",
+    });
     if (r.code !== 0) {
       return {
         ok: false,
@@ -96,7 +120,7 @@ export async function processAudio(
         error: {
           code: "processing_failed",
           message: "ffmpeg audio transcode failed.",
-          details: { stderr: r.stderr?.slice(0, 2000) },
+          details: { stderr: r.stderr, stdout: r.stdout },
         },
       };
     }

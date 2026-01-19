@@ -44,6 +44,7 @@ export type MediaErrorCode =
   | "invalid_spec"
   | "unsupported_format"
   | "processing_failed"
+  | "processing_canceled"
   | "not_found"
   | "permission_denied"
   | "orientation_mismatch"
@@ -81,6 +82,10 @@ export interface MediaModerationResult {
   reviewedAt?: TimestampLike;
 }
 
+/**
+ * Optional policy hints; provider-specific behavior stays server-side.
+ * This simply standardizes what clients are allowed to request/expect.
+ */
 export interface MediaModerationSpec {
   /** e.g. "google-vision", "aws-rekognition", "openai" */
   provider?: string;
@@ -94,6 +99,7 @@ export interface MediaModerationSpec {
   /** Optional provider-specific config. */
   config?: Record<string, unknown>;
 }
+
 
 export interface PendingMediaDoc {
   /** Stable id (doc id) */
@@ -261,7 +267,6 @@ export interface MediaProcessingSpec {
   audio?: {
     maxDurationSec?: number;
   };
-
 }
 
 export interface MediaOutput {

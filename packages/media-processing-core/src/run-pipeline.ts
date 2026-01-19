@@ -17,6 +17,8 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
     io: MediaIO;
     outputBaseName?: string;
     moderation?: ModerationAdapter;
+  signal?: AbortSignal;
+  onProgress?: (p: import("./types").MediaPipelineProgress) => void;
   }
   
   function mediaTypeFromSpecKind(kind: MediaProcessingSpec["kind"]): "image" | "video" | "audio" | "other" {
@@ -35,7 +37,15 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
   }
   
   export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProcessingResult> {
-    let { spec, io, outputBaseName = "media", moderation } = args;
+    let { spec, io, outputBaseName = "media", moderation, signal, onProgress } = args;
+
+    if (signal?.aborted) {
+      return {
+        ok: false,
+        mediaType: mediaTypeFromSpecKind(spec.kind),
+        error: { code: "processing_canceled", message: "Processing canceled." },
+      };
+    }
 
     // Runtime contract validation (fast-fail with actionable errors).
     try {
@@ -58,11 +68,17 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
       const inputPath = path.join(ws.dir, "input");
       const outputBasePath = path.join(ws.dir, outputBaseName);
   
+      if (signal?.aborted) {
+        return { ok: false, mediaType: mediaTypeFromSpecKind(spec.kind), error: { code: "processing_canceled", message: "Processing canceled." } };
+      }
+      onProgress?.({ phase: "read_input", percent: 0 });
       await io.input.readToFile(inputPath);
+      onProgress?.({ phase: "read_input", percent: 1 });
   
       // PRE moderation (original)
       let mIn: MediaModerationResult | null | undefined;
       if (moderation?.moderateInput) {
+        onProgress?.({ phase: "moderation_input", percent: 0 });
         mIn = attachProvider(
           await moderation.moderateInput({
             spec,
@@ -72,6 +88,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
           }),
           moderation.provider
         );
+        onProgress?.({ phase: "moderation_input", percent: 1 });
   
         if (mIn?.status === "rejected") {
           return {
@@ -91,7 +108,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
         inputPath,
         outputBasePath,
         inputMime: io.input.mime,
-      });
+      }, { signal, onProgress });
 
       // Output size enforcement (processed outputs)
       if (result.ok && result.outputs?.length) {
@@ -132,20 +149,31 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
   
       if (!result.ok || !result.outputs?.length) {
         if (mIn) result.moderation = mIn;
+        onProgress?.({ phase: "done", percent: result.ok ? 1 : 0 });
         return result;
       }
   
       // Persist outputs
+      onProgress?.({ phase: "persist_outputs", percent: 0 });
+      const totalOut = result.outputs.length;
+      let outIdx = 0;
       for (const out of result.outputs) {
+        if (signal?.aborted) {
+          return { ok: false, mediaType: result.mediaType, error: { code: "processing_canceled", message: "Processing canceled." } };
+        }
+        onProgress?.({ phase: "persist_outputs", percent: totalOut ? outIdx / totalOut : 0, detail: { key: out.key } });
         if (!out.path) continue;
         const persisted = await io.output.writeFromFile(out.path, out.key);
         if (persisted.url) out.url = persisted.url;
         if (persisted.path) out.path = persisted.path;
+        outIdx += 1;
       }
+      onProgress?.({ phase: "persist_outputs", percent: 1 });
   
       // POST moderation (processed outputs)
       let mOut: MediaModerationResult | null | undefined;
       if (moderation?.moderateOutput) {
+        onProgress?.({ phase: "moderation_output", percent: 0 });
         mOut = attachProvider(
           await moderation.moderateOutput({
             spec,
@@ -156,6 +184,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
           }),
           moderation.provider
         );
+        onProgress?.({ phase: "moderation_output", percent: 1 });
   
         if (mOut?.status === "rejected") {
           return {
@@ -173,6 +202,8 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
   
       const merged = mergeModeration(mIn ?? undefined, mOut ?? undefined);
       if (merged) result.moderation = merged;
+
+      onProgress?.({ phase: "done", percent: 1 });
   
       return result;
     } finally {
