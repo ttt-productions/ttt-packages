@@ -39,11 +39,27 @@ export interface DeleteFileArgs {
 
 export type UploadSessionStatus =
   | "idle"
+  | "queued"
   | "uploading"
   | "paused"
   | "success"
   | "error"
   | "canceled";
+
+export interface UploadSessionPersistenceAdapter {
+  /** Return all session ids currently stored. */
+  listIds: () => Promise<string[]> | string[];
+  get: (id: string) => Promise<UploadSessionState | null> | UploadSessionState | null;
+  set: (id: string, state: UploadSessionState) => Promise<void> | void;
+  remove: (id: string) => Promise<void> | void;
+}
+
+export interface UploadQueueOptions {
+  /** Maximum concurrent uploads. Default: 3 */
+  concurrency?: number;
+  /** Optional persistence adapter for session state. */
+  persistence?: UploadSessionPersistenceAdapter;
+}
 
 export interface UploadSessionState {
   id: string;

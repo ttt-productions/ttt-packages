@@ -5,10 +5,10 @@ import type {
   UploadFileResumableResult,
 } from "../types";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
+import type { UploadTaskSnapshot } from "firebase/storage";
 import { clearUploadSessionListeners, removeUploadSession, upsertUploadSession } from "../utils/upload-store";
 import { backoffDelayMs, sleep } from "../utils/retry";
 import type { DisposeUploadSessionArgs } from "../types";
-import type { UploadTaskSnapshot } from "firebase/storage";
 
 const controllerRegistry = new Map<string, UploadController>();
 

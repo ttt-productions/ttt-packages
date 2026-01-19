@@ -26,7 +26,7 @@ npm run build
 ./scripts/release-package.sh @ttt-productions/mobile-core packages/mobile-core "$BUMP"
 
 # Future packages (uncomment once they exist)
-# ./scripts/release-package.sh @ttt-productions/upload-core packages/upload-core "$BUMP"
-# ./scripts/release-package.sh @ttt-productions/media-processing-core packages/media-processing-core "$BUMP"
+./scripts/release-package.sh @ttt-productions/upload-core packages/upload-core "$BUMP"
+./scripts/release-package.sh @ttt-productions/media-processing-core packages/media-processing-core "$BUMP"
 
 echo "✅ Done: released all packages ($BUMP)"
