@@ -34,7 +34,8 @@
     "react-dom": ">=19.0.0"
   },
   "dependencies": {
-    "@ttt-productions/ui-core": "^0.1.25"
+    "@ttt-productions/ui-core": "^0.1.25",
+    "@ttt-productions/firebase-helpers": "^0.2.14"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

@@ -6,6 +6,8 @@
     "jsx": "react-jsx",
     "composite": true
   },
-  "references": [{ "path": "../ui-core" }],
+  "references": [
+    { "path": "../ui-core" }
+  ],
   "include": ["src"]
 }
