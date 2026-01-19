@@ -1,5 +1,4 @@
-
-import type { MediaViewerBaseProps } from "./types";
+import type { FallbackMode } from "./types";
 
 export function MediaFallbackLink(props: {
   url: string;
@@ -22,6 +21,6 @@ export function MediaFallbackLink(props: {
   );
 }
 
-export function shouldShowFallback(mode: MediaViewerBaseProps["fallbackMode"]): boolean {
+export function shouldShowFallback(mode: FallbackMode | undefined): boolean {
   return mode !== "none";
 }

@@ -1,6 +1,9 @@
-export * from "./types";
-export * from "./media-viewer";
-export * from "./image-viewer";
-export * from "./video-viewer";
-export * from "./audio-viewer";
-export * from "./components/media-job-status-list";
+export { MediaViewer, MediaPreview } from "./media-viewer";
+
+export type { MediaViewerProps, MediaViewerType, FallbackMode } from "./types";
+
+export { ImageViewer } from "./image-viewer";
+export { VideoViewer } from "./video-viewer";
+export { AudioViewer } from "./audio-viewer";
+
+export { MediaFallbackLink, shouldShowFallback } from "./fallback";

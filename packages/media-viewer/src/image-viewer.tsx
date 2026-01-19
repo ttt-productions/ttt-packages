@@ -1,18 +1,8 @@
 import * as React from "react";
-import type { MediaViewerBaseProps } from "./types";
+import type { MediaViewerProps } from "./types";
 
-type ImageViewerProps = MediaViewerBaseProps & {
-  enableZoom?: boolean;
-};
-
-export function ImageViewer(props: ImageViewerProps) {
-  const {
-    url,
-    alt,
-    className,
-    mediaClassName,
-    enableZoom = true,
-  } = props;
+export function ImageViewer(props: MediaViewerProps) {
+  const { url, alt, className, mediaClassName, enableZoom = true } = props;
 
   const [zoomed, setZoomed] = React.useState(false);
 

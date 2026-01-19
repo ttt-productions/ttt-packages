@@ -1,16 +1,7 @@
 import * as React from "react";
-import type { MediaViewerBaseProps } from "./types";
+import type { MediaViewerProps } from "./types";
 
-type VideoViewerProps = MediaViewerBaseProps & {
-  controls?: boolean;
-  autoPlay?: boolean;
-  muted?: boolean;
-  loop?: boolean;
-  posterUrl?: string;
-  enableFullscreen?: boolean;
-};
-
-export function VideoViewer(props: VideoViewerProps) {
+export function VideoViewer(props: MediaViewerProps) {
   const {
     url,
     className,
