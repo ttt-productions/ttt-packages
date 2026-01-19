@@ -7,10 +7,7 @@ import type {
   MediaCropSpec,
 } from "@ttt-productions/media-contracts";
 
-/**
- * Back-compat: file-input previously exported FileCategory incorrectly.
- * It now matches contracts FileCategory.
- */
+/** FileCategory is owned by contracts. */
 export type FileCategory = ContractsFileCategory;
 
 export interface CropConfig {
@@ -19,25 +16,6 @@ export interface CropConfig {
   shape: "rect" | "round";
   outputWidth: number;
   outputHeight: number;
-}
-
-export interface BackendProcessingConfig {
-  image?: {
-    maxWidth: number;
-    maxHeight: number;
-    aspectRatio?: string;
-    quality?: number;
-  };
-  video?: {
-    maxWidth: number;
-    maxHeight: number;
-    aspectRatio?: string;
-    codec?: string;
-  };
-  audio?: {
-    bitrate?: string;
-    codec?: string;
-  };
 }
 
 export type FileInputErrorCode =
@@ -62,42 +40,32 @@ export interface FileInputChangePayload {
   file?: File;
   blob?: Blob;
   previewUrl?: string;
-  /** Call when you no longer need previewUrl (releases memory). */
   revokePreviewUrl?: () => void;
   error?: FileInputError;
 }
 
 export interface FileInputProps {
-  /**
-   * Allowed simplified categories.
-   * If empty -> accept anything.
-   */
   acceptTypes: SimplifiedMediaType[];
-
-  /** Max size per type (MB). If missing -> no limit for that type. */
   maxSizeMB: Partial<Record<SimplifiedMediaType, number>>;
-
   selectedFile?: File | null;
 
   onChange: (payload: FileInputChangePayload) => void;
-
   onError?: (error: FileInputError) => void;
 
   disabled?: boolean;
   isLoading?: boolean;
   buttonLabel?: string;
   className?: string;
+
   variant?: any;
   size?: any;
+
   uploadProgress?: number | null;
 
   videoMaxDurationSec?: number;
   audioMaxDurationSec?: number;
 
   cropConfig?: CropConfig;
-
-  backendProcessing?: BackendProcessingConfig;
-
   defaultShowDetails?: boolean;
 }
 
@@ -119,10 +87,7 @@ export interface MediaInputChangePayload {
   previewUrl?: string;
   meta?: SelectedMediaMeta;
 
-  /** If true, backend is expected to auto-format to match spec. */
   autoFormat?: boolean;
-
-  /** Client-side crop applied (image only). */
   croppedBlob?: Blob;
 
   error?: FileInputError;
@@ -130,14 +95,11 @@ export interface MediaInputChangePayload {
 
 export interface MediaInputProps {
   spec: MediaProcessingSpec;
-
-  /** Optional override for crop UI (if you don't want to use spec.imageCrop). */
   cropOverride?: MediaCropSpec;
 
   disabled?: boolean;
   isLoading?: boolean;
   className?: string;
-
   buttonLabel?: string;
 
   onChange: (payload: MediaInputChangePayload) => void;

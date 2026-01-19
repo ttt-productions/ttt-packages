@@ -9,13 +9,9 @@ export function useUploadSessions() {
 
   useEffect(() => {
     const sync = () => setSessions(listUploadSessions());
-
-    // initial
     sync();
 
-    // update whenever sessions are added/removed/rehydrated
     const unsub = subscribeUploadSessionsList(sync);
-
     return () => unsub();
   }, []);
 

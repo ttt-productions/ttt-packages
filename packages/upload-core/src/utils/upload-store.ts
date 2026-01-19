@@ -14,7 +14,7 @@ export function setUploadSessionPersistence(adapter: UploadSessionPersistenceAda
   persistence = adapter;
 }
 
-// ---- Persistence error reporting (P0) ----
+// ---- Persistence error reporting ----
 export type PersistenceErrorHandler = (err: unknown, op: "set" | "remove" | "get", id: string) => void;
 
 let persistenceErrorHandler: PersistenceErrorHandler | null = null;
@@ -45,7 +45,7 @@ function notifyList() {
   for (const fn of listListeners) fn();
 }
 
-// ---- Session pruning (P0) ----
+// ---- Session pruning ----
 const MAX_SESSIONS = 100;
 const SUCCESS_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const ERROR_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7d
@@ -117,8 +117,10 @@ export function upsertUploadSession(partial: Partial<UploadSessionState> & Pick<
   const prevIsTerminal = isTerminal(prevStatus);
   const nextIsTerminal = isTerminal(nextStatus);
 
+  // Once terminal, stay terminal. If we receive a terminal nextStatus first, accept it.
   const status = prevIsTerminal ? prevStatus : nextIsTerminal ? nextStatus : nextStatus;
 
+  // Progress values should never go backwards.
   const transferred = Math.max(partial.transferred ?? 0, prev?.transferred ?? 0);
   const total = Math.max(partial.total ?? 0, prev?.total ?? 0);
   const percent = Math.max(partial.percent ?? 0, prev?.percent ?? 0);

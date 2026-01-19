@@ -37,7 +37,6 @@ export function FileInput(props: FileInputProps) {
     cropConfig,
     videoMaxDurationSec,
     audioMaxDurationSec,
-    backendProcessing,
     defaultShowDetails = false,
   } = props;
 
@@ -94,32 +93,11 @@ export function FileInput(props: FileInputProps) {
 
     if (sizeParts.length) parts.push(`Max sizes: ${sizeParts.join(", ")}.`);
 
-    if (backendProcessing?.image && acceptTypes.includes("image")) {
-      const { maxWidth, maxHeight, aspectRatio, quality } = backendProcessing.image;
-      const aspectInfo = aspectRatio ? ` (${aspectRatio})` : "";
-      const qualityInfo = quality ? `, ${quality}% quality` : "";
-      parts.push(`Backend: Images optimized to ${maxWidth}x${maxHeight}${aspectInfo}${qualityInfo}.`);
-    }
-
-    if (backendProcessing?.video && acceptTypes.includes("video")) {
-      const { maxWidth, maxHeight, aspectRatio, codec } = backendProcessing.video;
-      const aspectInfo = aspectRatio ? ` (${aspectRatio})` : "";
-      const codecInfo = codec ? `, ${codec}` : "";
-      parts.push(`Backend: Videos optimized to ${maxWidth}x${maxHeight}${aspectInfo}${codecInfo}.`);
-    }
-
-    if (backendProcessing?.audio && acceptTypes.includes("audio")) {
-      const { bitrate, codec } = backendProcessing.audio;
-      const bitrateInfo = bitrate ? `${bitrate} bitrate` : "";
-      const codecInfo = codec ? ` (${codec})` : "";
-      parts.push(`Backend: Audio optimized to ${bitrateInfo}${codecInfo}.`);
-    }
-
     if (videoMaxDurationSec) parts.push(`Max video duration: ${videoMaxDurationSec}s.`);
     if (audioMaxDurationSec) parts.push(`Max audio duration: ${audioMaxDurationSec}s.`);
 
     return parts;
-  }, [acceptTypes, maxSizeMB, cropConfig, backendProcessing, videoMaxDurationSec, audioMaxDurationSec]);
+  }, [acceptTypes, maxSizeMB, cropConfig, videoMaxDurationSec, audioMaxDurationSec]);
 
   const getUploadIcon = () => {
     if (acceptTypes.includes("image")) return <Upload className="mr-2 icon-xs" />;
@@ -205,7 +183,7 @@ export function FileInput(props: FileInputProps) {
     setInternalSelected(file);
     const previewUrl = makePreviewUrl(file);
     onChange({ type: fileType, file, previewUrl, revokePreviewUrl: revokeLastPreviewUrl });
-  }, [acceptTypes, maxSizeMB, cropConfig, videoMaxDurationSec, audioMaxDurationSec, onChange, makePreviewUrl, revokeLastPreviewUrl]);
+  }, [acceptTypes, maxSizeMB, cropConfig, videoMaxDurationSec, audioMaxDurationSec]);
 
   const handleCropComplete = (blob: Blob | null) => {
     setIsCropperOpen(false);

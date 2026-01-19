@@ -1,12 +1,8 @@
 import type { UploadController, UploadFileResumableResult, UploadQueueOptions, StartUploadArgs } from "../types";
 import { getFileSize } from "../utils/file-size";
-import {
-  upsertUploadSession,
-  removeUploadSession,
-} from "../utils/upload-store";
+import { upsertUploadSession, removeUploadSession } from "../utils/upload-store";
 import { startResumableUpload } from "../storage/upload";
 
-// small helpers (avoid depending on browser-only stuff)
 function safeId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
@@ -16,7 +12,7 @@ function noopBool() {
 
 type Job = {
   id: string;
-  args: StartUploadArgs;
+  args: StartUploadArgs & { priority?: number };
   priority: number; // higher = sooner
   seq: number; // FIFO within same priority
   resolveController: (c: UploadController) => void;
@@ -79,8 +75,6 @@ export class UploadQueue {
       resume: () => (real ? real.resume() : noopBool()),
       cancel: () => {
         if (real) return real.cancel();
-
-        // still pending -> remove + reject
         this.pending = this.pending.filter((j) => j.id !== id);
         removeUploadSession(id);
         rejectDone(new DOMException("Aborted", "AbortError"));
@@ -96,12 +90,10 @@ export class UploadQueue {
       seq: this.seq++,
       resolveController: (c) => {
         real = c;
-
         controller.task = c.task;
         controller.pause = c.pause;
         controller.resume = c.resume;
         controller.cancel = c.cancel;
-
         c.done.then(resolveDone, rejectDone);
       },
       rejectController: (e) => rejectDone(e),
@@ -115,16 +107,18 @@ export class UploadQueue {
 
   private pump() {
     while (this.running < this.concurrency && this.pending.length > 0) {
-      // priority desc, then FIFO
       this.pending.sort((a, b) => (b.priority - a.priority) || (a.seq - b.seq));
 
       const job = this.pending.shift()!;
       this.running += 1;
 
       try {
-        const { priority: _p, ...rest } = job.args as StartUploadArgs & { priority?: number };
-        const c = startResumableUpload({ ...(rest as any), id: job.id });
-        
+        const { priority: _p, ...rest } = job.args;
+        const c = startResumableUpload({
+          ...(rest as any),
+          id: job.id, // guarantee
+        });
+
         job.resolveController(c);
 
         c.done.finally(() => {
