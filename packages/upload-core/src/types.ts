@@ -104,4 +104,10 @@ export interface UploadController {
 export interface StartUploadArgs extends Omit<UploadFileResumableArgs, "onProgress"> {
   /** Optional stable id for UI tracking. */
   id?: string;
+
+  /**
+   * UploadQueue-only: higher numbers run sooner.
+   * Ignored by startResumableUpload/uploadFileResumable.
+   */
+  priority?: number;
 }

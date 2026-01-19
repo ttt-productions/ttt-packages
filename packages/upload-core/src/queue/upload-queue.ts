@@ -1,47 +1,50 @@
-import type {
-  StartUploadArgs,
-  UploadController,
-  UploadQueueOptions,
-  UploadFileResumableResult,
-} from "../types";
-import { removeUploadSession, upsertUploadSession } from "../utils/upload-store";
-import { disposeUploadSession, startResumableUpload } from "../storage/upload";
+import type { UploadController, UploadFileResumableResult } from "../types";
 import { getFileSize } from "../utils/file-size";
+import {
+  upsertUploadSession,
+  removeUploadSession,
+} from "../utils/upload-store";
+import { startResumableUpload } from "../storage/upload";
 
-type Job = {
-  id: string;
-  args: StartUploadArgs;
-  resolveController: (c: UploadController) => void;
-  rejectController: (e: unknown) => void;
-};
-
+// small helpers (avoid depending on browser-only stuff)
+function safeId() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
 function noopBool() {
   return false;
 }
 
-function safeId(): string {
-  try {
-    const c = (globalThis as any).crypto;
-    if (c?.randomUUID) return c.randomUUID();
-    if (c?.getRandomValues) {
-      const bytes = new Uint8Array(16);
-      c.getRandomValues(bytes);
-      bytes[6] = (bytes[6] & 0x0f) | 0x40;
-      bytes[8] = (bytes[8] & 0x3f) | 0x80;
-      const hex = Array.from(bytes, (b: number) => b.toString(16).padStart(2, "0")).join("");
-      return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
-    }
-  } catch {}
-  throw new Error("crypto.randomUUID/getRandomValues not available");
-}
+type StartUploadArgs = {
+  id?: string;
+  file: Blob;
+  path: string;
+  metadata?: Record<string, any>;
+  signal?: AbortSignal;
+  onProgress?: (p: { transferred: number; total: number; percent: number }) => void;
+  onState?: (s: any) => void;
+};
+
+type Job = {
+  id: string;
+  args: StartUploadArgs;
+  priority: number; // higher = sooner
+  seq: number; // FIFO within same priority
+  resolveController: (c: UploadController) => void;
+  rejectController: (e: unknown) => void;
+};
+
+export type UploadQueueOptions = {
+  concurrency?: number;
+};
 
 export class UploadQueue {
   private concurrency: number;
   private running = 0;
   private pending: Job[] = [];
+  private seq = 0;
 
   constructor(opts?: UploadQueueOptions) {
-    this.concurrency = Math.max(1, opts?.concurrency ?? 3);
+    this.concurrency = Math.max(1, opts?.concurrency ?? 2);
   }
 
   setConcurrency(n: number) {
@@ -49,8 +52,17 @@ export class UploadQueue {
     this.pump();
   }
 
-  enqueue(args: StartUploadArgs): UploadController {
+  getPendingCount() {
+    return this.pending.length;
+  }
+
+  getRunningCount() {
+    return this.running;
+  }
+
+  enqueue(args: StartUploadArgs & { priority?: number }): UploadController {
     const id = args.id ?? `upl_${safeId()}`;
+    const priority = args.priority ?? 0;
 
     const startedAt = Date.now();
     upsertUploadSession({
@@ -68,22 +80,21 @@ export class UploadQueue {
 
     let resolveDone!: (r: UploadFileResumableResult) => void;
     let rejectDone!: (e: unknown) => void;
+
     const done = new Promise<UploadFileResumableResult>((res, rej) => {
       resolveDone = res;
       rejectDone = rej;
     });
 
-    // A placeholder controller that becomes live once the job starts.
     const controller: UploadController = {
       id,
-      task: (null as any),
+      task: null as any,
       pause: () => (real ? real.pause() : noopBool()),
       resume: () => (real ? real.resume() : noopBool()),
       cancel: () => {
-        if (real) {
-          return real.cancel();
-        }
-        // Cancel before it starts.
+        if (real) return real.cancel();
+
+        // still pending -> remove + reject
         this.pending = this.pending.filter((j) => j.id !== id);
         removeUploadSession(id);
         rejectDone(new DOMException("Aborted", "AbortError"));
@@ -95,17 +106,19 @@ export class UploadQueue {
     const job: Job = {
       id,
       args: { ...args, id },
+      priority,
+      seq: this.seq++,
       resolveController: (c) => {
         real = c;
+
         controller.task = c.task;
         controller.pause = c.pause;
         controller.resume = c.resume;
         controller.cancel = c.cancel;
+
         c.done.then(resolveDone, rejectDone);
       },
-      rejectController: (e) => {
-        rejectDone(e);
-      },
+      rejectController: (e) => rejectDone(e),
     };
 
     this.pending.push(job);
@@ -116,21 +129,23 @@ export class UploadQueue {
 
   private pump() {
     while (this.running < this.concurrency && this.pending.length > 0) {
+      // priority desc, then FIFO
+      this.pending.sort((a, b) => (b.priority - a.priority) || (a.seq - b.seq));
+
       const job = this.pending.shift()!;
       this.running += 1;
 
       try {
-        const c = startResumableUpload(job.args);
+        const c = startResumableUpload(job.args as any);
         job.resolveController(c);
 
         c.done.finally(() => {
           this.running -= 1;
-          // Ensure listeners/controllers are not leaked.
-          disposeUploadSession({ id: c.id, cancel: false, remove: false });
           this.pump();
         });
       } catch (e) {
         this.running -= 1;
+
         upsertUploadSession({
           id: job.id,
           status: "error",
@@ -138,6 +153,7 @@ export class UploadQueue {
           error: e,
           updatedAt: Date.now(),
         });
+
         job.rejectController(e);
         this.pump();
       }

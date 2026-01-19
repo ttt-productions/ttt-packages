@@ -11,6 +11,7 @@ export function setUploadSessionPersistence(adapter: UploadSessionPersistenceAda
   persistence = adapter;
 }
 
+// ---- Persistence error reporting (P0) ----
 export type PersistenceErrorHandler = (err: unknown, op: "set" | "remove" | "get", id: string) => void;
 
 let persistenceErrorHandler: PersistenceErrorHandler | null = null;
@@ -41,9 +42,10 @@ function now() {
   return Date.now();
 }
 
+// ---- Session pruning (P0) ----
 const MAX_SESSIONS = 100;
 const SUCCESS_TTL_MS = 24 * 60 * 60 * 1000; // 24h
-const ERROR_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7d (error + canceled)
+const ERROR_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7d
 
 export function pruneOldUploadSessions() {
   const t = Date.now();
@@ -79,6 +81,7 @@ export function pruneOldUploadSessions() {
  */
 export async function rehydrateUploadSessions() {
   if (!persistence) return;
+
   const ids = await persistence.listIds();
   for (const id of ids) {
     try {
@@ -109,6 +112,7 @@ export function upsertUploadSession(partial: Partial<UploadSessionState> & Pick<
     return;
   }
 
+  // ---- Terminal status race fix (P0) ----
   const prevStatus = prev?.status ?? "idle";
   const nextStatus = partial.status ?? prevStatus;
 
