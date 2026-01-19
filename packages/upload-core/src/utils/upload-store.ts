@@ -1,3 +1,4 @@
+import { now } from "@ttt-productions/firebase-helpers"; //
 import type { UploadSessionState, UploadSessionPersistenceAdapter } from "../types";
 
 type Listener = (s: UploadSessionState) => void;
@@ -38,17 +39,13 @@ async function persistRemove(id: string) {
   }
 }
 
-function now() {
-  return Date.now();
-}
-
 // ---- Session pruning (P0) ----
 const MAX_SESSIONS = 100;
 const SUCCESS_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const ERROR_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7d
 
 export function pruneOldUploadSessions() {
-  const t = Date.now();
+  const t = now(); //
   const all = listUploadSessions();
 
   let pruned = 0;
@@ -129,6 +126,8 @@ export function upsertUploadSession(partial: Partial<UploadSessionState> & Pick<
   const percent = Math.max(partial.percent ?? 0, prev?.percent ?? 0);
 
   const version = (prev?.version ?? 0) + 1;
+  
+  // Use robust now() helper
   const next: UploadSessionState = {
     id: partial.id,
     status,
@@ -137,8 +136,8 @@ export function upsertUploadSession(partial: Partial<UploadSessionState> & Pick<
     transferred,
     total,
     percent,
-    startedAt: partial.startedAt ?? prev?.startedAt ?? now(),
-    updatedAt: partial.updatedAt ?? now(),
+    startedAt: partial.startedAt ?? prev?.startedAt ?? now(), //
+    updatedAt: partial.updatedAt ?? now(), //
     error: partial.error ?? prev?.error,
     result: partial.result ?? prev?.result,
   };
