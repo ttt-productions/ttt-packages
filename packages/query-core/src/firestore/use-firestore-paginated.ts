@@ -15,6 +15,7 @@ import { useFirestoreDb } from './context';
 import type { FirestorePaginatedOptions, WithId } from './types';
 
 const DEFAULT_PAGE_SIZE = 10;
+const MAX_CACHED_CURSORS = 20;
 
 /**
  * Return type for useFirestorePaginated hook
@@ -33,24 +34,22 @@ export type UseFirestorePaginatedResult<T> = UseQueryResult<WithId<T>[], Error> 
 /**
  * Page-based pagination for Firestore collections.
  * Supports navigating to specific pages (1, 2, 3...) rather than infinite scroll.
- * 
- * @example
+ * * @example
  * ```tsx
  * const {
- *   data,
- *   page,
- *   setPage,
- *   hasNextPage,
- *   hasPrevPage,
- *   isLoading,
+ * data,
+ * page,
+ * setPage,
+ * hasNextPage,
+ * hasPrevPage,
+ * isLoading,
  * } = useFirestorePaginated<Task>({
- *   collectionPath: 'tasks',
- *   queryKey: ['tasks', 'list'],
- *   constraints: [where('status', '==', 'active'), orderBy('createdAt', 'desc')],
- *   pageSize: 10,
+ * collectionPath: 'tasks',
+ * queryKey: ['tasks', 'list'],
+ * constraints: [where('status', '==', 'active'), orderBy('createdAt', 'desc')],
+ * pageSize: 10,
  * });
- * 
- * // Render pagination controls
+ * * // Render pagination controls
  * <button onClick={() => setPage(page - 1)} disabled={!hasPrevPage}>Previous</button>
  * <span>Page {page}</span>
  * <button onClick={() => setPage(page + 1)} disabled={!hasNextPage}>Next</button>
@@ -104,6 +103,14 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
         setCursors((prev) => {
           const next = new Map(prev);
           next.set(page, lastDoc);
+          
+          // Prune old cursors if too many (prevent memory leaks)
+          if (next.size > MAX_CACHED_CURSORS) {
+            const sorted = Array.from(next.keys()).sort((a, b) => a - b);
+            const toDelete = sorted.slice(0, sorted.length - MAX_CACHED_CURSORS);
+            toDelete.forEach((k) => next.delete(k));
+          }
+          
           return next;
         });
       }

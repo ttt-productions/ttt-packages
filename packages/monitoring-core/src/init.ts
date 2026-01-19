@@ -6,14 +6,24 @@ import { SentryNodeAdapter } from "./adapters/sentry-node.js";
 
 let adapter: MonitoringAdapter = NoopAdapter;
 let initialized = false;
+let currentOptions: MonitoringInitOptions | null = null;
 
 export function getMonitoringAdapter(): MonitoringAdapter {
   return adapter;
 }
 
-export async function initMonitoring(options: MonitoringInitOptions): Promise<void> {
-  if (initialized) return;
+export async function initMonitoring(options: MonitoringInitOptions, force = false): Promise<void> {
+  // Allow re-initialization if options changed or force flag set
+  if (initialized && !force && JSON.stringify(currentOptions) === JSON.stringify(options)) {
+    return;
+  }
 
+  // Warn if re-initializing
+  if (initialized) {
+    console.warn('[monitoring-core] Re-initializing monitoring with new config');
+  }
+
+  currentOptions = options;
   const enabled = options.enabled ?? true;
 
   if (!enabled || options.provider === "noop") {

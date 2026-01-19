@@ -21,6 +21,9 @@ import type { ChatCoreConfig, ChatMessageV1 } from "../types";
 import { canAccessThread } from "./useChatThreadAccess";
 import { messagesColPath, newestWindowQuery } from "../firestore/queries";
 
+// Safety limit to prevent memory exhaustion
+const MAX_PAGE_SIZE = 100;
+
 type NewestWindowState = {
   ready: boolean;
   newestDesc: ChatMessageV1[];
@@ -41,14 +44,20 @@ function mapMsg(
   threadId: string
 ): ChatMessageV1 {
   const d = doc.data() as any;
-  // Use toMillis to safely handle Timestamp, Date, string, or number.
-  // Fallback to Date.now() if 0 or invalid.
-  const createdAt = toMillis(d.createdAt) || Date.now(); 
+  
+  // CRITICAL FIX: Do not fallback to Date.now().
+  // If data is missing/corrupt, use 0 so it sorts to the beginning (oldest) 
+  // rather than appearing as a brand new message.
+  const createdAt = toMillis(d.createdAt);
+  
+  if (!createdAt) {
+    console.error('[useChatMessages] Message missing valid createdAt:', doc.id, d.createdAt);
+  }
 
   return {
     messageId: doc.id,
     threadId,
-    createdAt,
+    createdAt: createdAt || 0,
     senderId: d.senderId,
     senderUsername: d.senderUsername,
     text: d.message ?? d.text ?? "",
@@ -76,12 +85,21 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     db,
     chatCollection,
     threadId,
-    pageSize = 20,
+    pageSize: requestedPageSize = 20,
     currentUserId,
     isAdmin,
     threadAllowedUserIds,
     createdAtField = "createdAt",
   } = config;
+
+  // SAFETY FIX: Clamp page size
+  const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);
+
+  if (requestedPageSize > MAX_PAGE_SIZE) {
+    console.warn(
+      `[useChatMessages] Requested pageSize ${requestedPageSize} exceeds maximum ${MAX_PAGE_SIZE}. Using ${MAX_PAGE_SIZE}.`
+    );
+  }
 
   const allowed = React.useMemo(
     () =>
@@ -168,6 +186,9 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
   const messages = React.useMemo(() => {
     if (!allowed) return [];
     const olderDesc = (older.data?.pages ?? []).flatMap((p) => p.itemsDesc);
+    // Filter out any messages with 0 timestamp (invalid) if desired, 
+    // or keep them (they will sort to top). 
+    // For now we keep them to avoid data loss holes, but they won't look "new".
     return dedupeAndSortAsc([...olderDesc, ...newest.newestDesc]);
   }, [allowed, older.data, newest.newestDesc]);
 

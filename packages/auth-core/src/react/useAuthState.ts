@@ -9,12 +9,19 @@ export type AuthState = {
 };
 
 export function useAuthState(auth: Auth): AuthState {
+  // Initialize state based on current auth status to avoid initial flash
   const [user, setUser] = useState<User | null>(() => auth.currentUser);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(() => auth.currentUser === null);
   const [error, setError] = useState<unknown | null>(null);
 
   useEffect(() => {
-    setLoading(true);
+    // Only set loading if we don't have a user and haven't loaded yet
+    // This prevents the "flash" when a user is already signed in (e.g. hydration)
+    // or when simply refreshing the token.
+    if (user === null && auth.currentUser === null) {
+      setLoading(true);
+    }
+
     const unsub = onAuthStateChanged(
       auth,
       (u) => {
