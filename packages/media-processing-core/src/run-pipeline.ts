@@ -3,6 +3,7 @@ import type {
     MediaProcessingSpec,
     MediaModerationResult,
   } from "@ttt-productions/media-contracts";
+import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
   import { createTempWorkspace } from "./workspace/temp";
   import { processMedia } from "./process-media";
   import type { MediaIO } from "./io/types";
@@ -34,7 +35,22 @@ import type {
   }
   
   export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProcessingResult> {
-    const { spec, io, outputBaseName = "media", moderation } = args;
+    let { spec, io, outputBaseName = "media", moderation } = args;
+
+    // Runtime contract validation (fast-fail with actionable errors).
+    try {
+      spec = parseMediaProcessingSpec(spec);
+    } catch (e: any) {
+      return {
+        ok: false,
+        mediaType: mediaTypeFromSpecKind(spec.kind),
+        error: {
+          code: "invalid_spec",
+          message: "Invalid MediaProcessingSpec.",
+          details: { issues: e?.issues ?? e?.message ?? String(e) },
+        },
+      };
+    }
   
     const ws = await createTempWorkspace("ttt-media-");
   
@@ -77,11 +93,10 @@ import type {
         inputMime: io.input.mime,
       });
 
-      // Basic output size enforcement (until contracts add maxOutputBytes).
-      // If spec.maxBytes is provided, treat it as an upper bound for each output and total outputs.
+      // Output size enforcement (processed outputs)
       if (result.ok && result.outputs?.length) {
-        const perFileLimit = spec.maxBytes ?? 200 * 1024 * 1024; // 200MB default
-        const totalLimit = spec.maxBytes ?? 400 * 1024 * 1024; // 400MB default
+        const perFileLimit = spec.maxOutputBytes ?? spec.maxBytes ?? 200 * 1024 * 1024; // 200MB default
+        const totalLimit = spec.maxTotalOutputBytes ?? spec.maxOutputBytes ?? spec.maxBytes ?? 400 * 1024 * 1024; // 400MB default
 
         let total = 0;
         for (const o of result.outputs) {

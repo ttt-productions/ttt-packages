@@ -36,6 +36,13 @@ export type MediaErrorCode =
   | "invalid_mime"
   | "too_large"
   | "too_long"
+  | "upload_failed"
+  | "upload_canceled"
+  | "upload_timeout"
+  | "network_error"
+  | "quota_exceeded"
+  | "invalid_spec"
+  | "unsupported_format"
   | "processing_failed"
   | "not_found"
   | "permission_denied"
@@ -74,6 +81,19 @@ export interface MediaModerationResult {
   reviewedAt?: TimestampLike;
 }
 
+export interface MediaModerationSpec {
+  /** e.g. "google-vision", "aws-rekognition", "openai" */
+  provider?: string;
+
+  /** Which stage(s) to run moderation on. Defaults decided server-side. */
+  stage?: "input" | "output" | "both";
+
+  /** If provided, which statuses should cause immediate rejection. */
+  rejectOn?: Array<"flagged" | "rejected">;
+
+  /** Optional provider-specific config. */
+  config?: Record<string, unknown>;
+}
 
 export interface PendingMediaDoc {
   /** Stable id (doc id) */
@@ -183,7 +203,7 @@ export interface ImageVariantSpec {
 
 export interface MediaProcessingSpec {
   /** Spec version for forwards/backwards compatibility. */
-  specVersion?: 1;
+  specVersion?: 1 | 2;
 
   /** What the backend should do. Keep stable + additive. */
   kind: "image" | "video" | "audio" | "generic";
@@ -194,11 +214,20 @@ export interface MediaProcessingSpec {
   /** If omitted -> no limit. */
   maxBytes?: number;
 
+  /** If omitted -> falls back to maxBytes, otherwise no limit. Per-output hard cap. */
+  maxOutputBytes?: number;
+
+  /** If omitted -> falls back to maxOutputBytes/maxBytes. Total hard cap across all outputs. */
+  maxTotalOutputBytes?: number;
+
   /** If omitted -> no limit. Applies to video/audio. */
   maxDurationSec?: number;
 
   /** Enforce output aspect ratio (uniform UI). */
   requiredAspectRatio?: number;
+
+  /** Allowed +/- tolerance for requiredAspectRatio checks. Default should be set by backend. */
+  aspectRatioTolerance?: number;
 
   /** Enforce output dimensions (uniform UI). */
   requiredWidth?: number;
@@ -216,6 +245,9 @@ export interface MediaProcessingSpec {
   /** UI hints for capture/record */
   client?: MediaClientConstraints;
 
+  /** Optional moderation policy hints; provider-specific logic stays server-side. */
+  moderation?: MediaModerationSpec;
+
   /** Image pipeline (sharp etc) */
   image?: {
     variants: ImageVariantSpec[];
@@ -229,6 +261,7 @@ export interface MediaProcessingSpec {
   audio?: {
     maxDurationSec?: number;
   };
+
 }
 
 export interface MediaOutput {

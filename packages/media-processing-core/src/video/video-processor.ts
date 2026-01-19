@@ -31,7 +31,7 @@ function aspect(width?: number, height?: number): number | undefined {
   return width / height;
 }
 
-function aspectClose(a: number, b: number, tolerance = 0.02): boolean {
+function aspectClose(a: number, b: number, tolerance: number): boolean {
   return Math.abs(a - b) <= tolerance;
 }
 
@@ -124,7 +124,8 @@ export async function processVideo(
     const actualAspect = aspect(probe.width, probe.height);
 
     const okOri = orientationOk(requiredOri, actualOri);
-    const okAspect = requiredAspect ? (actualAspect ? aspectClose(actualAspect, requiredAspect) : false) : true;
+    const tol = spec.aspectRatioTolerance ?? 0.02;
+    const okAspect = requiredAspect ? (actualAspect ? aspectClose(actualAspect, requiredAspect, tol) : false) : true;
     const okDims = !requiredW || !requiredH ? true : probe.width === requiredW && probe.height === requiredH;
 
     const needsAuto = !okOri || !okAspect || !okDims;

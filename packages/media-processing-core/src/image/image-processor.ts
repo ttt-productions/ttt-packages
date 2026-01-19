@@ -24,7 +24,7 @@ function acceptAllowsMime(spec: MediaProcessingSpec, actualMime?: string): boole
   const mimes = spec.accept?.mimes?.filter(Boolean) ?? [];
   if (mimes.length === 0) return true; // empty => accept anything
   if (!actualMime) return false;
-  return mimes.some((a) => matchMime(a, actualMime));
+  return mimes.some((a: string) => matchMime(a, actualMime));
 }
 
 
@@ -79,7 +79,7 @@ function aspect(width?: number, height?: number): number | undefined {
   return width / height;
 }
 
-function aspectClose(a: number, b: number, tolerance = 0.02): boolean {
+function aspectClose(a: number, b: number, tolerance: number): boolean {
   return Math.abs(a - b) <= tolerance;
 }
 
@@ -204,7 +204,8 @@ async function buildBase(
   const reqAspect = spec.requiredAspectRatio;
   if (reqAspect && w && h) {
     const a = aspect(w, h);
-    if (a && !aspectClose(a, reqAspect)) {
+    const tol = spec.aspectRatioTolerance ?? 0.02;
+    if (a && !aspectClose(a, reqAspect, tol)) {
       if (!spec.allowAutoFormat) {
         return {
           ok: false,
