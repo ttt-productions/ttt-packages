@@ -1,7 +1,6 @@
-export * from "./firestore/types";
-export * from "./firestore/paths";
-export * from "./firestore/timestamps";
-export * from "./firestore/batch";
-export * from "./firestore/pagination";
-
-export * from "./utils/chunk";
+export * from "./firestore/types.js";
+export * from "./firestore/paths.js";
+export * from "./firestore/timestamps.js";
+export * from "./firestore/batch.js";
+export * from "./firestore/pagination.js";
+export * from "./utils/chunk.js";
