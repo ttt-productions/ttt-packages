@@ -17,7 +17,7 @@ export function useUploadController() {
   }, [controller]);
 
   const start = useCallback((args: StartUploadArgs) => {
-    const c = startResumableUpload(args);
+    const c = startResumableUpload({ ...args, id: args.id ?? `upl_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}` });
     setController(c);
     return c;
   }, []);

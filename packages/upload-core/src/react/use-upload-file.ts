@@ -27,7 +27,7 @@ export function useUploadFile() {
       try {
         const res = await uploadFileResumable({
           ...args,
-          onProgress: ({ percent }) => {
+          onProgress: ({ percent }: { percent: number }) => {
             if (!mountedRef.current) return;
             setProgress(percent);
           },

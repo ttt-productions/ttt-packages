@@ -180,3 +180,11 @@ export function startResumableUpload(args: {
     done,
   };
 }
+
+export async function uploadFileResumable(
+  args: Omit<Parameters<typeof startResumableUpload>[0], "id"> & { id?: string }
+): Promise<UploadFileResumableResult> {
+  const id = args.id ?? `upl_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+  const c = startResumableUpload({ ...args, id });
+  return c.done;
+}
