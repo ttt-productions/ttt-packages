@@ -41,6 +41,16 @@ done
 git add "$PKGDIR/package.json" package-lock.json
 git commit -m "Release $PKGSLUG v$VER"
 
+# Fetch tags again right before creating to catch any race conditions
+git fetch --tags origin
+
+# Check one more time before tagging
+if tag_exists_remote "$TAG"; then
+  echo "⚠️  Tag $TAG was just created remotely. Skipping push."
+  git reset --soft HEAD~1
+  exit 0
+fi
+
 git tag "$TAG"
 
 # Push just what we changed, plus the single new tag
