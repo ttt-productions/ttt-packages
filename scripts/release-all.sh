@@ -3,29 +3,55 @@ set -euo pipefail
 
 BUMP="${1:-patch}"
 
-# Build once (recommended)
+# Install dependencies
 npm install
-npm run clean
-npm run build
 
-# Release in dependency-safe order (lowest-level first)
+# Clean all packages
+npm run clean
+
+# Build in dependency-safe order (lowest-level first)
+npm run build -w @ttt-productions/ui-core
+npm run build -w @ttt-productions/theme-core
+npm run build -w @ttt-productions/query-core
+npm run build -w @ttt-productions/monitoring-core
+npm run build -w @ttt-productions/firebase-helpers
+
+# Media + chat (depend on firebase-helpers)
+npm run build -w @ttt-productions/media-contracts
+npm run build -w @ttt-productions/media-viewer
+npm run build -w @ttt-productions/chat-core
+npm run build -w @ttt-productions/file-input
+
+# Auth + mobile (depend on previous)
+npm run build -w @ttt-productions/auth-core
+npm run build -w @ttt-productions/mobile-core
+
+# Advanced packages
+npm run build -w @ttt-productions/upload-core
+npm run build -w @ttt-productions/media-processing-core
+
+# Release foundational packages first
 ./scripts/release-package.sh @ttt-productions/ui-core packages/ui-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/theme-core packages/theme-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/query-core packages/query-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/monitoring-core packages/monitoring-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/firebase-helpers packages/firebase-helpers "$BUMP"
 
-# Media + chat
+# Install newly published packages before continuing
+npm install
+
 ./scripts/release-package.sh @ttt-productions/media-contracts packages/media-contracts "$BUMP"
+
+# Install media-contracts before packages that depend on it
+npm install
+
 ./scripts/release-package.sh @ttt-productions/media-viewer packages/media-viewer "$BUMP"
 ./scripts/release-package.sh @ttt-productions/chat-core packages/chat-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/file-input packages/file-input "$BUMP"
 
-# Auth + mobile
 ./scripts/release-package.sh @ttt-productions/auth-core packages/auth-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/mobile-core packages/mobile-core "$BUMP"
 
-# Future packages (uncomment once they exist)
 ./scripts/release-package.sh @ttt-productions/upload-core packages/upload-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/media-processing-core packages/media-processing-core "$BUMP"
 
