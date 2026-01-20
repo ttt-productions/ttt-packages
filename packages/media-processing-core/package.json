@@ -1,6 +1,6 @@
 {
   "name": "@ttt-productions/media-processing-core",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ttt-productions/ttt-packages.git",
@@ -11,9 +11,7 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "sideEffects": false,
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -27,8 +25,9 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "sharp": "^0.34.1",
-    "@ttt-productions/media-contracts": "^0.2.4"
+    "@ttt-productions/firebase-helpers": "^0.2.14",
+    "@ttt-productions/media-contracts": "^0.2.4",
+    "sharp": "^0.34.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

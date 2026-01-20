@@ -26,15 +26,15 @@
         "typecheck": "tsc --noEmit",
         "prepublishOnly": "npm run clean && npm run build"
     },
+    "dependencies": {
+        "@ttt-productions/ui-core": "^0.2.3",
+        "@ttt-productions/media-contracts": "^0.2.4",
+        "react-easy-crop": "^5.5.0"
+    },
     "peerDependencies": {
         "react": ">=18.0.0",
         "react-dom": ">=18.0.0",
-        "@ttt-productions/ui-core": ">=0.0.0",
-        "@ttt-productions/media-contracts": ">=0.0.0",
         "lucide-react": ">=0.0.0"
-    },
-    "dependencies": {
-        "react-easy-crop": "^5.5.0"
     },
     "devDependencies": {
         "typescript": "^5.8.3"
