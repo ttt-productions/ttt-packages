@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/media-contracts",
-    "version": "0.2.4",
+    "version": "0.2.5",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
@@ -26,9 +26,9 @@
         "typecheck": "tsc --noEmit",
         "prepublishOnly": "npm run clean && npm run build"
     },
-  "dependencies": {
-    "zod": "^3.23.8"
-  },
+    "dependencies": {
+        "zod": "^3.23.8"
+    },
     "devDependencies": {
         "typescript": "^5.8.3"
     },
