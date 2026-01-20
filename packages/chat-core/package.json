@@ -1,6 +1,6 @@
 {
   "name": "@ttt-productions/chat-core",
-  "version": "0.2.7",
+  "version": "0.2.5",
   "description": "Shared Firestore chat core (realtime newest window + infinite older pagination) for TTT Productions apps",
   "repository": {
     "type": "git",
@@ -34,7 +34,7 @@
     "react-dom": ">=19.0.0"
   },
   "dependencies": {
-    "@ttt-productions/ui-core": "^0.1.25",
+    "@ttt-productions/ui-core": "^0.2.3",
     "@ttt-productions/firebase-helpers": "^0.2.14"
   },
   "devDependencies": {
