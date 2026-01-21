@@ -7,19 +7,40 @@ OUTPUT="${1:-full_ttt_packages_code.txt}"
 # Clear or create the output file
 : > "$OUTPUT"
 
-echo "📦 Bundling project code into $OUTPUT..."
+echo "📦 Bundling monorepo code into $OUTPUT..."
 
 # --- Configuration ---
 
-# Root files to strictly include
+# 1. Context Directories (Always include these if they exist for full context)
+BASE_DIRS=("scripts" ".github" ".vscode")
+
+# 2. Root files to strictly include
+# Expanded to include common monorepo/build tools
 ROOT_FILES=(
   "package.json"
+  "package-lock.json"
+  "yarn.lock"
+  "pnpm-lock.yaml"
   "tsconfig.json"
+  "tsconfig.base.json"
   "lerna.json"
   "pnpm-workspace.yaml"
+  "turbo.json"
+  "nx.json"
+  "README.md"
+  ".gitignore"
+  ".eslintrc.json"
+  ".eslintrc.js"
+  ".prettierrc"
+  ".npmrc"
+  ".env.example"
 )
 
-# Directories to ignore
+# 3. Main Source Directories to Scan
+# Scans 'packages' plus the operations folders defined above
+SCAN_DIRS=("packages" "${BASE_DIRS[@]}")
+
+# 4. Directories to ignore
 IGNORE_DIRS=(
   "node_modules"
   "dist"
@@ -27,19 +48,28 @@ IGNORE_DIRS=(
   "coverage"
   ".git"
   ".turbo"
+  ".next"
   ".firebase"
+  ".swc"
+  ".cache"
 )
 
-# File extensions to include
+# 5. File extensions to include
 INCLUDE_EXTS=(
   "ts"
   "tsx"
   "js"
   "jsx"
+  "mjs"
+  "cjs"
   "json"
   "sh"
   "md"
   "css"
+  "scss"
+  "yaml"
+  "yml"
+  "env"
 )
 
 # --- Functions ---
@@ -61,57 +91,65 @@ append_file() {
 
 # --- Execution ---
 
-# 1. Add specific Root Files
+# 1. Process Root Files
 echo "🔍 Processing root config files..."
 for root_file in "${ROOT_FILES[@]}"; do
-  if [[ -f "$root_file" ]]; then
-    append_file "$root_file"
+  [[ -f "$root_file" ]] && append_file "$root_file"
+done
+
+echo "🔍 Scanning directories: ${SCAN_DIRS[*]}..."
+
+# Construct FIND arguments for Ignore Dirs
+FIND_IGNORE_ARGS=()
+first=true
+for dir in "${IGNORE_DIRS[@]}"; do
+  if [ "$first" = true ]; then
+    FIND_IGNORE_ARGS+=( -name "$dir" )
+    first=false
+  else
+    FIND_IGNORE_ARGS+=( -o -name "$dir" )
   fi
 done
 
-# 2. Add Package Files (Scanning 'packages/' directory)
-if [[ -d "packages" ]]; then
-  echo "🔍 Scanning 'packages/' directory..."
+# Construct FIND arguments for Include Extensions
+FIND_INCLUDE_ARGS=()
+first=true
+for ext in "${INCLUDE_EXTS[@]}"; do
+  if [ "$first" = true ]; then
+    FIND_INCLUDE_ARGS+=( -name "*.$ext" )
+    first=false
+  else
+    FIND_INCLUDE_ARGS+=( -o -name "*.$ext" )
+  fi
+done
 
-  # A. Construct Ignore Arguments: ( -name "dir1" -o -name "dir2" ... )
-  FIND_IGNORE_ARGS=()
-  first=true
-  for dir in "${IGNORE_DIRS[@]}"; do
-    if [ "$first" = true ]; then
-      FIND_IGNORE_ARGS+=( -name "$dir" )
-      first=false
-    else
-      FIND_IGNORE_ARGS+=( -o -name "$dir" )
+# Run the scan
+for scan_dir in "${SCAN_DIRS[@]}"; do
+  if [[ -d "$scan_dir" ]]; then
+    echo "   - Scanning $scan_dir..."
+    find "$scan_dir" \
+      -type d \( "${FIND_IGNORE_ARGS[@]}" \) -prune \
+      -o \
+      -type f \( "${FIND_INCLUDE_ARGS[@]}" \) \
+      -print0 | sort -z | while IFS= read -r -d '' file; do
+
+        # Clean up noise:
+        # 1. In monorepos, per-package lockfiles are often mistakes/artifacts. 
+        #    We only want the root one (handled above).
+        if [[ "$file" == *"package-lock.json" && "$scan_dir" == "packages" ]]; then continue; fi
+        
+        # 2. Exclude binary assets
+        if [[ "$file" == *.png || "$file" == *.jpg || "$file" == *.jpeg || "$file" == *.ico || "$file" == *.woff2 ]]; then continue; fi
+        
+        append_file "$file"
+      done
+  else
+    # Only warn if the core 'packages' folder is missing. 
+    # Context folders (.github, etc) are optional.
+    if [[ "$scan_dir" == "packages" ]]; then
+        echo "⚠️  Warning: Directory '$scan_dir' not found (skipping)."
     fi
-  done
-
-  # B. Construct Include Arguments: ( -name "*.ts" -o -name "*.tsx" ... )
-  FIND_INCLUDE_ARGS=()
-  first=true
-  for ext in "${INCLUDE_EXTS[@]}"; do
-    if [ "$first" = true ]; then
-      FIND_INCLUDE_ARGS+=( -name "*.$ext" )
-      first=false
-    else
-      FIND_INCLUDE_ARGS+=( -o -name "*.$ext" )
-    fi
-  done
-
-  # C. Run find command
-  # Logic: If dir matches IGNORE -> prune. ELSE if file matches INCLUDE -> print.
-  find packages \
-    -type d \( "${FIND_IGNORE_ARGS[@]}" \) -prune \
-    -o \
-    -type f \( "${FIND_INCLUDE_ARGS[@]}" \) \
-    -print0 | sort -z | while IFS= read -r -d '' file; do
-      
-      # Exclude package-lock.json explicitly
-      if [[ "$file" == *"package-lock.json" ]]; then continue; fi
-      
-      append_file "$file"
-    done
-else
-  echo "⚠️  Warning: 'packages' directory not found."
-fi
+  fi
+done
 
 echo "✅ Done! All code is in: $OUTPUT"
