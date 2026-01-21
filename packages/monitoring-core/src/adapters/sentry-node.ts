@@ -15,9 +15,7 @@ let sentryNodePromise: Promise<SentryNodeLike> | null = null;
 
 function getSentryNode(): Promise<SentryNodeLike> {
   if (!sentryNodePromise) {
-    sentryNodePromise = (Function("return import('@sentry/node')")() as Promise<any>).then(
-      (m) => m as SentryNodeLike
-    );
+    sentryNodePromise = import("@sentry/node").then((m) => m as any);
   }
   return sentryNodePromise;
 }

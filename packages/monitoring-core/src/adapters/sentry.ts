@@ -15,10 +15,7 @@ let sentryPromise: Promise<SentryLike> | null = null;
 
 function getSentry(): Promise<SentryLike> {
   if (!sentryPromise) {
-    // keep the import fully dynamic and untyped so TS doesn't require the module at build time
-    sentryPromise = (Function("return import('@sentry/nextjs')")() as Promise<any>).then(
-      (m) => m as SentryLike
-    );
+    sentryPromise = import("@sentry/nextjs").then((m) => m as any);
   }
   return sentryPromise;
 }
