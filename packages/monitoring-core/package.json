@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/monitoring-core",
-    "version": "0.2.12",
+    "version": "0.2.13",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
@@ -27,8 +27,8 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "peerDependencies": {
-        "@sentry/nextjs": ">=8.0.0",
-        "@sentry/node": ">=8.0.0"
+        "@sentry/nextjs": "^10.32.1",
+        "@sentry/node": "^10.32.1"
     },
     "peerDependenciesMeta": {
         "@sentry/nextjs": {
@@ -39,7 +39,9 @@
         }
     },
     "devDependencies": {
-        "typescript": "^5.8.3"
+        "typescript": "^5.8.3",
+        "@sentry/nextjs": "^10.32.1",
+        "@sentry/node": "^10.32.1"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"
