@@ -30,7 +30,9 @@
     ],
     "peerDependencies": {
         "react": ">=19.0.0",
-        "react-dom": ">=19.0.0"
+        "react-dom": ">=19.0.0",
+        "react-hook-form": ">=7.0.0",
+        "@hookform/resolvers": ">=3.0.0"
     },
     "dependencies": {
         "@radix-ui/react-accordion": "^1.2.12",
@@ -56,14 +58,15 @@
         "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.1",
         "lucide-react": "^0.562.0",
-        "react-hook-form": "^7.71.1",
         "tailwind-merge": "^2.5.2"
     },
-    "devDependencies": {
+   "devDependencies": {
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
+        "@hookform/resolvers": "^3.10.0",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
+        "react-hook-form": "^7.71.1",
         "typescript": "^5.8.3"
     },
     "author": "DJ (TTT Productions)",
