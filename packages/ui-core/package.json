@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/ui-core",
-    "version": "0.2.10",
+    "version": "0.2.11",
     "description": "Shared UI components for TTT Productions projects",
     "repository": {
         "type": "git",
@@ -16,10 +16,10 @@
         "dist"
     ],
     "scripts": {
-        "build": "tsup && tsc --emitDeclarationOnly",
-        "clean": "rm -rf dist",
-        "typecheck": "tsc --noEmit",
-        "prepublishOnly": "npm run clean && npm run build"
+        "build": "npm run build:js && npm run build:types",
+        "build:js": "tsup",
+        "build:types": "tsc -p tsconfig.build.json",
+        "clean": "rm -rf dist"
     },
     "keywords": [
         "react",
