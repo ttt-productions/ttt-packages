@@ -16,8 +16,8 @@
         "dist"
     ],
     "scripts": {
-        "build": "tsc",
-        "clean": "rm -rf dist *.tsbuildinfo",
+        "build": "tsup && tsc --emitDeclarationOnly",
+        "clean": "rm -rf dist",
         "typecheck": "tsc --noEmit",
         "prepublishOnly": "npm run clean && npm run build"
     },
@@ -67,7 +67,8 @@
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
         "react-hook-form": "^7.71.1",
-        "typescript": "^5.8.3"
+        "typescript": "^5.8.3",
+        "tsup": "^8.0.0"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"
