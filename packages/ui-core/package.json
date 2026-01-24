@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/ui-core",
-    "version": "0.2.14",
+    "version": "0.2.15",
     "description": "Shared UI components for TTT Productions projects",
     "repository": {
         "type": "git",
@@ -11,12 +11,24 @@
     "main": "dist/index.js",
     "module": "dist/index.js",
     "types": "dist/index.d.ts",
-    "sideEffects": false,
-    "files": [
-        "dist"
+    "sideEffects": [
+        "*.css",
+        "**/*.css"
     ],
+    "files": [
+        "dist",
+        "src"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+        },
+        "./src/*": "./src/*"
+    },
     "scripts": {
-        "build": "tsc",
+        "build": "tsc --jsx preserve",
         "clean": "rm -rf dist *.tsbuildinfo",
         "typecheck": "tsc --noEmit",
         "prepublishOnly": "npm run clean && npm run build"
