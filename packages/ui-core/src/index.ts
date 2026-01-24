@@ -30,6 +30,7 @@ export * from "./components/slider";
 export * from "./components/date-picker";
 export * from "./components/scroll-area";
 export * from "./components/table";
+export * from "./components/sheet";
 
 // Layout
 export * from "./components/layout/screen-adaptive-view";
