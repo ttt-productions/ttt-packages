@@ -41,24 +41,3 @@ export * from "./hooks/use-media-query";
 
 // Export utilities
 export * from "./lib/utils";
-
-export {
-    useForm,
-    useFormContext,
-    FormProvider,
-    Controller,
-    useController,
-    useFieldArray,
-    useWatch,
-  } from "react-hook-form";
-  
-export type {
-    FieldValues,
-    UseFormReturn,
-    Control,
-    Path,
-    SubmitHandler,
-    FieldError,
-  } from "react-hook-form";
-
- export { zodResolver } from "@hookform/resolvers/zod";
