@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/ui-core",
-    "version": "0.2.13",
+    "version": "0.2.14",
     "description": "Shared UI components for TTT Productions projects",
     "repository": {
         "type": "git",
@@ -16,10 +16,10 @@
         "dist"
     ],
     "scripts": {
-        "build": "npm run build:js && npm run build:types",
-        "build:js": "tsup",
-        "build:types": "tsc -p tsconfig.build.json",
-        "clean": "rm -rf dist"
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
     },
     "keywords": [
         "react",
@@ -63,12 +63,9 @@
     "devDependencies": {
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
-        "@hookform/resolvers": "^3.10.0",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
-        "react-hook-form": "^7.71.1",
-        "typescript": "^5.8.3",
-        "tsup": "^8.0.0"
+        "typescript": "^5.8.3"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"
