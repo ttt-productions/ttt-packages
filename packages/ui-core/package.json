@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/ui-core",
-    "version": "0.2.16",
+    "version": "0.2.17",
     "description": "Shared UI components for TTT Productions projects",
     "repository": {
         "type": "git",
