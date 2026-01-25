@@ -134,6 +134,7 @@ export const keys = {
     list: (params?: Record<string, unknown>) => withScope('social', 'list', params),
     custom: (...parts: KeyPart[]) => withScope('social', ...parts),
   },
+  custom: (...parts: KeyPart[]) => withScope('custom', ...parts),
 } as const;
 
 /**

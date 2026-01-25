@@ -50,3 +50,14 @@ export type {
   FirestoreMutationOptions,
   FirestoreBatchOptions,
 } from './firestore';
+
+// Search Integration
+export {
+  useFirestoreSearch,
+  SEARCH_CONFIGS,
+} from './search';
+
+export type {
+  FirestoreSearchConfig,
+  FirestoreSearchOptions,
+} from './search';
