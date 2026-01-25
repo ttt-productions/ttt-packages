@@ -1,0 +1,51 @@
+{
+    "name": "@ttt-productions/notification-core",
+    "version": "0.1.0",
+    "description": "Shared notification system for TTT Productions apps with Firestore integration",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/notification-core"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "peerDependencies": {
+        "@tanstack/react-query": ">=5.0.0",
+        "@ttt-productions/firebase-helpers": ">=0.2.0",
+        "@ttt-productions/query-core": ">=0.3.0",
+        "firebase": ">=10.0.0",
+        "react": ">=18.0.0",
+        "react-dom": ">=18.0.0"
+    },
+    "devDependencies": {
+        "@tanstack/react-query": "^5.0.0",
+        "@ttt-productions/firebase-helpers": "^0.2.18",
+        "@ttt-productions/query-core": "^0.3.7",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "firebase": "^11.0.0",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "typescript": "^5.8.3"
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+}
