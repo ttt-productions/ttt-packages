@@ -9,7 +9,7 @@ BASE_OUTPUT="${1:-$DEFAULT_FILENAME}"
 # --- Configuration ---
 
 # 1. Chunking Configuration
-CHUNK_SIZE=30
+CHUNK_SIZE=45
 
 # 2. Extract extension and filename without extension for naming chunks
 FILENAME_NO_EXT="${BASE_OUTPUT%.*}"

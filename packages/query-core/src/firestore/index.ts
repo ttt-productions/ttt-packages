@@ -36,3 +36,9 @@ export {
   useFirestoreDelete,
   useFirestoreBatch,
 } from './use-firestore-mutations';
+
+export { 
+  useBatchFirestoreDocs,
+  type BatchFirestoreDocsOptions,
+  type BatchFirestoreDocsResult,
+} from './useBatchFirestoreDocs';
