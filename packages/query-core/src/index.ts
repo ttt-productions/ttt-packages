@@ -32,6 +32,8 @@ export {
   flattenInfiniteData,
   getInfiniteDataCount,
   docWithId,
+  //Batch query cache
+  useBatchFirestoreDocs,
 } from './firestore';
 
 export type {
@@ -49,6 +51,8 @@ export type {
   MutationOperation,
   FirestoreMutationOptions,
   FirestoreBatchOptions,
+  BatchFirestoreDocsOptions,
+  BatchFirestoreDocsResult,
 } from './firestore';
 
 // Search Integration
