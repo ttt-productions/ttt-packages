@@ -45,7 +45,11 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
-  // Set up realtime subscription
+  // STABILIZE DEPENDENCIES: 
+  // We stringify these because [where('a', '==', 'b')] !== [where('a', '==', 'b')] in JS.
+  const constraintsMemo = JSON.stringify(constraints);
+  const queryKeyMemo = JSON.stringify(queryKey);
+
   useEffect(() => {
     if (!subscribe || !enabled) return;
 
@@ -59,7 +63,6 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
       (snapshot) => {
         const items = snapshot.docs.map((docSnap) => {
           const rawData = docSnap.data();
-          // Include id in data passed to select, so it can be renamed/transformed
           const dataWithId = { id: docSnap.id, ...rawData };
           const data = select ? select(dataWithId) : dataWithId;
           return data as WithId<T>;
@@ -68,16 +71,14 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
       },
       (error) => {
         console.error('[useFirestoreCollection] Subscription error:', error);
-        // Surface error so UI can react (clear stale data)
         queryClient.setQueryData(queryKey, undefined);
-        // Invalidate to trigger error state
         queryClient.invalidateQueries({ queryKey });
       }
     );
 
     return () => unsubscribe();
-    // Note: select intentionally excluded to prevent re-subscribing on every render
-  }, [db, collectionPath, queryKey, constraints, enabled, subscribe, queryClient]);
+    // Use the stringified versions in the dependency array
+  }, [db, collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe, queryClient]);
 
   return useQuery({
     queryKey,
