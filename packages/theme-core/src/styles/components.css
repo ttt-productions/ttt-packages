@@ -976,3 +976,284 @@
   width: 2rem;
   color: hsl(var(--foreground));
 }
+
+/* =========================================================
+    TOAST / NOTIFICATIONS
+    ========================================================= */
+
+/* Toast viewport (container for all toasts) */
+.toast-viewport {
+  position: fixed;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  max-height: 100vh;
+  width: 100%;
+  flex-direction: column;
+  padding: 1rem;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+@media (min-width: 640px) {
+  .toast-viewport {
+    bottom: 0;
+    right: 0;
+    top: auto;
+    flex-direction: column-reverse;
+    padding: 1.5rem;
+    max-width: 26rem;
+  }
+}
+
+/* Toast root (individual toast) */
+.toast-root {
+  pointer-events: auto;
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  border-width: 2px;
+  padding: 1rem 1.25rem;
+  padding-right: 2.5rem;
+  font-weight: 700;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  
+  /* Default variant */
+  background-color: hsl(var(--background));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+/* Toast variants */
+.toast-root[data-variant="success"] {
+  background-color: hsl(142 76% 96%);
+  border-color: hsl(142 76% 36%);
+  color: hsl(142 76% 20%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .toast-root[data-variant="success"] {
+    background-color: hsl(142 76% 10%);
+    border-color: hsl(142 76% 36%);
+    color: hsl(142 76% 90%);
+  }
+}
+
+.toast-root[data-variant="destructive"] {
+  background-color: hsl(0 84% 96%);
+  border-color: hsl(0 84% 60%);
+  color: hsl(0 84% 20%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .toast-root[data-variant="destructive"] {
+    background-color: hsl(0 84% 10%);
+    border-color: hsl(0 84% 60%);
+    color: hsl(0 84% 90%);
+  }
+}
+
+.toast-root[data-variant="warning"] {
+  background-color: hsl(38 92% 96%);
+  border-color: hsl(38 92% 50%);
+  color: hsl(38 92% 20%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .toast-root[data-variant="warning"] {
+    background-color: hsl(38 92% 10%);
+    border-color: hsl(38 92% 50%);
+    color: hsl(38 92% 90%);
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: more) {
+  .toast-root {
+    border-width: 3px;
+  }
+  
+  .toast-root[data-variant="success"] {
+    background-color: hsl(142 76% 96%);
+    border-color: hsl(142 76% 20%);
+    color: hsl(142 76% 10%);
+  }
+  
+  .toast-root[data-variant="destructive"] {
+    background-color: hsl(0 84% 96%);
+    border-color: hsl(0 84% 40%);
+    color: hsl(0 84% 10%);
+  }
+  
+  .toast-root[data-variant="warning"] {
+    background-color: hsl(38 92% 96%);
+    border-color: hsl(38 92% 30%);
+    color: hsl(38 92% 10%);
+  }
+}
+
+@media (prefers-color-scheme: dark) and (prefers-contrast: more) {
+  .toast-root[data-variant="success"] {
+    background-color: hsl(142 76% 10%);
+    border-color: hsl(142 76% 60%);
+    color: hsl(142 76% 98%);
+  }
+  
+  .toast-root[data-variant="destructive"] {
+    background-color: hsl(0 84% 10%);
+    border-color: hsl(0 84% 70%);
+    color: hsl(0 84% 98%);
+  }
+  
+  .toast-root[data-variant="warning"] {
+    background-color: hsl(38 92% 10%);
+    border-color: hsl(38 92% 60%);
+    color: hsl(38 92% 98%);
+  }
+}
+
+/* Toast animations */
+.toast-root[data-state="open"] {
+  animation: toast-slide-in 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-root[data-state="closed"] {
+  animation: toast-hide 100ms ease-in;
+}
+
+.toast-root[data-swipe="move"] {
+  transform: translateX(var(--radix-toast-swipe-move-x));
+}
+
+.toast-root[data-swipe="cancel"] {
+  transform: translateX(0);
+  transition: transform 200ms ease-out;
+}
+
+.toast-root[data-swipe="end"] {
+  animation: toast-swipe-out 100ms ease-out;
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(calc(100% + 1rem));
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-hide {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes toast-swipe-out {
+  from {
+    transform: translateX(var(--radix-toast-swipe-end-x));
+  }
+  to {
+    transform: translateX(calc(100% + 1rem));
+  }
+}
+
+/* Progress bar (countdown) */
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 0.25rem;
+  width: 100%;
+  transform-origin: left;
+  animation: toast-progress-shrink var(--toast-duration, 5000ms) linear forwards;
+}
+
+.toast-root[data-variant="success"] .toast-progress {
+  background-color: hsl(142 76% 36%);
+}
+
+.toast-root[data-variant="destructive"] .toast-progress {
+  background-color: hsl(0 84% 60%);
+}
+
+.toast-root[data-variant="warning"] .toast-progress {
+  background-color: hsl(38 92% 50%);
+}
+
+.toast-root:not([data-variant]) .toast-progress {
+  background-color: hsl(var(--primary));
+}
+
+@keyframes toast-progress-shrink {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Pause progress on hover */
+.toast-root:hover .toast-progress {
+  animation-play-state: paused;
+}
+
+/* Dismiss button */
+.toast-dismiss {
+  position: absolute;
+  right: 0.5rem;
+  top: 0.5rem;
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+  opacity: 0.7;
+  transition-property: opacity;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+  color: inherit;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.toast-dismiss:hover {
+  opacity: 1;
+}
+
+.toast-dismiss:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Mobile adjustments */
+@media (max-width: 639px) {
+  .toast-viewport {
+    left: 0;
+    right: 0;
+    padding: 1rem;
+  }
+  
+  .toast-root[data-state="open"] {
+    animation: toast-slide-in-mobile 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  @keyframes toast-slide-in-mobile {
+    from {
+      transform: translateY(-100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+}
