@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "./toast";
 import { useToast } from "../hooks/use-toast";
 import type { ToasterToast, ToastVariant } from "../hooks/use-toast";
@@ -7,24 +8,23 @@ import type { ToasterToast, ToastVariant } from "../hooks/use-toast";
 export function Toaster() {
   const { toasts } = useToast() as { toasts: ToasterToast[] };
 
+  useEffect(() => {
+    console.log("[ui-core Toaster] mounted");
+  }, []);
+
+  useEffect(() => {
+    console.log("[ui-core Toaster] toasts updated:", toasts.length, toasts.map((t) => t.id));
+  }, [toasts]);
+
   return (
     <ToastProvider swipeDirection="right" swipeThreshold={32}>
       {toasts.map((t: ToasterToast) => {
-        const {
-          id,
-          title,
-          description,
-          action,
-          variant,
-          duration,
-          dismissible,
-          open,
-          onOpenChange,
-          ...props
-        } = t;
+        const { id, title, description, action, variant, duration, dismissible, open, onOpenChange, ...props } = t;
 
         const v: ToastVariant | "destructive" =
           variant === "error" ? "destructive" : (variant ?? "default");
+
+        console.log("[ui-core Toaster] render toast", { id, open, title });
 
         return (
           <Toast
@@ -45,7 +45,9 @@ export function Toaster() {
           </Toast>
         );
       })}
-      <ToastViewport />
+
+      {/* debug: proves viewport is visible/on-screen */}
+      <ToastViewport className="outline outline-2 outline-red-500" />
     </ToastProvider>
   );
 }
