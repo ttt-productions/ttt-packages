@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { ThemeProvider as NextThemesProvider, type ThemeProviderProps } from "next-themes";
 import { REQUIRED_TOKENS } from "./required-tokens";
 
 function warnMissingTokens() {
@@ -23,7 +23,7 @@ function warnMissingTokens() {
   }
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
+export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   React.useEffect(() => {
     if (process.env.NODE_ENV !== "production") warnMissingTokens();
   }, []);
@@ -34,6 +34,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       defaultTheme="system"
       enableSystem
       themes={["light", "dark", "high-contrast"]}
+      {...props}
     >
       {children}
     </NextThemesProvider>
