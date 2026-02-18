@@ -9,3 +9,5 @@ export * from "./utils/upload-store";
 
 export * from "./queue/upload-queue";
 export * from "./persistence/localstorage";
+
+export * from "./react/index";
