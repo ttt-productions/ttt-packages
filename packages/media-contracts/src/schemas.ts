@@ -179,6 +179,12 @@ export const MediaProcessingSpecSchema = z
     video: z
       .object({
         maxDurationSec: z.number().positive().optional(),
+        preset: z.enum([
+          "ultrafast", "superfast", "veryfast", "faster",
+          "fast", "medium", "slow", "slower", "veryslow",
+        ]).optional(),
+        crf: z.number().int().min(1).max(51).optional(),
+        scaleMode: z.enum(["crop", "fit"]).optional(),
       })
       .strict()
       .optional(),

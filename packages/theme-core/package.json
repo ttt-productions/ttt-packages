@@ -26,7 +26,7 @@
         "./components.css": "./dist/styles/components.css"
     },
     "scripts": {
-        "build": "tsc && rm -rf dist/styles && mkdir -p dist/styles && cp -R src/styles/* dist/styles/",
+        "build": "tsc && shx rm -rf dist/styles && shx mkdir -p dist/styles && shx cp -R src/styles/* dist/styles/",
         "clean": "rm -rf dist *.tsbuildinfo",
         "typecheck": "tsc --noEmit",
         "prepublishOnly": "npm run clean && npm run build"
@@ -43,7 +43,8 @@
         "@types/react-dom": "^19.0.0",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
-        "typescript": "^5.8.3"
+        "typescript": "^5.8.3",
+        "shx": "^0.3.4"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"

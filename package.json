@@ -7,7 +7,7 @@
         "packages/*"
     ],
     "scripts": {
-        "build": "npm run build -w @ttt-productions/ui-core && npm run build --workspaces --if-present",
+        "build": "npm run build -w @ttt-productions/ui-core && npm run build -w @ttt-productions/theme-core && npm run build -w @ttt-productions/query-core && npm run build -w @ttt-productions/monitoring-core && npm run build -w @ttt-productions/firebase-helpers && npm run build -w @ttt-productions/media-contracts && npm run build -w @ttt-productions/media-viewer && npm run build -w @ttt-productions/chat-core && npm run build -w @ttt-productions/file-input && npm run build -w @ttt-productions/auth-core && npm run build -w @ttt-productions/mobile-core && npm run build -w @ttt-productions/upload-core && npm run build -w @ttt-productions/media-processing-core && npm run build -w @ttt-productions/notification-core",
         "clean": "npm run clean --workspaces --if-present",
         "test": "npm run test --workspaces --if-present",
         "lint": "npm run lint --workspaces --if-present",
@@ -30,6 +30,7 @@
         "@types/node": "^22.0.0",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
+        "shx": "^0.4.0",
         "typescript": "^5.8.3"
     },
     "dependencies": {
