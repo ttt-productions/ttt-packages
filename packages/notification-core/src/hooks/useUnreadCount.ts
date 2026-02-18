@@ -1,48 +1,59 @@
 'use client';
 
 import { useFirestoreCollection } from '@ttt-productions/query-core';
-import { where, type QueryConstraint } from 'firebase/firestore';
-import type { Notification } from '../types.js';
+import { where, orderBy, limit, type QueryConstraint } from 'firebase/firestore';
+import type { NotificationDoc, UseUnreadCountOptions } from '../types.js';
 
-export interface UseUnreadCountOptions {
-  /** User ID to fetch unread count for */
-  userId: string;
-  /** Enable/disable the query */
-  enabled?: boolean;
-  /** Enable realtime updates (default: true) */
-  subscribe?: boolean;
-}
+const DEFAULT_REFETCH_INTERVAL = 30_000;
+const DEFAULT_COUNT_LIMIT = 99;
 
 /**
- * Get the count of unread notifications for a user.
+ * Lightweight unread count query. Fetches up to `countLimit` docs to determine count.
+ * Uses polling for cost control.
  *
  * @example
  * ```tsx
- * const { data: unreadCount } = useUnreadCount({
- *   userId: currentUser.uid,
- *   subscribe: true,
+ * const { count, isLoading } = useUnreadCount({
+ *   config: TTT_NOTIFICATION_CONFIG,
+ *   userId: user.uid,
+ *   category: 'user',
  * });
  * ```
  */
 export function useUnreadCount({
+  config,
   userId,
+  category,
   enabled = true,
-  subscribe = true,
+  refetchInterval = DEFAULT_REFETCH_INTERVAL,
+  countLimit = DEFAULT_COUNT_LIMIT,
 }: UseUnreadCountOptions) {
+  const categoryConfig = config.categories[category];
+  if (!categoryConfig) {
+    throw new Error(`[notification-core] Unknown category: ${category}`);
+  }
+
+  const collectionPath = categoryConfig.activePath;
+  const isPersonal = categoryConfig.audienceType === 'personal';
+
   const constraints: QueryConstraint[] = [
-    where('isRead', '==', false),
+    ...(isPersonal ? [where('targetUserId', '==', userId)] : []),
+    orderBy('updatedAt', 'desc'),
+    limit(countLimit),
   ];
 
-  const { data: notifications } = useFirestoreCollection<Notification>({
-    collectionPath: `userData/${userId}/metadata/notifications`,
-    queryKey: ['notifications-unread-count', userId],
+  const { data: notifications, ...rest } = useFirestoreCollection<NotificationDoc>({
+    collectionPath,
+    queryKey: ['notifications', 'unread-count', category, userId],
     constraints,
     enabled: enabled && !!userId,
-    subscribe,
+    subscribe: false,
+    staleTime: refetchInterval,
   });
 
   return {
-    data: notifications?.length ?? 0,
-    notifications,
+    count: notifications?.length ?? 0,
+    hasMore: (notifications?.length ?? 0) >= countLimit,
+    ...rest,
   };
 }

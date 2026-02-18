@@ -53,6 +53,7 @@ export type {
   FirestoreBatchOptions,
   BatchFirestoreDocsOptions,
   BatchFirestoreDocsResult,
+  UseFirestorePaginatedResult,
 } from './firestore';
 
 // Search Integration

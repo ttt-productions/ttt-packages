@@ -1,11 +1,5 @@
-export { useNotifications } from './useNotifications.js';
-export type { UseNotificationsOptions } from './useNotifications.js';
-
+export { useActiveNotifications } from './useActiveNotifications.js';
 export { useUnreadCount } from './useUnreadCount.js';
-export type { UseUnreadCountOptions } from './useUnreadCount.js';
-
-export { useMarkAsRead } from './useMarkAsRead.js';
-export type { UseMarkAsReadOptions } from './useMarkAsRead.js';
-
-export { useMarkAllAsRead } from './useMarkAllAsRead.js';
-export type { UseMarkAllAsReadOptions } from './useMarkAllAsRead.js';
+export { useArchiveNotification } from './useArchiveNotification.js';
+export { useArchiveAllNotifications } from './useArchiveAllNotifications.js';
+export { useNotificationHistory } from './useNotificationHistory.js';

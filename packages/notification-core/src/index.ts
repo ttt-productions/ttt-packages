@@ -1,26 +1,40 @@
 // Types
 export type {
-  Notification,
-  NotificationInput,
-  NotificationType,
-  MarkAsReadOptions,
-  DeleteNotificationOptions,
-  NavigationHandler,
+  // Document types
+  NotificationDoc,
+  NotificationHistoryDoc,
+  ArchivalInfo,
+  PendingNotification,
+  // Config types
+  NotificationCategoryConfig,
   NotificationTypeConfig,
-  NotificationConfig,
+  NotificationSystemConfig,
+  // Hook option types
+  UseActiveNotificationsOptions,
+  UseUnreadCountOptions,
+  UseArchiveNotificationOptions,
+  UseArchiveAllNotificationsOptions,
+  UseNotificationHistoryOptions,
+  // Component prop types
+  NotificationListProps,
+  NotificationEmptyStateProps,
+  NotificationHistoryListProps,
+  NotificationUnreadBadgeProps,
 } from './types.js';
 
 // Hooks
 export {
-  useNotifications,
+  useActiveNotifications,
   useUnreadCount,
-  useMarkAsRead,
-  useMarkAllAsRead,
+  useArchiveNotification,
+  useArchiveAllNotifications,
+  useNotificationHistory,
 } from './hooks/index.js';
 
-export type {
-  UseNotificationsOptions,
-  UseUnreadCountOptions,
-  UseMarkAsReadOptions,
-  UseMarkAllAsReadOptions,
-} from './hooks/index.js';
+// Components
+export {
+  NotificationList,
+  NotificationEmptyState,
+  NotificationHistoryList,
+  NotificationUnreadBadge,
+} from './components/index.js';
