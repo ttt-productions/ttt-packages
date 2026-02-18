@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/notification-core",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "description": "Shared notification system for TTT Productions apps — active/history two-tier architecture with dedup, batch processing, and themed UI components",
     "repository": {
         "type": "git",
