@@ -78,6 +78,7 @@ export const MediaCropSpecSchema = z
     aspectRatio: z.number().positive(),
     outputWidth: z.number().int().positive(),
     outputHeight: z.number().int().positive(),
+    shape: z.enum(["rect", "round"]).optional(),
     format: z.enum(["jpeg", "png", "webp", "avif"]).optional(),
     quality: z.number().int().min(1).max(100).optional(),
     aspectRatioDisplay: z.string().optional(),

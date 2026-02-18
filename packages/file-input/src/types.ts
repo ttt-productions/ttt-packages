@@ -102,5 +102,12 @@ export interface MediaInputProps {
   className?: string;
   buttonLabel?: string;
 
+  /** Upload progress 0-100. Shows progress bar + changes button text to "Uploading X%..." */
+  uploadProgress?: number | null;
+  /** Currently selected file. Shows filename + clear button when set. */
+  selectedFile?: File | null;
+  /** Called when user clears the selected file. */
+  onClear?: () => void;
+
   onChange: (payload: MediaInputChangePayload) => void;
 }

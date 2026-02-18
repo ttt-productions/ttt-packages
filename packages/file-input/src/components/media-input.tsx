@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { MediaCropSpec, MediaProcessingSpec, VideoOrientation } from "@ttt-productions/media-contracts";
 import { getSimplifiedMediaType } from "@ttt-productions/media-contracts";
-import { Info, Camera, Mic, Video, Upload, X } from "lucide-react";
+import { Info, Camera, Mic, Video, Upload, X, Loader2 } from "lucide-react";
 
 import {
   Alert,
@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
+  Progress,
   cn,
 } from "@ttt-productions/ui-core";
 
@@ -34,16 +35,16 @@ function err(code: FileInputError["code"], message: string, details?: Record<str
 function hasConstraints(spec: MediaProcessingSpec): boolean {
   return Boolean(
     spec.accept?.kinds?.length ||
-      spec.accept?.mimes?.length ||
-      spec.maxBytes ||
-      spec.maxDurationSec ||
-      spec.video?.maxDurationSec ||
-      spec.audio?.maxDurationSec ||
-      (spec.videoOrientation && spec.videoOrientation !== "any") ||
-      spec.requiredAspectRatio ||
-      (spec.requiredWidth && spec.requiredHeight) ||
-      spec.imageCrop ||
-      spec.allowAutoFormat
+    spec.accept?.mimes?.length ||
+    spec.maxBytes ||
+    spec.maxDurationSec ||
+    spec.video?.maxDurationSec ||
+    spec.audio?.maxDurationSec ||
+    (spec.videoOrientation && spec.videoOrientation !== "any") ||
+    spec.requiredAspectRatio ||
+    (spec.requiredWidth && spec.requiredHeight) ||
+    spec.imageCrop ||
+    spec.allowAutoFormat
   );
 }
 
@@ -97,8 +98,18 @@ function aspectOk(required: number | undefined, actual: number | undefined): boo
 }
 
 export function MediaInput(props: MediaInputProps) {
-  const { spec, cropOverride, disabled = false, isLoading = false, className, buttonLabel = "Select file", onChange } =
-    props;
+  const {
+    spec,
+    cropOverride,
+    disabled = false,
+    isLoading = false,
+    className,
+    buttonLabel = "Select file",
+    uploadProgress,
+    selectedFile,
+    onClear,
+    onChange,
+  } = props;
 
   const id = useId();
   const pickerRef = useRef<HTMLInputElement>(null);
@@ -134,7 +145,7 @@ export function MediaInput(props: MediaInputProps) {
     if (!lastObjectUrlRef.current) return;
     try {
       URL.revokeObjectURL(lastObjectUrlRef.current);
-    } catch {}
+    } catch { }
     lastObjectUrlRef.current = null;
   }, []);
 
@@ -152,7 +163,7 @@ export function MediaInput(props: MediaInputProps) {
     if (!lastRecordUrlRef.current) return;
     try {
       URL.revokeObjectURL(lastRecordUrlRef.current);
-    } catch {}
+    } catch { }
     lastRecordUrlRef.current = null;
   }, []);
 
@@ -438,12 +449,14 @@ export function MediaInput(props: MediaInputProps) {
             if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
               mediaRecorderRef.current.stop();
             }
-          } catch {}
+          } catch { }
         }, Math.floor(max * 1000));
       }
     },
     [spec, handleSelected, makeRecordUrl]
   );
+
+  const isUploading = typeof uploadProgress === "number" && isLoading;
 
   const canPick = spec.client?.allowPick ?? true;
   const canPhoto = spec.client?.allowCapturePhoto ?? true;
@@ -452,6 +465,32 @@ export function MediaInput(props: MediaInputProps) {
 
   return (
     <Card className={cn("p-3", className)}>
+      {/* Selected file display */}
+      {selectedFile && !isLoading ? (
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-sm truncate flex-1">{selectedFile.name}</span>
+          {onClear && (
+            <Button variant="ghost" size="icon" className="icon-sm hover:bg-destructive/20 shrink-0" onClick={onClear}>
+              <X className="icon-xs" />
+            </Button>
+          )}
+        </div>
+      ) : null}
+
+      {/* Upload / processing status */}
+      {isLoading ? (
+        <div className="flex items-center gap-2 mb-2">
+          <Loader2 className="icon-xs spinner-xs" />
+          <span className="text-sm text-muted-foreground">
+            {isUploading ? `Uploading ${Math.round(uploadProgress ?? 0)}%...` : "Processing..."}
+          </span>
+        </div>
+      ) : null}
+
+      {/* Progress bar */}
+      {isUploading ? <Progress value={uploadProgress ?? 0} className="mb-2 h-1.5" /> : null}
+
+      {/* Action buttons */}
       <div className="flex flex-wrap gap-2">
         {canPick && (
           <>
@@ -522,7 +561,7 @@ export function MediaInput(props: MediaInputProps) {
           }}
           imageSrc={cropSrc}
           aspectRatio={cropSpec.aspectRatio}
-          shape={"rect"}
+          shape={cropSpec.shape ?? "rect"}
           outputWidth={cropSpec.outputWidth}
           outputHeight={cropSpec.outputHeight}
           onCropComplete={onCropComplete}
