@@ -187,19 +187,30 @@ export async function processVideo(
     // - If exact WxH required: scale+crop to WxH
     // - Else if aspect required: crop to aspect then scale to original (or keep)
     // - Else: keep original
+    const scaleMode = spec.video?.scaleMode ?? "fit";
     let vf = "";
 
     if (spec.allowAutoFormat) {
       if (requiredW && requiredH) {
-        // scale to cover then crop exactly
-        vf = `scale=${requiredW}:${requiredH}:force_original_aspect_ratio=increase,crop=${requiredW}:${requiredH}`;
+        if (scaleMode === "fit") {
+          // letterbox: scale to fit inside, pad with black bars
+          vf = `scale=${requiredW}:${requiredH}:force_original_aspect_ratio=decrease,pad=${requiredW}:${requiredH}:(ow-iw)/2:(oh-ih)/2`;
+        } else {
+          // crop: scale to cover then crop exactly
+          vf = `scale=${requiredW}:${requiredH}:force_original_aspect_ratio=increase,crop=${requiredW}:${requiredH}`;
+        }
       } else if (requiredAspect) {
-        // crop to aspect ratio while keeping as much as possible
-        // cropw/croph depend on input; use expressions
-        // If too wide: crop width = ih*ar; else crop height = iw/ar
-        vf = `crop='if(gt(iw/ih,${requiredAspect}),ih*${requiredAspect},iw)':'if(gt(iw/ih,${requiredAspect}),ih,iw/${requiredAspect})'`;
+        if (scaleMode === "fit") {
+          // fit to aspect ratio without forced dimensions — no padding possible without target size, just crop
+          vf = `crop='if(gt(iw/ih,${requiredAspect}),ih*${requiredAspect},iw)':'if(gt(iw/ih,${requiredAspect}),ih,iw/${requiredAspect})'`;
+        } else {
+          vf = `crop='if(gt(iw/ih,${requiredAspect}),ih*${requiredAspect},iw)':'if(gt(iw/ih,${requiredAspect}),ih,iw/${requiredAspect})'`;
+        }
       }
     }
+
+    const videoPreset = spec.video?.preset ?? "veryfast";
+    const videoCrf = spec.video?.crf ?? 23;
 
     const ffmpegArgs = [
       "-y",
@@ -209,9 +220,9 @@ export async function processVideo(
       "-c:v",
       "libx264",
       "-preset",
-      "veryfast",
+      videoPreset,
       "-crf",
-      "23",
+      String(videoCrf),
       "-pix_fmt",
       "yuv420p",
       "-movflags",
@@ -258,7 +269,7 @@ export async function processVideo(
     try {
       const ps = await stat(posterOut);
       psSize = ps.size;
-    } catch {}
+    } catch { }
 
     const outputs: MediaOutput[] = [
       {
@@ -315,7 +326,7 @@ export async function processVideo(
   } finally {
     if (tempFiles.length) {
       const { rm } = await import("node:fs/promises");
-      await Promise.all(tempFiles.map((f) => rm(f, { force: true }).catch(() => {})));
+      await Promise.all(tempFiles.map((f) => rm(f, { force: true }).catch(() => { })));
     }
   }
 }
