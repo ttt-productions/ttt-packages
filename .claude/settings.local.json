@@ -33,7 +33,9 @@
       "Bash(git diff *)",
       "Bash(git log *)",
       "Bash(git branch *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(cd * && *)",
+      "Bash(*)"
     ],
     "deny": [
       "Bash(git commit *)",
