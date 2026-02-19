@@ -15,16 +15,16 @@ npm run build -w @ttt-productions/theme-core
 npm run build -w @ttt-productions/query-core
 npm run build -w @ttt-productions/monitoring-core
 npm run build -w @ttt-productions/firebase-helpers
+npm run build -w @ttt-productions/mobile-core
 
-# Media + chat (depend on firebase-helpers)
+# Media + chat (depend on firebase-helpers, mobile-core)
 npm run build -w @ttt-productions/media-contracts
 npm run build -w @ttt-productions/media-viewer
 npm run build -w @ttt-productions/chat-core
 npm run build -w @ttt-productions/file-input
 
-# Auth + mobile (depend on previous)
+# Auth (depends on previous)
 npm run build -w @ttt-productions/auth-core
-npm run build -w @ttt-productions/mobile-core
 
 # Advanced packages
 npm run build -w @ttt-productions/upload-core
@@ -37,6 +37,7 @@ npm run build -w @ttt-productions/notification-core
 ./scripts/release-package.sh @ttt-productions/query-core packages/query-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/monitoring-core packages/monitoring-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/firebase-helpers packages/firebase-helpers "$BUMP"
+./scripts/release-package.sh @ttt-productions/mobile-core packages/mobile-core "$BUMP"
 
 # Install newly published packages before continuing
 npm install
@@ -51,7 +52,6 @@ npm install
 ./scripts/release-package.sh @ttt-productions/file-input packages/file-input "$BUMP"
 
 ./scripts/release-package.sh @ttt-productions/auth-core packages/auth-core "$BUMP"
-./scripts/release-package.sh @ttt-productions/mobile-core packages/mobile-core "$BUMP"
 
 ./scripts/release-package.sh @ttt-productions/upload-core packages/upload-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/media-processing-core packages/media-processing-core "$BUMP"
