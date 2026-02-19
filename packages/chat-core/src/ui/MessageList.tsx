@@ -2,8 +2,20 @@
 
 import * as React from "react";
 import type { ChatMessageV1, MessageRendererRegistry, ModerationHandlers } from "../types";
+import { GROUP_GAP_SEC } from "../types";
 import { Button } from "@ttt-productions/ui-core";
 import { MessageItemDefault } from "./MessageItemDefault";
+
+/**
+ * Determine if msg is a "continuation" of prev (same sender, within GROUP_GAP_SEC, no system break).
+ */
+function isContinuation(prev: ChatMessageV1 | undefined, msg: ChatMessageV1): boolean {
+  if (!prev) return false;
+  if (msg.isSystemMessage || prev.isSystemMessage) return false;
+  if (msg.senderId !== prev.senderId) return false;
+  const gapMs = msg.createdAt - prev.createdAt;
+  return gapMs >= 0 && gapMs <= GROUP_GAP_SEC * 1000;
+}
 
 export function MessageList(props: {
   messages: ChatMessageV1[];
@@ -21,6 +33,7 @@ export function MessageList(props: {
   onScrollToBottom?: () => void;
 
   handlers?: ModerationHandlers;
+  onSenderClick?: (senderId: string, displayName: string) => void;
 }) {
   const {
     messages,
@@ -33,7 +46,8 @@ export function MessageList(props: {
     messageRenderers,
     showScrollToBottom,
     onScrollToBottom,
-    handlers
+    handlers,
+    onSenderClick,
   } = props;
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -43,6 +57,7 @@ export function MessageList(props: {
   const prevScrollHeightRef = React.useRef<number | null>(null);
   const prevCountRef = React.useRef(0);
 
+  // IntersectionObserver for infinite scroll (older messages)
   React.useEffect(() => {
     const root = scrollRef.current;
     const target = topSentinelRef.current;
@@ -65,6 +80,7 @@ export function MessageList(props: {
     return () => io.disconnect();
   }, [hasOlder, isFetchingOlder, onLoadOlder]);
 
+  // Scroll management — FIXES accordion scroll jump
   React.useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -73,14 +89,31 @@ export function MessageList(props: {
     const prev = prevCountRef.current;
 
     if (prev === 0 && count > 0) {
-      el.scrollTop = el.scrollHeight;
+      // Initial load — scroll to bottom WITHOUT triggering parent scroll
+      requestAnimationFrame(() => {
+        const savedScrollY = window.scrollY;
+        el.scrollTop = el.scrollHeight;
+        // Restore page scroll if the browser moved it
+        if (window.scrollY !== savedScrollY) {
+          window.scrollTo({ top: savedScrollY, behavior: "instant" as ScrollBehavior });
+        }
+      });
       isAtBottomRef.current = true;
     } else if (count > prev && prevScrollHeightRef.current != null) {
+      // Older messages prepended — maintain scroll position
       const diff = el.scrollHeight - prevScrollHeightRef.current;
       el.scrollTop += diff;
       prevScrollHeightRef.current = null;
     } else if (count > prev && isAtBottomRef.current) {
-      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+      // New message at bottom, user is at bottom — scroll down
+      // Use scrollTop assignment, NOT scrollTo with behavior:"smooth" (causes parent scroll jump)
+      requestAnimationFrame(() => {
+        const savedScrollY = window.scrollY;
+        el.scrollTop = el.scrollHeight;
+        if (window.scrollY !== savedScrollY) {
+          window.scrollTo({ top: savedScrollY, behavior: "instant" as ScrollBehavior });
+        }
+      });
     }
 
     prevCountRef.current = count;
@@ -103,11 +136,15 @@ export function MessageList(props: {
         {messages.length === 0 ? (
           <div className="h-full flex items-center justify-center text-sm opacity-70">No messages yet</div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {messages.map((m) => {
+          <div className="flex flex-col">
+            {messages.map((m, idx) => {
               const day = new Date(m.createdAt).toDateString();
               const showDay = day !== lastDay;
               lastDay = day;
+
+              const prevMsg = idx > 0 ? messages[idx - 1] : undefined;
+              // Date separators always break grouping
+              const continuation = showDay ? false : isContinuation(prevMsg, m);
 
               const byType =
                 m.type && messageRenderers?.[m.type] ? messageRenderers[m.type]!(m) : null;
@@ -120,6 +157,8 @@ export function MessageList(props: {
                     currentUserId={currentUserId}
                     isAdmin={isAdmin}
                     handlers={handlers}
+                    isContinuation={continuation}
+                    onSenderClick={onSenderClick}
                   />
                 );
 

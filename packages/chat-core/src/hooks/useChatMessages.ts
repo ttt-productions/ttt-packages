@@ -44,12 +44,9 @@ function mapMsg(
   threadId: string
 ): ChatMessageV1 {
   const d = doc.data() as any;
-  
-  // CRITICAL FIX: Do not fallback to Date.now().
-  // If data is missing/corrupt, use 0 so it sorts to the beginning (oldest) 
-  // rather than appearing as a brand new message.
+
   const createdAt = toMillis(d.createdAt);
-  
+
   if (!createdAt) {
     console.error('[useChatMessages] Message missing valid createdAt:', doc.id, d.createdAt);
   }
@@ -60,8 +57,11 @@ function mapMsg(
     createdAt: createdAt || 0,
     senderId: d.senderId,
     senderUsername: d.senderUsername,
-    text: d.message ?? d.text ?? "",
+    text: d.text ?? "",
     type: d.type,
+    attachment: d.attachment ?? undefined,
+    replyTo: d.replyTo ?? undefined,
+    isSystemMessage: d.isSystemMessage ?? undefined,
     meta: d.meta,
   };
 }
@@ -74,16 +74,19 @@ function dedupeAndSortAsc(all: ChatMessageV1[]) {
 
 function messagesCol(
   db: Firestore,
-  chatCollection: string,
-  threadId: string
+  chatCollectionPath: string | string[],
+  threadId: string,
+  messagesSubcollection: string
 ) {
-  return collection(db, ...messagesColPath(chatCollection, threadId));
+  const path = messagesColPath(chatCollectionPath, threadId, messagesSubcollection);
+  return collection(db, path[0], ...path.slice(1));
 }
 
 export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
   const {
     db,
-    chatCollection,
+    chatCollectionPath,
+    messagesSubcollection = "messages",
     threadId,
     pageSize: requestedPageSize = 20,
     currentUserId,
@@ -92,7 +95,6 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     createdAtField = "createdAt",
   } = config;
 
-  // SAFETY FIX: Clamp page size
   const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);
 
   if (requestedPageSize > MAX_PAGE_SIZE) {
@@ -100,6 +102,10 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
       `[useChatMessages] Requested pageSize ${requestedPageSize} exceeds maximum ${MAX_PAGE_SIZE}. Using ${MAX_PAGE_SIZE}.`
     );
   }
+
+  const pathKey = JSON.stringify(
+    Array.isArray(chatCollectionPath) ? chatCollectionPath : [chatCollectionPath]
+  );
 
   const allowed = React.useMemo(
     () =>
@@ -117,21 +123,21 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     oldestDocInWindow: null,
   });
 
-  // realtime newest window only
   React.useEffect(() => {
     if (!allowed) return;
 
     const q = newestWindowQuery(
       db,
-      chatCollection,
+      chatCollectionPath,
       threadId,
       createdAtField,
-      pageSize
+      pageSize,
+      messagesSubcollection
     );
 
     const unsub = onSnapshot(q, (snap) => {
       const docs = snap.docs as QueryDocumentSnapshot<DocumentData>[];
-      const mapped = docs.map((d) => mapMsg(d, threadId)); // desc
+      const mapped = docs.map((d) => mapMsg(d, threadId));
       setNewest({
         ready: true,
         newestDesc: mapped,
@@ -140,15 +146,14 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     });
 
     return () => unsub();
-  }, [allowed, db, chatCollection, threadId, createdAtField, pageSize]);
+  }, [allowed, db, pathKey, threadId, createdAtField, pageSize, messagesSubcollection]);
 
-  // older pagination (beyond newest window)
   const older = useInfiniteQuery({
-    queryKey: ["chat-core", "older", chatCollection, threadId, pageSize],
+    queryKey: ["chat-core", "older", pathKey, threadId, messagesSubcollection, pageSize],
     enabled: allowed && newest.ready,
     initialPageParam: undefined as QueryDocumentSnapshot<DocumentData> | undefined,
     queryFn: async ({ pageParam }) => {
-      const baseCol = messagesCol(db, chatCollection, threadId);
+      const baseCol = messagesCol(db, chatCollectionPath, threadId, messagesSubcollection);
 
       const cursor =
         pageParam ?? (newest.oldestDocInWindow ?? undefined);
@@ -170,7 +175,7 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
       const snap = await getDocs(q);
       const docs = snap.docs as QueryDocumentSnapshot<DocumentData>[];
 
-      const itemsDesc = docs.map((d) => mapMsg(d, threadId)); // desc
+      const itemsDesc = docs.map((d) => mapMsg(d, threadId));
       const nextCursor =
         docs.length === pageSize ? docs[docs.length - 1] : undefined;
 
@@ -186,9 +191,6 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
   const messages = React.useMemo(() => {
     if (!allowed) return [];
     const olderDesc = (older.data?.pages ?? []).flatMap((p) => p.itemsDesc);
-    // Filter out any messages with 0 timestamp (invalid) if desired, 
-    // or keep them (they will sort to top). 
-    // For now we keep them to avoid data loss holes, but they won't look "new".
     return dedupeAndSortAsc([...olderDesc, ...newest.newestDesc]);
   }, [allowed, older.data, newest.newestDesc]);
 

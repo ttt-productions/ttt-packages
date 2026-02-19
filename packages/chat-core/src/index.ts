@@ -9,6 +9,5 @@ export * from "./ui/Composer";
 export * from "./ui/MessageItemDefault";
 export * from "./ui/menus";
 
-export * from "./templates/ChannelChat";
-export * from "./templates/AdminThreadChat";
-export * from "./templates/InviteChat";
+// Templates removed in v0.3.0 — use ChatShell directly with render slots.
+// CSS: import "@ttt-productions/chat-core/styles" in your app layout.
