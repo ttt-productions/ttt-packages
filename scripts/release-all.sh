@@ -17,18 +17,22 @@ npm run build -w @ttt-productions/monitoring-core
 npm run build -w @ttt-productions/firebase-helpers
 npm run build -w @ttt-productions/mobile-core
 
-# Media + chat (depend on firebase-helpers, mobile-core)
+# Media packages (depend on firebase-helpers)
 npm run build -w @ttt-productions/media-contracts
 npm run build -w @ttt-productions/media-viewer
-npm run build -w @ttt-productions/chat-core
 npm run build -w @ttt-productions/file-input
 
 # Auth (depends on previous)
 npm run build -w @ttt-productions/auth-core
 
-# Advanced packages
+# Upload + processing
 npm run build -w @ttt-productions/upload-core
 npm run build -w @ttt-productions/media-processing-core
+
+# chat-core (depends on file-input, upload-core, media-viewer, media-contracts)
+npm run build -w @ttt-productions/chat-core
+
+# Notification + report
 npm run build -w @ttt-productions/notification-core
 npm run build -w @ttt-productions/report-core
 
@@ -49,13 +53,18 @@ npm install
 npm install
 
 ./scripts/release-package.sh @ttt-productions/media-viewer packages/media-viewer "$BUMP"
-./scripts/release-package.sh @ttt-productions/chat-core packages/chat-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/file-input packages/file-input "$BUMP"
 
 ./scripts/release-package.sh @ttt-productions/auth-core packages/auth-core "$BUMP"
 
 ./scripts/release-package.sh @ttt-productions/upload-core packages/upload-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/media-processing-core packages/media-processing-core "$BUMP"
+
+# Install upload-core before chat-core release
+npm install
+
+./scripts/release-package.sh @ttt-productions/chat-core packages/chat-core "$BUMP"
+
 ./scripts/release-package.sh @ttt-productions/notification-core packages/notification-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/report-core packages/report-core "$BUMP"
 
