@@ -110,6 +110,8 @@ case "$choice" in
       package.json \
       package-lock.json \
       tsconfig.json \
+      vitest.workspace.ts \
+      test \
       scripts \
       .github/workflows/publish.yml \
       "$PKG_ROOT" \
