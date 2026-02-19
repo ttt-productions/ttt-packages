@@ -124,3 +124,8 @@ export function normalizeAuthError(err: unknown, details?: Record<string, unknow
     details
   };
 }
+
+/** Convenience: returns just the user-facing message string */
+export function getErrorMessage(error: unknown): string {
+  return normalizeAuthError(error).message;
+}
