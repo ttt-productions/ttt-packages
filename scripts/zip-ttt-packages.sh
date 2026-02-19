@@ -62,7 +62,7 @@ echo "1) Zip ONE package (exclude dist/)"
 echo "2) Zip ONE package (include dist/)"
 echo "3) Zip ALL packages (exclude dist/)"
 echo "4) Zip ALL packages (include dist/)"
-echo "5) Zip root package.json / lock only"
+echo "5) Zip everthing (exclude dist/)"
 echo ""
 
 read -p "Choose (1-5): " choice
@@ -105,10 +105,15 @@ case "$choice" in
     ;;
 
   5)
-    echo -e "${GREEN}Zipping root package.json + lock...${NC}"
-    zip -r "$OUT_DIR/ttt-packages-root-manifests.zip" \
+    echo -e "${GREEN}Zipping everything (excluding dist)...${NC}"
+    zip -r "$OUT_DIR/ttt-packages-full-no-dist.zip" \
       package.json \
-      package-lock.json
+      package-lock.json \
+      tsconfig.json \
+      scripts \
+      .github/workflows/publish.yml \
+      "$PKG_ROOT" \
+      "${exclude_with_dist[@]}"
     ;;
 
   *)
