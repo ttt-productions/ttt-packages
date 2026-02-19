@@ -38,21 +38,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build all packages (to ensure dependencies are available)
-        run: |
-          npm run build -w @ttt-productions/ui-core
-          npm run build -w @ttt-productions/theme-core
-          npm run build -w @ttt-productions/query-core
-          npm run build -w @ttt-productions/monitoring-core
-          npm run build -w @ttt-productions/firebase-helpers
-          npm run build -w @ttt-productions/media-contracts
-          npm run build -w @ttt-productions/media-viewer
-          npm run build -w @ttt-productions/chat-core
-          npm run build -w @ttt-productions/file-input
-          npm run build -w @ttt-productions/auth-core
-          npm run build -w @ttt-productions/mobile-core
-          npm run build -w @ttt-productions/upload-core
-          npm run build -w @ttt-productions/media-processing-core
+      - name: Build all packages
+        run: npm run build
 
       - name: Publish package
         shell: bash
