@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "jsx": "react-jsx",
+    "composite": true,
+    "moduleResolution": "node16",
+    "module": "node16",
+    "noEmitOnError": true
+  },
+  "references": [
+    { "path": "../ui-core" },
+    { "path": "../query-core" }
+  ],
+  "include": ["src"]
+}

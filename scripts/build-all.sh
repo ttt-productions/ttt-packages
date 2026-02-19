@@ -37,5 +37,7 @@ npm run build -w @ttt-productions/mobile-core
 
 npm run build -w @ttt-productions/upload-core
 npm run build -w @ttt-productions/media-processing-core
+npm run build -w @ttt-productions/notification-core
+npm run build -w @ttt-productions/report-core
 
 echo "✅ All packages built successfully"

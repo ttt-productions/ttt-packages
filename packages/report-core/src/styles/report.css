@@ -1,0 +1,46 @@
+/* ============================================
+ * report-core default styles
+ * Uses theme-core CSS custom properties (tokens)
+ * Import in your app: import "@ttt-productions/report-core/styles";
+ * ============================================ */
+
+/* --- Report Dialog --- */
+.rc-dialog {
+  background-color: var(--color-card);
+  color: var(--color-card-foreground);
+}
+
+/* --- Priority Badges --- */
+.rc-priority-critical {
+  background-color: var(--color-destructive);
+  color: var(--color-destructive-foreground);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  font-weight: 700;
+}
+
+.rc-priority-high {
+  background-color: var(--color-warning, #f59e0b);
+  color: var(--color-warning-foreground, #000);
+  font-weight: 600;
+}
+
+.rc-priority-normal {
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+}
+
+.rc-priority-low {
+  background-color: var(--color-muted);
+  color: var(--color-muted-foreground);
+}
+
+.rc-priority-unknown {
+  background-color: var(--color-muted);
+  color: var(--color-muted-foreground);
+}
+
+/* --- Pulse animation for critical badges --- */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
