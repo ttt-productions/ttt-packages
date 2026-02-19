@@ -35,7 +35,8 @@
   },
   "dependencies": {
     "@ttt-productions/ui-core": "^0.2.3",
-    "@ttt-productions/firebase-helpers": "^0.2.14"
+    "@ttt-productions/firebase-helpers": "^0.2.14",
+    "@ttt-productions/mobile-core": "^0.2.5"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

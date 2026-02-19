@@ -3,6 +3,7 @@
 import * as React from "react";
 import type { ChatCoreConfig, MessageRendererRegistry, ModerationHandlers } from "../types";
 import { Card, CardHeader, CardContent, CardFooter, Skeleton } from "@ttt-productions/ui-core";
+import { KeyboardAvoidingView } from "@ttt-productions/mobile-core";
 import { useChatMessages } from "../hooks/useChatMessages";
 import { MessageList } from "./MessageList";
 import { Composer } from "./Composer";
@@ -88,9 +89,9 @@ export function ChatShell(props: {
       </CardContent>
 
       <CardFooter className="border-t">
-        <div className="w-full">
+        <KeyboardAvoidingView padding offset={8} className="w-full">
           <Composer disabled={false} autoFocus={composerAutoFocus} onSend={onSend} />
-        </div>
+        </KeyboardAvoidingView>
       </CardFooter>
     </Card>
   );
