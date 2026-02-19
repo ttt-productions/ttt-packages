@@ -29,6 +29,7 @@ npm run build -w @ttt-productions/mobile-core
 # Advanced packages
 npm run build -w @ttt-productions/upload-core
 npm run build -w @ttt-productions/media-processing-core
+npm run build -w @ttt-productions/notification-core
 
 # Release foundational packages first
 ./scripts/release-package.sh @ttt-productions/ui-core packages/ui-core "$BUMP"
@@ -54,5 +55,6 @@ npm install
 
 ./scripts/release-package.sh @ttt-productions/upload-core packages/upload-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/media-processing-core packages/media-processing-core "$BUMP"
+./scripts/release-package.sh @ttt-productions/notification-core packages/notification-core "$BUMP"
 
 echo "✅ Done: released all packages ($BUMP)"
