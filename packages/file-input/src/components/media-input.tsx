@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { MediaCropSpec, MediaProcessingSpec, VideoOrientation } from "@ttt-productions/media-contracts";
 import { getSimplifiedMediaType } from "@ttt-productions/media-contracts";
-import { Info, Camera, Mic, Video, Upload, X, Loader2 } from "lucide-react";
+import { Info, Camera, Mic, Video, Upload, X, Loader2, Plus } from "lucide-react";
 
 import {
   Alert,
@@ -16,6 +16,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   Input,
   Progress,
   cn,
@@ -25,6 +29,7 @@ import type { FileInputError, MediaInputProps, SelectedMediaMeta } from "../type
 import { AutoFormatModal } from "./auto-format-modal";
 import { ImageCropperModal } from "./image-cropper-modal";
 import { MediaConstraintsHint } from "./media-constraints-hint";
+import { PhotoCaptureModal } from "./photo-capture-modal";
 import { readMediaMeta } from "../lib/read-media-meta";
 import { validateMediaDuration } from "../lib/validate-media-duration";
 
@@ -97,6 +102,19 @@ function aspectOk(required: number | undefined, actual: number | undefined): boo
   return Math.abs(actual - required) <= 0.02; // ~2% tolerance
 }
 
+/** Counts how many input methods are enabled. */
+function countActions(spec: MediaProcessingSpec): number {
+  const c = spec.client;
+  let n = 0;
+  if (c?.allowPick ?? true) n++;
+  if (c?.allowCapturePhoto ?? true) n++;
+  if (c?.allowRecordVideo ?? true) n++;
+  if (c?.allowRecordAudio ?? true) n++;
+  return n;
+}
+
+type ActionKind = "pick" | "photo" | "recordVideo" | "recordAudio";
+
 export function MediaInput(props: MediaInputProps) {
   const {
     spec,
@@ -104,7 +122,7 @@ export function MediaInput(props: MediaInputProps) {
     disabled = false,
     isLoading = false,
     className,
-    buttonLabel = "Select file",
+    buttonLabel = "Add media",
     uploadProgress,
     selectedFile,
     onClear,
@@ -113,7 +131,6 @@ export function MediaInput(props: MediaInputProps) {
 
   const id = useId();
   const pickerRef = useRef<HTMLInputElement>(null);
-  const photoRef = useRef<HTMLInputElement>(null);
 
   const cropSpec: MediaCropSpec | undefined = cropOverride ?? spec.imageCrop;
 
@@ -128,6 +145,8 @@ export function MediaInput(props: MediaInputProps) {
 
   const [autoOpen, setAutoOpen] = useState(false);
   const [pendingAutoFile, setPendingAutoFile] = useState<{ file: File; meta: SelectedMediaMeta } | null>(null);
+
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordKind, setRecordKind] = useState<"audio" | "video">("video");
@@ -402,6 +421,15 @@ export function MediaInput(props: MediaInputProps) {
     setPendingAutoFile(null);
   }, []);
 
+  const onPhotoCapture = useCallback(
+    async (file: File) => {
+      setPhotoOpen(false);
+      const url = makeObjectUrl(file);
+      await handleSelected(file, url);
+    },
+    [handleSelected, makeObjectUrl]
+  );
+
   const startRecording = useCallback(
     async (kind: "audio" | "video") => {
       setLocalError(null);
@@ -463,8 +491,83 @@ export function MediaInput(props: MediaInputProps) {
   const canRecVideo = spec.client?.allowRecordVideo ?? true;
   const canRecAudio = spec.client?.allowRecordAudio ?? true;
 
+  const actionCount = countActions(spec);
+
+  // Warn in dev if no actions are enabled
+  useEffect(() => {
+    if (actionCount === 0) {
+      console.warn(
+        "[MediaInput] No input methods enabled in spec.client. " +
+        "At least one of allowPick, allowCapturePhoto, allowRecordVideo, or allowRecordAudio must be true."
+      );
+    }
+  }, [actionCount]);
+
+  /** Execute an action directly (used for single-action shortcut). */
+  const executeAction = useCallback(
+    (action: ActionKind) => {
+      switch (action) {
+        case "pick":
+          pickerRef.current?.click();
+          break;
+        case "photo":
+          setPhotoOpen(true);
+          break;
+        case "recordVideo":
+          setRecordKind("video");
+          setRecordOpen(true);
+          break;
+        case "recordAudio":
+          setRecordKind("audio");
+          setRecordOpen(true);
+          break;
+      }
+    },
+    []
+  );
+
+  /** Build the list of enabled actions. */
+  const actions = useMemo(() => {
+    const list: Array<{ kind: ActionKind; label: string; icon: React.ReactNode }> = [];
+    if (canPick) list.push({ kind: "pick", label: "Choose file", icon: <Upload className="mr-2 icon-xs" /> });
+    if (canPhoto) list.push({ kind: "photo", label: "Take photo", icon: <Camera className="mr-2 icon-xs" /> });
+    if (canRecVideo) list.push({ kind: "recordVideo", label: "Record video", icon: <Video className="mr-2 icon-xs" /> });
+    if (canRecAudio) list.push({ kind: "recordAudio", label: "Record audio", icon: <Mic className="mr-2 icon-xs" /> });
+    return list;
+  }, [canPick, canPhoto, canRecVideo, canRecAudio]);
+
+  /** Label & icon for the single trigger button. */
+  const triggerIcon = useMemo(() => {
+    if (actions.length === 1) return actions[0].icon;
+    return <Plus className="mr-2 icon-xs" />;
+  }, [actions]);
+
+  const triggerLabel = useMemo(() => {
+    if (actions.length === 1) return actions[0].label;
+    return buttonLabel;
+  }, [actions, buttonLabel]);
+
+  /** When there's exactly 1 action, click goes straight to it. Otherwise open menu. */
+  const handleTriggerClick = useCallback(() => {
+    if (actions.length === 1) {
+      executeAction(actions[0].kind);
+    }
+    // If > 1 action, the DropdownMenuTrigger handles opening the menu.
+  }, [actions, executeAction]);
+
   return (
     <Card className={cn("p-3", className)}>
+      {/* Hidden file picker input */}
+      <Input
+        id={`media-pick-${id}`}
+        ref={pickerRef}
+        type="file"
+        accept={acceptAttr}
+        className="hidden"
+        onChange={onPick}
+        disabled={disabled || isLoading}
+      />
+
       {/* Selected file display */}
       {selectedFile && !isLoading ? (
         <div className="flex items-center gap-2 mb-2">
@@ -490,50 +593,36 @@ export function MediaInput(props: MediaInputProps) {
       {/* Progress bar */}
       {isUploading ? <Progress value={uploadProgress ?? 0} className="mb-2 h-1.5" /> : null}
 
-      {/* Action buttons */}
+      {/* Action button area */}
       <div className="flex flex-wrap gap-2">
-        {canPick && (
-          <>
-            <Input
-              id={`media-pick-${id}`}
-              ref={pickerRef}
-              type="file"
-              accept={acceptAttr}
-              className="hidden"
-              onChange={onPick}
-              disabled={disabled || isLoading}
-            />
-            <Button variant="default" onClick={() => pickerRef.current?.click()} disabled={disabled || isLoading}>
-              <Upload className="mr-2 icon-xs" />
-              {buttonLabel}
-            </Button>
-          </>
-        )}
-
-        {canPhoto && (
-          <>
-            <Input
-              id={`media-photo-${id}`}
-              ref={photoRef}
-              type="file"
-              accept="image/*"
-              capture={spec.client?.cameraFacingMode ?? "user"}
-              className="hidden"
-              onChange={onPick}
-              disabled={disabled || isLoading}
-            />
-            <Button variant="secondary" onClick={() => photoRef.current?.click()} disabled={disabled || isLoading}>
-              <Camera className="mr-2 icon-xs" />
-              Take photo
-            </Button>
-          </>
-        )}
-
-        {(canRecVideo || canRecAudio) && (
-          <Button variant="secondary" onClick={() => setRecordOpen(true)} disabled={disabled || isLoading}>
-            <Video className="mr-2 icon-xs" />
-            Record
+        {actions.length <= 1 ? (
+          /* Single action (or none): plain button, no dropdown */
+          <Button
+            variant="default"
+            onClick={handleTriggerClick}
+            disabled={disabled || isLoading || actions.length === 0}
+          >
+            {triggerIcon}
+            {triggerLabel}
           </Button>
+        ) : (
+          /* Multiple actions: dropdown menu */
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="default" disabled={disabled || isLoading}>
+                {triggerIcon}
+                {triggerLabel}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {actions.map((a) => (
+                <DropdownMenuItem key={a.kind} onClick={() => executeAction(a.kind)}>
+                  {a.icon}
+                  {a.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
 
         {showInfoToggle ? (
@@ -570,6 +659,15 @@ export function MediaInput(props: MediaInputProps) {
 
       <AutoFormatModal open={autoOpen} onProceed={proceedAuto} onCancel={cancelAuto} />
 
+      {/* Photo capture modal (getUserMedia-based, works on desktop + mobile) */}
+      <PhotoCaptureModal
+        open={photoOpen}
+        facingMode={spec.client?.cameraFacingMode ?? "user"}
+        onCapture={onPhotoCapture}
+        onClose={() => setPhotoOpen(false)}
+      />
+
+      {/* Recording dialog */}
       <Dialog
         open={recordOpen}
         onOpenChange={(v) => {
