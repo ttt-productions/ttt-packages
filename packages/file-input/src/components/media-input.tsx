@@ -539,10 +539,14 @@ export function MediaInput(props: MediaInputProps) {
   /** Label & icon for the single trigger button. */
   const triggerIcon = useMemo(() => {
     if (actions.length === 1) return actions[0].icon;
+    if (buttonLabel !== "Add media") return <Upload className="mr-2 icon-xs" />;
     return <Plus className="mr-2 icon-xs" />;
-  }, [actions]);
+  }, [actions, buttonLabel]);
 
   const triggerLabel = useMemo(() => {
+    // If the consumer explicitly set a custom buttonLabel, always respect it.
+    // Only use the action's built-in label for single-action when using the default.
+    if (buttonLabel !== "Add media") return buttonLabel;
     if (actions.length === 1) return actions[0].label;
     return buttonLabel;
   }, [actions, buttonLabel]);
