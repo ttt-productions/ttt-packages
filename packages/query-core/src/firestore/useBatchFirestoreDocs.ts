@@ -103,10 +103,14 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
 }: BatchFirestoreDocsOptions): BatchFirestoreDocsResult<T> {
   const queryClient = useQueryClient();
   
+  // Stabilize ids reference to prevent cascading re-renders
+  const idsKey = JSON.stringify(ids);
+
   // Deduplicate and filter out empty IDs
   const uniqueIds = useMemo(() => {
-    return Array.from(new Set(ids.filter(Boolean)));
-  }, [ids]);
+    const parsed: string[] = JSON.parse(idsKey);
+    return Array.from(new Set(parsed.filter(Boolean)));
+  }, [idsKey]);
 
   // Separate IDs into cached/fresh vs needs-fetch
   const { cachedIds, fetchIds } = useMemo(() => {

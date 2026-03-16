@@ -40,6 +40,7 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
 }: FirestoreDocOptions<T>): UseQueryResult<WithId<T> | null, Error> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
+  const queryKeyMemo = JSON.stringify(queryKey);
 
   // Set up realtime subscription
   useEffect(() => {
@@ -70,7 +71,7 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
     return () => unsubscribe();
     // Note: select intentionally excluded to prevent re-subscribing on every render
     // if the caller passes an inline function.
-  }, [db, docPath, queryKey, enabled, subscribe, queryClient]);
+  }, [db, docPath, queryKeyMemo, enabled, subscribe, queryClient]);
 
   return useQuery({
     queryKey,
