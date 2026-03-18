@@ -2,11 +2,11 @@ import * as React from "react";
 import { getSimplifiedMediaType } from "@ttt-productions/media-contracts";
 import type { SimplifiedMediaType } from "@ttt-productions/media-contracts";
 
-import type { MediaPreviewProps, MediaViewerType, FallbackMode } from "./types";
-import { MediaFallbackLink, shouldShowFallback, EmptyFallback, ErrorFallback } from "./fallback";
-import { ImageViewer } from "./image-viewer";
-import { VideoViewer } from "./video-viewer";
-import { AudioViewer } from "./audio-viewer";
+import type { MediaPreviewProps, MediaViewerType, FallbackMode } from "./types.js";
+import { MediaFallbackLink, shouldShowFallback, EmptyFallback, ErrorFallback } from "./fallback.js";
+import { ImageViewer } from "./image-viewer.js";
+import { VideoViewer } from "./video-viewer.js";
+import { AudioViewer } from "./audio-viewer.js";
 
 function inferType(props: { type?: MediaPreviewProps["type"]; mime?: string; name?: string; url?: string }): MediaViewerType {
   if (props.type) {

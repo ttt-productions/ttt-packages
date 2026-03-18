@@ -1,4 +1,4 @@
-import type { FallbackMode } from "./types";
+import type { FallbackMode } from "./types.js";
 
 export function MediaFallbackLink(props: {
   url: string;

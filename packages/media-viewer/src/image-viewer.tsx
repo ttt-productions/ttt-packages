@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useInView } from "react-intersection-observer";
 import { Skeleton } from "@ttt-productions/ui-core";
-import type { ImageViewerProps } from "./types";
+import type { ImageViewerProps } from "./types.js";
 
 export function ImageViewer(props: ImageViewerProps) {
   const {

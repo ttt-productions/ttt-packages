@@ -1,8 +1,8 @@
-export { MediaViewer, MediaPreview } from "./media-viewer";
-export { ImageViewer } from "./image-viewer";
-export { VideoViewer } from "./video-viewer";
-export { AudioViewer } from "./audio-viewer";
-export { MediaFallbackLink, shouldShowFallback, EmptyFallback, ErrorFallback } from "./fallback";
+export { MediaViewer, MediaPreview } from "./media-viewer.js";
+export { ImageViewer } from "./image-viewer.js";
+export { VideoViewer } from "./video-viewer.js";
+export { AudioViewer } from "./audio-viewer.js";
+export { MediaFallbackLink, shouldShowFallback, EmptyFallback, ErrorFallback } from "./fallback.js";
 
 export type {
   MediaViewerType,
@@ -13,4 +13,4 @@ export type {
   AudioViewerProps,
   MediaPreviewProps,
   MediaViewerProps,
-} from "./types";
+} from "./types.js";

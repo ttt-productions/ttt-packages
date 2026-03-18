@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useInView } from "react-intersection-observer";
 import { Skeleton } from "@ttt-productions/ui-core";
-import type { AudioViewerProps } from "./types";
+import type { AudioViewerProps } from "./types.js";
 
 export function AudioViewer(props: AudioViewerProps) {
   const {
