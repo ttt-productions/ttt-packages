@@ -1,44 +1,73 @@
+import type * as React from "react";
+
 export type MediaViewerType = "image" | "video" | "audio" | "other";
 export type FallbackMode = "none" | "link";
 
-export type MediaViewerProps = {
-  /** If omitted, inferred from mime/name/url. */
-  type?: MediaViewerType;
-
-  /** Required media URL */
+export type BaseMediaProps = {
   url: string;
-
-  /** Optional hints for inference */
-  mime?: string;
-  name?: string;
-
-  /** Optional download filename (fallback link) */
-  filename?: string;
-
-  /** Wrapper class */
   className?: string;
-
-  /** Media element class */
   mediaClassName?: string;
+  lazy?: boolean;
+  priority?: boolean;
+  skeleton?: boolean;
+  onLoad?: () => void;
+  onError?: () => void;
+  fallback?: React.ReactNode;
+};
 
-  /** Accessibility for images */
+export type ImageViewerProps = BaseMediaProps & {
   alt?: string;
-
-  /** Fallback rendering */
-  fallbackMode?: FallbackMode;
-  fallbackLabel?: string;
-
-  /** Image */
   enableZoom?: boolean;
+  unloadOnExit?: boolean;
+  isCircular?: boolean;
+  preventGestures?: boolean;
+};
 
-  /** Video */
+export type VideoViewerProps = BaseMediaProps & {
   controls?: boolean;
   autoPlay?: boolean;
   muted?: boolean;
   loop?: boolean;
   posterUrl?: string;
   enableFullscreen?: boolean;
-
-  /** Audio */
-  // controls/autoPlay/loop reused
+  unloadOnExit?: boolean;
+  preload?: "auto" | "metadata" | "none";
+  autoPlayOnVisible?: boolean;
 };
+
+export type AudioViewerProps = BaseMediaProps & {
+  controls?: boolean;
+  autoPlay?: boolean;
+  loop?: boolean;
+  preload?: "auto" | "metadata" | "none";
+  onLoadChange?: (isLoading: boolean) => void;
+};
+
+export type MediaPreviewProps = {
+  url?: string | File | Blob | null;
+  alt?: string;
+  type?: MediaViewerType | string;
+  className?: string;
+  unloadOnExit?: boolean;
+  isCircular?: boolean;
+  priority?: boolean;
+  skeleton?: boolean;
+  lazy?: boolean;
+  controls?: boolean;
+  autoPlay?: boolean;
+  muted?: boolean;
+  loop?: boolean;
+  posterUrl?: string;
+  preload?: "auto" | "metadata" | "none";
+  onLoad?: () => void;
+  onError?: () => void;
+  onLoadChange?: (isLoading: boolean) => void;
+  fallbackMode?: FallbackMode;
+  fallbackLabel?: string;
+  filename?: string;
+  mime?: string;
+  name?: string;
+};
+
+/** Back-compat alias */
+export type MediaViewerProps = MediaPreviewProps;

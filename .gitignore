@@ -53,3 +53,4 @@ packages/*/*.tsbuildinfo
 packages/*/src/**/*.js
 packages/*/src/**/*.d.ts
 packages/*/src/**/*.map
+ttt-packages-*.zip
