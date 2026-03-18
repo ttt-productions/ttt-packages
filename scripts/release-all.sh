@@ -10,6 +10,7 @@ npm install
 npm run clean
 
 # Build in dependency-safe order (lowest-level first)
+npm run build -w @ttt-productions/ttt-core
 npm run build -w @ttt-productions/ui-core
 npm run build -w @ttt-productions/theme-core
 npm run build -w @ttt-productions/query-core
@@ -37,6 +38,7 @@ npm run build -w @ttt-productions/notification-core
 npm run build -w @ttt-productions/report-core
 
 # Release foundational packages first
+./scripts/release-package.sh @ttt-productions/ttt-core packages/ttt-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/ui-core packages/ui-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/theme-core packages/theme-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/query-core packages/query-core "$BUMP"

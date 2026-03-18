@@ -1,0 +1,47 @@
+{
+    "name": "@ttt-productions/ttt-core",
+    "version": "0.1.1",
+    "description": "Core types, Firestore path constants, and shared constants for TTT Productions",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/ttt-core"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./types": {
+            "types": "./dist/types/index.d.ts",
+            "default": "./dist/types/index.js"
+        },
+        "./paths": {
+            "types": "./dist/paths/index.d.ts",
+            "default": "./dist/paths/index.js"
+        },
+        "./constants": {
+            "types": "./dist/constants/index.d.ts",
+            "default": "./dist/constants/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "devDependencies": {
+        "typescript": "^5.8.3"
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+}
