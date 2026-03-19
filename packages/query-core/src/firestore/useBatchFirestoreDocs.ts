@@ -113,27 +113,24 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   }, [idsKey]);
 
   // Separate IDs into cached/fresh vs needs-fetch
-  const { cachedIds, fetchIds } = useMemo(() => {
+  const { fetchIds } = useMemo(() => {
     if (!enabled) {
-      return { cachedIds: [], fetchIds: [] };
+      return { fetchIds: [] };
     }
 
-    const cached: string[] = [];
     const needsFetch: string[] = [];
 
     for (const id of uniqueIds) {
       const queryKey = [queryKeyPrefix, id];
       const state = queryClient.getQueryState(queryKey);
-      
+
       // Check if data exists and is still fresh
-      if (state?.data && state.dataUpdatedAt && Date.now() - state.dataUpdatedAt < staleTime) {
-        cached.push(id);
-      } else {
+      if (!(state?.data && state.dataUpdatedAt && Date.now() - state.dataUpdatedAt < staleTime)) {
         needsFetch.push(id);
       }
     }
 
-    return { cachedIds: cached, fetchIds: needsFetch };
+    return { fetchIds: needsFetch };
   }, [uniqueIds, queryKeyPrefix, queryClient, staleTime, enabled]);
 
   // Batch the fetchIds into groups of 30
@@ -186,28 +183,25 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   const isError = batchQueries.some(q => q.isError);
   const error = batchQueries.find(q => q.error)?.error || null;
 
+  // Trigger re-derivation when batch fetches complete
+  const batchSettledCount = batchQueries.filter(q => q.isSuccess || q.isError).length;
+  const batchUpdateTimestamp = batchQueries.reduce((sum, q) => sum + (q.dataUpdatedAt ?? 0), 0);
+
   const data = useMemo(() => {
     const combined: Record<string, T> = {};
 
-    // Add cached data
-    for (const id of cachedIds) {
+    // Always read all IDs from individual cache entries.
+    // Batch queries populate these entries via setQueryData; we never read
+    // batch results directly, so IDs can't fall through the cached/fetched split.
+    for (const id of uniqueIds) {
       const cached = queryClient.getQueryData<T>([queryKeyPrefix, id]);
       if (cached) {
         combined[id] = cached;
       }
     }
 
-    // Add freshly fetched data
-    for (const batchQuery of batchQueries) {
-      if (batchQuery.data) {
-        for (const doc of batchQuery.data) {
-          combined[doc.id] = doc;
-        }
-      }
-    }
-
     return combined;
-  }, [cachedIds, batchQueries, queryClient, queryKeyPrefix]);
+  }, [uniqueIds, queryKeyPrefix, queryClient, batchSettledCount, batchUpdateTimestamp]);
 
   const refetch = async () => {
     await Promise.all(batchQueries.map(q => q.refetch()));
