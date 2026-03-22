@@ -113,6 +113,8 @@ case "$choice" in
       vitest.workspace.ts \
       test \
       scripts \
+      CLAUDE.md \
+      docs \
       .github/workflows/publish.yml \
       "$PKG_ROOT" \
       "${exclude_with_dist[@]}"

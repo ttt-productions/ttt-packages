@@ -1,49 +1,58 @@
 # TTT Packages — Shared Monorepo
 
 ## Overview
-Shared monorepo of reusable packages consumed by TTT Productions and Q-Sports. Published to npm under the `@ttt-productions` scope. Contains 14 packages providing common functionality across projects.
+Shared monorepo of reusable packages consumed by TTT Productions and Q-Sports. Published to npm under the `@ttt-productions` scope. Contains 16 packages providing common functionality across projects.
+
+**For detailed documentation on each package, see `docs/packages/`.**
+Reading those docs should be sufficient for most tasks — only look at package source code when debugging specific issues or making targeted changes.
 
 ## Tech Stack
-- TypeScript
-- React (for UI packages)
-- Firebase (client SDK — for firebase-helpers, auth-core, etc.)
+- TypeScript (strict mode)
+- React 19 (for UI/hook packages)
+- Firebase (client SDK + Admin SDK for server-side packages)
 - npm workspaces for monorepo management
 - GitHub Actions for automated publishing via git tags
+- Node >=22, npm >=10
 
-## Packages
+## Package Tiers & Dependency Graph
 
-### Foundation (no inter-package dependencies)
-- `ui-core` — shadcn/ui components (Button, Card, Dialog, Toast, etc.)
-- `theme-core` — CSS tokens, variables, semantic classes for light/dark mode
-- `query-core` — React Query key factories and utilities
-- `monitoring-core` — Sentry integration, breadcrumbs, exception capture
-- `firebase-helpers` — Firestore utilities: toMillis, formatDate, batch operations, path builders, timestamps
+### Tier 0 — Zero inter-package dependencies
+- `ttt-core` — TTT Productions-specific Firestore path constants, TypeScript types, shared business constants
+- `ui-core` — shadcn/ui components (Button, Card, Dialog, Toast, Tabs, Form, etc.)
+- `theme-core` — next-themes provider + CSS token contract for light/dark/high-contrast
+- `query-core` — TanStack Query client factory, key helpers, Firestore integration hooks, search hooks
+- `monitoring-core` — Adapter-based monitoring (Sentry browser + Sentry Node + noop)
+- `firebase-helpers` — Firestore path builders, timestamps (client + admin), batch operations, pagination, date formatting
+- `mobile-core` — Mobile viewport, keyboard, safe area, scroll lock, pull-to-refresh, iOS Safari fixes
+- `auth-core` — Firebase Auth wrappers, custom claims parsing, AuthProvider + hooks
+- `media-contracts` — Zod schemas + TypeScript types for the media processing pipeline (no runtime deps beyond zod)
 
-### Mid-Level (depend on foundation packages)
-- `media-contracts` — Shared types/interfaces for media processing
-- `media-viewer` — Media display components
-- `chat-core` — Chat UI components and hooks
-- `file-input` — File upload input components with validation
+### Tier 1 — Depend on Tier 0 packages
+- `media-viewer` — Media display components (image, video, audio) with fallbacks (depends on media-contracts, ui-core)
+- `file-input` — File/image/video/audio input components with cropping, validation, camera capture (depends on ui-core, media-contracts)
+- `notification-core` — Two-tier notification system: active → history with dedup, batch processing, UI components (peer deps on query-core, ui-core)
+- `report-core` — Report → admin task queue → resolution pipeline with priority scoring, UI components (peer deps on query-core, ui-core)
+- `upload-core` — Firebase Storage resumable uploads with queue, progress tracking, persistence (depends on firebase-helpers)
 
-### High-Level (depend on mid-level packages)
-- `auth-core` — Firebase Auth integration, AuthProvider, login/register components
-- `mobile-core` — Mobile-specific utilities, touch handling, viewport helpers
-- `upload-core` — Firebase Storage upload with progress tracking
-- `media-processing-core` — Media processing pipeline (resize, compress, validate)
-- `notification-core` — Notification system components and hooks
+### Tier 2 — Depend on Tier 1 packages
+- `chat-core` — Full chat system: realtime newest-window + infinite older pagination, ChatShell, Composer, attachments (depends on ui-core, firebase-helpers, mobile-core, file-input, upload-core, media-viewer, media-contracts)
+- `media-processing-core` — Server-side media pipeline: image resize/format, video/audio probe + transcode, moderation adapter, temp workspace (depends on firebase-helpers, media-contracts, sharp)
 
 ## Project Structure
-- `packages/` — All 14 packages
-- `packages/{name}/src/` — Source TypeScript
-- `packages/{name}/dist/` — Compiled output
-- `packages/{name}/package.json` — Package manifest
-- `scripts/` — Release and bundle scripts
+```
+packages/{name}/src/       — Source TypeScript
+packages/{name}/dist/      — Compiled output (not committed)
+packages/{name}/package.json
+docs/packages/{name}.md    — Package documentation (read these first!)
+scripts/                   — Release and bundle scripts
+```
 
 ## Build Order (dependency-safe)
-1. ui-core, theme-core, query-core, monitoring-core, firebase-helpers
-2. media-contracts, media-viewer, chat-core, file-input
-3. auth-core, mobile-core
-4. upload-core, media-processing-core
+1. ttt-core
+2. ui-core, theme-core, query-core, monitoring-core, firebase-helpers
+3. mobile-core, media-contracts, media-viewer, file-input, auth-core
+4. upload-core, notification-core, report-core
+5. chat-core, media-processing-core
 
 ## Release Process
 - `scripts/release-package.sh` — Release a single package (bumps version, tags, pushes)
@@ -51,44 +60,43 @@ Shared monorepo of reusable packages consumed by TTT Productions and Q-Sports. P
 - Tags format: `{package-name}-v{version}` (e.g., `chat-core-v1.2.3`)
 - GitHub Actions publishes to npm on tag push
 
+## Dual Entry Points
+Several packages export both client-side and server-side code via separate entry points:
+- `firebase-helpers` — `index.ts` (client SDK) + `admin/index.ts` (Admin SDK)
+- `notification-core` — `index.ts` (React hooks/components) + `server/index.ts` (Cloud Function helpers)
+- `report-core` — `index.ts` (React hooks/components) + `server/index.ts` (Cloud Function handlers)
+- `media-processing-core` — Server-only (Node.js, uses sharp + ffmpeg)
+
 ## CSS Architecture (theme-core)
-- `theme-core/styles.css` — Base CSS tokens and variables for light/dark mode
-- `theme-core/components.css` — Shared component CSS classes
-- Consumer apps import these first, then override with their own brand.css
+- Consumer apps import theme-core's `styles.css` + `components.css` first, then override with brand.css
 - All colors use `hsl(var(--token-name))` pattern
-- Both light and dark mode must be supported for all tokens
+- Semantic CSS classes over inline Tailwind; centralized in `components.css` with project-specific prefixes
 
 ## Coding Conventions
-- All timestamps use numbers (`Date.now()`) — not Firestore Timestamps
-- `toMillis()` in firebase-helpers handles all timestamp format conversions
-- Path utilities (`colPath`, `docPath`) in firebase-helpers for Firestore paths
+- All timestamps use epoch milliseconds (`Date.now()`) — not Firestore Timestamps in app code
+- `toMillis()` in firebase-helpers handles conversion from any Firestore timestamp format
+- Path utilities (`colPath`, `docPath`, `joinPath`) in firebase-helpers for generic Firestore paths
+- `PATH_BUILDERS` in ttt-core for TTT Productions-specific document paths (returns tuples)
 - Every package must compile cleanly with `npm run build`
 - Exports must be listed in package.json `exports` field
 
 ## Build & Run Commands
 - `npm install` — Install all workspace dependencies
+- `npm run build` — Build all packages in dependency order
 - `npm run build -w @ttt-productions/{package}` — Build a specific package
 - `npm run clean` — Clean all dist directories
 - `npm run test` — Run all Vitest tests
-- `npm run test:unit` — Unit tests only
 
 ## Testing
-
-### Test Structure
-- `packages/{name}/src/**/*.test.ts(x)` — Unit tests per package
-- React component packages (ui-core, chat-core, file-input, media-viewer, auth-core, mobile-core, upload-core) use Vitest + React Testing Library
-- Pure utility packages (firebase-helpers, query-core, theme-core, monitoring-core, media-contracts, media-processing-core) use Vitest only
-
-### When Modifying Code
-- If you change a utility function, update its test
-- If you change a component's props or exports, update its test
-- If you change a package's public API (exports), flag that consuming apps may need updates
-- When adding new exports, create corresponding tests
+- `packages/{name}/src/**/*.test.ts(x)` — Unit tests colocated with source
+- React component packages use Vitest + React Testing Library
+- Pure utility packages use Vitest only
+- Bug-fix-requires-test policy: fixes should be accompanied by regression tests
 
 ## Important Rules
-- Do NOT commit or push to git. I will review and commit manually.
+- Do NOT commit or push to git — I will review and commit manually.
 - Do NOT create documentation files unless explicitly asked.
-- Do NOT add unnecessary comments explaining what you changed.
 - Keep changes minimal and focused on what was asked.
 - Changes to package exports affect both TTT Productions and Q-Sports — be careful.
 - Run `npm run build -w @ttt-productions/{package}` after changes to verify compilation.
+- Packages with server exports (notification-core, report-core) use firebase-admin types — don't mix client/admin SDK imports.
