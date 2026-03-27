@@ -127,6 +127,10 @@ export function createCheckoutTaskHandler({
 
       const taskData = taskDoc!.data()!;
 
+      // Fetch original document (must read before any writes in the transaction)
+      const originalDocRef = db.doc(taskData.originalPath as string);
+      const originalDoc = await transaction.get(originalDocRef);
+
       // Log auto-release if previously checked out
       if (taskData.checkoutDetails) {
         const prevCheckout = taskData.checkoutDetails as Record<string, unknown>;
@@ -167,10 +171,6 @@ export function createCheckoutTaskHandler({
         taskId: taskData.taskId as string,
         timestamp: now,
       });
-
-      // Fetch original document
-      const originalDocRef = db.doc(taskData.originalPath as string);
-      const originalDoc = await transaction.get(originalDocRef);
 
       return {
         success: true,
