@@ -12,10 +12,14 @@ type SentryLike = {
 };
 
 let sentryPromise: Promise<SentryLike> | null = null;
+let sentryInstance: SentryLike | null = null;
 
 function getSentry(): Promise<SentryLike> {
   if (!sentryPromise) {
-    sentryPromise = import("@sentry/nextjs").then((m) => m as any);
+    sentryPromise = import("@sentry/nextjs").then((m) => {
+      sentryInstance = m as any;
+      return sentryInstance!;
+    });
   }
   return sentryPromise;
 }
@@ -35,6 +39,20 @@ export const SentryAdapter: MonitoringAdapter = {
   },
 
   captureException(error: unknown, context?: Record<string, unknown>) {
+    if (sentryInstance) {
+      if (context && sentryInstance.withScope) {
+        sentryInstance.withScope((scope) => {
+          for (const [k, v] of Object.entries(context)) {
+            if (typeof scope?.setExtra === "function") scope.setExtra(k, v);
+          }
+          sentryInstance!.captureException(error);
+        });
+        return;
+      }
+      sentryInstance.captureException(error);
+      return;
+    }
+
     void (async () => {
       const S = await getSentry();
 
@@ -53,6 +71,10 @@ export const SentryAdapter: MonitoringAdapter = {
   },
 
   captureMessage(message: string, level?: any) {
+    if (sentryInstance) {
+      sentryInstance.captureMessage(message, level);
+      return;
+    }
     void (async () => {
       const S = await getSentry();
       S.captureMessage(message, level);
@@ -60,6 +82,10 @@ export const SentryAdapter: MonitoringAdapter = {
   },
 
   setUser(user: MonitoringUser | null) {
+    if (sentryInstance) {
+      sentryInstance.setUser(user as any);
+      return;
+    }
     void (async () => {
       const S = await getSentry();
       S.setUser(user as any);
@@ -67,6 +93,10 @@ export const SentryAdapter: MonitoringAdapter = {
   },
 
   setTag(key: string, value: string) {
+    if (sentryInstance) {
+      sentryInstance.setTag(key, value);
+      return;
+    }
     void (async () => {
       const S = await getSentry();
       S.setTag(key, value);
@@ -74,8 +104,15 @@ export const SentryAdapter: MonitoringAdapter = {
   },
 
   withScope<T>(fn: (scope: ScopeLike) => T): T {
-    // run immediately (sync) with a minimal scope.
-    // also try to run in real Sentry scope when available.
+    if (sentryInstance && sentryInstance.withScope) {
+      let result: T;
+      sentryInstance.withScope((scope) => {
+        result = fn(scope as any);
+      });
+      return result!;
+    }
+
+    // Sentry not loaded yet — run with no-op scope, then replay async
     const minimalScope: ScopeLike = {
       setTag: () => {},
       setUser: () => {},
@@ -98,6 +135,12 @@ export const SentryAdapter: MonitoringAdapter = {
     level?: "fatal" | "error" | "warning" | "info" | "debug";
     data?: Record<string, unknown>;
   }) {
+    if (sentryInstance) {
+      if (sentryInstance.addBreadcrumb) {
+        sentryInstance.addBreadcrumb(breadcrumb);
+      }
+      return;
+    }
     void (async () => {
       const S = await getSentry();
       if (S.addBreadcrumb) {
