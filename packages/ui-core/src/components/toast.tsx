@@ -40,10 +40,10 @@ const toastVariants = cva(
     variants: {
       variant: {
         default: "",
-        destructive: "border-red-900 bg-red-950 text-red-200",
-        success: "border-emerald-900 bg-emerald-950 text-emerald-200",
-        warning: "border-amber-900 bg-amber-950 text-amber-200",
-        error: "border-red-900 bg-red-950 text-red-200",
+        destructive: "border-red-700 bg-red-600 text-white",
+        success: "border-emerald-700 bg-emerald-600 text-white",
+        warning: "border-amber-600 bg-amber-500 text-black",
+        error: "border-red-700 bg-red-600 text-white",
       },
     },
     defaultVariants: {
