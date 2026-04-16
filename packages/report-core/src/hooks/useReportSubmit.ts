@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation } from '@tanstack/react-query';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import type { Report } from '../types.js';
 
@@ -42,6 +42,10 @@ export function useReportSubmit() {
       };
 
       const reportRef = doc(db, config.collections.reports, input.reportId);
+
+      const existing = await getDoc(reportRef);
+      if (existing.exists()) throw new Error('ALREADY_REPORTED');
+
       await setDoc(reportRef, reportData);
 
       return reportData;

@@ -1,5 +1,4 @@
 export { useReportSubmit } from './useReportSubmit.js';
-export { useCheckExistingReport } from './useCheckExistingReport.js';
 export { useCheckedOutTasks } from './useCheckedOutTasks.js';
 export { useCheckoutTask } from './useCheckoutTask.js';
 export { useCheckinTask } from './useCheckinTask.js';

@@ -54,7 +54,6 @@ export type {
 // HOOKS
 // ============================================
 export { useReportSubmit } from './hooks/useReportSubmit.js';
-export { useCheckExistingReport } from './hooks/useCheckExistingReport.js';
 export { useCheckedOutTasks } from './hooks/useCheckedOutTasks.js';
 export { useCheckoutTask } from './hooks/useCheckoutTask.js';
 export { useCheckinTask } from './hooks/useCheckinTask.js';

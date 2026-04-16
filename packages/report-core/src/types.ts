@@ -153,6 +153,14 @@ export interface ReportButtonProps {
   parentItemId?: string;
   reportedUserId?: string;
   reportedUsername?: string;
+  /** Current user ID. Required for dialog submission. */
+  reporterUserId?: string;
+  /** Current user display name. */
+  reporterUsername?: string;
+  /** Called after successful submission. */
+  onSubmitSuccess?: () => void;
+  /** Called on submission error. */
+  onSubmitError?: (error: Error) => void;
   /** Button variant passed to ui-core Button. Default: "destructive" */
   triggerButtonVariant?: string;
   /** Button size passed to ui-core Button. Default: "icon" */

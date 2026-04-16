@@ -71,7 +71,7 @@ export function ReportDialog({
   const handleSubmit = async () => {
     if (!reporterUserId || !reason || !comment.trim()) return;
 
-    const reportId = crypto.randomUUID();
+    const reportId = `${reporterUserId}_${itemId}`;
 
     try {
       await submitMutation.mutateAsync({
