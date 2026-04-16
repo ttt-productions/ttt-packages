@@ -35,7 +35,7 @@
   --info: var(--status-info);
   --info-foreground: var(--neutral-white);
 
-  --border: var(--brand-primary);
+  --border: 240 5% 88%;
   --ring: var(--brand-primary);
 
   --radius: 1rem;
@@ -55,7 +55,10 @@
   --muted: 240 4% 20%;
   --muted-foreground: 0 0% 85%;
 
-  --border: 0 0% 100%;
+  --accent: 140 35% 20%;
+  --accent-foreground: 0 0% 100%;
+
+  --border: 240 5% 22%;
   --ring: 0 0% 100%;
 
   /* status foregrounds still reasonable in dark */
