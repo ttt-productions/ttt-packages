@@ -125,15 +125,6 @@ export const keys = {
     list: (params?: Record<string, unknown>) => withScope('feedback', 'list', params),
     custom: (...parts: KeyPart[]) => withScope('feedback', ...parts),
   },
-  // Added social scope for Streetz feed and trending posts
-  social: {
-    all: withScope('social'),
-    feed: (filter?: string) => withScope('social', 'feed', filter),
-    trending: () => withScope('social', 'trending'),
-    detail: (id: string) => withScope('social', 'detail', id),
-    list: (params?: Record<string, unknown>) => withScope('social', 'list', params),
-    custom: (...parts: KeyPart[]) => withScope('social', ...parts),
-  },
   custom: (...parts: KeyPart[]) => withScope('custom', ...parts),
 } as const;
 

@@ -37,7 +37,7 @@ describe('keys scopes', () => {
     'follows', 'skills', 'projects', 'messages', 'library',
     'admin', 'opportunities', 'jobs', 'donations', 'futurePlans',
     'rulesAndAgreements', 'chat', 'notifications', 'shortLinks',
-    'mentions', 'violations', 'feedback', 'social',
+    'mentions', 'violations', 'feedback',
   ] as const;
 
   for (const scope of scopes) {
@@ -51,23 +51,6 @@ describe('keys scopes', () => {
       expect(result).toContain('test-id');
     });
   }
-});
-
-describe('keys.social (custom scope)', () => {
-  it('feed without filter includes "feed"', () => {
-    const result = keys.social.feed();
-    expect(result[0]).toBe('social');
-    expect(result).toContain('feed');
-  });
-
-  it('feed with filter includes the filter', () => {
-    const result = keys.social.feed('trending');
-    expect(result).toContain('trending');
-  });
-
-  it('trending returns ["social", "trending"]', () => {
-    expect(keys.social.trending()).toEqual(['social', 'trending']);
-  });
 });
 
 describe('keys.custom', () => {
