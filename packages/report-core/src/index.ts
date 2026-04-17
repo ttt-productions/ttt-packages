@@ -61,6 +61,7 @@ export { useReleaseTask } from './hooks/useReleaseTask.js';
 export { useWorkLater } from './hooks/useWorkLater.js';
 export { useTaskQueue } from './hooks/useTaskQueue.js';
 export { useIndividualReports } from './hooks/useIndividualReports.js';
+export { useCheckoutNextImportantTask } from './hooks/useCheckoutNextImportantTask.js';
 
 // ============================================
 // COMPONENTS
