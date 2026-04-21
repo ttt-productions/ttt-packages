@@ -68,7 +68,7 @@ export interface ProjectInviteConversation {
   sender: ShortUser;
   recipient: ShortUser;
   sharesOffered: number;
-  status: 'pending' | 'accepted' | 'declined' | 'finalized' | 'error';
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'finalized' | 'error';
   createdAt: number;
   updatedAt: number;
   finalizedAt?: number;
@@ -119,6 +119,8 @@ export type MessageStatus =
   | 'active'
   | 'accepted'
   | 'declined'
+  | 'cancelled'
+  | 'error'
   | 'finalized'
   | 'closed_resolved'
   | 'closed_unresolved';
