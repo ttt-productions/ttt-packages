@@ -1,16 +1,13 @@
 // Content moderation types: Reports, Violations, Media processing
 
 export type FileOrigin =
-  | 'profilePicture'
-  | 'skill'
+  | 'profile-picture'
+  | 'skill-media'
   | 'streetz'
   | 'job-posting'
   | 'job-reply'
   | 'opportunity-prompt'
   | 'opportunity-reply'
-  | 'library-cover-tales'
-  | 'library-cover-tunes'
-  | 'library-cover-television'
   | 'library-cover-square'
   | 'library-cover-poster'
   | 'library-cover-cinematic'

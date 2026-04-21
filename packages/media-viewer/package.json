@@ -29,8 +29,8 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
-        "@ttt-productions/media-contracts": "^0.2.4",
-        "@ttt-productions/ui-core": "^0.2.3"
+        "@ttt-productions/media-contracts": "*",
+        "@ttt-productions/ui-core": "*"
     },
     "peerDependencies": {
         "react": ">=18.0.0",

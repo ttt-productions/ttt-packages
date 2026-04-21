@@ -77,8 +77,15 @@ export type ChatCoreConfig = {
 export type ChatAttachmentConfig = {
   attachmentSpec: MediaProcessingSpec;
   storage: FirebaseStorage;
-  pendingStoragePath: string;       // base path e.g. "pendingMedia/{userId}"
-  pendingMediaCollection?: string;  // Firestore collection, default "pendingMedia"
+  /**
+   * The current user's auth uid. chat-core builds the canonical
+   * `uploads/chat-attachment/{userId}/{pendingMediaDocId}` storage path internally.
+   */
+  userId: string;
+  /**
+   * Firestore collection for the pendingMedia doc. Defaults to "pendingMedia".
+   */
+  pendingMediaCollection?: string;
 };
 
 // ============================================

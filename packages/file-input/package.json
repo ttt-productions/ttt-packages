@@ -27,8 +27,8 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
-        "@ttt-productions/ui-core": "^0.2.3",
-        "@ttt-productions/media-contracts": "^0.2.4",
+        "@ttt-productions/ui-core": "*",
+        "@ttt-productions/media-contracts": "*",
         "react-easy-crop": "^5.5.0"
     },
     "peerDependencies": {

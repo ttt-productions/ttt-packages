@@ -6,13 +6,15 @@ Full chat system with realtime messaging, infinite scroll history, file attachme
 0.3.3
 
 ## Dependencies
-Runtime: @ttt-productions/ui-core, @ttt-productions/firebase-helpers, @ttt-productions/mobile-core, @ttt-productions/file-input, @ttt-productions/upload-core, @ttt-productions/media-viewer, @ttt-productions/media-contracts.
+Runtime: @ttt-productions/ttt-core, @ttt-productions/ui-core, @ttt-productions/firebase-helpers, @ttt-productions/mobile-core, @ttt-productions/file-input, @ttt-productions/upload-core, @ttt-productions/media-viewer, @ttt-productions/media-contracts.
 Peer: @tanstack/react-query, firebase, react, react-dom.
 
 ## What It Contains
 
 ### Types (`types.ts`)
 Core chat data model and configuration types. Messages store a `text` field. `targetDocPath` wiring connects chat to its parent entity.
+
+`ChatAttachmentConfig` (Phase 1 breaking change): takes `userId: string` instead of `pendingStoragePath`. chat-core now internally builds the canonical `uploads/chat-attachment/{userId}/{pendingMediaDocId}` path so the app cannot drift from the upload path invariant (see root CLAUDE.md).
 
 ### Firestore Queries (`firestore/queries.ts`)
 Firestore query builders for chat message collections.
@@ -54,3 +56,11 @@ src/
     ChatShell.tsx, MessageList.tsx, Composer.tsx
     MessageItemDefault.tsx, menus.tsx
 ```
+
+## Phase 1 Upload Integration
+
+Composer.tsx now:
+- Imports `type FileOrigin` from ttt-core and declares the local `FILE_ORIGIN` constant as that type — any future drift in the string literal fails at compile time.
+- Calls `ensureFileWithContentType` from file-input before uploading, guaranteeing a valid MIME.
+- Builds the storage path as `uploads/${FILE_ORIGIN}/${attachmentConfig.userId}/${uuid}` — no extension, matches the firestore rule equality check.
+- Previously took `attachmentConfig.pendingStoragePath` (which apps could shape freely). Removed.

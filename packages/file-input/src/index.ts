@@ -6,3 +6,5 @@ export * from "./components/video-input";
 export * from "./components/audio-input";
 export * from "./components/media-input";
 export * from "./components/photo-capture-modal";
+export * from "./components/record-dialog";
+export * from "./lib/infer-content-type";

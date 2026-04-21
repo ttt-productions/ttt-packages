@@ -5,6 +5,10 @@ PKG="${1:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch|minor|major]}"
 PKGDIR="${2:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch|minor|major]}"
 BUMP="${3:-patch}"
 
+# Safety: always preflight before a release to avoid stale nested node_modules
+# or cached dist shadowing workspace symlinks. See root CLAUDE.md.
+npm run preflight
+
 git fetch --tags origin
 
 # Guard: ensure PKGDIR points to the correct workspace package

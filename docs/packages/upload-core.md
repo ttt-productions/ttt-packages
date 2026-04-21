@@ -11,6 +11,11 @@ Peer: firebase, react.
 
 ## What It Contains
 
+### Error types & content-type guard (Phase 1)
+- `UploadError` — Typed error class with `code: 'missing_content_type' | 'invalid_content_type'`. Throw before any bytes hit Firebase Storage when metadata.contentType is empty or not a valid media MIME.
+- `isValidMediaContentType(ct)` — Predicate for `image/*`, `video/*`, `audio/*`. Rejects empty strings and `application/octet-stream`.
+- `uploadFileResumable` now guards contentType at the top; consumers catch `UploadError` via `instanceof` or `err.code`.
+
 ### Storage Operations
 - `uploadFileResumable(args)` — Resumable upload to Firebase Storage with retry policy, progress callbacks, and AbortSignal cancellation support
 - `deleteFile(args)` — Delete a file from Firebase Storage

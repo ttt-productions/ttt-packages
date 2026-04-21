@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { Button, Textarea, cn } from "@ttt-productions/ui-core";
-import { MediaInput } from "@ttt-productions/file-input";
+import { MediaInput, ensureFileWithContentType } from "@ttt-productions/file-input";
 import type { MediaInputChangePayload } from "@ttt-productions/file-input";
+import type { FileOrigin } from "@ttt-productions/ttt-core";
 import { uploadFileResumable } from "@ttt-productions/upload-core";
 import type { Firestore } from "firebase/firestore";
 import { doc, setDoc, collection as firestoreCollection } from "firebase/firestore";
@@ -19,11 +20,6 @@ function getAttachmentType(file: File): ChatAttachment["type"] {
   if (file.type.startsWith("video/")) return "video";
   if (file.type.startsWith("audio/")) return "audio";
   return "text";
-}
-
-function getFileExt(file: File): string {
-  const parts = file.name.split(".");
-  return parts.length > 1 ? parts[parts.length - 1]! : "bin";
 }
 
 function AttachmentTypeIcon({ type }: { type: ChatAttachment["type"] }) {
@@ -94,18 +90,24 @@ export function Composer(props: ComposerProps) {
 
       if (pendingFile && attachmentConfig && db && currentUserId) {
         const uuid = genId();
-        const ext = getFileExt(pendingFile);
-        const storagePath = `${attachmentConfig.pendingStoragePath}/${uuid}.${ext}`;
+
+        // Invariant (Phase 1): storage path is exactly `uploads/{fileOrigin}/{uid}/{pendingMediaDocId}`
+        // — no extension, no app-supplied prefix. See CLAUDE.md upload path rules.
+        const FILE_ORIGIN: FileOrigin = "chat-attachment";
+        const storagePath = `uploads/${FILE_ORIGIN}/${attachmentConfig.userId}/${uuid}`;
         const pendingCollection = attachmentConfig.pendingMediaCollection || "pendingMedia";
-        const attType = getAttachmentType(pendingFile);
+
+        // Guarantee a valid media contentType before hitting upload-core (which rejects empty/octet-stream).
+        const fileToUpload = ensureFileWithContentType(pendingFile);
+        const attType = getAttachmentType(fileToUpload);
 
         // 1. Upload file to pending storage path
         setUploadProgress(0);
         await uploadFileResumable({
           storage: attachmentConfig.storage,
           path: storagePath,
-          file: pendingFile,
-          metadata: { contentType: pendingFile.type || "application/octet-stream" },
+          file: fileToUpload,
+          metadata: { contentType: fileToUpload.type },
           onProgress: ({ percent }) => setUploadProgress(percent),
         });
         setUploadProgress(null);
@@ -113,9 +115,9 @@ export function Composer(props: ComposerProps) {
         // Build the attachment object (status pending — will be sent with the message)
         attachment = {
           id: uuid,
-          name: pendingFile.name,
+          name: fileToUpload.name,
           type: attType,
-          size: pendingFile.size,
+          size: fileToUpload.size,
           status: "pending",
           pendingStoragePath: storagePath,
         };
@@ -126,8 +128,8 @@ export function Composer(props: ComposerProps) {
         await setDoc(pendingDocRef, {
           id: uuid,
           userId: currentUserId,
-          fileOrigin: "chat-attachment",
-          originalFileName: pendingFile.name,
+          fileOrigin: FILE_ORIGIN,
+          originalFileName: fileToUpload.name,
           pendingStoragePath: storagePath,
           status: "pending",
           createdAt: Date.now(),

@@ -10,12 +10,6 @@ import {
   AlertDescription,
   Button,
   Card,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -27,6 +21,8 @@ import {
 
 import type { FileInputError, MediaInputProps, SelectedMediaMeta } from "../types";
 import { AutoFormatModal } from "./auto-format-modal";
+import { RecordDialog } from "./record-dialog";
+import { ensureFileWithContentType } from "../lib/infer-content-type";
 import { ImageCropperModal } from "./image-cropper-modal";
 import { MediaConstraintsHint } from "./media-constraints-hint";
 import { PhotoCaptureModal } from "./photo-capture-modal";
@@ -150,15 +146,9 @@ export function MediaInput(props: MediaInputProps) {
 
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordKind, setRecordKind] = useState<"audio" | "video">("video");
-  const [recording, setRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordStreamRef = useRef<MediaStream | null>(null);
-  const recordChunksRef = useRef<BlobPart[]>([]);
-  const [recordPreviewUrl, setRecordPreviewUrl] = useState<string | null>(null);
 
   // Prevent memory leaks from object URLs
   const lastObjectUrlRef = useRef<string | null>(null);
-  const lastRecordUrlRef = useRef<string | null>(null);
 
   const revokeLastObjectUrl = useCallback(() => {
     if (!lastObjectUrlRef.current) return;
@@ -178,30 +168,11 @@ export function MediaInput(props: MediaInputProps) {
     [revokeLastObjectUrl]
   );
 
-  const revokeLastRecordUrl = useCallback(() => {
-    if (!lastRecordUrlRef.current) return;
-    try {
-      URL.revokeObjectURL(lastRecordUrlRef.current);
-    } catch { }
-    lastRecordUrlRef.current = null;
-  }, []);
-
-  const makeRecordUrl = useCallback(
-    (blob: Blob) => {
-      revokeLastRecordUrl();
-      const url = URL.createObjectURL(blob);
-      lastRecordUrlRef.current = url;
-      return url;
-    },
-    [revokeLastRecordUrl]
-  );
-
   useEffect(() => {
     return () => {
       revokeLastObjectUrl();
-      revokeLastRecordUrl();
     };
-  }, [revokeLastObjectUrl, revokeLastRecordUrl]);
+  }, [revokeLastObjectUrl]);
 
   const acceptAttr = useMemo(() => {
     const m = spec.accept?.mimes?.filter(Boolean) ?? [];
@@ -235,42 +206,26 @@ export function MediaInput(props: MediaInputProps) {
     [emit]
   );
 
-  const resetRecordState = useCallback(() => {
-    setRecording(false);
-    mediaRecorderRef.current = null;
-
-    const s = recordStreamRef.current;
-    recordStreamRef.current = null;
-    if (s) s.getTracks().forEach((t) => t.stop());
-
-    recordChunksRef.current = [];
-  }, []);
-
-  const stopRecording = useCallback(() => {
-    try {
-      const mr = mediaRecorderRef.current;
-      if (mr && mr.state === "recording") mr.stop();
-    } finally {
-      resetRecordState();
-    }
-  }, [resetRecordState]);
-
   const handleSelected = useCallback(
     async (file: File, previewUrl?: string) => {
       setLocalError(null);
 
-      if (!accepts(spec, file)) {
+      // Defense-in-depth: ensure a valid media MIME before any downstream handling.
+      // Pickers sometimes return File with empty .type; this wraps if needed.
+      const safeFile = ensureFileWithContentType(file);
+
+      if (!accepts(spec, safeFile)) {
         fail(err("invalid_type", "Invalid file type for this upload."));
         return;
       }
 
-      const meta = await readMediaMeta(file);
+      const meta = await readMediaMeta(safeFile);
 
       // bytes
-      if (spec.maxBytes && file.size > spec.maxBytes) {
+      if (spec.maxBytes && safeFile.size > spec.maxBytes) {
         fail(
           err("too_large", `File too large. Max ${Math.round(spec.maxBytes / 1024 / 1024)}MB.`, {
-            size: file.size,
+            size: safeFile.size,
             maxBytes: spec.maxBytes,
           })
         );
@@ -280,7 +235,7 @@ export function MediaInput(props: MediaInputProps) {
       // duration
       const maxDur = spec.maxDurationSec ?? spec.video?.maxDurationSec ?? spec.audio?.maxDurationSec;
       if ((meta.kind === "video" || meta.kind === "audio") && maxDur) {
-        const ok = await validateMediaDuration(file, maxDur);
+        const ok = await validateMediaDuration(safeFile, maxDur);
         if (!ok) {
           fail(err("too_long", `Media too long. Max ${maxDur} seconds.`));
           return;
@@ -291,12 +246,12 @@ export function MediaInput(props: MediaInputProps) {
       if (meta.kind === "image" && cropSpec) {
         const reader = new FileReader();
         reader.onload = () => {
-          setPendingCropFile(file);
+          setPendingCropFile(safeFile);
           setCropSrc(reader.result as string);
           setCropOpen(true);
         };
         reader.onerror = () => fail(err("read_failed", "Failed to read image for cropping."));
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(safeFile);
         return;
       }
 
@@ -316,7 +271,7 @@ export function MediaInput(props: MediaInputProps) {
 
         if (!okOri || !okAspect || !okDims) {
           if (spec.allowAutoFormat) {
-            setPendingAutoFile({ file, meta });
+            setPendingAutoFile({ file: safeFile, meta });
             setAutoOpen(true);
             return;
           }
@@ -353,7 +308,7 @@ export function MediaInput(props: MediaInputProps) {
         }
       }
 
-      emit({ file, previewUrl, meta });
+      emit({ file: safeFile, previewUrl, meta });
     },
     [spec, cropSpec, emit, fail]
   );
@@ -428,60 +383,6 @@ export function MediaInput(props: MediaInputProps) {
       await handleSelected(file, url);
     },
     [handleSelected, makeObjectUrl]
-  );
-
-  const startRecording = useCallback(
-    async (kind: "audio" | "video") => {
-      setLocalError(null);
-      setRecordPreviewUrl(null);
-      setRecordKind(kind);
-
-      const wantVideo = kind === "video";
-      const facingMode = spec.client?.cameraFacingMode ?? "user";
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: wantVideo ? { facingMode } : false,
-      });
-
-      recordStreamRef.current = stream;
-
-      const mr = new MediaRecorder(stream);
-      mediaRecorderRef.current = mr;
-      recordChunksRef.current = [];
-
-      mr.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) recordChunksRef.current.push(e.data);
-      };
-
-      mr.onstop = async () => {
-        const blob = new Blob(recordChunksRef.current, {
-          type: mr.mimeType || (wantVideo ? "video/webm" : "audio/webm"),
-        });
-
-        const file = new File([blob], `recording.webm`, { type: blob.type });
-
-        const url = makeRecordUrl(file);
-
-        setRecordPreviewUrl(url);
-        await handleSelected(file, url);
-      };
-
-      mr.start();
-      setRecording(true);
-
-      const max = spec.client?.maxRecordDurationSec;
-      if (max && max > 0) {
-        setTimeout(() => {
-          try {
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-              mediaRecorderRef.current.stop();
-            }
-          } catch { }
-        }, Math.floor(max * 1000));
-      }
-    },
-    [spec, handleSelected, makeRecordUrl]
   );
 
   const isUploading = typeof uploadProgress === "number" && isLoading;
@@ -671,81 +572,20 @@ export function MediaInput(props: MediaInputProps) {
         onClose={() => setPhotoOpen(false)}
       />
 
-      {/* Recording dialog */}
-      <Dialog
+      <RecordDialog
         open={recordOpen}
-        onOpenChange={(v) => {
-          if (!v) {
-            stopRecording();
-            setRecordOpen(false);
-          }
+        onOpenChange={setRecordOpen}
+        initialKind={recordKind}
+        canRecVideo={canRecVideo}
+        canRecAudio={canRecAudio}
+        cameraFacingMode={spec.client?.cameraFacingMode}
+        maxRecordDurationSec={spec.client?.maxRecordDurationSec}
+        disabled={disabled}
+        isLoading={isLoading}
+        onRecorded={async (file, url) => {
+          await handleSelected(file, url);
         }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Record</DialogTitle>
-            <DialogDescription>Record audio or video.</DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-wrap gap-2">
-            {canRecVideo && (
-              <Button
-                variant={recordKind === "video" ? "default" : "secondary"}
-                onClick={() => setRecordKind("video")}
-                disabled={recording}
-              >
-                <Video className="mr-2 icon-xs" />
-                Video
-              </Button>
-            )}
-            {canRecAudio && (
-              <Button
-                variant={recordKind === "audio" ? "default" : "secondary"}
-                onClick={() => setRecordKind("audio")}
-                disabled={recording}
-              >
-                <Mic className="mr-2 icon-xs" />
-                Audio
-              </Button>
-            )}
-          </div>
-
-          {recordPreviewUrl && (
-            <div className="mt-2">
-              {recordKind === "video" ? (
-                <video src={recordPreviewUrl} controls className="w-full rounded-md" />
-              ) : (
-                <audio src={recordPreviewUrl} controls className="w-full" />
-              )}
-            </div>
-          )}
-
-          <DialogFooter className="flex-row justify-between gap-2">
-            <Button
-              variant="destructive"
-              onClick={() => {
-                stopRecording();
-                setRecordOpen(false);
-              }}
-              disabled={false}
-            >
-              <X className="mr-2 icon-xs" />
-              Close
-            </Button>
-
-            {!recording ? (
-              <Button variant="default" onClick={() => startRecording(recordKind)} disabled={disabled || isLoading}>
-                {recordKind === "video" ? <Video className="mr-2 icon-xs" /> : <Mic className="mr-2 icon-xs" />}
-                Start
-              </Button>
-            ) : (
-              <Button variant="default" onClick={stopRecording}>
-                Stop
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      />
     </Card>
   );
 }

@@ -1,6 +1,7 @@
 import type { UploadFileResumableArgs, UploadController, UploadFileResumableResult } from "../types";
 import { getFileSize } from "../utils/file-size";
 import { upsertUploadSession } from "../utils/upload-store";
+import { UploadError, isValidMediaContentType } from "./upload-error";
 
 import {
   getDownloadURL,
@@ -184,6 +185,23 @@ export function startResumableUpload(args: {
 export async function uploadFileResumable(
   args: Omit<Parameters<typeof startResumableUpload>[0], "id"> & { id?: string }
 ): Promise<UploadFileResumableResult> {
+  // Defense-in-depth: reject missing or invalid contentType before any bytes are sent.
+  // file-input should already guarantee a valid MIME, but this is the last gate
+  // before Firebase Storage (whose rules reject application/octet-stream anyway).
+  const ct = args.metadata?.contentType;
+  if (!ct) {
+    throw new UploadError(
+      'missing_content_type',
+      'Upload rejected: contentType metadata is required. Ensure file.type is set before uploading.'
+    );
+  }
+  if (!isValidMediaContentType(ct)) {
+    throw new UploadError(
+      'invalid_content_type',
+      `Upload rejected: contentType "${ct}" is not a supported media MIME (expected image/*, video/*, or audio/*).`
+    );
+  }
+
   const id = args.id ?? `upl_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
   const c = startResumableUpload({ ...args, id });
   return c.done;

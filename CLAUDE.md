@@ -59,6 +59,7 @@ scripts/                   — Release and bundle scripts
 - `scripts/release-all.sh` — Release all packages in dependency order
 - Tags format: `{package-name}-v{version}` (e.g., `chat-core-v1.2.3`)
 - GitHub Actions publishes to npm on tag push
+- Both release scripts call `npm run preflight` automatically — never skip it, never bypass it by calling `npm publish` directly.
 
 ## Dual Entry Points
 Several packages export both client-side and server-side code via separate entry points:
@@ -79,6 +80,27 @@ Several packages export both client-side and server-side code via separate entry
 - `PATH_BUILDERS` in ttt-core for TTT Productions-specific document paths (returns tuples)
 - Every package must compile cleanly with `npm run build`
 - Exports must be listed in package.json `exports` field
+
+## Upload Path Invariant (Phase 1, LAW)
+
+Every file uploaded anywhere in the TTT Productions ecosystem MUST follow this storage path shape:
+
+    uploads/{fileOrigin}/{uid}/{pendingMediaDocId}
+
+Rules:
+- No extension on the storage path.
+- `fileOrigin` is always kebab-case and must be a value in the `FileOrigin` union in `ttt-core`.
+- The filename segment is the pendingMedia Firestore document ID (uuid).
+- Firestore rule on `pendingMedia` enforces strict equality — regex was replaced with `==`.
+- `contentType` must be a valid `image/*`, `video/*`, or `audio/*`. `application/octet-stream` is rejected.
+
+Defense in depth:
+1. `file-input` ensures every File it emits has a valid contentType via `ensureFileWithContentType` (checks file.type, falls back to extension lookup, then kind-default).
+2. `upload-core` throws `UploadError('missing_content_type')` or `UploadError('invalid_content_type')` before any bytes hit storage.
+3. Firestore rules enforce the path equality and fileOrigin allowlist.
+4. Storage rules enforce the contentType regex.
+
+If you change any part of this invariant, you must update `firestore.rules`, the `FileOrigin` type in ttt-core, this CLAUDE.md section, and every upload mutation in lockstep. There is no partial migration.
 
 ## Build & Run Commands
 - `npm install` — Install all workspace dependencies

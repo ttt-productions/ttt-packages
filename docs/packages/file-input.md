@@ -22,11 +22,13 @@ Peer: react, react-dom, lucide-react.
 - `ImageCropperModal` — Crop/resize images before upload (uses react-easy-crop)
 - `PhotoCaptureModal` — Camera capture for taking photos directly
 - `AutoFormatModal` — Auto-format detection and conversion
+- `RecordDialog` (Phase 1) — Audio/video recording dialog with idle → recording → preview state machine. Save/Re-record/Discard gate (onRecorded fires only on Save). Live video preview during recording, audio waveform visualization via AnalyserNode, pulsing red indicator with aria-live, elapsed timer (0:12 / 1:00 format when maxRecordDurationSec set), AlertDialog confirm before discarding recorded-but-unsaved clips.
 
 ### Utilities (`lib/`)
 - `image-utils.ts` — Image manipulation helpers (crop, resize, format conversion)
 - `read-media-meta.ts` — Extract media metadata (dimensions, duration, codec info)
 - `validate-media-duration.ts` — Duration constraint validation for video/audio
+- `infer-content-type.ts` (Phase 1) — `inferContentType(file, fallbackKind?)` returns a valid media MIME by inspecting file.type, falling back to extension lookup, then a kind default. `ensureFileWithContentType(file, fallbackKind?)` returns the original File if its type is valid, otherwise wraps the bytes in a new File with the inferred type. Used internally by MediaInput's handleSelected and RecordDialog's onstop to guarantee no File with an empty or octet-stream type ever reaches upload-core.
 
 ### Constraint Hints
 - `MediaConstraintsHint` — Displays accepted formats, size limits, and duration limits to the user

@@ -27,8 +27,8 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
-    "@ttt-productions/firebase-helpers": "^0.2.14",
-    "@ttt-productions/media-contracts": "^0.2.4",
+    "@ttt-productions/firebase-helpers": "*",
+    "@ttt-productions/media-contracts": "*",
     "sharp": "^0.34.1"
   },
   "devDependencies": {

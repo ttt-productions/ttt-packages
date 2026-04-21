@@ -38,13 +38,14 @@
     "react-dom": ">=19.0.0"
   },
   "dependencies": {
-    "@ttt-productions/ui-core": "^0.2.3",
-    "@ttt-productions/firebase-helpers": "^0.2.14",
-    "@ttt-productions/mobile-core": "^0.2.5",
-    "@ttt-productions/file-input": "^0.0.5",
-    "@ttt-productions/upload-core": "^0.0.3",
-    "@ttt-productions/media-viewer": "^0.2.9",
-    "@ttt-productions/media-contracts": "^0.2.11"
+    "@ttt-productions/ttt-core": "*",
+    "@ttt-productions/ui-core": "*",
+    "@ttt-productions/firebase-helpers": "*",
+    "@ttt-productions/mobile-core": "*",
+    "@ttt-productions/file-input": "*",
+    "@ttt-productions/upload-core": "*",
+    "@ttt-productions/media-viewer": "*",
+    "@ttt-productions/media-contracts": "*"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
