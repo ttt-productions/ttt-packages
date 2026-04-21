@@ -576,6 +576,7 @@ export function MediaInput(props: MediaInputProps) {
         open={recordOpen}
         onOpenChange={setRecordOpen}
         initialKind={recordKind}
+        canPhoto={canPhoto}
         canRecVideo={canRecVideo}
         canRecAudio={canRecAudio}
         cameraFacingMode={spec.client?.cameraFacingMode}
@@ -585,6 +586,7 @@ export function MediaInput(props: MediaInputProps) {
         onRecorded={async (file, url) => {
           await handleSelected(file, url);
         }}
+        onRequestPhoto={() => setPhotoOpen(true)}
       />
     </Card>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Video, Mic, X, RotateCcw, Check } from "lucide-react";
+import { Camera, Video, Mic, X, RotateCcw, Check } from "lucide-react";
 import { ensureFileWithContentType } from "../lib/infer-content-type";
 import {
   Button,
@@ -27,6 +27,7 @@ interface RecordDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialKind: "audio" | "video";
+  canPhoto: boolean;
   canRecVideo: boolean;
   canRecAudio: boolean;
   cameraFacingMode?: "user" | "environment";
@@ -34,6 +35,7 @@ interface RecordDialogProps {
   disabled?: boolean;
   isLoading?: boolean;
   onRecorded: (file: File, previewUrl: string) => void | Promise<void>;
+  onRequestPhoto?: () => void;
 }
 
 function formatDuration(ms: number): string {
@@ -47,6 +49,7 @@ export function RecordDialog({
   open,
   onOpenChange,
   initialKind,
+  canPhoto,
   canRecVideo,
   canRecAudio,
   cameraFacingMode,
@@ -54,6 +57,7 @@ export function RecordDialog({
   disabled = false,
   isLoading = false,
   onRecorded,
+  onRequestPhoto,
 }: RecordDialogProps) {
   const [recordKind, setRecordKind] = useState<"audio" | "video">(initialKind);
   const [recorderState, setRecorderState] = useState<RecorderState>("idle");
@@ -420,6 +424,19 @@ export function RecordDialog({
               >
                 <Mic className="mr-2 icon-xs" />
                 Audio
+              </Button>
+            )}
+            {canPhoto && onRequestPhoto && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  onRequestPhoto();
+                  onOpenChange(false);
+                }}
+                disabled={!isIdle}
+              >
+                <Camera className="mr-2 icon-xs" />
+                Photo
               </Button>
             )}
           </div>
