@@ -4,6 +4,9 @@ export interface ReleaseTaskHandlerConfig {
   config: ServerReportCoreConfig;
   db: ServerFirestore;
   getUserProfile?: (uid: string) => Promise<{ displayName?: string } | null>;
+  auth?: {
+    requireAdmin: (uid: string, token?: unknown) => Promise<void>;
+  };
 }
 
 interface ReleaseRequest {
@@ -18,13 +21,19 @@ export function createReleaseTaskHandler({
   config,
   db,
   getUserProfile,
+  auth,
 }: ReleaseTaskHandlerConfig) {
   return async (
     data: ReleaseRequest,
-    authContext: { uid: string },
+    authContext: { uid: string; token?: unknown },
   ): Promise<{ success: boolean }> => {
     const { taskId } = data;
     const userId = authContext.uid;
+
+    // Defense-in-depth: admin check if provided by the consumer
+    if (auth?.requireAdmin) {
+      await auth.requireAdmin(userId, authContext.token);
+    }
 
     return db.runTransaction(async (transaction) => {
       const taskRef = db.collection(config.collections.adminTasks).doc(taskId);

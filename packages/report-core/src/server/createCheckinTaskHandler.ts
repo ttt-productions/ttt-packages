@@ -5,6 +5,9 @@ export interface CheckinTaskHandlerConfig {
   db: ServerFirestore;
   getUserProfile?: (uid: string) => Promise<{ displayName?: string } | null>;
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
+  auth?: {
+    requireAdmin: (uid: string, token?: unknown) => Promise<void>;
+  };
 }
 
 interface CheckinRequest {
@@ -21,14 +24,20 @@ export function createCheckinTaskHandler({
   config,
   db,
   getUserProfile,
+  auth,
 }: CheckinTaskHandlerConfig) {
   return async (
     data: CheckinRequest,
-    authContext: { uid: string },
+    authContext: { uid: string; token?: unknown },
   ): Promise<{ success: boolean }> => {
     const { taskId, resolved, resolution } = data;
     const userId = authContext.uid;
     const now = Date.now();
+
+    // Defense-in-depth: admin check if provided by the consumer
+    if (auth?.requireAdmin) {
+      await auth.requireAdmin(userId, authContext.token);
+    }
 
     return db.runTransaction(async (transaction) => {
       const taskRef = db.collection(config.collections.adminTasks).doc(taskId);
