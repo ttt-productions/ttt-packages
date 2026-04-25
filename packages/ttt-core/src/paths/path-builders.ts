@@ -78,9 +78,6 @@ export const PATH_BUILDERS = {
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.CHAT_CHANNELS, channelId, NESTED_SUBCOLLECTIONS.CHANNEL_MESSAGES, messageId],
 
   // ===== STREETZ PATHS =====
-  pendingPost: (postId: string): [string, string, string, string] =>
-    [COLLECTIONS.STREETZ_FEED, NESTED_SUBCOLLECTIONS.PENDING_POSTS, NESTED_SUBCOLLECTIONS.SOCIAL_POSTS, postId],
-
   activePost: (postId: string): [string, string, string, string] =>
     [COLLECTIONS.STREETZ_FEED, NESTED_SUBCOLLECTIONS.ACTIVE_POSTS, NESTED_SUBCOLLECTIONS.SOCIAL_POSTS, postId],
 

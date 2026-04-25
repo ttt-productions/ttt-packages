@@ -120,14 +120,6 @@ describe('COLLECTION_REFS', () => {
   });
 
   describe('Streetz collection refs', () => {
-    it('pendingPosts returns 3-segment tuple', () => {
-      const result = COLLECTION_REFS.pendingPosts();
-      expect(result).toHaveLength(3);
-      expect(result[0]).toBe(COLLECTIONS.STREETZ_FEED);
-      expect(result[1]).toBe(NESTED_SUBCOLLECTIONS.PENDING_POSTS);
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.SOCIAL_POSTS);
-    });
-
     it('activePosts returns 3-segment tuple', () => {
       const result = COLLECTION_REFS.activePosts();
       expect(result).toHaveLength(3);

@@ -93,7 +93,6 @@ export const NESTED_SUBCOLLECTIONS = {
 
   // Streetz & Social
   SOCIAL_POSTS: 'socialPosts',
-  PENDING_POSTS: 'pendingPosts',
   ACTIVE_POSTS: 'activePosts',
   TRENDING_POSTS: 'trendingPosts',
 

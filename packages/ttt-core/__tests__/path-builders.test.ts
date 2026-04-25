@@ -195,15 +195,6 @@ describe('PATH_BUILDERS', () => {
 
   // ===== STREETZ PATHS =====
   describe('Streetz Paths', () => {
-    it('pendingPost returns 4-segment tuple starting with streetzFeed', () => {
-      const result = PATH_BUILDERS.pendingPost('post1');
-      expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.STREETZ_FEED);
-      expect(result[1]).toBe(NESTED_SUBCOLLECTIONS.PENDING_POSTS);
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.SOCIAL_POSTS);
-      expect(result[3]).toBe('post1');
-    });
-
     it('activePost returns 4-segment tuple starting with streetzFeed', () => {
       const result = PATH_BUILDERS.activePost('post1');
       expect(result).toHaveLength(4);
