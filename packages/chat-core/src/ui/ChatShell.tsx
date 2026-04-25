@@ -5,6 +5,7 @@ import type {
   ChatCoreConfig,
   ChatAttachment,
   ChatAttachmentConfig,
+  SendChatAttachmentFn,
   MessageRendererRegistry,
   ModerationHandlers,
 } from "../types";
@@ -22,7 +23,10 @@ export type ChatShellProps = {
   header?: React.ReactNode;
 
   // Send handler
-  onSend: (text: string, attachment?: ChatAttachment) => void | Promise<void>;
+  onSend: (
+    text: string,
+    attachment?: ChatAttachment
+  ) => Promise<{ messageDocPath: string; attachmentId?: string }> | Promise<void>;
 
   // Message rendering
   renderMessage?: (m: any) => React.ReactNode;
@@ -31,6 +35,7 @@ export type ChatShellProps = {
 
   // Composer attachment config
   attachmentConfig?: ChatAttachmentConfig;
+  sendAttachment?: SendChatAttachmentFn;
   composerPlaceholder?: string;
   autoFocus?: boolean;
 
@@ -56,6 +61,7 @@ export function ChatShell(props: ChatShellProps) {
     messageRenderers,
     handlers,
     attachmentConfig,
+    sendAttachment,
     composerPlaceholder,
     autoFocus = false,
     renderAboveMessages,
@@ -142,8 +148,7 @@ export function ChatShell(props: ChatShellProps) {
             <Composer
               onSend={onSend}
               attachmentConfig={attachmentConfig}
-              db={config.db}
-              currentUserId={config.currentUserId}
+              sendAttachment={sendAttachment}
               disabled={composerDisabled}
               autoFocus={autoFocus}
               placeholder={composerPlaceholder}

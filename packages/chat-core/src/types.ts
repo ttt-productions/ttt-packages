@@ -82,11 +82,26 @@ export type ChatAttachmentConfig = {
    * `uploads/chat-attachment/{userId}/{pendingMediaDocId}` storage path internally.
    */
   userId: string;
-  /**
-   * Firestore collection for the pendingMedia doc. Defaults to "pendingMedia".
-   */
-  pendingMediaCollection?: string;
 };
+
+// ============================================
+// ATTACHMENT HAND-OFF CALLBACK
+// ============================================
+
+/**
+ * Called by Composer after the file has been uploaded and the consumer's `onSend`
+ * has created the message doc. The consumer wires this to a backend callable
+ * that writes the `pendingMedia` Firestore doc with `targetDocPath` pointing at
+ * the message. Chat-core itself no longer writes `pendingMedia`.
+ */
+export type SendChatAttachmentInput = {
+  uploadStoragePath: string;
+  originalFileName: string;
+  messageDocPath: string;
+  attachmentId: string;
+};
+
+export type SendChatAttachmentFn = (input: SendChatAttachmentInput) => Promise<void>;
 
 // ============================================
 // MODERATION

@@ -6,10 +6,8 @@ import { MediaInput, ensureFileWithContentType } from "@ttt-productions/file-inp
 import type { MediaInputChangePayload } from "@ttt-productions/file-input";
 import type { FileOrigin } from "@ttt-productions/ttt-core";
 import { uploadFileResumable } from "@ttt-productions/upload-core";
-import type { Firestore } from "firebase/firestore";
-import { doc, setDoc, collection as firestoreCollection } from "firebase/firestore";
 import { Loader2, X, FileText, ImageIcon, VideoIcon, MicIcon } from "lucide-react";
-import type { ChatAttachment, ChatAttachmentConfig } from "../types";
+import type { ChatAttachment, ChatAttachmentConfig, SendChatAttachmentFn } from "../types";
 
 function genId(): string {
   return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -32,14 +30,19 @@ function AttachmentTypeIcon({ type }: { type: ChatAttachment["type"] }) {
 }
 
 export type ComposerProps = {
-  onSend: (text: string, attachment?: ChatAttachment) => void | Promise<void>;
+  onSend: (
+    text: string,
+    attachment?: ChatAttachment
+  ) => Promise<{ messageDocPath: string; attachmentId?: string }> | Promise<void>;
 
-  // Attachment support — all three required to enable
+  // Attachment support
   attachmentConfig?: ChatAttachmentConfig;
-  /** Firestore instance for writing pendingMedia doc */
-  db?: Firestore;
-  /** Current user ID for the pending media upload path */
-  currentUserId?: string;
+  /**
+   * Called after upload + onSend, to hand off the pendingMedia creation
+   * to the consumer app (which will call a backend callable).
+   * Required for attachment functionality.
+   */
+  sendAttachment?: SendChatAttachmentFn;
 
   disabled?: boolean;
   autoFocus?: boolean;
@@ -50,8 +53,7 @@ export function Composer(props: ComposerProps) {
   const {
     onSend,
     attachmentConfig,
-    db,
-    currentUserId,
+    sendAttachment,
     disabled,
     autoFocus = false,
     placeholder = "Type a message...",
@@ -63,7 +65,7 @@ export function Composer(props: ComposerProps) {
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
   const ref = React.useRef<HTMLTextAreaElement>(null);
 
-  const attachEnabled = Boolean(attachmentConfig && db && currentUserId);
+  const attachEnabled = Boolean(attachmentConfig && sendAttachment);
 
   // focus stability: never steal focus unless explicitly enabled
   React.useEffect(() => {
@@ -87,21 +89,17 @@ export function Composer(props: ComposerProps) {
 
     try {
       let attachment: ChatAttachment | undefined;
+      let uploadStoragePath: string | undefined;
+      let originalFileName: string | undefined;
 
-      if (pendingFile && attachmentConfig && db && currentUserId) {
+      if (pendingFile && attachmentConfig && sendAttachment) {
         const uuid = genId();
-
-        // Invariant (Phase 1): storage path is exactly `uploads/{fileOrigin}/{uid}/{pendingMediaDocId}`
-        // — no extension, no app-supplied prefix. See CLAUDE.md upload path rules.
         const FILE_ORIGIN: FileOrigin = "chat-attachment";
         const storagePath = `uploads/${FILE_ORIGIN}/${attachmentConfig.userId}/${uuid}`;
-        const pendingCollection = attachmentConfig.pendingMediaCollection || "pendingMedia";
 
-        // Guarantee a valid media contentType before hitting upload-core (which rejects empty/octet-stream).
         const fileToUpload = ensureFileWithContentType(pendingFile);
         const attType = getAttachmentType(fileToUpload);
 
-        // 1. Upload file to pending storage path
         setUploadProgress(0);
         await uploadFileResumable({
           storage: attachmentConfig.storage,
@@ -112,7 +110,6 @@ export function Composer(props: ComposerProps) {
         });
         setUploadProgress(null);
 
-        // Build the attachment object (status pending — will be sent with the message)
         attachment = {
           id: uuid,
           name: fileToUpload.name,
@@ -122,30 +119,38 @@ export function Composer(props: ComposerProps) {
           pendingStoragePath: storagePath,
         };
 
-        // 2. Write the pendingMedia Firestore doc
-        // Note: targetDocPath will be set by the app's onSend handler since it knows the message doc path
-        const pendingDocRef = doc(firestoreCollection(db, pendingCollection), uuid);
-        await setDoc(pendingDocRef, {
-          id: uuid,
-          userId: currentUserId,
-          fileOrigin: FILE_ORIGIN,
-          originalFileName: fileToUpload.name,
-          pendingStoragePath: storagePath,
-          status: "pending",
-          createdAt: Date.now(),
-        });
+        uploadStoragePath = storagePath;
+        originalFileName = fileToUpload.name;
       }
 
-      await onSend(v, attachment);
+      const sendResult = await onSend(v, attachment);
+
+      // If an attachment was included, the consumer MUST have returned a messageDocPath.
+      if (attachment && uploadStoragePath && originalFileName) {
+        const messageDocPath = (sendResult as { messageDocPath?: string } | undefined)?.messageDocPath;
+        if (!messageDocPath) {
+          throw new Error(
+            "[Composer] onSend did not return a messageDocPath. Attachments require the consumer to return { messageDocPath } from onSend."
+          );
+        }
+        const attachmentId =
+          (sendResult as { attachmentId?: string } | undefined)?.attachmentId ?? attachment.id;
+
+        // sendAttachment is guaranteed defined because attachEnabled gated this branch.
+        await sendAttachment!({
+          uploadStoragePath,
+          originalFileName,
+          messageDocPath,
+          attachmentId,
+        });
+      }
 
       setText("");
       setPendingFile(null);
     } catch (err) {
       console.error("[Composer] Send failed:", err);
-      // Remove the optimistic attachment preview on failure
       setPendingFile(null);
       setUploadProgress(null);
-      // Re-throw so the app can show an error toast
       throw err;
     } finally {
       setIsSending(false);
