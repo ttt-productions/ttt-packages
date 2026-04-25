@@ -13,7 +13,7 @@ const ACCEPT_MEDIA_AND_TEXT = {
   mimes: ['image/*', 'video/*', 'audio/*', 'text/plain', 'text/markdown'],
 };
 
-export const TTT_MEDIA_SPECS = {
+export const TTT_MEDIA_SPECS: Record<FileOrigin, TTTMediaOriginEntry> = {
 
   'profile-picture': {
     kind: 'image',
@@ -510,4 +510,4 @@ export const TTT_MEDIA_SPECS = {
     },
   },
 
-} as const satisfies Record<FileOrigin, TTTMediaOriginEntry>;
+};
