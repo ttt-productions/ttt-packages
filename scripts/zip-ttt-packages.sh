@@ -131,13 +131,14 @@ echo -e "${BLUE}=== ZIP FILES READY ===${NC}"
 ls -lh "$OUT_DIR" | sed -n '1,200p'
 
 echo ""
-read -p "Copy zip to repo root for upload? (y/n): " copy
-if [[ "$copy" == "y" || "$copy" == "Y" ]]; then
-  cp "$OUT_DIR"/*.zip .
-  rm -f "$OUT_DIR"/*.zip
-  rmdir "$OUT_DIR"
-  echo -e "${GREEN}Copied zip(s) to repo root and cleaned up temp directory.${NC}"
-else
-  echo "Leaving zip(s) in $OUT_DIR"
-fi
+echo -e "${BLUE}=== MOVING ZIP FILES ===${NC}"
+
+# Move the zips to the current repo root automatically
+mv "$OUT_DIR"/*.zip .
+
+# Remove the temporary directory
+rmdir "$OUT_DIR"
+
+echo -e "${GREEN}Copied zip(s) to repo root and cleaned up temp directory.${NC}"
+ls -lh *.zip
 
