@@ -3,7 +3,13 @@ set -euo pipefail
 
 BUMP="${1:-patch}"
 
-# Release foundational packages first
+# Release media-contracts first — ttt-core depends on it
+./scripts/release-package.sh @ttt-productions/media-contracts packages/media-contracts "$BUMP"
+
+# Install newly published packages before continuing
+npm install
+
+# Release foundational packages
 ./scripts/release-package.sh @ttt-productions/ttt-core packages/ttt-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/ui-core packages/ui-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/theme-core packages/theme-core "$BUMP"
@@ -13,11 +19,6 @@ BUMP="${1:-patch}"
 ./scripts/release-package.sh @ttt-productions/mobile-core packages/mobile-core "$BUMP"
 
 # Install newly published packages before continuing
-npm install
-
-./scripts/release-package.sh @ttt-productions/media-contracts packages/media-contracts "$BUMP"
-
-# Install media-contracts before packages that depend on it
 npm install
 
 ./scripts/release-package.sh @ttt-productions/media-viewer packages/media-viewer "$BUMP"

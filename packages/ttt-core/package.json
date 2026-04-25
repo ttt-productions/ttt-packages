@@ -40,6 +40,9 @@
         "prepublishOnly": "npm run clean && npm run build",
         "test": "vitest run"
     },
+    "dependencies": {
+        "@ttt-productions/media-contracts": "*"
+    },
     "devDependencies": {
         "typescript": "^5.8.3"
     },

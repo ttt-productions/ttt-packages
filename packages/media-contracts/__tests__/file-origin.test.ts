@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { FileOrigin } from '../src/types/moderation.js';
+import type { FileOrigin } from '../src/file-origin.js';
 
 // Runtime list mirroring the FileOrigin type union. Must stay in sync.
 // If you add a value to FileOrigin, add it here too (and TS will help enforce).

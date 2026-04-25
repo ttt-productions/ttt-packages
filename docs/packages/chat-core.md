@@ -60,7 +60,7 @@ src/
 ## Phase 1 Upload Integration
 
 Composer.tsx now:
-- Imports `type FileOrigin` from ttt-core and declares the local `FILE_ORIGIN` constant as that type — any future drift in the string literal fails at compile time.
+- Imports `type FileOrigin` from media-contracts and declares the local `FILE_ORIGIN` constant as that type — any future drift in the string literal fails at compile time.
 - Calls `ensureFileWithContentType` from file-input before uploading, guaranteeing a valid MIME.
 - Builds the storage path as `uploads/${FILE_ORIGIN}/${attachmentConfig.userId}/${uuid}` — no extension, matches the firestore rule equality check.
 - Previously took `attachmentConfig.pendingStoragePath` (which apps could shape freely). Removed.

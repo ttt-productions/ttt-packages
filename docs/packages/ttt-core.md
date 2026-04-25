@@ -3,10 +3,10 @@
 TTT Productions-specific core package. Consolidates Firestore path constants, TypeScript types, and shared business constants between frontend and Cloud Functions backend. **This package is TTT Productions-specific and is NOT used by Q-Sports.**
 
 ## Version
-0.1.3
+0.2.0
 
 ## Dependencies
-None (zero runtime dependencies).
+Runtime: `@ttt-productions/media-contracts` (for `PendingFile`, used in `ContentViolation`).
 
 ## What It Contains
 
@@ -32,13 +32,6 @@ Constants for Firestore collection group queries.
 ### Collection Refs (`paths/collection-refs.ts`)
 Helper functions that return typed collection references.
 
-### FileOrigin (Phase 1 rewrite)
-Kebab-case union of all upload origins in TTT Productions. Source of truth for pendingMedia.fileOrigin, matched letter-for-letter against storage paths. Current 16 values: `profile-picture`, `skill-media`, `streetz`, `job-posting`, `job-reply`, `opportunity-prompt`, `opportunity-reply`, `library-cover-square`, `library-cover-poster`, `library-cover-cinematic`, `chapter-photo`, `song-photo`, `song-audio`, `show-photo`, `show-video`, `chat-attachment`.
-
-Enforced at two layers:
-1. Firestore rule on pendingMedia requires `pendingStoragePath == 'uploads/' + fileOrigin + '/' + uid + '/' + docId`
-2. Contract test (`__tests__/file-origin.test.ts`) asserts every value is valid kebab-case and no deprecated origins (profilePicture, skill, library-cover-tales/tunes/television) leak back in.
-
 ### TypeScript Types (`types/`)
 Shared interfaces and types organized by domain:
 - `user.ts` — User profile, private data, follows, mentions
@@ -47,7 +40,7 @@ Shared interfaces and types organized by domain:
 - `social.ts` — Streetz posts, likes, feed items
 - `jobs.ts` — Job listings, applications, opportunities
 - `messaging.ts` — Admin messages, conversation messages, invite messages
-- `moderation.ts` — Content moderation types, violation records
+- `moderation.ts` — `ContentViolation`, `Report`, `ReportGroup` (note: `FileOrigin` and `PendingFile` moved to `media-contracts` in Phase 1 Step 14a)
 - `admin.ts` — Admin task types, activity log
 
 ### Business Constants (`constants/`)

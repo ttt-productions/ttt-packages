@@ -4,7 +4,7 @@ import * as React from "react";
 import { Button, Textarea, cn } from "@ttt-productions/ui-core";
 import { MediaInput, ensureFileWithContentType } from "@ttt-productions/file-input";
 import type { MediaInputChangePayload } from "@ttt-productions/file-input";
-import type { FileOrigin } from "@ttt-productions/ttt-core";
+import type { FileOrigin } from "@ttt-productions/media-contracts";
 import { uploadFileResumable } from "@ttt-productions/upload-core";
 import { Loader2, X, FileText, ImageIcon, VideoIcon, MicIcon } from "lucide-react";
 import type { ChatAttachment, ChatAttachmentConfig, SendChatAttachmentFn } from "../types";

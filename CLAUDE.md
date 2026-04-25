@@ -17,21 +17,21 @@ Reading those docs should be sufficient for most tasks — only look at package 
 ## Package Tiers & Dependency Graph
 
 ### Tier 0 — Zero inter-package dependencies
-- `ttt-core` — TTT Productions-specific Firestore path constants, TypeScript types, shared business constants
-- `ui-core` — shadcn/ui components (Button, Card, Dialog, Toast, Tabs, Form, etc.)
-- `theme-core` — next-themes provider + CSS token contract for light/dark/high-contrast
-- `query-core` — TanStack Query client factory, key helpers, Firestore integration hooks, search hooks
-- `monitoring-core` — Adapter-based monitoring (Sentry browser + Sentry Node + noop)
-- `firebase-helpers` — Firestore path builders, timestamps (client + admin), batch operations, pagination, date formatting
-- `mobile-core` — Mobile viewport, keyboard, safe area, scroll lock, pull-to-refresh, iOS Safari fixes
 - `auth-core` — Firebase Auth wrappers, custom claims parsing, AuthProvider + hooks
-- `media-contracts` — Zod schemas + TypeScript types for the media processing pipeline (no runtime deps beyond zod)
+- `firebase-helpers` — Firestore path builders, timestamps (client + admin), batch operations, pagination, date formatting
+- `media-contracts` — Zod schemas, TypeScript types, the `FileOrigin` union, the `PendingFile` interface, and the `TTT_MEDIA_SPECS` registry for the media processing pipeline (no runtime deps beyond zod)
+- `mobile-core` — Mobile viewport, keyboard, safe area, scroll lock, pull-to-refresh, iOS Safari fixes
+- `monitoring-core` — Adapter-based monitoring (Sentry browser + Sentry Node + noop)
+- `query-core` — TanStack Query client factory, key helpers, Firestore integration hooks, search hooks
+- `theme-core` — next-themes provider + CSS token contract for light/dark/high-contrast
+- `ui-core` — shadcn/ui components (Button, Card, Dialog, Toast, Tabs, Form, etc.)
 
 ### Tier 1 — Depend on Tier 0 packages
-- `media-viewer` — Media display components (image, video, audio) with fallbacks (depends on media-contracts, ui-core)
 - `file-input` — File/image/video/audio input components with cropping, validation, camera capture (depends on ui-core, media-contracts)
+- `media-viewer` — Media display components (image, video, audio) with fallbacks (depends on media-contracts, ui-core)
 - `notification-core` — Two-tier notification system: active → history with dedup, batch processing, UI components (peer deps on query-core, ui-core)
 - `report-core` — Report → admin task queue → resolution pipeline with priority scoring, UI components (peer deps on query-core, ui-core)
+- `ttt-core` — TTT Productions-specific Firestore path constants, TypeScript types, shared business constants (depends on media-contracts for `FileOrigin`/`PendingFile`, used by `ContentViolation`)
 - `upload-core` — Firebase Storage resumable uploads with queue, progress tracking, persistence (depends on firebase-helpers)
 
 ### Tier 2 — Depend on Tier 1 packages
@@ -48,11 +48,12 @@ scripts/                   — Release and bundle scripts
 ```
 
 ## Build Order (dependency-safe)
-1. ttt-core
-2. ui-core, theme-core, query-core, monitoring-core, firebase-helpers
-3. mobile-core, media-contracts, media-viewer, file-input, auth-core
-4. upload-core, notification-core, report-core
-5. chat-core, media-processing-core
+1. ui-core, theme-core, query-core, monitoring-core, firebase-helpers, media-contracts
+2. ttt-core, mobile-core, media-viewer, file-input, auth-core
+3. upload-core, notification-core, report-core
+4. chat-core, media-processing-core
+
+Note: ttt-core now depends on media-contracts (for FileOrigin/PendingFile), so media-contracts must build first.
 
 ## Release Process
 - `scripts/release-package.sh` — Release a single package (bumps version, tags, pushes)
@@ -89,7 +90,7 @@ Every file uploaded anywhere in the TTT Productions ecosystem MUST follow this s
 
 Rules:
 - No extension on the storage path.
-- `fileOrigin` is always kebab-case and must be a value in the `FileOrigin` union in `ttt-core`.
+- `fileOrigin` is always kebab-case and must be a value in the `FileOrigin` union in `media-contracts`.
 - The filename segment is the pendingMedia Firestore document ID (uuid).
 - Firestore rule on `pendingMedia` enforces strict equality — regex was replaced with `==`.
 - `contentType` must be a valid `image/*`, `video/*`, or `audio/*`. `application/octet-stream` is rejected.
@@ -100,7 +101,7 @@ Defense in depth:
 3. Firestore rules enforce the path equality and fileOrigin allowlist.
 4. Storage rules enforce the contentType regex.
 
-If you change any part of this invariant, you must update `firestore.rules`, the `FileOrigin` type in ttt-core, this CLAUDE.md section, and every upload mutation in lockstep. There is no partial migration.
+If you change any part of this invariant, you must update `firestore.rules`, the `FileOrigin` type in `media-contracts`, this CLAUDE.md section, and every upload mutation in lockstep. There is no partial migration.
 
 ## Build & Run Commands
 - `npm install` — Install all workspace dependencies
