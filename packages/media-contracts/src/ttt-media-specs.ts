@@ -256,7 +256,7 @@ export const TTT_MEDIA_SPECS = {
   'chapter-photo': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
-    maxBytes: 2 * 1024 * 1024,
+    maxBytes: 5 * 1024 * 1024,
     imageCrop: {
       aspectRatio: 1,
       outputWidth: 400,
@@ -276,7 +276,7 @@ export const TTT_MEDIA_SPECS = {
   'song-photo': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
-    maxBytes: 2 * 1024 * 1024,
+    maxBytes: 5 * 1024 * 1024,
     imageCrop: {
       aspectRatio: 1,
       outputWidth: 400,
@@ -296,7 +296,7 @@ export const TTT_MEDIA_SPECS = {
   'show-photo': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
-    maxBytes: 2 * 1024 * 1024,
+    maxBytes: 5 * 1024 * 1024,
     imageCrop: {
       aspectRatio: 1,
       outputWidth: 400,
@@ -316,9 +316,9 @@ export const TTT_MEDIA_SPECS = {
   'song-audio': {
     kind: 'audio',
     accept: ACCEPT_AUDIO_ONLY,
-    maxBytes: 10 * 1024 * 1024,
+    maxBytes: 25 * 1024 * 1024,
     audio: {
-      maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxDurationSec: 600,
     },
     client: {
       allowPick: true,
@@ -332,9 +332,9 @@ export const TTT_MEDIA_SPECS = {
   'show-video': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,
-    maxBytes: 50 * 1024 * 1024,
+    maxBytes: 250 * 1024 * 1024,
     video: {
-      maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxDurationSec: 1200,
       preset: 'veryfast',
       crf: 28,
       scaleMode: 'fit',
