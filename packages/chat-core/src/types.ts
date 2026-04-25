@@ -1,6 +1,6 @@
 import type { Firestore } from "firebase/firestore";
 import type { FirebaseStorage } from "firebase/storage";
-import type { MediaProcessingSpec } from "@ttt-productions/media-contracts";
+import type { TTTMediaOriginEntry } from "@ttt-productions/media-contracts";
 
 // ============================================
 // CHAT ATTACHMENT
@@ -75,7 +75,7 @@ export type ChatCoreConfig = {
 // ============================================
 
 export type ChatAttachmentConfig = {
-  attachmentSpec: MediaProcessingSpec;
+  attachmentSpec: TTTMediaOriginEntry;
   storage: FirebaseStorage;
   /**
    * The current user's auth uid. chat-core builds the canonical

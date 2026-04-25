@@ -1,5 +1,5 @@
 import type { FileOrigin } from "./file-origin.js";
-import type { MediaProcessingSpec } from "./types.js";
+import type { TTTMediaOriginEntry } from "./types.js";
 
 const DEFAULT_RECORD_DURATION_SEC = 60;
 
@@ -34,6 +34,18 @@ export const TTT_MEDIA_SPECS = {
       allowRecordVideo: false,
       allowRecordAudio: false,
     },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'full', crop: { width: 200, height: 200, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            { key: 'medium', crop: { width: 48, height: 48, gravity: 'center' }, format: 'jpeg', quality: 85 },
+            { key: 'small', crop: { width: 32, height: 32, gravity: 'center' }, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+    },
   },
 
   'skill-media': {
@@ -48,21 +60,33 @@ export const TTT_MEDIA_SPECS = {
       quality: 85,
       aspectRatioDisplay: '4:3',
     },
-    video: {
-      maxDurationSec: 20,
-      preset: 'veryfast',
-      crf: 28,
-      scaleMode: 'fit',
-    },
-    audio: {
-      maxDurationSec: 30,
-    },
     client: {
       allowPick: true,
       allowCapturePhoto: true,
       allowRecordVideo: true,
       allowRecordAudio: true,
       maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'main', crop: { width: 800, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+      video: {
+        kind: 'video',
+        requiredWidth: 800,
+        requiredHeight: 600,
+        allowAutoFormat: true,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
+      audio: {
+        kind: 'audio',
+        audio: { maxDurationSec: 600 },
+      },
     },
   },
 
@@ -84,6 +108,16 @@ export const TTT_MEDIA_SPECS = {
       allowRecordVideo: false,
       allowRecordAudio: false,
     },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'full', crop: { width: 600, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+    },
   },
 
   'library-cover-poster': {
@@ -103,6 +137,16 @@ export const TTT_MEDIA_SPECS = {
       allowCapturePhoto: false,
       allowRecordVideo: false,
       allowRecordAudio: false,
+    },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'full', crop: { width: 400, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
     },
   },
 
@@ -124,6 +168,16 @@ export const TTT_MEDIA_SPECS = {
       allowRecordVideo: false,
       allowRecordAudio: false,
     },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'full', crop: { width: 1280, height: 720, gravity: 'center' }, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+    },
   },
 
   'streetz': {
@@ -138,21 +192,33 @@ export const TTT_MEDIA_SPECS = {
       quality: 85,
       aspectRatioDisplay: '16:9',
     },
-    video: {
-      maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
-      preset: 'veryfast',
-      crf: 28,
-      scaleMode: 'fit',
-    },
-    audio: {
-      maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
-    },
     client: {
       allowPick: true,
       allowCapturePhoto: true,
       allowRecordVideo: true,
       allowRecordAudio: true,
       maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'main', maxWidth: 1280, maxHeight: 720, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+      video: {
+        kind: 'video',
+        requiredWidth: 1280,
+        requiredHeight: 720,
+        allowAutoFormat: true,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
+      audio: {
+        kind: 'audio',
+        audio: { maxDurationSec: 600 },
+      },
     },
   },
 
@@ -163,18 +229,21 @@ export const TTT_MEDIA_SPECS = {
     maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
     requiredAspectRatio: 16 / 9,
     videoOrientation: 'horizontal' as const,
-    allowAutoFormat: true,
-    video: {
-      preset: 'veryfast',
-      crf: 28,
-      scaleMode: 'fit',
-    },
     client: {
       allowPick: true,
       allowCapturePhoto: false,
       allowRecordVideo: true,
       allowRecordAudio: false,
       maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    },
+    processing: {
+      video: {
+        kind: 'video',
+        requiredWidth: 1280,
+        requiredHeight: 720,
+        allowAutoFormat: true,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
     },
   },
 
@@ -185,12 +254,6 @@ export const TTT_MEDIA_SPECS = {
     maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
     requiredAspectRatio: 9 / 16,
     videoOrientation: 'vertical' as const,
-    allowAutoFormat: true,
-    video: {
-      preset: 'veryfast',
-      crf: 28,
-      scaleMode: 'fit',
-    },
     client: {
       allowPick: true,
       allowCapturePhoto: false,
@@ -198,6 +261,15 @@ export const TTT_MEDIA_SPECS = {
       allowRecordAudio: false,
       cameraFacingMode: 'user' as const,
       maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    },
+    processing: {
+      video: {
+        kind: 'video',
+        requiredWidth: 360,
+        requiredHeight: 640,
+        allowAutoFormat: true,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
     },
   },
 
@@ -213,17 +285,28 @@ export const TTT_MEDIA_SPECS = {
       quality: 85,
       aspectRatioDisplay: '4:3',
     },
-    video: {
-      maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
-      preset: 'veryfast',
-      crf: 28,
-      scaleMode: 'fit',
-    },
     client: {
       allowPick: true,
       allowCapturePhoto: false,
       allowRecordVideo: false,
       allowRecordAudio: false,
+    },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'main', crop: { width: 800, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+      video: {
+        kind: 'video',
+        requiredWidth: 800,
+        requiredHeight: 600,
+        allowAutoFormat: true,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
     },
   },
 
@@ -239,17 +322,28 @@ export const TTT_MEDIA_SPECS = {
       quality: 85,
       aspectRatioDisplay: '4:3',
     },
-    video: {
-      maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
-      preset: 'veryfast',
-      crf: 28,
-      scaleMode: 'fit',
-    },
     client: {
       allowPick: true,
       allowCapturePhoto: false,
       allowRecordVideo: false,
       allowRecordAudio: false,
+    },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'main', crop: { width: 800, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+      video: {
+        kind: 'video',
+        requiredWidth: 800,
+        requiredHeight: 600,
+        allowAutoFormat: true,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
     },
   },
 
@@ -271,6 +365,16 @@ export const TTT_MEDIA_SPECS = {
       allowRecordVideo: false,
       allowRecordAudio: false,
     },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'full', crop: { width: 400, height: 400, gravity: 'center' }, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+    },
   },
 
   'song-photo': {
@@ -290,6 +394,16 @@ export const TTT_MEDIA_SPECS = {
       allowCapturePhoto: true,
       allowRecordVideo: false,
       allowRecordAudio: false,
+    },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'full', crop: { width: 400, height: 400, gravity: 'center' }, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
     },
   },
 
@@ -311,15 +425,22 @@ export const TTT_MEDIA_SPECS = {
       allowRecordVideo: false,
       allowRecordAudio: false,
     },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'full', crop: { width: 400, height: 400, gravity: 'center' }, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+    },
   },
 
   'song-audio': {
     kind: 'audio',
     accept: ACCEPT_AUDIO_ONLY,
     maxBytes: 25 * 1024 * 1024,
-    audio: {
-      maxDurationSec: 600,
-    },
     client: {
       allowPick: true,
       allowCapturePhoto: false,
@@ -327,24 +448,35 @@ export const TTT_MEDIA_SPECS = {
       allowRecordAudio: true,
       maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
     },
+    processing: {
+      audio: {
+        kind: 'audio',
+        audio: {
+          maxDurationSec: 600,
+        },
+      },
+    },
   },
 
   'show-video': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,
     maxBytes: 250 * 1024 * 1024,
-    video: {
-      maxDurationSec: 1200,
-      preset: 'veryfast',
-      crf: 28,
-      scaleMode: 'fit',
-    },
     client: {
       allowPick: true,
       allowCapturePhoto: false,
       allowRecordVideo: true,
       allowRecordAudio: false,
       maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    },
+    processing: {
+      video: {
+        kind: 'video',
+        requiredWidth: 1280,
+        requiredHeight: 720,
+        allowAutoFormat: true,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
     },
   },
 
@@ -359,6 +491,23 @@ export const TTT_MEDIA_SPECS = {
       allowRecordVideo: true,
       allowRecordAudio: true,
     },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'main', maxWidth: 800, maxHeight: 800, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+      video: {
+        kind: 'video',
+        requiredWidth: 800,
+        requiredHeight: 600,
+        allowAutoFormat: true,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
+    },
   },
 
-} as const satisfies Record<FileOrigin, MediaProcessingSpec>;
+} as const satisfies Record<FileOrigin, TTTMediaOriginEntry>;

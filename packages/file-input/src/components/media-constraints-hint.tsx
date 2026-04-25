@@ -1,10 +1,10 @@
 "use client";
 
-import type { MediaProcessingSpec } from "@ttt-productions/media-contracts";
+import type { TTTMediaOriginEntry } from "@ttt-productions/media-contracts";
 import { Badge, Card, cn } from "@ttt-productions/ui-core";
 
 export interface MediaConstraintsHintProps {
-  spec: MediaProcessingSpec;
+  spec: TTTMediaOriginEntry;
   className?: string;
   title?: string;
 }
@@ -41,18 +41,25 @@ export function MediaConstraintsHint(props: MediaConstraintsHintProps) {
 
   const maxBytes = fmtBytes(spec.maxBytes);
   const maxDur =
-    spec.maxDurationSec ?? spec.video?.maxDurationSec ?? spec.audio?.maxDurationSec ?? undefined;
+    spec.maxDurationSec ??
+    spec.processing?.video?.video?.maxDurationSec ??
+    spec.processing?.audio?.audio?.maxDurationSec ??
+    undefined;
 
   const requiredAspect = fmtAspect(spec.requiredAspectRatio ?? spec.imageCrop?.aspectRatio);
-  const requiredDims =
-    spec.requiredWidth && spec.requiredHeight ? `${spec.requiredWidth}×${spec.requiredHeight}` : null;
+  const requiredDims = (() => {
+    const procVid = spec.processing?.video;
+    const w = procVid?.requiredWidth;
+    const h = procVid?.requiredHeight;
+    return w && h ? `${w}×${h}` : null;
+  })();
 
   const videoOri = spec.videoOrientation && spec.videoOrientation !== "any" ? spec.videoOrientation : null;
 
   const cropDims =
     spec.imageCrop ? `${spec.imageCrop.outputWidth}×${spec.imageCrop.outputHeight}` : null;
 
-  const willAutoFormat = !!spec.allowAutoFormat;
+  const willAutoFormat = !!(spec.processing?.video?.allowAutoFormat);
 
   const items: Array<{ k: string; v: string | null }> = [
     { k: "Kind", v: acceptKinds },
@@ -92,7 +99,7 @@ export function MediaConstraintsHint(props: MediaConstraintsHintProps) {
         </div>
       ) : null}
 
-      {spec.allowAutoFormat ? (
+      {willAutoFormat ? (
         <div className="mt-2 text-xs text-muted-foreground">
           If your video doesn’t match the format, we’ll ask before uploading and then auto-format it in processing.
         </div>

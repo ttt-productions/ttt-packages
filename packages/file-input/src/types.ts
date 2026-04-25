@@ -2,6 +2,7 @@ import type {
   FileCategory as ContractsFileCategory,
   MediaKind,
   MediaProcessingSpec,
+  TTTMediaOriginEntry,
   SimplifiedMediaType,
   VideoOrientation,
   MediaCropSpec,
@@ -94,7 +95,7 @@ export interface MediaInputChangePayload {
 }
 
 export interface MediaInputProps {
-  spec: MediaProcessingSpec;
+  spec: TTTMediaOriginEntry;
   cropOverride?: MediaCropSpec;
 
   disabled?: boolean;

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import type { MediaCropSpec, MediaProcessingSpec, VideoOrientation } from "@ttt-productions/media-contracts";
+import type { MediaCropSpec, MediaProcessingSpec, TTTMediaOriginEntry, VideoOrientation } from "@ttt-productions/media-contracts";
 import { getSimplifiedMediaType } from "@ttt-productions/media-contracts";
 import { Info, Camera, Mic, Video, Upload, X, Loader2, Plus } from "lucide-react";
 
@@ -33,19 +33,25 @@ function err(code: FileInputError["code"], message: string, details?: Record<str
   return { code, message, details };
 }
 
-function hasConstraints(spec: MediaProcessingSpec): boolean {
+function hasConstraints(spec: TTTMediaOriginEntry): boolean {
+  const proc = spec.processing;
+  const procImg = proc?.image;
+  const procVid = proc?.video;
+  const procAud = proc?.audio;
   return Boolean(
     spec.accept?.kinds?.length ||
     spec.accept?.mimes?.length ||
     spec.maxBytes ||
     spec.maxDurationSec ||
-    spec.video?.maxDurationSec ||
-    spec.audio?.maxDurationSec ||
+    procVid?.video?.maxDurationSec ||
+    procAud?.audio?.maxDurationSec ||
     (spec.videoOrientation && spec.videoOrientation !== "any") ||
     spec.requiredAspectRatio ||
-    (spec.requiredWidth && spec.requiredHeight) ||
+    (procVid?.requiredWidth && procVid?.requiredHeight) ||
+    (procImg?.requiredWidth && procImg?.requiredHeight) ||
     spec.imageCrop ||
-    spec.allowAutoFormat
+    procVid?.allowAutoFormat ||
+    procImg?.allowAutoFormat
   );
 }
 
@@ -58,7 +64,7 @@ function matchMime(accepted: string, actual: string): boolean {
   return a === m;
 }
 
-function accepts(spec: MediaProcessingSpec, file: File): boolean {
+function accepts(spec: TTTMediaOriginEntry, file: File): boolean {
   const accept = spec.accept;
   if (!accept) return true;
 
@@ -99,7 +105,7 @@ function aspectOk(required: number | undefined, actual: number | undefined): boo
 }
 
 /** Counts how many input methods are enabled. */
-function countActions(spec: MediaProcessingSpec): number {
+function countActions(spec: TTTMediaOriginEntry): number {
   const c = spec.client;
   let n = 0;
   if (c?.allowPick ?? true) n++;
@@ -107,6 +113,13 @@ function countActions(spec: MediaProcessingSpec): number {
   if (c?.allowRecordVideo ?? true) n++;
   if (c?.allowRecordAudio ?? true) n++;
   return n;
+}
+
+function resolveActiveSpec(entry: TTTMediaOriginEntry, kind: "image" | "video" | "audio"): MediaProcessingSpec {
+  const inner = entry.processing?.[kind];
+  if (inner) return inner;
+  const { processing: _p, ...rest } = entry;
+  return rest as MediaProcessingSpec;
 }
 
 type ActionKind = "pick" | "photo" | "recordVideo" | "recordAudio";
@@ -193,7 +206,12 @@ export function MediaInput(props: MediaInputProps) {
       croppedBlob?: Blob;
       error?: FileInputError;
     }) => {
-      onChange({ spec, ...payload });
+      // fallback resolution; pre-validation error path when kind is unknown or "file"
+      const rawKind = payload.meta?.kind;
+      const mediaKind: "image" | "video" | "audio" =
+        rawKind === "image" || rawKind === "video" || rawKind === "audio" ? rawKind : "image";
+      const resolvedSpec = resolveActiveSpec(spec, mediaKind);
+      onChange({ spec: resolvedSpec, ...payload });
     },
     [onChange, spec]
   );
@@ -233,7 +251,10 @@ export function MediaInput(props: MediaInputProps) {
       }
 
       // duration
-      const maxDur = spec.maxDurationSec ?? spec.video?.maxDurationSec ?? spec.audio?.maxDurationSec;
+      const maxDur =
+        spec.maxDurationSec ??
+        spec.processing?.video?.video?.maxDurationSec ??
+        spec.processing?.audio?.audio?.maxDurationSec;
       if ((meta.kind === "video" || meta.kind === "audio") && maxDur) {
         const ok = await validateMediaDuration(safeFile, maxDur);
         if (!ok) {
@@ -257,10 +278,12 @@ export function MediaInput(props: MediaInputProps) {
 
       // video uniform enforcement (orientation/aspect/dimensions)
       if (meta.kind === "video") {
+        const procVid = spec.processing?.video;
         const requiredOri = spec.videoOrientation;
         const requiredAspect = spec.requiredAspectRatio;
-        const requiredW = spec.requiredWidth;
-        const requiredH = spec.requiredHeight;
+        const requiredW = procVid?.requiredWidth;
+        const requiredH = procVid?.requiredHeight;
+        const allowAutoFormat = procVid?.allowAutoFormat;
 
         const actualOri = meta.orientation;
         const actualAspect = computeAspect(meta.width, meta.height);
@@ -270,7 +293,7 @@ export function MediaInput(props: MediaInputProps) {
         const okDims = !requiredW || !requiredH ? true : meta.width === requiredW && meta.height === requiredH;
 
         if (!okOri || !okAspect || !okDims) {
-          if (spec.allowAutoFormat) {
+          if (allowAutoFormat) {
             setPendingAutoFile({ file: safeFile, meta });
             setAutoOpen(true);
             return;

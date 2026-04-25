@@ -20,6 +20,8 @@ import {
   MediaProcessingStatusSchema,
   PendingMediaDocSchema,
   SimplifiedMediaTypeSchema,
+  TTTMediaOriginEntrySchema,
+  TTTMediaProcessingByKindSchema,
   TimestampLikeSchema,
   VideoOrientationSchema,
   ImageVariantSpecSchema,
@@ -68,3 +70,8 @@ export type MediaProcessingResult = z.infer<typeof MediaProcessingResultSchema>;
 
 export type MediaJobStatusPayload = z.infer<typeof MediaJobStatusPayloadSchema>;
 export type PendingMediaDoc = z.infer<typeof PendingMediaDocSchema>;
+
+// ---- registry entry ----
+
+export type TTTMediaProcessingByKind = z.infer<typeof TTTMediaProcessingByKindSchema>;
+export type TTTMediaOriginEntry = z.infer<typeof TTTMediaOriginEntrySchema>;

@@ -198,6 +198,29 @@ export const MediaProcessingSpecSchema = z
   })
   .strict();
 
+// ---- registry entry (upload contract + optional processing pipeline) ----
+
+export const TTTMediaProcessingByKindSchema = z
+  .object({
+    image: MediaProcessingSpecSchema.optional(),
+    video: MediaProcessingSpecSchema.optional(),
+    audio: MediaProcessingSpecSchema.optional(),
+  })
+  .strict();
+
+export const TTTMediaOriginEntrySchema = MediaProcessingSpecSchema
+  .omit({
+    image: true,
+    video: true,
+    audio: true,
+    requiredWidth: true,
+    requiredHeight: true,
+    allowAutoFormat: true,
+  })
+  .extend({
+    processing: TTTMediaProcessingByKindSchema.optional(),
+  });
+
 export const MediaProcessingErrorSchema = z
   .object({
     code: MediaErrorCodeSchema,
