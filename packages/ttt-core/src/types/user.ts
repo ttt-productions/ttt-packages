@@ -69,7 +69,3 @@ export type FullUser = {
   createdAt: number;
   streetzAgreementsDate?: number;
 };
-
-export type AllFollows = {
-  allFollowedUsers: ShortUser[];
-};
