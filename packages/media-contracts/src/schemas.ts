@@ -483,7 +483,7 @@ export const JobReplyTargetInfoSchema = z
 export const OpportunityPromptTargetInfoSchema = z
   .object({
     opportunityId: z.string().min(1),
-    type: z.enum(['ProjectInput', 'SponsoredProjects']),
+    type: z.enum(['ProjectInput', 'SponsoredProjects', 'SystemInput']),
     title: z.string().min(1),
     description: z.string(),
     openTill: z.number(),
@@ -555,8 +555,7 @@ export function parseTargetInfo(fileOrigin: FileOrigin, raw: unknown):
   | z.infer<typeof OpportunityReplyTargetInfoSchema>
   | z.infer<typeof LibraryCoverSquareTargetInfoSchema>
   | z.infer<typeof ChapterPhotoTargetInfoSchema>
-  | z.infer<typeof ChatAttachmentTargetInfoSchema>
-{
+  | z.infer<typeof ChatAttachmentTargetInfoSchema> {
   switch (fileOrigin) {
     case 'profile-picture': return ProfilePictureTargetInfoSchema.parse(raw);
     case 'skill-media': return SkillMediaTargetInfoSchema.parse(raw);
