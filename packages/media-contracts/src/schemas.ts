@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FileOriginSchema } from "./file-origin.js";
 
 // ---- primitives ----
 
@@ -277,27 +278,6 @@ export const MediaJobStatusPayloadSchema = z
   })
   .strict();
 
-export const PendingMediaDocSchema = z
-  .object({
-    id: z.string().min(1),
-    owner: MediaOwnerRefSchema,
-    thread: MediaThreadRefSchema.optional(),
-    category: FileCategorySchema.optional(),
-    originalName: z.string().optional(),
-    mime: z.string().optional(),
-    sizeBytes: z.number().int().nonnegative().optional(),
-    mediaType: SimplifiedMediaTypeSchema,
-    originalPath: z.string().optional(),
-    originalUrl: z.string().optional(),
-    status: MediaProcessingStatusSchema,
-    spec: MediaProcessingSpecSchema.optional(),
-    result: MediaProcessingResultSchema.optional(),
-    error: MediaProcessingErrorSchema.optional(),
-    createdAt: TimestampLikeSchema.optional(),
-    updatedAt: TimestampLikeSchema.optional(),
-  })
-  .strict();
-
 // ---- parsers ----
 
 export function parseMediaProcessingSpec(input: unknown) {
@@ -308,6 +288,140 @@ export function parseMediaProcessingResult(input: unknown) {
   return MediaProcessingResultSchema.parse(input);
 }
 
-export function parsePendingMediaDoc(input: unknown) {
-  return PendingMediaDocSchema.parse(input);
+// ============================================================================
+// Unified upload pipeline (Phase 1.5)
+// ----------------------------------------------------------------------------
+// PendingMediaSchema is the canonical Zod-strict shape for `pendingMedia/{id}`
+// Firestore docs. Discriminated union on `status` — five branches. Used at
+// every read trust boundary (Cloud Function handlers, frontend hook).
+// ============================================================================
+
+export const ClientContextSchema = z
+  .object({
+    surface: z.string().min(1),
+    targetIds: z.array(z.string().min(1)).optional(),
+  })
+  .strict();
+
+const PendingMediaBaseShape = {
+  id: z.string().min(1),
+  userId: z.string().min(1),
+  fileOrigin: FileOriginSchema,
+  originalFileName: z.string().min(1),
+  pendingStoragePath: z.string().min(1),
+  targetInfo: z.unknown().optional(),
+  textContent: z.string().optional(),
+  clientContext: ClientContextSchema,
+  createdAt: z.number(),
+  updatedAt: z.number(),
+} as const;
+
+// SerializedQueryKey: serializable form of a TanStack Query key. Lives here
+// because both Cloud Functions (writers) and the frontend hook (readers)
+// need it. Helper `toQueryKey` in helpers.ts converts to QueryKey at use.
+export const SerializedQueryKeySchema = z.array(
+  z.union([z.string(), z.number(), z.boolean(), z.null()])
+);
+
+export const PendingMediaResultSchema = z
+  .object({
+    invalidate: z.array(SerializedQueryKeySchema),
+    affected: z
+      .array(
+        z
+          .object({
+            collection: z.string().min(1),
+            docId: z.string().min(1),
+            operation: z.enum(['create', 'update']),
+          })
+          .strict()
+      )
+      .optional(),
+  })
+  .strict();
+
+export const PendingMediaErrorCategorySchema = z.enum([
+  'system',
+  'rate_limit',
+  'validation',
+  'kind_mismatch',
+  'storage',
+  'moderation',
+]);
+
+export const PendingMediaPendingSchema = z
+  .object({
+    ...PendingMediaBaseShape,
+    status: z.literal('pending'),
+  })
+  .strict();
+
+export const PendingMediaProcessingSchema = z
+  .object({
+    ...PendingMediaBaseShape,
+    status: z.literal('processing'),
+  })
+  .strict();
+
+export const PendingMediaCompletedSchema = z
+  .object({
+    ...PendingMediaBaseShape,
+    status: z.literal('completed'),
+    completedAt: z.number(),
+    result: PendingMediaResultSchema,
+  })
+  .strict();
+
+export const PendingMediaFailedSchema = z
+  .object({
+    ...PendingMediaBaseShape,
+    status: z.literal('failed'),
+    failedAt: z.number(),
+    errorCategory: PendingMediaErrorCategorySchema,
+    errorMessage: z.string().min(1),
+  })
+  .strict();
+
+export const PendingMediaRejectedSchema = z
+  .object({
+    ...PendingMediaBaseShape,
+    status: z.literal('rejected'),
+    rejectedAt: z.number(),
+    rejectionType: z.enum(['text', 'media']),
+    errorMessage: z.string().min(1),
+    violationId: z.string().min(1).optional(),
+  })
+  .strict();
+
+export const PendingMediaSchema = z.discriminatedUnion('status', [
+  PendingMediaPendingSchema,
+  PendingMediaProcessingSchema,
+  PendingMediaCompletedSchema,
+  PendingMediaFailedSchema,
+  PendingMediaRejectedSchema,
+]);
+
+// ============================================================================
+// startUpload callable contracts
+// ============================================================================
+
+export const StartUploadRequestSchema = z
+  .object({
+    storagePath: z.string().min(1),
+    originalFileName: z.string().min(1),
+    fileOrigin: FileOriginSchema,
+    targetInfo: z.unknown().optional(),
+    textContent: z.string().optional(),
+    clientContext: ClientContextSchema,
+  })
+  .strict();
+
+export const StartUploadResponseSchema = z
+  .object({
+    pendingMediaId: z.string().min(1),
+  })
+  .strict();
+
+export function parsePendingMedia(input: unknown) {
+  return PendingMediaSchema.parse(input);
 }

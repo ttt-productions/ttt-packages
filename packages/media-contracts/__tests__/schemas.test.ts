@@ -3,7 +3,6 @@ import {
   MediaCropSpecSchema,
   parseMediaProcessingSpec,
   parseMediaProcessingResult,
-  parsePendingMediaDoc,
 } from '../src/schemas';
 
 describe('MediaCropSpecSchema', () => {
@@ -146,69 +145,5 @@ describe('parseMediaProcessingResult', () => {
 
   it('rejects unknown fields', () => {
     expect(() => parseMediaProcessingResult({ ...validResult, extra: 'nope' })).toThrow();
-  });
-});
-
-describe('parsePendingMediaDoc', () => {
-  const validDoc = {
-    id: 'media-123',
-    owner: { uid: 'user-abc' },
-    mediaType: 'image' as const,
-    status: 'pending' as const,
-  };
-
-  it('accepts a minimal valid pending media doc', () => {
-    expect(() => parsePendingMediaDoc(validDoc)).not.toThrow();
-  });
-
-  it('accepts a doc with optional fields', () => {
-    const fullDoc = {
-      ...validDoc,
-      originalName: 'photo.jpg',
-      mime: 'image/jpeg',
-      sizeBytes: 204800,
-      createdAt: Date.now(),
-    };
-    expect(() => parsePendingMediaDoc(fullDoc)).not.toThrow();
-  });
-
-  it('rejects missing "id"', () => {
-    const { id, ...rest } = validDoc;
-    expect(() => parsePendingMediaDoc(rest)).toThrow();
-  });
-
-  it('rejects missing "owner"', () => {
-    const { owner, ...rest } = validDoc;
-    expect(() => parsePendingMediaDoc(rest)).toThrow();
-  });
-
-  it('rejects missing "mediaType"', () => {
-    const { mediaType, ...rest } = validDoc;
-    expect(() => parsePendingMediaDoc(rest)).toThrow();
-  });
-
-  it('rejects missing "status"', () => {
-    const { status, ...rest } = validDoc;
-    expect(() => parsePendingMediaDoc(rest)).toThrow();
-  });
-
-  it('rejects empty id', () => {
-    expect(() => parsePendingMediaDoc({ ...validDoc, id: '' })).toThrow();
-  });
-
-  it('rejects invalid status', () => {
-    expect(() => parsePendingMediaDoc({ ...validDoc, status: 'unknown' })).toThrow();
-  });
-
-  it('rejects unknown fields', () => {
-    expect(() => parsePendingMediaDoc({ ...validDoc, extraField: true })).toThrow();
-  });
-
-  it('rejects non-negative sizeBytes validation (negative)', () => {
-    expect(() => parsePendingMediaDoc({ ...validDoc, sizeBytes: -1 })).toThrow();
-  });
-
-  it('accepts sizeBytes of 0', () => {
-    expect(() => parsePendingMediaDoc({ ...validDoc, sizeBytes: 0 })).not.toThrow();
   });
 });

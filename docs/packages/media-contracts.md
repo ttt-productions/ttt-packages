@@ -3,7 +3,7 @@
 Shared type definitions and Zod validation schemas for the media processing pipeline. This is the contract layer between client-side media inputs (file-input, upload-core) and server-side processing (media-processing-core). No runtime dependencies beyond Zod.
 
 ## Version
-0.2.11
+0.2.15
 
 ## Dependencies
 Runtime: zod.

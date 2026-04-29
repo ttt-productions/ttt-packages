@@ -18,7 +18,6 @@ import {
   MediaProcessingResultSchema,
   MediaProcessingSpecSchema,
   MediaProcessingStatusSchema,
-  PendingMediaDocSchema,
   SimplifiedMediaTypeSchema,
   TTTMediaOriginEntrySchema,
   TTTMediaProcessingByKindSchema,
@@ -26,6 +25,18 @@ import {
   VideoOrientationSchema,
   ImageVariantSpecSchema,
   MediaThreadRefSchema,
+  ClientContextSchema,
+  PendingMediaSchema,
+  PendingMediaPendingSchema,
+  PendingMediaProcessingSchema,
+  PendingMediaCompletedSchema,
+  PendingMediaFailedSchema,
+  PendingMediaRejectedSchema,
+  PendingMediaResultSchema,
+  PendingMediaErrorCategorySchema,
+  SerializedQueryKeySchema,
+  StartUploadRequestSchema,
+  StartUploadResponseSchema,
 } from "./schemas.js";
 
 // ---- basic enums / scalars ----
@@ -69,9 +80,24 @@ export type MediaProcessingResult = z.infer<typeof MediaProcessingResultSchema>;
 // ---- jobs/docs ----
 
 export type MediaJobStatusPayload = z.infer<typeof MediaJobStatusPayloadSchema>;
-export type PendingMediaDoc = z.infer<typeof PendingMediaDocSchema>;
 
 // ---- registry entry ----
 
 export type TTTMediaProcessingByKind = z.infer<typeof TTTMediaProcessingByKindSchema>;
 export type TTTMediaOriginEntry = z.infer<typeof TTTMediaOriginEntrySchema>;
+
+// ---- unified upload pipeline (Phase 1.5) ----
+
+export type ClientContext = z.infer<typeof ClientContextSchema>;
+export type SerializedQueryKey = z.infer<typeof SerializedQueryKeySchema>;
+export type PendingMediaResult = z.infer<typeof PendingMediaResultSchema>;
+export type PendingMediaErrorCategory = z.infer<typeof PendingMediaErrorCategorySchema>;
+export type PendingMediaPending = z.infer<typeof PendingMediaPendingSchema>;
+export type PendingMediaProcessing = z.infer<typeof PendingMediaProcessingSchema>;
+export type PendingMediaCompleted = z.infer<typeof PendingMediaCompletedSchema>;
+export type PendingMediaFailed = z.infer<typeof PendingMediaFailedSchema>;
+export type PendingMediaRejected = z.infer<typeof PendingMediaRejectedSchema>;
+export type PendingMedia = z.infer<typeof PendingMediaSchema>;
+
+export type StartUploadRequest = z.infer<typeof StartUploadRequestSchema>;
+export type StartUploadResponse = z.infer<typeof StartUploadResponseSchema>;
