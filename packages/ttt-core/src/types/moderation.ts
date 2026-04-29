@@ -1,6 +1,6 @@
 // Content moderation types: Reports, Violations, Media processing
 
-import type { PendingFile } from '@ttt-productions/media-contracts';
+import type { PendingMediaPending } from '@ttt-productions/media-contracts';
 
 export interface ContentViolation {
   id: string;
@@ -26,7 +26,7 @@ export interface ContentViolation {
   reviewedAt?: number;
   reviewDecision?: 'approved' | 'denied';
   reviewNotes?: string;
-  pendingFile: Partial<PendingFile>;
+  pendingFile: Partial<PendingMediaPending>;
 }
 
 // --- Reporting ---
