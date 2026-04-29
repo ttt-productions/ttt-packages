@@ -7,6 +7,7 @@
 export const COLLECTIONS = {
   // Core entities
   USER_PROFILES: 'userProfiles',
+  PUBLIC_USERS: 'publicUsers',
   ALL_PROJECTS: 'allProjects',
   STORY_UNIVERSES: 'storyUniverses',
 
