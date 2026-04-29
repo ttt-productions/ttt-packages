@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { FileOriginSchema } from "./file-origin.js";
+import { FileOriginSchema, type FileOrigin } from "./file-origin.js";
+import { ShortProjectSchema, ShortUserSchema } from "./short-types.js";
 
 // ---- primitives ----
 
@@ -424,4 +425,155 @@ export const StartUploadResponseSchema = z
 
 export function parsePendingMedia(input: unknown) {
   return PendingMediaSchema.parse(input);
+}
+
+// ============================================================================
+// Phase 1.6: per-origin `targetInfo` schemas
+// ----------------------------------------------------------------------------
+// Each FileOrigin has a strict schema describing its targetInfo shape.
+// Read at the trust boundary in processors via `parseTargetInfo`.
+// ============================================================================
+
+// profile-picture: no origin-specific fields.
+export const ProfilePictureTargetInfoSchema = z.object({}).strict();
+
+// skill-media: skillId + skillType + originalFileName (originalFileName
+// duplicates the base pendingMedia field; kept for backward compat with
+// the current writer in createSkill.ts. Phase 1.8 may remove the duplicate.)
+export const SkillMediaTargetInfoSchema = z
+  .object({
+    skillId: z.string().min(1),
+    skillType: z.enum(['image', 'video', 'audio', 'other']),
+    originalFileName: z.string().min(1),
+  })
+  .strict();
+
+// streetz: optional mentions array. Writer always sends mentions ?? [].
+export const StreetzTargetInfoSchema = z
+  .object({
+    mentions: z.array(z.string()),
+  })
+  .strict();
+
+// job-posting: full job creation payload.
+export const JobPostingTargetInfoSchema = z
+  .object({
+    jobId: z.string().min(1),
+    title: z.string().min(1),
+    description: z.string(),
+    requiredProfessions: z.array(z.string()),
+    sharesOffered: z.number(),
+    projectAssociatedWith: ShortProjectSchema,
+    createdBy: ShortUserSchema,
+  })
+  .strict();
+
+// job-reply: jobId + projectId + replyText.
+export const JobReplyTargetInfoSchema = z
+  .object({
+    jobId: z.string().min(1),
+    projectId: z.string().min(1),
+    replyText: z.string(),
+  })
+  .strict();
+
+// opportunity-prompt: full opportunity creation payload. Optional fields
+// are conditional on `type` — schema marks them optional rather than
+// introducing a nested discriminator. A future cleanup could tighten this.
+export const OpportunityPromptTargetInfoSchema = z
+  .object({
+    opportunityId: z.string().min(1),
+    type: z.enum(['ProjectInput', 'SponsoredProjects']),
+    title: z.string().min(1),
+    description: z.string(),
+    openTill: z.number(),
+    createdBy: ShortUserSchema,
+    projectId: z.string().min(1).optional(),
+    sharesOffered: z.number().optional(),
+    projectAmountUSD: z.number().optional(),
+  })
+  .strict();
+
+// opportunity-reply: opportunityId only.
+export const OpportunityReplyTargetInfoSchema = z
+  .object({
+    opportunityId: z.string().min(1),
+  })
+  .strict();
+
+// library-cover-* (square / poster / cinematic): same shape for all three.
+// docPath + fields. Was flat targetDocPath / targetFields before Phase 1.6.
+const LibraryCoverTargetInfoShape = z
+  .object({
+    docPath: z.string().min(1),
+    fields: z.record(z.string()),
+  })
+  .strict();
+
+export const LibraryCoverSquareTargetInfoSchema = LibraryCoverTargetInfoShape;
+export const LibraryCoverPosterTargetInfoSchema = LibraryCoverTargetInfoShape;
+export const LibraryCoverCinematicTargetInfoSchema = LibraryCoverTargetInfoShape;
+
+// chapter-photo, song-photo, song-audio, show-photo, show-video:
+// same shape — docPath + fields with a single `full` key.
+const SubItemTargetInfoShape = z
+  .object({
+    docPath: z.string().min(1),
+    fields: z.object({ full: z.string().min(1) }).strict(),
+  })
+  .strict();
+
+export const ChapterPhotoTargetInfoSchema = SubItemTargetInfoShape;
+export const SongPhotoTargetInfoSchema = SubItemTargetInfoShape;
+export const SongAudioTargetInfoSchema = SubItemTargetInfoShape;
+export const ShowPhotoTargetInfoSchema = SubItemTargetInfoShape;
+export const ShowVideoTargetInfoSchema = SubItemTargetInfoShape;
+
+// chat-attachment: docPath only. Processor writes URL fields directly via
+// updateMessageDoc rather than reading from `fields`, so no fields here.
+export const ChatAttachmentTargetInfoSchema = z
+  .object({
+    docPath: z.string().min(1),
+  })
+  .strict();
+
+// ============================================================================
+// parseTargetInfo: the only public path for narrowing targetInfo by origin.
+// ============================================================================
+
+function assertNever(x: never): never {
+  throw new Error(`Unexpected fileOrigin: ${String(x)}`);
+}
+
+export function parseTargetInfo(fileOrigin: FileOrigin, raw: unknown):
+  | z.infer<typeof ProfilePictureTargetInfoSchema>
+  | z.infer<typeof SkillMediaTargetInfoSchema>
+  | z.infer<typeof StreetzTargetInfoSchema>
+  | z.infer<typeof JobPostingTargetInfoSchema>
+  | z.infer<typeof JobReplyTargetInfoSchema>
+  | z.infer<typeof OpportunityPromptTargetInfoSchema>
+  | z.infer<typeof OpportunityReplyTargetInfoSchema>
+  | z.infer<typeof LibraryCoverSquareTargetInfoSchema>
+  | z.infer<typeof ChapterPhotoTargetInfoSchema>
+  | z.infer<typeof ChatAttachmentTargetInfoSchema>
+{
+  switch (fileOrigin) {
+    case 'profile-picture': return ProfilePictureTargetInfoSchema.parse(raw);
+    case 'skill-media': return SkillMediaTargetInfoSchema.parse(raw);
+    case 'streetz': return StreetzTargetInfoSchema.parse(raw);
+    case 'job-posting': return JobPostingTargetInfoSchema.parse(raw);
+    case 'job-reply': return JobReplyTargetInfoSchema.parse(raw);
+    case 'opportunity-prompt': return OpportunityPromptTargetInfoSchema.parse(raw);
+    case 'opportunity-reply': return OpportunityReplyTargetInfoSchema.parse(raw);
+    case 'library-cover-square': return LibraryCoverSquareTargetInfoSchema.parse(raw);
+    case 'library-cover-poster': return LibraryCoverPosterTargetInfoSchema.parse(raw);
+    case 'library-cover-cinematic': return LibraryCoverCinematicTargetInfoSchema.parse(raw);
+    case 'chapter-photo': return ChapterPhotoTargetInfoSchema.parse(raw);
+    case 'song-photo': return SongPhotoTargetInfoSchema.parse(raw);
+    case 'song-audio': return SongAudioTargetInfoSchema.parse(raw);
+    case 'show-photo': return ShowPhotoTargetInfoSchema.parse(raw);
+    case 'show-video': return ShowVideoTargetInfoSchema.parse(raw);
+    case 'chat-attachment': return ChatAttachmentTargetInfoSchema.parse(raw);
+    default: return assertNever(fileOrigin);
+  }
 }
