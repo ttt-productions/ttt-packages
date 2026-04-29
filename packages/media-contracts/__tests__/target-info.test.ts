@@ -38,11 +38,25 @@ describe('SkillMediaTargetInfoSchema', () => {
 });
 
 describe('StreetzTargetInfoSchema', () => {
+  const validMention = {
+    placeholder: '@m1',
+    type: 'user' as const,
+    id: 'user_abc',
+    text: '@John Doe',
+  };
   it('accepts empty mentions', () => {
     expect(() => StreetzTargetInfoSchema.parse({ mentions: [] })).not.toThrow();
   });
   it('accepts populated mentions', () => {
-    expect(() => StreetzTargetInfoSchema.parse({ mentions: ['user_1', 'user_2'] })).not.toThrow();
+    expect(() => StreetzTargetInfoSchema.parse({ mentions: [validMention] })).not.toThrow();
+  });
+  it('rejects string mentions (must be Mention objects)', () => {
+    expect(() => StreetzTargetInfoSchema.parse({ mentions: ['user_1'] })).toThrow();
+  });
+  it('rejects mention with invalid type enum', () => {
+    expect(() => StreetzTargetInfoSchema.parse({
+      mentions: [{ ...validMention, type: 'bogus' }]
+    })).toThrow();
   });
   it('rejects missing mentions', () => {
     expect(() => StreetzTargetInfoSchema.parse({})).toThrow();

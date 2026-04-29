@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { FileOriginSchema, type FileOrigin } from "./file-origin.js";
-import { ShortProjectSchema, ShortUserSchema } from "./short-types.js";
+import { ShortProjectSchema, ShortUserSchema, MentionSchema } from "./short-types.js";
 
 // ---- primitives ----
 
@@ -448,10 +448,10 @@ export const SkillMediaTargetInfoSchema = z
   })
   .strict();
 
-// streetz: optional mentions array. Writer always sends mentions ?? [].
+// streetz: mentions array of structured Mention objects. Writer always sends mentions ?? [].
 export const StreetzTargetInfoSchema = z
   .object({
-    mentions: z.array(z.string()),
+    mentions: z.array(MentionSchema),
   })
   .strict();
 
@@ -545,34 +545,27 @@ function assertNever(x: never): never {
   throw new Error(`Unexpected fileOrigin: ${String(x)}`);
 }
 
-export function parseTargetInfo(fileOrigin: FileOrigin, raw: unknown):
-  | z.infer<typeof ProfilePictureTargetInfoSchema>
-  | z.infer<typeof SkillMediaTargetInfoSchema>
-  | z.infer<typeof StreetzTargetInfoSchema>
-  | z.infer<typeof JobPostingTargetInfoSchema>
-  | z.infer<typeof JobReplyTargetInfoSchema>
-  | z.infer<typeof OpportunityPromptTargetInfoSchema>
-  | z.infer<typeof OpportunityReplyTargetInfoSchema>
-  | z.infer<typeof LibraryCoverSquareTargetInfoSchema>
-  | z.infer<typeof ChapterPhotoTargetInfoSchema>
-  | z.infer<typeof ChatAttachmentTargetInfoSchema> {
+export function parseTargetInfo<O extends FileOrigin>(
+  fileOrigin: O,
+  raw: unknown
+): import('./types.js').TargetInfoFor<O> {
   switch (fileOrigin) {
-    case 'profile-picture': return ProfilePictureTargetInfoSchema.parse(raw);
-    case 'skill-media': return SkillMediaTargetInfoSchema.parse(raw);
-    case 'streetz': return StreetzTargetInfoSchema.parse(raw);
-    case 'job-posting': return JobPostingTargetInfoSchema.parse(raw);
-    case 'job-reply': return JobReplyTargetInfoSchema.parse(raw);
-    case 'opportunity-prompt': return OpportunityPromptTargetInfoSchema.parse(raw);
-    case 'opportunity-reply': return OpportunityReplyTargetInfoSchema.parse(raw);
-    case 'library-cover-square': return LibraryCoverSquareTargetInfoSchema.parse(raw);
-    case 'library-cover-poster': return LibraryCoverPosterTargetInfoSchema.parse(raw);
-    case 'library-cover-cinematic': return LibraryCoverCinematicTargetInfoSchema.parse(raw);
-    case 'chapter-photo': return ChapterPhotoTargetInfoSchema.parse(raw);
-    case 'song-photo': return SongPhotoTargetInfoSchema.parse(raw);
-    case 'song-audio': return SongAudioTargetInfoSchema.parse(raw);
-    case 'show-photo': return ShowPhotoTargetInfoSchema.parse(raw);
-    case 'show-video': return ShowVideoTargetInfoSchema.parse(raw);
-    case 'chat-attachment': return ChatAttachmentTargetInfoSchema.parse(raw);
+    case 'profile-picture': return ProfilePictureTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'skill-media': return SkillMediaTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'streetz': return StreetzTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'job-posting': return JobPostingTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'job-reply': return JobReplyTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'opportunity-prompt': return OpportunityPromptTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'opportunity-reply': return OpportunityReplyTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'library-cover-square': return LibraryCoverSquareTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'library-cover-poster': return LibraryCoverPosterTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'library-cover-cinematic': return LibraryCoverCinematicTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'chapter-photo': return ChapterPhotoTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'song-photo': return SongPhotoTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'song-audio': return SongAudioTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'show-photo': return ShowPhotoTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'show-video': return ShowVideoTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'chat-attachment': return ChatAttachmentTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
     default: return assertNever(fileOrigin);
   }
 }
