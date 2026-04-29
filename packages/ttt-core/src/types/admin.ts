@@ -1,4 +1,5 @@
 // Admin system types: Task queue, Checkout, Activity log
+// Canonical home for admin task lifecycle types. report-core re-exports these.
 
 export type AdminTaskType =
   | 'systemMessage'
@@ -8,18 +9,27 @@ export type AdminTaskType =
 
 export type TaskPriority = 'critical' | 'high' | 'normal' | 'low';
 
+export type AdminTaskStatus =
+  | 'pending'
+  | 'checkedOut'
+  | 'workLater'
+  | 'completed';
+
+export type ActivityAction =
+  | 'checkout'
+  | 'checkout_next_important'
+  | 'checkin_resolved'
+  | 'checkin_unresolved'
+  | 'release'
+  | 'mark_work_later'
+  | 'auto_released'
+  | 'auto_released_scheduled';
+
 export interface CheckoutDetails {
-  status: 'available' | 'checkedOut' | 'workLater';
   userId: string;
-  userDisplayName: string;
-  userPhotoURL: string | null;
   checkedOutAt: number;
   expiresAt: number;
   workLaterUntil: number | null;
-}
-
-export interface CheckoutableDocument {
-  checkoutDetails?: CheckoutDetails | null;
 }
 
 export interface AdminTask {
@@ -27,46 +37,30 @@ export interface AdminTask {
   taskType: AdminTaskType;
   taskId: string;
   originalPath: string;
-  status: 'pending' | 'checkedOut' | 'workLater' | 'completed';
-  checkoutDetails: {
-    userId: string;
-    userDisplayName: string;
-    userPhotoURL: string | null;
-    checkedOutAt: number;
-    expiresAt: number;
-    workLaterUntil: number | null;
-  } | null;
+  status: AdminTaskStatus;
+  checkoutDetails: CheckoutDetails | null;
   summary: string;
   priority: number;
   createdAt: number;
   lastUpdatedAt: number;
   completedAt?: number;
-  itemData?: any;
+  itemData?: unknown;
 }
 
+/** AdminTask with non-null checkoutDetails. */
 export interface CheckedOutTask extends AdminTask {
   checkoutDetails: NonNullable<AdminTask['checkoutDetails']>;
 }
 
-export type ActivityAction =
-  | 'checkout'
-  | 'checkin_resolved'
-  | 'checkin_unresolved'
-  | 'work_later'
-  | 'auto_released'
-  | 'manual_release';
-
-export interface AdminActivityLog {
+export interface ActivityLogEntry {
   id: string;
   adminUserId: string;
-  adminDisplayName: string;
   action: ActivityAction;
-  taskType: AdminTaskType;
-  itemId: string;
-  itemPath: string;
-  itemSummary: string;
+  taskType: string;
+  taskId: string;
   timestamp: number;
   resolution?: string;
   timeSpentMinutes?: number;
-  previousAdminId?: string;
+  extendHours?: number;
+  priority?: number;
 }

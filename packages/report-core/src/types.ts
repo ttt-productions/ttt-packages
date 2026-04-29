@@ -1,104 +1,23 @@
-// ============================================
-// REPORT TYPES
-// ============================================
+// report-core specific config and component prop types.
+// Canonical admin task and report types live in @ttt-productions/ttt-core.
 
-export interface Report {
-  reportId: string;
-  reporterUserId: string;
-  reportedItemType: string;
-  reportedItemId: string;
-  parentItemId?: string;
-  reportedUserId?: string;
-  reason: string;
-  comment: string;
-  createdAt: number;
-  status: ReportStatus;
-  resolvedAt?: number;
-  resolvedBy?: string;
-  adminNotes?: string;
-}
+export type {
+  Report,
+  ReportStatus,
+  ReportGroup,
+  ReportGroupStatus,
+} from '@ttt-productions/ttt-core';
 
-export type ReportStatus =
-  | 'pending_review'
-  | 'resolved_no_action'
-  | 'resolved_action_taken';
+export type {
+  AdminTask,
+  AdminTaskStatus,
+  CheckoutDetails,
+  CheckedOutTask,
+  ActivityAction,
+  ActivityLogEntry,
+} from '@ttt-productions/ttt-core';
 
-export interface ReportGroup {
-  groupKey: string;
-  reportedItemId: string;
-  reportedItemType: string;
-  reportedUserId: string | null;
-  lastReportAt: number;
-  totalReports: number;
-  highestReasonScore: number;
-  status: ReportGroupStatus;
-}
-
-export type ReportGroupStatus = 'pending' | 'reviewing' | 'resolved';
-
-// ============================================
-// ADMIN TASK TYPES
-// ============================================
-
-export interface AdminTask {
-  id: string;
-  taskType: string;
-  taskId: string;
-  originalPath: string;
-  status: AdminTaskStatus;
-  checkoutDetails: CheckoutDetails | null;
-  summary: string;
-  priority: number;
-  createdAt: number;
-  lastUpdatedAt: number;
-  completedAt?: number;
-  itemData?: unknown;
-}
-
-export type AdminTaskStatus =
-  | 'pending'
-  | 'checkedOut'
-  | 'workLater'
-  | 'completed';
-
-export interface CheckoutDetails {
-  userId: string;
-  checkedOutAt: number;
-  expiresAt: number;
-  workLaterUntil: number | null;
-}
-
-/** AdminTask with non-null checkoutDetails (for display in checked-out list) */
-export interface CheckedOutTask extends AdminTask {
-  checkoutDetails: NonNullable<AdminTask['checkoutDetails']>;
-}
-
-// ============================================
-// ACTIVITY LOG
-// ============================================
-
-export type ActivityAction =
-  | 'checkout'
-  | 'checkout_next_important'
-  | 'checkin_resolved'
-  | 'checkin_unresolved'
-  | 'release'
-  | 'mark_work_later'
-  | 'auto_released'
-  | 'auto_released_scheduled';
-
-export interface ActivityLogEntry {
-  id: string;
-  adminUserId: string;
-  action: ActivityAction;
-  taskType: string;
-  taskId: string;
-  timestamp: number;
-  resolution?: string;
-  timeSpentMinutes?: number;
-  extendHours?: number;
-  priority?: number;
-}
+import type { CheckedOutTask } from '@ttt-productions/ttt-core';
 
 // ============================================
 // TASK QUEUE CONFIG

@@ -29,6 +29,13 @@ export interface ContentViolation {
 
 // --- Reporting ---
 
+export type ReportStatus =
+  | 'pending_review'
+  | 'resolved_no_action'
+  | 'resolved_action_taken';
+
+export type ReportGroupStatus = 'pending' | 'reviewing' | 'resolved';
+
 export type Report = {
   reportId: string;
   reporterUserId: string;
@@ -39,7 +46,7 @@ export type Report = {
   reason: string;
   comment: string;
   createdAt: number;
-  status: 'pending_review' | 'resolved_no_action' | 'resolved_action_taken';
+  status: ReportStatus;
   resolvedAt?: number;
   resolvedBy?: string;
   adminNotes?: string;
@@ -52,7 +59,7 @@ export type ReportGroup = {
   reportedUserId: string | null;
   lastReportAt: number;
   totalReports: number;
-  status: 'pending' | 'reviewing' | 'resolved';
+  status: ReportGroupStatus;
   reports?: Report[];
 };
 
