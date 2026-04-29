@@ -8,8 +8,6 @@ export interface CheckoutTaskHandlerConfig {
   config: ServerReportCoreConfig;
   db: ServerFirestore;
   auth: AdminAuthConfig;
-  /** Function to look up admin user profile. Returns { displayName, profilePictureUrlFull }. */
-  getUserProfile?: (uid: string) => Promise<{ displayName?: string; profilePictureUrlFull?: string | null } | null>;
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
 }
 
@@ -35,7 +33,6 @@ export function createCheckoutTaskHandler({
   config,
   db,
   auth,
-  getUserProfile,
 }: CheckoutTaskHandlerConfig) {
   const verifyAdmin = async (uid: string, authToken: unknown): Promise<void> => {
     // Try requireAdmin first
@@ -63,7 +60,6 @@ export function createCheckoutTaskHandler({
 
     await verifyAdmin(userId, authContext.token);
 
-    const profile = getUserProfile ? await getUserProfile(userId) : null;
     const queueConfig = config.taskQueues[taskType];
     if (!queueConfig) {
       throw new Error('Invalid task type specified.');
@@ -90,8 +86,7 @@ export function createCheckoutTaskHandler({
           (taskData.status === 'checkedOut' || taskData.status === 'workLater') &&
           (taskData.checkoutDetails as Record<string, unknown>)?.expiresAt as number > now
         ) {
-          const checkedOutBy = ((taskData.checkoutDetails as Record<string, unknown>)?.userDisplayName as string) ?? 'another admin';
-          throw new Error(`This task is already checked out by ${checkedOutBy}.`);
+          throw new Error('This task is already checked out by another admin.');
         }
       } else {
         // Find highest-priority pending task
@@ -138,7 +133,6 @@ export function createCheckoutTaskHandler({
         transaction.set(autoReleaseLogRef, {
           id: autoReleaseLogRef.id,
           adminUserId: prevCheckout.userId as string,
-          adminDisplayName: prevCheckout.userDisplayName as string,
           action: 'auto_released',
           taskType: taskData.taskType as string,
           taskId: taskData.taskId as string,
@@ -148,8 +142,6 @@ export function createCheckoutTaskHandler({
 
       const checkoutDetails = {
         userId,
-        userDisplayName: profile?.displayName ?? 'Admin',
-        userPhotoURL: profile?.profilePictureUrlFull ?? null,
         checkedOutAt: now,
         expiresAt,
         workLaterUntil: null,
@@ -165,7 +157,6 @@ export function createCheckoutTaskHandler({
       transaction.set(logRef, {
         id: logRef.id,
         adminUserId: userId,
-        adminDisplayName: profile?.displayName ?? 'Admin',
         action: 'checkout',
         taskType: taskData.taskType as string,
         taskId: taskData.taskId as string,

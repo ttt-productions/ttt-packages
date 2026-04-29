@@ -183,37 +183,4 @@ describe('createCheckinTaskHandler', () => {
     expect(sets[0].data.timeSpentMinutes).toBeGreaterThanOrEqual(9);
   });
 
-  it('uses getUserProfile displayName in activity log', async () => {
-    const now = Date.now();
-    const taskData = {
-      taskType: 'userReport',
-      taskId: 'group1',
-      status: 'checkedOut',
-      checkoutDetails: { userId: 'admin1', checkedOutAt: now - 1000 },
-    };
-    const { db, sets } = createMockDb(taskData);
-    const getUserProfile = vi.fn().mockResolvedValue({ displayName: 'Alice Admin' });
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db, getUserProfile });
-
-    await handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
-
-    expect(sets[0].data.adminDisplayName).toBe('Alice Admin');
-  });
-
-  it('falls back to "Admin" when getUserProfile returns null', async () => {
-    const now = Date.now();
-    const taskData = {
-      taskType: 'userReport',
-      taskId: 'group1',
-      status: 'checkedOut',
-      checkoutDetails: { userId: 'admin1', checkedOutAt: now - 1000 },
-    };
-    const { db, sets } = createMockDb(taskData);
-    const getUserProfile = vi.fn().mockResolvedValue(null);
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db, getUserProfile });
-
-    await handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
-
-    expect(sets[0].data.adminDisplayName).toBe('Admin');
-  });
 });

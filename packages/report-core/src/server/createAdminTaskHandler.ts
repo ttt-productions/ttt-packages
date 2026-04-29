@@ -36,11 +36,8 @@ export function createAdminTaskHandler({
     const bonus = Math.max(0, totalReports - 1) * config.priorityConfig.additionalReportBonus;
     const priority = reasonScore * itemMultiplier + bonus;
 
-    const reportedUsername = groupData.reportedUsername as string | null;
     const count = totalReports;
-    const itemDesc = reportedUsername
-      ? `user ${reportedUsername}`
-      : `${itemType}`;
+    const itemDesc = itemType;
 
     const adminTaskId = `userReport-${groupId}`;
     const adminTaskRef = db.collection(config.collections.adminTasks).doc(adminTaskId);

@@ -67,7 +67,6 @@ export function createReportGroupingHandler({
           reportedItemId: reportData.reportedItemId as string,
           reportedItemType: reportData.reportedItemType as string,
           reportedUserId: (reportData.reportedUserId as string) || null,
-          reportedUsername: (reportData.reportedUsername as string) || null,
           lastReportAt: now,
           totalReports: 1,
           highestReasonScore: reasonScore,
@@ -85,9 +84,6 @@ export function createReportGroupingHandler({
           // Update user info if it was missing
           ...(!existingData.reportedUserId && reportData.reportedUserId
             ? { reportedUserId: reportData.reportedUserId }
-            : {}),
-          ...(!existingData.reportedUsername && reportData.reportedUsername
-            ? { reportedUsername: reportData.reportedUsername }
             : {}),
         });
       }

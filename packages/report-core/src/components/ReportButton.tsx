@@ -17,9 +17,7 @@ export function ReportButton({
   itemId,
   parentItemId,
   reportedUserId,
-  reportedUsername,
   reporterUserId,
-  reporterUsername,
   onSubmitSuccess,
   onSubmitError,
   triggerButtonVariant = 'destructive',
@@ -52,9 +50,7 @@ export function ReportButton({
         itemId={itemId}
         parentItemId={parentItemId}
         reportedUserId={reportedUserId}
-        reportedUsername={reportedUsername}
         reporterUserId={reporterUserId}
-        reporterUsername={reporterUsername}
         onSubmitSuccess={onSubmitSuccess}
         onSubmitError={onSubmitError}
       />

@@ -3,7 +3,6 @@ import type { ServerFirestore, ServerReportCoreConfig } from './types.js';
 export interface ReleaseTaskHandlerConfig {
   config: ServerReportCoreConfig;
   db: ServerFirestore;
-  getUserProfile?: (uid: string) => Promise<{ displayName?: string } | null>;
   auth?: {
     requireAdmin: (uid: string, token?: unknown) => Promise<void>;
   };
@@ -20,7 +19,6 @@ interface ReleaseRequest {
 export function createReleaseTaskHandler({
   config,
   db,
-  getUserProfile,
   auth,
 }: ReleaseTaskHandlerConfig) {
   return async (
@@ -55,13 +53,10 @@ export function createReleaseTaskHandler({
         checkoutDetails: null,
       });
 
-      const profile = getUserProfile ? await getUserProfile(userId) : null;
-
       const logRef = db.collection(config.collections.activityLog).doc();
       transaction.set(logRef, {
         id: logRef.id,
         adminUserId: userId,
-        adminDisplayName: profile?.displayName ?? 'Admin',
         action: 'release',
         taskType: taskData.taskType as string,
         taskId: taskData.taskId as string,

@@ -125,34 +125,4 @@ describe('createReleaseTaskHandler', () => {
     expect(sets[0].data.action).toBe('release');
   });
 
-  it('uses getUserProfile displayName in activity log', async () => {
-    const taskData = {
-      taskType: 'userReport',
-      taskId: 'group1',
-      status: 'checkedOut',
-      checkoutDetails: { userId: 'admin1', checkedOutAt: Date.now() - 1000 },
-    };
-    const { db, sets } = createMockDb(taskData);
-    const getUserProfile = vi.fn().mockResolvedValue({ displayName: 'Bob Admin' });
-    const handler = createReleaseTaskHandler({ config: TEST_CONFIG, db, getUserProfile });
-
-    await handler({ taskId: 'task1' }, { uid: 'admin1' });
-
-    expect(sets[0].data.adminDisplayName).toBe('Bob Admin');
-  });
-
-  it('falls back to "Admin" when no getUserProfile', async () => {
-    const taskData = {
-      taskType: 'userReport',
-      taskId: 'group1',
-      status: 'checkedOut',
-      checkoutDetails: { userId: 'admin1', checkedOutAt: Date.now() - 1000 },
-    };
-    const { db, sets } = createMockDb(taskData);
-    const handler = createReleaseTaskHandler({ config: TEST_CONFIG, db });
-
-    await handler({ taskId: 'task1' }, { uid: 'admin1' });
-
-    expect(sets[0].data.adminDisplayName).toBe('Admin');
-  });
 });

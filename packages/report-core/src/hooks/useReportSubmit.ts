@@ -8,12 +8,10 @@ import type { Report } from '../types.js';
 interface SubmitReportInput {
   reportId: string;
   reporterUserId: string;
-  reporterUsername: string;
   itemType: string;
   itemId: string;
   parentItemId?: string;
   reportedUserId?: string;
-  reportedUsername?: string;
   reason: string;
   comment: string;
 }
@@ -29,12 +27,10 @@ export function useReportSubmit() {
       const reportData: Report = {
         reportId: input.reportId,
         reporterUserId: input.reporterUserId,
-        reporterUsername: input.reporterUsername,
         reportedItemType: input.itemType,
         reportedItemId: input.itemId,
         ...(input.parentItemId && { parentItemId: input.parentItemId }),
         ...(input.reportedUserId && { reportedUserId: input.reportedUserId }),
-        ...(input.reportedUsername && { reportedUsername: input.reportedUsername }),
         reason: input.reason,
         comment: input.comment.trim(),
         createdAt: Date.now(),

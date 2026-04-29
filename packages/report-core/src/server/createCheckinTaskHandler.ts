@@ -3,7 +3,6 @@ import type { ServerFirestore, ServerReportCoreConfig } from './types.js';
 export interface CheckinTaskHandlerConfig {
   config: ServerReportCoreConfig;
   db: ServerFirestore;
-  getUserProfile?: (uid: string) => Promise<{ displayName?: string } | null>;
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
   auth?: {
     requireAdmin: (uid: string, token?: unknown) => Promise<void>;
@@ -23,7 +22,6 @@ interface CheckinRequest {
 export function createCheckinTaskHandler({
   config,
   db,
-  getUserProfile,
   auth,
 }: CheckinTaskHandlerConfig) {
   return async (
@@ -64,13 +62,10 @@ export function createCheckinTaskHandler({
         completedAt: resolved ? now : null,
       });
 
-      const profile = getUserProfile ? await getUserProfile(userId) : null;
-
       const logRef = db.collection(config.collections.activityLog).doc();
       transaction.set(logRef, {
         id: logRef.id,
         adminUserId: userId,
-        adminDisplayName: profile?.displayName ?? 'Admin',
         action: resolved ? 'checkin_resolved' : 'checkin_unresolved',
         taskType: taskData.taskType as string,
         taskId: taskData.taskId as string,

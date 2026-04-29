@@ -98,7 +98,6 @@ describe('createReportGroupingHandler', () => {
         reportedItemId: 'item1',
         reportedItemType: 'post',
         reportedUserId: 'user1',
-        reportedUsername: 'alice',
       },
       'report1',
     );
@@ -124,7 +123,6 @@ describe('createReportGroupingHandler', () => {
         reportedItemId: 'item1',
         reportedItemType: 'post',
         reportedUserId: 'user1',
-        reportedUsername: 'alice',
       },
       'report1',
     );
@@ -134,7 +132,6 @@ describe('createReportGroupingHandler', () => {
     expect(groupData.reportedItemId).toBe('item1');
     expect(groupData.reportedItemType).toBe('post');
     expect(groupData.reportedUserId).toBe('user1');
-    expect(groupData.reportedUsername).toBe('alice');
   });
 
   it('increments totalReports when group exists', async () => {

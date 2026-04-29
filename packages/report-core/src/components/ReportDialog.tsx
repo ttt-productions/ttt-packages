@@ -29,11 +29,8 @@ interface ReportDialogProps {
   itemId: string;
   parentItemId?: string;
   reportedUserId?: string;
-  reportedUsername?: string;
   /** Current user ID. Required for submission. */
   reporterUserId?: string;
-  /** Current user display name. */
-  reporterUsername?: string;
   /** Called after successful submission. */
   onSubmitSuccess?: () => void;
   /** Called on submission error. */
@@ -52,9 +49,7 @@ export function ReportDialog({
   itemId,
   parentItemId,
   reportedUserId,
-  reportedUsername,
   reporterUserId,
-  reporterUsername,
   onSubmitSuccess,
   onSubmitError,
 }: ReportDialogProps) {
@@ -77,12 +72,10 @@ export function ReportDialog({
       await submitMutation.mutateAsync({
         reportId,
         reporterUserId,
-        reporterUsername: reporterUsername ?? 'Anonymous',
         itemType,
         itemId,
         parentItemId,
         reportedUserId,
-        reportedUsername,
         reason,
         comment,
       });

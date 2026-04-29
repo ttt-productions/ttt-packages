@@ -40,7 +40,7 @@ describe('createAdminTaskHandler', () => {
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
     await handler(
-      { reportedItemType: 'post', totalReports: 1, highestReasonScore: 10, reportedUsername: 'alice' },
+      { reportedItemType: 'post', totalReports: 1, highestReasonScore: 10 },
       'group1',
     );
 
@@ -89,15 +89,15 @@ describe('createAdminTaskHandler', () => {
     expect(setFn.mock.calls[0][0].priority).toBe(3);
   });
 
-  it('generates summary with "1 report" (singular) for single report with username', async () => {
+  it('generates summary with "1 report" (singular) for single report', async () => {
     const { db, setFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
     await handler(
-      { reportedItemType: 'post', totalReports: 1, highestReasonScore: 5, reportedUsername: 'alice' },
+      { reportedItemType: 'post', totalReports: 1, highestReasonScore: 5 },
       'g5',
     );
-    expect(setFn.mock.calls[0][0].summary).toBe('1 report for user alice');
+    expect(setFn.mock.calls[0][0].summary).toBe('1 report for post');
   });
 
   it('generates summary with "reports" (plural) for count > 1', async () => {
@@ -105,10 +105,10 @@ describe('createAdminTaskHandler', () => {
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
 
     await handler(
-      { reportedItemType: 'post', totalReports: 3, highestReasonScore: 5, reportedUsername: 'bob' },
+      { reportedItemType: 'post', totalReports: 3, highestReasonScore: 5 },
       'g6',
     );
-    expect(setFn.mock.calls[0][0].summary).toBe('3 reports for user bob');
+    expect(setFn.mock.calls[0][0].summary).toBe('3 reports for post');
   });
 
   it('uses item type in summary when no username', async () => {

@@ -38,8 +38,6 @@ export function useCheckedOutTasks(userId: string | undefined) {
           status: data.status,
           checkoutDetails: {
             userId: data.checkoutDetails.userId,
-            userDisplayName: data.checkoutDetails.userDisplayName,
-            userPhotoURL: data.checkoutDetails.userPhotoURL,
             checkedOutAt: data.checkoutDetails.checkedOutAt,
             expiresAt: data.checkoutDetails.expiresAt,
             workLaterUntil: data.checkoutDetails.workLaterUntil ?? null,

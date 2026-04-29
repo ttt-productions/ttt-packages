@@ -8,7 +8,6 @@ export interface CheckoutNextImportantHandlerConfig {
   config: ServerReportCoreConfig;
   db: ServerFirestore;
   auth: AdminAuthConfig;
-  getUserProfile?: (uid: string) => Promise<{ displayName?: string; profilePictureUrlFull?: string | null } | null>;
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
 }
 
@@ -21,7 +20,6 @@ export function createCheckoutNextImportantHandler({
   config,
   db,
   auth,
-  getUserProfile,
 }: CheckoutNextImportantHandlerConfig) {
   const verifyAdmin = async (uid: string, authToken: unknown): Promise<void> => {
     if (auth.requireAdmin) {
@@ -43,7 +41,6 @@ export function createCheckoutNextImportantHandler({
     const userId = authContext.uid;
     await verifyAdmin(userId, authContext.token);
 
-    const profile = getUserProfile ? await getUserProfile(userId) : null;
     const now = Date.now();
 
     return db.runTransaction(async (transaction) => {
@@ -72,8 +69,6 @@ export function createCheckoutNextImportantHandler({
 
       const checkoutDetails = {
         userId,
-        userDisplayName: profile?.displayName ?? 'Admin',
-        userPhotoURL: profile?.profilePictureUrlFull ?? null,
         checkedOutAt: now,
         expiresAt,
         workLaterUntil: null,
@@ -88,7 +83,6 @@ export function createCheckoutNextImportantHandler({
       transaction.set(logRef, {
         id: logRef.id,
         adminUserId: userId,
-        adminDisplayName: profile?.displayName ?? 'Admin',
         action: 'checkout_next_important',
         taskType,
         taskId: taskData.taskId as string,

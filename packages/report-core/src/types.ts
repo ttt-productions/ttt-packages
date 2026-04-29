@@ -5,12 +5,10 @@
 export interface Report {
   reportId: string;
   reporterUserId: string;
-  reporterUsername: string;
   reportedItemType: string;
   reportedItemId: string;
   parentItemId?: string;
   reportedUserId?: string;
-  reportedUsername?: string;
   reason: string;
   comment: string;
   createdAt: number;
@@ -29,7 +27,6 @@ export interface ReportGroup {
   groupKey: string;
   reportedItemId: string;
   reportedItemType: string;
-  reportedUsername: string | null;
   reportedUserId: string | null;
   lastReportAt: number;
   totalReports: number;
@@ -66,8 +63,6 @@ export type AdminTaskStatus =
 
 export interface CheckoutDetails {
   userId: string;
-  userDisplayName: string;
-  userPhotoURL: string | null;
   checkedOutAt: number;
   expiresAt: number;
   workLaterUntil: number | null;
@@ -95,7 +90,6 @@ export type ActivityAction =
 export interface ActivityLogEntry {
   id: string;
   adminUserId: string;
-  adminDisplayName: string;
   action: ActivityAction;
   taskType: string;
   taskId: string;
@@ -152,11 +146,8 @@ export interface ReportButtonProps {
   itemId: string;
   parentItemId?: string;
   reportedUserId?: string;
-  reportedUsername?: string;
   /** Current user ID. Required for dialog submission. */
   reporterUserId?: string;
-  /** Current user display name. */
-  reporterUsername?: string;
   /** Called after successful submission. */
   onSubmitSuccess?: () => void;
   /** Called on submission error. */

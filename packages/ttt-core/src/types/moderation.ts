@@ -5,7 +5,6 @@ import type { PendingMediaPending } from '@ttt-productions/media-contracts';
 export interface ContentViolation {
   id: string;
   userId: string;
-  displayName: string;
   fileType: string;
   violationType?: 'text' | 'media';
   originalFileName: string;
@@ -22,7 +21,6 @@ export interface ContentViolation {
   appealMessage?: string;
   appealedAt?: number;
   reviewedBy?: string;
-  reviewedByUsername?: string;
   reviewedAt?: number;
   reviewDecision?: 'approved' | 'denied';
   reviewNotes?: string;
@@ -34,12 +32,10 @@ export interface ContentViolation {
 export type Report = {
   reportId: string;
   reporterUserId: string;
-  reporterUsername: string;
   reportedItemType: string;
   reportedItemId: string;
   parentItemId?: string;
   reportedUserId?: string;
-  reportedUsername?: string;
   reason: string;
   comment: string;
   createdAt: number;
@@ -53,10 +49,25 @@ export type ReportGroup = {
   groupKey: string;
   reportedItemId: string;
   reportedItemType: string;
-  reportedUsername: string | null;
   reportedUserId: string | null;
   lastReportAt: number;
   totalReports: number;
   status: 'pending' | 'reviewing' | 'resolved';
   reports?: Report[];
 };
+
+export interface ContentAppealTask {
+  id: string;
+  taskType: 'content-appeal';
+  violationId: string;
+  userId: string;
+  fileType: string;
+  rejectionReason: string;
+  appealMessage: string;
+  rejectedFilePath: string;
+  status: 'pending' | 'checked-out' | 'completed';
+  checkedOutBy?: string;
+  checkedOutAt?: number;
+  createdAt: number;
+  priority: 'normal' | 'high';
+}
