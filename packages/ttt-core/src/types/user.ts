@@ -19,7 +19,6 @@ export type SkillReference = {
   skillId: string;
   compositeId: string;
   userId: string;
-  displayName: string;
   skillName: string;
   skillUrl: string;
   skillType: 'image' | 'video' | 'audio';

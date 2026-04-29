@@ -1,7 +1,5 @@
 // Social types: Streetz feed, Mentions, Follows, Donations
 
-import type { ShortUser } from './user.js';
-
 // --- Streetz Social Media ---
 
 export type StreetzPostType =
@@ -28,8 +26,6 @@ export type Mention = {
  */
 export type StreetzPostPayload = {
   userId: string;
-  displayName: string;
-  profilePictureUrlMedium?: string | null;
   mentions?: Mention[];
   newMediaUrl?: string;
   skill?: { id: string; name: string; url: string; type: 'image' | 'video' | 'audio' };
@@ -46,7 +42,7 @@ export type StreetzPostPayload = {
 
 export type StreetzPost = {
   postId: string;
-  createdBy: ShortUser;
+  createdBy: { uid: string };
   authorId: string;
   content: string;
   mentions?: Mention[];
@@ -83,5 +79,4 @@ export type Donation = {
   status: string;
   createdAt: number;
   userId: string;
-  displayName: string;
 };
