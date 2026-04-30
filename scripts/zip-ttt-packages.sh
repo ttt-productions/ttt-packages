@@ -34,6 +34,20 @@ for ex in "${DIST_EXCLUDE[@]}"; do
   exclude_with_dist+=("-x" "$ex")
 done
 
+# Create a zip from scratch every time.
+# This prevents zip from updating an old archive and accidentally keeping stale files.
+create_zip() {
+  local zip_name="$1"
+  shift
+
+  local tmp_zip="$OUT_DIR/$zip_name"
+  local root_zip="./$zip_name"
+
+  rm -f "$tmp_zip" "$root_zip"
+
+  zip -r "$tmp_zip" "$@"
+}
+
 echo -e "${BLUE}=== TTT Productions Packages Zipper ===${NC}"
 echo ""
 
@@ -62,7 +76,7 @@ echo "1) Zip ONE package (exclude dist/)"
 echo "2) Zip ONE package (include dist/)"
 echo "3) Zip ALL packages (exclude dist/)"
 echo "4) Zip ALL packages (include dist/)"
-echo "5) Zip everthing (exclude dist/)"
+echo "5) Zip everything (exclude dist/)"
 echo ""
 
 read -p "Choose (1-5): " choice
@@ -79,12 +93,12 @@ case "$choice" in
 
     if [[ "$choice" == "1" ]]; then
       echo -e "${GREEN}Zipping $PKG_NAME (excluding dist)...${NC}"
-      zip -r "$OUT_DIR/ttt-packages-$PKG_NAME-no-dist.zip" \
+      create_zip "ttt-packages-$PKG_NAME-no-dist.zip" \
         "$PKG_DIR" \
         "${exclude_with_dist[@]}"
     else
       echo -e "${GREEN}Zipping $PKG_NAME (including dist)...${NC}"
-      zip -r "$OUT_DIR/ttt-packages-$PKG_NAME-with-dist.zip" \
+      create_zip "ttt-packages-$PKG_NAME-with-dist.zip" \
         "$PKG_DIR" \
         "${exclude_args[@]}"
     fi
@@ -92,21 +106,21 @@ case "$choice" in
 
   3)
     echo -e "${GREEN}Zipping ALL packages (excluding dist)...${NC}"
-    zip -r "$OUT_DIR/ttt-packages-all-no-dist.zip" \
+    create_zip "ttt-packages-all-no-dist.zip" \
       "$PKG_ROOT" \
       "${exclude_with_dist[@]}"
     ;;
 
   4)
     echo -e "${GREEN}Zipping ALL packages (including dist)...${NC}"
-    zip -r "$OUT_DIR/ttt-packages-all-with-dist.zip" \
+    create_zip "ttt-packages-all-with-dist.zip" \
       "$PKG_ROOT" \
       "${exclude_args[@]}"
     ;;
 
   5)
     echo -e "${GREEN}Zipping everything (excluding dist)...${NC}"
-    zip -r "$OUT_DIR/ttt-packages-full-no-dist.zip" \
+    create_zip "ttt-packages-full-no-dist.zip" \
       package.json \
       package-lock.json \
       tsconfig.json \
@@ -134,11 +148,10 @@ echo ""
 echo -e "${BLUE}=== MOVING ZIP FILES ===${NC}"
 
 # Move the zips to the current repo root automatically
-mv "$OUT_DIR"/*.zip .
+mv -f "$OUT_DIR"/*.zip .
 
 # Remove the temporary directory
 rmdir "$OUT_DIR"
 
 echo -e "${GREEN}Copied zip(s) to repo root and cleaned up temp directory.${NC}"
 ls -lh *.zip
-
