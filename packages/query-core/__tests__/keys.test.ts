@@ -10,18 +10,16 @@ describe('keys.user', () => {
     expect(keys.user.detail('abc')).toEqual(['user', 'detail', 'abc']);
   });
 
-  it('list without params returns ["user", "list", undefined] without undefined', () => {
+  it('list without params returns ["user", "list"]', () => {
     const result = keys.user.list();
     expect(result[0]).toBe('user');
     expect(result[1]).toBe('list');
+    expect(result.length).toBe(2);
   });
 
-  it('list with params includes the filter object', () => {
-    const filter = { status: 'active' };
-    const result = keys.user.list(filter);
-    expect(result).toContain('user');
-    expect(result).toContain('list');
-    expect(result).toContain(filter);
+  it('list with a string param includes it', () => {
+    const result = keys.user.list('userId-123');
+    expect(result).toEqual(['user', 'list', 'userId-123']);
   });
 
   it('custom with multiple parts', () => {
@@ -29,6 +27,18 @@ describe('keys.user', () => {
     expect(result[0]).toBe('user');
     expect(result[1]).toBe('foo');
     expect(result[2]).toBe('bar');
+  });
+
+  it('keys are arrays of Firestore-safe primitives only', () => {
+    const k = keys.opportunities.custom('list', 'All', 'newest');
+    // Compile-time: must be assignable to readonly (string|number|boolean|null)[]
+    const _check: ReadonlyArray<string | number | boolean | null> = k;
+    expect(_check).toEqual(['opportunities', 'list', 'All', 'newest']);
+  });
+
+  it('list filters out undefined params', () => {
+    expect(keys.user.list(undefined)).toEqual(['user', 'list']);
+    expect(keys.user.list()).toEqual(['user', 'list']);
   });
 });
 
@@ -73,13 +83,12 @@ describe('createKeyScope', () => {
     expect(myScope.detail('123')).toEqual(['myScope', 'detail', '123']);
   });
 
-  it('creates list key with params', () => {
+  it('creates list key with a string param', () => {
     const myScope = createKeyScope('myScope');
-    const filter = { page: 1 };
-    const result = myScope.list(filter);
+    const result = myScope.list('active');
     expect(result[0]).toBe('myScope');
     expect(result[1]).toBe('list');
-    expect(result).toContain(filter);
+    expect(result[2]).toBe('active');
   });
 
   it('creates custom key', () => {
