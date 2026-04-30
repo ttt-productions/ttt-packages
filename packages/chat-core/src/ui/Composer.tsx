@@ -7,7 +7,7 @@ import type { MediaInputChangePayload } from "@ttt-productions/file-input";
 import type { FileOrigin } from "@ttt-productions/media-contracts";
 import { uploadFileResumable } from "@ttt-productions/upload-core";
 import { Loader2, X, FileText, ImageIcon, VideoIcon, MicIcon } from "lucide-react";
-import type { ChatAttachment, ChatAttachmentConfig, SendChatAttachmentFn } from "../types";
+import type { ChatAttachment, ChatAttachmentConfig, ChatMessageV1, RegisterAttachmentFn } from "../types";
 
 function genId(): string {
   return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -30,19 +30,21 @@ function AttachmentTypeIcon({ type }: { type: ChatAttachment["type"] }) {
 }
 
 export type ComposerProps = {
-  onSend: (
-    text: string,
-    attachment?: ChatAttachment
-  ) => Promise<{ messageDocPath: string; attachmentId?: string }> | Promise<void>;
+  /**
+   * Text-only send. Composer calls this when there is no pending attachment.
+   * Consumer creates the message doc. Return value is ignored.
+   */
+  onSend: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
 
   // Attachment support
   attachmentConfig?: ChatAttachmentConfig;
   /**
-   * Called after upload + onSend, to hand off the pendingMedia creation
-   * to the consumer app (which will call a backend callable).
+   * Attachment send. Composer uploads the file to Storage first, then calls
+   * this with the resulting metadata. Consumer wires it to a backend callable
+   * that atomically creates the message doc + pendingMedia doc.
    * Required for attachment functionality.
    */
-  sendAttachment?: SendChatAttachmentFn;
+  registerAttachment?: RegisterAttachmentFn;
 
   disabled?: boolean;
   autoFocus?: boolean;
@@ -53,7 +55,7 @@ export function Composer(props: ComposerProps) {
   const {
     onSend,
     attachmentConfig,
-    sendAttachment,
+    registerAttachment,
     disabled,
     autoFocus = false,
     placeholder = "Type a message...",
@@ -65,7 +67,7 @@ export function Composer(props: ComposerProps) {
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
   const ref = React.useRef<HTMLTextAreaElement>(null);
 
-  const attachEnabled = Boolean(attachmentConfig && sendAttachment);
+  const attachEnabled = Boolean(attachmentConfig && registerAttachment);
 
   // focus stability: never steal focus unless explicitly enabled
   React.useEffect(() => {
@@ -88,11 +90,8 @@ export function Composer(props: ComposerProps) {
     setIsSending(true);
 
     try {
-      let attachment: ChatAttachment | undefined;
-      let uploadStoragePath: string | undefined;
-      let originalFileName: string | undefined;
-
-      if (pendingFile && attachmentConfig && sendAttachment) {
+      if (pendingFile && attachmentConfig && registerAttachment) {
+        // Attachment path: upload first, then register.
         const uuid = genId();
         const FILE_ORIGIN: FileOrigin = "chat-attachment";
         const storagePath = `uploads/${FILE_ORIGIN}/${attachmentConfig.userId}/${uuid}`;
@@ -110,39 +109,19 @@ export function Composer(props: ComposerProps) {
         });
         setUploadProgress(null);
 
-        attachment = {
-          id: uuid,
-          name: fileToUpload.name,
-          type: attType,
-          size: fileToUpload.size,
-          status: "pending",
-          pendingStoragePath: storagePath,
-        };
-
-        uploadStoragePath = storagePath;
-        originalFileName = fileToUpload.name;
-      }
-
-      const sendResult = await onSend(v, attachment);
-
-      // If an attachment was included, the consumer MUST have returned a messageDocPath.
-      if (attachment && uploadStoragePath && originalFileName) {
-        const messageDocPath = (sendResult as { messageDocPath?: string } | undefined)?.messageDocPath;
-        if (!messageDocPath) {
-          throw new Error(
-            "[Composer] onSend did not return a messageDocPath. Attachments require the consumer to return { messageDocPath } from onSend."
-          );
-        }
-        const attachmentId =
-          (sendResult as { attachmentId?: string } | undefined)?.attachmentId ?? attachment.id;
-
-        // sendAttachment is guaranteed defined because attachEnabled gated this branch.
-        await sendAttachment!({
-          uploadStoragePath,
-          originalFileName,
-          messageDocPath,
-          attachmentId,
+        await registerAttachment({
+          text: v,
+          attachment: {
+            attachmentId: uuid,
+            storagePath,
+            originalFileName: fileToUpload.name,
+            type: attType,
+            size: fileToUpload.size,
+          },
         });
+      } else {
+        // Text-only path.
+        await onSend(v);
       }
 
       setText("");

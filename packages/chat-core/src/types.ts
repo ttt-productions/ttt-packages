@@ -110,23 +110,48 @@ export type ChatAttachmentConfig = {
 };
 
 // ============================================
-// ATTACHMENT HAND-OFF CALLBACK
+// ATTACHMENT REGISTRATION CALLBACK
 // ============================================
 
 /**
- * Called by Composer after the file has been uploaded and the consumer's `onSend`
- * has created the message doc. The consumer wires this to a backend callable
- * that writes the `pendingMedia` Firestore doc with `targetDocPath` pointing at
- * the message. Chat-core itself no longer writes `pendingMedia`.
+ * Called by Composer after the file has been uploaded to Storage. The consumer
+ * wires this to a backend callable that atomically creates BOTH the chat message
+ * doc and the pendingMedia doc (linked via targetDocPath). Composer no longer
+ * asks the consumer for a messageDocPath — the callable owns that ID.
+ *
+ * `attachment` carries everything the callable needs to record the upload:
+ * the storage path the file was uploaded to, the original filename, the
+ * pending-media doc id (also used as the attachment id on the message),
+ * and basic file metadata for the message renderer.
  */
-export type SendChatAttachmentInput = {
-  uploadStoragePath: string;
-  originalFileName: string;
-  messageDocPath: string;
-  attachmentId: string;
+export type RegisterAttachmentInput = {
+  text: string;
+  attachment: {
+    attachmentId: string;
+    storagePath: string;
+    originalFileName: string;
+    type: ChatAttachment["type"];
+    size: number;
+  };
+  replyTo?: ChatMessageV1["replyTo"];
 };
 
-export type SendChatAttachmentFn = (input: SendChatAttachmentInput) => Promise<void>;
+export type RegisterAttachmentFn = (input: RegisterAttachmentInput) => Promise<void>;
+
+// ============================================
+// FAILED ATTACHMENT DISMISSAL
+// ============================================
+
+/**
+ * Sender-gated handler invoked when a user dismisses one of their own messages
+ * whose attachment ended in `failed` or `rejected` status. The consumer wires
+ * this to a backend callable that deletes the message doc. Chat-core does not
+ * delete the doc itself.
+ *
+ * Distinct from `ModerationHandlers.onDeleteMessage`, which is admin-gated and
+ * applies to any message.
+ */
+export type DismissFailedAttachmentFn = (messageId: string) => Promise<void>;
 
 // ============================================
 // MODERATION

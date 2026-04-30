@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { ChatMessageV1, MessageRendererRegistry, ModerationHandlers } from "../types";
+import type { ChatMessageV1, MessageRendererRegistry, ModerationHandlers, DismissFailedAttachmentFn } from "../types";
 import { GROUP_GAP_SEC } from "../types";
 import { Button } from "@ttt-productions/ui-core";
 import { MessageItemDefault } from "./MessageItemDefault";
@@ -34,6 +34,7 @@ export function MessageList(props: {
 
   handlers?: ModerationHandlers;
   onSenderClick?: (senderId: string, displayName: string) => void;
+  onDismissFailedAttachment?: DismissFailedAttachmentFn;
 }) {
   const {
     messages,
@@ -48,6 +49,7 @@ export function MessageList(props: {
     onScrollToBottom,
     handlers,
     onSenderClick,
+    onDismissFailedAttachment,
   } = props;
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -159,6 +161,7 @@ export function MessageList(props: {
                     handlers={handlers}
                     isContinuation={continuation}
                     onSenderClick={onSenderClick}
+                    onDismissFailedAttachment={onDismissFailedAttachment}
                   />
                 );
 

@@ -3,9 +3,10 @@
 import * as React from "react";
 import type {
   ChatCoreConfig,
-  ChatAttachment,
+  ChatMessageV1,
   ChatAttachmentConfig,
-  SendChatAttachmentFn,
+  RegisterAttachmentFn,
+  DismissFailedAttachmentFn,
   MessageRendererRegistry,
   ModerationHandlers,
 } from "../types";
@@ -22,11 +23,8 @@ export type ChatShellProps = {
   // Header
   header?: React.ReactNode;
 
-  // Send handler
-  onSend: (
-    text: string,
-    attachment?: ChatAttachment
-  ) => Promise<{ messageDocPath: string; attachmentId?: string }> | Promise<void>;
+  // Send handler — text-only
+  onSend: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
 
   // Message rendering
   renderMessage?: (m: any) => React.ReactNode;
@@ -35,7 +33,8 @@ export type ChatShellProps = {
 
   // Composer attachment config
   attachmentConfig?: ChatAttachmentConfig;
-  sendAttachment?: SendChatAttachmentFn;
+  registerAttachment?: RegisterAttachmentFn;
+  onDismissFailedAttachment?: DismissFailedAttachmentFn;
   composerPlaceholder?: string;
   autoFocus?: boolean;
 
@@ -61,7 +60,8 @@ export function ChatShell(props: ChatShellProps) {
     messageRenderers,
     handlers,
     attachmentConfig,
-    sendAttachment,
+    registerAttachment,
+    onDismissFailedAttachment,
     composerPlaceholder,
     autoFocus = false,
     renderAboveMessages,
@@ -129,6 +129,7 @@ export function ChatShell(props: ChatShellProps) {
           onScrollToBottom={() => setShowScrollToBottom(false)}
           handlers={handlers}
           onSenderClick={onSenderClick}
+          onDismissFailedAttachment={onDismissFailedAttachment}
         />
       </CardContent>
 
@@ -148,7 +149,7 @@ export function ChatShell(props: ChatShellProps) {
             <Composer
               onSend={onSend}
               attachmentConfig={attachmentConfig}
-              sendAttachment={sendAttachment}
+              registerAttachment={registerAttachment}
               disabled={composerDisabled}
               autoFocus={autoFocus}
               placeholder={composerPlaceholder}
