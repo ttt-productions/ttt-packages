@@ -1,5 +1,7 @@
 export * from "./types";
 
+export * from "./context/ChatNameResolverContext";
+
 export * from "./hooks/useChatMessages";
 export * from "./hooks/useChatThreadAccess";
 

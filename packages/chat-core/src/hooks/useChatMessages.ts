@@ -20,6 +20,7 @@ import { toMillis } from "@ttt-productions/firebase-helpers";
 import type { ChatCoreConfig, ChatMessageV1 } from "../types";
 import { canAccessThread } from "./useChatThreadAccess";
 import { messagesColPath, newestWindowQuery } from "../firestore/queries";
+import { useOptionalChatNameResolver } from "../context/ChatNameResolverContext";
 
 // Safety limit to prevent memory exhaustion
 const MAX_PAGE_SIZE = 100;
@@ -51,16 +52,25 @@ function mapMsg(
     console.error('[useChatMessages] Message missing valid createdAt:', doc.id, d.createdAt);
   }
 
+  // replyTo: the new shape uses senderId, not senderUsername. Tolerate older
+  // docs that still have senderUsername — drop the name and keep what we can.
+  const replyTo = d.replyTo
+    ? {
+        messageId: d.replyTo.messageId,
+        senderId: d.replyTo.senderId ?? "",
+        messagePreview: d.replyTo.messagePreview,
+      }
+    : undefined;
+
   return {
     messageId: doc.id,
     threadId,
     createdAt: createdAt || 0,
     senderId: d.senderId,
-    senderUsername: d.senderUsername,
     text: d.text ?? "",
     type: d.type,
     attachment: d.attachment ?? undefined,
-    replyTo: d.replyTo ?? undefined,
+    replyTo,
     isSystemMessage: d.isSystemMessage ?? undefined,
     meta: d.meta,
   };
@@ -193,6 +203,24 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     const olderDesc = (older.data?.pages ?? []).flatMap((p) => p.itemsDesc);
     return dedupeAndSortAsc([...olderDesc, ...newest.newestDesc]);
   }, [allowed, older.data, newest.newestDesc]);
+
+  // Pre-warm name cache for all visible senders (and reply-to senders).
+  // Optional resolver: silent no-op if no provider is wrapped.
+  const resolverCtx = useOptionalChatNameResolver();
+  const senderIds = React.useMemo(() => {
+    const set = new Set<string>();
+    for (const m of messages) {
+      set.add(m.senderId);
+      if (m.replyTo?.senderId) set.add(m.replyTo.senderId);
+    }
+    return Array.from(set);
+  }, [messages]);
+
+  React.useEffect(() => {
+    if (resolverCtx?.prewarm && senderIds.length > 0) {
+      resolverCtx.prewarm(senderIds);
+    }
+  }, [resolverCtx, senderIds]);
 
   return {
     allowed,

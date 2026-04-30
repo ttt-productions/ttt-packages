@@ -40,13 +40,12 @@ export type ChatMessageV1 = {
   threadId: string;
   createdAt: number;           // millis
   senderId: string;
-  senderUsername?: string;
   text?: string;
   type?: string;               // optional for renderer registry
   attachment?: ChatAttachment; // single, not array
   replyTo?: {
     messageId: string;
-    senderUsername: string;
+    senderId: string;
     messagePreview: string;
   };
   isSystemMessage?: boolean;
@@ -128,3 +127,22 @@ export type MessageRendererRegistry = Record<string, MessageRenderer>;
 
 /** Max seconds between messages to be grouped as continuation */
 export const GROUP_GAP_SEC = 120;
+
+// ============================================
+// NAME RESOLUTION
+// ============================================
+
+/**
+ * Resolves a senderId to a display name synchronously from app-side cache.
+ * Returns null if the sender is unknown or the cache hasn't loaded yet —
+ * chat-core will render a stable fallback ("User") in that case.
+ */
+export type ChatNameResolver = (senderId: string) => string | null;
+
+/**
+ * Optional pre-warm callback. chat-core calls this with the deduped list of
+ * senderIds visible in the current message page so the consuming app can
+ * batch-fetch names into its cache. Implementations should be idempotent —
+ * the same id list will be passed across re-renders.
+ */
+export type ChatPrewarmSenders = (senderIds: string[]) => void;

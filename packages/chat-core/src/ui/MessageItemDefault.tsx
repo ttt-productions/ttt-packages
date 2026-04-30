@@ -5,6 +5,7 @@ import { cn } from "@ttt-productions/ui-core";
 import { MediaViewer } from "@ttt-productions/media-viewer";
 import { Loader2, FileText, AlertTriangle, ShieldAlert } from "lucide-react";
 import { MessageActions } from "./menus";
+import { useResolvedSenderName } from "../context/ChatNameResolverContext";
 
 // ============================================
 // Attachment rendering
@@ -85,9 +86,10 @@ function AttachmentRenderer({ attachment }: { attachment: ChatAttachment }) {
 // ============================================
 
 function ReplyQuote({ replyTo }: { replyTo: NonNullable<ChatMessageV1["replyTo"]> }) {
+  const replyName = useResolvedSenderName(replyTo.senderId);
   return (
     <div className="chat-reply-quote">
-      <span className="chat-reply-quote-sender">{replyTo.senderUsername}</span>
+      <span className="chat-reply-quote-sender">{replyName}</span>
       <span className="chat-reply-quote-preview">{replyTo.messagePreview}</span>
     </div>
   );
@@ -124,6 +126,7 @@ export type MessageItemDefaultProps = {
 
 export function MessageItemDefault(props: MessageItemDefaultProps) {
   const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick } = props;
+  const senderName = useResolvedSenderName(m.senderId);
 
   // System messages render differently
   if (m.isSystemMessage) {
@@ -146,14 +149,14 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
           <div className="flex items-center gap-2 text-xs opacity-80 mb-1">
             <span
               className={cn("font-medium", onSenderClick && "cursor-pointer hover:underline")}
-              onClick={onSenderClick ? () => onSenderClick(m.senderId, m.senderUsername ?? "User") : undefined}
+              onClick={onSenderClick ? () => onSenderClick(m.senderId, senderName) : undefined}
               role={onSenderClick ? "button" : undefined}
               tabIndex={onSenderClick ? 0 : undefined}
               onKeyDown={onSenderClick ? (e) => {
-                if (e.key === "Enter" || e.key === " ") onSenderClick(m.senderId, m.senderUsername ?? "User");
+                if (e.key === "Enter" || e.key === " ") onSenderClick(m.senderId, senderName);
               } : undefined}
             >
-              {m.senderUsername ?? "User"}
+              {senderName}
             </span>
             <span>·</span>
             <span>{new Date(m.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>

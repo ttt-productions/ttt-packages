@@ -24,10 +24,8 @@ export interface ChatChannel {
   allowedUserIds: string[];
   createdAt: number;
   createdBy: string;
-  createdByUsername: string;
   lastMessageAt?: string;
   lastMessage?: string;
-  lastMessageSender?: string;
   messageCount: number;
   isArchived: boolean;
 }
@@ -37,15 +35,13 @@ export interface ChatMessage {
   channelId: string;
   projectId: string;
   senderId: string;
-  senderUsername: string;
-  senderProfilePicture?: string;
   text: string;
   createdAt: number;
   editedAt?: string;
   attachments?: MessageAttachment[];
   replyTo?: {
     messageId: string;
-    senderUsername: string;
+    senderId: string;
     messagePreview: string;
   };
   isSystemMessage?: boolean;
@@ -82,14 +78,12 @@ export interface ProjectInviteMessage {
   messageId: string;
   inviteId: string;
   senderId: string;
-  senderUsername: string;
-  senderProfilePicture?: string;
   message: string;
   createdAt: number;
   attachments?: MessageAttachment[];
   replyTo?: {
     messageId: string;
-    senderUsername: string;
+    senderId: string;
     messagePreview: string;
   };
 }
@@ -99,8 +93,6 @@ export interface ProjectInviteMessage {
 export interface AdminMessage {
   messageId: string;
   userId: string;
-  userUsername: string;
-  initiatorUsername: string;
   initiatorUserId: string;
   initiatedBy: 'user' | 'admin';
   subject: string;
@@ -109,7 +101,6 @@ export interface AdminMessage {
   lastUpdatedAt: number;
   readByAdmin: boolean;
   readByUser: boolean;
-  closedBy?: ShortUser;
 }
 
 // --- Helper Types ---
