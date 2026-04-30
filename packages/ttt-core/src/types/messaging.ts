@@ -1,7 +1,5 @@
 // Messaging types: Chat channels, Invite conversations, Admin messages
 
-import type { ShortUser } from './user.js';
-
 // --- Message Attachments ---
 
 export interface MessageAttachment {
@@ -60,9 +58,9 @@ export interface ProjectInviteConversation {
     type: string;
     workingDescription: string;
   };
-  projectOwner: ShortUser;
-  sender: ShortUser;
-  recipient: ShortUser;
+  projectOwner: { uid: string };
+  sender: { uid: string };
+  recipient: { uid: string };
   sharesOffered: number;
   status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'finalized' | 'error';
   createdAt: number;

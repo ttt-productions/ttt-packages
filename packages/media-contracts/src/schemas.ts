@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { FileOriginSchema, type FileOrigin } from "./file-origin.js";
-import { ShortProjectSchema, ShortUserSchema, MentionSchema } from "./short-types.js";
+import { ShortProjectSchema, MentionSchema } from "./short-types.js";
 
 // ---- primitives ----
 
@@ -464,7 +464,7 @@ export const JobPostingTargetInfoSchema = z
     requiredProfessions: z.array(z.string()),
     sharesOffered: z.number(),
     projectAssociatedWith: ShortProjectSchema,
-    createdBy: ShortUserSchema,
+    createdBy: z.object({ uid: z.string().min(1) }).strict(),
   })
   .strict();
 
@@ -487,7 +487,7 @@ export const OpportunityPromptTargetInfoSchema = z
     title: z.string().min(1),
     description: z.string(),
     openTill: z.number(),
-    createdBy: ShortUserSchema,
+    createdBy: z.object({ uid: z.string().min(1) }).strict(),
     projectId: z.string().min(1).optional(),
     sharesOffered: z.number().optional(),
     projectAmountUSD: z.number().optional(),

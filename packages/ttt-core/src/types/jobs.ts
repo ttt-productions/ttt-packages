@@ -1,6 +1,5 @@
 // Job board and Opportunity types
 
-import type { ShortUser } from './user.js';
 import type { ShortProject } from './project.js';
 
 export type JobFile = {
@@ -19,7 +18,7 @@ export type FullJob = {
   requiredProfessions: string[];
   sharesOffered: number;
   createdAt: number;
-  createdBy: ShortUser;
+  createdBy: { uid: string };
   projectAssociatedWith: ShortProject;
   status: 'open' | 'closed';
   savedApplicants: string[];
@@ -32,7 +31,7 @@ export type FullJobReply = {
   reply: string;
   replyFile?: string;
   replyFileType?: string;
-  createdBy: ShortUser;
+  createdBy: { uid: string };
   createdOn: number;
   status: 'open' | 'accepted' | 'rejected';
   acceptedOn?: string;
@@ -51,7 +50,7 @@ export type Opportunity = {
   mediaType?: 'video' | 'image' | 'audio' | 'other';
   openTill: number;
   createdOn: number;
-  createdBy: ShortUser;
+  createdBy: { uid: string };
   projectId?: string;
   projectAmountUSD?: number;
   sharesOffered?: number;
@@ -67,7 +66,7 @@ export interface OpportunityReply {
   projectId?: string;
   videoUrl: string;
   mediaType?: 'video' | 'image' | 'other';
-  createdBy: ShortUser;
+  createdBy: { uid: string };
   createdAt: number;
   votes: number;
   shortId?: string;
@@ -77,5 +76,5 @@ export interface OpportunityReply {
 export interface UserOpportunityVote {
   votedForReplyId: string;
   votedOn: number;
-  replyCreator: ShortUser;
+  replyCreator: { uid: string };
 }

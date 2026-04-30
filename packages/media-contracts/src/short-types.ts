@@ -9,16 +9,7 @@ export const ShortProjectSchema = z
   })
   .strict();
 
-export const ShortUserSchema = z
-  .object({
-    uid: z.string().min(1),
-    displayName: z.string(),
-    profilePictureUrlMedium: z.string().nullable().optional(),
-  })
-  .strict();
-
 export type ShortProject = z.infer<typeof ShortProjectSchema>;
-export type ShortUser = z.infer<typeof ShortUserSchema>;
 
 export const MentionTypeSchema = z.enum(['user', 'project', 'job', 'opportunity']);
 
@@ -34,5 +25,5 @@ export const MentionSchema = z
 export type MentionType = z.infer<typeof MentionTypeSchema>;
 export type Mention = z.infer<typeof MentionSchema>;
 
-// Keep these shapes in sync with ttt-core's ShortProject / ShortUser / Mention / MentionType.
+// Keep these shapes in sync with ttt-core's ShortProject / Mention / MentionType.
 // Drift detection lives in ttt-core's tests.

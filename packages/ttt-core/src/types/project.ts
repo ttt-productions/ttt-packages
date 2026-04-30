@@ -1,11 +1,9 @@
 // Project-related Firestore document types
 
-import type { ShortUser } from './user.js';
 import type { LibraryItemType } from './content.js';
 
 export type ActiveUsers = {
   uid: string;
-  displayName: string;
   sharesNumber: number;
   roles: string[];
   professions: string[];
@@ -25,7 +23,7 @@ export type ProjectFile = {
   createdAt: number;
   size: number;
   type: string;
-  createdBy: ShortUser;
+  createdBy: { uid: string };
 };
 
 export type ProjectRolesMap = {
@@ -51,8 +49,8 @@ export type FullProject = {
   workingDescription: string;
   workingTitle: string;
   libraryType: LibraryItemType;
-  createdBy: ShortUser;
-  ownedBy: ShortUser;
+  createdBy: { uid: string };
+  ownedBy: { uid: string };
   status: 'open' | 'pendingVerification' | 'published' | 'rejected';
   activeUsers?: ActiveUsers[];
   activeUserIds?: { [key: string]: boolean };
@@ -71,7 +69,7 @@ export type PublicProject = {
   type: string;
   workingTitle: string;
   workingDescription: string;
-  ownedBy: ShortUser;
+  ownedBy: { uid: string };
   followerCount: number;
   viewCount: number;
 };
@@ -81,8 +79,8 @@ export type Universe = {
   workingTitle: string;
   workingDescription: string;
   createdOn: number;
-  createdBy: ShortUser;
-  ownedBy: ShortUser;
+  createdBy: { uid: string };
+  ownedBy: { uid: string };
   type: string;
   projectIds: string[];
 };
@@ -93,7 +91,7 @@ export type ProjectShareEntry = {
 
 export type ProjectInvite = {
   inviteId: string;
-  createdBy: ShortUser;
+  createdBy: { uid: string };
   createdOn: number;
   message: string;
   project: ShortProject;
@@ -111,7 +109,7 @@ export type ShareOperationType =
 export type ShareOperation = {
   type: ShareOperationType;
   amount?: number;
-  user?: { uid: string; displayName: string };
+  user?: { uid: string };
   sourceId?: string;
   sourceType?: 'invite' | 'job';
   projectData?: FullProject;

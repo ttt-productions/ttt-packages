@@ -71,7 +71,7 @@ describe('JobPostingTargetInfoSchema', () => {
     requiredProfessions: ['actor'],
     sharesOffered: 5,
     projectAssociatedWith: { projectId: 'p_1', type: 'film', workingDescription: 'd', workingTitle: 't' },
-    createdBy: { uid: 'u_1', displayName: 'Test User' },
+    createdBy: { uid: 'u_1' },
   };
   it('accepts valid', () => { expect(() => JobPostingTargetInfoSchema.parse(valid)).not.toThrow(); });
   it('rejects missing projectAssociatedWith', () => {
@@ -102,7 +102,7 @@ describe('OpportunityPromptTargetInfoSchema', () => {
     title: 'T',
     description: 'D',
     openTill: 1_700_000_000_000,
-    createdBy: { uid: 'u_1', displayName: 'Test' },
+    createdBy: { uid: 'u_1' },
   };
   it('accepts minimum required fields', () => {
     expect(() => OpportunityPromptTargetInfoSchema.parse(valid)).not.toThrow();

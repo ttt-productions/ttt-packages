@@ -1,7 +1,5 @@
 // Content types: Tales, Tunes, Television, Library
 
-import type { ShortUser } from './user.js';
-
 // --- Project Content Types ---
 
 export type FullTale = {
@@ -107,7 +105,7 @@ export interface PendingLibraryDoc {
   projectType: ProjectType;
   status: 'reviewing' | 'partially_published' | 'fully_published';
   createdOn: number;
-  ownedBy: ShortUser;
+  ownedBy: { uid: string };
   submittedItems: {
     songs?: SubmittedItem[];
     chapters?: SubmittedItem[];
@@ -125,7 +123,7 @@ export interface PublishedLibraryItem {
   status: 'partial' | 'published';
   createdOn: number;
   publishedAt?: number;
-  ownedBy: ShortUser;
+  ownedBy: { uid: string };
   libraryType: LibraryItemType;
   publishedItemCount: number;
   totalItemCount: number;

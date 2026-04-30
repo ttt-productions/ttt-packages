@@ -1,11 +1,5 @@
 // User-related Firestore document types
 
-export type ShortUser = {
-  uid: string;
-  displayName: string;
-  profilePictureUrlMedium?: string | null;
-};
-
 export type Skill = {
   id: string;
   name: string;
