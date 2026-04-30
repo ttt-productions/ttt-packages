@@ -3,7 +3,7 @@
 Shared UI component library built on shadcn/ui + Radix UI primitives. Provides the base component set used by both TTT Productions and Q-Sports.
 
 ## Version
-0.2.22
+0.2.24
 
 ## Dependencies
 Runtime: Radix UI primitives (accordion, alert-dialog, avatar, checkbox, dialog, dropdown-menu, label, menubar, popover, progress, radio-group, scroll-area, select, separator, slider, slot, switch, tabs, toast, tooltip), class-variance-authority, clsx, lucide-react, tailwind-merge.

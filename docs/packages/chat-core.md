@@ -3,7 +3,7 @@
 Full chat system with realtime messaging, infinite scroll history, file attachments, and a composable UI shell. The highest-dependency package in the monorepo — integrates ui-core, firebase-helpers, mobile-core, file-input, upload-core, media-viewer, and media-contracts.
 
 ## Version
-0.4.3
+0.4.4
 
 ## Dependencies
 Runtime: @ttt-productions/ttt-core, @ttt-productions/ui-core, @ttt-productions/firebase-helpers, @ttt-productions/mobile-core, @ttt-productions/file-input, @ttt-productions/upload-core, @ttt-productions/media-viewer, @ttt-productions/media-contracts.
@@ -14,7 +14,14 @@ Peer: @tanstack/react-query, firebase, react, react-dom.
 ### Types (`types.ts`)
 Core chat data model and configuration types. Messages store a `text` field. `targetDocPath` wiring connects chat to its parent entity.
 
-`ChatAttachmentConfig` (Phase 1 breaking change): takes `userId: string` instead of `pendingStoragePath`. chat-core now internally builds the canonical `uploads/chat-attachment/{userId}/{pendingMediaDocId}` path so the app cannot drift from the upload path invariant (see root CLAUDE.md).
+`ChatAttachmentConfig`: takes `userId: string` instead of `pendingStoragePath`. chat-core now internally builds the canonical `uploads/chat-attachment/{userId}/{pendingMediaDocId}` path so the app cannot drift from the upload path invariant (see root CLAUDE.md).
+
+### Name Resolution (`context/ChatNameResolverContext.tsx`)
+- `ChatNameResolverProvider` — App-provided synchronous sender-name resolver.
+- `useResolvedSenderName(senderId)` — Resolves display names at render time, with `"User"` fallback.
+- `ChatPrewarmSenders` — Optional prewarm callback so apps can fetch public identity docs for visible sender ids.
+
+Chat documents store `senderId`/`replyTo.senderId`, not `senderUsername` snapshots. ttt-prod resolves names from `publicUsers`; other consumers provide their own resolver.
 
 ### Firestore Queries (`firestore/queries.ts`)
 Firestore query builders for chat message collections.
@@ -50,6 +57,8 @@ This avoids the common pitfall of subscribing to the entire message history (exp
 src/
   index.ts, types.ts
   firestore/queries.ts
+  context/
+    ChatNameResolverContext.tsx
   hooks/
     useChatMessages.ts, useChatThreadAccess.ts
   ui/
@@ -57,7 +66,7 @@ src/
     MessageItemDefault.tsx, menus.tsx
 ```
 
-## Phase 1 Upload Integration
+## Upload Path Integration
 
 Composer.tsx now:
 - Imports `type FileOrigin` from media-contracts and declares the local `FILE_ORIGIN` constant as that type — any future drift in the string literal fails at compile time.

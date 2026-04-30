@@ -3,7 +3,7 @@
 Adapter-based error monitoring and observability. Provides a unified API that works with Sentry (browser), Sentry Node (Cloud Functions), or a noop adapter for local dev/testing.
 
 ## Version
-0.2.14
+0.2.15
 
 ## Dependencies
 Peer: @sentry/nextjs, @sentry/node.

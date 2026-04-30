@@ -3,7 +3,7 @@
 Firebase Storage upload system with resumable uploads, progress tracking, upload queuing with concurrency control, and session persistence. Handles the actual file transfer after file-input prepares the files.
 
 ## Version
-0.0.3
+0.1.0
 
 ## Dependencies
 Runtime: @ttt-productions/firebase-helpers.
@@ -11,7 +11,7 @@ Peer: firebase, react.
 
 ## What It Contains
 
-### Error types & content-type guard (Phase 1)
+### Error types & content-type guard
 - `UploadError` — Typed error class with `code: 'missing_content_type' | 'invalid_content_type'`. Throw before any bytes hit Firebase Storage when metadata.contentType is empty or not a valid media MIME.
 - `isValidMediaContentType(ct)` — Predicate for `image/*`, `video/*`, `audio/*`. Rejects empty strings and `application/octet-stream`.
 - `uploadFileResumable` now guards contentType at the top; consumers catch `UploadError` via `instanceof` or `err.code`.

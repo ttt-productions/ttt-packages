@@ -3,7 +3,7 @@
 Shared type definitions and Zod validation schemas for the media processing pipeline. This is the contract layer between client-side media inputs (file-input, upload-core) and server-side processing (media-processing-core). No runtime dependencies beyond Zod.
 
 ## Version
-0.2.15
+0.2.20
 
 ## Dependencies
 Runtime: zod.
@@ -16,8 +16,13 @@ Runtime-validated schemas for every media-related data structure:
 - Small structs: `MediaOwnerRef`, `MediaThreadRef`, `MediaAccept`, `MediaClientConstraints`, `MediaCropSpec`, `ImageVariantSpec`
 - Moderation: `MediaModerationStatus`, `MediaModerationFinding`, `MediaModerationResult`, `MediaModerationSpec`
 - Processing: `MediaProcessingSpec`, `MediaProcessingError`, `MediaOutput`, `MediaProcessingResult`
-- Documents: `MediaJobStatusPayload`, `PendingMediaDoc`
+- Documents: `MediaJobStatusPayload`, discriminated `PendingMedia` states, `StartUploadRequest`, `StartUploadResponse`
 - Timestamp: `TimestampLike` (handles Firestore Timestamp, epoch ms, Date)
+
+### Unified Upload Contract
+- `SerializedQueryKey` — Firestore-safe TanStack Query key representation for post-processing invalidation.
+- `PendingMedia` — Discriminated union for `pending`, `processing`, `completed`, `failed`, and `rejected` states, including terminal timestamps, `result.invalidate`, `result.affected`, and `errorCategory`.
+- `StartUploadRequest` / `StartUploadResponse` — Shared callable contract for the unified upload pipeline.
 
 ### TypeScript Types (`types.ts`)
 All types are `z.infer<>` derivations from the schemas — ensuring runtime validation and static types are always in sync.

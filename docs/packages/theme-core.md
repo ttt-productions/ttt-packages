@@ -3,7 +3,7 @@
 Theme provider and CSS token contract for TTT Productions apps. Wraps next-themes with a required token validation system.
 
 ## Version
-0.2.10
+0.2.11
 
 ## Dependencies
 Runtime: next-themes.

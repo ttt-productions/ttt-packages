@@ -3,7 +3,7 @@
 Content reporting and admin task queue pipeline. Users submit reports → reports are grouped → admin tasks are created with priority scoring → admins check out, review, and resolve tasks. Has both client-side React hooks/components and server-side Cloud Function handlers.
 
 ## Version
-0.1.1
+0.5.2
 
 ## Dependencies
 Peer: @tanstack/react-query, @ttt-productions/query-core, @ttt-productions/ui-core, firebase, react, react-dom.
@@ -77,6 +77,7 @@ Server types: `ServerFirestore`, `ServerReportCoreConfig`, etc.
 6. Resolution logged to activity log
 
 ## Key Design Decisions
+- Identity display fields are intentionally not part of the report/admin-task payload. Consuming apps store user ids and resolve display names/avatars from their identity source at render time.
 - Config-driven: consuming apps define reportable item types, reasons, priority weights, and collection paths.
 - Priority scoring is automatic based on report count, reason severity, and recency.
 - Checkout has an expiry timer to prevent tasks from being locked indefinitely.

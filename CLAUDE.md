@@ -14,6 +14,10 @@ Reading those docs should be sufficient for most tasks — only look at package 
 - GitHub Actions for automated publishing via git tags
 - Node >=22, npm >=10
 
+## Display Identity Invariant
+
+For TTT Productions package contracts, display identity is not denormalized into public content, chat, report, admin-task, job, opportunity, project, or library document shapes. Shared cross-boundary types should store uid-only references such as `{ uid: string }`, `userId`, `senderId`, `createdBy.uid`, or `ownedBy.uid`. Apps resolve display names and profile images from their own identity source; ttt-prod uses backend-mirrored `publicUsers/{uid}`.
+
 ## Package Tiers & Dependency Graph
 
 ### Tier 0 — Zero inter-package dependencies

@@ -3,7 +3,7 @@
 TTT Productions-specific core package. Consolidates Firestore path constants, TypeScript types, and shared business constants between frontend and Cloud Functions backend. **This package is TTT Productions-specific and is NOT used by Q-Sports.**
 
 ## Version
-0.2.0
+0.2.9
 
 ## Dependencies
 Runtime: `@ttt-productions/media-contracts` (for `PendingFile`, used in `ContentViolation`).
@@ -33,14 +33,14 @@ Constants for Firestore collection group queries.
 Helper functions that return typed collection references.
 
 ### TypeScript Types (`types/`)
-Shared interfaces and types organized by domain:
-- `user.ts` — User profile, private data, follows, mentions
-- `project.ts` — Project, project posts, shares, invites
+Shared interfaces and types organized by domain. Cross-document identity references use uid-only shapes such as `{ uid: string }`; display names and profile-picture URLs resolve from `publicUsers` in ttt-prod:
+- `user.ts` — Full user profile, private data, follows, mentions
+- `project.ts` — Project, project posts, shares, invites, uid-only project ownership references
 - `content.ts` — Tales, tunes, television, chapters, songs, shows
 - `social.ts` — Streetz posts, likes, feed items
-- `jobs.ts` — Job listings, applications, opportunities
+- `jobs.ts` — Job listings, applications, opportunities, uid-only creator/reply references
 - `messaging.ts` — Admin messages, conversation messages, invite messages
-- `moderation.ts` — `ContentViolation`, `Report`, `ReportGroup` (note: `FileOrigin` and `PendingFile` moved to `media-contracts` in Phase 1 Step 14a)
+- `moderation.ts` — `ContentViolation`, `Report`, `ReportGroup`; imports pending-media shapes from `media-contracts`
 - `admin.ts` — Admin task types, activity log
 
 ### Business Constants (`constants/`)
@@ -50,7 +50,7 @@ Shared interfaces and types organized by domain:
 ## Key Design Decisions
 - Collection name constants are the canonical source of truth — changing them requires database migration.
 - Path builders return tuples (not strings) so they work with both Web SDK's `doc(db, ...segments)` and Admin SDK's `db.doc(segments.join('/'))`.
-- Types are kept generic enough for both frontend and backend consumption.
+- Types are kept generic enough for both frontend and backend consumption, while identity display data stays outside these document shapes and is resolved through the app identity source.
 
 ## Files
 ```
