@@ -56,6 +56,25 @@ export type ChatMessageV1 = {
 // CONFIG
 // ============================================
 
+/**
+ * Access mode controls how chat-core decides whether the current user
+ * can read/write a thread.
+ *
+ * - "firestore-rules" — chat-core trusts Firestore rules. canAccessThread
+ *   returns true for any signed-in user; if rules deny, onSnapshot will
+ *   surface permission-denied. Use this when access depends on data the
+ *   client doesn't reliably know up-front (project membership, invite
+ *   participation, etc.).
+ *
+ * - "explicit-allowlist" — chat-core enforces access client-side via
+ *   threadAllowedUserIds. The list is required in this mode. Use this
+ *   when the consumer already knows the participants (admin/support
+ *   threads).
+ *
+ * Admins (`isAdmin: true`) bypass both modes.
+ */
+export type ChatAccessMode = "firestore-rules" | "explicit-allowlist";
+
 export type ChatCoreConfig = {
   db: Firestore;
   chatCollectionPath: string | string[];
@@ -64,6 +83,13 @@ export type ChatCoreConfig = {
   currentUserId: string;
   currentUserDisplayName?: string;
   isAdmin: boolean;
+  /**
+   * REQUIRED. See ChatAccessMode docs.
+   */
+  accessMode: ChatAccessMode;
+  /**
+   * Required iff accessMode === "explicit-allowlist". Ignored otherwise.
+   */
   threadAllowedUserIds?: string[];
   createdAtField?: string;         // default: "createdAt"
   pageSize?: number;

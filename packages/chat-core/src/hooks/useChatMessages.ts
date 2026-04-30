@@ -101,6 +101,7 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     pageSize: requestedPageSize = 20,
     currentUserId,
     isAdmin,
+    accessMode,
     threadAllowedUserIds,
     createdAtField = "createdAt",
   } = config;
@@ -120,11 +121,12 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
   const allowed = React.useMemo(
     () =>
       canAccessThread({
+        accessMode,
         isAdmin,
         currentUserId,
         allowedUserIds: threadAllowedUserIds,
       }),
-    [isAdmin, currentUserId, threadAllowedUserIds]
+    [accessMode, isAdmin, currentUserId, threadAllowedUserIds]
   );
 
   const [newest, setNewest] = React.useState<NewestWindowState>({

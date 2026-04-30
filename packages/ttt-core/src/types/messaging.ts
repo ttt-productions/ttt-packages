@@ -1,15 +1,8 @@
-// Messaging types: Chat channels, Invite conversations, Admin messages
-
-// --- Message Attachments ---
-
-export interface MessageAttachment {
-  id: string;
-  name: string;
-  url: string;
-  type: 'image' | 'document' | 'video' | 'audio';
-  size: number;
-  storagePath: string;
-}
+// Messaging types: Chat channels, Invite conversations, Admin messages.
+//
+// NOTE: Per-message body shapes (channel messages, invite messages,
+// admin conversation messages) live in @ttt-productions/chat-core as
+// ChatMessageV1. ttt-core only owns the parent thread document shapes.
 
 // --- Project Chat ---
 
@@ -26,23 +19,6 @@ export interface ChatChannel {
   lastMessage?: string;
   messageCount: number;
   isArchived: boolean;
-}
-
-export interface ChatMessage {
-  messageId: string;
-  channelId: string;
-  projectId: string;
-  senderId: string;
-  text: string;
-  createdAt: number;
-  editedAt?: string;
-  attachments?: MessageAttachment[];
-  replyTo?: {
-    messageId: string;
-    senderId: string;
-    messagePreview: string;
-  };
-  isSystemMessage?: boolean;
 }
 
 // --- Project Invite Conversations ---
@@ -72,20 +48,6 @@ export interface ProjectInviteConversation {
   lastMessageAt?: string;
 }
 
-export interface ProjectInviteMessage {
-  messageId: string;
-  inviteId: string;
-  senderId: string;
-  message: string;
-  createdAt: number;
-  attachments?: MessageAttachment[];
-  replyTo?: {
-    messageId: string;
-    senderId: string;
-    messagePreview: string;
-  };
-}
-
 // --- Admin Messages ---
 
 export interface AdminMessage {
@@ -99,17 +61,10 @@ export interface AdminMessage {
   lastUpdatedAt: number;
   readByAdmin: boolean;
   readByUser: boolean;
+  /**
+   * Set when the thread is closed (status starts with 'closed_').
+   * Records the uid of the actor who closed it (admin or thread owner).
+   * Used for future investigation of closed_unresolved threads.
+   */
+  closedBy?: string;
 }
-
-// --- Helper Types ---
-
-export type MessageStatus =
-  | 'pending'
-  | 'active'
-  | 'accepted'
-  | 'declined'
-  | 'cancelled'
-  | 'error'
-  | 'finalized'
-  | 'closed_resolved'
-  | 'closed_unresolved';
