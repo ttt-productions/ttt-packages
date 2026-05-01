@@ -100,6 +100,13 @@ export const JobApplicationSubmittedEventSchema = z
   })
   .strict();
 
+export const ProjectUpdatedEventSchema = z
+  .object({
+    type: z.literal('project.updated'),
+    ids: z.object({ projectId: z.string().min(1) }).strict(),
+  })
+  .strict();
+
 export const LibraryAssetCoverUpdatedEventSchema = z
   .object({
     type: z.literal('libraryAsset.coverUpdated'),
@@ -161,6 +168,7 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   OpportunityReplyCreatedEventSchema,
   JobCreatedEventSchema,
   JobApplicationSubmittedEventSchema,
+  ProjectUpdatedEventSchema,
   LibraryAssetCoverUpdatedEventSchema,
   LibraryAssetSubItemUpdatedEventSchema,
   ModerationViolationCreatedEventSchema,
