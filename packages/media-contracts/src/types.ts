@@ -52,6 +52,7 @@ import {
   ShowPhotoTargetInfoSchema,
   ShowVideoTargetInfoSchema,
   ChatAttachmentTargetInfoSchema,
+  ProjectFileTargetInfoSchema,
 } from "./schemas.js";
 
 // ---- basic enums / scalars ----
@@ -134,6 +135,7 @@ export type SongAudioTargetInfo = z.infer<typeof SongAudioTargetInfoSchema>;
 export type ShowPhotoTargetInfo = z.infer<typeof ShowPhotoTargetInfoSchema>;
 export type ShowVideoTargetInfo = z.infer<typeof ShowVideoTargetInfoSchema>;
 export type ChatAttachmentTargetInfo = z.infer<typeof ChatAttachmentTargetInfoSchema>;
+export type ProjectFileTargetInfo = z.infer<typeof ProjectFileTargetInfoSchema>;
 
 // Mapped type: given a FileOrigin literal, returns its targetInfo shape.
 export type TargetInfoFor<O extends import('./file-origin.js').FileOrigin> =
@@ -153,4 +155,5 @@ export type TargetInfoFor<O extends import('./file-origin.js').FileOrigin> =
   : O extends 'show-photo' ? ShowPhotoTargetInfo
   : O extends 'show-video' ? ShowVideoTargetInfo
   : O extends 'chat-attachment' ? ChatAttachmentTargetInfo
+  : O extends 'project-file' ? ProjectFileTargetInfo
   : never;

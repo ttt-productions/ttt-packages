@@ -17,6 +17,7 @@ export const FileOriginSchema = z.enum([
   'show-photo',
   'show-video',
   'chat-attachment',
+  'project-file',
 ]);
 
 export type FileOrigin = z.infer<typeof FileOriginSchema>;

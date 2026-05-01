@@ -506,4 +506,41 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, TTTMediaOriginEntry> = {
     },
   },
 
+  'project-file': {
+    kind: 'generic',
+    accept: ACCEPT_MEDIA_ALL,
+    maxBytes: 5 * 1024 * 1024,
+    maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    client: {
+      allowPick: true,
+      allowCapturePhoto: true,
+      allowRecordVideo: true,
+      allowRecordAudio: true,
+      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'main', maxWidth: 1280, maxHeight: 1280, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+      video: {
+        kind: 'video',
+        requiredWidth: 1280,
+        requiredHeight: 720,
+        allowAutoFormat: true,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
+      audio: {
+        kind: 'audio',
+        audio: {
+          maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
+        },
+      },
+    },
+  },
+
 };

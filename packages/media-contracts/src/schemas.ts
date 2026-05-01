@@ -534,6 +534,16 @@ export const ChatAttachmentTargetInfoSchema = z
   })
   .strict();
 
+// project-file: projectId only. The processor looks up the project doc
+// at finalize time and builds the canonical ProjectFile entry from
+// PendingMedia metadata (originalFileName, size, type, userId, completedAt)
+// before pushing it into the project doc's `files` array via arrayUnion.
+export const ProjectFileTargetInfoSchema = z
+  .object({
+    projectId: z.string().min(1),
+  })
+  .strict();
+
 // ============================================================================
 // parseTargetInfo: the only public path for narrowing targetInfo by origin.
 // ============================================================================
@@ -563,6 +573,7 @@ export function parseTargetInfo<O extends FileOrigin>(
     case 'show-photo': return ShowPhotoTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
     case 'show-video': return ShowVideoTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
     case 'chat-attachment': return ChatAttachmentTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'project-file': return ProjectFileTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
     default: return assertNever(fileOrigin);
   }
 }
