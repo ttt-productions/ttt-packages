@@ -4,3 +4,4 @@ export * from "./short-types.js";
 export * from "./schemas.js";
 export * from "./file-origin.js";
 export * from "./ttt-media-specs.js";
+export * from "./domain-events.js";

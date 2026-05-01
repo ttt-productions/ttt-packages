@@ -48,11 +48,11 @@ describe('PendingMediaSchema — completed branch', () => {
     status: 'completed' as const,
     completedAt: 1_700_000_001_000,
     result: {
-      invalidate: [['users', 'user_abc']],
+      events: [{ type: 'profile.pictureUpdated', ids: { userId: 'user_abc' } }],
     },
   };
 
-  it('accepts a valid completed doc with only invalidate', () => {
+  it('accepts a valid completed doc with only events', () => {
     expect(() => PendingMediaSchema.parse(completedDoc)).not.toThrow();
   });
 
@@ -60,7 +60,7 @@ describe('PendingMediaSchema — completed branch', () => {
     const doc = {
       ...completedDoc,
       result: {
-        invalidate: [['feed', 'home']],
+        events: [{ type: 'streetz.postCreated', ids: { userId: 'user_abc', postId: 'post_1' } }],
         affected: [
           { collection: 'streetzPosts', docId: 'post_1', operation: 'create' as const },
         ],
@@ -83,7 +83,7 @@ describe('PendingMediaSchema — completed branch', () => {
     const doc = {
       ...completedDoc,
       result: {
-        invalidate: [['feed', 'home']],
+        events: [],
         affected: [
           { collection: 'streetzPosts', docId: 'post_1', operation: 'delete' as unknown as 'create' },
         ],

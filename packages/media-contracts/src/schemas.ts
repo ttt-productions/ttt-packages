@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { FileOriginSchema, type FileOrigin } from "./file-origin.js";
 import { MentionSchema } from "./short-types.js";
+import { DomainEventSchema } from "./domain-events.js";
 
 // ---- primitives ----
 
@@ -317,16 +318,9 @@ const PendingMediaBaseShape = {
   updatedAt: z.number(),
 } as const;
 
-// SerializedQueryKey: serializable form of a TanStack Query key. Lives here
-// because both Cloud Functions (writers) and the frontend hook (readers)
-// need it. Helper `toQueryKey` in helpers.ts converts to QueryKey at use.
-export const SerializedQueryKeySchema = z.array(
-  z.union([z.string(), z.number(), z.boolean(), z.null()])
-);
-
 export const PendingMediaResultSchema = z
   .object({
-    invalidate: z.array(SerializedQueryKeySchema),
+    events: z.array(DomainEventSchema),
     affected: z
       .array(
         z
@@ -391,6 +385,7 @@ export const PendingMediaRejectedSchema = z
     rejectionType: z.enum(['text', 'media']),
     errorMessage: z.string().min(1),
     violationId: z.string().min(1).optional(),
+    result: PendingMediaResultSchema.optional(),
   })
   .strict();
 

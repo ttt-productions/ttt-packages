@@ -34,7 +34,6 @@ import {
   PendingMediaRejectedSchema,
   PendingMediaResultSchema,
   PendingMediaErrorCategorySchema,
-  SerializedQueryKeySchema,
   StartUploadRequestSchema,
   StartUploadResponseSchema,
   ProfilePictureTargetInfoSchema,
@@ -105,7 +104,6 @@ export type TTTMediaOriginEntry = z.infer<typeof TTTMediaOriginEntrySchema>;
 // ---- unified upload pipeline (Phase 1.5) ----
 
 export type ClientContext = z.infer<typeof ClientContextSchema>;
-export type SerializedQueryKey = z.infer<typeof SerializedQueryKeySchema>;
 export type PendingMediaResult = z.infer<typeof PendingMediaResultSchema>;
 export type PendingMediaErrorCategory = z.infer<typeof PendingMediaErrorCategorySchema>;
 export type PendingMediaPending = z.infer<typeof PendingMediaPendingSchema>;
@@ -156,3 +154,5 @@ export type TargetInfoFor<O extends import('./file-origin.js').FileOrigin> =
   : O extends 'show-video' ? ShowVideoTargetInfo
   : O extends 'chat-attachment' ? ChatAttachmentTargetInfo
   : never;
+
+export type { DomainEvent, DomainEventIdsFor } from "./domain-events.js";

@@ -1,4 +1,4 @@
-import type { SimplifiedMediaType, SerializedQueryKey } from "./types.js";
+import type { SimplifiedMediaType } from "./types.js";
 
 export type FileLike = {
   type?: string; // mime
@@ -92,17 +92,3 @@ export function isSupportedMime(mime: string): boolean {
   return t === "image" || t === "video" || t === "audio";
 }
 
-/**
- * Convert a SerializedQueryKey (Firestore-safe array of primitives) into a
- * TanStack Query key. Used by the global frontend upload hook when it reads
- * `result.invalidate` from a completed pendingMedia doc and needs to call
- * `queryClient.invalidateQueries`.
- *
- * The output is a tuple of the same elements, retyped as `unknown[]` so it
- * can be assigned to TanStack's `QueryKey` (which is `readonly unknown[]`)
- * without dragging the whole `@tanstack/react-query` import into this
- * package.
- */
-export function toQueryKey(serialized: SerializedQueryKey): readonly unknown[] {
-  return serialized;
-}
