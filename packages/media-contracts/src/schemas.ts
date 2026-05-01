@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { FileOriginSchema, type FileOrigin } from "./file-origin.js";
-import { ShortProjectSchema, MentionSchema } from "./short-types.js";
+import { MentionSchema } from "./short-types.js";
 
 // ---- primitives ----
 
@@ -455,7 +455,9 @@ export const StreetzTargetInfoSchema = z
   })
   .strict();
 
-// job-posting: full job creation payload.
+// job-posting: full job creation payload. The processor looks up the project
+// doc at finalize time to build the canonical ShortProject — frontend only
+// sends projectId.
 export const JobPostingTargetInfoSchema = z
   .object({
     jobId: z.string().min(1),
@@ -463,7 +465,7 @@ export const JobPostingTargetInfoSchema = z
     description: z.string(),
     requiredProfessions: z.array(z.string()),
     sharesOffered: z.number(),
-    projectAssociatedWith: ShortProjectSchema,
+    projectId: z.string().min(1),
     createdBy: z.object({ uid: z.string().min(1) }).strict(),
   })
   .strict();

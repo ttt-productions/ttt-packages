@@ -70,19 +70,16 @@ describe('JobPostingTargetInfoSchema', () => {
     description: 'desc',
     requiredProfessions: ['actor'],
     sharesOffered: 5,
-    projectAssociatedWith: { projectId: 'p_1', type: 'film', workingDescription: 'd', workingTitle: 't' },
+    projectId: 'p_1',
     createdBy: { uid: 'u_1' },
   };
   it('accepts valid', () => { expect(() => JobPostingTargetInfoSchema.parse(valid)).not.toThrow(); });
-  it('rejects missing projectAssociatedWith', () => {
-    const { projectAssociatedWith, ...rest } = valid;
+  it('rejects missing projectId', () => {
+    const { projectId, ...rest } = valid;
     expect(() => JobPostingTargetInfoSchema.parse(rest)).toThrow();
   });
-  it('rejects bad ShortProject shape', () => {
-    expect(() => JobPostingTargetInfoSchema.parse({
-      ...valid,
-      projectAssociatedWith: { projectId: 'p_1' },
-    })).toThrow();
+  it('rejects empty projectId', () => {
+    expect(() => JobPostingTargetInfoSchema.parse({ ...valid, projectId: '' })).toThrow();
   });
 });
 
