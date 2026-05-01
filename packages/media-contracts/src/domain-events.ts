@@ -67,7 +67,7 @@ export const OpportunityReplyCreatedEventSchema = z
         userId: z.string().min(1),
         opportunityId: z.string().min(1),
         replyId: z.string().min(1),
-        projectId: z.string().min(1),
+        projectId: z.string().min(1).optional(),
       })
       .strict(),
   })
