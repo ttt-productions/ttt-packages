@@ -85,10 +85,10 @@ describe('JobPostingTargetInfoSchema', () => {
 
 describe('JobReplyTargetInfoSchema', () => {
   it('accepts valid', () => {
-    expect(() => JobReplyTargetInfoSchema.parse({ jobId: 'j', projectId: 'p', replyText: 'r' })).not.toThrow();
+    expect(() => JobReplyTargetInfoSchema.parse({ jobId: 'j', replyText: 'r' })).not.toThrow();
   });
   it('rejects missing replyText', () => {
-    expect(() => JobReplyTargetInfoSchema.parse({ jobId: 'j', projectId: 'p' })).toThrow();
+    expect(() => JobReplyTargetInfoSchema.parse({ jobId: 'j' })).toThrow();
   });
 });
 

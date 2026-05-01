@@ -470,11 +470,11 @@ export const JobPostingTargetInfoSchema = z
   })
   .strict();
 
-// job-reply: jobId + projectId + replyText.
+// job-reply: jobId + replyText. The processor looks up projectId from the
+// job doc at finalize time — frontend stays dumb. Mirrors job-posting.
 export const JobReplyTargetInfoSchema = z
   .object({
     jobId: z.string().min(1),
-    projectId: z.string().min(1),
     replyText: z.string(),
   })
   .strict();
