@@ -137,7 +137,7 @@ export type ChatAttachmentTargetInfo = z.infer<typeof ChatAttachmentTargetInfoSc
 
 // Mapped type: given a FileOrigin literal, returns its targetInfo shape.
 export type TargetInfoFor<O extends import('./file-origin.js').FileOrigin> =
-    O extends 'profile-picture' ? ProfilePictureTargetInfo
+  O extends 'profile-picture' ? ProfilePictureTargetInfo
   : O extends 'skill-media' ? SkillMediaTargetInfo
   : O extends 'streetz' ? StreetzTargetInfo
   : O extends 'job-posting' ? JobPostingTargetInfo
@@ -154,5 +154,3 @@ export type TargetInfoFor<O extends import('./file-origin.js').FileOrigin> =
   : O extends 'show-video' ? ShowVideoTargetInfo
   : O extends 'chat-attachment' ? ChatAttachmentTargetInfo
   : never;
-
-export type { DomainEvent, DomainEventIdsFor } from "./domain-events.js";
