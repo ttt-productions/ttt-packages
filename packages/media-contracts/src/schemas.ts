@@ -316,6 +316,7 @@ const PendingMediaBaseShape = {
   clientContext: ClientContextSchema,
   createdAt: z.number(),
   updatedAt: z.number(),
+  terminalAt: z.number().optional(),
 } as const;
 
 export const PendingMediaResultSchema = z
@@ -363,6 +364,7 @@ export const PendingMediaCompletedSchema = z
     ...PendingMediaBaseShape,
     status: z.literal('completed'),
     completedAt: z.number(),
+    terminalAt: z.number(),
     result: PendingMediaResultSchema,
   })
   .strict();
@@ -372,6 +374,7 @@ export const PendingMediaFailedSchema = z
     ...PendingMediaBaseShape,
     status: z.literal('failed'),
     failedAt: z.number(),
+    terminalAt: z.number(),
     errorCategory: PendingMediaErrorCategorySchema,
     errorMessage: z.string().min(1),
   })
@@ -382,6 +385,7 @@ export const PendingMediaRejectedSchema = z
     ...PendingMediaBaseShape,
     status: z.literal('rejected'),
     rejectedAt: z.number(),
+    terminalAt: z.number(),
     rejectionType: z.enum(['text', 'media']),
     errorMessage: z.string().min(1),
     violationId: z.string().min(1).optional(),
@@ -396,6 +400,65 @@ export const PendingMediaSchema = z.discriminatedUnion('status', [
   PendingMediaFailedSchema,
   PendingMediaRejectedSchema,
 ]);
+
+// ============================================================================
+// Pending media archive
+// ----------------------------------------------------------------------------
+// ArchivedPendingMediaSchema is the canonical Zod-strict shape for
+// `pendingMediaArchive/{id}` Firestore docs. Terminal-only discriminated union
+// — three branches mirroring the three terminal `pendingMedia` branches plus a
+// required `archivedAt` timestamp. Strict parse fails loud if a non-terminal
+// doc reaches the archive.
+// ============================================================================
+
+export const ArchivedPendingMediaCompletedSchema = z
+  .object({
+    ...PendingMediaBaseShape,
+    status: z.literal('completed'),
+    completedAt: z.number(),
+    terminalAt: z.number(),
+    result: PendingMediaResultSchema,
+    archivedAt: z.number(),
+  })
+  .strict();
+
+export const ArchivedPendingMediaFailedSchema = z
+  .object({
+    ...PendingMediaBaseShape,
+    status: z.literal('failed'),
+    failedAt: z.number(),
+    terminalAt: z.number(),
+    errorCategory: PendingMediaErrorCategorySchema,
+    errorMessage: z.string().min(1),
+    archivedAt: z.number(),
+  })
+  .strict();
+
+export const ArchivedPendingMediaRejectedSchema = z
+  .object({
+    ...PendingMediaBaseShape,
+    status: z.literal('rejected'),
+    rejectedAt: z.number(),
+    terminalAt: z.number(),
+    rejectionType: z.enum(['text', 'media']),
+    errorMessage: z.string().min(1),
+    violationId: z.string().min(1).optional(),
+    result: PendingMediaResultSchema.optional(),
+    archivedAt: z.number(),
+  })
+  .strict();
+
+export const ArchivedPendingMediaSchema = z.discriminatedUnion('status', [
+  ArchivedPendingMediaCompletedSchema,
+  ArchivedPendingMediaFailedSchema,
+  ArchivedPendingMediaRejectedSchema,
+]);
+
+export type ArchivedPendingMedia = z.infer<typeof ArchivedPendingMediaSchema>;
+
+export function parseArchivedPendingMedia(input: unknown) {
+  return ArchivedPendingMediaSchema.parse(input);
+}
 
 // ============================================================================
 // startUpload callable contracts

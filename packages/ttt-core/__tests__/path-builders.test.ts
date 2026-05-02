@@ -392,6 +392,13 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('media1');
     });
 
+    it('pendingMediaArchive returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.pendingMediaArchive('pma_123');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toBe(COLLECTIONS.PENDING_MEDIA_ARCHIVE);
+      expect(result[1]).toBe('pma_123');
+    });
+
     it('notificationQueue returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.notificationQueue('notif1');
       expect(result).toHaveLength(2);

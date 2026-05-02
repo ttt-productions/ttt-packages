@@ -47,6 +47,7 @@ describe('PendingMediaSchema — completed branch', () => {
     ...baseFields,
     status: 'completed' as const,
     completedAt: 1_700_000_001_000,
+    terminalAt: 1_700_000_001_000,
     result: {
       events: [{ type: 'profile.pictureUpdated', ids: { userId: 'user_abc' } }],
     },
@@ -74,6 +75,11 @@ describe('PendingMediaSchema — completed branch', () => {
     expect(() => PendingMediaSchema.parse(rest)).toThrow();
   });
 
+  it('rejects a completed doc missing terminalAt', () => {
+    const { terminalAt, ...rest } = completedDoc;
+    expect(() => PendingMediaSchema.parse(rest)).toThrow();
+  });
+
   it('rejects a completed doc missing result', () => {
     const { result, ...rest } = completedDoc;
     expect(() => PendingMediaSchema.parse(rest)).toThrow();
@@ -98,6 +104,7 @@ describe('PendingMediaSchema — failed branch', () => {
     ...baseFields,
     status: 'failed' as const,
     failedAt: 1_700_000_001_000,
+    terminalAt: 1_700_000_001_000,
     errorCategory: 'system' as const,
     errorMessage: 'Internal error',
   };
@@ -116,6 +123,11 @@ describe('PendingMediaSchema — failed branch', () => {
     expect(() => PendingMediaSchema.parse(rest)).toThrow();
   });
 
+  it('rejects a failed doc missing terminalAt', () => {
+    const { terminalAt, ...rest } = failedDoc;
+    expect(() => PendingMediaSchema.parse(rest)).toThrow();
+  });
+
   it('rejects a failed doc with empty errorMessage', () => {
     const doc = { ...failedDoc, errorMessage: '' };
     expect(() => PendingMediaSchema.parse(doc)).toThrow();
@@ -127,6 +139,7 @@ describe('PendingMediaSchema — rejected branch', () => {
     ...baseFields,
     status: 'rejected' as const,
     rejectedAt: 1_700_000_001_000,
+    terminalAt: 1_700_000_001_000,
     rejectionType: 'text' as const,
     errorMessage: 'Content rejected',
   };
@@ -151,6 +164,11 @@ describe('PendingMediaSchema — rejected branch', () => {
 
   it('rejects a rejected doc missing rejectedAt', () => {
     const { rejectedAt, ...rest } = rejectedDoc;
+    expect(() => PendingMediaSchema.parse(rest)).toThrow();
+  });
+
+  it('rejects a rejected doc missing terminalAt', () => {
+    const { terminalAt, ...rest } = rejectedDoc;
     expect(() => PendingMediaSchema.parse(rest)).toThrow();
   });
 });

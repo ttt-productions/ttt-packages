@@ -22,6 +22,7 @@ export const COLLECTIONS = {
   DONATIONS_SUMMARY: 'donationsSummary',
   CONTENT_REPORTS: 'contentReports',
   PENDING_MEDIA: 'pendingMedia',
+  PENDING_MEDIA_ARCHIVE: 'pendingMediaArchive',
   PENDING_ADMIN_MESSAGES: 'pendingAdminMessages',
   ACTIVE_REPORT_GROUPS: 'activeReportGroups',
   CONTENT_VIOLATIONS: 'contentViolations',
