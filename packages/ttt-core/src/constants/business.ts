@@ -39,3 +39,14 @@ export const SHORT_LINK_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxy
 
 /** Maximum operations in a single Firestore write batch. */
 export const FIRESTORE_BATCH_LIMIT = 500;
+
+// --- User Display Names ---
+
+/** Minimum length for a user display name (inclusive). */
+export const USERNAME_MIN_LENGTH = 3;
+
+/** Maximum length for a user display name (inclusive). */
+export const USERNAME_MAX_LENGTH = 20;
+
+/** Allowed characters in a user display name: letters and numbers only. */
+export const USERNAME_REGEX = /^[a-zA-Z0-9]+$/;
