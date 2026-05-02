@@ -160,6 +160,374 @@ export const ChatAttachmentFinalizedEventSchema = z
   })
   .strict();
 
+export const FollowCreatedEventSchema = z
+  .object({
+    type: z.literal('follow.created'),
+    ids: z
+      .object({
+        followerId: z.string().min(1),
+        followedId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const FollowRemovedEventSchema = z
+  .object({
+    type: z.literal('follow.removed'),
+    ids: z
+      .object({
+        followerId: z.string().min(1),
+        followedId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const StreetzPostLikedEventSchema = z
+  .object({
+    type: z.literal('streetz.postLiked'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+        postId: z.string().min(1),
+        authorId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const StreetzPostUnlikedEventSchema = z
+  .object({
+    type: z.literal('streetz.postUnliked'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+        postId: z.string().min(1),
+        authorId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ProfilePreferencesUpdatedEventSchema = z
+  .object({
+    type: z.literal('profile.preferencesUpdated'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const SkillDeletedEventSchema = z
+  .object({
+    type: z.literal('skill.deleted'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+        skillId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const SkillUpdatedEventSchema = z
+  .object({
+    type: z.literal('skill.updated'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+        skillId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ProjectCreatedEventSchema = z
+  .object({
+    type: z.literal('project.created'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+        projectId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ProjectPublishedEventSchema = z
+  .object({
+    type: z.literal('project.published'),
+    ids: z
+      .object({
+        projectId: z.string().min(1),
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ProjectSharesUpdatedEventSchema = z
+  .object({
+    type: z.literal('project.sharesUpdated'),
+    ids: z
+      .object({
+        projectId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ProjectInviteSentEventSchema = z
+  .object({
+    type: z.literal('project.inviteSent'),
+    ids: z
+      .object({
+        projectId: z.string().min(1),
+        inviteId: z.string().min(1),
+        inviterId: z.string().min(1),
+        inviteeId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ProjectInviteAcceptedEventSchema = z
+  .object({
+    type: z.literal('project.inviteAccepted'),
+    ids: z
+      .object({
+        projectId: z.string().min(1),
+        inviteId: z.string().min(1),
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ProjectInviteDeclinedEventSchema = z
+  .object({
+    type: z.literal('project.inviteDeclined'),
+    ids: z
+      .object({
+        projectId: z.string().min(1),
+        inviteId: z.string().min(1),
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ProjectInviteCancelledEventSchema = z
+  .object({
+    type: z.literal('project.inviteCancelled'),
+    ids: z
+      .object({
+        projectId: z.string().min(1),
+        inviteId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const OpportunityReplyVotedEventSchema = z
+  .object({
+    type: z.literal('opportunity.replyVoted'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+        opportunityId: z.string().min(1),
+        replyId: z.string().min(1),
+        projectId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const OpportunityClosedEventSchema = z
+  .object({
+    type: z.literal('opportunity.closed'),
+    ids: z
+      .object({
+        opportunityId: z.string().min(1),
+        projectId: z.string().min(1).optional(),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const JobDeletedEventSchema = z
+  .object({
+    type: z.literal('job.deleted'),
+    ids: z
+      .object({
+        jobId: z.string().min(1),
+        projectId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const JobApplicationSavedEventSchema = z
+  .object({
+    type: z.literal('job.applicationSaved'),
+    ids: z
+      .object({
+        jobId: z.string().min(1),
+        applicationId: z.string().min(1),
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const JobApplicationRemovedEventSchema = z
+  .object({
+    type: z.literal('job.applicationRemoved'),
+    ids: z
+      .object({
+        jobId: z.string().min(1),
+        applicationId: z.string().min(1),
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const LibraryAssetSubmittedEventSchema = z
+  .object({
+    type: z.literal('libraryAsset.submitted'),
+    ids: z
+      .object({
+        projectId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const LibraryAssetApprovedEventSchema = z
+  .object({
+    type: z.literal('libraryAsset.approved'),
+    ids: z
+      .object({
+        libraryId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const LibraryAssetRejectedEventSchema = z
+  .object({
+    type: z.literal('libraryAsset.rejected'),
+    ids: z
+      .object({
+        libraryId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const LibraryAssetNeedsRevisionEventSchema = z
+  .object({
+    type: z.literal('libraryAsset.needsRevision'),
+    ids: z
+      .object({
+        libraryId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const LibraryAssetPreferenceUpdatedEventSchema = z
+  .object({
+    type: z.literal('libraryAsset.preferenceUpdated'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+        libraryId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const MessageSystemMarkedEventSchema = z
+  .object({
+    type: z.literal('message.systemMarked'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const MessageAdminThreadUpdatedEventSchema = z
+  .object({
+    type: z.literal('message.adminThreadUpdated'),
+    ids: z
+      .object({
+        messageId: z.string().min(1).nullable(),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const AdminAppealReviewedEventSchema = z
+  .object({
+    type: z.literal('admin.appealReviewed'),
+    ids: z
+      .object({
+        violationId: z.string().min(1),
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const AdminSystemMessageReviewedEventSchema = z
+  .object({
+    type: z.literal('admin.systemMessageReviewed'),
+    ids: z.object({}).strict(),
+  })
+  .strict();
+
+export const MentionReadEventSchema = z
+  .object({
+    type: z.literal('mention.read'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+        mentionId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const AuthStatusChangedEventSchema = z
+  .object({
+    type: z.literal('auth.statusChanged'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const ViolationAppealSubmittedEventSchema = z
+  .object({
+    type: z.literal('violation.appealSubmitted'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+        violationId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
 export const DomainEventSchema = z.discriminatedUnion('type', [
   ProfilePictureUpdatedEventSchema,
   SkillCreatedEventSchema,
@@ -173,6 +541,37 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   LibraryAssetSubItemUpdatedEventSchema,
   ModerationViolationCreatedEventSchema,
   ChatAttachmentFinalizedEventSchema,
+  FollowCreatedEventSchema,
+  FollowRemovedEventSchema,
+  StreetzPostLikedEventSchema,
+  StreetzPostUnlikedEventSchema,
+  ProfilePreferencesUpdatedEventSchema,
+  SkillDeletedEventSchema,
+  SkillUpdatedEventSchema,
+  ProjectCreatedEventSchema,
+  ProjectPublishedEventSchema,
+  ProjectSharesUpdatedEventSchema,
+  ProjectInviteSentEventSchema,
+  ProjectInviteAcceptedEventSchema,
+  ProjectInviteDeclinedEventSchema,
+  ProjectInviteCancelledEventSchema,
+  OpportunityReplyVotedEventSchema,
+  OpportunityClosedEventSchema,
+  JobDeletedEventSchema,
+  JobApplicationSavedEventSchema,
+  JobApplicationRemovedEventSchema,
+  LibraryAssetSubmittedEventSchema,
+  LibraryAssetApprovedEventSchema,
+  LibraryAssetRejectedEventSchema,
+  LibraryAssetNeedsRevisionEventSchema,
+  LibraryAssetPreferenceUpdatedEventSchema,
+  MessageSystemMarkedEventSchema,
+  MessageAdminThreadUpdatedEventSchema,
+  AdminAppealReviewedEventSchema,
+  AdminSystemMessageReviewedEventSchema,
+  MentionReadEventSchema,
+  AuthStatusChangedEventSchema,
+  ViolationAppealSubmittedEventSchema,
 ]);
 
 export type DomainEvent = z.infer<typeof DomainEventSchema>;
