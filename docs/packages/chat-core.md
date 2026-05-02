@@ -14,7 +14,7 @@ Peer: @tanstack/react-query, firebase, react, react-dom.
 ### Types (`types.ts`)
 Core chat data model and configuration types. Messages store a `text` field. `targetDocPath` wiring connects chat to its parent entity.
 
-`ChatAttachmentConfig`: takes `userId: string` instead of `pendingStoragePath`. chat-core now internally builds the canonical `uploads/chat-attachment/{userId}/{pendingMediaDocId}` path so the app cannot drift from the upload path invariant (see root CLAUDE.md).
+`ChatAttachmentConfig`: takes `userId: string` instead of `pendingStoragePath`. chat-core internally builds the canonical `uploads/chat-attachment/{userId}/{pendingMediaDocId}` path before calling the app-provided registration callable.
 
 ### Name Resolution (`context/ChatNameResolverContext.tsx`)
 - `ChatNameResolverProvider` — App-provided synchronous sender-name resolver.
@@ -71,5 +71,5 @@ src/
 Composer.tsx now:
 - Imports `type FileOrigin` from media-contracts and declares the local `FILE_ORIGIN` constant as that type — any future drift in the string literal fails at compile time.
 - Calls `ensureFileWithContentType` from file-input before uploading, guaranteeing a valid MIME.
-- Builds the storage path as `uploads/${FILE_ORIGIN}/${attachmentConfig.userId}/${uuid}` — no extension, matches the firestore rule equality check.
+- Builds the storage path via `buildTempUploadPath(FILE_ORIGIN, attachmentConfig.userId, uuid)` from `@ttt-productions/ttt-core` — no extension, matches the firestore rule equality check, and stays in sync with the canonical temp-upload path invariant.
 - Previously took `attachmentConfig.pendingStoragePath` (which apps could shape freely). Removed.

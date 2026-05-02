@@ -5,6 +5,7 @@ import { Button, Textarea, cn } from "@ttt-productions/ui-core";
 import { MediaInput, ensureFileWithContentType } from "@ttt-productions/file-input";
 import type { MediaInputChangePayload } from "@ttt-productions/file-input";
 import type { FileOrigin } from "@ttt-productions/media-contracts";
+import { buildTempUploadPath } from "@ttt-productions/ttt-core";
 import { uploadFileResumable } from "@ttt-productions/upload-core";
 import { Loader2, X, FileText, ImageIcon, VideoIcon, MicIcon } from "lucide-react";
 import type { ChatAttachment, ChatAttachmentConfig, ChatMessageV1, RegisterAttachmentFn } from "../types";
@@ -94,7 +95,7 @@ export function Composer(props: ComposerProps) {
         // Attachment path: upload first, then register.
         const uuid = genId();
         const FILE_ORIGIN: FileOrigin = "chat-attachment";
-        const storagePath = `uploads/${FILE_ORIGIN}/${attachmentConfig.userId}/${uuid}`;
+        const storagePath = buildTempUploadPath(FILE_ORIGIN, attachmentConfig.userId, uuid);
 
         const fileToUpload = ensureFileWithContentType(pendingFile);
         const attType = getAttachmentType(fileToUpload);

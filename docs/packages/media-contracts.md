@@ -3,7 +3,7 @@
 Shared type definitions and Zod validation schemas for the media processing pipeline. This is the contract layer between client-side media inputs, upload registration, backend media processors, pending media status documents, and domain-event cache invalidation. No runtime dependencies beyond Zod.
 
 ## Version
-0.2.27
+0.2.29
 
 ## Dependencies
 Runtime: zod.
@@ -16,7 +16,7 @@ Runtime-validated schemas for every media-related data structure:
 - Small structs: `MediaOwnerRef`, `MediaThreadRef`, `MediaAccept`, `MediaClientConstraints`, `MediaCropSpec`, `ImageVariantSpec`
 - Moderation: `MediaModerationStatus`, `MediaModerationFinding`, `MediaModerationResult`, `MediaModerationSpec`
 - Processing: `MediaProcessingSpec`, `MediaProcessingError`, `MediaOutput`, `MediaProcessingResult`
-- Documents: `MediaJobStatusPayload`, strict discriminated `PendingMedia` states, `StartUploadRequest`, `StartUploadResponse`
+- Documents: `MediaJobStatusPayload`, strict discriminated `PendingMedia` states, terminal-only `ArchivedPendingMedia` states, `StartUploadRequest`, `StartUploadResponse`
 - Target info: strict per-origin targetInfo schemas plus `parseTargetInfo(fileOrigin, raw)`
 - Timestamp: `TimestampLike` (handles Firestore Timestamp, epoch ms, Date)
 
@@ -41,7 +41,8 @@ Current package variants:
 - `chat.attachmentFinalized`
 
 ### Unified Upload Contract
-- `PendingMediaSchema` — strict discriminated union for `pending`, `processing`, `completed`, `failed`, and `rejected` `pendingMedia/{id}` documents.
+- `PendingMediaSchema` — strict discriminated union for `pending`, `processing`, `completed`, `failed`, and `rejected` `pendingMedia/{id}` documents. Terminal branches require `terminalAt`.
+- `ArchivedPendingMediaSchema` / `parseArchivedPendingMedia` — strict terminal-only archive contract for `pendingMediaArchive/{id}` documents, requiring `terminalAt` and `archivedAt`.
 - `PendingMediaResultSchema` — terminal success/rejection result shape with `events: DomainEvent[]` and optional audit-only `affected` entries.
 - `StartUploadRequest` / `StartUploadResponse` — shared callable contract for the unified upload pipeline.
 - `ClientContextSchema` — required upload context containing `surface` and optional `targetIds`.
@@ -53,6 +54,7 @@ All types are `z.infer<>` derivations from the schemas — ensuring runtime vali
 
 Important unified-upload exports include:
 - `PendingMedia`, `PendingMediaPending`, `PendingMediaProcessing`, `PendingMediaCompleted`, `PendingMediaFailed`, `PendingMediaRejected`
+- `ArchivedPendingMedia`
 - `PendingMediaResult`, `PendingMediaErrorCategory`
 - `StartUploadRequest`, `StartUploadResponse`
 - per-origin targetInfo types, including `ProjectFileTargetInfo`
@@ -112,7 +114,7 @@ This is named `TTT_MEDIA_SPECS` because it is TTT-Productions–specific. Q-Spor
 ```
 src/
   index.ts
-  schemas.ts          — Zod schemas, pending-media contract, startUpload contract, targetInfo schemas
+  schemas.ts          — Zod schemas, pending-media/archive contracts, startUpload contract, targetInfo schemas
   types.ts            — z.infer<> type exports and TargetInfoFor mapped type
   helpers.ts          — Parsing and utility functions
   short-types.ts      — Short-form shared media type aliases
