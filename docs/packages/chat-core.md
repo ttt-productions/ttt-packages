@@ -3,7 +3,7 @@
 Full chat system with realtime messaging, infinite scroll history, file attachments, and a composable UI shell. The highest-dependency package in the monorepo — integrates ui-core, firebase-helpers, mobile-core, file-input, upload-core, media-viewer, and media-contracts.
 
 ## Version
-0.4.4
+0.4.6
 
 ## Dependencies
 Runtime: @ttt-productions/ttt-core, @ttt-productions/ui-core, @ttt-productions/firebase-helpers, @ttt-productions/mobile-core, @ttt-productions/file-input, @ttt-productions/upload-core, @ttt-productions/media-viewer, @ttt-productions/media-contracts.

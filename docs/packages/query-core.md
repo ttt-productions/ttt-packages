@@ -3,7 +3,7 @@
 TanStack Query (React Query) integration layer for Firestore. Provides query client factory, key management, Firestore hooks for documents/collections/pagination/infinite scroll, mutation hooks, and search.
 
 ## Version
-0.4.1
+0.4.2
 
 ## Dependencies
 Peer: @tanstack/react-query, firebase, react, react-dom.
