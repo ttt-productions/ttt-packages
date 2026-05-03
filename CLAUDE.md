@@ -78,7 +78,7 @@ Every package's main entry (`.`) must be server-safe. React UI lives behind `./r
 
 Current entry-point layout per package:
 - `auth-core` — `.` (server-safe) + `./react` (AuthProvider + hooks)
-- `firebase-helpers` — `.` (client SDK + path/time helpers) + `./admin` (Admin SDK)
+- `firebase-helpers` — `.` (client SDK + path/time helpers) + `./server` (Admin SDK)
 - `notification-core` — `.` (types/constants) + `./react` (hooks/components) + `./server` (Cloud Function helpers)
 - `report-core` — `.` (types/constants) + `./react` (hooks/components) + `./server` (Cloud Function handlers)
 - `media-processing-core` — Server-only (Node.js, uses sharp + ffmpeg); single entry, no React

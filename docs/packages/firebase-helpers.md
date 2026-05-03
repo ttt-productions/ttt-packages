@@ -45,11 +45,11 @@ Shared Firestore type definitions.
 **Utilities (`utils/chunk.ts`)**
 - `chunk<T>(array, size)` — Split array into chunks of given size
 
-### Admin Entry Point (`admin/index.ts`)
+### Server Entry Point (`server/index.ts`)
 Server-side (Cloud Functions) equivalents:
 - `commitInBatches` — Admin SDK version using `db.batch()` instead of `writeBatch(db)`
 - `chunk` — Re-exported from utils
-- Admin-specific timestamp helpers (`admin/timestamps.ts`)
+- Admin-specific timestamp helpers (`server/timestamps.ts`)
 - Shared types re-exported
 
 ## Key Design Decisions
@@ -71,7 +71,7 @@ src/
     batch.ts                        — Client SDK batch helpers
     pagination.ts
     date-formatting.ts
-  admin/
+  server/
     index.ts                        — Admin SDK entry point
     batch.ts                        — Admin SDK batch helpers
     timestamps.ts                   — Admin SDK timestamps

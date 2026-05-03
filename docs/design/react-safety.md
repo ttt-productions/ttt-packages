@@ -53,7 +53,6 @@ Main does NOT re-export from `./react` or `./server`. The surfaces are independe
 - `export type` lines from React component files. Types are erased at compile time and don't pull React into the runtime graph. (Verify by reading the compiled `dist/index.js` — type-only re-exports leave no trace.)
 - Server-safe constants colocated with React code, exported from main via a direct re-export of the constant (not the component file).
 - Three-surface packages (`.` + `./react` + `./server`) for packages that have admin-SDK code. `notification-core` and `report-core` are the current examples.
-- `firebase-helpers` uses `./admin` instead of `./server` for historical reasons. Keep the existing name; don't rename.
 
 ## When to revisit
 
