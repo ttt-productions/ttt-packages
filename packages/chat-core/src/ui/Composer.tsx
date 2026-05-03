@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Button, Textarea, cn } from "@ttt-productions/ui-core";
+import { Button, Textarea } from "@ttt-productions/ui-core/react";
+import { cn } from "@ttt-productions/ui-core";
 import { MediaInput, ensureFileWithContentType } from "@ttt-productions/file-input";
 import type { MediaInputChangePayload } from "@ttt-productions/file-input";
 import type { FileOrigin } from "@ttt-productions/media-contracts";

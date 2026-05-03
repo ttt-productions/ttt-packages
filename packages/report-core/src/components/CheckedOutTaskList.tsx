@@ -8,7 +8,7 @@ import {
   CardDescription,
   Button,
   Skeleton,
-} from '@ttt-productions/ui-core';
+} from '@ttt-productions/ui-core/react';
 import { Briefcase, AlertTriangle } from 'lucide-react';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import { useCheckedOutTasks } from '../hooks/useCheckedOutTasks.js';

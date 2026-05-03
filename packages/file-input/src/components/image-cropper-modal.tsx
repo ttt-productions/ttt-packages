@@ -4,7 +4,7 @@ import React, { useState, useCallback } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CropperComponent = Cropper as unknown as React.ComponentType<any>;
-import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, Slider } from "@ttt-productions/ui-core";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, Slider } from "@ttt-productions/ui-core/react";
 import { getCroppedImg } from "../lib/image-utils.js";
 
 export interface ImageCropperModalProps {

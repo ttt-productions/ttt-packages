@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Clock } from 'lucide-react';
-import { Progress } from '@ttt-productions/ui-core';
+import { Progress } from '@ttt-productions/ui-core/react';
 import type { CountdownTimerProps } from '../types.js';
 
 /**

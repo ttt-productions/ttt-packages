@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { Badge, Button, Separator } from '@ttt-productions/ui-core';
+import { Badge, Button, Separator } from '@ttt-productions/ui-core/react';
 import { useActiveNotifications } from '../hooks/useActiveNotifications.js';
 import { useArchiveNotification } from '../hooks/useArchiveNotification.js';
 import { useArchiveAllNotifications } from '../hooks/useArchiveAllNotifications.js';

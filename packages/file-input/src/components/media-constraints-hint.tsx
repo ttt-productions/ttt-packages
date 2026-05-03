@@ -1,7 +1,8 @@
 "use client";
 
 import type { TTTMediaOriginEntry } from "@ttt-productions/media-contracts";
-import { Badge, Card, cn } from "@ttt-productions/ui-core";
+import { Badge, Card } from "@ttt-productions/ui-core/react";
+import { cn } from "@ttt-productions/ui-core";
 
 export interface MediaConstraintsHintProps {
   spec: TTTMediaOriginEntry;

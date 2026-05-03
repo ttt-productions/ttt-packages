@@ -1,6 +1,6 @@
 'use client';
 
-import { Badge, Button, Separator } from '@ttt-productions/ui-core';
+import { Badge, Button, Separator } from '@ttt-productions/ui-core/react';
 import { useNotificationHistory } from '../hooks/useNotificationHistory.js';
 import { formatRelativeTime } from './relative-time.js';
 import type { NotificationHistoryDoc, NotificationHistoryListProps } from '../types.js';

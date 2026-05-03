@@ -19,7 +19,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@ttt-productions/ui-core";
+} from "@ttt-productions/ui-core/react";
 
 type RecorderState = "idle" | "recording" | "preview";
 

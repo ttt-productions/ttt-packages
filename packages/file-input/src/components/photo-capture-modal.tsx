@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@ttt-productions/ui-core";
+} from "@ttt-productions/ui-core/react";
 import { Camera, SwitchCamera, X } from "lucide-react";
 
 export interface PhotoCaptureModalProps {

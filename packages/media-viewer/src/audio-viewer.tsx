@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useInView } from "react-intersection-observer";
-import { Skeleton } from "@ttt-productions/ui-core";
+import { Skeleton } from "@ttt-productions/ui-core/react";
 import type { AudioViewerProps } from "./types.js";
 
 export function AudioViewer(props: AudioViewerProps) {

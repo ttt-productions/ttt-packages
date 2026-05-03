@@ -9,7 +9,7 @@ import {
   CardDescription,
   Button,
   Skeleton,
-} from '@ttt-productions/ui-core';
+} from '@ttt-productions/ui-core/react';
 import { FolderOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import { useTaskQueue } from '../hooks/useTaskQueue.js';

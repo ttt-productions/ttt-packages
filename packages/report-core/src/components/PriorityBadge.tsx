@@ -1,6 +1,6 @@
 'use client';
 
-import { Badge } from '@ttt-productions/ui-core';
+import { Badge } from '@ttt-productions/ui-core/react';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import type { PriorityBadgeProps } from '../types.js';
 

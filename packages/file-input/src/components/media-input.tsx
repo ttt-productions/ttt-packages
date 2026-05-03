@@ -16,8 +16,8 @@ import {
   DropdownMenuTrigger,
   Input,
   Progress,
-  cn,
-} from "@ttt-productions/ui-core";
+} from "@ttt-productions/ui-core/react";
+import { cn } from "@ttt-productions/ui-core";
 
 import type { FileInputError, MediaInputProps, SelectedMediaMeta } from "../types.js";
 import { AutoFormatModal } from "./auto-format-modal.js";

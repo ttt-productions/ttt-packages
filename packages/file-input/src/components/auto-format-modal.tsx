@@ -8,7 +8,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@ttt-productions/ui-core";
+} from "@ttt-productions/ui-core/react";
 
 export interface AutoFormatModalProps {
   open: boolean;

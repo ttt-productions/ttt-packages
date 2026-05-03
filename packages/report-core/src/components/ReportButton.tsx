@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@ttt-productions/ui-core';
+import { Button } from '@ttt-productions/ui-core/react';
 import { Flag } from 'lucide-react';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import { ReportDialog } from './ReportDialog.js';

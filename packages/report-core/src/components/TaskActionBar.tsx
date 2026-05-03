@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@ttt-productions/ui-core';
+import { Button } from '@ttt-productions/ui-core/react';
 import { Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 import type { TaskActionBarProps } from '../types.js';
 

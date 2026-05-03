@@ -17,7 +17,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@ttt-productions/ui-core';
+} from '@ttt-productions/ui-core/react';
 import { Loader2 } from 'lucide-react';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import { useReportSubmit } from '../hooks/useReportSubmit.js';

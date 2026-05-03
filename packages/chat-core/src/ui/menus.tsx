@@ -1,7 +1,7 @@
 "use client";
 
 import type { ModerationHandlers } from "../types.js";
-import { Button } from "@ttt-productions/ui-core";
+import { Button } from "@ttt-productions/ui-core/react";
 
 export function MessageActions(props: {
   messageId: string;

@@ -1,7 +1,8 @@
 "use client";
 
 import type { MediaJobStatusPayload } from "@ttt-productions/media-contracts";
-import { Badge, Card, Progress, cn } from "@ttt-productions/ui-core";
+import { Badge, Card, Progress } from "@ttt-productions/ui-core/react";
+import { cn } from "@ttt-productions/ui-core";
 import { AlertCircle, CheckCircle2, Clock3, Loader2, UploadCloud, XCircle } from "lucide-react";
 
 export interface MediaJobStatusListProps {
