@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, type CSSProperties, type RefObject, type TouchEventHandler } from "react";
-import { isBrowser } from "../env.js";
+import { isBrowser } from "../../env.js";
 
 type PullToRefreshOptions = {
   onRefresh: () => Promise<void>;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { hasVisualViewport, isBrowser } from "../env.js";
-import type { KeyboardState } from "../types.js";
+import { hasVisualViewport, isBrowser } from "../../env.js";
+import type { KeyboardState } from "../../types.js";
 
 /**
  * Best effort keyboard detection:

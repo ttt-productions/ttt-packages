@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { isBrowser } from "../env.js";
+import { isBrowser } from "../../env.js";
 
 /**
  * Locks body scroll (mobile sheet/modal fix).
