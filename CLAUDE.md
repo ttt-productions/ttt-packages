@@ -6,6 +6,10 @@ Shared monorepo of reusable packages consumed by TTT Productions and Q-Sports. P
 **For detailed documentation on each package, see `docs/packages/`.**
 Reading those docs should be sufficient for most tasks — only look at package source code when debugging specific issues or making targeted changes.
 
+**For cross-cutting design rules (server-safe main entries, identity invariants, upload path shape, etc.), see `docs/design/`.**
+
+**For audit methodologies (React-leak audit, dependency audit, etc.), see `docs/playbooks/`.**
+
 ## Tech Stack
 - TypeScript (strict mode)
 - React 19 (for UI/hook packages)
@@ -16,7 +20,7 @@ Reading those docs should be sufficient for most tasks — only look at package 
 
 ## Display Identity Invariant
 
-For TTT Productions package contracts, display identity is not denormalized into public content, chat, report, admin-task, job, opportunity, project, or library document shapes. Shared cross-boundary types should store uid-only references such as `{ uid: string }`, `userId`, `senderId`, `createdBy.uid`, or `ownedBy.uid`. Apps resolve display names and profile images from their own identity source; ttt-prod uses backend-mirrored `publicUsers/{uid}`.
+See `docs/design/display-identity-invariant.md`.
 
 ## Package Tiers & Dependency Graph
 
@@ -66,12 +70,18 @@ Note: ttt-core now depends on media-contracts (for FileOrigin/PendingFile), so m
 - GitHub Actions publishes to npm on tag push
 - Both release scripts call `npm run preflight` automatically — never skip it, never bypass it by calling `npm publish` directly.
 
-## Dual Entry Points
-Several packages export both client-side and server-side code via separate entry points:
-- `firebase-helpers` — `index.ts` (client SDK) + `admin/index.ts` (Admin SDK)
-- `notification-core` — `index.ts` (React hooks/components) + `server/index.ts` (Cloud Function helpers)
-- `report-core` — `index.ts` (React hooks/components) + `server/index.ts` (Cloud Function handlers)
-- `media-processing-core` — Server-only (Node.js, uses sharp + ffmpeg)
+## Main Entry Server-Safety Rule
+
+See `docs/design/react-safety.md`.
+
+Every package's main entry (`.`) must be server-safe. React UI lives behind `./react`. Cloud Functions admin-SDK code lives behind `./server` (where applicable). `auth-core` is the reference shape.
+
+Current entry-point layout per package:
+- `auth-core` — `.` (server-safe) + `./react` (AuthProvider + hooks)
+- `firebase-helpers` — `.` (client SDK + path/time helpers) + `./admin` (Admin SDK)
+- `notification-core` — `.` (types/constants) + `./react` (hooks/components) + `./server` (Cloud Function helpers)
+- `report-core` — `.` (types/constants) + `./react` (hooks/components) + `./server` (Cloud Function handlers)
+- `media-processing-core` — Server-only (Node.js, uses sharp + ffmpeg); single entry, no React
 
 ## CSS Architecture (theme-core)
 - Consumer apps import theme-core's `styles.css` + `components.css` first, then override with brand.css
@@ -86,26 +96,9 @@ Several packages export both client-side and server-side code via separate entry
 - Every package must compile cleanly with `npm run build`
 - Exports must be listed in package.json `exports` field
 
-## Upload Path Invariant (Phase 1, LAW)
+## Upload Path Invariant
 
-Every file uploaded anywhere in the TTT Productions ecosystem MUST follow this storage path shape:
-
-    uploads/{fileOrigin}/{uid}/{pendingMediaDocId}
-
-Rules:
-- No extension on the storage path.
-- `fileOrigin` is always kebab-case and must be a value in the `FileOrigin` union in `media-contracts`.
-- The filename segment is the pendingMedia Firestore document ID (uuid).
-- Firestore rule on `pendingMedia` enforces strict equality — regex was replaced with `==`.
-- `contentType` must be a valid `image/*`, `video/*`, or `audio/*`. `application/octet-stream` is rejected.
-
-Defense in depth:
-1. `file-input` ensures every File it emits has a valid contentType via `ensureFileWithContentType` (checks file.type, falls back to extension lookup, then kind-default).
-2. `upload-core` throws `UploadError('missing_content_type')` or `UploadError('invalid_content_type')` before any bytes hit storage.
-3. Firestore rules enforce the path equality and fileOrigin allowlist.
-4. Storage rules enforce the contentType regex.
-
-If you change any part of this invariant, you must update `firestore.rules`, the `FileOrigin` type in `media-contracts`, this CLAUDE.md section, and every upload mutation in lockstep. There is no partial migration.
+See `docs/design/upload-path-invariant.md`.
 
 ## Build & Run Commands
 - `npm install` — Install all workspace dependencies
