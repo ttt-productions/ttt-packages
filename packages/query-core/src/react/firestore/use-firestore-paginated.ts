@@ -12,7 +12,7 @@ import {
   type DocumentSnapshot,
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
-import type { FirestorePaginatedOptions, WithId } from './types.js';
+import type { FirestorePaginatedOptions, WithId } from '../../firestore/types.js';
 
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_CACHED_CURSORS = 20;
@@ -68,7 +68,7 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
 }: FirestorePaginatedOptions<T>): UseFirestorePaginatedResult<T> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
-  
+
   const [page, setPageInternal] = useState(initialPage);
   const [cursors, setCursors] = useState<Map<number, DocumentSnapshot>>(new Map());
   const [hasMore, setHasMore] = useState(true);
@@ -83,10 +83,10 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
     queryKey: pageQueryKey,
     queryFn: async (): Promise<WithId<T>[]> => {
       const collectionRef = collection(db, collectionPath);
-      
+
       // Get cursor for current page (if not page 1)
       const cursor = page > 1 ? cursors.get(page - 1) : undefined;
-      
+
       // Build query
       const queryConstraints = [
         ...constraints,
@@ -103,14 +103,14 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
         setCursors((prev) => {
           const next = new Map(prev);
           next.set(page, lastDoc);
-          
+
           // Prune old cursors if too many (prevent memory leaks)
           if (next.size > MAX_CACHED_CURSORS) {
             const sorted = Array.from(next.keys()).sort((a, b) => a - b);
             const toDelete = sorted.slice(0, sorted.length - MAX_CACHED_CURSORS);
             toDelete.forEach((k) => next.delete(k));
           }
-          
+
           return next;
         });
       }
@@ -133,13 +133,13 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
 
   const setPage = useCallback((newPage: number) => {
     if (newPage < 1) return;
-    
+
     // Can only go forward one page at a time if cursor doesn't exist
     if (newPage > page + 1 && !cursors.has(newPage - 1)) {
       console.warn('[useFirestorePaginated] Cannot skip pages. Navigate sequentially.');
       return;
     }
-    
+
     setPageInternal(newPage);
   }, [page, cursors]);
 

@@ -1,3 +1,5 @@
+'use client';
+
 import { useMemo } from 'react';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { collection, getDocs, query, where, documentId, type Firestore } from 'firebase/firestore';
@@ -9,34 +11,34 @@ export type BatchFirestoreDocsOptions = {
    * Firestore instance to use for queries
    */
   db: Firestore;
-  
+
   /**
    * Full collection path (e.g., 'publicUsers', 'projects/public')
    */
   collectionPath: string;
-  
+
   /**
    * Array of document IDs to fetch
    */
   ids: string[];
-  
+
   /**
    * Query key prefix for individual document cache entries
    * Each document will be cached as [queryKeyPrefix, docId]
    * @example 'publicUser' -> ['publicUser', 'user123']
    */
   queryKeyPrefix: string;
-  
+
   /**
    * Time in milliseconds to consider data fresh (default: 30 minutes)
    */
   staleTime?: number;
-  
+
   /**
    * Time in milliseconds to keep unused data in cache (default: 1 hour)
    */
   gcTime?: number;
-  
+
   /**
    * Whether queries should be enabled (default: true)
    */
@@ -49,22 +51,22 @@ export type BatchFirestoreDocsResult<T> = {
    * Only includes documents that exist in Firestore
    */
   data: Record<string, T>;
-  
+
   /**
    * True if any batch queries are still loading
    */
   isLoading: boolean;
-  
+
   /**
    * True if any batch queries have errored
    */
   isError: boolean;
-  
+
   /**
    * First error from batch queries, if any
    */
   error: Error | null;
-  
+
   /**
    * Refetch all documents (even cached ones)
    */
@@ -73,13 +75,13 @@ export type BatchFirestoreDocsResult<T> = {
 
 /**
  * Efficiently batch fetch Firestore documents with individual caching
- * 
+ *
  * Features:
  * - Each document is cached individually for maximum reuse
  * - Only fetches documents that are missing or stale
  * - Respects Firestore's 30-item limit for 'in' queries
  * - Returns combined result as Record<docId, data>
- * 
+ *
  * @example
  * ```typescript
  * const { data: users, isLoading } = useBatchFirestoreDocs<PublicUser>({
@@ -102,7 +104,7 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   enabled = true,
 }: BatchFirestoreDocsOptions): BatchFirestoreDocsResult<T> {
   const queryClient = useQueryClient();
-  
+
   // Stabilize ids reference to prevent cascading re-renders
   const idsKey = JSON.stringify(ids);
 

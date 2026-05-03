@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { createTTTQueryClient, type CreateTTTQueryClientOptions } from './query-client.js';
+import { createTTTQueryClient, type CreateTTTQueryClientOptions } from '../query-client.js';
 
 export type TTTQueryProviderProps = React.PropsWithChildren<{
   /** Optional overrides applied when the client is first created. */

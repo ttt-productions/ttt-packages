@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { Switch } from '../src/components/switch';
+import { Switch } from '../src/react/components/switch';
 
 describe('Switch', () => {
   it('renders without crashing', () => {

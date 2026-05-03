@@ -13,9 +13,9 @@ import {
   type QueryConstraint,
 } from 'firebase/firestore';
 import { useFirestoreDb } from '../firestore/context.js';
-import { keys } from '../keys.js';
-import type { FirestoreSearchOptions } from './types.js';
-import type { WithId } from '../firestore/types.js';
+import { keys } from '../../keys.js';
+import type { FirestoreSearchOptions } from '../../search/types.js';
+import type { WithId } from '../../firestore/types.js';
 
 const DEFAULT_LIMIT = 5;
 const DEFAULT_DEBOUNCE_MS = 300;
@@ -24,14 +24,14 @@ const DEFAULT_STALE_TIME = 60 * 1000; // 1 minute
 /**
  * Generic Firestore search hook with debouncing and case-insensitive prefix matching.
  * Automatically normalizes search text to lowercase and uses Firestore range queries.
- * 
+ *
  * Features:
  * - Debounced input (default 300ms)
  * - Case-insensitive search
  * - Minimum 3 character requirement
  * - Prefix matching with '\uf8ff' suffix
  * - Configurable result limit
- * 
+ *
  * @example
  * ```typescript
  * // Using preset config
@@ -39,7 +39,7 @@ const DEFAULT_STALE_TIME = 60 * 1000; // 1 minute
  *   ...SEARCH_CONFIGS.Q_USER,
  *   queryText: searchValue,
  * });
- * 
+ *
  * // Custom search
  * const { data } = useFirestoreSearch<Team>({
  *   collectionPath: 'teams',

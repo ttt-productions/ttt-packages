@@ -10,7 +10,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
-import type { FirestoreMutationOptions, FirestoreBatchOptions, MutationOperation } from './types.js';
+import type { FirestoreMutationOptions, FirestoreBatchOptions, MutationOperation } from '../../firestore/types.js';
 
 const DEFAULT_BATCH_SIZE = 450;
 

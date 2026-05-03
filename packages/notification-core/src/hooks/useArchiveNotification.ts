@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
-import { useFirestoreDb } from '@ttt-productions/query-core';
+import { useFirestoreDb } from '@ttt-productions/query-core/react';
 import type {
   NotificationDoc,
   NotificationHistoryDoc,

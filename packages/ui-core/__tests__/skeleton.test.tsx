@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { Skeleton } from '../src/components/skeleton';
+import { Skeleton } from '../src/react/components/skeleton';
 
 describe('Skeleton', () => {
   it('renders without crashing', () => {

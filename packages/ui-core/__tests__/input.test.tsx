@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import * as React from 'react';
-import { Input } from '../src/components/input';
+import { Input } from '../src/react/components/input';
 
 describe('Input', () => {
   it('renders an input element', () => {

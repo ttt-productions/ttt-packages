@@ -10,7 +10,7 @@ import {
   type DocumentData,
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
-import type { FirestoreCollectionOptions, WithId } from './types.js';
+import type { FirestoreCollectionOptions, WithId } from '../../firestore/types.js';
 
 /**
  * Fetch all documents from a Firestore collection with optional realtime updates.
@@ -45,7 +45,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
-  // STABILIZE DEPENDENCIES: 
+  // STABILIZE DEPENDENCIES:
   // We stringify these because [where('a', '==', 'b')] !== [where('a', '==', 'b')] in JS.
   const constraintsMemo = JSON.stringify(constraints);
   const queryKeyMemo = JSON.stringify(queryKey);
@@ -54,8 +54,8 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     if (!subscribe || !enabled) return;
 
     const collectionRef = collection(db, collectionPath);
-    const q = constraints.length > 0 
-      ? query(collectionRef, ...constraints) 
+    const q = constraints.length > 0
+      ? query(collectionRef, ...constraints)
       : collectionRef;
 
     const unsubscribe = onSnapshot(
@@ -84,8 +84,8 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     queryKey,
     queryFn: async (): Promise<WithId<T>[]> => {
       const collectionRef = collection(db, collectionPath);
-      const q = constraints.length > 0 
-        ? query(collectionRef, ...constraints) 
+      const q = constraints.length > 0
+        ? query(collectionRef, ...constraints)
         : collectionRef;
 
       const snapshot = await getDocs(q);

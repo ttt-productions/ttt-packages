@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Avatar, AvatarImage, AvatarFallback } from '../src/components/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '../src/react/components/avatar';
 
 describe('Avatar', () => {
   it('renders without crashing', () => {

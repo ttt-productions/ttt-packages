@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { Separator } from '../src/components/separator';
+import { Separator } from '../src/react/components/separator';
 
 describe('Separator', () => {
   it('renders without crashing', () => {

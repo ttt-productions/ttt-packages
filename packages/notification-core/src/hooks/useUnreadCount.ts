@@ -1,6 +1,6 @@
 'use client';
 
-import { useFirestoreCollection } from '@ttt-productions/query-core';
+import { useFirestoreCollection } from '@ttt-productions/query-core/react';
 import { where, orderBy, limit, type QueryConstraint } from 'firebase/firestore';
 import type { NotificationDoc, UseUnreadCountOptions } from '../types.js';
 

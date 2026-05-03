@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Alert, AlertTitle, AlertDescription } from '../src/components/alert';
+import { Alert, AlertTitle, AlertDescription } from '../src/react/components/alert';
 
 describe('Alert', () => {
   it('renders children', () => {

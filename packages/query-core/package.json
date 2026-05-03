@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/query-core",
-    "version": "0.4.3",
+    "version": "0.4.4",
     "description": "Shared TanStack Query (React Query) client defaults, query key helpers, and Firestore integration hooks for TTT Productions apps",
     "repository": {
         "type": "git",
@@ -19,6 +19,14 @@
         ".": {
             "types": "./dist/index.d.ts",
             "default": "./dist/index.js"
+        },
+        "./react": {
+            "types": "./dist/react/index.d.ts",
+            "default": "./dist/react/index.js"
+        },
+        "./types": {
+            "types": "./dist/firestore/types.d.ts",
+            "default": "./dist/firestore/types.js"
         }
     },
     "scripts": {

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { doc, getDoc, onSnapshot, type DocumentData } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
-import type { FirestoreDocOptions, WithId } from './types.js';
+import type { FirestoreDocOptions, WithId } from '../../firestore/types.js';
 
 /**
  * Fetch a single Firestore document with optional realtime updates.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useFirestorePaginated } from '@ttt-productions/query-core';
+import { useFirestorePaginated } from '@ttt-productions/query-core/react';
 import { orderBy, type QueryConstraint } from 'firebase/firestore';
 import type { NotificationHistoryDoc, UseNotificationHistoryOptions } from '../types.js';
 

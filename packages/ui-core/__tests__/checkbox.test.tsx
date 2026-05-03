@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { Checkbox } from '../src/components/checkbox';
+import { Checkbox } from '../src/react/components/checkbox';
 
 describe('Checkbox', () => {
   it('renders without crashing', () => {

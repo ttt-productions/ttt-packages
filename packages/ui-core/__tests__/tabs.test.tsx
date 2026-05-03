@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '../src/components/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../src/react/components/tabs';
 
 describe('Tabs components', () => {
   it('renders tab structure without crashing', () => {

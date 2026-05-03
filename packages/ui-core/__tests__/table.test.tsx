@@ -9,7 +9,7 @@ import {
   TableCell,
   TableCaption,
   TableFooter,
-} from '../src/components/table';
+} from '../src/react/components/table';
 
 describe('Table components', () => {
   it('Table renders a table element', () => {

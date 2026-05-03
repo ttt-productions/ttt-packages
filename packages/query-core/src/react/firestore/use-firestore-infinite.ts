@@ -11,14 +11,14 @@ import {
   type DocumentSnapshot,
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
-import type { FirestoreInfiniteOptions, InfinitePage, WithId } from './types.js';
+import type { FirestoreInfiniteOptions, InfinitePage, WithId } from '../../firestore/types.js';
 
 const DEFAULT_PAGE_SIZE = 20;
 
 /**
  * Infinite scroll pagination for Firestore collections.
  * Automatically handles cursor-based pagination with React Query.
- * 
+ *
  * @example
  * ```tsx
  * const {
@@ -36,10 +36,10 @@ const DEFAULT_PAGE_SIZE = 20;
  *   ],
  *   pageSize: 20,
  * });
- * 
+ *
  * // Flatten pages for rendering
  * const posts = data?.pages.flatMap(page => page.items) ?? [];
- * 
+ *
  * // Load more on scroll
  * <InfiniteScroll onLoadMore={fetchNextPage} hasMore={hasNextPage} />
  * ```
@@ -60,7 +60,7 @@ export function useFirestoreInfinite<T extends DocumentData = DocumentData>({
     queryKey,
     queryFn: async ({ pageParam }): Promise<InfinitePage<T>> => {
       const collectionRef = collection(db, collectionPath);
-      
+
       // Build query with constraints
       const queryConstraints = [
         ...constraints,
@@ -95,30 +95,4 @@ export function useFirestoreInfinite<T extends DocumentData = DocumentData>({
     staleTime,
     gcTime,
   });
-}
-
-/**
- * Helper to flatten infinite query pages into a single array.
- * 
- * @example
- * ```tsx
- * const { data } = useFirestoreInfinite<Post>({ ... });
- * const posts = flattenInfiniteData(data);
- * ```
- */
-export function flattenInfiniteData<T>(
-  data: { pages: InfinitePage<T>[] } | undefined
-): WithId<T>[] {
-  if (!data) return [];
-  return data.pages.flatMap((page) => page.items);
-}
-
-/**
- * Get total count of items across all loaded pages.
- */
-export function getInfiniteDataCount<T>(
-  data: { pages: InfinitePage<T>[] } | undefined
-): number {
-  if (!data) return 0;
-  return data.pages.reduce((sum, page) => sum + page.items.length, 0);
 }

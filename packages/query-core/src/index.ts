@@ -9,37 +9,8 @@ export type { QueryKey } from './keys.js';
 // Cache Helpers
 export { invalidateByPrefix, removeByPrefix, updateQueryData } from './cache-helpers.js';
 
-// Provider
-export { TTTQueryProvider } from './provider.js';
-export type { TTTQueryProviderProps } from './provider.js';
-
-// Firestore Integration
-export {
-  // Provider
-  FirestoreProvider,
-  useFirestoreDb,
-  // Query Hooks
-  useFirestoreDoc,
-  useFirestoreCollection,
-  useFirestoreInfinite,
-  useFirestorePaginated,
-  // Mutation Hooks
-  useFirestoreSet,
-  useFirestoreUpdate,
-  useFirestoreDelete,
-  useFirestoreBatch,
-  // Helpers
-  flattenInfiniteData,
-  getInfiniteDataCount,
-  docWithId,
-  //Batch query cache
-  useBatchFirestoreDocs,
-} from './firestore/index.js';
-
+// Firestore Types & Pure Helpers
 export type {
-  // Provider
-  FirestoreProviderProps,
-  // Types
   WithId,
   FirestoreBaseOptions,
   FirestoreDocOptions,
@@ -51,18 +22,16 @@ export type {
   MutationOperation,
   FirestoreMutationOptions,
   FirestoreBatchOptions,
-  BatchFirestoreDocsOptions,
-  BatchFirestoreDocsResult,
-  UseFirestorePaginatedResult,
-} from './firestore/index.js';
-
-// Search Integration
+} from './firestore/types.js';
+export { docWithId } from './firestore/types.js';
 export {
-  useFirestoreSearch,
-  SEARCH_CONFIGS,
-} from './search/index.js';
+  flattenInfiniteData,
+  getInfiniteDataCount,
+} from './firestore/infinite-helpers.js';
 
+// Search Types & Configs
 export type {
   FirestoreSearchConfig,
   FirestoreSearchOptions,
-} from './search/index.js';
+} from './search/types.js';
+export { SEARCH_CONFIGS } from './search/search-configs.js';

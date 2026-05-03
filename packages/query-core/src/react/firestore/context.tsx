@@ -17,11 +17,11 @@ export interface FirestoreProviderProps {
 /**
  * Provides Firestore instance to all useFirestore* hooks.
  * Wrap your app with this provider alongside TTTQueryProvider.
- * 
+ *
  * @example
  * ```tsx
  * import { db } from '@/lib/firebase';
- * 
+ *
  * <TTTQueryProvider>
  *   <FirestoreProvider db={db}>
  *     {children}
