@@ -14,7 +14,7 @@ Peer: @tanstack/react-query, firebase, react, react-dom.
 ### Types (`types.ts`)
 Core chat data model and configuration types. Messages store a `text` field. `targetDocPath` wiring connects chat to its parent entity.
 
-`ChatAttachmentConfig`: takes `userId: string` instead of `pendingStoragePath`. chat-core internally builds the canonical `uploads/chat-attachment/{userId}/{pendingMediaDocId}` path before calling the app-provided registration callable.
+`ChatAttachmentConfig`: takes `userId: string` instead of `pendingStoragePath`. chat-core internally builds the canonical `uploads/chat-attachment/{userId}/{pendingMediaDocId}` path, uploads to Storage, then calls the app-provided `registerAttachment` callback. The consumer should wire `registerAttachment` to a backend callable that creates both the chat message and pendingMedia doc atomically.
 
 ### Name Resolution (`context/ChatNameResolverContext.tsx`)
 - `ChatNameResolverProvider` — App-provided synchronous sender-name resolver.
@@ -49,7 +49,7 @@ This avoids the common pitfall of subscribing to the entire message history (exp
 - `ChatShell` handles the full mobile experience: virtual keyboard avoidance, safe areas, scroll management.
 - `text` field on messages is the canonical content field — the send mutation writes `text`.
 - `targetDocPath` connects each chat to its parent entity (project channel, admin thread, invite conversation).
-- Attachment processing goes through `processChatAttachment` Cloud Function (backend-side, not in this package).
+- Attachment registration is delegated to the app-provided `registerAttachment` callback, normally backed by a callable. Attachment processing then goes through the `processChatAttachment` Cloud Function (backend-side, not in this package).
 - Media attachments in messages use media-contracts types and are rendered by media-viewer components.
 
 ## Files
@@ -72,4 +72,5 @@ Composer.tsx now:
 - Imports `type FileOrigin` from media-contracts and declares the local `FILE_ORIGIN` constant as that type — any future drift in the string literal fails at compile time.
 - Calls `ensureFileWithContentType` from file-input before uploading, guaranteeing a valid MIME.
 - Builds the storage path via `buildTempUploadPath(FILE_ORIGIN, attachmentConfig.userId, uuid)` from `@ttt-productions/ttt-core` — no extension, matches the firestore rule equality check, and stays in sync with the canonical temp-upload path invariant.
+- Uploads the file to Storage first, then calls `registerAttachment({ text, attachment })`. chat-core does **not** write `pendingMedia` directly.
 - Previously took `attachmentConfig.pendingStoragePath` (which apps could shape freely). Removed.

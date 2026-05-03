@@ -3,7 +3,7 @@
 Content reporting and admin task queue pipeline. Users submit reports → reports are grouped → admin tasks are created with priority scoring → admins check out, review, and resolve tasks. Has both client-side React hooks/components and server-side Cloud Function handlers.
 
 ## Version
-0.5.2
+0.5.3
 
 ## Dependencies
 Peer: @tanstack/react-query, @ttt-productions/query-core, @ttt-productions/ui-core, firebase, react, react-dom.
@@ -66,7 +66,9 @@ Cloud Function handler factories:
 - `calculatePriorityScore(reports, config)` — Priority scoring algorithm
 - `recalculateAllPriorities(config)` — Bulk recalculate all task priorities
 
-Server types: `ServerFirestore`, `ServerReportCoreConfig`, etc.
+Server types: `ServerFirestore`, `ServerReportCoreConfig`, `ReportCoreAuditEvent`, `OnAuditEvent`, etc.
+
+Admin task handler factories accept an optional `onAuditEvent` callback. The callback receives a `ReportCoreAuditEvent` discriminated-union payload plus the active transaction, so consuming apps can map package activity-log actions into their own audit-event system atomically.
 
 ## Pipeline Flow
 1. User submits report via `useReportSubmit` → writes to reports collection
@@ -75,6 +77,7 @@ Server types: `ServerFirestore`, `ServerReportCoreConfig`, etc.
 4. Admin browses task queue → checks out a task (with expiry timer)
 5. Admin reviews → resolves (action taken / no action) or releases back to queue
 6. Resolution logged to activity log
+7. If `onAuditEvent` is supplied, consumer writes its own audit event inside the same transaction
 
 ## Key Design Decisions
 - Identity display fields are intentionally not part of the report/admin-task payload. Consuming apps store user ids and resolve display names/avatars from their identity source at render time.
@@ -83,6 +86,7 @@ Server types: `ServerFirestore`, `ServerReportCoreConfig`, etc.
 - Checkout has an expiry timer to prevent tasks from being locked indefinitely.
 - "Work Later" allows admins to defer without releasing — maintains assignment but extends the deadline.
 - All server handlers are factory functions that accept config — no hardcoded collection paths.
+- Admin task handlers expose `onAuditEvent` rather than importing an app-specific audit package, preserving package/app layering while enabling atomic audit-event parallel writes.
 
 ## Files
 ```
@@ -107,4 +111,5 @@ src/
     createCheckoutTaskHandler.ts, createCheckinTaskHandler.ts
     createReleaseTaskHandler.ts, createCheckoutNextImportantHandler.ts
     calculatePriorityScore.ts, recalculateAllPriorities.ts
+    types.ts               — server abstractions plus ReportCoreAuditEvent / OnAuditEvent
 ```

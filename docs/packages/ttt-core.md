@@ -3,7 +3,7 @@
 TTT Productions-specific core package. Consolidates Firestore path constants, TypeScript types, and shared business constants between frontend and Cloud Functions backend. **This package is TTT Productions-specific and is NOT used by Q-Sports.**
 
 ## Version
-0.2.11
+0.2.13
 
 ## Dependencies
 Runtime: `@ttt-productions/media-contracts` (for `PendingMediaPending`, used in `ContentViolation.pendingFile`).
@@ -52,9 +52,14 @@ Shared interfaces and types organized by domain. Cross-document identity referen
 - `moderation.ts` — `ContentViolation`, `Report`, `ReportGroup`; imports `PendingMediaPending` from `media-contracts`
 - `admin.ts` — Admin task types, activity log
 
-### Business Constants (`constants/`)
-- `business.ts` — MAX_PROJECT_SHARES, MAX_STREETZ_DESCRIPTION_LENGTH, TASK_PRIORITY levels, SHORT_LINK config, FIRESTORE_BATCH_LIMIT
-- `moderation.ts` — PERSPECTIVE_THRESHOLDS (toxicity scores), REJECTION_LIKELIHOODS (Cloud Vision), TEXT_MODERATION_MIN_LENGTH
+### Shared Constants (`constants/`)
+- `business.ts` — project/share limits, Streetz limits, task priority levels, short-link config, Firestore batch limit, username validation (`USERNAME_MIN_LENGTH`, `USERNAME_MAX_LENGTH`, `USERNAME_REGEX`), skill limits (`SKILL_LIMIT`, `MAX_SKILL_TAGS`), project/content/job/opportunity length limits, donation-message limits, and related business rules.
+- `moderation.ts` — PERSPECTIVE_THRESHOLDS (toxicity scores), REJECTION_LIKELIHOODS (Cloud Vision), TEXT_MODERATION_MIN_LENGTH.
+- `options.ts` — UI/admin option lists and display maps that are shared across frontend and backend tooling.
+- `pagination.ts` — page sizes, hook limits, trending-feed processing cap, and library UX constants.
+- `retention.ts` — cache TTLs, donation retention, pending-media archive retention, orphan-upload cleanup settings, and publicUsers cache durations.
+- `scheduled-jobs.ts` — admin-task cleanup cadence/caps and profanity-list sync source URLs.
+- `storage-keys.ts` — well-known browser storage keys such as `REDIRECT_PATH_KEY` and version-gate keys.
 
 ### Audit step — storage path construction
 
@@ -77,6 +82,11 @@ src/
     index.ts
     business.ts
     moderation.ts
+    options.ts
+    pagination.ts
+    retention.ts
+    scheduled-jobs.ts
+    storage-keys.ts
   paths/
     index.ts
     collections.ts          — COLLECTIONS, USER_SUBCOLLECTIONS, etc.
