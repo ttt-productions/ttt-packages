@@ -1,7 +1,7 @@
-export * from "./useAuthState";
-export * from "./types";
-export { AuthProvider } from "./AuthProvider";
-export { AuthContext } from "./AuthProvider";
-export { useAuth } from "./useAuth";
-export { useAuthGuard } from "./useAuthGuard";
-export type { AuthGuardConfig } from "./useAuthGuard";
+export * from "./useAuthState.js";
+export * from "./types.js";
+export { AuthProvider } from "./AuthProvider.js";
+export { AuthContext } from "./AuthProvider.js";
+export { useAuth } from "./useAuth.js";
+export { useAuthGuard } from "./useAuthGuard.js";
+export type { AuthGuardConfig } from "./useAuthGuard.js";

@@ -12,10 +12,10 @@ import {
   type DocumentData,
   type QueryConstraint,
 } from 'firebase/firestore';
-import { useFirestoreDb } from '../firestore/context';
-import { keys } from '../keys';
-import type { FirestoreSearchOptions } from './types';
-import type { WithId } from '../firestore/types';
+import { useFirestoreDb } from '../firestore/context.js';
+import { keys } from '../keys.js';
+import type { FirestoreSearchOptions } from './types.js';
+import type { WithId } from '../firestore/types.js';
 
 const DEFAULT_LIMIT = 5;
 const DEFAULT_DEBOUNCE_MS = 300;

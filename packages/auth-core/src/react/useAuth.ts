@@ -1,8 +1,8 @@
 "use client";
 
 import { useContext } from "react";
-import { AuthContext } from "./AuthProvider";
-import type { BaseProfile, AuthContextValue } from "./types";
+import { AuthContext } from "./AuthProvider.js";
+import type { BaseProfile, AuthContextValue } from "./types.js";
 
 /**
  * Access the auth context. Must be used within an AuthProvider.

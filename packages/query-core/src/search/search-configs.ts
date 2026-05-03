@@ -1,4 +1,4 @@
-import type { FirestoreSearchConfig } from './types';
+import type { FirestoreSearchConfig } from './types.js';
 
 /**
  * Preset search configurations for common use cases.

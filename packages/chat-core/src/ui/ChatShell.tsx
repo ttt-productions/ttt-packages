@@ -9,13 +9,13 @@ import type {
   DismissFailedAttachmentFn,
   MessageRendererRegistry,
   ModerationHandlers,
-} from "../types";
+} from "../types.js";
 import { Card, CardHeader, CardContent, CardFooter, Skeleton } from "@ttt-productions/ui-core";
 import { KeyboardAvoidingView } from "@ttt-productions/mobile-core";
-import { useChatMessages } from "../hooks/useChatMessages";
-import { MessageList } from "./MessageList";
-import { Composer } from "./Composer";
-import { ThreadActions } from "./menus";
+import { useChatMessages } from "../hooks/useChatMessages.js";
+import { MessageList } from "./MessageList.js";
+import { Composer } from "./Composer.js";
+import { ThreadActions } from "./menus.js";
 
 export type ChatShellProps = {
   config: ChatCoreConfig;

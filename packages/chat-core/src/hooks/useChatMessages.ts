@@ -17,10 +17,10 @@ import {
 } from "firebase/firestore";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { toMillis } from "@ttt-productions/firebase-helpers";
-import type { ChatCoreConfig, ChatMessageV1 } from "../types";
-import { canAccessThread } from "./useChatThreadAccess";
-import { messagesColPath, newestWindowQuery } from "../firestore/queries";
-import { useOptionalChatNameResolver } from "../context/ChatNameResolverContext";
+import type { ChatCoreConfig, ChatMessageV1 } from "../types.js";
+import { canAccessThread } from "./useChatThreadAccess.js";
+import { messagesColPath, newestWindowQuery } from "../firestore/queries.js";
+import { useOptionalChatNameResolver } from "../context/ChatNameResolverContext.js";
 
 // Safety limit to prevent memory exhaustion
 const MAX_PAGE_SIZE = 100;

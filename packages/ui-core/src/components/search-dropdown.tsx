@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Input } from './input';
-import { Label } from './label';
+import { Input } from './input.js';
+import { Label } from './label.js';
 import { Loader2, X, Search } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn } from '../lib/utils.js';
 
 export interface SearchDropdownProps<T> {
   /** Current search value */

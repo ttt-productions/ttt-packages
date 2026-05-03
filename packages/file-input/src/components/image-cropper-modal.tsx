@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import Cropper, { type Area } from "react-easy-crop";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CropperComponent = Cropper as unknown as React.ComponentType<any>;
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, Slider } from "@ttt-productions/ui-core";
-import { getCroppedImg } from "../lib/image-utils";
+import { getCroppedImg } from "../lib/image-utils.js";
 
 export interface ImageCropperModalProps {
   isOpen: boolean;
@@ -49,7 +51,7 @@ export function ImageCropperModal(props: ImageCropperModalProps) {
         </DialogHeader>
 
         <div className="relative h-64 w-full bg-muted">
-          <Cropper
+          <CropperComponent
             image={imageSrc}
             crop={crop}
             zoom={zoom}

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { isBrowser } from "../env";
+import { isBrowser } from "../env.js";
 
 /**
  * Sets:

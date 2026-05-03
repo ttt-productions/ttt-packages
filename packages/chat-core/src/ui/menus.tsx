@@ -1,6 +1,6 @@
 "use client";
 
-import type { ModerationHandlers } from "../types";
+import type { ModerationHandlers } from "../types.js";
 import { Button } from "@ttt-productions/ui-core";
 
 export function MessageActions(props: {

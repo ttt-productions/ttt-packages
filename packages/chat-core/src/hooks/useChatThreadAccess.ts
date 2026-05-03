@@ -1,4 +1,4 @@
-import type { ChatAccessMode } from "../types";
+import type { ChatAccessMode } from "../types.js";
 
 export function canAccessThread(args: {
   accessMode: ChatAccessMode;

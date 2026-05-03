@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { getFocusableInputs } from "./focusOrder";
+import { getFocusableInputs } from "./focusOrder.js";
 
 type Options = {
   root?: HTMLElement | null; // scope inputs

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import type { Insets } from "../types";
-import { isBrowser } from "../env";
+import type { Insets } from "../types.js";
+import { isBrowser } from "../env.js";
 
 /**
  * Uses CSS env(safe-area-inset-*) by writing them to CSS vars and reading computed values.

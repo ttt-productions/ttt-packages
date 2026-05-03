@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { isBrowser } from "../env";
-import { useKeyboard } from "./useKeyboard";
+import { isBrowser } from "../env.js";
+import { useKeyboard } from "./useKeyboard.js";
 
 /**
  * When keyboard opens, ensure focused element is visible within visual viewport.

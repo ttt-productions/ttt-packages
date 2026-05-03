@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { ChatNameResolver, ChatPrewarmSenders } from "../types";
+import type { ChatNameResolver, ChatPrewarmSenders } from "../types.js";
 
 type ChatNameResolverContextValue = {
   resolveName: ChatNameResolver;

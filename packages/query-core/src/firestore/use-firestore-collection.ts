@@ -9,8 +9,8 @@ import {
   onSnapshot,
   type DocumentData,
 } from 'firebase/firestore';
-import { useFirestoreDb } from './context';
-import type { FirestoreCollectionOptions, WithId } from './types';
+import { useFirestoreDb } from './context.js';
+import type { FirestoreCollectionOptions, WithId } from './types.js';
 
 /**
  * Fetch all documents from a Firestore collection with optional realtime updates.

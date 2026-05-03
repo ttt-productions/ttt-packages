@@ -1,5 +1,5 @@
 import { joinPath } from "@ttt-productions/firebase-helpers";
-import { normalizeFilename } from "./filename";
+import { normalizeFilename } from "./filename.js";
 
 function sanitizeSegment(seg: string): string {
   const s = String(seg ?? "").trim();

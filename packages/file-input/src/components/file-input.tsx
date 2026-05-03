@@ -5,9 +5,9 @@ import { getSimplifiedMediaType, type SimplifiedMediaType } from "@ttt-productio
 import { Alert, AlertDescription, Button, Card, Input, Progress, cn } from "@ttt-productions/ui-core";
 import { Info, X, Upload, Film, Music, Paperclip, AlertTriangle, Loader2 } from "lucide-react";
 
-import type { FileInputError, FileInputProps } from "../types";
-import { validateMediaDuration } from "../lib/validate-media-duration";
-import { ImageCropperModal } from "./image-cropper-modal";
+import type { FileInputError, FileInputProps } from "../types.js";
+import { validateMediaDuration } from "../lib/validate-media-duration.js";
+import { ImageCropperModal } from "./image-cropper-modal.js";
 
 const MIME_MAP: Record<SimplifiedMediaType, string> = {
   image: "image/jpeg, image/png, image/gif, image/webp, image/svg+xml, image/bmp, image/avif",

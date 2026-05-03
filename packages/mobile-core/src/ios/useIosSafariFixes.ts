@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { isBrowser, isIOS, isSafari } from "../env";
+import { isBrowser, isIOS, isSafari } from "../env.js";
 
 /**
  * Small, safe iOS Safari fixes:

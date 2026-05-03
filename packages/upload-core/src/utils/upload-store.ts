@@ -1,5 +1,5 @@
 import { now } from "@ttt-productions/firebase-helpers";
-import type { UploadSessionState, UploadSessionPersistenceAdapter } from "../types";
+import type { UploadSessionState, UploadSessionPersistenceAdapter } from "../types.js";
 
 type Listener = (s: UploadSessionState) => void;
 type ListListener = () => void;

@@ -1,5 +1,5 @@
 import React from "react";
-import { useKeyboard } from "./useKeyboard";
+import { useKeyboard } from "./useKeyboard.js";
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   /**

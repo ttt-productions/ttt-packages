@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { isBrowser, isIOS } from "../env";
+import { isBrowser, isIOS } from "../env.js";
 
 /**
  * Prevents iOS rubber-band scroll on the document by limiting overscroll chaining.

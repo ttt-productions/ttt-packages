@@ -10,14 +10,14 @@ import {
   type ReactNode,
 } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
-import { useAuthState } from "./useAuthState";
-import { getIdTokenClaims } from "../claims";
+import { useAuthState } from "./useAuthState.js";
+import { getIdTokenClaims } from "../claims.js";
 import type {
   AuthProviderConfig,
   AuthContextValue,
   BaseProfile,
   ProfileError,
-} from "./types";
+} from "./types.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const AuthContext = createContext<AuthContextValue<any, any> | null>(null);

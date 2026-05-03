@@ -11,8 +11,8 @@ import {
   type DocumentData,
   type DocumentSnapshot,
 } from 'firebase/firestore';
-import { useFirestoreDb } from './context';
-import type { FirestorePaginatedOptions, WithId } from './types';
+import { useFirestoreDb } from './context.js';
+import type { FirestorePaginatedOptions, WithId } from './types.js';
 
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_CACHED_CURSORS = 20;

@@ -1,7 +1,7 @@
-import type { UploadController, UploadFileResumableResult, UploadQueueOptions, StartUploadArgs } from "../types";
-import { getFileSize } from "../utils/file-size";
-import { upsertUploadSession, removeUploadSession } from "../utils/upload-store";
-import { startResumableUpload } from "../storage/upload";
+import type { UploadController, UploadFileResumableResult, UploadQueueOptions, StartUploadArgs } from "../types.js";
+import { getFileSize } from "../utils/file-size.js";
+import { upsertUploadSession, removeUploadSession } from "../utils/upload-store.js";
+import { startResumableUpload } from "../storage/upload.js";
 
 function safeId() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);

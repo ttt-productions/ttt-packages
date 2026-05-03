@@ -1,14 +1,14 @@
-export * from "./types";
+export * from "./types.js";
 
-export * from "./storage/upload";
-export * from "./storage/delete";
-export * from "./storage/upload-error";
+export * from "./storage/upload.js";
+export * from "./storage/delete.js";
+export * from "./storage/upload-error.js";
 
-export * from "./utils/filename";
-export * from "./utils/path";
-export * from "./utils/upload-store";
+export * from "./utils/filename.js";
+export * from "./utils/path.js";
+export * from "./utils/upload-store.js";
 
-export * from "./queue/upload-queue";
-export * from "./persistence/localstorage";
+export * from "./queue/upload-queue.js";
+export * from "./persistence/localstorage.js";
 
-export * from "./react/index";
+export * from "./react/index.js";

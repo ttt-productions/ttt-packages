@@ -1,4 +1,4 @@
-import type { UploadSessionPersistenceAdapter, UploadSessionState } from "../types";
+import type { UploadSessionPersistenceAdapter, UploadSessionState } from "../types.js";
 
 function hasLocalStorage(): boolean {
   try {

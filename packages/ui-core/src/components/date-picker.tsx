@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react"
-import { Button } from "./button"
-import { cn } from "../lib/utils"
+import { Button } from "./button.js"
+import { cn } from "../lib/utils.js"
 
 export interface DatePickerProps {
   selected?: Date

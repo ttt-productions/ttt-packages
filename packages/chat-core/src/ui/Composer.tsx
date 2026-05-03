@@ -8,7 +8,7 @@ import type { FileOrigin } from "@ttt-productions/media-contracts";
 import { buildTempUploadPath } from "@ttt-productions/ttt-core";
 import { uploadFileResumable } from "@ttt-productions/upload-core";
 import { Loader2, X, FileText, ImageIcon, VideoIcon, MicIcon } from "lucide-react";
-import type { ChatAttachment, ChatAttachmentConfig, ChatMessageV1, RegisterAttachmentFn } from "../types";
+import type { ChatAttachment, ChatAttachmentConfig, ChatMessageV1, RegisterAttachmentFn } from "../types.js";
 
 function genId(): string {
   return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;

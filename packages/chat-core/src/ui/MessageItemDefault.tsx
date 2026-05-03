@@ -1,11 +1,11 @@
 "use client";
 
-import type { ChatMessageV1, ChatAttachment, ModerationHandlers, DismissFailedAttachmentFn } from "../types";
+import type { ChatMessageV1, ChatAttachment, ModerationHandlers, DismissFailedAttachmentFn } from "../types.js";
 import { cn } from "@ttt-productions/ui-core";
 import { MediaViewer } from "@ttt-productions/media-viewer";
 import { Loader2, FileText, AlertTriangle, ShieldAlert } from "lucide-react";
-import { MessageActions } from "./menus";
-import { useResolvedSenderName } from "../context/ChatNameResolverContext";
+import { MessageActions } from "./menus.js";
+import { useResolvedSenderName } from "../context/ChatNameResolverContext.js";
 
 // ============================================
 // Attachment rendering

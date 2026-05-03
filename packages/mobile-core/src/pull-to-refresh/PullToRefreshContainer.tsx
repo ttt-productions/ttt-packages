@@ -1,5 +1,5 @@
 import React from "react";
-import { usePullToRefresh } from "./usePullToRefresh";
+import { usePullToRefresh } from "./usePullToRefresh.js";
 
 type Props = {
   onRefresh: () => Promise<void>;

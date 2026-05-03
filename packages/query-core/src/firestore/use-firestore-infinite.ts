@@ -10,8 +10,8 @@ import {
   type DocumentData,
   type DocumentSnapshot,
 } from 'firebase/firestore';
-import { useFirestoreDb } from './context';
-import type { FirestoreInfiniteOptions, InfinitePage, WithId } from './types';
+import { useFirestoreDb } from './context.js';
+import type { FirestoreInfiniteOptions, InfinitePage, WithId } from './types.js';
 
 const DEFAULT_PAGE_SIZE = 20;
 

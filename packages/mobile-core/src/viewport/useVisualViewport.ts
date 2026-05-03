@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { hasVisualViewport, isBrowser } from "../env";
+import { hasVisualViewport, isBrowser } from "../env.js";
 
 export function useVisualViewport() {
   const vv = isBrowser && hasVisualViewport ? window.visualViewport! : null;

@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import type { ChatMessageV1, MessageRendererRegistry, ModerationHandlers, DismissFailedAttachmentFn } from "../types";
-import { GROUP_GAP_SEC } from "../types";
+import type { ChatMessageV1, MessageRendererRegistry, ModerationHandlers, DismissFailedAttachmentFn } from "../types.js";
+import { GROUP_GAP_SEC } from "../types.js";
 import { Button } from "@ttt-productions/ui-core";
-import { MessageItemDefault } from "./MessageItemDefault";
+import { MessageItemDefault } from "./MessageItemDefault.js";
 
 /**
  * Determine if msg is a "continuation" of prev (same sender, within GROUP_GAP_SEC, no system break).

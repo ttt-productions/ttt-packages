@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { UploadFileResumableArgs, UploadFileResumableResult } from "../types";
-import { uploadFileResumable } from "../storage/upload";
+import type { UploadFileResumableArgs, UploadFileResumableResult } from "../types.js";
+import { uploadFileResumable } from "../storage/upload.js";
 
 export function useUploadFile() {
   const [progress, setProgress] = useState<number>(0);

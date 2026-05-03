@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { UploadSessionState } from "../types";
-import { listUploadSessions, subscribeUploadSessionsList } from "../utils/upload-store";
+import type { UploadSessionState } from "../types.js";
+import { listUploadSessions, subscribeUploadSessionsList } from "../utils/upload-store.js";
 
 export function useUploadSessions() {
   const [sessions, setSessions] = useState<UploadSessionState[]>(() => listUploadSessions());

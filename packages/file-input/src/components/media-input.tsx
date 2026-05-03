@@ -19,15 +19,15 @@ import {
   cn,
 } from "@ttt-productions/ui-core";
 
-import type { FileInputError, MediaInputProps, SelectedMediaMeta } from "../types";
-import { AutoFormatModal } from "./auto-format-modal";
-import { RecordDialog } from "./record-dialog";
-import { ensureFileWithContentType } from "../lib/infer-content-type";
-import { ImageCropperModal } from "./image-cropper-modal";
-import { MediaConstraintsHint } from "./media-constraints-hint";
-import { PhotoCaptureModal } from "./photo-capture-modal";
-import { readMediaMeta } from "../lib/read-media-meta";
-import { validateMediaDuration } from "../lib/validate-media-duration";
+import type { FileInputError, MediaInputProps, SelectedMediaMeta } from "../types.js";
+import { AutoFormatModal } from "./auto-format-modal.js";
+import { RecordDialog } from "./record-dialog.js";
+import { ensureFileWithContentType } from "../lib/infer-content-type.js";
+import { ImageCropperModal } from "./image-cropper-modal.js";
+import { MediaConstraintsHint } from "./media-constraints-hint.js";
+import { PhotoCaptureModal } from "./photo-capture-modal.js";
+import { readMediaMeta } from "../lib/read-media-meta.js";
+import { validateMediaDuration } from "../lib/validate-media-duration.js";
 
 function err(code: FileInputError["code"], message: string, details?: Record<string, unknown>): FileInputError {
   return { code, message, details };

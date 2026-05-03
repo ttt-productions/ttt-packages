@@ -1,17 +1,17 @@
 // Query Client
-export { createTTTQueryClient } from './query-client';
-export type { CreateTTTQueryClientOptions } from './query-client';
+export { createTTTQueryClient } from './query-client.js';
+export type { CreateTTTQueryClientOptions } from './query-client.js';
 
 // Query Keys
-export { keys, createKeyScope } from './keys';
-export type { QueryKey } from './keys';
+export { keys, createKeyScope } from './keys.js';
+export type { QueryKey } from './keys.js';
 
 // Cache Helpers
-export { invalidateByPrefix, removeByPrefix, updateQueryData } from './cache-helpers';
+export { invalidateByPrefix, removeByPrefix, updateQueryData } from './cache-helpers.js';
 
 // Provider
-export { TTTQueryProvider } from './provider';
-export type { TTTQueryProviderProps } from './provider';
+export { TTTQueryProvider } from './provider.js';
+export type { TTTQueryProviderProps } from './provider.js';
 
 // Firestore Integration
 export {
@@ -34,7 +34,7 @@ export {
   docWithId,
   //Batch query cache
   useBatchFirestoreDocs,
-} from './firestore';
+} from './firestore/index.js';
 
 export type {
   // Provider
@@ -54,15 +54,15 @@ export type {
   BatchFirestoreDocsOptions,
   BatchFirestoreDocsResult,
   UseFirestorePaginatedResult,
-} from './firestore';
+} from './firestore/index.js';
 
 // Search Integration
 export {
   useFirestoreSearch,
   SEARCH_CONFIGS,
-} from './search';
+} from './search/index.js';
 
 export type {
   FirestoreSearchConfig,
   FirestoreSearchOptions,
-} from './search';
+} from './search/index.js';

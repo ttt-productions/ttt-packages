@@ -1,6 +1,6 @@
 // Context & Provider
-export { FirestoreProvider, useFirestoreDb } from './context';
-export type { FirestoreProviderProps } from './context';
+export { FirestoreProvider, useFirestoreDb } from './context.js';
+export type { FirestoreProviderProps } from './context.js';
 
 // Types
 export type {
@@ -15,19 +15,19 @@ export type {
   MutationOperation,
   FirestoreMutationOptions,
   FirestoreBatchOptions,
-} from './types';
-export { docWithId } from './types';
+} from './types.js';
+export { docWithId } from './types.js';
 
 // Query Hooks
-export { useFirestoreDoc } from './use-firestore-doc';
-export { useFirestoreCollection } from './use-firestore-collection';
-export { 
-  useFirestoreInfinite, 
-  flattenInfiniteData, 
-  getInfiniteDataCount 
-} from './use-firestore-infinite';
-export { useFirestorePaginated } from './use-firestore-paginated';
-export type { UseFirestorePaginatedResult } from './use-firestore-paginated';
+export { useFirestoreDoc } from './use-firestore-doc.js';
+export { useFirestoreCollection } from './use-firestore-collection.js';
+export {
+  useFirestoreInfinite,
+  flattenInfiniteData,
+  getInfiniteDataCount
+} from './use-firestore-infinite.js';
+export { useFirestorePaginated } from './use-firestore-paginated.js';
+export type { UseFirestorePaginatedResult } from './use-firestore-paginated.js';
 
 // Mutation Hooks
 export {
@@ -35,10 +35,10 @@ export {
   useFirestoreUpdate,
   useFirestoreDelete,
   useFirestoreBatch,
-} from './use-firestore-mutations';
+} from './use-firestore-mutations.js';
 
-export { 
+export {
   useBatchFirestoreDocs,
   type BatchFirestoreDocsOptions,
   type BatchFirestoreDocsResult,
-} from './useBatchFirestoreDocs';
+} from './useBatchFirestoreDocs.js';

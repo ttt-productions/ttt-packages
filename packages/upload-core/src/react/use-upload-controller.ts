@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { StartUploadArgs, UploadController, UploadSessionState } from "../types";
-import { startResumableUpload } from "../storage/upload";
-import { getUploadSession, subscribeUploadSession } from "../utils/upload-store";
+import type { StartUploadArgs, UploadController, UploadSessionState } from "../types.js";
+import { startResumableUpload } from "../storage/upload.js";
+import { getUploadSession, subscribeUploadSession } from "../utils/upload-store.js";
 
 export function useUploadController() {
   const [controller, setController] = useState<UploadController | null>(null);

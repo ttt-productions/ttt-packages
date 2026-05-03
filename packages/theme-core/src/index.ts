@@ -1,3 +1,3 @@
-export * from "./theme-provider";
-export * from "./required-tokens";
-export * from "./breakpoints";
+export * from "./theme-provider.js";
+export * from "./required-tokens.js";
+export * from "./breakpoints.js";

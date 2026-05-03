@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider, type ThemeProviderProps } from "next-themes";
-import { REQUIRED_TOKENS } from "./required-tokens";
+import { REQUIRED_TOKENS } from "./required-tokens.js";
 
 function warnMissingTokens() {
   if (typeof window === "undefined") return;
