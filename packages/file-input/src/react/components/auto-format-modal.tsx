@@ -23,8 +23,8 @@ export interface AutoFormatModalProps {
 export function AutoFormatModal(props: AutoFormatModalProps) {
   const {
     open,
-    title = "We’ll auto-format this video",
-    description = "This video doesn’t match the required format. We can auto-crop/resize/transcode after upload. This may take longer.",
+    title = "We'll auto-format this video",
+    description = "This video doesn't match the required format. We can auto-crop/resize/transcode after upload. This may take longer.",
     proceedLabel = "Proceed (Auto-format)",
     cancelLabel = "Cancel",
     onProceed,

@@ -102,7 +102,7 @@ export function MediaConstraintsHint(props: MediaConstraintsHintProps) {
 
       {willAutoFormat ? (
         <div className="mt-2 text-xs text-muted-foreground">
-          If your video doesn’t match the format, we’ll ask before uploading and then auto-format it in processing.
+          If your video doesn't match the format, we'll ask before uploading and then auto-format it in processing.
         </div>
       ) : null}
     </Card>

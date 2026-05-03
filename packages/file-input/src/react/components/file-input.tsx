@@ -6,8 +6,8 @@ import { Alert, AlertDescription, Button, Card, Input, Progress } from "@ttt-pro
 import { cn } from "@ttt-productions/ui-core";
 import { Info, X, Upload, Film, Music, Paperclip, AlertTriangle, Loader2 } from "lucide-react";
 
-import type { FileInputError, FileInputProps } from "../types.js";
-import { validateMediaDuration } from "../lib/validate-media-duration.js";
+import type { FileInputError, FileInputProps } from "../../types.js";
+import { validateMediaDuration } from "../../lib/validate-media-duration.js";
 import { ImageCropperModal } from "./image-cropper-modal.js";
 
 const MIME_MAP: Record<SimplifiedMediaType, string> = {

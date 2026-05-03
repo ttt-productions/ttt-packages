@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Video, Mic, X, RotateCcw, Check } from "lucide-react";
-import { ensureFileWithContentType } from "../lib/infer-content-type.js";
+import { ensureFileWithContentType } from "../../lib/infer-content-type.js";
 import {
   Button,
   Dialog,

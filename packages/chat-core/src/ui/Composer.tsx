@@ -3,7 +3,8 @@
 import * as React from "react";
 import { Button, Textarea } from "@ttt-productions/ui-core/react";
 import { cn } from "@ttt-productions/ui-core";
-import { MediaInput, ensureFileWithContentType } from "@ttt-productions/file-input";
+import { ensureFileWithContentType } from "@ttt-productions/file-input";
+import { MediaInput } from "@ttt-productions/file-input/react";
 import type { MediaInputChangePayload } from "@ttt-productions/file-input";
 import type { FileOrigin } from "@ttt-productions/media-contracts";
 import { buildTempUploadPath } from "@ttt-productions/ttt-core";
