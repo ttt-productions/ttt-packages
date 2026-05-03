@@ -28,7 +28,7 @@
         "./src/*": "./src/*"
     },
     "scripts": {
-        "build": "tsc --jsx preserve",
+        "build": "tsc",
         "clean": "rm -rf dist *.tsbuildinfo",
         "typecheck": "tsc --noEmit",
         "prepublishOnly": "npm run clean && npm run build"
