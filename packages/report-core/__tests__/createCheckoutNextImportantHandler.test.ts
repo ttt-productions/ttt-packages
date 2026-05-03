@@ -283,4 +283,40 @@ describe('createCheckoutNextImportantHandler', () => {
     expect(checkoutDetails.expiresAt).toBeGreaterThanOrEqual(expectedMinExpiry);
     expect(checkoutDetails.expiresAt).toBeLessThanOrEqual(expectedMaxExpiry);
   });
+
+  it('invokes onAuditEvent inside the transaction with the correct payload', async () => {
+    const { db, transaction } = createMockDb({
+      pendingTask: {
+        id: 'task1',
+        data: {
+          taskType: 'userReport',
+          taskId: 'group1',
+          originalPath: 'activeReportGroups/group1',
+          summary: 'test',
+          priority: 42,
+        },
+      },
+    });
+    const onAuditEvent = vi.fn();
+    const handler = createCheckoutNextImportantHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: { adminUserIds: ['admin1'] },
+      onAuditEvent,
+    });
+
+    await handler({}, { uid: 'admin1', token: null });
+
+    expect(onAuditEvent).toHaveBeenCalledTimes(1);
+    expect(onAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'checkout_next_important',
+        adminUserId: 'admin1',
+        taskType: 'userReport',
+        taskId: 'group1',
+        priority: 42,
+      }),
+      transaction,
+    );
+  });
 });

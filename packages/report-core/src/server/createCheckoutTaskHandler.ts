@@ -2,12 +2,14 @@ import type {
   ServerFirestore,
   ServerReportCoreConfig,
   AdminAuthConfig,
+  OnAuditEvent,
 } from './types.js';
 
 export interface CheckoutTaskHandlerConfig {
   config: ServerReportCoreConfig;
   db: ServerFirestore;
   auth: AdminAuthConfig;
+  onAuditEvent?: OnAuditEvent;
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
 }
 
@@ -33,6 +35,7 @@ export function createCheckoutTaskHandler({
   config,
   db,
   auth,
+  onAuditEvent,
 }: CheckoutTaskHandlerConfig) {
   const verifyAdmin = async (uid: string, authToken: unknown): Promise<void> => {
     // Try requireAdmin first
@@ -138,6 +141,18 @@ export function createCheckoutTaskHandler({
           taskId: taskData.taskId as string,
           timestamp: now,
         });
+        if (onAuditEvent) {
+          await onAuditEvent(
+            {
+              action: 'auto_released',
+              adminUserId: prevCheckout.userId as string,
+              taskType: taskData.taskType as string,
+              taskId: taskData.taskId as string,
+              timestamp: now,
+            },
+            transaction,
+          );
+        }
       }
 
       const checkoutDetails = {
@@ -162,6 +177,18 @@ export function createCheckoutTaskHandler({
         taskId: taskData.taskId as string,
         timestamp: now,
       });
+      if (onAuditEvent) {
+        await onAuditEvent(
+          {
+            action: 'checkout',
+            adminUserId: userId,
+            taskType: taskData.taskType as string,
+            taskId: taskData.taskId as string,
+            timestamp: now,
+          },
+          transaction,
+        );
+      }
 
       return {
         success: true,

@@ -1,4 +1,4 @@
-import type { ServerFirestore, ServerReportCoreConfig } from './types.js';
+import type { ServerFirestore, ServerReportCoreConfig, OnAuditEvent } from './types.js';
 
 export interface ReleaseTaskHandlerConfig {
   config: ServerReportCoreConfig;
@@ -6,6 +6,7 @@ export interface ReleaseTaskHandlerConfig {
   auth?: {
     requireAdmin: (uid: string, token?: unknown) => Promise<void>;
   };
+  onAuditEvent?: OnAuditEvent;
 }
 
 interface ReleaseRequest {
@@ -20,6 +21,7 @@ export function createReleaseTaskHandler({
   config,
   db,
   auth,
+  onAuditEvent,
 }: ReleaseTaskHandlerConfig) {
   return async (
     data: ReleaseRequest,
@@ -53,6 +55,7 @@ export function createReleaseTaskHandler({
         checkoutDetails: null,
       });
 
+      const now = Date.now();
       const logRef = db.collection(config.collections.activityLog).doc();
       transaction.set(logRef, {
         id: logRef.id,
@@ -60,8 +63,20 @@ export function createReleaseTaskHandler({
         action: 'release',
         taskType: taskData.taskType as string,
         taskId: taskData.taskId as string,
-        timestamp: Date.now(),
+        timestamp: now,
       });
+      if (onAuditEvent) {
+        await onAuditEvent(
+          {
+            action: 'release',
+            adminUserId: userId,
+            taskType: taskData.taskType as string,
+            taskId: taskData.taskId as string,
+            timestamp: now,
+          },
+          transaction,
+        );
+      }
 
       return { success: true };
     });

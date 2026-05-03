@@ -125,4 +125,29 @@ describe('createReleaseTaskHandler', () => {
     expect(sets[0].data.action).toBe('release');
   });
 
+  it('invokes onAuditEvent inside the transaction with the correct payload', async () => {
+    const taskData = {
+      taskType: 'userReport',
+      taskId: 'group1',
+      status: 'checkedOut',
+      checkoutDetails: { userId: 'admin1', checkedOutAt: Date.now() - 1000 },
+    };
+    const { db, transaction } = createMockDb(taskData);
+    const onAuditEvent = vi.fn();
+    const handler = createReleaseTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
+
+    await handler({ taskId: 'task1' }, { uid: 'admin1' });
+
+    expect(onAuditEvent).toHaveBeenCalledTimes(1);
+    expect(onAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'release',
+        adminUserId: 'admin1',
+        taskType: 'userReport',
+        taskId: 'group1',
+      }),
+      transaction,
+    );
+  });
+
 });

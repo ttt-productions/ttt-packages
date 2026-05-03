@@ -183,4 +183,32 @@ describe('createCheckinTaskHandler', () => {
     expect(sets[0].data.timeSpentMinutes).toBeGreaterThanOrEqual(9);
   });
 
+  it('invokes onAuditEvent inside the transaction with the correct payload', async () => {
+    const now = Date.now();
+    const taskData = {
+      taskType: 'userReport',
+      taskId: 'group1',
+      status: 'checkedOut',
+      checkoutDetails: { userId: 'admin1', checkedOutAt: now - 5 * 60_000 },
+    };
+    const { db, transaction } = createMockDb(taskData);
+    const onAuditEvent = vi.fn();
+    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
+
+    await handler({ taskId: 'task1', resolved: true, resolution: 'looks fine' }, { uid: 'admin1' });
+
+    expect(onAuditEvent).toHaveBeenCalledTimes(1);
+    expect(onAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'checkin_resolved',
+        adminUserId: 'admin1',
+        taskType: 'userReport',
+        taskId: 'group1',
+        resolution: 'looks fine',
+        timeSpentMinutes: expect.any(Number),
+      }),
+      transaction,
+    );
+  });
+
 });

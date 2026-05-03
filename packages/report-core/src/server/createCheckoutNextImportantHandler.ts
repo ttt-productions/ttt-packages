@@ -2,12 +2,14 @@ import type {
   ServerFirestore,
   ServerReportCoreConfig,
   AdminAuthConfig,
+  OnAuditEvent,
 } from './types.js';
 
 export interface CheckoutNextImportantHandlerConfig {
   config: ServerReportCoreConfig;
   db: ServerFirestore;
   auth: AdminAuthConfig;
+  onAuditEvent?: OnAuditEvent;
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
 }
 
@@ -20,6 +22,7 @@ export function createCheckoutNextImportantHandler({
   config,
   db,
   auth,
+  onAuditEvent,
 }: CheckoutNextImportantHandlerConfig) {
   const verifyAdmin = async (uid: string, authToken: unknown): Promise<void> => {
     if (auth.requireAdmin) {
@@ -89,6 +92,19 @@ export function createCheckoutNextImportantHandler({
         priority: taskData.priority,
         timestamp: now,
       });
+      if (onAuditEvent) {
+        await onAuditEvent(
+          {
+            action: 'checkout_next_important',
+            adminUserId: userId,
+            taskType,
+            taskId: taskData.taskId as string,
+            priority: taskData.priority as number,
+            timestamp: now,
+          },
+          transaction,
+        );
+      }
 
       // Fetch original document
       const originalDocRef = db.doc(taskData.originalPath as string);

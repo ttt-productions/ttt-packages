@@ -1,4 +1,4 @@
-import type { ServerFirestore, ServerReportCoreConfig } from './types.js';
+import type { ServerFirestore, ServerReportCoreConfig, OnAuditEvent } from './types.js';
 
 export interface CheckinTaskHandlerConfig {
   config: ServerReportCoreConfig;
@@ -7,6 +7,7 @@ export interface CheckinTaskHandlerConfig {
   auth?: {
     requireAdmin: (uid: string, token?: unknown) => Promise<void>;
   };
+  onAuditEvent?: OnAuditEvent;
 }
 
 interface CheckinRequest {
@@ -23,6 +24,7 @@ export function createCheckinTaskHandler({
   config,
   db,
   auth,
+  onAuditEvent,
 }: CheckinTaskHandlerConfig) {
   return async (
     data: CheckinRequest,
@@ -73,6 +75,20 @@ export function createCheckinTaskHandler({
         resolution: resolution ?? null,
         timeSpentMinutes,
       });
+      if (onAuditEvent) {
+        await onAuditEvent(
+          {
+            action: resolved ? 'checkin_resolved' : 'checkin_unresolved',
+            adminUserId: userId,
+            taskType: taskData.taskType as string,
+            taskId: taskData.taskId as string,
+            timestamp: now,
+            resolution: resolution ?? null,
+            timeSpentMinutes,
+          },
+          transaction,
+        );
+      }
 
       return { success: true };
     });
