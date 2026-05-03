@@ -2,7 +2,7 @@
 
 import { useFirestoreCollection } from '@ttt-productions/query-core/react';
 import { where, orderBy, limit, type QueryConstraint } from 'firebase/firestore';
-import type { NotificationDoc, UseUnreadCountOptions } from '../types.js';
+import type { NotificationDoc, UseUnreadCountOptions } from '../../types.js';
 
 const DEFAULT_REFETCH_INTERVAL = 30_000;
 const DEFAULT_COUNT_LIMIT = 99;

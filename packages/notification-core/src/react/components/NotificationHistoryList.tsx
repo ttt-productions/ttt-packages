@@ -3,7 +3,7 @@
 import { Badge, Button, Separator } from '@ttt-productions/ui-core/react';
 import { useNotificationHistory } from '../hooks/useNotificationHistory.js';
 import { formatRelativeTime } from './relative-time.js';
-import type { NotificationHistoryDoc, NotificationHistoryListProps } from '../types.js';
+import type { NotificationHistoryDoc, NotificationHistoryListProps } from '../../types.js';
 
 /**
  * Paginated list of archived notifications. Read-only (no clear all).

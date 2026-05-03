@@ -1,7 +1,7 @@
 'use client';
 
 import { useUnreadCount } from '../hooks/useUnreadCount.js';
-import type { NotificationUnreadBadgeProps } from '../types.js';
+import type { NotificationUnreadBadgeProps } from '../../types.js';
 
 /**
  * Unread count badge (red circle with number).

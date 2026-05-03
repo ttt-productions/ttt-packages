@@ -8,7 +8,7 @@ import type {
   NotificationHistoryDoc,
   ArchivalInfo,
   UseArchiveNotificationOptions,
-} from '../types.js';
+} from '../../types.js';
 
 /**
  * Archive a single notification: read from active → write to history → delete from active.

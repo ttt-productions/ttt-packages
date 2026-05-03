@@ -8,7 +8,7 @@ import { useArchiveAllNotifications } from '../hooks/useArchiveAllNotifications.
 import { useUnreadCount } from '../hooks/useUnreadCount.js';
 import { NotificationEmptyState } from './NotificationEmptyState.js';
 import { formatRelativeTime } from './relative-time.js';
-import type { NotificationDoc, NotificationListProps } from '../types.js';
+import type { NotificationDoc, NotificationListProps } from '../../types.js';
 
 /**
  * Scrollable list of active notifications with click-to-archive and clear-all.

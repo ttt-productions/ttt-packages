@@ -16,7 +16,7 @@ import type {
   NotificationDoc,
   ArchivalInfo,
   UseArchiveAllNotificationsOptions,
-} from '../types.js';
+} from '../../types.js';
 
 const BATCH_SIZE = 50;
 

@@ -2,7 +2,7 @@
 
 import { useFirestorePaginated } from '@ttt-productions/query-core/react';
 import { orderBy, where, type QueryConstraint } from 'firebase/firestore';
-import type { NotificationDoc, UseActiveNotificationsOptions } from '../types.js';
+import type { NotificationDoc, UseActiveNotificationsOptions } from '../../types.js';
 
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_REFETCH_INTERVAL = 30_000;

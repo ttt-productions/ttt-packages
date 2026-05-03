@@ -1,6 +1,6 @@
 'use client';
 
-import type { NotificationEmptyStateProps } from '../types.js';
+import type { NotificationEmptyStateProps } from '../../types.js';
 
 /**
  * Empty state shown when there are no active notifications.
