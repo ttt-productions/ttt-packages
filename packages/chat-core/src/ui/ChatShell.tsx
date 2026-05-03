@@ -11,7 +11,7 @@ import type {
   ModerationHandlers,
 } from "../types.js";
 import { Card, CardHeader, CardContent, CardFooter, Skeleton } from "@ttt-productions/ui-core/react";
-import { KeyboardAvoidingView } from "@ttt-productions/mobile-core";
+import { KeyboardAvoidingView } from "@ttt-productions/mobile-core/react";
 import { useChatMessages } from "../hooks/useChatMessages.js";
 import { MessageList } from "./MessageList.js";
 import { Composer } from "./Composer.js";
