@@ -2,7 +2,13 @@
 
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider, type ThemeProviderProps } from "next-themes";
-import { REQUIRED_TOKENS } from "./required-tokens.js";
+import { REQUIRED_TOKENS } from "../required-tokens.js";
+
+declare const process: {
+  env: {
+    NODE_ENV?: string;
+  };
+};
 
 function warnMissingTokens() {
   if (typeof window === "undefined") return;
