@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useInView } from "react-intersection-observer";
 import { Skeleton } from "@ttt-productions/ui-core/react";
-import type { VideoViewerProps } from "./types.js";
+import type { VideoViewerProps } from "../types.js";
 
 export function VideoViewer(props: VideoViewerProps) {
   const {
