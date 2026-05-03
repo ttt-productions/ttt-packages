@@ -10,5 +10,3 @@ export * from "./utils/upload-store.js";
 
 export * from "./queue/upload-queue.js";
 export * from "./persistence/localstorage.js";
-
-export * from "./react/index.js";
