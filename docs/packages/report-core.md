@@ -1,61 +1,53 @@
 # @ttt-productions/report-core
 
-Content reporting and admin task queue pipeline. Users submit reports → reports are grouped → admin tasks are created with priority scoring → admins check out, review, and resolve tasks. Has both client-side React hooks/components and server-side Cloud Function handlers.
+Content reporting and admin task queue pipeline. Users submit reports → reports are grouped → admin tasks are created with priority scoring → admins check out, review, and resolve tasks. Has server-safe types/config, client-side React hooks/components, and server-side Cloud Function handlers.
 
 ## Version
-0.5.3
+0.5.4
 
 ## Dependencies
-Peer: @tanstack/react-query, @ttt-productions/query-core, @ttt-productions/ui-core, firebase, react, react-dom.
+Peer: @tanstack/react-query, @ttt-productions/query-core, @ttt-productions/ttt-core, @ttt-productions/ui-core, firebase, react, react-dom.
+
+## Entry Points
+
+- `@ttt-productions/report-core` — server-safe types, config types, `DEFAULT_PRIORITY_THRESHOLDS`, and `ADMIN_TASK_STATUS`.
+- `@ttt-productions/report-core/react` — React provider, hooks, and components.
+- `@ttt-productions/report-core/server` — Cloud Function handler factories and server types.
+- `@ttt-productions/report-core/styles` — CSS side-effect import.
 
 ## What It Contains
 
-### Client Entry Point (`index.ts`)
+### Server-safe main entry (`index.ts`)
+Types and config:
+- `Report`, `ReportStatus`, `ReportGroup`, `ReportGroupStatus`
+- `AdminTask`, `AdminTaskStatus`, `CheckoutDetails`, `CheckedOutTask`
+- `ActivityAction`, `ActivityLogEntry`
+- `TaskQueueConfig`, `ReportableItemConfig`, `PriorityConfig`
+- Component prop types
+- `ReportCoreConfig`, `ReportCoreCollections`, `PriorityThreshold`
+- `DEFAULT_PRIORITY_THRESHOLDS`, `ADMIN_TASK_STATUS`
 
-**Types (`types.ts`)**
-- `Report` — Individual report: reporterUserId, reportedItemType/Id, reason, comment, status (pending_review/resolved_no_action/resolved_action_taken)
-- `ReportGroup` — Grouped reports for the same item: groupKey, totalReports, highestReasonScore, status (pending/reviewing/resolved)
-- `AdminTask` — Task in the admin queue: taskType, status (pending/checkedOut/workLater/completed), checkoutDetails, priority score, summary
-- `CheckedOutTask` — AdminTask with guaranteed non-null checkoutDetails
-- `CheckoutDetails` — Who checked it out, when, expiry time, workLater deadline
-- `ReportableItemConfig`, `PriorityConfig`, `TaskQueueConfig` — App-provided configuration types
+### React entry point (`react/index.ts`)
+Context:
+- `ReportCoreProvider`, `useReportCoreContext`
 
-**Config (`config.ts`)**
-- `ReportCoreConfig` — Full config: collections, reportableItems, reportReasons, priorityConfig, taskQueues, priorityThresholds
-- `ReportCoreCollections` — Firestore collection path config (reports, reportGroups, adminTasks, activityLog)
-- `DEFAULT_PRIORITY_THRESHOLDS` — CRITICAL (800+), HIGH (300+), NORMAL (100+), LOW (0+)
-- `ADMIN_TASK_STATUS` — Status constants
-
-**Context (`context/`)**
-- `ReportCoreProvider` — Provides ReportCoreConfig to all hooks/components via context
-
-**Hooks (`hooks/`)**
-User-facing:
+Hooks:
 - `useReportSubmit(config)` — Submit a content report
-- `useCheckExistingReport(config)` — Check if user already reported an item
-
-Admin-facing:
-- `useTaskQueue(config)` — Browse the admin task queue
 - `useCheckedOutTasks(config)` — View tasks currently checked out by the admin
 - `useCheckoutTask(config)` — Check out a task for review
 - `useCheckinTask(config)` — Complete/resolve a checked-out task
 - `useReleaseTask(config)` — Release a task back to the queue
 - `useWorkLater(config)` — Defer a task for later review
+- `useTaskQueue(config)` — Browse the admin task queue
 - `useIndividualReports(config)` — View individual reports for a grouped item
+- `useCheckoutNextImportantTask(config)` — Check out the highest-priority pending task
 
-**Components (`components/`)**
-User-facing:
+Components:
 - `ReportButton` + `useReportButton()` — Report trigger button with existing-report detection
-- `ReportDialog` — Modal dialog for submitting a report (reason selection + comment)
+- `ReportDialog` — Modal dialog for submitting a report
+- `CheckedOutTaskList`, `TaskQueueBrowser`, `CountdownTimer`, `PriorityBadge`, `TaskActionBar`
 
-Admin-facing:
-- `TaskQueueBrowser` — Browse and filter the admin task queue
-- `CheckedOutTaskList` — View and manage checked-out tasks
-- `TaskActionBar` — Action buttons for task operations (resolve, release, work later)
-- `CountdownTimer` — Checkout expiry countdown
-- `PriorityBadge` — Visual priority indicator (CRITICAL/HIGH/NORMAL/LOW)
-
-### Server Entry Point (`server/index.ts`)
+### Server entry point (`server/index.ts`)
 Cloud Function handler factories:
 - `createReportGroupingHandler(config)` — Groups incoming reports by item, calculates priority scores
 - `createAdminTaskHandler(config)` — Creates admin tasks from report groups
@@ -87,19 +79,23 @@ Admin task handler factories accept an optional `onAuditEvent` callback. The cal
 - "Work Later" allows admins to defer without releasing — maintains assignment but extends the deadline.
 - All server handlers are factory functions that accept config — no hardcoded collection paths.
 - Admin task handlers expose `onAuditEvent` rather than importing an app-specific audit package, preserving package/app layering while enabling atomic audit-event parallel writes.
+- Main is server-safe types/config only; React runtime surface lives on `/react`; Cloud Function helpers live on `/server`.
 
 ## Files
 ```
 src/
   index.ts, types.ts, config.ts
-  context/ReportCoreProvider.tsx
+  react/
+    index.ts
+  context/
+    ReportCoreProvider.tsx
   hooks/
     index.ts
-    useReportSubmit.ts, useCheckExistingReport.ts
-    useTaskQueue.ts, useCheckedOutTasks.ts
+    useReportSubmit.ts, useCheckedOutTasks.ts
     useCheckoutTask.ts, useCheckinTask.ts
     useReleaseTask.ts, useWorkLater.ts
-    useIndividualReports.ts
+    useTaskQueue.ts, useIndividualReports.ts
+    useCheckoutNextImportantTask.ts
   components/
     index.ts
     ReportButton.tsx, ReportDialog.tsx
@@ -111,5 +107,6 @@ src/
     createCheckoutTaskHandler.ts, createCheckinTaskHandler.ts
     createReleaseTaskHandler.ts, createCheckoutNextImportantHandler.ts
     calculatePriorityScore.ts, recalculateAllPriorities.ts
-    types.ts               — server abstractions plus ReportCoreAuditEvent / OnAuditEvent
+  styles/
+    report.css
 ```

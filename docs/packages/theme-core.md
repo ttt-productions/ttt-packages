@@ -3,16 +3,27 @@
 Theme provider and CSS token contract for TTT Productions apps. Wraps next-themes with a required token validation system.
 
 ## Version
-0.2.11
+0.2.14
 
 ## Dependencies
 Runtime: next-themes.
 Peer: react, react-dom.
 
+## Entry Points
+
+- `@ttt-productions/theme-core` — server-safe token contract and breakpoint constants.
+- `@ttt-productions/theme-core/react` — ThemeProvider React surface.
+- `@ttt-productions/theme-core/styles.css` — Base theme tokens.
+- `@ttt-productions/theme-core/components.css` — Shared component utility classes.
+
 ## What It Contains
 
-### ThemeProvider (`theme-provider.tsx`)
-Wraps `next-themes` ThemeProvider with TTT-specific defaults. Handles light/dark/high-contrast mode switching.
+### Server-safe entry point (`index.ts`)
+- Required token definitions from `required-tokens.ts`
+- Breakpoint constants from `breakpoints.ts`
+
+### React entry point (`react/index.ts`)
+- `ThemeProvider` — Wraps `next-themes` ThemeProvider with TTT-specific defaults. Handles light/dark/high-contrast mode switching.
 
 ### Required Tokens (`required-tokens.ts`)
 Defines the CSS variable contract that consuming apps must implement. Ensures design consistency across apps while allowing brand-specific colors.
@@ -33,6 +44,11 @@ Defines the CSS variable contract that consuming apps must implement. Ensures de
 ```
 src/
   index.ts
-  theme-provider.tsx
+  breakpoints.ts
   required-tokens.ts
+  react/
+    index.ts
+    theme-provider.tsx
+  styles/
+    base.css, components.css, contract.css, hooks.css, index.css, tokens.css
 ```

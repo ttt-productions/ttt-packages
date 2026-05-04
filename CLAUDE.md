@@ -70,6 +70,12 @@ Note: ttt-core now depends on media-contracts (for FileOrigin/PendingFile), so m
 - GitHub Actions publishes to npm on tag push
 - Both release scripts call `npm run preflight` automatically — never skip it, never bypass it by calling `npm publish` directly.
 
+## Cross-Repo Adoption Workflow
+- Packages-side and consuming-app changes stay one-way: change `ttt-packages`, publish manually, then update `ttt-prod` against the just-published installed package.
+- Do not combine package-source edits and consuming-app adoption in one implementation prompt.
+- Consuming-repo prompts reference `node_modules/@ttt-productions/*` as the source of the installed contract. They do not point Sonnet at a sibling source checkout like `C:\DjDev\ttt-packages`.
+- Do not put package version numbers, version bumps, or publish commands in consuming-repo prompts. The user handles publishing and version adoption manually.
+
 ## Main Entry Server-Safety Rule
 
 See `docs/design/react-safety.md`.
@@ -77,10 +83,18 @@ See `docs/design/react-safety.md`.
 Every package's main entry (`.`) must be server-safe. React UI lives behind `./react`. Cloud Functions admin-SDK code lives behind `./server` (where applicable). `auth-core` is the reference shape.
 
 Current entry-point layout per package:
-- `auth-core` — `.` (server-safe) + `./react` (AuthProvider + hooks)
-- `firebase-helpers` — `.` (client SDK + path/time helpers) + `./server` (Admin SDK)
-- `notification-core` — `.` (types/constants) + `./react` (hooks/components) + `./server` (Cloud Function helpers)
-- `report-core` — `.` (types/constants) + `./react` (hooks/components) + `./server` (Cloud Function handlers)
+- `auth-core` — `.` (server-safe auth utilities) + `./react` (AuthProvider + hooks)
+- `firebase-helpers` — `.` (client/universal path/time helpers) + `./server` (Admin SDK helpers)
+- `upload-core` — `.` (upload primitives/types) + `./react` (upload hooks)
+- `theme-core` — `.` (tokens/breakpoints) + `./react` (ThemeProvider) + CSS subpaths
+- `ui-core` — `.` (`cn`) + `./react` (components/hooks)
+- `mobile-core` — `.` (types/env) + `./react` (mobile hooks/components)
+- `query-core` — `.` (query client/keys/cache/types) + `./react` (providers/hooks) + `./types`
+- `media-viewer` — `.` (types) + `./react` (viewer components) + `./styles`
+- `file-input` — `.` (types/content-type helpers) + `./react` (input components)
+- `notification-core` — `.` (types) + `./react` (hooks/components) + `./server` (Cloud Function helpers) + `./styles`
+- `report-core` — `.` (types/config/constants) + `./react` (provider/hooks/components) + `./server` (Cloud Function handlers) + `./styles`
+- `chat-core` — `.` (constants/types only) + `./react` (ChatShell/hooks/resolver provider/UI) + `./styles`
 - `media-processing-core` — Server-only (Node.js, uses sharp + ffmpeg); single entry, no React
 
 ## CSS Architecture (theme-core)

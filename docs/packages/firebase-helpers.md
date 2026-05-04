@@ -3,21 +3,26 @@
 Low-level Firestore utilities shared by all apps. Provides path builders, timestamp conversion, batch write helpers, pagination, and date formatting. Has both a client SDK entry point and an Admin SDK entry point.
 
 ## Version
-0.2.19
+0.2.20
 
 ## Dependencies
 Peer: firebase, firebase-admin, date-fns.
 
+## Entry Points
+
+- `@ttt-productions/firebase-helpers` — client/universal Firestore helpers.
+- `@ttt-productions/firebase-helpers/server` — Admin SDK helpers for Cloud Functions.
+
 ## What It Contains
 
-### Client Entry Point (`index.ts`)
+### Client/universal entry point (`index.ts`)
 
 **Path Utilities (`firestore/paths.ts`)**
 Generic path builders (not app-specific — use ttt-core for TTT Productions paths):
 - `joinPath(...parts)` — Join path segments, stripping leading/trailing slashes
 - `colPath(...segments)` — Build a collection path
 - `docPath(...segments)` — Build a document path
-- `makeRootPaths(root)` — Create namespaced path helpers (e.g., `paths.col("users")` → `"ttt/users"`)
+- `makeRootPaths(root)` — Create namespaced path helpers
 
 **Timestamps (`firestore/timestamps.ts` + `timestamps-universal.ts`)**
 Client SDK timestamp utilities:
@@ -29,7 +34,7 @@ Client SDK timestamp utilities:
 
 **Batch Operations (`firestore/batch.ts`)**
 Client SDK batch write helpers:
-- `commitInBatches<T>(db, items, { batchSize?, apply })` — Executes batch writes in chunks of 450 (safe under Firestore's 500-op limit). Returns `CommitInBatchesResult` with partial success info.
+- `commitInBatches<T>(db, items, { batchSize?, apply })` — Executes batch writes in chunks of 450.
 - `batchSet<T>(db, items, { batchSize? })` — Convenience wrapper for batch `set()` operations with optional merge.
 
 **Pagination (`firestore/pagination.ts`)**
@@ -45,7 +50,7 @@ Shared Firestore type definitions.
 **Utilities (`utils/chunk.ts`)**
 - `chunk<T>(array, size)` — Split array into chunks of given size
 
-### Server Entry Point (`server/index.ts`)
+### Server entry point (`server/index.ts`)
 Server-side (Cloud Functions) equivalents:
 - `commitInBatches` — Admin SDK version using `db.batch()` instead of `writeBatch(db)`
 - `chunk` — Re-exported from utils
@@ -53,7 +58,7 @@ Server-side (Cloud Functions) equivalents:
 - Shared types re-exported
 
 ## Key Design Decisions
-- Client and Admin SDK batch helpers have identical APIs but use different Firestore imports. Import from the correct entry point.
+- Client and Admin SDK batch helpers have similar APIs but use different Firestore imports. Import from the correct entry point.
 - `toMillis()` is the universal timestamp normalizer — handles every format Firestore might return.
 - `batchSize` defaults to 450 (not 500) to leave headroom for additional operations.
 - Path utilities are intentionally generic — app-specific paths belong in ttt-core (TTT) or the app's own constants (Q-Sports).
@@ -62,7 +67,7 @@ Server-side (Cloud Functions) equivalents:
 ## Files
 ```
 src/
-  index.ts                          — Client SDK entry point
+  index.ts                          — Client/universal entry point
   utils/chunk.ts
   firestore/
     types.ts, paths.ts

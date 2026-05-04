@@ -3,50 +3,51 @@
 Media display components for rendering images, video, and audio with loading states, error handling, and fallbacks. Used wherever media content is displayed in the UI (feeds, chat messages, library items, profiles).
 
 ## Version
-0.2.11
+0.2.12
 
 ## Dependencies
 Runtime: @ttt-productions/media-contracts, @ttt-productions/ui-core.
 Peer: react, react-dom, lucide-react, react-intersection-observer.
 
+## Entry Points
+
+- `@ttt-productions/media-viewer` — server-safe media viewer prop/type exports only.
+- `@ttt-productions/media-viewer/react` — React media viewer components.
+- `@ttt-productions/media-viewer/styles` — CSS side-effect import.
+
 ## What It Contains
 
-### Primary Components
+### Server-safe entry point (`index.ts`)
+Type exports from `types.ts`: `MediaViewerType`, `FallbackMode`, `BaseMediaProps`, `ImageViewerProps`, `VideoViewerProps`, `AudioViewerProps`, `MediaPreviewProps`, and `MediaViewerProps`.
+
+### React entry point (`react/index.ts`)
 - `MediaViewer` — Smart component that renders the correct viewer based on media type (image/video/audio). Main entry point for displaying processed media.
 - `MediaPreview` — Lightweight preview variant (thumbnails, compact views)
-
-### Type-Specific Viewers
 - `ImageViewer` — Image display with lazy loading via intersection observer
 - `VideoViewer` — Video player with controls
 - `AudioViewer` — Audio player with controls
-
-### Fallbacks (`fallback.tsx`)
-- `MediaFallbackLink` — Download link fallback when media can't be displayed inline
-- `shouldShowFallback(media)` — Determine if fallback is needed
-- `EmptyFallback` — Placeholder for missing media
-- `ErrorFallback` — Error state display
+- `MediaFallbackLink`, `shouldShowFallback`, `EmptyFallback`, `ErrorFallback`
 
 ### Job Status (`components/media-job-status-list.tsx`)
-- `MediaJobStatusList` — Displays processing status for pending media jobs
-
-### Types (`types.ts`)
-Component prop types and viewer configuration interfaces.
+- `MediaJobStatusList` — Displays processing status for pending media jobs. This file exists in source but is not exported by the public barrels in the current package.
 
 ## Key Design Decisions
 - `MediaViewer` uses `SimplifiedMediaType` from media-contracts to route to the correct viewer.
 - Images use `react-intersection-observer` for lazy loading — only loads when scrolled into view.
 - Fallback chain: try inline viewer → fallback link → error state.
 - Components consume CSS variables from theme-core for consistent styling.
+- Component runtime exports live on `/react`; main is type-only.
 
 ## Files
 ```
 src/
   index.ts, types.ts
-  media-viewer.tsx          — MediaViewer + MediaPreview
-  image-viewer.tsx
-  video-viewer.tsx
-  audio-viewer.tsx
-  fallback.tsx
+  react/
+    index.ts
+    media-viewer.tsx, image-viewer.tsx, video-viewer.tsx
+    audio-viewer.tsx, fallback.tsx
   components/
     media-job-status-list.tsx
+  styles/
+    media-viewer.css
 ```

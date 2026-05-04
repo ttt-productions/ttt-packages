@@ -12,7 +12,8 @@ This playbook does NOT re-audit the rule itself — that's the design doc's job.
 - Before publishing any package whose `src/index.ts` was modified.
 - After any refactor that moves files between `src/` and `src/react/`.
 - After adding a new file under `src/` — Sonnet often forgets the rule and adds a barrel re-export to main.
-- When the Cloud Functions emulator starts crashing with `react/jsx-runtime` resolution errors (almost always a leak; this playbook diagnoses which package).
+- When the Cloud Functions emulator starts crashing with `react/jsx-runtime` resolution errors.
+- After changing package-to-package imports inside `packages/*`.
 - Quarterly as drift control.
 
 ## Audit steps
@@ -29,15 +30,19 @@ Walk every `export ... from "./..."` line and every `import` line. Classify the 
 - **VIOLATOR** — at least one export pulls React into the graph.
 - **N/A** — package has no React code anywhere; rule is trivially satisfied.
 
-Type-only re-exports (`export type { ... } from "./react/foo.js"`) are COMPLIANT — types are erased at compile time and leave no runtime trace.
+Type-only re-exports (`export type { ... }`) are COMPLIANT because types are erased at compile time and leave no runtime trace.
 
-### 2. Transitive check (one level)
+If a source file exports both types and runtime constants, do not use `export *` or `export type *` from the server-safe barrel. `export *` may pull in future runtime exports; `export type *` drops current runtime constants. Use explicit named re-exports, as in `chat-core` for `GROUP_GAP_SEC`.
 
-If main re-exports from a barrel file (`export * from "./things"`), read `src/things/index.ts` and check whether IT imports React. Don't recurse deeper than one level — if the barrel re-exports more barrels, flag for deeper inspection rather than walking the tree manually.
+### 2. Transitive check
+
+If main re-exports from another barrel file (`export * from "./things"`), read that file and every file it re-exports. Any React import, JSX, browser-only API, or re-export from `./react`, `./ui`, `./components`, or `./hooks` means main is not server-safe.
+
+Also scan for server-safe-looking utility barrels that import a React component "just for a type". Use `import type` and move shared types into a neutral file instead.
 
 ### 3. `package.json` exports field
 
-For each VIOLATOR, read `packages/<pkg>/package.json` and capture the `exports` field. The post-refactor shape must match `auth-core`:
+For each package with React surface, read `packages/<pkg>/package.json` and confirm the `exports` field exposes React through a separate subpath:
 
     "exports": {
       ".": {
@@ -50,11 +55,24 @@ For each VIOLATOR, read `packages/<pkg>/package.json` and capture the `exports` 
       }
     }
 
-Packages with admin-SDK code add a third entry (`./server` or, for `firebase-helpers`, `./admin`).
+Packages with Cloud Functions/Admin SDK code add `./server`. Packages with CSS may add a `./styles` or `.css` subpath. Existing conventions are preserved only after a full consumer sweep; never flip an established public subpath without updating every consumer.
 
-### 4. Built-output spot check
+### 4. Internal package-to-package imports
 
-After a violator is refactored and rebuilt:
+Run:
+
+    grep -RIn "@ttt-productions/" packages --include='*.ts' --include='*.tsx'
+
+For every import between shared packages:
+
+- React components, hooks, providers, and contexts must come from `@ttt-productions/<pkg>/react`.
+- Server/Admin helpers must come from `@ttt-productions/<pkg>/server`.
+- Types, constants, schemas, and pure helpers stay on the main barrel.
+- Do not import React surface from another package's main barrel even inside `ttt-packages`; the same rule applies to internal consumers and app consumers.
+
+### 5. Built-output spot check
+
+After a package is refactored and rebuilt:
 
     grep -RIn "from \"react\"\|from 'react'\|from \"react-dom\"" packages/<pkg>/dist/index.js
 
@@ -66,31 +84,49 @@ If the package has React surface, also confirm:
 
 Exists and contains `index.js` and `index.d.ts`.
 
-### 5. Audit output
+For packages with `/server`, also confirm the server dist exists and does not import browser/React code.
 
-Generate `docs/audits/REACT_LEAK_AUDIT.md` (overwriting any previous run). Include:
+### 6. React barrel directive check
+
+When adding a new `src/react/index.ts` barrel, prefer starting the barrel with `"use client";` and keep that directive off the server-safe main barrel. If adopting this as a hard requirement for an existing package, sweep the current package first; several older React files rely on leaf-module boundaries rather than a barrel-level directive.
+
+### 7. Ambient shim cleanup in consumers
+
+Search consuming repos for package-specific ambient shims created to work around NodeNext export resolution:
+
+    find ../ttt-prod/functions/src -name "*.d.ts" -maxdepth 2 -print
+    grep -RIn "declare module '@ttt-productions/\|declare module \"@ttt-productions/" ../ttt-prod/functions/src --include='*.d.ts'
+
+These shims are workarounds, not architecture. After a package's main-barrel surface changes, re-evaluate the corresponding shim for deletion by removing it locally and running the consuming app's typecheck plus Functions build. Restore it only if either fails.
+
+### 8. Audit output
+
+Generate `docs/audits/REACT_LEAK_AUDIT.md` only while there are active findings. Include:
 
 - A summary table with one row per package: package name, version, has React code, main is server-safe, `/react` subpath exists, action needed.
 - Per-violator detail sections with the offending re-export lines from `src/index.ts` and the current `package.json` exports field.
-- A refactor-order recommendation in dependency order (lowest-level packages first, packages that depend on others last).
+- A refactor-order recommendation in dependency order.
 
-After the audit table is acted on and every violator is resolved, delete `docs/audits/REACT_LEAK_AUDIT.md`. The playbook is permanent; the audit output is transient.
+After the audit table is acted on and every violator is resolved, delete `docs/audits/REACT_LEAK_AUDIT.md`. The playbook is permanent; audit outputs are transient.
 
 ## Common failure patterns
 
 - New shadcn component added to `ui-core` and someone re-exports it from `src/index.ts` instead of `src/react/index.ts`.
-- Package has `src/react/` and `src/index.ts` correctly set up, but a stale line `export * from "./react/index.js"` is left in main from a previous shape.
-- New hook in `chat-core` or `notification-core` exported from main alongside the constants. Constants are fine; hooks are not.
+- Package has `src/react/` and `src/index.ts` correctly set up, but a stale line `export * from "./react/index.js"` is left in main.
+- New hook in `chat-core` or `notification-core` exported from main alongside constants. Constants are fine; hooks are not.
 - A barrel file under `src/utils/` quietly imports from `src/components/` for a "shared" type, which drags React into the utils graph and through to main.
 - New package created from a copy of another package and the `package.json` exports field doesn't get updated to include `./react`.
-- Re-export of an entire React surface via `export * from "./react/index.js"` from main "for convenience" — convenience is not a justification for breaking the rule.
+- Re-export of an entire React surface via `export * from "./react/index.js"` from main "for convenience".
+- Mixed-export file re-exported with `export *`, accidentally exposing future runtime values from the server-safe main entry.
+- Internal package-to-package import pulls a component from another package's main barrel instead of `/react`.
+- Consuming app keeps a stale ambient `.d.ts` shim after the package export shape is fixed.
 
 ## Output / Pass-fail criteria
 
-**PASS** when every package in `packages/` is COMPLIANT or N/A. Every violator has been refactored to the auth-core shape. `dist/index.js` for every package contains zero React imports. The audit output file in `docs/audits/` has been deleted because there's nothing left to track.
+**PASS** when every package in `packages/` is COMPLIANT or N/A, every package with React surface exposes it through `/react`, package-to-package imports use the correct subpath, built `dist/index.js` files contain zero React imports, stale ambient shims have been re-evaluated in consuming repos, and `docs/audits/REACT_LEAK_AUDIT.md` is absent because there is nothing left to track.
 
-**FAIL** if any package's main entry imports React directly, re-exports a React-touching file, or re-exports from `./react`. Each FAIL is logged in `docs/audits/REACT_LEAK_AUDIT.md` with the specific offending lines, and the package's next release is blocked until resolved.
+**FAIL** if any package's main entry imports React directly, re-exports a React-touching file, re-exports from `./react`, lacks the public subpath needed by consumers, or lets another package import React surface from its main barrel. Each FAIL is logged in `docs/audits/REACT_LEAK_AUDIT.md` with the specific offending lines, and the package's next release is blocked until resolved.
 
-## Automating this audit
+## Automation fallback
 
-After the initial sweep is complete, add an `npm run audit:react-leaks` script at the repo root that runs step 4 (built-output grep) for every package and exits non-zero on any hit. Wire into the GitHub Actions workflow so a PR that introduces a leak fails CI. The playbook step then becomes "run the script" rather than "do the manual grep" — but the manual grep stays in this doc as a fallback for ad-hoc audits.
+If an `npm run audit:react-leaks` script exists, run it first and treat failures as blockers. The manual greps above remain the fallback and the review checklist for cases the script does not cover yet.
