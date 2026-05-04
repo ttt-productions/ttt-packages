@@ -1,3 +1,5 @@
+"use client";
+
 export { MediaViewer, MediaPreview } from "./media-viewer.js";
 export { ImageViewer } from "./image-viewer.js";
 export { VideoViewer } from "./video-viewer.js";

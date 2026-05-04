@@ -36,7 +36,7 @@ export interface ReportCoreProviderProps {
  *
  * @example
  * ```tsx
- * import { ReportCoreProvider } from "@ttt-productions/report-core";
+ * import { ReportCoreProvider } from "@ttt-productions/report-core/react";
  * import { reportConfig } from "@/lib/report-config";
  * import { getFirebaseDb } from "@/lib/firebase";
  *

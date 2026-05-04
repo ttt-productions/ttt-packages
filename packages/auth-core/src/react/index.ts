@@ -1,3 +1,5 @@
+"use client";
+
 export * from "./useAuthState.js";
 export * from "./types.js";
 export { AuthProvider } from "./AuthProvider.js";

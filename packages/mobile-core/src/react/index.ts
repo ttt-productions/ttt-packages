@@ -1,3 +1,5 @@
+"use client";
+
 export * from "./viewport/useVisualViewport.js";
 export * from "./viewport/useViewportHeightVars.js";
 

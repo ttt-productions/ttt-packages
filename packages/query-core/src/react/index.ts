@@ -1,3 +1,5 @@
+"use client";
+
 // Provider
 export { TTTQueryProvider } from './provider.js';
 export type { TTTQueryProviderProps } from './provider.js';

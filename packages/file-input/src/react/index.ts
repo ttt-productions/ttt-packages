@@ -1,3 +1,5 @@
+"use client";
+
 export * from "./components/file-input.js";
 export * from "./components/image-input.js";
 export * from "./components/video-input.js";
