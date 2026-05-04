@@ -1,16 +1,27 @@
-export * from "./types.js";
-export * from "./constants.js";
+// Server-safe barrel. React UI, hooks, and the ChatNameResolver context
+// live on the "/react" subpath. Cloud Functions and other server code
+// import from this barrel only.
 
-export * from "./context/ChatNameResolverContext.js";
+export { MAX_CHAT_MESSAGE_LENGTH, CHAT_ATTACHMENT_STALE_AGE_MS } from "./constants.js";
 
-export * from "./hooks/useChatMessages.js";
-export * from "./hooks/useChatThreadAccess.js";
+export { GROUP_GAP_SEC } from "./types.js";
+export type {
+    ChatAttachmentStatus,
+    ChatAttachment,
+    ChatId,
+    ChatThreadV1,
+    ChatMessageV1,
+    ChatAccessMode,
+    ChatCoreConfig,
+    ChatAttachmentConfig,
+    RegisterAttachmentInput,
+    RegisterAttachmentFn,
+    DismissFailedAttachmentFn,
+    ModerationHandlers,
+    MessageRenderer,
+    MessageRendererRegistry,
+    ChatNameResolver,
+    ChatPrewarmSenders,
+} from "./types.js";
 
-export * from "./ui/ChatShell.js";
-export * from "./ui/MessageList.js";
-export * from "./ui/Composer.js";
-export * from "./ui/MessageItemDefault.js";
-export * from "./ui/menus.js";
-
-// Templates removed in v0.3.0 — use ChatShell directly with render slots.
 // CSS: import "@ttt-productions/chat-core/styles" in your app layout.
