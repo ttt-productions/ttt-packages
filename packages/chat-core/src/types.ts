@@ -6,18 +6,18 @@ import type { TTTMediaOriginEntry } from "@ttt-productions/media-contracts";
 // CHAT ATTACHMENT
 // ============================================
 
-export type ChatAttachmentStatus = "pending" | "processing" | "completed" | "failed" | "rejected";
-
+// Chat message docs are only ever written by the server after media
+// processing + moderation succeed. There is no pending/processing/failed/
+// rejected state on attachments in chat — rejection visibility lives on
+// /profile/uploads (the canonical pendingMedia surface). Every attachment
+// on a chat message doc is fully processed and viewable.
 export type ChatAttachment = {
-  id: string;                       // pendingMedia doc ID (same as uuid used for upload)
+  id: string;                       // pendingMedia doc ID
   name: string;                     // original filename
   type: "image" | "video" | "audio" | "text";
   size: number;                     // bytes
-  status: ChatAttachmentStatus;
-  pendingStoragePath?: string;      // set on upload, cleared after processing
-  url?: string;                     // final URL, set by backend after processing
-  storagePath?: string;             // final storage path, set by backend
-  errorMessage?: string;            // set if failed/rejected
+  url: string;                      // final URL (always present)
+  storagePath: string;              // final storage path (always present)
 };
 
 // ============================================
@@ -115,20 +115,19 @@ export type ChatAttachmentConfig = {
 
 /**
  * Called by Composer after the file has been uploaded to Storage. The consumer
- * wires this to a backend callable that atomically creates BOTH the chat message
- * doc and the pendingMedia doc (linked via targetDocPath). Composer no longer
- * asks the consumer for a messageDocPath — the callable owns that ID.
+ * wires this to a backend callable (`startUpload`) that writes the pendingMedia
+ * doc with the caption text + reply pointer. The processor will create the
+ * message doc itself after media moderation succeeds.
  *
- * `attachment` carries everything the callable needs to record the upload:
- * the storage path the file was uploaded to, the original filename, the
- * pending-media doc id (also used as the attachment id on the message),
- * and basic file metadata for the message renderer.
+ * No message doc is created at this point — Composer should render an
+ * optimistic local "uploading" state until the listener delivers the real
+ * message after processing completes.
  */
-export type RegisterAttachmentInput = {
+export type SendAttachmentInput = {
   text: string;
   attachment: {
-    attachmentId: string;
-    storagePath: string;
+    attachmentId: string;       // pendingMedia doc ID
+    storagePath: string;        // uploads/chat-attachment/{uid}/{attachmentId}
     originalFileName: string;
     type: ChatAttachment["type"];
     size: number;
@@ -136,22 +135,7 @@ export type RegisterAttachmentInput = {
   replyTo?: ChatMessageV1["replyTo"];
 };
 
-export type RegisterAttachmentFn = (input: RegisterAttachmentInput) => Promise<void>;
-
-// ============================================
-// FAILED ATTACHMENT DISMISSAL
-// ============================================
-
-/**
- * Sender-gated handler invoked when a user dismisses one of their own messages
- * whose attachment ended in `failed` or `rejected` status. The consumer wires
- * this to a backend callable that deletes the message doc. Chat-core does not
- * delete the doc itself.
- *
- * Distinct from `ModerationHandlers.onDeleteMessage`, which is admin-gated and
- * applies to any message.
- */
-export type DismissFailedAttachmentFn = (messageId: string) => Promise<void>;
+export type SendAttachmentFn = (input: SendAttachmentInput) => Promise<void>;
 
 // ============================================
 // MODERATION

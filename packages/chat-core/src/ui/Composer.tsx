@@ -10,7 +10,7 @@ import type { FileOrigin } from "@ttt-productions/media-contracts";
 import { buildTempUploadPath } from "@ttt-productions/ttt-core";
 import { uploadFileResumable } from "@ttt-productions/upload-core";
 import { Loader2, X, FileText, ImageIcon, VideoIcon, MicIcon } from "lucide-react";
-import type { ChatAttachment, ChatAttachmentConfig, ChatMessageV1, RegisterAttachmentFn } from "../types.js";
+import type { ChatAttachment, ChatAttachmentConfig, ChatMessageV1, SendAttachmentFn } from "../types.js";
 
 function genId(): string {
   return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -44,10 +44,11 @@ export type ComposerProps = {
   /**
    * Attachment send. Composer uploads the file to Storage first, then calls
    * this with the resulting metadata. Consumer wires it to a backend callable
-   * that atomically creates the message doc + pendingMedia doc.
+   * (`startUpload`) that writes the pendingMedia doc. The processor creates
+   * the message doc after moderation succeeds.
    * Required for attachment functionality.
    */
-  registerAttachment?: RegisterAttachmentFn;
+  sendAttachment?: SendAttachmentFn;
 
   disabled?: boolean;
   autoFocus?: boolean;
@@ -58,7 +59,7 @@ export function Composer(props: ComposerProps) {
   const {
     onSend,
     attachmentConfig,
-    registerAttachment,
+    sendAttachment,
     disabled,
     autoFocus = false,
     placeholder = "Type a message...",
@@ -70,7 +71,7 @@ export function Composer(props: ComposerProps) {
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
   const ref = React.useRef<HTMLTextAreaElement>(null);
 
-  const attachEnabled = Boolean(attachmentConfig && registerAttachment);
+  const attachEnabled = Boolean(attachmentConfig && sendAttachment);
 
   // focus stability: never steal focus unless explicitly enabled
   React.useEffect(() => {
@@ -93,7 +94,7 @@ export function Composer(props: ComposerProps) {
     setIsSending(true);
 
     try {
-      if (pendingFile && attachmentConfig && registerAttachment) {
+      if (pendingFile && attachmentConfig && sendAttachment) {
         // Attachment path: upload first, then register.
         const uuid = genId();
         const FILE_ORIGIN: FileOrigin = "chat-attachment";
@@ -112,7 +113,7 @@ export function Composer(props: ComposerProps) {
         });
         setUploadProgress(null);
 
-        await registerAttachment({
+        await sendAttachment({
           text: v,
           attachment: {
             attachmentId: uuid,

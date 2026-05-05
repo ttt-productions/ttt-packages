@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
-import { MediaViewer, MediaPreview } from '../src/media-viewer';
+import { MediaViewer, MediaPreview } from '../src/react/media-viewer';
 
 // Force children to render immediately (priority path) so we don't have to mock inView for them individually
 vi.mock('react-intersection-observer', () => ({

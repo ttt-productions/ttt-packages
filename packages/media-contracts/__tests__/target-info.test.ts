@@ -158,12 +158,53 @@ describe('ChapterPhotoTargetInfoSchema', () => {
 });
 
 describe('ChatAttachmentTargetInfoSchema', () => {
-  it('accepts docPath only', () => {
-    expect(() => ChatAttachmentTargetInfoSchema.parse({ docPath: 'threads/t_1/messages/m_1' })).not.toThrow();
-  });
-  it('rejects fields field present', () => {
+  it('accepts projectChannel with required fields', () => {
     expect(() => ChatAttachmentTargetInfoSchema.parse({
-      docPath: 'x', fields: { full: 'y' },
+      threadKind: 'projectChannel', projectId: 'p_1', channelId: 'c_1',
+    })).not.toThrow();
+  });
+  it('accepts projectChannel with optional replyTo', () => {
+    expect(() => ChatAttachmentTargetInfoSchema.parse({
+      threadKind: 'projectChannel', projectId: 'p_1', channelId: 'c_1',
+      replyTo: { messageId: 'm_1', senderId: 'u_1', messagePreview: 'hi' },
+    })).not.toThrow();
+  });
+  it('accepts projectInvite with required fields', () => {
+    expect(() => ChatAttachmentTargetInfoSchema.parse({
+      threadKind: 'projectInvite', inviteId: 'inv_1',
+    })).not.toThrow();
+  });
+  it('accepts adminSupport with required fields', () => {
+    expect(() => ChatAttachmentTargetInfoSchema.parse({
+      threadKind: 'adminSupport', adminMessageId: 'msg_1', isUserReply: true,
+    })).not.toThrow();
+  });
+  it('rejects unknown threadKind', () => {
+    expect(() => ChatAttachmentTargetInfoSchema.parse({
+      threadKind: 'unknown', projectId: 'p_1',
+    })).toThrow();
+  });
+  it('rejects projectChannel missing channelId', () => {
+    expect(() => ChatAttachmentTargetInfoSchema.parse({
+      threadKind: 'projectChannel', projectId: 'p_1',
+    })).toThrow();
+  });
+  it('rejects projectInvite missing inviteId', () => {
+    expect(() => ChatAttachmentTargetInfoSchema.parse({
+      threadKind: 'projectInvite',
+    })).toThrow();
+  });
+  it('rejects adminSupport missing isUserReply', () => {
+    expect(() => ChatAttachmentTargetInfoSchema.parse({
+      threadKind: 'adminSupport', adminMessageId: 'msg_1',
+    })).toThrow();
+  });
+  it('rejects docPath (old shape no longer accepted)', () => {
+    expect(() => ChatAttachmentTargetInfoSchema.parse({ docPath: 'threads/t_1/messages/m_1' })).toThrow();
+  });
+  it('rejects extra unknown keys on projectChannel', () => {
+    expect(() => ChatAttachmentTargetInfoSchema.parse({
+      threadKind: 'projectChannel', projectId: 'p_1', channelId: 'c_1', extra: 'x',
     })).toThrow();
   });
 });
@@ -177,7 +218,8 @@ describe('parseTargetInfo dispatch', () => {
     expect(result).toMatchObject({ skillId: 's_1' });
   });
   it('dispatches to chat-attachment schema', () => {
-    expect(parseTargetInfo('chat-attachment', { docPath: 'x' })).toEqual({ docPath: 'x' });
+    const result = parseTargetInfo('chat-attachment', { threadKind: 'projectChannel', projectId: 'p_1', channelId: 'c_1' });
+    expect(result).toMatchObject({ threadKind: 'projectChannel', projectId: 'p_1', channelId: 'c_1' });
   });
   it('throws on schema mismatch', () => {
     expect(() => parseTargetInfo('skill-media', { wrongShape: true })).toThrow();

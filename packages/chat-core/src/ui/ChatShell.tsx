@@ -5,8 +5,7 @@ import type {
   ChatCoreConfig,
   ChatMessageV1,
   ChatAttachmentConfig,
-  RegisterAttachmentFn,
-  DismissFailedAttachmentFn,
+  SendAttachmentFn,
   MessageRendererRegistry,
   ModerationHandlers,
 } from "../types.js";
@@ -33,8 +32,7 @@ export type ChatShellProps = {
 
   // Composer attachment config
   attachmentConfig?: ChatAttachmentConfig;
-  registerAttachment?: RegisterAttachmentFn;
-  onDismissFailedAttachment?: DismissFailedAttachmentFn;
+  sendAttachment?: SendAttachmentFn;
   composerPlaceholder?: string;
   autoFocus?: boolean;
 
@@ -60,8 +58,7 @@ export function ChatShell(props: ChatShellProps) {
     messageRenderers,
     handlers,
     attachmentConfig,
-    registerAttachment,
-    onDismissFailedAttachment,
+    sendAttachment,
     composerPlaceholder,
     autoFocus = false,
     renderAboveMessages,
@@ -129,7 +126,6 @@ export function ChatShell(props: ChatShellProps) {
           onScrollToBottom={() => setShowScrollToBottom(false)}
           handlers={handlers}
           onSenderClick={onSenderClick}
-          onDismissFailedAttachment={onDismissFailedAttachment}
         />
       </CardContent>
 
@@ -149,7 +145,7 @@ export function ChatShell(props: ChatShellProps) {
             <Composer
               onSend={onSend}
               attachmentConfig={attachmentConfig}
-              registerAttachment={registerAttachment}
+              sendAttachment={sendAttachment}
               disabled={composerDisabled}
               autoFocus={autoFocus}
               placeholder={composerPlaceholder}

@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, act, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { RecordDialog } from '../src/components/record-dialog';
+import { RecordDialog } from '../src/react/components/record-dialog';
 
 // Fake MediaRecorder:
 type MRCtor = new (stream: MediaStream, opts?: MediaRecorderOptions) => MediaRecorder;

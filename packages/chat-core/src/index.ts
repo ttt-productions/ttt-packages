@@ -6,7 +6,6 @@ export { MAX_CHAT_MESSAGE_LENGTH, CHAT_ATTACHMENT_STALE_AGE_MS } from "./constan
 
 export { GROUP_GAP_SEC } from "./types.js";
 export type {
-    ChatAttachmentStatus,
     ChatAttachment,
     ChatId,
     ChatThreadV1,
@@ -14,9 +13,8 @@ export type {
     ChatAccessMode,
     ChatCoreConfig,
     ChatAttachmentConfig,
-    RegisterAttachmentInput,
-    RegisterAttachmentFn,
-    DismissFailedAttachmentFn,
+    SendAttachmentInput,
+    SendAttachmentFn,
     ModerationHandlers,
     MessageRenderer,
     MessageRendererRegistry,

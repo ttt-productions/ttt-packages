@@ -1,9 +1,9 @@
 "use client";
 
-import type { ChatMessageV1, ChatAttachment, ModerationHandlers, DismissFailedAttachmentFn } from "../types.js";
+import type { ChatMessageV1, ChatAttachment, ModerationHandlers } from "../types.js";
 import { cn } from "@ttt-productions/ui-core";
 import { MediaViewer } from "@ttt-productions/media-viewer/react";
-import { Loader2, FileText, AlertTriangle, ShieldAlert } from "lucide-react";
+import { FileText } from "lucide-react";
 import { MessageActions } from "./menus.js";
 import { useResolvedSenderName } from "../context/ChatNameResolverContext.js";
 
@@ -11,19 +11,7 @@ import { useResolvedSenderName } from "../context/ChatNameResolverContext.js";
 // Attachment rendering
 // ============================================
 
-function AttachmentPending({ att }: { att: ChatAttachment }) {
-  return (
-    <div className="chat-attachment-pending">
-      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-      <span className="text-xs text-muted-foreground truncate">{att.name}</span>
-      <span className="text-xs text-muted-foreground">Processing…</span>
-    </div>
-  );
-}
-
-function AttachmentCompleted({ att }: { att: ChatAttachment }) {
-  if (!att.url) return null;
-
+function AttachmentView({ att }: { att: ChatAttachment }) {
   if (att.type === "image") {
     return <MediaViewer type="image" url={att.url} alt={att.name} className="chat-attachment-media" />;
   }
@@ -45,64 +33,6 @@ function AttachmentCompleted({ att }: { att: ChatAttachment }) {
       <span className="truncate">{att.name}</span>
     </a>
   );
-}
-
-function AttachmentFailed({ att, onDismiss }: { att: ChatAttachment; onDismiss?: () => void }) {
-  return (
-    <div className="chat-attachment-failed">
-      <AlertTriangle className="h-4 w-4 shrink-0" />
-      <span className="text-xs">{att.errorMessage || "Attachment failed to process"}</span>
-      {onDismiss && (
-        <button
-          type="button"
-          className="text-xs underline opacity-80 hover:opacity-100"
-          onClick={onDismiss}
-        >
-          Dismiss
-        </button>
-      )}
-    </div>
-  );
-}
-
-function AttachmentRejected({ att, onDismiss }: { att: ChatAttachment; onDismiss?: () => void }) {
-  return (
-    <div className="chat-attachment-rejected">
-      <ShieldAlert className="h-4 w-4 shrink-0" />
-      <span className="text-xs">{att.errorMessage || "Attachment removed for policy violation"}</span>
-      {onDismiss && (
-        <button
-          type="button"
-          className="text-xs underline opacity-80 hover:opacity-100"
-          onClick={onDismiss}
-        >
-          Dismiss
-        </button>
-      )}
-    </div>
-  );
-}
-
-function AttachmentRenderer({
-  attachment,
-  onDismiss,
-}: {
-  attachment: ChatAttachment;
-  onDismiss?: () => void;
-}) {
-  switch (attachment.status) {
-    case "pending":
-    case "processing":
-      return <AttachmentPending att={attachment} />;
-    case "completed":
-      return <AttachmentCompleted att={attachment} />;
-    case "failed":
-      return <AttachmentFailed att={attachment} onDismiss={onDismiss} />;
-    case "rejected":
-      return <AttachmentRejected att={attachment} onDismiss={onDismiss} />;
-    default:
-      return null;
-  }
 }
 
 // ============================================
@@ -147,16 +77,10 @@ export type MessageItemDefaultProps = {
   // Sender interaction
   onSenderClick?: (senderId: string, displayName: string) => void;
 
-  /**
-   * Sender-gated. Invoked when the current user dismisses one of their own
-   * messages whose attachment is `failed` or `rejected`. Wired to a backend
-   * callable that deletes the message doc.
-   */
-  onDismissFailedAttachment?: DismissFailedAttachmentFn;
 };
 
 export function MessageItemDefault(props: MessageItemDefaultProps) {
-  const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick, onDismissFailedAttachment } = props;
+  const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick } = props;
   const senderName = useResolvedSenderName(m.senderId);
 
   // System messages render differently
@@ -203,16 +127,7 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
         {/* Attachment */}
         {m.attachment && (
           <div className="mt-2">
-            <AttachmentRenderer
-              attachment={m.attachment}
-              onDismiss={
-                mine &&
-                onDismissFailedAttachment &&
-                (m.attachment.status === "failed" || m.attachment.status === "rejected")
-                  ? () => onDismissFailedAttachment(m.messageId)
-                  : undefined
-              }
-            />
+            <AttachmentView att={m.attachment} />
           </div>
         )}
       </div>

@@ -589,13 +589,44 @@ export const SongAudioTargetInfoSchema = SubItemTargetInfoShape;
 export const ShowPhotoTargetInfoSchema = SubItemTargetInfoShape;
 export const ShowVideoTargetInfoSchema = SubItemTargetInfoShape;
 
-// chat-attachment: docPath only. Processor writes URL fields directly via
-// updateMessageDoc rather than reading from `fields`, so no fields here.
-export const ChatAttachmentTargetInfoSchema = z
+// chat-attachment: discriminated by threadKind. Carries the routing
+// information the processor needs to build the message-doc path AFTER
+// moderation passes. Caption text lives in pendingMedia.textContent at
+// the top level (canonical home for upload caption text — same as streetz).
+// The processor reads textContent + targetInfo to call runSendChatMessage.
+const ChatReplyToSchema = z
   .object({
-    docPath: z.string().min(1),
+    messageId: z.string().min(1),
+    senderId: z.string().min(1),
+    messagePreview: z.string(),
   })
   .strict();
+
+export const ChatAttachmentTargetInfoSchema = z.discriminatedUnion('threadKind', [
+  z
+    .object({
+      threadKind: z.literal('projectChannel'),
+      projectId: z.string().min(1),
+      channelId: z.string().min(1),
+      replyTo: ChatReplyToSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      threadKind: z.literal('projectInvite'),
+      inviteId: z.string().min(1),
+      replyTo: ChatReplyToSchema.optional(),
+    })
+    .strict(),
+  z
+    .object({
+      threadKind: z.literal('adminSupport'),
+      adminMessageId: z.string().min(1),
+      isUserReply: z.boolean(),
+      replyTo: ChatReplyToSchema.optional(),
+    })
+    .strict(),
+]);
 
 // project-file: projectId only. The processor looks up the project doc
 // at finalize time and builds the canonical ProjectFile entry from

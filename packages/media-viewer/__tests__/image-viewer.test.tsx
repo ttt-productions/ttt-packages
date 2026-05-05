@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ImageViewer } from '../src/image-viewer';
+import { ImageViewer } from '../src/react/image-viewer';
 
 let mockInView = false;
 vi.mock('react-intersection-observer', () => ({

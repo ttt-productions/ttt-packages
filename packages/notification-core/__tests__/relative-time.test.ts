@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { formatRelativeTime } from '../src/components/relative-time';
+import { formatRelativeTime } from '../src/react/components/relative-time';
 
 afterEach(() => {
   vi.restoreAllMocks();

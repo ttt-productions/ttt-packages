@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { shouldShowFallback, MediaFallbackLink } from '../src/fallback';
+import { shouldShowFallback, MediaFallbackLink } from '../src/react/fallback';
 
 describe('shouldShowFallback', () => {
   it('returns true for undefined', () => {
