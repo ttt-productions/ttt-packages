@@ -9,9 +9,11 @@
   padding: 0.75rem;
   border-radius: 0.5rem;
 }
+
 .chat-bubble--mine {
   background-color: hsl(var(--primary) / 0.1);
 }
+
 .chat-bubble--theirs {
   background-color: hsl(var(--muted));
 }
@@ -20,6 +22,7 @@
 .chat-group-gap {
   margin-top: 0.75rem;
 }
+
 .chat-continuation-gap {
   margin-top: 0.125rem;
 }
@@ -44,10 +47,12 @@
   background-color: hsl(var(--muted) / 0.5);
   font-size: 0.75rem;
 }
+
 .chat-reply-quote-sender {
   font-weight: 600;
   color: hsl(var(--foreground));
 }
+
 .chat-reply-quote-preview {
   color: hsl(var(--muted-foreground));
   overflow: hidden;
@@ -66,11 +71,13 @@
   background-color: hsl(var(--muted));
   font-size: 0.75rem;
 }
+
 .chat-attachment-media {
   max-width: 320px;
   border-radius: 0.375rem;
   overflow: hidden;
 }
+
 .chat-attachment-text-link {
   display: inline-flex;
   align-items: center;
@@ -83,19 +90,11 @@
   text-decoration: none;
   transition: opacity 0.15s;
 }
+
 .chat-attachment-text-link:hover {
   opacity: 0.8;
 }
-.chat-attachment-failed {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
-  background-color: hsl(var(--destructive) / 0.1);
-  color: hsl(var(--destructive));
-  font-size: 0.75rem;
-}
+
 .chat-attachment-rejected {
   display: flex;
   align-items: center;
@@ -114,6 +113,7 @@
   gap: 0.5rem;
   width: 100%;
 }
+
 .chat-composer-file-preview {
   display: flex;
   align-items: center;
@@ -123,6 +123,7 @@
   background-color: hsl(var(--muted));
   font-size: 0.8125rem;
 }
+
 .chat-composer-file-name {
   flex: 1;
   min-width: 0;
@@ -130,6 +131,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .chat-composer-upload-status {
   display: flex;
   align-items: center;
