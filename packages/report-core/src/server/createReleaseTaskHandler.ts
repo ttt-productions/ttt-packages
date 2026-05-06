@@ -1,4 +1,5 @@
 import type { ServerFirestore, ServerReportCoreConfig, OnAuditEvent } from './types.js';
+import type { ReleaseTaskRequest } from '../schemas/index.js';
 
 export interface ReleaseTaskHandlerConfig {
   config: ServerReportCoreConfig;
@@ -7,10 +8,6 @@ export interface ReleaseTaskHandlerConfig {
     requireAdmin: (uid: string, token?: unknown) => Promise<void>;
   };
   onAuditEvent?: OnAuditEvent;
-}
-
-interface ReleaseRequest {
-  taskId: string;
 }
 
 /**
@@ -24,7 +21,7 @@ export function createReleaseTaskHandler({
   onAuditEvent,
 }: ReleaseTaskHandlerConfig) {
   return async (
-    data: ReleaseRequest,
+    data: ReleaseTaskRequest,
     authContext: { uid: string; token?: unknown },
   ): Promise<{ success: boolean }> => {
     const { taskId } = data;

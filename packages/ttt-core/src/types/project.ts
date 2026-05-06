@@ -99,18 +99,7 @@ export type ProjectInvite = {
   lastUpdatedAt: number;
 };
 
-export type ShareOperationType =
-  | 'add-pending'
-  | 'remove-pending'
-  | 'add-active'
-  | 'create-project'
-  | 'convert-invite';
-
-export type ShareOperation = {
-  type: ShareOperationType;
-  amount?: number;
-  user?: { uid: string };
-  sourceId?: string;
-  sourceType?: 'invite' | 'job';
-  projectData?: FullProject;
-};
+// ShareOperation type and union are now defined by the Zod schema.
+// See packages/ttt-core/src/schemas/share-operation.ts for the source of truth.
+// The old `projectData?: FullProject` field was dead and has been removed.
+export type { ShareOperation, ShareOperationType } from '../schemas/share-operation.js';

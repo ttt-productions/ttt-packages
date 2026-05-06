@@ -63,6 +63,10 @@
         "./utils": {
             "types": "./dist/utils/index.d.ts",
             "default": "./dist/utils/index.js"
+        },
+        "./schemas": {
+            "types": "./dist/schemas/index.d.ts",
+            "default": "./dist/schemas/index.js"
         }
     },
     "scripts": {
@@ -73,7 +77,8 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "@ttt-productions/media-contracts": "*"
+        "@ttt-productions/media-contracts": "*",
+        "zod": "^3.23.8"
     },
     "devDependencies": {
         "typescript": "^5.8.3"

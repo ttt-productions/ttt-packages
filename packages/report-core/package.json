@@ -29,6 +29,10 @@
             "types": "./dist/server/index.d.ts",
             "default": "./dist/server/index.js"
         },
+        "./schemas": {
+            "types": "./dist/schemas/index.d.ts",
+            "default": "./dist/schemas/index.js"
+        },
         "./styles": "./src/styles/report.css"
     },
     "scripts": {
@@ -36,6 +40,9 @@
         "clean": "rm -rf dist *.tsbuildinfo",
         "typecheck": "tsc --noEmit",
         "prepublishOnly": "npm run build"
+    },
+    "dependencies": {
+        "zod": "^3.23.8"
     },
     "peerDependencies": {
         "@tanstack/react-query": ">=5.0.0",

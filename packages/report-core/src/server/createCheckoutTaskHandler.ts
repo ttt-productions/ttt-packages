@@ -4,6 +4,7 @@ import type {
   AdminAuthConfig,
   OnAuditEvent,
 } from './types.js';
+import type { CheckoutTaskRequest } from '../schemas/index.js';
 
 export interface CheckoutTaskHandlerConfig {
   config: ServerReportCoreConfig;
@@ -11,11 +12,6 @@ export interface CheckoutTaskHandlerConfig {
   auth: AdminAuthConfig;
   onAuditEvent?: OnAuditEvent;
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
-}
-
-interface CheckoutRequest {
-  taskType: string;
-  specificTaskId?: string;
 }
 
 /**
@@ -55,7 +51,7 @@ export function createCheckoutTaskHandler({
   };
 
   return async (
-    data: CheckoutRequest,
+    data: CheckoutTaskRequest,
     authContext: { uid: string; token: unknown },
   ): Promise<Record<string, unknown>> => {
     const { taskType, specificTaskId } = data;
