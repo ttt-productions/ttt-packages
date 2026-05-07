@@ -79,3 +79,19 @@ export const UpdateRulesAndAgreementsInputSchema = z.object({
   { message: 'At least one of `rules` or `agreements` must be provided.' },
 );
 export type UpdateRulesAndAgreementsInput = z.infer<typeof UpdateRulesAndAgreementsInputSchema>;
+
+const AppConfigDocIdSchema = z.literal('app');
+
+export const UpdateAppConfigInputSchema = z.object({
+  docId: AppConfigDocIdSchema,
+  data: z.object({
+    appVersion: z.string().min(1).max(64).optional(),
+    maintenanceMode: z.boolean().optional(),
+    maintenanceMessage: z.string().max(2000).optional(),
+    registrationEnabled: z.boolean().optional(),
+  }).strict().refine(
+    (d) => Object.keys(d).length > 0,
+    { message: 'data must have at least one field' },
+  ),
+}).strict();
+export type UpdateAppConfigInput = z.infer<typeof UpdateAppConfigInputSchema>;

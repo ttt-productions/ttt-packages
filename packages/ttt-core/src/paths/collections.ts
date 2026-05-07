@@ -44,6 +44,7 @@ export const COLLECTIONS = {
   FEEDBACK_DENYLIST: 'feedbackDenylist',
   SKILLS_BY_TAG: 'skillsByTag',
   SYSTEM_DATA: 'systemData',
+  APP_CONFIG: '_config',
   RECENT_DONATIONS: 'recentDonations',
   ARCHIVED_DONATIONS: 'archivedDonations',
 } as const;
@@ -123,6 +124,7 @@ export const NESTED_SUBCOLLECTIONS = {
  */
 export const SPECIAL_DOCS = {
   ADMIN_LIST: 'adminList',
+  APP_CONFIG: 'app',
   FUTURE_PLANS: 'futurePlans',
   RULES_AND_AGREEMENTS: 'rulesAndAgreements',
   SUMMARY: 'summary',

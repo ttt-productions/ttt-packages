@@ -190,4 +190,7 @@ export const PATH_BUILDERS = {
 
   rulesAndAgreements: (): [string, string] =>
     [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.RULES_AND_AGREEMENTS],
+
+  appConfig: (): [string, string] =>
+    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.APP_CONFIG],
 } as const;
