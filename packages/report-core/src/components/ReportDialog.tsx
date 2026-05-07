@@ -66,11 +66,8 @@ export function ReportDialog({
   const handleSubmit = async () => {
     if (!reporterUserId || !reason || !comment.trim()) return;
 
-    const reportId = `${reporterUserId}_${itemId}`;
-
     try {
       await submitMutation.mutateAsync({
-        reportId,
         reporterUserId,
         itemType,
         itemId,

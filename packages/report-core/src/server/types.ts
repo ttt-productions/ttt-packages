@@ -107,6 +107,15 @@ export type ReportCoreAuditEvent =
       taskId: string;
       priority: number;
       timestamp: number;
+    }
+  | {
+      action: 'report_created';
+      reporterUserId: string;
+      reportedItemType: string;
+      reportedItemId: string;
+      reason: string;
+      reportId: string;
+      timestamp: number;
     };
 
 /**

@@ -17,6 +17,9 @@ export type { ReleaseTaskHandlerConfig } from './createReleaseTaskHandler.js';
 export { createCheckoutNextImportantHandler } from './createCheckoutNextImportantHandler.js';
 export type { CheckoutNextImportantHandlerConfig } from './createCheckoutNextImportantHandler.js';
 
+export { createContentReportHandler } from './createContentReportHandler.js';
+export type { CreateContentReportHandlerConfig } from './createContentReportHandler.js';
+
 export { calculatePriorityScore, getHighestScoringReason } from './calculatePriorityScore.js';
 
 export { recalculateAllPriorities } from './recalculateAllPriorities.js';

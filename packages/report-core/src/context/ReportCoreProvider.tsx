@@ -12,6 +12,7 @@ import { DEFAULT_PRIORITY_THRESHOLDS } from '../config.js';
 export interface ReportCoreContextValue {
   config: ReportCoreConfig;
   db: Firestore;
+  callFunction: <TReq, TRes>(name: string, data?: TReq) => Promise<TRes>;
   /** Resolved priority thresholds (from config or defaults) */
   priorityThresholds: PriorityThreshold[];
 }
@@ -25,6 +26,7 @@ const ReportCoreContext = createContext<ReportCoreContextValue | null>(null);
 export interface ReportCoreProviderProps {
   config: ReportCoreConfig;
   db: Firestore;
+  callFunction: <TReq, TRes>(name: string, data?: TReq) => Promise<TRes>;
   children: ReactNode;
 }
 
@@ -39,17 +41,18 @@ export interface ReportCoreProviderProps {
  * import { ReportCoreProvider } from "@ttt-productions/report-core/react";
  * import { reportConfig } from "@/lib/report-config";
  * import { getFirebaseDb } from "@/lib/firebase";
+ * import { callFunction } from "@/lib/firebase-functions";
  *
- * <ReportCoreProvider config={reportConfig} db={getFirebaseDb()}>
+ * <ReportCoreProvider config={reportConfig} db={getFirebaseDb()} callFunction={callFunction}>
  *   {children}
  * </ReportCoreProvider>
  * ```
  */
-export function ReportCoreProvider({ config, db, children }: ReportCoreProviderProps) {
+export function ReportCoreProvider({ config, db, callFunction, children }: ReportCoreProviderProps) {
   const priorityThresholds = config.priorityThresholds ?? DEFAULT_PRIORITY_THRESHOLDS;
 
   return (
-    <ReportCoreContext.Provider value={{ config, db, priorityThresholds }}>
+    <ReportCoreContext.Provider value={{ config, db, callFunction, priorityThresholds }}>
       {children}
     </ReportCoreContext.Provider>
   );

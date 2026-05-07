@@ -24,3 +24,14 @@ export const ReleaseTaskRequestSchema = z.object({
 }).strict();
 
 export type ReleaseTaskRequest = z.infer<typeof ReleaseTaskRequestSchema>;
+
+export const CreateContentReportRequestSchema = z.object({
+  reportedItemType: z.string().min(1).max(64),
+  reportedItemId: z.string().min(1).max(128),
+  parentItemId: z.string().min(1).max(128).optional(),
+  reportedUserId: z.string().min(1).max(128).optional(),
+  reason: z.string().min(1).max(128),
+  comment: z.string().min(1).max(4000),
+}).strict();
+
+export type CreateContentReportRequest = z.infer<typeof CreateContentReportRequestSchema>;
