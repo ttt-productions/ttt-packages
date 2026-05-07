@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MentionSchema } from '@ttt-productions/media-contracts';
 import { userIdSchema } from './atoms.js';
 
 export const LikeStreetzPostInputSchema = z.object({
@@ -20,3 +21,8 @@ export const UnfollowUserInputSchema = z.object({
   targetUid: userIdSchema,
 }).strict();
 export type UnfollowUserInput = z.infer<typeof UnfollowUserInputSchema>;
+
+export const AddToMentionHistoryInputSchema = z.object({
+  mention: MentionSchema,
+}).strict();
+export type AddToMentionHistoryInput = z.infer<typeof AddToMentionHistoryInputSchema>;
