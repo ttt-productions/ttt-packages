@@ -52,6 +52,25 @@ Shared interfaces and types organized by domain. Cross-document identity referen
 - `moderation.ts` — `ContentViolation`, `Report`, `ReportGroup`; imports `PendingMediaPending` from `media-contracts`
 - `admin.ts` — Admin task types, activity log
 
+### Schemas (`schemas/`)
+Zod input schemas and TypeScript types for all callable function inputs. Consumed via the `@ttt-productions/ttt-core/schemas` subpath. Each domain file exports `<Name>InputSchema` + `export type <Name>Input` pairs.
+
+- `atoms.ts` — ID atom schemas (`projectIdSchema`, `userIdSchema`, etc.) and shared primitives (`addRemoveActionSchema`, `projectTypeSchema`, `titleSchema`)
+- `share-operation.ts` — `ShareOperationInputSchema` for project share operations
+- `admin.ts` — Admin task callables: CheckoutNextImportantTask, GetContentViolation, MarkWorkLater, ReviewContentAppeal
+- `chat.ts` — Chat callables: ArchiveChatChannel, CreateChatChannel, SendChatMessage, StartAdminSupportThread, UpdateChatChannel; also holds inline `ReplyToSchema` and `ChatAttachmentSchema` (parked here temporarily — see TODO comment)
+- `jobs.ts` — Job board callables: AcceptJobApplicant, CloseJob, DeleteJob, RejectJobApplicant, SetJobApplicantSaved
+- `library.ts` — Library callables: CreateChapter, CreateShow, CreateSong, ReviewLibraryItem, SubmitForLibraryReview, and Update* for chapters/shows/songs/tales/television/tunes
+- `opportunities.ts` — Opportunity callables: CloseOpportunity
+- `payments.ts` — Payment callables: CreateStripeCheckoutSession
+- `project-management.ts` — Project callables: CreateProject, DeleteProjectFile, InviteUserToProject, ListProjectInvites, UpdateProjectMemberProfessions, UpdateProjectMemberRole, UpdatePublicProjectDetails
+- `skills.ts` — Skill callables: DeleteSkill, UpdateSkillTags
+- `social.ts` — Streetz social callables: LikeStreetzPost, UnlikeStreetzPost
+- `system-message-actions.ts` — System message callables: UpdateAdminMessageStatus, UpdateInviteConfirmation, UpdateInviteShares
+- `users.ts` — User callables: AcceptStreetzAgreements, BecomeCreator, MarkWaitingForNewsApproval, RegisterUser, SetUserStatus
+- `utility.ts` — Utility callables: AcceptViolationDecision, CreateShortLink, SubmitContentAppeal, SubmitFeedback
+- `voting.ts` — Voting callables: VoteForOpportunityReply
+
 ### Shared Constants (`constants/`)
 - `business.ts` — project/share limits, Streetz limits, task priority levels, short-link config, Firestore batch limit, username validation (`USERNAME_MIN_LENGTH`, `USERNAME_MAX_LENGTH`, `USERNAME_REGEX`), skill limits (`SKILL_LIMIT`, `MAX_SKILL_TAGS`), project/content/job/opportunity length limits, donation-message limits, and related business rules.
 - `moderation.ts` — PERSPECTIVE_THRESHOLDS (toxicity scores), REJECTION_LIKELIHOODS (Cloud Vision), TEXT_MODERATION_MIN_LENGTH.
@@ -78,6 +97,13 @@ Acceptable result: exactly one hit at `packages/ttt-core/src/paths/storage-paths
 ```
 src/
   index.ts
+  schemas/
+    index.ts
+    atoms.ts
+    share-operation.ts
+    admin.ts, chat.ts, jobs.ts, library.ts, opportunities.ts,
+    payments.ts, project-management.ts, skills.ts, social.ts,
+    system-message-actions.ts, users.ts, utility.ts, voting.ts
   constants/
     index.ts
     business.ts

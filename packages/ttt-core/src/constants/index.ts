@@ -1,4 +1,5 @@
 export * from './business.js';
+export * from './chat.js';
 export * from './moderation.js';
 export * from './options.js';
 export * from './pagination.js';
