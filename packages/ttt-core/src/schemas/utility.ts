@@ -27,3 +27,13 @@ export const SubmitFeedbackInputSchema = z.object({
   suggestion: z.string().min(1).max(MAX_FEEDBACK_SUGGESTION_LENGTH).regex(/^[a-z]+$/),
 }).strict();
 export type SubmitFeedbackInput = z.infer<typeof SubmitFeedbackInputSchema>;
+
+export const TrackShortLinkClickInputSchema = z.object({
+  shortId: z.string().min(1).max(64),
+}).strict();
+export type TrackShortLinkClickInput = z.infer<typeof TrackShortLinkClickInputSchema>;
+
+export const MarkAdminMessageReadInputSchema = z.object({
+  messageId: z.string().min(1).max(128),
+}).strict();
+export type MarkAdminMessageReadInput = z.infer<typeof MarkAdminMessageReadInputSchema>;
