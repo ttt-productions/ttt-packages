@@ -11,12 +11,12 @@ Peer: firebase, react.
 
 ## Entry Points
 
-- `@ttt-productions/upload-core` — server-safe upload primitives, types, queue/store helpers, persistence, and storage operations.
+- `@ttt-productions/upload-core` — currently exports upload primitives, types, queue/store helpers, persistence, and Firebase Storage operations. This is a known server-safety violation until Storage runtime operations move behind an explicit browser/client subpath.
 - `@ttt-productions/upload-core/react` — React upload hooks.
 
 ## What It Contains
 
-### Server-safe entry point (`index.ts`)
+### Main entry point (`index.ts`) — known server-safety exception
 - Types from `types.ts`
 - Storage operations: `uploadFileResumable(args)`, `deleteFile(args)`, `UploadError`, `isValidMediaContentType(ct)`
 - Utilities: filename/path helpers, upload store, retry helpers
@@ -38,7 +38,7 @@ Peer: firebase, react.
 - Session state uses a monotonic `version` counter to prevent stale state overwrites.
 - Persistence adapter is pluggable — LocalStorage is the default but could be swapped for IndexedDB or other storage.
 - Priority field on `StartUploadArgs` allows important uploads (e.g., profile photos) to jump the queue.
-- Runtime upload primitives stay on main; React hooks stay behind `/react`.
+- Current state: runtime upload primitives still live on main and React hooks stay behind `/react`. Desired state: keep pure/types/queue helpers on main and move Firebase Storage upload/delete runtime APIs behind an explicit browser/client subpath.
 
 ## Files
 ```

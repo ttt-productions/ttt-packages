@@ -10,8 +10,9 @@ A package's main entry is **server-safe** if and only if:
 
 1. `src/index.ts` (or `.tsx`) does not import from `react`, `react-dom`, or any React-specific library (`@tanstack/react-query`, `framer-motion`, etc.)
 2. It does not contain JSX
-3. It does not re-export from any file that itself violates rule 1 or 2
-4. It does not re-export from a path matching `./react`, `./ui`, `./components`, or `./hooks` (these names signal React-coupled code by convention)
+3. It does not import browser-only Firebase SDK surfaces such as `firebase/storage` upload/delete runtime APIs
+4. It does not re-export from any file that itself violates rule 1, 2, or 3
+5. It does not re-export from a path matching `./react`, `./ui`, `./components`, or `./hooks` (these names signal React-coupled code by convention)
 
 React surface lives behind `./react`:
 - Hooks (anything starting with `use*` that calls a React hook internally)
@@ -47,7 +48,7 @@ Main does NOT re-export from `./react` or `./server`. The surfaces are independe
 - Main entry re-exporting JSX components.
 - Main entry re-exporting React hooks (anything that calls `useState`, `useEffect`, `useContext`, `useMemo`, `useCallback`, etc.).
 - Main entry re-exporting from `./react/index.js` (or any path matching `./react`, `./ui`, `./components`, `./hooks`).
-- Main entry re-exporting from a barrel file that re-exports React-touching code.
+- Main entry re-exporting from a barrel file that re-exports React-touching or browser-only Firebase Storage runtime code.
 - "Dual" exports where the same runtime React symbol is available on both `.` and `./react` paths. Pick one.
 - Backwards-compat shims that re-export React from main "just for migration." Pre-launch, the answer is to update the consumer, not to compromise the package shape.
 - Consumer or internal-package imports that pull React components/hooks/providers from another package's main barrel when that package has `/react`.
@@ -57,7 +58,7 @@ Main does NOT re-export from `./react` or `./server`. The surfaces are independe
 - `export type` lines from React component files. Types are erased at compile time and don't pull React into the runtime graph. Verify by reading the compiled `dist/index.js` — type-only re-exports leave no trace.
 - Server-safe constants colocated with React code, exported from main via explicit named re-exports of the constants.
 - Source files that export both types and runtime constants, as long as the server-safe barrel uses explicit named re-exports. `chat-core/src/types.ts` is the current example: `GROUP_GAP_SEC` is a runtime constant, so `src/index.ts` lists every exported type/value explicitly instead of using `export *` or `export type *`.
-- Three-surface packages (`.` + `./react` + `./server`) for packages that have both React UI and Cloud Function/Admin SDK code. `notification-core` and `report-core` are the current examples.
+- Three-surface packages (`.` + `./react` + `./server`) for packages that have both React UI and Cloud Function/Admin SDK code. `notification-core` and `report-core` are the current examples. Browser-only runtime code that is not React should get an explicit browser/client subpath rather than living on main.
 - CSS side-effect subpaths such as `./styles` or `./styles.css`.
 
 ## When to revisit

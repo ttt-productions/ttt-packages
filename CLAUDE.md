@@ -80,12 +80,12 @@ Note: ttt-core now depends on media-contracts (for FileOrigin/PendingFile), so m
 
 See `docs/design/react-safety.md`.
 
-Every package's main entry (`.`) must be server-safe. React UI lives behind `./react`. Cloud Functions admin-SDK code lives behind `./server` (where applicable). `auth-core` is the reference shape.
+Every package's main entry (`.`) must be server-safe. React UI lives behind `./react`. Cloud Functions admin-SDK code lives behind `./server` (where applicable). Browser-only runtime APIs should live behind an explicit browser/client subpath, not main. `auth-core` is the reference shape.
 
 Current entry-point layout per package:
 - `auth-core` — `.` (server-safe auth utilities) + `./react` (AuthProvider + hooks)
 - `firebase-helpers` — `.` (client/universal path/time helpers) + `./server` (Admin SDK helpers)
-- `upload-core` — `.` (upload primitives/types) + `./react` (upload hooks)
+- `upload-core` — current known exception: `.` still exports Firebase Storage upload/delete runtime APIs and is not server-safe; split runtime operations to a browser/client subpath, keep `./react` for hooks
 - `theme-core` — `.` (tokens/breakpoints) + `./react` (ThemeProvider) + CSS subpaths
 - `ui-core` — `.` (`cn`) + `./react` (components/hooks)
 - `mobile-core` — `.` (types/env) + `./react` (mobile hooks/components)
