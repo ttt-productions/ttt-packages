@@ -104,14 +104,6 @@ describe('PATH_BUILDERS', () => {
       expect(result[3]).toBe('pub1');
     });
 
-    it('projectPost returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.projectPost('proj1', 'post1');
-      expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_POSTS);
-      expect(result[3]).toBe('post1');
-    });
-
     it('projectTale returns 4-segment tuple', () => {
       const result = PATH_BUILDERS.projectTale('proj1', 'tale1');
       expect(result).toHaveLength(4);

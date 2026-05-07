@@ -70,7 +70,6 @@ export const USER_SUBCOLLECTIONS = {
  */
 export const PROJECT_SUBCOLLECTIONS = {
   PUBLIC_DATA: 'publicData',
-  PROJECT_POSTS: 'projectPosts',
   PROJECT_TALES: 'projectTales',
   PROJECT_TUNES: 'projectTunes',
   PROJECT_TELEVISION: 'projectTelevision',

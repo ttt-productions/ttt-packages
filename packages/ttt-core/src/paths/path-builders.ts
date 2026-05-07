@@ -47,9 +47,6 @@ export const PATH_BUILDERS = {
   projectPublicData: (projectId: string, publicId: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PUBLIC_DATA, publicId],
 
-  projectPost: (projectId: string, postId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_POSTS, postId],
-
   projectTale: (projectId: string, taleId: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TALES, taleId],
 
