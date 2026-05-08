@@ -478,6 +478,13 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe(SPECIAL_DOCS.FUTURE_PLANS);
     });
 
+    it('profanityList returns 2-segment tuple with PROFANITY_LIST special doc', () => {
+      const result = PATH_BUILDERS.profanityList();
+      expect(result).toHaveLength(2);
+      expect(result[0]).toBe(COLLECTIONS.SYSTEM_DATA);
+      expect(result[1]).toBe(SPECIAL_DOCS.PROFANITY_LIST);
+    });
+
     it('rulesAndAgreements returns 2-segment tuple with RULES_AND_AGREEMENTS special doc', () => {
       const result = PATH_BUILDERS.rulesAndAgreements();
       expect(result).toHaveLength(2);

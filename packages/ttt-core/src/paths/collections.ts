@@ -126,7 +126,8 @@ export const SPECIAL_DOCS = {
   ADMIN_LIST: 'adminList',
   APP_CONFIG: 'app',
   FUTURE_PLANS: 'futurePlans',
+  NOTIFICATION_SETTINGS: 'notificationSettings',
+  PROFANITY_LIST: 'profanityList',
   RULES_AND_AGREEMENTS: 'rulesAndAgreements',
   SUMMARY: 'summary',
-  NOTIFICATION_SETTINGS: 'notificationSettings',
 } as const;

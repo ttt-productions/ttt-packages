@@ -188,6 +188,9 @@ export const PATH_BUILDERS = {
   futurePlans: (): [string, string] =>
     [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.FUTURE_PLANS],
 
+  profanityList: (): [string, string] =>
+    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.PROFANITY_LIST],
+
   rulesAndAgreements: (): [string, string] =>
     [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.RULES_AND_AGREEMENTS],
 
