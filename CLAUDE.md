@@ -85,7 +85,7 @@ Every package's main entry (`.`) must be server-safe. React UI lives behind `./r
 Current entry-point layout per package:
 - `auth-core` — `.` (server-safe auth utilities) + `./react` (AuthProvider + hooks)
 - `firebase-helpers` — `.` (client/universal path/time helpers) + `./server` (Admin SDK helpers)
-- `upload-core` — current known exception: `.` still exports Firebase Storage upload/delete runtime APIs and is not server-safe; split runtime operations to a browser/client subpath, keep `./react` for hooks
+- `upload-core` — `.` (server-safe types/utilities/upload-session store) + `./browser` (Firebase Storage runtime + upload queue + LocalStorage persistence) + `./react` (upload hooks)
 - `theme-core` — `.` (tokens/breakpoints) + `./react` (ThemeProvider) + CSS subpaths
 - `ui-core` — `.` (`cn`) + `./react` (components/hooks)
 - `mobile-core` — `.` (types/env) + `./react` (mobile hooks/components)
