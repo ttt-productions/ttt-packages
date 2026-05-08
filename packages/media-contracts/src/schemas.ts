@@ -316,6 +316,7 @@ const PendingMediaBaseShape = {
   clientContext: ClientContextSchema,
   createdAt: z.number(),
   updatedAt: z.number(),
+  processingStartedAt: z.number().optional(),
   terminalAt: z.number().optional(),
 } as const;
 
