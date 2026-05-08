@@ -42,7 +42,6 @@ describe('initMonitoring', () => {
   it('re-init with different options reinitializes', async () => {
     const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
     await initMonitoring({ provider: 'noop', environment: 'test' });
-    const adapter1 = getMonitoringAdapter();
     // Different options → re-init (still noop, but re-ran)
     await initMonitoring({ provider: 'noop', environment: 'prod' });
     const adapter2 = getMonitoringAdapter();

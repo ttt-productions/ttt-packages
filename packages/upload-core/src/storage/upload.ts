@@ -1,4 +1,5 @@
-import type { UploadFileResumableArgs, UploadController, UploadFileResumableResult } from "../types.js";
+import type { UploadFileResumableResult } from "../types.js";
+import type { UploadFileResumableArgs, UploadController } from "../browser/types.js";
 import { getFileSize } from "../utils/file-size.js";
 import { upsertUploadSession } from "../utils/upload-store.js";
 import { UploadError, isValidMediaContentType } from "./upload-error.js";

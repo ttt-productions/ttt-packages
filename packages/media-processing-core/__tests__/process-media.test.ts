@@ -17,10 +17,8 @@ import { processAudio } from '../src/audio/audio-processor.js';
 import type { ProcessMediaContext } from '../src/types';
 
 const mockContext: ProcessMediaContext = {
-  io: {
-    input: { readToFile: vi.fn() },
-    output: { writeFromFile: vi.fn() },
-  },
+  inputPath: '/tmp/in',
+  outputBasePath: '/tmp/out',
 };
 
 const imageResult = { ok: true as const, mediaType: 'image' as const, outputs: [] };

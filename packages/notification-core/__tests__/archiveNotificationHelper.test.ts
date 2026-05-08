@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   archiveNotificationHelper,
   archiveAllNotificationsHelper,
@@ -62,7 +62,7 @@ function createMockFirestore(docExists: boolean, docData: Record<string, unknown
   });
 
   const db: ServerFirestore = {
-    collection: vi.fn((path: string) => ({
+    collection: vi.fn((_path: string) => ({
       doc: vi.fn((id?: string) => makeDocRef(id ?? 'new-id')),
       add: vi.fn(async () => makeDocRef('auto-id')),
       where: vi.fn(() => ({

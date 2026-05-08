@@ -11,7 +11,7 @@ vi.mock('../src/utils/upload-store', () => ({
 
 import { UploadQueue } from '../src/queue/upload-queue';
 import { startResumableUpload } from '../src/storage/upload';
-import type { StartUploadArgs } from '../src/types';
+import type { StartUploadArgs } from '../src/browser/types';
 
 function makeMockController(id = 'ctrl') {
   let resolveDone!: (r: any) => void;

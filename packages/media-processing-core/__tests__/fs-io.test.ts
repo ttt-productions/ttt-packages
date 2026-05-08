@@ -74,8 +74,8 @@ describe('createFsIO', () => {
       const io = createFsIO({ inputPath: localPath, outputDir });
       const result = await io.output.writeFromFile(localPath, 'thumbnail');
 
-      expect(await exists(result.path)).toBe(true);
-      const content = await readFile(result.path, 'utf8');
+      expect(await exists(result.path!)).toBe(true);
+      const content = await readFile(result.path!, 'utf8');
       expect(content).toBe('image data');
     });
 
@@ -116,7 +116,7 @@ describe('createFsIO', () => {
 
       // sanitizeKey replaces traversal chars — output should stay within outputDir
       const result = await io.output.writeFromFile(localPath, '../../../etc/passwd');
-      expect(result.path.startsWith(outputDir)).toBe(true);
+      expect(result.path!.startsWith(outputDir)).toBe(true);
     });
 
     it('preserves file extension from the localPath', async () => {
@@ -128,7 +128,7 @@ describe('createFsIO', () => {
       const io = createFsIO({ inputPath: localPath, outputDir });
       const result = await io.output.writeFromFile(localPath, 'converted');
 
-      expect(result.path.endsWith('.webp')).toBe(true);
+      expect(result.path!.endsWith('.webp')).toBe(true);
     });
   });
 

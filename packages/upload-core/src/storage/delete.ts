@@ -1,4 +1,4 @@
-import type { DeleteFileArgs } from "../types.js";
+import type { DeleteFileArgs } from "../browser/types.js";
 import { deleteObject, ref } from "firebase/storage";
 
 export async function deleteFile(args: DeleteFileArgs): Promise<void> {

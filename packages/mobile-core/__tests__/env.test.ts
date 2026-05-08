@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 
 // mobile-core/env.ts exports module-level constants evaluated at import time.
 // We reset modules to get fresh evaluations per test.

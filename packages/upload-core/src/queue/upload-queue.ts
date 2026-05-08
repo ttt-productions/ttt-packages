@@ -1,4 +1,5 @@
-import type { UploadController, UploadFileResumableResult, UploadQueueOptions, StartUploadArgs } from "../types.js";
+import type { UploadFileResumableResult, UploadQueueOptions } from "../types.js";
+import type { UploadController, StartUploadArgs } from "../browser/types.js";
 import { getFileSize } from "../utils/file-size.js";
 import { upsertUploadSession, removeUploadSession } from "../utils/upload-store.js";
 import { startResumableUpload } from "../storage/upload.js";

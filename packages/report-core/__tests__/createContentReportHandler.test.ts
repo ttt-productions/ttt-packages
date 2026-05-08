@@ -44,7 +44,7 @@ function createMockDb(existingReportIds: string[] = []) {
       sets.push({ path: ref._path, data });
       return transaction;
     }),
-    update: vi.fn((ref: any, data: Record<string, unknown>) => {
+    update: vi.fn((_ref: any, _data: Record<string, unknown>) => {
       return transaction;
     }),
   };

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { StartUploadArgs, UploadController, UploadSessionState } from "../types.js";
+import type { UploadSessionState } from "../types.js";
+import type { StartUploadArgs, UploadController } from "../browser/types.js";
 import { startResumableUpload } from "../storage/upload.js";
 import { getUploadSession, subscribeUploadSession } from "../utils/upload-store.js";
 

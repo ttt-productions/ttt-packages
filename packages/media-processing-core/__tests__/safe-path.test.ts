@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-import path from 'node:path';
 import { sanitizeKey, safeOutputPathFor } from '../src/utils/safe-path';
 
 describe('sanitizeKey', () => {

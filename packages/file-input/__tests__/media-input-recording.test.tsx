@@ -72,17 +72,15 @@ function installObjectUrlMock() {
 describe('RecordDialog', () => {
   let onRecorded: ReturnType<typeof vi.fn>;
   let onOpenChange: ReturnType<typeof vi.fn>;
-  let mrMock: ReturnType<typeof installMediaRecorderMock>;
   let gumMock: ReturnType<typeof installGetUserMediaMock>;
-  let acMock: ReturnType<typeof installAudioContextMock>;
   let urlMock: ReturnType<typeof installObjectUrlMock>;
 
   beforeEach(() => {
     onRecorded = vi.fn();
     onOpenChange = vi.fn();
-    mrMock = installMediaRecorderMock();
+    installMediaRecorderMock();
     gumMock = installGetUserMediaMock();
-    acMock = installAudioContextMock();
+    installAudioContextMock();
     urlMock = installObjectUrlMock();
     // Stub play to avoid jsdom errors
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {

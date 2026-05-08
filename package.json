@@ -2,7 +2,7 @@
     "name": "ttt-packages",
     "version": "1.0.1",
     "private": true,
-    "description": "Shared packages for TTT Productions and Q-Sports",
+    "description": "Shared packages for TTT Productions",
     "workspaces": [
         "packages/*"
     ],
@@ -14,7 +14,8 @@
         "typecheck": "npm run typecheck --workspaces --if-present",
         "test": "vitest run",
         "test:watch": "vitest",
-        "test:coverage": "vitest run --coverage"
+        "test:coverage": "vitest run --coverage",
+        "test:all": "npm run lint && npm run typecheck && npx tsc -b --noEmit && npm run build && npm run test"
     },
     "keywords": [
         "ttt",

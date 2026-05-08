@@ -149,12 +149,8 @@ function makePendingDoc(overrides: Partial<PendingNotification> & { type: string
     id,
     data: {
       id,
-      type: overrides.type,
       category: 'admin',
       targetUserId: null,
-      actorId: overrides.actorId,
-      actorName: overrides.actorName,
-      metadata: overrides.metadata,
       createdAt: Date.now() - 60_000, // 1 minute ago (past cutoff)
       ...overrides,
     },

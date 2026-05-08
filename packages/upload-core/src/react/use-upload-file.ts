@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { UploadFileResumableArgs, UploadFileResumableResult } from "../types.js";
+import type { UploadFileResumableResult } from "../types.js";
+import type { UploadFileResumableArgs } from "../browser/types.js";
 import { uploadFileResumable } from "../storage/upload.js";
 
 export function useUploadFile() {
