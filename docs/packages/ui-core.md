@@ -13,7 +13,8 @@ Peer: react, react-dom, react-hook-form, @hookform/resolvers.
 
 - `@ttt-productions/ui-core` — server-safe utilities only.
 - `@ttt-productions/ui-core/react` — React components and hooks.
-- `@ttt-productions/ui-core/src/*` — source subpath escape hatch preserved by package exports.
+
+The package's `files` field still publishes the `src/` directory alongside `dist/`. This is intentional: it supports a dev-mode webpack alias in ttt-prod (`next.config.ts`) that redirects `@ttt-productions/ui-core` to source for hot-reload. The alias works against the on-disk path, not the `exports` field, so the boundary is now enforced for real package consumers (`import` statements) without breaking dev experience.
 
 ## What It Contains
 

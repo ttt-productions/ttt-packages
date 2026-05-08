@@ -29,8 +29,7 @@
             "types": "./dist/react/index.d.ts",
             "import": "./dist/react/index.js",
             "default": "./dist/react/index.js"
-        },
-        "./src/*": "./src/*"
+        }
     },
     "scripts": {
         "build": "tsc",
