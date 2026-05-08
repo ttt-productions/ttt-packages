@@ -7,7 +7,8 @@ Server-side media processing pipeline. Handles image resizing/format conversion,
 
 ## Dependencies
 Runtime: @ttt-productions/firebase-helpers, @ttt-productions/media-contracts, sharp.
-Peer: none (Node.js-only package, requires ffmpeg/ffprobe on the host).
+Peer (optional): firebase-admin >=10 — only required if importing from `./server`.
+Host requirement: ffmpeg/ffprobe must be available on the Cloud Functions runtime for video/audio.
 
 ## What It Contains
 
@@ -35,8 +36,13 @@ Peer: none (Node.js-only package, requires ffmpeg/ffprobe on the host).
 - `processing/result.ts` — Result builders
 
 ### I/O Layer (`io/`)
-- `MediaIO` interface — Abstraction for downloading source files and uploading processed results (implemented by consuming apps with Firebase Storage)
-- `fs.ts` — Local filesystem I/O helpers
+- `MediaIO` interface — Abstraction for downloading source files and uploading processed results
+- `fs.ts` — Local filesystem I/O helpers (used by tests and local-only flows)
+
+### Server Wiring (`server/`) — opt-in Firebase adapter
+Imported via `@ttt-productions/media-processing-core/server`. Cloud Functions consumers use this; main entry `.` stays Firebase-free.
+- `createFirebaseMediaIO({ inputStoragePath, outputStorageBasePath })` — Concrete `MediaIO` implementation backed by Firebase Storage (firebase-admin). Downloads from `inputStoragePath`, uploads outputs under `outputStorageBasePath`, generates download tokens, returns public URLs.
+- **Emulator awareness:** when `FIREBASE_STORAGE_EMULATOR_HOST` is set (the Firebase Admin SDK auto-sets it when the Storage emulator is running), constructed URLs target `http://{emulator-host}/...` instead of `https://firebasestorage.googleapis.com/...`. Without this, browsers running against the emulator would fetch production URLs and 404.
 
 ### Moderation (`moderation/`)
 - `ModerationAdapter` interface — Pluggable content moderation (implemented by consuming apps with Google Cloud Vision / Perspective API)
@@ -67,7 +73,8 @@ Peer: none (Node.js-only package, requires ffmpeg/ffprobe on the host).
 9. Return `MediaProcessingResult` with output URLs, metadata, and moderation results
 
 ## Key Design Decisions
-- `MediaIO` and `ModerationAdapter` are injected — this package has no direct Firebase Storage or Cloud Vision dependency. Consuming apps wire up the concrete implementations.
+- The main entry (`.`) has no direct Firebase Storage or Cloud Vision dependency. `MediaIO` and `ModerationAdapter` are interfaces; consumers wire concrete implementations.
+- A Firebase Storage adapter is provided as an opt-in subpath (`./server`) — consumers that don't import from `/server` don't pull `firebase-admin`. This keeps the main entry server-agnostic while still letting Cloud Functions consumers use the canonical adapter (with emulator-aware URL construction) without re-implementing it per app.
 - Processing happens in a temp directory that is cleaned up even on failure.
 - Image processing uses `sharp` (fast, native), video/audio use `ffmpeg`/`ffprobe` (must be available on the Cloud Functions runtime).
 - `MediaProcessingSpec` from media-contracts is validated at runtime before processing begins — fast-fail with actionable error codes.
@@ -91,11 +98,11 @@ src/
     types.ts, fs.ts
   moderation/
     types.ts, merge.ts
+  server/
+    index.ts, firebase-media-io.ts
   workspace/temp.ts
   validation/
     validate-duration.ts, validate-mime.ts, validate-size.ts
   utils/
     log.ts, paths.ts, safe-path.ts
-  firebase/
-    firestore.ts, storage.ts
 ```

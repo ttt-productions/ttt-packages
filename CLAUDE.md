@@ -95,7 +95,7 @@ Current entry-point layout per package:
 - `notification-core` — `.` (types) + `./react` (hooks/components) + `./server` (Cloud Function helpers) + `./styles`
 - `report-core` — `.` (types/config/constants) + `./react` (provider/hooks/components) + `./server` (Cloud Function handlers) + `./styles`
 - `chat-core` — `.` (constants/types only) + `./react` (ChatShell/hooks/resolver provider/UI) + `./styles`
-- `media-processing-core` — Server-only (Node.js, uses sharp + ffmpeg); single entry, no React
+- `media-processing-core` — Server-only (Node.js, uses sharp + ffmpeg). `.` (I/O-agnostic pipeline + interfaces) + `./server` (opt-in Firebase Storage `MediaIO` adapter, requires firebase-admin). No React.
 
 ## CSS Architecture (theme-core)
 - Consumer apps import theme-core's `styles.css` + `components.css` first, then override with brand.css
