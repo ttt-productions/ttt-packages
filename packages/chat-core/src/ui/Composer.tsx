@@ -8,7 +8,7 @@ import { MediaInput } from "@ttt-productions/file-input/react";
 import type { MediaInputChangePayload } from "@ttt-productions/file-input";
 import type { FileOrigin } from "@ttt-productions/media-contracts";
 import { buildTempUploadPath } from "@ttt-productions/ttt-core";
-import { uploadFileResumable } from "@ttt-productions/upload-core";
+import { uploadFileResumable } from "@ttt-productions/upload-core/browser";
 import { Loader2, X, FileText, ImageIcon, VideoIcon, MicIcon } from "lucide-react";
 import type { ChatAttachment, ChatAttachmentConfig, ChatMessageV1, SendAttachmentFn } from "../types.js";
 
