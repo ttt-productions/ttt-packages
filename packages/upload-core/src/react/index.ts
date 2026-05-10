@@ -1,5 +1,5 @@
 "use client";
 
-export * from "./use-upload-file.js";
-export * from "./use-upload-controller.js";
-export * from "./use-upload-sessions.js";
+export { useUploadFile } from "./use-upload-file.js";
+export { useUploadController } from "./use-upload-controller.js";
+export { useUploadSessions } from "./use-upload-sessions.js";

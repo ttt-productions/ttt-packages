@@ -1,3 +1,3 @@
 "use client";
 
-export * from "./theme-provider.js";
+export { ThemeProvider } from "./theme-provider.js";

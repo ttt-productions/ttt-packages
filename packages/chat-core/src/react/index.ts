@@ -1,12 +1,17 @@
 "use client";
 
-export * from "../context/ChatNameResolverContext.js";
+export type { ChatNameResolverProviderProps } from "../context/ChatNameResolverContext.js";
+export { ChatNameResolverProvider, useChatNameResolver, useOptionalChatNameResolver, useResolvedSenderName } from "../context/ChatNameResolverContext.js";
 
-export * from "../hooks/useChatMessages.js";
-export * from "../hooks/useChatThreadAccess.js";
+export type { UseChatMessagesResult } from "../hooks/useChatMessages.js";
+export { useChatMessages } from "../hooks/useChatMessages.js";
+export { canAccessThread } from "../hooks/useChatThreadAccess.js";
 
-export * from "../ui/ChatShell.js";
-export * from "../ui/MessageList.js";
-export * from "../ui/Composer.js";
-export * from "../ui/MessageItemDefault.js";
-export * from "../ui/menus.js";
+export type { ChatShellProps } from "../ui/ChatShell.js";
+export { ChatShell } from "../ui/ChatShell.js";
+export { MessageList } from "../ui/MessageList.js";
+export type { ComposerProps } from "../ui/Composer.js";
+export { Composer } from "../ui/Composer.js";
+export type { MessageItemDefaultProps } from "../ui/MessageItemDefault.js";
+export { MessageItemDefault } from "../ui/MessageItemDefault.js";
+export { MessageActions, ThreadActions } from "../ui/menus.js";
