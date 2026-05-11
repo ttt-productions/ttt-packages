@@ -2,19 +2,16 @@
 
 import { useContext } from "react";
 import { AuthContext } from "./AuthProvider.js";
-import type { BaseProfile, AuthContextValue } from "./types.js";
+import type { AuthContextValue } from "./types.js";
 
 /**
  * Access the auth context. Must be used within an AuthProvider.
- * Generic params let each app specify its own profile + claims types.
+ * Generic param lets each app specify its own claims type.
  */
-export function useAuth<
-  TProfile extends BaseProfile = BaseProfile,
-  TClaims = Record<string, unknown>,
->(): AuthContextValue<TProfile, TClaims> {
+export function useAuth<TClaims = Record<string, unknown>>(): AuthContextValue<TClaims> {
   const ctx = useContext(AuthContext);
   if (!ctx) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
-  return ctx as AuthContextValue<TProfile, TClaims>;
+  return ctx as AuthContextValue<TClaims>;
 }

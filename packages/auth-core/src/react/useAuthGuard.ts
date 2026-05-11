@@ -23,8 +23,6 @@ export interface AuthGuardConfig {
   loading: boolean;
   /** From useAuth() */
   isAuthenticated: boolean;
-  /** From useAuth() — user has a profile doc */
-  hasProfile: boolean;
 }
 
 const DEFAULT_REDIRECT_KEY = "auth_redirect_path";
@@ -49,7 +47,6 @@ export function useAuthGuard(config: AuthGuardConfig): void {
     pathname,
     loading,
     isAuthenticated,
-    hasProfile,
   } = config;
 
   useEffect(() => {
@@ -76,12 +73,6 @@ export function useAuthGuard(config: AuthGuardConfig): void {
 
     // Authenticated user on auth-only route (login, register, etc.)
     if (isAuthenticated && isAuthRedirect) {
-      // Still registering -- profile not created yet, stay on page
-      if (!hasProfile && typeof window !== "undefined" && localStorage.getItem("isRegistering") === "true") {
-        return;
-      }
-
-      // Redirect to saved path or default
       let target = defaultRoute;
       if (typeof window !== "undefined") {
         const saved = localStorage.getItem(redirectKey);
@@ -95,7 +86,6 @@ export function useAuthGuard(config: AuthGuardConfig): void {
   }, [
     loading,
     isAuthenticated,
-    hasProfile,
     pathname,
     publicRoutes,
     authRedirectRoutes,
