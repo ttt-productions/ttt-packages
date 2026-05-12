@@ -43,7 +43,7 @@ export const COLLECTIONS = {
   FEEDBACK_ALIASES: 'feedbackAliases',
   FEEDBACK_DENYLIST: 'feedbackDenylist',
   SKILLS_BY_TAG: 'skillsByTag',
-  SYSTEM_DATA: 'systemData',
+  SYSTEM_DATA: '_systemData',
   APP_CONFIG: '_config',
   RECENT_DONATIONS: 'recentDonations',
   ARCHIVED_DONATIONS: 'archivedDonations',

@@ -474,7 +474,7 @@ describe('PATH_BUILDERS', () => {
     it('futurePlans returns 2-segment tuple with FUTURE_PLANS special doc', () => {
       const result = PATH_BUILDERS.futurePlans();
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.SYSTEM_DATA);
+      expect(result[0]).toBe(COLLECTIONS.APP_CONFIG);
       expect(result[1]).toBe(SPECIAL_DOCS.FUTURE_PLANS);
     });
 
@@ -488,7 +488,7 @@ describe('PATH_BUILDERS', () => {
     it('rulesAndAgreements returns 2-segment tuple with RULES_AND_AGREEMENTS special doc', () => {
       const result = PATH_BUILDERS.rulesAndAgreements();
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.SYSTEM_DATA);
+      expect(result[0]).toBe(COLLECTIONS.APP_CONFIG);
       expect(result[1]).toBe(SPECIAL_DOCS.RULES_AND_AGREEMENTS);
     });
   });
