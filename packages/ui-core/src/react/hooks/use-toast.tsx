@@ -1,6 +1,6 @@
 import * as React from "react";
 
-const TOAST_LIMIT = 1;
+const TOAST_LIMIT = 3;
 const TOAST_REMOVE_DELAY = 1000;
 
 export type ToastVariant = "default" | "destructive" | "success" | "warning" | "error";
@@ -95,6 +95,21 @@ function addToRemoveQueue(toastId: string) {
   toastTimeouts.set(toastId, timeout);
 }
 
+function defaultDurationForVariant(variant: ToastVariant | undefined): number {
+  switch (variant) {
+    case "success":
+      return 3000;
+    case "destructive":
+    case "error":
+      return 6000;
+    case "warning":
+      return 5000;
+    case "default":
+    default:
+      return 4000;
+  }
+}
+
 export function toast(input: Omit<ToastProps, "id">) {
   const id = genId();
 
@@ -105,6 +120,9 @@ export function toast(input: Omit<ToastProps, "id">) {
 
   const update = (props: Partial<ToastProps>) => dispatch({ type: "UPDATE_TOAST", toast: { ...props, id } });
 
+  const variant = input.variant ?? "default";
+  const duration = input.duration ?? defaultDurationForVariant(variant);
+
   dispatch({
     type: "ADD_TOAST",
     toast: {
@@ -114,9 +132,9 @@ export function toast(input: Omit<ToastProps, "id">) {
         if (!open) dismiss();
       },
       dismissible: true,
-      duration: 5000,
-      variant: "default",
       ...input,
+      variant,
+      duration,
     },
   });
 

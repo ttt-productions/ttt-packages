@@ -30,8 +30,7 @@ const toastVariants = cva(
     // radix state/animation
     "data-[state=open]:animate-in data-[state=closed]:animate-out",
     "data-[state=closed]:fade-out-80 data-[state=open]:fade-in-80",
-    "data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full",
-    "sm:data-[state=open]:slide-in-from-bottom-full",
+    "data-[state=closed]:slide-out-to-top-full data-[state=open]:slide-in-from-top-full",
     "data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]",
     "data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out]",
     "data-[swipe=end]:animate-out data-[swipe=end]:slide-out-to-right-full"
@@ -61,9 +60,8 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      "fixed top-0 z-[100] flex max-h-screen w-full flex-col-reverse gap-2 p-4",
-      "sm:bottom-0 sm:right-0 sm:top-auto sm:flex-col",
-      "md:max-w-[420px]",
+      "fixed top-0 left-1/2 -translate-x-1/2 z-[100] flex max-h-screen w-full flex-col gap-2 p-4",
+      "sm:max-w-[480px] md:max-w-[600px]",
       className
     )}
     {...props}
@@ -101,7 +99,7 @@ const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, To
 
         {/* countdown bar */}
         <div
-          className={cn("absolute bottom-0 left-0 h-1 w-full bg-foreground/10", "origin-left")}
+          className={cn("absolute bottom-0 left-0 h-1 w-full bg-foreground/30", "origin-left")}
           style={{
             animationName: "toast-progress",
             animationDuration: `${duration}ms`,
