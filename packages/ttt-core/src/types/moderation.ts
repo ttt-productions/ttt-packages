@@ -1,6 +1,7 @@
 // Content moderation types: Reports, Violations, Media processing
 
 import type { PendingMediaPending } from '@ttt-productions/media-contracts';
+import type { AdminTask } from './admin.js';
 
 export interface ContentViolation {
   id: string;
@@ -63,18 +64,13 @@ export type ReportGroup = {
   reports?: Report[];
 };
 
-export interface ContentAppealTask {
-  id: string;
+export interface ContentAppealTask extends AdminTask {
   taskType: 'content-appeal';
+  // Appeal-specific denormalized fields for the preview/work view.
   violationId: string;
   userId: string;
   fileType: string;
   rejectionReason: string;
   appealMessage: string;
   rejectedFilePath: string;
-  status: 'pending' | 'checked-out' | 'completed';
-  checkedOutBy?: string;
-  checkedOutAt?: number;
-  createdAt: number;
-  priority: 'normal' | 'high';
 }
