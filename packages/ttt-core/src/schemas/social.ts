@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MentionSchema } from '@ttt-productions/media-contracts';
 import { userIdSchema } from './atoms.js';
+import { MAX_POST_LENGTH } from '../constants/business.js';
 
 export const LikeStreetzPostInputSchema = z.object({
   postId: z.string().min(1),
@@ -26,3 +27,9 @@ export const AddToMentionHistoryInputSchema = z.object({
   mention: MentionSchema,
 }).strict();
 export type AddToMentionHistoryInput = z.infer<typeof AddToMentionHistoryInputSchema>;
+
+export const CreateStreetzTextPostInputSchema = z.object({
+  textContent: z.string().min(1).max(MAX_POST_LENGTH),
+  mentions: z.array(MentionSchema).optional(),
+}).strict();
+export type CreateStreetzTextPostInput = z.infer<typeof CreateStreetzTextPostInputSchema>;

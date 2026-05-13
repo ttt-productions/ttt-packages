@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { jobIdSchema, replyIdSchema } from './atoms.js';
+import { MAX_JOB_DESCRIPTION_LENGTH } from '../constants/business.js';
 
 export const AcceptJobApplicantInputSchema = z.object({
   jobId: jobIdSchema,
@@ -30,3 +31,9 @@ export const SetJobApplicantSavedInputSchema = z.object({
   saved: z.boolean(),
 }).strict();
 export type SetJobApplicantSavedInput = z.infer<typeof SetJobApplicantSavedInputSchema>;
+
+export const CreateJobReplyTextInputSchema = z.object({
+  jobId: jobIdSchema,
+  coverLetterText: z.string().min(1).max(MAX_JOB_DESCRIPTION_LENGTH),
+}).strict();
+export type CreateJobReplyTextInput = z.infer<typeof CreateJobReplyTextInputSchema>;
