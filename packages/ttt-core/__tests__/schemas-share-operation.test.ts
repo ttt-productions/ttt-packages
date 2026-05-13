@@ -93,6 +93,29 @@ describe('ShareOperationSchema', () => {
     });
   });
 
+  describe('accept-applicant branch', () => {
+    it('accepts a valid accept-applicant operation', () => {
+      const op = {
+        type: 'accept-applicant',
+        user: { uid: 'applicant-uid-123' },
+        sourceId: 'job-id-456',
+        amount: 50,
+      };
+      expect(ShareOperationSchema.parse(op)).toEqual(op);
+    });
+    it('rejects unknown keys (.strict)', () => {
+      expect(() =>
+        ShareOperationSchema.parse({
+          type: 'accept-applicant',
+          user: { uid: 'applicant-uid-123' },
+          sourceId: 'job-id-456',
+          amount: 50,
+          extraField: 'nope',
+        }),
+      ).toThrow();
+    });
+  });
+
   describe('discriminator', () => {
     it('rejects unknown operation type', () => {
       expect(() =>

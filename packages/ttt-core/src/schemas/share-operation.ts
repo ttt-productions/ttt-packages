@@ -59,6 +59,13 @@ export const ShareOperationSchema = z.discriminatedUnion('type', [
     sourceId: z.string().min(1).optional(),
     sourceType: sourceTypeSchema.optional(),
   }).strict(),
+  z.object({
+    type: z.literal('accept-applicant'),
+    amount: z.number().int().positive().optional(),
+    user: userRefSchema.optional(),
+    sourceId: z.string().min(1).optional(),
+    sourceType: sourceTypeSchema.optional(),
+  }).strict(),
 ]);
 
 export type ShareOperation = z.infer<typeof ShareOperationSchema>;
