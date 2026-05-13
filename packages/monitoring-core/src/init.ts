@@ -33,7 +33,19 @@ export async function initMonitoring(
 
   const enabled = options.enabled ?? true;
 
-  if (!enabled || options.provider === "noop") {
+  // Local-dev gate: force noop adapter when any Firebase emulator signal is
+  // present, or when the explicit kill switch is set. This keeps Sentry
+  // completely inert during local dev (npm run dev:local + emulators),
+  // including not importing the SDK. Hosted dev and hosted prod are
+  // unaffected — they never have these env vars set.
+  const isLocalDev =
+    (typeof process !== "undefined" &&
+      (process.env?.NEXT_PUBLIC_USE_EMULATORS === "true" ||
+        process.env?.FUNCTIONS_EMULATOR === "true" ||
+        !!process.env?.FIREBASE_EMULATOR_HUB ||
+        process.env?.NEXT_PUBLIC_SENTRY_ENABLED === "false"));
+
+  if (!enabled || options.provider === "noop" || isLocalDev) {
     adapter = NoopAdapter;
     initialized = true;
     return;

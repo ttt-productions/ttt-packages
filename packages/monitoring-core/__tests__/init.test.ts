@@ -59,4 +59,46 @@ describe('initMonitoring', () => {
     // Both are NoopAdapter — they should be the same singleton object
     expect(adapter2).toBe(adapter1);
   });
+
+  it('local-dev gate: NEXT_PUBLIC_USE_EMULATORS=true forces noop even with sentry provider', async () => {
+    const prev = process.env.NEXT_PUBLIC_USE_EMULATORS;
+    process.env.NEXT_PUBLIC_USE_EMULATORS = 'true';
+    try {
+      const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
+      const { NoopAdapter } = await import('../src/adapters/noop');
+      await initMonitoring({ provider: 'sentry', enabled: true });
+      expect(getMonitoringAdapter()).toBe(NoopAdapter);
+    } finally {
+      if (prev === undefined) delete process.env.NEXT_PUBLIC_USE_EMULATORS;
+      else process.env.NEXT_PUBLIC_USE_EMULATORS = prev;
+    }
+  });
+
+  it('local-dev gate: FUNCTIONS_EMULATOR=true forces noop even with sentry-node provider', async () => {
+    const prev = process.env.FUNCTIONS_EMULATOR;
+    process.env.FUNCTIONS_EMULATOR = 'true';
+    try {
+      const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
+      const { NoopAdapter } = await import('../src/adapters/noop');
+      await initMonitoring({ provider: 'sentry-node', enabled: true });
+      expect(getMonitoringAdapter()).toBe(NoopAdapter);
+    } finally {
+      if (prev === undefined) delete process.env.FUNCTIONS_EMULATOR;
+      else process.env.FUNCTIONS_EMULATOR = prev;
+    }
+  });
+
+  it('local-dev gate: NEXT_PUBLIC_SENTRY_ENABLED=false forces noop even with sentry provider', async () => {
+    const prev = process.env.NEXT_PUBLIC_SENTRY_ENABLED;
+    process.env.NEXT_PUBLIC_SENTRY_ENABLED = 'false';
+    try {
+      const { initMonitoring, getMonitoringAdapter } = await import('../src/init');
+      const { NoopAdapter } = await import('../src/adapters/noop');
+      await initMonitoring({ provider: 'sentry', enabled: true });
+      expect(getMonitoringAdapter()).toBe(NoopAdapter);
+    } finally {
+      if (prev === undefined) delete process.env.NEXT_PUBLIC_SENTRY_ENABLED;
+      else process.env.NEXT_PUBLIC_SENTRY_ENABLED = prev;
+    }
+  });
 });
