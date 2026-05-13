@@ -95,3 +95,34 @@ export const UpdateAppConfigInputSchema = z.object({
   ),
 }).strict();
 export type UpdateAppConfigInput = z.infer<typeof UpdateAppConfigInputSchema>;
+
+// --- Admin list mutations ---
+
+const uidSchema = z.string().min(1).max(128);
+
+/**
+ * Wire input for the `updateAdminList` callable in ttt-prod.
+ * Used to grant or revoke admin / jrAdmin status on `_systemData/adminList`.
+ *
+ * All four fields are optional arrays of UIDs. At least one must be non-empty.
+ * The callable's core function rejects conflicting input (e.g. same UID in
+ * both addAdmins and removeAdmins) with HttpsError invalid-argument.
+ */
+export const UpdateAdminListInputSchema = z.object({
+  addAdmins: z.array(uidSchema).optional(),
+  removeAdmins: z.array(uidSchema).optional(),
+  addJrAdmins: z.array(uidSchema).optional(),
+  removeJrAdmins: z.array(uidSchema).optional(),
+})
+  .strict()
+  .refine(
+    (data) =>
+      (data.addAdmins?.length ?? 0) +
+        (data.removeAdmins?.length ?? 0) +
+        (data.addJrAdmins?.length ?? 0) +
+        (data.removeJrAdmins?.length ?? 0) >
+      0,
+    { message: 'At least one of addAdmins/removeAdmins/addJrAdmins/removeJrAdmins must be non-empty.' },
+  );
+
+export type UpdateAdminListInput = z.infer<typeof UpdateAdminListInputSchema>;
