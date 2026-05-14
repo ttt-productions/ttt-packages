@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/auth-core",
-    "version": "0.3.5",
+    "version": "0.4.0",
     "description": "Shared Firebase authentication utilities and React hooks for TTT Productions apps",
     "repository": {
         "type": "git",
@@ -23,6 +23,10 @@
         "./react": {
             "types": "./dist/react/index.d.ts",
             "default": "./dist/react/index.js"
+        },
+        "./server": {
+            "types": "./dist/server/index.d.ts",
+            "default": "./dist/server/index.js"
         }
     },
     "scripts": {
@@ -33,10 +37,21 @@
     },
     "peerDependencies": {
         "firebase": ">=10.0.0",
+        "firebase-admin": ">=10.0.0",
+        "firebase-functions": ">=4.0.0",
         "react": ">=19.0.0",
         "react-dom": ">=19.0.0"
     },
     "peerDependenciesMeta": {
+        "firebase": {
+            "optional": true
+        },
+        "firebase-admin": {
+            "optional": true
+        },
+        "firebase-functions": {
+            "optional": true
+        },
         "react": {
             "optional": true
         },
@@ -48,6 +63,8 @@
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
         "firebase": "^10.0.0",
+        "firebase-admin": "^12.0.0",
+        "firebase-functions": "^7.0.0",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
         "typescript": "^5.8.3"
