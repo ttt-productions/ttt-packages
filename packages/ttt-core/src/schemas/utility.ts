@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { violationIdSchema, opportunityIdSchema, replyIdSchema } from './atoms.js';
-import { MAX_APPEAL_MESSAGE_LENGTH, MAX_FEEDBACK_SUGGESTION_LENGTH } from '../constants/business.js';
+import { MAX_APPEAL_MESSAGE_LENGTH, MAX_FEEDBACK_SUGGESTION_LENGTH, FEEDBACK_TYPES } from '../constants/business.js';
 
 export const AcceptViolationDecisionInputSchema = z.object({
   violationId: violationIdSchema,
@@ -23,7 +23,7 @@ export const SubmitContentAppealInputSchema = z.object({
 export type SubmitContentAppealInput = z.infer<typeof SubmitContentAppealInputSchema>;
 
 export const SubmitFeedbackInputSchema = z.object({
-  feedbackType: z.string().min(1),
+  feedbackType: z.enum(FEEDBACK_TYPES),
   suggestion: z.string().min(1).max(MAX_FEEDBACK_SUGGESTION_LENGTH).regex(/^[a-z]+$/),
 }).strict();
 export type SubmitFeedbackInput = z.infer<typeof SubmitFeedbackInputSchema>;

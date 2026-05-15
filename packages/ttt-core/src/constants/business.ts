@@ -188,6 +188,24 @@ export const MAX_FEEDBACK_SUGGESTION_LENGTH = 100;
 /** Maximum number of distinct submitters tracked per feedback suggestion. */
 export const MAX_FEEDBACK_SUBMITTERS = 100;
 
+/**
+ * Canonical list of feedback types accepted by `submitFeedback`. Used both
+ * for runtime validation in the schema (`SubmitFeedbackInputSchema`) and
+ * for type-safe consumer props on the frontend `<FeedbackSubmission />`
+ * component. Adding a new type here is the single source of truth — no
+ * mirroring in callers required.
+ */
+export const FEEDBACK_TYPES = [
+  'professionSuggestions',
+  'skillTagSuggestions',
+  'talesCategorySuggestions',
+  'tunesCategorySuggestions',
+  'televisionCategorySuggestions',
+] as const;
+
+/** Union of canonical feedback types. */
+export type FeedbackType = (typeof FEEDBACK_TYPES)[number];
+
 /** Maximum number of items submitted in a single library-review submission. */
 export const MAX_LIBRARY_SUBMIT_BATCH = 50;
 
