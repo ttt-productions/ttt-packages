@@ -200,3 +200,14 @@ export const ADMIN_TASK_STATUS = {
   WORK_LATER: 'workLater',
   COMPLETED: 'completed',
 } as const;
+
+// --- Payments ---
+
+/**
+ * Maximum donation amount accepted by the Stripe checkout flow, in cents
+ * (USD). $500,000.00. Well below Stripe's hard per-charge ceiling, but
+ * high enough that legitimate large gifts pass without friction. Anything
+ * above this is rejected by the schema before a Stripe session is created
+ * or any rate-limit / audit-event side effects are incurred.
+ */
+export const MAX_DONATION_AMOUNT_CENTS = 50_000_000;
