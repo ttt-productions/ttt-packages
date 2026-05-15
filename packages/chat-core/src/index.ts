@@ -5,6 +5,7 @@
 export { MAX_CHAT_MESSAGE_LENGTH, CHAT_ATTACHMENT_STALE_AGE_MS } from "./constants.js";
 
 export { GROUP_GAP_SEC } from "./types.js";
+export { isContinuation } from "./grouping.js";
 export type {
     ChatAttachment,
     ChatId,

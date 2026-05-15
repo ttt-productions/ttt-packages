@@ -2,20 +2,9 @@
 
 import * as React from "react";
 import type { ChatMessageV1, MessageRendererRegistry, ModerationHandlers } from "../types.js";
-import { GROUP_GAP_SEC } from "../types.js";
 import { Button } from "@ttt-productions/ui-core/react";
 import { MessageItemDefault } from "./MessageItemDefault.js";
-
-/**
- * Determine if msg is a "continuation" of prev (same sender, within GROUP_GAP_SEC, no system break).
- */
-function isContinuation(prev: ChatMessageV1 | undefined, msg: ChatMessageV1): boolean {
-  if (!prev) return false;
-  if (msg.isSystemMessage || prev.isSystemMessage) return false;
-  if (msg.senderId !== prev.senderId) return false;
-  const gapMs = msg.createdAt - prev.createdAt;
-  return gapMs >= 0 && gapMs <= GROUP_GAP_SEC * 1000;
-}
+import { isContinuation } from "../grouping.js";
 
 export function MessageList(props: {
   messages: ChatMessageV1[];
