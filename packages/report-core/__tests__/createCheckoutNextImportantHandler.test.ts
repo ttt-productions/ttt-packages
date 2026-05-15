@@ -38,8 +38,18 @@ function createMockDb({ pendingTask = null, originalDocData = null }: MockDbOpti
   const sets: Array<{ path: string; data: Record<string, unknown> }> = [];
   const updates: Array<{ path: string; data: Record<string, unknown> }> = [];
 
+  // Tracks whether any write has happened yet. Firestore transactions require
+  // ALL reads to happen before ANY writes — this mock enforces that so a
+  // read-after-write bug fails loudly in tests instead of silently passing.
+  let hasWritten = false;
+
   const transaction = {
     get: vi.fn(async (refOrQuery: any) => {
+      if (hasWritten) {
+        throw new Error(
+          'Firestore transactions require all reads to be executed before all writes.',
+        );
+      }
       // Query object (collection with where/orderBy/limit)
       if (refOrQuery._isQuery) {
         if (!pendingTask) {
@@ -66,10 +76,12 @@ function createMockDb({ pendingTask = null, originalDocData = null }: MockDbOpti
       return { exists: false, data: () => undefined, id: refOrQuery.id ?? 'unknown' };
     }),
     set: vi.fn((ref: any, data: Record<string, unknown>) => {
+      hasWritten = true;
       sets.push({ path: ref._path, data });
       return transaction;
     }),
     update: vi.fn((ref: any, data: Record<string, unknown>) => {
+      hasWritten = true;
       updates.push({ path: ref._path, data });
       return transaction;
     }),
@@ -318,5 +330,37 @@ describe('createCheckoutNextImportantHandler', () => {
       }),
       transaction,
     );
+  });
+
+  it('reads originalDoc BEFORE any writes (Firestore transaction ordering)', async () => {
+    const { db } = createMockDb({
+      pendingTask: {
+        id: 'task-1',
+        data: {
+          taskType: 'userReport',
+          taskId: 'report-group-1',
+          originalPath: 'activeReportGroups/report-group-1',
+          summary: 'Test',
+          priority: 5,
+        },
+      },
+      originalDocData: { groupId: 'report-group-1' },
+    });
+
+    const handler = createCheckoutNextImportantHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: { requireAdmin: async () => {} },
+    });
+
+    // If reads happen after writes, the strengthened mock throws the same
+    // error the real Firestore emulator throws. This test passes only when
+    // every transaction.get() runs before any transaction.update() or set().
+    const result = await handler({}, { uid: 'admin-1', token: {} });
+
+    expect(result.success).toBe(true);
+    expect((result.task as Record<string, unknown>).itemData).toEqual({
+      groupId: 'report-group-1',
+    });
   });
 });

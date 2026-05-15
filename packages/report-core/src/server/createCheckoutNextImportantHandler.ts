@@ -54,6 +54,7 @@ export function createCheckoutNextImportantHandler({
         .orderBy('createdAt', 'asc')
         .limit(1);
 
+      // ── READS (all reads must happen before any writes in a Firestore transaction) ──
       const snapshot = await transaction.get(q);
 
       if (snapshot.empty) {
@@ -64,7 +65,11 @@ export function createCheckoutNextImportantHandler({
       const taskData = taskDoc.data()!;
       const taskRef = taskDoc.ref;
 
-      // Look up checkout duration from config
+      // Fetch original document (READ — must happen before writes)
+      const originalDocRef = db.doc(taskData.originalPath as string);
+      const originalDoc = await transaction.get(originalDocRef);
+
+      // ── COMPUTE ──
       const taskType = taskData.taskType as string;
       const queueConfig = config.taskQueues[taskType];
       const checkoutMinutes = queueConfig?.defaultCheckoutMinutes ?? 60;
@@ -77,6 +82,7 @@ export function createCheckoutNextImportantHandler({
         workLaterUntil: null,
       };
 
+      // ── WRITES (no more reads after this point) ──
       transaction.update(taskRef, {
         status: 'checkedOut',
         checkoutDetails,
@@ -105,10 +111,6 @@ export function createCheckoutNextImportantHandler({
           transaction,
         );
       }
-
-      // Fetch original document
-      const originalDocRef = db.doc(taskData.originalPath as string);
-      const originalDoc = await transaction.get(originalDocRef);
 
       return {
         success: true,
