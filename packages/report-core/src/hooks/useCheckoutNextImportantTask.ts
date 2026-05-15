@@ -29,8 +29,9 @@ export function useCheckoutNextImportantTask({
 
   return useMutation({
     mutationFn: async (): Promise<CheckoutNextImportantTaskResult> => {
-      return callFunction<void, CheckoutNextImportantTaskResult>(
+      return callFunction<Record<string, never>, CheckoutNextImportantTaskResult>(
         'checkoutNextImportantTask',
+        {},
       );
     },
     onSuccess: () => {
