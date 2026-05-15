@@ -120,31 +120,25 @@ export interface PublishedLibraryItem {
   libraryId: string;
   projectId: string;
   projectType: ProjectType;
-  status: 'partial' | 'published';
+  status: 'published' | 'paused' | 'banned';
   createdOn: number;
   publishedAt?: number;
   ownedBy: { uid: string };
   libraryType: LibraryItemType;
   publishedItemCount: number;
-  totalItemCount: number;
-  tales?: {
-    title: string;
-    description: string;
-    coverPhotoUrl: string;
-    categories: string[];
-  };
-  tunes?: {
-    title: string;
-    description: string;
-    coverPhotoUrl: string;
-    categories: string[];
-  };
-  television?: {
-    title: string;
-    description: string;
-    coverPhotoUrl: string;
-    categories: string[];
-  };
+
+  // Project-level summary (written flat on first publish of this library).
+  // Optional on the type because the parent doc may exist in a pre-publish
+  // state before the first item is approved — these fields populate at first
+  // publish.
+  title?: string;
+  description?: string;
+  coverPhotoSquare?: string;
+  coverPhotoPoster?: string;
+  coverPhotoCinematic?: string;
+  categories?: string[];
+
+  // Stats
   totalDonations?: number;
   donationCount?: number;
   viewCount?: number;
