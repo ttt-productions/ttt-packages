@@ -5,7 +5,7 @@ import { Button, Textarea } from "@ttt-productions/ui-core/react";
 import { cn } from "@ttt-productions/ui-core";
 import { ensureFileWithContentType } from "@ttt-productions/file-input";
 import { MediaInput } from "@ttt-productions/file-input/react";
-import type { MediaInputChangePayload } from "@ttt-productions/file-input";
+import type { MediaInputChangePayload, UploadState } from "@ttt-productions/file-input";
 import type { FileOrigin } from "@ttt-productions/media-contracts";
 import { buildTempUploadPath } from "@ttt-productions/ttt-core";
 import { uploadFileResumable } from "@ttt-productions/upload-core/browser";
@@ -68,7 +68,7 @@ export function Composer(props: ComposerProps) {
   const [text, setText] = React.useState("");
   const [pendingFile, setPendingFile] = React.useState<File | null>(null);
   const [isSending, setIsSending] = React.useState(false);
-  const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
+  const [uploadState, setUploadState] = React.useState<UploadState | null>(null);
   const ref = React.useRef<HTMLTextAreaElement>(null);
 
   const attachEnabled = Boolean(attachmentConfig && sendAttachment);
@@ -103,15 +103,15 @@ export function Composer(props: ComposerProps) {
         const fileToUpload = ensureFileWithContentType(pendingFile);
         const attType = getAttachmentType(fileToUpload);
 
-        setUploadProgress(0);
+        setUploadState({ phase: 'preparing', percent: null });
         await uploadFileResumable({
           storage: attachmentConfig.storage,
           path: storagePath,
           file: fileToUpload,
           metadata: { contentType: fileToUpload.type },
-          onProgress: ({ percent }) => setUploadProgress(percent),
+          onProgress: ({ percent }) => setUploadState({ phase: 'uploading', percent }),
         });
-        setUploadProgress(null);
+        setUploadState({ phase: 'processing', percent: null });
 
         await sendAttachment({
           text: v,
@@ -133,10 +133,10 @@ export function Composer(props: ComposerProps) {
     } catch (err) {
       console.error("[Composer] Send failed:", err);
       setPendingFile(null);
-      setUploadProgress(null);
       throw err;
     } finally {
       setIsSending(false);
+      setUploadState(null);
     }
   };
 
@@ -158,16 +158,6 @@ export function Composer(props: ComposerProps) {
           >
             <X className="h-3 w-3" />
           </Button>
-        </div>
-      )}
-
-      {/* Upload progress */}
-      {isSending && uploadProgress != null && (
-        <div className="chat-composer-upload-status">
-          <Loader2 className="h-3 w-3 animate-spin" />
-          <span className="text-xs text-muted-foreground">
-            Uploading {Math.round(uploadProgress)}%...
-          </span>
         </div>
       )}
 
@@ -205,8 +195,8 @@ export function Composer(props: ComposerProps) {
             spec={attachmentConfig.attachmentSpec}
             onChange={handleFileSelected}
             selectedFile={pendingFile}
-            isLoading={isSending && uploadProgress != null}
-            uploadProgress={uploadProgress ?? undefined}
+            isLoading={isSending}
+            uploadState={uploadState}
             disabled={isDisabled}
             buttonLabel="Attach file"
             onClear={() => setPendingFile(null)}

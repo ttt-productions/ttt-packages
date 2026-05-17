@@ -11,6 +11,14 @@ import type {
 /** FileCategory is owned by contracts. */
 export type FileCategory = ContractsFileCategory;
 
+export type UploadPhase = 'preparing' | 'uploading' | 'processing';
+
+export interface UploadState {
+  phase: UploadPhase;
+  /** 0–100 for the 'uploading' phase. null for 'preparing' and 'processing' (indeterminate). */
+  percent: number | null;
+}
+
 export interface CropConfig {
   aspectRatio: number;
   aspectRatioDisplay?: string;
@@ -103,8 +111,15 @@ export interface MediaInputProps {
   className?: string;
   buttonLabel?: string;
 
-  /** Upload progress 0-100. Shows progress bar + changes button text to "Uploading X%..." */
-  uploadProgress?: number | null;
+  /** Phase-aware upload state. When provided, drives the upload/processing UI. */
+  uploadState?: UploadState | null;
+  /**
+   * Minimum file size (bytes) before showing a real progress bar.
+   * Files smaller than this show an indeterminate spinner during upload instead.
+   * Defaults to `DEFAULT_PROGRESS_BAR_MIN_BYTES` (512 KB) when omitted.
+   * Pass `Infinity` to always use the spinner. Pass `0` to always use the bar.
+   */
+  progressBarMinBytes?: number;
   /** Currently selected file. Shows filename + clear button when set. */
   selectedFile?: File | null;
   /** Called when user clears the selected file. */

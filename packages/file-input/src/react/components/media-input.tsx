@@ -20,6 +20,7 @@ import {
 import { cn } from "@ttt-productions/ui-core";
 
 import type { FileInputError, MediaInputProps, SelectedMediaMeta } from "../../types.js";
+import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from "../../index.js";
 import { AutoFormatModal } from "./auto-format-modal.js";
 import { RecordDialog } from "./record-dialog.js";
 import { ensureFileWithContentType } from "../../lib/infer-content-type.js";
@@ -132,7 +133,8 @@ export function MediaInput(props: MediaInputProps) {
     isLoading = false,
     className,
     buttonLabel = "Add media",
-    uploadProgress,
+    uploadState,
+    progressBarMinBytes,
     selectedFile,
     onClear,
     onChange,
@@ -408,7 +410,17 @@ export function MediaInput(props: MediaInputProps) {
     [handleSelected, makeObjectUrl]
   );
 
-  const isUploading = typeof uploadProgress === "number" && isLoading;
+  const phase = uploadState?.phase ?? null;
+  const percent = uploadState?.percent ?? null;
+  const isUploading = phase === 'uploading' && isLoading;
+  const isPreparing = phase === 'preparing' && isLoading;
+
+  const sizeThreshold = progressBarMinBytes ?? DEFAULT_PROGRESS_BAR_MIN_BYTES;
+  const showRealBar =
+    isUploading &&
+    typeof percent === 'number' &&
+    !!selectedFile &&
+    selectedFile.size >= sizeThreshold;
 
   const canPick = spec.client?.allowPick ?? true;
   const canPhoto = spec.client?.allowCapturePhoto ?? true;
@@ -513,13 +525,19 @@ export function MediaInput(props: MediaInputProps) {
         <div className="flex items-center gap-2 mb-2">
           <Loader2 className="icon-xs spinner-xs" />
           <span className="text-sm text-muted-foreground">
-            {isUploading ? `Uploading ${Math.round(uploadProgress ?? 0)}%...` : "Processing..."}
+            {isPreparing
+              ? "Preparing..."
+              : isUploading && showRealBar
+              ? `Uploading ${Math.round(percent ?? 0)}%...`
+              : isUploading
+              ? "Uploading..."
+              : "Processing..."}
           </span>
         </div>
       ) : null}
 
-      {/* Progress bar */}
-      {isUploading ? <Progress value={uploadProgress ?? 0} className="mb-2 h-1.5" /> : null}
+      {/* Progress bar — only shown for uploads above the size threshold */}
+      {showRealBar ? <Progress value={percent ?? 0} className="mb-2 h-1.5" /> : null}
 
       {/* Action button area */}
       <div className="flex flex-wrap gap-2">
