@@ -227,3 +227,102 @@ describe('StartUploadResponseSchema', () => {
     expect(() => StartUploadResponseSchema.parse({ pendingMediaId: 'pm_1', extra: 1 })).toThrow();
   });
 });
+
+describe('PendingMediaSchema — tray-clear fields', () => {
+  const baseTerminalFields = {
+    ...baseFields,
+    terminalAt: 1_700_000_001_000,
+  };
+
+  const completedDoc = {
+    ...baseTerminalFields,
+    status: 'completed' as const,
+    completedAt: 1_700_000_001_000,
+    result: {
+      events: [{ type: 'profile.pictureUpdated', ids: { userId: 'user_abc' } }],
+    },
+  };
+
+  const failedDoc = {
+    ...baseTerminalFields,
+    status: 'failed' as const,
+    failedAt: 1_700_000_001_000,
+    errorCategory: 'validation' as const,
+    errorMessage: 'bad file',
+  };
+
+  const rejectedDoc = {
+    ...baseTerminalFields,
+    status: 'rejected' as const,
+    rejectedAt: 1_700_000_001_000,
+    rejectionType: 'media' as const,
+    errorMessage: 'rejected by moderator',
+  };
+
+  it('accepts a completed doc with both tray-clear fields', () => {
+    const doc = {
+      ...completedDoc,
+      uploadTrayClearedAt: 1_700_000_002_000,
+      uploadTrayClearedBy: 'user_abc',
+    };
+    expect(() => PendingMediaSchema.parse(doc)).not.toThrow();
+  });
+
+  it('accepts a failed doc with both tray-clear fields', () => {
+    const doc = {
+      ...failedDoc,
+      uploadTrayClearedAt: 1_700_000_002_000,
+      uploadTrayClearedBy: 'user_abc',
+    };
+    expect(() => PendingMediaSchema.parse(doc)).not.toThrow();
+  });
+
+  it('accepts a rejected doc with both tray-clear fields', () => {
+    const doc = {
+      ...rejectedDoc,
+      uploadTrayClearedAt: 1_700_000_002_000,
+      uploadTrayClearedBy: 'user_abc',
+    };
+    expect(() => PendingMediaSchema.parse(doc)).not.toThrow();
+  });
+
+  it('accepts a completed doc with neither tray-clear field (defaults preserved)', () => {
+    expect(() => PendingMediaSchema.parse(completedDoc)).not.toThrow();
+  });
+
+  it('rejects a pending doc with uploadTrayClearedAt (terminal-only)', () => {
+    const doc = {
+      ...baseFields,
+      status: 'pending' as const,
+      uploadTrayClearedAt: 1_700_000_002_000,
+    };
+    expect(() => PendingMediaSchema.parse(doc)).toThrow();
+  });
+
+  it('rejects a processing doc with uploadTrayClearedAt (terminal-only)', () => {
+    const doc = {
+      ...baseFields,
+      status: 'processing' as const,
+      uploadTrayClearedAt: 1_700_000_002_000,
+    };
+    expect(() => PendingMediaSchema.parse(doc)).toThrow();
+  });
+
+  it('rejects a processing doc with uploadTrayClearedBy (terminal-only)', () => {
+    const doc = {
+      ...baseFields,
+      status: 'processing' as const,
+      uploadTrayClearedBy: 'user_abc',
+    };
+    expect(() => PendingMediaSchema.parse(doc)).toThrow();
+  });
+
+  it('rejects an empty-string uploadTrayClearedBy', () => {
+    const doc = {
+      ...completedDoc,
+      uploadTrayClearedAt: 1_700_000_002_000,
+      uploadTrayClearedBy: '',
+    };
+    expect(() => PendingMediaSchema.parse(doc)).toThrow();
+  });
+});

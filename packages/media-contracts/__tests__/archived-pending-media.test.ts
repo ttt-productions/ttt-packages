@@ -144,3 +144,84 @@ describe('parseArchivedPendingMedia', () => {
     expect(parsed.archivedAt).toBe(1_700_000_003_000);
   });
 });
+
+describe('ArchivedPendingMediaSchema — tray-clear fields', () => {
+  const baseArchivedTerminalFields = {
+    id: 'pm_arch_1',
+    userId: 'user_abc',
+    fileOrigin: 'profile-picture' as const,
+    originalFileName: 'avatar.jpg',
+    pendingStoragePath: 'uploads/profile-picture/user_abc/file_1.jpg',
+    clientContext: { surface: 'profile-page' },
+    createdAt: 1_700_000_000_000,
+    updatedAt: 1_700_000_000_000,
+    terminalAt: 1_700_000_001_000,
+    archivedAt: 1_700_000_003_000,
+  };
+
+  it('accepts an archived completed doc with both tray-clear fields', () => {
+    const doc = {
+      ...baseArchivedTerminalFields,
+      status: 'completed' as const,
+      completedAt: 1_700_000_001_000,
+      result: {
+        events: [{ type: 'profile.pictureUpdated', ids: { userId: 'user_abc' } }],
+      },
+      uploadTrayClearedAt: 1_700_000_002_000,
+      uploadTrayClearedBy: 'user_abc',
+    };
+    expect(() => ArchivedPendingMediaSchema.parse(doc)).not.toThrow();
+  });
+
+  it('accepts an archived failed doc with both tray-clear fields', () => {
+    const doc = {
+      ...baseArchivedTerminalFields,
+      status: 'failed' as const,
+      failedAt: 1_700_000_001_000,
+      errorCategory: 'validation' as const,
+      errorMessage: 'bad file',
+      uploadTrayClearedAt: 1_700_000_002_000,
+      uploadTrayClearedBy: 'user_abc',
+    };
+    expect(() => ArchivedPendingMediaSchema.parse(doc)).not.toThrow();
+  });
+
+  it('accepts an archived rejected doc with both tray-clear fields', () => {
+    const doc = {
+      ...baseArchivedTerminalFields,
+      status: 'rejected' as const,
+      rejectedAt: 1_700_000_001_000,
+      rejectionType: 'media' as const,
+      errorMessage: 'rejected by moderator',
+      uploadTrayClearedAt: 1_700_000_002_000,
+      uploadTrayClearedBy: 'user_abc',
+    };
+    expect(() => ArchivedPendingMediaSchema.parse(doc)).not.toThrow();
+  });
+
+  it('accepts an archived completed doc without tray-clear fields (optional)', () => {
+    const doc = {
+      ...baseArchivedTerminalFields,
+      status: 'completed' as const,
+      completedAt: 1_700_000_001_000,
+      result: {
+        events: [{ type: 'profile.pictureUpdated', ids: { userId: 'user_abc' } }],
+      },
+    };
+    expect(() => ArchivedPendingMediaSchema.parse(doc)).not.toThrow();
+  });
+
+  it('rejects an empty-string uploadTrayClearedBy on archived doc', () => {
+    const doc = {
+      ...baseArchivedTerminalFields,
+      status: 'completed' as const,
+      completedAt: 1_700_000_001_000,
+      result: {
+        events: [{ type: 'profile.pictureUpdated', ids: { userId: 'user_abc' } }],
+      },
+      uploadTrayClearedAt: 1_700_000_002_000,
+      uploadTrayClearedBy: '',
+    };
+    expect(() => ArchivedPendingMediaSchema.parse(doc)).toThrow();
+  });
+});

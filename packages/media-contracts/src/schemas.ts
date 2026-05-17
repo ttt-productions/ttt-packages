@@ -366,6 +366,8 @@ export const PendingMediaCompletedSchema = z
     status: z.literal('completed'),
     completedAt: z.number(),
     terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
     result: PendingMediaResultSchema,
   })
   .strict();
@@ -376,6 +378,8 @@ export const PendingMediaFailedSchema = z
     status: z.literal('failed'),
     failedAt: z.number(),
     terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
     errorCategory: PendingMediaErrorCategorySchema,
     errorMessage: z.string().min(1),
   })
@@ -387,6 +391,8 @@ export const PendingMediaRejectedSchema = z
     status: z.literal('rejected'),
     rejectedAt: z.number(),
     terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
     rejectionType: z.enum(['text', 'media']),
     errorMessage: z.string().min(1),
     violationId: z.string().min(1).optional(),
@@ -418,6 +424,8 @@ export const ArchivedPendingMediaCompletedSchema = z
     status: z.literal('completed'),
     completedAt: z.number(),
     terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
     result: PendingMediaResultSchema,
     archivedAt: z.number(),
   })
@@ -429,6 +437,8 @@ export const ArchivedPendingMediaFailedSchema = z
     status: z.literal('failed'),
     failedAt: z.number(),
     terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
     errorCategory: PendingMediaErrorCategorySchema,
     errorMessage: z.string().min(1),
     archivedAt: z.number(),
@@ -441,6 +451,8 @@ export const ArchivedPendingMediaRejectedSchema = z
     status: z.literal('rejected'),
     rejectedAt: z.number(),
     terminalAt: z.number(),
+    uploadTrayClearedAt: z.number().optional(),
+    uploadTrayClearedBy: z.string().min(1).optional(),
     rejectionType: z.enum(['text', 'media']),
     errorMessage: z.string().min(1),
     violationId: z.string().min(1).optional(),
