@@ -111,7 +111,7 @@ export function Composer(props: ComposerProps) {
           metadata: { contentType: fileToUpload.type },
           onProgress: ({ percent }) => setUploadState({ phase: 'uploading', percent }),
         });
-        setUploadState({ phase: 'processing', percent: null });
+        setUploadState({ phase: 'finalizing', percent: null });
 
         await sendAttachment({
           text: v,

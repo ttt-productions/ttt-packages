@@ -11,11 +11,11 @@ import type {
 /** FileCategory is owned by contracts. */
 export type FileCategory = ContractsFileCategory;
 
-export type UploadPhase = 'preparing' | 'uploading' | 'processing';
+export type UploadPhase = 'preparing' | 'uploading' | 'finalizing';
 
 export interface UploadState {
   phase: UploadPhase;
-  /** 0–100 for the 'uploading' phase. null for 'preparing' and 'processing' (indeterminate). */
+  /** 0–100 for the 'uploading' phase. null for 'preparing' and 'finalizing' (indeterminate). */
   percent: number | null;
 }
 

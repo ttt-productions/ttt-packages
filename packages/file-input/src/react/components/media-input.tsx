@@ -414,6 +414,7 @@ export function MediaInput(props: MediaInputProps) {
   const percent = uploadState?.percent ?? null;
   const isUploading = phase === 'uploading' && isLoading;
   const isPreparing = phase === 'preparing' && isLoading;
+  const isFinalizing = phase === 'finalizing' && isLoading;
 
   const sizeThreshold = progressBarMinBytes ?? DEFAULT_PROGRESS_BAR_MIN_BYTES;
   const showRealBar =
@@ -520,7 +521,7 @@ export function MediaInput(props: MediaInputProps) {
         </div>
       ) : null}
 
-      {/* Upload / processing status */}
+      {/* Upload / finalizing status */}
       {isLoading ? (
         <div className="flex items-center gap-2 mb-2">
           <Loader2 className="icon-xs spinner-xs" />
@@ -531,7 +532,9 @@ export function MediaInput(props: MediaInputProps) {
               ? `Uploading ${Math.round(percent ?? 0)}%...`
               : isUploading
               ? "Uploading..."
-              : "Processing..."}
+              : isFinalizing
+              ? "Finalizing..."
+              : "Finalizing..."}
           </span>
         </div>
       ) : null}
