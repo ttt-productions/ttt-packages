@@ -34,9 +34,6 @@ export const ORPHAN_UPLOAD_LIST_PAGE_SIZE = 1000;
 
 // --- Frontend in-flight upload listeners ---
 
-/** After this idle duration, an in-flight upload toast is considered stale. */
-export const STALE_TOAST_THRESHOLD_MS = 5 * 60 * 1000;
-
 /** Maximum lookback window for the in-flight upload listener (24 hours). */
 export const LISTENER_WINDOW_MS = 24 * 60 * 60 * 1000;
 
