@@ -7,6 +7,7 @@ import {
   JobPostingTargetInfoSchema,
   JobReplyTargetInfoSchema,
   OpportunityPromptTargetInfoSchema,
+  AdminOpportunityPromptTargetInfoSchema,
   OpportunityReplyTargetInfoSchema,
   LibraryCoverSquareTargetInfoSchema,
   ChapterPhotoTargetInfoSchema,
@@ -100,22 +101,59 @@ describe('OpportunityPromptTargetInfoSchema', () => {
     description: 'D',
     openTill: 1_700_000_000_000,
     createdBy: { uid: 'u_1' },
+    projectId: 'p_1',
   };
-  it('accepts minimum required fields', () => {
+  it('accepts minimum required fields (including projectId)', () => {
     expect(() => OpportunityPromptTargetInfoSchema.parse(valid)).not.toThrow();
   });
-  it('accepts ProjectInput with optional fields', () => {
+  it('accepts ProjectInput with optional sharesOffered', () => {
     expect(() => OpportunityPromptTargetInfoSchema.parse({
-      ...valid, projectId: 'p_1', sharesOffered: 3,
+      ...valid, sharesOffered: 3,
     })).not.toThrow();
   });
+  it('rejects without projectId', () => {
+    const { projectId, ...rest } = valid;
+    expect(() => OpportunityPromptTargetInfoSchema.parse(rest)).toThrow();
+  });
+  it("rejects type: 'SystemInput'", () => {
+    expect(() => OpportunityPromptTargetInfoSchema.parse({ ...valid, type: 'SystemInput' })).toThrow();
+  });
+  it("rejects type: 'SponsoredProjects'", () => {
+    expect(() => OpportunityPromptTargetInfoSchema.parse({ ...valid, type: 'SponsoredProjects' })).toThrow();
+  });
+  it('rejects projectAmountUSD field', () => {
+    expect(() => OpportunityPromptTargetInfoSchema.parse({ ...valid, projectAmountUSD: 5000 })).toThrow();
+  });
+});
+
+describe('AdminOpportunityPromptTargetInfoSchema', () => {
+  const valid = {
+    opportunityId: 'op_1',
+    type: 'SystemInput' as const,
+    title: 'T',
+    description: 'D',
+    openTill: 1_700_000_000_000,
+    createdBy: { uid: 'u_1' },
+  };
+  it('accepts SystemInput minimum required fields', () => {
+    expect(() => AdminOpportunityPromptTargetInfoSchema.parse(valid)).not.toThrow();
+  });
   it('accepts SponsoredProjects with projectAmountUSD', () => {
-    expect(() => OpportunityPromptTargetInfoSchema.parse({
+    expect(() => AdminOpportunityPromptTargetInfoSchema.parse({
       ...valid, type: 'SponsoredProjects', projectAmountUSD: 5000,
     })).not.toThrow();
   });
+  it("rejects type: 'ProjectInput'", () => {
+    expect(() => AdminOpportunityPromptTargetInfoSchema.parse({ ...valid, type: 'ProjectInput' })).toThrow();
+  });
+  it('rejects projectId field', () => {
+    expect(() => AdminOpportunityPromptTargetInfoSchema.parse({ ...valid, projectId: 'p_1' })).toThrow();
+  });
+  it('rejects sharesOffered field', () => {
+    expect(() => AdminOpportunityPromptTargetInfoSchema.parse({ ...valid, sharesOffered: 3 })).toThrow();
+  });
   it('rejects unknown type', () => {
-    expect(() => OpportunityPromptTargetInfoSchema.parse({ ...valid, type: 'OtherType' })).toThrow();
+    expect(() => AdminOpportunityPromptTargetInfoSchema.parse({ ...valid, type: 'OtherType' })).toThrow();
   });
 });
 

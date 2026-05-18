@@ -42,6 +42,7 @@ import {
   JobPostingTargetInfoSchema,
   JobReplyTargetInfoSchema,
   OpportunityPromptTargetInfoSchema,
+  AdminOpportunityPromptTargetInfoSchema,
   OpportunityReplyTargetInfoSchema,
   LibraryCoverSquareTargetInfoSchema,
   LibraryCoverPosterTargetInfoSchema,
@@ -125,6 +126,7 @@ export type StreetzTargetInfo = z.infer<typeof StreetzTargetInfoSchema>;
 export type JobPostingTargetInfo = z.infer<typeof JobPostingTargetInfoSchema>;
 export type JobReplyTargetInfo = z.infer<typeof JobReplyTargetInfoSchema>;
 export type OpportunityPromptTargetInfo = z.infer<typeof OpportunityPromptTargetInfoSchema>;
+export type AdminOpportunityPromptTargetInfo = z.infer<typeof AdminOpportunityPromptTargetInfoSchema>;
 export type OpportunityReplyTargetInfo = z.infer<typeof OpportunityReplyTargetInfoSchema>;
 export type LibraryCoverSquareTargetInfo = z.infer<typeof LibraryCoverSquareTargetInfoSchema>;
 export type LibraryCoverPosterTargetInfo = z.infer<typeof LibraryCoverPosterTargetInfoSchema>;
@@ -145,6 +147,7 @@ export type TargetInfoFor<O extends import('./file-origin.js').FileOrigin> =
   : O extends 'job-posting' ? JobPostingTargetInfo
   : O extends 'job-reply' ? JobReplyTargetInfo
   : O extends 'opportunity-prompt' ? OpportunityPromptTargetInfo
+  : O extends 'admin-opportunity-prompt' ? AdminOpportunityPromptTargetInfo
   : O extends 'opportunity-reply' ? OpportunityReplyTargetInfo
   : O extends 'library-cover-square' ? LibraryCoverSquareTargetInfo
   : O extends 'library-cover-poster' ? LibraryCoverPosterTargetInfo

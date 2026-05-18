@@ -550,19 +550,31 @@ export const JobReplyTargetInfoSchema = z
   })
   .strict();
 
-// opportunity-prompt: full opportunity creation payload. Optional fields
-// are conditional on `type` — schema marks them optional rather than
-// introducing a nested discriminator. A future cleanup could tighten this.
+// opportunity-prompt: project-owned opportunity creation payload (ProjectInput only).
 export const OpportunityPromptTargetInfoSchema = z
   .object({
     opportunityId: z.string().min(1),
-    type: z.enum(['ProjectInput', 'SponsoredProjects', 'SystemInput']),
+    type: z.literal('ProjectInput'),
     title: z.string().min(1),
     description: z.string(),
     openTill: z.number(),
     createdBy: z.object({ uid: z.string().min(1) }).strict(),
-    projectId: z.string().min(1).optional(),
+    projectId: z.string().min(1),
     sharesOffered: z.number().optional(),
+  })
+  .strict();
+
+// admin-opportunity-prompt: admin-operated featured/sponsored opportunity creation
+// payload. No projectId, no sharesOffered. `projectAmountUSD` is optional and
+// only meaningful for SponsoredProjects.
+export const AdminOpportunityPromptTargetInfoSchema = z
+  .object({
+    opportunityId: z.string().min(1),
+    type: z.enum(['SystemInput', 'SponsoredProjects']),
+    title: z.string().min(1),
+    description: z.string(),
+    openTill: z.number(),
+    createdBy: z.object({ uid: z.string().min(1) }).strict(),
     projectAmountUSD: z.number().optional(),
   })
   .strict();
@@ -670,6 +682,7 @@ export function parseTargetInfo<O extends FileOrigin>(
     case 'job-posting': return JobPostingTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
     case 'job-reply': return JobReplyTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
     case 'opportunity-prompt': return OpportunityPromptTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
+    case 'admin-opportunity-prompt': return AdminOpportunityPromptTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
     case 'opportunity-reply': return OpportunityReplyTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
     case 'library-cover-square': return LibraryCoverSquareTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;
     case 'library-cover-poster': return LibraryCoverPosterTargetInfoSchema.parse(raw) as import('./types.js').TargetInfoFor<O>;

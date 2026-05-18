@@ -243,6 +243,31 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, TTTMediaOriginEntry> = {
     },
   },
 
+  'admin-opportunity-prompt': {
+    kind: 'video',
+    accept: ACCEPT_VIDEO_ONLY,
+    maxBytes: 25 * 1024 * 1024,
+    maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    requiredAspectRatio: 16 / 9,
+    videoOrientation: 'horizontal' as const,
+    client: {
+      allowPick: true,
+      allowCapturePhoto: false,
+      allowRecordVideo: true,
+      allowRecordAudio: false,
+      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    },
+    processing: {
+      video: {
+        kind: 'video',
+        requiredWidth: 1280,
+        requiredHeight: 720,
+        allowAutoFormat: true,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
+    },
+  },
+
   'opportunity-reply': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,

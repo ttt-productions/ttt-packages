@@ -8,6 +8,7 @@ export const FileOriginSchema = z.enum([
   'job-reply',
   'opportunity-prompt',
   'opportunity-reply',
+  'admin-opportunity-prompt',
   'library-cover-square',
   'library-cover-poster',
   'library-cover-cinematic',

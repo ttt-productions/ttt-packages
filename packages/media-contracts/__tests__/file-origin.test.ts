@@ -11,6 +11,7 @@ const ALL_FILE_ORIGINS: readonly FileOrigin[] = [
   'job-reply',
   'opportunity-prompt',
   'opportunity-reply',
+  'admin-opportunity-prompt',
   'library-cover-square',
   'library-cover-poster',
   'library-cover-cinematic',
@@ -20,6 +21,7 @@ const ALL_FILE_ORIGINS: readonly FileOrigin[] = [
   'show-photo',
   'show-video',
   'chat-attachment',
+  'project-file',
 ] as const;
 
 // Kebab-case: lowercase letters, digits, and hyphens only. Must start with a letter.
@@ -27,8 +29,8 @@ const ALL_FILE_ORIGINS: readonly FileOrigin[] = [
 const KEBAB_CASE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 
 describe('FileOrigin', () => {
-  it('has exactly 16 values', () => {
-    expect(ALL_FILE_ORIGINS.length).toBe(16);
+  it('has exactly 18 values', () => {
+    expect(ALL_FILE_ORIGINS.length).toBe(18);
   });
 
   it('has no duplicate values', () => {
