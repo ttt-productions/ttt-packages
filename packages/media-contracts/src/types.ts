@@ -160,3 +160,13 @@ export type TargetInfoFor<O extends import('./file-origin.js').FileOrigin> =
   : O extends 'chat-attachment' ? ChatAttachmentTargetInfo
   : O extends 'project-file' ? ProjectFileTargetInfo
   : never;
+
+// ---- upload progress (used by file-input MediaInput, deferred upload form, mutation hooks) ----
+
+export type UploadPhase = 'preparing' | 'uploading' | 'finalizing';
+
+export interface UploadState {
+  phase: UploadPhase;
+  /** 0–100 for the 'uploading' phase. null for 'preparing' and 'finalizing' (indeterminate). */
+  percent: number | null;
+}

@@ -1,0 +1,49 @@
+{
+    "name": "@ttt-productions/upload-form",
+    "version": "0.1.0",
+    "description": "Deferred-upload form primitives: local upload guard provider, useGuardedUpload helper, DeferredUploadFormShell for forms that defer Firebase Storage upload until form submit.",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/upload-form"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./react": {
+            "types": "./dist/react/index.d.ts",
+            "default": "./dist/react/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "dependencies": {
+        "@ttt-productions/file-input": "*",
+        "@ttt-productions/upload-core": "*",
+        "@ttt-productions/media-contracts": "*"
+    },
+    "peerDependencies": {
+        "firebase": ">=10.0.0",
+        "react": ">=18.0.0",
+        "react-dom": ">=18.0.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.8.3"
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+}

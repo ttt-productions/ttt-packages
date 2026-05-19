@@ -1,7 +1,7 @@
 # TTT Packages — Shared Monorepo
 
 ## Overview
-Shared monorepo of reusable packages consumed by TTT Productions and Q-Sports. Published to npm under the `@ttt-productions` scope. Contains 16 packages providing common functionality across projects.
+Shared monorepo of reusable packages consumed by TTT Productions and Q-Sports. Published to npm under the `@ttt-productions` scope. Contains 17 packages providing common functionality across projects.
 
 **For detailed documentation on each package, see `docs/packages/`.**
 Reading those docs should be sufficient for most tasks — only look at package source code when debugging specific issues or making targeted changes.
@@ -45,6 +45,7 @@ See `docs/design/display-identity-invariant.md`.
 ### Tier 2 — Depend on Tier 1 packages
 - `chat-core` — Full chat system: realtime newest-window + infinite older pagination, ChatShell, Composer, attachments (depends on ui-core, firebase-helpers, mobile-core, file-input, upload-core, media-viewer, media-contracts)
 - `media-processing-core` — Server-side media pipeline: image resize/format, video/audio probe + transcode, moderation adapter, temp workspace (depends on firebase-helpers, media-contracts, sharp)
+- `upload-form` — Deferred-upload form primitives: `LocalUploadGuardProvider` (beforeunload guard), `useGuardedUpload` helper (wraps `uploadFileResumable` with phase reporting + guard), `DeferredUploadFormShell` (file-input + mutation composition for forms that defer Storage upload to submit). Depends on file-input, upload-core, media-contracts.
 
 ## Project Structure
 ```
@@ -59,7 +60,7 @@ scripts/                   — Release and bundle scripts
 1. ui-core, theme-core, query-core, monitoring-core, firebase-helpers, media-contracts
 2. ttt-core, mobile-core, media-viewer, file-input, auth-core
 3. upload-core, notification-core, report-core
-4. chat-core, media-processing-core
+4. upload-form, chat-core, media-processing-core
 
 Note: ttt-core now depends on media-contracts (for FileOrigin/PendingFile), so media-contracts must build first.
 
@@ -95,6 +96,7 @@ Current entry-point layout per package:
 - `notification-core` — `.` (types) + `./react` (hooks/components) + `./server` (Cloud Function helpers) + `./styles`
 - `report-core` — `.` (types/config/constants) + `./react` (provider/hooks/components) + `./server` (Cloud Function handlers) + `./styles`
 - `chat-core` — `.` (constants/types only) + `./react` (ChatShell/hooks/resolver provider/UI) + `./styles`
+- `upload-form` — `.` (server-safe, empty) + `./react` (LocalUploadGuardProvider, useGuardedUpload, DeferredUploadFormShell)
 - `media-processing-core` — Server-only (Node.js, uses sharp + ffmpeg). `.` (I/O-agnostic pipeline + interfaces) + `./server` (opt-in Firebase Storage `MediaIO` adapter, requires firebase-admin). No React.
 
 ## CSS Architecture (theme-core)

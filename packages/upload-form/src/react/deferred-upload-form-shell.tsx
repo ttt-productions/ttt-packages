@@ -1,0 +1,125 @@
+'use client';
+
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useImperativeHandle,
+  forwardRef,
+  type ReactNode,
+  type Ref,
+} from 'react';
+import { MediaInput } from '@ttt-productions/file-input/react';
+import type { MediaInputChangePayload } from '@ttt-productions/file-input';
+import type { FileOrigin, UploadState } from '@ttt-productions/media-contracts';
+import { TTT_MEDIA_SPECS } from '@ttt-productions/media-contracts';
+
+export interface DeferredUploadFormShellHandle {
+  submit: () => void;
+}
+
+export interface DeferredUploadFormShellProps<
+  TVariables extends { onProgress?: (s: UploadState | null) => void },
+  TResult = unknown,
+> {
+  fileOrigin: FileOrigin;
+  mutation: {
+    mutateAsync: (vars: TVariables) => Promise<TResult>;
+    isPending: boolean;
+  };
+  buildVariables: (file: File | null, onProgress: (s: UploadState | null) => void) => TVariables;
+  onSuccess?: (result: TResult) => void;
+  onError?: (err: unknown) => void;
+  /**
+   * Optional callback fired whenever the shell's internal selectedFile state
+   * changes — on user select, on user clear, and on the post-success internal
+   * reset. Forms typically use this to mirror selectedFile externally so they
+   * can compute their own submit-button `disabled` flag (e.g. require-a-file
+   * submit gating).
+   */
+  onFileChange?: (file: File | null) => void;
+  children?: ReactNode;
+}
+
+function DeferredUploadFormShellInner<
+  TVariables extends { onProgress?: (s: UploadState | null) => void },
+  TResult = unknown,
+>(
+  props: DeferredUploadFormShellProps<TVariables, TResult>,
+  ref: Ref<DeferredUploadFormShellHandle>,
+) {
+  const {
+    fileOrigin,
+    mutation,
+    buildVariables,
+    onSuccess,
+    onError,
+    onFileChange,
+    children,
+  } = props;
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadState, setUploadState] = useState<UploadState | null>(null);
+  const fileAreaRef = useRef<HTMLDivElement>(null);
+  const spec = TTT_MEDIA_SPECS[fileOrigin];
+
+  const handleMediaChange = useCallback((payload: MediaInputChangePayload) => {
+    const next = payload.error ? null : (payload.file ?? null);
+    setSelectedFile(next);
+    onFileChange?.(next);
+  }, [onFileChange]);
+
+  const handleClear = useCallback(() => {
+    setSelectedFile(null);
+    onFileChange?.(null);
+  }, [onFileChange]);
+
+  const handleSubmit = useCallback(async () => {
+    if (mutation.isPending) return;
+    if (selectedFile) {
+      fileAreaRef.current?.focus();
+    }
+    try {
+      const result = await mutation.mutateAsync(buildVariables(selectedFile, setUploadState));
+      setUploadState(null);
+      setSelectedFile(null);
+      onFileChange?.(null);
+      onSuccess?.(result);
+    } catch (err) {
+      setUploadState(null);
+      onError?.(err);
+    }
+  }, [mutation, selectedFile, buildVariables, onSuccess, onError, onFileChange]);
+
+  useImperativeHandle(ref, () => ({ submit: () => { void handleSubmit(); } }), [handleSubmit]);
+
+  return (
+    <>
+      {children}
+
+      <div
+        ref={fileAreaRef}
+        tabIndex={-1}
+        aria-live="polite"
+        className="outline-none"
+      >
+        <MediaInput
+          spec={spec}
+          selectedFile={selectedFile}
+          uploadState={uploadState}
+          isLoading={mutation.isPending}
+          disabled={mutation.isPending}
+          onChange={handleMediaChange}
+          onClear={handleClear}
+        />
+      </div>
+    </>
+  );
+}
+
+export const DeferredUploadFormShell = forwardRef(DeferredUploadFormShellInner) as <
+  TVariables extends { onProgress?: (s: UploadState | null) => void },
+  TResult = unknown,
+>(
+  props: DeferredUploadFormShellProps<TVariables, TResult> & { ref?: Ref<DeferredUploadFormShellHandle> },
+) => React.ReactElement;

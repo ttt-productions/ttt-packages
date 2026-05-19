@@ -27,6 +27,11 @@ npm install
 ./scripts/release-package.sh @ttt-productions/auth-core packages/auth-core "$BUMP"
 
 ./scripts/release-package.sh @ttt-productions/upload-core packages/upload-core "$BUMP"
+
+# Install upload-core before upload-form release
+npm install
+
+./scripts/release-package.sh @ttt-productions/upload-form packages/upload-form "$BUMP"
 ./scripts/release-package.sh @ttt-productions/media-processing-core packages/media-processing-core "$BUMP"
 
 # Install upload-core before chat-core release

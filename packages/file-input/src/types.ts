@@ -6,18 +6,12 @@ import type {
   SimplifiedMediaType,
   VideoOrientation,
   MediaCropSpec,
+  UploadState,
 } from "@ttt-productions/media-contracts";
 
 /** FileCategory is owned by contracts. */
 export type FileCategory = ContractsFileCategory;
 
-export type UploadPhase = 'preparing' | 'uploading' | 'finalizing';
-
-export interface UploadState {
-  phase: UploadPhase;
-  /** 0–100 for the 'uploading' phase. null for 'preparing' and 'finalizing' (indeterminate). */
-  percent: number | null;
-}
 
 export interface CropConfig {
   aspectRatio: number;
