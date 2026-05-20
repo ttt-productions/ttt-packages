@@ -118,6 +118,14 @@ export interface MediaInputProps {
   selectedFile?: File | null;
   /** Called when user clears the selected file. */
   onClear?: () => void;
+  /**
+   * Optional cancel callback. When provided AND the upload is in 'preparing' or
+   * 'uploading' phase AND `isLoading` is true, an inline X button renders next to
+   * the status text. Click invokes onCancel — the consumer is responsible for
+   * aborting the underlying upload (e.g. via AbortController.abort()). Never
+   * renders during 'finalizing'.
+   */
+  onCancel?: () => void;
 
   onChange: (payload: MediaInputChangePayload) => void;
 }

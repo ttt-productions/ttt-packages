@@ -137,6 +137,7 @@ export function MediaInput(props: MediaInputProps) {
     progressBarMinBytes,
     selectedFile,
     onClear,
+    onCancel,
     onChange,
   } = props;
 
@@ -536,6 +537,18 @@ export function MediaInput(props: MediaInputProps) {
               ? "Finalizing..."
               : "Finalizing..."}
           </span>
+          {(isPreparing || isUploading) && onCancel ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="icon-sm hover:bg-destructive/20 shrink-0 ml-auto"
+              onClick={onCancel}
+              aria-label="Cancel upload"
+            >
+              <X className="icon-xs" />
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
