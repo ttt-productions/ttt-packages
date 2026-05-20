@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/upload-form",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "Deferred-upload form primitives: local upload guard provider, useGuardedUpload helper, DeferredUploadFormShell for forms that defer Firebase Storage upload until form submit.",
     "repository": {
         "type": "git",
