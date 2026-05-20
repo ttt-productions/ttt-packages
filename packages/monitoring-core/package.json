@@ -21,6 +21,10 @@
         ".": {
             "types": "./dist/index.d.ts",
             "default": "./dist/index.js"
+        },
+        "./react": {
+            "types": "./dist/react/index.d.ts",
+            "default": "./dist/react/index.js"
         }
     },
     "scripts": {
@@ -31,7 +35,9 @@
     },
     "peerDependencies": {
         "@sentry/nextjs": "^10.32.1",
-        "@sentry/node": "^10.32.1"
+        "@sentry/node": "^10.32.1",
+        "react": ">=18.0.0",
+        "react-dom": ">=18.0.0"
     },
     "peerDependenciesMeta": {
         "@sentry/nextjs": {
@@ -39,12 +45,22 @@
         },
         "@sentry/node": {
             "optional": true
+        },
+        "react": {
+            "optional": true
+        },
+        "react-dom": {
+            "optional": true
         }
     },
     "devDependencies": {
         "typescript": "^5.8.3",
         "@sentry/nextjs": "^10.32.1",
-        "@sentry/node": "^10.32.1"
+        "@sentry/node": "^10.32.1",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"

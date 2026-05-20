@@ -58,11 +58,18 @@ describe('getFocusableInputs', () => {
     expect(result.length).toBe(1);
   });
 
-  it('finds elements with data-ttt-input attribute', () => {
+  it('finds elements with data-app-input attribute (default prefix)', () => {
     // In jsdom, div tabIndex defaults to -1 — must set 0 to be "focusable"
-    const el = createElement('div', { 'data-ttt-input': '', tabindex: '0' });
+    const el = createElement('div', { 'data-app-input': '', tabindex: '0' });
     root.appendChild(el);
     const result = getFocusableInputs(root);
+    expect(result).toContain(el);
+  });
+
+  it('finds elements with custom prefix attribute when prefix is overridden', () => {
+    const el = createElement('div', { 'data-x-input': '', tabindex: '0' });
+    root.appendChild(el);
+    const result = getFocusableInputs(root, 'x');
     expect(result).toContain(el);
   });
 

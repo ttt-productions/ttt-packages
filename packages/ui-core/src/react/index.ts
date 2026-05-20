@@ -48,3 +48,16 @@ export { ScreenAdaptiveView } from "./components/layout/screen-adaptive-view.js"
 
 // Hooks
 export { useMediaQuery } from "./hooks/use-media-query.js";
+
+// Shared building blocks
+export { RelativeTime } from "./components/relative-time.js";
+export type { RelativeTimeProps } from "./components/relative-time.js";
+
+export { EndOfListIndicator } from "./components/end-of-list-indicator.js";
+export type { EndOfListIndicatorProps } from "./components/end-of-list-indicator.js";
+
+export { ScrollToTopButton } from "./components/scroll-to-top-button.js";
+export type { ScrollToTopButtonProps } from "./components/scroll-to-top-button.js";
+
+export { ChunkErrorRecovery } from "./components/chunk-error-recovery.js";
+export type { ChunkErrorRecoveryProps } from "./components/chunk-error-recovery.js";

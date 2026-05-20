@@ -5,3 +5,5 @@ export * from "./firestore/batch.js";
 export * from "./firestore/pagination.js";
 export * from "./utils/chunk.js";
 export * from "./firestore/date-formatting.js";
+export * from "./utils/file-url.js";
+export * from "./client/firebase-init.js";

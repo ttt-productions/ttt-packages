@@ -18,3 +18,12 @@ export { useNoRubberBand } from "./ios/useNoRubberBand.js";
 
 export { usePullToRefresh } from "./pull-to-refresh/usePullToRefresh.js";
 export { PullToRefreshContainer } from "./pull-to-refresh/PullToRefreshContainer.js";
+
+export { IOSSetup } from "./components/IOSSetup.js";
+export { ViewportHeightSetter } from "./components/ViewportHeightSetter.js";
+export type { ViewportHeightSetterProps } from "./components/ViewportHeightSetter.js";
+export {
+  DEFAULT_MOBILE_CORE_PREFIX,
+  resolvePrefix,
+} from "./css-prefix.js";
+export type { CssPrefixOptions } from "./css-prefix.js";

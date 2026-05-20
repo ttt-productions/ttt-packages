@@ -1,16 +1,18 @@
 import React from "react";
 import { usePullToRefresh } from "./usePullToRefresh.js";
+import { resolvePrefix } from "../css-prefix.js";
 
 type Props = {
   onRefresh: () => Promise<void>;
   disabled?: boolean;
   className?: string;
   children: React.ReactNode;
+  cssPrefix?: string;
 };
 
 const INDICATOR_SIZE = 32;
 
-function SpinnerIndicator({ progress, isRefreshing }: { progress: number; isRefreshing: boolean }) {
+function SpinnerIndicator({ progress, isRefreshing, prefix }: { progress: number; isRefreshing: boolean; prefix: string }) {
   const radius = 10;
   const circumference = 2 * Math.PI * radius;
   const dashOffset = circumference * (1 - progress);
@@ -22,7 +24,7 @@ function SpinnerIndicator({ progress, isRefreshing }: { progress: number; isRefr
       viewBox="0 0 24 24"
       style={{
         display: "block",
-        animation: isRefreshing ? "ttt-ptr-spin 0.8s linear infinite" : "none",
+        animation: isRefreshing ? `${prefix}-ptr-spin 0.8s linear infinite` : "none",
       }}
     >
       <circle
@@ -62,7 +64,8 @@ function SpinnerIndicator({ progress, isRefreshing }: { progress: number; isRefr
  * </PullToRefreshContainer>
  * ```
  */
-export function PullToRefreshContainer({ onRefresh, disabled, className, children }: Props) {
+export function PullToRefreshContainer({ onRefresh, disabled, className, children, cssPrefix }: Props) {
+  const prefix = resolvePrefix({ cssPrefix });
   const { isRefreshing, pullProgress, pullDistance, handlers, style } = usePullToRefresh({
     onRefresh,
     disabled,
@@ -74,7 +77,7 @@ export function PullToRefreshContainer({ onRefresh, disabled, className, childre
   return (
     <>
       {/* Keyframe injected once — harmless if duplicated */}
-      <style>{`@keyframes ttt-ptr-spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`@keyframes ${prefix}-ptr-spin { to { transform: rotate(360deg); } }`}</style>
 
       <div
         className={className}
@@ -99,7 +102,7 @@ export function PullToRefreshContainer({ onRefresh, disabled, className, childre
             color: "var(--foreground, currentColor)",
           }}
         >
-          <SpinnerIndicator progress={pullProgress} isRefreshing={isRefreshing} />
+          <SpinnerIndicator progress={pullProgress} isRefreshing={isRefreshing} prefix={prefix} />
         </div>
 
         {/* Content shifts down during pull */}

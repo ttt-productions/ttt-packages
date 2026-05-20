@@ -1,8 +1,11 @@
-export function getFocusableInputs(root: HTMLElement | Document = document) {
+import { DEFAULT_MOBILE_CORE_PREFIX } from "../css-prefix.js";
+
+export function getFocusableInputs(root: HTMLElement | Document = document, prefix?: string) {
+  const p = prefix ?? DEFAULT_MOBILE_CORE_PREFIX;
   const el = root instanceof Document ? root : root;
   const list = Array.from(
     el.querySelectorAll<HTMLElement>(
-      'input, textarea, select, [contenteditable="true"], [data-ttt-input]'
+      `input, textarea, select, [contenteditable="true"], [data-${p}-input]`
     )
   ).filter((n) => !n.hasAttribute("disabled") && n.tabIndex !== -1);
 

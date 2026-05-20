@@ -34,3 +34,19 @@ export type {
   FirestoreSearchConfig,
   FirestoreSearchOptions,
 } from './search/types.js';
+
+// Domain-event invalidator (mechanism — consumers register their event registry)
+export {
+  createDomainEventInvalidator,
+  exact,
+  prefix,
+  predicate,
+  serializeInvalidation,
+  applyInvalidations,
+} from "./domain-events/index.js";
+export type {
+  DomainEventInvalidator,
+  DomainEventInvalidationRegistry,
+  CacheInvalidation,
+  RefetchType,
+} from "./domain-events/index.js";
