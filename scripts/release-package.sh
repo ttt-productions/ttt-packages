@@ -7,7 +7,10 @@ BUMP="${3:-patch}"
 
 # Safety: always preflight before a release to avoid stale nested node_modules
 # or cached dist shadowing workspace symlinks. See root CLAUDE.md.
-npm run preflight
+# Skipped when called from release-all.sh (which runs preflight once at the top).
+if [[ "${SKIP_PREFLIGHT:-0}" != "1" ]]; then
+  npm run preflight
+fi
 
 git fetch --tags origin
 

@@ -29,6 +29,11 @@ set -euo pipefail
 
 BUMP="${1:-patch}"
 
+# Preflight once for the whole run. Each release-package.sh call below sees
+# SKIP_PREFLIGHT=1 and skips its own preflight.
+npm run preflight
+export SKIP_PREFLIGHT=1
+
 # ---------------------------------------------------------------------------
 # Tier 0 — generic, zero @ttt-productions/* deps
 # ---------------------------------------------------------------------------
