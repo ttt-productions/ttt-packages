@@ -46,12 +46,6 @@ vi.mock('@ttt-productions/file-input/react', () => ({
 
 vi.mock('@ttt-productions/file-input', () => ({}));
 
-vi.mock('@ttt-productions/ttt-core', () => ({
-  TTT_MEDIA_SPECS: new Proxy({} as Record<string, object>, {
-    get: () => ({ accept: 'image/*', label: 'Image' }),
-  }),
-}));
-
 // --- component import (after mocks) ---
 import { DeferredUploadFormShell } from '../src/react/deferred-upload-form-shell.js';
 
@@ -73,7 +67,8 @@ function renderShellWithRef(props?: Partial<React.ComponentProps<typeof Deferred
   const ref = createRef<DeferredUploadFormShellHandle>();
   const result = render(
     <DeferredUploadFormShell
-      fileOrigin="streetz"
+      spec={{ accept: 'image/*', label: 'Image', maxBytes: 10 * 1024 * 1024 } as any}
+      originId="streetz"
       mutation={mutation}
       buildVariables={buildVariables}
       ref={ref}

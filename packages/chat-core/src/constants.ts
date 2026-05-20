@@ -1,8 +1,11 @@
 // Chat-domain limits and operational constants.
 
-// Re-exported from ttt-core. Source of truth lives there so ttt-core's
-// schemas can reference it without creating a circular package dependency.
-export { MAX_CHAT_MESSAGE_LENGTH } from '@ttt-productions/ttt-core';
+/**
+ * Maximum chat message text length (characters). Consumer apps may override
+ * by passing a custom value through `ChatCoreConfig`; this constant is the
+ * package default and is also what chat-core's own internal schemas use.
+ */
+export const MAX_CHAT_MESSAGE_LENGTH = 4000;
 
 /** Age threshold after which a stale chat-attachment row becomes eligible for cleanup (1 hour). */
 export const CHAT_ATTACHMENT_STALE_AGE_MS = 60 * 60 * 1000;

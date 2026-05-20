@@ -96,17 +96,46 @@ export type ChatCoreConfig = {
 };
 
 // ============================================
+// CHAT UPLOAD ADAPTER (injected into ChatAttachmentConfig)
+// ============================================
+
+/**
+ * Pluggable upload-path strategy for chat attachments.
+ *
+ * Consumers supply this to tell chat-core (a) what opaque origin identifier
+ * to record for the upload, (b) how to build the Firebase Storage path for
+ * the temporary upload, and (c) optional extra metadata to attach to the
+ * Storage object.
+ *
+ * `buildUploadPath` and `buildUploadMetadata` receive the userId and
+ * attachmentId so consumers can interpolate them per their own conventions.
+ * chat-core does not interpret `originId` — it forwards it via callbacks
+ * and uses it for adapter identity only.
+ */
+export type ChatUploadAdapter = {
+  /** Opaque origin identifier (e.g. "chat-attachment"). Not interpreted by chat-core. */
+  originId: string;
+  /** Build the Firebase Storage path for the upload. Called once per attachment. */
+  buildUploadPath: (args: { userId: string; attachmentId: string }) => string;
+  /** Optional extra metadata merged onto the Storage object metadata (e.g. customMetadata). */
+  buildUploadMetadata?: (args: { userId: string; attachmentId: string }) => Record<string, unknown>;
+};
+
+// ============================================
 // ATTACHMENT CONFIG (passed through ChatShell → Composer)
 // ============================================
 
 export type ChatAttachmentConfig = {
   attachmentSpec: MediaOriginSpec;
   storage: FirebaseStorage;
-  /**
-   * The current user's auth uid. chat-core builds the canonical
-   * `uploads/chat-attachment/{userId}/{pendingMediaDocId}` storage path internally.
-   */
+  /** The current user's auth uid. Forwarded to `uploadAdapter` callbacks. */
   userId: string;
+  /**
+   * Pluggable upload-path strategy. Consumers wire this to their app's
+   * conventions (e.g. for TTT: originId "chat-attachment", path
+   * `uploads/chat-attachment/{userId}/{attachmentId}`).
+   */
+  uploadAdapter: ChatUploadAdapter;
 };
 
 // ============================================

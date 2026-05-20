@@ -11,9 +11,7 @@ import React, {
 } from 'react';
 import { MediaInput } from '@ttt-productions/file-input/react';
 import type { MediaInputChangePayload } from '@ttt-productions/file-input';
-import type { UploadState } from '@ttt-productions/media-schemas';
-import type { FileOrigin } from '@ttt-productions/ttt-core';
-import { TTT_MEDIA_SPECS } from '@ttt-productions/ttt-core';
+import type { MediaOriginSpec, UploadState } from '@ttt-productions/media-schemas';
 
 export interface DeferredUploadFormShellHandle {
   submit: () => void;
@@ -26,7 +24,12 @@ export interface DeferredUploadFormShellProps<
   },
   TResult = unknown,
 > {
-  fileOrigin: FileOrigin;
+  /** The media-origin spec describing accept patterns, size caps, and label.
+   *  Consumers pass this directly — the shell does not look it up from a registry. */
+  spec: MediaOriginSpec;
+  /** Opaque caller-supplied identifier for this upload origin (e.g. "streetz", "project-file").
+   *  The shell does not interpret it; it is forwarded only via consumer-controlled callbacks. */
+  originId: string;
   mutation: {
     mutateAsync: (vars: TVariables) => Promise<TResult>;
     isPending: boolean;
@@ -60,7 +63,8 @@ function DeferredUploadFormShellInner<
   ref: Ref<DeferredUploadFormShellHandle>,
 ) {
   const {
-    fileOrigin,
+    spec,
+    originId: _originId,
     mutation,
     buildVariables,
     onSuccess,
@@ -73,7 +77,6 @@ function DeferredUploadFormShellInner<
   const [uploadState, setUploadState] = useState<UploadState | null>(null);
   const fileAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const spec = TTT_MEDIA_SPECS[fileOrigin];
 
   const handleMediaChange = useCallback((payload: MediaInputChangePayload) => {
     const next = payload.error ? null : (payload.file ?? null);

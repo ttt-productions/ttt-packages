@@ -7,9 +7,7 @@ import { ensureFileWithContentType } from "@ttt-productions/file-input";
 import { MediaInput } from "@ttt-productions/file-input/react";
 import type { MediaInputChangePayload } from "@ttt-productions/file-input";
 import type { UploadState } from "@ttt-productions/media-schemas";
-import type { FileOrigin } from "@ttt-productions/ttt-core";
-import { buildTempUploadPath } from "@ttt-productions/ttt-core";
-import { uploadFileResumable } from "@ttt-productions/upload-core/browser";
+import { useGuardedUpload } from "@ttt-productions/upload-ui/react";
 import { Loader2, X, FileText, ImageIcon, VideoIcon, MicIcon } from "lucide-react";
 import type { ChatAttachment, ChatAttachmentConfig, ChatMessageV1, SendAttachmentFn } from "../types.js";
 
@@ -71,6 +69,7 @@ export function Composer(props: ComposerProps) {
   const [isSending, setIsSending] = React.useState(false);
   const [uploadState, setUploadState] = React.useState<UploadState | null>(null);
   const ref = React.useRef<HTMLTextAreaElement>(null);
+  const guardedUpload = useGuardedUpload();
 
   const attachEnabled = Boolean(attachmentConfig && sendAttachment);
 
@@ -96,23 +95,23 @@ export function Composer(props: ComposerProps) {
 
     try {
       if (pendingFile && attachmentConfig && sendAttachment) {
-        // Attachment path: upload first, then register.
+        // Attachment path: upload first via canonical guarded upload, then register.
         const uuid = genId();
-        const FILE_ORIGIN: FileOrigin = "chat-attachment";
-        const storagePath = buildTempUploadPath(FILE_ORIGIN, attachmentConfig.userId, uuid);
+        const { uploadAdapter, userId, storage } = attachmentConfig;
+        const storagePath = uploadAdapter.buildUploadPath({ userId, attachmentId: uuid });
+        const extraMetadata = uploadAdapter.buildUploadMetadata?.({ userId, attachmentId: uuid }) ?? {};
 
         const fileToUpload = ensureFileWithContentType(pendingFile);
         const attType = getAttachmentType(fileToUpload);
 
-        setUploadState({ phase: 'preparing', percent: null });
-        await uploadFileResumable({
-          storage: attachmentConfig.storage,
+        await guardedUpload({
+          storage,
           path: storagePath,
           file: fileToUpload,
-          metadata: { contentType: fileToUpload.type },
-          onProgress: ({ percent }) => setUploadState({ phase: 'uploading', percent }),
+          metadata: { contentType: fileToUpload.type, ...extraMetadata },
+          uploadId: uuid,
+          onProgress: (state) => setUploadState(state),
         });
-        setUploadState({ phase: 'finalizing', percent: null });
 
         await sendAttachment({
           text: v,

@@ -5,7 +5,7 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   test: {
-    name: 'upload-form',
+    name: 'upload-ui',
     globals: true,
     environment: 'jsdom',
     setupFiles: ['../../test/setup.ts'],
