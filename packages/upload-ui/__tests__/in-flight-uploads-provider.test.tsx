@@ -1,0 +1,229 @@
+import { describe, it, expect, vi } from 'vitest';
+import { render, act, renderHook } from '@testing-library/react';
+import React from 'react';
+import {
+  InFlightUploadsProvider,
+  useInFlightUploadsState,
+  useUploadActivityState,
+  useInFlightUpload,
+  type InFlightUploadsAdapter,
+  type FirestoreSubscribeFn,
+  type FirestoreLikeSnapshot,
+  type ParsedPendingMedia,
+} from '../src/react/in-flight-uploads-provider.js';
+
+function makeAdapter(overrides: Partial<InFlightUploadsAdapter> = {}): InFlightUploadsAdapter {
+  return {
+    getCurrentUserId: () => 'user1',
+    db: {},
+    collectionPath: 'pendingMedia',
+    listenerWindowMs: 60_000,
+    parsePendingMedia: (raw: unknown) => raw as ParsedPendingMedia,
+    onUploadCompleted: vi.fn(),
+    onUploadFailed: vi.fn(),
+    onUploadRejected: vi.fn(),
+    onMonitoringEvent: vi.fn(),
+    ...overrides,
+  };
+}
+
+type DriverSnapshot = (snapshot: FirestoreLikeSnapshot) => void;
+function makeDriver(): { subscribe: FirestoreSubscribeFn; drive: DriverSnapshot; unsubCalls: { count: number } } {
+  let driver: DriverSnapshot | null = null;
+  const unsubCalls = { count: 0 };
+  const subscribe: FirestoreSubscribeFn = (args) => {
+    driver = args.onSnapshot;
+    return () => {
+      unsubCalls.count += 1;
+    };
+  };
+  const drive: DriverSnapshot = (snapshot) => {
+    if (!driver) throw new Error('No active subscriber');
+    driver(snapshot);
+  };
+  return { subscribe, drive, unsubCalls };
+}
+
+function makeSnapshot(changes: Array<{ type: 'added' | 'modified' | 'removed'; id: string; data?: unknown }>): FirestoreLikeSnapshot {
+  return {
+    docChanges: () =>
+      changes.map((c) => ({
+        type: c.type,
+        doc: { id: c.id, data: () => c.data ?? {} },
+      })),
+  };
+}
+
+function wrap(adapter: InFlightUploadsAdapter, subscribe: FirestoreSubscribeFn) {
+  return function Wrapper({ children }: { children: React.ReactNode }) {
+    return (
+      <InFlightUploadsProvider adapter={adapter} subscribe={subscribe}>
+        {children}
+      </InFlightUploadsProvider>
+    );
+  };
+}
+
+describe('InFlightUploadsProvider', () => {
+  it('throws when read hooks used outside provider', () => {
+    expect(() => renderHook(() => useInFlightUploadsState())).toThrow(/must be used within/);
+    expect(() => renderHook(() => useInFlightUpload('x'))).toThrow(/must be used within/);
+  });
+
+  it('initial snapshot with already-terminal doc does NOT fire callbacks', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+
+    const parsed: ParsedPendingMedia = {
+      id: 'doc1',
+      userId: 'user1',
+      fileOrigin: 'streetz',
+      status: 'completed',
+      createdAt: Date.now(),
+      surface: '/streetz',
+      completedAt: Date.now(),
+    };
+    act(() => {
+      drive(makeSnapshot([{ type: 'added', id: 'doc1', data: parsed }]));
+    });
+
+    expect(adapter.onUploadCompleted).not.toHaveBeenCalled();
+    expect(adapter.onUploadFailed).not.toHaveBeenCalled();
+    expect(adapter.onUploadRejected).not.toHaveBeenCalled();
+  });
+
+  it('fires onUploadCompleted on non-terminal → terminal transition in a non-initial snapshot', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+
+    const base = { id: 'd1', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/streetz' };
+    act(() => {
+      drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
+    });
+    act(() => {
+      drive(makeSnapshot([{ type: 'modified', id: 'd1', data: { ...base, status: 'completed', completedAt: Date.now() } }]));
+    });
+
+    expect(adapter.onUploadCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it('fires onUploadFailed and onUploadRejected on the matching transition', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+
+    const base = { id: 'd1', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/streetz' };
+    act(() => {
+      drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
+    });
+    act(() => {
+      drive(
+        makeSnapshot([
+          { type: 'modified', id: 'd1', data: { ...base, status: 'failed', failedAt: Date.now(), errorCategory: 'storage', errorMessage: 'boom' } },
+        ]),
+      );
+    });
+    expect(adapter.onUploadFailed).toHaveBeenCalledTimes(1);
+    expect(adapter.onUploadRejected).not.toHaveBeenCalled();
+
+    const base2 = { id: 'd2', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/streetz' };
+    act(() => {
+      drive(makeSnapshot([{ type: 'added', id: 'd2', data: { ...base2, status: 'pending' } }]));
+    });
+    act(() => {
+      drive(
+        makeSnapshot([
+          { type: 'modified', id: 'd2', data: { ...base2, status: 'rejected', rejectedAt: Date.now(), rejectionType: 'media', errorMessage: 'nope' } },
+        ]),
+      );
+    });
+    expect(adapter.onUploadRejected).toHaveBeenCalledTimes(1);
+  });
+
+  it('parse errors route to onMonitoringEvent with type "parse-error" and do not crash', () => {
+    const parser = vi.fn(() => {
+      throw new Error('bad doc');
+    });
+    const adapter = makeAdapter({ parsePendingMedia: parser });
+    const { subscribe, drive } = makeDriver();
+    renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+
+    act(() => {
+      drive(makeSnapshot([{ type: 'added', id: 'd1', data: { junk: true } }]));
+    });
+
+    expect(adapter.onMonitoringEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'parse-error', docId: 'd1' }),
+    );
+    expect(adapter.onUploadCompleted).not.toHaveBeenCalled();
+  });
+
+  it('records breadcrumb on every observed terminal transition', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+
+    const base = { id: 'd1', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/streetz' };
+    act(() => {
+      drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
+    });
+    act(() => {
+      drive(makeSnapshot([{ type: 'modified', id: 'd1', data: { ...base, status: 'completed', completedAt: Date.now() } }]));
+    });
+
+    const breadcrumbs = (adapter.onMonitoringEvent as ReturnType<typeof vi.fn>).mock.calls
+      .map((c) => c[0])
+      .filter((e: { type: string }) => e.type === 'breadcrumb');
+    expect(breadcrumbs).toHaveLength(1);
+  });
+
+  it('removes uploads from state when doc type is "removed"', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    const { result } = renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+
+    const base = { id: 'd1', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/streetz' };
+    act(() => {
+      drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
+    });
+    expect(result.current.size).toBe(1);
+
+    act(() => {
+      drive(makeSnapshot([{ type: 'removed', id: 'd1' }]));
+    });
+    expect(result.current.size).toBe(0);
+  });
+
+  it('unsubscribes on user sign-out (userId → null)', () => {
+    let currentUserId: string | null = 'user1';
+    const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
+    const { subscribe, drive: _drive, unsubCalls } = makeDriver();
+    void _drive;
+    const { rerender } = renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+
+    expect(unsubCalls.count).toBe(0);
+    currentUserId = null;
+    rerender();
+    expect(unsubCalls.count).toBe(1);
+  });
+
+  it('useUploadActivityState filters cleared terminal items and sorts newest first', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    const { result } = renderHook(() => useUploadActivityState(), { wrapper: wrap(adapter, subscribe) });
+
+    act(() => {
+      drive(
+        makeSnapshot([
+          { type: 'added', id: 'a', data: { id: 'a', userId: 'user1', fileOrigin: 'streetz', status: 'pending', createdAt: 100, surface: '/x' } },
+          { type: 'added', id: 'b', data: { id: 'b', userId: 'user1', fileOrigin: 'streetz', status: 'pending', createdAt: 300, surface: '/x' } },
+          { type: 'added', id: 'c', data: { id: 'c', userId: 'user1', fileOrigin: 'streetz', status: 'completed', createdAt: 200, surface: '/x', completedAt: 250, uploadTrayClearedAt: 260 } },
+        ]),
+      );
+    });
+
+    expect(result.current.map((u) => u.id)).toEqual(['b', 'a']);
+  });
+});

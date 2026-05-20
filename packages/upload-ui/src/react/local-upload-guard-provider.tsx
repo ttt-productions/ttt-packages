@@ -39,11 +39,44 @@ interface LocalUploadGuardContextValue {
   activeUploadCount: number;
   registerUpload: (id: string) => void;
   unregisterUpload: (id: string) => void;
+  /** Returns true iff at least one upload is currently registered. Pure read. */
+  shouldConfirmNavigation: () => boolean;
+  /**
+   * Shows a confirm() dialog with the configured message and returns the user's
+   * choice. Safe to call when no upload is active — returns true without prompting.
+   */
+  confirmNavigation: () => boolean;
 }
 
 const LocalUploadGuardContext = createContext<LocalUploadGuardContextValue | undefined>(undefined);
 
-export function LocalUploadGuardProvider({ children }: { children: ReactNode }) {
+export interface LocalUploadGuardProviderProps {
+  /**
+   * Message shown by the browser when the user attempts to close the tab or
+   * reload during an active upload. Modern browsers may ignore the custom
+   * string and show a generic dialog.
+   */
+  beforeUnloadMessage?: string;
+  /**
+   * Message shown by `confirmNavigation()` when an upload is in progress and
+   * the user attempts to navigate away within the app. Defaults to a
+   * reasonable English string.
+   */
+  navigationConfirmMessage?: string;
+  children: ReactNode;
+}
+
+const DEFAULT_BEFORE_UNLOAD_MESSAGE =
+  'File upload in progress. Are you sure you want to leave and end the file upload?';
+const DEFAULT_NAVIGATION_CONFIRM_MESSAGE =
+  'An upload is currently in progress. If you leave this page, the upload will be canceled. Continue?';
+
+export function LocalUploadGuardProvider(props: LocalUploadGuardProviderProps) {
+  const {
+    children,
+    beforeUnloadMessage = DEFAULT_BEFORE_UNLOAD_MESSAGE,
+    navigationConfirmMessage = DEFAULT_NAVIGATION_CONFIRM_MESSAGE,
+  } = props;
   const activeIdsRef = useRef<Set<string>>(new Set());
   const [activeUploadCount, setActiveUploadCount] = useState(0);
 
@@ -67,8 +100,7 @@ export function LocalUploadGuardProvider({ children }: { children: ReactNode }) 
       // Modern browsers may ignore the custom string and show their own
       // generic confirmation. The key behavior is that navigation is
       // blocked/warned, not the exact text.
-      event.returnValue =
-        'File upload in progress. Are you sure you want to leave and end the file upload?';
+      event.returnValue = beforeUnloadMessage;
       return event.returnValue;
     };
 
@@ -76,11 +108,29 @@ export function LocalUploadGuardProvider({ children }: { children: ReactNode }) 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [activeUploadCount]);
+  }, [activeUploadCount, beforeUnloadMessage]);
+
+  const shouldConfirmNavigation = useCallback(
+    () => activeIdsRef.current.size > 0,
+    [],
+  );
+
+  const confirmNavigation = useCallback((): boolean => {
+    if (activeIdsRef.current.size === 0) return true;
+    // SSR / non-browser safety: if `window` isn't available, default to allow.
+    if (typeof window === 'undefined') return true;
+    return window.confirm(navigationConfirmMessage);
+  }, [navigationConfirmMessage]);
 
   const value = useMemo<LocalUploadGuardContextValue>(
-    () => ({ activeUploadCount, registerUpload, unregisterUpload }),
-    [activeUploadCount, registerUpload, unregisterUpload],
+    () => ({
+      activeUploadCount,
+      registerUpload,
+      unregisterUpload,
+      shouldConfirmNavigation,
+      confirmNavigation,
+    }),
+    [activeUploadCount, registerUpload, unregisterUpload, shouldConfirmNavigation, confirmNavigation],
   );
 
   return (

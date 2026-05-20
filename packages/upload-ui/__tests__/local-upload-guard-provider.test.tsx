@@ -116,4 +116,35 @@ describe('LocalUploadGuardProvider', () => {
       /must be used within LocalUploadGuardProvider/i,
     );
   });
+
+  it('shouldConfirmNavigation returns false when no uploads are active', () => {
+    const { result } = renderHook(() => useLocalUploadGuard(), { wrapper });
+    expect(result.current.shouldConfirmNavigation()).toBe(false);
+  });
+
+  it('shouldConfirmNavigation returns true when at least one upload is registered', () => {
+    const { result } = renderHook(() => useLocalUploadGuard(), { wrapper });
+    act(() => result.current.registerUpload('u1'));
+    expect(result.current.shouldConfirmNavigation()).toBe(true);
+  });
+
+  it('confirmNavigation returns true without prompting when no uploads are active', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm');
+    const { result } = renderHook(() => useLocalUploadGuard(), { wrapper });
+    expect(result.current.confirmNavigation()).toBe(true);
+    expect(confirmSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
+  });
+
+  it('confirmNavigation prompts when uploads are active and returns the user choice', () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { result } = renderHook(() => useLocalUploadGuard(), { wrapper });
+    act(() => result.current.registerUpload('u1'));
+    expect(result.current.confirmNavigation()).toBe(true);
+    expect(confirmSpy).toHaveBeenCalled();
+
+    confirmSpy.mockReturnValue(false);
+    expect(result.current.confirmNavigation()).toBe(false);
+    confirmSpy.mockRestore();
+  });
 });
