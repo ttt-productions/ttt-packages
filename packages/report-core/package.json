@@ -47,7 +47,6 @@
     "peerDependencies": {
         "@tanstack/react-query": ">=5.0.0",
         "@ttt-productions/query-core": "*",
-        "@ttt-productions/ttt-core": "*",
         "@ttt-productions/ui-core": "*",
         "firebase": ">=10.0.0",
         "react": ">=18.0.0",
@@ -56,7 +55,6 @@
     "devDependencies": {
         "@tanstack/react-query": "^5.0.0",
         "@ttt-productions/query-core": "*",
-        "@ttt-productions/ttt-core": "*",
         "@ttt-productions/ui-core": "*",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",

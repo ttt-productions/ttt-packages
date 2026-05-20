@@ -1,7 +1,8 @@
-// Content moderation types: Reports, Violations, Media processing
+// Content moderation types: Violations, Content appeals.
+// (Reports/ReportGroup/ReportStatus moved to @ttt-productions/report-core.)
 
 import type { PendingMediaPending } from '../media/pending-media.js';
-import type { AdminTask } from './admin.js';
+import type { AdminTask } from '@ttt-productions/report-core';
 
 export interface ContentViolation {
   id: string;
@@ -28,44 +29,7 @@ export interface ContentViolation {
   pendingFile: Partial<PendingMediaPending>;
 }
 
-// --- Reporting ---
-
-export type ReportStatus =
-  | 'pending_review'
-  | 'resolved_no_action'
-  | 'resolved_action_taken';
-
-export type ReportGroupStatus = 'pending' | 'reviewing' | 'resolved';
-
-export type Report = {
-  reportId: string;
-  reporterUserId: string;
-  reportedItemType: string;
-  reportedItemId: string;
-  parentItemId?: string;
-  reportedUserId?: string;
-  reason: string;
-  comment: string;
-  createdAt: number;
-  status: ReportStatus;
-  resolvedAt?: number;
-  resolvedBy?: string;
-  adminNotes?: string;
-};
-
-export type ReportGroup = {
-  groupKey: string;
-  reportedItemId: string;
-  reportedItemType: string;
-  reportedUserId: string | null;
-  lastReportAt: number;
-  totalReports: number;
-  status: ReportGroupStatus;
-  reports?: Report[];
-};
-
-export interface ContentAppealTask extends AdminTask {
-  taskType: 'content-appeal';
+export interface ContentAppealTask extends AdminTask<'content-appeal'> {
   // Appeal-specific denormalized fields for the preview/work view.
   violationId: string;
   userId: string;

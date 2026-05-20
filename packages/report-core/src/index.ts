@@ -6,6 +6,7 @@ export type {
   ReportStatus,
   ReportGroup,
   ReportGroupStatus,
+  TaskPriority,
   AdminTask,
   AdminTaskStatus,
   CheckoutDetails,
@@ -35,4 +36,5 @@ export type {
 export {
   DEFAULT_PRIORITY_THRESHOLDS,
   ADMIN_TASK_STATUS,
+  USER_REPORT_TASK_TYPE,
 } from './config.js';

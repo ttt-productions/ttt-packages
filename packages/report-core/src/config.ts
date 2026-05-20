@@ -63,6 +63,13 @@ export const DEFAULT_PRIORITY_THRESHOLDS: PriorityThreshold[] = [
 ];
 
 /**
+ * The task type string used for admin tasks that report-core itself
+ * creates from report groups. Apps that bind their own task-type union
+ * should include this literal value in their union.
+ */
+export const USER_REPORT_TASK_TYPE = 'userReport' as const;
+
+/**
  * Admin task status constants.
  * Shared between client and server.
  */

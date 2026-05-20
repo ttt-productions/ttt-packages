@@ -1,4 +1,5 @@
 import type { ServerFirestore, ServerReportCoreConfig } from './types.js';
+import { USER_REPORT_TASK_TYPE } from '../config.js';
 
 export interface AdminTaskHandlerConfig {
   config: ServerReportCoreConfig;
@@ -43,7 +44,7 @@ export function createAdminTaskHandler({
     const adminTaskRef = db.collection(config.collections.adminTasks).doc(adminTaskId);
 
     await adminTaskRef.set({
-      taskType: 'userReport',
+      taskType: USER_REPORT_TASK_TYPE,
       taskId: groupId,
       originalPath: `${config.collections.reportGroups}/${groupId}`,
       status: 'pending',
