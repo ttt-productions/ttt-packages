@@ -85,6 +85,7 @@
         "test": "vitest run"
     },
     "dependencies": {
+        "@ttt-productions/chat-schemas": "*",
         "@ttt-productions/media-schemas": "*",
         "@ttt-productions/report-core": "*",
         "zod": "^3.23.8"

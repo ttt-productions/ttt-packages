@@ -46,6 +46,7 @@
     "react-dom": ">=19.0.0"
   },
   "dependencies": {
+    "@ttt-productions/chat-schemas": "*",
     "@ttt-productions/ui-core": "*",
     "@ttt-productions/firebase-helpers": "*",
     "@ttt-productions/mobile-core": "*",

@@ -15,3 +15,15 @@ export { Composer } from "../ui/Composer.js";
 export type { MessageItemDefaultProps } from "../ui/MessageItemDefault.js";
 export { MessageItemDefault } from "../ui/MessageItemDefault.js";
 export { MessageActions, ThreadActions } from "../ui/menus.js";
+export { MessageText, type MessageTextProps } from "../mentions/MessageText.js";
+export {
+  MentionAutocomplete,
+  type MentionAutocompleteProps,
+} from "../mentions/MentionAutocomplete.js";
+export {
+  useMentionAutocomplete,
+  type UseMentionAutocompleteArgs,
+  type UseMentionAutocompleteResult,
+  type AutocompleteState,
+  type AutocompleteResultGroup,
+} from "../mentions/use-mention-autocomplete.js";

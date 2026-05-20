@@ -1,32 +1,19 @@
-import { z } from 'zod';
+/**
+ * chat-core's schema-only subpath.
+ *
+ * Thin re-export of `@ttt-productions/chat-schemas`. Kept here for backward
+ * compatibility with consumers importing from `@ttt-productions/chat-core/schemas`
+ * and to satisfy the F21 subpath contract — the actual canonical Zod source
+ * lives in the tier-0 `chat-schemas` package, where it can be consumed by both
+ * chat-core (UI) and ttt-core (callable composition) without forcing the chat
+ * UI dependency graph on backend / schema callers.
+ *
+ * No React. No upload-ui. No browser code. No styles.
+ */
 
-// Generic chat attachment shape — represents a media attachment on a
-// chat message after upload + moderation succeed. Used in
-// SendChatMessage* wire schemas and in ChatMessage docs.
-//
-// This is a schema-only subpath: no React, no upload-ui, no browser
-// code, no styles. Safe for backend / schema composition without
-// pulling chat-core's UI dependency graph.
-
-export const ReplyToSchema = z
-  .object({
-    messageId: z.string().min(1),
-    senderId: z.string().min(1),
-    messagePreview: z.string(),
-  })
-  .strict();
-
-export type ReplyTo = z.infer<typeof ReplyToSchema>;
-
-export const ChatAttachmentSchema = z
-  .object({
-    id: z.string().min(1),
-    name: z.string(),
-    type: z.enum(['image', 'video', 'audio', 'text']),
-    size: z.number(),
-    url: z.string(),
-    storagePath: z.string().min(1),
-  })
-  .strict();
-
-export type ChatAttachment = z.infer<typeof ChatAttachmentSchema>;
+export {
+  ChatAttachmentSchema,
+  ReplyToSchema,
+  type ChatAttachment,
+  type ReplyTo,
+} from '@ttt-productions/chat-schemas';

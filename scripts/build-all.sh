@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# build-all.sh — clean rebuild of the entire workspace.
+#
+# Delegates the actual build order to root `package.json`'s `build` script
+# so this file does NOT have to track the package list. Any time a package
+# is added / renamed / removed, update the root build chain only; this
+# script keeps working unchanged.
+
 echo "🧹 Cleaning build artifacts (SAFE)..."
 
 # Only remove build output folders:
@@ -19,26 +26,7 @@ rm -f package-lock.json
 echo "📦 Installing dependencies fresh..."
 npm install
 
-echo "🏗️  Building packages in dependency-safe order..."
-
-npm run build -w @ttt-productions/ui-core
-npm run build -w @ttt-productions/theme-core
-npm run build -w @ttt-productions/query-core
-npm run build -w @ttt-productions/monitoring-core
-npm run build -w @ttt-productions/firebase-helpers
-
-npm run build -w @ttt-productions/media-contracts
-npm run build -w @ttt-productions/media-viewer
-npm run build -w @ttt-productions/chat-core
-npm run build -w @ttt-productions/file-input
-
-npm run build -w @ttt-productions/auth-core
-npm run build -w @ttt-productions/mobile-core
-
-npm run build -w @ttt-productions/upload-core
-npm run build -w @ttt-productions/upload-form
-npm run build -w @ttt-productions/media-processing-core
-npm run build -w @ttt-productions/notification-core
-npm run build -w @ttt-productions/report-core
+echo "🏗️  Building packages in dependency-safe order (per root package.json)..."
+npm run build
 
 echo "✅ All packages built successfully"

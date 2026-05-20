@@ -137,3 +137,17 @@
   align-items: center;
   gap: 0.375rem;
 }
+
+/* Mention system — default chip styling. Consumers override via custom
+   renderMention or by targeting .chat-mention-chip directly. */
+.chat-mention-chip {
+  color: hsl(var(--primary));
+  font-weight: 500;
+  cursor: pointer;
+}
+.chat-mention-chip:hover {
+  text-decoration: underline;
+}
+.chat-mention-autocomplete {
+  /* container styles applied by ui-core via Tailwind classes in the component */
+}

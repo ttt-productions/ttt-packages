@@ -1,14 +1,3 @@
-// ---------------------------------------------------------------------------
-// TODO(chat-core): ReplyToSchema and ChatAttachmentSchema are parked here
-// temporarily. They describe ChatMessage-shaped data and rightfully belong
-// in @ttt-productions/chat-core, but chat-core does not yet have a Zod
-// surface. Move them when chat-core grows one.
-//
-// See:
-//   - docs/design/architectural-preferences.md (Section 2)
-//   - the chat architecture review backlog
-// ---------------------------------------------------------------------------
-
 import { z } from 'zod';
 import {
   projectIdSchema,
@@ -17,21 +6,10 @@ import {
   messageIdSchema,
 } from './atoms.js';
 import { MAX_CHAT_MESSAGE_LENGTH } from '../constants/chat.js';
-
-const ReplyToSchema = z.object({
-  messageId: messageIdSchema,
-  senderId: z.string().min(1),
-  messagePreview: z.string(),
-}).strict();
-
-const ChatAttachmentSchema = z.object({
-  id: z.string().min(1),
-  name: z.string(),
-  type: z.enum(['image', 'video', 'audio', 'text']),
-  size: z.number(),
-  url: z.string(),
-  storagePath: z.string(),
-}).strict();
+import {
+  ReplyToSchema,
+  ChatAttachmentSchema,
+} from '@ttt-productions/chat-schemas';
 
 export const ArchiveChatChannelInputSchema = z.object({
   projectId: projectIdSchema,

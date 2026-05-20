@@ -10,6 +10,8 @@ import type { UploadState } from "@ttt-productions/media-schemas";
 import { useGuardedUpload } from "@ttt-productions/upload-ui/react";
 import { Loader2, X, FileText, ImageIcon, VideoIcon, MicIcon } from "lucide-react";
 import type { ChatAttachment, ChatAttachmentConfig, ChatMessageV1, SendAttachmentFn } from "../types.js";
+import { useMentionAutocomplete } from "../mentions/use-mention-autocomplete.js";
+import { MentionAutocomplete } from "../mentions/MentionAutocomplete.js";
 
 function genId(): string {
   return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -52,6 +54,7 @@ export type ComposerProps = {
   disabled?: boolean;
   autoFocus?: boolean;
   placeholder?: string;
+  mentionConfig?: import('../types.js').ChatMentionConfig;
 };
 
 export function Composer(props: ComposerProps) {
@@ -70,6 +73,18 @@ export function Composer(props: ComposerProps) {
   const [uploadState, setUploadState] = React.useState<UploadState | null>(null);
   const ref = React.useRef<HTMLTextAreaElement>(null);
   const guardedUpload = useGuardedUpload();
+
+  const mentionApi = useMentionAutocomplete({
+    textareaRef: ref as React.RefObject<HTMLTextAreaElement>,
+    value: text,
+    onChange: setText,
+    providers: props.mentionConfig?.providers ?? [],
+    context: props.mentionConfig?.context,
+    recent: props.mentionConfig?.recent,
+    trigger: props.mentionConfig?.trigger,
+    minQueryLength: props.mentionConfig?.minQueryLength,
+    searchDebounceMs: props.mentionConfig?.searchDebounceMs,
+  });
 
   const attachEnabled = Boolean(attachmentConfig && sendAttachment);
 
@@ -114,7 +129,7 @@ export function Composer(props: ComposerProps) {
         });
 
         await sendAttachment({
-          text: v,
+          text: mentionApi.getValueWithTokens(),
           attachment: {
             attachmentId: uuid,
             storagePath,
@@ -125,11 +140,12 @@ export function Composer(props: ComposerProps) {
         });
       } else {
         // Text-only path.
-        await onSend(v);
+        await onSend(mentionApi.getValueWithTokens());
       }
 
       setText("");
       setPendingFile(null);
+      mentionApi.close();
     } catch (err) {
       console.error("[Composer] Send failed:", err);
       setPendingFile(null);
@@ -161,6 +177,18 @@ export function Composer(props: ComposerProps) {
         </div>
       )}
 
+      {/* Mention autocomplete dropdown */}
+      {props.mentionConfig && mentionApi.state.open && (
+        <div className="relative">
+          <div className="absolute bottom-full left-0 mb-1 z-10">
+            <MentionAutocomplete
+              state={mentionApi.state}
+              onSelect={(ref) => mentionApi.insertMention(ref)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Text + send row */}
       <div className="flex items-end gap-2">
         <Textarea
@@ -172,6 +200,7 @@ export function Composer(props: ComposerProps) {
           rows={1}
           className={cn("min-h-[40px] resize-none")}
           onKeyDown={(e) => {
+            if (mentionApi.handleKeyDown(e)) return;
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               send();

@@ -149,6 +149,7 @@ export function ChatShell(props: ChatShellProps) {
               disabled={composerDisabled}
               autoFocus={autoFocus}
               placeholder={composerPlaceholder}
+              mentionConfig={config.mentionConfig}
             />
           </KeyboardAvoidingView>
         </CardFooter>

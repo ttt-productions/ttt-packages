@@ -93,6 +93,12 @@ export type ChatCoreConfig = {
   threadAllowedUserIds?: string[];
   createdAtField?: string;         // default: "createdAt"
   pageSize?: number;
+  /**
+   * Optional mention system configuration. When present, the composer enables
+   * `@`-trigger autocomplete using the supplied providers and renders mention
+   * chips in messages. Each provider corresponds to one mention kind.
+   */
+  mentionConfig?: ChatMentionConfig;
 };
 
 // ============================================
@@ -165,6 +171,44 @@ export type SendAttachmentInput = {
 };
 
 export type SendAttachmentFn = (input: SendAttachmentInput) => Promise<void>;
+
+// ============================================
+// MENTION SYSTEM CONFIG (passed through ChatShell → Composer)
+// ============================================
+
+/**
+ * Pluggable mention system config. When attached to ChatCoreConfig, the
+ * composer enables `@`-trigger autocomplete and the message renderer parses
+ * mention tokens out of `text`.
+ *
+ * Generic over `TKind` and `TContext` is intentionally NOT exposed here at
+ * the type level — `ChatCoreConfig` would have to become generic too, which
+ * cascades. Instead this type accepts permissive `string`-keyed providers;
+ * consumers binding stricter kind unions narrow at the call site via their
+ * provider definitions.
+ */
+export type ChatMentionConfig = {
+  /** Providers in display order. */
+  providers: import('./mentions/types.js').MentionProvider<string, unknown>[];
+  /** Context object forwarded to every provider's `search`. */
+  context: unknown;
+  /** Optional recent-mentions adapter. */
+  recent?: import('./mentions/types.js').RecentMentionsAdapter<string>;
+  /** Trigger character. Defaults to `'@'`. */
+  trigger?: string;
+  /** Minimum query length before search fires. Default: 0. */
+  minQueryLength?: number;
+  /** Search debounce window in ms. Default: 200. */
+  searchDebounceMs?: number;
+  /**
+   * Optional custom renderer for mentions inside rendered message text.
+   * When omitted, the default chip (`<span class="chat-mention-chip">`) is
+   * used. Receives the resolved MentionRef.
+   */
+  renderMention?: (
+    ref: import('./mentions/types.js').MentionRef,
+  ) => import('react').ReactNode;
+};
 
 // ============================================
 // MODERATION

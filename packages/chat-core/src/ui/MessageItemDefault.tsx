@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChatMessageV1, ChatAttachment, ModerationHandlers } from "../types.js";
+import { MessageText } from "../mentions/MessageText.js";
 import { cn } from "@ttt-productions/ui-core";
 import { MediaViewer } from "@ttt-productions/media-viewer/react";
 import { FileText } from "lucide-react";
@@ -44,7 +45,7 @@ function ReplyQuote({ replyTo }: { replyTo: NonNullable<ChatMessageV1["replyTo"]
   return (
     <div className="chat-reply-quote">
       <span className="chat-reply-quote-sender">{replyName}</span>
-      <span className="chat-reply-quote-preview">{replyTo.messagePreview}</span>
+      <span className="chat-reply-quote-preview"><MessageText text={replyTo.messagePreview} /></span>
     </div>
   );
 }
@@ -122,7 +123,11 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
         {m.replyTo && <ReplyQuote replyTo={m.replyTo} />}
 
         {/* Message text */}
-        {m.text && <p className="text-sm whitespace-pre-wrap">{m.text}</p>}
+        {m.text && (
+          <p className="text-sm whitespace-pre-wrap">
+            <MessageText text={m.text} />
+          </p>
+        )}
 
         {/* Attachment */}
         {m.attachment && (

@@ -21,6 +21,16 @@ export type {
     MessageRendererRegistry,
     ChatNameResolver,
     ChatPrewarmSenders,
+    ChatMentionConfig,
 } from "./types.js";
+
+export type {
+    MentionRef,
+    ParsedSegment,
+    MentionProvider,
+    RecentMentionsAdapter,
+    MentionAnchor,
+} from "./mentions/types.js";
+export { parseMentionTokens, formatMentionToken } from "./mentions/parser.js";
 
 // CSS: import "@ttt-productions/chat-core/styles" in your app layout.
