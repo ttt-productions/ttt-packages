@@ -53,7 +53,7 @@ describe('createLocalStorageUploadSessionPersistence', () => {
     const adapter = createLocalStorageUploadSessionPersistence();
     const session = makeSession('abc');
     adapter.set('abc', session);
-    expect(mockStorage.has('ttt_upload_session:abc')).toBe(true);
+    expect(mockStorage.has('upload_session:abc')).toBe(true);
   });
 
   it('get retrieves a stored session', () => {
@@ -71,8 +71,8 @@ describe('createLocalStorageUploadSessionPersistence', () => {
 
   it('listIds returns only prefixed keys', () => {
     const adapter = createLocalStorageUploadSessionPersistence();
-    mockStorage.set('ttt_upload_session:id1', JSON.stringify(makeSession('id1')));
-    mockStorage.set('ttt_upload_session:id2', JSON.stringify(makeSession('id2')));
+    mockStorage.set('upload_session:id1', JSON.stringify(makeSession('id1')));
+    mockStorage.set('upload_session:id2', JSON.stringify(makeSession('id2')));
     mockStorage.set('other_key', 'other_value');
     const ids = adapter.listIds() as string[];
     expect(ids).toContain('id1');
@@ -86,12 +86,12 @@ describe('createLocalStorageUploadSessionPersistence', () => {
     adapter.set('to-remove', session);
     adapter.remove('to-remove');
     expect(adapter.get('to-remove')).toBeNull();
-    expect(mockStorage.has('ttt_upload_session:to-remove')).toBe(false);
+    expect(mockStorage.has('upload_session:to-remove')).toBe(false);
   });
 
   it('get returns null for corrupted JSON', () => {
     const adapter = createLocalStorageUploadSessionPersistence();
-    mockStorage.set('ttt_upload_session:corrupt', 'not-valid-json{{{');
+    mockStorage.set('upload_session:corrupt', 'not-valid-json{{{');
     expect(adapter.get('corrupt')).toBeNull();
   });
 

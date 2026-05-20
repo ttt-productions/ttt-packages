@@ -29,11 +29,11 @@ describe('createTempWorkspace', () => {
     expect(await exists(ws.dir)).toBe(true);
   });
 
-  it('directory starts with the default prefix "ttt-media-"', async () => {
+  it('directory starts with the default prefix "media-"', async () => {
     const ws = await createTempWorkspace();
     workspaces.push(ws);
     const base = path.basename(ws.dir);
-    expect(base.startsWith('ttt-media-')).toBe(true);
+    expect(base.startsWith('media-')).toBe(true);
   });
 
   it('creates directory inside os.tmpdir()', async () => {

@@ -7,7 +7,7 @@ export interface TempWorkspace {
   cleanup: () => Promise<void>;
 }
 
-export async function createTempWorkspace(prefix = "ttt-media-"): Promise<TempWorkspace> {
+export async function createTempWorkspace(prefix = "media-"): Promise<TempWorkspace> {
   const dir = await mkdtemp(path.join(os.tmpdir(), prefix));
   return {
     dir,

@@ -62,7 +62,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
       };
     }
   
-    const ws = await createTempWorkspace("ttt-media-");
+    const ws = await createTempWorkspace();
   
     try {
       const inputPath = path.join(ws.dir, "input");

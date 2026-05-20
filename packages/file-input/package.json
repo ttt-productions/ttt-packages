@@ -41,7 +41,6 @@
         "lucide-react": ">=0.0.0"
     },
     "devDependencies": {
-        "@ttt-productions/ttt-core": "*",
         "typescript": "^5.8.3"
     },
     "author": "DJ (TTT Productions)",

@@ -1,7 +1,4 @@
 // Firebase Storage MediaIO adapter for the media-processing pipeline.
-// Public signature is unchanged from earlier ttt-prod implementations,
-// so existing pipeline consumers don't need to update call shapes — only
-// the import path moves to `@ttt-productions/media-processing-core/server`.
 //
 // Internals delegate to `uploadFileToStorage` so URL construction and
 // token attachment have a single source of truth.

@@ -2,9 +2,20 @@ import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { MediaInput } from '../src/react/components/media-input';
-import { TTT_MEDIA_SPECS } from '@ttt-productions/ttt-core';
+import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 
-const spec = TTT_MEDIA_SPECS['library-cover-square'];
+const spec: MediaOriginSpec = {
+  kind: 'image',
+  accept: { mimes: ['image/jpeg', 'image/png'], kinds: ['image'] },
+  maxBytes: 10 * 1024 * 1024,
+  requiredAspectRatio: 1,
+  imageCrop: {
+    aspectRatio: 1,
+    outputWidth: 512,
+    outputHeight: 512,
+    shape: 'rect',
+  },
+};
 
 afterEach(() => {
   cleanup();

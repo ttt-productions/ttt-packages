@@ -60,9 +60,7 @@ export async function uploadFileToStorage(args: {
  * fresh download token at the destination, attaches it, and returns the
  * emulator-aware download URL.
  *
- * Use this for: library publish (copies from project to library), streetz
- * non-media file moves, job-posting / job-reply / chat-attachment
- * relocations, and any other "Storage → Storage" flow.
+ * Use this for any "Storage → Storage" relocation flow.
  */
 export async function relocateStorageFile(args: {
   bucket: Bucket;
