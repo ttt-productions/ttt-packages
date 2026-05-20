@@ -32,11 +32,11 @@ BUMP="${1:-patch}"
 # ---------------------------------------------------------------------------
 # Tier 0 — generic, zero @ttt-productions/* deps
 # ---------------------------------------------------------------------------
+./scripts/release-package.sh @ttt-productions/firebase-helpers  packages/firebase-helpers  "$BUMP"
 ./scripts/release-package.sh @ttt-productions/ui-core           packages/ui-core           "$BUMP"
 ./scripts/release-package.sh @ttt-productions/theme-core        packages/theme-core        "$BUMP"
 ./scripts/release-package.sh @ttt-productions/query-core        packages/query-core        "$BUMP"
 ./scripts/release-package.sh @ttt-productions/monitoring-core   packages/monitoring-core   "$BUMP"
-./scripts/release-package.sh @ttt-productions/firebase-helpers  packages/firebase-helpers  "$BUMP"
 ./scripts/release-package.sh @ttt-productions/media-schemas     packages/media-schemas     "$BUMP"
 ./scripts/release-package.sh @ttt-productions/chat-schemas      packages/chat-schemas      "$BUMP"
 
