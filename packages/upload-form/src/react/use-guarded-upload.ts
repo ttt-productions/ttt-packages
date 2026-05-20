@@ -13,6 +13,14 @@ export interface GuardedUploadArgs {
     uploadId: string;
     /** Optional progress callback. Fires with preparing → uploading (with percent) → finalizing → null on completion. */
     onProgress?: (state: UploadState | null) => void;
+    /**
+     * Optional cancellation signal. When aborted, the in-flight Storage upload
+     * is canceled and `guardedUpload` rejects with the underlying AbortError.
+     * Callers should treat AbortError as a user-initiated cancel (not a real
+     * failure) — typically by checking `error.name === 'AbortError'` in the
+     * mutation's onError and swallowing toasts/error UI for that case.
+     */
+    signal?: AbortSignal;
 }
 
 /**
@@ -32,7 +40,7 @@ export function useGuardedUpload() {
     const { registerUpload, unregisterUpload } = useLocalUploadGuard();
 
     return useCallback(async (args: GuardedUploadArgs): Promise<void> => {
-        const { uploadId, onProgress, storage, path, file, metadata } = args;
+        const { uploadId, onProgress, storage, path, file, metadata, signal } = args;
 
         onProgress?.({ phase: 'preparing', percent: null });
         registerUpload(uploadId);
@@ -42,6 +50,7 @@ export function useGuardedUpload() {
                 path,
                 file,
                 metadata,
+                signal,
                 onProgress: ({ percent }) => onProgress?.({ phase: 'uploading', percent }),
             });
         } finally {

@@ -19,7 +19,10 @@ export interface DeferredUploadFormShellHandle {
 }
 
 export interface DeferredUploadFormShellProps<
-  TVariables extends { onProgress?: (s: UploadState | null) => void },
+  TVariables extends {
+    onProgress?: (s: UploadState | null) => void;
+    signal?: AbortSignal;
+  },
   TResult = unknown,
 > {
   fileOrigin: FileOrigin;
@@ -27,7 +30,11 @@ export interface DeferredUploadFormShellProps<
     mutateAsync: (vars: TVariables) => Promise<TResult>;
     isPending: boolean;
   };
-  buildVariables: (file: File | null, onProgress: (s: UploadState | null) => void) => TVariables;
+  buildVariables: (
+    file: File | null,
+    onProgress: (s: UploadState | null) => void,
+    signal: AbortSignal,
+  ) => TVariables;
   onSuccess?: (result: TResult) => void;
   onError?: (err: unknown) => void;
   /**
@@ -42,7 +49,10 @@ export interface DeferredUploadFormShellProps<
 }
 
 function DeferredUploadFormShellInner<
-  TVariables extends { onProgress?: (s: UploadState | null) => void },
+  TVariables extends {
+    onProgress?: (s: UploadState | null) => void;
+    signal?: AbortSignal;
+  },
   TResult = unknown,
 >(
   props: DeferredUploadFormShellProps<TVariables, TResult>,
@@ -61,6 +71,7 @@ function DeferredUploadFormShellInner<
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadState, setUploadState] = useState<UploadState | null>(null);
   const fileAreaRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const spec = TTT_MEDIA_SPECS[fileOrigin];
 
   const handleMediaChange = useCallback((payload: MediaInputChangePayload) => {
@@ -74,20 +85,36 @@ function DeferredUploadFormShellInner<
     onFileChange?.(null);
   }, [onFileChange]);
 
+  const handleCancel = useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
   const handleSubmit = useCallback(async () => {
     if (mutation.isPending) return;
     if (selectedFile) {
       fileAreaRef.current?.focus();
     }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
-      const result = await mutation.mutateAsync(buildVariables(selectedFile, setUploadState));
+      const result = await mutation.mutateAsync(
+        buildVariables(selectedFile, setUploadState, controller.signal),
+      );
       setUploadState(null);
       setSelectedFile(null);
       onFileChange?.(null);
       onSuccess?.(result);
     } catch (err) {
       setUploadState(null);
+      // User-initiated cancel: swallow the AbortError, reset selection, do not fire onError.
+      if (err instanceof Error && err.name === 'AbortError') {
+        setSelectedFile(null);
+        onFileChange?.(null);
+        return;
+      }
       onError?.(err);
+    } finally {
+      abortControllerRef.current = null;
     }
   }, [mutation, selectedFile, buildVariables, onSuccess, onError, onFileChange]);
 
@@ -111,6 +138,7 @@ function DeferredUploadFormShellInner<
           disabled={mutation.isPending}
           onChange={handleMediaChange}
           onClear={handleClear}
+          onCancel={handleCancel}
         />
       </div>
     </>
@@ -118,7 +146,10 @@ function DeferredUploadFormShellInner<
 }
 
 export const DeferredUploadFormShell = forwardRef(DeferredUploadFormShellInner) as <
-  TVariables extends { onProgress?: (s: UploadState | null) => void },
+  TVariables extends {
+    onProgress?: (s: UploadState | null) => void;
+    signal?: AbortSignal;
+  },
   TResult = unknown,
 >(
   props: DeferredUploadFormShellProps<TVariables, TResult> & { ref?: Ref<DeferredUploadFormShellHandle> },
