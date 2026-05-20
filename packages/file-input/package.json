@@ -32,7 +32,7 @@
     },
     "dependencies": {
         "@ttt-productions/ui-core": "*",
-        "@ttt-productions/media-contracts": "*",
+        "@ttt-productions/media-schemas": "*",
         "react-easy-crop": "^5.5.0"
     },
     "peerDependencies": {
@@ -41,6 +41,7 @@
         "lucide-react": ">=0.0.0"
     },
     "devDependencies": {
+        "@ttt-productions/ttt-core": "*",
         "typescript": "^5.8.3"
     },
     "author": "DJ (TTT Productions)",

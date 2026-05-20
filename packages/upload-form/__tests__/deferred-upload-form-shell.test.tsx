@@ -46,7 +46,7 @@ vi.mock('@ttt-productions/file-input/react', () => ({
 
 vi.mock('@ttt-productions/file-input', () => ({}));
 
-vi.mock('@ttt-productions/media-contracts', () => ({
+vi.mock('@ttt-productions/ttt-core', () => ({
   TTT_MEDIA_SPECS: new Proxy({} as Record<string, object>, {
     get: () => ({ accept: 'image/*', label: 'Image' }),
   }),

@@ -1,4 +1,6 @@
 // Social types: Streetz feed, Mentions, Follows, Donations
+export type { Mention, MentionType } from '../media/atoms.js';
+import type { Mention } from '../media/atoms.js';
 
 // --- Streetz Social Media ---
 
@@ -10,15 +12,6 @@ export type StreetzPostType =
   | 'DELETE_SKILL'
   | 'USER_POST'
   | 'NEW_PROJECT';
-
-export type MentionType = 'user' | 'project' | 'job' | 'opportunity';
-
-export type Mention = {
-  placeholder: string;
-  type: MentionType;
-  id: string;
-  text: string;
-};
 
 /**
  * Serializable subset of Streetz post creation payload.

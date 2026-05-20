@@ -1,6 +1,6 @@
 import * as React from "react";
-import { getSimplifiedMediaType } from "@ttt-productions/media-contracts";
-import type { SimplifiedMediaType } from "@ttt-productions/media-contracts";
+import { getSimplifiedMediaType } from "@ttt-productions/media-schemas";
+import type { SimplifiedMediaType } from "@ttt-productions/media-schemas";
 
 import type { MediaPreviewProps, MediaViewerType, FallbackMode } from "../types.js";
 import { MediaFallbackLink, shouldShowFallback, EmptyFallback, ErrorFallback } from "./fallback.js";

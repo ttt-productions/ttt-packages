@@ -2,8 +2,8 @@ import type {
     MediaProcessingResult,
     MediaProcessingSpec,
     MediaModerationResult,
-  } from "@ttt-productions/media-contracts";
-import { parseMediaProcessingSpec } from "@ttt-productions/media-contracts";
+  } from "@ttt-productions/media-schemas";
+import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
   import { createTempWorkspace } from "./workspace/temp.js";
   import { processMedia } from "./process-media.js";
   import type { MediaIO } from "./io/types.js";

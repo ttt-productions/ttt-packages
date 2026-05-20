@@ -1,4 +1,4 @@
-import type { FileOrigin } from '@ttt-productions/media-contracts';
+import type { FileOrigin } from '../media/file-origin.js';
 
 export const TEMP_UPLOAD_PREFIX = 'uploads/' as const;
 

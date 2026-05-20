@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render } from '@testing-library/react';
-import type { MediaJobStatusPayload } from '@ttt-productions/media-contracts';
+import type { MediaJobStatusPayload } from '@ttt-productions/media-schemas';
 import { MediaJobStatusList } from '../src/components/media-job-status-list';
 
 const FIXED_NOW = new Date('2026-04-20T12:00:00Z').getTime();

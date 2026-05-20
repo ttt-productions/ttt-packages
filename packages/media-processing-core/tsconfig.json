@@ -9,6 +9,6 @@
     "noEmitOnError": true,
     "types": ["node"]
   },
-  "references": [{ "path": "../media-contracts" }],  // KEEP THIS
+  "references": [{ "path": "../media-schemas" }],
   "include": ["src"]
 }

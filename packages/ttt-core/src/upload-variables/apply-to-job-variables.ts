@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { UploadState } from '@ttt-productions/media-contracts';
+import type { UploadState } from '@ttt-productions/media-schemas';
 import { jobIdSchema } from '../schemas/atoms.js';
 import { MAX_JOB_DESCRIPTION_LENGTH } from '../constants/business.js';
 

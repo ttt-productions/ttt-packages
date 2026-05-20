@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useId } from "react";
-import { getSimplifiedMediaType, type SimplifiedMediaType } from "@ttt-productions/media-contracts";
+import { getSimplifiedMediaType, type SimplifiedMediaType } from "@ttt-productions/media-schemas";
 import { Alert, AlertDescription, Button, Card, Input, Progress } from "@ttt-productions/ui-core/react";
 import { cn } from "@ttt-productions/ui-core";
 import { Info, X, Upload, Film, Music, Paperclip, AlertTriangle, Loader2 } from "lucide-react";

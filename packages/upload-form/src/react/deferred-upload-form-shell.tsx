@@ -11,8 +11,9 @@ import React, {
 } from 'react';
 import { MediaInput } from '@ttt-productions/file-input/react';
 import type { MediaInputChangePayload } from '@ttt-productions/file-input';
-import type { FileOrigin, UploadState } from '@ttt-productions/media-contracts';
-import { TTT_MEDIA_SPECS } from '@ttt-productions/media-contracts';
+import type { UploadState } from '@ttt-productions/media-schemas';
+import type { FileOrigin } from '@ttt-productions/ttt-core';
+import { TTT_MEDIA_SPECS } from '@ttt-productions/ttt-core';
 
 export interface DeferredUploadFormShellHandle {
   submit: () => void;

@@ -71,6 +71,10 @@
         "./upload-variables": {
             "types": "./dist/upload-variables/index.d.ts",
             "default": "./dist/upload-variables/index.js"
+        },
+        "./media": {
+            "types": "./dist/media/index.d.ts",
+            "default": "./dist/media/index.js"
         }
     },
     "scripts": {
@@ -81,7 +85,7 @@
         "test": "vitest run"
     },
     "dependencies": {
-        "@ttt-productions/media-contracts": "*",
+        "@ttt-productions/media-schemas": "*",
         "zod": "^3.23.8"
     },
     "devDependencies": {

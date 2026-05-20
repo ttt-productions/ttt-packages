@@ -1,4 +1,4 @@
-import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-contracts";
+import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
 import sharp from "sharp";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";

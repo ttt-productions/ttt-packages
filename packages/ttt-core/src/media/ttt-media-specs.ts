@@ -1,5 +1,5 @@
 import type { FileOrigin } from "./file-origin.js";
-import type { TTTMediaOriginEntry } from "./types.js";
+import type { MediaOriginSpec } from "@ttt-productions/media-schemas";
 
 const DEFAULT_RECORD_DURATION_SEC = 60;
 
@@ -9,7 +9,7 @@ const ACCEPT_AUDIO_ONLY = { kinds: ['audio' as const] };
 const ACCEPT_IMAGE_VIDEO = { kinds: ['image' as const, 'video' as const] };
 const ACCEPT_MEDIA_ALL = { kinds: ['image' as const, 'video' as const, 'audio' as const] };
 
-export const TTT_MEDIA_SPECS: Record<FileOrigin, TTTMediaOriginEntry> = {
+export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
 
   'profile-picture': {
     kind: 'image',

@@ -1,10 +1,10 @@
 {
-    "name": "@ttt-productions/media-contracts",
+    "name": "@ttt-productions/media-schemas",
     "version": "0.3.1",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
-        "directory": "packages/media-contracts"
+        "directory": "packages/media-schemas"
     },
     "type": "module",
     "main": "dist/index.js",

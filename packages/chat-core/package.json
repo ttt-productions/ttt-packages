@@ -49,7 +49,7 @@
     "@ttt-productions/file-input": "*",
     "@ttt-productions/upload-core": "*",
     "@ttt-productions/media-viewer": "*",
-    "@ttt-productions/media-contracts": "*"
+    "@ttt-productions/media-schemas": "*"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

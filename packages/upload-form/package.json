@@ -34,7 +34,8 @@
     "dependencies": {
         "@ttt-productions/file-input": "*",
         "@ttt-productions/upload-core": "*",
-        "@ttt-productions/media-contracts": "*"
+        "@ttt-productions/media-schemas": "*",
+        "@ttt-productions/ttt-core": "*"
     },
     "peerDependencies": {
         "firebase": ">=10.0.0",

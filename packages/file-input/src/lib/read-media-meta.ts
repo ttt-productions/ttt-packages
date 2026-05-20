@@ -1,5 +1,5 @@
-import { getSimplifiedMediaType } from "@ttt-productions/media-contracts";
-import type { MediaKind, VideoOrientation } from "@ttt-productions/media-contracts";
+import { getSimplifiedMediaType } from "@ttt-productions/media-schemas";
+import type { MediaKind, VideoOrientation } from "@ttt-productions/media-schemas";
 
 export interface ReadMediaMetaResult {
   kind: MediaKind;

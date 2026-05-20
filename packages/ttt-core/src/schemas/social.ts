@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MentionSchema } from '@ttt-productions/media-contracts';
+import { MentionSchema } from '../media/atoms.js';
 import { userIdSchema } from './atoms.js';
 import { MAX_POST_LENGTH } from '../constants/business.js';
 

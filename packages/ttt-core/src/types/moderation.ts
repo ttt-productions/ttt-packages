@@ -1,6 +1,6 @@
 // Content moderation types: Reports, Violations, Media processing
 
-import type { PendingMediaPending } from '@ttt-productions/media-contracts';
+import type { PendingMediaPending } from '../media/pending-media.js';
 import type { AdminTask } from './admin.js';
 
 export interface ContentViolation {

@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import type { MediaCropSpec, MediaProcessingSpec, TTTMediaOriginEntry, VideoOrientation } from "@ttt-productions/media-contracts";
-import { getSimplifiedMediaType } from "@ttt-productions/media-contracts";
+import type { MediaCropSpec, MediaProcessingSpec, MediaOriginSpec, VideoOrientation } from "@ttt-productions/media-schemas";
+import { getSimplifiedMediaType } from "@ttt-productions/media-schemas";
 import { Info, Camera, Mic, Video, Upload, X, Loader2, Plus } from "lucide-react";
 
 import {
@@ -34,7 +34,7 @@ function err(code: FileInputError["code"], message: string, details?: Record<str
   return { code, message, details };
 }
 
-function hasConstraints(spec: TTTMediaOriginEntry): boolean {
+function hasConstraints(spec: MediaOriginSpec): boolean {
   const proc = spec.processing;
   const procImg = proc?.image;
   const procVid = proc?.video;
@@ -65,7 +65,7 @@ function matchMime(accepted: string, actual: string): boolean {
   return a === m;
 }
 
-function accepts(spec: TTTMediaOriginEntry, file: File): boolean {
+function accepts(spec: MediaOriginSpec, file: File): boolean {
   const accept = spec.accept;
   if (!accept) return true;
 
@@ -106,7 +106,7 @@ function aspectOk(required: number | undefined, actual: number | undefined): boo
 }
 
 /** Counts how many input methods are enabled. */
-function countActions(spec: TTTMediaOriginEntry): number {
+function countActions(spec: MediaOriginSpec): number {
   const c = spec.client;
   let n = 0;
   if (c?.allowPick ?? true) n++;
@@ -116,7 +116,7 @@ function countActions(spec: TTTMediaOriginEntry): number {
   return n;
 }
 
-function resolveActiveSpec(entry: TTTMediaOriginEntry, kind: "image" | "video" | "audio"): MediaProcessingSpec {
+function resolveActiveSpec(entry: MediaOriginSpec, kind: "image" | "video" | "audio"): MediaProcessingSpec {
   const inner = entry.processing?.[kind];
   if (inner) return inner;
   const { processing: _p, ...rest } = entry;

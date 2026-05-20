@@ -32,7 +32,7 @@
   },
   "dependencies": {
     "@ttt-productions/firebase-helpers": "*",
-    "@ttt-productions/media-contracts": "*",
+    "@ttt-productions/media-schemas": "*",
     "sharp": "^0.34.1"
   },
   "peerDependencies": {

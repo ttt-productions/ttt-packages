@@ -1,19 +1,14 @@
 // Project-related Firestore document types
+export type { ShortProject } from '../media/atoms.js';
 
 import type { LibraryItemType } from './content.js';
+import type { ShortProject } from '../media/atoms.js';
 
 export type ActiveUsers = {
   uid: string;
   sharesNumber: number;
   roles: string[];
   professions: string[];
-};
-
-export type ShortProject = {
-  projectId: string;
-  type: string;
-  workingDescription: string;
-  workingTitle: string;
 };
 
 export type ProjectFile = {

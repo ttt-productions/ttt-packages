@@ -1,4 +1,4 @@
-import type { MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-contracts";
+import type { MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
 import { processImage } from "./image/image-processor.js";
 import { processVideo } from "./video/video-processor.js";
 import { processAudio } from "./audio/audio-processor.js";

@@ -1,4 +1,4 @@
-import type { MediaProcessingResult } from "@ttt-productions/media-contracts";
+import type { MediaProcessingResult } from "@ttt-productions/media-schemas";
 
 export function success(
   result: Omit<MediaProcessingResult, "ok">

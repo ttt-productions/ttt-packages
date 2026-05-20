@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { uploadFileResumable } from '@ttt-productions/upload-core/browser';
 import type { FirebaseStorage } from 'firebase/storage';
-import type { UploadState } from '@ttt-productions/media-contracts';
+import type { UploadState } from '@ttt-productions/media-schemas';
 import { useLocalUploadGuard } from './local-upload-guard-provider.js';
 
 export interface GuardedUploadArgs {

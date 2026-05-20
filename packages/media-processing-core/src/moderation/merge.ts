@@ -1,4 +1,4 @@
-import type { MediaModerationResult } from "@ttt-productions/media-contracts";
+import type { MediaModerationResult } from "@ttt-productions/media-schemas";
 
 export function mergeModeration(
   input?: MediaModerationResult | null,

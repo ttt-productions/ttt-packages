@@ -33,7 +33,7 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
-        "@ttt-productions/media-contracts": "*",
+        "@ttt-productions/media-schemas": "*",
         "@ttt-productions/ui-core": "*"
     },
     "peerDependencies": {

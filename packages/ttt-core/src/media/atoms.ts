@@ -24,6 +24,3 @@ export const MentionSchema = z
 
 export type MentionType = z.infer<typeof MentionTypeSchema>;
 export type Mention = z.infer<typeof MentionSchema>;
-
-// Keep these shapes in sync with ttt-core's ShortProject / Mention / MentionType.
-// Drift detection lives in ttt-core's tests.

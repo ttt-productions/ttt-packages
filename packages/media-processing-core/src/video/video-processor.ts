@@ -1,4 +1,4 @@
-import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec, VideoOrientation } from "@ttt-productions/media-contracts";
+import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec, VideoOrientation } from "@ttt-productions/media-schemas";
 import { mkdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { ensureFfmpegAvailable, runFfmpeg } from "./ffmpeg.js";

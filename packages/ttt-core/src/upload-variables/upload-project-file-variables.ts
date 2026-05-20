@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { UploadState } from '@ttt-productions/media-contracts';
+import type { UploadState } from '@ttt-productions/media-schemas';
 import type { ProjectFile } from '../types/project.js';
 
 const onProgressSchema = z

@@ -2,12 +2,12 @@ import type {
   FileCategory as ContractsFileCategory,
   MediaKind,
   MediaProcessingSpec,
-  TTTMediaOriginEntry,
+  MediaOriginSpec,
   SimplifiedMediaType,
   VideoOrientation,
   MediaCropSpec,
   UploadState,
-} from "@ttt-productions/media-contracts";
+} from "@ttt-productions/media-schemas";
 
 /** FileCategory is owned by contracts. */
 export type FileCategory = ContractsFileCategory;
@@ -97,7 +97,7 @@ export interface MediaInputChangePayload {
 }
 
 export interface MediaInputProps {
-  spec: TTTMediaOriginEntry;
+  spec: MediaOriginSpec;
   cropOverride?: MediaCropSpec;
 
   disabled?: boolean;

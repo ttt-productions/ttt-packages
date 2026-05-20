@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { UploadState } from '@ttt-productions/media-contracts';
-import { MentionSchema } from '@ttt-productions/media-contracts';
+import type { UploadState } from '@ttt-productions/media-schemas';
+import { MentionSchema } from '../media/atoms.js';
 import { userIdSchema } from '../schemas/atoms.js';
 import { MAX_POST_LENGTH } from '../constants/business.js';
 

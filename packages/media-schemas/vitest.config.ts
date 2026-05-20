@@ -3,7 +3,7 @@ import path from 'path';
 
 export default defineConfig({
   test: {
-    name: 'media-contracts',
+    name: 'media-schemas',
     globals: true,
     environment: 'node',
     setupFiles: ['../../test/setup.ts'],

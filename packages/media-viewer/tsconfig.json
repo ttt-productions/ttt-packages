@@ -6,6 +6,6 @@
     "rootDir": "src",
     "jsx": "react-jsx"
   },
-  "references": [{ "path": "../media-contracts" }],
+  "references": [{ "path": "../media-schemas" }],
   "include": ["src"]
 }

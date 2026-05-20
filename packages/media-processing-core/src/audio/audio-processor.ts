@@ -1,4 +1,4 @@
-import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-contracts";
+import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
 import { mkdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { safeOutputPathFor } from "../utils/safe-path.js";

@@ -2,7 +2,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { MediaInput } from '../src/react/components/media-input';
-import { TTT_MEDIA_SPECS } from '@ttt-productions/media-contracts';
+import { TTT_MEDIA_SPECS } from '@ttt-productions/ttt-core';
 
 const spec = TTT_MEDIA_SPECS['library-cover-square'];
 

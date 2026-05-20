@@ -1,4 +1,4 @@
-import type { MediaModerationResult, MediaProcessingSpec } from "@ttt-productions/media-contracts";
+import type { MediaModerationResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
 
 export interface ModerationInput {
   spec: MediaProcessingSpec;

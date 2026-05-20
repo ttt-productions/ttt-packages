@@ -1,4 +1,4 @@
-import type { MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-contracts";
+import type { MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
 
 export interface MediaPipelineProgress {
   phase:
