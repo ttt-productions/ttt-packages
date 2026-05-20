@@ -16,17 +16,17 @@ export interface FirestoreProviderProps {
 
 /**
  * Provides Firestore instance to all useFirestore* hooks.
- * Wrap your app with this provider alongside TTTQueryProvider.
+ * Wrap your app with this provider alongside QueryProvider.
  *
  * @example
  * ```tsx
  * import { db } from '@/lib/firebase';
  *
- * <TTTQueryProvider>
+ * <QueryProvider>
  *   <FirestoreProvider db={db}>
  *     {children}
  *   </FirestoreProvider>
- * </TTTQueryProvider>
+ * </QueryProvider>
  * ```
  */
 export function FirestoreProvider({ db, children }: FirestoreProviderProps) {

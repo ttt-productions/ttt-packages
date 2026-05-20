@@ -1,28 +1,28 @@
 import { describe, it, expect } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
-import { createTTTQueryClient } from '../src/query-client';
-import { tttDefaultOptions } from '../src/defaults';
+import { createQueryClient } from '../src/query-client';
+import { defaultQueryOptions } from '../src/defaults';
 
-describe('createTTTQueryClient', () => {
+describe('createQueryClient', () => {
   it('returns a QueryClient instance', () => {
-    const client = createTTTQueryClient();
+    const client = createQueryClient();
     expect(client).toBeInstanceOf(QueryClient);
   });
 
-  it('uses default staleTime from tttDefaultOptions', () => {
-    const client = createTTTQueryClient();
+  it('uses default staleTime from defaultQueryOptions', () => {
+    const client = createQueryClient();
     const options = client.getDefaultOptions();
-    expect(options.queries?.staleTime).toBe(tttDefaultOptions.queries?.staleTime);
+    expect(options.queries?.staleTime).toBe(defaultQueryOptions.queries?.staleTime);
   });
 
   it('uses default refetchOnWindowFocus=false', () => {
-    const client = createTTTQueryClient();
+    const client = createQueryClient();
     const options = client.getDefaultOptions();
     expect(options.queries?.refetchOnWindowFocus).toBe(false);
   });
 
   it('accepts overrides for queries', () => {
-    const client = createTTTQueryClient({
+    const client = createQueryClient({
       defaultOptions: {
         queries: { staleTime: 99_000 },
       },
@@ -32,7 +32,7 @@ describe('createTTTQueryClient', () => {
   });
 
   it('accepts overrides for mutations', () => {
-    const client = createTTTQueryClient({
+    const client = createQueryClient({
       defaultOptions: {
         mutations: { retry: 3 },
       },
@@ -42,7 +42,7 @@ describe('createTTTQueryClient', () => {
   });
 
   it('deep-merges defaultOptions queries without clobbering base defaults', () => {
-    const client = createTTTQueryClient({
+    const client = createQueryClient({
       defaultOptions: {
         queries: { staleTime: 60_000 },
       },
@@ -55,16 +55,16 @@ describe('createTTTQueryClient', () => {
   });
 
   it('works with empty overrides', () => {
-    expect(() => createTTTQueryClient({})).not.toThrow();
+    expect(() => createQueryClient({})).not.toThrow();
   });
 
   it('works with no arguments', () => {
-    expect(() => createTTTQueryClient()).not.toThrow();
+    expect(() => createQueryClient()).not.toThrow();
   });
 
   it('each call returns a separate QueryClient instance', () => {
-    const c1 = createTTTQueryClient();
-    const c2 = createTTTQueryClient();
+    const c1 = createQueryClient();
+    const c2 = createQueryClient();
     expect(c1).not.toBe(c2);
   });
 });

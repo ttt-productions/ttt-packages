@@ -34,13 +34,12 @@ const DEFAULT_STALE_TIME = 60 * 1000; // 1 minute
  *
  * @example
  * ```typescript
- * // Using preset config
  * const { data, isLoading } = useFirestoreSearch<UserProfile>({
- *   ...SEARCH_CONFIGS.Q_USER,
+ *   collectionPath: 'userProfiles',
+ *   searchField: 'username',
  *   queryText: searchValue,
  * });
  *
- * // Custom search
  * const { data } = useFirestoreSearch<Team>({
  *   collectionPath: 'teams',
  *   searchField: 'name_lowercase',

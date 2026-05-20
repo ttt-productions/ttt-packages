@@ -2,9 +2,9 @@ import type { DefaultOptions, QueryClientConfig } from '@tanstack/react-query';
 
 /**
  * Small, conservative defaults intended to work well across apps.
- * Apps can override via `createTTTQueryClient({ defaultOptions: ... })`.
+ * Apps can override via `createQueryClient({ defaultOptions: ... })`.
  */
-export const tttDefaultOptions: DefaultOptions = {
+export const defaultQueryOptions: DefaultOptions = {
   queries: {
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,
@@ -20,6 +20,6 @@ export const tttDefaultOptions: DefaultOptions = {
   },
 };
 
-export const tttQueryClientConfig: QueryClientConfig = {
-  defaultOptions: tttDefaultOptions,
+export const defaultQueryClientConfig: QueryClientConfig = {
+  defaultOptions: defaultQueryOptions,
 };

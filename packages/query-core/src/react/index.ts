@@ -1,8 +1,8 @@
 "use client";
 
 // Provider
-export { TTTQueryProvider } from './provider.js';
-export type { TTTQueryProviderProps } from './provider.js';
+export { QueryProvider } from './provider.js';
+export type { QueryProviderProps } from './provider.js';
 
 // Firestore Provider
 export { FirestoreProvider, useFirestoreDb } from './firestore/context.js';

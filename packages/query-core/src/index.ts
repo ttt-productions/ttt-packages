@@ -1,6 +1,6 @@
 // Query Client
-export { createTTTQueryClient } from './query-client.js';
-export type { CreateTTTQueryClientOptions } from './query-client.js';
+export { createQueryClient } from './query-client.js';
+export type { CreateQueryClientOptions } from './query-client.js';
 
 // Query Keys
 export { keys, createKeyScope } from './keys.js';
@@ -29,9 +29,8 @@ export {
   getInfiniteDataCount,
 } from './firestore/infinite-helpers.js';
 
-// Search Types & Configs
+// Search Types
 export type {
   FirestoreSearchConfig,
   FirestoreSearchOptions,
 } from './search/types.js';
-export { SEARCH_CONFIGS } from './search/search-configs.js';

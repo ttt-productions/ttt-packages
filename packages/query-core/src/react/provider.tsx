@@ -2,18 +2,18 @@
 
 import React from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { createTTTQueryClient, type CreateTTTQueryClientOptions } from '../query-client.js';
+import { createQueryClient, type CreateQueryClientOptions } from '../query-client.js';
 
-export type TTTQueryProviderProps = React.PropsWithChildren<{
+export type QueryProviderProps = React.PropsWithChildren<{
   /** Optional overrides applied when the client is first created. */
-  clientOptions?: CreateTTTQueryClientOptions;
+  clientOptions?: CreateQueryClientOptions;
 }>;
 
 /**
  * Client component wrapper for Next.js / React apps.
  * Creates a single QueryClient per browser session.
  */
-export function TTTQueryProvider({ children, clientOptions }: TTTQueryProviderProps) {
-  const [client] = React.useState(() => createTTTQueryClient(clientOptions));
+export function QueryProvider({ children, clientOptions }: QueryProviderProps) {
+  const [client] = React.useState(() => createQueryClient(clientOptions));
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
