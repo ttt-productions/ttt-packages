@@ -1,0 +1,56 @@
+{
+    "name": "@ttt-productions/moderation-core",
+    "version": "0.1.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/moderation-core"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./server": {
+            "types": "./dist/server/index.d.ts",
+            "default": "./dist/server/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "peerDependencies": {
+        "@google-cloud/vision": ">=4.0.0",
+        "@google-cloud/video-intelligence": ">=5.0.0"
+    },
+    "peerDependenciesMeta": {
+        "@google-cloud/vision": {
+            "optional": true
+        },
+        "@google-cloud/video-intelligence": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@google-cloud/vision": "^4.0.0",
+        "@google-cloud/video-intelligence": "^5.0.0",
+        "typescript": "^5.8.3"
+    },
+    "engines": {
+        "node": ">=22",
+        "npm": ">=10"
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+}
