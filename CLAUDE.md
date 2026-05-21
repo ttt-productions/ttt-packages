@@ -1,138 +1,121 @@
 # TTT Packages — Shared Monorepo
 
 ## Overview
-Shared monorepo of reusable packages consumed by TTT Productions and Q-Sports. Published to npm under the `@ttt-productions` scope. Contains 17 packages providing common functionality across projects.
 
-**For detailed documentation on each package, see `docs/packages/`.**
-Reading those docs should be sufficient for most tasks — only look at package source code when debugging specific issues or making targeted changes.
+Shared monorepo of reusable packages published under the `@ttt-productions/*` scope.
 
-**For cross-cutting design rules (server-safe main entries, identity invariants, upload path shape, etc.), see `docs/design/`.**
+After the package architecture rework, the monorepo has **21 packages**. Generic packages must not know about TTT-specific business identifiers, Firestore collection names, copy strings, moderation policies, or domain-event catalogs. TTT-specific data lives in `@ttt-productions/ttt-core` or in the consuming app wrapper.
 
-**For audit methodologies (React-leak audit, dependency audit, etc.), see `docs/playbooks/`.**
+Read `docs/packages/` first for package ownership. Read `docs/design/` for cross-cutting invariants such as server-safe entries, React boundaries, and upload path shape.
 
-## Tech Stack
-- TypeScript (strict mode)
-- React 19 (for UI/hook packages)
-- Firebase (client SDK + Admin SDK for server-side packages)
-- npm workspaces for monorepo management
-- GitHub Actions for automated publishing via git tags
-- Node >=22, npm >=10
+## Core architecture rules
 
-## Display Identity Invariant
+1. **Generic packages do not import `ttt-core`.** If a generic package needs app-specific values, it exposes a factory, adapter, callback, schema factory, or configuration object.
+2. **`ttt-core` is the application-data package.** It may depend on generic packages and composes TTT-specific schemas, constants, enums, paths, and business rules.
+3. **Main entries stay server-safe.** React exports live behind `./react`; Admin SDK exports live behind `./server`; browser-only upload runtime lives behind `./browser`.
+4. **No compatibility barrels for pre-launch package moves.** Prefer canonical imports from the package that owns the concept.
+5. **Code is source of truth.** Docs should explain durable ownership and rules; avoid duplicating exhaustive implementation details that will drift.
 
-See `docs/design/display-identity-invariant.md`.
+## Current package tiers
 
-## Package Tiers & Dependency Graph
+### Tier 0 — generic foundations
 
-### Tier 0 — Zero inter-package dependencies
-- `auth-core` — Firebase Auth wrappers, custom claims parsing, AuthProvider + hooks
-- `firebase-helpers` — Firestore path builders, timestamps (client + admin), batch operations, pagination, date formatting
-- `media-contracts` — Zod schemas, TypeScript types, the `FileOrigin` union, the `PendingFile` interface, and the `TTT_MEDIA_SPECS` registry for the media processing pipeline (no runtime deps beyond zod)
-- `mobile-core` — Mobile viewport, keyboard, safe area, scroll lock, pull-to-refresh, iOS Safari fixes
-- `monitoring-core` — Adapter-based monitoring (Sentry browser + Sentry Node + noop)
-- `query-core` — TanStack Query client factory, key helpers, Firestore integration hooks, search hooks
-- `theme-core` — next-themes provider + CSS token contract for light/dark/high-contrast
-- `ui-core` — shadcn/ui components (Button, Card, Dialog, Toast, Tabs, Form, etc.)
+- `auth-core`
+- `firebase-helpers`
+- `chat-schemas`
+- `media-schemas`
+- `mobile-core`
+- `monitoring-core`
+- `query-core`
+- `theme-core`
+- `ui-core`
+- `rate-limit-core`
+- `audit-core`
+- `moderation-core`
 
-### Tier 1 — Depend on Tier 0 packages
-- `file-input` — File/image/video/audio input components with cropping, validation, camera capture (depends on ui-core, media-contracts)
-- `media-viewer` — Media display components (image, video, audio) with fallbacks (depends on media-contracts, ui-core)
-- `notification-core` — Two-tier notification system: active → history with dedup, batch processing, UI components (peer deps on query-core, ui-core)
-- `report-core` — Report → admin task queue → resolution pipeline with priority scoring, UI components (peer deps on query-core, ui-core)
-- `ttt-core` — TTT Productions-specific Firestore path constants, TypeScript types, shared business constants (depends on media-contracts for `FileOrigin`/`PendingFile`, used by `ContentViolation`)
-- `upload-core` — Firebase Storage resumable uploads with queue, progress tracking, persistence (depends on firebase-helpers)
+### Tier 1 — depend on Tier 0 only
 
-### Tier 2 — Depend on Tier 1 packages
-- `chat-core` — Full chat system: realtime newest-window + infinite older pagination, ChatShell, Composer, attachments (depends on ui-core, firebase-helpers, mobile-core, file-input, upload-core, media-viewer, media-contracts)
-- `media-processing-core` — Server-side media pipeline: image resize/format, video/audio probe + transcode, moderation adapter, temp workspace (depends on firebase-helpers, media-contracts, sharp)
-- `upload-form` — Deferred-upload form primitives: `LocalUploadGuardProvider` (beforeunload guard), `useGuardedUpload` helper (wraps `uploadFileResumable` with phase reporting + guard), `DeferredUploadFormShell` (file-input + mutation composition for forms that defer Storage upload to submit). Depends on file-input, upload-core, media-contracts.
+- `file-input`
+- `media-viewer`
+- `media-processing-core`
+- `notification-core`
+- `report-core`
+- `upload-core`
 
-## Project Structure
-```
-packages/{name}/src/       — Source TypeScript
-packages/{name}/dist/      — Compiled output (not committed)
-packages/{name}/package.json
-docs/packages/{name}.md    — Package documentation (read these first!)
-scripts/                   — Release and bundle scripts
-```
+### Tier 2
 
-## Build Order (dependency-safe)
-1. ui-core, theme-core, query-core, monitoring-core, firebase-helpers, media-contracts
-2. ttt-core, mobile-core, media-viewer, file-input, auth-core
-3. upload-core, notification-core, report-core
-4. upload-form, chat-core, media-processing-core
+- `upload-ui`
 
-Note: ttt-core now depends on media-contracts (for FileOrigin/PendingFile), so media-contracts must build first.
+### Tier 3
 
-## Release Process
-- `scripts/release-package.sh` — Release a single package (bumps version, tags, pushes)
-- `scripts/release-all.sh` — Release all packages in dependency order
-- Tags format: `{package-name}-v{version}` (e.g., `chat-core-v1.2.3`)
-- GitHub Actions publishes to npm on tag push
-- Both release scripts call `npm run preflight` automatically — never skip it, never bypass it by calling `npm publish` directly.
+- `chat-core`
 
-## Cross-Repo Adoption Workflow
-- Packages-side and consuming-app changes stay one-way: change `ttt-packages`, publish manually, then update `ttt-prod` against the just-published installed package.
-- Do not combine package-source edits and consuming-app adoption in one implementation prompt.
-- Consuming-repo prompts reference `node_modules/@ttt-productions/*` as the source of the installed contract. They do not point Sonnet at a sibling source checkout like `C:\DjDev\ttt-packages`.
-- Do not put package version numbers, version bumps, or publish commands in consuming-repo prompts. The user handles publishing and version adoption manually.
+### Application Data
 
-## Main Entry Server-Safety Rule
+- `ttt-core`
 
-See `docs/design/react-safety.md`.
+`ttt-core` is intentionally outside the numbered generic tiers. It can consume generic packages; generic packages cannot consume it.
 
-Every package's main entry (`.`) must be server-safe. React UI lives behind `./react`. Cloud Functions admin-SDK code lives behind `./server` (where applicable). Browser-only runtime APIs should live behind an explicit browser/client subpath, not main. `auth-core` is the reference shape.
+## Important ownership notes
 
-Current entry-point layout per package:
-- `auth-core` — `.` (server-safe auth utilities) + `./react` (AuthProvider + hooks)
-- `firebase-helpers` — `.` (client/universal path/time helpers) + `./server` (Admin SDK helpers)
-- `upload-core` — `.` (server-safe types/utilities/upload-session store) + `./browser` (Firebase Storage runtime + upload queue + LocalStorage persistence) + `./react` (upload hooks)
-- `theme-core` — `.` (tokens/breakpoints) + `./react` (ThemeProvider) + CSS subpaths
-- `ui-core` — `.` (`cn`) + `./react` (components/hooks)
-- `mobile-core` — `.` (types/env) + `./react` (mobile hooks/components)
-- `query-core` — `.` (query client/keys/cache/types) + `./react` (providers/hooks) + `./types`
-- `media-viewer` — `.` (types) + `./react` (viewer components) + `./styles`
-- `file-input` — `.` (types/content-type helpers) + `./react` (input components)
-- `notification-core` — `.` (types) + `./react` (hooks/components) + `./server` (Cloud Function helpers) + `./styles`
-- `report-core` — `.` (types/config/constants) + `./react` (provider/hooks/components) + `./server` (Cloud Function handlers) + `./styles`
-- `chat-core` — `.` (constants/types only) + `./react` (ChatShell/hooks/resolver provider/UI) + `./styles`
-- `upload-form` — `.` (server-safe, empty) + `./react` (LocalUploadGuardProvider, useGuardedUpload, DeferredUploadFormShell)
-- `media-processing-core` — Server-only (Node.js, uses sharp + ffmpeg). `.` (I/O-agnostic pipeline + interfaces) + `./server` (opt-in Firebase Storage `MediaIO` adapter, requires firebase-admin). No React.
+- `media-schemas` owns generic media types, media helpers, neutral media-origin spec shape, and pending-media schema factories.
+- `ttt-core` owns concrete `FileOrigin`, `TTT_MEDIA_SPECS`, TTT upload wire schemas, target-info schemas, TTT pending-media schemas, domain events, and TTT atoms.
+- `chat-schemas` owns pure chat schemas that need to be safe for both UI and backend/schema consumers.
+- `chat-core` owns the chat UI/runtime, upload adapter, and generic mention provider system.
+- `upload-ui` owns guarded upload UX: `useGuardedUpload`, local upload guard, guarded navigation helpers, deferred upload form shell, and upload activity UI/provider.
+- `upload-core` owns only the low-level resumable upload primitive and browser upload queue/runtime.
+- `query-core` owns generic query clients/hooks plus the reusable domain-event invalidator mechanism; TTT invalidation entries stay in the app.
+- `firebase-helpers/react` owns generic callable hook primitives; app wrappers own toast, monitoring, and copy.
+- `rate-limit-core`, `audit-core`, and `moderation-core` own generic backend mechanisms. TTT wrappers own app-specific strings, paths, secrets, policies, and violation behavior.
 
-## CSS Architecture (theme-core)
-- Consumer apps import theme-core's `styles.css` + `components.css` first, then override with brand.css
-- All colors use `hsl(var(--token-name))` pattern
-- Semantic CSS classes over inline Tailwind; centralized in `components.css` with project-specific prefixes
+## Entry-point safety
 
-## Coding Conventions
-- All timestamps use epoch milliseconds (`Date.now()`) — not Firestore Timestamps in app code
-- `toMillis()` in firebase-helpers handles conversion from any Firestore timestamp format
-- Path utilities (`colPath`, `docPath`, `joinPath`) in firebase-helpers for generic Firestore paths
-- `PATH_BUILDERS` in ttt-core for TTT Productions-specific document paths (returns tuples)
-- Every package must compile cleanly with `npm run build`
-- Exports must be listed in package.json `exports` field
+Current entry shape:
 
-## Upload Path Invariant
+- `auth-core`: `.`, `./react`
+- `firebase-helpers`: `.`, `./server`, `./react`
+- `chat-schemas`: `.`
+- `media-schemas`: `.`
+- `mobile-core`: `.`, `./react`
+- `monitoring-core`: `.`, `./react`
+- `query-core`: `.`, `./react`, `./types`
+- `theme-core`: `.`, `./react`, CSS subpaths
+- `ui-core`: `.`, `./react`
+- `file-input`: `.`, `./react`
+- `media-viewer`: `.`, `./react`, `./styles`
+- `media-processing-core`: `.`, `./server`
+- `notification-core`: `.`, `./react`, `./server`, `./styles`
+- `report-core`: `.`, `./react`, `./server`, `./schemas`, `./styles`
+- `upload-core`: `.`, `./browser`
+- `upload-ui`: `.`, `./react`
+- `chat-core`: `.`, `./react`, `./schemas`, `./styles`
+- `ttt-core`: `.`, plus app-data subpaths such as `./schemas`, `./media`, `./paths`, `./constants`, `./upload-variables`
+
+A backend import must not accidentally pull React, browser upload code, or app shell code into the Functions module graph.
+
+## Build order
+
+Build generic Tier 0 packages first, then Tier 1, then `ttt-core`, then `upload-ui`, then `chat-core`. When adopting from `ttt-prod`, publish the package-side changes first and then update the consuming app against installed `node_modules/@ttt-productions/*` packages.
+
+## Release and adoption workflow
+
+- Keep package-source changes and consuming-app adoption separate.
+- Do not reference a sibling local checkout from consuming-app implementation prompts.
+- The user handles version bumps, publishing, and dependency adoption.
+- Run package builds/tests for every package touched.
+- Regenerate lockfiles after package renames or dependency graph changes.
+
+## Upload path invariant
 
 See `docs/design/upload-path-invariant.md`.
 
-## Build & Run Commands
-- `npm install` — Install all workspace dependencies
-- `npm run build` — Build all packages in dependency order
-- `npm run build -w @ttt-productions/{package}` — Build a specific package
-- `npm run clean` — Clean all dist directories
-- `npm run test` — Run all Vitest tests
+## React/server safety
 
-## Testing
-- `packages/{name}/src/**/*.test.ts(x)` — Unit tests colocated with source
-- React component packages use Vitest + React Testing Library
-- Pure utility packages use Vitest only
-- Bug-fix-requires-test policy: fixes should be accompanied by regression tests
+See `docs/design/react-safety.md`.
 
-## Important Rules
-- Do NOT commit or push to git — I will review and commit manually.
-- Do NOT create documentation files unless explicitly asked.
-- Keep changes minimal and focused on what was asked.
-- Changes to package exports affect both TTT Productions and Q-Sports — be careful.
-- Run `npm run build -w @ttt-productions/{package}` after changes to verify compilation.
-- Packages with server exports (notification-core, report-core) use firebase-admin types — don't mix client/admin SDK imports.
+## Important rules
+
+- Do not commit or push to git.
+- Do not create source compatibility shims unless explicitly asked.
+- Prefer deleting dead subpaths and stale docs during this pre-launch window.
+- New generic features should use the same factory/adapter pattern as `auth-core` and the new upload/backend packages.
