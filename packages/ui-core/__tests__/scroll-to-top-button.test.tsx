@@ -43,4 +43,23 @@ describe('ScrollToTopButton', () => {
     render(<ScrollToTopButton icon={<span data-testid="custom-up">↑</span>} />);
     expect(screen.getByTestId('custom-up')).toBeInTheDocument();
   });
+
+  it('forwards variant prop to the underlying Button', () => {
+    render(<ScrollToTopButton variant="inverted" />);
+    const btn = screen.getByRole('button', { name: 'Scroll to top' });
+    // The inverted variant adds bg-[hsl(var(--inverted-background))] via buttonVariants.
+    expect(btn.className).toContain('inverted-background');
+  });
+
+  it('uses size="icon" by default and accepts a size override', () => {
+    const { rerender } = render(<ScrollToTopButton />);
+    const defaultBtn = screen.getByRole('button', { name: 'Scroll to top' });
+    // Button's size="icon" => h-9 w-9
+    expect(defaultBtn.className).toContain('h-9');
+
+    rerender(<ScrollToTopButton size="lg" />);
+    const lgBtn = screen.getByRole('button', { name: 'Scroll to top' });
+    // Button's size="lg" => h-11
+    expect(lgBtn.className).toContain('h-11');
+  });
 });

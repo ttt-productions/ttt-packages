@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { ChevronUp } from "lucide-react";
-import { Button } from "./button.js";
+import { Button, type ButtonProps } from "./button.js";
 import { cn } from "../../lib/utils.js";
 
 export interface ScrollToTopButtonProps {
@@ -14,6 +14,10 @@ export interface ScrollToTopButtonProps {
   className?: string;
   /** Optional override for the icon. */
   icon?: React.ReactNode;
+  /** Button variant. Forwarded to the underlying Button. Defaults to Button's own default. */
+  variant?: ButtonProps["variant"];
+  /** Button size. Forwarded to the underlying Button. Default "icon". */
+  size?: ButtonProps["size"];
 }
 
 export function ScrollToTopButton({
@@ -21,6 +25,8 @@ export function ScrollToTopButton({
   ariaLabel = "Scroll to top",
   className,
   icon,
+  variant,
+  size = "icon",
 }: ScrollToTopButtonProps) {
   const [isVisible, setIsVisible] = React.useState(false);
 
@@ -35,7 +41,8 @@ export function ScrollToTopButton({
 
   return (
     <Button
-      size="icon"
+      variant={variant}
+      size={size}
       onClick={onClick}
       aria-label={ariaLabel}
       className={cn(
