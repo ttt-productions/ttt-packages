@@ -85,6 +85,7 @@
         "test": "vitest run"
     },
     "dependencies": {
+        "@ttt-productions/audit-core": "*",
         "@ttt-productions/chat-schemas": "*",
         "@ttt-productions/media-schemas": "*",
         "@ttt-productions/report-core": "*",

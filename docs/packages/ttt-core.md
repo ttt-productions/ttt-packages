@@ -14,6 +14,7 @@ TTT Productions application-data package.
 - TTT upload-variable schemas
 - TTT mention kinds/schemas/validation rules
 - TTT admin task type union
+- `AuditEventType` catalog, `TTTAuditActor`, `TTTAuditTarget`, and `TTTAuditEvent` specialization of the `@ttt-productions/audit-core` generic
 
 ## Boundary
 
