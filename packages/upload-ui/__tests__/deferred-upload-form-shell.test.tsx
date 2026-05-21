@@ -68,7 +68,6 @@ function renderShellWithRef(props?: Partial<React.ComponentProps<typeof Deferred
   const result = render(
     <DeferredUploadFormShell
       spec={{ accept: 'image/*', label: 'Image', maxBytes: 10 * 1024 * 1024 } as any}
-      originId="streetz"
       mutation={mutation}
       buildVariables={buildVariables}
       ref={ref}

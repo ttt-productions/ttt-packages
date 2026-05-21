@@ -27,9 +27,6 @@ export interface DeferredUploadFormShellProps<
   /** The media-origin spec describing accept patterns, size caps, and label.
    *  Consumers pass this directly — the shell does not look it up from a registry. */
   spec: MediaOriginSpec;
-  /** Opaque caller-supplied identifier for this upload origin (e.g. "streetz", "project-file").
-   *  The shell does not interpret it; it is forwarded only via consumer-controlled callbacks. */
-  originId: string;
   mutation: {
     mutateAsync: (vars: TVariables) => Promise<TResult>;
     isPending: boolean;
@@ -64,7 +61,6 @@ function DeferredUploadFormShellInner<
 ) {
   const {
     spec,
-    originId: _originId,
     mutation,
     buildVariables,
     onSuccess,

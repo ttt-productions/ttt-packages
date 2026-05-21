@@ -15,7 +15,7 @@ Guarded upload UI/mechanism package. This replaces the old `upload-form` package
 
 `upload-ui` owns mechanism and UI state, not TTT policy. The receive-side provider is adapter-driven: app code supplies the user id, Firestore/pending-media subscription details, parser/schema, domain-event notification callback, toast/rejection/error callbacks, success copy, and clear-activity mutation.
 
-The deferred form shell receives a neutral `MediaOriginSpec` plus an opaque origin id. TTT chooses the concrete spec from `ttt-core` at the app boundary.
+The deferred form shell receives a neutral `MediaOriginSpec`. TTT chooses the concrete spec from `ttt-core` at the app boundary.
 
 ## Does not own
 
