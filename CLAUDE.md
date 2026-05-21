@@ -66,7 +66,7 @@ Read `docs/packages/` first for package ownership. Read `docs/design/` for cross
 - `upload-core` owns only the low-level resumable upload primitive and browser upload queue/runtime.
 - `query-core` owns generic query clients/hooks plus the reusable domain-event invalidator mechanism; TTT invalidation entries stay in the app.
 - `firebase-helpers/react` owns generic callable hook primitives; app wrappers own toast, monitoring, and copy.
-- `rate-limit-core`, `audit-core`, and `moderation-core` own generic backend mechanisms. TTT wrappers own app-specific strings, paths, secrets, policies, and violation behavior.
+- `rate-limit-core`, `audit-core`, and `moderation-core` own generic backend mechanisms. TTT wrappers own app-specific strings, paths, secrets, policies, and violation behavior. `ttt-core` consumes `audit-core` to specialize its generic `AuditEvent` with the TTT `AuditEventType` catalog and TTT actor/target shapes.
 
 ## Entry-point safety
 
@@ -95,7 +95,7 @@ A backend import must not accidentally pull React, browser upload code, or app s
 
 ## Build order
 
-Build generic Tier 0 packages first, then Tier 1, then `ttt-core`, then `upload-ui`, then `chat-core`. When adopting from `ttt-prod`, publish the package-side changes first and then update the consuming app against installed `node_modules/@ttt-productions/*` packages.
+Build generic Tier 0 packages first, then Tier 1, then `ttt-core`, then `upload-ui`, then `chat-core`. `ttt-core` depends on `audit-core`, so `audit-core` must build before `ttt-core` (not at the end of Tier 0). When adopting from `ttt-prod`, publish the package-side changes first and then update the consuming app against installed `node_modules/@ttt-productions/*` packages.
 
 ## Release and adoption workflow
 

@@ -46,9 +46,11 @@ export SKIP_PREFLIGHT=1
 ./scripts/release-package.sh @ttt-productions/chat-schemas      packages/chat-schemas      "$BUMP"
 
 # ---------------------------------------------------------------------------
-# report-core — must release BEFORE ttt-core (ttt-core depends on report-core)
+# report-core + audit-core — must release BEFORE ttt-core
+# (ttt-core depends on both)
 # ---------------------------------------------------------------------------
 ./scripts/release-package.sh @ttt-productions/report-core       packages/report-core       "$BUMP"
+./scripts/release-package.sh @ttt-productions/audit-core        packages/audit-core        "$BUMP"
 
 # ---------------------------------------------------------------------------
 # Application data
@@ -80,7 +82,6 @@ export SKIP_PREFLIGHT=1
 # ---------------------------------------------------------------------------
 ./scripts/release-package.sh @ttt-productions/notification-core packages/notification-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/rate-limit-core   packages/rate-limit-core   "$BUMP"
-./scripts/release-package.sh @ttt-productions/audit-core        packages/audit-core        "$BUMP"
 ./scripts/release-package.sh @ttt-productions/moderation-core   packages/moderation-core   "$BUMP"
 
 echo "✅ Done: released all 21 packages ($BUMP)"
