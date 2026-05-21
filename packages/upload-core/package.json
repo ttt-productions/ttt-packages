@@ -34,8 +34,7 @@
         "@ttt-productions/firebase-helpers": "*"
     },
     "peerDependencies": {
-        "firebase": ">=10.0.0",
-        "react": ">=18.0.0"
+        "firebase": ">=10.0.0"
     },
     "devDependencies": {
         "typescript": "^5.8.3"
