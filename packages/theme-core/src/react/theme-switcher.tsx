@@ -21,8 +21,8 @@ export interface ThemeSwitcherProps {
     srLabel: string;
     disabled: boolean;
   }) => React.ReactNode;
-  /** Render prop for the menu container. */
-  renderMenu: (args: { children: React.ReactNode }) => React.ReactNode;
+  /** Render prop for the menu container. Receives both the trigger node and the rendered items. */
+  renderMenu: (args: { trigger: React.ReactNode; children: React.ReactNode }) => React.ReactNode;
   /** Render prop for each menu item. */
   renderItem: (args: {
     option: ThemeOption;
@@ -59,6 +59,7 @@ export function ThemeSwitcher({
   return (
     <>
       {renderMenu({
+        trigger,
         children: themes.map((option) =>
           renderItem({
             option,

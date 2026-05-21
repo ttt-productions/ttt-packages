@@ -22,7 +22,12 @@ function makeProps() {
     renderTrigger: ({ srLabel, disabled }: { activeIcon: React.ReactNode; srLabel: string; disabled: boolean }) => (
       <button disabled={disabled} aria-label={srLabel}>toggle</button>
     ),
-    renderMenu: ({ children }: { children: React.ReactNode }) => <ul>{children}</ul>,
+    renderMenu: ({ trigger, children }: { trigger: React.ReactNode; children: React.ReactNode }) => (
+      <>
+        {trigger}
+        <ul>{children}</ul>
+      </>
+    ),
     renderItem: ({ option, isActive, onSelect }: { option: ThemeOption; isActive: boolean; onSelect: () => void }) => (
       <li key={option.value}>
         <button
@@ -84,5 +89,27 @@ describe('ThemeSwitcher', () => {
     expect(renderTrigger).toHaveBeenCalledWith(
       expect.objectContaining({ srLabel: 'Pick a theme' }),
     );
+  });
+
+  it('passes the trigger node into renderMenu after mount', () => {
+    const renderMenu = vi.fn(
+      ({ trigger, children }: { trigger: React.ReactNode; children: React.ReactNode }) => (
+        <div>
+          <div data-testid="trigger-slot">{trigger}</div>
+          <ul>{children}</ul>
+        </div>
+      ),
+    );
+    render(<ThemeSwitcher {...makeProps()} renderMenu={renderMenu} />);
+    // renderMenu was called with both keys
+    expect(renderMenu).toHaveBeenCalledWith(
+      expect.objectContaining({
+        trigger: expect.anything(),
+        children: expect.anything(),
+      }),
+    );
+    // The trigger button rendered by makeProps' renderTrigger is now inside the menu slot
+    const slot = screen.getByTestId('trigger-slot');
+    expect(slot.querySelector('button')).not.toBeNull();
   });
 });
