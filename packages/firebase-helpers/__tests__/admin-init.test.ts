@@ -50,7 +50,7 @@ describe('getAdminApp', () => {
   it('calls initializeApp when apps list is empty', async () => {
     const { getAdminApp } = await import('../src/server/admin-init');
     const adminMod = await import('firebase-admin');
-    const admin = (adminMod as { default: { initializeApp: ReturnType<typeof vi.fn>; apps: unknown[] } }).default;
+    const admin = (adminMod as unknown as { default: { initializeApp: ReturnType<typeof vi.fn>; apps: unknown[] } }).default;
     admin.apps.length = 0;
     getAdminApp({ projectId: 'test-project' });
     expect(admin.initializeApp).toHaveBeenCalledWith(
@@ -61,7 +61,7 @@ describe('getAdminApp', () => {
   it('skips initializeApp when apps list is non-empty', async () => {
     const { getAdminApp } = await import('../src/server/admin-init');
     const adminMod = await import('firebase-admin');
-    const admin = (adminMod as { default: { initializeApp: ReturnType<typeof vi.fn>; apps: unknown[] } }).default;
+    const admin = (adminMod as unknown as { default: { initializeApp: ReturnType<typeof vi.fn>; apps: unknown[] } }).default;
     admin.apps.push({});
     admin.initializeApp.mockClear();
     getAdminApp();

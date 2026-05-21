@@ -12,24 +12,16 @@ function makeUserProvider(results: MentionRef<'user'>[] = []): MentionProvider<'
   };
 }
 
-function makeProjectProvider(results: MentionRef<'project'>[] = []): MentionProvider<'project', unknown> {
-  return {
-    kind: 'project',
-    label: 'Projects',
-    search: vi.fn(async () => results),
-  };
-}
-
-interface HarnessProps {
-  providers: MentionProvider<string, unknown>[];
+interface HarnessProps<TKind extends string> {
+  providers: MentionProvider<TKind, unknown>[];
   initialValue?: string;
-  onApi?: (api: ReturnType<typeof useMentionAutocomplete<string, unknown>>) => void;
-  recent?: Parameters<typeof useMentionAutocomplete<string, unknown>>[0]['recent'];
+  onApi?: (api: ReturnType<typeof useMentionAutocomplete<TKind, unknown>>) => void;
+  recent?: Parameters<typeof useMentionAutocomplete<TKind, unknown>>[0]['recent'];
   minQueryLength?: number;
   searchDebounceMs?: number;
 }
 
-function Harness({ providers, initialValue = '', onApi, recent, minQueryLength = 0, searchDebounceMs = 0 }: HarnessProps) {
+function Harness<TKind extends string>({ providers, initialValue = '', onApi, recent, minQueryLength = 0, searchDebounceMs = 0 }: HarnessProps<TKind>) {
   const ref = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState(initialValue);
   const api = useMentionAutocomplete({

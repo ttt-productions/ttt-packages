@@ -156,6 +156,7 @@ describe('parseArchivedPendingMedia', () => {
       errorMessage: 'Bad input',
     };
     const result = parseArchivedPendingMedia(doc);
+    if (result.status !== 'failed') throw new Error('expected failed');
     expect(result.errorCategory).toBe('validation');
   });
 });

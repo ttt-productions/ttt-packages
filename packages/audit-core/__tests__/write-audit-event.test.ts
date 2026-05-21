@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { createAuditWriter } from '../src/server/write-audit-event.js';
 import type { Firestore, WriteBatch, Transaction } from 'firebase-admin/firestore';
 
-function makeMockDb(collectionPath: string) {
+function makeMockDb() {
   const set = vi.fn().mockResolvedValue(undefined);
   const doc = vi.fn(() => ({ set }));
   const collection = vi.fn(() => ({ doc }));
@@ -12,7 +12,7 @@ function makeMockDb(collectionPath: string) {
 
 describe('createAuditWriter', () => {
   it('writes audit event and returns the generated id', async () => {
-    const { db, collection, doc, set } = makeMockDb('myCollection');
+    const { db, collection, doc, set } = makeMockDb();
     const { writeAuditEvent } = createAuditWriter({
       db,
       collectionPath: 'myCollection',
@@ -30,7 +30,7 @@ describe('createAuditWriter', () => {
   });
 
   it('applies default fields correctly', async () => {
-    const { db, set } = makeMockDb('events');
+    const { db, set } = makeMockDb();
     const { writeAuditEvent } = createAuditWriter({
       db,
       collectionPath: 'events',
@@ -55,7 +55,7 @@ describe('createAuditWriter', () => {
   });
 
   it('uses batch.set instead of ref.set when batch is provided', async () => {
-    const { db } = makeMockDb('events');
+    const { db } = makeMockDb();
     const batchSet = vi.fn();
     const batch = { set: batchSet } as unknown as WriteBatch;
     const { writeAuditEvent } = createAuditWriter({
@@ -73,7 +73,7 @@ describe('createAuditWriter', () => {
   });
 
   it('uses transaction.set instead of ref.set when transaction is provided', async () => {
-    const { db } = makeMockDb('events');
+    const { db } = makeMockDb();
     const txSet = vi.fn();
     const transaction = { set: txSet } as unknown as Transaction;
     const { writeAuditEvent } = createAuditWriter({
@@ -91,7 +91,7 @@ describe('createAuditWriter', () => {
   });
 
   it('throws when both batch and transaction are provided', async () => {
-    const { db } = makeMockDb('events');
+    const { db } = makeMockDb();
     const { writeAuditEvent } = createAuditWriter({ db, collectionPath: 'events' });
     const batch = { set: vi.fn() } as unknown as WriteBatch;
     const transaction = { set: vi.fn() } as unknown as Transaction;
@@ -102,7 +102,7 @@ describe('createAuditWriter', () => {
   });
 
   it('TEventType generic constraint — @ts-expect-error for invalid type', async () => {
-    const { db } = makeMockDb('events');
+    const { db } = makeMockDb();
     const { writeAuditEvent } = createAuditWriter<'a' | 'b'>({ db, collectionPath: 'events', idGenerator: () => 'id' });
 
     // @ts-expect-error — 'c' is not assignable to type '"a" | "b"'

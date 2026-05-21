@@ -51,7 +51,7 @@ export type AutocompleteState<TKind extends string = string> = {
 };
 
 export interface UseMentionAutocompleteArgs<TKind extends string, TContext> {
-  textareaRef: RefObject<HTMLTextAreaElement>;
+  textareaRef: RefObject<HTMLTextAreaElement | null>;
   /** Current textarea value (controlled). */
   value: string;
   /** Setter for the textarea value. */

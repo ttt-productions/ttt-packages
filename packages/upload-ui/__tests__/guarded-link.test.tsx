@@ -88,7 +88,7 @@ describe('useGuardedNavigation', () => {
   it('skips the navigation when the user cancels the confirm prompt', () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
 
-    function TestHarness({ trigger }: { trigger: (run: () => void) => void }) {
+    function TestHarness({ trigger }: { trigger: (run: (nav: () => void) => void) => void }) {
       const { registerUpload } = useLocalUploadGuard();
       const guardedNav = useGuardedNavigation();
       React.useEffect(() => {

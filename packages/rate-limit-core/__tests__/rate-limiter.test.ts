@@ -4,7 +4,7 @@ const mockLimit = vi.hoisted(() => vi.fn());
 
 vi.mock('@upstash/ratelimit', () => {
   const Ratelimit = vi.fn().mockImplementation(() => ({ limit: mockLimit }));
-  (Ratelimit as { slidingWindow: unknown }).slidingWindow = vi.fn().mockReturnValue('sliding-window-algo');
+  (Ratelimit as unknown as { slidingWindow: unknown }).slidingWindow = vi.fn().mockReturnValue('sliding-window-algo');
   return { Ratelimit };
 });
 

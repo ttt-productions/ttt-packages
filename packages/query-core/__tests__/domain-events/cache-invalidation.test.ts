@@ -16,6 +16,7 @@ describe('exact builder', () => {
   it('produces kind: "exact" with the given queryKey', () => {
     const inv = exact(['users', '123']);
     expect(inv.kind).toBe('exact');
+    if (inv.kind !== 'exact') throw new Error('expected exact');
     expect(inv.queryKey).toEqual(['users', '123']);
     expect(inv.refetchType).toBeUndefined();
   });
