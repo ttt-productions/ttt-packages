@@ -1,24 +1,19 @@
 import type { Firestore } from "firebase/firestore";
 import type { FirebaseStorage } from "firebase/storage";
 import type { MediaOriginSpec } from "@ttt-productions/media-schemas";
+import type { ChatAttachment, ReplyTo } from "@ttt-productions/chat-schemas";
 
 // ============================================
 // CHAT ATTACHMENT
 // ============================================
 
-// Chat message docs are only ever written by the server after media
-// processing + moderation succeed. There is no pending/processing/failed/
-// rejected state on attachments in chat — rejection visibility lives on
-// /profile/uploads (the canonical pendingMedia surface). Every attachment
-// on a chat message doc is fully processed and viewable.
-export type ChatAttachment = {
-  id: string;                       // pendingMedia doc ID
-  name: string;                     // original filename
-  type: "image" | "video" | "audio" | "text";
-  size: number;                     // bytes
-  url: string;                      // final URL (always present)
-  storagePath: string;              // final storage path (always present)
-};
+// Re-exported from @ttt-productions/chat-schemas, the Tier 0 source of truth.
+// chat-schemas is server-safe and can be consumed by both chat-core (UI) and
+// backend code without forcing the chat UI dep graph on backend callers.
+// Every attachment on a chat message doc is fully processed and viewable —
+// rejection visibility lives on /profile/uploads (the canonical pendingMedia
+// surface), not in chat.
+export type { ChatAttachment };
 
 // ============================================
 // THREAD & MESSAGE
@@ -43,11 +38,7 @@ export type ChatMessageV1 = {
   text?: string;
   type?: string;               // optional for renderer registry
   attachment?: ChatAttachment; // single, not array
-  replyTo?: {
-    messageId: string;
-    senderId: string;
-    messagePreview: string;
-  };
+  replyTo?: ReplyTo;
   isSystemMessage?: boolean;
   meta?: Record<string, unknown>;
 };
