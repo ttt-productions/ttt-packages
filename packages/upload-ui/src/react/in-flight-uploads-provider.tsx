@@ -1,5 +1,7 @@
 'use client';
 
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+
 /**
  * Generic in-flight uploads provider.
  *
@@ -543,18 +545,22 @@ export function useUploadActivityState<TFileOrigin extends string = string>(): I
 // =============================================================================
 
 /**
- * Default Firestore subscription. Imported lazily so tests can inject a fake
- * `subscribe` and skip the firebase module load entirely.
+ * Default Firestore subscription using the consumer's `firebase/firestore`
+ * module instance (via static ESM import at the top of this file).
  *
- * The dynamic import keeps the bundle clean: consumers who pass a custom
- * `subscribe` (e.g. for tests or alternative backends) never pay for the
- * firebase code path.
+ * Using static ESM import — NOT `require()` — is load-bearing. CommonJS
+ * `require('firebase/firestore')` and ESM `import 'firebase/firestore'` resolve
+ * to different module instances under Next.js + Turbopack. If the consumer
+ * constructs `db` via ESM and we receive it here, but we then call
+ * `collection()` from a CJS-loaded copy of firebase, the firebase runtime
+ * does not recognize the db as a Firestore instance and throws
+ * "Expected first argument to collection() to be a CollectionReference,
+ *  a DocumentReference or FirebaseFirestore".
+ *
+ * Consumers who want to skip the firebase code path entirely (tests, alt
+ * backends) supply their own `subscribe` prop to `InFlightUploadsProvider`.
  */
 const defaultFirestoreSubscribe: FirestoreSubscribeFn = (args) => {
-  // Lazy require to keep firebase out of the synchronous module graph.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-  const firestore = require('firebase/firestore') as typeof import('firebase/firestore');
-  const { collection, onSnapshot, query, where } = firestore;
   const q = query(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     collection(args.db as any, args.collectionPath),
