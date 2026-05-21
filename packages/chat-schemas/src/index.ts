@@ -52,3 +52,13 @@ export const ChatAttachmentSchema = z
   .strict();
 
 export type ChatAttachment = z.infer<typeof ChatAttachmentSchema>;
+
+/**
+ * Age threshold after which a stale chat-attachment row becomes eligible for
+ * cleanup (1 hour). Lives in chat-schemas (Tier 0, server-safe) so Cloud
+ * Functions can import it without pulling chat-core's UI/upload dep graph.
+ *
+ * Consumer apps that need a different retention policy can override at the
+ * call site rather than re-exporting.
+ */
+export const CHAT_ATTACHMENT_STALE_AGE_MS = 60 * 60 * 1000;

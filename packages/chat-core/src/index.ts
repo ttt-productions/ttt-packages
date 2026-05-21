@@ -2,7 +2,7 @@
 // live on the "/react" subpath. Cloud Functions and other server code
 // import from this barrel only.
 
-export { MAX_CHAT_MESSAGE_LENGTH, CHAT_ATTACHMENT_STALE_AGE_MS } from "./constants.js";
+export { MAX_CHAT_MESSAGE_LENGTH } from "./constants.js";
 
 export { GROUP_GAP_SEC } from "./types.js";
 export { isContinuation } from "./grouping.js";
