@@ -47,7 +47,6 @@
     },
     "dependencies": {
         "@tanstack/react-query": "^5.90.17",
-        "firebase": "^10.14.1",
-        "ttt-packages": "file:"
+        "firebase": "^10.14.1"
     }
 }

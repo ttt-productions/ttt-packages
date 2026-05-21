@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import * as React from 'react';
 
 const mockCaptureException = vi.hoisted(() => vi.fn());
 
@@ -23,7 +22,7 @@ function ThrowingChild({ shouldThrow }: { shouldThrow: boolean }) {
 beforeEach(() => {
   mockCaptureException.mockClear();
   // Suppress React's error boundary console.error output in tests
-  vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => { });
 });
 
 describe('ErrorBoundary', () => {

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import * as React from 'react';
 import { RelativeTime } from '../src/react/components/relative-time';
 
 vi.mock('@ttt-productions/firebase-helpers', async (importOriginal) => {

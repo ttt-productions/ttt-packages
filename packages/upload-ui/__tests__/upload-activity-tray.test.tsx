@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, act } from '@testing-library/react';
-import React from 'react';
 import {
   InFlightUploadsProvider,
   type InFlightUploadsAdapter,
@@ -28,7 +27,7 @@ function makeDriver() {
   let driver: ((s: FirestoreLikeSnapshot) => void) | null = null;
   const subscribe: FirestoreSubscribeFn = (args) => {
     driver = args.onSnapshot;
-    return () => {};
+    return () => { };
   };
   const drive = (changes: Array<{ type: 'added' | 'modified' | 'removed'; id: string; data?: unknown }>) => {
     if (!driver) throw new Error('No subscriber');

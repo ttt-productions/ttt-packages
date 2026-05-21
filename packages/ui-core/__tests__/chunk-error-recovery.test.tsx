@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import * as React from 'react';
 import { ChunkErrorRecovery } from '../src/react/components/chunk-error-recovery';
 
 const reloadMock = vi.fn();
@@ -11,7 +10,7 @@ beforeEach(() => {
     configurable: true,
     value: { ...window.location, reload: reloadMock },
   });
-  vi.spyOn(console, 'error').mockImplementation(() => {});
+  vi.spyOn(console, 'error').mockImplementation(() => { });
 });
 
 afterEach(() => {
