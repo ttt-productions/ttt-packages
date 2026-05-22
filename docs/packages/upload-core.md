@@ -11,6 +11,6 @@ Low-level browser upload runtime package.
 
 ## Boundary
 
-Feature code must not call the low-level upload primitive directly. Upload-capable UI goes through `upload-ui/react` and its `useGuardedUpload` helper.
+Feature code must not call the low-level upload primitive directly. Upload-capable UI goes through `@ttt-productions/upload-ui/react/upload` and its `useGuardedUpload` helper; navigation protection lives in `/react/guard`, and upload activity/tray state lives in `/react/tray`.
 
 The historical `./react` subpath was removed. Do not reintroduce unguarded upload hooks.

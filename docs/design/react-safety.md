@@ -14,7 +14,7 @@ Cloud Functions and schema-only consumers must not import module graphs that pul
 
 - `chat-schemas` is pure and safe for `ttt-core` and backend/schema composition.
 - `chat-core` main entry is intended to stay server-safe; React UI is behind `./react`.
-- `upload-core` exposes browser upload runtime behind `./browser`; guarded UI is in `upload-ui/react`.
+- `upload-core` exposes browser upload runtime behind `./browser`; guarded UI is split across `upload-ui/react/upload`, `upload-ui/react/guard`, and `upload-ui/react/tray`.
 - `firebase-helpers/server` is the correct import for Admin SDK helpers.
 
 ## Audit checks

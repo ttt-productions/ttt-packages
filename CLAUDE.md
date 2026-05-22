@@ -62,7 +62,7 @@ Read `docs/packages/` first for package ownership. Read `docs/design/` for cross
 - `ttt-core` owns concrete `FileOrigin`, `TTT_MEDIA_SPECS`, TTT upload wire schemas, target-info schemas, TTT pending-media schemas, domain events, and TTT atoms.
 - `chat-schemas` owns pure chat schemas and server-safe chat contract constants that need to be safe for both UI and backend/schema consumers.
 - `chat-core` owns the chat UI/runtime, upload adapter, and generic mention provider system.
-- `upload-ui` owns guarded upload UX: `useGuardedUpload`, local upload guard, guarded navigation helpers, deferred upload form shell, and upload activity UI/provider.
+- `upload-ui` owns guarded upload UX across explicit React subpaths: `useGuardedUpload` and the deferred form shell in `/react/upload`, local upload guard and guarded navigation helpers in `/react/guard`, and upload activity UI/provider in `/react/tray`.
 - `upload-core` owns only the low-level resumable upload primitive and browser upload queue/runtime.
 - `query-core` owns generic query clients/hooks plus the reusable domain-event invalidator mechanism; TTT invalidation entries stay in the app.
 - `firebase-helpers/react` owns generic callable hook primitives; app wrappers own toast, monitoring, and copy.
@@ -87,7 +87,7 @@ Current entry shape:
 - `notification-core`: `.`, `./react`, `./server`, `./styles`
 - `report-core`: `.`, `./react`, `./server`, `./schemas`, `./styles`
 - `upload-core`: `.`, `./browser`
-- `upload-ui`: `.`, `./react`
+- `upload-ui`: `.`, `./react/guard`, `./react/upload`, `./react/tray`
 - `chat-core`: `.`, `./react`, `./styles` plus any still-present transitional schema re-export
 - `ttt-core`: `.`, plus app-data subpaths such as `./schemas`, `./media`, `./paths`, `./constants`, `./upload-variables`
 

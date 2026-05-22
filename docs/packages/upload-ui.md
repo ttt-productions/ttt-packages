@@ -4,12 +4,9 @@ Guarded upload UI/mechanism package. This replaces the old `upload-form` package
 
 ## Owns
 
-- `LocalUploadGuardProvider` and `useLocalUploadGuard`
-- `useGuardedUpload`, the only allowed caller of `uploadFileResumable` for feature upload surfaces
-- Deferred upload form shell
-- Guard-aware navigation helpers such as `GuardedLink` and `useGuardedNavigation`
-- Upload activity provider/hook/tray primitives
-- Upload processing cleanup helpers
+- `@ttt-productions/upload-ui/react/upload` exports `useGuardedUpload` and `DeferredUploadFormShell`
+- `@ttt-productions/upload-ui/react/guard` exports `LocalUploadGuardProvider`, `useLocalUploadGuard`, `GuardedLink`, and `useGuardedNavigation`
+- `@ttt-productions/upload-ui/react/tray` exports the upload activity provider/hook/tray primitives and upload processing cleanup helpers
 
 ## Boundary
 
@@ -23,3 +20,14 @@ The deferred form shell receives a neutral `MediaOriginSpec`. TTT chooses the co
 - TTT file origins or `TTT_MEDIA_SPECS`
 - TTT pending-media schema
 - TTT toast/rejection copy
+
+
+## Public entry points
+
+The package main entry (`@ttt-productions/upload-ui`) is intentionally server-safe and empty. React runtime exports are deliberately split by concern:
+
+- `/react/upload` — local upload helper and deferred form shell.
+- `/react/guard` — local upload guard, guarded links, and guarded navigation.
+- `/react/tray` — global upload activity subscriber, tray, and clear helpers.
+
+Do not document or consume a catch-all `/react` subpath unless the package actually exports one.
