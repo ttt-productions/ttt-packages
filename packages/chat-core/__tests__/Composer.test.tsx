@@ -17,7 +17,7 @@ const guardedUploadMock = vi.fn((args: UploadArgs) =>
   }),
 );
 
-vi.mock('@ttt-productions/upload-ui/react', () => ({
+vi.mock('@ttt-productions/upload-ui/react/upload', () => ({
   useGuardedUpload: () => guardedUploadMock,
 }));
 

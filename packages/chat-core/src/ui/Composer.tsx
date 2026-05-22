@@ -7,7 +7,7 @@ import { ensureFileWithContentType } from "@ttt-productions/file-input";
 import { MediaInput } from "@ttt-productions/file-input/react";
 import type { MediaInputChangePayload } from "@ttt-productions/file-input";
 import type { UploadState } from "@ttt-productions/media-schemas";
-import { useGuardedUpload } from "@ttt-productions/upload-ui/react";
+import { useGuardedUpload } from "@ttt-productions/upload-ui/react/upload";
 import { Loader2, X, FileText, ImageIcon, VideoIcon, MicIcon } from "lucide-react";
 import type { ChatAttachment, ChatAttachmentConfig, ChatMessageV1, SendAttachmentFn } from "../types.js";
 import { useMentionAutocomplete } from "../mentions/use-mention-autocomplete.js";
