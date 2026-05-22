@@ -25,11 +25,23 @@ export interface AdminAppHandles {
 export function getAdminApp(options: AdminInitOptions = {}): AdminAppHandles {
   if (!cachedApp) {
     if (admin.apps.length === 0) {
-      admin.initializeApp({
-        credential: options.credential,
-        projectId: options.projectId,
-        storageBucket: options.storageBucket,
-      });
+      // Build options object with only defined fields. Calling
+      // `initializeApp({ credential: undefined, ... })` is NOT the same as
+      // `initializeApp()` — the SDK sees the `credential` key and treats
+      // `undefined` as a user-supplied credential, throwing
+      // "credential must be an object which implements the Credential interface."
+      // No-arg `initializeApp()` is the magic path that lazily reads
+      // GOOGLE_APPLICATION_CREDENTIALS from the environment.
+      const appOptions: admin.AppOptions = {};
+      if (options.credential !== undefined) appOptions.credential = options.credential;
+      if (options.projectId !== undefined) appOptions.projectId = options.projectId;
+      if (options.storageBucket !== undefined) appOptions.storageBucket = options.storageBucket;
+
+      if (Object.keys(appOptions).length === 0) {
+        admin.initializeApp();
+      } else {
+        admin.initializeApp(appOptions);
+      }
     }
     cachedApp = admin.app();
   }
