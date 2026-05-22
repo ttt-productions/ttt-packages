@@ -16,5 +16,6 @@ export const StreetzPostVariablesSchema = z.object({
   mentions: z.array(MentionSchema),
   mediaFile: z.instanceof(File).nullish(),
   onProgress: onProgressSchema,
+  signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type StreetzPostVariables = z.infer<typeof StreetzPostVariablesSchema>;

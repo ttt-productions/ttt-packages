@@ -10,5 +10,6 @@ const onProgressSchema = z
 export const UploadSkillVariablesSchema = z.object({
   file: z.instanceof(File).or(z.instanceof(Blob)),
   onProgress: onProgressSchema,
+  signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type UploadSkillVariables = z.infer<typeof UploadSkillVariablesSchema>;

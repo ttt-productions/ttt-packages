@@ -14,5 +14,6 @@ export const ApplyToJobVariablesSchema = z.object({
   coverLetterText: z.string().min(1).max(MAX_JOB_DESCRIPTION_LENGTH),
   file: z.instanceof(File).or(z.instanceof(Blob)).nullish(),
   onProgress: onProgressSchema,
+  signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type ApplyToJobVariables = z.infer<typeof ApplyToJobVariablesSchema>;

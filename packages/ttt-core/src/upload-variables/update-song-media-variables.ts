@@ -14,5 +14,6 @@ export const UpdateSongMediaVariablesSchema = z.object({
   file: z.instanceof(File).or(z.instanceof(Blob)),
   mediaKey: z.enum(['photoUrl', 'fileUrl']),
   onProgress: onProgressSchema,
+  signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type UpdateSongMediaVariables = z.infer<typeof UpdateSongMediaVariablesSchema>;

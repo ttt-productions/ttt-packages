@@ -17,5 +17,6 @@ export const CreateJobVariablesSchema = z.object({
   }).strict(),
   file: z.instanceof(File).or(z.instanceof(Blob)),
   onProgress: onProgressSchema,
+  signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type CreateJobVariables = z.infer<typeof CreateJobVariablesSchema>;

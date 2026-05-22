@@ -13,5 +13,6 @@ export const UpdateTaleCoverPhotoVariablesSchema = z.object({
   file: z.instanceof(File).or(z.instanceof(Blob)),
   coverType: z.enum(['square', 'poster', 'cinematic']),
   onProgress: onProgressSchema,
+  signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type UpdateTaleCoverPhotoVariables = z.infer<typeof UpdateTaleCoverPhotoVariablesSchema>;

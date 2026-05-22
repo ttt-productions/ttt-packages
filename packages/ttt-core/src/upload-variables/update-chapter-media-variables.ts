@@ -14,5 +14,6 @@ export const UpdateChapterMediaVariablesSchema = z.object({
   file: z.instanceof(File).or(z.instanceof(Blob)),
   mediaKey: z.literal('photoUrl'),
   onProgress: onProgressSchema,
+  signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type UpdateChapterMediaVariables = z.infer<typeof UpdateChapterMediaVariablesSchema>;

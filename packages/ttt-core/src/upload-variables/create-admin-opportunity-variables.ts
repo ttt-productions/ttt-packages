@@ -15,5 +15,6 @@ export const CreateAdminOpportunityVariablesSchema = z.object({
   openTill: z.string().min(1),
   projectAmountUSD: z.number().optional(),
   onProgress: onProgressSchema,
+  signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type CreateAdminOpportunityVariables = z.infer<typeof CreateAdminOpportunityVariablesSchema>;

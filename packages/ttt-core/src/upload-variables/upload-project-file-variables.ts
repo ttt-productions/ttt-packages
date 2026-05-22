@@ -13,5 +13,6 @@ export const UploadProjectFileVariablesSchema = z.object({
   file: z.instanceof(File),
   projectFiles: z.array(z.custom<ProjectFile>()),
   onProgress: onProgressSchema,
+  signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type UploadProjectFileVariables = z.infer<typeof UploadProjectFileVariablesSchema>;

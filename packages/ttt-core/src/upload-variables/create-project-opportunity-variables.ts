@@ -15,5 +15,6 @@ export const CreateProjectOpportunityVariablesSchema = z.object({
   projectId: z.string().min(1),
   sharesOffered: z.number().optional(),
   onProgress: onProgressSchema,
+  signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type CreateProjectOpportunityVariables = z.infer<typeof CreateProjectOpportunityVariablesSchema>;

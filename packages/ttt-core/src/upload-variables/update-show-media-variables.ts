@@ -14,5 +14,6 @@ export const UpdateShowMediaVariablesSchema = z.object({
   file: z.instanceof(File).or(z.instanceof(Blob)),
   mediaKey: z.enum(['photoUrl', 'videoUrl']),
   onProgress: onProgressSchema,
+  signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type UpdateShowMediaVariables = z.infer<typeof UpdateShowMediaVariablesSchema>;
