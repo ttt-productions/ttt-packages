@@ -21,7 +21,7 @@ export class UploadError extends Error {
 
 /**
  * Returns true if the given string looks like a valid media MIME type
- * accepted by TTT's storage rules: image/*, video/*, or audio/*.
+ * for an image, video, or audio upload: image/*, video/*, or audio/*.
  * Empty strings, application/octet-stream, and anything else → false.
  */
 export function isValidMediaContentType(contentType: string | undefined | null): boolean {

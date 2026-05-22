@@ -1,9 +1,9 @@
 // Canonical admin task and report types.
 // Generic-at-type-level over TTaskType so consumer apps can bind their
-// own task-type union literal (e.g. TTT's AdminTaskType union).
+// own task-type union literal (e.g. an `AdminTaskType` union).
 //
-// ttt-core depends on report-core (one-way edge — generic packages may
-// not depend on ttt-core).
+// The consuming app's composition package depends on report-core
+// (one-way edge — generic packages must not depend on app-specific packages).
 
 export type TaskPriority = 'critical' | 'high' | 'normal' | 'low';
 

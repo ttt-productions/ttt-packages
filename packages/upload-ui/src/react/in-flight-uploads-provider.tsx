@@ -11,7 +11,7 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
  * failure / rejection callbacks. Records monitoring breadcrumbs and parse
  * errors through the injected monitoring callback.
  *
- * EVERY TTT-specific value is supplied by the consumer:
+ * EVERY app-specific value is supplied by the consumer:
  *  - userId resolution
  *  - Firestore `db` reference
  *  - collection path
@@ -48,8 +48,8 @@ import {
 // =============================================================================
 
 /**
- * Generic pending-media status. Identical to TTT's PendingMedia status union,
- * but defined here so upload-ui has no ttt-core dependency.
+ * Generic pending-media status. Defined here so upload-ui has no dependency
+ * on any app-specific package.
  */
 export type InFlightUploadStatus =
   | 'pending'
@@ -64,7 +64,7 @@ export type InFlightUploadStatus =
  * type via the parser's return type (the provider treats it as opaque).
  *
  * `TFileOrigin` defaults to `string` so unannotated consumers get a permissive
- * shape; ttt-prod will bind it to its `FileOrigin` union at the call site.
+ * shape; consuming apps bind it to their own `FileOrigin` union at the call site.
  */
 export type InFlightUploadBase<TFileOrigin extends string = string> = {
   id: string;
@@ -115,7 +115,7 @@ export type InFlightUpload<TFileOrigin extends string = string> =
   | InFlightUploadRejected<TFileOrigin>;
 
 // =============================================================================
-// Adapter contract — every TTT-specific behavior is injected here
+// Adapter contract — every app-specific behavior is injected here
 // =============================================================================
 
 /**
@@ -524,9 +524,8 @@ export function isTerminalUpload<TFileOrigin extends string = string>(
  * uploads that have NOT been cleared from the tray. Sorted newest-first by
  * createdAt.
  *
- * Renamed per F22: was `useUploadActivityTrayItems` in ttt-prod; the public
- * selector name in upload-ui is `useUploadActivityState`. The mutation hook
- * is `useClearUploadActivity` (in a separate file).
+ * The public selector name in upload-ui is `useUploadActivityState`. The
+ * mutation hook is `useClearUploadActivity` (in a separate file).
  */
 export function useUploadActivityState<TFileOrigin extends string = string>(): InFlightUpload<TFileOrigin>[] {
   const uploads = useInFlightUploadsState<TFileOrigin>();

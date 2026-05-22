@@ -129,7 +129,7 @@ export type ChatAttachmentConfig = {
   userId: string;
   /**
    * Pluggable upload-path strategy. Consumers wire this to their app's
-   * conventions (e.g. for TTT: originId "chat-attachment", path
+   * conventions (for example: originId "chat-attachment", path
    * `uploads/chat-attachment/{userId}/{attachmentId}`).
    */
   uploadAdapter: ChatUploadAdapter;

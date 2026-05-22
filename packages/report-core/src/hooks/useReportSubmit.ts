@@ -61,8 +61,8 @@ export function useReportSubmit() {
         };
       } catch (err) {
         // Surface the existing ALREADY_REPORTED contract.
-        // ttt-prod's onCall wrapper rethrows handler errors with the original
-        // message, so `err.message === 'ALREADY_REPORTED'` propagates.
+        // The consuming app's onCall wrapper rethrows handler errors with the
+        // original message, so `err.message === 'ALREADY_REPORTED'` propagates.
         // Firebase Functions errors arrive as { code, message } — handle both.
         const message = err instanceof Error ? err.message : String(err);
         if (message.includes('ALREADY_REPORTED')) {

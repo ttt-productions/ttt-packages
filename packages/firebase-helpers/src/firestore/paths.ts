@@ -29,9 +29,9 @@ export function docPath(...segments: Array<string | number>): string {
 /**
  * Create helpers for a "root" namespace.
  * Example:
- *   const paths = makeRootPaths("ttt");
- *   paths.col("users") -> "ttt/users"
- *   paths.doc("users", uid) -> "ttt/users/<uid>"
+ *   const paths = makeRootPaths("app");
+ *   paths.col("users") -> "app/users"
+ *   paths.doc("users", uid) -> "app/users/<uid>"
  */
 export function makeRootPaths(root: string) {
   return {

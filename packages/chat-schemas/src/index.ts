@@ -3,9 +3,9 @@ import { z } from 'zod';
 /**
  * Pure-Zod chat schemas package.
  *
- * Consumed by:
- *  - `@ttt-productions/chat-core/schemas` (which re-exports for backward compatibility).
- *  - `@ttt-productions/ttt-core/src/schemas/chat.ts` (composes TTT callable schemas).
+ * Consumed by `@ttt-productions/chat-core/schemas` (which re-exports for
+ * backward compatibility) and by the consuming app's callable schema layer,
+ * which composes these wire shapes into request / response schemas.
  *
  * Tier 0 — pure Zod, zero `@ttt-productions/*` deps. Safe for backend / schema
  * composition without pulling chat-core's UI dependency graph.
@@ -15,10 +15,7 @@ import { z } from 'zod';
  * Pointer to the message being replied to. Schema-only — chat-core's UI layer
  * uses the inferred `ReplyTo` type to render reply previews on a chat message.
  *
- * `messageId` is `z.string().min(1)` (the wire shape). ttt-core's callable
- * schemas previously composed against an `messageIdSchema` from atoms.ts that
- * was structurally identical (also `z.string().min(1)`, not branded). The
- * inferred type is identical; the import flip in Block D is safe.
+ * `messageId` is `z.string().min(1)` (the wire shape).
  */
 export const ReplyToSchema = z
   .object({
@@ -33,12 +30,12 @@ export type ReplyTo = z.infer<typeof ReplyToSchema>;
 /**
  * Chat attachment shape — represents a media attachment on a chat message
  * after upload + moderation succeed. Used in SendChatMessage* wire schemas
- * (composed in ttt-core) and in ChatMessage docs (consumed by chat-core UI).
+ * (composed in the consuming app's callable layer) and in ChatMessage docs
+ * (consumed by chat-core UI).
  *
- * `storagePath: z.string().min(1)` — slightly stricter than ttt-core's prior
- * permissive `z.string()`. Empty `storagePath` was always a bug (it's the
- * Firebase Storage path after upload); rejecting at the schema layer is
- * correct. Documented in Cut 3b Part 1 as an expected consequence.
+ * `storagePath: z.string().min(1)` — empty `storagePath` is always a bug
+ * (it's the Firebase Storage path after upload); rejecting at the schema
+ * layer is correct.
  */
 export const ChatAttachmentSchema = z
   .object({

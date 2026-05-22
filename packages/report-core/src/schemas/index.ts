@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Wire-format schemas for the report-core admin task callables.
-// Consumed by ttt-prod's onCall wrappers; the handlers in ../server/
+// Consumed by the consuming app's onCall wrappers; the handlers in ../server/
 // re-import the inferred types so the schema is the single source of truth.
 
 export const CheckoutTaskRequestSchema = z.object({

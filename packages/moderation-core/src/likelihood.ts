@@ -30,7 +30,7 @@ export function likelihoodToString(value: string | number | null | undefined): L
 
 /**
  * Returns true if `value` is at or above any of the `rejectionLikelihoods`.
- * The caller provides the set — `moderation-core` does not bake in TTT thresholds.
+ * The caller provides the set — `moderation-core` does not bake in app-specific thresholds.
  */
 export function isRejectionLikelihood(
   value: string | number | null | undefined,

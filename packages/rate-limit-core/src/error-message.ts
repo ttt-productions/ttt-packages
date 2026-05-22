@@ -14,8 +14,9 @@ export interface RateLimitErrorMessageOptions {
 
 /**
  * Generate a user-friendly rate-limit error message with relative time.
- * Copy is fully consumer-controlled — TTT supplies its "Early-launch
- * rate limits in place" suffix at the call site.
+ * Copy is fully consumer-controlled — the consuming app supplies any
+ * additional suffix (e.g. an "Early-launch rate limits in place" notice)
+ * at the call site.
  */
 export function getRateLimitErrorMessage(opts: RateLimitErrorMessageOptions): string {
   const { reset, context, copy } = opts;

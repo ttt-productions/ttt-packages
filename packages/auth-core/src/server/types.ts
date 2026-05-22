@@ -1,8 +1,8 @@
 // packages/auth-core/src/server/types.ts
 //
 // Types for the createAssertAuth factory. Fully generic over the consuming
-// app's user and project document shapes. The package contains no TTT- or
-// Q-Sports-specific knowledge.
+// app's user and project document shapes. The package contains no
+// app-specific knowledge.
 
 import type { CallableRequest } from "firebase-functions/v2/https";
 import type { DecodedIdToken } from "firebase-admin/auth";
@@ -106,7 +106,7 @@ export type UserStatus = "ok" | "banned" | "disabled";
 
 /**
  * Configuration for createAssertAuth. The consuming app supplies every
- * TTT-specific (or Q-Sports-specific) operation as a callback.
+ * app-specific operation as a callback.
  */
 export interface AssertAuthConfig<TUser, TProject> {
   /**
@@ -118,13 +118,13 @@ export interface AssertAuthConfig<TUser, TProject> {
 
   /**
    * Returns the Firestore document path for a user profile, given a uid.
-   * Example (TTT): `userProfiles/${uid}`
+   * Example: `userProfiles/${uid}`
    */
   userProfilePath: (uid: string) => string;
 
   /**
    * Returns the Firestore document path for a project, given a projectId.
-   * Example (TTT): `allProjects/${projectId}`
+   * Example: `allProjects/${projectId}`
    */
   projectPath: (projectId: string) => string;
 
