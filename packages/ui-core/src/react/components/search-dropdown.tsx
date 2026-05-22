@@ -19,8 +19,8 @@ export interface SearchDropdownProps<T> {
   error: string | null;
   /** Called when a result is selected */
   onSelect: (result: T) => void;
-  /** Called when search is cleared */
-  onClear: () => void;
+  /** Called when search is cleared (after the value has been reset). Optional notification hook. */
+  onClear?: () => void;
   /** Placeholder text */
   placeholder?: string;
   /** Label for the input */
@@ -141,7 +141,8 @@ export function SearchDropdown<T>({
   };
 
   const handleClear = () => {
-    onClear();
+    onValueChange('');
+    onClear?.();
     setIsOpen(false);
     inputRef.current?.focus();
   };
