@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, act, screen, fireEvent } from '@testing-library/react';
-import React from 'react';
 
 type UploadArgs = Record<string, unknown> & { signal?: AbortSignal };
 type UploadCall = { signal: AbortSignal | undefined; resolve: () => void; reject: (err: unknown) => void };
@@ -102,7 +101,7 @@ describe('Composer abort wiring', () => {
 
     // Select a file — drives handleFileSelected via the MediaInput mock's onChange
     fireEvent.click(screen.getByTestId('media-input-select'));
-    await act(async () => {});
+    await act(async () => { });
 
     // Send button is enabled once pendingFile is set
     const sendBtn = screen.getByRole('button', { name: 'Send' });
@@ -110,7 +109,7 @@ describe('Composer abort wiring', () => {
 
     // Click Send — send() creates an AbortController, calls guardedUpload, and suspends
     fireEvent.click(sendBtn);
-    await act(async () => {});
+    await act(async () => { });
 
     // guardedUpload received an AbortSignal that is not yet aborted
     expect(guardedUploadCalls).toHaveLength(1);
@@ -123,7 +122,7 @@ describe('Composer abort wiring', () => {
 
     // Click cancel — handleCancelUpload aborts the controller → guardedUpload rejects with AbortError
     fireEvent.click(cancelBtn);
-    await act(async () => {});
+    await act(async () => { });
 
     // Signal is now aborted
     expect(guardedUploadCalls[0].signal?.aborted).toBe(true);

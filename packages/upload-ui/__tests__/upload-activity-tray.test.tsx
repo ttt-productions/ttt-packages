@@ -53,7 +53,7 @@ describe('UploadActivityTray', () => {
     const { subscribe } = makeDriver();
     const { container } = render(
       <InFlightUploadsProvider adapter={adapter} subscribe={subscribe}>
-        <UploadActivityTray clearMutation={makeClearMutation()} />
+        <UploadActivityTray clearMutation={makeClearMutation()} labelers={{ originLabel: (o) => o, fileSizeLabel: () => null, fileTypeLabel: () => null, timestampLabel: () => 'just now' }} />
       </InFlightUploadsProvider>,
     );
     expect(container.firstChild).not.toBeNull();
@@ -67,7 +67,7 @@ describe('UploadActivityTray', () => {
     const { subscribe, drive } = makeDriver();
     const { container } = render(
       <InFlightUploadsProvider adapter={adapter} subscribe={subscribe}>
-        <UploadActivityTray clearMutation={makeClearMutation()} />
+        <UploadActivityTray clearMutation={makeClearMutation()} labelers={{ originLabel: (o) => o, fileSizeLabel: () => null, fileTypeLabel: () => null, timestampLabel: () => 'just now' }} />
       </InFlightUploadsProvider>,
     );
     act(() => {
@@ -91,7 +91,7 @@ describe('UploadActivityTray', () => {
     const { subscribe, drive } = makeDriver();
     const { container } = render(
       <InFlightUploadsProvider adapter={adapter} subscribe={subscribe}>
-        <UploadActivityTray clearMutation={makeClearMutation()} />
+        <UploadActivityTray clearMutation={makeClearMutation()} labelers={{ originLabel: (o) => o, fileSizeLabel: () => null, fileTypeLabel: () => null, timestampLabel: () => 'just now' }} />
       </InFlightUploadsProvider>,
     );
     act(() => {

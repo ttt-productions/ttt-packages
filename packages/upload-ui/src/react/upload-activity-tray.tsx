@@ -17,12 +17,6 @@
  */
 
 import { useMemo, type ReactNode } from 'react';
-import {
-  fileOriginRowLabel,
-  formatUploadTimestamp,
-  formatFileSize,
-  getFileTypeLabel,
-} from '@ttt-productions/ttt-core';
 import { Cloud, Loader2, CheckCircle2, AlertCircle, XCircle, X } from 'lucide-react';
 import {
   Button,
@@ -39,6 +33,23 @@ import {
   type InFlightUpload,
 } from './in-flight-uploads-provider.js';
 
+/**
+ * Consumer-supplied formatters used by `UploadActivityTray` to render row
+ * labels. The tray is intentionally domain-agnostic — consumers map their
+ * own `FileOrigin` union to user-facing strings and choose their preferred
+ * timestamp / size / content-type formatting.
+ */
+export interface UploadTrayLabelers<TFileOrigin extends string = string> {
+  /** User-facing label for a file origin (e.g. 'job-reply' -> 'Job application'). */
+  originLabel: (fileOrigin: TFileOrigin) => string;
+  /** Human file size string, e.g. 1572864 -> '1.5 MB'. Return null when unknown. */
+  fileSizeLabel: (bytes: number | undefined) => string | null;
+  /** Friendly content-type label, e.g. 'image/png' -> 'Image'. Return null when unknown. */
+  fileTypeLabel: (contentType: string | undefined) => string | null;
+  /** Timestamp label, e.g. '3m ago' / 'Yesterday 3:42 PM'. */
+  timestampLabel: (createdAtMs: number, nowMs: number) => string;
+}
+
 interface RowMeta {
   statusLabel: string;
   errorDetail?: string;
@@ -53,6 +64,7 @@ interface RowMeta {
 function getRowMeta<TFileOrigin extends string>(
   item: InFlightUpload<TFileOrigin>,
   nowMs: number,
+  labelers: UploadTrayLabelers<TFileOrigin>,
 ): RowMeta {
   let statusLabel: string;
   let icon: ReactNode;
@@ -89,16 +101,13 @@ function getRowMeta<TFileOrigin extends string>(
       break;
   }
 
-  const originLabel =
-    (fileOriginRowLabel as Record<string, string | undefined>)[item.fileOrigin] ?? item.fileOrigin;
-
   return {
     statusLabel,
     errorDetail,
-    originLabel,
-    fileTypeLabel: getFileTypeLabel(item.originalContentType),
-    fileSizeLabel: formatFileSize(item.originalSize),
-    timestampLabel: formatUploadTimestamp(item.createdAt, nowMs),
+    originLabel: labelers.originLabel(item.fileOrigin),
+    fileTypeLabel: labelers.fileTypeLabel(item.originalContentType),
+    fileSizeLabel: labelers.fileSizeLabel(item.originalSize),
+    timestampLabel: labelers.timestampLabel(item.createdAt, nowMs),
     icon,
     iconClassName,
   };
@@ -109,6 +118,7 @@ interface UploadActivityTrayRowProps<TFileOrigin extends string> {
   nowMs: number;
   onClear: (() => void) | undefined;
   isClearPending: boolean;
+  labelers: UploadTrayLabelers<TFileOrigin>;
 }
 
 function UploadActivityTrayRow<TFileOrigin extends string>({
@@ -116,8 +126,9 @@ function UploadActivityTrayRow<TFileOrigin extends string>({
   nowMs,
   onClear,
   isClearPending,
+  labelers,
 }: UploadActivityTrayRowProps<TFileOrigin>) {
-  const meta = getRowMeta(item, nowMs);
+  const meta = getRowMeta(item, nowMs, labelers);
   const subline = [meta.originLabel, meta.fileTypeLabel, meta.fileSizeLabel]
     .filter(Boolean)
     .join(' · ');
@@ -155,7 +166,7 @@ export interface ViewAllLinkRenderArgs {
   children: ReactNode;
 }
 
-export interface UploadActivityTrayProps {
+export interface UploadActivityTrayProps<TFileOrigin extends string = string> {
   /**
    * Mutation hook result from `useClearUploadActivity({ clearFn })`. The tray
    * uses `.mutate(item.id)`, `.isPending`, and `.variables`. The consumer
@@ -166,6 +177,12 @@ export interface UploadActivityTrayProps {
     isPending: boolean;
     variables: string | undefined;
   };
+  /**
+   * Consumer-supplied formatters for row labels. Required — the tray has
+   * no built-in opinion about how to render origin / file type / size /
+   * timestamp strings.
+   */
+  labelers: UploadTrayLabelers<TFileOrigin>;
   /**
    * Optional view-all destination href. When omitted, no footer is rendered
    * unless `renderFooter` is also supplied.
@@ -187,10 +204,11 @@ export interface UploadActivityTrayProps {
 }
 
 export function UploadActivityTray<TFileOrigin extends string = string>(
-  props: UploadActivityTrayProps,
+  props: UploadActivityTrayProps<TFileOrigin>,
 ) {
   const {
     clearMutation,
+    labelers,
     viewAllHref,
     renderViewAllLink,
     renderFooter,
@@ -279,6 +297,7 @@ export function UploadActivityTray<TFileOrigin extends string = string>(
                       nowMs={nowMs}
                       onClear={isTerminalUpload(item) ? () => clearMutation.mutate(item.id) : undefined}
                       isClearPending={clearMutation.isPending && clearMutation.variables === item.id}
+                      labelers={labelers}
                     />
                   </li>
                 ))}

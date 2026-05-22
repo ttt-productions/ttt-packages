@@ -22,6 +22,7 @@ export {
 export {
   UploadActivityTray,
   type UploadActivityTrayProps,
+  type UploadTrayLabelers,
   type ViewAllLinkRenderArgs,
 } from '../upload-activity-tray.js';
 export {
