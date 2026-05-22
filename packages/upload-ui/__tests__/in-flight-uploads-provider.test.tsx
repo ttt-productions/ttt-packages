@@ -209,6 +209,68 @@ describe('InFlightUploadsProvider', () => {
     expect(unsubCalls.count).toBe(1);
   });
 
+  it('resets in-memory state on UID-A → UID-B transition without an intermediate null', () => {
+    let currentUserId: string | null = 'userA';
+    const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
+    const { subscribe, drive } = makeDriver();
+    const { result, rerender } = renderHook(() => useInFlightUploadsState(), {
+      wrapper: wrap(adapter, subscribe),
+    });
+
+    // UID-A: seed a terminal doc so seenTerminalIdsRef / statusByIdRef have content.
+    act(() => {
+      drive(
+        makeSnapshot([
+          {
+            type: 'added',
+            id: 'docA',
+            data: {
+              id: 'docA',
+              userId: 'userA',
+              fileOrigin: 'streetz',
+              status: 'completed',
+              createdAt: Date.now(),
+              completedAt: Date.now(),
+              surface: '/x',
+            },
+          },
+        ]),
+      );
+    });
+    expect(result.current.get('docA')).toBeDefined();
+
+    // UID-A → UID-B (no intermediate null).
+    currentUserId = 'userB';
+    rerender();
+
+    // After the transition, the uploads map must be empty (UID-A's docA is gone).
+    expect(result.current.size).toBe(0);
+
+    // And UID-B's initial snapshot must be treated as initial — drive a
+    // terminal doc and confirm the completion callback does NOT fire
+    // (initial-snapshot suppression is back in effect).
+    act(() => {
+      drive(
+        makeSnapshot([
+          {
+            type: 'added',
+            id: 'docB',
+            data: {
+              id: 'docB',
+              userId: 'userB',
+              fileOrigin: 'streetz',
+              status: 'completed',
+              createdAt: Date.now(),
+              completedAt: Date.now(),
+              surface: '/x',
+            },
+          },
+        ]),
+      );
+    });
+    expect(adapter.onUploadCompleted).not.toHaveBeenCalled();
+  });
+
   it('useUploadActivityState filters cleared terminal items and sorts newest first', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();

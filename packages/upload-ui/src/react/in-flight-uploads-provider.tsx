@@ -331,12 +331,16 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
   const userId = adapter.getCurrentUserId();
 
   useEffect(() => {
+    // Reset all in-memory state for the new identity. Runs on every userId
+    // change — including UID-A → UID-B with no intermediate null user.
+    // Do not rely on an intermediate sign-out to clear refs between two
+    // authenticated UIDs.
+    setUploads(new Map());
+    seenTerminalIdsRef.current = new Set();
+    statusByIdRef.current = new Map();
+    hasProcessedInitialSnapshotRef.current = false;
+
     if (!userId) {
-      // Sign-out: clear all state.
-      setUploads(new Map());
-      seenTerminalIdsRef.current = new Set();
-      statusByIdRef.current = new Map();
-      hasProcessedInitialSnapshotRef.current = false;
       return;
     }
 

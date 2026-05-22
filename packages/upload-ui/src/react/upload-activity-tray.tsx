@@ -171,10 +171,6 @@ export function UploadActivityTray<TFileOrigin extends string = string>(
     [items],
   );
 
-  if (items.length === 0) {
-    return null;
-  }
-
   const footerContent: ReactNode = (() => {
     if (renderFooter) return renderFooter();
     if (viewAllHref && renderViewAllLink) {
@@ -198,10 +194,12 @@ export function UploadActivityTray<TFileOrigin extends string = string>(
         <PopoverTrigger asChild>
           <Button
             size="icon"
-            variant="inverted"
+            variant={items.length === 0 ? 'ghost' : 'inverted'}
             className="relative h-14 w-14 rounded-full shadow-lg"
             aria-label={
-              activeCount > 0
+              items.length === 0
+                ? 'Upload activity (no recent uploads)'
+                : activeCount > 0
                 ? `Upload activity: ${activeCount} in progress`
                 : `Upload activity: ${items.length} item${items.length === 1 ? '' : 's'}`
             }
@@ -211,39 +209,49 @@ export function UploadActivityTray<TFileOrigin extends string = string>(
             ) : (
               <Cloud className="icon-md" />
             )}
-            <span
-              className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-medium flex items-center justify-center"
-              aria-hidden="true"
-            >
-              {items.length}
-            </span>
+            {items.length > 0 && (
+              <span
+                className="absolute -top-1 -right-1 min-w-[1.25rem] h-5 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-medium flex items-center justify-center"
+                aria-hidden="true"
+              >
+                {items.length}
+              </span>
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="start" side="top" className="app-popover p-0 w-80">
           <div className="flex items-center justify-between p-3">
             <h2 className="text-sm font-semibold">Upload Activity</h2>
             <span className="text-xs text-muted-foreground">
-              {activeCount > 0
+              {items.length === 0
+                ? 'No recent uploads'
+                : activeCount > 0
                 ? `${activeCount} in progress`
                 : `${items.length} item${items.length === 1 ? '' : 's'}`}
             </span>
           </div>
           <Separator />
-          <ScrollArea className="max-h-80">
-            <ul className="divide-y">
-              {items.map((item) => (
-                <li key={item.id}>
-                  <UploadActivityTrayRow
-                    item={item}
-                    onClear={
-                      isTerminalUpload(item) ? () => clearMutation.mutate(item.id) : undefined
-                    }
-                    isClearPending={clearMutation.isPending && clearMutation.variables === item.id}
-                  />
-                </li>
-              ))}
-            </ul>
-          </ScrollArea>
+          {items.length === 0 ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No recent uploads.
+            </div>
+          ) : (
+            <ScrollArea className="max-h-80">
+              <ul className="divide-y">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <UploadActivityTrayRow
+                      item={item}
+                      onClear={
+                        isTerminalUpload(item) ? () => clearMutation.mutate(item.id) : undefined
+                      }
+                      isClearPending={clearMutation.isPending && clearMutation.variables === item.id}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </ScrollArea>
+          )}
           {footerContent !== null && (
             <>
               <Separator />

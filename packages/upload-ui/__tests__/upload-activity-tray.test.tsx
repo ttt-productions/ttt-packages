@@ -48,7 +48,7 @@ function makeClearMutation(overrides: Partial<{ mutate: (id: string) => void; is
 }
 
 describe('UploadActivityTray', () => {
-  it('renders null when there are no items', () => {
+  it('renders idle FAB when there are no items', () => {
     const adapter = makeAdapter();
     const { subscribe } = makeDriver();
     const { container } = render(
@@ -56,10 +56,13 @@ describe('UploadActivityTray', () => {
         <UploadActivityTray clearMutation={makeClearMutation()} />
       </InFlightUploadsProvider>,
     );
-    expect(container.firstChild).toBeNull();
+    expect(container.firstChild).not.toBeNull();
+    expect(container.querySelector('[aria-label="Upload activity (no recent uploads)"]')).not.toBeNull();
+    const button = container.querySelector('[aria-label="Upload activity (no recent uploads)"]');
+    expect(button?.querySelector('span[aria-hidden="true"]')).toBeNull();
   });
 
-  it('renders the FAB when at least one item exists', () => {
+  it('renders FAB with badge when at least one item exists', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
     const { container } = render(
@@ -76,7 +79,11 @@ describe('UploadActivityTray', () => {
         },
       ]);
     });
-    expect(container.firstChild).not.toBeNull();
+    const button = container.querySelector('button');
+    expect(button).not.toBeNull();
+    const badge = button?.querySelector('span[aria-hidden="true"]');
+    expect(badge).not.toBeNull();
+    expect(badge?.textContent).toBe('1');
   });
 
   it('omits footer when no viewAllHref/renderViewAllLink/renderFooter is supplied', () => {
