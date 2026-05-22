@@ -14,3 +14,4 @@ export {
 export * from "./start-upload.js";
 export * from "./target-info.js";
 export * from "./pending-media.js";
+export * from "./upload-tray-display.js";

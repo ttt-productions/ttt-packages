@@ -41,6 +41,8 @@ export function createPendingMediaSchemas<
     userId: z.string().min(1),
     fileOrigin: fileOriginSchema,
     originalFileName: z.string().min(1),
+    originalContentType: z.string().optional(),
+    originalSize: z.number().optional(),
     pendingStoragePath: z.string().min(1),
     targetInfo: z.unknown().optional(),
     textContent: z.string().optional(),

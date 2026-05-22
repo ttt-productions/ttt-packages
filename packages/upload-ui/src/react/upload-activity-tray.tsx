@@ -17,6 +17,12 @@
  */
 
 import { useMemo, type ReactNode } from 'react';
+import {
+  fileOriginRowLabel,
+  formatUploadTimestamp,
+  formatFileSize,
+  getFileTypeLabel,
+} from '@ttt-productions/ttt-core';
 import { Cloud, Loader2, CheckCircle2, AlertCircle, XCircle, X } from 'lucide-react';
 import {
   Button,
@@ -34,70 +40,97 @@ import {
 } from './in-flight-uploads-provider.js';
 
 interface RowMeta {
-  label: string;
-  detail?: string;
+  statusLabel: string;
+  errorDetail?: string;
+  originLabel: string;
+  fileTypeLabel: string | null;
+  fileSizeLabel: string | null;
+  timestampLabel: string;
   icon: ReactNode;
   iconClassName: string;
 }
 
-function getRowMeta<TFileOrigin extends string>(item: InFlightUpload<TFileOrigin>): RowMeta {
+function getRowMeta<TFileOrigin extends string>(
+  item: InFlightUpload<TFileOrigin>,
+  nowMs: number,
+): RowMeta {
+  let statusLabel: string;
+  let icon: ReactNode;
+  let iconClassName: string;
+  let errorDetail: string | undefined;
+
   switch (item.status) {
     case 'pending':
-      return {
-        label: 'Waiting to process…',
-        icon: <Loader2 className="icon-sm animate-spin" />,
-        iconClassName: 'text-muted-foreground',
-      };
+      statusLabel = 'Waiting to process…';
+      icon = <Loader2 className="icon-sm animate-spin" />;
+      iconClassName = 'text-muted-foreground';
+      break;
     case 'processing':
-      return {
-        label: 'Processing…',
-        icon: <Loader2 className="icon-sm animate-spin" />,
-        iconClassName: 'text-primary',
-      };
+      statusLabel = 'Processing…';
+      icon = <Loader2 className="icon-sm animate-spin" />;
+      iconClassName = 'text-primary';
+      break;
     case 'completed':
-      return {
-        label: 'Completed',
-        icon: <CheckCircle2 className="icon-sm" />,
-        iconClassName: 'text-green-600 dark:text-green-500',
-      };
+      statusLabel = 'Completed';
+      icon = <CheckCircle2 className="icon-sm" />;
+      iconClassName = 'text-green-600 dark:text-green-500';
+      break;
     case 'failed':
-      return {
-        label: 'Failed',
-        detail: item.errorMessage,
-        icon: <AlertCircle className="icon-sm" />,
-        iconClassName: 'text-destructive',
-      };
+      statusLabel = 'Failed';
+      errorDetail = item.errorMessage;
+      icon = <AlertCircle className="icon-sm" />;
+      iconClassName = 'text-destructive';
+      break;
     case 'rejected':
-      return {
-        label: 'Rejected',
-        detail: item.errorMessage,
-        icon: <XCircle className="icon-sm" />,
-        iconClassName: 'text-destructive',
-      };
+      statusLabel = 'Rejected';
+      errorDetail = item.errorMessage;
+      icon = <XCircle className="icon-sm" />;
+      iconClassName = 'text-destructive';
+      break;
   }
+
+  const originLabel =
+    (fileOriginRowLabel as Record<string, string | undefined>)[item.fileOrigin] ?? item.fileOrigin;
+
+  return {
+    statusLabel,
+    errorDetail,
+    originLabel,
+    fileTypeLabel: getFileTypeLabel(item.originalContentType),
+    fileSizeLabel: formatFileSize(item.originalSize),
+    timestampLabel: formatUploadTimestamp(item.createdAt, nowMs),
+    icon,
+    iconClassName,
+  };
 }
 
 interface UploadActivityTrayRowProps<TFileOrigin extends string> {
   item: InFlightUpload<TFileOrigin>;
+  nowMs: number;
   onClear: (() => void) | undefined;
   isClearPending: boolean;
 }
 
 function UploadActivityTrayRow<TFileOrigin extends string>({
   item,
+  nowMs,
   onClear,
   isClearPending,
 }: UploadActivityTrayRowProps<TFileOrigin>) {
-  const meta = getRowMeta(item);
+  const meta = getRowMeta(item, nowMs);
+  const subline = [meta.originLabel, meta.fileTypeLabel, meta.fileSizeLabel]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <div className="flex items-start gap-3 p-3">
       <div className={cn('mt-0.5 shrink-0', meta.iconClassName)}>{meta.icon}</div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{meta.label}</p>
-        <p className="text-xs text-muted-foreground truncate">{item.surface}</p>
-        {meta.detail && (
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{meta.detail}</p>
+        <p className="text-sm font-medium truncate">{meta.statusLabel}</p>
+        <p className="text-xs text-muted-foreground truncate">{subline}</p>
+        {meta.errorDetail && (
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{meta.errorDetail}</p>
         )}
+        <p className="text-xs text-muted-foreground mt-1">{meta.timestampLabel}</p>
       </div>
       {onClear && (
         <Button
@@ -106,7 +139,7 @@ function UploadActivityTrayRow<TFileOrigin extends string>({
           className="h-7 w-7 shrink-0"
           onClick={onClear}
           disabled={isClearPending}
-          aria-label={`Clear ${meta.label.toLowerCase()} upload`}
+          aria-label={`Clear ${meta.statusLabel.toLowerCase()} upload`}
         >
           <X className="icon-sm" />
         </Button>
@@ -164,6 +197,7 @@ export function UploadActivityTray<TFileOrigin extends string = string>(
     viewAllLabel = 'View all uploads →',
   } = props;
   const items = useUploadActivityState<TFileOrigin>();
+  const nowMs = Date.now();
 
   const activeCount = useMemo(
     () =>
@@ -242,9 +276,8 @@ export function UploadActivityTray<TFileOrigin extends string = string>(
                   <li key={item.id}>
                     <UploadActivityTrayRow
                       item={item}
-                      onClear={
-                        isTerminalUpload(item) ? () => clearMutation.mutate(item.id) : undefined
-                      }
+                      nowMs={nowMs}
+                      onClear={isTerminalUpload(item) ? () => clearMutation.mutate(item.id) : undefined}
                       isClearPending={clearMutation.isPending && clearMutation.variables === item.id}
                     />
                   </li>

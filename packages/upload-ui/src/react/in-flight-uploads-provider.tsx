@@ -72,6 +72,8 @@ export type InFlightUploadBase<TFileOrigin extends string = string> = {
   surface: string;
   createdAt: number;
   targetIds?: string[];
+  originalContentType?: string;
+  originalSize?: number;
 };
 
 export type InFlightUploadActive<TFileOrigin extends string = string> =
@@ -134,6 +136,8 @@ export type ParsedPendingMedia<TFileOrigin extends string = string> = {
   createdAt: number;
   surface: string;
   targetIds?: string[];
+  originalContentType?: string;
+  originalSize?: number;
   // Terminal-status fields (only meaningful for the matching status)
   completedAt?: number;
   failedAt?: number;
@@ -275,6 +279,8 @@ function fromParsed<TFileOrigin extends string>(
     surface: parsed.surface,
     createdAt: parsed.createdAt,
     targetIds: parsed.targetIds,
+    originalContentType: parsed.originalContentType,
+    originalSize: parsed.originalSize,
   };
   if (parsed.status === 'pending' || parsed.status === 'processing') {
     return { ...base, status: parsed.status };
