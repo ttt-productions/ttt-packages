@@ -20,9 +20,17 @@
             "types": "./dist/index.d.ts",
             "default": "./dist/index.js"
         },
-        "./react": {
-            "types": "./dist/react/index.d.ts",
-            "default": "./dist/react/index.js"
+        "./react/guard": {
+            "types": "./dist/react/guard/index.d.ts",
+            "default": "./dist/react/guard/index.js"
+        },
+        "./react/upload": {
+            "types": "./dist/react/upload/index.d.ts",
+            "default": "./dist/react/upload/index.js"
+        },
+        "./react/tray": {
+            "types": "./dist/react/tray/index.d.ts",
+            "default": "./dist/react/tray/index.js"
         }
     },
     "scripts": {
