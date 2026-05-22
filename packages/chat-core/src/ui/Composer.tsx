@@ -72,6 +72,7 @@ export function Composer(props: ComposerProps) {
   const [isSending, setIsSending] = React.useState(false);
   const [uploadState, setUploadState] = React.useState<UploadState | null>(null);
   const ref = React.useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
   const guardedUpload = useGuardedUpload();
 
   const mentionApi = useMentionAutocomplete({
@@ -102,6 +103,10 @@ export function Composer(props: ComposerProps) {
     setPendingFile(payload.file);
   }, []);
 
+  const handleCancelUpload = React.useCallback(() => {
+    abortControllerRef.current?.abort();
+  }, []);
+
   const send = async () => {
     const v = text.trim();
     if (!v && !pendingFile) return;
@@ -119,6 +124,9 @@ export function Composer(props: ComposerProps) {
         const fileToUpload = ensureFileWithContentType(pendingFile);
         const attType = getAttachmentType(fileToUpload);
 
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
         await guardedUpload({
           storage,
           path: storagePath,
@@ -126,6 +134,7 @@ export function Composer(props: ComposerProps) {
           metadata: { contentType: fileToUpload.type, ...extraMetadata },
           uploadId: uuid,
           onProgress: (state) => setUploadState(state),
+          signal: controller.signal,
         });
 
         await sendAttachment({
@@ -147,10 +156,17 @@ export function Composer(props: ComposerProps) {
       setPendingFile(null);
       mentionApi.close();
     } catch (err) {
+      // AbortError = user-initiated cancel via the MediaInput cancel button.
+      // Clear local state and swallow — not a real failure.
+      if (err instanceof Error && err.name === 'AbortError') {
+        setPendingFile(null);
+        return;
+      }
       console.error("[Composer] Send failed:", err);
       setPendingFile(null);
       throw err;
     } finally {
+      abortControllerRef.current = null;
       setIsSending(false);
       setUploadState(null);
     }
@@ -229,6 +245,7 @@ export function Composer(props: ComposerProps) {
             disabled={isDisabled}
             buttonLabel="Attach file"
             onClear={() => setPendingFile(null)}
+            onCancel={handleCancelUpload}
             className="w-full"
           />
         </div>
