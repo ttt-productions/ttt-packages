@@ -13,7 +13,7 @@ Read `docs/packages/` first for package ownership. Read `docs/design/` for cross
 1. **Generic packages do not import `ttt-core`.** If a generic package needs app-specific values, it exposes a factory, adapter, callback, schema factory, or configuration object.
 2. **`ttt-core` is the application-data package.** It may depend on generic packages and composes TTT-specific schemas, constants, enums, paths, and business rules.
 3. **Main entries stay server-safe.** React exports live behind `./react`; Admin SDK exports live behind `./server`; browser-only upload runtime lives behind `./browser`.
-4. **No compatibility barrels for pre-launch package moves.** Prefer canonical imports from the package that owns the concept.
+4. **No new compatibility barrels for pre-launch package moves.** Prefer canonical imports from the package that owns the concept. Delete unused transitional subpaths once grep proves there are no consumers.
 5. **Code is source of truth.** Docs should explain durable ownership and rules; avoid duplicating exhaustive implementation details that will drift.
 
 ## Current package tiers
@@ -60,7 +60,7 @@ Read `docs/packages/` first for package ownership. Read `docs/design/` for cross
 
 - `media-schemas` owns generic media types, media helpers, neutral media-origin spec shape, and pending-media schema factories.
 - `ttt-core` owns concrete `FileOrigin`, `TTT_MEDIA_SPECS`, TTT upload wire schemas, target-info schemas, TTT pending-media schemas, domain events, and TTT atoms.
-- `chat-schemas` owns pure chat schemas that need to be safe for both UI and backend/schema consumers.
+- `chat-schemas` owns pure chat schemas and server-safe chat contract constants that need to be safe for both UI and backend/schema consumers.
 - `chat-core` owns the chat UI/runtime, upload adapter, and generic mention provider system.
 - `upload-ui` owns guarded upload UX: `useGuardedUpload`, local upload guard, guarded navigation helpers, deferred upload form shell, and upload activity UI/provider.
 - `upload-core` owns only the low-level resumable upload primitive and browser upload queue/runtime.
@@ -72,7 +72,7 @@ Read `docs/packages/` first for package ownership. Read `docs/design/` for cross
 
 Current entry shape:
 
-- `auth-core`: `.`, `./react`
+- `auth-core`: `.`, `./react`, `./server`
 - `firebase-helpers`: `.`, `./server`, `./react`
 - `chat-schemas`: `.`
 - `media-schemas`: `.`
@@ -88,14 +88,14 @@ Current entry shape:
 - `report-core`: `.`, `./react`, `./server`, `./schemas`, `./styles`
 - `upload-core`: `.`, `./browser`
 - `upload-ui`: `.`, `./react`
-- `chat-core`: `.`, `./react`, `./schemas`, `./styles`
+- `chat-core`: `.`, `./react`, `./styles` plus any still-present transitional schema re-export
 - `ttt-core`: `.`, plus app-data subpaths such as `./schemas`, `./media`, `./paths`, `./constants`, `./upload-variables`
 
-A backend import must not accidentally pull React, browser upload code, or app shell code into the Functions module graph.
+Backend imports must not accidentally pull React, browser upload code, or app shell code into the Functions module graph. Backend chat schema/contract imports should use `chat-schemas`, not `chat-core`.
 
 ## Build order
 
-Build generic Tier 0 packages first, then Tier 1, then `ttt-core`, then `upload-ui`, then `chat-core`. `ttt-core` depends on `audit-core`, so `audit-core` must build before `ttt-core` (not at the end of Tier 0). When adopting from `ttt-prod`, publish the package-side changes first and then update the consuming app against installed `node_modules/@ttt-productions/*` packages.
+Build generic Tier 0 packages first, then Tier 1, then `ttt-core`, then `upload-ui`, then `chat-core`. `ttt-core` depends on `audit-core`, `chat-schemas`, `media-schemas`, and `report-core`, so those packages must build before `ttt-core`. When adopting from `ttt-prod`, publish the package-side changes first and then update the consuming app against installed `node_modules/@ttt-productions/*` packages.
 
 ## Release and adoption workflow
 
@@ -118,4 +118,4 @@ See `docs/design/react-safety.md`.
 - Do not commit or push to git.
 - Do not create source compatibility shims unless explicitly asked.
 - Prefer deleting dead subpaths and stale docs during this pre-launch window.
-- New generic features should use the same factory/adapter pattern as `auth-core` and the new upload/backend packages.
+- New generic features should use the same factory/adapter pattern as `auth-core` and the upload/backend packages.

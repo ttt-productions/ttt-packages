@@ -2,9 +2,9 @@
 
 This folder documents current ownership for each `@ttt-productions/*` package after the package architecture rework.
 
-## Current package set
+The current monorepo contains **21 packages**:
 
-### Generic foundations
+## Generic foundations
 
 - `auth-core`
 - `firebase-helpers`
@@ -19,7 +19,7 @@ This folder documents current ownership for each `@ttt-productions/*` package af
 - `audit-core`
 - `moderation-core`
 
-### Generic feature packages
+## Generic feature packages
 
 - `file-input`
 - `media-viewer`
@@ -30,14 +30,14 @@ This folder documents current ownership for each `@ttt-productions/*` package af
 - `upload-ui`
 - `chat-core`
 
-### Application data
+## Application data
 
 - `ttt-core`
 
-## Renames from the rework
+## Rework notes
 
-- `media-contracts` became `media-schemas`.
-- `upload-form` became `upload-ui`.
-- Pure chat schemas were split into `chat-schemas` so `ttt-core` and backend code can compose chat validation without importing the React-heavy chat UI package.
+- `media-schemas` is the renamed generic-media successor to the old `media-contracts` package.
+- `upload-ui` is the renamed guarded-upload successor to the old `upload-form` package.
+- `chat-schemas` is intentionally separate from `chat-core` so backend code and `ttt-core` can compose chat schemas without importing the React-heavy chat runtime.
 
-Delete the old `media-contracts.md` and `upload-form.md` docs after this patch is applied.
+Old package docs for `media-contracts` and `upload-form` should not exist in this folder. If they reappear, delete them rather than updating them.
