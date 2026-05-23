@@ -4,6 +4,8 @@
 // admin conversation messages) live in @ttt-productions/chat-core as
 // ChatMessageV1. ttt-core only owns the parent thread document shapes.
 
+import type { InviteSource } from '../schemas/project-management.js';
+
 // --- Project Chat ---
 
 export interface ChatChannel {
@@ -38,6 +40,7 @@ export interface ProjectInviteConversation {
   sender: { uid: string };
   recipient: { uid: string };
   sharesOffered: number;
+  source: InviteSource;
   status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'finalized' | 'error';
   createdAt: number;
   updatedAt: number;

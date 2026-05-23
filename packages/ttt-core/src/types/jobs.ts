@@ -1,6 +1,7 @@
 // Job board and Opportunity types
 
 import type { ShortProject } from './project.js';
+import type { JobApplicationStatus } from '../schemas/jobs.js';
 
 export type JobFile = {
   pendingMediaId?: string;
@@ -33,8 +34,11 @@ export type FullJobReply = {
   replyFileType?: string;
   createdBy: { uid: string };
   createdOn: number;
-  status: 'open' | 'accepted' | 'rejected';
-  acceptedOn?: string;
+  status: JobApplicationStatus;
+  inviteId?: string;
+  invitedOn?: number;
+  acceptedOn?: number;
+  rejectedAt?: number;
 };
 
 // --- Opportunity ---

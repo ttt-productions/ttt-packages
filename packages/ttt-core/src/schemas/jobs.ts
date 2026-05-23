@@ -2,12 +2,13 @@ import { z } from 'zod';
 import { jobIdSchema, replyIdSchema } from './atoms.js';
 import { MAX_JOB_DESCRIPTION_LENGTH } from '../constants/business.js';
 
-export const AcceptJobApplicantInputSchema = z.object({
-  jobId: jobIdSchema,
-  replyId: replyIdSchema,
-  sharesOffered: z.number().int().min(1),
-}).strict();
-export type AcceptJobApplicantInput = z.infer<typeof AcceptJobApplicantInputSchema>;
+export const JobApplicationStatusSchema = z.enum([
+  'open',
+  'invited',
+  'accepted',
+  'rejected',
+]);
+export type JobApplicationStatus = z.infer<typeof JobApplicationStatusSchema>;
 
 export const CloseJobInputSchema = z.object({
   jobId: jobIdSchema,

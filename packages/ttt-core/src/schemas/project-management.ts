@@ -1,6 +1,16 @@
 import { z } from 'zod';
-import { projectIdSchema, userIdSchema, addRemoveActionSchema, projectTypeSchema } from './atoms.js';
+import {
+  projectIdSchema,
+  userIdSchema,
+  addRemoveActionSchema,
+  projectTypeSchema,
+  jobIdSchema,
+  opportunityIdSchema,
+  replyIdSchema,
+  skillIdSchema,
+} from './atoms.js';
 import { PROFESSION_OPTIONS, USER_ROLE_OPTIONS_MAP } from '../constants/options.js';
+import { MAX_INVITE_MESSAGE_LENGTH } from '../constants/business.js';
 
 const baseFields = {
   workingTitle: z.string().min(1).max(200),
@@ -35,15 +45,48 @@ export const DeleteProjectFileInputSchema = z.object({
 }).strict();
 export type DeleteProjectFileInput = z.infer<typeof DeleteProjectFileInputSchema>;
 
+export const InviteSourceSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('standalone'),
+  }).strict(),
+  z.object({
+    type: z.literal('skill'),
+    data: z.object({
+      skillId: skillIdSchema,
+      skillOwnerUserId: userIdSchema,
+      skillName: z.string().min(1).max(200),
+    }).strict(),
+  }).strict(),
+  z.object({
+    type: z.literal('job'),
+    data: z.object({
+      jobId: jobIdSchema,
+      replyId: replyIdSchema,
+      jobTitle: z.string().min(1).max(200),
+      applicantUserId: userIdSchema,
+      postingSharesOffered: z.number().int().min(1),
+    }).strict(),
+  }).strict(),
+  z.object({
+    type: z.literal('opportunity'),
+    data: z.object({
+      opportunityId: opportunityIdSchema,
+      replyId: replyIdSchema,
+      opportunityTitle: z.string().min(1).max(200),
+      respondentUserId: userIdSchema,
+      postingSharesOffered: z.number().int().min(1),
+    }).strict(),
+  }).strict(),
+]);
+export type InviteSource = z.infer<typeof InviteSourceSchema>;
+export type InviteSourceType = InviteSource['type'];
+
 export const InviteUserToProjectInputSchema = z.object({
   projectId: projectIdSchema,
   inviteeUid: userIdSchema,
-  message: z.string().min(1).max(2000),
+  message: z.string().min(1).max(MAX_INVITE_MESSAGE_LENGTH),
   sharesOffered: z.number().int().min(1),
-  source: z.object({
-    type: z.literal('skill'),
-    data: z.object({ skillName: z.string().min(1) }),
-  }).optional(),
+  source: InviteSourceSchema,
 }).strict();
 export type InviteUserToProjectInput = z.infer<typeof InviteUserToProjectInputSchema>;
 

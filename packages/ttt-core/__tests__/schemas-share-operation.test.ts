@@ -6,21 +6,12 @@ import {
 
 describe('ShareOperationSchema', () => {
   describe('add-pending branch', () => {
-    it('accepts a valid add-pending operation with sourceId+sourceType', () => {
-      const op = {
-        type: 'add-pending',
-        amount: 10,
-        sourceId: 'invite-1',
-        sourceType: 'invite',
-      };
+    it('accepts a valid add-pending operation with sourceId', () => {
+      const op = { type: 'add-pending', amount: 10, sourceId: 'invite-1' };
       expect(ShareOperationSchema.parse(op)).toEqual(op);
     });
     it('accepts a valid add-pending with user only', () => {
-      const op = {
-        type: 'add-pending',
-        amount: 5,
-        user: { uid: 'user-1' },
-      };
+      const op = { type: 'add-pending', amount: 5, user: { uid: 'user-1' } };
       expect(ShareOperationSchema.parse(op)).toEqual(op);
     });
     it('rejects amount of 0 or negative', () => {
@@ -31,16 +22,16 @@ describe('ShareOperationSchema', () => {
         ShareOperationSchema.parse({ type: 'add-pending', amount: -1 }),
       ).toThrow();
     });
-    it('rejects unknown sourceType', () => {
+    it('rejects sourceType as an unknown key (.strict)', () => {
       expect(() =>
         ShareOperationSchema.parse({
           type: 'add-pending',
-          sourceId: 'x',
-          sourceType: 'unknown',
+          sourceId: 'invite-1',
+          sourceType: 'invite',
         }),
       ).toThrow();
     });
-    it('rejects unknown keys (.strict)', () => {
+    it('rejects other unknown keys (.strict)', () => {
       expect(() =>
         ShareOperationSchema.parse({
           type: 'add-pending',
@@ -53,29 +44,21 @@ describe('ShareOperationSchema', () => {
 
   describe('remove-pending branch', () => {
     it('accepts a remove-pending with just sourceId', () => {
-      const op = { type: 'remove-pending', sourceId: 'job-1' };
+      const op = { type: 'remove-pending', sourceId: 'invite-1' };
       expect(ShareOperationSchema.parse(op)).toEqual(op);
     });
   });
 
   describe('add-active branch', () => {
     it('accepts a valid add-active with user', () => {
-      const op = {
-        type: 'add-active',
-        amount: 25,
-        user: { uid: 'applicant-uid' },
-      };
+      const op = { type: 'add-active', amount: 25, user: { uid: 'applicant-uid' } };
       expect(ShareOperationSchema.parse(op)).toEqual(op);
     });
   });
 
   describe('create-project branch', () => {
     it('accepts the canonical create-project shape', () => {
-      const op = {
-        type: 'create-project',
-        amount: 1,
-        user: { uid: 'creator-uid' },
-      };
+      const op = { type: 'create-project', amount: 1, user: { uid: 'creator-uid' } };
       expect(ShareOperationSchema.parse(op)).toEqual(op);
     });
   });
@@ -87,30 +70,17 @@ describe('ShareOperationSchema', () => {
         amount: 50,
         user: { uid: 'invitee-uid' },
         sourceId: 'invite-1',
-        sourceType: 'invite',
       };
       expect(ShareOperationSchema.parse(op)).toEqual(op);
     });
-  });
-
-  describe('accept-applicant branch', () => {
-    it('accepts a valid accept-applicant operation', () => {
-      const op = {
-        type: 'accept-applicant',
-        user: { uid: 'applicant-uid-123' },
-        sourceId: 'job-id-456',
-        amount: 50,
-      };
-      expect(ShareOperationSchema.parse(op)).toEqual(op);
-    });
-    it('rejects unknown keys (.strict)', () => {
+    it('rejects sourceType as an unknown key (.strict)', () => {
       expect(() =>
         ShareOperationSchema.parse({
-          type: 'accept-applicant',
-          user: { uid: 'applicant-uid-123' },
-          sourceId: 'job-id-456',
+          type: 'convert-invite',
           amount: 50,
-          extraField: 'nope',
+          user: { uid: 'invitee-uid' },
+          sourceId: 'invite-1',
+          sourceType: 'invite',
         }),
       ).toThrow();
     });
@@ -122,6 +92,16 @@ describe('ShareOperationSchema', () => {
         ShareOperationSchema.parse({ type: 'delete-everything' }),
       ).toThrow();
     });
+    it('rejects accept-applicant (removed operation)', () => {
+      expect(() =>
+        ShareOperationSchema.parse({
+          type: 'accept-applicant',
+          user: { uid: 'uid' },
+          sourceId: 'job-1',
+          amount: 50,
+        }),
+      ).toThrow();
+    });
     it('rejects missing type field', () => {
       expect(() =>
         ShareOperationSchema.parse({ amount: 5 }),
@@ -130,7 +110,7 @@ describe('ShareOperationSchema', () => {
   });
 
   describe('projectData field rejection (dead-code removed)', () => {
-    it('rejects payloads that include projectData (was previously optional, now removed)', () => {
+    it('rejects payloads that include projectData', () => {
       expect(() =>
         ShareOperationSchema.parse({
           type: 'create-project',
@@ -147,7 +127,7 @@ describe('ManageProjectSharesInputSchema', () => {
   it('accepts a valid input', () => {
     const input = {
       projectId: 'project-1',
-      operation: { type: 'add-pending', amount: 10, sourceId: 'i-1', sourceType: 'invite' },
+      operation: { type: 'add-pending', amount: 10, sourceId: 'i-1' },
     };
     expect(ManageProjectSharesInputSchema.parse(input)).toEqual(input);
   });

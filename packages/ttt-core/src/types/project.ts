@@ -30,9 +30,8 @@ export type ProjectProfessionsMap = {
 };
 
 export type PendingShares = {
-  [sourceId: string]: {
+  [inviteId: string]: {
     amount: number;
-    type: 'invite' | 'job';
     createdAt: number;
   };
 };
