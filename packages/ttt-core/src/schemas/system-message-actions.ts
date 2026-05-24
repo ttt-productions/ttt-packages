@@ -17,6 +17,6 @@ export type UpdateInviteConfirmationInput = z.infer<typeof UpdateInviteConfirmat
 
 export const UpdateInviteSharesInputSchema = z.object({
   inviteId: inviteIdSchema,
-  newShares: z.number().int().min(0),
+  newShares: z.number().int().min(1),
 }).strict();
 export type UpdateInviteSharesInput = z.infer<typeof UpdateInviteSharesInputSchema>;
