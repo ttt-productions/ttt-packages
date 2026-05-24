@@ -26,25 +26,31 @@ export function VideoViewer(props: VideoViewerProps) {
   } = props;
 
   const resolvedMuted = muted ?? autoPlay;
+  const autoplayActive = autoPlayOnVisible || autoPlay;
 
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
   const [shouldLoad, setShouldLoad] = React.useState(priority || !lazy);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
-  const { ref: inViewRef, inView } = useInView({
-    triggerOnce: !unloadOnExit,
-    threshold: 0.01,
+  // Single observer for both lazy-load gating AND autoplay-on-visible.
+  // threshold: [0, 0.5] — 0 fires "any pixel visible" (drives shouldLoad),
+  // 0.5 fires "at least half visible" (drives autoplay/pause).
+  const { ref: inViewRef, inView, entry } = useInView({
+    triggerOnce: !unloadOnExit && !autoplayActive,
+    threshold: [0, 0.5],
     rootMargin: "200px",
-    skip: priority || !lazy,
+    skip: !autoplayActive && (priority || !lazy),
   });
 
-  // Load/unload based on viewport
+  const isFullyVisible = (entry?.intersectionRatio ?? 0) >= 0.5;
+
+  // Load/unload based on viewport (any-pixel signal)
   React.useEffect(() => {
     if (inView && !shouldLoad) {
       setShouldLoad(true);
     }
-    if (!inView && unloadOnExit && shouldLoad && !priority) {
+    if (!inView && unloadOnExit && shouldLoad && !priority && lazy) {
       const video = videoRef.current;
       if (video) {
         video.pause();
@@ -72,29 +78,19 @@ export function VideoViewer(props: VideoViewerProps) {
     onError?.();
   }, [onError]);
 
-  // Autoplay on visible / pause on exit
+  // Autoplay on >=50% visible / pause when below (same single observer above)
   React.useEffect(() => {
+    if (!autoplayActive) return;
     const video = videoRef.current;
-    if (!video || !shouldLoad || (!autoPlayOnVisible && !autoPlay)) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            if (video.paused) {
-              video.play().catch(() => {});
-            }
-          } else if (!video.paused) {
-            video.pause();
-          }
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    observer.observe(video);
-    return () => observer.disconnect();
-  }, [autoPlayOnVisible, autoPlay, shouldLoad]);
+    if (!video || !shouldLoad) return;
+    if (isFullyVisible) {
+      if (video.paused) {
+        video.play().catch(() => {});
+      }
+    } else if (!video.paused) {
+      video.pause();
+    }
+  }, [autoplayActive, shouldLoad, isFullyVisible]);
 
   // Fullscreen
   const requestFullscreen = React.useCallback(() => {

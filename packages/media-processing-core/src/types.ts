@@ -30,3 +30,9 @@ export type ProcessMediaFn = (
   ctx: ProcessMediaContext,
   opts?: ProcessMediaOptions
 ) => Promise<MediaProcessingResult>;
+
+export interface MediaProcessors {
+  image: ProcessMediaFn;
+  video: ProcessMediaFn;
+  audio: ProcessMediaFn;
+}

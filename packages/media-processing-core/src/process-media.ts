@@ -2,24 +2,31 @@ import type { MediaProcessingResult, MediaProcessingSpec } from "@ttt-production
 import { processImage } from "./image/image-processor.js";
 import { processVideo } from "./video/video-processor.js";
 import { processAudio } from "./audio/audio-processor.js";
-import type { ProcessMediaContext, ProcessMediaOptions } from "./types.js";
+import type { MediaProcessors, ProcessMediaContext, ProcessMediaOptions } from "./types.js";
 
-export type { MediaPipelineProgress, ProcessMediaContext, ProcessMediaOptions } from "./types.js";
+export type { MediaPipelineProgress, MediaProcessors, ProcessMediaContext, ProcessMediaOptions } from "./types.js";
+
+export const defaultMediaProcessors: MediaProcessors = {
+  image: processImage,
+  video: processVideo,
+  audio: processAudio,
+};
 
 export async function processMedia(
   spec: MediaProcessingSpec,
   ctx: ProcessMediaContext,
-  opts?: ProcessMediaOptions
+  opts?: ProcessMediaOptions,
+  processors: MediaProcessors = defaultMediaProcessors
 ): Promise<MediaProcessingResult> {
   switch (spec.kind) {
     case "image":
-      return processImage(spec, ctx, opts);
+      return processors.image(spec, ctx, opts);
 
     case "video":
-      return processVideo(spec, ctx, opts);
+      return processors.video(spec, ctx, opts);
 
     case "audio":
-      return processAudio(spec, ctx, opts);
+      return processors.audio(spec, ctx, opts);
 
     case "generic":
     default:

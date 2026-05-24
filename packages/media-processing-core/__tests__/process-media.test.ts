@@ -1,93 +1,168 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-vi.mock('../src/image/image-processor.js', () => ({
-  processImage: vi.fn(),
-}));
-vi.mock('../src/video/video-processor.js', () => ({
-  processVideo: vi.fn(),
-}));
-vi.mock('../src/audio/audio-processor.js', () => ({
-  processAudio: vi.fn(),
-}));
-
-import { processMedia } from '../src/process-media';
+import { describe, it, expect, vi } from 'vitest';
+import type { MediaProcessingResult, MediaProcessingSpec } from '@ttt-productions/media-schemas';
+import {
+  processMedia,
+  defaultMediaProcessors,
+} from '../src/process-media';
 import { processImage } from '../src/image/image-processor.js';
 import { processVideo } from '../src/video/video-processor.js';
 import { processAudio } from '../src/audio/audio-processor.js';
-import type { ProcessMediaContext } from '../src/types';
+import type {
+  MediaProcessors,
+  ProcessMediaContext,
+  ProcessMediaOptions,
+} from '../src/types';
 
-const mockContext: ProcessMediaContext = {
+const ctx: ProcessMediaContext = {
   inputPath: '/tmp/in',
   outputBasePath: '/tmp/out',
 };
 
-const imageResult = { ok: true as const, mediaType: 'image' as const, outputs: [] };
-const videoResult = { ok: true as const, mediaType: 'video' as const, outputs: [] };
-const audioResult = { ok: true as const, mediaType: 'audio' as const, outputs: [] };
+const imageResult: MediaProcessingResult = {
+  ok: true,
+  mediaType: 'image',
+  outputs: [],
+};
+const videoResult: MediaProcessingResult = {
+  ok: true,
+  mediaType: 'video',
+  outputs: [],
+};
+const audioResult: MediaProcessingResult = {
+  ok: true,
+  mediaType: 'audio',
+  outputs: [],
+};
 
-describe('processMedia', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(processImage).mockResolvedValue(imageResult as any);
-    vi.mocked(processVideo).mockResolvedValue(videoResult as any);
-    vi.mocked(processAudio).mockResolvedValue(audioResult as any);
-  });
+interface RecordedCall {
+  spec: MediaProcessingSpec;
+  ctx: ProcessMediaContext;
+  opts: ProcessMediaOptions | undefined;
+}
 
-  it('calls processImage for kind="image"', async () => {
-    const spec = { kind: 'image' as const, outputs: [] } as any;
-    await processMedia(spec, mockContext);
-    expect(processImage).toHaveBeenCalledWith(spec, mockContext, undefined);
-  });
+function makeFakeProcessors(): {
+  processors: MediaProcessors;
+  calls: { image: RecordedCall[]; video: RecordedCall[]; audio: RecordedCall[] };
+} {
+  const calls = { image: [] as RecordedCall[], video: [] as RecordedCall[], audio: [] as RecordedCall[] };
+  const processors: MediaProcessors = {
+    image: async (spec, c, opts) => {
+      calls.image.push({ spec, ctx: c, opts });
+      return imageResult;
+    },
+    video: async (spec, c, opts) => {
+      calls.video.push({ spec, ctx: c, opts });
+      return videoResult;
+    },
+    audio: async (spec, c, opts) => {
+      calls.audio.push({ spec, ctx: c, opts });
+      return audioResult;
+    },
+  };
+  return { processors, calls };
+}
 
-  it('returns processImage result for kind="image"', async () => {
-    const spec = { kind: 'image' as const, outputs: [] } as any;
-    const result = await processMedia(spec, mockContext);
+describe('processMedia — routing with injected processors', () => {
+  it('routes kind="image" to the injected image processor and returns its result', async () => {
+    const { processors, calls } = makeFakeProcessors();
+    const spec = { kind: 'image' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    const result = await processMedia(spec, ctx, undefined, processors);
     expect(result).toBe(imageResult);
+    expect(calls.image).toHaveLength(1);
+    expect(calls.video).toHaveLength(0);
+    expect(calls.audio).toHaveLength(0);
+    expect(calls.image[0].spec).toBe(spec);
+    expect(calls.image[0].ctx).toBe(ctx);
+    expect(calls.image[0].opts).toBeUndefined();
   });
 
-  it('calls processVideo for kind="video"', async () => {
-    const spec = { kind: 'video' as const, outputs: [] } as any;
-    await processMedia(spec, mockContext);
-    expect(processVideo).toHaveBeenCalledWith(spec, mockContext, undefined);
-  });
-
-  it('returns processVideo result for kind="video"', async () => {
-    const spec = { kind: 'video' as const, outputs: [] } as any;
-    const result = await processMedia(spec, mockContext);
+  it('routes kind="video" to the injected video processor and returns its result', async () => {
+    const { processors, calls } = makeFakeProcessors();
+    const spec = { kind: 'video' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    const result = await processMedia(spec, ctx, undefined, processors);
     expect(result).toBe(videoResult);
+    expect(calls.video).toHaveLength(1);
+    expect(calls.image).toHaveLength(0);
+    expect(calls.audio).toHaveLength(0);
+    expect(calls.video[0].spec).toBe(spec);
   });
 
-  it('calls processAudio for kind="audio"', async () => {
-    const spec = { kind: 'audio' as const, outputs: [] } as any;
-    await processMedia(spec, mockContext);
-    expect(processAudio).toHaveBeenCalledWith(spec, mockContext, undefined);
-  });
-
-  it('returns processAudio result for kind="audio"', async () => {
-    const spec = { kind: 'audio' as const, outputs: [] } as any;
-    const result = await processMedia(spec, mockContext);
+  it('routes kind="audio" to the injected audio processor and returns its result', async () => {
+    const { processors, calls } = makeFakeProcessors();
+    const spec = { kind: 'audio' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    const result = await processMedia(spec, ctx, undefined, processors);
     expect(result).toBe(audioResult);
+    expect(calls.audio).toHaveLength(1);
+    expect(calls.image).toHaveLength(0);
+    expect(calls.video).toHaveLength(0);
   });
 
-  it('returns error result with code "processing_failed" for kind="generic"', async () => {
-    const spec = { kind: 'generic' as const } as any;
-    const result = await processMedia(spec, mockContext);
+  it('forwards opts to the chosen processor unchanged', async () => {
+    const { processors, calls } = makeFakeProcessors();
+    const opts: ProcessMediaOptions = { onProgress: vi.fn() };
+    const spec = { kind: 'image' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    await processMedia(spec, ctx, opts, processors);
+    expect(calls.image[0].opts).toBe(opts);
+  });
+
+  it('forwards ctx to the chosen processor unchanged', async () => {
+    const { processors, calls } = makeFakeProcessors();
+    const localCtx: ProcessMediaContext = { inputPath: '/x', outputBasePath: '/y', inputMime: 'image/png' };
+    const spec = { kind: 'image' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    await processMedia(spec, localCtx, undefined, processors);
+    expect(calls.image[0].ctx).toBe(localCtx);
+  });
+
+  it('propagates the processor\'s rejection when the processor throws', async () => {
+    const boom = new Error('boom');
+    const processors: MediaProcessors = {
+      image: async () => {
+        throw boom;
+      },
+      video: async () => videoResult,
+      audio: async () => audioResult,
+    };
+    const spec = { kind: 'image' as const, outputs: [] } as unknown as MediaProcessingSpec;
+    await expect(processMedia(spec, ctx, undefined, processors)).rejects.toBe(boom);
+  });
+});
+
+describe('processMedia — generic branch', () => {
+  it('returns a fully-shaped processing_failed error for kind="generic"', async () => {
+    const { processors, calls } = makeFakeProcessors();
+    const spec = { kind: 'generic' as const } as unknown as MediaProcessingSpec;
+    const result = await processMedia(spec, ctx, undefined, processors);
+    expect(result).toEqual({
+      ok: false,
+      mediaType: 'other',
+      error: { code: 'processing_failed', message: 'Generic processing not implemented yet.' },
+    });
+    expect(calls.image).toHaveLength(0);
+    expect(calls.video).toHaveLength(0);
+    expect(calls.audio).toHaveLength(0);
+  });
+
+  it('returns the generic-branch error even when processors arg is omitted', async () => {
+    const spec = { kind: 'generic' as const } as unknown as MediaProcessingSpec;
+    const result = await processMedia(spec, ctx);
     expect(result.ok).toBe(false);
-    expect((result as any).error.code).toBe('processing_failed');
+    if (!result.ok) {
+      expect(result.mediaType).toBe('other');
+      expect(result.error!.code).toBe('processing_failed');
+    }
+  });
+});
+
+describe('defaultMediaProcessors', () => {
+  it('exposes the real image processor as default', () => {
+    expect(defaultMediaProcessors.image).toBe(processImage);
   });
 
-  it('does not call processImage/processVideo/processAudio for kind="generic"', async () => {
-    const spec = { kind: 'generic' as const } as any;
-    await processMedia(spec, mockContext);
-    expect(processImage).not.toHaveBeenCalled();
-    expect(processVideo).not.toHaveBeenCalled();
-    expect(processAudio).not.toHaveBeenCalled();
+  it('exposes the real video processor as default', () => {
+    expect(defaultMediaProcessors.video).toBe(processVideo);
   });
 
-  it('passes opts through to the processor', async () => {
-    const spec = { kind: 'image' as const, outputs: [] } as any;
-    const opts = { onProgress: vi.fn() };
-    await processMedia(spec, mockContext, opts as any);
-    expect(processImage).toHaveBeenCalledWith(spec, mockContext, opts);
+  it('exposes the real audio processor as default', () => {
+    expect(defaultMediaProcessors.audio).toBe(processAudio);
   });
 });

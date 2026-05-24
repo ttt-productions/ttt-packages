@@ -14,6 +14,9 @@ TTT Productions application-data package.
 - TTT upload-variable schemas
 - TTT mention kinds/schemas/validation rules
 - TTT admin task type union
+- Project invite source schemas/types (`InviteSource`, `InviteSourceType`) for standalone, skill, job, and opportunity invite origins
+- Project share-operation schemas/types, including the invite-only pending-share reservation contract
+- Job application lifecycle schemas/types (`open`, `invited`, `accepted`, `rejected`)
 - `AuditEventType` catalog, `TTTAuditActor`, `TTTAuditTarget`, and `TTTAuditEvent` specialization of the `@ttt-productions/audit-core` generic
 
 ## Boundary
@@ -21,3 +24,18 @@ TTT Productions application-data package.
 `ttt-core` may depend on generic packages. Generic packages must not depend on `ttt-core`.
 
 Generic admin/report shapes live in `report-core`. Pure chat schemas live in `chat-schemas`. Generic media shapes/factories live in `media-schemas`.
+
+
+## Project invite and share-contract ownership
+
+`ttt-core` owns the shared wire/data contracts for project invite creation and share operations. The app must consume these contracts instead of redefining local interfaces.
+
+Current membership invariant:
+
+- `InviteUserToProjectInputSchema` requires an `InviteSource` discriminated union.
+- `PendingShares` is keyed by invite conversation ID and stores only reservation amount/timestamp.
+- Share operations do not carry a pending-share `sourceType`; pending reservations are invite reservations.
+- Job/opportunity source variants carry compact context plus the posting share floor. They do not carry old application/reply message or media payloads.
+- Job application status is modeled as `open -> invited -> accepted` or `open -> rejected`; project membership still comes only from invite finalization.
+
+When adding a new invite source or application lifecycle state, update the schema here first and then publish/consume it in `ttt-prod`. Do not add parallel frontend/backend interfaces in the app.
