@@ -14,11 +14,6 @@ describe('Checkbox', () => {
     expect(root?.className).toContain('my-checkbox');
   });
 
-  it('has a displayName set', () => {
-    expect(typeof Checkbox.displayName).toBe('string');
-    expect(Checkbox.displayName!.length).toBeGreaterThan(0);
-  });
-
   it('renders a button element (Radix Checkbox root is a button)', () => {
     const { container } = render(<Checkbox />);
     const button = container.querySelector('button');

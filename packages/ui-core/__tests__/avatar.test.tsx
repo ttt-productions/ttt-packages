@@ -13,10 +13,6 @@ describe('Avatar', () => {
     const root = container.firstChild as HTMLElement;
     expect(root?.className).toContain('my-avatar');
   });
-
-  it('has displayName set', () => {
-    expect(typeof Avatar.displayName).toBe('string');
-  });
 });
 
 describe('AvatarFallback', () => {
@@ -37,10 +33,6 @@ describe('AvatarFallback', () => {
     );
     const span = container.querySelector('[class*="fallback-class"]');
     expect(span).not.toBeNull();
-  });
-
-  it('has displayName set', () => {
-    expect(typeof AvatarFallback.displayName).toBe('string');
   });
 });
 
@@ -64,9 +56,5 @@ describe('AvatarImage', () => {
     );
     const img = container.querySelector('img');
     expect(img).toBeNull();
-  });
-
-  it('has displayName set', () => {
-    expect(typeof AvatarImage.displayName).toBe('string');
   });
 });

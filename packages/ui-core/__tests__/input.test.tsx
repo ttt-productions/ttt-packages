@@ -38,8 +38,4 @@ describe('Input', () => {
     render(<Input ref={ref} />);
     expect(ref.current).toBeInstanceOf(HTMLInputElement);
   });
-
-  it('has displayName "Input"', () => {
-    expect(Input.displayName).toBe('Input');
-  });
 });

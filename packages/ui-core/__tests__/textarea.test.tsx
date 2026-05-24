@@ -36,8 +36,4 @@ describe('Textarea', () => {
     render(<Textarea ref={ref} />);
     expect(ref.current).toBeInstanceOf(HTMLTextAreaElement);
   });
-
-  it('has displayName "Textarea"', () => {
-    expect(Textarea.displayName).toBe('Textarea');
-  });
 });

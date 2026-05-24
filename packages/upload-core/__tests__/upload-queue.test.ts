@@ -141,7 +141,7 @@ describe('UploadQueue', () => {
     expect(queue.getPendingCount()).toBe(0);
   });
 
-  it('higher priority job runs before lower priority job', () => {
+  it('higher priority job runs before lower priority job', async () => {
     const queue = new UploadQueue({ concurrency: 1 });
 
     const ctrl1 = makeMockController('c1');
@@ -165,14 +165,14 @@ describe('UploadQueue', () => {
     // Complete job1 — should start the high priority job next
     ctrl1.resolveDone({ downloadURL: '', fullPath: '', contentType: null, size: 0 });
 
-    // The startResumableUpload call count tells us ordering
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        // job3 (priority 10) should have been started
-        expect(startResumableUpload).toHaveBeenCalledTimes(2); // job1 + next from pending
-        resolve();
-      }, 10);
-    });
+    // The startResumableUpload call count tells us ordering.
+    // The queue picks up the next pending job via a microtask after the
+    // current one resolves; flush the microtask queue deterministically
+    // instead of waiting on a real timer.
+    await Promise.resolve();
+    await Promise.resolve();
+    // job3 (priority 10) should have been started
+    expect(startResumableUpload).toHaveBeenCalledTimes(2); // job1 + next from pending
   });
 
   it('FIFO within same priority (lower seq runs first)', () => {
@@ -213,8 +213,11 @@ describe('UploadQueue', () => {
     // Resolve the job
     ctrl.resolveDone({ downloadURL: '', fullPath: '', contentType: null, size: 0 });
 
-    // Wait for the promise chain to settle
-    await new Promise((r) => setTimeout(r, 10));
+    // Wait for the promise chain to settle. Two microtask flushes match
+    // the two `.then` hops the queue uses to mark the slot freed; no
+    // real timers needed.
+    await Promise.resolve();
+    await Promise.resolve();
     expect(queue.getRunningCount()).toBe(0);
   });
 

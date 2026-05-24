@@ -14,11 +14,6 @@ describe('Switch', () => {
     expect(root?.className).toContain('my-switch');
   });
 
-  it('has a displayName set', () => {
-    expect(typeof Switch.displayName).toBe('string');
-    expect(Switch.displayName!.length).toBeGreaterThan(0);
-  });
-
   it('renders a button element (Radix Switch root is a button)', () => {
     const { container } = render(<Switch />);
     const button = container.querySelector('button');

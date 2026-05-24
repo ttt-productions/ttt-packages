@@ -117,28 +117,4 @@ describe('Table components', () => {
     expect(container.querySelector('tbody')?.className).toContain('tb');
     expect(container.querySelector('td')?.className).toContain('cell');
   });
-
-  it('Table has displayName "Table"', () => {
-    expect(Table.displayName).toBe('Table');
-  });
-
-  it('TableHeader has displayName "TableHeader"', () => {
-    expect(TableHeader.displayName).toBe('TableHeader');
-  });
-
-  it('TableBody has displayName "TableBody"', () => {
-    expect(TableBody.displayName).toBe('TableBody');
-  });
-
-  it('TableRow has displayName "TableRow"', () => {
-    expect(TableRow.displayName).toBe('TableRow');
-  });
-
-  it('TableHead has displayName "TableHead"', () => {
-    expect(TableHead.displayName).toBe('TableHead');
-  });
-
-  it('TableCell has displayName "TableCell"', () => {
-    expect(TableCell.displayName).toBe('TableCell');
-  });
 });

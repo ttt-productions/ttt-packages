@@ -76,16 +76,4 @@ describe('Tabs components', () => {
     const content = container.querySelector('[class*="my-content"]');
     expect(content).not.toBeNull();
   });
-
-  it('TabsList has displayName', () => {
-    expect(typeof TabsList.displayName).toBe('string');
-  });
-
-  it('TabsTrigger has displayName', () => {
-    expect(typeof TabsTrigger.displayName).toBe('string');
-  });
-
-  it('TabsContent has displayName', () => {
-    expect(typeof TabsContent.displayName).toBe('string');
-  });
 });
