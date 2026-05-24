@@ -75,6 +75,10 @@
         "./media": {
             "types": "./dist/media/index.d.ts",
             "default": "./dist/media/index.js"
+        },
+        "./permissions": {
+            "types": "./dist/permissions/index.d.ts",
+            "default": "./dist/permissions/index.js"
         }
     },
     "scripts": {

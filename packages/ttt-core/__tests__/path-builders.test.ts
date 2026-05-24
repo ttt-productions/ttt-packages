@@ -158,12 +158,20 @@ describe('PATH_BUILDERS', () => {
       expect(result[5]).toBe('show1');
     });
 
-    it('projectShare returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.projectShare('proj1', 'share1');
+    it('projectMember returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.projectMember('proj1', 'uid1');
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.SHARE_HISTORY);
-      expect(result[3]).toBe('share1');
+      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.MEMBERS);
+      expect(result[3]).toBe('uid1');
+    });
+
+    it('projectFile returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.projectFile('proj1', 'file1');
+      expect(result).toHaveLength(4);
+      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
+      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.FILES);
+      expect(result[3]).toBe('file1');
     });
 
     it('chatChannel returns 4-segment tuple', () => {

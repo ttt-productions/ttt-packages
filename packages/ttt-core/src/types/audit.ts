@@ -45,6 +45,9 @@ export type AuditEventType =
   | 'project.jobApplicantSaveToggled'
   | 'project.jobApplicantRejected'
   | 'project.sharesChanged'
+  | 'project.shares.created'
+  | 'project.shares.increased'
+  | 'project.shares.anomaly'
   // skills
   | 'skill.userSkillDeleted'
   // content

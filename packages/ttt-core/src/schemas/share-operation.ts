@@ -20,6 +20,7 @@ import {
 
 const userRefSchema = z.object({
   uid: userIdSchema,
+  displayName: z.string().optional(),
 }).strict();
 
 export const ShareOperationSchema = z.discriminatedUnion('type', [

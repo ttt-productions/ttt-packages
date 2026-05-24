@@ -7,6 +7,7 @@ const ADMIN_TASK_TYPES: [AdminTaskType, ...AdminTaskType[]] = [
   'libraryReview',
   'userReport',
   'content-appeal',
+  'shareAnomaly',
 ];
 
 export const CheckoutNextImportantTaskInputSchema = z.object({}).strict();

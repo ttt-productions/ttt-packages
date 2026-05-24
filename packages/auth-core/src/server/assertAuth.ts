@@ -110,20 +110,19 @@ export function createAssertAuth<TUser, TProject>(
       const isOwner = config.isProjectOwner(projectData, uid);
       const isMember = isOwner || config.isProjectMember(projectData, uid);
 
-      if (requirements.projectMembership.role === "owner") {
-        if (!isOwner) {
-          throw new HttpsError(
-            "permission-denied",
-            "Project owner access required"
-          );
-        }
-      } else {
-        if (!isMember) {
-          throw new HttpsError(
-            "permission-denied",
-            "Not a member of this project"
-          );
-        }
+      const { projectId, action } = requirements.projectMembership;
+      const allowed = await config.isProjectActionAllowed({
+        project: projectData,
+        projectId,
+        uid,
+        action,
+      });
+
+      if (!allowed) {
+        throw new HttpsError(
+          "permission-denied",
+          "Project action is not allowed"
+        );
       }
 
       projectContext = { data: projectData, isOwner, isMember };

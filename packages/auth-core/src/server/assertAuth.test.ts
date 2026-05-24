@@ -70,6 +70,7 @@ function memberProjectDoc(callerUid: string): TestProject {
 let mockUserGet: ReturnType<typeof vi.fn>;
 let mockProjectGet: ReturnType<typeof vi.fn>;
 let mockRequireAdmin: ReturnType<typeof vi.fn>;
+let mockIsProjectActionAllowed: ReturnType<typeof vi.fn>;
 let mockDbDoc: ReturnType<typeof vi.fn>;
 let assertAuth: ReturnType<typeof createAssertAuth<TestUser, TestProject>>;
 
@@ -80,6 +81,10 @@ beforeEach(() => {
     data: () => memberProjectDoc("uid-123"),
   });
   mockRequireAdmin = vi.fn().mockResolvedValue(undefined);
+  mockIsProjectActionAllowed = vi.fn(async ({ project, uid, action }) =>
+    action === "project.read" &&
+    (project.ownedBy?.uid === uid || project.activeUserIds?.[uid] === true || (project.activeUsers || []).some((u: { uid: string }) => u.uid === uid))
+  );
 
   const userDocRef = { get: mockUserGet };
   const projectDocRef = { get: mockProjectGet };
@@ -106,6 +111,7 @@ beforeEach(() => {
       project.ownedBy?.uid === uid ||
       project.activeUserIds?.[uid] === true ||
       (project.activeUsers || []).some((u) => u.uid === uid),
+    isProjectActionAllowed: mockIsProjectActionAllowed as any,
     requireAdmin: mockRequireAdmin as any,
   };
 
@@ -286,7 +292,7 @@ describe("Project membership", () => {
     mockProjectGet.mockResolvedValue({ exists: false, data: () => null });
     await expect(
       assertAuth(makeRequest(), {
-        projectMembership: { projectId: "p1" },
+        projectMembership: { projectId: "p1", action: "project.read" },
         allowAnyStatus: true,
       })
     ).rejects.toMatchObject({ code: "not-found" });
@@ -304,7 +310,7 @@ describe("Project membership", () => {
     });
     await expect(
       assertAuth(makeRequest(), {
-        projectMembership: { projectId: "p1" },
+        projectMembership: { projectId: "p1", action: "project.read" },
         allowAnyStatus: true,
       })
     ).rejects.toMatchObject({ code: "permission-denied" });
@@ -321,7 +327,7 @@ describe("Project membership", () => {
       }),
     });
     const ctx = await assertAuth(makeRequest(), {
-      projectMembership: { projectId: "p1" },
+      projectMembership: { projectId: "p1", action: "project.read" },
       allowAnyStatus: true,
     });
     expect(ctx.project?.isMember).toBe(true);
@@ -339,7 +345,7 @@ describe("Project membership", () => {
       }),
     });
     const ctx = await assertAuth(makeRequest(), {
-      projectMembership: { projectId: "p1" },
+      projectMembership: { projectId: "p1", action: "project.read" },
       allowAnyStatus: true,
     });
     expect(ctx.project?.isMember).toBe(true);
@@ -357,14 +363,14 @@ describe("Project membership", () => {
       }),
     });
     const ctx = await assertAuth(makeRequest(), {
-      projectMembership: { projectId: "p1" },
+      projectMembership: { projectId: "p1", action: "project.read" },
       allowAnyStatus: true,
     });
     expect(ctx.project?.isOwner).toBe(true);
     expect(ctx.project?.isMember).toBe(true);
   });
 
-  it("throws permission-denied when role is owner but caller is only a member", async () => {
+  it("throws permission-denied when action callback denies the project action", async () => {
     mockProjectGet.mockResolvedValue({
       exists: true,
       data: () => ({
@@ -374,15 +380,16 @@ describe("Project membership", () => {
         activeUsers: [],
       }),
     });
+    mockIsProjectActionAllowed.mockResolvedValue(false);
     await expect(
       assertAuth(makeRequest(), {
-        projectMembership: { projectId: "p1", role: "owner" },
+        projectMembership: { projectId: "p1", action: "member.role.update" },
         allowAnyStatus: true,
       })
     ).rejects.toMatchObject({ code: "permission-denied" });
   });
 
-  it("succeeds when role is owner and caller is the owner", async () => {
+  it("succeeds when action callback allows the project action", async () => {
     mockProjectGet.mockResolvedValue({
       exists: true,
       data: () => ({
@@ -392,8 +399,9 @@ describe("Project membership", () => {
         activeUsers: [],
       }),
     });
+    mockIsProjectActionAllowed.mockResolvedValue(true);
     const ctx = await assertAuth(makeRequest(), {
-      projectMembership: { projectId: "p1", role: "owner" },
+      projectMembership: { projectId: "p1", action: "member.role.update" },
       allowAnyStatus: true,
     });
     expect(ctx.project?.isOwner).toBe(true);
@@ -472,7 +480,7 @@ describe("Combined checks", () => {
     const ctx = await assertAuth(makeRequest({ emailVerified: true }), {
       emailVerified: true,
       creator: true,
-      projectMembership: { projectId: "p1" },
+      projectMembership: { projectId: "p1", action: "project.read" },
       admin: { allowJrAdmin: true },
     });
 
@@ -494,7 +502,7 @@ describe("Parallelization", () => {
 
     await assertAuth(makeRequest(), {
       creator: true,
-      projectMembership: { projectId: "p1" },
+      projectMembership: { projectId: "p1", action: "project.read" },
       allowAnyStatus: true,
     });
 

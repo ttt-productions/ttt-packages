@@ -54,12 +54,13 @@ export interface AuthRequirements {
   allowBanned?: boolean;
 
   /**
-   * Require the caller is a member (or owner) of a given project.
-   * Reads the project doc via config.projectPath(projectId).
+   * Require the caller is allowed to perform a project action.
+   * Owner access is implicit in the consuming app's isProjectActionAllowed callback.
+   * Baseline member reads should use an app-defined action such as `project.read`.
    */
   projectMembership?: {
     projectId: string;
-    role?: "member" | "owner";
+    action: string;
   };
 
   /**
@@ -151,6 +152,17 @@ export interface AssertAuthConfig<TUser, TProject> {
    * typically also members — the callback should reflect that.
    */
   isProjectMember: (project: TProject, uid: string) => boolean;
+
+  /**
+   * Returns true if the caller may perform a project action. Apps can perform
+   * async reads here, such as loading allProjects/{projectId}/members/{uid}.
+   */
+  isProjectActionAllowed: (args: {
+    project: TProject;
+    projectId: string;
+    uid: string;
+    action: string;
+  }) => Promise<boolean>;
 
   /**
    * Admin check. Called only when AuthRequirements.admin is set. The

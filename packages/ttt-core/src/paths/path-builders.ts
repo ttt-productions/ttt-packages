@@ -65,8 +65,14 @@ export const PATH_BUILDERS = {
   tvShow: (projectId: string, televisionId: string, showId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION, televisionId, NESTED_SUBCOLLECTIONS.TV_SHOWS, showId],
 
-  projectShare: (projectId: string, shareId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.SHARE_HISTORY, shareId],
+  projectMember: (projectId: string, uid: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.MEMBERS, uid],
+
+  projectFile: (projectId: string, fileId: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.FILES, fileId],
+
+  shareAuditEvent: (eventId: string): [string, string] =>
+    [COLLECTIONS.SHARE_AUDIT_EVENTS, eventId],
 
   chatChannel: (projectId: string, channelId: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.CHAT_CHANNELS, channelId],

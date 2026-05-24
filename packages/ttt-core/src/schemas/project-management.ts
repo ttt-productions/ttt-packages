@@ -9,7 +9,8 @@ import {
   replyIdSchema,
   skillIdSchema,
 } from './atoms.js';
-import { PROFESSION_OPTIONS, USER_ROLE_OPTIONS_MAP } from '../constants/options.js';
+import { PROFESSION_OPTIONS } from '../constants/options.js';
+import { PROJECT_ROLE_IDS } from '../permissions/index.js';
 import { MAX_INVITE_MESSAGE_LENGTH } from '../constants/business.js';
 
 const baseFields = {
@@ -39,6 +40,7 @@ export type CreateProjectInput = z.infer<typeof CreateProjectInputSchema>;
 export const DeleteProjectFileInputSchema = z.object({
   projectId: projectIdSchema,
   file: z.object({
+    id: z.string().optional(),
     url: z.string().min(1),
     name: z.string().optional(),
   }),
@@ -106,7 +108,7 @@ export const UpdateProjectMemberProfessionsInputSchema = z.object({
 }).strict();
 export type UpdateProjectMemberProfessionsInput = z.infer<typeof UpdateProjectMemberProfessionsInputSchema>;
 
-const ROLE_VALUES = Object.keys(USER_ROLE_OPTIONS_MAP) as [string, ...string[]];
+const ROLE_VALUES = PROJECT_ROLE_IDS as [typeof PROJECT_ROLE_IDS[number], ...typeof PROJECT_ROLE_IDS[number][]];
 
 export const UpdateProjectMemberRoleInputSchema = z.object({
   projectId: projectIdSchema,

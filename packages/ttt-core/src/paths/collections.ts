@@ -31,6 +31,7 @@ export const COLLECTIONS = {
   SHORT_LINKS: 'shortLinks',
   NOTIFICATION_QUEUE: 'notificationQueue',
   PROJECT_INVITE_CONVERSATIONS: 'projectInviteConversations',
+  SHARE_AUDIT_EVENTS: 'shareAuditEvents',
 
   // Notification system
   ACTIVE_USER_NOTIFICATIONS: 'activeUserNotifications',
@@ -74,7 +75,8 @@ export const PROJECT_SUBCOLLECTIONS = {
   PROJECT_TALES: 'projectTales',
   PROJECT_TUNES: 'projectTunes',
   PROJECT_TELEVISION: 'projectTelevision',
-  SHARE_HISTORY: 'shareHistory',
+  MEMBERS: 'members',
+  FILES: 'files',
   CHAT_CHANNELS: 'chatChannels',
 } as const;
 

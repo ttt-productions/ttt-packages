@@ -3,12 +3,18 @@ export type { ShortProject } from '../media/atoms.js';
 
 import type { LibraryItemType } from './content.js';
 import type { ShortProject } from '../media/atoms.js';
+import type { ProjectRoleId } from '../permissions/index.js';
 
-export type ActiveUsers = {
+export type ProjectMemberStatus = 'active' | 'departed';
+
+export type ProjectMember = {
   uid: string;
-  sharesNumber: number;
-  roles: string[];
+  displayName: string;
+  roles: ProjectRoleId[];
   professions: string[];
+  sharesNumber: number;
+  joinedAt: number;
+  status: ProjectMemberStatus;
 };
 
 export type ProjectFile = {
@@ -19,14 +25,6 @@ export type ProjectFile = {
   size: number;
   type: string;
   createdBy: { uid: string };
-};
-
-export type ProjectRolesMap = {
-  [key: string]: { [uid: string]: true };
-};
-
-export type ProjectProfessionsMap = {
-  [key: string]: { [uid: string]: true };
 };
 
 export type PendingShares = {
@@ -46,12 +44,8 @@ export type FullProject = {
   createdBy: { uid: string };
   ownedBy: { uid: string };
   status: 'open' | 'pendingVerification' | 'published' | 'rejected';
-  activeUsers?: ActiveUsers[];
   activeUserIds?: { [key: string]: boolean };
   invitedUserIds?: { [key: string]: boolean };
-  roles?: ProjectRolesMap;
-  professionMap?: ProjectProfessionsMap;
-  files?: ProjectFile[];
   universeId?: string;
   origin?: 'newUniverse' | 'existingUniverse' | 'standalone';
   pendingShares?: PendingShares;
@@ -77,10 +71,6 @@ export type Universe = {
   ownedBy: { uid: string };
   type: string;
   projectIds: string[];
-};
-
-export type ProjectShareEntry = {
-  shares: number;
 };
 
 export type ProjectInvite = {

@@ -2,18 +2,9 @@
 
 import type { LibraryItemType, ProjectType } from '../types/content.js';
 
-// --- User Roles ---
-
-/** Map of user-role values to display labels. Used in role-picker dropdowns. */
-export const USER_ROLE_OPTIONS_MAP: Record<string, string> = {
-  Admin: 'Admin',
-  Contributor: 'Contributor',
-  Editor: 'Editor',
-  Viewer: 'Viewer',
-};
-
-/** Roles allowed to view the project-invite list for a project. */
-export const ALLOWED_INVITE_LIST_ROLES = ['Owner', 'Admin'] as const;
+// --- Project Roles ---
+// Project role IDs, labels, and assignment policy live in ../permissions/.
+// Keep role picker UIs backed by PROJECT_ROLES instead of a duplicated option map.
 
 // --- Profession & Skill Options ---
 

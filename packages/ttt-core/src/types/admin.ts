@@ -6,4 +6,5 @@ export type AdminTaskType =
   | 'systemMessage'
   | 'libraryReview'
   | 'userReport'
-  | 'content-appeal';
+  | 'content-appeal'
+  | 'shareAnomaly';
