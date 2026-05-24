@@ -1,92 +1,71 @@
-import { describe, it, expect } from 'vitest';
+
+import { describe, it, expect, vi } from 'vitest';
 import { NoopAdapter } from '../src/adapters/noop';
 
 describe('NoopAdapter', () => {
-  it('has an init method', () => {
-    expect(typeof NoopAdapter.init).toBe('function');
-  });
-
-  it('has a captureException method', () => {
-    expect(typeof NoopAdapter.captureException).toBe('function');
-  });
-
-  it('has a captureMessage method', () => {
-    expect(typeof NoopAdapter.captureMessage).toBe('function');
-  });
-
-  it('has a setUser method', () => {
-    expect(typeof NoopAdapter.setUser).toBe('function');
-  });
-
-  it('has a setTag method', () => {
-    expect(typeof NoopAdapter.setTag).toBe('function');
-  });
-
-  it('has a withScope method', () => {
-    expect(typeof NoopAdapter.withScope).toBe('function');
-  });
-
-  it('has an addBreadcrumb method', () => {
-    expect(typeof NoopAdapter.addBreadcrumb).toBe('function');
-  });
-
-  it('init does not throw', () => {
-    expect(() => NoopAdapter.init({ provider: 'noop' })).not.toThrow();
-  });
-
-  it('captureException does not throw', () => {
-    expect(() => NoopAdapter.captureException(new Error('test'))).not.toThrow();
-    expect(() => NoopAdapter.captureException('string error')).not.toThrow();
-    expect(() => NoopAdapter.captureException(null)).not.toThrow();
-  });
-
-  it('captureException with context does not throw', () => {
-    expect(() =>
-      NoopAdapter.captureException(new Error('test'), { userId: '123' })
-    ).not.toThrow();
-  });
-
-  it('captureMessage does not throw', () => {
-    expect(() => NoopAdapter.captureMessage('hello')).not.toThrow();
-    expect(() => NoopAdapter.captureMessage('error', 'error')).not.toThrow();
-  });
-
-  it('setUser does not throw', () => {
-    expect(() => NoopAdapter.setUser({ id: 'uid-123' })).not.toThrow();
-    expect(() => NoopAdapter.setUser(null)).not.toThrow();
-  });
-
-  it('setTag does not throw', () => {
-    expect(() => NoopAdapter.setTag('env', 'production')).not.toThrow();
-  });
-
-  it('addBreadcrumb does not throw', () => {
-    expect(() =>
-      NoopAdapter.addBreadcrumb?.({
-        category: 'navigation',
-        message: 'Page loaded',
-        level: 'info',
-      })
-    ).not.toThrow();
-  });
-
-  it('withScope calls the callback with a scope-like object', () => {
-    const result = NoopAdapter.withScope?.((scope) => {
-      expect(typeof scope.setTag).toBe('function');
-      expect(typeof scope.setUser).toBe('function');
-      expect(typeof scope.setExtra).toBe('function');
-      expect(typeof scope.setContext).toBe('function');
-      return 'test-result';
+    it('captureException accepts any value without side effects on context', () => {
+        const ctx = { userId: '123' };
+        NoopAdapter.captureException(new Error('test'), ctx);
+        // No-op contract: context object must not be mutated by the adapter.
+        expect(ctx).toEqual({ userId: '123' });
     });
-    expect(result).toBe('test-result');
-  });
 
-  it('withScope scope methods do not throw', () => {
-    NoopAdapter.withScope?.((scope) => {
-      expect(() => scope.setTag('key', 'value')).not.toThrow();
-      expect(() => scope.setUser(null)).not.toThrow();
-      expect(() => scope.setExtra('key', 'value')).not.toThrow();
-      expect(() => scope.setContext('key', {})).not.toThrow();
+    it('captureMessage accepts every supported level', () => {
+        const levels = ['fatal', 'error', 'warning', 'info', 'debug'] as const;
+        for (const level of levels) {
+            // No throw, no return value contract — just verify each level is callable.
+            expect(NoopAdapter.captureMessage('m', level)).toBeUndefined();
+        }
     });
-  });
+
+    it('setUser accepts a populated user and null', () => {
+        expect(NoopAdapter.setUser({ id: 'uid-123' })).toBeUndefined();
+        expect(NoopAdapter.setUser(null)).toBeUndefined();
+    });
+
+    it('setTag accepts arbitrary key/value pairs', () => {
+        expect(NoopAdapter.setTag('env', 'production')).toBeUndefined();
+    });
+
+    it('withScope invokes the callback exactly once and returns its result', () => {
+        const cb = vi.fn(() => 'result-value');
+        const out = NoopAdapter.withScope?.(cb);
+        expect(cb).toHaveBeenCalledTimes(1);
+        expect(out).toBe('result-value');
+    });
+
+    it('withScope exposes a scope with no-op setTag/setUser/setExtra/setContext that return undefined', () => {
+        NoopAdapter.withScope?.((scope) => {
+            expect(scope.setTag('k', 'v')).toBeUndefined();
+            expect(scope.setUser({ id: 'uid' })).toBeUndefined();
+            expect(scope.setExtra('k', 'v')).toBeUndefined();
+            expect(scope.setContext('k', { a: 1 })).toBeUndefined();
+        });
+    });
+
+    it('withScope scope is stable across calls to its methods (no exceptions on repeated use)', () => {
+        NoopAdapter.withScope?.((scope) => {
+            for (let i = 0; i < 5; i++) {
+                scope.setTag(`k${i}`, `v${i}`);
+            }
+        });
+    });
+
+    it('addBreadcrumb accepts a full breadcrumb shape without mutating it', () => {
+        const crumb = {
+            category: 'navigation',
+            message: 'Page loaded',
+            level: 'info' as const,
+            data: { from: '/login' },
+        };
+        const snapshot = JSON.stringify(crumb);
+        NoopAdapter.addBreadcrumb?.(crumb);
+        expect(JSON.stringify(crumb)).toBe(snapshot);
+    });
+
+    it('init returns synchronously and accepts a minimal options object', () => {
+        // The noop init contract: synchronous, no return value.
+        const result = NoopAdapter.init({ provider: 'noop' });
+        expect(result).toBeUndefined();
+    });
 });

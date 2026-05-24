@@ -82,3 +82,31 @@ export async function initMonitoring(
   adapter = NoopAdapter;
   initialized = true;
 }
+
+/**
+ * Test seam — install a specific adapter without going through `initMonitoring`.
+ *
+ * Intended for unit tests in `monitoring-core` and in any consuming package
+ * that wants to install a recording fake. Not for production code.
+ *
+ * Marking the module as initialized prevents a subsequent `initMonitoring`
+ * call with the same options from being short-circuited by the dedup check.
+ */
+export function setMonitoringAdapter(next: MonitoringAdapter): void {
+  adapter = next;
+  initialized = true;
+  currentOptions = null;
+}
+
+/**
+ * Test seam — restore the default `NoopAdapter` and clear init state.
+ *
+ * After calling this, `getMonitoringAdapter()` returns the `NoopAdapter`
+ * singleton and the next `initMonitoring` call runs end-to-end without
+ * being deduped against any previous options.
+ */
+export function resetMonitoringAdapter(): void {
+  adapter = NoopAdapter;
+  initialized = false;
+  currentOptions = null;
+}

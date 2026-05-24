@@ -15,10 +15,24 @@ describe('mobile-core env', () => {
     expect(mod.isBrowser).toBe(true);
   });
 
-  it('hasVisualViewport reflects window.visualViewport existence', async () => {
+  it('hasVisualViewport is false in jsdom default (no window.visualViewport)', async () => {
+    vi.resetModules();
+    // Ensure the property is absent for this evaluation
+    delete (window as any).visualViewport;
     const mod = await import('../src/env');
-    // jsdom does not provide visualViewport by default
-    expect(typeof mod.hasVisualViewport).toBe('boolean');
+    expect(mod.hasVisualViewport).toBe(false);
+  });
+
+  it('hasVisualViewport is true when window.visualViewport is present', async () => {
+    vi.resetModules();
+    Object.defineProperty(window, 'visualViewport', {
+      configurable: true,
+      value: { width: 320, height: 480 } as unknown as VisualViewport,
+    });
+    const mod = await import('../src/env');
+    expect(mod.hasVisualViewport).toBe(true);
+    // Cleanup so subsequent tests see jsdom default again
+    delete (window as any).visualViewport;
   });
 
   it('isIOS is false with default jsdom userAgent', async () => {

@@ -1,126 +1,173 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { initMonitoring } from '../src/init';
+
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
-  captureException,
-  captureMessage,
-  setUser,
-  setTag,
-  withScope,
-  addBreadcrumb,
+    captureException,
+    captureMessage,
+    setUser,
+    setTag,
+    withScope,
+    addBreadcrumb,
 } from '../src/api';
+import { setMonitoringAdapter, resetMonitoringAdapter } from '../src/init';
+import type { MonitoringAdapter } from '../src/adapter';
+import type { ScopeLike } from '../src/types';
 
-beforeAll(async () => {
-  await initMonitoring({ provider: 'noop', enabled: true }, true);
-});
+function makeRecordingAdapter() {
+    const recordingScope: ScopeLike = {
+        setTag: vi.fn(),
+        setUser: vi.fn(),
+        setExtra: vi.fn(),
+        setContext: vi.fn(),
+    };
 
-describe('captureException', () => {
-  it('does not throw for an Error', () => {
-    expect(() => captureException(new Error('test error'))).not.toThrow();
-  });
+    const adapter: MonitoringAdapter & {
+        // for assertions on the fake itself
+        _scope: ScopeLike;
+    } = {
+        init: vi.fn(),
+        captureException: vi.fn(),
+        captureMessage: vi.fn(),
+        setUser: vi.fn(),
+        setTag: vi.fn(),
+        withScope: vi.fn((fn: (s: ScopeLike) => unknown) => fn(recordingScope)) as <T>(fn: (scope: ScopeLike) => T) => T,
+        addBreadcrumb: vi.fn(),
+        _scope: recordingScope,
+    };
 
-  it('does not throw for a string', () => {
-    expect(() => captureException('string error')).not.toThrow();
-  });
+    return adapter;
+}
 
-  it('does not throw for null', () => {
-    expect(() => captureException(null)).not.toThrow();
-  });
+describe('monitoring-core api forwarding', () => {
+    let fake: ReturnType<typeof makeRecordingAdapter>;
 
-  it('does not throw with context', () => {
-    expect(() =>
-      captureException(new Error('test'), { userId: 'abc', action: 'upload' })
-    ).not.toThrow();
-  });
-});
-
-describe('captureMessage', () => {
-  it('does not throw for a simple message', () => {
-    expect(() => captureMessage('hello world')).not.toThrow();
-  });
-
-  it('does not throw with level "error"', () => {
-    expect(() => captureMessage('something broke', 'error')).not.toThrow();
-  });
-
-  it('does not throw with level "info"', () => {
-    expect(() => captureMessage('info message', 'info')).not.toThrow();
-  });
-
-  it('does not throw with level "warning"', () => {
-    expect(() => captureMessage('warning', 'warning')).not.toThrow();
-  });
-
-  it('does not throw with level "debug"', () => {
-    expect(() => captureMessage('debug info', 'debug')).not.toThrow();
-  });
-});
-
-describe('setUser', () => {
-  it('does not throw when setting a user', () => {
-    expect(() => setUser({ id: 'uid-123', email: 'test@example.com' })).not.toThrow();
-  });
-
-  it('does not throw when clearing the user (null)', () => {
-    expect(() => setUser(null)).not.toThrow();
-  });
-
-  it('does not throw with partial user data', () => {
-    expect(() => setUser({ id: 'uid-123' })).not.toThrow();
-    expect(() => setUser({ email: 'test@example.com' })).not.toThrow();
-    expect(() => setUser({ username: 'testuser' })).not.toThrow();
-  });
-});
-
-describe('setTag', () => {
-  it('does not throw when setting a tag', () => {
-    expect(() => setTag('environment', 'production')).not.toThrow();
-    expect(() => setTag('version', '1.2.3')).not.toThrow();
-  });
-});
-
-describe('withScope', () => {
-  it('does not throw', () => {
-    expect(() => withScope(() => {})).not.toThrow();
-  });
-
-  it('calls the callback and returns its result', () => {
-    const result = withScope(() => 42);
-    expect(result).toBe(42);
-  });
-
-  it('callback receives a scope-like object', () => {
-    withScope((scope) => {
-      expect(scope).toBeDefined();
-      expect(typeof scope.setTag).toBe('function');
-      expect(typeof scope.setUser).toBe('function');
+    beforeEach(() => {
+        fake = makeRecordingAdapter();
+        setMonitoringAdapter(fake);
     });
-  });
 
-  it('scope methods do not throw', () => {
-    withScope((scope) => {
-      expect(() => scope.setTag('key', 'value')).not.toThrow();
-      expect(() => scope.setUser(null)).not.toThrow();
+    afterEach(() => {
+        resetMonitoringAdapter();
     });
-  });
-});
 
-describe('addBreadcrumb', () => {
-  it('does not throw for a complete breadcrumb', () => {
-    expect(() =>
-      addBreadcrumb({
-        category: 'navigation',
-        message: 'User navigated to /home',
-        level: 'info',
-        data: { from: '/login' },
-      })
-    ).not.toThrow();
-  });
+    describe('captureException', () => {
+        it('forwards the error to the adapter', () => {
+            const err = new Error('boom');
+            captureException(err);
+            expect(fake.captureException).toHaveBeenCalledTimes(1);
+            expect(fake.captureException).toHaveBeenCalledWith(err, undefined);
+        });
 
-  it('does not throw for a minimal breadcrumb', () => {
-    expect(() => addBreadcrumb({})).not.toThrow();
-  });
+        it('forwards the context when provided', () => {
+            const ctx = { userId: 'abc', action: 'upload' };
+            captureException('string error', ctx);
+            expect(fake.captureException).toHaveBeenCalledWith('string error', ctx);
+        });
 
-  it('does not throw with only a message', () => {
-    expect(() => addBreadcrumb({ message: 'Something happened' })).not.toThrow();
-  });
+        it('forwards null without mutating it', () => {
+            captureException(null);
+            expect(fake.captureException).toHaveBeenCalledWith(null, undefined);
+        });
+    });
+
+    describe('captureMessage', () => {
+        it('forwards the message and level', () => {
+            captureMessage('hello world', 'info');
+            expect(fake.captureMessage).toHaveBeenCalledTimes(1);
+            expect(fake.captureMessage).toHaveBeenCalledWith('hello world', 'info');
+        });
+
+        it('omits the level when not provided', () => {
+            captureMessage('plain message');
+            expect(fake.captureMessage).toHaveBeenCalledWith('plain message', undefined);
+        });
+    });
+
+    describe('setUser', () => {
+        it('forwards a populated user', () => {
+            const u = { id: 'uid-123', email: 'test@example.com' };
+            setUser(u);
+            expect(fake.setUser).toHaveBeenCalledWith(u);
+        });
+
+        it('forwards null to clear the user', () => {
+            setUser(null);
+            expect(fake.setUser).toHaveBeenCalledWith(null);
+        });
+    });
+
+    describe('setTag', () => {
+        it('forwards key and value', () => {
+            setTag('environment', 'production');
+            expect(fake.setTag).toHaveBeenCalledWith('environment', 'production');
+        });
+    });
+
+    describe('withScope', () => {
+        it('delegates to the adapter and returns the callback result', () => {
+            const result = withScope(() => 42);
+            expect(fake.withScope).toHaveBeenCalledTimes(1);
+            expect(result).toBe(42);
+        });
+
+        it('passes the adapter scope to the callback so scope mutations forward', () => {
+            withScope((scope) => {
+                scope.setTag('k', 'v');
+                scope.setUser({ id: 'uid' });
+            });
+            expect(fake._scope.setTag).toHaveBeenCalledWith('k', 'v');
+            expect(fake._scope.setUser).toHaveBeenCalledWith({ id: 'uid' });
+        });
+
+        it('falls back to a synthetic scope when the adapter omits withScope', () => {
+            const adapterWithoutScope: MonitoringAdapter = {
+                init: vi.fn(),
+                captureException: vi.fn(),
+                captureMessage: vi.fn(),
+                setUser: vi.fn(),
+                setTag: vi.fn(),
+            };
+            setMonitoringAdapter(adapterWithoutScope);
+
+            const result = withScope((scope) => {
+                // Synthetic scope: methods exist and are no-ops, scope-level
+                // calls do NOT forward to the adapter's top-level methods.
+                scope.setTag('k', 'v');
+                scope.setUser({ id: 'uid' });
+                return 'ok';
+            });
+
+            expect(result).toBe('ok');
+            expect(adapterWithoutScope.setTag).not.toHaveBeenCalled();
+            expect(adapterWithoutScope.setUser).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('addBreadcrumb', () => {
+        it('forwards the breadcrumb when the adapter supports it', () => {
+            const crumb = {
+                category: 'navigation',
+                message: 'User navigated to /home',
+                level: 'info' as const,
+                data: { from: '/login' },
+            };
+            addBreadcrumb(crumb);
+            expect(fake.addBreadcrumb).toHaveBeenCalledTimes(1);
+            expect(fake.addBreadcrumb).toHaveBeenCalledWith(crumb);
+        });
+
+        it('is a silent no-op when the adapter omits addBreadcrumb', () => {
+            const adapterWithoutCrumbs: MonitoringAdapter = {
+                init: vi.fn(),
+                captureException: vi.fn(),
+                captureMessage: vi.fn(),
+                setUser: vi.fn(),
+                setTag: vi.fn(),
+            };
+            setMonitoringAdapter(adapterWithoutCrumbs);
+
+            expect(() => addBreadcrumb({ message: 'whatever' })).not.toThrow();
+            // No top-level adapter call should have been used as a fallback.
+            expect(adapterWithoutCrumbs.captureMessage).not.toHaveBeenCalled();
+        });
+    });
 });
