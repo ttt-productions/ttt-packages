@@ -71,25 +71,31 @@ ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
 type ToastRootProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
   VariantProps<typeof toastVariants> & {
-    /** ms */
+    /** ms; ignored when `persistent` is true */
     duration?: number;
     /** show X button */
     dismissible?: boolean;
+    /** When true: no auto-dismiss, no countdown bar. */
+    persistent?: boolean;
   };
 
 const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, ToastRootProps>(
-  ({ className, variant, duration = 5000, dismissible = true, style, children, ...props }, ref) => {
+  ({ className, variant, duration, dismissible = true, persistent = false, style, children, ...props }, ref) => {
+    // Caller is the source of truth for duration. Persistent toasts disable
+    // the auto-dismiss entirely by passing `Infinity` to Radix.
+    const effectiveDuration = persistent ? Infinity : (duration ?? 5000);
     // pass duration to Radix AND to CSS countdown bar
     const mergedStyle: React.CSSProperties = {
       ...(style as React.CSSProperties),
-      ["--toast-duration" as any]: `${duration}ms`,
+      ["--toast-duration" as any]: `${effectiveDuration}ms`,
     };
 
     return (
       <ToastPrimitives.Root
         ref={ref}
-        duration={duration}
+        duration={effectiveDuration}
         data-variant={variant}
+        data-persistent={persistent ? "" : undefined}
         className={cn(toastVariants({ variant }), className)}
         style={mergedStyle}
         {...props}
@@ -97,16 +103,18 @@ const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, To
         <ToastKeyframes />
         {children}
 
-        {/* countdown bar */}
-        <div
-          className={cn("absolute bottom-0 left-0 h-1 w-full bg-foreground/30", "origin-left")}
-          style={{
-            animationName: "toast-progress",
-            animationDuration: `${duration}ms`,
-            animationTimingFunction: "linear",
-            animationFillMode: "forwards",
-          }}
-        />
+        {/* countdown bar — hidden entirely for persistent toasts */}
+        {!persistent ? (
+          <div
+            className={cn("absolute bottom-0 left-0 h-1 w-full bg-foreground/30", "origin-left")}
+            style={{
+              animationName: "toast-progress",
+              animationDuration: `${effectiveDuration}ms`,
+              animationTimingFunction: "linear",
+              animationFillMode: "forwards",
+            }}
+          />
+        ) : null}
 
         {/* dismiss button */}
         {dismissible ? (

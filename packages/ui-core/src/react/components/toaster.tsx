@@ -10,7 +10,7 @@ export function Toaster() {
   return (
     <ToastProvider swipeDirection="right" swipeThreshold={32}>
       {toasts.map((t: ToasterToast) => {
-        const { id, title, description, action, variant, duration, dismissible, open, onOpenChange, ...props } = t;
+        const { id, title, description, action, variant, duration, dismissible, persistent, open, onOpenChange, ...props } = t;
 
         const v: ToastVariant | "destructive" =
           variant === "error" ? "destructive" : (variant ?? "default");
@@ -21,8 +21,9 @@ export function Toaster() {
             open={open}
             onOpenChange={onOpenChange}
             variant={v as any}
-            duration={duration ?? 5000}
+            duration={duration}
             dismissible={dismissible ?? true}
+            persistent={persistent ?? false}
             {...(props as any)}
           >
             <div className="grid gap-1 pr-10">
