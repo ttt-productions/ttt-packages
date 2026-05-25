@@ -16,6 +16,7 @@ TTT Productions application-data package.
 - TTT admin task type union
 - Project invite source schemas/types (`InviteSource`, `InviteSourceType`) for standalone, skill, job, and opportunity invite origins
 - Project share-operation schemas/types, including the invite-only pending-share reservation contract
+- Project role IDs, action IDs, action grants, and role-assignment policy
 - Job application lifecycle schemas/types (`open`, `invited`, `accepted`, `rejected`)
 - `AuditEventType` catalog, `TTTAuditActor`, `TTTAuditTarget`, and `TTTAuditEvent` specialization of the `@ttt-productions/audit-core` generic
 
@@ -39,3 +40,16 @@ Current membership invariant:
 - Job application status is modeled as `open -> invited -> accepted` or `open -> rejected`; project membership still comes only from invite finalization.
 
 When adding a new invite source or application lifecycle state, update the schema here first and then publish/consume it in `ttt-prod`. Do not add parallel frontend/backend interfaces in the app.
+
+
+## Project role and action ownership
+
+`ttt-core` owns the project-role contract consumed by both `ttt-prod` frontend code and Cloud Functions code. The durable source files are:
+
+- `src/permissions/project-permissions.ts` — `PROJECT_ROLES`, `PROJECT_ACTIONS`, role/action type guards, and helpers.
+- `src/permissions/role-assignment-policy.ts` — who may assign or remove each role.
+- `src/schemas/project-management.ts` — role/profession update callable input schemas.
+
+Consumers should not duplicate role option maps or action matrices locally. UI affordances may read the package catalog, but backend project-action checks remain authoritative in the consuming app.
+
+The launch-era owner model is intentionally asymmetric: root ownership is derived from the consuming app's project document (`ownedBy.uid` in `ttt-prod`), not from `ProjectRoleId`. `Owner` is therefore not in `PROJECT_ROLE_IDS` and is rejected by the assignment policy. Future co-owner/root-owner transfer work must change that model deliberately instead of adding `Owner` ad hoc to member role arrays.
