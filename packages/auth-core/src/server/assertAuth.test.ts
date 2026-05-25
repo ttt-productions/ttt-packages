@@ -19,15 +19,8 @@ type TestUser = {
   uid: string;
   displayName?: string;
   status?: "active" | "banned" | "disabled";
-  creator?: string;
 };
 
-type TestProject = {
-  projectId: string;
-  ownedBy?: { uid: string };
-  activeUserIds?: Record<string, boolean>;
-  activeUsers?: Array<{ uid: string }>;
-};
 
 function makeRequest(opts?: { uid?: string; emailVerified?: boolean }): any {
   const uid = opts?.uid ?? "uid-123";
@@ -51,71 +44,35 @@ const activeUserDoc: TestUser = {
   status: "active",
 };
 
-const creatorUserDoc: TestUser = {
-  ...activeUserDoc,
-  creator: "creator-12345",
-};
-
-function memberProjectDoc(callerUid: string): TestProject {
-  return {
-    projectId: "p1",
-    ownedBy: { uid: "owner-uid" },
-    activeUserIds: { [callerUid]: true },
-    activeUsers: [],
-  };
-}
-
 // --- harness ---------------------------------------------------------------
 
 let mockUserGet: ReturnType<typeof vi.fn>;
-let mockProjectGet: ReturnType<typeof vi.fn>;
 let mockRequireAdmin: ReturnType<typeof vi.fn>;
-let mockIsProjectActionAllowed: ReturnType<typeof vi.fn>;
 let mockDbDoc: ReturnType<typeof vi.fn>;
-let assertAuth: ReturnType<typeof createAssertAuth<TestUser, TestProject>>;
+let assertAuth: ReturnType<typeof createAssertAuth<TestUser>>;
 
 beforeEach(() => {
   mockUserGet = vi.fn().mockResolvedValue({ exists: true, data: () => activeUserDoc });
-  mockProjectGet = vi.fn().mockResolvedValue({
-    exists: true,
-    data: () => memberProjectDoc("uid-123"),
-  });
   mockRequireAdmin = vi.fn().mockResolvedValue(undefined);
-  mockIsProjectActionAllowed = vi.fn(async ({ project, uid, action }) =>
-    action === "project.read" &&
-    (project.ownedBy?.uid === uid || project.activeUserIds?.[uid] === true || (project.activeUsers || []).some((u: { uid: string }) => u.uid === uid))
-  );
 
   const userDocRef = { get: mockUserGet };
-  const projectDocRef = { get: mockProjectGet };
 
-  mockDbDoc = vi.fn((path: string) => {
-    if (path.startsWith("allProjects/")) return projectDocRef;
-    return userDocRef;
-  });
+  mockDbDoc = vi.fn(() => userDocRef);
 
   const fakeDb = { doc: mockDbDoc } as any;
 
-  const config: AssertAuthConfig<TestUser, TestProject> = {
+  const config: AssertAuthConfig<TestUser> = {
     firestore: () => fakeDb,
     userProfilePath: (uid) => `userProfiles/${uid}`,
-    projectPath: (projectId) => `allProjects/${projectId}`,
     getUserStatus: (user): UserStatus => {
       if (user.status === "disabled") return "disabled";
       if (user.status === "banned") return "banned";
       return "ok";
     },
-    isUserCreator: (user) => Boolean(user.creator),
-    isProjectOwner: (project, uid) => project.ownedBy?.uid === uid,
-    isProjectMember: (project, uid) =>
-      project.ownedBy?.uid === uid ||
-      project.activeUserIds?.[uid] === true ||
-      (project.activeUsers || []).some((u) => u.uid === uid),
-    isProjectActionAllowed: mockIsProjectActionAllowed as any,
     requireAdmin: mockRequireAdmin as any,
   };
 
-  assertAuth = createAssertAuth<TestUser, TestProject>(config);
+  assertAuth = createAssertAuth<TestUser>(config);
 });
 
 // --- tests -----------------------------------------------------------------
@@ -131,7 +88,6 @@ describe("Authentication", () => {
     const ctx = await assertAuth(makeRequest(), { allowAnyStatus: true });
     expect(ctx.uid).toBe("uid-123");
     expect(ctx.userDoc).toBeUndefined();
-    expect(ctx.project).toBeUndefined();
     expect(mockDbDoc).not.toHaveBeenCalled();
   });
 });
@@ -245,168 +201,6 @@ describe("allowBanned opt-in", () => {
   });
 });
 
-describe("Creator check", () => {
-  it("throws failed-precondition when user has no creator field", async () => {
-    mockUserGet.mockResolvedValue({
-      exists: true,
-      data: () => ({ ...activeUserDoc }),
-    });
-    await expect(
-      assertAuth(makeRequest(), { creator: true, allowAnyStatus: true })
-    ).rejects.toMatchObject({ code: "failed-precondition" });
-  });
-
-  it("succeeds when user has a truthy creator string", async () => {
-    mockUserGet.mockResolvedValue({
-      exists: true,
-      data: () => creatorUserDoc,
-    });
-    const ctx = await assertAuth(makeRequest(), {
-      creator: true,
-      allowAnyStatus: true,
-    });
-    expect(ctx.userDoc).toMatchObject({ creator: "creator-12345" });
-  });
-
-  it("throws not-found when user doc is missing and creator check runs", async () => {
-    mockUserGet.mockResolvedValue({ exists: false, data: () => null });
-    await expect(
-      assertAuth(makeRequest(), { creator: true, allowAnyStatus: true })
-    ).rejects.toMatchObject({ code: "not-found" });
-  });
-
-  it("throws permission-denied (not failed-precondition) when user is banned and creator=true", async () => {
-    mockUserGet.mockResolvedValue({
-      exists: true,
-      data: () => ({ ...creatorUserDoc, status: "banned" }),
-    });
-    // banned check in step 4 fires before creator check in step 5
-    await expect(
-      assertAuth(makeRequest(), { creator: true })
-    ).rejects.toMatchObject({ code: "permission-denied" });
-  });
-});
-
-describe("Project membership", () => {
-  it("throws not-found when project doc does not exist", async () => {
-    mockProjectGet.mockResolvedValue({ exists: false, data: () => null });
-    await expect(
-      assertAuth(makeRequest(), {
-        projectMembership: { projectId: "p1", action: "project.read" },
-        allowAnyStatus: true,
-      })
-    ).rejects.toMatchObject({ code: "not-found" });
-  });
-
-  it("throws permission-denied when caller is not in any membership field", async () => {
-    mockProjectGet.mockResolvedValue({
-      exists: true,
-      data: () => ({
-        projectId: "p1",
-        ownedBy: { uid: "other-uid" },
-        activeUserIds: { "another-uid": true },
-        activeUsers: [{ uid: "yet-another-uid" }],
-      }),
-    });
-    await expect(
-      assertAuth(makeRequest(), {
-        projectMembership: { projectId: "p1", action: "project.read" },
-        allowAnyStatus: true,
-      })
-    ).rejects.toMatchObject({ code: "permission-denied" });
-  });
-
-  it("succeeds and sets isMember=true, isOwner=false when caller is in activeUserIds", async () => {
-    mockProjectGet.mockResolvedValue({
-      exists: true,
-      data: () => ({
-        projectId: "p1",
-        ownedBy: { uid: "owner-uid" },
-        activeUserIds: { "uid-123": true },
-        activeUsers: [],
-      }),
-    });
-    const ctx = await assertAuth(makeRequest(), {
-      projectMembership: { projectId: "p1", action: "project.read" },
-      allowAnyStatus: true,
-    });
-    expect(ctx.project?.isMember).toBe(true);
-    expect(ctx.project?.isOwner).toBe(false);
-  });
-
-  it("succeeds when caller is in activeUsers array but not in activeUserIds", async () => {
-    mockProjectGet.mockResolvedValue({
-      exists: true,
-      data: () => ({
-        projectId: "p1",
-        ownedBy: { uid: "owner-uid" },
-        activeUserIds: {},
-        activeUsers: [{ uid: "uid-123" }],
-      }),
-    });
-    const ctx = await assertAuth(makeRequest(), {
-      projectMembership: { projectId: "p1", action: "project.read" },
-      allowAnyStatus: true,
-    });
-    expect(ctx.project?.isMember).toBe(true);
-    expect(ctx.project?.isOwner).toBe(false);
-  });
-
-  it("succeeds and sets isOwner=true, isMember=true when caller is ownedBy.uid", async () => {
-    mockProjectGet.mockResolvedValue({
-      exists: true,
-      data: () => ({
-        projectId: "p1",
-        ownedBy: { uid: "uid-123" },
-        activeUserIds: {},
-        activeUsers: [],
-      }),
-    });
-    const ctx = await assertAuth(makeRequest(), {
-      projectMembership: { projectId: "p1", action: "project.read" },
-      allowAnyStatus: true,
-    });
-    expect(ctx.project?.isOwner).toBe(true);
-    expect(ctx.project?.isMember).toBe(true);
-  });
-
-  it("throws permission-denied when action callback denies the project action", async () => {
-    mockProjectGet.mockResolvedValue({
-      exists: true,
-      data: () => ({
-        projectId: "p1",
-        ownedBy: { uid: "owner-uid" },
-        activeUserIds: { "uid-123": true },
-        activeUsers: [],
-      }),
-    });
-    mockIsProjectActionAllowed.mockResolvedValue(false);
-    await expect(
-      assertAuth(makeRequest(), {
-        projectMembership: { projectId: "p1", action: "member.role.update" },
-        allowAnyStatus: true,
-      })
-    ).rejects.toMatchObject({ code: "permission-denied" });
-  });
-
-  it("succeeds when action callback allows the project action", async () => {
-    mockProjectGet.mockResolvedValue({
-      exists: true,
-      data: () => ({
-        projectId: "p1",
-        ownedBy: { uid: "uid-123" },
-        activeUserIds: {},
-        activeUsers: [],
-      }),
-    });
-    mockIsProjectActionAllowed.mockResolvedValue(true);
-    const ctx = await assertAuth(makeRequest(), {
-      projectMembership: { projectId: "p1", action: "member.role.update" },
-      allowAnyStatus: true,
-    });
-    expect(ctx.project?.isOwner).toBe(true);
-  });
-});
 
 describe("Admin check", () => {
   it("propagates the error when requireAdmin throws", async () => {
@@ -439,74 +233,17 @@ describe("Admin check", () => {
 });
 
 describe("Combined checks", () => {
-  it("fails on email check first when emailVerified and creator are both required but email is unverified", async () => {
-    await expect(
-      assertAuth(makeRequest({ emailVerified: false }), {
-        emailVerified: true,
-        creator: true,
-      })
-    ).rejects.toMatchObject({
-      code: "failed-precondition",
-      message: expect.stringContaining("Email"),
-    });
-  });
-
-  it("fails with creator error when email is verified but user lacks creator status", async () => {
-    mockUserGet.mockResolvedValue({ exists: true, data: () => activeUserDoc });
-    await expect(
-      assertAuth(makeRequest({ emailVerified: true }), {
-        emailVerified: true,
-        creator: true,
-      })
-    ).rejects.toMatchObject({
-      code: "failed-precondition",
-      message: expect.stringContaining("Creator"),
-    });
-  });
-
   it("returns fully populated ctx when all checks pass", async () => {
-    mockUserGet.mockResolvedValue({ exists: true, data: () => creatorUserDoc });
-    mockProjectGet.mockResolvedValue({
-      exists: true,
-      data: () => ({
-        projectId: "p1",
-        ownedBy: { uid: "uid-123" },
-        activeUserIds: {},
-        activeUsers: [],
-      }),
-    });
+    mockUserGet.mockResolvedValue({ exists: true, data: () => activeUserDoc });
     mockRequireAdmin.mockResolvedValue(undefined);
 
     const ctx = await assertAuth(makeRequest({ emailVerified: true }), {
       emailVerified: true,
-      creator: true,
-      projectMembership: { projectId: "p1", action: "project.read" },
       admin: { allowJrAdmin: true },
     });
 
     expect(ctx.uid).toBe("uid-123");
-    expect(ctx.userDoc).toMatchObject({ creator: "creator-12345" });
-    expect(ctx.project?.isOwner).toBe(true);
-    expect(ctx.project?.isMember).toBe(true);
+    expect(ctx.userDoc).toMatchObject({ status: "active" });
     expect(mockRequireAdmin).toHaveBeenCalled();
-  });
-});
-
-describe("Parallelization", () => {
-  it("calls both user-doc and project-doc get() when both are needed", async () => {
-    mockUserGet.mockResolvedValue({ exists: true, data: () => creatorUserDoc });
-    mockProjectGet.mockResolvedValue({
-      exists: true,
-      data: () => memberProjectDoc("uid-123"),
-    });
-
-    await assertAuth(makeRequest(), {
-      creator: true,
-      projectMembership: { projectId: "p1", action: "project.read" },
-      allowAnyStatus: true,
-    });
-
-    expect(mockUserGet).toHaveBeenCalledOnce();
-    expect(mockProjectGet).toHaveBeenCalledOnce();
   });
 });

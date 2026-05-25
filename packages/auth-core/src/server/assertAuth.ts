@@ -1,17 +1,15 @@
 // packages/auth-core/src/server/assertAuth.ts
 //
 // Factory that produces an assertAuth function bound to a consuming app's
-// Firestore paths, user/project shapes, and admin check.
+// Firestore paths, user shape, and admin check.
 //
 // Every Cloud Functions callable in the consuming app should invoke the
 // returned assertAuth as its first executable line. The check order is:
 //   1. Authentication
 //   2. Email verification
-//   3. Parallel Firestore reads (user doc + project doc, as needed)
+//   3. User doc Firestore read (when status check is needed)
 //   4. Status check (banned / disabled)
-//   5. Creator check
-//   6. Project membership check
-//   7. Admin check (delegated to config.requireAdmin)
+//   5. Admin check (delegated to config.requireAdmin)
 
 import { HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
@@ -22,13 +20,13 @@ import type {
   AuthRequirements,
 } from "./types.js";
 
-export function createAssertAuth<TUser, TProject>(
-  config: AssertAuthConfig<TUser, TProject>
-): AssertAuthFn<TUser, TProject> {
+export function createAssertAuth<TUser>(
+  config: AssertAuthConfig<TUser>
+): AssertAuthFn<TUser> {
   return async function assertAuth(
     request: CallableRequest,
     requirements: AuthRequirements = {}
-  ): Promise<AuthContext<TUser, TProject>> {
+  ): Promise<AuthContext<TUser>> {
     // 1. Authentication check (always first)
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "You must be authenticated");
@@ -47,20 +45,12 @@ export function createAssertAuth<TUser, TProject>(
       }
     }
 
-    // 3. Determine which Firestore reads are needed
-    const needsUserDoc =
-      requirements.creator === true || requirements.allowAnyStatus !== true;
-    const needsProject = requirements.projectMembership !== undefined;
-
+    // 3. User doc Firestore read (skipped when allowAnyStatus is set)
     const db = config.firestore();
-    const [userSnap, projectSnap] = await Promise.all([
-      needsUserDoc
-        ? db.doc(config.userProfilePath(uid)).get()
-        : Promise.resolve(null),
-      needsProject
-        ? db.doc(config.projectPath(requirements.projectMembership!.projectId)).get()
-        : Promise.resolve(null),
-    ]);
+    const userSnap =
+      requirements.allowAnyStatus !== true
+        ? await db.doc(config.userProfilePath(uid)).get()
+        : null;
 
     let userDoc: TUser | undefined;
 
@@ -86,60 +76,15 @@ export function createAssertAuth<TUser, TProject>(
       userDoc = userData;
     }
 
-    // 5. Creator check
-    if (requirements.creator === true) {
-      if (!userDoc) {
-        // allowAnyStatus is true — user doc was still fetched, validate now
-        if (!userSnap || !userSnap.exists) {
-          throw new HttpsError("not-found", "User profile not found");
-        }
-        userDoc = userSnap.data() as TUser;
-      }
-      if (!config.isUserCreator(userDoc)) {
-        throw new HttpsError("failed-precondition", "Creator status required");
-      }
-    }
-
-    // 6. Project membership check
-    let projectContext: AuthContext<TUser, TProject>["project"];
-    if (requirements.projectMembership !== undefined) {
-      if (!projectSnap || !projectSnap.exists) {
-        throw new HttpsError("not-found", "Project not found");
-      }
-      const projectData = projectSnap.data() as TProject;
-      const isOwner = config.isProjectOwner(projectData, uid);
-      const isMember = isOwner || config.isProjectMember(projectData, uid);
-
-      const { projectId, action } = requirements.projectMembership;
-      const allowed = await config.isProjectActionAllowed({
-        project: projectData,
-        projectId,
-        uid,
-        action,
-      });
-
-      if (!allowed) {
-        throw new HttpsError(
-          "permission-denied",
-          "Project action is not allowed"
-        );
-      }
-
-      projectContext = { data: projectData, isOwner, isMember };
-    }
-
-    // 7. Admin check (delegates to config.requireAdmin)
+    // 5. Admin check (delegates to config.requireAdmin)
     if (requirements.admin !== undefined) {
       await config.requireAdmin(uid, token, requirements.admin);
     }
 
-    // 8. Return context with whatever docs were fetched
-    const ctx: AuthContext<TUser, TProject> = { uid, token };
+    // 6. Return context with whatever docs were fetched
+    const ctx: AuthContext<TUser> = { uid, token };
     if (userDoc !== undefined) {
       ctx.userDoc = userDoc;
-    }
-    if (projectContext !== undefined) {
-      ctx.project = projectContext;
     }
     return ctx;
   };

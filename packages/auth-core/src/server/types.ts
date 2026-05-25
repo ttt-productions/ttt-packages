@@ -1,8 +1,7 @@
 // packages/auth-core/src/server/types.ts
 //
 // Types for the createAssertAuth factory. Fully generic over the consuming
-// app's user and project document shapes. The package contains no
-// app-specific knowledge.
+// app's user document shape. The package contains no app-specific knowledge.
 
 import type { CallableRequest } from "firebase-functions/v2/https";
 import type { DecodedIdToken } from "firebase-admin/auth";
@@ -27,12 +26,6 @@ export interface AuthRequirements {
   emailVerified?: boolean;
 
   /**
-   * Require the user has creator status (config.isUserCreator(user) returns true).
-   * Default: false. Implies a Firestore read of the user doc.
-   */
-  creator?: boolean;
-
-  /**
    * Require user status is not 'banned' or 'disabled'.
    * Default: true (always enforced unless allowAnyStatus=true).
    */
@@ -54,16 +47,6 @@ export interface AuthRequirements {
   allowBanned?: boolean;
 
   /**
-   * Require the caller is allowed to perform a project action.
-   * Owner access is implicit in the consuming app's isProjectActionAllowed callback.
-   * Baseline member reads should use an app-defined action such as `project.read`.
-   */
-  projectMembership?: {
-    projectId: string;
-    action: string;
-  };
-
-  /**
    * Require admin status. Delegates to config.requireAdmin().
    * The shape of this object is forwarded verbatim to the consumer's
    * requireAdmin callback — the package does not interpret it.
@@ -83,20 +66,14 @@ export interface AdminCheckOptions {
 }
 
 /**
- * Return value from assertAuth. Generic over the consuming app's user and
- * project document types.
+ * Return value from assertAuth. Generic over the consuming app's user
+ * document type.
  */
-export interface AuthContext<TUser = unknown, TProject = unknown> {
+export interface AuthContext<TUser = unknown> {
   uid: string;
   token: DecodedIdToken;
-  /** Populated when the user doc was read (creator OR default not-banned check). */
+  /** Populated when the user doc was read (default not-banned check). */
   userDoc?: TUser;
-  /** Populated when projectMembership was checked. */
-  project?: {
-    data: TProject;
-    isOwner: boolean;
-    isMember: boolean;
-  };
 }
 
 /**
@@ -109,7 +86,7 @@ export type UserStatus = "ok" | "banned" | "disabled";
  * Configuration for createAssertAuth. The consuming app supplies every
  * app-specific operation as a callback.
  */
-export interface AssertAuthConfig<TUser, TProject> {
+export interface AssertAuthConfig<TUser> {
   /**
    * Returns the admin Firestore instance. Called every assertAuth invocation
    * that needs a Firestore read. Implementations typically return
@@ -124,45 +101,11 @@ export interface AssertAuthConfig<TUser, TProject> {
   userProfilePath: (uid: string) => string;
 
   /**
-   * Returns the Firestore document path for a project, given a projectId.
-   * Example: `allProjects/${projectId}`
-   */
-  projectPath: (projectId: string) => string;
-
-  /**
    * Returns the user's status given the user doc data. The package only
    * acts on 'ok' | 'banned' | 'disabled'. Apps may store status in any
    * field; this callback interprets it.
    */
   getUserStatus: (user: TUser) => UserStatus;
-
-  /**
-   * Returns true if the user is a creator. Called only when
-   * AuthRequirements.creator === true.
-   */
-  isUserCreator: (user: TUser) => boolean;
-
-  /**
-   * Returns true if the given uid is the owner of the project.
-   */
-  isProjectOwner: (project: TProject, uid: string) => boolean;
-
-  /**
-   * Returns true if the given uid is a member of the project. Owners are
-   * typically also members — the callback should reflect that.
-   */
-  isProjectMember: (project: TProject, uid: string) => boolean;
-
-  /**
-   * Returns true if the caller may perform a project action. Apps can perform
-   * async reads here, such as loading allProjects/{projectId}/members/{uid}.
-   */
-  isProjectActionAllowed: (args: {
-    project: TProject;
-    projectId: string;
-    uid: string;
-    action: string;
-  }) => Promise<boolean>;
 
   /**
    * Admin check. Called only when AuthRequirements.admin is set. The
@@ -179,7 +122,7 @@ export interface AssertAuthConfig<TUser, TProject> {
 /**
  * The function returned by createAssertAuth.
  */
-export type AssertAuthFn<TUser, TProject> = (
+export type AssertAuthFn<TUser> = (
   request: CallableRequest,
   requirements?: AuthRequirements
-) => Promise<AuthContext<TUser, TProject>>;
+) => Promise<AuthContext<TUser>>;
