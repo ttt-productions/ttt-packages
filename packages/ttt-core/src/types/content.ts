@@ -105,7 +105,6 @@ export interface PendingLibraryDoc {
   projectType: ProjectType;
   status: 'reviewing' | 'partially_published' | 'fully_published';
   createdOn: number;
-  ownedBy: { uid: string };
   submittedItems: {
     songs?: SubmittedItem[];
     chapters?: SubmittedItem[];
@@ -123,7 +122,6 @@ export interface PublishedLibraryItem {
   status: 'published' | 'paused' | 'banned';
   createdOn: number;
   publishedAt?: number;
-  ownedBy: { uid: string };
   libraryType: LibraryItemType;
   publishedItemCount: number;
 

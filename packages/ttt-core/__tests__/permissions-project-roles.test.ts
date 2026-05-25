@@ -15,8 +15,9 @@ import {
 import { UpdateProjectMemberRoleInputSchema } from '../src/schemas/project-management.js';
 
 describe('PROJECT_ROLE_IDS', () => {
-  it('does not include "Owner" — owner is derived from project.ownedBy.uid, not an assignable role', () => {
-    expect(PROJECT_ROLE_IDS).not.toContain('Owner' as ProjectRoleId);
+  it('includes "Owner" as the first entry — Owner is in PROJECT_ROLE_IDS and NON_ASSIGNABLE_PROJECT_ROLES', () => {
+    expect(PROJECT_ROLE_IDS).toContain('Owner' as ProjectRoleId);
+    expect(PROJECT_ROLE_IDS[0]).toBe('Owner');
     expect(NON_ASSIGNABLE_PROJECT_ROLES).toContain('Owner');
   });
 
@@ -28,7 +29,7 @@ describe('PROJECT_ROLE_IDS', () => {
     for (const id of PROJECT_ROLE_IDS) {
       expect(isProjectRoleId(id)).toBe(true);
     }
-    expect(isProjectRoleId('Owner')).toBe(false);
+    expect(isProjectRoleId('Owner')).toBe(true);
     expect(isProjectRoleId('Contributor')).toBe(false);
     expect(isProjectRoleId('Admin')).toBe(false);
     expect(isProjectRoleId('')).toBe(false);
@@ -132,7 +133,10 @@ describe('canAssignProjectRole', () => {
   });
 
   it('owner can assign every assignable role', () => {
-    for (const roleId of PROJECT_ROLE_IDS) {
+    const assignableRoles = PROJECT_ROLE_IDS.filter(
+      (r) => !(NON_ASSIGNABLE_PROJECT_ROLES as readonly string[]).includes(r),
+    );
+    for (const roleId of assignableRoles) {
       const result = canAssignProjectRole({
         actorIsOwner: true,
         actorRoles: [],
@@ -144,7 +148,10 @@ describe('canAssignProjectRole', () => {
   });
 
   it('owner can remove every assignable role', () => {
-    for (const roleId of PROJECT_ROLE_IDS) {
+    const assignableRoles = PROJECT_ROLE_IDS.filter(
+      (r) => !(NON_ASSIGNABLE_PROJECT_ROLES as readonly string[]).includes(r),
+    );
+    for (const roleId of assignableRoles) {
       const result = canAssignProjectRole({
         actorIsOwner: true,
         actorRoles: [],
@@ -186,7 +193,8 @@ describe('canAssignProjectRole', () => {
         action: 'add',
       });
       const isOwnerOnly = (OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES as readonly string[]).includes(roleId);
-      expect(result.allowed).toBe(!isOwnerOnly);
+      const isNonAssignable = (NON_ASSIGNABLE_PROJECT_ROLES as readonly string[]).includes(roleId);
+      expect(result.allowed).toBe(!isOwnerOnly && !isNonAssignable);
     }
   });
 
@@ -199,7 +207,8 @@ describe('canAssignProjectRole', () => {
         action: 'add',
       });
       const isOwnerOnly = (OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES as readonly string[]).includes(roleId);
-      expect(result.allowed).toBe(!isOwnerOnly);
+      const isNonAssignable = (NON_ASSIGNABLE_PROJECT_ROLES as readonly string[]).includes(roleId);
+      expect(result.allowed).toBe(!isOwnerOnly && !isNonAssignable);
     }
   });
 
@@ -269,6 +278,26 @@ describe('canAssignProjectRole', () => {
   });
 });
 
+describe('Owner role invariants', () => {
+  it('PROJECT_ROLE_IDS[0] is "Owner"', () => {
+    expect(PROJECT_ROLE_IDS[0]).toBe('Owner');
+  });
+
+  it('isProjectRoleId("Owner") returns true', () => {
+    expect(isProjectRoleId('Owner')).toBe(true);
+  });
+
+  it('every action in PROJECT_ACTIONS grants "Owner"', () => {
+    for (const actionId of PROJECT_ACTION_IDS) {
+      expect(PROJECT_ACTIONS[actionId].grantedTo).toContain('Owner' as ProjectRoleId);
+    }
+  });
+
+  it('getActionsForProjectRole("Owner") returns all action ids', () => {
+    expect(getActionsForProjectRole('Owner').length).toBe(PROJECT_ACTION_IDS.length);
+  });
+});
+
 describe('UpdateProjectMemberRoleInputSchema', () => {
   const validBase = {
     projectId: 'project-1',
@@ -286,10 +315,9 @@ describe('UpdateProjectMemberRoleInputSchema', () => {
     }
   });
 
-  it('rejects "Owner"', () => {
-    expect(() =>
-      UpdateProjectMemberRoleInputSchema.parse({ ...validBase, role: 'Owner' }),
-    ).toThrow();
+  it('accepts "Owner" — Owner is a valid ProjectRoleId; assignment is rejected by canAssignProjectRole, not the schema', () => {
+    const parsed = UpdateProjectMemberRoleInputSchema.parse({ ...validBase, role: 'Owner' });
+    expect(parsed.role).toBe('Owner');
   });
 
   it('rejects unknown roles', () => {

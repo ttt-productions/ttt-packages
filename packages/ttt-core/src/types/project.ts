@@ -42,7 +42,6 @@ export type FullProject = {
   workingTitle: string;
   libraryType: LibraryItemType;
   createdBy: { uid: string };
-  ownedBy: { uid: string };
   status: 'open' | 'pendingVerification' | 'published' | 'rejected';
   activeUserIds?: { [key: string]: boolean };
   invitedUserIds?: { [key: string]: boolean };
@@ -57,7 +56,6 @@ export type PublicProject = {
   type: string;
   workingTitle: string;
   workingDescription: string;
-  ownedBy: { uid: string };
   followerCount: number;
   viewCount: number;
 };
@@ -68,7 +66,6 @@ export type Universe = {
   workingDescription: string;
   createdOn: number;
   createdBy: { uid: string };
-  ownedBy: { uid: string };
   type: string;
   projectIds: string[];
 };

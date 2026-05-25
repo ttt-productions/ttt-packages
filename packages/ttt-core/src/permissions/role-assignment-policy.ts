@@ -3,7 +3,7 @@ import { isProjectRoleId } from './project-permissions.js';
 
 export type ProjectRoleAssignmentAction = 'add' | 'remove';
 
-export const NON_ASSIGNABLE_PROJECT_ROLES = ['Owner'] as const;
+export const NON_ASSIGNABLE_PROJECT_ROLES = ['Owner'] as const satisfies readonly ProjectRoleId[];
 export const OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES = [
   'ProjectManager',
   'RoleManager',
