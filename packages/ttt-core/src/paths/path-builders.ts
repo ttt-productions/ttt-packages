@@ -88,8 +88,8 @@ export const PATH_BUILDERS = {
     [COLLECTIONS.STREETZ_FEED, NESTED_SUBCOLLECTIONS.TRENDING_POSTS],
 
   // ===== LIBRARY PATHS =====
-  thresholdItem: (libraryId: string): [string, string] =>
-    [COLLECTIONS.THRESHOLD_ITEMS, libraryId],
+  thresholdItem: (thresholdItemId: string): [string, string] =>
+    [COLLECTIONS.THRESHOLD_ITEMS, thresholdItemId],
 
   hallItem: (libraryId: string): [string, string] =>
     [COLLECTIONS.HALL_ITEMS, libraryId],
