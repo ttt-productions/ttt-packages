@@ -10,8 +10,7 @@ import {
   showIdSchema,
   titleSchema,
   addRemoveActionSchema,
-  libraryIdSchema,
-  itemIdSchema,
+  thresholdItemIdSchema,
 } from './atoms.js';
 import { MAX_LIBRARY_SUBMIT_BATCH } from '../constants/business.js';
 
@@ -37,9 +36,7 @@ export const CreateSongInputSchema = z.object({
 export type CreateSongInput = z.infer<typeof CreateSongInputSchema>;
 
 export const ReviewLibraryItemInputSchema = z.object({
-  libraryId: libraryIdSchema,
-  projectType: projectTypeSchema,
-  itemId: itemIdSchema,
+  thresholdItemId: thresholdItemIdSchema,
   decision: z.enum(['approved', 'needs_revision']),
   adminNotes: z.string().max(2000).nullable().optional(),
 }).strict();

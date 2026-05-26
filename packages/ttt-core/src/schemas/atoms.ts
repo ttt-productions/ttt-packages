@@ -22,6 +22,7 @@ export const taskIdSchema = z.string().min(1);
 export const messageIdSchema = z.string().min(1);
 export const libraryIdSchema = z.string().min(1);
 export const itemIdSchema = z.string().min(1);
+export const thresholdItemIdSchema = z.string().min(1);
 
 // Action / enum atoms.
 export const addRemoveActionSchema = z.enum(['add', 'remove']);
