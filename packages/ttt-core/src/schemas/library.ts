@@ -40,7 +40,7 @@ export const ReviewLibraryItemInputSchema = z.object({
   libraryId: libraryIdSchema,
   projectType: projectTypeSchema,
   itemId: itemIdSchema,
-  decision: z.enum(['approved', 'rejected', 'needs_revision']),
+  decision: z.enum(['approved', 'needs_revision']),
   adminNotes: z.string().max(2000).nullable().optional(),
 }).strict();
 export type ReviewLibraryItemInput = z.infer<typeof ReviewLibraryItemInputSchema>;
