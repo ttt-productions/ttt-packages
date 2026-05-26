@@ -11,8 +11,11 @@ import {
   OpportunityReplyTargetInfoSchema,
   LibraryCoverSquareTargetInfoSchema,
   ChapterPhotoTargetInfoSchema,
+  SongPhotoTargetInfoSchema,
+  ShowPhotoTargetInfoSchema,
   ChatAttachmentTargetInfoSchema,
 } from '../src/media/target-info.js';
+import { LIBRARY_TARGET_FIELDS } from '../src/media/library-target-fields.js';
 
 describe('ProfilePictureTargetInfoSchema', () => {
   it('accepts empty object', () => {
@@ -133,27 +136,50 @@ describe('OpportunityReplyTargetInfoSchema', () => {
   });
 });
 
-describe('LibraryCoverSquareTargetInfoSchema', () => {
-  it('accepts docPath + fields', () => {
-    expect(() => LibraryCoverSquareTargetInfoSchema.parse({
-      docPath: 'libraries/lib_1', fields: { full: 'coverPhotoSquare' },
-    })).not.toThrow();
+describe('LibraryCoverSquareTargetInfoSchema (typed IDs)', () => {
+  const valid = { projectId: 'p_1', itemType: 'tale' as const, itemId: 'tale_1' };
+  it('accepts valid typed IDs', () => {
+    expect(() => LibraryCoverSquareTargetInfoSchema.parse(valid)).not.toThrow();
   });
-  it('rejects missing docPath', () => {
-    expect(() => LibraryCoverSquareTargetInfoSchema.parse({ fields: { full: 'x' } })).toThrow();
+  it('accepts itemType tune', () => {
+    expect(() => LibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'tune' })).not.toThrow();
+  });
+  it('accepts itemType television', () => {
+    expect(() => LibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'television' })).not.toThrow();
+  });
+  it('rejects legacy { docPath, fields } shape', () => {
+    expect(() =>
+      LibraryCoverSquareTargetInfoSchema.parse({ docPath: 'allProjects/p_1/projectTales/tale_1', fields: { full: 'coverPhotoSquare' } })
+    ).toThrow();
+  });
+  it('rejects unknown itemType', () => {
+    expect(() => LibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'film' })).toThrow();
+  });
+  it('rejects missing projectId', () => {
+    const { projectId, ...rest } = valid;
+    expect(() => LibraryCoverSquareTargetInfoSchema.parse(rest)).toThrow();
+  });
+  it('rejects extra keys', () => {
+    expect(() => LibraryCoverSquareTargetInfoSchema.parse({ ...valid, extra: 'x' })).toThrow();
   });
 });
 
-describe('ChapterPhotoTargetInfoSchema', () => {
-  it('accepts docPath + fields.full', () => {
-    expect(() => ChapterPhotoTargetInfoSchema.parse({
-      docPath: 'projects/p_1/chapters/ch_1', fields: { full: 'photoUrl' },
-    })).not.toThrow();
+describe('ChapterPhotoTargetInfoSchema (typed IDs)', () => {
+  const valid = { projectId: 'p_1', taleId: 'tale_1', chapterId: 'ch_1' };
+  it('accepts valid typed IDs', () => {
+    expect(() => ChapterPhotoTargetInfoSchema.parse(valid)).not.toThrow();
   });
-  it('rejects fields with extra keys', () => {
-    expect(() => ChapterPhotoTargetInfoSchema.parse({
-      docPath: 'x', fields: { full: 'y', extra: 'z' },
-    })).toThrow();
+  it('rejects legacy { docPath, fields } shape', () => {
+    expect(() =>
+      ChapterPhotoTargetInfoSchema.parse({ docPath: 'allProjects/p_1/projectTales/tale_1/taleChapters/ch_1', fields: { full: 'photoUrl' } })
+    ).toThrow();
+  });
+  it('rejects missing chapterId', () => {
+    const { chapterId, ...rest } = valid;
+    expect(() => ChapterPhotoTargetInfoSchema.parse(rest)).toThrow();
+  });
+  it('rejects extra keys', () => {
+    expect(() => ChapterPhotoTargetInfoSchema.parse({ ...valid, extra: 'x' })).toThrow();
   });
 });
 
@@ -177,6 +203,57 @@ describe('ChatAttachmentTargetInfoSchema', () => {
     expect(() => ChatAttachmentTargetInfoSchema.parse({
       threadKind: 'unknown', projectId: 'p_1',
     })).toThrow();
+  });
+});
+
+describe('SongPhotoTargetInfoSchema (typed IDs)', () => {
+  const valid = { projectId: 'p_1', tuneId: 'tune_1', songId: 'song_1' };
+  it('accepts valid typed IDs', () => {
+    expect(() => SongPhotoTargetInfoSchema.parse(valid)).not.toThrow();
+  });
+  it('rejects legacy { docPath, fields } shape', () => {
+    expect(() =>
+      SongPhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } })
+    ).toThrow();
+  });
+});
+
+describe('ShowPhotoTargetInfoSchema (typed IDs)', () => {
+  const valid = { projectId: 'p_1', televisionId: 'tv_1', showId: 'show_1' };
+  it('accepts valid typed IDs', () => {
+    expect(() => ShowPhotoTargetInfoSchema.parse(valid)).not.toThrow();
+  });
+  it('rejects legacy { docPath, fields } shape', () => {
+    expect(() =>
+      ShowPhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } })
+    ).toThrow();
+  });
+});
+
+describe('LIBRARY_TARGET_FIELDS', () => {
+  it('maps library-cover-square to coverPhotoSquare', () => {
+    expect(LIBRARY_TARGET_FIELDS['library-cover-square']).toBe('coverPhotoSquare');
+  });
+  it('maps library-cover-poster to coverPhotoPoster', () => {
+    expect(LIBRARY_TARGET_FIELDS['library-cover-poster']).toBe('coverPhotoPoster');
+  });
+  it('maps library-cover-cinematic to coverPhotoCinematic', () => {
+    expect(LIBRARY_TARGET_FIELDS['library-cover-cinematic']).toBe('coverPhotoCinematic');
+  });
+  it('maps chapter-photo to photoUrl', () => {
+    expect(LIBRARY_TARGET_FIELDS['chapter-photo']).toBe('photoUrl');
+  });
+  it('maps song-photo to photoUrl', () => {
+    expect(LIBRARY_TARGET_FIELDS['song-photo']).toBe('photoUrl');
+  });
+  it('maps song-audio to fileUrl', () => {
+    expect(LIBRARY_TARGET_FIELDS['song-audio']).toBe('fileUrl');
+  });
+  it('maps show-photo to photoUrl', () => {
+    expect(LIBRARY_TARGET_FIELDS['show-photo']).toBe('photoUrl');
+  });
+  it('maps show-video to videoUrl', () => {
+    expect(LIBRARY_TARGET_FIELDS['show-video']).toBe('videoUrl');
   });
 });
 

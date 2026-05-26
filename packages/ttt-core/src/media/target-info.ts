@@ -76,32 +76,67 @@ export const OpportunityReplyTargetInfoSchema = z
   })
   .strict();
 
-// library-cover-* (square / poster / cinematic): same shape for all three.
-const LibraryCoverTargetInfoShape = z
+// ───────────────────────────────────────────────────────────────────
+// LIBRARY-COVER target info (square / poster / cinematic).
+// All three origins share one shape. The processor uses fileOrigin to
+// pick which field on the target doc gets written (see
+// LIBRARY_TARGET_FIELDS in `library-target-fields.ts`).
+//
+// itemType discriminates which parent collection — `projectTales` vs
+// `projectTunes` vs `projectTelevision`. fileOrigin alone does NOT
+// disambiguate this because all three cover origins target whichever
+// library item the user is editing.
+// ───────────────────────────────────────────────────────────────────
+const LibraryCoverTargetInfoSchema = z
   .object({
-    docPath: z.string().min(1),
-    fields: z.record(z.string()),
+    projectId: z.string().min(1),
+    itemType: z.enum(['tale', 'tune', 'television']),
+    itemId: z.string().min(1),
   })
   .strict();
 
-export const LibraryCoverSquareTargetInfoSchema = LibraryCoverTargetInfoShape;
-export const LibraryCoverPosterTargetInfoSchema = LibraryCoverTargetInfoShape;
-export const LibraryCoverCinematicTargetInfoSchema = LibraryCoverTargetInfoShape;
+export const LibraryCoverSquareTargetInfoSchema = LibraryCoverTargetInfoSchema;
+export const LibraryCoverPosterTargetInfoSchema = LibraryCoverTargetInfoSchema;
+export const LibraryCoverCinematicTargetInfoSchema = LibraryCoverTargetInfoSchema;
 
-// chapter-photo, song-photo, song-audio, show-photo, show-video:
-// same shape — docPath + fields with a single `full` key.
-const SubItemTargetInfoShape = z
+// ───────────────────────────────────────────────────────────────────
+// SUB-ITEM target info — one shape per item type, NOT per media kind.
+// chapter-photo uses ChapterPhotoTargetInfoSchema.
+// song-photo + song-audio share SongMediaTargetInfoSchema.
+// show-photo + show-video share ShowMediaTargetInfoSchema.
+// The processor derives the doc path from these IDs via
+// PATH_BUILDERS.taleChapter / .tuneSong / .tvShow, and derives the
+// field name from fileOrigin via LIBRARY_TARGET_FIELDS.
+// ───────────────────────────────────────────────────────────────────
+export const ChapterPhotoTargetInfoSchema = z
   .object({
-    docPath: z.string().min(1),
-    fields: z.object({ full: z.string().min(1) }).strict(),
+    projectId: z.string().min(1),
+    taleId: z.string().min(1),
+    chapterId: z.string().min(1),
   })
   .strict();
 
-export const ChapterPhotoTargetInfoSchema = SubItemTargetInfoShape;
-export const SongPhotoTargetInfoSchema = SubItemTargetInfoShape;
-export const SongAudioTargetInfoSchema = SubItemTargetInfoShape;
-export const ShowPhotoTargetInfoSchema = SubItemTargetInfoShape;
-export const ShowVideoTargetInfoSchema = SubItemTargetInfoShape;
+const SongMediaTargetInfoSchema = z
+  .object({
+    projectId: z.string().min(1),
+    tuneId: z.string().min(1),
+    songId: z.string().min(1),
+  })
+  .strict();
+
+export const SongPhotoTargetInfoSchema = SongMediaTargetInfoSchema;
+export const SongAudioTargetInfoSchema = SongMediaTargetInfoSchema;
+
+const ShowMediaTargetInfoSchema = z
+  .object({
+    projectId: z.string().min(1),
+    televisionId: z.string().min(1),
+    showId: z.string().min(1),
+  })
+  .strict();
+
+export const ShowPhotoTargetInfoSchema = ShowMediaTargetInfoSchema;
+export const ShowVideoTargetInfoSchema = ShowMediaTargetInfoSchema;
 
 // chat-attachment: discriminated by threadKind.
 const ChatReplyToSchema = z
