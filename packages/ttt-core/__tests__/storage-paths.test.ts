@@ -48,7 +48,7 @@ describe('isTempUploadPath', () => {
     expect(isTempUploadPath('messageAttachments/userId/convoId/file.jpg')).toBe(false);
     expect(isTempUploadPath('rejected/userId/file.jpg')).toBe(false);
     expect(isTempUploadPath('__public__/file.jpg')).toBe(false);
-    expect(isTempUploadPath('contentLibrary/libId/sub/file.jpg')).toBe(false);
+    expect(isTempUploadPath('hallItems/libId/sub/file.jpg')).toBe(false);
     expect(isTempUploadPath('futurePlans/video/file.mp4')).toBe(false);
     expect(isTempUploadPath('rulesAndAgreements/videos/file.mp4')).toBe(false);
   });
@@ -78,7 +78,7 @@ describe('extractFileIdFromTempPath', () => {
     expect(extractFileIdFromTempPath('messageAttachments/userId/convoId/file.jpg')).toBeNull();
     expect(extractFileIdFromTempPath('rejected/userId/file.jpg')).toBeNull();
     expect(extractFileIdFromTempPath('__public__/file.jpg')).toBeNull();
-    expect(extractFileIdFromTempPath('contentLibrary/libId/sub/file.jpg')).toBeNull();
+    expect(extractFileIdFromTempPath('hallItems/libId/sub/file.jpg')).toBeNull();
     expect(extractFileIdFromTempPath('futurePlans/video/file.mp4')).toBeNull();
     expect(extractFileIdFromTempPath('rulesAndAgreements/videos/file.mp4')).toBeNull();
   });

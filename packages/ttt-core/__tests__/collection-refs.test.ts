@@ -28,10 +28,16 @@ describe('COLLECTION_REFS', () => {
       expect(result[0]).toBe(COLLECTIONS.STREETZ_FEED);
     });
 
-    it('contentLibrary returns single-element tuple', () => {
-      const result = COLLECTION_REFS.contentLibrary();
+    it('thresholdItems returns single-element tuple', () => {
+      const result = COLLECTION_REFS.thresholdItems();
       expect(result).toHaveLength(1);
-      expect(result[0]).toBe(COLLECTIONS.CONTENT_LIBRARY);
+      expect(result[0]).toBe(COLLECTIONS.THRESHOLD_ITEMS);
+    });
+
+    it('hallItems returns single-element tuple', () => {
+      const result = COLLECTION_REFS.hallItems();
+      expect(result).toHaveLength(1);
+      expect(result[0]).toBe(COLLECTIONS.HALL_ITEMS);
     });
 
     it('jobListings returns single-element tuple', () => {
@@ -126,24 +132,6 @@ describe('COLLECTION_REFS', () => {
       expect(result[0]).toBe(COLLECTIONS.STREETZ_FEED);
       expect(result[1]).toBe(NESTED_SUBCOLLECTIONS.ACTIVE_POSTS);
       expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.SOCIAL_POSTS);
-    });
-  });
-
-  describe('Library collection refs', () => {
-    it('pendingLibraryItems returns 3-segment tuple', () => {
-      const result = COLLECTION_REFS.pendingLibraryItems();
-      expect(result).toHaveLength(3);
-      expect(result[0]).toBe(COLLECTIONS.CONTENT_LIBRARY);
-      expect(result[1]).toBe(NESTED_SUBCOLLECTIONS.PENDING_ITEMS);
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.LIBRARY_ITEMS);
-    });
-
-    it('publishedLibraryItems returns 3-segment tuple', () => {
-      const result = COLLECTION_REFS.publishedLibraryItems();
-      expect(result).toHaveLength(3);
-      expect(result[0]).toBe(COLLECTIONS.CONTENT_LIBRARY);
-      expect(result[1]).toBe(NESTED_SUBCOLLECTIONS.PUBLISHED_ITEMS);
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.LIBRARY_ITEMS);
     });
   });
 

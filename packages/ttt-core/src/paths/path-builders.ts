@@ -88,14 +88,14 @@ export const PATH_BUILDERS = {
     [COLLECTIONS.STREETZ_FEED, NESTED_SUBCOLLECTIONS.TRENDING_POSTS],
 
   // ===== LIBRARY PATHS =====
-  pendingLibraryItem: (libraryId: string): [string, string, string, string] =>
-    [COLLECTIONS.CONTENT_LIBRARY, NESTED_SUBCOLLECTIONS.PENDING_ITEMS, NESTED_SUBCOLLECTIONS.LIBRARY_ITEMS, libraryId],
+  thresholdItem: (libraryId: string): [string, string] =>
+    [COLLECTIONS.THRESHOLD_ITEMS, libraryId],
 
-  publishedLibraryItem: (libraryId: string): [string, string, string, string] =>
-    [COLLECTIONS.CONTENT_LIBRARY, NESTED_SUBCOLLECTIONS.PUBLISHED_ITEMS, NESTED_SUBCOLLECTIONS.LIBRARY_ITEMS, libraryId],
+  hallItem: (libraryId: string): [string, string] =>
+    [COLLECTIONS.HALL_ITEMS, libraryId],
 
-  publishedLibraryItemType: (libraryId: string, projectType: string, itemId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.CONTENT_LIBRARY, NESTED_SUBCOLLECTIONS.PUBLISHED_ITEMS, NESTED_SUBCOLLECTIONS.LIBRARY_ITEMS, libraryId, projectType, itemId],
+  hallItemType: (libraryId: string, projectType: string, itemId: string): [string, string, string, string] =>
+    [COLLECTIONS.HALL_ITEMS, libraryId, projectType, itemId],
 
   // ===== JOB PATHS =====
   jobListing: (jobId: string): [string, string] =>

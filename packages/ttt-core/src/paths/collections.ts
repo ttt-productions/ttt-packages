@@ -13,7 +13,8 @@ export const COLLECTIONS = {
 
   // Content & Social
   STREETZ_FEED: 'streetzFeed',
-  CONTENT_LIBRARY: 'contentLibrary',
+  THRESHOLD_ITEMS: 'thresholdItems',
+  HALL_ITEMS: 'hallItems',
   JOB_LISTINGS: 'jobListings',
   OPPORTUNITY_BOARD: 'opportunityBoard',
 
@@ -99,11 +100,6 @@ export const NESTED_SUBCOLLECTIONS = {
   SOCIAL_POSTS: 'socialPosts',
   ACTIVE_POSTS: 'activePosts',
   TRENDING_POSTS: 'trendingPosts',
-
-  // Library
-  LIBRARY_ITEMS: 'libraryItems',
-  PENDING_ITEMS: 'pendingItems',
-  PUBLISHED_ITEMS: 'publishedItems',
 
   // Jobs & Opportunities
   APPLICATION_REPLIES: 'applicationReplies',

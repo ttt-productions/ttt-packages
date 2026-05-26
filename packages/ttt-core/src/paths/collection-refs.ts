@@ -16,7 +16,6 @@ export const COLLECTION_REFS = {
   allProjects: (): [string] => [COLLECTIONS.ALL_PROJECTS],
   storyUniverses: (): [string] => [COLLECTIONS.STORY_UNIVERSES],
   streetzFeed: (): [string] => [COLLECTIONS.STREETZ_FEED],
-  contentLibrary: (): [string] => [COLLECTIONS.CONTENT_LIBRARY],
   jobListings: (): [string] => [COLLECTIONS.JOB_LISTINGS],
   opportunityBoard: (): [string] => [COLLECTIONS.OPPORTUNITY_BOARD],
 
@@ -48,11 +47,9 @@ export const COLLECTION_REFS = {
     [COLLECTIONS.STREETZ_FEED, NESTED_SUBCOLLECTIONS.ACTIVE_POSTS, NESTED_SUBCOLLECTIONS.SOCIAL_POSTS],
 
   // Library collections
-  pendingLibraryItems: (): [string, string, string] =>
-    [COLLECTIONS.CONTENT_LIBRARY, NESTED_SUBCOLLECTIONS.PENDING_ITEMS, NESTED_SUBCOLLECTIONS.LIBRARY_ITEMS],
+  thresholdItems: (): [string] => [COLLECTIONS.THRESHOLD_ITEMS],
 
-  publishedLibraryItems: (): [string, string, string] =>
-    [COLLECTIONS.CONTENT_LIBRARY, NESTED_SUBCOLLECTIONS.PUBLISHED_ITEMS, NESTED_SUBCOLLECTIONS.LIBRARY_ITEMS],
+  hallItems: (): [string] => [COLLECTIONS.HALL_ITEMS],
 
   // Job/Opportunity collections
   jobApplications: (jobId: string): [string, string, string] =>

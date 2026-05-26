@@ -214,33 +214,27 @@ describe('PATH_BUILDERS', () => {
 
   // ===== LIBRARY PATHS =====
   describe('Library Paths', () => {
-    it('pendingLibraryItem returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.pendingLibraryItem('lib1');
-      expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.CONTENT_LIBRARY);
-      expect(result[1]).toBe(NESTED_SUBCOLLECTIONS.PENDING_ITEMS);
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.LIBRARY_ITEMS);
-      expect(result[3]).toBe('lib1');
+    it('thresholdItem returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.thresholdItem('lib1');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toBe(COLLECTIONS.THRESHOLD_ITEMS);
+      expect(result[1]).toBe('lib1');
     });
 
-    it('publishedLibraryItem returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.publishedLibraryItem('lib1');
-      expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.CONTENT_LIBRARY);
-      expect(result[1]).toBe(NESTED_SUBCOLLECTIONS.PUBLISHED_ITEMS);
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.LIBRARY_ITEMS);
-      expect(result[3]).toBe('lib1');
+    it('hallItem returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.hallItem('lib1');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toBe(COLLECTIONS.HALL_ITEMS);
+      expect(result[1]).toBe('lib1');
     });
 
-    it('publishedLibraryItemType returns 6-segment tuple with projectType and itemId', () => {
-      const result = PATH_BUILDERS.publishedLibraryItemType('lib1', 'Tales', 'item1');
-      expect(result).toHaveLength(6);
-      expect(result[0]).toBe(COLLECTIONS.CONTENT_LIBRARY);
-      expect(result[1]).toBe(NESTED_SUBCOLLECTIONS.PUBLISHED_ITEMS);
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.LIBRARY_ITEMS);
-      expect(result[3]).toBe('lib1');
-      expect(result[4]).toBe('Tales');
-      expect(result[5]).toBe('item1');
+    it('hallItemType returns 4-segment tuple with projectType and itemId', () => {
+      const result = PATH_BUILDERS.hallItemType('lib1', 'Tales', 'item1');
+      expect(result).toHaveLength(4);
+      expect(result[0]).toBe(COLLECTIONS.HALL_ITEMS);
+      expect(result[1]).toBe('lib1');
+      expect(result[2]).toBe('Tales');
+      expect(result[3]).toBe('item1');
     });
   });
 

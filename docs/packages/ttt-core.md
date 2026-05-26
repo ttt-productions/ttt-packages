@@ -6,7 +6,7 @@ TTT Productions application-data package.
 
 - TTT-specific types, schemas, constants, paths, and business rules
 - Concrete `FileOrigin` and `TTT_MEDIA_SPECS`
-- Upload wire schemas, target-info schemas, and `parseTargetInfo`
+- Upload wire schemas, target-info schemas, `parseTargetInfo`, and server-owned library upload target-field mappings
 - Concrete TTT pending-media schemas composed from `media-schemas`
 - TTT domain-event union/schema/catalog
 - TTT atoms such as `ShortProject`, `Mention`, and `MentionType`
@@ -53,3 +53,10 @@ When adding a new invite source or application lifecycle state, update the schem
 Consumers should not duplicate role option maps or action matrices locally. UI affordances may read the package catalog, but backend project-action checks remain authoritative in the consuming app.
 
 The launch-era owner model is role-based: `Owner` is the first `ProjectRoleId`, appears in every `PROJECT_ACTIONS[action].grantedTo` list, and is stored on the consuming app's `allProjects/{projectId}/members/{uid}.roles` member document. `Owner` is still non-assignable through the normal role-management policy; project creation seeds it, and future owner-transfer/co-owner work must design a dedicated flow instead of bypassing `canAssignProjectRole`.
+
+
+## Upload target authority
+
+Library cover and sub-item upload `targetInfo` schemas carry typed ids only. They must not accept client-provided Firestore paths or field maps. The consuming backend derives final document paths through `PATH_BUILDERS` and derives media URL fields through `LIBRARY_TARGET_FIELDS` from `src/media/library-target-fields.ts`.
+
+When adding a new media origin that writes back to Firestore, add the target-info schema and any target-field mapping here first, then publish and consume it in `ttt-prod`. Do not let application code reconstruct the old `{ docPath, fields }` pattern locally.
