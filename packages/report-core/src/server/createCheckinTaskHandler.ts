@@ -24,7 +24,7 @@ export function createCheckinTaskHandler({
   return async (
     data: CheckinTaskRequest,
     authContext: { uid: string; token?: unknown },
-  ): Promise<{ success: boolean }> => {
+  ): Promise<{ success: boolean; alreadyResolved?: true }> => {
     const { taskId, resolved, resolution } = data;
     const userId = authContext.uid;
     const now = Date.now();
@@ -39,7 +39,13 @@ export function createCheckinTaskHandler({
       const taskDoc = await transaction.get(taskRef);
 
       if (!taskDoc.exists) {
-        throw new Error('The task could not be found. It may have been deleted.');
+        // Idempotent path: another writer (e.g. a backend trigger that
+        // atomically resolves the task as part of its own transaction)
+        // already deleted this task. Treat as success — there is no
+        // activity log or audit event to write, since the task data
+        // is gone. Return alreadyResolved so callers that care can
+        // tell the difference.
+        return { success: true, alreadyResolved: true };
       }
 
       const taskData = taskDoc.data()!;

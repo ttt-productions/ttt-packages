@@ -108,13 +108,25 @@ describe('createCheckinTaskHandler', () => {
     expect(updates[0].data.completedAt).toBeNull();
   });
 
-  it('throws when task not found', async () => {
+  it('returns idempotent success when task not found (already resolved by another writer)', async () => {
     const { db } = createMockDb(null);
     const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db });
 
-    await expect(
-      handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' }),
-    ).rejects.toThrow('task could not be found');
+    const result = await handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
+
+    expect(result).toEqual({ success: true, alreadyResolved: true });
+  });
+
+  it('does not write activity log or audit event when task not found', async () => {
+    const { db, sets, updates } = createMockDb(null);
+    const onAuditEvent = vi.fn();
+    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
+
+    await handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
+
+    expect(updates).toHaveLength(0);
+    expect(sets).toHaveLength(0);
+    expect(onAuditEvent).not.toHaveBeenCalled();
   });
 
   it('throws when user does not have task checked out', async () => {
