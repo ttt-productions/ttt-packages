@@ -88,31 +88,20 @@ export type ItemsKey = 'songs' | 'chapters' | 'shows';
 
 // --- Library Publishing Flow ---
 
-export interface SubmittedItem {
-  itemId: string;
-  order: number;
-  reviewStatus: 'pending' | 'approved' | 'needs_revision' | 'rejected';
-  adminNotes?: string;
-  reviewedAt?: number;
-  reviewedBy?: string;
-  approvedAt?: number;
-  publishedAt?: number;
-}
-
-export interface PendingLibraryDoc {
+export interface ThresholdItem {
+  thresholdItemId: string;
   libraryId: string;
   projectId: string;
   projectType: ProjectType;
-  status: 'reviewing' | 'partially_published' | 'fully_published';
-  createdOn: number;
-  submittedItems: {
-    songs?: SubmittedItem[];
-    chapters?: SubmittedItem[];
-    shows?: SubmittedItem[];
-  };
+  itemId: string;
+  itemsKey: ItemsKey;
+  order: number;
   libraryType: LibraryItemType;
-  publishedItemCount?: number;
-  totalItemCount?: number;
+  submittedAt: number;
+  reviewStatus: 'pending' | 'needs_revision' | 'approved';
+  adminNotes?: string;
+  reviewedAt?: number;
+  reviewedBy?: string;
 }
 
 export interface PublishedLibraryItem {
@@ -123,7 +112,6 @@ export interface PublishedLibraryItem {
   createdOn: number;
   publishedAt?: number;
   libraryType: LibraryItemType;
-  publishedItemCount: number;
 
   // Project-level summary (written flat on first publish of this library).
   // Optional on the type because the parent doc may exist in a pre-publish
