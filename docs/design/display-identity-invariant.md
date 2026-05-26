@@ -10,7 +10,7 @@ Shared cross-boundary types — anything defined in `@ttt-productions/*` package
 - `userId: string`
 - `senderId: string`
 - `createdBy: { uid: string }`
-- `ownedBy: { uid: string }`
+- schema-specific ownership references such as `ownedBy: { uid: string }` only where that domain still owns such a field
 
 Display name, profile image URL, handle, and any other user-presentation fields are **NOT** included in the shared type.
 
@@ -34,7 +34,7 @@ This applies to: public content, chat messages, report payloads, admin-task queu
 - Notifications (`@ttt-productions/notification-core`): `actorUid`, `subjectUid`, never names.
 - Reports (`@ttt-productions/report-core`): `reporterUid`, `targetUid`, never display info.
 - Admin task queue entries: uid references for actor and subject.
-- TTT-specific types in `@ttt-productions/ttt-core` (project ownership, library curation): uid references.
+- TTT-specific types in `@ttt-productions/ttt-core`: uid references. Current TTT project ownership is modeled as the `Owner` project role on a member document, not as a project `ownedBy` field.
 
 ## What it forbids
 

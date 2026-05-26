@@ -52,4 +52,4 @@ When adding a new invite source or application lifecycle state, update the schem
 
 Consumers should not duplicate role option maps or action matrices locally. UI affordances may read the package catalog, but backend project-action checks remain authoritative in the consuming app.
 
-The launch-era owner model is intentionally asymmetric: root ownership is derived from the consuming app's project document (`ownedBy.uid` in `ttt-prod`), not from `ProjectRoleId`. `Owner` is therefore not in `PROJECT_ROLE_IDS` and is rejected by the assignment policy. Future co-owner/root-owner transfer work must change that model deliberately instead of adding `Owner` ad hoc to member role arrays.
+The launch-era owner model is role-based: `Owner` is the first `ProjectRoleId`, appears in every `PROJECT_ACTIONS[action].grantedTo` list, and is stored on the consuming app's `allProjects/{projectId}/members/{uid}.roles` member document. `Owner` is still non-assignable through the normal role-management policy; project creation seeds it, and future owner-transfer/co-owner work must design a dedicated flow instead of bypassing `canAssignProjectRole`.

@@ -66,3 +66,44 @@ export const ManageProjectSharesInputSchema = z.object({
 }).strict();
 
 export type ManageProjectSharesInput = z.infer<typeof ManageProjectSharesInputSchema>;
+
+// ───────────────────────────────────────────────────────────────────
+// PUBLIC SHARE OPERATION SCHEMA
+//
+// The `manageProjectShares` callable is exposed to authenticated
+// creators. Only `add-active` is safe to invoke from a public surface —
+// every other operation type is an internal/trusted-path concern:
+//
+//   - 'add-pending'      → only inviteUserToProject + runUpdateInviteShares
+//   - 'remove-pending'   → only handleInviteDeclined + handleInviteCancelled
+//   - 'create-project'   → only createProject
+//   - 'convert-invite'   → only handleInviteAccepted
+//
+// Each of those internal callers performs its own project-action auth
+// (invite.send, invite.shares.update, etc.) BEFORE composing into
+// executeShareOperation. Allowing those operation types through the
+// public callable bypasses the action layer — a creator could chain
+// add-pending → convert-invite → create-project to grant themselves
+// membership on any project.
+//
+// Keep this as a discriminated union so adding a second public-allowed
+// type later is mechanical.
+// ───────────────────────────────────────────────────────────────────
+export const PublicShareOperationSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('add-active'),
+    amount: z.number().int().positive().optional(),
+    user: userRefSchema.optional(),
+    sourceId: z.string().min(1).optional(),
+  }).strict(),
+]);
+
+export type PublicShareOperation = z.infer<typeof PublicShareOperationSchema>;
+export type PublicShareOperationType = PublicShareOperation['type'];
+
+export const PublicManageProjectSharesInputSchema = z.object({
+  projectId: projectIdSchema,
+  operation: PublicShareOperationSchema,
+}).strict();
+
+export type PublicManageProjectSharesInput = z.infer<typeof PublicManageProjectSharesInputSchema>;
