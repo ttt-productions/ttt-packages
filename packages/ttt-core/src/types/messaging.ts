@@ -4,9 +4,9 @@
 // admin conversation messages) live in @ttt-productions/chat-core as
 // ChatMessageV1. ttt-core only owns the parent thread document shapes.
 
-import type { InviteSource } from '../schemas/project-management.js';
+import type { InviteSource } from '../schemas/work-project-management.js';
 
-// --- Project Chat ---
+// --- WorkProject Chat ---
 
 export interface ChatChannel {
   channelId: string;
@@ -23,20 +23,20 @@ export interface ChatChannel {
   isArchived: boolean;
 }
 
-// --- Project Invite Conversations ---
+// --- WorkProject Invite Conversations ---
 
 export interface ProjectInviteConversation {
   inviteId: string;
   projectId: string;
   relatedUserIds: string[];
   projectTitle: string;
-  project: {
+  workProject: {
     projectId: string;
     workingTitle: string;
     type: string;
     workingDescription: string;
   };
-  projectOwner: { uid: string };
+  workSteward: { uid: string };
   sender: { uid: string };
   recipient: { uid: string };
   sharesOffered: number;
@@ -66,7 +66,7 @@ export interface AdminMessage {
   readByUser: boolean;
   /**
    * Set when the thread is closed (status starts with 'closed_').
-   * Records the uid of the actor who closed it (admin or thread owner).
+   * Records the uid of the actor who closed it (admin or thread stewardOwner).
    * Used for future investigation of closed_unresolved threads.
    */
   closedBy?: string;

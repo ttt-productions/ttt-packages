@@ -1,2 +1,2 @@
-export * from './project-permissions.js';
-export * from './role-assignment-policy.js';
+export * from './work-project-permissions.js';
+export * from './guild-standing-assignment-policy.js';

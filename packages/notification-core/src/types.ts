@@ -42,7 +42,7 @@ export interface NotificationDoc {
   latestActorNames: string[];
 
   // Navigation
-  /** Route path when clicked (e.g. '/admin' or '/projects/abc') */
+  /** Route path when clicked (e.g. '/admin' or '/entities/abc') */
   targetPath: string;
   /** Type-specific metadata (e.g. { projectId, reason }) */
   metadata: Record<string, unknown>;

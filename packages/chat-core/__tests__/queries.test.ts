@@ -7,10 +7,10 @@ describe("threadDocPath", () => {
   });
 
   it("array path", () => {
-    expect(threadDocPath(["projects", "p1", "chatChannels"], "thread1")).toEqual([
-      "projects",
-      "p1",
-      "chatChannels",
+    expect(threadDocPath(["entities", "e1", "channels"], "thread1")).toEqual([
+      "entities",
+      "e1",
+      "channels",
       "thread1",
     ]);
   });
@@ -22,18 +22,18 @@ describe("messagesColPath", () => {
   });
 
   it("string path with custom subcollection", () => {
-    expect(messagesColPath("chats", "thread1", "channelMessages")).toEqual([
+    expect(messagesColPath("chats", "thread1", "messages")).toEqual([
       "chats",
       "thread1",
-      "channelMessages",
+      "messages",
     ]);
   });
 
   it("array path", () => {
-    expect(messagesColPath(["projects", "p1", "chatChannels"], "thread1")).toEqual([
-      "projects",
-      "p1",
-      "chatChannels",
+    expect(messagesColPath(["entities", "e1", "channels"], "thread1")).toEqual([
+      "entities",
+      "e1",
+      "channels",
       "thread1",
       "messages",
     ]);

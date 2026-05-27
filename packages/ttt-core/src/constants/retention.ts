@@ -10,7 +10,7 @@ export const WORD_LIST_CACHE_TTL_MS = 1000 * 60 * 60;
 /** Minimum number of recent donations always retained in the recentDonations collection. */
 export const MIN_RECENT_DONATIONS = 50;
 
-/** Days after which a donation is considered old enough to archive. */
+/** Days after which a pledgePayment is considered old enough to archive. */
 export const DONATION_RETENTION_DAYS = 90;
 
 // --- Pending media archive ---
@@ -18,7 +18,7 @@ export const DONATION_RETENTION_DAYS = 90;
 /** Days after which a terminal pendingMedia doc is moved to pendingMediaArchive. */
 export const PENDING_MEDIA_ARCHIVE_AFTER_DAYS = 7;
 
-/** Per-run cap on docs archived by the archivePendingMedia scheduled job. */
+/** Per-run cap on docs archived by the archivePendingMedia scheduled commission. */
 export const PENDING_MEDIA_ARCHIVE_BATCH_SIZE = 500;
 
 // --- Orphan upload cleanup ---

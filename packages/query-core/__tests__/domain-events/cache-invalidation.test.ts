@@ -52,7 +52,7 @@ describe('serializeInvalidation', () => {
   });
 
   it('serializes prefix invalidation as "prefix:[queryKey]"', () => {
-    expect(serializeInvalidation(prefix(['projects']))).toBe('prefix:["projects"]');
+    expect(serializeInvalidation(prefix(['entities']))).toBe('prefix:["entities"]');
   });
 
   it('serializes predicate invalidation as "predicate:<description>"', () => {
@@ -97,7 +97,7 @@ describe('applyInvalidations', () => {
   it('processes multiple distinct invalidations', async () => {
     const client = makeClient();
     const spy = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
-    applyInvalidations(client, [exact(['users']), prefix(['projects']), exact(['teams'])]);
+    applyInvalidations(client, [exact(['users']), prefix(['entities']), exact(['teams'])]);
     expect(spy).toHaveBeenCalledTimes(3);
   });
 

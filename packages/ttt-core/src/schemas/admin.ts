@@ -3,7 +3,7 @@ import { violationIdSchema, taskIdSchema } from './atoms.js';
 import type { AdminTaskType } from '../types/admin.js';
 
 const ADMIN_TASK_TYPES: [AdminTaskType, ...AdminTaskType[]] = [
-  'systemMessage',
+  'adminDispatch',
   'libraryReview',
   'userReport',
   'content-appeal',
@@ -54,7 +54,7 @@ const RuleSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().min(1).max(4000),
   videoUrl: z.string().url().max(2048).optional(),
-  group: z.enum(['generic', 'projectType', 'libraryType', 'universe', 'merchandising']).optional(),
+  group: z.enum(['generic', 'projectType', 'libraryType', 'workRealm', 'merchandising']).optional(),
   subgroup: z.enum(['Tales', 'Tunes', 'Television', 'entertainment', 'educational', 'newsPolitical']).optional(),
   order: z.number().int().min(0),
 }).strict();

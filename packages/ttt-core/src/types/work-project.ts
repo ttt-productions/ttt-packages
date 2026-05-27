@@ -1,4 +1,4 @@
-// Project-related Firestore document types
+// WorkProject-related Firestore document types
 export type { ShortProject } from '../media/atoms.js';
 
 import type { LibraryItemType } from './content.js';
@@ -11,7 +11,7 @@ export type ProjectMember = {
   uid: string;
   displayName: string;
   roles: ProjectRoleId[];
-  professions: string[];
+  tradeProfessions: string[];
   sharesNumber: number;
   joinedAt: number;
   status: ProjectMemberStatus;
@@ -60,7 +60,7 @@ export type PublicProject = {
   viewCount: number;
 };
 
-export type Universe = {
+export type WorkRealm = {
   universeId: string;
   workingTitle: string;
   workingDescription: string;
@@ -75,7 +75,7 @@ export type ProjectInvite = {
   createdBy: { uid: string };
   createdOn: number;
   message: string;
-  project: ShortProject;
+  workProject: ShortProject;
   status: 'pending' | 'accepted' | 'declined';
   lastUpdatedAt: number;
 };

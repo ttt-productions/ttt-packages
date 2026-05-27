@@ -44,7 +44,7 @@ describe('keys.user', () => {
 
 describe('keys scopes', () => {
   const scopes = [
-    'follows', 'skills', 'projects', 'messages', 'library',
+    'follows', 'skills', 'entities', 'messages', 'library',
     'admin', 'opportunities', 'jobs', 'donations', 'futurePlans',
     'rulesAndAgreements', 'chat', 'notifications', 'shortLinks',
     'mentions', 'violations', 'feedback',

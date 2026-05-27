@@ -1,8 +1,8 @@
-// Scheduled-job intervals, batch sizes, and source URLs.
+// Scheduled-commission intervals, batch sizes, and source URLs.
 
 // --- Admin task cleanup ---
 
-/** Interval in minutes for the admin-task cleanup scheduled job. */
+/** Interval in minutes for the admin-task cleanup scheduled commission. */
 export const ADMIN_TASK_CLEANUP_INTERVAL = 15;
 
 /** Batch size of expired task checkouts processed per scheduled run. */
@@ -13,7 +13,7 @@ export const ADMIN_TASK_CLEANUP_MAX_ITERATIONS = 10;
 
 // --- Profanity list sync ---
 
-/** Source URLs the syncProfanityList job pulls word lists from. */
+/** Source URLs the syncProfanityList commission pulls word lists from. */
 export const WORD_LIST_URLS = [
   'https://raw.githubusercontent.com/zacanger/profane-words/master/words.json',
   'https://raw.githubusercontent.com/RobertJGabriel/Google-profanity-words/master/list.txt',

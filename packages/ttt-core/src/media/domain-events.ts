@@ -24,7 +24,7 @@ export const ProfilePictureUpdatedEventSchema = z
 
 export const SkillCreatedEventSchema = z
   .object({
-    type: z.literal('skill.created'),
+    type: z.literal('craftSkill.created'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -36,7 +36,7 @@ export const SkillCreatedEventSchema = z
 
 export const StreetzPostCreatedEventSchema = z
   .object({
-    type: z.literal('streetz.postCreated'),
+    type: z.literal('squareStreetz.postCreated'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -48,7 +48,7 @@ export const StreetzPostCreatedEventSchema = z
 
 export const OpportunityPromptCreatedEventSchema = z
   .object({
-    type: z.literal('opportunity.promptCreated'),
+    type: z.literal('audition.promptCreated'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -61,7 +61,7 @@ export const OpportunityPromptCreatedEventSchema = z
 
 export const OpportunityReplyCreatedEventSchema = z
   .object({
-    type: z.literal('opportunity.replyCreated'),
+    type: z.literal('audition.replyCreated'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -75,7 +75,7 @@ export const OpportunityReplyCreatedEventSchema = z
 
 export const JobCreatedEventSchema = z
   .object({
-    type: z.literal('job.created'),
+    type: z.literal('commission.created'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -88,7 +88,7 @@ export const JobCreatedEventSchema = z
 
 export const JobApplicationSubmittedEventSchema = z
   .object({
-    type: z.literal('job.applicationSubmitted'),
+    type: z.literal('commission.applicationSubmitted'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -102,7 +102,7 @@ export const JobApplicationSubmittedEventSchema = z
 
 export const ProjectUpdatedEventSchema = z
   .object({
-    type: z.literal('project.updated'),
+    type: z.literal('workProject.updated'),
     ids: z.object({ projectId: z.string().min(1) }).strict(),
   })
   .strict();
@@ -186,7 +186,7 @@ export const FollowRemovedEventSchema = z
 
 export const StreetzPostLikedEventSchema = z
   .object({
-    type: z.literal('streetz.postLiked'),
+    type: z.literal('squareStreetz.postLiked'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -199,7 +199,7 @@ export const StreetzPostLikedEventSchema = z
 
 export const StreetzPostUnlikedEventSchema = z
   .object({
-    type: z.literal('streetz.postUnliked'),
+    type: z.literal('squareStreetz.postUnliked'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -223,7 +223,7 @@ export const ProfilePreferencesUpdatedEventSchema = z
 
 export const SkillDeletedEventSchema = z
   .object({
-    type: z.literal('skill.deleted'),
+    type: z.literal('craftSkill.deleted'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -235,7 +235,7 @@ export const SkillDeletedEventSchema = z
 
 export const SkillUpdatedEventSchema = z
   .object({
-    type: z.literal('skill.updated'),
+    type: z.literal('craftSkill.updated'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -247,7 +247,7 @@ export const SkillUpdatedEventSchema = z
 
 export const ProjectCreatedEventSchema = z
   .object({
-    type: z.literal('project.created'),
+    type: z.literal('workProject.created'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -259,7 +259,7 @@ export const ProjectCreatedEventSchema = z
 
 export const ProjectPublishedEventSchema = z
   .object({
-    type: z.literal('project.published'),
+    type: z.literal('workProject.published'),
     ids: z
       .object({
         projectId: z.string().min(1),
@@ -271,7 +271,7 @@ export const ProjectPublishedEventSchema = z
 
 export const ProjectSharesUpdatedEventSchema = z
   .object({
-    type: z.literal('project.sharesUpdated'),
+    type: z.literal('workProject.sharesUpdated'),
     ids: z
       .object({
         projectId: z.string().min(1),
@@ -282,7 +282,7 @@ export const ProjectSharesUpdatedEventSchema = z
 
 export const ProjectInviteSentEventSchema = z
   .object({
-    type: z.literal('project.inviteSent'),
+    type: z.literal('workProject.inviteSent'),
     ids: z
       .object({
         projectId: z.string().min(1),
@@ -296,7 +296,7 @@ export const ProjectInviteSentEventSchema = z
 
 export const ProjectInviteAcceptedEventSchema = z
   .object({
-    type: z.literal('project.inviteAccepted'),
+    type: z.literal('workProject.inviteAccepted'),
     ids: z
       .object({
         projectId: z.string().min(1),
@@ -309,7 +309,7 @@ export const ProjectInviteAcceptedEventSchema = z
 
 export const ProjectInviteDeclinedEventSchema = z
   .object({
-    type: z.literal('project.inviteDeclined'),
+    type: z.literal('workProject.inviteDeclined'),
     ids: z
       .object({
         projectId: z.string().min(1),
@@ -322,7 +322,7 @@ export const ProjectInviteDeclinedEventSchema = z
 
 export const ProjectInviteCancelledEventSchema = z
   .object({
-    type: z.literal('project.inviteCancelled'),
+    type: z.literal('workProject.inviteCancelled'),
     ids: z
       .object({
         projectId: z.string().min(1),
@@ -334,7 +334,7 @@ export const ProjectInviteCancelledEventSchema = z
 
 export const OpportunityReplyVotedEventSchema = z
   .object({
-    type: z.literal('opportunity.replyVoted'),
+    type: z.literal('audition.replyVoted'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -348,7 +348,7 @@ export const OpportunityReplyVotedEventSchema = z
 
 export const OpportunityClosedEventSchema = z
   .object({
-    type: z.literal('opportunity.closed'),
+    type: z.literal('audition.closed'),
     ids: z
       .object({
         opportunityId: z.string().min(1),
@@ -360,7 +360,7 @@ export const OpportunityClosedEventSchema = z
 
 export const JobDeletedEventSchema = z
   .object({
-    type: z.literal('job.deleted'),
+    type: z.literal('commission.deleted'),
     ids: z
       .object({
         jobId: z.string().min(1),
@@ -372,7 +372,7 @@ export const JobDeletedEventSchema = z
 
 export const JobApplicationSavedEventSchema = z
   .object({
-    type: z.literal('job.applicationSaved'),
+    type: z.literal('commission.applicationSaved'),
     ids: z
       .object({
         jobId: z.string().min(1),
@@ -385,7 +385,7 @@ export const JobApplicationSavedEventSchema = z
 
 export const JobApplicationRemovedEventSchema = z
   .object({
-    type: z.literal('job.applicationRemoved'),
+    type: z.literal('commission.applicationRemoved'),
     ids: z
       .object({
         jobId: z.string().min(1),

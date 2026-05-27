@@ -19,7 +19,7 @@ describe('ProfilePictureUpdatedEventSchema', () => {
 
 describe('StreetzPostCreatedEventSchema', () => {
   it('parses valid event', () => {
-    const event = { type: 'streetz.postCreated', ids: { userId: 'u_1', postId: 'p_1' } };
+    const event = { type: 'squareStreetz.postCreated', ids: { userId: 'u_1', postId: 'p_1' } };
     expect(StreetzPostCreatedEventSchema.parse(event).ids.postId).toBe('p_1');
   });
 });
@@ -65,9 +65,9 @@ describe('DomainEventSchema discriminated union', () => {
     expect(result.type).toBe('profile.pictureUpdated');
   });
 
-  it('accepts streetz.postCreated', () => {
-    const result = DomainEventSchema.parse({ type: 'streetz.postCreated', ids: { userId: 'u_1', postId: 'p_1' } });
-    expect(result.type).toBe('streetz.postCreated');
+  it('accepts squareStreetz.postCreated', () => {
+    const result = DomainEventSchema.parse({ type: 'squareStreetz.postCreated', ids: { userId: 'u_1', postId: 'p_1' } });
+    expect(result.type).toBe('squareStreetz.postCreated');
   });
 
   it('rejects unknown event type', () => {

@@ -16,8 +16,8 @@ describe('toPath', () => {
   });
 
   it('joins multiple segments with forward slashes', () => {
-    expect(toPath(['userProfiles', 'user123', 'profileSkills', 'skill456'])).toBe(
-      'userProfiles/user123/profileSkills/skill456'
+    expect(toPath(['userProfiles', 'user123', 'profileCraftSkills', 'skill456'])).toBe(
+      'userProfiles/user123/profileCraftSkills/skill456'
     );
   });
 
@@ -25,19 +25,19 @@ describe('toPath', () => {
     expect(toPath(PATH_BUILDERS.userProfile('user123'))).toBe('userProfiles/user123');
   });
 
-  it('works with PATH_BUILDERS.project output', () => {
-    expect(toPath(PATH_BUILDERS.project('proj456'))).toBe('allProjects/proj456');
+  it('works with PATH_BUILDERS.workProject output', () => {
+    expect(toPath(PATH_BUILDERS.workProject('proj456'))).toBe('allWorkProjects/proj456');
   });
 
   it('works with PATH_BUILDERS.chatChannel output', () => {
     expect(toPath(PATH_BUILDERS.chatChannel('projABC', 'chanXYZ'))).toBe(
-      'allProjects/projABC/chatChannels/chanXYZ'
+      'allWorkProjects/projABC/guildChatChannels/chanXYZ'
     );
   });
 
   it('works with PATH_BUILDERS.channelMessage output (6-segment path)', () => {
     expect(toPath(PATH_BUILDERS.channelMessage('p1', 'c1', 'm1'))).toBe(
-      'allProjects/p1/chatChannels/c1/channelMessages/m1'
+      'allWorkProjects/p1/guildChatChannels/c1/guildChatMessages/m1'
     );
   });
 });

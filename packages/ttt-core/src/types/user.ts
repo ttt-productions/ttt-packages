@@ -1,6 +1,6 @@
 // User-related Firestore document types
 
-export type Skill = {
+export type CraftSkill = {
   id: string;
   name: string;
   url: string;
@@ -9,26 +9,26 @@ export type Skill = {
   type: 'image' | 'video' | 'audio';
 };
 
-export type SkillReference = {
-  skillId: string;
+export type CraftSkillReference = {
+  craftSkillId: string;
   compositeId: string;
   userId: string;
-  skillName: string;
-  skillUrl: string;
-  skillType: 'image' | 'video' | 'audio';
+  craftSkillName: string;
+  craftSkillUrl: string;
+  craftSkillType: 'image' | 'video' | 'audio';
   tags: string[];
   createdAt: number;
 };
 
-export interface MinimalSkill {
+export interface MinimalCraftSkill {
   id: string;
   name: string;
   url: string;
   type: 'image' | 'video' | 'audio';
 }
 
-export type OwnedProject = {
-  projectId: string;
+export type OwnedWorkProject = {
+  workProjectId: string;
   workingTitle: string;
   workingDescription: string;
   type: string;
@@ -36,8 +36,8 @@ export type OwnedProject = {
   libraryType: LibraryItemType;
 };
 
-export type AssociatedProject = {
-  projectId: string;
+export type AssociatedWorkProject = {
+  workProjectId: string;
   workingTitle: string;
   workingDescription: string;
   type: string;
@@ -54,10 +54,10 @@ export type FullUser = {
   profilePictureUrlFull?: string | null;
   profilePictureUrlMedium?: string | null;
   profilePictureUrlSmall?: string | null;
-  creator?: string;
+  artisanCreator?: string;
   status?: 'active' | 'disabled' | 'banned';
-  ownedProjects?: OwnedProject[];
-  associatedProjects?: AssociatedProject[];
+  ownedWorkProjects?: OwnedWorkProject[];
+  associatedWorkProjects?: AssociatedWorkProject[];
   isWaitingForNewsApproval?: boolean;
   createdAt: number;
   streetzAgreementsDate?: number;

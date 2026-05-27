@@ -17,8 +17,8 @@ import type { FirestoreDocOptions, WithId } from '../../firestore/types.js';
  * });
  * * // With realtime updates
  * const { data: project } = useFirestoreDoc<Project>({
- * docPath: `projects/${projectId}`,
- * queryKey: ['project', projectId],
+ * docPath: `entities/${entityId}`,
+ * queryKey: ['entity', entityId],
  * subscribe: true,
  * });
  * * // Conditional fetch

@@ -36,7 +36,7 @@ export const SendChatMessageInputSchema = z.discriminatedUnion('threadKind', [
     attachment: ChatAttachmentSchema.optional(),
   }).strict(),
   z.object({
-    threadKind: z.literal('projectInvite'),
+    threadKind: z.literal('guildInvite'),
     inviteId: inviteIdSchema,
     text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
     replyTo: ReplyToSchema.optional(),

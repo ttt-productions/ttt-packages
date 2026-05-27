@@ -2,24 +2,24 @@ import { describe, it, expect } from 'vitest';
 import {
   InviteSourceSchema,
   InviteUserToProjectInputSchema,
-} from '../src/schemas/project-management';
+} from '../src/schemas/work-project-management';
 import { MAX_INVITE_MESSAGE_LENGTH } from '../src/constants/business';
 
 const validStandaloneSource = { type: 'standalone' } as const;
 
 const validSkillSource = {
-  type: 'skill',
+  type: 'craftSkill',
   data: {
-    skillId: 'skill-1',
+    skillId: 'craftSkill-1',
     skillOwnerUserId: 'user-1',
     skillName: 'Guitar',
   },
 } as const;
 
 const validJobSource = {
-  type: 'job',
+  type: 'commission',
   data: {
-    jobId: 'job-1',
+    jobId: 'commission-1',
     replyId: 'reply-1',
     jobTitle: 'Lead Developer',
     applicantUserId: 'user-2',
@@ -28,7 +28,7 @@ const validJobSource = {
 } as const;
 
 const validOpportunitySource = {
-  type: 'opportunity',
+  type: 'audition',
   data: {
     opportunityId: 'opp-1',
     replyId: 'reply-2',
@@ -49,15 +49,15 @@ describe('InviteSourceSchema', () => {
     ).toThrow();
   });
 
-  it('accepts a valid skill source', () => {
+  it('accepts a valid craftSkill source', () => {
     expect(InviteSourceSchema.parse(validSkillSource)).toEqual(validSkillSource);
   });
 
-  it('accepts a valid job source', () => {
+  it('accepts a valid commission source', () => {
     expect(InviteSourceSchema.parse(validJobSource)).toEqual(validJobSource);
   });
 
-  it('accepts a valid opportunity source', () => {
+  it('accepts a valid audition source', () => {
     expect(InviteSourceSchema.parse(validOpportunitySource)).toEqual(validOpportunitySource);
   });
 
@@ -67,10 +67,10 @@ describe('InviteSourceSchema', () => {
     ).toThrow();
   });
 
-  it('rejects nested unknown keys inside job data (.strict)', () => {
+  it('rejects nested unknown keys inside commission data (.strict)', () => {
     expect(() =>
       InviteSourceSchema.parse({
-        type: 'job',
+        type: 'commission',
         data: {
           ...validJobSource.data,
           unknownField: 'bad',
@@ -79,10 +79,10 @@ describe('InviteSourceSchema', () => {
     ).toThrow();
   });
 
-  it('rejects nested unknown keys inside skill data (.strict)', () => {
+  it('rejects nested unknown keys inside craftSkill data (.strict)', () => {
     expect(() =>
       InviteSourceSchema.parse({
-        type: 'skill',
+        type: 'craftSkill',
         data: {
           ...validSkillSource.data,
           extraKey: true,
@@ -91,19 +91,19 @@ describe('InviteSourceSchema', () => {
     ).toThrow();
   });
 
-  it('rejects postingSharesOffered: 0 on job branch', () => {
+  it('rejects postingSharesOffered: 0 on commission branch', () => {
     expect(() =>
       InviteSourceSchema.parse({
-        type: 'job',
+        type: 'commission',
         data: { ...validJobSource.data, postingSharesOffered: 0 },
       }),
     ).toThrow();
   });
 
-  it('rejects postingSharesOffered: 0 on opportunity branch', () => {
+  it('rejects postingSharesOffered: 0 on audition branch', () => {
     expect(() =>
       InviteSourceSchema.parse({
-        type: 'opportunity',
+        type: 'audition',
         data: { ...validOpportunitySource.data, postingSharesOffered: 0 },
       }),
     ).toThrow();
@@ -112,7 +112,7 @@ describe('InviteSourceSchema', () => {
 
 describe('InviteUserToProjectInputSchema', () => {
   const baseInput = {
-    projectId: 'project-1',
+    projectId: 'workProject-1',
     inviteeUid: 'user-99',
     message: 'Join us!',
     sharesOffered: 10,
@@ -123,17 +123,17 @@ describe('InviteUserToProjectInputSchema', () => {
     expect(InviteUserToProjectInputSchema.parse(input)).toEqual(input);
   });
 
-  it('accepts a fully valid input with skill source', () => {
+  it('accepts a fully valid input with craftSkill source', () => {
     const input = { ...baseInput, source: validSkillSource };
     expect(InviteUserToProjectInputSchema.parse(input)).toEqual(input);
   });
 
-  it('accepts a fully valid input with job source', () => {
+  it('accepts a fully valid input with commission source', () => {
     const input = { ...baseInput, source: validJobSource };
     expect(InviteUserToProjectInputSchema.parse(input)).toEqual(input);
   });
 
-  it('accepts a fully valid input with opportunity source', () => {
+  it('accepts a fully valid input with audition source', () => {
     const input = { ...baseInput, source: validOpportunitySource };
     expect(InviteUserToProjectInputSchema.parse(input)).toEqual(input);
   });

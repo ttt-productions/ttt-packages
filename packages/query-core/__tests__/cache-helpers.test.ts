@@ -36,13 +36,13 @@ describe('invalidateByPrefix', () => {
 
     it('leaves queries with unrelated key prefixes untouched', async () => {
         client.setQueryData(['users', 'list'], ['a']);
-        client.setQueryData(['projects', 'list'], ['p1']);
+        client.setQueryData(['entities', 'list'], ['p1']);
         client.setQueryData(['messages', 'detail', 'm1'], { id: 'm1' });
 
         await invalidateByPrefix(client, ['users']);
 
         expect(isInvalidated(client, ['users', 'list'])).toBe(true);
-        expect(isInvalidated(client, ['projects', 'list'])).toBe(false);
+        expect(isInvalidated(client, ['entities', 'list'])).toBe(false);
         expect(isInvalidated(client, ['messages', 'detail', 'm1'])).toBe(false);
     });
 
@@ -57,7 +57,7 @@ describe('invalidateByPrefix', () => {
         expect(isInvalidated(client, ['users', 'detail', 'uid-1'])).toBe(false);
     });
 
-    it('does NOT remove the cached data — only marks it invalidated', async () => {
+    it('does NOT remove the cached data â€” only marks it invalidated', async () => {
         client.setQueryData(['users', 'list'], ['a', 'b']);
         await invalidateByPrefix(client, ['users']);
         // Data remains accessible; only the staleness flag changed.
@@ -73,35 +73,35 @@ describe('removeByPrefix', () => {
     });
 
     it('removes every query whose key starts with the prefix', () => {
-        client.setQueryData(['projects', 'list'], ['p1', 'p2']);
-        client.setQueryData(['projects', 'detail', 'pj-1'], { id: 'pj-1' });
-        client.setQueryData(['projects', 'detail', 'pj-2'], { id: 'pj-2' });
+        client.setQueryData(['entities', 'list'], ['p1', 'p2']);
+        client.setQueryData(['entities', 'detail', 'e-1'], { id: 'e-1' });
+        client.setQueryData(['entities', 'detail', 'e-2'], { id: 'e-2' });
 
-        removeByPrefix(client, ['projects']);
+        removeByPrefix(client, ['entities']);
 
-        expect(client.getQueryData(['projects', 'list'])).toBeUndefined();
-        expect(client.getQueryData(['projects', 'detail', 'pj-1'])).toBeUndefined();
-        expect(client.getQueryData(['projects', 'detail', 'pj-2'])).toBeUndefined();
+        expect(client.getQueryData(['entities', 'list'])).toBeUndefined();
+        expect(client.getQueryData(['entities', 'detail', 'e-1'])).toBeUndefined();
+        expect(client.getQueryData(['entities', 'detail', 'e-2'])).toBeUndefined();
     });
 
     it('leaves queries with unrelated key prefixes untouched', () => {
-        client.setQueryData(['projects', 'list'], ['p1']);
+        client.setQueryData(['entities', 'list'], ['p1']);
         client.setQueryData(['users', 'list'], ['u1']);
 
-        removeByPrefix(client, ['projects']);
+        removeByPrefix(client, ['entities']);
 
-        expect(client.getQueryData(['projects', 'list'])).toBeUndefined();
+        expect(client.getQueryData(['entities', 'list'])).toBeUndefined();
         expect(client.getQueryData(['users', 'list'])).toEqual(['u1']);
     });
 
     it('matches multi-segment prefixes (does not over-match)', () => {
-        client.setQueryData(['projects', 'recent'], ['p1']);
-        client.setQueryData(['projects', 'archived'], ['p2']);
+        client.setQueryData(['entities', 'recent'], ['p1']);
+        client.setQueryData(['entities', 'archived'], ['p2']);
 
-        removeByPrefix(client, ['projects', 'recent']);
+        removeByPrefix(client, ['entities', 'recent']);
 
-        expect(client.getQueryData(['projects', 'recent'])).toBeUndefined();
-        expect(client.getQueryData(['projects', 'archived'])).toEqual(['p2']);
+        expect(client.getQueryData(['entities', 'recent'])).toBeUndefined();
+        expect(client.getQueryData(['entities', 'archived'])).toEqual(['p2']);
     });
 });
 

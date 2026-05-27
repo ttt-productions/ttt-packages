@@ -49,7 +49,7 @@ export interface FirestoreDocOptions<T> extends FirestoreBaseOptions {
  * Options for collection queries.
  */
 export interface FirestoreCollectionOptions<T> extends FirestoreBaseOptions {
-  /** Collection path (e.g., 'users' or 'projects/abc/members') */
+  /** Collection path (e.g., 'users' or 'entities/abc/members') */
   collectionPath: string;
   /** Firestore query constraints (where, orderBy, etc.) */
   constraints?: QueryConstraint[];

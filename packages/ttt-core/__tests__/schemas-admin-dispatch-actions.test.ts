@@ -3,7 +3,7 @@ import {
   UpdateAdminMessageStatusInputSchema,
   UpdateInviteConfirmationInputSchema,
   UpdateInviteSharesInputSchema,
-} from '../src/schemas/system-message-actions';
+} from '../src/schemas/admin-dispatch-actions';
 
 describe('UpdateAdminMessageStatusInputSchema', () => {
   it('accepts a valid input with closed_resolved', () => {

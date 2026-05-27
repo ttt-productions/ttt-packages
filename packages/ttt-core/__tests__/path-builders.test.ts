@@ -88,9 +88,9 @@ describe('PATH_BUILDERS', () => {
   });
 
   // ===== PROJECT PATHS =====
-  describe('Project Paths', () => {
-    it('project returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.project('proj1');
+  describe('WorkProject Paths', () => {
+    it('workProject returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.workProject('proj1');
       expect(result).toHaveLength(2);
       expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
       expect(result[1]).toBe('proj1');
@@ -130,8 +130,8 @@ describe('PATH_BUILDERS', () => {
       expect(result[3]).toBe('tune1');
     });
 
-    it('tuneSong returns 6-segment tuple', () => {
-      const result = PATH_BUILDERS.tuneSong('proj1', 'tune1', 'song1');
+    it('tuneTrack returns 6-segment tuple', () => {
+      const result = PATH_BUILDERS.tuneTrack('proj1', 'tune1', 'song1');
       expect(result).toHaveLength(6);
       expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
       expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TUNES);
@@ -148,8 +148,8 @@ describe('PATH_BUILDERS', () => {
       expect(result[3]).toBe('tv1');
     });
 
-    it('tvShow returns 6-segment tuple', () => {
-      const result = PATH_BUILDERS.tvShow('proj1', 'tv1', 'show1');
+    it('televisionEpisode returns 6-segment tuple', () => {
+      const result = PATH_BUILDERS.televisionEpisode('proj1', 'tv1', 'show1');
       expect(result).toHaveLength(6);
       expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
       expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION);
@@ -194,8 +194,8 @@ describe('PATH_BUILDERS', () => {
   });
 
   // ===== STREETZ PATHS =====
-  describe('Streetz Paths', () => {
-    it('activePost returns 4-segment tuple starting with streetzFeed', () => {
+  describe('SquareStreetz Paths', () => {
+    it('activePost returns 4-segment tuple starting with squareStreetzFeed', () => {
       const result = PATH_BUILDERS.activePost('post1');
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.STREETZ_FEED);
@@ -213,7 +213,7 @@ describe('PATH_BUILDERS', () => {
   });
 
   // ===== LIBRARY PATHS =====
-  describe('Library Paths', () => {
+  describe('HallLibrary Paths', () => {
     it('thresholdItem returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.thresholdItem('lib1');
       expect(result).toHaveLength(2);
@@ -239,9 +239,9 @@ describe('PATH_BUILDERS', () => {
   });
 
   // ===== JOB PATHS =====
-  describe('Job Paths', () => {
-    it('jobListing returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.jobListing('job1');
+  describe('Commission Paths', () => {
+    it('commissionListing returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.commissionListing('job1');
       expect(result).toHaveLength(2);
       expect(result[0]).toBe(COLLECTIONS.JOB_LISTINGS);
       expect(result[1]).toBe('job1');
@@ -258,16 +258,16 @@ describe('PATH_BUILDERS', () => {
   });
 
   // ===== OPPORTUNITY PATHS =====
-  describe('Opportunity Paths', () => {
-    it('opportunity returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.opportunity('opp1');
+  describe('Audition Paths', () => {
+    it('audition returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.audition('opp1');
       expect(result).toHaveLength(2);
       expect(result[0]).toBe(COLLECTIONS.OPPORTUNITY_BOARD);
       expect(result[1]).toBe('opp1');
     });
 
-    it('opportunityReply returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.opportunityReply('opp1', 'reply1');
+    it('auditionEntry returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.auditionEntry('opp1', 'reply1');
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.OPPORTUNITY_BOARD);
       expect(result[1]).toBe('opp1');
@@ -277,9 +277,9 @@ describe('PATH_BUILDERS', () => {
   });
 
   // ===== UNIVERSE PATHS =====
-  describe('Universe Paths', () => {
-    it('universe returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.universe('uni1');
+  describe('WorkRealm Paths', () => {
+    it('workRealm returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.workRealm('uni1');
       expect(result).toHaveLength(2);
       expect(result[0]).toBe(COLLECTIONS.STORY_UNIVERSES);
       expect(result[1]).toBe('uni1');
@@ -288,8 +288,8 @@ describe('PATH_BUILDERS', () => {
 
   // ===== ADMIN & SYSTEM PATHS =====
   describe('Admin & System Paths', () => {
-    it('adminMessage returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.adminMessage('msg1');
+    it('adminDispatch returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.adminDispatch('msg1');
       expect(result).toHaveLength(2);
       expect(result[0]).toBe(COLLECTIONS.PENDING_ADMIN_MESSAGES);
       expect(result[1]).toBe('msg1');
@@ -304,8 +304,8 @@ describe('PATH_BUILDERS', () => {
       expect(result[3]).toBe('indivMsg1');
     });
 
-    it('projectInvite returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.projectInvite('invite1');
+    it('guildInvite returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.guildInvite('invite1');
       expect(result).toHaveLength(2);
       expect(result[0]).toBe(COLLECTIONS.PROJECT_INVITE_CONVERSATIONS);
       expect(result[1]).toBe('invite1');

@@ -75,7 +75,7 @@ describe('UploadActivityTray', () => {
         {
           type: 'added',
           id: 'd1',
-          data: { id: 'd1', userId: 'user1', fileOrigin: 'streetz', status: 'pending', createdAt: Date.now(), surface: '/x' },
+          data: { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', status: 'pending', createdAt: Date.now(), surface: '/x' },
         },
       ]);
     });
@@ -99,7 +99,7 @@ describe('UploadActivityTray', () => {
         {
           type: 'added',
           id: 'd1',
-          data: { id: 'd1', userId: 'user1', fileOrigin: 'streetz', status: 'pending', createdAt: Date.now(), surface: '/x' },
+          data: { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', status: 'pending', createdAt: Date.now(), surface: '/x' },
         },
       ]);
     });

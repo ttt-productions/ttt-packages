@@ -15,7 +15,7 @@ import {
   ShowPhotoTargetInfoSchema,
   ChatAttachmentTargetInfoSchema,
 } from '../src/media/target-info.js';
-import { LIBRARY_TARGET_FIELDS } from '../src/media/library-target-fields.js';
+import { LIBRARY_TARGET_FIELDS } from '../src/media/hall-library-target-fields.js';
 
 describe('ProfilePictureTargetInfoSchema', () => {
   it('accepts empty object', () => {
@@ -70,9 +70,9 @@ describe('StreetzTargetInfoSchema', () => {
 describe('JobPostingTargetInfoSchema', () => {
   const valid = {
     jobId: 'job_1',
-    title: 'Test job',
+    title: 'Test commission',
     description: 'desc',
-    requiredProfessions: ['actor'],
+    requiredTradeProfessions: ['actor'],
     sharesOffered: 5,
     projectId: 'p_1',
     createdBy: { uid: 'u_1' },
@@ -149,7 +149,7 @@ describe('LibraryCoverSquareTargetInfoSchema (typed IDs)', () => {
   });
   it('rejects legacy { docPath, fields } shape', () => {
     expect(() =>
-      LibraryCoverSquareTargetInfoSchema.parse({ docPath: 'allProjects/p_1/projectTales/tale_1', fields: { full: 'coverPhotoSquare' } })
+      LibraryCoverSquareTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/projectTales/tale_1', fields: { full: 'coverPhotoSquare' } })
     ).toThrow();
   });
   it('rejects unknown itemType', () => {
@@ -171,7 +171,7 @@ describe('ChapterPhotoTargetInfoSchema (typed IDs)', () => {
   });
   it('rejects legacy { docPath, fields } shape', () => {
     expect(() =>
-      ChapterPhotoTargetInfoSchema.parse({ docPath: 'allProjects/p_1/projectTales/tale_1/taleChapters/ch_1', fields: { full: 'photoUrl' } })
+      ChapterPhotoTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/projectTales/tale_1/taleChapters/ch_1', fields: { full: 'photoUrl' } })
     ).toThrow();
   });
   it('rejects missing chapterId', () => {
@@ -189,9 +189,9 @@ describe('ChatAttachmentTargetInfoSchema', () => {
       threadKind: 'projectChannel', projectId: 'p_1', channelId: 'c_1',
     })).not.toThrow();
   });
-  it('accepts projectInvite', () => {
+  it('accepts guildInvite', () => {
     expect(() => ChatAttachmentTargetInfoSchema.parse({
-      threadKind: 'projectInvite', inviteId: 'inv_1',
+      threadKind: 'guildInvite', inviteId: 'inv_1',
     })).not.toThrow();
   });
   it('accepts adminSupport', () => {
@@ -207,7 +207,7 @@ describe('ChatAttachmentTargetInfoSchema', () => {
 });
 
 describe('SongPhotoTargetInfoSchema (typed IDs)', () => {
-  const valid = { projectId: 'p_1', tuneId: 'tune_1', songId: 'song_1' };
+  const valid = { projectId: 'p_1', tuneId: 'tune_1', trackId: 'song_1' };
   it('accepts valid typed IDs', () => {
     expect(() => SongPhotoTargetInfoSchema.parse(valid)).not.toThrow();
   });
@@ -219,7 +219,7 @@ describe('SongPhotoTargetInfoSchema (typed IDs)', () => {
 });
 
 describe('ShowPhotoTargetInfoSchema (typed IDs)', () => {
-  const valid = { projectId: 'p_1', televisionId: 'tv_1', showId: 'show_1' };
+  const valid = { projectId: 'p_1', televisionId: 'tv_1', episodeId: 'show_1' };
   it('accepts valid typed IDs', () => {
     expect(() => ShowPhotoTargetInfoSchema.parse(valid)).not.toThrow();
   });
@@ -231,14 +231,14 @@ describe('ShowPhotoTargetInfoSchema (typed IDs)', () => {
 });
 
 describe('LIBRARY_TARGET_FIELDS', () => {
-  it('maps library-cover-square to coverPhotoSquare', () => {
-    expect(LIBRARY_TARGET_FIELDS['library-cover-square']).toBe('coverPhotoSquare');
+  it('maps hallLibrary-cover-square to coverPhotoSquare', () => {
+    expect(LIBRARY_TARGET_FIELDS['hallLibrary-cover-square']).toBe('coverPhotoSquare');
   });
-  it('maps library-cover-poster to coverPhotoPoster', () => {
-    expect(LIBRARY_TARGET_FIELDS['library-cover-poster']).toBe('coverPhotoPoster');
+  it('maps hallLibrary-cover-poster to coverPhotoPoster', () => {
+    expect(LIBRARY_TARGET_FIELDS['hallLibrary-cover-poster']).toBe('coverPhotoPoster');
   });
-  it('maps library-cover-cinematic to coverPhotoCinematic', () => {
-    expect(LIBRARY_TARGET_FIELDS['library-cover-cinematic']).toBe('coverPhotoCinematic');
+  it('maps hallLibrary-cover-cinematic to coverPhotoCinematic', () => {
+    expect(LIBRARY_TARGET_FIELDS['hallLibrary-cover-cinematic']).toBe('coverPhotoCinematic');
   });
   it('maps chapter-photo to photoUrl', () => {
     expect(LIBRARY_TARGET_FIELDS['chapter-photo']).toBe('photoUrl');
@@ -261,8 +261,8 @@ describe('parseTargetInfo dispatch', () => {
   it('dispatches to profile-picture schema', () => {
     expect(parseTargetInfo('profile-picture', {})).toEqual({});
   });
-  it('dispatches to skill-media schema', () => {
-    const result = parseTargetInfo('skill-media', { skillId: 's_1', skillType: 'image', originalFileName: 'a.jpg' });
+  it('dispatches to craftSkill-media schema', () => {
+    const result = parseTargetInfo('craftSkill-media', { skillId: 's_1', skillType: 'image', originalFileName: 'a.jpg' });
     expect(result).toMatchObject({ skillId: 's_1' });
   });
   it('dispatches to chat-attachment schema', () => {
@@ -270,6 +270,6 @@ describe('parseTargetInfo dispatch', () => {
     expect(result).toMatchObject({ threadKind: 'projectChannel', projectId: 'p_1', channelId: 'c_1' });
   });
   it('throws on schema mismatch', () => {
-    expect(() => parseTargetInfo('skill-media', { wrongShape: true })).toThrow();
+    expect(() => parseTargetInfo('craftSkill-media', { wrongShape: true })).toThrow();
   });
 });

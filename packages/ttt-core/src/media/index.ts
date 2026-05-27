@@ -13,6 +13,6 @@ export {
 } from "./ttt-media-specs.js";
 export * from "./start-upload.js";
 export * from "./target-info.js";
-export * from "./library-target-fields.js";
+export * from "./hall-library-target-fields.js";
 export * from "./pending-media.js";
 export * from "./upload-tray-display.js";

@@ -8,15 +8,15 @@ export const COLLECTIONS = {
   // Core entities
   USER_PROFILES: 'userProfiles',
   PUBLIC_USERS: 'publicUsers',
-  ALL_PROJECTS: 'allProjects',
-  STORY_UNIVERSES: 'storyUniverses',
+  ALL_PROJECTS: 'allWorkProjects',
+  STORY_UNIVERSES: 'workRealms',
 
   // Content & Social
-  STREETZ_FEED: 'streetzFeed',
+  STREETZ_FEED: 'squareStreetzFeed',
   THRESHOLD_ITEMS: 'thresholdItems',
   HALL_ITEMS: 'hallItems',
-  JOB_LISTINGS: 'jobListings',
-  OPPORTUNITY_BOARD: 'opportunityBoard',
+  JOB_LISTINGS: 'commissionListings',
+  OPPORTUNITY_BOARD: 'auditionBoard',
 
   // System & Utility
   RESERVED_DISPLAY_NAMES: 'reservedDisplayNames',
@@ -24,7 +24,7 @@ export const COLLECTIONS = {
   CONTENT_REPORTS: 'contentReports',
   PENDING_MEDIA: 'pendingMedia',
   PENDING_MEDIA_ARCHIVE: 'pendingMediaArchive',
-  PENDING_ADMIN_MESSAGES: 'pendingAdminMessages',
+  PENDING_ADMIN_MESSAGES: 'pendingAdminDispatches',
   ACTIVE_REPORT_GROUPS: 'activeReportGroups',
   CONTENT_VIOLATIONS: 'contentViolations',
   ADMIN_TASKS: 'adminTasks',
@@ -44,7 +44,7 @@ export const COLLECTIONS = {
   FEEDBACK_SUBMISSIONS: 'feedbackSubmissions',
   FEEDBACK_ALIASES: 'feedbackAliases',
   FEEDBACK_DENYLIST: 'feedbackDenylist',
-  SKILLS_BY_TAG: 'skillsByTag',
+  SKILLS_BY_TAG: 'craft-skillsByTag',
   SYSTEM_DATA: '_systemData',
   APP_CONFIG: '_config',
   RECENT_DONATIONS: 'recentDonations',
@@ -56,20 +56,20 @@ export const COLLECTIONS = {
  * Nested under userProfiles/{userId}/
  */
 export const USER_SUBCOLLECTIONS = {
-  PROFILE_SKILLS: 'profileSkills',
+  PROFILE_SKILLS: 'profileCraftSkills',
   PRIVATE_DATA: 'privateData',
   USER_METADATA: 'userMetadata',
   USER_FOLLOWS: 'userFollows',
   USER_LIKES: 'userLikes',
-  USER_DONATIONS: 'userDonations',
+  USER_DONATIONS: 'userPledgePayments',
   CHECKED_OUT_ITEMS: 'checkedOutItems',
   MENTION_HISTORY: 'mentionHistory',
-  OPPORTUNITY_VOTES: 'opportunityVotes',
+  OPPORTUNITY_VOTES: 'auditionVotes',
 } as const;
 
 /**
  * PROJECT SUBCOLLECTIONS
- * Nested under allProjects/{projectId}/
+ * Nested under allWorkProjects/{projectId}/
  */
 export const PROJECT_SUBCOLLECTIONS = {
   PUBLIC_DATA: 'publicData',
@@ -78,7 +78,7 @@ export const PROJECT_SUBCOLLECTIONS = {
   PROJECT_TELEVISION: 'projectTelevision',
   MEMBERS: 'members',
   FILES: 'files',
-  CHAT_CHANNELS: 'chatChannels',
+  CHAT_CHANNELS: 'guildChatChannels',
 } as const;
 
 /**
@@ -88,15 +88,15 @@ export const PROJECT_SUBCOLLECTIONS = {
 export const NESTED_SUBCOLLECTIONS = {
   // Content subcollections
   TALE_CHAPTERS: 'taleChapters',
-  TUNE_SONGS: 'tuneSongs',
-  TV_SHOWS: 'tvShows',
+  TUNE_SONGS: 'tuneTracks',
+  TV_SHOWS: 'televisionEpisodes',
 
   // Communication
-  CHANNEL_MESSAGES: 'channelMessages',
+  CHANNEL_MESSAGES: 'guildChatMessages',
   CONVERSATION_MESSAGES: 'conversationMessages',
   INVITE_MESSAGES: 'inviteMessages',
 
-  // Streetz & Social
+  // SquareStreetz & Social
   SOCIAL_POSTS: 'socialPosts',
   ACTIVE_POSTS: 'activePosts',
   TRENDING_POSTS: 'trendingPosts',
@@ -109,10 +109,10 @@ export const NESTED_SUBCOLLECTIONS = {
   FOLLOW_HISTORY: 'followHistory',
   FOLLOWED_USERS: 'followedUsers',
   LIKE_HISTORY: 'likeHistory',
-  STREETZ_LIKES: 'streetzLikes',
+  STREETZ_LIKES: 'squareStreetzLikes',
 
   // Skills & Feedback
-  TAGGED_SKILLS: 'taggedSkills',
+  TAGGED_SKILLS: 'taggedCraftSkills',
   USER_SUGGESTIONS: 'userSuggestions',
 } as const;
 

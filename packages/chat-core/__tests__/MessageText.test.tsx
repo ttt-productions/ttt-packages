@@ -31,7 +31,7 @@ describe('MessageText', () => {
   });
 
   it('renders multiple mentions interleaved with text', () => {
-    const { container } = render(<MessageText text="@[user:a|A] then @[project:p|P] end" />);
+    const { container } = render(<MessageText text="@[user:a|A] then @[entity:p|P] end" />);
     expect(container.textContent).toBe('@A then @P end');
   });
 

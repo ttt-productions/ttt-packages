@@ -1,7 +1,7 @@
-// Job board and Opportunity types
+// Commission board and Audition types
 
-import type { ShortProject } from './project.js';
-import type { JobApplicationStatus } from '../schemas/jobs.js';
+import type { ShortProject } from './work-project.js';
+import type { JobApplicationStatus } from '../schemas/commissions.js';
 
 export type JobFile = {
   pendingMediaId?: string;
@@ -16,7 +16,7 @@ export type FullJob = {
   title: string;
   description: string;
   jobFile?: JobFile;
-  requiredProfessions: string[];
+  requiredTradeProfessions: string[];
   sharesOffered: number;
   createdAt: number;
   createdBy: { uid: string };
@@ -41,11 +41,11 @@ export type FullJobReply = {
   rejectedAt?: number;
 };
 
-// --- Opportunity ---
+// --- Audition ---
 
 export type OpportunityType = 'SystemInput' | 'SponsoredProjects' | 'ProjectInput';
 
-export type Opportunity = {
+export type Audition = {
   opportunityId: string;
   type: OpportunityType;
   title: string;

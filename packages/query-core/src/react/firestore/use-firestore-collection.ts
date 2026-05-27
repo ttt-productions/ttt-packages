@@ -18,16 +18,16 @@ import type { FirestoreCollectionOptions, WithId } from '../../firestore/types.j
  * For large collections, use useFirestoreInfinite or useFirestorePaginated.
  * * @example
  * ```tsx
- * // Fetch all channels in a project
+ * // Fetch all channels in an entity
  * const { data: channels } = useFirestoreCollection<Channel>({
- * collectionPath: `projects/${projectId}/channels`,
- * queryKey: ['channels', projectId],
+ * collectionPath: `entities/${entityId}/channels`,
+ * queryKey: ['channels', entityId],
  * constraints: [orderBy('createdAt', 'asc')],
  * });
  * * // With realtime updates
  * const { data: members } = useFirestoreCollection<Member>({
- * collectionPath: `projects/${projectId}/members`,
- * queryKey: ['members', projectId],
+ * collectionPath: `entities/${entityId}/members`,
+ * queryKey: ['members', entityId],
  * subscribe: true,
  * });
  * ```

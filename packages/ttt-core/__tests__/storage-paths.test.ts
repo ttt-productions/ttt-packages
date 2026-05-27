@@ -19,9 +19,9 @@ describe('buildTempUploadPath', () => {
     );
   });
 
-  it('builds path for streetz', () => {
-    expect(buildTempUploadPath('streetz', 'user_xyz', 'file_2')).toBe(
-      'uploads/streetz/user_xyz/file_2'
+  it('builds path for squareStreetz', () => {
+    expect(buildTempUploadPath('squareStreetz', 'user_xyz', 'file_2')).toBe(
+      'uploads/squareStreetz/user_xyz/file_2'
     );
   });
 
@@ -35,16 +35,16 @@ describe('buildTempUploadPath', () => {
 describe('isTempUploadPath', () => {
   it('returns true for valid temp paths', () => {
     expect(isTempUploadPath('uploads/profile-picture/user_abc/file_1')).toBe(true);
-    expect(isTempUploadPath('uploads/streetz/user_xyz/file_2')).toBe(true);
+    expect(isTempUploadPath('uploads/squareStreetz/user_xyz/file_2')).toBe(true);
     expect(isTempUploadPath('uploads/chat-attachment/user_123/some-uuid')).toBe(true);
   });
 
   it('returns false for finalized storage paths', () => {
     expect(isTempUploadPath('userProfiles/userId/profile-picture/file.jpg')).toBe(false);
-    expect(isTempUploadPath('streetzFeed/userId/postId/file.jpg')).toBe(false);
-    expect(isTempUploadPath('allProjects/projectId/files/file.jpg')).toBe(false);
-    expect(isTempUploadPath('jobListings/jobId/file.jpg')).toBe(false);
-    expect(isTempUploadPath('opportunityBoard/oppId/video/file.mp4')).toBe(false);
+    expect(isTempUploadPath('squareStreetzFeed/userId/postId/file.jpg')).toBe(false);
+    expect(isTempUploadPath('allWorkProjects/projectId/files/file.jpg')).toBe(false);
+    expect(isTempUploadPath('commissionListings/jobId/file.jpg')).toBe(false);
+    expect(isTempUploadPath('auditionBoard/oppId/video/file.mp4')).toBe(false);
     expect(isTempUploadPath('messageAttachments/userId/convoId/file.jpg')).toBe(false);
     expect(isTempUploadPath('rejected/userId/file.jpg')).toBe(false);
     expect(isTempUploadPath('__public__/file.jpg')).toBe(false);
@@ -66,15 +66,15 @@ describe('isTempUploadPath', () => {
 describe('extractFileIdFromTempPath', () => {
   it('returns the file id for valid temp paths', () => {
     expect(extractFileIdFromTempPath('uploads/profile-picture/user_abc/file_1')).toBe('file_1');
-    expect(extractFileIdFromTempPath('uploads/streetz/user_xyz/some-uuid')).toBe('some-uuid');
+    expect(extractFileIdFromTempPath('uploads/squareStreetz/user_xyz/some-uuid')).toBe('some-uuid');
   });
 
   it('returns null for finalized storage paths', () => {
     expect(extractFileIdFromTempPath('userProfiles/userId/profile-picture/file.jpg')).toBeNull();
-    expect(extractFileIdFromTempPath('streetzFeed/userId/postId/file.jpg')).toBeNull();
-    expect(extractFileIdFromTempPath('allProjects/projectId/files/file.jpg')).toBeNull();
-    expect(extractFileIdFromTempPath('jobListings/jobId/file.jpg')).toBeNull();
-    expect(extractFileIdFromTempPath('opportunityBoard/oppId/video/file.mp4')).toBeNull();
+    expect(extractFileIdFromTempPath('squareStreetzFeed/userId/postId/file.jpg')).toBeNull();
+    expect(extractFileIdFromTempPath('allWorkProjects/projectId/files/file.jpg')).toBeNull();
+    expect(extractFileIdFromTempPath('commissionListings/jobId/file.jpg')).toBeNull();
+    expect(extractFileIdFromTempPath('auditionBoard/oppId/video/file.mp4')).toBeNull();
     expect(extractFileIdFromTempPath('messageAttachments/userId/convoId/file.jpg')).toBeNull();
     expect(extractFileIdFromTempPath('rejected/userId/file.jpg')).toBeNull();
     expect(extractFileIdFromTempPath('__public__/file.jpg')).toBeNull();

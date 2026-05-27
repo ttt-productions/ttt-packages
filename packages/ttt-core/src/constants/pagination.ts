@@ -1,4 +1,4 @@
-// Pagination page sizes and library UX constants.
+// Pagination page sizes and hallLibrary UX constants.
 
 /** Default pagination size when no other size applies. */
 export const ITEMS_PER_PAGE_GENERAL = 5;
@@ -25,7 +25,7 @@ export const DONATIONS_PER_PAGE = 20;
 /** Page size for the pending-media archive list hook. */
 export const ARCHIVE_PER_PAGE = 10;
 
-/** Page size for the project-channels list hook. */
+/** Page size for the workProject-channels list hook. */
 export const CHANNELS_PER_PAGE = 10;
 
 /** Page size for the social feed hook. */
@@ -34,15 +34,15 @@ export const POSTS_PER_PAGE = 20;
 /** Page size for the content-violation list hook. */
 export const VIOLATIONS_PER_PAGE = 5;
 
-/** Page size for the skills list hook. */
+/** Page size for the craft-skills list hook. */
 export const SKILLS_PER_PAGE = 12;
 
-/** Maximum number of recent posts the trending-feed scheduled job processes per run. */
+/** Maximum number of recent posts the trending-feed scheduled commission processes per run. */
 export const TRENDING_FEED_PROCESS_LIMIT = 500;
 
-// --- Library UX constants ---
+// --- HallLibrary UX constants ---
 
-/** Library page-level UX values (page size, recency window, search debounce, per-item tag cap). */
+/** HallLibrary page-level UX values (page size, recency window, search debounce, per-item tag cap). */
 export const LIBRARY_CONSTANTS = {
   ITEMS_PER_PAGE: 20,
   MAX_RECENT_VIEWS: 50,

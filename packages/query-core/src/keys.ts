@@ -44,11 +44,11 @@ export const keys = {
     list: (param?: SerializedKeyPart) => withScope('skills', 'list', param),
     custom: (...parts: SerializedKeyPart[]) => withScope('skills', ...parts),
   },
-  projects: {
-    all: withScope('projects'),
-    detail: (id: string) => withScope('projects', 'detail', id),
-    list: (param?: SerializedKeyPart) => withScope('projects', 'list', param),
-    custom: (...parts: SerializedKeyPart[]) => withScope('projects', ...parts),
+  entities: {
+    all: withScope('entities'),
+    detail: (id: string) => withScope('entities', 'detail', id),
+    list: (param?: SerializedKeyPart) => withScope('entities', 'list', param),
+    custom: (...parts: SerializedKeyPart[]) => withScope('entities', ...parts),
   },
   messages: {
     all: withScope('messages'),

@@ -70,7 +70,7 @@ describe('PendingMediaFailedSchema', () => {
   it('parses a failed doc', () => {
     const doc = {
       ...base,
-      fileOrigin: 'streetz',
+      fileOrigin: 'squareStreetz',
       status: 'failed',
       failedAt: 1_700_000_003_000,
       terminalAt: 1_700_000_003_000,
@@ -86,7 +86,7 @@ describe('PendingMediaRejectedSchema', () => {
   it('parses a rejected doc', () => {
     const doc = {
       ...base,
-      fileOrigin: 'skill-media',
+      fileOrigin: 'craftSkill-media',
       status: 'rejected',
       rejectedAt: 1_700_000_004_000,
       terminalAt: 1_700_000_004_000,

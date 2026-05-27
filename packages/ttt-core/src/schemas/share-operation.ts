@@ -4,7 +4,7 @@ import {
   userIdSchema,
 } from './atoms.js';
 
-// Mirrors the ShareOperation TS type in packages/ttt-core/src/types/project.ts.
+// Mirrors the ShareOperation TS type in packages/ttt-core/src/types/work-project.ts.
 // Each branch is .strict() — unknown keys are a contract violation.
 //
 // NOTE: The original ShareOperation type had an optional `projectData: FullProject`
@@ -15,7 +15,7 @@ import {
 // - All branches accept optional `amount`, `user`, `sourceId` to match the
 //   existing TS type. Business-logic checks (e.g. "add-pending requires user
 //   OR sourceId") live in shareOperations.ts, NOT in the schema.
-// - The accept-applicant operation has been removed; acceptance is now handled
+// - The accept-proposalArtisan operation has been removed; acceptance is now handled
 //   via the invite flow.
 
 const userRefSchema = z.object({
@@ -43,7 +43,7 @@ export const ShareOperationSchema = z.discriminatedUnion('type', [
     sourceId: z.string().min(1).optional(),
   }).strict(),
   z.object({
-    type: z.literal('create-project'),
+    type: z.literal('create-workProject'),
     amount: z.number().int().positive().optional(),
     user: userRefSchema.optional(),
     sourceId: z.string().min(1).optional(),
@@ -76,15 +76,15 @@ export type ManageProjectSharesInput = z.infer<typeof ManageProjectSharesInputSc
 //
 //   - 'add-pending'      → only inviteUserToProject + runUpdateInviteShares
 //   - 'remove-pending'   → only handleInviteDeclined + handleInviteCancelled
-//   - 'create-project'   → only createProject
+//   - 'create-workProject'   → only createProject
 //   - 'convert-invite'   → only handleInviteAccepted
 //
-// Each of those internal callers performs its own project-action auth
+// Each of those internal callers performs its own workProject-action auth
 // (invite.send, invite.shares.update, etc.) BEFORE composing into
 // executeShareOperation. Allowing those operation types through the
-// public callable bypasses the action layer — a creator could chain
-// add-pending → convert-invite → create-project to grant themselves
-// membership on any project.
+// public callable bypasses the action layer — a artisanCreator could chain
+// add-pending → convert-invite → create-workProject to grant themselves
+// membership on any workProject.
 //
 // Keep this as a discriminated union so adding a second public-allowed
 // type later is mechanical.

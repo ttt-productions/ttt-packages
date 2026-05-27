@@ -10,6 +10,6 @@ export type PublicUser = {
   profilePictureUrlFull?: string | null;
   profilePictureUrlMedium?: string | null;
   profilePictureUrlSmall?: string | null;
-  creator?: string;
+  artisanCreator?: string;
   disabled?: boolean;
 };

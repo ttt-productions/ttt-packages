@@ -64,7 +64,7 @@ describe('useUploadProcessing', () => {
     const { subscribe, drive } = makeDriver();
     const { result } = renderHook(() => useUploadProcessing('d1'), { wrapper: wrap(adapter, subscribe) });
     act(() => {
-      drive([{ type: 'added', id: 'd1', data: { id: 'd1', userId: 'user1', fileOrigin: 'streetz', status: 'pending', createdAt: Date.now(), surface: '/x' } }]);
+      drive([{ type: 'added', id: 'd1', data: { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', status: 'pending', createdAt: Date.now(), surface: '/x' } }]);
     });
     expect(result.current.isProcessing).toBe(true);
     expect(result.current.status).toBe('pending');
@@ -75,7 +75,7 @@ describe('useUploadProcessing', () => {
     const { subscribe, drive } = makeDriver();
     const onTerminal = vi.fn();
     renderHook(() => useUploadProcessing('d1', onTerminal), { wrapper: wrap(adapter, subscribe) });
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/x' };
+    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/x' };
     act(() => {
       drive([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]);
     });
@@ -91,7 +91,7 @@ describe('useUploadProcessing', () => {
     const { subscribe, drive } = makeDriver();
     const onTerminal = vi.fn();
     renderHook(() => useUploadProcessing('d1', onTerminal), { wrapper: wrap(adapter, subscribe) });
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/x' };
+    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/x' };
     act(() => {
       drive([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]);
     });
@@ -111,7 +111,7 @@ describe('useUploadProcessing', () => {
       wrapper: wrap(adapter, subscribe),
     });
     act(() => {
-      drive([{ type: 'added', id: 'd1', data: { id: 'd1', userId: 'user1', fileOrigin: 'streetz', status: 'pending', createdAt: Date.now(), surface: '/x' } }]);
+      drive([{ type: 'added', id: 'd1', data: { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', status: 'pending', createdAt: Date.now(), surface: '/x' } }]);
     });
     expect(result.current.message).toBe('Working on it...');
   });

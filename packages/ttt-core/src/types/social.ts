@@ -1,8 +1,8 @@
-// Social types: Streetz feed, Mentions, Follows, Donations
+// Social types: SquareStreetz feed, Mentions, Follows, Donations
 export type { Mention, MentionType } from '../media/atoms.js';
 import type { Mention } from '../media/atoms.js';
 
-// --- Streetz Social Media ---
+// --- SquareStreetz Social Media ---
 
 export type StreetzPostType =
   | 'PROFILE_PICTURE_UPDATE'
@@ -14,14 +14,14 @@ export type StreetzPostType =
   | 'NEW_PROJECT';
 
 /**
- * Serializable subset of Streetz post creation payload.
+ * Serializable subset of SquareStreetz post creation payload.
  * Frontend extends this with `mediaFile?: File` locally.
  */
 export type StreetzPostPayload = {
   userId: string;
   mentions?: Mention[];
   newMediaUrl?: string;
-  skill?: { id: string; name: string; url: string; type: 'image' | 'video' | 'audio' };
+  craftSkill?: { id: string; name: string; url: string; type: 'image' | 'video' | 'audio' };
   skillId?: string;
   projectTitle?: string;
   projectId?: string;
@@ -63,7 +63,7 @@ export type MentionHistoryDocument = {
 
 // --- Donations ---
 
-export type Donation = {
+export type PledgePayment = {
   donationId: string;
   stripeSessionId: string;
   amount: number;

@@ -12,13 +12,13 @@ import {
   OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES,
   type ProjectRoleId,
 } from '../src/permissions/index.js';
-import { UpdateProjectMemberRoleInputSchema } from '../src/schemas/project-management.js';
+import { UpdateProjectMemberRoleInputSchema } from '../src/schemas/work-project-management.js';
 
 describe('PROJECT_ROLE_IDS', () => {
-  it('includes "Owner" as the first entry — Owner is in PROJECT_ROLE_IDS and NON_ASSIGNABLE_PROJECT_ROLES', () => {
-    expect(PROJECT_ROLE_IDS).toContain('Owner' as ProjectRoleId);
-    expect(PROJECT_ROLE_IDS[0]).toBe('Owner');
-    expect(NON_ASSIGNABLE_PROJECT_ROLES).toContain('Owner');
+  it('includes "StewardOwner" as the first entry — StewardOwner is in PROJECT_ROLE_IDS and NON_ASSIGNABLE_PROJECT_ROLES', () => {
+    expect(PROJECT_ROLE_IDS).toContain('StewardOwner' as ProjectRoleId);
+    expect(PROJECT_ROLE_IDS[0]).toBe('StewardOwner');
+    expect(NON_ASSIGNABLE_PROJECT_ROLES).toContain('StewardOwner');
   });
 
   it('matches the keys of PROJECT_ROLES exactly', () => {
@@ -29,7 +29,7 @@ describe('PROJECT_ROLE_IDS', () => {
     for (const id of PROJECT_ROLE_IDS) {
       expect(isProjectRoleId(id)).toBe(true);
     }
-    expect(isProjectRoleId('Owner')).toBe(true);
+    expect(isProjectRoleId('StewardOwner')).toBe(true);
     expect(isProjectRoleId('Contributor')).toBe(false);
     expect(isProjectRoleId('Admin')).toBe(false);
     expect(isProjectRoleId('')).toBe(false);
@@ -68,8 +68,8 @@ describe('PROJECT_ACTIONS', () => {
     expect(isProjectActionId(42)).toBe(false);
   });
 
-  it('project.read is granted to every assignable role', () => {
-    expect([...PROJECT_ACTIONS['project.read'].grantedTo].sort()).toEqual(
+  it('workProject.read is granted to every assignable role', () => {
+    expect([...PROJECT_ACTIONS['workProject.read'].grantedTo].sort()).toEqual(
       [...PROJECT_ROLE_IDS].sort(),
     );
   });
@@ -84,20 +84,20 @@ describe('PROJECT_ACTIONS', () => {
     }
   });
 
-  it('getActionsForProjectRole returns project.read for every role', () => {
+  it('getActionsForProjectRole returns workProject.read for every role', () => {
     for (const roleId of PROJECT_ROLE_IDS) {
-      expect(getActionsForProjectRole(roleId)).toContain('project.read');
+      expect(getActionsForProjectRole(roleId)).toContain('workProject.read');
     }
   });
 });
 
 describe('canAssignProjectRole', () => {
-  it('rejects "Owner" as target role for everyone — including the project owner', () => {
+  it('rejects "StewardOwner" as target role for everyone — including the workProject stewardOwner', () => {
     expect(
       canAssignProjectRole({
         actorIsOwner: true,
         actorRoles: [],
-        targetRole: 'Owner',
+        targetRole: 'StewardOwner',
         action: 'add',
       }),
     ).toMatchObject({ allowed: false });
@@ -106,7 +106,7 @@ describe('canAssignProjectRole', () => {
       canAssignProjectRole({
         actorIsOwner: false,
         actorRoles: ['ProjectManager'],
-        targetRole: 'Owner',
+        targetRole: 'StewardOwner',
         action: 'add',
       }),
     ).toMatchObject({ allowed: false });
@@ -132,7 +132,7 @@ describe('canAssignProjectRole', () => {
     ).toMatchObject({ allowed: false });
   });
 
-  it('owner can assign every assignable role', () => {
+  it('stewardOwner can assign every assignable role', () => {
     const assignableRoles = PROJECT_ROLE_IDS.filter(
       (r) => !(NON_ASSIGNABLE_PROJECT_ROLES as readonly string[]).includes(r),
     );
@@ -147,7 +147,7 @@ describe('canAssignProjectRole', () => {
     }
   });
 
-  it('owner can remove every assignable role', () => {
+  it('stewardOwner can remove every assignable role', () => {
     const assignableRoles = PROJECT_ROLE_IDS.filter(
       (r) => !(NON_ASSIGNABLE_PROJECT_ROLES as readonly string[]).includes(r),
     );
@@ -162,7 +162,7 @@ describe('canAssignProjectRole', () => {
     }
   });
 
-  it('non-owner with no managing role cannot assign anything', () => {
+  it('non-stewardOwner with no managing role cannot assign anything', () => {
     for (const roleId of PROJECT_ROLE_IDS) {
       expect(
         canAssignProjectRole({
@@ -184,7 +184,7 @@ describe('canAssignProjectRole', () => {
     }
   });
 
-  it('non-owner ProjectManager can assign roles outside OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES', () => {
+  it('non-stewardOwner ProjectManager can assign roles outside OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES', () => {
     for (const roleId of PROJECT_ROLE_IDS) {
       const result = canAssignProjectRole({
         actorIsOwner: false,
@@ -198,7 +198,7 @@ describe('canAssignProjectRole', () => {
     }
   });
 
-  it('non-owner RoleManager can assign roles outside OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES', () => {
+  it('non-stewardOwner RoleManager can assign roles outside OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES', () => {
     for (const roleId of PROJECT_ROLE_IDS) {
       const result = canAssignProjectRole({
         actorIsOwner: false,
@@ -212,7 +212,7 @@ describe('canAssignProjectRole', () => {
     }
   });
 
-  it('non-owner ProjectManager cannot escalate to ProjectManager, RoleManager, or ShareManager', () => {
+  it('non-stewardOwner ProjectManager cannot escalate to ProjectManager, RoleManager, or ShareManager', () => {
     for (const ownerOnlyRole of OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES) {
       expect(
         canAssignProjectRole({
@@ -225,7 +225,7 @@ describe('canAssignProjectRole', () => {
     }
   });
 
-  it('non-owner RoleManager cannot escalate to ProjectManager, RoleManager, or ShareManager', () => {
+  it('non-stewardOwner RoleManager cannot escalate to ProjectManager, RoleManager, or ShareManager', () => {
     for (const ownerOnlyRole of OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES) {
       expect(
         canAssignProjectRole({
@@ -238,7 +238,7 @@ describe('canAssignProjectRole', () => {
     }
   });
 
-  it('non-owner cannot edit their own roles even with ProjectManager', () => {
+  it('non-stewardOwner cannot edit their own roles even with ProjectManager', () => {
     expect(
       canAssignProjectRole({
         actorIsOwner: false,
@@ -251,7 +251,7 @@ describe('canAssignProjectRole', () => {
     ).toMatchObject({ allowed: false });
   });
 
-  it('owner CAN edit their own roles (vacuous but the policy says so)', () => {
+  it('stewardOwner CAN edit their own roles (vacuous but the policy says so)', () => {
     expect(
       canAssignProjectRole({
         actorIsOwner: true,
@@ -264,7 +264,7 @@ describe('canAssignProjectRole', () => {
     ).toMatchObject({ allowed: true });
   });
 
-  it('non-owner ProjectManager can edit a DIFFERENT member', () => {
+  it('non-stewardOwner ProjectManager can edit a DIFFERENT member', () => {
     expect(
       canAssignProjectRole({
         actorIsOwner: false,
@@ -278,29 +278,29 @@ describe('canAssignProjectRole', () => {
   });
 });
 
-describe('Owner role invariants', () => {
-  it('PROJECT_ROLE_IDS[0] is "Owner"', () => {
-    expect(PROJECT_ROLE_IDS[0]).toBe('Owner');
+describe('StewardOwner role invariants', () => {
+  it('PROJECT_ROLE_IDS[0] is "StewardOwner"', () => {
+    expect(PROJECT_ROLE_IDS[0]).toBe('StewardOwner');
   });
 
-  it('isProjectRoleId("Owner") returns true', () => {
-    expect(isProjectRoleId('Owner')).toBe(true);
+  it('isProjectRoleId("StewardOwner") returns true', () => {
+    expect(isProjectRoleId('StewardOwner')).toBe(true);
   });
 
-  it('every action in PROJECT_ACTIONS grants "Owner"', () => {
+  it('every action in PROJECT_ACTIONS grants "StewardOwner"', () => {
     for (const actionId of PROJECT_ACTION_IDS) {
-      expect(PROJECT_ACTIONS[actionId].grantedTo).toContain('Owner' as ProjectRoleId);
+      expect(PROJECT_ACTIONS[actionId].grantedTo).toContain('StewardOwner' as ProjectRoleId);
     }
   });
 
-  it('getActionsForProjectRole("Owner") returns all action ids', () => {
-    expect(getActionsForProjectRole('Owner').length).toBe(PROJECT_ACTION_IDS.length);
+  it('getActionsForProjectRole("StewardOwner") returns all action ids', () => {
+    expect(getActionsForProjectRole('StewardOwner').length).toBe(PROJECT_ACTION_IDS.length);
   });
 });
 
 describe('UpdateProjectMemberRoleInputSchema', () => {
   const validBase = {
-    projectId: 'project-1',
+    projectId: 'workProject-1',
     userId: 'user-1',
     action: 'add' as const,
   };
@@ -315,9 +315,9 @@ describe('UpdateProjectMemberRoleInputSchema', () => {
     }
   });
 
-  it('accepts "Owner" — Owner is a valid ProjectRoleId; assignment is rejected by canAssignProjectRole, not the schema', () => {
-    const parsed = UpdateProjectMemberRoleInputSchema.parse({ ...validBase, role: 'Owner' });
-    expect(parsed.role).toBe('Owner');
+  it('accepts "StewardOwner" — StewardOwner is a valid ProjectRoleId; assignment is rejected by canAssignProjectRole, not the schema', () => {
+    const parsed = UpdateProjectMemberRoleInputSchema.parse({ ...validBase, role: 'StewardOwner' });
+    expect(parsed.role).toBe('StewardOwner');
   });
 
   it('rejects unknown roles', () => {

@@ -10,7 +10,7 @@ const onProgressSchema = z
 export const UpdateShowMediaVariablesSchema = z.object({
   projectId: z.string().min(1),
   televisionId: z.string().min(1),
-  showId: z.string().min(1),
+  episodeId: z.string().min(1),
   file: z.instanceof(File).or(z.instanceof(Blob)),
   mediaKey: z.enum(['photoUrl', 'videoUrl']),
   onProgress: onProgressSchema,

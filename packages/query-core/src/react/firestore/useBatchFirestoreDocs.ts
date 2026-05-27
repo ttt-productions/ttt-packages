@@ -13,7 +13,7 @@ export type BatchFirestoreDocsOptions = {
   db: Firestore;
 
   /**
-   * Full collection path (e.g., 'publicUsers', 'projects/public')
+   * Full collection path (e.g., 'publicUsers', 'entities/public')
    */
   collectionPath: string;
 

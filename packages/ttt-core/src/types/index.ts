@@ -1,12 +1,12 @@
 export * from './user.js';
-export * from './project.js';
+export * from './work-project.js';
 export * from './publicUser.js';
 export * from './content.js';
 export * from './social.js';
-export * from './jobs.js';
+export * from './commissions.js';
 export * from './messaging.js';
 export * from './moderation.js';
 export * from './admin.js';
 export * from './system.js';
 export * from './audit.js';
-export type { InviteSource, InviteSourceType } from '../schemas/project-management.js';
+export type { InviteSource, InviteSourceType } from '../schemas/work-project-management.js';

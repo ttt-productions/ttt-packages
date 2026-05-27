@@ -13,11 +13,11 @@ import {
 export const COLLECTION_REFS = {
   // Top-level collections
   userProfiles: (): [string] => [COLLECTIONS.USER_PROFILES],
-  allProjects: (): [string] => [COLLECTIONS.ALL_PROJECTS],
-  storyUniverses: (): [string] => [COLLECTIONS.STORY_UNIVERSES],
-  streetzFeed: (): [string] => [COLLECTIONS.STREETZ_FEED],
-  jobListings: (): [string] => [COLLECTIONS.JOB_LISTINGS],
-  opportunityBoard: (): [string] => [COLLECTIONS.OPPORTUNITY_BOARD],
+  allWorkProjects: (): [string] => [COLLECTIONS.ALL_PROJECTS],
+  workRealms: (): [string] => [COLLECTIONS.STORY_UNIVERSES],
+  squareStreetzFeed: (): [string] => [COLLECTIONS.STREETZ_FEED],
+  commissionListings: (): [string] => [COLLECTIONS.JOB_LISTINGS],
+  auditionBoard: (): [string] => [COLLECTIONS.OPPORTUNITY_BOARD],
 
   // User subcollections
   userSkills: (userId: string): [string, string, string] =>
@@ -26,7 +26,7 @@ export const COLLECTION_REFS = {
   userFollows: (userId: string): [string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_FOLLOWS],
 
-  // Project subcollections
+  // WorkProject subcollections
   projectTales: (projectId: string): [string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TALES],
 
@@ -36,28 +36,28 @@ export const COLLECTION_REFS = {
   projectTelevision: (projectId: string): [string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION],
 
-  chatChannels: (projectId: string): [string, string, string] =>
+  guildChatChannels: (projectId: string): [string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.CHAT_CHANNELS],
 
-  channelMessages: (projectId: string, channelId: string): [string, string, string, string, string] =>
+  guildChatMessages: (projectId: string, channelId: string): [string, string, string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.CHAT_CHANNELS, channelId, NESTED_SUBCOLLECTIONS.CHANNEL_MESSAGES],
 
-  // Streetz collections
+  // SquareStreetz collections
   activePosts: (): [string, string, string] =>
     [COLLECTIONS.STREETZ_FEED, NESTED_SUBCOLLECTIONS.ACTIVE_POSTS, NESTED_SUBCOLLECTIONS.SOCIAL_POSTS],
 
-  // Library collections
+  // HallLibrary collections
   thresholdItems: (): [string] => [COLLECTIONS.THRESHOLD_ITEMS],
 
   hallItems: (): [string] => [COLLECTIONS.HALL_ITEMS],
 
-  // Job/Opportunity collections
-  jobApplications: (jobId: string): [string, string, string] =>
+  // Commission/Audition collections
+  commissionProposals: (jobId: string): [string, string, string] =>
     [COLLECTIONS.JOB_LISTINGS, jobId, NESTED_SUBCOLLECTIONS.APPLICATION_REPLIES],
 
-  opportunityReplies: (opportunityId: string): [string, string, string] =>
+  auditionEntries: (opportunityId: string): [string, string, string] =>
     [COLLECTIONS.OPPORTUNITY_BOARD, opportunityId, NESTED_SUBCOLLECTIONS.SUBMITTED_REPLIES],
 
-  tuneSongs: (projectId: string, tuneId: string): readonly [string, string, string, string, string] =>
+  tuneTracks: (projectId: string, tuneId: string): readonly [string, string, string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TUNES, tuneId, NESTED_SUBCOLLECTIONS.TUNE_SONGS] as const,
 } as const;

@@ -76,7 +76,7 @@ describe('getFileTypeLabel', () => {
     expect(getFileTypeLabel('audio/mpeg')).toBe('Audio');
   });
   it('returns File for unrecognized types', () => {
-    expect(getFileTypeLabel('application/pdf')).toBe('File');
+    expect(getFileTypeLabel('commissionProposal/pdf')).toBe('File');
   });
   it('returns null for empty / undefined', () => {
     expect(getFileTypeLabel(undefined)).toBeNull();

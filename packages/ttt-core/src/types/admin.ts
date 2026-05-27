@@ -3,7 +3,7 @@
 // task-type union that binds the generic at consumption sites.
 
 export type AdminTaskType =
-  | 'systemMessage'
+  | 'adminDispatch'
   | 'libraryReview'
   | 'userReport'
   | 'content-appeal'

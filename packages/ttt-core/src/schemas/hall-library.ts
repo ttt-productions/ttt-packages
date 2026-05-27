@@ -61,7 +61,7 @@ export type UpdateChapterDetailsInput = z.infer<typeof UpdateChapterDetailsInput
 export const UpdateShowDetailsInputSchema = z.object({
   projectId: projectIdSchema,
   televisionId: televisionIdSchema,
-  showId: showIdSchema,
+  episodeId: showIdSchema,
   title: titleSchema.optional(),
   description: z.string().max(5000).optional(),
 }).strict();
@@ -70,7 +70,7 @@ export type UpdateShowDetailsInput = z.infer<typeof UpdateShowDetailsInputSchema
 export const UpdateSongDetailsInputSchema = z.object({
   projectId: projectIdSchema,
   tuneId: tuneIdSchema,
-  songId: songIdSchema,
+  trackId: songIdSchema,
   title: titleSchema.optional(),
   description: z.string().max(5000).optional(),
 }).strict();

@@ -78,10 +78,10 @@ describe('InFlightUploadsProvider', () => {
     const parsed: ParsedPendingMedia = {
       id: 'doc1',
       userId: 'user1',
-      fileOrigin: 'streetz',
+      fileOrigin: 'sample-origin',
       status: 'completed',
       createdAt: Date.now(),
-      surface: '/streetz',
+      surface: '/uploads-demo',
       completedAt: Date.now(),
     };
     act(() => {
@@ -93,12 +93,12 @@ describe('InFlightUploadsProvider', () => {
     expect(adapter.onUploadRejected).not.toHaveBeenCalled();
   });
 
-  it('fires onUploadCompleted on non-terminal → terminal transition in a non-initial snapshot', () => {
+  it('fires onUploadCompleted on non-terminal â†’ terminal transition in a non-initial snapshot', () => {
     const adapter = makeAdapter();
     const { subscribe, drive } = makeDriver();
     renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
 
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/streetz' };
+    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/uploads-demo' };
     act(() => {
       drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
     });
@@ -114,7 +114,7 @@ describe('InFlightUploadsProvider', () => {
     const { subscribe, drive } = makeDriver();
     renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
 
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/streetz' };
+    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/uploads-demo' };
     act(() => {
       drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
     });
@@ -128,7 +128,7 @@ describe('InFlightUploadsProvider', () => {
     expect(adapter.onUploadFailed).toHaveBeenCalledTimes(1);
     expect(adapter.onUploadRejected).not.toHaveBeenCalled();
 
-    const base2 = { id: 'd2', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/streetz' };
+    const base2 = { id: 'd2', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/uploads-demo' };
     act(() => {
       drive(makeSnapshot([{ type: 'added', id: 'd2', data: { ...base2, status: 'pending' } }]));
     });
@@ -165,7 +165,7 @@ describe('InFlightUploadsProvider', () => {
     const { subscribe, drive } = makeDriver();
     renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
 
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/streetz' };
+    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/uploads-demo' };
     act(() => {
       drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
     });
@@ -184,7 +184,7 @@ describe('InFlightUploadsProvider', () => {
     const { subscribe, drive } = makeDriver();
     const { result } = renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
 
-    const base = { id: 'd1', userId: 'user1', fileOrigin: 'streetz', createdAt: Date.now(), surface: '/streetz' };
+    const base = { id: 'd1', userId: 'user1', fileOrigin: 'sample-origin', createdAt: Date.now(), surface: '/uploads-demo' };
     act(() => {
       drive(makeSnapshot([{ type: 'added', id: 'd1', data: { ...base, status: 'pending' } }]));
     });
@@ -196,7 +196,7 @@ describe('InFlightUploadsProvider', () => {
     expect(result.current.size).toBe(0);
   });
 
-  it('unsubscribes on user sign-out (userId → null)', () => {
+  it('unsubscribes on user sign-out (userId â†’ null)', () => {
     let currentUserId: string | null = 'user1';
     const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
     const { subscribe, drive: _drive, unsubCalls } = makeDriver();
@@ -209,7 +209,7 @@ describe('InFlightUploadsProvider', () => {
     expect(unsubCalls.count).toBe(1);
   });
 
-  it('resets in-memory state on UID-A → UID-B transition without an intermediate null', () => {
+  it('resets in-memory state on UID-A â†’ UID-B transition without an intermediate null', () => {
     let currentUserId: string | null = 'userA';
     const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
     const { subscribe, drive } = makeDriver();
@@ -227,7 +227,7 @@ describe('InFlightUploadsProvider', () => {
             data: {
               id: 'docA',
               userId: 'userA',
-              fileOrigin: 'streetz',
+              fileOrigin: 'sample-origin',
               status: 'completed',
               createdAt: Date.now(),
               completedAt: Date.now(),
@@ -239,14 +239,14 @@ describe('InFlightUploadsProvider', () => {
     });
     expect(result.current.get('docA')).toBeDefined();
 
-    // UID-A → UID-B (no intermediate null).
+    // UID-A â†’ UID-B (no intermediate null).
     currentUserId = 'userB';
     rerender();
 
     // After the transition, the uploads map must be empty (UID-A's docA is gone).
     expect(result.current.size).toBe(0);
 
-    // And UID-B's initial snapshot must be treated as initial — drive a
+    // And UID-B's initial snapshot must be treated as initial â€” drive a
     // terminal doc and confirm the completion callback does NOT fire
     // (initial-snapshot suppression is back in effect).
     act(() => {
@@ -258,7 +258,7 @@ describe('InFlightUploadsProvider', () => {
             data: {
               id: 'docB',
               userId: 'userB',
-              fileOrigin: 'streetz',
+              fileOrigin: 'sample-origin',
               status: 'completed',
               createdAt: Date.now(),
               completedAt: Date.now(),
@@ -279,9 +279,9 @@ describe('InFlightUploadsProvider', () => {
     act(() => {
       drive(
         makeSnapshot([
-          { type: 'added', id: 'a', data: { id: 'a', userId: 'user1', fileOrigin: 'streetz', status: 'pending', createdAt: 100, surface: '/x' } },
-          { type: 'added', id: 'b', data: { id: 'b', userId: 'user1', fileOrigin: 'streetz', status: 'pending', createdAt: 300, surface: '/x' } },
-          { type: 'added', id: 'c', data: { id: 'c', userId: 'user1', fileOrigin: 'streetz', status: 'completed', createdAt: 200, surface: '/x', completedAt: 250, uploadTrayClearedAt: 260 } },
+          { type: 'added', id: 'a', data: { id: 'a', userId: 'user1', fileOrigin: 'sample-origin', status: 'pending', createdAt: 100, surface: '/x' } },
+          { type: 'added', id: 'b', data: { id: 'b', userId: 'user1', fileOrigin: 'sample-origin', status: 'pending', createdAt: 300, surface: '/x' } },
+          { type: 'added', id: 'c', data: { id: 'c', userId: 'user1', fileOrigin: 'sample-origin', status: 'completed', createdAt: 200, surface: '/x', completedAt: 250, uploadTrayClearedAt: 260 } },
         ]),
       );
     });

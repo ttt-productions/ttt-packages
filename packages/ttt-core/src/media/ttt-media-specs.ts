@@ -44,7 +44,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'skill-media': {
+  'craftSkill-media': {
     kind: 'image',
     accept: ACCEPT_MEDIA_ALL,
     maxBytes: 10 * 1024 * 1024,
@@ -86,7 +86,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'library-cover-square': {
+  'hallLibrary-cover-square': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
     maxBytes: 5 * 1024 * 1024,
@@ -116,7 +116,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'library-cover-poster': {
+  'hallLibrary-cover-poster': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
     maxBytes: 5 * 1024 * 1024,
@@ -146,7 +146,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'library-cover-cinematic': {
+  'hallLibrary-cover-cinematic': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
     maxBytes: 5 * 1024 * 1024,
@@ -176,7 +176,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'streetz': {
+  'squareStreetz': {
     kind: 'image',
     accept: ACCEPT_MEDIA_ALL,
     maxBytes: 10 * 1024 * 1024,
@@ -218,7 +218,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'opportunity-prompt': {
+  'audition-prompt': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,
     maxBytes: 25 * 1024 * 1024,
@@ -243,7 +243,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'admin-opportunity-prompt': {
+  'admin-audition-prompt': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,
     maxBytes: 25 * 1024 * 1024,
@@ -268,7 +268,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'opportunity-reply': {
+  'audition-reply': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,
     maxBytes: 50 * 1024 * 1024,
@@ -294,7 +294,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'job-posting': {
+  'commission-posting': {
     kind: 'image',
     accept: ACCEPT_IMAGE_VIDEO,
     maxBytes: 5 * 1024 * 1024,
@@ -331,7 +331,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'job-reply': {
+  'commission-reply': {
     kind: 'image',
     accept: ACCEPT_IMAGE_VIDEO,
     maxBytes: 10 * 1024 * 1024,
@@ -531,7 +531,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'project-file': {
+  'workProject-file': {
     kind: 'generic',
     accept: ACCEPT_MEDIA_ALL,
     maxBytes: 5 * 1024 * 1024,

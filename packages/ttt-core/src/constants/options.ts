@@ -2,13 +2,13 @@
 
 import type { LibraryItemType, ProjectType } from '../types/content.js';
 
-// --- Project Roles ---
-// Project role IDs, labels, and assignment policy live in ../permissions/.
+// --- WorkProject Roles ---
+// WorkProject role IDs, labels, and assignment policy live in ../permissions/.
 // Keep role picker UIs backed by PROJECT_ROLES instead of a duplicated option map.
 
-// --- Profession & Skill Options ---
+// --- Trade & Craft Options ---
 
-/** Profession options for user profiles, sorted alphabetically. */
+/** Trade options for user profiles, sorted alphabetically. */
 export const PROFESSION_OPTIONS = [
   'Actor',
   'Animator',
@@ -24,7 +24,7 @@ export const PROFESSION_OPTIONS = [
   'Writer',
 ].sort();
 
-/** Skill tag options for skill uploads, sorted alphabetically. */
+/** Craft tag options for craftSkill uploads, sorted alphabetically. */
 export const SKILL_TAG_OPTIONS = [
   'Abstract',
   'Action',
@@ -56,9 +56,9 @@ export const SKILL_TAG_OPTIONS = [
   'VoiceOver',
 ].sort();
 
-// --- Project-Specific Categories ---
+// --- WorkProject-Specific Categories ---
 
-/** Categories shown for each project type. */
+/** Categories shown for each workProject type. */
 export const PROJECT_SPECIFIC_CATEGORIES = {
   Tales: [
     'Adventure',
@@ -98,9 +98,9 @@ export const PROJECT_SPECIFIC_CATEGORIES = {
   ].sort(),
 } as const;
 
-// --- Library / Project Type Display Maps ---
+// --- HallLibrary / WorkProject Type Display Maps ---
 
-/** Library type display info. Used in dropdowns and badges. */
+/** HallLibrary type display info. Used in dropdowns and badges. */
 export const LIBRARY_TYPES: Record<LibraryItemType, { label: string; description: string }> = {
   entertainment: {
     label: 'Entertainment',
@@ -116,7 +116,7 @@ export const LIBRARY_TYPES: Record<LibraryItemType, { label: string; description
   },
 };
 
-/** Project type display info. Used in dropdowns and headers. */
+/** WorkProject type display info. Used in dropdowns and headers. */
 export const PROJECT_TYPES: Record<ProjectType, { label: string; description: string }> = {
   Tales: {
     label: 'Tales',
@@ -134,7 +134,7 @@ export const PROJECT_TYPES: Record<ProjectType, { label: string; description: st
 
 // --- Sort Options ---
 
-/** Sort options shown on the opportunity feeds, keyed by feed type. */
+/** Sort options shown on the audition feeds, keyed by feed type. */
 export const OPPORTUNITY_SORT_OPTIONS = {
   default: {
     newest: { label: 'Newest First', field: 'createdOn', direction: 'desc' },
@@ -158,7 +158,7 @@ export const OPPORTUNITY_SORT_OPTIONS = {
   },
 } as const;
 
-/** Sort options shown on the library feed. */
+/** Sort options shown on the hallLibrary feed. */
 export const LIBRARY_SORT_OPTIONS: Record<
   string,
   { label: string; field: string; direction: 'asc' | 'desc' }

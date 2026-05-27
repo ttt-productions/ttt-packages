@@ -52,7 +52,7 @@ export const InviteSourceSchema = z.discriminatedUnion('type', [
     type: z.literal('standalone'),
   }).strict(),
   z.object({
-    type: z.literal('skill'),
+    type: z.literal('craftSkill'),
     data: z.object({
       skillId: skillIdSchema,
       skillOwnerUserId: userIdSchema,
@@ -60,7 +60,7 @@ export const InviteSourceSchema = z.discriminatedUnion('type', [
     }).strict(),
   }).strict(),
   z.object({
-    type: z.literal('job'),
+    type: z.literal('commission'),
     data: z.object({
       jobId: jobIdSchema,
       replyId: replyIdSchema,
@@ -70,7 +70,7 @@ export const InviteSourceSchema = z.discriminatedUnion('type', [
     }).strict(),
   }).strict(),
   z.object({
-    type: z.literal('opportunity'),
+    type: z.literal('audition'),
     data: z.object({
       opportunityId: opportunityIdSchema,
       replyId: replyIdSchema,
@@ -103,7 +103,7 @@ const PROFESSION_VALUES = [...PROFESSION_OPTIONS] as [string, ...string[]];
 export const UpdateProjectMemberProfessionsInputSchema = z.object({
   projectId: projectIdSchema,
   userId: userIdSchema,
-  profession: z.enum(PROFESSION_VALUES),
+  tradeProfession: z.enum(PROFESSION_VALUES),
   action: addRemoveActionSchema,
 }).strict();
 export type UpdateProjectMemberProfessionsInput = z.infer<typeof UpdateProjectMemberProfessionsInputSchema>;

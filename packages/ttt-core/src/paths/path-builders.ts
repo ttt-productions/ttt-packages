@@ -41,7 +41,7 @@ export const PATH_BUILDERS = {
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.OPPORTUNITY_VOTES, opportunityId],
 
   // ===== PROJECT PATHS =====
-  project: (projectId: string): [string, string] =>
+  workProject: (projectId: string): [string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId],
 
   projectPublicData: (projectId: string, publicId: string): [string, string, string, string] =>
@@ -56,14 +56,14 @@ export const PATH_BUILDERS = {
   projectTune: (projectId: string, tuneId: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TUNES, tuneId],
 
-  tuneSong: (projectId: string, tuneId: string, songId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TUNES, tuneId, NESTED_SUBCOLLECTIONS.TUNE_SONGS, songId],
+  tuneTrack: (projectId: string, tuneId: string, trackId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TUNES, tuneId, NESTED_SUBCOLLECTIONS.TUNE_SONGS, trackId],
 
   projectTelevision: (projectId: string, televisionId: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION, televisionId],
 
-  tvShow: (projectId: string, televisionId: string, showId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION, televisionId, NESTED_SUBCOLLECTIONS.TV_SHOWS, showId],
+  televisionEpisode: (projectId: string, televisionId: string, episodeId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION, televisionId, NESTED_SUBCOLLECTIONS.TV_SHOWS, episodeId],
 
   projectMember: (projectId: string, uid: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.MEMBERS, uid],
@@ -98,31 +98,31 @@ export const PATH_BUILDERS = {
     [COLLECTIONS.HALL_ITEMS, libraryId, projectType, itemId],
 
   // ===== JOB PATHS =====
-  jobListing: (jobId: string): [string, string] =>
+  commissionListing: (jobId: string): [string, string] =>
     [COLLECTIONS.JOB_LISTINGS, jobId],
 
   jobApplication: (jobId: string, replyId: string): [string, string, string, string] =>
     [COLLECTIONS.JOB_LISTINGS, jobId, NESTED_SUBCOLLECTIONS.APPLICATION_REPLIES, replyId],
 
   // ===== OPPORTUNITY PATHS =====
-  opportunity: (opportunityId: string): [string, string] =>
+  audition: (opportunityId: string): [string, string] =>
     [COLLECTIONS.OPPORTUNITY_BOARD, opportunityId],
 
-  opportunityReply: (opportunityId: string, replyId: string): [string, string, string, string] =>
+  auditionEntry: (opportunityId: string, replyId: string): [string, string, string, string] =>
     [COLLECTIONS.OPPORTUNITY_BOARD, opportunityId, NESTED_SUBCOLLECTIONS.SUBMITTED_REPLIES, replyId],
 
   // ===== UNIVERSE PATHS =====
-  universe: (universeId: string): [string, string] =>
+  workRealm: (universeId: string): [string, string] =>
     [COLLECTIONS.STORY_UNIVERSES, universeId],
 
   // ===== ADMIN & SYSTEM PATHS =====
-  adminMessage: (messageId: string): [string, string] =>
+  adminDispatch: (messageId: string): [string, string] =>
     [COLLECTIONS.PENDING_ADMIN_MESSAGES, messageId],
 
   adminConversationMessage: (messageId: string, individualMessageId: string): [string, string, string, string] =>
     [COLLECTIONS.PENDING_ADMIN_MESSAGES, messageId, NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES, individualMessageId],
 
-  projectInvite: (inviteId: string): [string, string] =>
+  guildInvite: (inviteId: string): [string, string] =>
     [COLLECTIONS.PROJECT_INVITE_CONVERSATIONS, inviteId],
 
   inviteMessage: (inviteId: string, messageId: string): [string, string, string, string] =>

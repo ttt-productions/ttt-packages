@@ -12,7 +12,7 @@ export const CreateJobVariablesSchema = z.object({
   jobData: z.object({
     title: z.string().min(1),
     description: z.string(),
-    requiredProfessions: z.array(z.string()),
+    requiredTradeProfessions: z.array(z.string()),
     sharesOffered: z.number(),
   }).strict(),
   file: z.instanceof(File).or(z.instanceof(Blob)),

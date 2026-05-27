@@ -10,7 +10,7 @@ import type { ChatAttachment, ReplyTo } from "@ttt-productions/chat-schemas";
 // Re-exported from @ttt-productions/chat-schemas, the Tier 0 source of truth.
 // chat-schemas is server-safe and can be consumed by both chat-core (UI) and
 // backend code without forcing the chat UI dep graph on backend callers.
-// Every attachment on a chat message doc is fully processed and viewable —
+// Every attachment on a chat message doc is fully processed and viewable â€”
 // rejection visibility lives on /profile/uploads (the canonical pendingMedia
 // surface), not in chat.
 export type { ChatAttachment };
@@ -51,13 +51,13 @@ export type ChatMessageV1 = {
  * Access mode controls how chat-core decides whether the current user
  * can read/write a thread.
  *
- * - "firestore-rules" — chat-core trusts Firestore rules. canAccessThread
+ * - "firestore-rules" â€” chat-core trusts Firestore rules. canAccessThread
  *   returns true for any signed-in user; if rules deny, onSnapshot will
  *   surface permission-denied. Use this when access depends on data the
- *   client doesn't reliably know up-front (project membership, invite
+ *   client doesn't reliably know up-front (entity membership, invite
  *   participation, etc.).
  *
- * - "explicit-allowlist" — chat-core enforces access client-side via
+ * - "explicit-allowlist" â€” chat-core enforces access client-side via
  *   threadAllowedUserIds. The list is required in this mode. Use this
  *   when the consumer already knows the participants (admin/support
  *   threads).
@@ -106,7 +106,7 @@ export type ChatCoreConfig = {
  *
  * `buildUploadPath` and `buildUploadMetadata` receive the userId and
  * attachmentId so consumers can interpolate them per their own conventions.
- * chat-core does not interpret `originId` — it forwards it via callbacks
+ * chat-core does not interpret `originId` â€” it forwards it via callbacks
  * and uses it for adapter identity only.
  */
 export type ChatUploadAdapter = {
@@ -119,7 +119,7 @@ export type ChatUploadAdapter = {
 };
 
 // ============================================
-// ATTACHMENT CONFIG (passed through ChatShell → Composer)
+// ATTACHMENT CONFIG (passed through ChatShell â†’ Composer)
 // ============================================
 
 export type ChatAttachmentConfig = {
@@ -145,7 +145,7 @@ export type ChatAttachmentConfig = {
  * doc with the caption text + reply pointer. The processor will create the
  * message doc itself after media moderation succeeds.
  *
- * No message doc is created at this point — Composer should render an
+ * No message doc is created at this point â€” Composer should render an
  * optimistic local "uploading" state until the listener delivers the real
  * message after processing completes.
  */
@@ -164,7 +164,7 @@ export type SendAttachmentInput = {
 export type SendAttachmentFn = (input: SendAttachmentInput) => Promise<void>;
 
 // ============================================
-// MENTION SYSTEM CONFIG (passed through ChatShell → Composer)
+// MENTION SYSTEM CONFIG (passed through ChatShell â†’ Composer)
 // ============================================
 
 /**
@@ -173,7 +173,7 @@ export type SendAttachmentFn = (input: SendAttachmentInput) => Promise<void>;
  * mention tokens out of `text`.
  *
  * Generic over `TKind` and `TContext` is intentionally NOT exposed here at
- * the type level — `ChatCoreConfig` would have to become generic too, which
+ * the type level â€” `ChatCoreConfig` would have to become generic too, which
  * cascades. Instead this type accepts permissive `string`-keyed providers;
  * consumers binding stricter kind unions narrow at the call site via their
  * provider definitions.
@@ -233,7 +233,7 @@ export const GROUP_GAP_SEC = 120;
 
 /**
  * Resolves a senderId to a display name synchronously from app-side cache.
- * Returns null if the sender is unknown or the cache hasn't loaded yet —
+ * Returns null if the sender is unknown or the cache hasn't loaded yet â€”
  * chat-core will render a stable fallback ("User") in that case.
  */
 export type ChatNameResolver = (senderId: string) => string | null;
@@ -241,7 +241,7 @@ export type ChatNameResolver = (senderId: string) => string | null;
 /**
  * Optional pre-warm callback. chat-core calls this with the deduped list of
  * senderIds visible in the current message page so the consuming app can
- * batch-fetch names into its cache. Implementations should be idempotent —
+ * batch-fetch names into its cache. Implementations should be idempotent â€”
  * the same id list will be passed across re-renders.
  */
 export type ChatPrewarmSenders = (senderIds: string[]) => void;

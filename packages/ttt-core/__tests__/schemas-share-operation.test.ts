@@ -51,14 +51,14 @@ describe('ShareOperationSchema', () => {
 
   describe('add-active branch', () => {
     it('accepts a valid add-active with user', () => {
-      const op = { type: 'add-active', amount: 25, user: { uid: 'applicant-uid' } };
+      const op = { type: 'add-active', amount: 25, user: { uid: 'proposalArtisan-uid' } };
       expect(ShareOperationSchema.parse(op)).toEqual(op);
     });
   });
 
-  describe('create-project branch', () => {
-    it('accepts the canonical create-project shape', () => {
-      const op = { type: 'create-project', amount: 1, user: { uid: 'creator-uid' } };
+  describe('create-workProject branch', () => {
+    it('accepts the canonical create-workProject shape', () => {
+      const op = { type: 'create-workProject', amount: 1, user: { uid: 'artisanCreator-uid' } };
       expect(ShareOperationSchema.parse(op)).toEqual(op);
     });
   });
@@ -92,12 +92,12 @@ describe('ShareOperationSchema', () => {
         ShareOperationSchema.parse({ type: 'delete-everything' }),
       ).toThrow();
     });
-    it('rejects accept-applicant (removed operation)', () => {
+    it('rejects accept-proposalArtisan (removed operation)', () => {
       expect(() =>
         ShareOperationSchema.parse({
-          type: 'accept-applicant',
+          type: 'accept-proposalArtisan',
           user: { uid: 'uid' },
-          sourceId: 'job-1',
+          sourceId: 'commission-1',
           amount: 50,
         }),
       ).toThrow();
@@ -113,7 +113,7 @@ describe('ShareOperationSchema', () => {
     it('rejects payloads that include projectData', () => {
       expect(() =>
         ShareOperationSchema.parse({
-          type: 'create-project',
+          type: 'create-workProject',
           amount: 1,
           user: { uid: 'u' },
           projectData: { projectId: 'p', anything: 'here' },
@@ -126,7 +126,7 @@ describe('ShareOperationSchema', () => {
 describe('ManageProjectSharesInputSchema', () => {
   it('accepts a valid input', () => {
     const input = {
-      projectId: 'project-1',
+      projectId: 'workProject-1',
       operation: { type: 'add-pending', amount: 10, sourceId: 'i-1' },
     };
     expect(ManageProjectSharesInputSchema.parse(input)).toEqual(input);

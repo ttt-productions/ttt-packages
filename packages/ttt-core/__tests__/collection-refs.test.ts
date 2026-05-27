@@ -10,20 +10,20 @@ describe('COLLECTION_REFS', () => {
       expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
     });
 
-    it('allProjects returns single-element tuple', () => {
-      const result = COLLECTION_REFS.allProjects();
+    it('allWorkProjects returns single-element tuple', () => {
+      const result = COLLECTION_REFS.allWorkProjects();
       expect(result).toHaveLength(1);
       expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
     });
 
-    it('storyUniverses returns single-element tuple', () => {
-      const result = COLLECTION_REFS.storyUniverses();
+    it('workRealms returns single-element tuple', () => {
+      const result = COLLECTION_REFS.workRealms();
       expect(result).toHaveLength(1);
       expect(result[0]).toBe(COLLECTIONS.STORY_UNIVERSES);
     });
 
-    it('streetzFeed returns single-element tuple', () => {
-      const result = COLLECTION_REFS.streetzFeed();
+    it('squareStreetzFeed returns single-element tuple', () => {
+      const result = COLLECTION_REFS.squareStreetzFeed();
       expect(result).toHaveLength(1);
       expect(result[0]).toBe(COLLECTIONS.STREETZ_FEED);
     });
@@ -40,14 +40,14 @@ describe('COLLECTION_REFS', () => {
       expect(result[0]).toBe(COLLECTIONS.HALL_ITEMS);
     });
 
-    it('jobListings returns single-element tuple', () => {
-      const result = COLLECTION_REFS.jobListings();
+    it('commissionListings returns single-element tuple', () => {
+      const result = COLLECTION_REFS.commissionListings();
       expect(result).toHaveLength(1);
       expect(result[0]).toBe(COLLECTIONS.JOB_LISTINGS);
     });
 
-    it('opportunityBoard returns single-element tuple', () => {
-      const result = COLLECTION_REFS.opportunityBoard();
+    it('auditionBoard returns single-element tuple', () => {
+      const result = COLLECTION_REFS.auditionBoard();
       expect(result).toHaveLength(1);
       expect(result[0]).toBe(COLLECTIONS.OPPORTUNITY_BOARD);
     });
@@ -71,7 +71,7 @@ describe('COLLECTION_REFS', () => {
     });
   });
 
-  describe('Project subcollection refs', () => {
+  describe('WorkProject subcollection refs', () => {
     it('projectTales returns 3-segment tuple', () => {
       const result = COLLECTION_REFS.projectTales('proj1');
       expect(result).toHaveLength(3);
@@ -96,16 +96,16 @@ describe('COLLECTION_REFS', () => {
       expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION);
     });
 
-    it('chatChannels returns 3-segment tuple', () => {
-      const result = COLLECTION_REFS.chatChannels('proj1');
+    it('guildChatChannels returns 3-segment tuple', () => {
+      const result = COLLECTION_REFS.guildChatChannels('proj1');
       expect(result).toHaveLength(3);
       expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
       expect(result[1]).toBe('proj1');
       expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.CHAT_CHANNELS);
     });
 
-    it('channelMessages returns 5-segment tuple', () => {
-      const result = COLLECTION_REFS.channelMessages('proj1', 'chan1');
+    it('guildChatMessages returns 5-segment tuple', () => {
+      const result = COLLECTION_REFS.guildChatMessages('proj1', 'chan1');
       expect(result).toHaveLength(5);
       expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
       expect(result[1]).toBe('proj1');
@@ -114,8 +114,8 @@ describe('COLLECTION_REFS', () => {
       expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.CHANNEL_MESSAGES);
     });
 
-    it('tuneSongs returns 5-segment tuple', () => {
-      const result = COLLECTION_REFS.tuneSongs('proj1', 'tune1');
+    it('tuneTracks returns 5-segment tuple', () => {
+      const result = COLLECTION_REFS.tuneTracks('proj1', 'tune1');
       expect(result).toHaveLength(5);
       expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
       expect(result[1]).toBe('proj1');
@@ -125,7 +125,7 @@ describe('COLLECTION_REFS', () => {
     });
   });
 
-  describe('Streetz collection refs', () => {
+  describe('SquareStreetz collection refs', () => {
     it('activePosts returns 3-segment tuple', () => {
       const result = COLLECTION_REFS.activePosts();
       expect(result).toHaveLength(3);
@@ -135,17 +135,17 @@ describe('COLLECTION_REFS', () => {
     });
   });
 
-  describe('Job & Opportunity collection refs', () => {
-    it('jobApplications returns 3-segment tuple', () => {
-      const result = COLLECTION_REFS.jobApplications('job1');
+  describe('Commission & Audition collection refs', () => {
+    it('commissionProposals returns 3-segment tuple', () => {
+      const result = COLLECTION_REFS.commissionProposals('job1');
       expect(result).toHaveLength(3);
       expect(result[0]).toBe(COLLECTIONS.JOB_LISTINGS);
       expect(result[1]).toBe('job1');
       expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.APPLICATION_REPLIES);
     });
 
-    it('opportunityReplies returns 3-segment tuple', () => {
-      const result = COLLECTION_REFS.opportunityReplies('opp1');
+    it('auditionEntries returns 3-segment tuple', () => {
+      const result = COLLECTION_REFS.auditionEntries('opp1');
       expect(result).toHaveLength(3);
       expect(result[0]).toBe(COLLECTIONS.OPPORTUNITY_BOARD);
       expect(result[1]).toBe('opp1');

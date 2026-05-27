@@ -1,6 +1,6 @@
-// Content types: Tales, Tunes, Television, Library
+// Content types: Tales, Tunes, Television, HallLibrary
 
-// --- Project Content Types ---
+// --- WorkProject Content Types ---
 
 export type FullTale = {
   uid: string;
@@ -70,7 +70,7 @@ export type FullShow = {
   createdOn: number;
 };
 
-// --- Library Types ---
+// --- HallLibrary Types ---
 
 export const LIBRARY_TYPE_KEYS = ['entertainment', 'educational', 'newsPolitical'] as const;
 export type LibraryItemType = (typeof LIBRARY_TYPE_KEYS)[number];
@@ -86,7 +86,7 @@ export type ProjectTypeFilter = ProjectType | 'All';
 
 export type ItemsKey = 'songs' | 'chapters' | 'shows';
 
-// --- Library Publishing Flow ---
+// --- HallLibrary Publishing Flow ---
 
 export interface ThresholdItem {
   thresholdItemId: string;
@@ -113,7 +113,7 @@ export interface PublishedLibraryItem {
   publishedAt?: number;
   libraryType: LibraryItemType;
 
-  // Project-level summary (written flat on first publish of this library).
+  // WorkProject-level summary (written flat on first publish of this hallLibrary).
   // Optional on the type because the parent doc may exist in a pre-publish
   // state before the first item is approved — these fields populate at first
   // publish.
@@ -208,7 +208,7 @@ export type FuturePlansDocument = {
 
 // --- Rules and Agreements ---
 
-export type RuleGroup = 'generic' | 'projectType' | 'libraryType' | 'universe' | 'merchandising';
+export type RuleGroup = 'generic' | 'projectType' | 'libraryType' | 'workRealm' | 'merchandising';
 export type RuleSubgroup = 'Tales' | 'Tunes' | 'Television' | 'entertainment' | 'educational' | 'newsPolitical';
 
 export type Rule = {

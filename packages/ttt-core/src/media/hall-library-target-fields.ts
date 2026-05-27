@@ -1,6 +1,6 @@
 import type { FileOrigin } from './file-origin.js';
 
-// Server-side mapping from library/sub-item fileOrigin to the doc field
+// Server-side mapping from hallLibrary/sub-item fileOrigin to the doc field
 // that receives the processed media URL.
 //
 // Owned in ttt-core because it's a contract fact about the upload
@@ -11,9 +11,9 @@ import type { FileOrigin } from './file-origin.js';
 // The Partial<Record<FileOrigin, string>> constraint guarantees only
 // valid FileOrigin strings are keys.
 export const LIBRARY_TARGET_FIELDS = {
-  'library-cover-square':    'coverPhotoSquare',
-  'library-cover-poster':    'coverPhotoPoster',
-  'library-cover-cinematic': 'coverPhotoCinematic',
+  'hallLibrary-cover-square':    'coverPhotoSquare',
+  'hallLibrary-cover-poster':    'coverPhotoPoster',
+  'hallLibrary-cover-cinematic': 'coverPhotoCinematic',
   'chapter-photo':           'photoUrl',
   'song-photo':              'photoUrl',
   'song-audio':              'fileUrl',
