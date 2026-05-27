@@ -7,7 +7,7 @@ const onProgressSchema = z
   .returns(z.void())
   .optional();
 
-export const CreateJobVariablesSchema = z.object({
+export const CreateCommissionVariablesSchema = z.object({
   projectId: z.string().min(1),
   jobData: z.object({
     title: z.string().min(1),
@@ -19,4 +19,4 @@ export const CreateJobVariablesSchema = z.object({
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
-export type CreateJobVariables = z.infer<typeof CreateJobVariablesSchema>;
+export type CreateCommissionVariables = z.infer<typeof CreateCommissionVariablesSchema>;

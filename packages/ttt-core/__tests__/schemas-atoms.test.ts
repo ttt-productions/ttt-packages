@@ -1,24 +1,24 @@
 import { describe, it, expect } from 'vitest';
 import {
-  projectIdSchema,
+  workProjectIdSchema,
   userIdSchema,
   addRemoveActionSchema,
-  projectTypeSchema,
+  workProjectTypeSchema,
   titleSchema,
 } from '../src/schemas/atoms';
 
 describe('atom schemas', () => {
-  describe('projectIdSchema', () => {
+  describe('workProjectIdSchema', () => {
     it('accepts a non-empty string', () => {
-      expect(projectIdSchema.parse('proj-123')).toBe('proj-123');
+      expect(workProjectIdSchema.parse('proj-123')).toBe('proj-123');
     });
     it('rejects empty string', () => {
-      expect(() => projectIdSchema.parse('')).toThrow();
+      expect(() => workProjectIdSchema.parse('')).toThrow();
     });
     it('rejects non-string', () => {
-      expect(() => projectIdSchema.parse(123)).toThrow();
-      expect(() => projectIdSchema.parse(null)).toThrow();
-      expect(() => projectIdSchema.parse(undefined)).toThrow();
+      expect(() => workProjectIdSchema.parse(123)).toThrow();
+      expect(() => workProjectIdSchema.parse(null)).toThrow();
+      expect(() => workProjectIdSchema.parse(undefined)).toThrow();
     });
   });
 
@@ -44,15 +44,15 @@ describe('atom schemas', () => {
     });
   });
 
-  describe('projectTypeSchema', () => {
+  describe('workProjectTypeSchema', () => {
     it('accepts the three valid types', () => {
-      expect(projectTypeSchema.parse('Tales')).toBe('Tales');
-      expect(projectTypeSchema.parse('Tunes')).toBe('Tunes');
-      expect(projectTypeSchema.parse('Television')).toBe('Television');
+      expect(workProjectTypeSchema.parse('Tales')).toBe('Tales');
+      expect(workProjectTypeSchema.parse('Tunes')).toBe('Tunes');
+      expect(workProjectTypeSchema.parse('Television')).toBe('Television');
     });
     it('rejects lowercase or other values', () => {
-      expect(() => projectTypeSchema.parse('tales')).toThrow();
-      expect(() => projectTypeSchema.parse('Music')).toThrow();
+      expect(() => workProjectTypeSchema.parse('tales')).toThrow();
+      expect(() => workProjectTypeSchema.parse('Music')).toThrow();
     });
   });
 

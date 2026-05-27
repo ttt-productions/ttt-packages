@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   COLLECTIONS,
   USER_SUBCOLLECTIONS,
-  PROJECT_SUBCOLLECTIONS,
+  WORK_PROJECT_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
   SPECIAL_DOCS,
 } from '../src/paths/collections';
@@ -41,16 +41,16 @@ describe('USER_SUBCOLLECTIONS', () => {
   });
 });
 
-describe('PROJECT_SUBCOLLECTIONS', () => {
+describe('WORK_PROJECT_SUBCOLLECTIONS', () => {
   it('all values are non-empty strings', () => {
-    for (const value of allValues(PROJECT_SUBCOLLECTIONS)) {
+    for (const value of allValues(WORK_PROJECT_SUBCOLLECTIONS)) {
       expect(typeof value).toBe('string');
       expect(value.length).toBeGreaterThan(0);
     }
   });
 
   it('has no duplicate values', () => {
-    expect(hasDuplicates(allValues(PROJECT_SUBCOLLECTIONS))).toBe(false);
+    expect(hasDuplicates(allValues(WORK_PROJECT_SUBCOLLECTIONS))).toBe(false);
   });
 });
 
@@ -88,9 +88,9 @@ describe('Cross-collection uniqueness', () => {
     }
   });
 
-  it('COLLECTIONS values do not collide with PROJECT_SUBCOLLECTIONS values', () => {
+  it('COLLECTIONS values do not collide with WORK_PROJECT_SUBCOLLECTIONS values', () => {
     const collectionValues = new Set(allValues(COLLECTIONS));
-    for (const value of allValues(PROJECT_SUBCOLLECTIONS)) {
+    for (const value of allValues(WORK_PROJECT_SUBCOLLECTIONS)) {
       expect(collectionValues.has(value)).toBe(false);
     }
   });

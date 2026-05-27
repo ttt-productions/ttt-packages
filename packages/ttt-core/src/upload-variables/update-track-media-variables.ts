@@ -7,7 +7,7 @@ const onProgressSchema = z
   .returns(z.void())
   .optional();
 
-export const UpdateSongMediaVariablesSchema = z.object({
+export const UpdateTuneTrackMediaVariablesSchema = z.object({
   projectId: z.string().min(1),
   tuneId: z.string().min(1),
   trackId: z.string().min(1),
@@ -16,4 +16,4 @@ export const UpdateSongMediaVariablesSchema = z.object({
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
-export type UpdateSongMediaVariables = z.infer<typeof UpdateSongMediaVariablesSchema>;
+export type UpdateTuneTrackMediaVariables = z.infer<typeof UpdateTuneTrackMediaVariablesSchema>;

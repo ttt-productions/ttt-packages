@@ -67,3 +67,25 @@ packages/chat-core/src/types.ts | project membership wording -> entity membershi
 packages/notification-core/src/types.ts | /projects/abc example -> /entities/abc | comment, generic-package fixture (neutral replacement) | done
 final discovery sweep (all packages) | remaining matches are classified: third-party imports (@testing-library/*), MIME/application terms, config projectId references, and intentional compound identifiers containing old grep-anchor suffixes (e.g., workProject*) | justified
 API-contract leakage discovered during rename | query-core library key scope remains exported API contract terminology (library). Left unchanged for user review per generic-package rule.
+
+CHATGPT V1 REVIEW CORRECTIVE PASS
+- scope | packages/ttt-core/src/** and packages/ttt-core/__tests__/** corrective pass focused on stale exported identifiers, Firestore collection keys/values, path builders/refs, and test assertions | done
+- packages/ttt-core/src/paths/collections.ts | corrected key/value renames: ALL_WORK_PROJECTS, WORK_REALMS, SQUARE_STREETZ_FEED, COMMISSION_LISTINGS, AUDITION_BOARD, PLEDGE_PAYMENTS_SUMMARY, RECENT_PLEDGE_PAYMENTS, ARCHIVED_PLEDGE_PAYMENTS, GUILD_INVITE_CONVERSATIONS, STAKE_SHARE_AUDIT_EVENTS, CRAFT_SKILLS_BY_TAG='craftSkillsByTag', USER_PLEDGE_PAYMENTS, AUDITION_VOTES, TUNE_TRACKS, TELEVISION_EPISODES, COMMISSION_PROPOSALS, AUDITION_ENTRIES; migrated PROJECT_SUBCOLLECTIONS -> WORK_PROJECT_SUBCOLLECTIONS names | done
+- packages/ttt-core/src/paths/path-builders.ts | renamed stale exports and IDs: workProjectPublicData/workProjectTale/workProjectTune/workProjectTelevision/workProjectGuildmateUser/workProjectAsset/guildChatChannel/guildChatMessage/commissionProposal/pledgePaymentsSummary/recentPledgePayment/archivedPledgePayment/taggedCraftSkill; fixed stale parameter IDs (workProjectId, commissionListingId, commissionProposalId, auditionId, auditionEntryId, workRealmId, adminDispatchId, hallItemId, workAssetId, guildChatChannelId, guildChatMessageId) and tuple constant refs | done
+- packages/ttt-core/src/paths/collection-refs.ts | renamed stale exports and parameters to workProject* + commissionProposal/auditionEntries naming and updated constant refs to WORK_PROJECT_SUBCOLLECTIONS + GUILD_CHAT_MESSAGES | done
+- packages/ttt-core/src/paths/collection-groups.ts | renamed stale group keys CHANNEL_MESSAGES -> GUILD_CHAT_MESSAGES and TAGGED_SKILLS -> TAGGED_CRAFT_SKILLS | done
+- packages/ttt-core/__tests__/collections.test.ts | updated to WORK_PROJECT_SUBCOLLECTIONS naming | done
+- packages/ttt-core/__tests__/collection-refs.test.ts | updated to WORK_PROJECT_SUBCOLLECTIONS and GUILD_CHAT_MESSAGES naming | done
+- packages/ttt-core/__tests__/collection-groups.test.ts | updated expected group keys to GUILD_CHAT_MESSAGES and TAGGED_CRAFT_SKILLS | done
+- packages/ttt-core/__tests__/path-builders.test.ts | updated expectations to renamed constants/subcollections and PATH_BUILDERS.commissionProposal API | done
+- boundary verification | ttt-core | npm.cmd run typecheck --workspace=packages/ttt-core | pass
+- boundary verification | ttt-core | npm.cmd run build --workspace=packages/ttt-core | pass
+- boundary verification | ttt-core | npx.cmd vitest run --project ttt-core | pass
+- final verification chain | npm.cmd run lint | pass
+- final verification chain | npm.cmd run typecheck | pass
+- final verification chain | npx.cmd tsc -b --noEmit | pass
+- final verification chain | npm.cmd run build | pass
+- final verification chain | npm.cmd run test | pass
+- discovery result (post-pass) | old-term hits still exist in ttt-core for broader families (schemas/media/permissions/types/constants/upload-variables), including projectId/project* schema fields, ProjectRole/ProjectAction naming, chat schema threadKind projectChannel, media target/domain event projectId fields, and additional role/job/opportunity/library/song/show identifiers | NOT fully resolved in this corrective pass
+- deferral | broad docs/package-doc cleanup intentionally deferred per prompt; only run-report updated | deferred
+- API-contract leakage discovered during rename (generic packages, left unchanged per rule) | packages/query-core/src/keys.ts exports keys.library, keys.opportunities, keys.jobs, keys.donations, keys.skills and mirrored expectations in packages/query-core/__tests__/keys.test.ts; these remain exported API-contract leakage for user-directed follow-up | flagged

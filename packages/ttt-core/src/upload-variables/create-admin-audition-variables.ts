@@ -7,7 +7,7 @@ const onProgressSchema = z
   .returns(z.void())
   .optional();
 
-export const CreateAdminOpportunityVariablesSchema = z.object({
+export const CreateAdminAuditionVariablesSchema = z.object({
   type: z.enum(['SystemInput', 'SponsoredProjects']),
   title: z.string().min(1),
   description: z.string(),
@@ -17,4 +17,4 @@ export const CreateAdminOpportunityVariablesSchema = z.object({
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
-export type CreateAdminOpportunityVariables = z.infer<typeof CreateAdminOpportunityVariablesSchema>;
+export type CreateAdminAuditionVariables = z.infer<typeof CreateAdminAuditionVariablesSchema>;

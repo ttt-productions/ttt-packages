@@ -7,7 +7,7 @@ const onProgressSchema = z
   .returns(z.void())
   .optional();
 
-export const CreateProjectOpportunityVariablesSchema = z.object({
+export const CreateWorkProjectAuditionVariablesSchema = z.object({
   title: z.string().min(1),
   description: z.string(),
   videoFile: z.instanceof(File).or(z.instanceof(Blob)),
@@ -17,4 +17,4 @@ export const CreateProjectOpportunityVariablesSchema = z.object({
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
-export type CreateProjectOpportunityVariables = z.infer<typeof CreateProjectOpportunityVariablesSchema>;
+export type CreateWorkProjectAuditionVariables = z.infer<typeof CreateWorkProjectAuditionVariablesSchema>;

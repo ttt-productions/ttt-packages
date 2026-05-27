@@ -29,14 +29,14 @@ describe('toPath', () => {
     expect(toPath(PATH_BUILDERS.workProject('proj456'))).toBe('allWorkProjects/proj456');
   });
 
-  it('works with PATH_BUILDERS.chatChannel output', () => {
-    expect(toPath(PATH_BUILDERS.chatChannel('projABC', 'chanXYZ'))).toBe(
+  it('works with PATH_BUILDERS.guildChatChannel output', () => {
+    expect(toPath(PATH_BUILDERS.guildChatChannel('projABC', 'chanXYZ'))).toBe(
       'allWorkProjects/projABC/guildChatChannels/chanXYZ'
     );
   });
 
-  it('works with PATH_BUILDERS.channelMessage output (6-segment path)', () => {
-    expect(toPath(PATH_BUILDERS.channelMessage('p1', 'c1', 'm1'))).toBe(
+  it('works with PATH_BUILDERS.guildChatMessage output (6-segment path)', () => {
+    expect(toPath(PATH_BUILDERS.guildChatMessage('p1', 'c1', 'm1'))).toBe(
       'allWorkProjects/p1/guildChatChannels/c1/guildChatMessages/m1'
     );
   });

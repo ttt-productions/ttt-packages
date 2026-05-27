@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { COLLECTIONS, USER_SUBCOLLECTIONS, PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
+import { COLLECTIONS, USER_SUBCOLLECTIONS, WORK_PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
 
 describe('PATH_BUILDERS', () => {
   // ===== USER PATHS =====
@@ -12,8 +12,8 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('user123');
     });
 
-    it('userSkill returns 4-segment tuple with correct positions', () => {
-      const result = PATH_BUILDERS.userSkill('userA', 'skillB');
+    it('userCraftSkill returns 4-segment tuple with correct positions', () => {
+      const result = PATH_BUILDERS.userCraftSkill('userA', 'skillB');
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
       expect(result[1]).toBe('userA');
@@ -66,23 +66,23 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('userA');
       expect(result[2]).toBe(USER_SUBCOLLECTIONS.USER_LIKES);
       expect(result[3]).toBe(NESTED_SUBCOLLECTIONS.LIKE_HISTORY);
-      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.STREETZ_LIKES);
+      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.SQUARE_STREETZ_LIKES);
       expect(result[5]).toBe('post1');
     });
 
-    it('userDonation returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.userDonation('userA', 'don1');
+    it('userPledgePayment returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.userPledgePayment('userA', 'don1');
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
-      expect(result[2]).toBe(USER_SUBCOLLECTIONS.USER_DONATIONS);
+      expect(result[2]).toBe(USER_SUBCOLLECTIONS.USER_PLEDGE_PAYMENTS);
       expect(result[3]).toBe('don1');
     });
 
-    it('userOpportunityVote returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.userOpportunityVote('userA', 'opp1');
+    it('userAuditionVote returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.userAuditionVote('userA', 'opp1');
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
-      expect(result[2]).toBe(USER_SUBCOLLECTIONS.OPPORTUNITY_VOTES);
+      expect(result[2]).toBe(USER_SUBCOLLECTIONS.AUDITION_VOTES);
       expect(result[3]).toBe('opp1');
     });
   });
@@ -92,103 +92,103 @@ describe('PATH_BUILDERS', () => {
     it('workProject returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.workProject('proj1');
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
       expect(result[1]).toBe('proj1');
     });
 
-    it('projectPublicData returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.projectPublicData('proj1', 'pub1');
+    it('workProjectPublicData returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.workProjectPublicData('proj1', 'pub1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PUBLIC_DATA);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_DATA);
       expect(result[3]).toBe('pub1');
     });
 
-    it('projectTale returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.projectTale('proj1', 'tale1');
+    it('workProjectTale returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.workProjectTale('proj1', 'tale1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TALES);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES);
       expect(result[3]).toBe('tale1');
     });
 
     it('taleChapter returns 6-segment tuple', () => {
       const result = PATH_BUILDERS.taleChapter('proj1', 'tale1', 'chap1');
       expect(result).toHaveLength(6);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TALES);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES);
       expect(result[3]).toBe('tale1');
       expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.TALE_CHAPTERS);
       expect(result[5]).toBe('chap1');
     });
 
-    it('projectTune returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.projectTune('proj1', 'tune1');
+    it('workProjectTune returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.workProjectTune('proj1', 'tune1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TUNES);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES);
       expect(result[3]).toBe('tune1');
     });
 
     it('tuneTrack returns 6-segment tuple', () => {
       const result = PATH_BUILDERS.tuneTrack('proj1', 'tune1', 'song1');
       expect(result).toHaveLength(6);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TUNES);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES);
       expect(result[3]).toBe('tune1');
-      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.TUNE_SONGS);
+      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.TUNE_TRACKS);
       expect(result[5]).toBe('song1');
     });
 
-    it('projectTelevision returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.projectTelevision('proj1', 'tv1');
+    it('workProjectTelevision returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.workProjectTelevision('proj1', 'tv1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION);
       expect(result[3]).toBe('tv1');
     });
 
     it('televisionEpisode returns 6-segment tuple', () => {
       const result = PATH_BUILDERS.televisionEpisode('proj1', 'tv1', 'show1');
       expect(result).toHaveLength(6);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION);
       expect(result[3]).toBe('tv1');
-      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.TV_SHOWS);
+      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.TELEVISION_EPISODES);
       expect(result[5]).toBe('show1');
     });
 
-    it('projectMember returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.projectMember('proj1', 'uid1');
+    it('workProjectGuildmateUser returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.workProjectGuildmateUser('proj1', 'uid1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.MEMBERS);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.GUILDMATE_USERS);
       expect(result[3]).toBe('uid1');
     });
 
-    it('projectFile returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.projectFile('proj1', 'file1');
+    it('workProjectAsset returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.workProjectAsset('proj1', 'file1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.FILES);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_ASSETS);
       expect(result[3]).toBe('file1');
     });
 
-    it('chatChannel returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.chatChannel('proj1', 'chan1');
+    it('guildChatChannel returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.guildChatChannel('proj1', 'chan1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.CHAT_CHANNELS);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS);
       expect(result[3]).toBe('chan1');
     });
 
-    it('channelMessage returns 6-segment tuple', () => {
-      const result = PATH_BUILDERS.channelMessage('proj1', 'chan1', 'msg1');
+    it('guildChatMessage returns 6-segment tuple', () => {
+      const result = PATH_BUILDERS.guildChatMessage('proj1', 'chan1', 'msg1');
       expect(result).toHaveLength(6);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.CHAT_CHANNELS);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS);
       expect(result[3]).toBe('chan1');
-      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.CHANNEL_MESSAGES);
+      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.GUILD_CHAT_MESSAGES);
       expect(result[5]).toBe('msg1');
     });
   });
@@ -198,7 +198,7 @@ describe('PATH_BUILDERS', () => {
     it('activePost returns 4-segment tuple starting with squareStreetzFeed', () => {
       const result = PATH_BUILDERS.activePost('post1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.STREETZ_FEED);
+      expect(result[0]).toBe(COLLECTIONS.SQUARE_STREETZ_FEED);
       expect(result[1]).toBe(NESTED_SUBCOLLECTIONS.ACTIVE_POSTS);
       expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.SOCIAL_POSTS);
       expect(result[3]).toBe('post1');
@@ -207,7 +207,7 @@ describe('PATH_BUILDERS', () => {
     it('trendingPosts returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.trendingPosts();
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.STREETZ_FEED);
+      expect(result[0]).toBe(COLLECTIONS.SQUARE_STREETZ_FEED);
       expect(result[1]).toBe(NESTED_SUBCOLLECTIONS.TRENDING_POSTS);
     });
   });
@@ -243,16 +243,16 @@ describe('PATH_BUILDERS', () => {
     it('commissionListing returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.commissionListing('job1');
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.JOB_LISTINGS);
+      expect(result[0]).toBe(COLLECTIONS.COMMISSION_LISTINGS);
       expect(result[1]).toBe('job1');
     });
 
-    it('jobApplication returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.jobApplication('job1', 'reply1');
+    it('commissionProposal returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.commissionProposal('job1', 'reply1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.JOB_LISTINGS);
+      expect(result[0]).toBe(COLLECTIONS.COMMISSION_LISTINGS);
       expect(result[1]).toBe('job1');
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.APPLICATION_REPLIES);
+      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.COMMISSION_PROPOSALS);
       expect(result[3]).toBe('reply1');
     });
   });
@@ -262,16 +262,16 @@ describe('PATH_BUILDERS', () => {
     it('audition returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.audition('opp1');
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.OPPORTUNITY_BOARD);
+      expect(result[0]).toBe(COLLECTIONS.AUDITION_BOARD);
       expect(result[1]).toBe('opp1');
     });
 
     it('auditionEntry returns 4-segment tuple', () => {
       const result = PATH_BUILDERS.auditionEntry('opp1', 'reply1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.OPPORTUNITY_BOARD);
+      expect(result[0]).toBe(COLLECTIONS.AUDITION_BOARD);
       expect(result[1]).toBe('opp1');
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.SUBMITTED_REPLIES);
+      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.AUDITION_ENTRIES);
       expect(result[3]).toBe('reply1');
     });
   });
@@ -281,7 +281,7 @@ describe('PATH_BUILDERS', () => {
     it('workRealm returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.workRealm('uni1');
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.STORY_UNIVERSES);
+      expect(result[0]).toBe(COLLECTIONS.WORK_REALMS);
       expect(result[1]).toBe('uni1');
     });
   });
@@ -291,14 +291,14 @@ describe('PATH_BUILDERS', () => {
     it('adminDispatch returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.adminDispatch('msg1');
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.PENDING_ADMIN_MESSAGES);
+      expect(result[0]).toBe(COLLECTIONS.PENDING_ADMIN_DISPATCHES);
       expect(result[1]).toBe('msg1');
     });
 
     it('adminConversationMessage returns 4-segment tuple', () => {
       const result = PATH_BUILDERS.adminConversationMessage('msg1', 'indivMsg1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.PENDING_ADMIN_MESSAGES);
+      expect(result[0]).toBe(COLLECTIONS.PENDING_ADMIN_DISPATCHES);
       expect(result[1]).toBe('msg1');
       expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES);
       expect(result[3]).toBe('indivMsg1');
@@ -307,14 +307,14 @@ describe('PATH_BUILDERS', () => {
     it('guildInvite returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.guildInvite('invite1');
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.PROJECT_INVITE_CONVERSATIONS);
+      expect(result[0]).toBe(COLLECTIONS.GUILD_INVITE_CONVERSATIONS);
       expect(result[1]).toBe('invite1');
     });
 
     it('inviteMessage returns 4-segment tuple', () => {
       const result = PATH_BUILDERS.inviteMessage('invite1', 'msg1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.PROJECT_INVITE_CONVERSATIONS);
+      expect(result[0]).toBe(COLLECTIONS.GUILD_INVITE_CONVERSATIONS);
       expect(result[1]).toBe('invite1');
       expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.INVITE_MESSAGES);
       expect(result[3]).toBe('msg1');
@@ -400,24 +400,24 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('notif1');
     });
 
-    it('donationsSummary returns 2-segment tuple with SUMMARY special doc', () => {
-      const result = PATH_BUILDERS.donationsSummary();
+    it('pledgePaymentsSummary returns 2-segment tuple with SUMMARY special doc', () => {
+      const result = PATH_BUILDERS.pledgePaymentsSummary();
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.DONATIONS_SUMMARY);
+      expect(result[0]).toBe(COLLECTIONS.PLEDGE_PAYMENTS_SUMMARY);
       expect(result[1]).toBe(SPECIAL_DOCS.SUMMARY);
     });
 
-    it('recentDonation returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.recentDonation('don1');
+    it('recentPledgePayment returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.recentPledgePayment('don1');
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.RECENT_DONATIONS);
+      expect(result[0]).toBe(COLLECTIONS.RECENT_PLEDGE_PAYMENTS);
       expect(result[1]).toBe('don1');
     });
 
-    it('archivedDonation returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.archivedDonation('don1');
+    it('archivedPledgePayment returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.archivedPledgePayment('don1');
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.ARCHIVED_DONATIONS);
+      expect(result[0]).toBe(COLLECTIONS.ARCHIVED_PLEDGE_PAYMENTS);
       expect(result[1]).toBe('don1');
     });
   });
@@ -454,12 +454,12 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('badword');
     });
 
-    it('taggedSkill returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.taggedSkill('photography', 'compositeId1');
+    it('taggedCraftSkill returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.taggedCraftSkill('photography', 'compositeId1');
       expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.SKILLS_BY_TAG);
+      expect(result[0]).toBe(COLLECTIONS.CRAFT_SKILLS_BY_TAG);
       expect(result[1]).toBe('photography');
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.TAGGED_SKILLS);
+      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.TAGGED_CRAFT_SKILLS);
       expect(result[3]).toBe('compositeId1');
     });
   });

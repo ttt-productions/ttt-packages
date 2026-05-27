@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  projectIdSchema,
+  workProjectIdSchema,
   userIdSchema,
 } from './atoms.js';
 
@@ -23,7 +23,7 @@ const userRefSchema = z.object({
   displayName: z.string().optional(),
 }).strict();
 
-export const ShareOperationSchema = z.discriminatedUnion('type', [
+export const StakeShareOperationSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('add-pending'),
     amount: z.number().int().positive().optional(),
@@ -56,13 +56,13 @@ export const ShareOperationSchema = z.discriminatedUnion('type', [
   }).strict(),
 ]);
 
-export type ShareOperation = z.infer<typeof ShareOperationSchema>;
+export type ShareOperation = z.infer<typeof StakeShareOperationSchema>;
 export type ShareOperationType = ShareOperation['type'];
 
 // Re-export for convenience.
 export const ManageProjectSharesInputSchema = z.object({
-  projectId: projectIdSchema,
-  operation: ShareOperationSchema,
+  projectId: workProjectIdSchema,
+  operation: StakeShareOperationSchema,
 }).strict();
 
 export type ManageProjectSharesInput = z.infer<typeof ManageProjectSharesInputSchema>;
@@ -89,7 +89,7 @@ export type ManageProjectSharesInput = z.infer<typeof ManageProjectSharesInputSc
 // Keep this as a discriminated union so adding a second public-allowed
 // type later is mechanical.
 // ───────────────────────────────────────────────────────────────────
-export const PublicShareOperationSchema = z.discriminatedUnion('type', [
+export const PublicStakeShareOperationSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('add-active'),
     amount: z.number().int().positive().optional(),
@@ -98,12 +98,12 @@ export const PublicShareOperationSchema = z.discriminatedUnion('type', [
   }).strict(),
 ]);
 
-export type PublicShareOperation = z.infer<typeof PublicShareOperationSchema>;
+export type PublicShareOperation = z.infer<typeof PublicStakeShareOperationSchema>;
 export type PublicShareOperationType = PublicShareOperation['type'];
 
 export const PublicManageProjectSharesInputSchema = z.object({
-  projectId: projectIdSchema,
-  operation: PublicShareOperationSchema,
+  projectId: workProjectIdSchema,
+  operation: PublicStakeShareOperationSchema,
 }).strict();
 
 export type PublicManageProjectSharesInput = z.infer<typeof PublicManageProjectSharesInputSchema>;

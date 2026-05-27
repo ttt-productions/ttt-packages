@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { COLLECTION_REFS } from '../src/paths/collection-refs';
-import { COLLECTIONS, USER_SUBCOLLECTIONS, PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections';
+import { COLLECTIONS, USER_SUBCOLLECTIONS, WORK_PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections';
 
 describe('COLLECTION_REFS', () => {
   describe('Top-level collection refs', () => {
@@ -13,19 +13,19 @@ describe('COLLECTION_REFS', () => {
     it('allWorkProjects returns single-element tuple', () => {
       const result = COLLECTION_REFS.allWorkProjects();
       expect(result).toHaveLength(1);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
     });
 
     it('workRealms returns single-element tuple', () => {
       const result = COLLECTION_REFS.workRealms();
       expect(result).toHaveLength(1);
-      expect(result[0]).toBe(COLLECTIONS.STORY_UNIVERSES);
+      expect(result[0]).toBe(COLLECTIONS.WORK_REALMS);
     });
 
     it('squareStreetzFeed returns single-element tuple', () => {
       const result = COLLECTION_REFS.squareStreetzFeed();
       expect(result).toHaveLength(1);
-      expect(result[0]).toBe(COLLECTIONS.STREETZ_FEED);
+      expect(result[0]).toBe(COLLECTIONS.SQUARE_STREETZ_FEED);
     });
 
     it('thresholdItems returns single-element tuple', () => {
@@ -43,19 +43,19 @@ describe('COLLECTION_REFS', () => {
     it('commissionListings returns single-element tuple', () => {
       const result = COLLECTION_REFS.commissionListings();
       expect(result).toHaveLength(1);
-      expect(result[0]).toBe(COLLECTIONS.JOB_LISTINGS);
+      expect(result[0]).toBe(COLLECTIONS.COMMISSION_LISTINGS);
     });
 
     it('auditionBoard returns single-element tuple', () => {
       const result = COLLECTION_REFS.auditionBoard();
       expect(result).toHaveLength(1);
-      expect(result[0]).toBe(COLLECTIONS.OPPORTUNITY_BOARD);
+      expect(result[0]).toBe(COLLECTIONS.AUDITION_BOARD);
     });
   });
 
   describe('User subcollection refs', () => {
-    it('userSkills returns 3-segment tuple', () => {
-      const result = COLLECTION_REFS.userSkills('user1');
+    it('userCraftSkills returns 3-segment tuple', () => {
+      const result = COLLECTION_REFS.userCraftSkills('user1');
       expect(result).toHaveLength(3);
       expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
       expect(result[1]).toBe('user1');
@@ -72,56 +72,56 @@ describe('COLLECTION_REFS', () => {
   });
 
   describe('WorkProject subcollection refs', () => {
-    it('projectTales returns 3-segment tuple', () => {
-      const result = COLLECTION_REFS.projectTales('proj1');
+    it('workProjectTales returns 3-segment tuple', () => {
+      const result = COLLECTION_REFS.workProjectTales('proj1');
       expect(result).toHaveLength(3);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
       expect(result[1]).toBe('proj1');
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TALES);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES);
     });
 
-    it('projectTunes returns 3-segment tuple', () => {
-      const result = COLLECTION_REFS.projectTunes('proj1');
+    it('workProjectTunes returns 3-segment tuple', () => {
+      const result = COLLECTION_REFS.workProjectTunes('proj1');
       expect(result).toHaveLength(3);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
       expect(result[1]).toBe('proj1');
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TUNES);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES);
     });
 
-    it('projectTelevision returns 3-segment tuple', () => {
-      const result = COLLECTION_REFS.projectTelevision('proj1');
+    it('workProjectTelevision returns 3-segment tuple', () => {
+      const result = COLLECTION_REFS.workProjectTelevision('proj1');
       expect(result).toHaveLength(3);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
       expect(result[1]).toBe('proj1');
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION);
     });
 
     it('guildChatChannels returns 3-segment tuple', () => {
       const result = COLLECTION_REFS.guildChatChannels('proj1');
       expect(result).toHaveLength(3);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
       expect(result[1]).toBe('proj1');
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.CHAT_CHANNELS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS);
     });
 
     it('guildChatMessages returns 5-segment tuple', () => {
       const result = COLLECTION_REFS.guildChatMessages('proj1', 'chan1');
       expect(result).toHaveLength(5);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
       expect(result[1]).toBe('proj1');
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.CHAT_CHANNELS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS);
       expect(result[3]).toBe('chan1');
-      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.CHANNEL_MESSAGES);
+      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.GUILD_CHAT_MESSAGES);
     });
 
     it('tuneTracks returns 5-segment tuple', () => {
       const result = COLLECTION_REFS.tuneTracks('proj1', 'tune1');
       expect(result).toHaveLength(5);
-      expect(result[0]).toBe(COLLECTIONS.ALL_PROJECTS);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
       expect(result[1]).toBe('proj1');
-      expect(result[2]).toBe(PROJECT_SUBCOLLECTIONS.PROJECT_TUNES);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES);
       expect(result[3]).toBe('tune1');
-      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.TUNE_SONGS);
+      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.TUNE_TRACKS);
     });
   });
 
@@ -129,7 +129,7 @@ describe('COLLECTION_REFS', () => {
     it('activePosts returns 3-segment tuple', () => {
       const result = COLLECTION_REFS.activePosts();
       expect(result).toHaveLength(3);
-      expect(result[0]).toBe(COLLECTIONS.STREETZ_FEED);
+      expect(result[0]).toBe(COLLECTIONS.SQUARE_STREETZ_FEED);
       expect(result[1]).toBe(NESTED_SUBCOLLECTIONS.ACTIVE_POSTS);
       expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.SOCIAL_POSTS);
     });
@@ -139,17 +139,17 @@ describe('COLLECTION_REFS', () => {
     it('commissionProposals returns 3-segment tuple', () => {
       const result = COLLECTION_REFS.commissionProposals('job1');
       expect(result).toHaveLength(3);
-      expect(result[0]).toBe(COLLECTIONS.JOB_LISTINGS);
+      expect(result[0]).toBe(COLLECTIONS.COMMISSION_LISTINGS);
       expect(result[1]).toBe('job1');
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.APPLICATION_REPLIES);
+      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.COMMISSION_PROPOSALS);
     });
 
     it('auditionEntries returns 3-segment tuple', () => {
       const result = COLLECTION_REFS.auditionEntries('opp1');
       expect(result).toHaveLength(3);
-      expect(result[0]).toBe(COLLECTIONS.OPPORTUNITY_BOARD);
+      expect(result[0]).toBe(COLLECTIONS.AUDITION_BOARD);
       expect(result[1]).toBe('opp1');
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.SUBMITTED_REPLIES);
+      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.AUDITION_ENTRIES);
     });
   });
 });

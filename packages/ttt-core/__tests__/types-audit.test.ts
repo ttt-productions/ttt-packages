@@ -10,14 +10,14 @@ describe('audit type catalog', () => {
   it('AuditEventType includes representative members from each domain', () => {
     const sample: AuditEventType[] = [
       'user.accountRegistered',
-      'admin.roleGranted',
+      'admin.guildStandingGranted',
       'workProject.newProjectCreated',
       'content.taleDetailsUpdated',
-      'payment.donationCompleted',
+      'payment.pledgePaymentCompleted',
       'system.manualIntervention',
       'social.userFollowed',
       'chat.messageSent',
-      'craftSkill.userSkillDeleted',
+      'craftSkill.userCraftSkillDeleted',
       'audition.replyCreated',
     ];
     expectTypeOf(sample).toEqualTypeOf<AuditEventType[]>();

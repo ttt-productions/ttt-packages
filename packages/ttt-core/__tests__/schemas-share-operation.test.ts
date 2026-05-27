@@ -1,30 +1,30 @@
 import { describe, it, expect } from 'vitest';
 import {
-  ShareOperationSchema,
+  StakeShareOperationSchema,
   ManageProjectSharesInputSchema,
 } from '../src/schemas/share-operation';
 
-describe('ShareOperationSchema', () => {
+describe('StakeShareOperationSchema', () => {
   describe('add-pending branch', () => {
     it('accepts a valid add-pending operation with sourceId', () => {
       const op = { type: 'add-pending', amount: 10, sourceId: 'invite-1' };
-      expect(ShareOperationSchema.parse(op)).toEqual(op);
+      expect(StakeShareOperationSchema.parse(op)).toEqual(op);
     });
     it('accepts a valid add-pending with user only', () => {
       const op = { type: 'add-pending', amount: 5, user: { uid: 'user-1' } };
-      expect(ShareOperationSchema.parse(op)).toEqual(op);
+      expect(StakeShareOperationSchema.parse(op)).toEqual(op);
     });
     it('rejects amount of 0 or negative', () => {
       expect(() =>
-        ShareOperationSchema.parse({ type: 'add-pending', amount: 0 }),
+        StakeShareOperationSchema.parse({ type: 'add-pending', amount: 0 }),
       ).toThrow();
       expect(() =>
-        ShareOperationSchema.parse({ type: 'add-pending', amount: -1 }),
+        StakeShareOperationSchema.parse({ type: 'add-pending', amount: -1 }),
       ).toThrow();
     });
     it('rejects sourceType as an unknown key (.strict)', () => {
       expect(() =>
-        ShareOperationSchema.parse({
+        StakeShareOperationSchema.parse({
           type: 'add-pending',
           sourceId: 'invite-1',
           sourceType: 'invite',
@@ -33,7 +33,7 @@ describe('ShareOperationSchema', () => {
     });
     it('rejects other unknown keys (.strict)', () => {
       expect(() =>
-        ShareOperationSchema.parse({
+        StakeShareOperationSchema.parse({
           type: 'add-pending',
           amount: 5,
           extraField: 'nope',
@@ -45,21 +45,21 @@ describe('ShareOperationSchema', () => {
   describe('remove-pending branch', () => {
     it('accepts a remove-pending with just sourceId', () => {
       const op = { type: 'remove-pending', sourceId: 'invite-1' };
-      expect(ShareOperationSchema.parse(op)).toEqual(op);
+      expect(StakeShareOperationSchema.parse(op)).toEqual(op);
     });
   });
 
   describe('add-active branch', () => {
     it('accepts a valid add-active with user', () => {
       const op = { type: 'add-active', amount: 25, user: { uid: 'proposalArtisan-uid' } };
-      expect(ShareOperationSchema.parse(op)).toEqual(op);
+      expect(StakeShareOperationSchema.parse(op)).toEqual(op);
     });
   });
 
   describe('create-workProject branch', () => {
     it('accepts the canonical create-workProject shape', () => {
       const op = { type: 'create-workProject', amount: 1, user: { uid: 'artisanCreator-uid' } };
-      expect(ShareOperationSchema.parse(op)).toEqual(op);
+      expect(StakeShareOperationSchema.parse(op)).toEqual(op);
     });
   });
 
@@ -71,11 +71,11 @@ describe('ShareOperationSchema', () => {
         user: { uid: 'invitee-uid' },
         sourceId: 'invite-1',
       };
-      expect(ShareOperationSchema.parse(op)).toEqual(op);
+      expect(StakeShareOperationSchema.parse(op)).toEqual(op);
     });
     it('rejects sourceType as an unknown key (.strict)', () => {
       expect(() =>
-        ShareOperationSchema.parse({
+        StakeShareOperationSchema.parse({
           type: 'convert-invite',
           amount: 50,
           user: { uid: 'invitee-uid' },
@@ -89,12 +89,12 @@ describe('ShareOperationSchema', () => {
   describe('discriminator', () => {
     it('rejects unknown operation type', () => {
       expect(() =>
-        ShareOperationSchema.parse({ type: 'delete-everything' }),
+        StakeShareOperationSchema.parse({ type: 'delete-everything' }),
       ).toThrow();
     });
     it('rejects accept-proposalArtisan (removed operation)', () => {
       expect(() =>
-        ShareOperationSchema.parse({
+        StakeShareOperationSchema.parse({
           type: 'accept-proposalArtisan',
           user: { uid: 'uid' },
           sourceId: 'commission-1',
@@ -104,7 +104,7 @@ describe('ShareOperationSchema', () => {
     });
     it('rejects missing type field', () => {
       expect(() =>
-        ShareOperationSchema.parse({ amount: 5 }),
+        StakeShareOperationSchema.parse({ amount: 5 }),
       ).toThrow();
     });
   });
@@ -112,7 +112,7 @@ describe('ShareOperationSchema', () => {
   describe('projectData field rejection (dead-code removed)', () => {
     it('rejects payloads that include projectData', () => {
       expect(() =>
-        ShareOperationSchema.parse({
+        StakeShareOperationSchema.parse({
           type: 'create-workProject',
           amount: 1,
           user: { uid: 'u' },

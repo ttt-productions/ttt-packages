@@ -1,9 +1,9 @@
 import { z } from 'zod';
 import {
-  projectIdSchema,
+  workProjectIdSchema,
   channelIdSchema,
   inviteIdSchema,
-  messageIdSchema,
+  adminDispatchIdSchema,
 } from './atoms.js';
 import { MAX_CHAT_MESSAGE_LENGTH } from '../constants/chat.js';
 import {
@@ -12,13 +12,13 @@ import {
 } from '@ttt-productions/chat-schemas';
 
 export const ArchiveChatChannelInputSchema = z.object({
-  projectId: projectIdSchema,
+  projectId: workProjectIdSchema,
   channelId: channelIdSchema,
 }).strict();
 export type ArchiveChatChannelInput = z.infer<typeof ArchiveChatChannelInputSchema>;
 
 export const CreateChatChannelInputSchema = z.object({
-  projectId: projectIdSchema,
+  projectId: workProjectIdSchema,
   channelName: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
   requiredRoles: z.array(z.string()),
@@ -29,7 +29,7 @@ export type CreateChatChannelInput = z.infer<typeof CreateChatChannelInputSchema
 export const SendChatMessageInputSchema = z.discriminatedUnion('threadKind', [
   z.object({
     threadKind: z.literal('projectChannel'),
-    projectId: projectIdSchema,
+    projectId: workProjectIdSchema,
     channelId: channelIdSchema,
     text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
     replyTo: ReplyToSchema.optional(),
@@ -44,7 +44,7 @@ export const SendChatMessageInputSchema = z.discriminatedUnion('threadKind', [
   }).strict(),
   z.object({
     threadKind: z.literal('adminSupport'),
-    adminMessageId: messageIdSchema,
+    adminMessageId: adminDispatchIdSchema,
     isUserReply: z.boolean(),
     text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
     replyTo: ReplyToSchema.optional(),
@@ -60,7 +60,7 @@ export const StartAdminSupportThreadInputSchema = z.object({
 export type StartAdminSupportThreadInput = z.infer<typeof StartAdminSupportThreadInputSchema>;
 
 export const UpdateChatChannelInputSchema = z.object({
-  projectId: projectIdSchema,
+  projectId: workProjectIdSchema,
   channelId: channelIdSchema,
   channelName: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),

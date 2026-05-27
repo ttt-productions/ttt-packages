@@ -7,10 +7,10 @@ const onProgressSchema = z
   .returns(z.void())
   .optional();
 
-export const CreateOpportunityReplyVariablesSchema = z.object({
+export const CreateAuditionEntryVariablesSchema = z.object({
   opportunityId: z.string().min(1),
   videoFile: z.instanceof(File).or(z.instanceof(Blob)),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
-export type CreateOpportunityReplyVariables = z.infer<typeof CreateOpportunityReplyVariablesSchema>;
+export type CreateAuditionEntryVariables = z.infer<typeof CreateAuditionEntryVariablesSchema>;

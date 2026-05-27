@@ -7,8 +7,8 @@ export const WORD_LIST_CACHE_TTL_MS = 1000 * 60 * 60;
 
 // --- Donations ---
 
-/** Minimum number of recent donations always retained in the recentDonations collection. */
-export const MIN_RECENT_DONATIONS = 50;
+/** Minimum number of recent donations always retained in the recentPledgePayments collection. */
+export const MIN_RECENT_PLEDGE_PAYMENTS = 50;
 
 /** Days after which a pledgePayment is considered old enough to archive. */
 export const DONATION_RETENTION_DAYS = 90;

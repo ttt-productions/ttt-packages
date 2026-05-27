@@ -82,8 +82,8 @@ export const OpportunityReplyTargetInfoSchema = z
 // pick which field on the target doc gets written (see
 // LIBRARY_TARGET_FIELDS in `hall-library-target-fields.ts`).
 //
-// itemType discriminates which parent collection — `projectTales` vs
-// `projectTunes` vs `projectTelevision`. fileOrigin alone does NOT
+// itemType discriminates which parent collection — `workProjectTales` vs
+// `workProjectTunes` vs `workProjectTelevision`. fileOrigin alone does NOT
 // disambiguate this because all three cover origins target whichever
 // hallLibrary item the user is editing.
 // ───────────────────────────────────────────────────────────────────

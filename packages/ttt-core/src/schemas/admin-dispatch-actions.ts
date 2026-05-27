@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { messageIdSchema, inviteIdSchema } from './atoms.js';
+import { adminDispatchIdSchema, inviteIdSchema } from './atoms.js';
 import { MAX_CHAT_MESSAGE_LENGTH } from '../constants/chat.js';
 
 export const UpdateAdminMessageStatusInputSchema = z.object({
-  messageId: messageIdSchema,
+  messageId: adminDispatchIdSchema,
   newStatus: z.enum(['closed_resolved', 'closed_unresolved']),
   lastMessage: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
 }).strict();

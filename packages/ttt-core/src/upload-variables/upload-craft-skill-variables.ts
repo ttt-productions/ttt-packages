@@ -7,9 +7,9 @@ const onProgressSchema = z
   .returns(z.void())
   .optional();
 
-export const UploadSkillVariablesSchema = z.object({
+export const UploadCraftSkillVariablesSchema = z.object({
   file: z.instanceof(File).or(z.instanceof(Blob)),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
-export type UploadSkillVariables = z.infer<typeof UploadSkillVariablesSchema>;
+export type UploadCraftSkillVariables = z.infer<typeof UploadCraftSkillVariablesSchema>;

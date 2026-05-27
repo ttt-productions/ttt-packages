@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { violationIdSchema, opportunityIdSchema, replyIdSchema } from './atoms.js';
+import { violationIdSchema, auditionIdSchema, auditionEntryIdSchema } from './atoms.js';
 import { MAX_APPEAL_MESSAGE_LENGTH, MAX_FEEDBACK_SUGGESTION_LENGTH, FEEDBACK_TYPES } from '../constants/business.js';
 
 export const AcceptViolationDecisionInputSchema = z.object({
@@ -8,8 +8,8 @@ export const AcceptViolationDecisionInputSchema = z.object({
 export type AcceptViolationDecisionInput = z.infer<typeof AcceptViolationDecisionInputSchema>;
 
 export const CreateShortLinkInputSchema = z.object({
-  opportunityId: opportunityIdSchema,
-  replyId: replyIdSchema.optional(),
+  opportunityId: auditionIdSchema,
+  replyId: auditionEntryIdSchema.optional(),
 }).strict();
 export type CreateShortLinkInput = z.infer<typeof CreateShortLinkInputSchema>;
 
@@ -33,7 +33,7 @@ export const TrackShortLinkClickInputSchema = z.object({
 }).strict();
 export type TrackShortLinkClickInput = z.infer<typeof TrackShortLinkClickInputSchema>;
 
-export const MarkAdminMessageReadInputSchema = z.object({
+export const MarkAdminDispatchReadInputSchema = z.object({
   messageId: z.string().min(1).max(128),
 }).strict();
-export type MarkAdminMessageReadInput = z.infer<typeof MarkAdminMessageReadInputSchema>;
+export type MarkAdminMessageReadInput = z.infer<typeof MarkAdminDispatchReadInputSchema>;

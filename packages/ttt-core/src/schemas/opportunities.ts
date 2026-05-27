@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { opportunityIdSchema } from './atoms.js';
+import { auditionIdSchema } from './atoms.js';
 
 export const CloseOpportunityInputSchema = z.object({
-  opportunityId: opportunityIdSchema,
+  opportunityId: auditionIdSchema,
 }).strict();
 export type CloseOpportunityInput = z.infer<typeof CloseOpportunityInputSchema>;

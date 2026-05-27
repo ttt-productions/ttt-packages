@@ -8,11 +8,11 @@ const onProgressSchema = z
   .returns(z.void())
   .optional();
 
-export const UploadProjectFileVariablesSchema = z.object({
+export const UploadWorkAssetVariablesSchema = z.object({
   projectId: z.string().min(1),
   file: z.instanceof(File),
   workAssets: z.array(z.custom<ProjectFile>()),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
-export type UploadProjectFileVariables = z.infer<typeof UploadProjectFileVariablesSchema>;
+export type UploadWorkAssetVariables = z.infer<typeof UploadWorkAssetVariablesSchema>;

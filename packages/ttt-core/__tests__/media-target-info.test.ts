@@ -149,7 +149,7 @@ describe('LibraryCoverSquareTargetInfoSchema (typed IDs)', () => {
   });
   it('rejects legacy { docPath, fields } shape', () => {
     expect(() =>
-      LibraryCoverSquareTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/projectTales/tale_1', fields: { full: 'coverPhotoSquare' } })
+      LibraryCoverSquareTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/workProjectTales/tale_1', fields: { full: 'coverPhotoSquare' } })
     ).toThrow();
   });
   it('rejects unknown itemType', () => {
@@ -171,7 +171,7 @@ describe('ChapterPhotoTargetInfoSchema (typed IDs)', () => {
   });
   it('rejects legacy { docPath, fields } shape', () => {
     expect(() =>
-      ChapterPhotoTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/projectTales/tale_1/taleChapters/ch_1', fields: { full: 'photoUrl' } })
+      ChapterPhotoTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/workProjectTales/tale_1/taleChapters/ch_1', fields: { full: 'photoUrl' } })
     ).toThrow();
   });
   it('rejects missing chapterId', () => {

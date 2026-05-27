@@ -8,31 +8,31 @@ export const COLLECTIONS = {
   // Core entities
   USER_PROFILES: 'userProfiles',
   PUBLIC_USERS: 'publicUsers',
-  ALL_PROJECTS: 'allWorkProjects',
-  STORY_UNIVERSES: 'workRealms',
+  ALL_WORK_PROJECTS: 'allWorkProjects',
+  WORK_REALMS: 'workRealms',
 
   // Content & Social
-  STREETZ_FEED: 'squareStreetzFeed',
+  SQUARE_STREETZ_FEED: 'squareStreetzFeed',
   THRESHOLD_ITEMS: 'thresholdItems',
   HALL_ITEMS: 'hallItems',
-  JOB_LISTINGS: 'commissionListings',
-  OPPORTUNITY_BOARD: 'auditionBoard',
+  COMMISSION_LISTINGS: 'commissionListings',
+  AUDITION_BOARD: 'auditionBoard',
 
   // System & Utility
   RESERVED_DISPLAY_NAMES: 'reservedDisplayNames',
-  DONATIONS_SUMMARY: 'donationsSummary',
+  PLEDGE_PAYMENTS_SUMMARY: 'pledgePaymentsSummary',
   CONTENT_REPORTS: 'contentReports',
   PENDING_MEDIA: 'pendingMedia',
   PENDING_MEDIA_ARCHIVE: 'pendingMediaArchive',
-  PENDING_ADMIN_MESSAGES: 'pendingAdminDispatches',
+  PENDING_ADMIN_DISPATCHES: 'pendingAdminDispatches',
   ACTIVE_REPORT_GROUPS: 'activeReportGroups',
   CONTENT_VIOLATIONS: 'contentViolations',
   ADMIN_TASKS: 'adminTasks',
   ADMIN_ACTIVITY_LOG: 'adminActivityLog',
   SHORT_LINKS: 'shortLinks',
   NOTIFICATION_QUEUE: 'notificationQueue',
-  PROJECT_INVITE_CONVERSATIONS: 'projectInviteConversations',
-  SHARE_AUDIT_EVENTS: 'shareAuditEvents',
+  GUILD_INVITE_CONVERSATIONS: 'guildInviteConversations',
+  STAKE_SHARE_AUDIT_EVENTS: 'stakeShareAuditEvents',
 
   // Notification system
   ACTIVE_USER_NOTIFICATIONS: 'activeUserNotifications',
@@ -44,11 +44,11 @@ export const COLLECTIONS = {
   FEEDBACK_SUBMISSIONS: 'feedbackSubmissions',
   FEEDBACK_ALIASES: 'feedbackAliases',
   FEEDBACK_DENYLIST: 'feedbackDenylist',
-  SKILLS_BY_TAG: 'craft-skillsByTag',
+  CRAFT_SKILLS_BY_TAG: 'craftSkillsByTag',
   SYSTEM_DATA: '_systemData',
   APP_CONFIG: '_config',
-  RECENT_DONATIONS: 'recentDonations',
-  ARCHIVED_DONATIONS: 'archivedDonations',
+  RECENT_PLEDGE_PAYMENTS: 'recentPledgePayments',
+  ARCHIVED_PLEDGE_PAYMENTS: 'archivedPledgePayments',
 } as const;
 
 /**
@@ -61,24 +61,24 @@ export const USER_SUBCOLLECTIONS = {
   USER_METADATA: 'userMetadata',
   USER_FOLLOWS: 'userFollows',
   USER_LIKES: 'userLikes',
-  USER_DONATIONS: 'userPledgePayments',
+  USER_PLEDGE_PAYMENTS: 'userPledgePayments',
   CHECKED_OUT_ITEMS: 'checkedOutItems',
   MENTION_HISTORY: 'mentionHistory',
-  OPPORTUNITY_VOTES: 'auditionVotes',
+  AUDITION_VOTES: 'auditionVotes',
 } as const;
 
 /**
  * PROJECT SUBCOLLECTIONS
  * Nested under allWorkProjects/{projectId}/
  */
-export const PROJECT_SUBCOLLECTIONS = {
+export const WORK_PROJECT_SUBCOLLECTIONS = {
   PUBLIC_DATA: 'publicData',
-  PROJECT_TALES: 'projectTales',
-  PROJECT_TUNES: 'projectTunes',
-  PROJECT_TELEVISION: 'projectTelevision',
-  MEMBERS: 'members',
-  FILES: 'files',
-  CHAT_CHANNELS: 'guildChatChannels',
+  WORK_PROJECT_TALES: 'workProjectTales',
+  WORK_PROJECT_TUNES: 'workProjectTunes',
+  WORK_PROJECT_TELEVISION: 'workProjectTelevision',
+  GUILDMATE_USERS: 'guildmateUsers',
+  WORK_ASSETS: 'workAssets',
+  GUILD_CHAT_CHANNELS: 'guildChatChannels',
 } as const;
 
 /**
@@ -88,11 +88,11 @@ export const PROJECT_SUBCOLLECTIONS = {
 export const NESTED_SUBCOLLECTIONS = {
   // Content subcollections
   TALE_CHAPTERS: 'taleChapters',
-  TUNE_SONGS: 'tuneTracks',
-  TV_SHOWS: 'televisionEpisodes',
+  TUNE_TRACKS: 'tuneTracks',
+  TELEVISION_EPISODES: 'televisionEpisodes',
 
   // Communication
-  CHANNEL_MESSAGES: 'guildChatMessages',
+  GUILD_CHAT_MESSAGES: 'guildChatMessages',
   CONVERSATION_MESSAGES: 'conversationMessages',
   INVITE_MESSAGES: 'inviteMessages',
 
@@ -102,17 +102,17 @@ export const NESTED_SUBCOLLECTIONS = {
   TRENDING_POSTS: 'trendingPosts',
 
   // Jobs & Opportunities
-  APPLICATION_REPLIES: 'applicationReplies',
-  SUBMITTED_REPLIES: 'submittedReplies',
+  COMMISSION_PROPOSALS: 'commissionProposals',
+  AUDITION_ENTRIES: 'auditionEntries',
 
   // User history
   FOLLOW_HISTORY: 'followHistory',
   FOLLOWED_USERS: 'followedUsers',
   LIKE_HISTORY: 'likeHistory',
-  STREETZ_LIKES: 'squareStreetzLikes',
+  SQUARE_STREETZ_LIKES: 'squareStreetzLikes',
 
   // Skills & Feedback
-  TAGGED_SKILLS: 'taggedCraftSkills',
+  TAGGED_CRAFT_SKILLS: 'taggedCraftSkills',
   USER_SUGGESTIONS: 'userSuggestions',
 } as const;
 

@@ -6,7 +6,7 @@
 import {
   COLLECTIONS,
   USER_SUBCOLLECTIONS,
-  PROJECT_SUBCOLLECTIONS,
+  WORK_PROJECT_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
   SPECIAL_DOCS,
 } from './collections.js';
@@ -16,7 +16,7 @@ export const PATH_BUILDERS = {
   userProfile: (userId: string): [string, string] =>
     [COLLECTIONS.USER_PROFILES, userId],
 
-  userSkill: (userId: string, skillId: string): [string, string, string, string] =>
+  userCraftSkill: (userId: string, skillId: string): [string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PROFILE_SKILLS, skillId],
 
   userPrivateData: (userId: string): [string, string, string, string] =>
@@ -32,101 +32,101 @@ export const PATH_BUILDERS = {
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_FOLLOWS, NESTED_SUBCOLLECTIONS.FOLLOW_HISTORY, NESTED_SUBCOLLECTIONS.FOLLOWED_USERS, followedUserId],
 
   userLike: (userId: string, postId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_LIKES, NESTED_SUBCOLLECTIONS.LIKE_HISTORY, NESTED_SUBCOLLECTIONS.STREETZ_LIKES, postId],
+    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_LIKES, NESTED_SUBCOLLECTIONS.LIKE_HISTORY, NESTED_SUBCOLLECTIONS.SQUARE_STREETZ_LIKES, postId],
 
-  userDonation: (userId: string, donationId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_DONATIONS, donationId],
+  userPledgePayment: (userId: string, pledgePaymentId: string): [string, string, string, string] =>
+    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_PLEDGE_PAYMENTS, pledgePaymentId],
 
-  userOpportunityVote: (userId: string, opportunityId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.OPPORTUNITY_VOTES, opportunityId],
+  userAuditionVote: (userId: string, auditionId: string): [string, string, string, string] =>
+    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.AUDITION_VOTES, auditionId],
 
   // ===== PROJECT PATHS =====
-  workProject: (projectId: string): [string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId],
+  workProject: (workProjectId: string): [string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId],
 
-  projectPublicData: (projectId: string, publicId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PUBLIC_DATA, publicId],
+  workProjectPublicData: (workProjectId: string, publicId: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_DATA, publicId],
 
-  projectTale: (projectId: string, taleId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TALES, taleId],
+  workProjectTale: (workProjectId: string, taleId: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES, taleId],
 
-  taleChapter: (projectId: string, taleId: string, chapterId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TALES, taleId, NESTED_SUBCOLLECTIONS.TALE_CHAPTERS, chapterId],
+  taleChapter: (workProjectId: string, taleId: string, chapterId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES, taleId, NESTED_SUBCOLLECTIONS.TALE_CHAPTERS, chapterId],
 
-  projectTune: (projectId: string, tuneId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TUNES, tuneId],
+  workProjectTune: (workProjectId: string, tuneId: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES, tuneId],
 
-  tuneTrack: (projectId: string, tuneId: string, trackId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TUNES, tuneId, NESTED_SUBCOLLECTIONS.TUNE_SONGS, trackId],
+  tuneTrack: (workProjectId: string, tuneId: string, trackId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES, tuneId, NESTED_SUBCOLLECTIONS.TUNE_TRACKS, trackId],
 
-  projectTelevision: (projectId: string, televisionId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION, televisionId],
+  workProjectTelevision: (workProjectId: string, televisionId: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION, televisionId],
 
-  televisionEpisode: (projectId: string, televisionId: string, episodeId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.PROJECT_TELEVISION, televisionId, NESTED_SUBCOLLECTIONS.TV_SHOWS, episodeId],
+  televisionEpisode: (workProjectId: string, televisionId: string, episodeId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION, televisionId, NESTED_SUBCOLLECTIONS.TELEVISION_EPISODES, episodeId],
 
-  projectMember: (projectId: string, uid: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.MEMBERS, uid],
+  workProjectGuildmateUser: (workProjectId: string, uid: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILDMATE_USERS, uid],
 
-  projectFile: (projectId: string, fileId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.FILES, fileId],
+  workProjectAsset: (workProjectId: string, workAssetId: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_ASSETS, workAssetId],
 
-  shareAuditEvent: (eventId: string): [string, string] =>
-    [COLLECTIONS.SHARE_AUDIT_EVENTS, eventId],
+  stakeShareAuditEvent: (eventId: string): [string, string] =>
+    [COLLECTIONS.STAKE_SHARE_AUDIT_EVENTS, eventId],
 
-  chatChannel: (projectId: string, channelId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.CHAT_CHANNELS, channelId],
+  guildChatChannel: (workProjectId: string, guildChatChannelId: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS, guildChatChannelId],
 
-  channelMessage: (projectId: string, channelId: string, messageId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.ALL_PROJECTS, projectId, PROJECT_SUBCOLLECTIONS.CHAT_CHANNELS, channelId, NESTED_SUBCOLLECTIONS.CHANNEL_MESSAGES, messageId],
+  guildChatMessage: (workProjectId: string, guildChatChannelId: string, guildChatMessageId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS, guildChatChannelId, NESTED_SUBCOLLECTIONS.GUILD_CHAT_MESSAGES, guildChatMessageId],
 
   // ===== STREETZ PATHS =====
   activePost: (postId: string): [string, string, string, string] =>
-    [COLLECTIONS.STREETZ_FEED, NESTED_SUBCOLLECTIONS.ACTIVE_POSTS, NESTED_SUBCOLLECTIONS.SOCIAL_POSTS, postId],
+    [COLLECTIONS.SQUARE_STREETZ_FEED, NESTED_SUBCOLLECTIONS.ACTIVE_POSTS, NESTED_SUBCOLLECTIONS.SOCIAL_POSTS, postId],
 
   trendingPosts: (): [string, string] =>
-    [COLLECTIONS.STREETZ_FEED, NESTED_SUBCOLLECTIONS.TRENDING_POSTS],
+    [COLLECTIONS.SQUARE_STREETZ_FEED, NESTED_SUBCOLLECTIONS.TRENDING_POSTS],
 
   // ===== LIBRARY PATHS =====
   thresholdItem: (thresholdItemId: string): [string, string] =>
     [COLLECTIONS.THRESHOLD_ITEMS, thresholdItemId],
 
-  hallItem: (libraryId: string): [string, string] =>
-    [COLLECTIONS.HALL_ITEMS, libraryId],
+  hallItem: (hallItemId: string): [string, string] =>
+    [COLLECTIONS.HALL_ITEMS, hallItemId],
 
-  hallItemType: (libraryId: string, projectType: string, itemId: string): [string, string, string, string] =>
-    [COLLECTIONS.HALL_ITEMS, libraryId, projectType, itemId],
+  hallItemType: (hallItemId: string, workProjectType: string, itemId: string): [string, string, string, string] =>
+    [COLLECTIONS.HALL_ITEMS, hallItemId, workProjectType, itemId],
 
   // ===== JOB PATHS =====
-  commissionListing: (jobId: string): [string, string] =>
-    [COLLECTIONS.JOB_LISTINGS, jobId],
+  commissionListing: (commissionListingId: string): [string, string] =>
+    [COLLECTIONS.COMMISSION_LISTINGS, commissionListingId],
 
-  jobApplication: (jobId: string, replyId: string): [string, string, string, string] =>
-    [COLLECTIONS.JOB_LISTINGS, jobId, NESTED_SUBCOLLECTIONS.APPLICATION_REPLIES, replyId],
+  commissionProposal: (commissionListingId: string, commissionProposalId: string): [string, string, string, string] =>
+    [COLLECTIONS.COMMISSION_LISTINGS, commissionListingId, NESTED_SUBCOLLECTIONS.COMMISSION_PROPOSALS, commissionProposalId],
 
   // ===== OPPORTUNITY PATHS =====
-  audition: (opportunityId: string): [string, string] =>
-    [COLLECTIONS.OPPORTUNITY_BOARD, opportunityId],
+  audition: (auditionId: string): [string, string] =>
+    [COLLECTIONS.AUDITION_BOARD, auditionId],
 
-  auditionEntry: (opportunityId: string, replyId: string): [string, string, string, string] =>
-    [COLLECTIONS.OPPORTUNITY_BOARD, opportunityId, NESTED_SUBCOLLECTIONS.SUBMITTED_REPLIES, replyId],
+  auditionEntry: (auditionId: string, auditionEntryId: string): [string, string, string, string] =>
+    [COLLECTIONS.AUDITION_BOARD, auditionId, NESTED_SUBCOLLECTIONS.AUDITION_ENTRIES, auditionEntryId],
 
   // ===== UNIVERSE PATHS =====
-  workRealm: (universeId: string): [string, string] =>
-    [COLLECTIONS.STORY_UNIVERSES, universeId],
+  workRealm: (workRealmId: string): [string, string] =>
+    [COLLECTIONS.WORK_REALMS, workRealmId],
 
   // ===== ADMIN & SYSTEM PATHS =====
-  adminDispatch: (messageId: string): [string, string] =>
-    [COLLECTIONS.PENDING_ADMIN_MESSAGES, messageId],
+  adminDispatch: (adminDispatchId: string): [string, string] =>
+    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId],
 
-  adminConversationMessage: (messageId: string, individualMessageId: string): [string, string, string, string] =>
-    [COLLECTIONS.PENDING_ADMIN_MESSAGES, messageId, NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES, individualMessageId],
+  adminConversationMessage: (adminDispatchId: string, adminDispatchMessageId: string): [string, string, string, string] =>
+    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES, adminDispatchMessageId],
 
   guildInvite: (inviteId: string): [string, string] =>
-    [COLLECTIONS.PROJECT_INVITE_CONVERSATIONS, inviteId],
+    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, inviteId],
 
-  inviteMessage: (inviteId: string, messageId: string): [string, string, string, string] =>
-    [COLLECTIONS.PROJECT_INVITE_CONVERSATIONS, inviteId, NESTED_SUBCOLLECTIONS.INVITE_MESSAGES, messageId],
+  inviteMessage: (inviteId: string, guildInviteMessageId: string): [string, string, string, string] =>
+    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, inviteId, NESTED_SUBCOLLECTIONS.INVITE_MESSAGES, guildInviteMessageId],
 
   contentReport: (reportId: string): [string, string] =>
     [COLLECTIONS.CONTENT_REPORTS, reportId],
@@ -162,14 +162,14 @@ export const PATH_BUILDERS = {
   notificationQueue: (notificationId: string): [string, string] =>
     [COLLECTIONS.NOTIFICATION_QUEUE, notificationId],
 
-  donationsSummary: (): [string, string] =>
-    [COLLECTIONS.DONATIONS_SUMMARY, SPECIAL_DOCS.SUMMARY],
+  pledgePaymentsSummary: (): [string, string] =>
+    [COLLECTIONS.PLEDGE_PAYMENTS_SUMMARY, SPECIAL_DOCS.SUMMARY],
 
-  recentDonation: (donationId: string): [string, string] =>
-    [COLLECTIONS.RECENT_DONATIONS, donationId],
+  recentPledgePayment: (pledgePaymentId: string): [string, string] =>
+    [COLLECTIONS.RECENT_PLEDGE_PAYMENTS, pledgePaymentId],
 
-  archivedDonation: (donationId: string): [string, string] =>
-    [COLLECTIONS.ARCHIVED_DONATIONS, donationId],
+  archivedPledgePayment: (pledgePaymentId: string): [string, string] =>
+    [COLLECTIONS.ARCHIVED_PLEDGE_PAYMENTS, pledgePaymentId],
 
   // ===== FEEDBACK & SKILLS PATHS =====
   feedbackSubmission: (feedbackType: string): [string, string] =>
@@ -184,8 +184,8 @@ export const PATH_BUILDERS = {
   feedbackDenylist: (deniedWord: string): [string, string] =>
     [COLLECTIONS.FEEDBACK_DENYLIST, deniedWord],
 
-  taggedSkill: (tag: string, compositeId: string): [string, string, string, string] =>
-    [COLLECTIONS.SKILLS_BY_TAG, tag, NESTED_SUBCOLLECTIONS.TAGGED_SKILLS, compositeId],
+  taggedCraftSkill: (tag: string, compositeId: string): [string, string, string, string] =>
+    [COLLECTIONS.CRAFT_SKILLS_BY_TAG, tag, NESTED_SUBCOLLECTIONS.TAGGED_CRAFT_SKILLS, compositeId],
 
   // ===== SYSTEM DATA PATHS =====
   adminList: (): [string, string] =>

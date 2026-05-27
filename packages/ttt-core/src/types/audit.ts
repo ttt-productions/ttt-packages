@@ -18,7 +18,7 @@ export type AuditEventType =
   | 'user.accountBanned'
   | 'user.accountUnbanned'
   // admin actions
-  | 'admin.roleGranted'
+  | 'admin.guildStandingGranted'
   | 'admin.roleRevoked'
   | 'admin.roleSyncedFromDirectEdit'
   | 'admin.contentAppealReviewed'
@@ -49,7 +49,7 @@ export type AuditEventType =
   | 'workProject.shares.increased'
   | 'workProject.shares.anomaly'
   // craft-skills
-  | 'craftSkill.userSkillDeleted'
+  | 'craftSkill.userCraftSkillDeleted'
   // content
   | 'content.itemReported'
   | 'content.violationRecorded'
@@ -64,15 +64,15 @@ export type AuditEventType =
   | 'content.chapterDetailsUpdated'
   | 'content.tuneDetailsUpdated'
   | 'content.tuneCategoriesUpdated'
-  | 'content.songCreated'
+  | 'content.tuneTrackCreated'
   | 'content.songDetailsUpdated'
   | 'content.televisionDetailsUpdated'
   | 'content.televisionCategoriesUpdated'
-  | 'content.showCreated'
+  | 'content.televisionEpisodeCreated'
   | 'content.showDetailsUpdated'
   // money
   | 'payment.sessionCreated'
-  | 'payment.donationCompleted'
+  | 'payment.pledgePaymentCompleted'
   | 'payment.donationAbandoned'
   | 'payment.donationFailed'
   // admin task lifecycle

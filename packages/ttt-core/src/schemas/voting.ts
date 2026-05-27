@@ -1,10 +1,10 @@
 import { z } from 'zod';
-import { opportunityIdSchema, replyIdSchema } from './atoms.js';
+import { auditionIdSchema, auditionEntryIdSchema } from './atoms.js';
 
 export const VoteForOpportunityReplyInputSchema = z.object({
-  opportunityId: opportunityIdSchema,
+  opportunityId: auditionIdSchema,
   newVote: z.object({
-    replyId: replyIdSchema,
+    replyId: auditionEntryIdSchema,
   }).strict(),
   // Accepted for backwards compatibility but ignored server-side; see runtime comment below.
   currentVoteId: z.string().nullable().optional(),
