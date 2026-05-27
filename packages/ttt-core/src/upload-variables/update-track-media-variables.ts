@@ -8,7 +8,7 @@ const onProgressSchema = z
   .optional();
 
 export const UpdateTuneTrackMediaVariablesSchema = z.object({
-  projectId: z.string().min(1),
+  workProjectId: z.string().min(1),
   tuneId: z.string().min(1),
   trackId: z.string().min(1),
   file: z.instanceof(File).or(z.instanceof(Blob)),
@@ -17,3 +17,4 @@ export const UpdateTuneTrackMediaVariablesSchema = z.object({
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type UpdateTuneTrackMediaVariables = z.infer<typeof UpdateTuneTrackMediaVariablesSchema>;
+

@@ -228,7 +228,7 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('lib1');
     });
 
-    it('hallItemType returns 4-segment tuple with projectType and itemId', () => {
+    it('hallItemType returns 4-segment tuple with workProjectType and itemId', () => {
       const result = PATH_BUILDERS.hallItemType('lib1', 'Tales', 'item1');
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.HALL_ITEMS);
@@ -495,3 +495,5 @@ describe('PATH_BUILDERS', () => {
     });
   });
 });
+
+

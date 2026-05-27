@@ -1,40 +1,42 @@
 import { z } from 'zod';
 import { commissionListingIdSchema, auditionEntryIdSchema } from './atoms.js';
-import { MAX_JOB_DESCRIPTION_LENGTH } from '../constants/business.js';
+import { MAX_COMMISSION_DESCRIPTION_LENGTH } from '../constants/business.js';
 
-export const JobApplicationStatusSchema = z.enum([
+export const CommissionProposalStatusSchema = z.enum([
   'open',
   'invited',
   'accepted',
   'rejected',
 ]);
-export type JobApplicationStatus = z.infer<typeof JobApplicationStatusSchema>;
+export type CommissionProposalStatus = z.infer<typeof CommissionProposalStatusSchema>;
 
-export const CloseJobInputSchema = z.object({
-  jobId: commissionListingIdSchema,
+export const CloseCommissionInputSchema = z.object({
+  commissionListingId: commissionListingIdSchema,
 }).strict();
-export type CloseJobInput = z.infer<typeof CloseJobInputSchema>;
+export type CloseCommissionInput = z.infer<typeof CloseCommissionInputSchema>;
 
-export const DeleteJobInputSchema = z.object({
-  jobId: commissionListingIdSchema,
+export const DeleteCommissionInputSchema = z.object({
+  commissionListingId: commissionListingIdSchema,
 }).strict();
-export type DeleteJobInput = z.infer<typeof DeleteJobInputSchema>;
+export type DeleteCommissionInput = z.infer<typeof DeleteCommissionInputSchema>;
 
-export const RejectJobApplicantInputSchema = z.object({
-  jobId: commissionListingIdSchema,
-  replyId: auditionEntryIdSchema,
+export const RejectCommissionProposalInputSchema = z.object({
+  commissionListingId: commissionListingIdSchema,
+  auditionEntryId: auditionEntryIdSchema,
 }).strict();
-export type RejectJobApplicantInput = z.infer<typeof RejectJobApplicantInputSchema>;
+export type RejectCommissionProposalInput = z.infer<typeof RejectCommissionProposalInputSchema>;
 
-export const SetJobApplicantSavedInputSchema = z.object({
-  jobId: commissionListingIdSchema,
-  replyId: auditionEntryIdSchema,
+export const SetCommissionProposalSavedInputSchema = z.object({
+  commissionListingId: commissionListingIdSchema,
+  auditionEntryId: auditionEntryIdSchema,
   saved: z.boolean(),
 }).strict();
-export type SetJobApplicantSavedInput = z.infer<typeof SetJobApplicantSavedInputSchema>;
+export type SetCommissionProposalSavedInput = z.infer<typeof SetCommissionProposalSavedInputSchema>;
 
-export const CreateJobReplyTextInputSchema = z.object({
-  jobId: commissionListingIdSchema,
-  coverLetterText: z.string().min(1).max(MAX_JOB_DESCRIPTION_LENGTH),
+export const CreateCommissionProposalTextInputSchema = z.object({
+  commissionListingId: commissionListingIdSchema,
+  coverLetterText: z.string().min(1).max(MAX_COMMISSION_DESCRIPTION_LENGTH),
 }).strict();
-export type CreateJobReplyTextInput = z.infer<typeof CreateJobReplyTextInputSchema>;
+export type CreateCommissionProposalTextInput = z.infer<typeof CreateCommissionProposalTextInputSchema>;
+
+

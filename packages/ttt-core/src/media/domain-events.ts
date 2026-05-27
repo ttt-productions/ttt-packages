@@ -22,19 +22,19 @@ export const ProfilePictureUpdatedEventSchema = z
   })
   .strict();
 
-export const SkillCreatedEventSchema = z
+export const CraftSkillCreatedEventSchema = z
   .object({
     type: z.literal('craftSkill.created'),
     ids: z
       .object({
         userId: z.string().min(1),
-        skillId: z.string().min(1),
+        craftSkillId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const StreetzPostCreatedEventSchema = z
+export const SquareStreetzPostCreatedEventSchema = z
   .object({
     type: z.literal('squareStreetz.postCreated'),
     ids: z
@@ -46,64 +46,64 @@ export const StreetzPostCreatedEventSchema = z
   })
   .strict();
 
-export const OpportunityPromptCreatedEventSchema = z
+export const AuditionPromptCreatedEventSchema = z
   .object({
     type: z.literal('audition.promptCreated'),
     ids: z
       .object({
         userId: z.string().min(1),
-        opportunityId: z.string().min(1),
-        projectId: z.string().min(1).optional(),
+        auditionId: z.string().min(1),
+        workProjectId: z.string().min(1).optional(),
       })
       .strict(),
   })
   .strict();
 
-export const OpportunityReplyCreatedEventSchema = z
+export const AuditionEntryCreatedEventSchema = z
   .object({
     type: z.literal('audition.replyCreated'),
     ids: z
       .object({
         userId: z.string().min(1),
-        opportunityId: z.string().min(1),
-        replyId: z.string().min(1),
-        projectId: z.string().min(1).optional(),
+        auditionId: z.string().min(1),
+        auditionEntryId: z.string().min(1),
+        workProjectId: z.string().min(1).optional(),
       })
       .strict(),
   })
   .strict();
 
-export const JobCreatedEventSchema = z
+export const CommissionCreatedEventSchema = z
   .object({
     type: z.literal('commission.created'),
     ids: z
       .object({
         userId: z.string().min(1),
-        jobId: z.string().min(1),
-        projectId: z.string().min(1),
+        commissionListingId: z.string().min(1),
+        workProjectId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const JobApplicationSubmittedEventSchema = z
+export const CommissionProposalSubmittedEventSchema = z
   .object({
     type: z.literal('commission.applicationSubmitted'),
     ids: z
       .object({
         userId: z.string().min(1),
-        jobId: z.string().min(1),
-        projectId: z.string().min(1),
-        applicationId: z.string().min(1),
+        commissionListingId: z.string().min(1),
+        workProjectId: z.string().min(1),
+        commissionProposalId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const ProjectUpdatedEventSchema = z
+export const WorkProjectUpdatedEventSchema = z
   .object({
     type: z.literal('workProject.updated'),
-    ids: z.object({ projectId: z.string().min(1) }).strict(),
+    ids: z.object({ workProjectId: z.string().min(1) }).strict(),
   })
   .strict();
 
@@ -112,7 +112,7 @@ export const LibraryAssetCoverUpdatedEventSchema = z
     type: z.literal('libraryAsset.coverUpdated'),
     ids: z
       .object({
-        projectId: z.string().min(1),
+        workProjectId: z.string().min(1),
         itemType: z.enum(['tale', 'tune', 'television']),
         itemId: z.string().min(1),
       })
@@ -125,8 +125,8 @@ export const LibraryAssetSubItemUpdatedEventSchema = z
     type: z.literal('libraryAsset.subItemUpdated'),
     ids: z
       .object({
-        projectId: z.string().min(1),
-        itemType: z.enum(['chapter', 'song', 'show']),
+        workProjectId: z.string().min(1),
+        itemType: z.enum(['chapter', 'tuneTrack', 'televisionEpisode']),
         parentId: z.string().min(1),
         itemId: z.string().min(1),
       })
@@ -153,7 +153,7 @@ export const ChatAttachmentFinalizedEventSchema = z
     type: z.literal('chat.attachmentFinalized'),
     ids: z
       .object({
-        messageId: z.string().min(1),
+        guildChatMessageId: z.string().min(1),
         conversationId: z.string().min(1),
       })
       .strict(),
@@ -184,7 +184,7 @@ export const FollowRemovedEventSchema = z
   })
   .strict();
 
-export const StreetzPostLikedEventSchema = z
+export const SquareStreetzPostLikedEventSchema = z
   .object({
     type: z.literal('squareStreetz.postLiked'),
     ids: z
@@ -197,7 +197,7 @@ export const StreetzPostLikedEventSchema = z
   })
   .strict();
 
-export const StreetzPostUnlikedEventSchema = z
+export const SquareStreetzPostUnlikedEventSchema = z
   .object({
     type: z.literal('squareStreetz.postUnliked'),
     ids: z
@@ -227,7 +227,7 @@ export const SkillDeletedEventSchema = z
     ids: z
       .object({
         userId: z.string().min(1),
-        skillId: z.string().min(1),
+        craftSkillId: z.string().min(1),
       })
       .strict(),
   })
@@ -239,53 +239,53 @@ export const SkillUpdatedEventSchema = z
     ids: z
       .object({
         userId: z.string().min(1),
-        skillId: z.string().min(1),
+        craftSkillId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const ProjectCreatedEventSchema = z
+export const WorkProjectCreatedEventSchema = z
   .object({
     type: z.literal('workProject.created'),
     ids: z
       .object({
         userId: z.string().min(1),
-        projectId: z.string().min(1),
+        workProjectId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const ProjectPublishedEventSchema = z
+export const WorkProjectPublishedEventSchema = z
   .object({
     type: z.literal('workProject.published'),
     ids: z
       .object({
-        projectId: z.string().min(1),
+        workProjectId: z.string().min(1),
         userId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const ProjectSharesUpdatedEventSchema = z
+export const WorkProjectStakeSharesUpdatedEventSchema = z
   .object({
     type: z.literal('workProject.sharesUpdated'),
     ids: z
       .object({
-        projectId: z.string().min(1),
+        workProjectId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const ProjectInviteSentEventSchema = z
+export const GuildInviteSentEventSchema = z
   .object({
     type: z.literal('workProject.inviteSent'),
     ids: z
       .object({
-        projectId: z.string().min(1),
+        workProjectId: z.string().min(1),
         inviteId: z.string().min(1),
         inviterId: z.string().min(1),
         inviteeId: z.string().min(1),
@@ -294,12 +294,12 @@ export const ProjectInviteSentEventSchema = z
   })
   .strict();
 
-export const ProjectInviteAcceptedEventSchema = z
+export const GuildInviteAcceptedEventSchema = z
   .object({
     type: z.literal('workProject.inviteAccepted'),
     ids: z
       .object({
-        projectId: z.string().min(1),
+        workProjectId: z.string().min(1),
         inviteId: z.string().min(1),
         userId: z.string().min(1),
       })
@@ -307,12 +307,12 @@ export const ProjectInviteAcceptedEventSchema = z
   })
   .strict();
 
-export const ProjectInviteDeclinedEventSchema = z
+export const GuildInviteDeclinedEventSchema = z
   .object({
     type: z.literal('workProject.inviteDeclined'),
     ids: z
       .object({
-        projectId: z.string().min(1),
+        workProjectId: z.string().min(1),
         inviteId: z.string().min(1),
         userId: z.string().min(1),
       })
@@ -320,76 +320,76 @@ export const ProjectInviteDeclinedEventSchema = z
   })
   .strict();
 
-export const ProjectInviteCancelledEventSchema = z
+export const GuildInviteCancelledEventSchema = z
   .object({
     type: z.literal('workProject.inviteCancelled'),
     ids: z
       .object({
-        projectId: z.string().min(1),
+        workProjectId: z.string().min(1),
         inviteId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const OpportunityReplyVotedEventSchema = z
+export const AuditionEntryVotedEventSchema = z
   .object({
     type: z.literal('audition.replyVoted'),
     ids: z
       .object({
         userId: z.string().min(1),
-        opportunityId: z.string().min(1),
-        replyId: z.string().min(1),
-        projectId: z.string().min(1),
+        auditionId: z.string().min(1),
+        auditionEntryId: z.string().min(1),
+        workProjectId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const OpportunityClosedEventSchema = z
+export const AuditionClosedEventSchema = z
   .object({
     type: z.literal('audition.closed'),
     ids: z
       .object({
-        opportunityId: z.string().min(1),
-        projectId: z.string().min(1).optional(),
+        auditionId: z.string().min(1),
+        workProjectId: z.string().min(1).optional(),
       })
       .strict(),
   })
   .strict();
 
-export const JobDeletedEventSchema = z
+export const CommissionDeletedEventSchema = z
   .object({
     type: z.literal('commission.deleted'),
     ids: z
       .object({
-        jobId: z.string().min(1),
-        projectId: z.string().min(1),
+        commissionListingId: z.string().min(1),
+        workProjectId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const JobApplicationSavedEventSchema = z
+export const CommissionProposalSavedEventSchema = z
   .object({
     type: z.literal('commission.applicationSaved'),
     ids: z
       .object({
-        jobId: z.string().min(1),
-        applicationId: z.string().min(1),
+        commissionListingId: z.string().min(1),
+        commissionProposalId: z.string().min(1),
         userId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const JobApplicationRemovedEventSchema = z
+export const CommissionProposalRemovedEventSchema = z
   .object({
     type: z.literal('commission.applicationRemoved'),
     ids: z
       .object({
-        jobId: z.string().min(1),
-        applicationId: z.string().min(1),
+        commissionListingId: z.string().min(1),
+        commissionProposalId: z.string().min(1),
         userId: z.string().min(1),
       })
       .strict(),
@@ -401,7 +401,7 @@ export const LibraryAssetSubmittedEventSchema = z
     type: z.literal('libraryAsset.submitted'),
     ids: z
       .object({
-        projectId: z.string().min(1),
+        workProjectId: z.string().min(1),
       })
       .strict(),
   })
@@ -468,7 +468,7 @@ export const MessageAdminThreadUpdatedEventSchema = z
     type: z.literal('message.adminThreadUpdated'),
     ids: z
       .object({
-        messageId: z.string().min(1).nullable(),
+        adminDispatchId: z.string().min(1).nullable(),
       })
       .strict(),
   })
@@ -530,36 +530,36 @@ export const ViolationAppealSubmittedEventSchema = z
 
 export const DomainEventSchema = z.discriminatedUnion('type', [
   ProfilePictureUpdatedEventSchema,
-  SkillCreatedEventSchema,
-  StreetzPostCreatedEventSchema,
-  OpportunityPromptCreatedEventSchema,
-  OpportunityReplyCreatedEventSchema,
-  JobCreatedEventSchema,
-  JobApplicationSubmittedEventSchema,
-  ProjectUpdatedEventSchema,
+  CraftSkillCreatedEventSchema,
+  SquareStreetzPostCreatedEventSchema,
+  AuditionPromptCreatedEventSchema,
+  AuditionEntryCreatedEventSchema,
+  CommissionCreatedEventSchema,
+  CommissionProposalSubmittedEventSchema,
+  WorkProjectUpdatedEventSchema,
   LibraryAssetCoverUpdatedEventSchema,
   LibraryAssetSubItemUpdatedEventSchema,
   ModerationViolationCreatedEventSchema,
   ChatAttachmentFinalizedEventSchema,
   FollowCreatedEventSchema,
   FollowRemovedEventSchema,
-  StreetzPostLikedEventSchema,
-  StreetzPostUnlikedEventSchema,
+  SquareStreetzPostLikedEventSchema,
+  SquareStreetzPostUnlikedEventSchema,
   ProfilePreferencesUpdatedEventSchema,
   SkillDeletedEventSchema,
   SkillUpdatedEventSchema,
-  ProjectCreatedEventSchema,
-  ProjectPublishedEventSchema,
-  ProjectSharesUpdatedEventSchema,
-  ProjectInviteSentEventSchema,
-  ProjectInviteAcceptedEventSchema,
-  ProjectInviteDeclinedEventSchema,
-  ProjectInviteCancelledEventSchema,
-  OpportunityReplyVotedEventSchema,
-  OpportunityClosedEventSchema,
-  JobDeletedEventSchema,
-  JobApplicationSavedEventSchema,
-  JobApplicationRemovedEventSchema,
+  WorkProjectCreatedEventSchema,
+  WorkProjectPublishedEventSchema,
+  WorkProjectStakeSharesUpdatedEventSchema,
+  GuildInviteSentEventSchema,
+  GuildInviteAcceptedEventSchema,
+  GuildInviteDeclinedEventSchema,
+  GuildInviteCancelledEventSchema,
+  AuditionEntryVotedEventSchema,
+  AuditionClosedEventSchema,
+  CommissionDeletedEventSchema,
+  CommissionProposalSavedEventSchema,
+  CommissionProposalRemovedEventSchema,
   LibraryAssetSubmittedEventSchema,
   LibraryAssetApprovedEventSchema,
   LibraryAssetRejectedEventSchema,
@@ -582,3 +582,6 @@ export type DomainEventIdsFor<T extends DomainEvent['type']> = Extract<
   DomainEvent,
   { type: T }
 >['ids'];
+
+
+

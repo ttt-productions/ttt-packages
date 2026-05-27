@@ -1,9 +1,9 @@
 export { FileOriginSchema, type FileOrigin } from "./file-origin.js";
 export {
-  ShortProjectSchema,
+  ShortWorkProjectSchema,
   MentionSchema,
   MentionTypeSchema,
-  type ShortProject,
+  type ShortWorkProject,
   type Mention,
   type MentionType,
 } from "./atoms.js";
@@ -16,3 +16,5 @@ export * from "./target-info.js";
 export * from "./hall-library-target-fields.js";
 export * from "./pending-media.js";
 export * from "./upload-tray-display.js";
+
+

@@ -5,74 +5,74 @@ import { MentionSchema } from "./atoms.js";
 // profile-picture: no origin-specific fields.
 export const ProfilePictureTargetInfoSchema = z.object({}).strict();
 
-// craftSkill-media: skillId + skillType + originalFileName
-export const SkillMediaTargetInfoSchema = z
+// craft-skill-media: craftSkillId + skillType + originalFileName
+export const CraftSkillMediaTargetInfoSchema = z
   .object({
-    skillId: z.string().min(1),
+    craftSkillId: z.string().min(1),
     skillType: z.enum(['image', 'video', 'audio', 'other']),
     originalFileName: z.string().min(1),
   })
   .strict();
 
 // squareStreetz: mentions array of structured Mention objects.
-export const StreetzTargetInfoSchema = z
+export const SquareStreetzTargetInfoSchema = z
   .object({
     mentions: z.array(MentionSchema),
   })
   .strict();
 
 // commission-posting: full commission creation payload.
-export const JobPostingTargetInfoSchema = z
+export const CommissionPostingTargetInfoSchema = z
   .object({
-    jobId: z.string().min(1),
+    commissionListingId: z.string().min(1),
     title: z.string().min(1),
     description: z.string(),
     requiredTradeProfessions: z.array(z.string()),
-    sharesOffered: z.number(),
-    projectId: z.string().min(1),
+    stakeSharesOffered: z.number(),
+    workProjectId: z.string().min(1),
     createdBy: z.object({ uid: z.string().min(1) }).strict(),
   })
   .strict();
 
-// commission-reply: jobId + replyText.
-export const JobReplyTargetInfoSchema = z
+// commission-proposal: commissionListingId + replyText.
+export const CommissionProposalTargetInfoSchema = z
   .object({
-    jobId: z.string().min(1),
+    commissionListingId: z.string().min(1),
     replyText: z.string(),
   })
   .strict();
 
-// audition-prompt: workProject-owned audition creation payload (ProjectInput only).
-export const OpportunityPromptTargetInfoSchema = z
+// audition-prompt: workProject-owned audition creation payload (workAudition only).
+export const AuditionPromptTargetInfoSchema = z
   .object({
-    opportunityId: z.string().min(1),
-    type: z.literal('ProjectInput'),
+    auditionId: z.string().min(1),
+    type: z.literal('workAudition'),
     title: z.string().min(1),
     description: z.string(),
     openTill: z.number(),
     createdBy: z.object({ uid: z.string().min(1) }).strict(),
-    projectId: z.string().min(1),
-    sharesOffered: z.number().optional(),
+    workProjectId: z.string().min(1),
+    stakeSharesOffered: z.number().optional(),
   })
   .strict();
 
 // admin-audition-prompt: admin-operated featured/sponsored audition creation payload.
-export const AdminOpportunityPromptTargetInfoSchema = z
+export const AdminAuditionPromptTargetInfoSchema = z
   .object({
-    opportunityId: z.string().min(1),
-    type: z.enum(['SystemInput', 'SponsoredProjects']),
+    auditionId: z.string().min(1),
+    type: z.enum(['platformAudition', 'sponsoredAudition']),
     title: z.string().min(1),
     description: z.string(),
     openTill: z.number(),
     createdBy: z.object({ uid: z.string().min(1) }).strict(),
-    projectAmountUSD: z.number().optional(),
+    sponsoredAuditionAmountUSD: z.number().optional(),
   })
   .strict();
 
-// audition-reply: opportunityId only.
-export const OpportunityReplyTargetInfoSchema = z
+// audition-entry: auditionId only.
+export const AuditionEntryTargetInfoSchema = z
   .object({
-    opportunityId: z.string().min(1),
+    auditionId: z.string().min(1),
   })
   .strict();
 
@@ -89,7 +89,7 @@ export const OpportunityReplyTargetInfoSchema = z
 // ───────────────────────────────────────────────────────────────────
 const LibraryCoverTargetInfoSchema = z
   .object({
-    projectId: z.string().min(1),
+    workProjectId: z.string().min(1),
     itemType: z.enum(['tale', 'tune', 'television']),
     itemId: z.string().min(1),
   })
@@ -102,46 +102,46 @@ export const LibraryCoverCinematicTargetInfoSchema = LibraryCoverTargetInfoSchem
 // ───────────────────────────────────────────────────────────────────
 // SUB-ITEM target info — one shape per item type, NOT per media kind.
 // chapter-photo uses ChapterPhotoTargetInfoSchema.
-// song-photo + song-audio share SongMediaTargetInfoSchema.
-// show-photo + show-video share ShowMediaTargetInfoSchema.
+// tune-track-photo + tune-track-audio share TuneTrackMediaTargetInfoSchema.
+// television-episode-photo + television-episode-video share TelevisionEpisodeMediaTargetInfoSchema.
 // The processor derives the doc path from these IDs via
 // PATH_BUILDERS.taleChapter / .tuneTrack / .televisionEpisode, and derives the
 // field name from fileOrigin via LIBRARY_TARGET_FIELDS.
 // ───────────────────────────────────────────────────────────────────
 export const ChapterPhotoTargetInfoSchema = z
   .object({
-    projectId: z.string().min(1),
+    workProjectId: z.string().min(1),
     taleId: z.string().min(1),
     chapterId: z.string().min(1),
   })
   .strict();
 
-const SongMediaTargetInfoSchema = z
+const TuneTrackMediaTargetInfoSchema = z
   .object({
-    projectId: z.string().min(1),
+    workProjectId: z.string().min(1),
     tuneId: z.string().min(1),
     trackId: z.string().min(1),
   })
   .strict();
 
-export const SongPhotoTargetInfoSchema = SongMediaTargetInfoSchema;
-export const SongAudioTargetInfoSchema = SongMediaTargetInfoSchema;
+export const TuneTrackPhotoTargetInfoSchema = TuneTrackMediaTargetInfoSchema;
+export const TuneTrackAudioTargetInfoSchema = TuneTrackMediaTargetInfoSchema;
 
-const ShowMediaTargetInfoSchema = z
+const TelevisionEpisodeMediaTargetInfoSchema = z
   .object({
-    projectId: z.string().min(1),
+    workProjectId: z.string().min(1),
     televisionId: z.string().min(1),
     episodeId: z.string().min(1),
   })
   .strict();
 
-export const ShowPhotoTargetInfoSchema = ShowMediaTargetInfoSchema;
-export const ShowVideoTargetInfoSchema = ShowMediaTargetInfoSchema;
+export const TelevisionEpisodePhotoTargetInfoSchema = TelevisionEpisodeMediaTargetInfoSchema;
+export const TelevisionEpisodeVideoTargetInfoSchema = TelevisionEpisodeMediaTargetInfoSchema;
 
-// chat-attachment: discriminated by threadKind.
+// guild-chat-message-attachment: discriminated by threadKind.
 const ChatReplyToSchema = z
   .object({
-    messageId: z.string().min(1),
+    guildChatMessageId: z.string().min(1),
     senderId: z.string().min(1),
     messagePreview: z.string(),
   })
@@ -150,9 +150,9 @@ const ChatReplyToSchema = z
 export const ChatAttachmentTargetInfoSchema = z.discriminatedUnion('threadKind', [
   z
     .object({
-      threadKind: z.literal('projectChannel'),
-      projectId: z.string().min(1),
-      channelId: z.string().min(1),
+      threadKind: z.literal('guildChatChannel'),
+      workProjectId: z.string().min(1),
+      guildChatChannelId: z.string().min(1),
       replyTo: ChatReplyToSchema.optional(),
     })
     .strict(),
@@ -166,61 +166,61 @@ export const ChatAttachmentTargetInfoSchema = z.discriminatedUnion('threadKind',
   z
     .object({
       threadKind: z.literal('adminSupport'),
-      adminMessageId: z.string().min(1),
+      adminDispatchId: z.string().min(1),
       isUserReply: z.boolean(),
       replyTo: ChatReplyToSchema.optional(),
     })
     .strict(),
 ]);
 
-// workProject-file: projectId only.
-export const ProjectFileTargetInfoSchema = z
+// work-asset: workProjectId only.
+export const WorkAssetTargetInfoSchema = z
   .object({
-    projectId: z.string().min(1),
+    workProjectId: z.string().min(1),
   })
   .strict();
 
 // ---- type aliases ----
 
 export type ProfilePictureTargetInfo = z.infer<typeof ProfilePictureTargetInfoSchema>;
-export type SkillMediaTargetInfo = z.infer<typeof SkillMediaTargetInfoSchema>;
-export type StreetzTargetInfo = z.infer<typeof StreetzTargetInfoSchema>;
-export type JobPostingTargetInfo = z.infer<typeof JobPostingTargetInfoSchema>;
-export type JobReplyTargetInfo = z.infer<typeof JobReplyTargetInfoSchema>;
-export type OpportunityPromptTargetInfo = z.infer<typeof OpportunityPromptTargetInfoSchema>;
-export type AdminOpportunityPromptTargetInfo = z.infer<typeof AdminOpportunityPromptTargetInfoSchema>;
-export type OpportunityReplyTargetInfo = z.infer<typeof OpportunityReplyTargetInfoSchema>;
+export type CraftSkillMediaTargetInfo = z.infer<typeof CraftSkillMediaTargetInfoSchema>;
+export type SquareStreetzTargetInfo = z.infer<typeof SquareStreetzTargetInfoSchema>;
+export type CommissionPostingTargetInfo = z.infer<typeof CommissionPostingTargetInfoSchema>;
+export type CommissionProposalTargetInfo = z.infer<typeof CommissionProposalTargetInfoSchema>;
+export type AuditionPromptTargetInfo = z.infer<typeof AuditionPromptTargetInfoSchema>;
+export type AdminAuditionPromptTargetInfo = z.infer<typeof AdminAuditionPromptTargetInfoSchema>;
+export type AuditionEntryTargetInfo = z.infer<typeof AuditionEntryTargetInfoSchema>;
 export type LibraryCoverSquareTargetInfo = z.infer<typeof LibraryCoverSquareTargetInfoSchema>;
 export type LibraryCoverPosterTargetInfo = z.infer<typeof LibraryCoverPosterTargetInfoSchema>;
 export type LibraryCoverCinematicTargetInfo = z.infer<typeof LibraryCoverCinematicTargetInfoSchema>;
 export type ChapterPhotoTargetInfo = z.infer<typeof ChapterPhotoTargetInfoSchema>;
-export type SongPhotoTargetInfo = z.infer<typeof SongPhotoTargetInfoSchema>;
-export type SongAudioTargetInfo = z.infer<typeof SongAudioTargetInfoSchema>;
-export type ShowPhotoTargetInfo = z.infer<typeof ShowPhotoTargetInfoSchema>;
-export type ShowVideoTargetInfo = z.infer<typeof ShowVideoTargetInfoSchema>;
+export type TuneTrackPhotoTargetInfo = z.infer<typeof TuneTrackPhotoTargetInfoSchema>;
+export type TuneTrackAudioTargetInfo = z.infer<typeof TuneTrackAudioTargetInfoSchema>;
+export type TelevisionEpisodePhotoTargetInfo = z.infer<typeof TelevisionEpisodePhotoTargetInfoSchema>;
+export type TelevisionEpisodeVideoTargetInfo = z.infer<typeof TelevisionEpisodeVideoTargetInfoSchema>;
 export type ChatAttachmentTargetInfo = z.infer<typeof ChatAttachmentTargetInfoSchema>;
-export type ProjectFileTargetInfo = z.infer<typeof ProjectFileTargetInfoSchema>;
+export type WorkAssetTargetInfo = z.infer<typeof WorkAssetTargetInfoSchema>;
 
 // Mapped type: given a FileOrigin literal, returns its targetInfo shape.
 export type TargetInfoFor<O extends FileOrigin> =
   O extends 'profile-picture' ? ProfilePictureTargetInfo
-  : O extends 'craftSkill-media' ? SkillMediaTargetInfo
-  : O extends 'squareStreetz' ? StreetzTargetInfo
-  : O extends 'commission-posting' ? JobPostingTargetInfo
-  : O extends 'commission-reply' ? JobReplyTargetInfo
-  : O extends 'audition-prompt' ? OpportunityPromptTargetInfo
-  : O extends 'admin-audition-prompt' ? AdminOpportunityPromptTargetInfo
-  : O extends 'audition-reply' ? OpportunityReplyTargetInfo
+  : O extends 'craft-skill-media' ? CraftSkillMediaTargetInfo
+  : O extends 'squareStreetz' ? SquareStreetzTargetInfo
+  : O extends 'commission-posting' ? CommissionPostingTargetInfo
+  : O extends 'commission-proposal' ? CommissionProposalTargetInfo
+  : O extends 'audition-prompt' ? AuditionPromptTargetInfo
+  : O extends 'admin-audition-prompt' ? AdminAuditionPromptTargetInfo
+  : O extends 'audition-entry' ? AuditionEntryTargetInfo
   : O extends 'hallLibrary-cover-square' ? LibraryCoverSquareTargetInfo
   : O extends 'hallLibrary-cover-poster' ? LibraryCoverPosterTargetInfo
   : O extends 'hallLibrary-cover-cinematic' ? LibraryCoverCinematicTargetInfo
   : O extends 'chapter-photo' ? ChapterPhotoTargetInfo
-  : O extends 'song-photo' ? SongPhotoTargetInfo
-  : O extends 'song-audio' ? SongAudioTargetInfo
-  : O extends 'show-photo' ? ShowPhotoTargetInfo
-  : O extends 'show-video' ? ShowVideoTargetInfo
-  : O extends 'chat-attachment' ? ChatAttachmentTargetInfo
-  : O extends 'workProject-file' ? ProjectFileTargetInfo
+  : O extends 'tune-track-photo' ? TuneTrackPhotoTargetInfo
+  : O extends 'tune-track-audio' ? TuneTrackAudioTargetInfo
+  : O extends 'television-episode-photo' ? TelevisionEpisodePhotoTargetInfo
+  : O extends 'television-episode-video' ? TelevisionEpisodeVideoTargetInfo
+  : O extends 'guild-chat-message-attachment' ? ChatAttachmentTargetInfo
+  : O extends 'work-asset' ? WorkAssetTargetInfo
   : never;
 
 function assertNever(x: never): never {
@@ -233,24 +233,27 @@ export function parseTargetInfo<O extends FileOrigin>(
 ): TargetInfoFor<O> {
   switch (fileOrigin) {
     case 'profile-picture': return ProfilePictureTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'craftSkill-media': return SkillMediaTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'squareStreetz': return StreetzTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'commission-posting': return JobPostingTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'commission-reply': return JobReplyTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'audition-prompt': return OpportunityPromptTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'admin-audition-prompt': return AdminOpportunityPromptTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'audition-reply': return OpportunityReplyTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'craft-skill-media': return CraftSkillMediaTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'squareStreetz': return SquareStreetzTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'commission-posting': return CommissionPostingTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'commission-proposal': return CommissionProposalTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'audition-prompt': return AuditionPromptTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'admin-audition-prompt': return AdminAuditionPromptTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'audition-entry': return AuditionEntryTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'hallLibrary-cover-square': return LibraryCoverSquareTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'hallLibrary-cover-poster': return LibraryCoverPosterTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'hallLibrary-cover-cinematic': return LibraryCoverCinematicTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'chapter-photo': return ChapterPhotoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'song-photo': return SongPhotoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'song-audio': return SongAudioTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'show-photo': return ShowPhotoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'show-video': return ShowVideoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'chat-attachment': return ChatAttachmentTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'workProject-file': return ProjectFileTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'tune-track-photo': return TuneTrackPhotoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'tune-track-audio': return TuneTrackAudioTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'television-episode-photo': return TelevisionEpisodePhotoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'television-episode-video': return TelevisionEpisodeVideoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'guild-chat-message-attachment': return ChatAttachmentTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'work-asset': return WorkAssetTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     default: return assertNever(fileOrigin);
   }
 }
+
+
+
 

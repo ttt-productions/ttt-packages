@@ -8,7 +8,7 @@ const onProgressSchema = z
   .optional();
 
 export const UpdateTelevisionEpisodeMediaVariablesSchema = z.object({
-  projectId: z.string().min(1),
+  workProjectId: z.string().min(1),
   televisionId: z.string().min(1),
   episodeId: z.string().min(1),
   file: z.instanceof(File).or(z.instanceof(Blob)),
@@ -17,3 +17,4 @@ export const UpdateTelevisionEpisodeMediaVariablesSchema = z.object({
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type UpdateTelevisionEpisodeMediaVariables = z.infer<typeof UpdateTelevisionEpisodeMediaVariablesSchema>;
+

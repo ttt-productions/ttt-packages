@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   DomainEventSchema,
   ProfilePictureUpdatedEventSchema,
-  StreetzPostCreatedEventSchema,
+  SquareStreetzPostCreatedEventSchema,
   ChatAttachmentFinalizedEventSchema,
   ModerationViolationCreatedEventSchema,
 } from '../src/media/domain-events.js';
@@ -17,17 +17,17 @@ describe('ProfilePictureUpdatedEventSchema', () => {
   });
 });
 
-describe('StreetzPostCreatedEventSchema', () => {
+describe('SquareStreetzPostCreatedEventSchema', () => {
   it('parses valid event', () => {
     const event = { type: 'squareStreetz.postCreated', ids: { userId: 'u_1', postId: 'p_1' } };
-    expect(StreetzPostCreatedEventSchema.parse(event).ids.postId).toBe('p_1');
+    expect(SquareStreetzPostCreatedEventSchema.parse(event).ids.postId).toBe('p_1');
   });
 });
 
 describe('ChatAttachmentFinalizedEventSchema', () => {
   it('parses valid event', () => {
-    const event = { type: 'chat.attachmentFinalized', ids: { messageId: 'm_1', conversationId: 'c_1' } };
-    expect(ChatAttachmentFinalizedEventSchema.parse(event).ids.messageId).toBe('m_1');
+    const event = { type: 'chat.attachmentFinalized', ids: { guildChatMessageId: 'm_1', conversationId: 'c_1' } };
+    expect(ChatAttachmentFinalizedEventSchema.parse(event).ids.guildChatMessageId).toBe('m_1');
   });
 });
 
@@ -74,3 +74,6 @@ describe('DomainEventSchema discriminated union', () => {
     expect(() => DomainEventSchema.parse({ type: 'bogus.event', ids: {} })).toThrow();
   });
 });
+
+
+

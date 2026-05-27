@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   InviteSourceSchema,
-  InviteUserToProjectInputSchema,
+  InviteUserToGuildInputSchema,
 } from '../src/schemas/work-project-management';
 import { MAX_INVITE_MESSAGE_LENGTH } from '../src/constants/business';
 
@@ -10,32 +10,32 @@ const validStandaloneSource = { type: 'standalone' } as const;
 const validSkillSource = {
   type: 'craftSkill',
   data: {
-    skillId: 'craftSkill-1',
-    skillOwnerUserId: 'user-1',
-    skillName: 'Guitar',
+    craftSkillId: 'craftSkill-1',
+    craftSkillOwnerUserId: 'user-1',
+    craftSkillName: 'Guitar',
   },
 } as const;
 
 const validJobSource = {
-  type: 'commission',
-  data: {
-    jobId: 'commission-1',
-    replyId: 'reply-1',
-    jobTitle: 'Lead Developer',
-    applicantUserId: 'user-2',
-    postingSharesOffered: 10,
-  },
+    type: 'commission',
+    data: {
+      commissionListingId: 'commission-1',
+      auditionEntryId: 'reply-1',
+      commissionTitle: 'Lead Developer',
+      proposalArtisanUserId: 'user-2',
+      postingStakeSharesOffered: 10,
+    },
 } as const;
 
 const validOpportunitySource = {
-  type: 'audition',
-  data: {
-    opportunityId: 'opp-1',
-    replyId: 'reply-2',
-    opportunityTitle: 'Featured Placement',
-    respondentUserId: 'user-3',
-    postingSharesOffered: 5,
-  },
+    type: 'audition',
+    data: {
+      auditionId: 'opp-1',
+      auditionEntryId: 'reply-2',
+      auditionTitle: 'Featured Placement',
+      respondentUserId: 'user-3',
+      postingStakeSharesOffered: 5,
+    },
 } as const;
 
 describe('InviteSourceSchema', () => {
@@ -91,64 +91,64 @@ describe('InviteSourceSchema', () => {
     ).toThrow();
   });
 
-  it('rejects postingSharesOffered: 0 on commission branch', () => {
+  it('rejects postingStakeSharesOffered: 0 on commission branch', () => {
     expect(() =>
       InviteSourceSchema.parse({
         type: 'commission',
-        data: { ...validJobSource.data, postingSharesOffered: 0 },
+        data: { ...validJobSource.data, postingStakeSharesOffered: 0 },
       }),
     ).toThrow();
   });
 
-  it('rejects postingSharesOffered: 0 on audition branch', () => {
+  it('rejects postingStakeSharesOffered: 0 on audition branch', () => {
     expect(() =>
       InviteSourceSchema.parse({
         type: 'audition',
-        data: { ...validOpportunitySource.data, postingSharesOffered: 0 },
+        data: { ...validOpportunitySource.data, postingStakeSharesOffered: 0 },
       }),
     ).toThrow();
   });
 });
 
-describe('InviteUserToProjectInputSchema', () => {
+describe('InviteUserToGuildInputSchema', () => {
   const baseInput = {
-    projectId: 'workProject-1',
+    workProjectId: 'workProject-1',
     inviteeUid: 'user-99',
     message: 'Join us!',
-    sharesOffered: 10,
+    stakeSharesOffered: 10,
   };
 
   it('accepts a fully valid input with standalone source', () => {
     const input = { ...baseInput, source: validStandaloneSource };
-    expect(InviteUserToProjectInputSchema.parse(input)).toEqual(input);
+    expect(InviteUserToGuildInputSchema.parse(input)).toEqual(input);
   });
 
   it('accepts a fully valid input with craftSkill source', () => {
     const input = { ...baseInput, source: validSkillSource };
-    expect(InviteUserToProjectInputSchema.parse(input)).toEqual(input);
+    expect(InviteUserToGuildInputSchema.parse(input)).toEqual(input);
   });
 
   it('accepts a fully valid input with commission source', () => {
     const input = { ...baseInput, source: validJobSource };
-    expect(InviteUserToProjectInputSchema.parse(input)).toEqual(input);
+    expect(InviteUserToGuildInputSchema.parse(input)).toEqual(input);
   });
 
   it('accepts a fully valid input with audition source', () => {
     const input = { ...baseInput, source: validOpportunitySource };
-    expect(InviteUserToProjectInputSchema.parse(input)).toEqual(input);
+    expect(InviteUserToGuildInputSchema.parse(input)).toEqual(input);
   });
 
   it('rejects missing source', () => {
     expect(() =>
-      InviteUserToProjectInputSchema.parse(baseInput),
+      InviteUserToGuildInputSchema.parse(baseInput),
     ).toThrow();
   });
 
-  it('rejects sharesOffered: 0', () => {
+  it('rejects stakeSharesOffered: 0', () => {
     expect(() =>
-      InviteUserToProjectInputSchema.parse({
+      InviteUserToGuildInputSchema.parse({
         ...baseInput,
-        sharesOffered: 0,
+        stakeSharesOffered: 0,
         source: validStandaloneSource,
       }),
     ).toThrow();
@@ -156,7 +156,7 @@ describe('InviteUserToProjectInputSchema', () => {
 
   it('rejects empty message', () => {
     expect(() =>
-      InviteUserToProjectInputSchema.parse({
+      InviteUserToGuildInputSchema.parse({
         ...baseInput,
         message: '',
         source: validStandaloneSource,
@@ -166,7 +166,7 @@ describe('InviteUserToProjectInputSchema', () => {
 
   it('rejects message longer than MAX_INVITE_MESSAGE_LENGTH', () => {
     expect(() =>
-      InviteUserToProjectInputSchema.parse({
+      InviteUserToGuildInputSchema.parse({
         ...baseInput,
         message: 'x'.repeat(MAX_INVITE_MESSAGE_LENGTH + 1),
         source: validStandaloneSource,
@@ -176,7 +176,7 @@ describe('InviteUserToProjectInputSchema', () => {
 
   it('rejects unknown top-level keys (.strict)', () => {
     expect(() =>
-      InviteUserToProjectInputSchema.parse({
+      InviteUserToGuildInputSchema.parse({
         ...baseInput,
         source: validStandaloneSource,
         extraField: 'bad',
@@ -184,3 +184,5 @@ describe('InviteUserToProjectInputSchema', () => {
     ).toThrow();
   });
 });
+
+

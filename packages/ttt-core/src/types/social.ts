@@ -1,39 +1,39 @@
-// Social types: SquareStreetz feed, Mentions, Follows, Donations
+// Social types: SquareStreetz feed, Mentions, Follows, pledge payments
 export type { Mention, MentionType } from '../media/atoms.js';
 import type { Mention } from '../media/atoms.js';
 
 // --- SquareStreetz Social Media ---
 
-export type StreetzPostType =
+export type SquareStreetzPostType =
   | 'PROFILE_PICTURE_UPDATE'
-  | 'NEW_SKILL'
-  | 'NEW_CREATOR'
-  | 'JOB_ACCEPTED'
-  | 'DELETE_SKILL'
+  | 'NEW_CRAFT_SKILL'
+  | 'NEW_ARTISAN_CREATOR'
+  | 'COMMISSION_ACCEPTED'
+  | 'DELETE_CRAFT_SKILL'
   | 'USER_POST'
-  | 'NEW_PROJECT';
+  | 'NEW_WORK_PROJECT';
 
 /**
  * Serializable subset of SquareStreetz post creation payload.
  * Frontend extends this with `mediaFile?: File` locally.
  */
-export type StreetzPostPayload = {
+export type SquareStreetzPostPayload = {
   userId: string;
   mentions?: Mention[];
   newMediaUrl?: string;
   craftSkill?: { id: string; name: string; url: string; type: 'image' | 'video' | 'audio' };
-  skillId?: string;
-  projectTitle?: string;
-  projectId?: string;
-  projectType?: string;
-  projectDescription?: string;
+  craftSkillId?: string;
+  workProjectTitle?: string;
+  workProjectId?: string;
+  workProjectType?: string;
+  workProjectDescription?: string;
   content?: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'audio' | 'other';
   createdAt?: number;
 };
 
-export type StreetzPost = {
+export type SquareStreetzPost = {
   postId: string;
   createdBy: { uid: string };
   authorId: string;
@@ -44,7 +44,7 @@ export type StreetzPost = {
   mediaType?: 'image' | 'video' | 'audio' | 'other';
   createdAt: number;
   likes: number;
-  postType?: StreetzPostType;
+  postType?: SquareStreetzPostType;
   relatedAssetId?: string;
   moderationStatus?: 'pending' | 'approved' | 'rejected' | 'pending_review';
   moderationReason?: string;
@@ -61,10 +61,10 @@ export type MentionHistoryDocument = {
   items: MentionHistoryItem[];
 };
 
-// --- Donations ---
+// --- Pledge payments ---
 
 export type PledgePayment = {
-  donationId: string;
+  pledgePaymentId: string;
   stripeSessionId: string;
   amount: number;
   currency: string;
@@ -73,3 +73,5 @@ export type PledgePayment = {
   createdAt: number;
   userId: string;
 };
+
+

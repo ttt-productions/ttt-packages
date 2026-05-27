@@ -12,9 +12,10 @@ export const CreateWorkProjectAuditionVariablesSchema = z.object({
   description: z.string(),
   videoFile: z.instanceof(File).or(z.instanceof(Blob)),
   openTill: z.string().min(1),
-  projectId: z.string().min(1),
-  sharesOffered: z.number().optional(),
+  workProjectId: z.string().min(1),
+  stakeSharesOffered: z.number().optional(),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type CreateWorkProjectAuditionVariables = z.infer<typeof CreateWorkProjectAuditionVariablesSchema>;
+

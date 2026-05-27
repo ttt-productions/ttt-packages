@@ -1,60 +1,60 @@
-import type { ProjectRoleId } from './work-project-permissions.js';
-import { isProjectRoleId } from './work-project-permissions.js';
+import type { GuildStandingId } from './work-project-permissions.js';
+import { isGuildStandingId } from './work-project-permissions.js';
 
-export type ProjectRoleAssignmentAction = 'add' | 'remove';
+export type GuildStandingAssignmentAction = 'add' | 'remove';
 
-export const NON_ASSIGNABLE_PROJECT_ROLES = ['StewardOwner'] as const satisfies readonly ProjectRoleId[];
-export const OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES = [
-  'ProjectManager',
-  'RoleManager',
-  'ShareManager',
-] as const satisfies readonly ProjectRoleId[];
+export const NON_ASSIGNABLE_GUILD_STANDINGS = ['StewardOwner'] as const satisfies readonly GuildStandingId[];
+export const STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS = [
+  'WorkProjectManager',
+  'GuildStandingManager',
+  'StakeShareManager',
+] as const satisfies readonly GuildStandingId[];
 
-const ownerOnlyAssignable = new Set<ProjectRoleId>(OWNER_ONLY_ASSIGNABLE_PROJECT_ROLES);
+const ownerOnlyAssignable = new Set<GuildStandingId>(STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS);
 
-export interface CanAssignProjectRoleArgs {
+export interface CanAssignGuildStandingArgs {
   actorIsOwner: boolean;
   actorRoles: readonly string[];
   targetRole: string;
-  action: ProjectRoleAssignmentAction;
+  action: GuildStandingAssignmentAction;
   actorUid?: string;
   targetUid?: string;
 }
 
-export interface CanAssignProjectRoleResult {
+export interface CanAssignGuildStandingResult {
   allowed: boolean;
   reason?: string;
 }
 
-export function canAssignProjectRole({
+export function canAssignGuildStanding({
   actorIsOwner,
   actorRoles,
   targetRole,
   actorUid,
   targetUid,
-}: CanAssignProjectRoleArgs): CanAssignProjectRoleResult {
+}: CanAssignGuildStandingArgs): CanAssignGuildStandingResult {
   if (targetRole === 'StewardOwner') {
-    return { allowed: false, reason: 'StewardOwner is not an assignable workProject role.' };
+    return { allowed: false, reason: 'StewardOwner is not an assignable workProject guild standing.' };
   }
 
-  if (!isProjectRoleId(targetRole)) {
-    return { allowed: false, reason: `Unknown workProject role: ${targetRole}` };
+  if (!isGuildStandingId(targetRole)) {
+    return { allowed: false, reason: `Unknown workProject guild standing: ${targetRole}` };
   }
 
   if (actorUid && targetUid && actorUid === targetUid && !actorIsOwner) {
-    return { allowed: false, reason: 'Only the workProject stewardOwner can edit their own roles.' };
+    return { allowed: false, reason: 'Only the workProject stewardOwner can edit their own guild standings.' };
   }
 
   if (actorIsOwner) {
     return { allowed: true };
   }
 
-  const normalizedActorRoles = actorRoles.filter(isProjectRoleId);
+  const normalizedActorRoles = actorRoles.filter(isGuildStandingId);
   const actorCanManageRoles =
-    normalizedActorRoles.includes('ProjectManager') || normalizedActorRoles.includes('RoleManager');
+    normalizedActorRoles.includes('WorkProjectManager') || normalizedActorRoles.includes('GuildStandingManager');
 
   if (!actorCanManageRoles) {
-    return { allowed: false, reason: 'ProjectManager or RoleManager role is required.' };
+    return { allowed: false, reason: 'WorkProjectManager or GuildStandingManager standing is required.' };
   }
 
   if (ownerOnlyAssignable.has(targetRole)) {
@@ -63,3 +63,4 @@ export function canAssignProjectRole({
 
   return { allowed: true };
 }
+

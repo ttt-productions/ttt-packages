@@ -6,8 +6,8 @@ import {
   SHORT_LINK_LENGTH,
   SHORT_LINK_MAX_ATTEMPTS,
   FIRESTORE_BATCH_LIMIT,
-  MAX_PROJECT_SHARES,
-  MAX_STREETZ_DESCRIPTION_LENGTH,
+  MAX_WORK_PROJECT_STAKE_SHARES,
+  MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH,
 } from '../src/constants/business';
 
 describe('TASK_PRIORITY', () => {
@@ -108,16 +108,17 @@ describe('FIRESTORE_BATCH_LIMIT', () => {
   });
 });
 
-describe('MAX_PROJECT_SHARES', () => {
+describe('MAX_WORK_PROJECT_STAKE_SHARES', () => {
   it('is a positive integer', () => {
-    expect(Number.isInteger(MAX_PROJECT_SHARES)).toBe(true);
-    expect(MAX_PROJECT_SHARES).toBeGreaterThan(0);
+    expect(Number.isInteger(MAX_WORK_PROJECT_STAKE_SHARES)).toBe(true);
+    expect(MAX_WORK_PROJECT_STAKE_SHARES).toBeGreaterThan(0);
   });
 });
 
-describe('MAX_STREETZ_DESCRIPTION_LENGTH', () => {
+describe('MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH', () => {
   it('is a positive integer', () => {
-    expect(Number.isInteger(MAX_STREETZ_DESCRIPTION_LENGTH)).toBe(true);
-    expect(MAX_STREETZ_DESCRIPTION_LENGTH).toBeGreaterThan(0);
+    expect(Number.isInteger(MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH)).toBe(true);
+    expect(MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH).toBeGreaterThan(0);
   });
 });
+

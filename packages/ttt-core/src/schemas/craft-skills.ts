@@ -1,14 +1,16 @@
 import { z } from 'zod';
 import { craftSkillIdSchema, addRemoveActionSchema } from './atoms.js';
 
-export const DeleteSkillInputSchema = z.object({
-  skillId: craftSkillIdSchema,
+export const DeleteCraftSkillInputSchema = z.object({
+  craftSkillId: craftSkillIdSchema,
 }).strict();
-export type DeleteSkillInput = z.infer<typeof DeleteSkillInputSchema>;
+export type DeleteCraftSkillInput = z.infer<typeof DeleteCraftSkillInputSchema>;
 
-export const UpdateSkillTagsInputSchema = z.object({
-  skillId: craftSkillIdSchema,
+export const UpdateCraftSkillTagsInputSchema = z.object({
+  craftSkillId: craftSkillIdSchema,
   tag: z.string().min(1),
   action: addRemoveActionSchema,
 }).strict();
-export type UpdateSkillTagsInput = z.infer<typeof UpdateSkillTagsInputSchema>;
+export type UpdateCraftSkillTagsInput = z.infer<typeof UpdateCraftSkillTagsInputSchema>;
+
+

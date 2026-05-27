@@ -44,7 +44,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'craftSkill-media': {
+  'craft-skill-media': {
     kind: 'image',
     accept: ACCEPT_MEDIA_ALL,
     maxBytes: 10 * 1024 * 1024,
@@ -268,7 +268,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'audition-reply': {
+  'audition-entry': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,
     maxBytes: 50 * 1024 * 1024,
@@ -331,7 +331,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'commission-reply': {
+  'commission-proposal': {
     kind: 'image',
     accept: ACCEPT_IMAGE_VIDEO,
     maxBytes: 10 * 1024 * 1024,
@@ -398,7 +398,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'song-photo': {
+  'tune-track-photo': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
     maxBytes: 5 * 1024 * 1024,
@@ -428,7 +428,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'show-photo': {
+  'television-episode-photo': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
     maxBytes: 5 * 1024 * 1024,
@@ -458,7 +458,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'song-audio': {
+  'tune-track-audio': {
     kind: 'audio',
     accept: ACCEPT_AUDIO_ONLY,
     maxBytes: 25 * 1024 * 1024,
@@ -479,7 +479,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'show-video': {
+  'television-episode-video': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,
     maxBytes: 250 * 1024 * 1024,
@@ -501,7 +501,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'chat-attachment': {
+  'guild-chat-message-attachment': {
     kind: 'generic',
     accept: ACCEPT_MEDIA_ALL,
     maxBytes: 10 * 1024 * 1024,
@@ -531,7 +531,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'workProject-file': {
+  'work-asset': {
     kind: 'generic',
     accept: ACCEPT_MEDIA_ALL,
     maxBytes: 5 * 1024 * 1024,
@@ -569,3 +569,4 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   },
 
 };
+

@@ -9,43 +9,43 @@ import {
   auditionEntryIdSchema,
   craftSkillIdSchema,
 } from './atoms.js';
-import { PROFESSION_OPTIONS } from '../constants/options.js';
-import { PROJECT_ROLE_IDS } from '../permissions/index.js';
+import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
+import { GUILD_STANDING_IDS } from '../permissions/index.js';
 import { MAX_INVITE_MESSAGE_LENGTH } from '../constants/business.js';
 
 const baseFields = {
   workingTitle: z.string().min(1).max(200),
   workingDescription: z.string().min(1).max(2000),
-  type: workProjectTypeSchema,
-  libraryType: z.string().min(1),
+  workProjectType: workProjectTypeSchema,
+  hallWingType: z.string().min(1),
 };
 
-export const CreateProjectInputSchema = z.discriminatedUnion('origin', [
+export const CreateWorkProjectInputSchema = z.discriminatedUnion('origin', [
   z.object({
     ...baseFields,
-    origin: z.literal('newUniverse'),
+    origin: z.literal('newWorkRealm'),
   }).strict(),
   z.object({
     ...baseFields,
-    origin: z.literal('existingUniverse'),
-    universeId: z.string().min(1),
+    origin: z.literal('existingWorkRealm'),
+    workRealmId: z.string().min(1),
   }).strict(),
   z.object({
     ...baseFields,
     origin: z.literal('standalone'),
   }).strict(),
 ]);
-export type CreateProjectInput = z.infer<typeof CreateProjectInputSchema>;
+export type CreateWorkProjectInput = z.infer<typeof CreateWorkProjectInputSchema>;
 
-export const DeleteProjectFileInputSchema = z.object({
-  projectId: workProjectIdSchema,
+export const DeleteWorkAssetInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
   file: z.object({
     id: z.string().optional(),
     url: z.string().min(1),
     name: z.string().optional(),
   }),
 }).strict();
-export type DeleteProjectFileInput = z.infer<typeof DeleteProjectFileInputSchema>;
+export type DeleteWorkAssetInput = z.infer<typeof DeleteWorkAssetInputSchema>;
 
 export const InviteSourceSchema = z.discriminatedUnion('type', [
   z.object({
@@ -54,73 +54,77 @@ export const InviteSourceSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('craftSkill'),
     data: z.object({
-      skillId: craftSkillIdSchema,
-      skillOwnerUserId: userIdSchema,
-      skillName: z.string().min(1).max(200),
+      craftSkillId: craftSkillIdSchema,
+      craftSkillOwnerUserId: userIdSchema,
+      craftSkillName: z.string().min(1).max(200),
     }).strict(),
   }).strict(),
   z.object({
     type: z.literal('commission'),
     data: z.object({
-      jobId: commissionListingIdSchema,
-      replyId: auditionEntryIdSchema,
-      jobTitle: z.string().min(1).max(200),
-      applicantUserId: userIdSchema,
-      postingSharesOffered: z.number().int().min(1),
+      commissionListingId: commissionListingIdSchema,
+      auditionEntryId: auditionEntryIdSchema,
+      commissionTitle: z.string().min(1).max(200),
+      proposalArtisanUserId: userIdSchema,
+      postingStakeSharesOffered: z.number().int().min(1),
     }).strict(),
   }).strict(),
   z.object({
     type: z.literal('audition'),
     data: z.object({
-      opportunityId: auditionIdSchema,
-      replyId: auditionEntryIdSchema,
-      opportunityTitle: z.string().min(1).max(200),
+      auditionId: auditionIdSchema,
+      auditionEntryId: auditionEntryIdSchema,
+      auditionTitle: z.string().min(1).max(200),
       respondentUserId: userIdSchema,
-      postingSharesOffered: z.number().int().min(1),
+      postingStakeSharesOffered: z.number().int().min(1),
     }).strict(),
   }).strict(),
 ]);
 export type InviteSource = z.infer<typeof InviteSourceSchema>;
 export type InviteSourceType = InviteSource['type'];
 
-export const InviteUserToProjectInputSchema = z.object({
-  projectId: workProjectIdSchema,
+export const InviteUserToGuildInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
   inviteeUid: userIdSchema,
   message: z.string().min(1).max(MAX_INVITE_MESSAGE_LENGTH),
-  sharesOffered: z.number().int().min(1),
+  stakeSharesOffered: z.number().int().min(1),
   source: InviteSourceSchema,
 }).strict();
-export type InviteUserToProjectInput = z.infer<typeof InviteUserToProjectInputSchema>;
+export type InviteUserToGuildInput = z.infer<typeof InviteUserToGuildInputSchema>;
 
-export const ListProjectInvitesInputSchema = z.object({
-  projectId: workProjectIdSchema,
+export const ListGuildInvitesInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
   statuses: z.array(z.enum(['pending', 'accepted', 'declined', 'cancelled'])).min(1),
 }).strict();
-export type ListProjectInvitesInput = z.infer<typeof ListProjectInvitesInputSchema>;
+export type ListGuildInvitesInput = z.infer<typeof ListGuildInvitesInputSchema>;
 
-const PROFESSION_VALUES = [...PROFESSION_OPTIONS] as [string, ...string[]];
+const PROFESSION_VALUES = [...TRADE_PROFESSION_OPTIONS] as [string, ...string[]];
 
-export const UpdateProjectMemberProfessionsInputSchema = z.object({
-  projectId: workProjectIdSchema,
+export const UpdateGuildmateTradeProfessionsInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
   userId: userIdSchema,
   tradeProfession: z.enum(PROFESSION_VALUES),
   action: addRemoveActionSchema,
 }).strict();
-export type UpdateProjectMemberProfessionsInput = z.infer<typeof UpdateProjectMemberProfessionsInputSchema>;
+export type UpdateGuildmateTradeProfessionsInput = z.infer<typeof UpdateGuildmateTradeProfessionsInputSchema>;
 
-const ROLE_VALUES = PROJECT_ROLE_IDS as [typeof PROJECT_ROLE_IDS[number], ...typeof PROJECT_ROLE_IDS[number][]];
+const ROLE_VALUES = GUILD_STANDING_IDS as [typeof GUILD_STANDING_IDS[number], ...typeof GUILD_STANDING_IDS[number][]];
 
-export const UpdateProjectMemberRoleInputSchema = z.object({
-  projectId: workProjectIdSchema,
+export const UpdateGuildmateStandingInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
   userId: userIdSchema,
-  role: z.enum(ROLE_VALUES),
+  guildStanding: z.enum(ROLE_VALUES),
   action: addRemoveActionSchema,
 }).strict();
-export type UpdateProjectMemberRoleInput = z.infer<typeof UpdateProjectMemberRoleInputSchema>;
+export type UpdateGuildmateStandingInput = z.infer<typeof UpdateGuildmateStandingInputSchema>;
 
-export const UpdatePublicProjectDetailsInputSchema = z.object({
-  projectId: workProjectIdSchema,
+export const UpdatePublicWorkProjectDetailsInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
   workingTitle: z.string().min(1).max(200),
   workingDescription: z.string().min(1).max(2000),
 }).strict();
-export type UpdatePublicProjectDetailsInput = z.infer<typeof UpdatePublicProjectDetailsInputSchema>;
+export type UpdatePublicWorkProjectDetailsInput = z.infer<typeof UpdatePublicWorkProjectDetailsInputSchema>;
+
+
+
+

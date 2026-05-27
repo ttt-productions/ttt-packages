@@ -2,17 +2,17 @@ import { describe, it, expect } from 'vitest';
 import {
   parseTargetInfo,
   ProfilePictureTargetInfoSchema,
-  SkillMediaTargetInfoSchema,
-  StreetzTargetInfoSchema,
-  JobPostingTargetInfoSchema,
-  JobReplyTargetInfoSchema,
-  OpportunityPromptTargetInfoSchema,
-  AdminOpportunityPromptTargetInfoSchema,
-  OpportunityReplyTargetInfoSchema,
+  CraftSkillMediaTargetInfoSchema,
+  SquareStreetzTargetInfoSchema,
+  CommissionPostingTargetInfoSchema,
+  CommissionProposalTargetInfoSchema,
+  AuditionPromptTargetInfoSchema,
+  AdminAuditionPromptTargetInfoSchema,
+  AuditionEntryTargetInfoSchema,
   LibraryCoverSquareTargetInfoSchema,
   ChapterPhotoTargetInfoSchema,
-  SongPhotoTargetInfoSchema,
-  ShowPhotoTargetInfoSchema,
+  TuneTrackPhotoTargetInfoSchema,
+  TelevisionEpisodePhotoTargetInfoSchema,
   ChatAttachmentTargetInfoSchema,
 } from '../src/media/target-info.js';
 import { LIBRARY_TARGET_FIELDS } from '../src/media/hall-library-target-fields.js';
@@ -22,26 +22,26 @@ describe('ProfilePictureTargetInfoSchema', () => {
     expect(() => ProfilePictureTargetInfoSchema.parse({})).not.toThrow();
   });
   it('rejects unknown fields', () => {
-    expect(() => ProfilePictureTargetInfoSchema.parse({ skillId: 'x' })).toThrow();
+    expect(() => ProfilePictureTargetInfoSchema.parse({ craftSkillId: 'x' })).toThrow();
   });
 });
 
-describe('SkillMediaTargetInfoSchema', () => {
-  const valid = { skillId: 'sk_1', skillType: 'image' as const, originalFileName: 'a.jpg' };
-  it('accepts valid', () => { expect(() => SkillMediaTargetInfoSchema.parse(valid)).not.toThrow(); });
+describe('CraftSkillMediaTargetInfoSchema', () => {
+  const valid = { craftSkillId: 'sk_1', skillType: 'image' as const, originalFileName: 'a.jpg' };
+  it('accepts valid', () => { expect(() => CraftSkillMediaTargetInfoSchema.parse(valid)).not.toThrow(); });
   it('rejects unknown skillType', () => {
-    expect(() => SkillMediaTargetInfoSchema.parse({ ...valid, skillType: 'pdf' })).toThrow();
+    expect(() => CraftSkillMediaTargetInfoSchema.parse({ ...valid, skillType: 'pdf' })).toThrow();
   });
-  it('rejects missing skillId', () => {
-    const { skillId, ...rest } = valid;
-    expect(() => SkillMediaTargetInfoSchema.parse(rest)).toThrow();
+  it('rejects missing craftSkillId', () => {
+    const { craftSkillId, ...rest } = valid;
+    expect(() => CraftSkillMediaTargetInfoSchema.parse(rest)).toThrow();
   });
   it('rejects unknown fields', () => {
-    expect(() => SkillMediaTargetInfoSchema.parse({ ...valid, extra: 1 })).toThrow();
+    expect(() => CraftSkillMediaTargetInfoSchema.parse({ ...valid, extra: 1 })).toThrow();
   });
 });
 
-describe('StreetzTargetInfoSchema', () => {
+describe('SquareStreetzTargetInfoSchema', () => {
   const validMention = {
     placeholder: '@m1',
     type: 'user' as const,
@@ -49,95 +49,95 @@ describe('StreetzTargetInfoSchema', () => {
     text: '@John Doe',
   };
   it('accepts empty mentions', () => {
-    expect(() => StreetzTargetInfoSchema.parse({ mentions: [] })).not.toThrow();
+    expect(() => SquareStreetzTargetInfoSchema.parse({ mentions: [] })).not.toThrow();
   });
   it('accepts populated mentions', () => {
-    expect(() => StreetzTargetInfoSchema.parse({ mentions: [validMention] })).not.toThrow();
+    expect(() => SquareStreetzTargetInfoSchema.parse({ mentions: [validMention] })).not.toThrow();
   });
   it('rejects string mentions (must be Mention objects)', () => {
-    expect(() => StreetzTargetInfoSchema.parse({ mentions: ['user_1'] })).toThrow();
+    expect(() => SquareStreetzTargetInfoSchema.parse({ mentions: ['user_1'] })).toThrow();
   });
   it('rejects mention with invalid type enum', () => {
-    expect(() => StreetzTargetInfoSchema.parse({
+    expect(() => SquareStreetzTargetInfoSchema.parse({
       mentions: [{ ...validMention, type: 'bogus' }]
     })).toThrow();
   });
   it('rejects missing mentions', () => {
-    expect(() => StreetzTargetInfoSchema.parse({})).toThrow();
+    expect(() => SquareStreetzTargetInfoSchema.parse({})).toThrow();
   });
 });
 
-describe('JobPostingTargetInfoSchema', () => {
+describe('CommissionPostingTargetInfoSchema', () => {
   const valid = {
-    jobId: 'job_1',
+    commissionListingId: 'job_1',
     title: 'Test commission',
     description: 'desc',
     requiredTradeProfessions: ['actor'],
-    sharesOffered: 5,
-    projectId: 'p_1',
+    stakeSharesOffered: 5,
+    workProjectId: 'p_1',
     createdBy: { uid: 'u_1' },
   };
-  it('accepts valid', () => { expect(() => JobPostingTargetInfoSchema.parse(valid)).not.toThrow(); });
-  it('rejects missing projectId', () => {
-    const { projectId, ...rest } = valid;
-    expect(() => JobPostingTargetInfoSchema.parse(rest)).toThrow();
+  it('accepts valid', () => { expect(() => CommissionPostingTargetInfoSchema.parse(valid)).not.toThrow(); });
+  it('rejects missing workProjectId', () => {
+    const { workProjectId, ...rest } = valid;
+    expect(() => CommissionPostingTargetInfoSchema.parse(rest)).toThrow();
   });
 });
 
-describe('JobReplyTargetInfoSchema', () => {
+describe('CommissionProposalTargetInfoSchema', () => {
   it('accepts valid', () => {
-    expect(() => JobReplyTargetInfoSchema.parse({ jobId: 'j', replyText: 'r' })).not.toThrow();
+    expect(() => CommissionProposalTargetInfoSchema.parse({ commissionListingId: 'j', replyText: 'r' })).not.toThrow();
   });
 });
 
-describe('OpportunityPromptTargetInfoSchema', () => {
+describe('AuditionPromptTargetInfoSchema', () => {
   const valid = {
-    opportunityId: 'op_1',
-    type: 'ProjectInput' as const,
+    auditionId: 'op_1',
+    type: 'workAudition' as const,
     title: 'T',
     description: 'D',
     openTill: 1_700_000_000_000,
     createdBy: { uid: 'u_1' },
-    projectId: 'p_1',
+    workProjectId: 'p_1',
   };
   it('accepts minimum required fields', () => {
-    expect(() => OpportunityPromptTargetInfoSchema.parse(valid)).not.toThrow();
+    expect(() => AuditionPromptTargetInfoSchema.parse(valid)).not.toThrow();
   });
-  it("rejects type: 'SystemInput'", () => {
-    expect(() => OpportunityPromptTargetInfoSchema.parse({ ...valid, type: 'SystemInput' })).toThrow();
+  it("rejects type: 'platformAudition'", () => {
+    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, type: 'platformAudition' })).toThrow();
   });
 });
 
-describe('AdminOpportunityPromptTargetInfoSchema', () => {
+describe('AdminAuditionPromptTargetInfoSchema', () => {
   const valid = {
-    opportunityId: 'op_1',
-    type: 'SystemInput' as const,
+    auditionId: 'op_1',
+    type: 'platformAudition' as const,
     title: 'T',
     description: 'D',
     openTill: 1_700_000_000_000,
     createdBy: { uid: 'u_1' },
   };
-  it('accepts SystemInput', () => {
-    expect(() => AdminOpportunityPromptTargetInfoSchema.parse(valid)).not.toThrow();
+  it('accepts platformAudition', () => {
+    expect(() => AdminAuditionPromptTargetInfoSchema.parse(valid)).not.toThrow();
   });
-  it('accepts SponsoredProjects with projectAmountUSD', () => {
-    expect(() => AdminOpportunityPromptTargetInfoSchema.parse({
-      ...valid, type: 'SponsoredProjects', projectAmountUSD: 5000,
+  it('accepts sponsoredAudition with sponsoredAuditionAmountUSD', () => {
+    expect(() => AdminAuditionPromptTargetInfoSchema.parse({
+      ...valid, type: 'sponsoredAudition', sponsoredAuditionAmountUSD: 5000,
     })).not.toThrow();
   });
-  it("rejects type: 'ProjectInput'", () => {
-    expect(() => AdminOpportunityPromptTargetInfoSchema.parse({ ...valid, type: 'ProjectInput' })).toThrow();
+  it("rejects type: 'workAudition'", () => {
+    expect(() => AdminAuditionPromptTargetInfoSchema.parse({ ...valid, type: 'workAudition' })).toThrow();
   });
 });
 
-describe('OpportunityReplyTargetInfoSchema', () => {
+describe('AuditionEntryTargetInfoSchema', () => {
   it('accepts valid', () => {
-    expect(() => OpportunityReplyTargetInfoSchema.parse({ opportunityId: 'op_1' })).not.toThrow();
+    expect(() => AuditionEntryTargetInfoSchema.parse({ auditionId: 'op_1' })).not.toThrow();
   });
 });
 
 describe('LibraryCoverSquareTargetInfoSchema (typed IDs)', () => {
-  const valid = { projectId: 'p_1', itemType: 'tale' as const, itemId: 'tale_1' };
+  const valid = { workProjectId: 'p_1', itemType: 'tale' as const, itemId: 'tale_1' };
   it('accepts valid typed IDs', () => {
     expect(() => LibraryCoverSquareTargetInfoSchema.parse(valid)).not.toThrow();
   });
@@ -155,8 +155,8 @@ describe('LibraryCoverSquareTargetInfoSchema (typed IDs)', () => {
   it('rejects unknown itemType', () => {
     expect(() => LibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'film' })).toThrow();
   });
-  it('rejects missing projectId', () => {
-    const { projectId, ...rest } = valid;
+  it('rejects missing workProjectId', () => {
+    const { workProjectId, ...rest } = valid;
     expect(() => LibraryCoverSquareTargetInfoSchema.parse(rest)).toThrow();
   });
   it('rejects extra keys', () => {
@@ -165,7 +165,7 @@ describe('LibraryCoverSquareTargetInfoSchema (typed IDs)', () => {
 });
 
 describe('ChapterPhotoTargetInfoSchema (typed IDs)', () => {
-  const valid = { projectId: 'p_1', taleId: 'tale_1', chapterId: 'ch_1' };
+  const valid = { workProjectId: 'p_1', taleId: 'tale_1', chapterId: 'ch_1' };
   it('accepts valid typed IDs', () => {
     expect(() => ChapterPhotoTargetInfoSchema.parse(valid)).not.toThrow();
   });
@@ -184,9 +184,9 @@ describe('ChapterPhotoTargetInfoSchema (typed IDs)', () => {
 });
 
 describe('ChatAttachmentTargetInfoSchema', () => {
-  it('accepts projectChannel with required fields', () => {
+  it('accepts guildChatChannel with required fields', () => {
     expect(() => ChatAttachmentTargetInfoSchema.parse({
-      threadKind: 'projectChannel', projectId: 'p_1', channelId: 'c_1',
+      threadKind: 'guildChatChannel', workProjectId: 'p_1', guildChatChannelId: 'c_1',
     })).not.toThrow();
   });
   it('accepts guildInvite', () => {
@@ -196,36 +196,36 @@ describe('ChatAttachmentTargetInfoSchema', () => {
   });
   it('accepts adminSupport', () => {
     expect(() => ChatAttachmentTargetInfoSchema.parse({
-      threadKind: 'adminSupport', adminMessageId: 'msg_1', isUserReply: true,
+      threadKind: 'adminSupport', adminDispatchId: 'msg_1', isUserReply: true,
     })).not.toThrow();
   });
   it('rejects unknown threadKind', () => {
     expect(() => ChatAttachmentTargetInfoSchema.parse({
-      threadKind: 'unknown', projectId: 'p_1',
+      threadKind: 'unknown', workProjectId: 'p_1',
     })).toThrow();
   });
 });
 
-describe('SongPhotoTargetInfoSchema (typed IDs)', () => {
-  const valid = { projectId: 'p_1', tuneId: 'tune_1', trackId: 'song_1' };
+describe('TuneTrackPhotoTargetInfoSchema (typed IDs)', () => {
+  const valid = { workProjectId: 'p_1', tuneId: 'tune_1', trackId: 'song_1' };
   it('accepts valid typed IDs', () => {
-    expect(() => SongPhotoTargetInfoSchema.parse(valid)).not.toThrow();
+    expect(() => TuneTrackPhotoTargetInfoSchema.parse(valid)).not.toThrow();
   });
   it('rejects legacy { docPath, fields } shape', () => {
     expect(() =>
-      SongPhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } })
+      TuneTrackPhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } })
     ).toThrow();
   });
 });
 
-describe('ShowPhotoTargetInfoSchema (typed IDs)', () => {
-  const valid = { projectId: 'p_1', televisionId: 'tv_1', episodeId: 'show_1' };
+describe('TelevisionEpisodePhotoTargetInfoSchema (typed IDs)', () => {
+  const valid = { workProjectId: 'p_1', televisionId: 'tv_1', episodeId: 'show_1' };
   it('accepts valid typed IDs', () => {
-    expect(() => ShowPhotoTargetInfoSchema.parse(valid)).not.toThrow();
+    expect(() => TelevisionEpisodePhotoTargetInfoSchema.parse(valid)).not.toThrow();
   });
   it('rejects legacy { docPath, fields } shape', () => {
     expect(() =>
-      ShowPhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } })
+      TelevisionEpisodePhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } })
     ).toThrow();
   });
 });
@@ -243,17 +243,17 @@ describe('LIBRARY_TARGET_FIELDS', () => {
   it('maps chapter-photo to photoUrl', () => {
     expect(LIBRARY_TARGET_FIELDS['chapter-photo']).toBe('photoUrl');
   });
-  it('maps song-photo to photoUrl', () => {
-    expect(LIBRARY_TARGET_FIELDS['song-photo']).toBe('photoUrl');
+  it('maps tune-track-photo to photoUrl', () => {
+    expect(LIBRARY_TARGET_FIELDS['tune-track-photo']).toBe('photoUrl');
   });
-  it('maps song-audio to fileUrl', () => {
-    expect(LIBRARY_TARGET_FIELDS['song-audio']).toBe('fileUrl');
+  it('maps tune-track-audio to fileUrl', () => {
+    expect(LIBRARY_TARGET_FIELDS['tune-track-audio']).toBe('fileUrl');
   });
-  it('maps show-photo to photoUrl', () => {
-    expect(LIBRARY_TARGET_FIELDS['show-photo']).toBe('photoUrl');
+  it('maps television-episode-photo to photoUrl', () => {
+    expect(LIBRARY_TARGET_FIELDS['television-episode-photo']).toBe('photoUrl');
   });
-  it('maps show-video to videoUrl', () => {
-    expect(LIBRARY_TARGET_FIELDS['show-video']).toBe('videoUrl');
+  it('maps television-episode-video to videoUrl', () => {
+    expect(LIBRARY_TARGET_FIELDS['television-episode-video']).toBe('videoUrl');
   });
 });
 
@@ -261,15 +261,18 @@ describe('parseTargetInfo dispatch', () => {
   it('dispatches to profile-picture schema', () => {
     expect(parseTargetInfo('profile-picture', {})).toEqual({});
   });
-  it('dispatches to craftSkill-media schema', () => {
-    const result = parseTargetInfo('craftSkill-media', { skillId: 's_1', skillType: 'image', originalFileName: 'a.jpg' });
-    expect(result).toMatchObject({ skillId: 's_1' });
+  it('dispatches to craft-skill-media schema', () => {
+    const result = parseTargetInfo('craft-skill-media', { craftSkillId: 's_1', skillType: 'image', originalFileName: 'a.jpg' });
+    expect(result).toMatchObject({ craftSkillId: 's_1' });
   });
-  it('dispatches to chat-attachment schema', () => {
-    const result = parseTargetInfo('chat-attachment', { threadKind: 'projectChannel', projectId: 'p_1', channelId: 'c_1' });
-    expect(result).toMatchObject({ threadKind: 'projectChannel', projectId: 'p_1', channelId: 'c_1' });
+  it('dispatches to guild-chat-message-attachment schema', () => {
+    const result = parseTargetInfo('guild-chat-message-attachment', { threadKind: 'guildChatChannel', workProjectId: 'p_1', guildChatChannelId: 'c_1' });
+    expect(result).toMatchObject({ threadKind: 'guildChatChannel', workProjectId: 'p_1', guildChatChannelId: 'c_1' });
   });
   it('throws on schema mismatch', () => {
-    expect(() => parseTargetInfo('craftSkill-media', { wrongShape: true })).toThrow();
+    expect(() => parseTargetInfo('craft-skill-media', { wrongShape: true })).toThrow();
   });
 });
+
+
+

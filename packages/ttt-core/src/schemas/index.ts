@@ -4,7 +4,7 @@ export * from './admin.js';
 export * from './chat.js';
 export * from './commissions.js';
 export * from './hall-library.js';
-export * from './opportunities.js';
+export * from './auditions.js';
 export * from './payments.js';
 export * from './work-project-management.js';
 export * from './craft-skills.js';

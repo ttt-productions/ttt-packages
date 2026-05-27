@@ -12,45 +12,45 @@ import {
   addRemoveActionSchema,
   thresholdItemIdSchema,
 } from './atoms.js';
-import { MAX_LIBRARY_SUBMIT_BATCH } from '../constants/business.js';
+import { MAX_HALL_LIBRARY_SUBMIT_BATCH } from '../constants/business.js';
 
 export const CreateChapterInputSchema = z.object({
-  projectId: workProjectIdSchema,
+  workProjectId: workProjectIdSchema,
   taleId: taleIdSchema,
   title: titleSchema,
 }).strict();
 export type CreateChapterInput = z.infer<typeof CreateChapterInputSchema>;
 
-export const CreateShowInputSchema = z.object({
-  projectId: workProjectIdSchema,
+export const CreateTelevisionEpisodeInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
   televisionId: televisionIdSchema,
   title: titleSchema,
 }).strict();
-export type CreateShowInput = z.infer<typeof CreateShowInputSchema>;
+export type CreateTelevisionEpisodeInput = z.infer<typeof CreateTelevisionEpisodeInputSchema>;
 
-export const CreateSongInputSchema = z.object({
-  projectId: workProjectIdSchema,
+export const CreateTuneTrackInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
   tuneId: tuneIdSchema,
   title: titleSchema,
 }).strict();
-export type CreateSongInput = z.infer<typeof CreateSongInputSchema>;
+export type CreateTuneTrackInput = z.infer<typeof CreateTuneTrackInputSchema>;
 
-export const ReviewLibraryItemInputSchema = z.object({
+export const ReviewThresholdItemInputSchema = z.object({
   thresholdItemId: thresholdItemIdSchema,
   decision: z.enum(['approved', 'needs_revision']),
   adminNotes: z.string().max(2000).nullable().optional(),
 }).strict();
-export type ReviewLibraryItemInput = z.infer<typeof ReviewLibraryItemInputSchema>;
+export type ReviewThresholdItemInput = z.infer<typeof ReviewThresholdItemInputSchema>;
 
-export const SubmitForLibraryReviewInputSchema = z.object({
-  projectId: workProjectIdSchema,
-  projectType: workProjectTypeSchema,
-  selectedItemIds: z.array(z.string().min(1)).min(1).max(MAX_LIBRARY_SUBMIT_BATCH),
+export const SubmitForThresholdLibraryReviewInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
+  workProjectType: workProjectTypeSchema,
+  selectedItemIds: z.array(z.string().min(1)).min(1).max(MAX_HALL_LIBRARY_SUBMIT_BATCH),
 }).strict();
-export type SubmitForLibraryReviewInput = z.infer<typeof SubmitForLibraryReviewInputSchema>;
+export type SubmitForThresholdLibraryReviewInput = z.infer<typeof SubmitForThresholdLibraryReviewInputSchema>;
 
 export const UpdateChapterDetailsInputSchema = z.object({
-  projectId: workProjectIdSchema,
+  workProjectId: workProjectIdSchema,
   taleId: taleIdSchema,
   chapterId: chapterIdSchema,
   title: titleSchema.optional(),
@@ -58,26 +58,26 @@ export const UpdateChapterDetailsInputSchema = z.object({
 }).strict();
 export type UpdateChapterDetailsInput = z.infer<typeof UpdateChapterDetailsInputSchema>;
 
-export const UpdateShowDetailsInputSchema = z.object({
-  projectId: workProjectIdSchema,
+export const UpdateTelevisionEpisodeDetailsInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
   televisionId: televisionIdSchema,
   episodeId: episodeIdSchema,
   title: titleSchema.optional(),
   description: z.string().max(5000).optional(),
 }).strict();
-export type UpdateShowDetailsInput = z.infer<typeof UpdateShowDetailsInputSchema>;
+export type UpdateTelevisionEpisodeDetailsInput = z.infer<typeof UpdateTelevisionEpisodeDetailsInputSchema>;
 
-export const UpdateSongDetailsInputSchema = z.object({
-  projectId: workProjectIdSchema,
+export const UpdateTuneTrackDetailsInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
   tuneId: tuneIdSchema,
   trackId: trackIdSchema,
   title: titleSchema.optional(),
   description: z.string().max(5000).optional(),
 }).strict();
-export type UpdateSongDetailsInput = z.infer<typeof UpdateSongDetailsInputSchema>;
+export type UpdateTuneTrackDetailsInput = z.infer<typeof UpdateTuneTrackDetailsInputSchema>;
 
 export const UpdateTaleCategoriesInputSchema = z.object({
-  projectId: workProjectIdSchema,
+  workProjectId: workProjectIdSchema,
   taleId: taleIdSchema,
   category: z.string().min(1).max(50),
   action: addRemoveActionSchema,
@@ -85,7 +85,7 @@ export const UpdateTaleCategoriesInputSchema = z.object({
 export type UpdateTaleCategoriesInput = z.infer<typeof UpdateTaleCategoriesInputSchema>;
 
 export const UpdateTaleDetailsInputSchema = z.object({
-  projectId: workProjectIdSchema,
+  workProjectId: workProjectIdSchema,
   taleId: taleIdSchema,
   title: titleSchema.optional(),
   description: z.string().max(5000).optional(),
@@ -93,7 +93,7 @@ export const UpdateTaleDetailsInputSchema = z.object({
 export type UpdateTaleDetailsInput = z.infer<typeof UpdateTaleDetailsInputSchema>;
 
 export const UpdateTelevisionCategoriesInputSchema = z.object({
-  projectId: workProjectIdSchema,
+  workProjectId: workProjectIdSchema,
   televisionId: televisionIdSchema,
   category: z.string().min(1).max(50),
   action: addRemoveActionSchema,
@@ -101,7 +101,7 @@ export const UpdateTelevisionCategoriesInputSchema = z.object({
 export type UpdateTelevisionCategoriesInput = z.infer<typeof UpdateTelevisionCategoriesInputSchema>;
 
 export const UpdateTelevisionDetailsInputSchema = z.object({
-  projectId: workProjectIdSchema,
+  workProjectId: workProjectIdSchema,
   televisionId: televisionIdSchema,
   title: titleSchema.optional(),
   description: z.string().max(5000).optional(),
@@ -109,7 +109,7 @@ export const UpdateTelevisionDetailsInputSchema = z.object({
 export type UpdateTelevisionDetailsInput = z.infer<typeof UpdateTelevisionDetailsInputSchema>;
 
 export const UpdateTuneCategoriesInputSchema = z.object({
-  projectId: workProjectIdSchema,
+  workProjectId: workProjectIdSchema,
   tuneId: tuneIdSchema,
   category: z.string().min(1).max(50),
   action: addRemoveActionSchema,
@@ -117,9 +117,12 @@ export const UpdateTuneCategoriesInputSchema = z.object({
 export type UpdateTuneCategoriesInput = z.infer<typeof UpdateTuneCategoriesInputSchema>;
 
 export const UpdateTuneDetailsInputSchema = z.object({
-  projectId: workProjectIdSchema,
+  workProjectId: workProjectIdSchema,
   tuneId: tuneIdSchema,
   title: titleSchema.optional(),
   description: z.string().max(5000).optional(),
 }).strict();
 export type UpdateTuneDetailsInput = z.infer<typeof UpdateTuneDetailsInputSchema>;
+
+
+

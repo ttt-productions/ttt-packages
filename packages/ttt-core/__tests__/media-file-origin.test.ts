@@ -4,12 +4,12 @@ import { FileOriginSchema, type FileOrigin } from '../src/media/file-origin.js';
 describe('FileOriginSchema', () => {
   it('accepts every known origin', () => {
     const origins: FileOrigin[] = [
-      'profile-picture', 'craftSkill-media', 'squareStreetz', 'commission-posting',
-      'commission-reply', 'audition-prompt', 'audition-reply',
+      'profile-picture', 'craft-skill-media', 'squareStreetz', 'commission-posting',
+      'commission-proposal', 'audition-prompt', 'audition-entry',
       'admin-audition-prompt', 'hallLibrary-cover-square',
       'hallLibrary-cover-poster', 'hallLibrary-cover-cinematic',
-      'chapter-photo', 'song-photo', 'song-audio', 'show-photo',
-      'show-video', 'chat-attachment', 'workProject-file',
+      'chapter-photo', 'tune-track-photo', 'tune-track-audio', 'television-episode-photo',
+      'television-episode-video', 'guild-chat-message-attachment', 'work-asset',
     ];
     for (const o of origins) {
       expect(FileOriginSchema.parse(o)).toBe(o);
@@ -20,3 +20,4 @@ describe('FileOriginSchema', () => {
     expect(() => FileOriginSchema.parse('unknown')).toThrow();
   });
 });
+

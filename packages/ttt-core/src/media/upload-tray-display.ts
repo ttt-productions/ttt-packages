@@ -10,23 +10,23 @@ import { getSimplifiedMediaType } from '@ttt-productions/media-schemas';
 
 export const fileOriginRowLabel: Record<FileOrigin, string> = {
   'profile-picture': 'Profile picture',
-  'craftSkill-media': 'Craft',
-  'squareStreetz': 'SquareStreetz post',
+  'craft-skill-media': 'Craft',
+  'squareStreetz': 'Square post',
   'commission-posting': 'Commission posting',
-  'commission-reply': 'Commission commissionProposal',
+  'commission-proposal': 'Commission proposal',
   'audition-prompt': 'Audition',
-  'admin-audition-prompt': 'Audition',
-  'audition-reply': 'Audition reply',
-  'hallLibrary-cover-square': 'WorkProject Cover',
-  'hallLibrary-cover-poster': 'WorkProject Cover',
-  'hallLibrary-cover-cinematic': 'WorkProject Cover',
+  'admin-audition-prompt': 'Sponsored audition',
+  'audition-entry': 'Audition entry',
+  'hallLibrary-cover-square': 'Work cover',
+  'hallLibrary-cover-poster': 'Work cover',
+  'hallLibrary-cover-cinematic': 'Work cover',
   'chapter-photo': 'Chapter photo',
-  'song-photo': 'Song photo',
-  'song-audio': 'Song File',
-  'show-photo': 'Show photo',
-  'show-video': 'Show File',
-  'workProject-file': 'WorkProject file',
-  'chat-attachment': 'Chat attachment',
+  'tune-track-photo': 'Track photo',
+  'tune-track-audio': 'Track audio',
+  'television-episode-photo': 'Episode photo',
+  'television-episode-video': 'Episode video',
+  'work-asset': 'Work asset',
+  'guild-chat-message-attachment': 'Guild chat attachment',
 };
 
 // =============================================================================
@@ -114,3 +114,4 @@ export function getFileTypeLabel(contentType: string | undefined): string | null
       return 'File';
   }
 }
+

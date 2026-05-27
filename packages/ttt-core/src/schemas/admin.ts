@@ -54,7 +54,7 @@ const RuleSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().min(1).max(4000),
   videoUrl: z.string().url().max(2048).optional(),
-  group: z.enum(['generic', 'projectType', 'libraryType', 'workRealm', 'merchandising']).optional(),
+  group: z.enum(['generic', 'workProjectType', 'hallWingType', 'workRealm', 'merchandising']).optional(),
   subgroup: z.enum(['Tales', 'Tunes', 'Television', 'entertainment', 'educational', 'newsPolitical']).optional(),
   order: z.number().int().min(0),
 }).strict();
@@ -127,3 +127,4 @@ export const UpdateAdminListInputSchema = z.object({
   );
 
 export type UpdateAdminListInput = z.infer<typeof UpdateAdminListInputSchema>;
+

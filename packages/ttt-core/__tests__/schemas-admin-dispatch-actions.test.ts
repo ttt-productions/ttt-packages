@@ -1,33 +1,33 @@
 import { describe, it, expect } from 'vitest';
 import {
-  UpdateAdminMessageStatusInputSchema,
+  UpdateAdminDispatchStatusInputSchema,
   UpdateInviteConfirmationInputSchema,
   UpdateInviteSharesInputSchema,
 } from '../src/schemas/admin-dispatch-actions';
 
-describe('UpdateAdminMessageStatusInputSchema', () => {
+describe('UpdateAdminDispatchStatusInputSchema', () => {
   it('accepts a valid input with closed_resolved', () => {
     const input = {
-      messageId: 'msg-1',
+      adminDispatchId: 'msg-1',
       newStatus: 'closed_resolved',
       lastMessage: 'Thanks, all resolved.',
     };
-    expect(UpdateAdminMessageStatusInputSchema.parse(input)).toEqual(input);
+    expect(UpdateAdminDispatchStatusInputSchema.parse(input)).toEqual(input);
   });
 
   it('accepts a valid input with closed_unresolved', () => {
     const input = {
-      messageId: 'msg-1',
+      adminDispatchId: 'msg-1',
       newStatus: 'closed_unresolved',
       lastMessage: 'Closing without resolution.',
     };
-    expect(UpdateAdminMessageStatusInputSchema.parse(input)).toEqual(input);
+    expect(UpdateAdminDispatchStatusInputSchema.parse(input)).toEqual(input);
   });
 
   it('rejects an unknown newStatus value', () => {
     expect(() =>
-      UpdateAdminMessageStatusInputSchema.parse({
-        messageId: 'msg-1',
+      UpdateAdminDispatchStatusInputSchema.parse({
+        adminDispatchId: 'msg-1',
         newStatus: 'open',
         lastMessage: 'x',
       }),
@@ -36,8 +36,8 @@ describe('UpdateAdminMessageStatusInputSchema', () => {
 
   it('rejects empty lastMessage', () => {
     expect(() =>
-      UpdateAdminMessageStatusInputSchema.parse({
-        messageId: 'msg-1',
+      UpdateAdminDispatchStatusInputSchema.parse({
+        adminDispatchId: 'msg-1',
         newStatus: 'closed_resolved',
         lastMessage: '',
       }),
@@ -46,8 +46,8 @@ describe('UpdateAdminMessageStatusInputSchema', () => {
 
   it('rejects unknown top-level keys (.strict)', () => {
     expect(() =>
-      UpdateAdminMessageStatusInputSchema.parse({
-        messageId: 'msg-1',
+      UpdateAdminDispatchStatusInputSchema.parse({
+        adminDispatchId: 'msg-1',
         newStatus: 'closed_resolved',
         lastMessage: 'x',
         extra: 'bad',
@@ -94,37 +94,37 @@ describe('UpdateInviteConfirmationInputSchema', () => {
 });
 
 describe('UpdateInviteSharesInputSchema', () => {
-  it('accepts a valid input with newShares: 1', () => {
-    const input = { inviteId: 'invite-1', newShares: 1 };
+  it('accepts a valid input with newStakeShares: 1', () => {
+    const input = { inviteId: 'invite-1', newStakeShares: 1 };
     expect(UpdateInviteSharesInputSchema.parse(input)).toEqual(input);
   });
 
-  it('accepts a valid input with newShares: 50', () => {
-    const input = { inviteId: 'invite-1', newShares: 50 };
+  it('accepts a valid input with newStakeShares: 50', () => {
+    const input = { inviteId: 'invite-1', newStakeShares: 50 };
     expect(UpdateInviteSharesInputSchema.parse(input)).toEqual(input);
   });
 
-  it('rejects newShares: 0', () => {
+  it('rejects newStakeShares: 0', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ inviteId: 'invite-1', newShares: 0 }),
+      UpdateInviteSharesInputSchema.parse({ inviteId: 'invite-1', newStakeShares: 0 }),
     ).toThrow();
   });
 
-  it('rejects negative newShares', () => {
+  it('rejects negative newStakeShares', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ inviteId: 'invite-1', newShares: -5 }),
+      UpdateInviteSharesInputSchema.parse({ inviteId: 'invite-1', newStakeShares: -5 }),
     ).toThrow();
   });
 
-  it('rejects non-integer newShares', () => {
+  it('rejects non-integer newStakeShares', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ inviteId: 'invite-1', newShares: 1.5 }),
+      UpdateInviteSharesInputSchema.parse({ inviteId: 'invite-1', newStakeShares: 1.5 }),
     ).toThrow();
   });
 
   it('rejects empty inviteId', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ inviteId: '', newShares: 10 }),
+      UpdateInviteSharesInputSchema.parse({ inviteId: '', newStakeShares: 10 }),
     ).toThrow();
   });
 
@@ -132,9 +132,11 @@ describe('UpdateInviteSharesInputSchema', () => {
     expect(() =>
       UpdateInviteSharesInputSchema.parse({
         inviteId: 'invite-1',
-        newShares: 10,
+        newStakeShares: 10,
         extra: 'bad',
       }),
     ).toThrow();
   });
 });
+
+

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   StakeShareOperationSchema,
-  ManageProjectSharesInputSchema,
+  ManageWorkProjectStakeSharesInputSchema,
 } from '../src/schemas/share-operation';
 
 describe('StakeShareOperationSchema', () => {
@@ -116,36 +116,38 @@ describe('StakeShareOperationSchema', () => {
           type: 'create-workProject',
           amount: 1,
           user: { uid: 'u' },
-          projectData: { projectId: 'p', anything: 'here' },
+          projectData: { workProjectId: 'p', anything: 'here' },
         }),
       ).toThrow();
     });
   });
 });
 
-describe('ManageProjectSharesInputSchema', () => {
+describe('ManageWorkProjectStakeSharesInputSchema', () => {
   it('accepts a valid input', () => {
     const input = {
-      projectId: 'workProject-1',
+      workProjectId: 'workProject-1',
       operation: { type: 'add-pending', amount: 10, sourceId: 'i-1' },
     };
-    expect(ManageProjectSharesInputSchema.parse(input)).toEqual(input);
+    expect(ManageWorkProjectStakeSharesInputSchema.parse(input)).toEqual(input);
   });
-  it('rejects empty projectId', () => {
+  it('rejects empty workProjectId', () => {
     expect(() =>
-      ManageProjectSharesInputSchema.parse({
-        projectId: '',
+      ManageWorkProjectStakeSharesInputSchema.parse({
+        workProjectId: '',
         operation: { type: 'add-pending' },
       }),
     ).toThrow();
   });
   it('rejects unknown top-level keys (.strict)', () => {
     expect(() =>
-      ManageProjectSharesInputSchema.parse({
-        projectId: 'p-1',
+      ManageWorkProjectStakeSharesInputSchema.parse({
+        workProjectId: 'p-1',
         operation: { type: 'add-pending' },
         actorIsAdmin: true,
       }),
     ).toThrow();
   });
 });
+
+

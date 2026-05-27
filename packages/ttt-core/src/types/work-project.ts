@@ -1,23 +1,23 @@
 // WorkProject-related Firestore document types
-export type { ShortProject } from '../media/atoms.js';
+export type { ShortWorkProject } from '../media/atoms.js';
 
-import type { LibraryItemType } from './content.js';
-import type { ShortProject } from '../media/atoms.js';
-import type { ProjectRoleId } from '../permissions/index.js';
+import type { HallWingType } from './content.js';
+import type { ShortWorkProject } from '../media/atoms.js';
+import type { GuildStandingId } from '../permissions/index.js';
 
-export type ProjectMemberStatus = 'active' | 'departed';
+export type GuildmateStatus = 'active' | 'departed';
 
-export type ProjectMember = {
+export type GuildmateUser = {
   uid: string;
   displayName: string;
-  roles: ProjectRoleId[];
+  roles: GuildStandingId[];
   tradeProfessions: string[];
   sharesNumber: number;
   joinedAt: number;
-  status: ProjectMemberStatus;
+  status: GuildmateStatus;
 };
 
-export type ProjectFile = {
+export type WorkAsset = {
   id: string;
   name: string;
   url: string;
@@ -27,31 +27,31 @@ export type ProjectFile = {
   createdBy: { uid: string };
 };
 
-export type PendingShares = {
+export type PendingStakeShares = {
   [inviteId: string]: {
     amount: number;
     createdAt: number;
   };
 };
 
-export type FullProject = {
-  projectId: string;
+export type FullWorkProject = {
+  workProjectId: string;
   createdOn: number;
   type: string;
   workingDescription: string;
   workingTitle: string;
-  libraryType: LibraryItemType;
+  hallWingType: HallWingType;
   createdBy: { uid: string };
   status: 'open' | 'pendingVerification' | 'published' | 'rejected';
-  activeUserIds?: { [key: string]: boolean };
+  guildmateUserIds?: { [key: string]: boolean };
   invitedUserIds?: { [key: string]: boolean };
-  universeId?: string;
-  origin?: 'newUniverse' | 'existingUniverse' | 'standalone';
-  pendingShares?: PendingShares;
+  workRealmId?: string;
+  origin?: 'newWorkRealm' | 'existingWorkRealm' | 'standalone';
+  pendingStakeShares?: PendingStakeShares;
 };
 
-export type PublicProject = {
-  projectId: string;
+export type PublicWorkProject = {
+  workProjectId: string;
   createdOn: number;
   type: string;
   workingTitle: string;
@@ -61,26 +61,28 @@ export type PublicProject = {
 };
 
 export type WorkRealm = {
-  universeId: string;
+  workRealmId: string;
   workingTitle: string;
   workingDescription: string;
   createdOn: number;
   createdBy: { uid: string };
   type: string;
-  projectIds: string[];
+  workProjectIds: string[];
 };
 
-export type ProjectInvite = {
+export type GuildInvite = {
   inviteId: string;
   createdBy: { uid: string };
   createdOn: number;
   message: string;
-  workProject: ShortProject;
+  workProject: ShortWorkProject;
   status: 'pending' | 'accepted' | 'declined';
   lastUpdatedAt: number;
 };
 
 // ShareOperation type and union are now defined by the Zod schema.
 // See packages/ttt-core/src/schemas/share-operation.ts for the source of truth.
-// The old `projectData?: FullProject` field was dead and has been removed.
+// The old `projectData?: FullWorkProject` field was dead and has been removed.
 export type { ShareOperation, ShareOperationType } from '../schemas/share-operation.js';
+
+

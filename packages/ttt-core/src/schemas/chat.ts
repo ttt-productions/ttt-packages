@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import {
   workProjectIdSchema,
-  channelIdSchema,
+  guildChatChannelIdSchema,
   inviteIdSchema,
   adminDispatchIdSchema,
 } from './atoms.js';
@@ -11,26 +11,26 @@ import {
   ChatAttachmentSchema,
 } from '@ttt-productions/chat-schemas';
 
-export const ArchiveChatChannelInputSchema = z.object({
-  projectId: workProjectIdSchema,
-  channelId: channelIdSchema,
+export const ArchiveGuildChatChannelInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
+  guildChatChannelId: guildChatChannelIdSchema,
 }).strict();
-export type ArchiveChatChannelInput = z.infer<typeof ArchiveChatChannelInputSchema>;
+export type ArchiveGuildChatChannelInput = z.infer<typeof ArchiveGuildChatChannelInputSchema>;
 
-export const CreateChatChannelInputSchema = z.object({
-  projectId: workProjectIdSchema,
+export const CreateGuildChatChannelInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
   channelName: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
-  requiredRoles: z.array(z.string()),
+  requiredGuildStandings: z.array(z.string()),
   allowedUserIds: z.array(z.string()),
 }).strict();
-export type CreateChatChannelInput = z.infer<typeof CreateChatChannelInputSchema>;
+export type CreateGuildChatChannelInput = z.infer<typeof CreateGuildChatChannelInputSchema>;
 
-export const SendChatMessageInputSchema = z.discriminatedUnion('threadKind', [
+export const SendGuildChatMessageInputSchema = z.discriminatedUnion('threadKind', [
   z.object({
-    threadKind: z.literal('projectChannel'),
-    projectId: workProjectIdSchema,
-    channelId: channelIdSchema,
+    threadKind: z.literal('guildChatChannel'),
+    workProjectId: workProjectIdSchema,
+    guildChatChannelId: guildChatChannelIdSchema,
     text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
     replyTo: ReplyToSchema.optional(),
     attachment: ChatAttachmentSchema.optional(),
@@ -44,14 +44,14 @@ export const SendChatMessageInputSchema = z.discriminatedUnion('threadKind', [
   }).strict(),
   z.object({
     threadKind: z.literal('adminSupport'),
-    adminMessageId: adminDispatchIdSchema,
+    adminDispatchId: adminDispatchIdSchema,
     isUserReply: z.boolean(),
     text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
     replyTo: ReplyToSchema.optional(),
     attachment: ChatAttachmentSchema.optional(),
   }).strict(),
 ]);
-export type SendChatMessageInput = z.infer<typeof SendChatMessageInputSchema>;
+export type SendGuildChatMessageInput = z.infer<typeof SendGuildChatMessageInputSchema>;
 
 export const StartAdminSupportThreadInputSchema = z.object({
   subject: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
@@ -59,12 +59,15 @@ export const StartAdminSupportThreadInputSchema = z.object({
 }).strict();
 export type StartAdminSupportThreadInput = z.infer<typeof StartAdminSupportThreadInputSchema>;
 
-export const UpdateChatChannelInputSchema = z.object({
-  projectId: workProjectIdSchema,
-  channelId: channelIdSchema,
+export const UpdateGuildChatChannelInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
+  guildChatChannelId: guildChatChannelIdSchema,
   channelName: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
-  requiredRoles: z.array(z.string()).optional(),
+  requiredGuildStandings: z.array(z.string()).optional(),
   allowedUserIds: z.array(z.string()).optional(),
 }).strict();
-export type UpdateChatChannelInput = z.infer<typeof UpdateChatChannelInputSchema>;
+export type UpdateGuildChatChannelInput = z.infer<typeof UpdateGuildChatChannelInputSchema>;
+
+
+

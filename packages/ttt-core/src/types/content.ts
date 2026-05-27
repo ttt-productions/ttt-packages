@@ -35,7 +35,7 @@ export type FullTune = {
   createdOn: number;
 };
 
-export type FullSong = {
+export type FullTuneTrack = {
   uid: string;
   title: string;
   description?: string;
@@ -58,7 +58,7 @@ export type FullTelevision = {
   categories: string[];
 };
 
-export type FullShow = {
+export type FullTelevisionEpisode = {
   uid: string;
   title: string;
   description?: string;
@@ -72,31 +72,31 @@ export type FullShow = {
 
 // --- HallLibrary Types ---
 
-export const LIBRARY_TYPE_KEYS = ['entertainment', 'educational', 'newsPolitical'] as const;
-export type LibraryItemType = (typeof LIBRARY_TYPE_KEYS)[number];
+export const HALL_WING_TYPE_KEYS = ['entertainment', 'educational', 'newsPolitical'] as const;
+export type HallWingType = (typeof HALL_WING_TYPE_KEYS)[number];
 
-/** LibraryItemType with 'All' filter option — for UI filtering only, not stored in Firestore */
-export type LibraryItemTypeFilter = LibraryItemType | 'All';
+/** HallWingType with 'All' filter option — for UI filtering only, not stored in Firestore */
+export type HallWingTypeFilter = HallWingType | 'All';
 
-export const PROJECT_TYPE_KEYS = ['Tales', 'Tunes', 'Television'] as const;
-export type ProjectType = (typeof PROJECT_TYPE_KEYS)[number];
+export const WORK_PROJECT_TYPE_KEYS = ['Tales', 'Tunes', 'Television'] as const;
+export type WorkProjectType = (typeof WORK_PROJECT_TYPE_KEYS)[number];
 
-/** ProjectType with 'All' filter option — for UI filtering only, not stored in Firestore */
-export type ProjectTypeFilter = ProjectType | 'All';
+/** WorkProjectType with 'All' filter option — for UI filtering only, not stored in Firestore */
+export type WorkProjectTypeFilter = WorkProjectType | 'All';
 
-export type ItemsKey = 'songs' | 'chapters' | 'shows';
+export type ItemsKey = 'tuneTracks' | 'chapters' | 'televisionEpisodes';
 
 // --- HallLibrary Publishing Flow ---
 
 export interface ThresholdItem {
   thresholdItemId: string;
-  libraryId: string;
-  projectId: string;
-  projectType: ProjectType;
+  hallItemId: string;
+  workProjectId: string;
+  workProjectType: WorkProjectType;
   itemId: string;
   itemsKey: ItemsKey;
   order: number;
-  libraryType: LibraryItemType;
+  hallWingType: HallWingType;
   submittedAt: number;
   reviewStatus: 'pending' | 'needs_revision' | 'approved';
   adminNotes?: string;
@@ -105,13 +105,13 @@ export interface ThresholdItem {
 }
 
 export interface PublishedLibraryItem {
-  libraryId: string;
-  projectId: string;
-  projectType: ProjectType;
+  hallItemId: string;
+  workProjectId: string;
+  workProjectType: WorkProjectType;
   status: 'published' | 'paused' | 'banned';
   createdOn: number;
   publishedAt?: number;
-  libraryType: LibraryItemType;
+  hallWingType: HallWingType;
 
   // WorkProject-level summary (written flat on first publish of this hallLibrary).
   // Optional on the type because the parent doc may exist in a pre-publish
@@ -125,13 +125,13 @@ export interface PublishedLibraryItem {
   categories?: string[];
 
   // Stats
-  totalDonations?: number;
-  donationCount?: number;
+  totalPledgePayments?: number;
+  pledgePaymentCount?: number;
   viewCount?: number;
   followerCount?: number;
 }
 
-export interface PublishedSong {
+export interface PublishedTuneTrack {
   uid: string;
   title: string;
   order: number;
@@ -149,7 +149,7 @@ export interface PublishedChapter {
   photoUrl?: string;
 }
 
-export interface PublishedShow {
+export interface PublishedTelevisionEpisode {
   uid: string;
   title: string;
   order: number;
@@ -158,7 +158,7 @@ export interface PublishedShow {
   photoUrl?: string;
 }
 
-export type LibraryPreferences = {
+export type HallLibraryPreferences = {
   userId: string;
   hiddenItems: string[];
   followedItems: string[];
@@ -171,23 +171,23 @@ export type LibraryPreferences = {
   lastUpdated: number;
 };
 
-export type LibraryUserStatus = {
+export type HallLibraryUserStatus = {
   followed: boolean;
   bookmarked: boolean;
   inProgress: boolean;
 };
 
-export type LibrarySortOption =
+export type HallLibrarySortOption =
   | 'newest'
   | 'oldest'
-  | 'most_donated'
+  | 'most_pledged'
   | 'most_viewed';
 
-export type LibraryFilters = {
+export type HallLibraryFilters = {
   category?: string;
-  libraryType: LibraryItemTypeFilter;
-  projectType: ProjectTypeFilter;
-  sortBy: LibrarySortOption;
+  hallWingType: HallWingTypeFilter;
+  workProjectType: WorkProjectTypeFilter;
+  sortBy: HallLibrarySortOption;
 };
 
 // --- Future Plans ---
@@ -208,7 +208,7 @@ export type FuturePlansDocument = {
 
 // --- Rules and Agreements ---
 
-export type RuleGroup = 'generic' | 'projectType' | 'libraryType' | 'workRealm' | 'merchandising';
+export type RuleGroup = 'generic' | 'workProjectType' | 'hallWingType' | 'workRealm' | 'merchandising';
 export type RuleSubgroup = 'Tales' | 'Tunes' | 'Television' | 'entertainment' | 'educational' | 'newsPolitical';
 
 export type Rule = {
@@ -234,3 +234,5 @@ export type RulesAndAgreements = {
     television?: AgreementCategory;
   };
 };
+
+

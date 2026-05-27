@@ -10,7 +10,7 @@ export const violationIdSchema = z.string().min(1);
 export const auditionIdSchema = z.string().min(1);
 export const commissionListingIdSchema = z.string().min(1);
 export const auditionEntryIdSchema = z.string().min(1);
-export const channelIdSchema = z.string().min(1);
+export const guildChatChannelIdSchema = z.string().min(1);
 export const taleIdSchema = z.string().min(1);
 export const tuneIdSchema = z.string().min(1);
 export const televisionIdSchema = z.string().min(1);
@@ -30,3 +30,5 @@ export const workProjectTypeSchema = z.enum(['Tales', 'Tunes', 'Television']);
 
 // String shape atoms.
 export const titleSchema = z.string().min(1).max(200);
+
+

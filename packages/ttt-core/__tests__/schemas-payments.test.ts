@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CreateStripeCheckoutSessionInputSchema } from '../src/schemas/payments';
-import { MAX_DONATION_AMOUNT_CENTS } from '../src/constants/business';
+import { MAX_PLEDGE_PAYMENT_AMOUNT_CENTS } from '../src/constants/business';
 
 describe('CreateStripeCheckoutSessionInputSchema', () => {
   describe('amount lower bound', () => {
@@ -16,16 +16,16 @@ describe('CreateStripeCheckoutSessionInputSchema', () => {
   });
 
   describe('amount upper bound', () => {
-    it('accepts amount exactly at MAX_DONATION_AMOUNT_CENTS', () => {
+    it('accepts amount exactly at MAX_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
       const result = CreateStripeCheckoutSessionInputSchema.safeParse({
-        amount: MAX_DONATION_AMOUNT_CENTS,
+        amount: MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
       });
       expect(result.success).toBe(true);
     });
 
-    it('rejects amount one cent above MAX_DONATION_AMOUNT_CENTS', () => {
+    it('rejects amount one cent above MAX_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
       const result = CreateStripeCheckoutSessionInputSchema.safeParse({
-        amount: MAX_DONATION_AMOUNT_CENTS + 1,
+        amount: MAX_PLEDGE_PAYMENT_AMOUNT_CENTS + 1,
       });
       expect(result.success).toBe(false);
     });
@@ -89,8 +89,9 @@ describe('CreateStripeCheckoutSessionInputSchema', () => {
   });
 });
 
-describe('MAX_DONATION_AMOUNT_CENTS', () => {
+describe('MAX_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
   it('equals $500,000.00 expressed in cents', () => {
-    expect(MAX_DONATION_AMOUNT_CENTS).toBe(500_000 * 100);
+    expect(MAX_PLEDGE_PAYMENT_AMOUNT_CENTS).toBe(500_000 * 100);
   });
 });
+

@@ -1,15 +1,15 @@
 import { z } from "zod";
 
-export const ShortProjectSchema = z
+export const ShortWorkProjectSchema = z
   .object({
-    projectId: z.string().min(1),
+    workProjectId: z.string().min(1),
     type: z.string().min(1),
     workingDescription: z.string(),
     workingTitle: z.string(),
   })
   .strict();
 
-export type ShortProject = z.infer<typeof ShortProjectSchema>;
+export type ShortWorkProject = z.infer<typeof ShortWorkProjectSchema>;
 
 export const MentionTypeSchema = z.enum(['user', 'workProject', 'commission', 'audition']);
 
@@ -24,3 +24,5 @@ export const MentionSchema = z
 
 export type MentionType = z.infer<typeof MentionTypeSchema>;
 export type Mention = z.infer<typeof MentionSchema>;
+
+

@@ -10,7 +10,7 @@ const onProgressSchema = z
   .returns(z.void())
   .optional();
 
-export const SquareSquareStreetzPostVariablesSchema = z.object({
+export const SquareStreetzPostVariablesSchema = z.object({
   userId: userIdSchema,
   content: z.string().max(MAX_POST_LENGTH),
   mentions: z.array(MentionSchema),
@@ -18,4 +18,6 @@ export const SquareSquareStreetzPostVariablesSchema = z.object({
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
-export type SquareStreetzPostVariables = z.infer<typeof SquareSquareStreetzPostVariablesSchema>;
+export type SquareStreetzPostVariables = z.infer<typeof SquareStreetzPostVariablesSchema>;
+
+

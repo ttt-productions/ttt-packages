@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { UploadState } from '@ttt-productions/media-schemas';
-import type { ProjectFile } from '../types/work-project.js';
+import type { WorkAsset } from '../types/work-project.js';
 
 const onProgressSchema = z
   .function()
@@ -9,10 +9,11 @@ const onProgressSchema = z
   .optional();
 
 export const UploadWorkAssetVariablesSchema = z.object({
-  projectId: z.string().min(1),
+  workProjectId: z.string().min(1),
   file: z.instanceof(File),
-  workAssets: z.array(z.custom<ProjectFile>()),
+  workAssets: z.array(z.custom<WorkAsset>()),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type UploadWorkAssetVariables = z.infer<typeof UploadWorkAssetVariablesSchema>;
+

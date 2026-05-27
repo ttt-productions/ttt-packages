@@ -25,9 +25,9 @@ describe('buildTempUploadPath', () => {
     );
   });
 
-  it('builds path for chat-attachment', () => {
-    expect(buildTempUploadPath('chat-attachment', 'user_123', 'file_3')).toBe(
-      'uploads/chat-attachment/user_123/file_3'
+  it('builds path for guild-chat-message-attachment', () => {
+    expect(buildTempUploadPath('guild-chat-message-attachment', 'user_123', 'file_3')).toBe(
+      'uploads/guild-chat-message-attachment/user_123/file_3'
     );
   });
 });
@@ -36,14 +36,14 @@ describe('isTempUploadPath', () => {
   it('returns true for valid temp paths', () => {
     expect(isTempUploadPath('uploads/profile-picture/user_abc/file_1')).toBe(true);
     expect(isTempUploadPath('uploads/squareStreetz/user_xyz/file_2')).toBe(true);
-    expect(isTempUploadPath('uploads/chat-attachment/user_123/some-uuid')).toBe(true);
+    expect(isTempUploadPath('uploads/guild-chat-message-attachment/user_123/some-uuid')).toBe(true);
   });
 
   it('returns false for finalized storage paths', () => {
     expect(isTempUploadPath('userProfiles/userId/profile-picture/file.jpg')).toBe(false);
     expect(isTempUploadPath('squareStreetzFeed/userId/postId/file.jpg')).toBe(false);
-    expect(isTempUploadPath('allWorkProjects/projectId/files/file.jpg')).toBe(false);
-    expect(isTempUploadPath('commissionListings/jobId/file.jpg')).toBe(false);
+    expect(isTempUploadPath('allWorkProjects/workProjectId/files/file.jpg')).toBe(false);
+    expect(isTempUploadPath('commissionListings/commissionListingId/file.jpg')).toBe(false);
     expect(isTempUploadPath('auditionBoard/oppId/video/file.mp4')).toBe(false);
     expect(isTempUploadPath('messageAttachments/userId/convoId/file.jpg')).toBe(false);
     expect(isTempUploadPath('rejected/userId/file.jpg')).toBe(false);
@@ -72,8 +72,8 @@ describe('extractFileIdFromTempPath', () => {
   it('returns null for finalized storage paths', () => {
     expect(extractFileIdFromTempPath('userProfiles/userId/profile-picture/file.jpg')).toBeNull();
     expect(extractFileIdFromTempPath('squareStreetzFeed/userId/postId/file.jpg')).toBeNull();
-    expect(extractFileIdFromTempPath('allWorkProjects/projectId/files/file.jpg')).toBeNull();
-    expect(extractFileIdFromTempPath('commissionListings/jobId/file.jpg')).toBeNull();
+    expect(extractFileIdFromTempPath('allWorkProjects/workProjectId/files/file.jpg')).toBeNull();
+    expect(extractFileIdFromTempPath('commissionListings/commissionListingId/file.jpg')).toBeNull();
     expect(extractFileIdFromTempPath('auditionBoard/oppId/video/file.mp4')).toBeNull();
     expect(extractFileIdFromTempPath('messageAttachments/userId/convoId/file.jpg')).toBeNull();
     expect(extractFileIdFromTempPath('rejected/userId/file.jpg')).toBeNull();
@@ -92,3 +92,4 @@ describe('extractFileIdFromTempPath', () => {
     expect(extractFileIdFromTempPath('foo/uploads/a/b/c')).toBeNull();
   });
 });
+

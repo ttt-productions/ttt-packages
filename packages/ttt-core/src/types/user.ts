@@ -33,7 +33,7 @@ export type OwnedWorkProject = {
   workingDescription: string;
   type: string;
   createdOn: number;
-  libraryType: LibraryItemType;
+  hallWingType: HallWingType;
 };
 
 export type AssociatedWorkProject = {
@@ -44,8 +44,8 @@ export type AssociatedWorkProject = {
   joinedOn: number;
 };
 
-// LibraryItemType forward reference — re-exported from content.ts
-import type { LibraryItemType } from './content.js';
+// HallWingType forward reference — re-exported from content.ts
+import type { HallWingType } from './content.js';
 
 export type FullUser = {
   uid: string;
@@ -60,5 +60,6 @@ export type FullUser = {
   associatedWorkProjects?: AssociatedWorkProject[];
   isWaitingForNewsApproval?: boolean;
   createdAt: number;
-  streetzAgreementsDate?: number;
+  squareStreetzAgreementsDate?: number;
 };
+

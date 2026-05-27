@@ -8,12 +8,12 @@ import type { InviteSource } from '../schemas/work-project-management.js';
 
 // --- WorkProject Chat ---
 
-export interface ChatChannel {
-  channelId: string;
-  projectId: string;
+export interface GuildChatChannel {
+  guildChatChannelId: string;
+  workProjectId: string;
   channelName: string;
   description?: string;
-  requiredRoles: string[];
+  requiredGuildStandings: string[];
   allowedUserIds: string[];
   createdAt: number;
   createdBy: string;
@@ -25,13 +25,13 @@ export interface ChatChannel {
 
 // --- WorkProject Invite Conversations ---
 
-export interface ProjectInviteConversation {
+export interface GuildInviteConversation {
   inviteId: string;
-  projectId: string;
+  workProjectId: string;
   relatedUserIds: string[];
-  projectTitle: string;
+  workProjectTitle: string;
   workProject: {
-    projectId: string;
+    workProjectId: string;
     workingTitle: string;
     type: string;
     workingDescription: string;
@@ -39,7 +39,7 @@ export interface ProjectInviteConversation {
   workSteward: { uid: string };
   sender: { uid: string };
   recipient: { uid: string };
-  sharesOffered: number;
+  stakeSharesOffered: number;
   source: InviteSource;
   status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'finalized' | 'error';
   createdAt: number;
@@ -53,8 +53,8 @@ export interface ProjectInviteConversation {
 
 // --- Admin Messages ---
 
-export interface AdminMessage {
-  messageId: string;
+export interface AdminDispatch {
+  adminDispatchId: string;
   userId: string;
   initiatorUserId: string;
   initiatedBy: 'user' | 'admin';
@@ -71,3 +71,4 @@ export interface AdminMessage {
    */
   closedBy?: string;
 }
+

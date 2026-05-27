@@ -8,8 +8,8 @@ export const AcceptViolationDecisionInputSchema = z.object({
 export type AcceptViolationDecisionInput = z.infer<typeof AcceptViolationDecisionInputSchema>;
 
 export const CreateShortLinkInputSchema = z.object({
-  opportunityId: auditionIdSchema,
-  replyId: auditionEntryIdSchema.optional(),
+  auditionId: auditionIdSchema,
+  auditionEntryId: auditionEntryIdSchema.optional(),
 }).strict();
 export type CreateShortLinkInput = z.infer<typeof CreateShortLinkInputSchema>;
 
@@ -34,6 +34,7 @@ export const TrackShortLinkClickInputSchema = z.object({
 export type TrackShortLinkClickInput = z.infer<typeof TrackShortLinkClickInputSchema>;
 
 export const MarkAdminDispatchReadInputSchema = z.object({
-  messageId: z.string().min(1).max(128),
+  adminDispatchId: z.string().min(1).max(128),
 }).strict();
-export type MarkAdminMessageReadInput = z.infer<typeof MarkAdminDispatchReadInputSchema>;
+export type MarkAdminDispatchReadInput = z.infer<typeof MarkAdminDispatchReadInputSchema>;
+

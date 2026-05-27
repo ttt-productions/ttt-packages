@@ -8,13 +8,14 @@ const onProgressSchema = z
   .optional();
 
 export const CreateAdminAuditionVariablesSchema = z.object({
-  type: z.enum(['SystemInput', 'SponsoredProjects']),
+  type: z.enum(['platformAudition', 'sponsoredAudition']),
   title: z.string().min(1),
   description: z.string(),
   videoFile: z.instanceof(File).or(z.instanceof(Blob)),
   openTill: z.string().min(1),
-  projectAmountUSD: z.number().optional(),
+  sponsoredAuditionAmountUSD: z.number().optional(),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type CreateAdminAuditionVariables = z.infer<typeof CreateAdminAuditionVariablesSchema>;
+

@@ -5,22 +5,22 @@ export const ITEMS_PER_PAGE_GENERAL = 5;
 
 export const ITEMS_PER_PAGE_MESSAGES = 5;
 export const ITEMS_PER_PAGE_SYSTEM_MESSAGES = 6;
-export const ITEMS_PER_PAGE_JOB_BOARD = 5;
-export const ITEMS_PER_PAGE_PROJECT_USERS = 3;
-export const ITEMS_PER_PAGE_PROJECT_INVITES = 10;
-export const ITEMS_PER_PAGE_OWNED_PROJECTS = 3;
-export const ITEMS_PER_PAGE_ASSOCIATED_PROJECTS = 3;
+export const ITEMS_PER_PAGE_COMMISSION_BOARD = 5;
+export const ITEMS_PER_PAGE_GUILDMATE_USERS = 3;
+export const ITEMS_PER_PAGE_GUILD_INVITES = 10;
+export const ITEMS_PER_PAGE_OWNED_WORK_PROJECTS = 3;
+export const ITEMS_PER_PAGE_ASSOCIATED_WORK_PROJECTS = 3;
 export const ITEMS_PER_PAGE_CHAPTERS = 5;
-export const ITEMS_PER_PAGE_SONGS = 3;
-export const ITEMS_PER_PAGE_SHOWS = 3;
-export const ITEMS_PER_PAGE_APPLICANTS = 5;
+export const ITEMS_PER_PAGE_TUNE_TRACKS = 3;
+export const ITEMS_PER_PAGE_TELEVISION_EPISODES = 3;
+export const ITEMS_PER_PAGE_PROPOSAL_ARTISANS = 5;
 export const ITEMS_PER_PAGE_FOLLOWED_USERS = 10;
 export const ITEMS_PER_PAGE_ADMIN_SYSTEM_MESSAGES = 10;
 
 // --- Hook-specific page sizes ---
 
-/** Page size for the donations list hook. */
-export const DONATIONS_PER_PAGE = 20;
+/** Page size for the pledge-payments list hook. */
+export const PLEDGE_PAYMENTS_PER_PAGE = 20;
 
 /** Page size for the pending-media archive list hook. */
 export const ARCHIVE_PER_PAGE = 10;
@@ -49,3 +49,4 @@ export const LIBRARY_CONSTANTS = {
   MAX_TAGS_PER_ITEM: 10,
   SEARCH_DEBOUNCE_MS: 300,
 } as const;
+

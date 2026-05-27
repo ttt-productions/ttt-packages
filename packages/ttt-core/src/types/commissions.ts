@@ -1,9 +1,9 @@
 // Commission board and Audition types
 
-import type { ShortProject } from './work-project.js';
-import type { JobApplicationStatus } from '../schemas/commissions.js';
+import type { ShortWorkProject } from './work-project.js';
+import type { CommissionProposalStatus } from '../schemas/commissions.js';
 
-export type JobFile = {
+export type CommissionAttachment = {
   pendingMediaId?: string;
   name: string;
   url: string;
@@ -11,30 +11,30 @@ export type JobFile = {
   size: number;
 };
 
-export type FullJob = {
-  jobId: string;
+export type FullCommissionListing = {
+  commissionListingId: string;
   title: string;
   description: string;
-  jobFile?: JobFile;
+  commissionAttachment?: CommissionAttachment;
   requiredTradeProfessions: string[];
-  sharesOffered: number;
+  stakeSharesOffered: number;
   createdAt: number;
   createdBy: { uid: string };
-  projectAssociatedWith: ShortProject;
+  workProjectAssociatedWith: ShortWorkProject;
   status: 'open' | 'closed';
-  savedApplicants: string[];
+  savedProposalArtisans: string[];
 };
 
-export type FullJobReply = {
-  replyId: string;
-  jobId: string;
-  projectId: string;
-  reply: string;
-  replyFile?: string;
-  replyFileType?: string;
+export type CommissionProposal = {
+  auditionEntryId: string;
+  commissionListingId: string;
+  workProjectId: string;
+  proposalText: string;
+  proposalFileUrl?: string;
+  proposalFileType?: string;
   createdBy: { uid: string };
   createdOn: number;
-  status: JobApplicationStatus;
+  status: CommissionProposalStatus;
   inviteId?: string;
   invitedOn?: number;
   acceptedOn?: number;
@@ -43,11 +43,11 @@ export type FullJobReply = {
 
 // --- Audition ---
 
-export type OpportunityType = 'SystemInput' | 'SponsoredProjects' | 'ProjectInput';
+export type AuditionType = 'platformAudition' | 'sponsoredAudition' | 'workAudition';
 
 export type Audition = {
-  opportunityId: string;
-  type: OpportunityType;
+  auditionId: string;
+  type: AuditionType;
   title: string;
   description: string;
   videoUrl: string;
@@ -55,19 +55,19 @@ export type Audition = {
   openTill: number;
   createdOn: number;
   createdBy: { uid: string };
-  projectId?: string;
-  projectAmountUSD?: number;
-  sharesOffered?: number;
+  workProjectId?: string;
+  sponsoredAuditionAmountUSD?: number;
+  stakeSharesOffered?: number;
   status: 'open' | 'closed' | 'pendingReview';
   replyCount?: number;
   shortId?: string;
   shortUrl?: string;
 };
 
-export interface OpportunityReply {
-  replyId: string;
-  opportunityId: string;
-  projectId?: string;
+export interface AuditionEntry {
+  auditionEntryId: string;
+  auditionId: string;
+  workProjectId?: string;
   videoUrl: string;
   mediaType?: 'video' | 'image' | 'other';
   createdBy: { uid: string };
@@ -77,8 +77,10 @@ export interface OpportunityReply {
   shortUrl?: string;
 }
 
-export interface UserOpportunityVote {
-  votedForReplyId: string;
+export interface UserAuditionVote {
+  votedForAuditionEntryId: string;
   votedOn: number;
-  replyCreator: { uid: string };
+  auditionEntryCreator: { uid: string };
 }
+
+

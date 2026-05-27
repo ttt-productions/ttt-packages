@@ -86,7 +86,7 @@ describe('PendingMediaRejectedSchema', () => {
   it('parses a rejected doc', () => {
     const doc = {
       ...base,
-      fileOrigin: 'craftSkill-media',
+      fileOrigin: 'craft-skill-media',
       status: 'rejected',
       rejectedAt: 1_700_000_004_000,
       terminalAt: 1_700_000_004_000,
@@ -99,10 +99,10 @@ describe('PendingMediaRejectedSchema', () => {
 });
 
 describe('PendingMediaSchema (discriminated union)', () => {
-  it('selects the correct branch for chat-attachment', () => {
+  it('selects the correct branch for guild-chat-message-attachment', () => {
     const doc = {
       ...base,
-      fileOrigin: 'chat-attachment',
+      fileOrigin: 'guild-chat-message-attachment',
       status: 'processing',
       processingStartedAt: 1_700_000_001_500,
     };
@@ -160,3 +160,4 @@ describe('parseArchivedPendingMedia', () => {
     expect(result.errorCategory).toBe('validation');
   });
 });
+

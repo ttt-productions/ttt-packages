@@ -8,7 +8,7 @@ const onProgressSchema = z
   .optional();
 
 export const UpdateTelevisionCoverPhotoVariablesSchema = z.object({
-  projectId: z.string().min(1),
+  workProjectId: z.string().min(1),
   televisionId: z.string().min(1),
   file: z.instanceof(File).or(z.instanceof(Blob)),
   coverType: z.enum(['square', 'poster', 'cinematic']),
@@ -16,3 +16,4 @@ export const UpdateTelevisionCoverPhotoVariablesSchema = z.object({
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();
 export type UpdateTelevisionCoverPhotoVariables = z.infer<typeof UpdateTelevisionCoverPhotoVariablesSchema>;
+

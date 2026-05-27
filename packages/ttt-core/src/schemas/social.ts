@@ -3,15 +3,15 @@ import { MentionSchema } from '../media/atoms.js';
 import { userIdSchema } from './atoms.js';
 import { MAX_POST_LENGTH } from '../constants/business.js';
 
-export const LikeStreetzPostInputSchema = z.object({
+export const LikeSquareStreetzPostInputSchema = z.object({
   postId: z.string().min(1),
 }).strict();
-export type LikeStreetzPostInput = z.infer<typeof LikeStreetzPostInputSchema>;
+export type LikeSquareStreetzPostInput = z.infer<typeof LikeSquareStreetzPostInputSchema>;
 
-export const UnlikeStreetzPostInputSchema = z.object({
+export const UnlikeSquareStreetzPostInputSchema = z.object({
   postId: z.string().min(1),
 }).strict();
-export type UnlikeStreetzPostInput = z.infer<typeof UnlikeStreetzPostInputSchema>;
+export type UnlikeSquareStreetzPostInput = z.infer<typeof UnlikeSquareStreetzPostInputSchema>;
 
 export const FollowUserInputSchema = z.object({
   targetUid: userIdSchema,
@@ -28,8 +28,11 @@ export const AddToMentionHistoryInputSchema = z.object({
 }).strict();
 export type AddToMentionHistoryInput = z.infer<typeof AddToMentionHistoryInputSchema>;
 
-export const CreateStreetzTextPostInputSchema = z.object({
+export const CreateSquareStreetzTextPostInputSchema = z.object({
   textContent: z.string().min(1).max(MAX_POST_LENGTH),
   mentions: z.array(MentionSchema).optional(),
 }).strict();
-export type CreateStreetzTextPostInput = z.infer<typeof CreateStreetzTextPostInputSchema>;
+export type CreateSquareStreetzTextPostInput = z.infer<typeof CreateSquareStreetzTextPostInputSchema>;
+
+
+

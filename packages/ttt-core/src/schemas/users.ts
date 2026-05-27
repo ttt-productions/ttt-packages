@@ -2,11 +2,11 @@ import { z } from 'zod';
 import { userIdSchema } from './atoms.js';
 import { USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_REGEX } from '../constants/business.js';
 
-export const AcceptStreetzAgreementsInputSchema = z.object({}).strict();
-export type AcceptStreetzAgreementsInput = z.infer<typeof AcceptStreetzAgreementsInputSchema>;
+export const AcceptSquareStreetzAgreementsInputSchema = z.object({}).strict();
+export type AcceptSquareStreetzAgreementsInput = z.infer<typeof AcceptSquareStreetzAgreementsInputSchema>;
 
-export const BecomeCreatorInputSchema = z.object({}).strict();
-export type BecomeCreatorInput = z.infer<typeof BecomeCreatorInputSchema>;
+export const BecomeArtisanCreatorInputSchema = z.object({}).strict();
+export type BecomeArtisanCreatorInput = z.infer<typeof BecomeArtisanCreatorInputSchema>;
 
 export const MarkWaitingForNewsApprovalInputSchema = z.object({}).strict();
 export type MarkWaitingForNewsApprovalInput = z.infer<typeof MarkWaitingForNewsApprovalInputSchema>;
@@ -32,3 +32,4 @@ export const SetUserStatusInputSchema = z.object({
   status: z.enum(['active', 'disabled', 'banned']),
 }).strict();
 export type SetUserStatusInput = z.infer<typeof SetUserStatusInputSchema>;
+

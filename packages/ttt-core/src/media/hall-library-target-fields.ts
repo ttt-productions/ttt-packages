@@ -15,11 +15,12 @@ export const LIBRARY_TARGET_FIELDS = {
   'hallLibrary-cover-poster':    'coverPhotoPoster',
   'hallLibrary-cover-cinematic': 'coverPhotoCinematic',
   'chapter-photo':           'photoUrl',
-  'song-photo':              'photoUrl',
-  'song-audio':              'fileUrl',
-  'show-photo':              'photoUrl',
-  'show-video':              'videoUrl',
+  'tune-track-photo':              'photoUrl',
+  'tune-track-audio':              'fileUrl',
+  'television-episode-photo':              'photoUrl',
+  'television-episode-video':              'videoUrl',
 } as const satisfies Partial<Record<FileOrigin, string>>;
 
 export type LibraryFileOrigin = keyof typeof LIBRARY_TARGET_FIELDS;
 export type LibraryTargetField = typeof LIBRARY_TARGET_FIELDS[LibraryFileOrigin];
+

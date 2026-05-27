@@ -11,14 +11,14 @@ describe('audit type catalog', () => {
     const sample: AuditEventType[] = [
       'user.accountRegistered',
       'admin.guildStandingGranted',
-      'workProject.newProjectCreated',
+      'workProject.created',
       'content.taleDetailsUpdated',
       'payment.pledgePaymentCompleted',
       'system.manualIntervention',
       'social.userFollowed',
-      'chat.messageSent',
+      'chat.guildChatMessageSent',
       'craftSkill.userCraftSkillDeleted',
-      'audition.replyCreated',
+      'audition.entryCreated',
     ];
     expectTypeOf(sample).toEqualTypeOf<AuditEventType[]>();
   });
