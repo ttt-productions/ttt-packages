@@ -16,9 +16,9 @@
 export interface NotificationDoc {
   /** Firestore doc ID */
   id: string;
-  /** Notification type (e.g. 'content_report', 'project_invite') */
+  /** Notification type (e.g. 'content_report', 'entity_invite') */
   type: string;
-  /** Dedup key (e.g. 'report_projectXYZ') — same key = same notification */
+  /** Dedup key (e.g. 'report_entityXYZ') — same key = same notification */
   dedupKey: string;
   /** Category: 'user' | 'admin' (extensible) */
   category: string;
@@ -44,7 +44,7 @@ export interface NotificationDoc {
   // Navigation
   /** Route path when clicked (e.g. '/admin' or '/entities/abc') */
   targetPath: string;
-  /** Type-specific metadata (e.g. { projectId, reason }) */
+  /** Type-specific metadata (e.g. { entityId, reason }) */
   metadata: Record<string, unknown>;
 
   // Timestamps (epoch ms)

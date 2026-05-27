@@ -17,7 +17,7 @@ describe('useCheckoutNextImportantTask', () => {
   it('calls callFunction with an empty object, never undefined', async () => {
     const callFunction = vi.fn().mockResolvedValue({
       success: true,
-      task: { id: 't1', type: 'libraryReview', summary: 'mock' },
+      task: { id: 't1', type: 'sample-review', summary: 'mock' },
     });
 
     const { result } = renderHook(

@@ -31,11 +31,11 @@ describe('parseMentionTokens', () => {
   });
 
   it('parses multiple mentions of different kinds', () => {
-    const segments = parseMentionTokens('@[user:u1|Alice] and @[entity:p1|My Tale]');
+    const segments = parseMentionTokens('@[user:u1|Alice] and @[entity:e1|Sample Entity]');
     expect(segments).toHaveLength(3);
     expect(segments[0]).toEqual({ type: 'mention', ref: { kind: 'user', id: 'u1', displayText: 'Alice' } });
     expect(segments[1]).toEqual({ type: 'text', text: ' and ' });
-    expect(segments[2]).toEqual({ type: 'mention', ref: { kind: 'entity', id: 'p1', displayText: 'My Tale' } });
+    expect(segments[2]).toEqual({ type: 'mention', ref: { kind: 'entity', id: 'e1', displayText: 'Sample Entity' } });
   });
 
   it('treats unterminated tokens as plain text', () => {
@@ -63,8 +63,8 @@ describe('parseMentionTokens', () => {
   });
 
   it('handles displayText with spaces and special characters', () => {
-    expect(parseMentionTokens('@[entity:p1|My Cool Tale 2025!]')).toEqual([
-      { type: 'mention', ref: { kind: 'entity', id: 'p1', displayText: 'My Cool Tale 2025!' } },
+    expect(parseMentionTokens('@[entity:e1|Sample Entity 2025!]')).toEqual([
+      { type: 'mention', ref: { kind: 'entity', id: 'e1', displayText: 'Sample Entity 2025!' } },
     ]);
   });
 
@@ -82,7 +82,7 @@ describe('formatMentionToken', () => {
   });
 
   it('roundtrips through parseMentionTokens', () => {
-    const ref = { kind: 'entity' as const, id: 'p1', displayText: 'My Tale' };
+    const ref = { kind: 'entity' as const, id: 'e1', displayText: 'Sample Entity' };
     const token = formatMentionToken(ref);
     const parsed = parseMentionTokens(token);
     expect(parsed).toEqual([{ type: 'mention', ref }]);

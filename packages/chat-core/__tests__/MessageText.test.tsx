@@ -31,8 +31,8 @@ describe('MessageText', () => {
   });
 
   it('renders multiple mentions interleaved with text', () => {
-    const { container } = render(<MessageText text="@[user:a|A] then @[entity:p|P] end" />);
-    expect(container.textContent).toBe('@A then @P end');
+    const { container } = render(<MessageText text="@[user:a|A] then @[entity:e|E] end" />);
+    expect(container.textContent).toBe('@A then @E end');
   });
 
   it('applies className to the outer span', () => {

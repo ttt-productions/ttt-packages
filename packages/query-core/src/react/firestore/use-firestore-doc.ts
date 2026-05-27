@@ -16,7 +16,7 @@ import type { FirestoreDocOptions, WithId } from '../../firestore/types.js';
  * queryKey: ['user', userId],
  * });
  * * // With realtime updates
- * const { data: project } = useFirestoreDoc<Project>({
+ * const { data: entity } = useFirestoreDoc<Entity>({
  * docPath: `entities/${entityId}`,
  * queryKey: ['entity', entityId],
  * subscribe: true,
