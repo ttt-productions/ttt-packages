@@ -77,17 +77,17 @@ export const AuditionEntryTargetInfoSchema = z
   .strict();
 
 // ───────────────────────────────────────────────────────────────────
-// LIBRARY-COVER target info (square / poster / cinematic).
+// HALL LIBRARY COVER target info (square / poster / cinematic).
 // All three origins share one shape. The processor uses fileOrigin to
 // pick which field on the target doc gets written (see
-// LIBRARY_TARGET_FIELDS in `hall-library-target-fields.ts`).
+// HALL_LIBRARY_TARGET_FIELDS in `hall-library-target-fields.ts`).
 //
 // itemType discriminates which parent collection — `workProjectTales` vs
 // `workProjectTunes` vs `workProjectTelevision`. fileOrigin alone does NOT
 // disambiguate this because all three cover origins target whichever
 // hallLibrary item the user is editing.
 // ───────────────────────────────────────────────────────────────────
-const LibraryCoverTargetInfoSchema = z
+const HallLibraryCoverTargetInfoSchema = z
   .object({
     workProjectId: z.string().min(1),
     itemType: z.enum(['tale', 'tune', 'television']),
@@ -95,9 +95,9 @@ const LibraryCoverTargetInfoSchema = z
   })
   .strict();
 
-export const LibraryCoverSquareTargetInfoSchema = LibraryCoverTargetInfoSchema;
-export const LibraryCoverPosterTargetInfoSchema = LibraryCoverTargetInfoSchema;
-export const LibraryCoverCinematicTargetInfoSchema = LibraryCoverTargetInfoSchema;
+export const HallLibraryCoverSquareTargetInfoSchema = HallLibraryCoverTargetInfoSchema;
+export const HallLibraryCoverPosterTargetInfoSchema = HallLibraryCoverTargetInfoSchema;
+export const HallLibraryCoverCinematicTargetInfoSchema = HallLibraryCoverTargetInfoSchema;
 
 // ───────────────────────────────────────────────────────────────────
 // SUB-ITEM target info — one shape per item type, NOT per media kind.
@@ -106,7 +106,7 @@ export const LibraryCoverCinematicTargetInfoSchema = LibraryCoverTargetInfoSchem
 // television-episode-photo + television-episode-video share TelevisionEpisodeMediaTargetInfoSchema.
 // The processor derives the doc path from these IDs via
 // PATH_BUILDERS.taleChapter / .tuneTrack / .televisionEpisode, and derives the
-// field name from fileOrigin via LIBRARY_TARGET_FIELDS.
+// field name from fileOrigin via HALL_LIBRARY_TARGET_FIELDS.
 // ───────────────────────────────────────────────────────────────────
 export const ChapterPhotoTargetInfoSchema = z
   .object({
@@ -190,9 +190,9 @@ export type CommissionProposalTargetInfo = z.infer<typeof CommissionProposalTarg
 export type AuditionPromptTargetInfo = z.infer<typeof AuditionPromptTargetInfoSchema>;
 export type AdminAuditionPromptTargetInfo = z.infer<typeof AdminAuditionPromptTargetInfoSchema>;
 export type AuditionEntryTargetInfo = z.infer<typeof AuditionEntryTargetInfoSchema>;
-export type LibraryCoverSquareTargetInfo = z.infer<typeof LibraryCoverSquareTargetInfoSchema>;
-export type LibraryCoverPosterTargetInfo = z.infer<typeof LibraryCoverPosterTargetInfoSchema>;
-export type LibraryCoverCinematicTargetInfo = z.infer<typeof LibraryCoverCinematicTargetInfoSchema>;
+export type HallLibraryCoverSquareTargetInfo = z.infer<typeof HallLibraryCoverSquareTargetInfoSchema>;
+export type HallLibraryCoverPosterTargetInfo = z.infer<typeof HallLibraryCoverPosterTargetInfoSchema>;
+export type HallLibraryCoverCinematicTargetInfo = z.infer<typeof HallLibraryCoverCinematicTargetInfoSchema>;
 export type ChapterPhotoTargetInfo = z.infer<typeof ChapterPhotoTargetInfoSchema>;
 export type TuneTrackPhotoTargetInfo = z.infer<typeof TuneTrackPhotoTargetInfoSchema>;
 export type TuneTrackAudioTargetInfo = z.infer<typeof TuneTrackAudioTargetInfoSchema>;
@@ -211,9 +211,9 @@ export type TargetInfoFor<O extends FileOrigin> =
   : O extends 'audition-prompt' ? AuditionPromptTargetInfo
   : O extends 'admin-audition-prompt' ? AdminAuditionPromptTargetInfo
   : O extends 'audition-entry' ? AuditionEntryTargetInfo
-  : O extends 'hallLibrary-cover-square' ? LibraryCoverSquareTargetInfo
-  : O extends 'hallLibrary-cover-poster' ? LibraryCoverPosterTargetInfo
-  : O extends 'hallLibrary-cover-cinematic' ? LibraryCoverCinematicTargetInfo
+  : O extends 'hallLibrary-cover-square' ? HallLibraryCoverSquareTargetInfo
+  : O extends 'hallLibrary-cover-poster' ? HallLibraryCoverPosterTargetInfo
+  : O extends 'hallLibrary-cover-cinematic' ? HallLibraryCoverCinematicTargetInfo
   : O extends 'chapter-photo' ? ChapterPhotoTargetInfo
   : O extends 'tune-track-photo' ? TuneTrackPhotoTargetInfo
   : O extends 'tune-track-audio' ? TuneTrackAudioTargetInfo
@@ -240,9 +240,9 @@ export function parseTargetInfo<O extends FileOrigin>(
     case 'audition-prompt': return AuditionPromptTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'admin-audition-prompt': return AdminAuditionPromptTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'audition-entry': return AuditionEntryTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'hallLibrary-cover-square': return LibraryCoverSquareTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'hallLibrary-cover-poster': return LibraryCoverPosterTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'hallLibrary-cover-cinematic': return LibraryCoverCinematicTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'hallLibrary-cover-square': return HallLibraryCoverSquareTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'hallLibrary-cover-poster': return HallLibraryCoverPosterTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'hallLibrary-cover-cinematic': return HallLibraryCoverCinematicTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'chapter-photo': return ChapterPhotoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'tune-track-photo': return TuneTrackPhotoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'tune-track-audio': return TuneTrackAudioTargetInfoSchema.parse(raw) as TargetInfoFor<O>;

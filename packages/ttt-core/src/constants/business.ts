@@ -142,7 +142,7 @@ export const MAX_COMMISSION_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
 /** Maximum length for a commission description / cover letter. */
 export const MAX_COMMISSION_DESCRIPTION_LENGTH = 400;
 
-// --- Opportunities ---
+// --- Auditions ---
 
 /** Maximum length for an audition title. */
 export const MAX_AUDITION_TITLE_LENGTH = 150;

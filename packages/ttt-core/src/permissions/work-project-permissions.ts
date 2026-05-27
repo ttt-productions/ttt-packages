@@ -41,7 +41,7 @@ export const GUILD_STANDINGS = {
   },
   HallLibraryEditor: {
     label: 'Hall Editor',
-    description: 'Can create and edit Tales, Tunes, Television content, categories, and media assets.',
+    description: 'Can create and edit Tales, Tunes, Television content, Genres, and media assets.',
   },
   HallLibrarySubmitter: {
     label: 'Hall Submitter',
@@ -233,19 +233,19 @@ export const WORK_PROJECT_ACTIONS = {
     description: 'Edit episode details and media metadata.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibraryEditor'],
   },
-  'hallLibrary.tale.categories.update': {
-    label: 'Update Tale categories',
-    description: 'Edit Tale category assignments.',
+  'hallLibrary.tale.workGenres.update': {
+    label: 'Update Tale Genres',
+    description: 'Edit Tale Genre assignments.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibraryEditor'],
   },
-  'hallLibrary.tune.categories.update': {
-    label: 'Update Tune categories',
-    description: 'Edit Tune category assignments.',
+  'hallLibrary.tune.workGenres.update': {
+    label: 'Update Tune Genres',
+    description: 'Edit Tune Genre assignments.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibraryEditor'],
   },
-  'hallLibrary.television.categories.update': {
-    label: 'Update Television categories',
-    description: 'Edit Television category assignments.',
+  'hallLibrary.television.workGenres.update': {
+    label: 'Update Television Genres',
+    description: 'Edit Television Genre assignments.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibraryEditor'],
   },
   'hallLibrary.asset.upload': {

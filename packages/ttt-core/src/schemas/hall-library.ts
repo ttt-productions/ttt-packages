@@ -76,13 +76,13 @@ export const UpdateTuneTrackDetailsInputSchema = z.object({
 }).strict();
 export type UpdateTuneTrackDetailsInput = z.infer<typeof UpdateTuneTrackDetailsInputSchema>;
 
-export const UpdateTaleCategoriesInputSchema = z.object({
+export const UpdateTaleWorkGenresInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   taleId: taleIdSchema,
-  category: z.string().min(1).max(50),
+  workGenre: z.string().min(1).max(50),
   action: addRemoveActionSchema,
 }).strict();
-export type UpdateTaleCategoriesInput = z.infer<typeof UpdateTaleCategoriesInputSchema>;
+export type UpdateTaleWorkGenresInput = z.infer<typeof UpdateTaleWorkGenresInputSchema>;
 
 export const UpdateTaleDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
@@ -92,13 +92,13 @@ export const UpdateTaleDetailsInputSchema = z.object({
 }).strict();
 export type UpdateTaleDetailsInput = z.infer<typeof UpdateTaleDetailsInputSchema>;
 
-export const UpdateTelevisionCategoriesInputSchema = z.object({
+export const UpdateTelevisionWorkGenresInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   televisionId: televisionIdSchema,
-  category: z.string().min(1).max(50),
+  workGenre: z.string().min(1).max(50),
   action: addRemoveActionSchema,
 }).strict();
-export type UpdateTelevisionCategoriesInput = z.infer<typeof UpdateTelevisionCategoriesInputSchema>;
+export type UpdateTelevisionWorkGenresInput = z.infer<typeof UpdateTelevisionWorkGenresInputSchema>;
 
 export const UpdateTelevisionDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
@@ -108,13 +108,13 @@ export const UpdateTelevisionDetailsInputSchema = z.object({
 }).strict();
 export type UpdateTelevisionDetailsInput = z.infer<typeof UpdateTelevisionDetailsInputSchema>;
 
-export const UpdateTuneCategoriesInputSchema = z.object({
+export const UpdateTuneWorkGenresInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   tuneId: tuneIdSchema,
-  category: z.string().min(1).max(50),
+  workGenre: z.string().min(1).max(50),
   action: addRemoveActionSchema,
 }).strict();
-export type UpdateTuneCategoriesInput = z.infer<typeof UpdateTuneCategoriesInputSchema>;
+export type UpdateTuneWorkGenresInput = z.infer<typeof UpdateTuneWorkGenresInputSchema>;
 
 export const UpdateTuneDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,

@@ -9,13 +9,13 @@ import {
   AuditionPromptTargetInfoSchema,
   AdminAuditionPromptTargetInfoSchema,
   AuditionEntryTargetInfoSchema,
-  LibraryCoverSquareTargetInfoSchema,
+  HallLibraryCoverSquareTargetInfoSchema,
   ChapterPhotoTargetInfoSchema,
   TuneTrackPhotoTargetInfoSchema,
   TelevisionEpisodePhotoTargetInfoSchema,
   ChatAttachmentTargetInfoSchema,
 } from '../src/media/target-info.js';
-import { LIBRARY_TARGET_FIELDS } from '../src/media/hall-library-target-fields.js';
+import { HALL_LIBRARY_TARGET_FIELDS } from '../src/media/hall-library-target-fields.js';
 
 describe('ProfilePictureTargetInfoSchema', () => {
   it('accepts empty object', () => {
@@ -136,31 +136,31 @@ describe('AuditionEntryTargetInfoSchema', () => {
   });
 });
 
-describe('LibraryCoverSquareTargetInfoSchema (typed IDs)', () => {
+describe('HallLibraryCoverSquareTargetInfoSchema (typed IDs)', () => {
   const valid = { workProjectId: 'p_1', itemType: 'tale' as const, itemId: 'tale_1' };
   it('accepts valid typed IDs', () => {
-    expect(() => LibraryCoverSquareTargetInfoSchema.parse(valid)).not.toThrow();
+    expect(() => HallLibraryCoverSquareTargetInfoSchema.parse(valid)).not.toThrow();
   });
   it('accepts itemType tune', () => {
-    expect(() => LibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'tune' })).not.toThrow();
+    expect(() => HallLibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'tune' })).not.toThrow();
   });
   it('accepts itemType television', () => {
-    expect(() => LibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'television' })).not.toThrow();
+    expect(() => HallLibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'television' })).not.toThrow();
   });
   it('rejects legacy { docPath, fields } shape', () => {
     expect(() =>
-      LibraryCoverSquareTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/workProjectTales/tale_1', fields: { full: 'coverPhotoSquare' } })
+      HallLibraryCoverSquareTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/workProjectTales/tale_1', fields: { full: 'coverPhotoSquare' } })
     ).toThrow();
   });
   it('rejects unknown itemType', () => {
-    expect(() => LibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'film' })).toThrow();
+    expect(() => HallLibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'film' })).toThrow();
   });
   it('rejects missing workProjectId', () => {
     const { workProjectId, ...rest } = valid;
-    expect(() => LibraryCoverSquareTargetInfoSchema.parse(rest)).toThrow();
+    expect(() => HallLibraryCoverSquareTargetInfoSchema.parse(rest)).toThrow();
   });
   it('rejects extra keys', () => {
-    expect(() => LibraryCoverSquareTargetInfoSchema.parse({ ...valid, extra: 'x' })).toThrow();
+    expect(() => HallLibraryCoverSquareTargetInfoSchema.parse({ ...valid, extra: 'x' })).toThrow();
   });
 });
 
@@ -230,30 +230,30 @@ describe('TelevisionEpisodePhotoTargetInfoSchema (typed IDs)', () => {
   });
 });
 
-describe('LIBRARY_TARGET_FIELDS', () => {
+describe('HALL_LIBRARY_TARGET_FIELDS', () => {
   it('maps hallLibrary-cover-square to coverPhotoSquare', () => {
-    expect(LIBRARY_TARGET_FIELDS['hallLibrary-cover-square']).toBe('coverPhotoSquare');
+    expect(HALL_LIBRARY_TARGET_FIELDS['hallLibrary-cover-square']).toBe('coverPhotoSquare');
   });
   it('maps hallLibrary-cover-poster to coverPhotoPoster', () => {
-    expect(LIBRARY_TARGET_FIELDS['hallLibrary-cover-poster']).toBe('coverPhotoPoster');
+    expect(HALL_LIBRARY_TARGET_FIELDS['hallLibrary-cover-poster']).toBe('coverPhotoPoster');
   });
   it('maps hallLibrary-cover-cinematic to coverPhotoCinematic', () => {
-    expect(LIBRARY_TARGET_FIELDS['hallLibrary-cover-cinematic']).toBe('coverPhotoCinematic');
+    expect(HALL_LIBRARY_TARGET_FIELDS['hallLibrary-cover-cinematic']).toBe('coverPhotoCinematic');
   });
   it('maps chapter-photo to photoUrl', () => {
-    expect(LIBRARY_TARGET_FIELDS['chapter-photo']).toBe('photoUrl');
+    expect(HALL_LIBRARY_TARGET_FIELDS['chapter-photo']).toBe('photoUrl');
   });
   it('maps tune-track-photo to photoUrl', () => {
-    expect(LIBRARY_TARGET_FIELDS['tune-track-photo']).toBe('photoUrl');
+    expect(HALL_LIBRARY_TARGET_FIELDS['tune-track-photo']).toBe('photoUrl');
   });
   it('maps tune-track-audio to fileUrl', () => {
-    expect(LIBRARY_TARGET_FIELDS['tune-track-audio']).toBe('fileUrl');
+    expect(HALL_LIBRARY_TARGET_FIELDS['tune-track-audio']).toBe('fileUrl');
   });
   it('maps television-episode-photo to photoUrl', () => {
-    expect(LIBRARY_TARGET_FIELDS['television-episode-photo']).toBe('photoUrl');
+    expect(HALL_LIBRARY_TARGET_FIELDS['television-episode-photo']).toBe('photoUrl');
   });
   it('maps television-episode-video to videoUrl', () => {
-    expect(LIBRARY_TARGET_FIELDS['television-episode-video']).toBe('videoUrl');
+    expect(HALL_LIBRARY_TARGET_FIELDS['television-episode-video']).toBe('videoUrl');
   });
 });
 

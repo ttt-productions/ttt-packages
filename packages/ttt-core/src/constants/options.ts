@@ -56,9 +56,9 @@ export const CRAFT_SKILL_TAG_OPTIONS = [
   'VoiceOver',
 ].sort();
 
-// --- WorkProject-Specific Categories ---
+// --- WorkProject-Specific Genres ---
 
-/** Categories shown for each workProject type. */
+/** Genres shown for each workProject type. */
 export const WORK_PROJECT_SPECIFIC_GENRES = {
   Tales: [
     'Adventure',

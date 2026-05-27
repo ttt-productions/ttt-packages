@@ -10,7 +10,7 @@ export type FullTale = {
   coverPhotoSquare?: string;
   coverPhotoPoster?: string;
   coverPhotoCinematic?: string;
-  categories?: string[];
+  workGenres?: string[];
 };
 
 export type FullChapter = {
@@ -31,7 +31,7 @@ export type FullTune = {
   coverPhotoSquare?: string;
   coverPhotoPoster?: string;
   coverPhotoCinematic?: string;
-  categories: string[];
+  workGenres: string[];
   createdOn: number;
 };
 
@@ -55,7 +55,7 @@ export type FullTelevision = {
   coverPhotoSquare?: string;
   coverPhotoPoster?: string;
   coverPhotoCinematic?: string;
-  categories: string[];
+  workGenres: string[];
 };
 
 export type FullTelevisionEpisode = {
@@ -122,7 +122,7 @@ export interface PublishedHallItem {
   coverPhotoSquare?: string;
   coverPhotoPoster?: string;
   coverPhotoCinematic?: string;
-  categories?: string[];
+  workGenres?: string[];
 
   // Stats
   totalPledgePayments?: number;
@@ -184,7 +184,7 @@ export type HallLibrarySortOption =
   | 'most_viewed';
 
 export type HallLibraryFilters = {
-  category?: string;
+  workGenre?: string;
   hallWingType: HallWingTypeFilter;
   workProjectType: WorkProjectTypeFilter;
   sortBy: HallLibrarySortOption;

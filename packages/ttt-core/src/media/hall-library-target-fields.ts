@@ -10,7 +10,7 @@ import type { FileOrigin } from './file-origin.js';
 //
 // The Partial<Record<FileOrigin, string>> constraint guarantees only
 // valid FileOrigin strings are keys.
-export const LIBRARY_TARGET_FIELDS = {
+export const HALL_LIBRARY_TARGET_FIELDS = {
   'hallLibrary-cover-square':    'coverPhotoSquare',
   'hallLibrary-cover-poster':    'coverPhotoPoster',
   'hallLibrary-cover-cinematic': 'coverPhotoCinematic',
@@ -21,6 +21,6 @@ export const LIBRARY_TARGET_FIELDS = {
   'television-episode-video':              'videoUrl',
 } as const satisfies Partial<Record<FileOrigin, string>>;
 
-export type LibraryFileOrigin = keyof typeof LIBRARY_TARGET_FIELDS;
-export type LibraryTargetField = typeof LIBRARY_TARGET_FIELDS[LibraryFileOrigin];
+export type HallLibraryFileOrigin = keyof typeof HALL_LIBRARY_TARGET_FIELDS;
+export type HallLibraryTargetField = typeof HALL_LIBRARY_TARGET_FIELDS[HallLibraryFileOrigin];
 

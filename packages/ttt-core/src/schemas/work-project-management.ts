@@ -99,12 +99,12 @@ export const ListGuildInvitesInputSchema = z.object({
 }).strict();
 export type ListGuildInvitesInput = z.infer<typeof ListGuildInvitesInputSchema>;
 
-const PROFESSION_VALUES = [...TRADE_PROFESSION_OPTIONS] as [string, ...string[]];
+const TRADE_PROFESSION_VALUES = [...TRADE_PROFESSION_OPTIONS] as [string, ...string[]];
 
 export const UpdateGuildmateTradeProfessionsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   userId: userIdSchema,
-  tradeProfession: z.enum(PROFESSION_VALUES),
+  tradeProfession: z.enum(TRADE_PROFESSION_VALUES),
   action: addRemoveActionSchema,
 }).strict();
 export type UpdateGuildmateTradeProfessionsInput = z.infer<typeof UpdateGuildmateTradeProfessionsInputSchema>;

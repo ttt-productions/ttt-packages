@@ -59,15 +59,15 @@ export type AuditEventType =
   | 'content.violationAccepted'
   // content (workProject content)
   | 'content.taleDetailsUpdated'
-  | 'content.taleCategoriesUpdated'
+  | 'content.taleWorkGenresUpdated'
   | 'content.chapterCreated'
   | 'content.chapterDetailsUpdated'
   | 'content.tuneDetailsUpdated'
-  | 'content.tuneCategoriesUpdated'
+  | 'content.tuneWorkGenresUpdated'
   | 'content.tuneTrackCreated'
   | 'content.tuneTrackDetailsUpdated'
   | 'content.televisionDetailsUpdated'
-  | 'content.televisionCategoriesUpdated'
+  | 'content.televisionWorkGenresUpdated'
   | 'content.televisionEpisodeCreated'
   | 'content.televisionEpisodeDetailsUpdated'
   // money
