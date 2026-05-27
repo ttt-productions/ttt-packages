@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   StakeShareOperationSchema,
   ManageWorkProjectStakeSharesInputSchema,
-} from '../src/schemas/share-operation';
+} from '../src/schemas/stake-share-operation';
 
 describe('StakeShareOperationSchema', () => {
   describe('add-pending branch', () => {
@@ -109,8 +109,16 @@ describe('StakeShareOperationSchema', () => {
     });
   });
 
-  describe('projectData field rejection (dead-code removed)', () => {
-    it('rejects payloads that include projectData', () => {
+  describe('legacy workProjectData field rejection (dead-code removed)', () => {
+    it('rejects payloads that include legacy workProjectData/projectData', () => {
+      expect(() =>
+        StakeShareOperationSchema.parse({
+          type: 'create-workProject',
+          amount: 1,
+          user: { uid: 'u' },
+          workProjectData: { workProjectId: 'p', anything: 'here' },
+        }),
+      ).toThrow();
       expect(() =>
         StakeShareOperationSchema.parse({
           type: 'create-workProject',

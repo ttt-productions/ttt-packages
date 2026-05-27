@@ -59,9 +59,9 @@ export const AuditionPromptCreatedEventSchema = z
   })
   .strict();
 
-export const AuditionEntryCreatedEventSchema = z
+export const AuditionEntrySubmittedEventSchema = z
   .object({
-    type: z.literal('audition.replyCreated'),
+    type: z.literal('audition.entryCreated'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -88,7 +88,7 @@ export const CommissionCreatedEventSchema = z
 
 export const CommissionProposalSubmittedEventSchema = z
   .object({
-    type: z.literal('commission.applicationSubmitted'),
+    type: z.literal('commission.commissionProposalSubmitted'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -107,9 +107,9 @@ export const WorkProjectUpdatedEventSchema = z
   })
   .strict();
 
-export const LibraryAssetCoverUpdatedEventSchema = z
+export const HallLibraryCoverUpdatedEventSchema = z
   .object({
-    type: z.literal('libraryAsset.coverUpdated'),
+    type: z.literal('hallLibrary.coverUpdated'),
     ids: z
       .object({
         workProjectId: z.string().min(1),
@@ -120,9 +120,9 @@ export const LibraryAssetCoverUpdatedEventSchema = z
   })
   .strict();
 
-export const LibraryAssetSubItemUpdatedEventSchema = z
+export const HallLibrarySubItemUpdatedEventSchema = z
   .object({
-    type: z.literal('libraryAsset.subItemUpdated'),
+    type: z.literal('hallLibrary.subItemUpdated'),
     ids: z
       .object({
         workProjectId: z.string().min(1),
@@ -221,7 +221,7 @@ export const ProfilePreferencesUpdatedEventSchema = z
   })
   .strict();
 
-export const SkillDeletedEventSchema = z
+export const CraftSkillDeletedEventSchema = z
   .object({
     type: z.literal('craftSkill.deleted'),
     ids: z
@@ -233,7 +233,7 @@ export const SkillDeletedEventSchema = z
   })
   .strict();
 
-export const SkillUpdatedEventSchema = z
+export const CraftSkillUpdatedEventSchema = z
   .object({
     type: z.literal('craftSkill.updated'),
     ids: z
@@ -271,7 +271,7 @@ export const WorkProjectPublishedEventSchema = z
 
 export const WorkProjectStakeSharesUpdatedEventSchema = z
   .object({
-    type: z.literal('workProject.sharesUpdated'),
+    type: z.literal('workProject.stakeSharesUpdated'),
     ids: z
       .object({
         workProjectId: z.string().min(1),
@@ -282,11 +282,11 @@ export const WorkProjectStakeSharesUpdatedEventSchema = z
 
 export const GuildInviteSentEventSchema = z
   .object({
-    type: z.literal('workProject.inviteSent'),
+    type: z.literal('workProject.guildInviteSent'),
     ids: z
       .object({
         workProjectId: z.string().min(1),
-        inviteId: z.string().min(1),
+        guildInviteId: z.string().min(1),
         inviterId: z.string().min(1),
         inviteeId: z.string().min(1),
       })
@@ -296,11 +296,11 @@ export const GuildInviteSentEventSchema = z
 
 export const GuildInviteAcceptedEventSchema = z
   .object({
-    type: z.literal('workProject.inviteAccepted'),
+    type: z.literal('workProject.guildInviteAccepted'),
     ids: z
       .object({
         workProjectId: z.string().min(1),
-        inviteId: z.string().min(1),
+        guildInviteId: z.string().min(1),
         userId: z.string().min(1),
       })
       .strict(),
@@ -309,11 +309,11 @@ export const GuildInviteAcceptedEventSchema = z
 
 export const GuildInviteDeclinedEventSchema = z
   .object({
-    type: z.literal('workProject.inviteDeclined'),
+    type: z.literal('workProject.guildInviteDeclined'),
     ids: z
       .object({
         workProjectId: z.string().min(1),
-        inviteId: z.string().min(1),
+        guildInviteId: z.string().min(1),
         userId: z.string().min(1),
       })
       .strict(),
@@ -322,19 +322,19 @@ export const GuildInviteDeclinedEventSchema = z
 
 export const GuildInviteCancelledEventSchema = z
   .object({
-    type: z.literal('workProject.inviteCancelled'),
+    type: z.literal('workProject.guildInviteCancelled'),
     ids: z
       .object({
         workProjectId: z.string().min(1),
-        inviteId: z.string().min(1),
+        guildInviteId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const AuditionEntryVotedEventSchema = z
+export const AuditionEntryVoteRecordedEventSchema = z
   .object({
-    type: z.literal('audition.replyVoted'),
+    type: z.literal('audition.entryVoted'),
     ids: z
       .object({
         userId: z.string().min(1),
@@ -372,7 +372,7 @@ export const CommissionDeletedEventSchema = z
 
 export const CommissionProposalSavedEventSchema = z
   .object({
-    type: z.literal('commission.applicationSaved'),
+    type: z.literal('commission.commissionProposalSaved'),
     ids: z
       .object({
         commissionListingId: z.string().min(1),
@@ -385,7 +385,7 @@ export const CommissionProposalSavedEventSchema = z
 
 export const CommissionProposalRemovedEventSchema = z
   .object({
-    type: z.literal('commission.applicationRemoved'),
+    type: z.literal('commission.commissionProposalRemoved'),
     ids: z
       .object({
         commissionListingId: z.string().min(1),
@@ -396,9 +396,9 @@ export const CommissionProposalRemovedEventSchema = z
   })
   .strict();
 
-export const LibraryAssetSubmittedEventSchema = z
+export const ThresholdLibrarySubmittedEventSchema = z
   .object({
-    type: z.literal('libraryAsset.submitted'),
+    type: z.literal('thresholdLibrary.submitted'),
     ids: z
       .object({
         workProjectId: z.string().min(1),
@@ -407,65 +407,65 @@ export const LibraryAssetSubmittedEventSchema = z
   })
   .strict();
 
-export const LibraryAssetApprovedEventSchema = z
+export const ThresholdLibraryApprovedEventSchema = z
   .object({
-    type: z.literal('libraryAsset.approved'),
+    type: z.literal('thresholdLibrary.approved'),
     ids: z
       .object({
-        libraryId: z.string().min(1),
+        thresholdItemId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const LibraryAssetRejectedEventSchema = z
+export const ThresholdLibraryRejectedEventSchema = z
   .object({
-    type: z.literal('libraryAsset.rejected'),
+    type: z.literal('thresholdLibrary.rejected'),
     ids: z
       .object({
-        libraryId: z.string().min(1),
+        thresholdItemId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const LibraryAssetNeedsRevisionEventSchema = z
+export const ThresholdLibraryNeedsRevisionEventSchema = z
   .object({
-    type: z.literal('libraryAsset.needsRevision'),
+    type: z.literal('thresholdLibrary.needsRevision'),
     ids: z
       .object({
-        libraryId: z.string().min(1),
+        thresholdItemId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const LibraryAssetPreferenceUpdatedEventSchema = z
+export const HallLibraryPreferenceUpdatedEventSchema = z
   .object({
-    type: z.literal('libraryAsset.preferenceUpdated'),
-    ids: z
-      .object({
-        userId: z.string().min(1),
-        libraryId: z.string().min(1),
-      })
-      .strict(),
-  })
-  .strict();
-
-export const MessageSystemMarkedEventSchema = z
-  .object({
-    type: z.literal('message.systemMarked'),
+    type: z.literal('hallLibrary.preferenceUpdated'),
     ids: z
       .object({
         userId: z.string().min(1),
+        hallItemId: z.string().min(1),
       })
       .strict(),
   })
   .strict();
 
-export const MessageAdminThreadUpdatedEventSchema = z
+export const AdminDispatchSystemMarkedEventSchema = z
   .object({
-    type: z.literal('message.adminThreadUpdated'),
+    type: z.literal('adminDispatch.systemMarked'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+export const AdminDispatchThreadUpdatedEventSchema = z
+  .object({
+    type: z.literal('adminDispatch.threadUpdated'),
     ids: z
       .object({
         adminDispatchId: z.string().min(1).nullable(),
@@ -486,9 +486,9 @@ export const AdminAppealReviewedEventSchema = z
   })
   .strict();
 
-export const AdminSystemMessageReviewedEventSchema = z
+export const AdminDispatchReviewedEventSchema = z
   .object({
-    type: z.literal('admin.systemMessageReviewed'),
+    type: z.literal('admin.adminDispatchReviewed'),
     ids: z.object({}).strict(),
   })
   .strict();
@@ -533,12 +533,12 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   CraftSkillCreatedEventSchema,
   SquareStreetzPostCreatedEventSchema,
   AuditionPromptCreatedEventSchema,
-  AuditionEntryCreatedEventSchema,
+  AuditionEntrySubmittedEventSchema,
   CommissionCreatedEventSchema,
   CommissionProposalSubmittedEventSchema,
   WorkProjectUpdatedEventSchema,
-  LibraryAssetCoverUpdatedEventSchema,
-  LibraryAssetSubItemUpdatedEventSchema,
+  HallLibraryCoverUpdatedEventSchema,
+  HallLibrarySubItemUpdatedEventSchema,
   ModerationViolationCreatedEventSchema,
   ChatAttachmentFinalizedEventSchema,
   FollowCreatedEventSchema,
@@ -546,8 +546,8 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   SquareStreetzPostLikedEventSchema,
   SquareStreetzPostUnlikedEventSchema,
   ProfilePreferencesUpdatedEventSchema,
-  SkillDeletedEventSchema,
-  SkillUpdatedEventSchema,
+  CraftSkillDeletedEventSchema,
+  CraftSkillUpdatedEventSchema,
   WorkProjectCreatedEventSchema,
   WorkProjectPublishedEventSchema,
   WorkProjectStakeSharesUpdatedEventSchema,
@@ -555,20 +555,20 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   GuildInviteAcceptedEventSchema,
   GuildInviteDeclinedEventSchema,
   GuildInviteCancelledEventSchema,
-  AuditionEntryVotedEventSchema,
+  AuditionEntryVoteRecordedEventSchema,
   AuditionClosedEventSchema,
   CommissionDeletedEventSchema,
   CommissionProposalSavedEventSchema,
   CommissionProposalRemovedEventSchema,
-  LibraryAssetSubmittedEventSchema,
-  LibraryAssetApprovedEventSchema,
-  LibraryAssetRejectedEventSchema,
-  LibraryAssetNeedsRevisionEventSchema,
-  LibraryAssetPreferenceUpdatedEventSchema,
-  MessageSystemMarkedEventSchema,
-  MessageAdminThreadUpdatedEventSchema,
+  ThresholdLibrarySubmittedEventSchema,
+  ThresholdLibraryApprovedEventSchema,
+  ThresholdLibraryRejectedEventSchema,
+  ThresholdLibraryNeedsRevisionEventSchema,
+  HallLibraryPreferenceUpdatedEventSchema,
+  AdminDispatchSystemMarkedEventSchema,
+  AdminDispatchThreadUpdatedEventSchema,
   AdminAppealReviewedEventSchema,
-  AdminSystemMessageReviewedEventSchema,
+  AdminDispatchReviewedEventSchema,
   MentionReadEventSchema,
   AuthStatusChangedEventSchema,
   ViolationAppealSubmittedEventSchema,
@@ -582,6 +582,8 @@ export type DomainEventIdsFor<T extends DomainEvent['type']> = Extract<
   DomainEvent,
   { type: T }
 >['ids'];
+
+
 
 
 

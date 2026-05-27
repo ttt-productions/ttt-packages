@@ -21,7 +21,7 @@ export const COLLECTION_REFS = {
 
   // User subcollections
   userCraftSkills: (userId: string): [string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PROFILE_SKILLS],
+    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS],
 
   userFollows: (userId: string): [string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_FOLLOWS],

@@ -59,7 +59,7 @@ describe('UpdateAdminDispatchStatusInputSchema', () => {
 describe('UpdateInviteConfirmationInputSchema', () => {
   it('accepts each valid action', () => {
     for (const action of ['agree', 'decline', 'cancel', 'retract'] as const) {
-      const input = { inviteId: 'invite-1', action };
+      const input = { guildInviteId: 'invite-1', action };
       expect(UpdateInviteConfirmationInputSchema.parse(input)).toEqual(input);
     }
   });
@@ -67,16 +67,16 @@ describe('UpdateInviteConfirmationInputSchema', () => {
   it('rejects an unknown action value', () => {
     expect(() =>
       UpdateInviteConfirmationInputSchema.parse({
-        inviteId: 'invite-1',
+        guildInviteId: 'invite-1',
         action: 'approve',
       }),
     ).toThrow();
   });
 
-  it('rejects empty inviteId', () => {
+  it('rejects empty guildInviteId', () => {
     expect(() =>
       UpdateInviteConfirmationInputSchema.parse({
-        inviteId: '',
+        guildInviteId: '',
         action: 'agree',
       }),
     ).toThrow();
@@ -85,7 +85,7 @@ describe('UpdateInviteConfirmationInputSchema', () => {
   it('rejects unknown top-level keys (.strict)', () => {
     expect(() =>
       UpdateInviteConfirmationInputSchema.parse({
-        inviteId: 'invite-1',
+        guildInviteId: 'invite-1',
         action: 'agree',
         extra: 'bad',
       }),
@@ -95,48 +95,50 @@ describe('UpdateInviteConfirmationInputSchema', () => {
 
 describe('UpdateInviteSharesInputSchema', () => {
   it('accepts a valid input with newStakeShares: 1', () => {
-    const input = { inviteId: 'invite-1', newStakeShares: 1 };
+    const input = { guildInviteId: 'invite-1', newStakeShares: 1 };
     expect(UpdateInviteSharesInputSchema.parse(input)).toEqual(input);
   });
 
   it('accepts a valid input with newStakeShares: 50', () => {
-    const input = { inviteId: 'invite-1', newStakeShares: 50 };
+    const input = { guildInviteId: 'invite-1', newStakeShares: 50 };
     expect(UpdateInviteSharesInputSchema.parse(input)).toEqual(input);
   });
 
   it('rejects newStakeShares: 0', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ inviteId: 'invite-1', newStakeShares: 0 }),
+      UpdateInviteSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: 0 }),
     ).toThrow();
   });
 
   it('rejects negative newStakeShares', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ inviteId: 'invite-1', newStakeShares: -5 }),
+      UpdateInviteSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: -5 }),
     ).toThrow();
   });
 
   it('rejects non-integer newStakeShares', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ inviteId: 'invite-1', newStakeShares: 1.5 }),
+      UpdateInviteSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: 1.5 }),
     ).toThrow();
   });
 
-  it('rejects empty inviteId', () => {
+  it('rejects empty guildInviteId', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ inviteId: '', newStakeShares: 10 }),
+      UpdateInviteSharesInputSchema.parse({ guildInviteId: '', newStakeShares: 10 }),
     ).toThrow();
   });
 
   it('rejects unknown top-level keys (.strict)', () => {
     expect(() =>
       UpdateInviteSharesInputSchema.parse({
-        inviteId: 'invite-1',
+        guildInviteId: 'invite-1',
         newStakeShares: 10,
         extra: 'bad',
       }),
     ).toThrow();
   });
 });
+
+
 
 

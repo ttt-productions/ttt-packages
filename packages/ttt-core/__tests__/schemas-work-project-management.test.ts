@@ -3,7 +3,7 @@ import {
   InviteSourceSchema,
   InviteUserToGuildInputSchema,
 } from '../src/schemas/work-project-management';
-import { MAX_INVITE_MESSAGE_LENGTH } from '../src/constants/business';
+import { MAX_GUILD_INVITE_MESSAGE_LENGTH } from '../src/constants/business';
 
 const validStandaloneSource = { type: 'standalone' } as const;
 
@@ -16,18 +16,18 @@ const validSkillSource = {
   },
 } as const;
 
-const validJobSource = {
+const validCommissionSource = {
     type: 'commission',
     data: {
       commissionListingId: 'commission-1',
-      auditionEntryId: 'reply-1',
+      commissionProposalId: 'proposal-1',
       commissionTitle: 'Lead Developer',
       proposalArtisanUserId: 'user-2',
       postingStakeSharesOffered: 10,
     },
 } as const;
 
-const validOpportunitySource = {
+const validAuditionSource = {
     type: 'audition',
     data: {
       auditionId: 'opp-1',
@@ -54,11 +54,11 @@ describe('InviteSourceSchema', () => {
   });
 
   it('accepts a valid commission source', () => {
-    expect(InviteSourceSchema.parse(validJobSource)).toEqual(validJobSource);
+    expect(InviteSourceSchema.parse(validCommissionSource)).toEqual(validCommissionSource);
   });
 
   it('accepts a valid audition source', () => {
-    expect(InviteSourceSchema.parse(validOpportunitySource)).toEqual(validOpportunitySource);
+    expect(InviteSourceSchema.parse(validAuditionSource)).toEqual(validAuditionSource);
   });
 
   it('rejects unknown type value', () => {
@@ -72,7 +72,7 @@ describe('InviteSourceSchema', () => {
       InviteSourceSchema.parse({
         type: 'commission',
         data: {
-          ...validJobSource.data,
+          ...validCommissionSource.data,
           unknownField: 'bad',
         },
       }),
@@ -95,7 +95,7 @@ describe('InviteSourceSchema', () => {
     expect(() =>
       InviteSourceSchema.parse({
         type: 'commission',
-        data: { ...validJobSource.data, postingStakeSharesOffered: 0 },
+        data: { ...validCommissionSource.data, postingStakeSharesOffered: 0 },
       }),
     ).toThrow();
   });
@@ -104,7 +104,7 @@ describe('InviteSourceSchema', () => {
     expect(() =>
       InviteSourceSchema.parse({
         type: 'audition',
-        data: { ...validOpportunitySource.data, postingStakeSharesOffered: 0 },
+        data: { ...validAuditionSource.data, postingStakeSharesOffered: 0 },
       }),
     ).toThrow();
   });
@@ -129,12 +129,12 @@ describe('InviteUserToGuildInputSchema', () => {
   });
 
   it('accepts a fully valid input with commission source', () => {
-    const input = { ...baseInput, source: validJobSource };
+    const input = { ...baseInput, source: validCommissionSource };
     expect(InviteUserToGuildInputSchema.parse(input)).toEqual(input);
   });
 
   it('accepts a fully valid input with audition source', () => {
-    const input = { ...baseInput, source: validOpportunitySource };
+    const input = { ...baseInput, source: validAuditionSource };
     expect(InviteUserToGuildInputSchema.parse(input)).toEqual(input);
   });
 
@@ -164,11 +164,11 @@ describe('InviteUserToGuildInputSchema', () => {
     ).toThrow();
   });
 
-  it('rejects message longer than MAX_INVITE_MESSAGE_LENGTH', () => {
+  it('rejects message longer than MAX_GUILD_INVITE_MESSAGE_LENGTH', () => {
     expect(() =>
       InviteUserToGuildInputSchema.parse({
         ...baseInput,
-        message: 'x'.repeat(MAX_INVITE_MESSAGE_LENGTH + 1),
+        message: 'x'.repeat(MAX_GUILD_INVITE_MESSAGE_LENGTH + 1),
         source: validStandaloneSource,
       }),
     ).toThrow();
@@ -184,5 +184,6 @@ describe('InviteUserToGuildInputSchema', () => {
     ).toThrow();
   });
 });
+
 
 

@@ -56,7 +56,7 @@ export const COLLECTIONS = {
  * Nested under userProfiles/{userId}/
  */
 export const USER_SUBCOLLECTIONS = {
-  PROFILE_SKILLS: 'profileCraftSkills',
+  PROFILE_CRAFT_SKILLS: 'profileCraftSkills',
   PRIVATE_DATA: 'privateData',
   USER_METADATA: 'userMetadata',
   USER_FOLLOWS: 'userFollows',
@@ -68,8 +68,8 @@ export const USER_SUBCOLLECTIONS = {
 } as const;
 
 /**
- * PROJECT SUBCOLLECTIONS
- * Nested under allWorkProjects/{projectId}/
+ * WORKPROJECT SUBCOLLECTIONS
+ * Nested under allWorkProjects/{workProjectId}/
  */
 export const WORK_PROJECT_SUBCOLLECTIONS = {
   PUBLIC_DATA: 'publicData',
@@ -101,7 +101,7 @@ export const NESTED_SUBCOLLECTIONS = {
   ACTIVE_POSTS: 'activePosts',
   TRENDING_POSTS: 'trendingPosts',
 
-  // Jobs & Opportunities
+  // Commissions & Auditions
   COMMISSION_PROPOSALS: 'commissionProposals',
   AUDITION_ENTRIES: 'auditionEntries',
 
@@ -111,7 +111,7 @@ export const NESTED_SUBCOLLECTIONS = {
   LIKE_HISTORY: 'likeHistory',
   SQUARE_STREETZ_LIKES: 'squareStreetzLikes',
 
-  // Skills & Feedback
+  // Craft Skills & Feedback
   TAGGED_CRAFT_SKILLS: 'taggedCraftSkills',
   USER_SUGGESTIONS: 'userSuggestions',
 } as const;

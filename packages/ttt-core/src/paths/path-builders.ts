@@ -16,8 +16,8 @@ export const PATH_BUILDERS = {
   userProfile: (userId: string): [string, string] =>
     [COLLECTIONS.USER_PROFILES, userId],
 
-  userCraftSkill: (userId: string, skillId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PROFILE_SKILLS, skillId],
+  userCraftSkill: (userId: string, craftSkillId: string): [string, string, string, string] =>
+    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS, craftSkillId],
 
   userPrivateData: (userId: string): [string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PRIVATE_DATA, userId],
@@ -40,7 +40,7 @@ export const PATH_BUILDERS = {
   userAuditionVote: (userId: string, auditionId: string): [string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.AUDITION_VOTES, auditionId],
 
-  // ===== PROJECT PATHS =====
+  // ===== WORK PATHS =====
   workProject: (workProjectId: string): [string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId],
 
@@ -80,14 +80,14 @@ export const PATH_BUILDERS = {
   guildChatMessage: (workProjectId: string, guildChatChannelId: string, guildChatMessageId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS, guildChatChannelId, NESTED_SUBCOLLECTIONS.GUILD_CHAT_MESSAGES, guildChatMessageId],
 
-  // ===== STREETZ PATHS =====
+  // ===== SQUARE PATHS =====
   activePost: (postId: string): [string, string, string, string] =>
     [COLLECTIONS.SQUARE_STREETZ_FEED, NESTED_SUBCOLLECTIONS.ACTIVE_POSTS, NESTED_SUBCOLLECTIONS.SOCIAL_POSTS, postId],
 
   trendingPosts: (): [string, string] =>
     [COLLECTIONS.SQUARE_STREETZ_FEED, NESTED_SUBCOLLECTIONS.TRENDING_POSTS],
 
-  // ===== LIBRARY PATHS =====
+  // ===== HALL PATHS =====
   thresholdItem: (thresholdItemId: string): [string, string] =>
     [COLLECTIONS.THRESHOLD_ITEMS, thresholdItemId],
 
@@ -97,21 +97,21 @@ export const PATH_BUILDERS = {
   hallItemType: (hallItemId: string, workProjectType: string, itemId: string): [string, string, string, string] =>
     [COLLECTIONS.HALL_ITEMS, hallItemId, workProjectType, itemId],
 
-  // ===== JOB PATHS =====
+  // ===== COMMISSION PATHS =====
   commissionListing: (commissionListingId: string): [string, string] =>
     [COLLECTIONS.COMMISSION_LISTINGS, commissionListingId],
 
   commissionProposal: (commissionListingId: string, commissionProposalId: string): [string, string, string, string] =>
     [COLLECTIONS.COMMISSION_LISTINGS, commissionListingId, NESTED_SUBCOLLECTIONS.COMMISSION_PROPOSALS, commissionProposalId],
 
-  // ===== OPPORTUNITY PATHS =====
+  // ===== AUDITION PATHS =====
   audition: (auditionId: string): [string, string] =>
     [COLLECTIONS.AUDITION_BOARD, auditionId],
 
   auditionEntry: (auditionId: string, auditionEntryId: string): [string, string, string, string] =>
     [COLLECTIONS.AUDITION_BOARD, auditionId, NESTED_SUBCOLLECTIONS.AUDITION_ENTRIES, auditionEntryId],
 
-  // ===== UNIVERSE PATHS =====
+  // ===== REALM PATHS =====
   workRealm: (workRealmId: string): [string, string] =>
     [COLLECTIONS.WORK_REALMS, workRealmId],
 
@@ -122,11 +122,11 @@ export const PATH_BUILDERS = {
   adminConversationMessage: (adminDispatchId: string, adminDispatchMessageId: string): [string, string, string, string] =>
     [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES, adminDispatchMessageId],
 
-  guildInvite: (inviteId: string): [string, string] =>
-    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, inviteId],
+  guildInvite: (guildInviteId: string): [string, string] =>
+    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, guildInviteId],
 
-  inviteMessage: (inviteId: string, guildInviteMessageId: string): [string, string, string, string] =>
-    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, inviteId, NESTED_SUBCOLLECTIONS.INVITE_MESSAGES, guildInviteMessageId],
+  inviteMessage: (guildInviteId: string, guildInviteMessageId: string): [string, string, string, string] =>
+    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, guildInviteId, NESTED_SUBCOLLECTIONS.INVITE_MESSAGES, guildInviteMessageId],
 
   contentReport: (reportId: string): [string, string] =>
     [COLLECTIONS.CONTENT_REPORTS, reportId],
@@ -171,7 +171,7 @@ export const PATH_BUILDERS = {
   archivedPledgePayment: (pledgePaymentId: string): [string, string] =>
     [COLLECTIONS.ARCHIVED_PLEDGE_PAYMENTS, pledgePaymentId],
 
-  // ===== FEEDBACK & SKILLS PATHS =====
+  // ===== FEEDBACK & CRAFT PATHS =====
   feedbackSubmission: (feedbackType: string): [string, string] =>
     [COLLECTIONS.FEEDBACK_SUBMISSIONS, feedbackType],
 

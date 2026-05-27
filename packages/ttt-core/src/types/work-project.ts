@@ -10,9 +10,9 @@ export type GuildmateStatus = 'active' | 'departed';
 export type GuildmateUser = {
   uid: string;
   displayName: string;
-  roles: GuildStandingId[];
+  guildStandings: GuildStandingId[];
   tradeProfessions: string[];
-  sharesNumber: number;
+  stakeShareCount: number;
   joinedAt: number;
   status: GuildmateStatus;
 };
@@ -28,7 +28,7 @@ export type WorkAsset = {
 };
 
 export type PendingStakeShares = {
-  [inviteId: string]: {
+  [guildInviteId: string]: {
     amount: number;
     createdAt: number;
   };
@@ -71,7 +71,7 @@ export type WorkRealm = {
 };
 
 export type GuildInvite = {
-  inviteId: string;
+  guildInviteId: string;
   createdBy: { uid: string };
   createdOn: number;
   message: string;
@@ -80,9 +80,7 @@ export type GuildInvite = {
   lastUpdatedAt: number;
 };
 
-// ShareOperation type and union are now defined by the Zod schema.
-// See packages/ttt-core/src/schemas/share-operation.ts for the source of truth.
-// The old `projectData?: FullWorkProject` field was dead and has been removed.
-export type { ShareOperation, ShareOperationType } from '../schemas/share-operation.js';
-
-
+// StakeShareOperation types are defined by the Zod schema.
+// See packages/ttt-core/src/schemas/stake-share-operation.ts for the source of truth.
+// The old `workProjectData?: FullWorkProject` field was dead and has been removed.
+export type { StakeShareOperation, StakeShareOperationType } from '../schemas/stake-share-operation.js';

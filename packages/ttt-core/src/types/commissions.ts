@@ -26,7 +26,7 @@ export type FullCommissionListing = {
 };
 
 export type CommissionProposal = {
-  auditionEntryId: string;
+  commissionProposalId: string;
   commissionListingId: string;
   workProjectId: string;
   proposalText: string;
@@ -35,7 +35,7 @@ export type CommissionProposal = {
   createdBy: { uid: string };
   createdOn: number;
   status: CommissionProposalStatus;
-  inviteId?: string;
+  guildInviteId?: string;
   invitedOn?: number;
   acceptedOn?: number;
   rejectedAt?: number;

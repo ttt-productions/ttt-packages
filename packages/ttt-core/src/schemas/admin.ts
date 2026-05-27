@@ -4,10 +4,10 @@ import type { AdminTaskType } from '../types/admin.js';
 
 const ADMIN_TASK_TYPES: [AdminTaskType, ...AdminTaskType[]] = [
   'adminDispatch',
-  'libraryReview',
+  'thresholdLibraryReview',
   'userReport',
   'content-appeal',
-  'shareAnomaly',
+  'stakeShareAnomaly',
 ];
 
 export const CheckoutNextImportantTaskInputSchema = z.object({}).strict();
@@ -127,4 +127,5 @@ export const UpdateAdminListInputSchema = z.object({
   );
 
 export type UpdateAdminListInput = z.infer<typeof UpdateAdminListInputSchema>;
+
 

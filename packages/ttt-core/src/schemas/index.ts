@@ -1,5 +1,5 @@
 export * from './atoms.js';
-export * from './share-operation.js';
+export * from './stake-share-operation.js';
 export * from './admin.js';
 export * from './chat.js';
 export * from './commissions.js';

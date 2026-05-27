@@ -4,7 +4,8 @@
 
 export type AdminTaskType =
   | 'adminDispatch'
-  | 'libraryReview'
+  | 'thresholdLibraryReview'
   | 'userReport'
   | 'content-appeal'
-  | 'shareAnomaly';
+  | 'stakeShareAnomaly';
+

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import {
   workProjectIdSchema,
   guildChatChannelIdSchema,
-  inviteIdSchema,
+  guildInviteIdSchema,
   adminDispatchIdSchema,
 } from './atoms.js';
 import { MAX_CHAT_MESSAGE_LENGTH } from '../constants/chat.js';
@@ -37,7 +37,7 @@ export const SendGuildChatMessageInputSchema = z.discriminatedUnion('threadKind'
   }).strict(),
   z.object({
     threadKind: z.literal('guildInvite'),
-    inviteId: inviteIdSchema,
+    guildInviteId: guildInviteIdSchema,
     text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
     replyTo: ReplyToSchema.optional(),
     attachment: ChatAttachmentSchema.optional(),

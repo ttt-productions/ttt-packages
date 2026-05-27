@@ -23,7 +23,7 @@ export type AuditEventType =
   | 'admin.roleSyncedFromDirectEdit'
   | 'admin.contentAppealReviewed'
   | 'admin.violationDecisionAccepted'
-  | 'admin.libraryItemReviewed'
+  | 'admin.thresholdItemReviewed'
   | 'admin.futurePlansUpdated'
   | 'admin.rulesAndAgreementsUpdated'
   // workProject
@@ -53,8 +53,8 @@ export type AuditEventType =
   // content
   | 'content.itemReported'
   | 'content.violationRecorded'
-  | 'content.libraryItemSubmitted'
-  | 'content.libraryItemPublished'
+  | 'content.thresholdItemSubmitted'
+  | 'content.hallItemPublished'
   | 'content.appealSubmitted'
   | 'content.violationAccepted'
   // content (workProject content)
@@ -131,3 +131,4 @@ export type TTTAuditEvent = AuditEvent<
   TTTAuditTarget,
   Record<string, unknown>
 >;
+

@@ -5,10 +5,11 @@ import { z } from 'zod';
 // reading a callable's schema can see exactly which entity the field refers to.
 export const workProjectIdSchema = z.string().min(1);
 export const userIdSchema = z.string().min(1);
-export const inviteIdSchema = z.string().min(1);
+export const guildInviteIdSchema = z.string().min(1);
 export const violationIdSchema = z.string().min(1);
 export const auditionIdSchema = z.string().min(1);
 export const commissionListingIdSchema = z.string().min(1);
+export const commissionProposalIdSchema = z.string().min(1);
 export const auditionEntryIdSchema = z.string().min(1);
 export const guildChatChannelIdSchema = z.string().min(1);
 export const taleIdSchema = z.string().min(1);

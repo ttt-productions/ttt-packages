@@ -159,7 +159,7 @@ export const ChatAttachmentTargetInfoSchema = z.discriminatedUnion('threadKind',
   z
     .object({
       threadKind: z.literal('guildInvite'),
-      inviteId: z.string().min(1),
+      guildInviteId: z.string().min(1),
       replyTo: ChatReplyToSchema.optional(),
     })
     .strict(),

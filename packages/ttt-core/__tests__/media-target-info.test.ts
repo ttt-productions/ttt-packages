@@ -191,7 +191,7 @@ describe('ChatAttachmentTargetInfoSchema', () => {
   });
   it('accepts guildInvite', () => {
     expect(() => ChatAttachmentTargetInfoSchema.parse({
-      threadKind: 'guildInvite', inviteId: 'inv_1',
+      threadKind: 'guildInvite', guildInviteId: 'inv_1',
     })).not.toThrow();
   });
   it('accepts adminSupport', () => {
@@ -273,6 +273,7 @@ describe('parseTargetInfo dispatch', () => {
     expect(() => parseTargetInfo('craft-skill-media', { wrongShape: true })).toThrow();
   });
 });
+
 
 
 

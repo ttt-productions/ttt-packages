@@ -4,7 +4,7 @@
 export const ITEMS_PER_PAGE_GENERAL = 5;
 
 export const ITEMS_PER_PAGE_MESSAGES = 5;
-export const ITEMS_PER_PAGE_SYSTEM_MESSAGES = 6;
+export const ITEMS_PER_PAGE_ADMIN_DISPATCH_MESSAGES = 6;
 export const ITEMS_PER_PAGE_COMMISSION_BOARD = 5;
 export const ITEMS_PER_PAGE_GUILDMATE_USERS = 3;
 export const ITEMS_PER_PAGE_GUILD_INVITES = 10;
@@ -15,7 +15,7 @@ export const ITEMS_PER_PAGE_TUNE_TRACKS = 3;
 export const ITEMS_PER_PAGE_TELEVISION_EPISODES = 3;
 export const ITEMS_PER_PAGE_PROPOSAL_ARTISANS = 5;
 export const ITEMS_PER_PAGE_FOLLOWED_USERS = 10;
-export const ITEMS_PER_PAGE_ADMIN_SYSTEM_MESSAGES = 10;
+export const ITEMS_PER_PAGE_ADMIN_DISPATCH_THREADS = 10;
 
 // --- Hook-specific page sizes ---
 
@@ -35,7 +35,7 @@ export const POSTS_PER_PAGE = 20;
 export const VIOLATIONS_PER_PAGE = 5;
 
 /** Page size for the craft-skills list hook. */
-export const SKILLS_PER_PAGE = 12;
+export const CRAFT_SKILL_MEDIA_PER_PAGE = 12;
 
 /** Maximum number of recent posts the trending-feed scheduled commission processes per run. */
 export const TRENDING_FEED_PROCESS_LIMIT = 500;
@@ -43,7 +43,7 @@ export const TRENDING_FEED_PROCESS_LIMIT = 500;
 // --- HallLibrary UX constants ---
 
 /** HallLibrary page-level UX values (page size, recency window, search debounce, per-item tag cap). */
-export const LIBRARY_CONSTANTS = {
+export const HALL_LIBRARY_PAGE_CONSTANTS = {
   ITEMS_PER_PAGE: 20,
   MAX_RECENT_VIEWS: 50,
   MAX_TAGS_PER_ITEM: 10,

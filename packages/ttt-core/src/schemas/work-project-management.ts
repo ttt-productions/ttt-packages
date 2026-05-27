@@ -5,13 +5,14 @@ import {
   addRemoveActionSchema,
   workProjectTypeSchema,
   commissionListingIdSchema,
+  commissionProposalIdSchema,
   auditionIdSchema,
   auditionEntryIdSchema,
   craftSkillIdSchema,
 } from './atoms.js';
 import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
-import { GUILD_STANDING_IDS } from '../permissions/index.js';
-import { MAX_INVITE_MESSAGE_LENGTH } from '../constants/business.js';
+import { GUILD_STANDING_VALUES } from '../permissions/index.js';
+import { MAX_GUILD_INVITE_MESSAGE_LENGTH } from '../constants/business.js';
 
 const baseFields = {
   workingTitle: z.string().min(1).max(200),
@@ -63,7 +64,7 @@ export const InviteSourceSchema = z.discriminatedUnion('type', [
     type: z.literal('commission'),
     data: z.object({
       commissionListingId: commissionListingIdSchema,
-      auditionEntryId: auditionEntryIdSchema,
+      commissionProposalId: commissionProposalIdSchema,
       commissionTitle: z.string().min(1).max(200),
       proposalArtisanUserId: userIdSchema,
       postingStakeSharesOffered: z.number().int().min(1),
@@ -86,7 +87,7 @@ export type InviteSourceType = InviteSource['type'];
 export const InviteUserToGuildInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   inviteeUid: userIdSchema,
-  message: z.string().min(1).max(MAX_INVITE_MESSAGE_LENGTH),
+  message: z.string().min(1).max(MAX_GUILD_INVITE_MESSAGE_LENGTH),
   stakeSharesOffered: z.number().int().min(1),
   source: InviteSourceSchema,
 }).strict();
@@ -108,12 +109,12 @@ export const UpdateGuildmateTradeProfessionsInputSchema = z.object({
 }).strict();
 export type UpdateGuildmateTradeProfessionsInput = z.infer<typeof UpdateGuildmateTradeProfessionsInputSchema>;
 
-const ROLE_VALUES = GUILD_STANDING_IDS as [typeof GUILD_STANDING_IDS[number], ...typeof GUILD_STANDING_IDS[number][]];
+const GUILD_STANDING_VALUES_ENUM = GUILD_STANDING_VALUES as [typeof GUILD_STANDING_VALUES[number], ...typeof GUILD_STANDING_VALUES[number][]];
 
 export const UpdateGuildmateStandingInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   userId: userIdSchema,
-  guildStanding: z.enum(ROLE_VALUES),
+  guildStanding: z.enum(GUILD_STANDING_VALUES_ENUM),
   action: addRemoveActionSchema,
 }).strict();
 export type UpdateGuildmateStandingInput = z.infer<typeof UpdateGuildmateStandingInputSchema>;

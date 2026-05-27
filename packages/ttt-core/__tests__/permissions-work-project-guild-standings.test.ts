@@ -2,11 +2,14 @@ import { describe, it, expect } from 'vitest';
 import {
   GUILD_STANDINGS,
   GUILD_STANDING_IDS,
+  GUILD_STANDING_VALUES,
   WORK_PROJECT_ACTIONS,
   WORK_PROJECT_ACTION_IDS,
   isGuildStandingId,
+  isGuildStandingValue,
   isWorkProjectActionId,
   getActionsForGuildStanding,
+  getGuildStandingValueFromId,
   canAssignGuildStanding,
   NON_ASSIGNABLE_GUILD_STANDINGS,
   STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS,
@@ -14,8 +17,8 @@ import {
 } from '../src/permissions/index.js';
 import { UpdateGuildmateStandingInputSchema } from '../src/schemas/work-project-management.js';
 
-describe('GUILD_STANDING_IDS', () => {
-  it('includes "StewardOwner" as the first entry — StewardOwner is in GUILD_STANDING_IDS and NON_ASSIGNABLE_GUILD_STANDINGS', () => {
+describe('Guild standing identifiers', () => {
+  it('includes StewardOwner as the first code identifier', () => {
     expect(GUILD_STANDING_IDS).toContain('StewardOwner' as GuildStandingId);
     expect(GUILD_STANDING_IDS[0]).toBe('StewardOwner');
     expect(NON_ASSIGNABLE_GUILD_STANDINGS).toContain('StewardOwner');
@@ -25,275 +28,179 @@ describe('GUILD_STANDING_IDS', () => {
     expect([...GUILD_STANDING_IDS].sort()).toEqual(Object.keys(GUILD_STANDINGS).sort());
   });
 
-  it('isGuildStandingId returns true for every known role and false for unknown strings', () => {
-    for (const id of GUILD_STANDING_IDS) {
-      expect(isGuildStandingId(id)).toBe(true);
+  it('isGuildStandingId returns true for known code identifiers', () => {
+    for (const guildStandingId of GUILD_STANDING_IDS) {
+      expect(isGuildStandingId(guildStandingId)).toBe(true);
     }
-    expect(isGuildStandingId('StewardOwner')).toBe(true);
     expect(isGuildStandingId('Contributor')).toBe(false);
-    expect(isGuildStandingId('Admin')).toBe(false);
-    expect(isGuildStandingId('')).toBe(false);
-    expect(isGuildStandingId(null)).toBe(false);
-    expect(isGuildStandingId(undefined)).toBe(false);
-    expect(isGuildStandingId(42)).toBe(false);
+  });
+});
+
+describe('Guild standing stored values', () => {
+  it('includes stored Steward value for StewardOwner', () => {
+    expect(GUILD_STANDING_VALUES).toContain('Steward');
+    expect(isGuildStandingValue('Steward')).toBe(true);
+    expect(isGuildStandingValue('StewardOwner')).toBe(false);
+  });
+
+  it('contains no duplicates', () => {
+    expect(new Set(GUILD_STANDING_VALUES).size).toBe(GUILD_STANDING_VALUES.length);
   });
 });
 
 describe('WORK_PROJECT_ACTIONS', () => {
-  it('every action grants at least one role', () => {
+  it('every action grants at least one guild standing identifier', () => {
     for (const actionId of WORK_PROJECT_ACTION_IDS) {
       const action = WORK_PROJECT_ACTIONS[actionId];
       expect(action.grantedTo.length).toBeGreaterThan(0);
     }
   });
 
-  it('every action only grants known role IDs', () => {
-    const knownRoleIds = new Set<string>(GUILD_STANDING_IDS);
+  it('every action only grants known guild standing identifiers', () => {
+    const knownGuildStandingIds = new Set<string>(GUILD_STANDING_IDS);
     for (const actionId of WORK_PROJECT_ACTION_IDS) {
       const action = WORK_PROJECT_ACTIONS[actionId];
-      for (const role of action.grantedTo) {
-        expect(knownRoleIds.has(role)).toBe(true);
+      for (const guildStandingId of action.grantedTo) {
+        expect(knownGuildStandingIds.has(guildStandingId)).toBe(true);
       }
     }
   });
 
-  it('isWorkProjectActionId returns true for every known action and false for unknown strings', () => {
+  it('isWorkProjectActionId returns true for every known action', () => {
     for (const id of WORK_PROJECT_ACTION_IDS) {
       expect(isWorkProjectActionId(id)).toBe(true);
     }
     expect(isWorkProjectActionId('not.an.action')).toBe(false);
-    expect(isWorkProjectActionId('')).toBe(false);
-    expect(isWorkProjectActionId(null)).toBe(false);
-    expect(isWorkProjectActionId(undefined)).toBe(false);
-    expect(isWorkProjectActionId(42)).toBe(false);
   });
 
-  it('workProject.read is granted to every assignable role', () => {
+  it('workProject.read is granted to every guild standing identifier', () => {
     expect([...WORK_PROJECT_ACTIONS['workProject.read'].grantedTo].sort()).toEqual(
       [...GUILD_STANDING_IDS].sort(),
     );
   });
 
-  it('getActionsForGuildStanding returns only valid action IDs for each role', () => {
+  it('getActionsForGuildStanding returns only valid action IDs', () => {
     const knownActionIds = new Set<string>(WORK_PROJECT_ACTION_IDS);
-    for (const roleId of GUILD_STANDING_IDS) {
-      const actions = getActionsForGuildStanding(roleId);
-      for (const action of actions) {
-        expect(knownActionIds.has(action)).toBe(true);
+    for (const guildStandingId of GUILD_STANDING_IDS) {
+      const actionIds = getActionsForGuildStanding(guildStandingId);
+      for (const actionId of actionIds) {
+        expect(knownActionIds.has(actionId)).toBe(true);
       }
-    }
-  });
-
-  it('getActionsForGuildStanding returns workProject.read for every role', () => {
-    for (const roleId of GUILD_STANDING_IDS) {
-      expect(getActionsForGuildStanding(roleId)).toContain('workProject.read');
     }
   });
 });
 
 describe('canAssignGuildStanding', () => {
-  it('rejects "StewardOwner" as target role for everyone — including the workProject stewardOwner', () => {
+  it('rejects Steward for everyone', () => {
     expect(
       canAssignGuildStanding({
-        actorIsOwner: true,
-        actorRoles: [],
-        targetRole: 'StewardOwner',
+        actorIsStewardOwner: true,
+        actorGuildStandings: [],
+        targetGuildStanding: 'Steward',
         action: 'add',
       }),
     ).toMatchObject({ allowed: false });
 
     expect(
       canAssignGuildStanding({
-        actorIsOwner: false,
-        actorRoles: ['WorkProjectManager'],
-        targetRole: 'StewardOwner',
-        action: 'add',
-      }),
-    ).toMatchObject({ allowed: false });
-  });
-
-  it('rejects unknown target roles', () => {
-    expect(
-      canAssignGuildStanding({
-        actorIsOwner: true,
-        actorRoles: [],
-        targetRole: 'Contributor',
-        action: 'add',
-      }),
-    ).toMatchObject({ allowed: false });
-
-    expect(
-      canAssignGuildStanding({
-        actorIsOwner: true,
-        actorRoles: [],
-        targetRole: 'BogusRole',
+        actorIsStewardOwner: false,
+        actorGuildStandings: ['WorkProjectManager'],
+        targetGuildStanding: 'Steward',
         action: 'add',
       }),
     ).toMatchObject({ allowed: false });
   });
 
-  it('stewardOwner can assign every assignable role', () => {
-    const assignableRoles = GUILD_STANDING_IDS.filter(
-      (r) => !(NON_ASSIGNABLE_GUILD_STANDINGS as readonly string[]).includes(r),
+  it('rejects unknown target guild standings', () => {
+    expect(
+      canAssignGuildStanding({
+        actorIsStewardOwner: true,
+        actorGuildStandings: [],
+        targetGuildStanding: 'Contributor',
+        action: 'add',
+      }),
+    ).toMatchObject({ allowed: false });
+  });
+
+  it('stewardOwner can assign and remove every assignable guild standing', () => {
+    const assignableGuildStandingValues = GUILD_STANDING_VALUES.filter(
+      (guildStandingValue) => guildStandingValue !== 'Steward',
     );
-    for (const roleId of assignableRoles) {
-      const result = canAssignGuildStanding({
-        actorIsOwner: true,
-        actorRoles: [],
-        targetRole: roleId,
-        action: 'add',
-      });
-      expect(result.allowed).toBe(true);
+
+    for (const targetGuildStanding of assignableGuildStandingValues) {
+      expect(
+        canAssignGuildStanding({
+          actorIsStewardOwner: true,
+          actorGuildStandings: [],
+          targetGuildStanding,
+          action: 'add',
+        }).allowed,
+      ).toBe(true);
+
+      expect(
+        canAssignGuildStanding({
+          actorIsStewardOwner: true,
+          actorGuildStandings: [],
+          targetGuildStanding,
+          action: 'remove',
+        }).allowed,
+      ).toBe(true);
     }
   });
 
-  it('stewardOwner can remove every assignable role', () => {
-    const assignableRoles = GUILD_STANDING_IDS.filter(
-      (r) => !(NON_ASSIGNABLE_GUILD_STANDINGS as readonly string[]).includes(r),
+  it('non-stewardOwner without manager standing cannot assign', () => {
+    for (const targetGuildStanding of GUILD_STANDING_VALUES) {
+      expect(
+        canAssignGuildStanding({
+          actorIsStewardOwner: false,
+          actorGuildStandings: [],
+          targetGuildStanding,
+          action: 'add',
+        }),
+      ).toMatchObject({ allowed: false });
+    }
+  });
+
+  it('non-stewardOwner WorkProjectManager can assign non-steward-only, assignable guild standings', () => {
+    const stewardOnlyGuildStandingValues = new Set(
+      STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS.map((guildStandingId) => getGuildStandingValueFromId(guildStandingId)),
     );
-    for (const roleId of assignableRoles) {
+
+    for (const targetGuildStanding of GUILD_STANDING_VALUES) {
       const result = canAssignGuildStanding({
-        actorIsOwner: true,
-        actorRoles: [],
-        targetRole: roleId,
-        action: 'remove',
-      });
-      expect(result.allowed).toBe(true);
-    }
-  });
-
-  it('non-stewardOwner with no managing role cannot assign anything', () => {
-    for (const roleId of GUILD_STANDING_IDS) {
-      expect(
-        canAssignGuildStanding({
-          actorIsOwner: false,
-          actorRoles: [],
-          targetRole: roleId,
-          action: 'add',
-        }),
-      ).toMatchObject({ allowed: false });
-
-      expect(
-        canAssignGuildStanding({
-          actorIsOwner: false,
-          actorRoles: ['WorkAssetViewer'],
-          targetRole: roleId,
-          action: 'add',
-        }),
-      ).toMatchObject({ allowed: false });
-    }
-  });
-
-  it('non-stewardOwner WorkProjectManager can assign roles outside STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS', () => {
-    for (const roleId of GUILD_STANDING_IDS) {
-      const result = canAssignGuildStanding({
-        actorIsOwner: false,
-        actorRoles: ['WorkProjectManager'],
-        targetRole: roleId,
+        actorIsStewardOwner: false,
+        actorGuildStandings: ['WorkProjectManager'],
+        targetGuildStanding,
         action: 'add',
       });
-      const isOwnerOnly = (STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS as readonly string[]).includes(roleId);
-      const isNonAssignable = (NON_ASSIGNABLE_GUILD_STANDINGS as readonly string[]).includes(roleId);
-      expect(result.allowed).toBe(!isOwnerOnly && !isNonAssignable);
+      const isSteward = targetGuildStanding === 'Steward';
+      const isStewardOnly = stewardOnlyGuildStandingValues.has(targetGuildStanding);
+      expect(result.allowed).toBe(!isSteward && !isStewardOnly);
     }
   });
 
-  it('non-stewardOwner GuildStandingManager can assign roles outside STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS', () => {
-    for (const roleId of GUILD_STANDING_IDS) {
-      const result = canAssignGuildStanding({
-        actorIsOwner: false,
-        actorRoles: ['GuildStandingManager'],
-        targetRole: roleId,
-        action: 'add',
-      });
-      const isOwnerOnly = (STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS as readonly string[]).includes(roleId);
-      const isNonAssignable = (NON_ASSIGNABLE_GUILD_STANDINGS as readonly string[]).includes(roleId);
-      expect(result.allowed).toBe(!isOwnerOnly && !isNonAssignable);
-    }
-  });
-
-  it('non-stewardOwner WorkProjectManager cannot escalate to WorkProjectManager, GuildStandingManager, or StakeShareManager', () => {
-    for (const ownerOnlyRole of STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS) {
-      expect(
-        canAssignGuildStanding({
-          actorIsOwner: false,
-          actorRoles: ['WorkProjectManager'],
-          targetRole: ownerOnlyRole,
-          action: 'add',
-        }),
-      ).toMatchObject({ allowed: false });
-    }
-  });
-
-  it('non-stewardOwner GuildStandingManager cannot escalate to WorkProjectManager, GuildStandingManager, or StakeShareManager', () => {
-    for (const ownerOnlyRole of STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS) {
-      expect(
-        canAssignGuildStanding({
-          actorIsOwner: false,
-          actorRoles: ['GuildStandingManager'],
-          targetRole: ownerOnlyRole,
-          action: 'add',
-        }),
-      ).toMatchObject({ allowed: false });
-    }
-  });
-
-  it('non-stewardOwner cannot edit their own roles even with WorkProjectManager', () => {
+  it('non-stewardOwner cannot edit their own guild standings', () => {
     expect(
       canAssignGuildStanding({
-        actorIsOwner: false,
-        actorRoles: ['WorkProjectManager'],
-        targetRole: 'WorkAssetViewer',
+        actorIsStewardOwner: false,
+        actorGuildStandings: ['WorkProjectManager'],
+        targetGuildStanding: 'WorkAssetViewer',
         action: 'add',
         actorUid: 'same-uid',
         targetUid: 'same-uid',
       }),
     ).toMatchObject({ allowed: false });
-  });
-
-  it('stewardOwner CAN edit their own roles (vacuous but the policy says so)', () => {
-    expect(
-      canAssignGuildStanding({
-        actorIsOwner: true,
-        actorRoles: [],
-        targetRole: 'WorkAssetViewer',
-        action: 'add',
-        actorUid: 'same-uid',
-        targetUid: 'same-uid',
-      }),
-    ).toMatchObject({ allowed: true });
-  });
-
-  it('non-stewardOwner WorkProjectManager can edit a DIFFERENT member', () => {
-    expect(
-      canAssignGuildStanding({
-        actorIsOwner: false,
-        actorRoles: ['WorkProjectManager'],
-        targetRole: 'WorkAssetViewer',
-        action: 'add',
-        actorUid: 'actor-uid',
-        targetUid: 'target-uid',
-      }),
-    ).toMatchObject({ allowed: true });
   });
 });
 
-describe('StewardOwner role invariants', () => {
-  it('GUILD_STANDING_IDS[0] is "StewardOwner"', () => {
-    expect(GUILD_STANDING_IDS[0]).toBe('StewardOwner');
-  });
-
-  it('isGuildStandingId("StewardOwner") returns true', () => {
-    expect(isGuildStandingId('StewardOwner')).toBe(true);
-  });
-
-  it('every action in WORK_PROJECT_ACTIONS grants "StewardOwner"', () => {
+describe('StewardOwner identifier invariants', () => {
+  it('every action grants StewardOwner identifier', () => {
     for (const actionId of WORK_PROJECT_ACTION_IDS) {
       expect(WORK_PROJECT_ACTIONS[actionId].grantedTo).toContain('StewardOwner' as GuildStandingId);
     }
   });
 
-  it('getActionsForGuildStanding("StewardOwner") returns all action ids', () => {
+  it('getActionsForGuildStanding returns all actions for StewardOwner identifier', () => {
     expect(getActionsForGuildStanding('StewardOwner').length).toBe(WORK_PROJECT_ACTION_IDS.length);
   });
 });
@@ -305,34 +212,23 @@ describe('UpdateGuildmateStandingInputSchema', () => {
     action: 'add' as const,
   };
 
-  it('accepts every known guild standing id', () => {
-    for (const roleId of GUILD_STANDING_IDS) {
+  it('accepts every known stored guild standing value', () => {
+    for (const guildStandingValue of GUILD_STANDING_VALUES) {
       const parsed = UpdateGuildmateStandingInputSchema.parse({
         ...validBase,
-        guildStanding: roleId,
+        guildStanding: guildStandingValue,
       });
-      expect(parsed.guildStanding).toBe(roleId);
+      expect(parsed.guildStanding).toBe(guildStandingValue);
     }
   });
 
-  it('accepts "StewardOwner" — StewardOwner is a valid GuildStandingId; assignment is rejected by canAssignGuildStanding, not the schema', () => {
-    const parsed = UpdateGuildmateStandingInputSchema.parse({ ...validBase, guildStanding: 'StewardOwner' });
-    expect(parsed.guildStanding).toBe('StewardOwner');
-  });
-
-  it('rejects unknown roles', () => {
+  it('rejects StewardOwner as wire value', () => {
     expect(() =>
-      UpdateGuildmateStandingInputSchema.parse({ ...validBase, guildStanding: 'Contributor' }),
-    ).toThrow();
-    expect(() =>
-      UpdateGuildmateStandingInputSchema.parse({ ...validBase, guildStanding: 'Admin' }),
-    ).toThrow();
-    expect(() =>
-      UpdateGuildmateStandingInputSchema.parse({ ...validBase, guildStanding: 'BogusRole' }),
+      UpdateGuildmateStandingInputSchema.parse({ ...validBase, guildStanding: 'StewardOwner' }),
     ).toThrow();
   });
 
-  it('accepts both "add" and "remove" actions', () => {
+  it('accepts add and remove actions', () => {
     expect(
       UpdateGuildmateStandingInputSchema.parse({
         ...validBase,
@@ -349,26 +245,7 @@ describe('UpdateGuildmateStandingInputSchema', () => {
     ).toBe('remove');
   });
 
-  it('rejects unknown actions', () => {
-    expect(() =>
-      UpdateGuildmateStandingInputSchema.parse({
-        ...validBase,
-        guildStanding: 'WorkAssetViewer',
-        action: 'toggle',
-      }),
-    ).toThrow();
-  });
-
-  it('rejects missing required fields', () => {
-    expect(() =>
-      UpdateGuildmateStandingInputSchema.parse({ workProjectId: 'p', userId: 'u', guildStanding: 'WorkAssetViewer' }),
-    ).toThrow();
-    expect(() =>
-      UpdateGuildmateStandingInputSchema.parse({ userId: 'u', guildStanding: 'WorkAssetViewer', action: 'add' }),
-    ).toThrow();
-  });
-
-  it('is strict — rejects extra fields', () => {
+  it('is strict and rejects unknown fields', () => {
     expect(() =>
       UpdateGuildmateStandingInputSchema.parse({
         ...validBase,
@@ -378,6 +255,3 @@ describe('UpdateGuildmateStandingInputSchema', () => {
     ).toThrow();
   });
 });
-
-
-

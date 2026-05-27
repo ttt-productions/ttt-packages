@@ -104,7 +104,7 @@ export interface ThresholdItem {
   reviewedBy?: string;
 }
 
-export interface PublishedLibraryItem {
+export interface PublishedHallItem {
   hallItemId: string;
   workProjectId: string;
   workProjectType: WorkProjectType;

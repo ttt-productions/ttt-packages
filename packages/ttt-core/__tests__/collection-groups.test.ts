@@ -3,8 +3,8 @@ import { COLLECTION_GROUPS } from '../src/paths/collection-groups';
 import { USER_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections';
 
 describe('COLLECTION_GROUPS', () => {
-  it('PROFILE_SKILLS maps to USER_SUBCOLLECTIONS.PROFILE_SKILLS', () => {
-    expect(COLLECTION_GROUPS.PROFILE_SKILLS).toBe(USER_SUBCOLLECTIONS.PROFILE_SKILLS);
+  it('PROFILE_CRAFT_SKILLS maps to USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS', () => {
+    expect(COLLECTION_GROUPS.PROFILE_CRAFT_SKILLS).toBe(USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS);
   });
 
   it('SOCIAL_POSTS maps to NESTED_SUBCOLLECTIONS.SOCIAL_POSTS', () => {
@@ -53,7 +53,7 @@ describe('COLLECTION_GROUPS', () => {
 
   it('has all expected keys', () => {
     const expectedKeys = [
-      'PROFILE_SKILLS',
+      'PROFILE_CRAFT_SKILLS',
       'SOCIAL_POSTS',
       'TALE_CHAPTERS',
       'TUNE_TRACKS',
@@ -71,3 +71,4 @@ describe('COLLECTION_GROUPS', () => {
     }
   });
 });
+

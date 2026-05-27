@@ -1,6 +1,6 @@
 // Business rule constants shared between frontend and backend
 
-/** The absolute maximum number of shares a workProject can have. */
+/** The absolute maximum number of stakes a workProject can have. */
 export const MAX_WORK_PROJECT_STAKE_SHARES = 1000;
 
 /** The maximum character length for a SquareStreetz post created on behalf of a workProject. */
@@ -163,19 +163,19 @@ export const MAX_MENTION_DISPLAY_LENGTH = 30;
 
 // --- Messages & Invites ---
 
-/** Maximum length for a workProject-invite message. */
-export const MAX_INVITE_MESSAGE_LENGTH = 500;
+/** Maximum length for a guild-invite message. */
+export const MAX_GUILD_INVITE_MESSAGE_LENGTH = 500;
 
 /** Maximum length for a pledgePayment message. */
 export const MAX_PLEDGE_PAYMENT_MESSAGE_LENGTH = 500;
 
-// --- Admin Messages ---
+// --- Admin Dispatches ---
 
-/** Maximum length for an admin-message subject line. */
-export const MAX_ADMIN_MESSAGE_SUBJECT_LENGTH = 100;
+/** Maximum length for an admin-dispatch subject line. */
+export const MAX_ADMIN_DISPATCH_SUBJECT_LENGTH = 100;
 
-/** Maximum length for the initial body text of an admin message. */
-export const MAX_ADMIN_MESSAGE_INITIAL_TEXT_LENGTH = 1000;
+/** Maximum length for the initial body text of an admin dispatch. */
+export const MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH = 1000;
 
 // --- Content Moderation Workflow ---
 
@@ -196,8 +196,8 @@ export const MAX_FEEDBACK_SUBMITTERS = 100;
  * mirroring in callers required.
  */
 export const FEEDBACK_TYPES = [
-  'professionSuggestions',
-  'skillTagSuggestions',
+  'tradeProfessionSuggestions',
+  'craftSkillTagSuggestions',
   'talesCategorySuggestions',
   'tunesCategorySuggestions',
   'televisionCategorySuggestions',
@@ -229,4 +229,5 @@ export const ADMIN_TASK_STATUS = {
  * or any rate-limit / audit-event side effects are incurred.
  */
 export const MAX_PLEDGE_PAYMENT_AMOUNT_CENTS = 50_000_000;
+
 

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { commissionListingIdSchema, auditionEntryIdSchema } from './atoms.js';
+import { commissionListingIdSchema, commissionProposalIdSchema } from './atoms.js';
 import { MAX_COMMISSION_DESCRIPTION_LENGTH } from '../constants/business.js';
 
 export const CommissionProposalStatusSchema = z.enum([
@@ -22,13 +22,13 @@ export type DeleteCommissionInput = z.infer<typeof DeleteCommissionInputSchema>;
 
 export const RejectCommissionProposalInputSchema = z.object({
   commissionListingId: commissionListingIdSchema,
-  auditionEntryId: auditionEntryIdSchema,
+  commissionProposalId: commissionProposalIdSchema,
 }).strict();
 export type RejectCommissionProposalInput = z.infer<typeof RejectCommissionProposalInputSchema>;
 
 export const SetCommissionProposalSavedInputSchema = z.object({
   commissionListingId: commissionListingIdSchema,
-  auditionEntryId: auditionEntryIdSchema,
+  commissionProposalId: commissionProposalIdSchema,
   saved: z.boolean(),
 }).strict();
 export type SetCommissionProposalSavedInput = z.infer<typeof SetCommissionProposalSavedInputSchema>;

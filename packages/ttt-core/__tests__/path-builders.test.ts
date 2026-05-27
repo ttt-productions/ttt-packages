@@ -13,12 +13,12 @@ describe('PATH_BUILDERS', () => {
     });
 
     it('userCraftSkill returns 4-segment tuple with correct positions', () => {
-      const result = PATH_BUILDERS.userCraftSkill('userA', 'skillB');
+      const result = PATH_BUILDERS.userCraftSkill('userA', 'craftSkillB');
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
       expect(result[1]).toBe('userA');
-      expect(result[2]).toBe(USER_SUBCOLLECTIONS.PROFILE_SKILLS);
-      expect(result[3]).toBe('skillB');
+      expect(result[2]).toBe(USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS);
+      expect(result[3]).toBe('craftSkillB');
     });
 
     it('userPrivateData returns 4-segment tuple with userId as document ID', () => {
@@ -87,8 +87,8 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== PROJECT PATHS =====
-  describe('WorkProject Paths', () => {
+  // ===== WORK PATHS =====
+  describe('WorkWORK PATHS', () => {
     it('workProject returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.workProject('proj1');
       expect(result).toHaveLength(2);
@@ -193,8 +193,8 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== STREETZ PATHS =====
-  describe('SquareStreetz Paths', () => {
+  // ===== SQUARE PATHS =====
+  describe('SquareSQUARE PATHS', () => {
     it('activePost returns 4-segment tuple starting with squareStreetzFeed', () => {
       const result = PATH_BUILDERS.activePost('post1');
       expect(result).toHaveLength(4);
@@ -212,8 +212,8 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== LIBRARY PATHS =====
-  describe('HallLibrary Paths', () => {
+  // ===== HALL PATHS =====
+  describe('HallHALL PATHS', () => {
     it('thresholdItem returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.thresholdItem('lib1');
       expect(result).toHaveLength(2);
@@ -238,7 +238,7 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== JOB PATHS =====
+  // ===== COMMISSION PATHS =====
   describe('Commission Paths', () => {
     it('commissionListing returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.commissionListing('job1');
@@ -257,7 +257,7 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== OPPORTUNITY PATHS =====
+  // ===== AUDITION PATHS =====
   describe('Audition Paths', () => {
     it('audition returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.audition('opp1');
@@ -276,7 +276,7 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== UNIVERSE PATHS =====
+  // ===== REALM PATHS =====
   describe('WorkRealm Paths', () => {
     it('workRealm returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.workRealm('uni1');
@@ -349,10 +349,10 @@ describe('PATH_BUILDERS', () => {
     });
 
     it('adminTaskForItem concatenates taskType and itemId with a dash', () => {
-      const result = PATH_BUILDERS.adminTaskForItem('libraryReview', 'item123');
+      const result = PATH_BUILDERS.adminTaskForItem('thresholdLibraryReview', 'item123');
       expect(result).toHaveLength(2);
       expect(result[0]).toBe(COLLECTIONS.ADMIN_TASKS);
-      expect(result[1]).toBe('libraryReview-item123');
+      expect(result[1]).toBe('thresholdLibraryReview-item123');
     });
 
     it('adminActivityLog returns 2-segment tuple', () => {
@@ -422,8 +422,8 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
-  // ===== FEEDBACK & SKILLS PATHS =====
-  describe('Feedback & Skills Paths', () => {
+  // ===== FEEDBACK & CRAFT PATHS =====
+  describe('FEEDBACK & CRAFT PATHS', () => {
     it('feedbackSubmission returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.feedbackSubmission('bug');
       expect(result).toHaveLength(2);
@@ -495,5 +495,8 @@ describe('PATH_BUILDERS', () => {
     });
   });
 });
+
+
+
 
 

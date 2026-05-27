@@ -1,11 +1,11 @@
 export const GUILD_STANDINGS = {
   StewardOwner: {
-    label: 'StewardOwner',
-    description: 'WorkProject stewardOwner. Holds all workProject actions implicitly. Assigned automatically at workProject creation and non-assignable via role-management UIs.',
+    label: 'Steward',
+    description: 'Work steward. Holds all workProject actions implicitly. Assigned automatically at workProject creation and non-assignable via guild standing management UIs.',
   },
   WorkProjectManager: {
     label: 'WorkProject Manager',
-    description: 'Can perform every workProject action except granting StewardOwner, WorkProjectManager, GuildStandingManager, or StakeShareManager.',
+    description: 'Can perform every workProject action except granting Steward, WorkProjectManager, GuildStandingManager, or StakeShareManager.',
   },
   PublicWorkProjectEditor: {
     label: 'Public WorkProject Editor',
@@ -16,8 +16,8 @@ export const GUILD_STANDINGS = {
     description: 'Can assign and remove ordinary workProject guild standings without escalating manager or share authority.',
   },
   StakeShareManager: {
-    label: 'Share Manager',
-    description: 'Can adjust active member shares and pending invite share offers.',
+    label: 'Stake Share Manager',
+    description: 'Can adjust active member stakes and pending invite stake offers.',
   },
   InviteManager: {
     label: 'Invite Manager',
@@ -40,21 +40,42 @@ export const GUILD_STANDINGS = {
     description: 'Can open, edit, and close workProject auditions and manage respondents without starting invite conversations.',
   },
   HallLibraryEditor: {
-    label: 'HallLibrary Editor',
+    label: 'Hall Editor',
     description: 'Can create and edit Tales, Tunes, Television content, categories, and media assets.',
   },
   HallLibrarySubmitter: {
-    label: 'HallLibrary Submitter',
-    description: 'Can submit workProject hallLibrary content for admin/hallLibrary review.',
+    label: 'Hall Submitter',
+    description: 'Can submit workProject hall content for admin hall review.',
   },
   GuildChatChannelManager: {
-    label: 'Chat Channel Manager',
+    label: 'Guild Chat Channel Manager',
     description: 'Can create, update, archive, and moderate workProject chat channels.',
   },
 } as const;
 
 export type GuildStandingId = keyof typeof GUILD_STANDINGS;
 export const GUILD_STANDING_IDS = Object.keys(GUILD_STANDINGS) as GuildStandingId[];
+export const GUILD_STANDING_VALUE_BY_ID = {
+  StewardOwner: 'Steward',
+  WorkProjectManager: 'WorkProjectManager',
+  PublicWorkProjectEditor: 'PublicWorkProjectEditor',
+  GuildStandingManager: 'GuildStandingManager',
+  StakeShareManager: 'StakeShareManager',
+  InviteManager: 'InviteManager',
+  WorkAssetViewer: 'WorkAssetViewer',
+  WorkAssetManager: 'WorkAssetManager',
+  CommissionManager: 'CommissionManager',
+  AuditionManager: 'AuditionManager',
+  HallLibraryEditor: 'HallLibraryEditor',
+  HallLibrarySubmitter: 'HallLibrarySubmitter',
+  GuildChatChannelManager: 'GuildChatChannelManager',
+} as const satisfies Record<GuildStandingId, string>;
+export type GuildStandingValue = (typeof GUILD_STANDING_VALUE_BY_ID)[GuildStandingId];
+export const GUILD_STANDING_VALUES = Object.values(GUILD_STANDING_VALUE_BY_ID) as GuildStandingValue[];
+
+const GUILD_STANDING_ID_BY_VALUE = Object.fromEntries(
+  GUILD_STANDING_IDS.map((guildStandingId) => [GUILD_STANDING_VALUE_BY_ID[guildStandingId], guildStandingId]),
+) as Record<GuildStandingValue, GuildStandingId>;
 
 export const WORK_PROJECT_ACTIONS = {
   'workProject.read': {
@@ -78,18 +99,18 @@ export const WORK_PROJECT_ACTIONS = {
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildStandingManager'],
   },
   'workProject.stakeShares.manage': {
-    label: 'Manage workProject shares',
-    description: 'Run workProject share operations under the 1000-share cap.',
+    label: 'Manage workProject stakes',
+    description: 'Run workProject stake-share operations under the 1000-stake cap.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'StakeShareManager'],
   },
   'workProject.stakeShares.addActive': {
-    label: 'Add active member shares',
-    description: 'Increase shares for an existing active workProject member.',
+    label: 'Add active member stakes',
+    description: 'Increase stakes for an existing active workProject member.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'StakeShareManager'],
   },
   'guildInvite.send': {
     label: 'Send invites',
-    description: 'Start a workProject invite conversation and reserve pending shares.',
+    description: 'Start a workProject invite conversation and reserve pending stakes.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'InviteManager'],
   },
   'guildInvite.list': {
@@ -103,8 +124,8 @@ export const WORK_PROJECT_ACTIONS = {
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'InviteManager'],
   },
   'guildInvite.stakeShares.update': {
-    label: 'Update invite shares',
-    description: 'Increase shares offered on a pending invite.',
+    label: 'Update invite stakes',
+    description: 'Increase stakes offered on a pending invite.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'StakeShareManager'],
   },
   'workAsset.view': {
@@ -233,8 +254,8 @@ export const WORK_PROJECT_ACTIONS = {
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibraryEditor'],
   },
   'hallLibrary.review.submit': {
-    label: 'Submit hallLibrary review',
-    description: 'Submit workProject content for admin/hallLibrary review.',
+    label: 'Submit hall review',
+    description: 'Submit workProject content for admin hall review.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibrarySubmitter'],
   },
   'guildChatChannel.create': {
@@ -270,13 +291,25 @@ export function isGuildStandingId(value: unknown): value is GuildStandingId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(GUILD_STANDINGS, value);
 }
 
+export function isGuildStandingValue(value: unknown): value is GuildStandingValue {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(GUILD_STANDING_ID_BY_VALUE, value);
+}
+
+export function getGuildStandingIdFromValue(guildStandingValue: GuildStandingValue): GuildStandingId {
+  return GUILD_STANDING_ID_BY_VALUE[guildStandingValue];
+}
+
+export function getGuildStandingValueFromId(guildStandingId: GuildStandingId): GuildStandingValue {
+  return GUILD_STANDING_VALUE_BY_ID[guildStandingId];
+}
+
 export function isWorkProjectActionId(value: unknown): value is WorkProjectActionId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(WORK_PROJECT_ACTIONS, value);
 }
 
-export function getActionsForGuildStanding(role: GuildStandingId): WorkProjectActionId[] {
+export function getActionsForGuildStanding(guildStandingId: GuildStandingId): WorkProjectActionId[] {
   return WORK_PROJECT_ACTION_IDS.filter((action) =>
-    (WORK_PROJECT_ACTIONS[action].grantedTo as readonly GuildStandingId[]).includes(role)
+    (WORK_PROJECT_ACTIONS[action].grantedTo as readonly GuildStandingId[]).includes(guildStandingId)
   );
 }
 

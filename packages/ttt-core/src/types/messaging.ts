@@ -1,4 +1,4 @@
-// Messaging types: Chat channels, Invite conversations, Admin messages.
+// Messaging types: chat channels, invite conversations, admin dispatches.
 //
 // NOTE: Per-message body shapes (channel messages, invite messages,
 // admin conversation messages) live in @ttt-productions/chat-core as
@@ -26,7 +26,7 @@ export interface GuildChatChannel {
 // --- WorkProject Invite Conversations ---
 
 export interface GuildInviteConversation {
-  inviteId: string;
+  guildInviteId: string;
   workProjectId: string;
   relatedUserIds: string[];
   workProjectTitle: string;
@@ -51,7 +51,7 @@ export interface GuildInviteConversation {
   lastMessageAt?: string;
 }
 
-// --- Admin Messages ---
+// --- Admin Dispatch ---
 
 export interface AdminDispatch {
   adminDispatchId: string;
@@ -71,4 +71,3 @@ export interface AdminDispatch {
    */
   closedBy?: string;
 }
-

@@ -2,9 +2,9 @@
 
 import type { HallWingType, WorkProjectType } from '../types/content.js';
 
-// --- WorkProject Roles ---
-// WorkProject role IDs, labels, and assignment policy live in ../permissions/.
-// Keep role picker UIs backed by GUILD_STANDINGS instead of a duplicated option map.
+// --- WorkProject Guild Standings ---
+// WorkProject guild-standing IDs, labels, and assignment policy live in ../permissions/.
+// Keep guild-standing picker UIs backed by GUILD_STANDINGS instead of a duplicated option map.
 
 // --- Trade & Craft Options ---
 

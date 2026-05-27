@@ -59,7 +59,7 @@ describe('COLLECTION_REFS', () => {
       expect(result).toHaveLength(3);
       expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
       expect(result[1]).toBe('user1');
-      expect(result[2]).toBe(USER_SUBCOLLECTIONS.PROFILE_SKILLS);
+      expect(result[2]).toBe(USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS);
     });
 
     it('userFollows returns 3-segment tuple', () => {
@@ -153,5 +153,6 @@ describe('COLLECTION_REFS', () => {
     });
   });
 });
+
 
 
