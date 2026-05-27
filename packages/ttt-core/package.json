@@ -79,6 +79,10 @@
         "./permissions": {
             "types": "./dist/permissions/index.d.ts",
             "default": "./dist/permissions/index.js"
+        },
+        "./ttt-keys": {
+            "types": "./dist/ttt-keys.d.ts",
+            "default": "./dist/ttt-keys.js"
         }
     },
     "scripts": {
@@ -92,6 +96,7 @@
         "@ttt-productions/audit-core": "*",
         "@ttt-productions/chat-schemas": "*",
         "@ttt-productions/media-schemas": "*",
+        "@ttt-productions/query-core": "*",
         "@ttt-productions/report-core": "*",
         "zod": "^3.23.8"
     },

@@ -30,10 +30,10 @@ describe('keys.user', () => {
   });
 
   it('keys are arrays of Firestore-safe primitives only', () => {
-    const k = keys.opportunities.custom('list', 'All', 'newest');
+    const k = keys.feedback.custom('list', 'All', 'newest');
     // Compile-time: must be assignable to readonly (string|number|boolean|null)[]
     const _check: ReadonlyArray<string | number | boolean | null> = k;
-    expect(_check).toEqual(['opportunities', 'list', 'All', 'newest']);
+    expect(_check).toEqual(['feedback', 'list', 'All', 'newest']);
   });
 
   it('list filters out undefined params', () => {
@@ -44,10 +44,9 @@ describe('keys.user', () => {
 
 describe('keys scopes', () => {
   const scopes = [
-    'follows', 'skills', 'entities', 'messages', 'library',
-    'admin', 'opportunities', 'jobs', 'donations', 'futurePlans',
-    'rulesAndAgreements', 'chat', 'notifications', 'shortLinks',
-    'mentions', 'violations', 'feedback',
+    'follows', 'entities', 'messages',
+    'admin', 'chat', 'notifications', 'shortLinks',
+    'mentions', 'feedback',
   ] as const;
 
   for (const scope of scopes) {

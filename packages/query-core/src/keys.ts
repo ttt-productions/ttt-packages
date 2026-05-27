@@ -14,7 +14,7 @@
  * - `keys.user.custom('accountStatus', id)` => ['user', 'accountStatus', id]
  *
  * For list filters that need multiple discriminators, use `custom`:
- *   keys.opportunities.custom('list', filter, sortBy)
+ *   keys.feedback.custom('list', filter, sortBy)
  */
 type SerializedKeyPart = string | number | boolean | null | undefined;
 
@@ -38,12 +38,6 @@ export const keys = {
     list: (param?: SerializedKeyPart) => withScope('follows', 'list', param),
     custom: (...parts: SerializedKeyPart[]) => withScope('follows', ...parts),
   },
-  skills: {
-    all: withScope('skills'),
-    detail: (id: string) => withScope('skills', 'detail', id),
-    list: (param?: SerializedKeyPart) => withScope('skills', 'list', param),
-    custom: (...parts: SerializedKeyPart[]) => withScope('skills', ...parts),
-  },
   entities: {
     all: withScope('entities'),
     detail: (id: string) => withScope('entities', 'detail', id),
@@ -56,47 +50,11 @@ export const keys = {
     list: (param?: SerializedKeyPart) => withScope('messages', 'list', param),
     custom: (...parts: SerializedKeyPart[]) => withScope('messages', ...parts),
   },
-  library: {
-    all: withScope('library'),
-    detail: (id: string) => withScope('library', 'detail', id),
-    list: (param?: SerializedKeyPart) => withScope('library', 'list', param),
-    custom: (...parts: SerializedKeyPart[]) => withScope('library', ...parts),
-  },
   admin: {
     all: withScope('admin'),
     detail: (id: string) => withScope('admin', 'detail', id),
     list: (param?: SerializedKeyPart) => withScope('admin', 'list', param),
     custom: (...parts: SerializedKeyPart[]) => withScope('admin', ...parts),
-  },
-  opportunities: {
-    all: withScope('opportunities'),
-    detail: (id: string) => withScope('opportunities', 'detail', id),
-    list: (param?: SerializedKeyPart) => withScope('opportunities', 'list', param),
-    custom: (...parts: SerializedKeyPart[]) => withScope('opportunities', ...parts),
-  },
-  jobs: {
-    all: withScope('jobs'),
-    detail: (id: string) => withScope('jobs', 'detail', id),
-    list: (param?: SerializedKeyPart) => withScope('jobs', 'list', param),
-    custom: (...parts: SerializedKeyPart[]) => withScope('jobs', ...parts),
-  },
-  donations: {
-    all: withScope('donations'),
-    detail: (id: string) => withScope('donations', 'detail', id),
-    list: (param?: SerializedKeyPart) => withScope('donations', 'list', param),
-    custom: (...parts: SerializedKeyPart[]) => withScope('donations', ...parts),
-  },
-  futurePlans: {
-    all: withScope('futurePlans'),
-    detail: (id: string) => withScope('futurePlans', 'detail', id),
-    list: (param?: SerializedKeyPart) => withScope('futurePlans', 'list', param),
-    custom: (...parts: SerializedKeyPart[]) => withScope('futurePlans', ...parts),
-  },
-  rulesAndAgreements: {
-    all: withScope('rulesAndAgreements'),
-    detail: (id: string) => withScope('rulesAndAgreements', 'detail', id),
-    list: (param?: SerializedKeyPart) => withScope('rulesAndAgreements', 'list', param),
-    custom: (...parts: SerializedKeyPart[]) => withScope('rulesAndAgreements', ...parts),
   },
   chat: {
     all: withScope('chat'),
@@ -121,12 +79,6 @@ export const keys = {
     detail: (id: string) => withScope('mentions', 'detail', id),
     list: (param?: SerializedKeyPart) => withScope('mentions', 'list', param),
     custom: (...parts: SerializedKeyPart[]) => withScope('mentions', ...parts),
-  },
-  violations: {
-    all: withScope('violations'),
-    detail: (id: string) => withScope('violations', 'detail', id),
-    list: (param?: SerializedKeyPart) => withScope('violations', 'list', param),
-    custom: (...parts: SerializedKeyPart[]) => withScope('violations', ...parts),
   },
   feedback: {
     all: withScope('feedback'),

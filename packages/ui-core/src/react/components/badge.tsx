@@ -14,8 +14,6 @@ const badgeVariants = cva(
         secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        professions:
-          "bg-[hsl(var(--card))] border-[hsl(var(--brand-primary))] text-[hsl(var(--brand-primary-deep))] border-2",
 
         // NEW: semantic status pills (colors come from CSS vars)
         status:
