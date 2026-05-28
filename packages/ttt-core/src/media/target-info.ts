@@ -141,7 +141,7 @@ export const TelevisionEpisodeVideoTargetInfoSchema = TelevisionEpisodeMediaTarg
 // guild-chat-message-attachment: discriminated by threadKind.
 const ChatReplyToSchema = z
   .object({
-    guildChatMessageId: z.string().min(1),
+    messageId: z.string().min(1),
     senderId: z.string().min(1),
     messagePreview: z.string(),
   })

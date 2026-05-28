@@ -10,7 +10,7 @@ describe('audit type catalog', () => {
   it('AuditEventType includes representative members from each domain', () => {
     const sample: AuditEventType[] = [
       'user.accountRegistered',
-      'admin.guildStandingGranted',
+      'admin.systemRoleGranted',
       'workProject.created',
       'content.taleDetailsUpdated',
       'payment.pledgePaymentCompleted',

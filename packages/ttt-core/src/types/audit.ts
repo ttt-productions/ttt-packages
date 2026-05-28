@@ -18,9 +18,9 @@ export type AuditEventType =
   | 'user.accountBanned'
   | 'user.accountUnbanned'
   // admin actions
-  | 'admin.guildStandingGranted'
-  | 'admin.roleRevoked'
-  | 'admin.roleSyncedFromDirectEdit'
+  | 'admin.systemRoleGranted'
+  | 'admin.systemRoleRevoked'
+  | 'admin.systemRoleSyncedFromDirectEdit'
   | 'admin.contentAppealReviewed'
   | 'admin.violationDecisionAccepted'
   | 'admin.thresholdItemReviewed'
