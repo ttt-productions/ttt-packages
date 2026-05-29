@@ -51,7 +51,7 @@ export const USERNAME_MAX_LENGTH = 20;
 /** Allowed characters in a user display name: letters and numbers only. */
 export const USERNAME_REGEX = /^[a-zA-Z0-9]+$/;
 
-// --- User Profile Skills ---
+// --- User Profile Craft Skills ---
 
 /** Maximum number of craft-skills a user can upload to their profile. */
 export const CRAFT_SKILL_LIMIT = 8;
@@ -128,7 +128,7 @@ export const MAX_TELEVISION_EPISODE_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH
 /** Maximum length for an episode description. */
 export const MAX_TELEVISION_EPISODE_DESCRIPTION_LENGTH = MAX_WORK_PROJECT_DESCRIPTION_LENGTH;
 
-// --- Commission Board & Applications ---
+// --- Commission Board & Proposals ---
 
 /** Maximum number of open commissions a workProject can have. */
 export const MAX_COMMISSION_LISTINGS = 5;
@@ -198,9 +198,9 @@ export const MAX_FEEDBACK_SUBMITTERS = 100;
 export const FEEDBACK_TYPES = [
   'tradeProfessionSuggestions',
   'craftSkillTagSuggestions',
-  'talesCategorySuggestions',
-  'tunesCategorySuggestions',
-  'televisionCategorySuggestions',
+  'talesWorkGenreSuggestions',
+  'tunesWorkGenreSuggestions',
+  'televisionWorkGenreSuggestions',
 ] as const;
 
 /** Union of canonical feedback types. */

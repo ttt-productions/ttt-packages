@@ -69,7 +69,7 @@ export type ManageWorkProjectStakeSharesInput = z.infer<typeof ManageWorkProject
 // PUBLIC STAKE-SHARE OPERATION SCHEMA
 //
 // The `manageWorkProjectStakeShares` callable is exposed to authenticated
-// creators. Only `add-active` is safe to invoke from a public surface.
+// artisans. Only `add-active` is safe to invoke from a public surface.
 //
 // Internal-only operation types:
 // - add-pending: inviteUserToGuild + runUpdateGuildInviteStakeShares

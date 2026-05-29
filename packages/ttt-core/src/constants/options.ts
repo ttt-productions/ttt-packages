@@ -153,8 +153,8 @@ export const AUDITION_SORT_OPTIONS = {
   workAudition: {
     newest: { label: 'Newest First', field: 'createdOn', direction: 'desc' },
     endingSoon: { label: 'Ending Soon', field: 'openTill', direction: 'asc' },
-    highestShares: { label: 'Highest Shares', field: 'stakeSharesOffered', direction: 'desc' },
-    lowestShares: { label: 'Lowest Shares', field: 'stakeSharesOffered', direction: 'asc' },
+    highestStakeShares: { label: 'Highest Stakes', field: 'stakeSharesOffered', direction: 'desc' },
+    lowestStakeShares: { label: 'Lowest Stakes', field: 'stakeSharesOffered', direction: 'asc' },
   },
 } as const;
 

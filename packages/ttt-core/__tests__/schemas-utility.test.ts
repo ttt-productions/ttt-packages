@@ -41,7 +41,7 @@ describe('SubmitFeedbackInputSchema', () => {
   describe('suggestion', () => {
     it('rejects an empty suggestion', () => {
       const result = SubmitFeedbackInputSchema.safeParse({
-        feedbackType: 'tradetradeProfessionSuggestions',
+        feedbackType: 'tradeProfessionSuggestions',
         suggestion: '',
       });
       expect(result.success).toBe(false);
@@ -49,7 +49,7 @@ describe('SubmitFeedbackInputSchema', () => {
 
     it('rejects a suggestion containing spaces', () => {
       const result = SubmitFeedbackInputSchema.safeParse({
-        feedbackType: 'tradetradeProfessionSuggestions',
+        feedbackType: 'tradeProfessionSuggestions',
         suggestion: 'two words',
       });
       expect(result.success).toBe(false);
@@ -57,7 +57,7 @@ describe('SubmitFeedbackInputSchema', () => {
 
     it('rejects a suggestion containing uppercase letters', () => {
       const result = SubmitFeedbackInputSchema.safeParse({
-        feedbackType: 'tradetradeProfessionSuggestions',
+        feedbackType: 'tradeProfessionSuggestions',
         suggestion: 'Jazz',
       });
       expect(result.success).toBe(false);
@@ -65,7 +65,7 @@ describe('SubmitFeedbackInputSchema', () => {
 
     it('rejects a suggestion containing digits', () => {
       const result = SubmitFeedbackInputSchema.safeParse({
-        feedbackType: 'tradetradeProfessionSuggestions',
+        feedbackType: 'tradeProfessionSuggestions',
         suggestion: 'jazz123',
       });
       expect(result.success).toBe(false);
@@ -75,7 +75,7 @@ describe('SubmitFeedbackInputSchema', () => {
   describe('strict mode', () => {
     it('rejects unknown extra fields', () => {
       const result = SubmitFeedbackInputSchema.safeParse({
-        feedbackType: 'tradetradeProfessionSuggestions',
+        feedbackType: 'tradeProfessionSuggestions',
         suggestion: 'jazz',
         unexpectedField: 'oops',
       });

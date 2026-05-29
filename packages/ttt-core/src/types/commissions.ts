@@ -80,7 +80,7 @@ export interface AuditionEntry {
 export interface UserAuditionVote {
   votedForAuditionEntryId: string;
   votedOn: number;
-  auditionEntryCreator: { uid: string };
+  auditionEntryArtisanCreator: { uid: string };
 }
 
 

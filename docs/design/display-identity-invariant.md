@@ -18,12 +18,12 @@ Apps resolve display identity from their own identity source:
 - ttt-prod uses backend-mirrored `publicUsers/{uid}` documents.
 - Q-Sports uses its own user records.
 
-This applies to: public content, chat messages, report payloads, admin-task queue entries, job postings, opportunity listings, project documents, library entries.
+This applies to: public content, chat messages, report payloads, admin-task queue entries, commission postings, audition listings, work documents, library entries.
 
 ## Why
 
 - **One source of truth.** When a user changes their display name, exactly one document needs to update (`publicUsers/{uid}` in ttt-prod). Every consumer reading from that source automatically reflects the change.
-- **No fan-out write storm.** Denormalizing display name into chat messages, report payloads, and project documents means a name change requires updating thousands of documents. We had this bug shape pre-launch and the fix is "don't store the name."
+- **No fan-out write storm.** Denormalizing display name into chat messages, report payloads, and work documents means a name change requires updating thousands of documents. We had this bug shape pre-launch and the fix is "don't store the name."
 - **No drift between producer and consumer.** A snapshot stored at write time goes stale. A live read from the identity source is always current. Snapshots are acceptable only for audit/historical records where the point IS to capture the state at the time of action.
 - **Cross-app reusability.** Q-Sports doesn't have `publicUsers/`. By keeping shared types uid-only, the same `chat-core` / `notification-core` / `report-core` packages work in both apps with each app providing its own resolver.
 
@@ -34,7 +34,7 @@ This applies to: public content, chat messages, report payloads, admin-task queu
 - Notifications (`@ttt-productions/notification-core`): `actorUid`, `subjectUid`, never names.
 - Reports (`@ttt-productions/report-core`): `reporterUid`, `targetUid`, never display info.
 - Admin task queue entries: uid references for actor and subject.
-- TTT-specific types in `@ttt-productions/ttt-core`: uid references. Current TTT project ownership is modeled as the `Owner` project role on a member document, not as a project `ownedBy` field.
+- TTT-specific types in `@ttt-productions/ttt-core`: uid references. Current TTT work stewardship is modeled as the `StewardOwner` guild standing on a guildmate document, not as a work `ownedBy` field.
 
 ## What it forbids
 

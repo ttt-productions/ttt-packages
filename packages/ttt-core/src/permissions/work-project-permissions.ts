@@ -13,11 +13,11 @@ export const GUILD_STANDINGS = {
   },
   GuildStandingManager: {
     label: 'Guild Standing Manager',
-    description: 'Can assign and remove ordinary workProject guild standings without escalating manager or share authority.',
+    description: 'Can assign and remove ordinary workProject guild standings without escalating manager or stake-share authority.',
   },
   StakeShareManager: {
     label: 'Stake Share Manager',
-    description: 'Can adjust active member stakes and pending invite stake offers.',
+    description: 'Can adjust active Guildmate stakes and pending invite stake offers.',
   },
   InviteManager: {
     label: 'Invite Manager',
@@ -80,7 +80,7 @@ const GUILD_STANDING_ID_BY_VALUE = Object.fromEntries(
 export const WORK_PROJECT_ACTIONS = {
   'workProject.read': {
     label: 'Read workProject',
-    description: 'Baseline active-member read floor for internal workProject state.',
+    description: 'Baseline active-Guildmate read floor for internal workProject state.',
     grantedTo: GUILD_STANDING_IDS,
   },
   'workProject.metadata.update': {
@@ -89,13 +89,13 @@ export const WORK_PROJECT_ACTIONS = {
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'PublicWorkProjectEditor'],
   },
   'guildmateUser.guildStanding.update': {
-    label: 'Update member guild standings',
-    description: 'Assign or remove workProject guild standings on active members.',
+    label: 'Update Guildmate guild standings',
+    description: 'Assign or remove workProject guild standings on active Guildmates.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildStandingManager'],
   },
   'guildmateUser.tradeProfession.update': {
-    label: 'Update member tradeProfessions',
-    description: 'Assign or remove member tradeProfessions/staffing labels.',
+    label: 'Update Guildmate tradeProfessions',
+    description: 'Assign or remove Guildmate tradeProfessions/staffing labels.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildStandingManager'],
   },
   'workProject.stakeShares.manage': {
@@ -104,8 +104,8 @@ export const WORK_PROJECT_ACTIONS = {
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'StakeShareManager'],
   },
   'workProject.stakeShares.addActive': {
-    label: 'Add active member stakes',
-    description: 'Increase stakes for an existing active workProject member.',
+    label: 'Add active Guildmate stakes',
+    description: 'Increase stakes for an existing active workProject Guildmate.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'StakeShareManager'],
   },
   'guildInvite.send': {

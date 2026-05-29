@@ -6,18 +6,18 @@ TTT Productions application-data package.
 
 - TTT-specific types, schemas, constants, paths, and business rules
 - Concrete `FileOrigin` and `TTT_MEDIA_SPECS`
-- Upload wire schemas, target-info schemas, `parseTargetInfo`, and server-owned library upload target-field mappings
+- Upload wire schemas, target-info schemas, `parseTargetInfo`, and server-owned hall-library upload target-field mappings
 - Concrete TTT pending-media schemas composed from `media-schemas`
 - TTT domain-event union/schema/catalog
-- TTT atoms such as `ShortProject`, `Mention`, and `MentionType`
+- TTT atoms such as `ShortWorkProject`, `Mention`, and `MentionType`
 - TTT moderation constants
 - TTT upload-variable schemas
 - TTT mention kinds/schemas/validation rules
 - TTT admin task type union
-- Project invite source schemas/types (`InviteSource`, `InviteSourceType`) for standalone, skill, job, and opportunity invite origins
-- Project share-operation schemas/types, including the invite-only pending-share reservation contract
-- Project role IDs, action IDs, action grants, and role-assignment policy
-- Job application lifecycle schemas/types (`open`, `invited`, `accepted`, `rejected`)
+- Work invite source schemas/types (`InviteSource`, `InviteSourceType`) for standalone, craft-skill, commission, and audition invite origins
+- Work stake-share-operation schemas/types, including the invite-only pending-stake-share reservation contract
+- Work guild-standing IDs, action IDs, action grants, and guild-standing-assignment policy
+- Commission proposal lifecycle schemas/types (`open`, `invited`, `accepted`, `rejected`)
 - `AuditEventType` catalog, `TTTAuditActor`, `TTTAuditTarget`, and `TTTAuditEvent` specialization of the `@ttt-productions/audit-core` generic
 
 ## Boundary
@@ -27,36 +27,36 @@ TTT Productions application-data package.
 Generic admin/report shapes live in `report-core`. Pure chat schemas live in `chat-schemas`. Generic media shapes/factories live in `media-schemas`.
 
 
-## Project invite and share-contract ownership
+## Work invite and stake-share-contract ownership
 
-`ttt-core` owns the shared wire/data contracts for project invite creation and share operations. The app must consume these contracts instead of redefining local interfaces.
+`ttt-core` owns the shared wire/data contracts for work invite creation and stake-share operations. The app must consume these contracts instead of redefining local interfaces.
 
 Current membership invariant:
 
-- `InviteUserToProjectInputSchema` requires an `InviteSource` discriminated union.
-- `PendingShares` is keyed by invite conversation ID and stores only reservation amount/timestamp.
-- Share operations do not carry a pending-share `sourceType`; pending reservations are invite reservations.
-- Job/opportunity source variants carry compact context plus the posting share floor. They do not carry old application/reply message or media payloads.
-- Job application status is modeled as `open -> invited -> accepted` or `open -> rejected`; project membership still comes only from invite finalization.
+- `InviteUserToGuildInputSchema` requires an `InviteSource` discriminated union.
+- `PendingStakeShares` is keyed by invite conversation ID and stores only reservation amount/timestamp.
+- Stake-share operations do not carry a pending-stake-share `sourceType`; pending reservations are invite reservations.
+- Commission/audition source variants carry compact context plus the posting stake-share floor. They do not carry old commission-proposal/audition-entry message or media payloads.
+- Commission proposal status is modeled as `open -> invited -> accepted` or `open -> rejected`; guild membership still comes only from invite finalization.
 
-When adding a new invite source or application lifecycle state, update the schema here first and then publish/consume it in `ttt-prod`. Do not add parallel frontend/backend interfaces in the app.
+When adding a new invite source or commission-proposal lifecycle state, update the schema here first and then publish/consume it in `ttt-prod`. Do not add parallel frontend/backend interfaces in the app.
 
 
-## Project role and action ownership
+## Work guild-standing and action ownership
 
-`ttt-core` owns the project-role contract consumed by both `ttt-prod` frontend code and Cloud Functions code. The durable source files are:
+`ttt-core` owns the work guild-standing contract consumed by both `ttt-prod` frontend code and Cloud Functions code. The durable source files are:
 
-- `src/permissions/project-permissions.ts` — `PROJECT_ROLES`, `PROJECT_ACTIONS`, role/action type guards, and helpers.
-- `src/permissions/role-assignment-policy.ts` — who may assign or remove each role.
-- `src/schemas/project-management.ts` — role/profession update callable input schemas.
+- `src/permissions/work-project-permissions.ts` — `GUILD_STANDINGS`, `WORK_PROJECT_ACTIONS`, guild-standing/action type guards, and helpers.
+- `src/permissions/guild-standing-assignment-policy.ts` — who may assign or remove each guild standing.
+- `src/schemas/work-project-management.ts` — guild-standing/trade-profession update callable input schemas.
 
-Consumers should not duplicate role option maps or action matrices locally. UI affordances may read the package catalog, but backend project-action checks remain authoritative in the consuming app.
+Consumers should not duplicate guild-standing option maps or action matrices locally. UI affordances may read the package catalog, but backend work-project-action checks remain authoritative in the consuming app.
 
-The launch-era owner model is role-based: `Owner` is the first `ProjectRoleId`, appears in every `PROJECT_ACTIONS[action].grantedTo` list, and is stored on the consuming app's `allProjects/{projectId}/members/{uid}.roles` member document. `Owner` is still non-assignable through the normal role-management policy; project creation seeds it, and future owner-transfer/co-owner work must design a dedicated flow instead of bypassing `canAssignProjectRole`.
+The launch-era steward model is guild-standing-based: `StewardOwner` is the first `GuildStandingId`, appears in every `WORK_PROJECT_ACTIONS[action].grantedTo` list, and is stored on the consuming app's `allWorkProjects/{workProjectId}/guildmateUsers/{uid}.guildStandings` guildmate document. `StewardOwner` is still non-assignable through the normal guild-standing-management policy; work creation seeds it, and future steward-transfer/co-steward work must design a dedicated flow instead of bypassing `canAssignGuildStanding`.
 
 
 ## Upload target authority
 
-Library cover and sub-item upload `targetInfo` schemas carry typed ids only. They must not accept client-provided Firestore paths or field maps. The consuming backend derives final document paths through `PATH_BUILDERS` and derives media URL fields through `LIBRARY_TARGET_FIELDS` from `src/media/library-target-fields.ts`.
+Hall-library cover and sub-item upload `targetInfo` schemas carry typed ids only. They must not accept client-provided Firestore paths or field maps. The consuming backend derives final document paths through `PATH_BUILDERS` and derives media URL fields through `HALL_LIBRARY_TARGET_FIELDS` from `src/media/hall-library-target-fields.ts`.
 
 When adding a new media origin that writes back to Firestore, add the target-info schema and any target-field mapping here first, then publish and consume it in `ttt-prod`. Do not let application code reconstruct the old `{ docPath, fields }` pattern locally.
