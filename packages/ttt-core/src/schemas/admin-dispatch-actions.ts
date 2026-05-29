@@ -15,10 +15,10 @@ export const UpdateInviteConfirmationInputSchema = z.object({
 }).strict();
 export type UpdateInviteConfirmationInput = z.infer<typeof UpdateInviteConfirmationInputSchema>;
 
-export const UpdateInviteSharesInputSchema = z.object({
+export const UpdateGuildInviteStakeSharesInputSchema = z.object({
   guildInviteId: guildInviteIdSchema,
   newStakeShares: z.number().int().min(1),
 }).strict();
-export type UpdateInviteSharesInput = z.infer<typeof UpdateInviteSharesInputSchema>;
+export type UpdateGuildInviteStakeSharesInput = z.infer<typeof UpdateGuildInviteStakeSharesInputSchema>;
 
 

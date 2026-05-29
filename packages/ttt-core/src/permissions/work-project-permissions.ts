@@ -88,12 +88,12 @@ export const WORK_PROJECT_ACTIONS = {
     description: 'Edit working title, description, and public workProject copy.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'PublicWorkProjectEditor'],
   },
-  'member.guildStanding.update': {
+  'guildmateUser.guildStanding.update': {
     label: 'Update member guild standings',
     description: 'Assign or remove workProject guild standings on active members.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildStandingManager'],
   },
-  'member.tradeProfession.update': {
+  'guildmateUser.tradeProfession.update': {
     label: 'Update member tradeProfessions',
     description: 'Assign or remove member tradeProfessions/staffing labels.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildStandingManager'],

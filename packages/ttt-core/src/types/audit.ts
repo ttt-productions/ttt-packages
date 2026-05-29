@@ -28,8 +28,8 @@ export type AuditEventType =
   | 'admin.rulesAndAgreementsUpdated'
   // workProject
   | 'workProject.created'
-  | 'workProject.memberGuildStandingChanged'
-  | 'workProject.memberTradeProfessionsChanged'
+  | 'workProject.guildmateUserGuildStandingChanged'
+  | 'workProject.guildmateUserTradeProfessionsChanged'
   | 'workProject.publicDetailsUpdated'
   | 'workProject.workAssetDeleted'
   | 'workProject.guildInviteSent'

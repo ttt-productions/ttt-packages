@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   UpdateAdminDispatchStatusInputSchema,
   UpdateInviteConfirmationInputSchema,
-  UpdateInviteSharesInputSchema,
+  UpdateGuildInviteStakeSharesInputSchema,
 } from '../src/schemas/admin-dispatch-actions';
 
 describe('UpdateAdminDispatchStatusInputSchema', () => {
@@ -93,44 +93,44 @@ describe('UpdateInviteConfirmationInputSchema', () => {
   });
 });
 
-describe('UpdateInviteSharesInputSchema', () => {
+describe('UpdateGuildInviteStakeSharesInputSchema', () => {
   it('accepts a valid input with newStakeShares: 1', () => {
     const input = { guildInviteId: 'invite-1', newStakeShares: 1 };
-    expect(UpdateInviteSharesInputSchema.parse(input)).toEqual(input);
+    expect(UpdateGuildInviteStakeSharesInputSchema.parse(input)).toEqual(input);
   });
 
   it('accepts a valid input with newStakeShares: 50', () => {
     const input = { guildInviteId: 'invite-1', newStakeShares: 50 };
-    expect(UpdateInviteSharesInputSchema.parse(input)).toEqual(input);
+    expect(UpdateGuildInviteStakeSharesInputSchema.parse(input)).toEqual(input);
   });
 
   it('rejects newStakeShares: 0', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: 0 }),
+      UpdateGuildInviteStakeSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: 0 }),
     ).toThrow();
   });
 
   it('rejects negative newStakeShares', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: -5 }),
+      UpdateGuildInviteStakeSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: -5 }),
     ).toThrow();
   });
 
   it('rejects non-integer newStakeShares', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: 1.5 }),
+      UpdateGuildInviteStakeSharesInputSchema.parse({ guildInviteId: 'invite-1', newStakeShares: 1.5 }),
     ).toThrow();
   });
 
   it('rejects empty guildInviteId', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({ guildInviteId: '', newStakeShares: 10 }),
+      UpdateGuildInviteStakeSharesInputSchema.parse({ guildInviteId: '', newStakeShares: 10 }),
     ).toThrow();
   });
 
   it('rejects unknown top-level keys (.strict)', () => {
     expect(() =>
-      UpdateInviteSharesInputSchema.parse({
+      UpdateGuildInviteStakeSharesInputSchema.parse({
         guildInviteId: 'invite-1',
         newStakeShares: 10,
         extra: 'bad',

@@ -59,7 +59,7 @@ export type Audition = {
   sponsoredAuditionAmountUSD?: number;
   stakeSharesOffered?: number;
   status: 'open' | 'closed' | 'pendingReview';
-  replyCount?: number;
+  auditionEntryCount?: number;
   shortId?: string;
   shortUrl?: string;
 };

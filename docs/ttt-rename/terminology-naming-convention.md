@@ -6,6 +6,14 @@ The full per-term mapping table and edge-case rules for the TTT domain term nami
 
 Every TTT domain concept gets a permanent two-word compound code identifier. The default shape is `<NewTerm><OldTerm>` (e.g. `ArtisanCreator`, where the old word in the suffix position is the grep anchor), but the compound is chosen for clarity and grep-safety rather than strict adherence to the new+old pattern: where a more descriptive pairing serves better (e.g. `WorkRealm` rather than `RealmUniverse`, `GuildmateUser` rather than `GuildmateActiveUser`), use the clearer pairing. The non-negotiables are: two words, both meaningful, at least one half grep-safe (uncommon enough that grepping it returns mostly real hits). Code identifiers (types, variables, functions, files, Firestore collections, React Query keys, audit event types, callable names, route paths, test IDs) use the compound form. UI-facing strings (button labels, page copy, tooltips, error messages shown to users, comments, JSDoc, docs/ content) use the short new term. The compound form is the permanent code-side identifier; the new word is the user-facing label.
 
+## Canonical authority (how to decide naming direction)
+
+This doc plus the **installed `@ttt-productions/ttt-core` package** (`node_modules/@ttt-productions/ttt-core/dist`) are the single source of truth. ttt-core is published forward, so for any name mismatch (a test fails, source disagrees with a test), the package + this doc decide the canonical form; whichever side — source OR test — diverges is the one to fix.
+
+- Cross-boundary names (types, Zod schemas, callable payload/return fields, `PATH_BUILDERS`, `COLLECTIONS`, `FileOrigin` values, query-key segments) live in ttt-core. Verify the actual name by reading the installed package — never guess from the rename. If a fix would require editing `node_modules/@ttt-productions/*`, it needs a package republish — do that in the ttt-packages repo first, never patch around it in ttt-prod.
+- When you rename a source export, hook param, or key-factory method, sweep **every** consumer in the same change — app components, other hooks, AND tests. A rename scoped to `src/lib/` only (and missing `src/hooks/`/`src/components/`) is the most common way to introduce a regression.
+- Do not over-compound. Some identifiers stay short on purpose (see "Sub-item IDs stay short" and "Infinite-query page array fields" below). `televisionEpisodeId` / `tuneTrackId` are bugs — the id is `episodeId` / `trackId`.
+
 ## Mapping table
 
 | UI label (short) | Code identifier (compound) | Old code identifier | Notes |
@@ -130,6 +138,8 @@ Subcollection names follow the same compound rule:
 
 React Query key factories (the function name) use compound: `creatorKeys` becomes `artisanCreatorKeys`. The string segments emitted by the factory also use compound: `['artisanCreator', uid, 'profile']`, not `['artisan', uid, 'profile']` and not `['creator', uid, 'profile']`.
 
+The factory name follows the entity's full compound: `Audition` → `auditionKeys`, `WorkProject` → `workProjectKeys`, `CraftSkill` → `craftSkillKeys`, `PledgePayment` → `pledgePaymentKeys`, **`CommissionListing` → `commissionListingKeys` (NOT `commissionKeys`)**. Key-factory **method** names also use the compound noun, not the short term: `userKeys.squareStreetzPosts` (not `streetzPosts`), `adminKeys.adminDispatchThread` (not `dispatchThread`), `workProjectKeys.commissionsForWorkProject`. Renaming a key-factory method is cross-cutting — sweep `src/lib/query-keys.ts`, `src/lib/domain-events.ts`, `src/lib/feed-cache-helpers.ts`, every hook, and every test that references it.
+
 ### Cloud Function callable names
 
 Callable names use compound (camelCase, no separator): `becomeCreator` becomes `becomeArtisanCreator`. Schema names follow: `BecomeCreatorInputSchema` becomes `BecomeArtisanCreatorInputSchema`. Type names follow: `BecomeCreatorInput` becomes `BecomeArtisanCreatorInput`.
@@ -137,6 +147,8 @@ Callable names use compound (camelCase, no separator): `becomeCreator` becomes `
 ### Route paths
 
 Next.js route paths use kebab-case compound: `/artisan-creator/onboarding`, not `/artisan/onboarding`. The route folder under `src/app/` follows: `src/app/artisan-creator/onboarding/page.tsx`.
+
+Work routes are `/work-projects/[workProjectId]` (folder `src/app/work-projects/`), renamed from `/projects`. The hostname-redirect middleware (`src/middleware.ts`) preserves the path verbatim — it does NOT rewrite `/projects` → `/work-projects` — so update internal links to `/work-projects/*` directly.
 
 ### Test IDs
 
@@ -153,6 +165,71 @@ Comments in code use the short new term: `// Find the artisan's most recent work
 ### Pre-existing compound identifiers
 
 Some old identifiers ALREADY use a compound form (`AcceptStreetzAgreementsInput`, `BecomeCreatorInputSchema`). These still get renamed in place: `AcceptStreetzAgreementsInput` becomes `AcceptSquareStreetzAgreementsInput`, `BecomeCreatorInputSchema` becomes `BecomeArtisanCreatorInputSchema`. The fact that the old form was already compound does not exempt it.
+
+### Sub-item IDs stay short
+
+The content-kind container and sub-item ID fields keep their single-word + `Id` form and are NOT compounded (because `Tale`/`Tune`/`Television`/`Chapter` are already TTT-specific and don't collide):
+
+- Containers: `taleId`, `tuneId`, `televisionId`
+- Sub-items: `chapterId` (Tale), `trackId` (Tune), `episodeId` (Television)
+
+`televisionEpisodeId` and `tuneTrackId` are WRONG: the TYPE is `TelevisionEpisode` / `TuneTrack`, but the id field is `episodeId` / `trackId`. Confirmed by ttt-core (`episodeIdSchema`, `trackIdSchema`; `PATH_BUILDERS.televisionEpisode(workProjectId, televisionId, episodeId)`; the `update-*-media-variables` and `media/target-info` schemas). Some tests over-renamed these to the compound during the migration — that was a mistake and they were walked back.
+
+By contrast, container / cross-boundary entity IDs DO compound: `workProjectId`, `commissionListingId`, `commissionProposalId`, `guildInviteId`, `craftSkillId`, `adminDispatchId`, `auditionId`, `auditionEntryId`, `thresholdItemId`, `hallItemId`.
+
+### fileOrigin values
+
+`fileOrigin` strings are kebab-case and rename with the domain term. The authoritative registry is the `FileOrigin` union / `FileOriginSchema` / `TTT_MEDIA_SPECS` in ttt-core — match it exactly.
+
+| Old | New |
+|---|---|
+| `project-file` | `work-asset` |
+| `skill-media` | `craft-skill-media` |
+| `song-photo` / `song-audio` | `tune-track-photo` / `tune-track-audio` |
+| `show-photo` / `show-video` | `television-episode-photo` / `television-episode-video` |
+| `library-cover-{square,poster,cinematic}` | `hallLibrary-cover-{square,poster,cinematic}` |
+| `jobListing-*` (job) | `commission-posting`, `commission-proposal` |
+| `opportunity-*` | `audition-prompt`, `admin-audition-prompt` |
+
+Notes: `hallLibrary-cover-*` keeps the camelCase `hallLibrary` prefix (it is NOT pure kebab — match the registry). `craft-skill-media`'s `targetInfo` uses `craftSkillId` + `skillType` (`skillType` stays short, NOT `craftSkillType`).
+
+### Analytics (GA4) event names and params
+
+`logEvent` names and payload keys follow the rename, in GA4 snake_case form:
+
+- Event name: `opportunity_voted` → `audition_voted`.
+- Payload key: `project_id` → `work_project_id`.
+- `content_type` values use the content kind: `'chapter'` (Tales), `'tune-track'` (Tunes, was `'song'`), `'episode'` (Television).
+
+### clientContext.surface strings
+
+Surface strings are kebab-case compound:
+
+- `selected-job-details-section` → `selected-commission-details-section`
+- `skills-section` → `craft-skills-section`
+- `job-board-section` → `commission-board-section`
+
+All surface strings now follow this rule (the old `tunes-songs-section` / `television-shows-section` were renamed to `tunes-tracks-section` / `television-episodes-section`).
+
+### Callable payload & return field names
+
+Cross-boundary callable payload/return fields use the compound and are validated by Zod schemas in `@ttt-productions/ttt-core` (authoritative — read the schema, don't guess):
+
+- `projectType` → `workProjectType`
+- `category` → `workGenre`
+- `proposalId` / `applicantUserId` → `commissionProposalId`
+- callable return `projectData` → `workProjectData` (e.g. `createWorkProject`)
+- `skillId` → `craftSkillId`; `files` → `workProjectAssets`
+
+### Infinite-query page array fields (deliberate short form)
+
+The array field inside an infinite-query page wrapper uses the entity's primary noun pluralized, kept SHORT — NOT the compound: `page.commissions`, `page.auditions`, `page.dispatches`, `page.proposals`. These are local in-app wrapper types only (`CommissionsPage`, `AdminDispatchesPage`) and never cross the backend boundary, so they are exempt from the "list variables use the compound plural" rule. (Contrast with key-factory methods, which DO compound.)
+
+### React component & section export names
+
+Component export names use the compound: `CommissionBoardSection`, `CommissionBoardHeader` / `CommissionBoardFilters` / `CommissionBoardPagination`, `AdminDispatchBrowseList`, `TelevisionEpisodeMediaUploadControls`, `WorkAssetsSection`, `TelevisionEpisodesSection`, `GuildmateUsersSection`, `BecomeArtisanCreatorDialog`. UI text inside them still uses the short term (e.g. the heading is "Commission Board"; the toast is "Tune Track Created"). Prop names follow the compound: `workProject`, `workProjectAssets`, `selectedTelevisionEpisode`.
+
+Note: the thin outer wrapper `UsersSection` in `users-section.tsx` keeps its generic name on purpose (it just wraps `GuildmateUsersSection`, the renamed inner component in `guildmate-users-section.tsx`).
 
 ## Worked examples
 
