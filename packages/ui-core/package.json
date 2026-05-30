@@ -52,10 +52,18 @@
         "@ttt-productions/firebase-helpers": "*"
     },
     "peerDependenciesMeta": {
-        "react": { "optional": true },
-        "react-dom": { "optional": true },
-        "react-hook-form": { "optional": true },
-        "@hookform/resolvers": { "optional": true }
+        "react": {
+            "optional": true
+        },
+        "react-dom": {
+            "optional": true
+        },
+        "react-hook-form": {
+            "optional": true
+        },
+        "@hookform/resolvers": {
+            "optional": true
+        }
     },
     "dependencies": {
         "@radix-ui/react-accordion": "^1.2.12",
@@ -89,6 +97,8 @@
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
         "typescript": "^5.8.3",
+        "react-hook-form": "^7.69.0",
+        "@hookform/resolvers": "^5.2.2",
         "@ttt-productions/firebase-helpers": "*"
     },
     "author": "DJ (TTT Productions)",

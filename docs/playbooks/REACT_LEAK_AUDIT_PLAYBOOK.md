@@ -109,6 +109,8 @@ For each package that declares any client-only peer, confirm it is marked option
 
 Every client-only peer must print `optional`. The only packages that may keep required client peers are those with no server-safe surface at all â€” currently none in `packages/`. Internal infrastructure peers that are themselves server-safe (e.g. `@ttt-productions/firebase-helpers`) may remain required.
 
+Optional peers are not auto-installed. So any client peer marked `optional` that a package imports in its own source must also be listed in that package's `devDependencies` — otherwise the package's own build, typecheck, and tests fail, because it can no longer rely on npm's required-peer auto-install (or a consumer) to provide it. `query-core` is the reference: `@tanstack/react-query` is both an optional peer and a devDependency.
+
 ### 8. Audit output
 
 Generate `docs/audits/REACT_LEAK_AUDIT.md` only while there are active findings. Include:
