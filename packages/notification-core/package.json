@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/notification-core",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "description": "Shared notification system for TTT Productions apps — active/history two-tier architecture with dedup, batch processing, and themed UI components",
     "repository": {
         "type": "git",
@@ -46,12 +46,24 @@
         "react-dom": ">=18.0.0"
     },
     "peerDependenciesMeta": {
-        "@tanstack/react-query": { "optional": true },
-        "@ttt-productions/query-core": { "optional": true },
-        "@ttt-productions/ui-core": { "optional": true },
-        "firebase": { "optional": true },
-        "react": { "optional": true },
-        "react-dom": { "optional": true }
+        "@tanstack/react-query": {
+            "optional": true
+        },
+        "@ttt-productions/query-core": {
+            "optional": true
+        },
+        "@ttt-productions/ui-core": {
+            "optional": true
+        },
+        "firebase": {
+            "optional": true
+        },
+        "react": {
+            "optional": true
+        },
+        "react-dom": {
+            "optional": true
+        }
     },
     "devDependencies": {
         "@tanstack/react-query": "^5.0.0",
