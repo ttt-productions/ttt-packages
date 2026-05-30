@@ -413,6 +413,7 @@ export const ThresholdLibraryApprovedEventSchema = z
     ids: z
       .object({
         thresholdItemId: z.string().min(1),
+        hallItemId: z.string().min(1),
       })
       .strict(),
   })
@@ -424,6 +425,7 @@ export const ThresholdLibraryRejectedEventSchema = z
     ids: z
       .object({
         thresholdItemId: z.string().min(1),
+        hallItemId: z.string().min(1),
       })
       .strict(),
   })
@@ -435,6 +437,7 @@ export const ThresholdLibraryNeedsRevisionEventSchema = z
     ids: z
       .object({
         thresholdItemId: z.string().min(1),
+        hallItemId: z.string().min(1),
       })
       .strict(),
   })

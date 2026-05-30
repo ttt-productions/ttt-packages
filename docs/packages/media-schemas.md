@@ -21,4 +21,4 @@ Generic media schema and helper package. This replaces the old `media-contracts`
 - `StartUploadRequestSchema` and response schema
 - `parseTargetInfo` and target-info schemas
 - `DomainEvent` variants and schema
-- TTT atoms such as `ShortProject`, `Mention`, and `MentionType`
+- TTT atoms such as `ShortWorkProject`, `Mention`, and `MentionType`
