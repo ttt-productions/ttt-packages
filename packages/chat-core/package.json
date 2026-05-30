@@ -1,6 +1,6 @@
 {
   "name": "@ttt-productions/chat-core",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Shared Firestore chat core (realtime newest window + infinite older pagination) for TTT Productions apps",
   "repository": {
     "type": "git",
@@ -42,10 +42,18 @@
     "react-dom": ">=19.0.0"
   },
   "peerDependenciesMeta": {
-    "@tanstack/react-query": { "optional": true },
-    "firebase": { "optional": true },
-    "react": { "optional": true },
-    "react-dom": { "optional": true }
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "firebase": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@ttt-productions/chat-schemas": "*",
