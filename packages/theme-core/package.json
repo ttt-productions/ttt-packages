@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/theme-core",
-    "version": "0.6.1",
+    "version": "0.6.2",
     "description": "Theme provider + CSS token contract for TTT Productions apps",
     "repository": {
         "type": "git",
@@ -40,8 +40,12 @@
         "react-dom": ">=19.0.0"
     },
     "peerDependenciesMeta": {
-        "react": { "optional": true },
-        "react-dom": { "optional": true }
+        "react": {
+            "optional": true
+        },
+        "react-dom": {
+            "optional": true
+        }
     },
     "dependencies": {
         "next-themes": "^0.4.6"
