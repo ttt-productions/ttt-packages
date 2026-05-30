@@ -36,6 +36,9 @@
     "peerDependencies": {
         "firebase": ">=10.0.0"
     },
+    "peerDependenciesMeta": {
+        "firebase": { "optional": true }
+    },
     "devDependencies": {
         "typescript": "^5.8.3"
     },

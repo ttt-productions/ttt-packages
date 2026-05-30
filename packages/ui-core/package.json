@@ -51,6 +51,12 @@
         "@hookform/resolvers": ">=3.0.0",
         "@ttt-productions/firebase-helpers": "*"
     },
+    "peerDependenciesMeta": {
+        "react": { "optional": true },
+        "react-dom": { "optional": true },
+        "react-hook-form": { "optional": true },
+        "@hookform/resolvers": { "optional": true }
+    },
     "dependencies": {
         "@radix-ui/react-accordion": "^1.2.12",
         "@radix-ui/react-alert-dialog": "^1.1.15",

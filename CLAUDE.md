@@ -78,7 +78,7 @@ Current entry shape:
 - `media-schemas`: `.`
 - `mobile-core`: `.`, `./react`
 - `monitoring-core`: `.`, `./react`
-- `query-core`: `.`, `./react`, `./types`
+- `query-core`: `.` (server-safe), `./keys` (pure key builders), `./react`, `./types`
 - `theme-core`: `.`, `./react`, CSS subpaths
 - `ui-core`: `.`, `./react`
 - `file-input`: `.`, `./react`
@@ -111,7 +111,7 @@ See `docs/design/upload-path-invariant.md`.
 
 ## React/server safety
 
-See `docs/design/react-safety.md`.
+See `docs/design/react-safety.md`. Two dimensions, both required: (1) main entries must not *load* React at runtime; (2) client-only peers must be declared `optional` so server-only installs do not *force-install* React.
 
 ## Important rules
 

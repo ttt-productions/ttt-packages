@@ -99,6 +99,16 @@ Search consuming repos for package-specific ambient shims created to work around
 
 These shims are workarounds, not architecture. After a package's main-barrel surface changes, re-evaluate the corresponding shim for deletion by removing it locally and running the consuming app's typecheck plus Functions build. Restore it only if either fails.
 
+### Peer-dependency install safety (client peers must be optional)
+
+The runtime checks above catch React *loaded* through a main entry. They do not catch React *installed* through a required peer dependency. A package whose `.` / `./server` surface is runtime-clean can still force React into a server-only install if it declares `react`, `react-dom`, `@tanstack/react-query`, a React-ecosystem library, the client `firebase` SDK, or `@ttt-productions/ui-core` / `@ttt-productions/query-core` as a *required* peer.
+
+For each package that declares any client-only peer, confirm it is marked optional:
+
+    node -e "const p=require('./packages/<pkg>/package.json'); const meta=p.peerDependenciesMeta||{}; for (const k of Object.keys(p.peerDependencies||{})) console.log(k, meta[k]?.optional ? 'optional' : 'REQUIRED')"
+
+Every client-only peer must print `optional`. The only packages that may keep required client peers are those with no server-safe surface at all â€” currently none in `packages/`. Internal infrastructure peers that are themselves server-safe (e.g. `@ttt-productions/firebase-helpers`) may remain required.
+
 ### 8. Audit output
 
 Generate `docs/audits/REACT_LEAK_AUDIT.md` only while there are active findings. Include:

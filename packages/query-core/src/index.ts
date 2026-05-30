@@ -1,11 +1,3 @@
-// Query Client
-export { createQueryClient } from './query-client.js';
-export type { CreateQueryClientOptions } from './query-client.js';
-
-// Query Keys
-export { keys, createKeyScope } from './keys.js';
-export type { QueryKey } from './keys.js';
-
 // Cache Helpers
 export { invalidateByPrefix, removeByPrefix, updateQueryData } from './cache-helpers.js';
 

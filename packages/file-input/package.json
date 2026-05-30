@@ -40,6 +40,11 @@
         "react-dom": ">=18.0.0",
         "lucide-react": ">=0.0.0"
     },
+    "peerDependenciesMeta": {
+        "react": { "optional": true },
+        "react-dom": { "optional": true },
+        "lucide-react": { "optional": true }
+    },
     "devDependencies": {
         "typescript": "^5.8.3"
     },

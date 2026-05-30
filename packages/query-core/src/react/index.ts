@@ -1,5 +1,9 @@
 "use client";
 
+// Query Client factory (client-only; requires @tanstack/react-query)
+export { createQueryClient } from '../query-client.js';
+export type { CreateQueryClientOptions } from '../query-client.js';
+
 // Provider
 export { QueryProvider } from './provider.js';
 export type { QueryProviderProps } from './provider.js';

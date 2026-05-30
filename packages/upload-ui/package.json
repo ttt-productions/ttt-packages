@@ -52,6 +52,13 @@
         "react": ">=18.0.0",
         "react-dom": ">=18.0.0"
     },
+    "peerDependenciesMeta": {
+        "@tanstack/react-query": { "optional": true },
+        "firebase": { "optional": true },
+        "lucide-react": { "optional": true },
+        "react": { "optional": true },
+        "react-dom": { "optional": true }
+    },
     "devDependencies": {
         "typescript": "^5.8.3"
     },

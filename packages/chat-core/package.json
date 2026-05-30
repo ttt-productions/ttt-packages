@@ -41,6 +41,12 @@
     "react": ">=19.0.0",
     "react-dom": ">=19.0.0"
   },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": { "optional": true },
+    "firebase": { "optional": true },
+    "react": { "optional": true },
+    "react-dom": { "optional": true }
+  },
   "dependencies": {
     "@ttt-productions/chat-schemas": "*",
     "@ttt-productions/ui-core": "*",

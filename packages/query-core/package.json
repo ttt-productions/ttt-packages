@@ -20,6 +20,10 @@
             "types": "./dist/index.d.ts",
             "default": "./dist/index.js"
         },
+        "./keys": {
+            "types": "./dist/keys.d.ts",
+            "default": "./dist/keys.js"
+        },
         "./react": {
             "types": "./dist/react/index.d.ts",
             "default": "./dist/react/index.js"
@@ -42,7 +46,16 @@
         "react-dom": ">=18.0.0"
     },
     "peerDependenciesMeta": {
+        "@tanstack/react-query": {
+            "optional": true
+        },
         "firebase": {
+            "optional": true
+        },
+        "react": {
+            "optional": true
+        },
+        "react-dom": {
             "optional": true
         }
     },
