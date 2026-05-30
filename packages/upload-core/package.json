@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/upload-core",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
@@ -37,7 +37,9 @@
         "firebase": ">=10.0.0"
     },
     "peerDependenciesMeta": {
-        "firebase": { "optional": true }
+        "firebase": {
+            "optional": true
+        }
     },
     "devDependencies": {
         "typescript": "^5.8.3"
