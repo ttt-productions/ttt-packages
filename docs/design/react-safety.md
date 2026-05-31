@@ -23,7 +23,7 @@ When a backend or schema package imports another package, inspect the target pac
 
 ## Dependency (install-graph) safety
 
-Server-safe entrypoints are not enough on their own. A package can still force React (or other client-only libraries) into a server-only install â€” including Cloud Functions â€” through *required* peer dependencies. npm installs required peers automatically, so a backend that imports only a package's server-safe surface still drags React into its `node_modules` and lockfile.
+Server-safe entrypoints are not enough on their own. A package can still force React (or other client-only libraries) into a server-only install - including Cloud Functions - through *required* peer dependencies. npm installs required peers automatically, so a backend that imports only a package's server-safe surface still drags React into its `node_modules` and lockfile.
 
 Rule: every client-only peer must be declared `optional` via `peerDependenciesMeta`. Client-only peers are the ones needed solely by a `./react` (or `./browser`) surface: `react`, `react-dom`, `@tanstack/react-query`, React-ecosystem libraries (`lucide-react`, `react-hook-form`, `@hookform/resolvers`, `react-intersection-observer`), the client `firebase` SDK, and the React-oriented internal packages (`@ttt-productions/ui-core`, `@ttt-productions/query-core`). A consumer that imports a `./react` subpath installs these directly; a consumer that imports only a server-safe surface must never be forced to. Internal infrastructure peers that are themselves server-safe (such as `@ttt-productions/firebase-helpers`) stay required.
 

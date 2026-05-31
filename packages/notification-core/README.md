@@ -8,6 +8,14 @@ Shared notification system for TTT Productions apps with Firestore integration.
 npm install @ttt-productions/notification-core
 ```
 
+## Entrypoints
+
+- `@ttt-productions/notification-core`: root-exported shared types.
+- `@ttt-productions/notification-core/react`: React hooks/components.
+- `@ttt-productions/notification-core/server`: backend helper utilities.
+
+Backend/Functions code should avoid React subpaths such as `/react`.
+
 ## Features
 
 - 🔔 Real-time notification updates via Firestore listeners
@@ -21,12 +29,13 @@ npm install @ttt-productions/notification-core
 ### Fetch Notifications
 
 ```tsx
-import { useNotifications } from '@ttt-productions/notification-core';
+import { useActiveNotifications } from '@ttt-productions/notification-core/react';
 
 function NotificationList() {
-  const { data: notifications, isLoading } = useNotifications({
+  const { data: notifications, isLoading } = useActiveNotifications({
+    config: TTT_NOTIFICATION_CONFIG,
     userId: currentUser.uid,
-    subscribe: true, // Real-time updates
+    category: 'user',
   });
 
   if (isLoading) return <div>Loading...</div>;
@@ -46,28 +55,41 @@ function NotificationList() {
 ### Unread Count Badge
 
 ```tsx
-import { useUnreadCount } from '@ttt-productions/notification-core';
+import { useUnreadCount } from '@ttt-productions/notification-core/react';
 
 function NotificationBadge() {
-  const { data: unreadCount } = useUnreadCount({
+  const { count, isLoading } = useUnreadCount({
+    config: TTT_NOTIFICATION_CONFIG,
     userId: currentUser.uid,
-    subscribe: true,
+    category: 'user',
   });
 
-  return <span className="badge">{unreadCount}</span>;
+  if (isLoading) return null;
+  return <span className="badge">{count}</span>;
 }
 ```
 
-### Mark as Read
+### Archive Notification
 
 ```tsx
-import { useMarkAsRead } from '@ttt-productions/notification-core';
+import { useArchiveNotification } from '@ttt-productions/notification-core/react';
 
 function NotificationItem({ notification }) {
-  const markAsRead = useMarkAsRead({ userId: currentUser.uid });
+  const archiveNotification = useArchiveNotification({
+    config: TTT_NOTIFICATION_CONFIG,
+    userId: currentUser.uid,
+    category: 'user',
+  });
 
   const handleClick = () => {
-    markAsRead.mutate({ notificationId: notification.id });
+    archiveNotification.mutate({
+      notificationId: notification.id,
+      archivalInfo: {
+        archivedBy: currentUser.uid,
+        archivedAt: Date.now(),
+        device: 'web',
+      },
+    });
     // Navigate to target
   };
 
@@ -75,26 +97,36 @@ function NotificationItem({ notification }) {
 }
 ```
 
-### Mark All as Read
+### Archive All Active Notifications
 
 ```tsx
-import { useMarkAllAsRead, useNotifications } from '@ttt-productions/notification-core';
+import {
+  useActiveNotifications,
+  useArchiveAllNotifications,
+} from '@ttt-productions/notification-core/react';
 
 function NotificationPanel() {
-  const { data: notifications } = useNotifications({
+  const { data: notifications } = useActiveNotifications({
+    config: TTT_NOTIFICATION_CONFIG,
     userId: currentUser.uid,
-    unreadOnly: true,
+    category: 'user',
   });
 
-  const markAllAsRead = useMarkAllAsRead({ userId: currentUser.uid });
+  const archiveAll = useArchiveAllNotifications({
+    config: TTT_NOTIFICATION_CONFIG,
+    userId: currentUser.uid,
+    category: 'user',
+  });
 
   const handleMarkAllRead = () => {
-    const unreadIds = notifications
-      ?.filter((n) => !n.isRead)
-      .map((n) => n.id) ?? [];
-    
-    if (unreadIds.length > 0) {
-      markAllAsRead.mutate({ notificationIds: unreadIds });
+    if ((notifications?.length ?? 0) > 0) {
+      archiveAll.mutate({
+        archivalInfo: {
+          archivedBy: currentUser.uid,
+          archivedAt: Date.now(),
+          device: 'web',
+        },
+      });
     }
   };
 

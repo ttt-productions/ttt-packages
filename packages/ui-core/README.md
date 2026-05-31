@@ -1,53 +1,30 @@
-# TTT Packages
+# @ttt-productions/ui-core
 
-Shared packages for TTT Productions and Q-Sports projects.
+Shared UI package for TTT Productions projects.
 
-## Packages
-
-- `@ttt/ui-core` - Shared UI components (shadcn-based)
-
-## Development
+## Installation
 
 ```bash
-# Install dependencies
-npm install
-
-# Build all packages
-npm run build
-
-# Clean build artifacts
-npm run clean
-
-# Type check
-npm run typecheck
+npm install @ttt-productions/ui-core
 ```
 
-## Publishing
+## Import Guide
 
-Packages are automatically published to npm when you push a version tag:
+- `@ttt-productions/ui-core/react` for React hooks/components.
+- `@ttt-productions/ui-core` for root utilities and shared types exported from the package root.
 
-```bash
-# Update package version(s)
-cd packages/ui-core
-npm version patch  # or minor, major
-
-# Commit and tag
-git add .
-git commit -m "Release v1.0.1"
-git tag v1.0.1
-git push origin main --tags
-```
-
-## Usage in TTT Productions
-
-```bash
-npm install @ttt/ui-core
-```
+### React Components
 
 ```tsx
-import { Button } from '@ttt/ui-core';
+import { Button } from '@ttt-productions/ui-core/react';
 
 export default function MyComponent() {
   return <Button>Click me</Button>;
 }
+```
+
+### Root Utilities
+
+```ts
+import { cn, formatLargeNumber } from '@ttt-productions/ui-core';
 ```
