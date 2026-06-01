@@ -106,7 +106,16 @@ export type AuditEventType =
   | 'chat.guildChatChannelArchived'
   | 'chat.guildChatMessageSent'
   | 'chat.adminThreadStarted'
-  | 'chat.attachmentTimedOut';
+  | 'chat.attachmentTimedOut'
+  // workProject
+  | 'workProject.released'
+  | 'workProject.hidden'
+  | 'workProject.restored'
+  | 'workRealm.created'
+  | 'workRealm.released'
+  | 'workRealm.detailsUpdated'
+  | 'workRealm.hidden'
+  | 'workRealm.restored';
 
 /**
  * TTT actor shape: the uid performing an audited action, plus whether they
