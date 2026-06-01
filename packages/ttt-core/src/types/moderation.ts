@@ -46,7 +46,7 @@ export interface ContentAppealTask extends AdminTask<'content-appeal'> {
 
 export type ModerationCascadeAction = 'hideRealm' | 'restoreRealm';
 export type ModerationCascadeStatus = 'pending' | 'complete' | 'failed';
-export type ModerationCascadeChangedEntityType = 'workProject' | 'hallItem' | 'subItemProjection';
+export type ModerationCascadeChangedEntityType = 'workProject' | 'hallItem' | 'subItemProjection' | 'workRealm';
 
 // moderationCascadeManifests/{cascadeId}
 export type ModerationCascadeManifest = {

@@ -63,17 +63,10 @@ When adding a new media origin that writes back to Firestore, add the target-inf
 
 ## Realm / Work discovery contract ownership
 
-`ttt-core` owns the shared Realm/discovery launch contracts before `ttt-prod` adopts them. Do not define parallel app-only interfaces for these shapes.
+`ttt-core` owns the shared Realm/discovery launch contracts before `ttt-prod` adopts them. Do not define parallel app-only interfaces, schemas, path helpers, or business constants for these shapes.
 
-Required package contracts:
+The old nested public Work projection contract must stay removed: do not keep `WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_DATA` or `PATH_BUILDERS.workProjectPublicData(...)` as launch-era APIs. `publicWorkProjects/{workProjectId}` is the only Work shell/search projection.
 
-- `COLLECTIONS.PUBLIC_WORK_PROJECTS` and `PATH_BUILDERS.publicWorkProject(workProjectId)`.
-- The old nested public Work projection contract must be removed, not retained for compatibility: do not keep `WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_DATA` or `PATH_BUILDERS.workProjectPublicData(...)` as launch-era APIs. `publicWorkProjects/{workProjectId}` is the only Work shell/search projection.
-- `WorkRealm` fields: `workRealmId`, `realmType`, `realmStatus`, `realmHidden`, `workingTitle`, `workingTitle_lowercase`, `workingDescription`, `ownerUid`, `createdByUid`, `foundingWorkProjectId`, `createdOn`, `updatedOn`.
-- `PublicWorkProject` fields: `workProjectId`, `publicWorkStatus`, `publicWorkHidden`, `workRealmId`, `realmCanonStatus`, `type: WorkProjectType`, `hallWingType: HallWingType`, title/description fields, optional `coverImageUrl`, uid-only owner/creator fields, timestamps.
-- `RealmCreationMode` schema/type with `newPublicRealm`, `newStandaloneRealm`, `existingPublicRealm`.
-- `MentionType` value `workRealm`.
-- `PublicUser` search/display projection fields, including `displayName_lowercase` and explicit `disabled: boolean`.
-- Shared constants/helpers for Square `relatedIds` prefixes when practical: `user_`, `workProject_`, `workRealm_`.
+Keep the detailed contract shape in source types, schemas, constants, and tests rather than in this doc. The package-level ownership rule covers Realm and public Work projection types, create/edit schemas, Mention/Square related-id contracts, PublicUser search/display requirements, hidden flags on published Hall projections, and the non-person founding-Work stake-holder contract for Works built into an existing public Realm.
 
 Realm docs store no child Work arrays, no counts, no Realm image fields, and no denormalized owner display fields. Display identity remains uid-only across package boundaries; consuming apps resolve names/avatars from their own public identity source.

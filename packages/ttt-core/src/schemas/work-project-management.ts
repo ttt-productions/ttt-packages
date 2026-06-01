@@ -33,10 +33,14 @@ export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationM
   z.object({
     ...baseFields,
     realmCreationMode: z.literal('newPublicRealm'),
+    realmWorkingTitle: z.string().min(1).max(200),
+    realmWorkingDescription: z.string().min(1).max(2000),
   }).strict(),
   z.object({
     ...baseFields,
     realmCreationMode: z.literal('newStandaloneRealm'),
+    realmWorkingTitle: z.string().min(1).max(200),
+    realmWorkingDescription: z.string().min(1).max(2000),
   }).strict(),
   z.object({
     ...baseFields,
