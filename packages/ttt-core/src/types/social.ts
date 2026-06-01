@@ -27,6 +27,8 @@ export type SquareStreetzPostPayload = {
   workProjectId?: string;
   workProjectType?: string;
   workProjectDescription?: string;
+  workRealmId?: string;
+  workRealmTitle?: string;
   content?: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'audio' | 'other';
