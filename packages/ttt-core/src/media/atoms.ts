@@ -11,7 +11,7 @@ export const ShortWorkProjectSchema = z
 
 export type ShortWorkProject = z.infer<typeof ShortWorkProjectSchema>;
 
-export const MentionTypeSchema = z.enum(['user', 'workProject', 'commission', 'audition']);
+export const MentionTypeSchema = z.enum(['user', 'workProject', 'workRealm', 'commission', 'audition']);
 
 export const MentionSchema = z
   .object({

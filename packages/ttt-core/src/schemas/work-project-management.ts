@@ -4,6 +4,7 @@ import {
   userIdSchema,
   addRemoveActionSchema,
   workProjectTypeSchema,
+  hallWingTypeSchema,
   commissionListingIdSchema,
   commissionProposalIdSchema,
   auditionIdSchema,
@@ -18,22 +19,29 @@ const baseFields = {
   workingTitle: z.string().min(1).max(200),
   workingDescription: z.string().min(1).max(2000),
   workProjectType: workProjectTypeSchema,
-  hallWingType: z.string().min(1),
+  hallWingType: hallWingTypeSchema,
 };
 
-export const CreateWorkProjectInputSchema = z.discriminatedUnion('origin', [
+export const RealmCreationModeSchema = z.enum([
+  'newPublicRealm',
+  'newStandaloneRealm',
+  'existingPublicRealm',
+]);
+export type RealmCreationMode = z.infer<typeof RealmCreationModeSchema>;
+
+export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationMode', [
   z.object({
     ...baseFields,
-    origin: z.literal('newWorkRealm'),
+    realmCreationMode: z.literal('newPublicRealm'),
   }).strict(),
   z.object({
     ...baseFields,
-    origin: z.literal('existingWorkRealm'),
+    realmCreationMode: z.literal('newStandaloneRealm'),
+  }).strict(),
+  z.object({
+    ...baseFields,
+    realmCreationMode: z.literal('existingPublicRealm'),
     workRealmId: z.string().min(1),
-  }).strict(),
-  z.object({
-    ...baseFields,
-    origin: z.literal('standalone'),
   }).strict(),
 ]);
 export type CreateWorkProjectInput = z.infer<typeof CreateWorkProjectInputSchema>;

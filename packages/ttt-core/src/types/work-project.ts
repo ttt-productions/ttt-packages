@@ -1,7 +1,7 @@
 // WorkProject-related Firestore document types
 export type { ShortWorkProject } from '../media/atoms.js';
 
-import type { HallWingType } from './content.js';
+import type { HallWingType, WorkProjectType } from './content.js';
 import type { ShortWorkProject } from '../media/atoms.js';
 import type { GuildStandingId } from '../permissions/index.js';
 
@@ -45,29 +45,46 @@ export type FullWorkProject = {
   status: 'open' | 'pendingVerification' | 'published' | 'rejected';
   guildmateUserIds?: { [key: string]: boolean };
   invitedUserIds?: { [key: string]: boolean };
-  workRealmId?: string;
-  origin?: 'newWorkRealm' | 'existingWorkRealm' | 'standalone';
+  workRealmId: string;
+  realmCanonStatus: 'canon' | 'nonCanon';
   pendingStakeShares?: PendingStakeShares;
 };
 
+// Top-level safe signed-in-user Work shell / search projection. Server/callable-written only.
+// No counts, no child arrays, no copied Realm title or owner display name.
 export type PublicWorkProject = {
   workProjectId: string;
-  createdOn: number;
-  type: string;
+  publicWorkStatus: 'draft' | 'released';
+  publicWorkHidden: boolean;
+  workRealmId: string;
+  realmCanonStatus: 'canon' | 'nonCanon';
+  type: WorkProjectType;
+  hallWingType: HallWingType;
   workingTitle: string;
+  workingTitle_lowercase: string;
   workingDescription: string;
-  followerCount: number;
-  viewCount: number;
+  coverImageUrl?: string;
+  ownerUid: string;
+  createdByUid: string;
+  createdOn: number;
+  updatedOn: number;
 };
 
+// Realm source of truth and Realm search/tag surface. Server/callable-written only.
+// No workProjectIds[], no counts, no images, no release timestamp (audit events hold timing).
 export type WorkRealm = {
   workRealmId: string;
+  realmType: 'public' | 'standalone';
+  realmStatus: 'draft' | 'released';
+  realmHidden: boolean;
   workingTitle: string;
+  workingTitle_lowercase: string;
   workingDescription: string;
+  ownerUid: string;
+  createdByUid: string;
+  foundingWorkProjectId: string;
   createdOn: number;
-  createdBy: { uid: string };
-  type: string;
-  workProjectIds: string[];
+  updatedOn: number;
 };
 
 export type GuildInvite = {

@@ -14,6 +14,7 @@ export const COLLECTION_REFS = {
   // Top-level collections
   userProfiles: (): [string] => [COLLECTIONS.USER_PROFILES],
   allWorkProjects: (): [string] => [COLLECTIONS.ALL_WORK_PROJECTS],
+  publicWorkProjects: (): [string] => [COLLECTIONS.PUBLIC_WORK_PROJECTS],
   workRealms: (): [string] => [COLLECTIONS.WORK_REALMS],
   squareStreetzFeed: (): [string] => [COLLECTIONS.SQUARE_STREETZ_FEED],
   commissionListings: (): [string] => [COLLECTIONS.COMMISSION_LISTINGS],

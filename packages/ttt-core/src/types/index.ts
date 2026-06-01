@@ -9,4 +9,4 @@ export * from './moderation.js';
 export * from './admin.js';
 export * from './system.js';
 export * from './audit.js';
-export type { InviteSource, InviteSourceType } from '../schemas/work-project-management.js';
+export type { InviteSource, InviteSourceType, RealmCreationMode } from '../schemas/work-project-management.js';

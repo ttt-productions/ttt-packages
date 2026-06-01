@@ -28,6 +28,7 @@ export const thresholdItemIdSchema = z.string().min(1);
 // Action / enum atoms.
 export const addRemoveActionSchema = z.enum(['add', 'remove']);
 export const workProjectTypeSchema = z.enum(['Tales', 'Tunes', 'Television']);
+export const hallWingTypeSchema = z.enum(['entertainment', 'educational', 'newsPolitical']);
 
 // String shape atoms.
 export const titleSchema = z.string().min(1).max(200);

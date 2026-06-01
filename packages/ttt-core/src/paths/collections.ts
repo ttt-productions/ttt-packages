@@ -9,6 +9,7 @@ export const COLLECTIONS = {
   USER_PROFILES: 'userProfiles',
   PUBLIC_USERS: 'publicUsers',
   ALL_WORK_PROJECTS: 'allWorkProjects',
+  PUBLIC_WORK_PROJECTS: 'publicWorkProjects',
   WORK_REALMS: 'workRealms',
 
   // Content & Social
