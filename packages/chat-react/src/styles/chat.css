@@ -1,7 +1,7 @@
 /* ============================================
-   chat-core — default styles
+   chat-react — default styles
    Uses theme-core CSS custom property tokens.
-   Apps import: @ttt-productions/chat-core/styles
+   Apps import: @ttt-productions/chat-react/styles
    ============================================ */
 
 /* --- Message bubbles --- */

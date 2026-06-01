@@ -17,3 +17,13 @@ Generic Firebase helper package.
 TTT config, Firebase project values, toast behavior, monitoring behavior, and callable names live in app wrappers. `firebase-helpers/react` exposes generic primitives; the consuming app decides how errors are surfaced.
 
 Backend code should prefer `@ttt-productions/firebase-helpers/server` when it needs Admin SDK handles.
+
+## Entry points
+
+The root is pure/server-safe — pure path, timestamp, pagination, and batch helpers that never load a browser Firebase runtime. Client-only and Admin-only runtimes live behind explicit subpaths.
+
+- `.` — pure helpers (paths, timestamps, pagination, batch, `getFileNameFromUrl`); server-safe.
+- `./server` — Admin SDK init helper and server-only handles.
+- `./react` — generic callable hook/client primitives.
+- `./client` — Firebase **client** app init helper (browser runtime).
+- `./firestore-client` — client Firestore helpers (browser runtime).

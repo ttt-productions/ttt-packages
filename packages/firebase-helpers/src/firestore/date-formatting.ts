@@ -1,6 +1,5 @@
-import { Timestamp } from "firebase/firestore";
+import type { Timestamp } from "firebase/firestore";
 import { format as dateFnsFormat } from "date-fns";
-import { tsToDate } from "./timestamps.js";
 
 export type DateFormat = 
   | "PPP"           // Jan 1, 2024
@@ -38,9 +37,10 @@ export function formatDateDisplay(
   if (value instanceof Date) {
     date = value;
   }
-  // Firestore Timestamp
+  // Firestore Timestamp (duck-typed — works for both Client and Admin SDKs
+  // without importing the client SDK at runtime).
   else if (value && typeof value === "object" && "toDate" in value) {
-    date = tsToDate(value as Timestamp);
+    date = (value as Timestamp).toDate();
   }
   // String or number
   else if (typeof value === "string" || typeof value === "number") {

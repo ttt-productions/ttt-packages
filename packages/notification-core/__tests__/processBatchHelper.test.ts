@@ -143,7 +143,7 @@ function createMockDb({
 
 // ---- Helpers ----
 
-function makePendingDoc(overrides: Partial<PendingNotification> & { type: string; actorId: string; actorName: string; metadata: Record<string, unknown> }): BobDoc {
+function makePendingDoc(overrides: Partial<PendingNotification> & { type: string; actorId: string; metadata: Record<string, unknown> }): BobDoc {
   const id = `pending_${Math.random().toString(36).slice(2)}`;
   return {
     id,
@@ -170,7 +170,6 @@ describe('processBatchHelper', () => {
     const pending = makePendingDoc({
       type: 'content_report',
       actorId: 'user1',
-      actorName: 'Alice',
       metadata: { itemId: 'item1' },
     });
     const { db, addedDocs } = createMockDb({ pendingDocs: [pending] });
@@ -185,14 +184,14 @@ describe('processBatchHelper', () => {
     expect(doc.dedupKey).toBe('report_item1');
     expect(doc.count).toBe(1);
     expect(doc.latestActorIds).toEqual(['user1']);
-    expect(doc.latestActorNames).toEqual(['Alice']);
+    // Identity is stored id-only — no persisted display names.
+    expect(doc.latestActorNames).toBeUndefined();
   });
 
   it('sets title and message on created notification', async () => {
     const pending = makePendingDoc({
       type: 'content_report',
       actorId: 'user1',
-      actorName: 'Alice',
       metadata: { itemId: 'item1' },
     });
     const { db, addedDocs } = createMockDb({ pendingDocs: [pending] });
@@ -207,7 +206,6 @@ describe('processBatchHelper', () => {
     const pending = makePendingDoc({
       type: 'content_report',
       actorId: 'user2',
-      actorName: 'Bob',
       metadata: { itemId: 'item1' },
     });
     const existingDoc: ExistingActiveDoc = {
@@ -217,7 +215,6 @@ describe('processBatchHelper', () => {
         category: 'admin',
         count: 3,
         latestActorIds: ['user1'],
-        latestActorNames: ['Alice'],
       },
     };
     const { db, updatedDocs } = createMockDb({
@@ -233,11 +230,10 @@ describe('processBatchHelper', () => {
     expect(updatedDocs[0].data.count).toBe(4); // 3 + 1
   });
 
-  it('merges actor lists (new first, deduped)', async () => {
+  it('merges actor id lists (new first, deduped)', async () => {
     const pending = makePendingDoc({
       type: 'content_report',
       actorId: 'user2',
-      actorName: 'Bob',
       metadata: { itemId: 'item1' },
     });
     const existingDoc: ExistingActiveDoc = {
@@ -247,7 +243,6 @@ describe('processBatchHelper', () => {
         category: 'admin',
         count: 1,
         latestActorIds: ['user1'],
-        latestActorNames: ['Alice'],
       },
     };
     const { db, updatedDocs } = createMockDb({
@@ -257,16 +252,15 @@ describe('processBatchHelper', () => {
 
     await processBatchHelper(db, makeConfig());
 
-    // New actor (user2) should come first
+    // New actor (user2) should come first; identity is id-only.
     expect(updatedDocs[0].data.latestActorIds).toEqual(['user2', 'user1']);
-    expect(updatedDocs[0].data.latestActorNames).toEqual(['Bob', 'Alice']);
+    expect(updatedDocs[0].data.latestActorNames).toBeUndefined();
   });
 
   it('deduplicates actors that already exist in the list', async () => {
     const pending = makePendingDoc({
       type: 'content_report',
       actorId: 'user1', // same actor as in existing
-      actorName: 'Alice',
       metadata: { itemId: 'item1' },
     });
     const existingDoc: ExistingActiveDoc = {
@@ -276,7 +270,6 @@ describe('processBatchHelper', () => {
         category: 'admin',
         count: 1,
         latestActorIds: ['user1'],
-        latestActorNames: ['Alice'],
       },
     };
     const { db, updatedDocs } = createMockDb({
@@ -294,7 +287,6 @@ describe('processBatchHelper', () => {
     const pending = makePendingDoc({
       type: 'content_report',
       actorId: 'user2',
-      actorName: 'Bob',
       metadata: { itemId: 'item1' },
     });
     const existingDoc: ExistingActiveDoc = {
@@ -304,7 +296,6 @@ describe('processBatchHelper', () => {
         category: 'admin',
         count: 4999,
         latestActorIds: ['user1'],
-        latestActorNames: ['Alice'],
       },
     };
 
@@ -333,7 +324,6 @@ describe('processBatchHelper', () => {
     const pending = makePendingDoc({
       type: 'content_report',
       actorId: 'user1',
-      actorName: 'Alice',
       metadata: { itemId: 'item1' },
     });
     const { db, batchDeletedIds } = createMockDb({ pendingDocs: [pending] });
@@ -347,13 +337,11 @@ describe('processBatchHelper', () => {
     const pending1 = makePendingDoc({
       type: 'content_report',
       actorId: 'user1',
-      actorName: 'Alice',
       metadata: { itemId: 'item1' },
     });
     const pending2 = makePendingDoc({
       type: 'content_report',
       actorId: 'user2',
-      actorName: 'Bob',
       metadata: { itemId: 'item1' }, // same dedupKey
     });
     const { db, addedDocs } = createMockDb({ pendingDocs: [pending1, pending2] });
@@ -370,13 +358,11 @@ describe('processBatchHelper', () => {
     const pending1 = makePendingDoc({
       type: 'content_report',
       actorId: 'user1',
-      actorName: 'Alice',
       metadata: { itemId: 'item1' },
     });
     const pending2 = makePendingDoc({
       type: 'content_report',
       actorId: 'user2',
-      actorName: 'Bob',
       metadata: { itemId: 'item2' }, // different dedupKey
     });
     const { db, addedDocs } = createMockDb({ pendingDocs: [pending1, pending2] });
@@ -391,13 +377,11 @@ describe('processBatchHelper', () => {
     const pending1 = makePendingDoc({
       type: 'content_report',
       actorId: 'user1',
-      actorName: 'Alice',
       metadata: { itemId: 'item1' },
     });
     const pending2 = makePendingDoc({
       type: 'content_report',
       actorId: 'user2',
-      actorName: 'Bob',
       metadata: { itemId: 'item2' },
     });
     const { db } = createMockDb({ pendingDocs: [pending1, pending2] });

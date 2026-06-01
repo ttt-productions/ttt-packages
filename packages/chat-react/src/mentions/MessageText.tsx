@@ -12,8 +12,8 @@
  */
 
 import type { ReactNode } from 'react';
-import type { MentionRef } from './types.js';
-import { parseMentionTokens } from './parser.js';
+import type { MentionRef } from '@ttt-productions/chat-core';
+import { parseMentionTokens } from '@ttt-productions/chat-core';
 
 export interface MessageTextProps<TKind extends string = string> {
   /** Raw message text containing optional `@[kind:id|displayText]` tokens. */

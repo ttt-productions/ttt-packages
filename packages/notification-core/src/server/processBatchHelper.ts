@@ -66,7 +66,7 @@ export async function processBatchHelper(
       category: string;
       targetUserId: string | null;
       metadata: Record<string, unknown>;
-      actors: { id: string; name: string }[];
+      actorIds: string[];
       count: number;
       docs: typeof snapshot.docs;
     }>();
@@ -82,9 +82,9 @@ export async function processBatchHelper(
       const existing = groups.get(groupKey);
       if (existing) {
         existing.count++;
-        // Add actor if not already present
-        if (!existing.actors.some((a) => a.id === data.actorId)) {
-          existing.actors.push({ id: data.actorId, name: data.actorName });
+        // Add actor id if not already present
+        if (!existing.actorIds.includes(data.actorId)) {
+          existing.actorIds.push(data.actorId);
         }
         existing.docs.push(docSnap);
       } else {
@@ -93,7 +93,7 @@ export async function processBatchHelper(
           category: data.category,
           targetUserId: data.targetUserId,
           metadata: data.metadata,
-          actors: [{ id: data.actorId, name: data.actorName }],
+          actorIds: [data.actorId],
           count: 1,
           docs: [docSnap],
         });
@@ -127,19 +127,14 @@ export async function processBatchHelper(
         const existingData = existingDoc.data() as Record<string, unknown>;
         const currentCount = (existingData.count as number) || 1;
         const currentActorIds = (existingData.latestActorIds as string[]) || [];
-        const currentActorNames = (existingData.latestActorNames as string[]) || [];
 
-        // Merge actors (new first, deduped, capped)
-        const newActors = group.actors.filter(
-          (a) => !currentActorIds.includes(a.id)
+        // Merge actor ids (new first, deduped, capped)
+        const newActorIds = group.actorIds.filter(
+          (id) => !currentActorIds.includes(id)
         );
         const mergedActorIds = [
-          ...newActors.map((a) => a.id),
+          ...newActorIds,
           ...currentActorIds,
-        ].slice(0, actorCap);
-        const mergedActorNames = [
-          ...newActors.map((a) => a.name),
-          ...currentActorNames,
         ].slice(0, actorCap);
 
         const newCount = Math.min(currentCount + group.count, countCap);
@@ -147,7 +142,6 @@ export async function processBatchHelper(
         await existingDoc.ref.update({
           count: newCount,
           latestActorIds: mergedActorIds,
-          latestActorNames: mergedActorNames,
           message: typeConfig.messagePattern(group.metadata, newCount),
           updatedAt: Date.now(),
         });
@@ -168,8 +162,7 @@ export async function processBatchHelper(
           title: typeConfig.titlePattern(group.metadata),
           message: typeConfig.messagePattern(group.metadata, group.count),
           count: group.count,
-          latestActorIds: group.actors.map((a) => a.id).slice(0, actorCap),
-          latestActorNames: group.actors.map((a) => a.name).slice(0, actorCap),
+          latestActorIds: group.actorIds.slice(0, actorCap),
           targetPath,
           metadata: group.metadata,
           createdAt: now,

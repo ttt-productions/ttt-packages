@@ -65,6 +65,13 @@ jobs:
             exit 0
           fi
 
+          # Pin internal @ttt-productions/* "*" ranges to exact versions in the
+          # about-to-be-packed manifest. Source keeps "*" for workspace dev; this
+          # checkout is ephemeral, so the rewrite only affects the published
+          # tarball. --check then HARD-FAILS if any internal "*" survived.
+          node scripts/pin-internal-deps.mjs "${PKGDIR}"
+          node scripts/pin-internal-deps.mjs "${PKGDIR}" --check
+
           npm publish --access public --provenance --workspace "${NAME}"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

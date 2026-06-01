@@ -2,7 +2,7 @@
 // (Reports/ReportGroup/ReportStatus moved to @ttt-productions/report-core.)
 
 import type { PendingMediaPending } from '../media/pending-media.js';
-import type { AdminTask } from '@ttt-productions/report-core';
+import type { AdminTask } from '@ttt-productions/report-core/contracts';
 
 export interface ContentViolation {
   id: string;

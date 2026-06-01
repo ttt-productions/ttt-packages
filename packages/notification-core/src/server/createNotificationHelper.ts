@@ -27,7 +27,7 @@ const DEFAULT_ACTOR_CAP = 5;
  * const notifier = createNotificationHelper(db as any, TTT_NOTIFICATION_CONFIG);
  *
  * // Auto-selects delivery mode based on type config:
- * await notifier.send({ type: 'content_report', actorId: '...', actorName: '...', metadata: {...} });
+ * await notifier.send({ type: 'content_report', actorId: '...', metadata: {...} });
  * ```
  */
 export function createNotificationHelper(
@@ -56,7 +56,7 @@ export function createNotificationHelper(
   }
 
   async function sendRealTime(input: CreateNotificationInput): Promise<void> {
-    const { type, actorId, actorName, targetUserId, metadata } = input;
+    const { type, actorId, targetUserId, metadata } = input;
     const { typeConfig, categoryConfig } = getTypeConfig(type);
     const activePath = categoryConfig.activePath;
 
@@ -79,18 +79,15 @@ export function createNotificationHelper(
       const existingData = existingDoc.data() as Record<string, unknown>;
       const currentCount = (existingData.count as number) || 1;
       const currentActorIds = (existingData.latestActorIds as string[]) || [];
-      const currentActorNames = (existingData.latestActorNames as string[]) || [];
 
-      // Cap actors
+      // Cap actors (id-only — newest first, deduped)
       const newActorIds = [actorId, ...currentActorIds.filter((id: string) => id !== actorId)].slice(0, actorCap);
-      const newActorNames = [actorName, ...currentActorNames.filter((_: string, i: number) => currentActorIds[i] !== actorId)].slice(0, actorCap);
 
       const newCount = Math.min(currentCount + 1, countCap);
 
       await existingDoc.ref.update({
         count: newCount,
         latestActorIds: newActorIds,
-        latestActorNames: newActorNames,
         message: typeConfig.messagePattern(metadata, newCount),
         updatedAt: Date.now(),
       });
@@ -108,7 +105,6 @@ export function createNotificationHelper(
         message: typeConfig.messagePattern(metadata, 1),
         count: 1,
         latestActorIds: [actorId],
-        latestActorNames: [actorName],
         targetPath,
         metadata,
         createdAt: now,
@@ -120,7 +116,7 @@ export function createNotificationHelper(
   }
 
   async function queueForBatch(input: CreateNotificationInput): Promise<void> {
-    const { type, actorId, actorName, targetUserId, metadata } = input;
+    const { type, actorId, targetUserId, metadata } = input;
     const { typeConfig } = getTypeConfig(type);
 
     const pendingDoc: Omit<import('../types.js').PendingNotification, 'id'> = {
@@ -128,7 +124,6 @@ export function createNotificationHelper(
       category: typeConfig.category,
       targetUserId: targetUserId ?? null,
       actorId,
-      actorName,
       metadata,
       createdAt: Date.now(),
     };

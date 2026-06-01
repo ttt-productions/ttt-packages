@@ -17,7 +17,8 @@ import {
 } from "firebase/firestore";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { toMillis } from "@ttt-productions/firebase-helpers";
-import type { ChatCoreConfig, ChatMessageV1 } from "../types.js";
+import type { ChatMessageV1 } from "@ttt-productions/chat-core";
+import type { ChatCoreConfig } from "../types.js";
 import { canAccessThread } from "./useChatThreadAccess.js";
 import { messagesColPath, newestWindowQuery } from "../firestore/queries.js";
 import { useOptionalChatNameResolver } from "../context/ChatNameResolverContext.js";

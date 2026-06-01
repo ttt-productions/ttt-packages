@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/firebase-helpers",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",
@@ -26,6 +26,14 @@
         "./react": {
             "types": "./dist/react/index.d.ts",
             "default": "./dist/react/index.js"
+        },
+        "./client": {
+            "types": "./dist/client/index.d.ts",
+            "default": "./dist/client/index.js"
+        },
+        "./firestore-client": {
+            "types": "./dist/firestore-client/index.d.ts",
+            "default": "./dist/firestore-client/index.js"
         }
     },
     "scripts": {

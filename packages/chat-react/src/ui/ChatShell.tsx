@@ -1,13 +1,11 @@
 "use client";
 
 import * as React from "react";
+import type { ChatMessageV1, SendAttachmentFn, ModerationHandlers } from "@ttt-productions/chat-core";
 import type {
   ChatCoreConfig,
-  ChatMessageV1,
   ChatAttachmentConfig,
-  SendAttachmentFn,
   MessageRendererRegistry,
-  ModerationHandlers,
 } from "../types.js";
 import { Card, CardHeader, CardContent, CardFooter, Skeleton } from "@ttt-productions/ui-core/react";
 import { KeyboardAvoidingView } from "@ttt-productions/mobile-core/react";

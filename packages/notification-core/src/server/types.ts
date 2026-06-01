@@ -62,10 +62,8 @@ export interface ServerWriteBatch {
 export interface CreateNotificationInput {
   /** Notification type (must exist in config.types) */
   type: string;
-  /** Actor who triggered this notification */
+  /** Actor who triggered this notification (id-only — names resolved at read time) */
   actorId: string;
-  /** Actor display name */
-  actorName: string;
   /** Target user ID (required for 'personal' audience types) */
   targetUserId?: string | null;
   /** Type-specific metadata */

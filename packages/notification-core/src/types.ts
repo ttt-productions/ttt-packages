@@ -36,10 +36,12 @@ export interface NotificationDoc {
   // Dedup aggregation
   /** Incremented on duplicates */
   count: number;
-  /** Last N actor user IDs (capped) */
+  /**
+   * Last N actor user IDs (capped). Identity is stored id-only — display names
+   * are resolved at read time by the consuming app (e.g. from publicUsers), so
+   * they never drift in the persisted doc.
+   */
   latestActorIds: string[];
-  /** Display names matching latestActorIds */
-  latestActorNames: string[];
 
   // Navigation
   /** Route path when clicked (e.g. '/admin' or '/entities/abc') */
@@ -87,10 +89,8 @@ export interface PendingNotification {
   category: string;
   /** Target userId (null for admin/shared) */
   targetUserId: string | null;
-  /** Who triggered this */
+  /** Who triggered this (id-only; display name resolved at read time) */
   actorId: string;
-  /** Actor display name */
-  actorName: string;
   /** Type-specific data for building the notification */
   metadata: Record<string, unknown>;
   /** Epoch ms */

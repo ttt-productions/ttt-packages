@@ -20,13 +20,13 @@ import type {
   AuthRequirements,
 } from "./types.js";
 
-export function createAssertAuth<TUser>(
-  config: AssertAuthConfig<TUser>
-): AssertAuthFn<TUser> {
+export function createAssertAuth<TUser, TAdmin = void>(
+  config: AssertAuthConfig<TUser, TAdmin>
+): AssertAuthFn<TUser, TAdmin> {
   return async function assertAuth(
     request: CallableRequest,
     requirements: AuthRequirements = {}
-  ): Promise<AuthContext<TUser>> {
+  ): Promise<AuthContext<TUser, TAdmin>> {
     // 1. Authentication check (always first)
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "You must be authenticated");
@@ -77,14 +77,18 @@ export function createAssertAuth<TUser>(
     }
 
     // 5. Admin check (delegates to config.requireAdmin)
+    let adminResult: TAdmin | undefined;
     if (requirements.admin !== undefined) {
-      await config.requireAdmin(uid, token, requirements.admin);
+      adminResult = await config.requireAdmin(uid, token, requirements.admin);
     }
 
     // 6. Return context with whatever docs were fetched
-    const ctx: AuthContext<TUser> = { uid, token };
+    const ctx: AuthContext<TUser, TAdmin> = { uid, token };
     if (userDoc !== undefined) {
       ctx.userDoc = userDoc;
+    }
+    if (requirements.admin !== undefined) {
+      ctx.admin = adminResult as TAdmin;
     }
     return ctx;
   };

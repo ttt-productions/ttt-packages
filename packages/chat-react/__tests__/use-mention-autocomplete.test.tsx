@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, act, fireEvent } from '@testing-library/react';
 import React, { useRef, useState } from 'react';
 import { useMentionAutocomplete } from '../src/mentions/use-mention-autocomplete.js';
-import type { MentionProvider, MentionRef } from '../src/mentions/types.js';
+import type { MentionProvider, MentionRef } from '@ttt-productions/chat-core';
 
 function makeUserProvider(results: MentionRef<'user'>[] = []): MentionProvider<'user', unknown> {
   return {

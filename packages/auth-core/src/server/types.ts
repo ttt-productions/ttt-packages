@@ -69,11 +69,13 @@ export interface AdminCheckOptions {
  * Return value from assertAuth. Generic over the consuming app's user
  * document type.
  */
-export interface AuthContext<TUser = unknown> {
+export interface AuthContext<TUser = unknown, TAdmin = void> {
   uid: string;
   token: DecodedIdToken;
   /** Populated when the user doc was read (default not-banned check). */
   userDoc?: TUser;
+  /** Result returned by config.requireAdmin. Populated only when an admin check ran (AuthRequirements.admin was set). Undefined otherwise. */
+  admin?: TAdmin;
 }
 
 /**
@@ -86,7 +88,7 @@ export type UserStatus = "ok" | "banned" | "disabled";
  * Configuration for createAssertAuth. The consuming app supplies every
  * app-specific operation as a callback.
  */
-export interface AssertAuthConfig<TUser> {
+export interface AssertAuthConfig<TUser, TAdmin = void> {
   /**
    * Returns the admin Firestore instance. Called every assertAuth invocation
    * that needs a Firestore read. Implementations typically return
@@ -116,13 +118,13 @@ export interface AssertAuthConfig<TUser> {
     uid: string,
     token: DecodedIdToken,
     options: AdminCheckOptions
-  ) => Promise<void>;
+  ) => Promise<TAdmin>;
 }
 
 /**
  * The function returned by createAssertAuth.
  */
-export type AssertAuthFn<TUser> = (
+export type AssertAuthFn<TUser, TAdmin = void> = (
   request: CallableRequest,
   requirements?: AuthRequirements
-) => Promise<AuthContext<TUser>>;
+) => Promise<AuthContext<TUser, TAdmin>>;

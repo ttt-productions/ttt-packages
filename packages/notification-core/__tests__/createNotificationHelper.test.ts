@@ -138,7 +138,6 @@ describe('createNotificationHelper', () => {
       await helper.send({
         type: 'content_report',
         actorId: 'user1',
-        actorName: 'Alice',
         metadata: { itemId: 'item123' },
       });
       const adminCol = collectionObjects.get('adminNotifications');
@@ -149,7 +148,6 @@ describe('createNotificationHelper', () => {
       await helper.send({
         type: 'batch_notification',
         actorId: 'user1',
-        actorName: 'Alice',
         metadata: { itemId: 'item123' },
       });
       const pendingCol = collectionObjects.get('pendingNotifications');
@@ -158,7 +156,7 @@ describe('createNotificationHelper', () => {
 
     it('throws for unknown notification type', async () => {
       await expect(
-        helper.send({ type: 'unknown_type', actorId: 'u1', actorName: 'Alice', metadata: {} })
+        helper.send({ type: 'unknown_type', actorId: 'u1', metadata: {} })
       ).rejects.toThrow('Unknown notification type: unknown_type');
     });
   });
@@ -168,7 +166,6 @@ describe('createNotificationHelper', () => {
       await helper.sendRealTime({
         type: 'content_report',
         actorId: 'user1',
-        actorName: 'Alice',
         metadata: { itemId: 'abc' },
       });
 
@@ -181,14 +178,14 @@ describe('createNotificationHelper', () => {
       expect(docData.dedupKey).toBe('report_abc');
       expect(docData.count).toBe(1);
       expect(docData.latestActorIds).toEqual(['user1']);
-      expect(docData.latestActorNames).toEqual(['Alice']);
+      // Identity is stored id-only — no persisted display names.
+      expect(docData.latestActorNames).toBeUndefined();
     });
 
     it('creates notification with correct title and message', async () => {
       await helper.sendRealTime({
         type: 'content_report',
         actorId: 'user1',
-        actorName: 'Alice',
         metadata: { itemId: 'abc' },
       });
 
@@ -214,7 +211,7 @@ describe('createNotificationHelper', () => {
       };
       const badHelper = createNotificationHelper(db, badConfig);
       await expect(
-        badHelper.sendRealTime({ type: 'bad_type', actorId: 'u1', actorName: 'Alice', metadata: {} })
+        badHelper.sendRealTime({ type: 'bad_type', actorId: 'u1', metadata: {} })
       ).rejects.toThrow('Unknown category: nonexistent');
     });
 
@@ -222,7 +219,6 @@ describe('createNotificationHelper', () => {
       await helper.sendRealTime({
         type: 'content_report',
         actorId: 'user1',
-        actorName: 'Alice',
         metadata: { itemId: 'abc' },
       });
 
@@ -237,7 +233,6 @@ describe('createNotificationHelper', () => {
       await helper.queueForBatch({
         type: 'batch_notification',
         actorId: 'user2',
-        actorName: 'Bob',
         targetUserId: 'user3',
         metadata: { itemId: 'xyz' },
       });
@@ -249,7 +244,8 @@ describe('createNotificationHelper', () => {
       const docData = pendingCol!.add.mock.calls[0][0];
       expect(docData.type).toBe('batch_notification');
       expect(docData.actorId).toBe('user2');
-      expect(docData.actorName).toBe('Bob');
+      // Pending docs are id-only — no actorName persisted.
+      expect(docData.actorName).toBeUndefined();
       expect(docData.targetUserId).toBe('user3');
     });
 
@@ -257,7 +253,6 @@ describe('createNotificationHelper', () => {
       await helper.queueForBatch({
         type: 'batch_notification',
         actorId: 'user2',
-        actorName: 'Bob',
         metadata: { itemId: 'xyz' },
       });
 
@@ -267,7 +262,7 @@ describe('createNotificationHelper', () => {
 
     it('throws for unknown type', async () => {
       await expect(
-        helper.queueForBatch({ type: 'unknown', actorId: 'u1', actorName: 'Alice', metadata: {} })
+        helper.queueForBatch({ type: 'unknown', actorId: 'u1', metadata: {} })
       ).rejects.toThrow('Unknown notification type: unknown');
     });
   });

@@ -17,13 +17,13 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { formatMentionToken } from './parser.js';
+import { formatMentionToken } from '@ttt-productions/chat-core';
 import type {
   MentionAnchor,
-  MentionProvider,
   MentionRef,
   RecentMentionsAdapter,
-} from './types.js';
+} from '@ttt-productions/chat-core';
+import type { RenderableMentionProvider } from '../types.js';
 
 export type AutocompleteResultGroup<TKind extends string = string> = {
   kind: TKind;
@@ -57,7 +57,7 @@ export interface UseMentionAutocompleteArgs<TKind extends string, TContext> {
   /** Setter for the textarea value. */
   onChange: (next: string) => void;
   /** Providers in display order. Empty list disables the system entirely. */
-  providers: MentionProvider<TKind, TContext>[];
+  providers: RenderableMentionProvider<TKind, TContext>[];
   /** Consumer-controlled context passed to each provider's `search`. */
   context: TContext;
   /** Optional recent-mentions adapter. */

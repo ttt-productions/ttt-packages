@@ -20,7 +20,7 @@ set -euo pipefail
 # renamed, or removed, update BOTH this file and root package.json build chain
 # (and bump the count comment below).
 #
-# 21 packages total (as of Cut 3c Part 3a — added chat-schemas).
+# 22 packages total (added chat-react — chat-core split into pure core + React UI).
 #
 # Usage:
 #   ./scripts/release-all.sh           # patch bump
@@ -73,9 +73,12 @@ export SKIP_PREFLIGHT=1
 ./scripts/release-package.sh @ttt-productions/media-processing-core packages/media-processing-core "$BUMP"
 
 # ---------------------------------------------------------------------------
-# Tier 3 — depends on Tier 2 (chat-core depends on upload-ui)
+# Tier 3 — chat-react (React UI) depends on chat-core + upload-ui/etc.
+# chat-core is now pure (depends only on chat-schemas) and can release earlier,
+# but is kept here next to chat-react for clarity.
 # ---------------------------------------------------------------------------
 ./scripts/release-package.sh @ttt-productions/chat-core         packages/chat-core         "$BUMP"
+./scripts/release-package.sh @ttt-productions/chat-react        packages/chat-react        "$BUMP"
 
 # ---------------------------------------------------------------------------
 # Remaining packages — order matches root package.json build chain tail
@@ -84,4 +87,4 @@ export SKIP_PREFLIGHT=1
 ./scripts/release-package.sh @ttt-productions/rate-limit-core   packages/rate-limit-core   "$BUMP"
 ./scripts/release-package.sh @ttt-productions/moderation-core   packages/moderation-core   "$BUMP"
 
-echo "✅ Done: released all 21 packages ($BUMP)"
+echo "✅ Done: released all 22 packages ($BUMP)"

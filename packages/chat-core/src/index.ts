@@ -1,6 +1,10 @@
-// Server-safe barrel. React UI, hooks, and the ChatNameResolver context
-// live on the "/react" subpath. Cloud Functions and other server code
-// import from this barrel only.
+// Pure chat-core barrel. No React, no Firebase (client or admin) reachable from
+// here — safe for Cloud Functions, scripts, and future native/TV clients that
+// only need the parser, contracts, and grouping logic.
+//
+// The chat React UI, hooks, Firestore-client adapter config, and render types
+// live in @ttt-productions/chat-react. Pure chat schemas live in
+// @ttt-productions/chat-schemas.
 
 export { MAX_CHAT_MESSAGE_LENGTH } from "./constants.js";
 
@@ -12,16 +16,11 @@ export type {
     ChatThreadV1,
     ChatMessageV1,
     ChatAccessMode,
-    ChatCoreConfig,
-    ChatAttachmentConfig,
     SendAttachmentInput,
     SendAttachmentFn,
     ModerationHandlers,
-    MessageRenderer,
-    MessageRendererRegistry,
     ChatNameResolver,
     ChatPrewarmSenders,
-    ChatMentionConfig,
 } from "./types.js";
 
 export type {
@@ -32,5 +31,3 @@ export type {
     MentionAnchor,
 } from "./mentions/types.js";
 export { parseMentionTokens, formatMentionToken } from "./mentions/parser.js";
-
-// CSS: import "@ttt-productions/chat-core/styles" in your app layout.

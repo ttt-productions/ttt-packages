@@ -1,7 +1,7 @@
 {
   "name": "@ttt-productions/chat-core",
   "version": "0.6.1",
-  "description": "Shared Firestore chat core (realtime newest window + infinite older pagination) for TTT Productions apps",
+  "description": "Pure chat contracts, mention parser/serializer, and grouping helpers for TTT Productions apps (no React, no Firebase)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ttt-productions/ttt-packages.git",
@@ -11,23 +11,15 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
-  "sideEffects": [
-    "src/styles/*.css"
-  ],
+  "sideEffects": false,
   "files": [
-    "dist",
-    "src/styles"
+    "dist"
   ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    },
-    "./react": {
-      "types": "./dist/react/index.d.ts",
-      "default": "./dist/react/index.js"
-    },
-    "./styles": "./src/styles/chat.css"
+    }
   },
   "scripts": {
     "build": "tsc",
@@ -35,39 +27,10 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run clean && npm run build"
   },
-  "peerDependencies": {
-    "@tanstack/react-query": ">=5.0.0",
-    "firebase": ">=10.0.0",
-    "react": ">=19.0.0",
-    "react-dom": ">=19.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@tanstack/react-query": {
-      "optional": true
-    },
-    "firebase": {
-      "optional": true
-    },
-    "react": {
-      "optional": true
-    },
-    "react-dom": {
-      "optional": true
-    }
-  },
   "dependencies": {
-    "@ttt-productions/chat-schemas": "*",
-    "@ttt-productions/ui-core": "*",
-    "@ttt-productions/firebase-helpers": "*",
-    "@ttt-productions/mobile-core": "*",
-    "@ttt-productions/file-input": "*",
-    "@ttt-productions/upload-ui": "*",
-    "@ttt-productions/media-viewer": "*",
-    "@ttt-productions/media-schemas": "*"
+    "@ttt-productions/chat-schemas": "*"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
-    "react": "^19.0.0",
     "typescript": "^5.8.3"
   },
   "author": "DJ (TTT Productions)",

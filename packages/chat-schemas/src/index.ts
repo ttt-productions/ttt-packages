@@ -3,12 +3,14 @@ import { z } from 'zod';
 /**
  * Pure-Zod chat schemas package.
  *
- * Consumed by `@ttt-productions/chat-core/schemas` (which re-exports for
- * backward compatibility) and by the consuming app's callable schema layer,
- * which composes these wire shapes into request / response schemas.
+ * Consumed directly as `@ttt-productions/chat-schemas` — by `chat-core` (the
+ * pure parser/contracts package), by the consuming app's callable schema layer
+ * which composes these wire shapes into request / response schemas, and by any
+ * backend that needs the chat wire contracts. There is no `chat-core/schemas`
+ * subpath: chat-core re-exports nothing under a `./schemas` path.
  *
  * Tier 0 — pure Zod, zero `@ttt-productions/*` deps. Safe for backend / schema
- * composition without pulling chat-core's UI dependency graph.
+ * composition without pulling in any React or Firebase dependency graph.
  */
 
 /**

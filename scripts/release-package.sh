@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# NOTE: This script bumps the version, commits, tags, and pushes. The actual
+# pack/publish happens in tag-triggered CI (.github/workflows/publish.yml).
+# Internal "@ttt-productions/*": "*" ranges are rewritten to EXACT versions at
+# pack time there (scripts/pin-internal-deps.mjs), so committed source keeps "*"
+# for workspace dev while published tarballs never ship a "*" internal range.
+# Do not pin internal deps here — that would commit exact pins into source.
+
 PKG="${1:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch|minor|major]}"
 PKGDIR="${2:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch|minor|major]}"
 BUMP="${3:-patch}"

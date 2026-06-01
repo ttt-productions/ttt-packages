@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import type { ChatMessageV1, MessageRendererRegistry, ModerationHandlers } from "../types.js";
+import type { ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
+import { isContinuation } from "@ttt-productions/chat-core";
+import type { MessageRendererRegistry } from "../types.js";
 import { Button } from "@ttt-productions/ui-core/react";
 import { MessageItemDefault } from "./MessageItemDefault.js";
-import { isContinuation } from "../grouping.js";
 
 export function MessageList(props: {
   messages: ChatMessageV1[];

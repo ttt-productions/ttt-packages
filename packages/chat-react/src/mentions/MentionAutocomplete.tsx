@@ -13,7 +13,7 @@
  */
 
 import type { AutocompleteState } from './use-mention-autocomplete.js';
-import type { MentionRef } from './types.js';
+import type { MentionRef } from '@ttt-productions/chat-core';
 import { cn } from '@ttt-productions/ui-core';
 
 export interface MentionAutocompleteProps<TKind extends string = string> {

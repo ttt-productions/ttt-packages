@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChatMessageV1, ChatAttachment, ModerationHandlers } from "../types.js";
+import type { ChatMessageV1, ChatAttachment, ModerationHandlers } from "@ttt-productions/chat-core";
 import { MessageText } from "../mentions/MessageText.js";
 import { cn } from "@ttt-productions/ui-core";
 import { MediaViewer } from "@ttt-productions/media-viewer/react";

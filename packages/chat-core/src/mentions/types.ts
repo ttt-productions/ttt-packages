@@ -9,9 +9,10 @@
  * Wire format â€” mentions are encoded inline in the message's `text` field as
  * `@[kind:id|displayText]` tokens. The renderer parses them out at display
  * time. No schema change to ChatMessage.
+ *
+ * These are the PURE mention contracts. The React-coupled render type for
+ * autocomplete rows (`renderResult`) lives in @ttt-productions/chat-react.
  */
-
-import type { ReactNode } from 'react';
 
 /**
  * Resolved mention â€” the value that ends up in the wire token after the user
@@ -44,13 +45,15 @@ export type ParsedSegment<TKind extends string = string> =
  * - `search` â€” async query. Receives the current query string (after the
  *   trigger character), the consumer-supplied `context`, and an optional
  *   `signal` for cancellation. Returns up to whatever limit the provider
- *   chooses; chat-core renders all returned results.
- * - `renderResult` â€” optional custom row UI. When omitted, the autocomplete
- *   renders the `displayText` plain.
+ *   chooses; the chat UI renders all returned results.
  *
  * `TContext` is consumer-owned â€” pass anything you need inside `search`
- * (Firestore db, current user id, surface-specific filters). chat-core never
- * inspects it.
+ * (Firestore db, current user id, surface-specific filters). The mention
+ * system never inspects it.
+ *
+ * Optional per-row custom rendering (`renderResult`) is a React concern and is
+ * layered on top of this pure provider by `RenderableMentionProvider` in
+ * @ttt-productions/chat-react.
  */
 export type MentionProvider<TKind extends string = string, TContext = unknown> = {
   kind: TKind;
@@ -60,7 +63,6 @@ export type MentionProvider<TKind extends string = string, TContext = unknown> =
     context: TContext;
     signal?: AbortSignal;
   }) => Promise<MentionRef<TKind>[]>;
-  renderResult?: (ref: MentionRef<TKind>) => ReactNode;
 };
 
 /**

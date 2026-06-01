@@ -44,6 +44,15 @@ const activeUserDoc: TestUser = {
   status: "active",
 };
 
+// Minimal Firestore stub returning the active user doc, for tests that build
+// their own config instead of using the shared beforeEach harness.
+function fakeDbWithUser(): any {
+  const userDocRef = {
+    get: vi.fn().mockResolvedValue({ exists: true, data: () => activeUserDoc }),
+  };
+  return { doc: vi.fn(() => userDocRef) };
+}
+
 // --- harness ---------------------------------------------------------------
 
 let mockUserGet: ReturnType<typeof vi.fn>;
@@ -229,6 +238,34 @@ describe("Admin check", () => {
       expect.any(Object),
       { allowJrAdmin: true }
     );
+  });
+
+  it("populates ctx.admin with the requireAdmin result when an admin check runs", async () => {
+    type AdminResult = { role: string };
+    const adminMock = vi.fn().mockResolvedValue({ role: "superadmin" });
+    const config: AssertAuthConfig<TestUser, AdminResult> = {
+      firestore: () => fakeDbWithUser(),
+      userProfilePath: (uid) => `userProfiles/${uid}`,
+      getUserStatus: (user): UserStatus => {
+        if (user.status === "disabled") return "disabled";
+        if (user.status === "banned") return "banned";
+        return "ok";
+      },
+      requireAdmin: adminMock as any,
+    };
+    const typedAssertAuth = createAssertAuth<TestUser, AdminResult>(config);
+
+    const ctx = await typedAssertAuth(makeRequest(), {
+      admin: { allowJrAdmin: true },
+    });
+
+    expect(ctx.admin).toEqual({ role: "superadmin" });
+  });
+
+  it("leaves ctx.admin undefined when no admin requirement is set", async () => {
+    const ctx = await assertAuth(makeRequest());
+    expect(ctx.admin).toBeUndefined();
+    expect(mockRequireAdmin).not.toHaveBeenCalled();
   });
 });
 
