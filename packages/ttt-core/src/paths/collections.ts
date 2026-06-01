@@ -74,7 +74,6 @@ export const USER_SUBCOLLECTIONS = {
  * Nested under allWorkProjects/{workProjectId}/
  */
 export const WORK_PROJECT_SUBCOLLECTIONS = {
-  PUBLIC_DATA: 'publicData',
   WORK_PROJECT_TALES: 'workProjectTales',
   WORK_PROJECT_TUNES: 'workProjectTunes',
   WORK_PROJECT_TELEVISION: 'workProjectTelevision',

@@ -15,6 +15,14 @@ export type GuildmateUser = {
   stakeShareCount: number;
   joinedAt: number;
   status: GuildmateStatus;
+  /**
+   * Holder kind for this stake entry. Absent/`'user'` = a real guildmate person.
+   * `'foundingWork'` = the realm founding-Work holder (keyed by the founding
+   * workProjectId, NOT a user uid) that holds EXISTING_REALM_STAKE_SHARES in a
+   * Work created into an existing public realm. Distribution of those shares is
+   * resolved through the founding Work's own ledger; no split fields here.
+   */
+  holderType?: 'user' | 'foundingWork';
 };
 
 export type WorkAsset = {

@@ -134,6 +134,13 @@ export const UpdatePublicWorkProjectDetailsInputSchema = z.object({
 }).strict();
 export type UpdatePublicWorkProjectDetailsInput = z.infer<typeof UpdatePublicWorkProjectDetailsInputSchema>;
 
+export const UpdateWorkRealmDetailsInputSchema = z.object({
+  workRealmId: z.string().min(1),
+  workingTitle: z.string().min(1).max(200),
+  workingDescription: z.string().min(1).max(2000),
+}).strict();
+export type UpdateWorkRealmDetailsInput = z.infer<typeof UpdateWorkRealmDetailsInputSchema>;
+
 
 
 

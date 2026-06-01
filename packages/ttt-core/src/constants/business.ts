@@ -3,6 +3,12 @@
 /** The absolute maximum number of stakes a workProject can have. */
 export const MAX_WORK_PROJECT_STAKE_SHARES = 1000;
 
+/**
+ * Stake shares minted to the realm's founding-Work holder when a Work is
+ * created into an EXISTING public realm. Counts toward MAX_WORK_PROJECT_STAKE_SHARES.
+ */
+export const EXISTING_REALM_STAKE_SHARES = 75;
+
 /** The maximum character length for a SquareStreetz post created on behalf of a workProject. */
 export const MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH = 150;
 

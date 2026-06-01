@@ -129,6 +129,9 @@ export interface PublishedHallItem {
   pledgePaymentCount?: number;
   viewCount?: number;
   followerCount?: number;
+
+  /** Set true by the Realm/Work hide cascade to suppress this from normal reads/search. Orthogonal to the moderation `status`. */
+  hidden?: boolean;
 }
 
 export interface PublishedTuneTrack {
@@ -138,6 +141,9 @@ export interface PublishedTuneTrack {
   description?: string;
   fileUrl: string;
   photoUrl?: string;
+
+  /** Set true by the Realm/Work hide cascade to suppress this from normal reads/search. Orthogonal to the moderation `status`. */
+  hidden?: boolean;
 }
 
 export interface PublishedChapter {
@@ -147,6 +153,9 @@ export interface PublishedChapter {
   description?: string;
   content: string;
   photoUrl?: string;
+
+  /** Set true by the Realm/Work hide cascade to suppress this from normal reads/search. Orthogonal to the moderation `status`. */
+  hidden?: boolean;
 }
 
 export interface PublishedTelevisionEpisode {
@@ -156,6 +165,9 @@ export interface PublishedTelevisionEpisode {
   description?: string;
   videoUrl: string;
   photoUrl?: string;
+
+  /** Set true by the Realm/Work hide cascade to suppress this from normal reads/search. Orthogonal to the moderation `status`. */
+  hidden?: boolean;
 }
 
 export type HallLibraryPreferences = {

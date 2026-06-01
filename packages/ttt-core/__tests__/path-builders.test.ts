@@ -103,14 +103,6 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('wp1');
     });
 
-    it('workProjectPublicData returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.workProjectPublicData('proj1', 'pub1');
-      expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
-      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_DATA);
-      expect(result[3]).toBe('pub1');
-    });
-
     it('workProjectTale returns 4-segment tuple', () => {
       const result = PATH_BUILDERS.workProjectTale('proj1', 'tale1');
       expect(result).toHaveLength(4);
