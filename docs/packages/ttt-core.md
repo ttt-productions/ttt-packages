@@ -68,6 +68,7 @@ When adding a new media origin that writes back to Firestore, add the target-inf
 Required package contracts:
 
 - `COLLECTIONS.PUBLIC_WORK_PROJECTS` and `PATH_BUILDERS.publicWorkProject(workProjectId)`.
+- The old nested public Work projection contract must be removed, not retained for compatibility: do not keep `WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_DATA` or `PATH_BUILDERS.workProjectPublicData(...)` as launch-era APIs. `publicWorkProjects/{workProjectId}` is the only Work shell/search projection.
 - `WorkRealm` fields: `workRealmId`, `realmType`, `realmStatus`, `realmHidden`, `workingTitle`, `workingTitle_lowercase`, `workingDescription`, `ownerUid`, `createdByUid`, `foundingWorkProjectId`, `createdOn`, `updatedOn`.
 - `PublicWorkProject` fields: `workProjectId`, `publicWorkStatus`, `publicWorkHidden`, `workRealmId`, `realmCanonStatus`, `type: WorkProjectType`, `hallWingType: HallWingType`, title/description fields, optional `coverImageUrl`, uid-only owner/creator fields, timestamps.
 - `RealmCreationMode` schema/type with `newPublicRealm`, `newStandaloneRealm`, `existingPublicRealm`.
