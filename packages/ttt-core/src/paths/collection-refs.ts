@@ -61,4 +61,7 @@ export const COLLECTION_REFS = {
 
   tuneTracks: (workProjectId: string, tuneId: string): readonly [string, string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES, tuneId, NESTED_SUBCOLLECTIONS.TUNE_TRACKS] as const,
+
+  moderationCascadeChangedDocs: (cascadeId: string): [string, string, string] =>
+    [COLLECTIONS.MODERATION_CASCADE_MANIFESTS, cascadeId, NESTED_SUBCOLLECTIONS.CHANGED_DOCS],
 } as const;

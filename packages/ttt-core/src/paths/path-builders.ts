@@ -149,6 +149,12 @@ export const PATH_BUILDERS = {
   adminActivityLog: (logId: string): [string, string] =>
     [COLLECTIONS.ADMIN_ACTIVITY_LOG, logId],
 
+  moderationCascadeManifest: (cascadeId: string): [string, string] =>
+    [COLLECTIONS.MODERATION_CASCADE_MANIFESTS, cascadeId],
+
+  moderationCascadeChangedDoc: (cascadeId: string, changedDocId: string): [string, string, string, string] =>
+    [COLLECTIONS.MODERATION_CASCADE_MANIFESTS, cascadeId, NESTED_SUBCOLLECTIONS.CHANGED_DOCS, changedDocId],
+
   // ===== UTILITY PATHS =====
   reservedDisplayName: (displayNameUppercase: string): [string, string] =>
     [COLLECTIONS.RESERVED_DISPLAY_NAMES, displayNameUppercase],

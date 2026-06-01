@@ -293,6 +293,23 @@ describe('PATH_BUILDERS', () => {
     });
   });
 
+  describe('Moderation Cascade Paths', () => {
+    it('moderationCascadeManifest returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.moderationCascadeManifest('casc1');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toBe(COLLECTIONS.MODERATION_CASCADE_MANIFESTS);
+      expect(result[1]).toBe('casc1');
+    });
+
+    it('moderationCascadeChangedDoc returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.moderationCascadeChangedDoc('casc1', 'chg1');
+      expect(result).toHaveLength(4);
+      expect(result[0]).toBe(COLLECTIONS.MODERATION_CASCADE_MANIFESTS);
+      expect(result[1]).toBe('casc1');
+      expect(result[3]).toBe('chg1');
+    });
+  });
+
   // ===== ADMIN & SYSTEM PATHS =====
   describe('Admin & System Paths', () => {
     it('adminDispatch returns 2-segment tuple', () => {

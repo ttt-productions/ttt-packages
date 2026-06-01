@@ -34,6 +34,7 @@ export const COLLECTIONS = {
   NOTIFICATION_QUEUE: 'notificationQueue',
   GUILD_INVITE_CONVERSATIONS: 'guildInviteConversations',
   STAKE_SHARE_AUDIT_EVENTS: 'stakeShareAuditEvents',
+  MODERATION_CASCADE_MANIFESTS: 'moderationCascadeManifests',
 
   // Notification system
   ACTIVE_USER_NOTIFICATIONS: 'activeUserNotifications',
@@ -115,6 +116,9 @@ export const NESTED_SUBCOLLECTIONS = {
   // Craft Skills & Feedback
   TAGGED_CRAFT_SKILLS: 'taggedCraftSkills',
   USER_SUGGESTIONS: 'userSuggestions',
+
+  // Moderation
+  CHANGED_DOCS: 'changedDocs',
 } as const;
 
 /**
