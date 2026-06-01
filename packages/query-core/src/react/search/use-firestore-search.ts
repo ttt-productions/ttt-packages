@@ -57,6 +57,7 @@ export function useFirestoreSearch<T extends DocumentData = DocumentData>({
   select,
   debounceMs = DEFAULT_DEBOUNCE_MS,
   staleTime = DEFAULT_STALE_TIME,
+  equalityFilters = [],
 }: FirestoreSearchOptions<T>): UseQueryResult<WithId<T>[], Error> {
   const db = useFirestoreDb();
   const [debouncedQuery, setDebouncedQuery] = useState(queryText);
@@ -75,7 +76,7 @@ export function useFirestoreSearch<T extends DocumentData = DocumentData>({
   const shouldSearch = normalizedQuery.length >= 3 && enabled;
 
   return useQuery({
-    queryKey: keys.custom('search', collectionPath, searchField, normalizedQuery),
+    queryKey: keys.custom('search', collectionPath, searchField, normalizedQuery, JSON.stringify(equalityFilters)),
     queryFn: async (): Promise<WithId<T>[]> => {
       if (!shouldSearch) {
         return [];
@@ -86,6 +87,7 @@ export function useFirestoreSearch<T extends DocumentData = DocumentData>({
       // Build range query for prefix matching
       // Using '\uf8ff' as upper bound creates a range that matches all strings starting with the query
       const constraints: QueryConstraint[] = [
+        ...equalityFilters.map((f) => where(f.field, '==', f.value)),
         where(searchField, '>=', normalizedQuery),
         where(searchField, '<=', normalizedQuery + '\uf8ff'),
         orderBy(searchField, 'asc'),

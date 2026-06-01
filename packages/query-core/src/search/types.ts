@@ -1,6 +1,17 @@
 import type { DocumentData } from 'firebase/firestore';
 
 /**
+ * Equality filter applied before the prefix range in a Firestore search.
+ * Each becomes a `where(field, '==', value)` constraint, ordered ahead of the
+ * search field. The composite index must list these equality fields (ASC)
+ * before the search field (ASC).
+ */
+export interface SearchEqualityFilter {
+  field: string;
+  value: unknown;
+}
+
+/**
  * Configuration for a Firestore search query
  */
 export interface FirestoreSearchConfig {
@@ -10,6 +21,8 @@ export interface FirestoreSearchConfig {
   searchField: string;
   /** Maximum number of results to return */
   limit: number;
+  /** Optional equality filters applied before the prefix range. */
+  equalityFilters?: SearchEqualityFilter[];
 }
 
 /**
@@ -32,4 +45,6 @@ export interface FirestoreSearchOptions<T extends DocumentData = DocumentData> {
   debounceMs?: number;
   /** React Query stale time (default: 60000ms) */
   staleTime?: number;
+  /** Optional equality filters applied before the prefix range. */
+  equalityFilters?: SearchEqualityFilter[];
 }

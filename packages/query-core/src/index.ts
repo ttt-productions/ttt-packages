@@ -25,6 +25,7 @@ export {
 export type {
   FirestoreSearchConfig,
   FirestoreSearchOptions,
+  SearchEqualityFilter,
 } from './search/types.js';
 
 // Domain-event invalidator (mechanism — consumers register their event registry)
