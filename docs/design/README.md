@@ -15,3 +15,7 @@ Cross-cutting design rules and architectural invariants that govern how `@ttt-pr
 - `react-safety.md` — Main entry must be server-safe; React UI behind `./react`; admin-SDK code behind `./server`.
 - `display-identity-invariant.md` — Cross-boundary types use uid-only references; apps resolve display names from their own identity source.
 - `upload-path-invariant.md` — Every Firebase Storage upload uses the canonical `uploads/{fileOrigin}/{uid}/{pendingMediaDocId}` shape.
+
+## Realm / Work discovery packages
+
+Shared contracts for Realm/discovery belong in `docs/packages/ttt-core.md`; generic query mechanics belong in `docs/packages/query-core.md`. Do not create TTT-specific search presets inside generic packages.
