@@ -13,3 +13,4 @@ export * from './admin-dispatch-actions.js';
 export * from './users.js';
 export * from './utility.js';
 export * from './voting.js';
+export * from './notification.js';

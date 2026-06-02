@@ -143,6 +143,8 @@ export async function processBatchHelper(
           count: newCount,
           latestActorIds: mergedActorIds,
           message: typeConfig.messagePattern(group.metadata, newCount),
+          // New activity on an existing notification re-lights the unread badge.
+          seenAt: 0,
           updatedAt: Date.now(),
         });
 
@@ -165,6 +167,8 @@ export async function processBatchHelper(
           latestActorIds: group.actorIds.slice(0, actorCap),
           targetPath,
           metadata: group.metadata,
+          // Active docs are created unseen so the unread count() predicate matches.
+          seenAt: 0,
           createdAt: now,
           updatedAt: now,
         };

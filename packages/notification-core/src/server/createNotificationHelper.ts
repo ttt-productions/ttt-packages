@@ -12,6 +12,8 @@ import type {
 
 const DEFAULT_COUNT_CAP = 5000;
 const DEFAULT_ACTOR_CAP = 5;
+/** Firestore hard limit on writes per batch. */
+const MAX_BATCH_WRITES = 500;
 
 /**
  * Create a notification helper bound to a Firestore instance and config.
@@ -89,6 +91,8 @@ export function createNotificationHelper(
         count: newCount,
         latestActorIds: newActorIds,
         message: typeConfig.messagePattern(metadata, newCount),
+        // New activity on an existing notification re-lights the unread badge.
+        seenAt: 0,
         updatedAt: Date.now(),
       });
     } else {
@@ -107,6 +111,8 @@ export function createNotificationHelper(
         latestActorIds: [actorId],
         targetPath,
         metadata,
+        // Active docs are created unseen so the unread count() predicate matches.
+        seenAt: 0,
         createdAt: now,
         updatedAt: now,
       };
@@ -116,19 +122,44 @@ export function createNotificationHelper(
   }
 
   async function queueForBatch(input: CreateNotificationInput): Promise<void> {
+    const pendingDoc = buildPendingDoc(input, Date.now());
+    await db.collection(pendingPath).add(pendingDoc as Record<string, unknown>);
+  }
+
+  function buildPendingDoc(
+    input: CreateNotificationInput,
+    now: number,
+  ): Omit<import('../types.js').PendingNotification, 'id'> {
     const { type, actorId, targetUserId, metadata } = input;
     const { typeConfig } = getTypeConfig(type);
-
-    const pendingDoc: Omit<import('../types.js').PendingNotification, 'id'> = {
+    // Pending docs carry NO seenAt — seenAt lives only on active docs, set by
+    // the materializer (sendRealTime / processBatchHelper).
+    return {
       type,
       category: typeConfig.category,
       targetUserId: targetUserId ?? null,
       actorId,
       metadata,
-      createdAt: Date.now(),
+      createdAt: now,
     };
+  }
 
-    await db.collection(pendingPath).add(pendingDoc as Record<string, unknown>);
+  async function queueManyForBatch(inputs: CreateNotificationInput[]): Promise<void> {
+    if (inputs.length === 0) return;
+
+    const pendingCollection = db.collection(pendingPath);
+    const now = Date.now();
+
+    // Write in ≤500-write chunks (the Firestore batch limit).
+    for (let i = 0; i < inputs.length; i += MAX_BATCH_WRITES) {
+      const chunk = inputs.slice(i, i + MAX_BATCH_WRITES);
+      const batch = db.batch();
+      for (const input of chunk) {
+        const ref = pendingCollection.doc();
+        batch.set(ref, buildPendingDoc(input, now) as Record<string, unknown>);
+      }
+      await batch.commit();
+    }
   }
 
   async function send(input: CreateNotificationInput): Promise<void> {
@@ -139,5 +170,5 @@ export function createNotificationHelper(
     return queueForBatch(input);
   }
 
-  return { send, sendRealTime, queueForBatch };
+  return { send, sendRealTime, queueForBatch, queueManyForBatch };
 }

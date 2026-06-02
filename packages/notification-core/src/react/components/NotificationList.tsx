@@ -18,9 +18,10 @@ export function NotificationList({
   userId,
   category,
   onNotificationClick,
+  archiveFn,
+  archiveAllFn,
   onClearAll,
   refetchInterval,
-  device = 'web',
   emptyText,
 }: NotificationListProps) {
   const {
@@ -43,50 +44,37 @@ export function NotificationList({
   });
 
   const archiveMutation = useArchiveNotification({
-    config,
     userId,
     category,
+    archiveFn,
   });
 
   const archiveAllMutation = useArchiveAllNotifications({
-    config,
     userId,
     category,
+    archiveAllFn,
   });
 
   const handleNotificationClick = useCallback(
     async (notification: NotificationDoc) => {
       try {
-        await archiveMutation.mutateAsync({
-          notificationId: notification.id,
-          archivalInfo: {
-            archivedBy: userId,
-            archivedAt: Date.now(),
-            device,
-          },
-        });
+        await archiveMutation.mutateAsync(notification.id);
       } catch {
         // Still navigate even if archive fails
       }
       onNotificationClick(notification);
     },
-    [archiveMutation, userId, device, onNotificationClick],
+    [archiveMutation, onNotificationClick],
   );
 
   const handleClearAll = useCallback(async () => {
     try {
-      await archiveAllMutation.mutateAsync({
-        archivalInfo: {
-          archivedBy: userId,
-          archivedAt: Date.now(),
-          device,
-        },
-      });
+      await archiveAllMutation.mutateAsync();
     } catch {
       // Silently fail
     }
     onClearAll?.();
-  }, [archiveAllMutation, userId, device, onClearAll]);
+  }, [archiveAllMutation, onClearAll]);
 
   const getTypeIcon = useCallback(
     (type: string) => {

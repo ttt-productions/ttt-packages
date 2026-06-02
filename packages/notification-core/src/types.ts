@@ -49,6 +49,17 @@ export interface NotificationDoc {
   /** Type-specific metadata (e.g. { entityId, reason }) */
   metadata: Record<string, unknown>;
 
+  // Seen state (personal notifications)
+  /**
+   * Epoch ms the recipient last marked this notification seen, or `0` when
+   * unseen. Generic field — no domain knowledge. Always present (initialized
+   * to `0` on creation and reset to `0` on dedup-increment) so the unread
+   * `count()` aggregation can match it with a `seenAt == 0` equality predicate.
+   * `seenAt` is a personal concept; shared notifications carry it for shape
+   * uniformity but their unread indicator is existence-based and ignores it.
+   */
+  seenAt: number;
+
   // Timestamps (epoch ms)
   /** First occurrence */
   createdAt: number;
@@ -64,8 +75,6 @@ export interface ArchivalInfo {
   archivedBy: string;
   /** Epoch ms */
   archivedAt: number;
-  /** Device context */
-  device: 'web' | 'mobile';
 }
 
 /**
@@ -74,6 +83,13 @@ export interface ArchivalInfo {
 export interface NotificationHistoryDoc extends NotificationDoc {
   /** Who/when/how it was archived */
   archival: ArchivalInfo;
+  /**
+   * Epoch ms after which native Firestore TTL may delete this history doc.
+   * The retention window is app policy (set by the consuming app at archive
+   * time); the helper just persists whatever value it is handed. Generic
+   * field — no domain knowledge.
+   */
+  expireAt: number;
   /** Admin userId (admin history only, quick-access field) */
   handledBy?: string;
 }
@@ -174,16 +190,27 @@ export interface UseUnreadCountOptions {
 }
 
 export interface UseArchiveNotificationOptions {
-  config: NotificationSystemConfig;
   userId: string;
   category: string;
+  /**
+   * App-supplied adapter that performs the archive (active → history) for one
+   * notification — typically `httpsCallable(functions, 'archiveNotification')`.
+   * The hook performs no client Firestore writes; it only invalidates the read
+   * keys on success.
+   */
+  archiveFn: (notificationId: string) => Promise<unknown>;
   invalidateKeys?: readonly unknown[][];
 }
 
 export interface UseArchiveAllNotificationsOptions {
-  config: NotificationSystemConfig;
   userId: string;
   category: string;
+  /**
+   * App-supplied adapter that archives the caller's whole category — typically
+   * an `httpsCallable(functions, 'archiveNotification')` invoked with the
+   * `{ kind: 'all' }` scope. The hook performs no client Firestore writes.
+   */
+  archiveAllFn: () => Promise<unknown>;
   invalidateKeys?: readonly unknown[][];
 }
 
@@ -204,9 +231,18 @@ export interface NotificationListProps {
   userId: string;
   category: string;
   onNotificationClick: (notification: NotificationDoc) => void;
+  /**
+   * Adapter that archives one notification (active → history). Passed straight
+   * through to `useArchiveNotification`; the app wires it to its callable.
+   */
+  archiveFn: (notificationId: string) => Promise<unknown>;
+  /**
+   * Adapter that archives the caller's whole category. Passed straight through
+   * to `useArchiveAllNotifications`; the app wires it to its callable.
+   */
+  archiveAllFn: () => Promise<unknown>;
   onClearAll?: () => void;
   refetchInterval?: number;
-  device?: 'web' | 'mobile';
   emptyText?: string;
 }
 

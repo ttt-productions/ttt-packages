@@ -5,6 +5,7 @@ export {
   archiveNotificationHelper,
   archiveAllNotificationsHelper,
 } from './archiveNotificationHelper.js';
+export { markSeenHelper } from './markSeenHelper.js';
 
 // Server types
 export type {

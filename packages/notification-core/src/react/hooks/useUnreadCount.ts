@@ -1,15 +1,31 @@
 'use client';
 
-import { useFirestoreCollection } from '@ttt-productions/query-core/react';
-import { where, orderBy, limit, type QueryConstraint } from 'firebase/firestore';
-import type { NotificationDoc, UseUnreadCountOptions } from '../../types.js';
+import { useQuery } from '@tanstack/react-query';
+import {
+  collection,
+  query,
+  where,
+  getCountFromServer,
+  type QueryConstraint,
+} from 'firebase/firestore';
+import { useFirestoreDb } from '@ttt-productions/query-core/react';
+import type { UseUnreadCountOptions } from '../../types.js';
 
 const DEFAULT_REFETCH_INTERVAL = 30_000;
 const DEFAULT_COUNT_LIMIT = 99;
 
 /**
- * Lightweight unread count query. Fetches up to `countLimit` docs to determine count.
- * Uses polling for cost control.
+ * Unread-count badge backed by a Firestore `count()` aggregation (a server-side
+ * count, not a doc fetch). Polls for cost control; displays capped
+ * (`hasMore` → `99+`).
+ *
+ * - **personal** categories count **unseen** active items (`seenAt == 0`),
+ *   scoped to the caller (`targetUserId == uid`);
+ * - **shared** categories have no per-admin seen state, so the indicator is
+ *   existence-based — a count of all active items, with no `seenAt` predicate.
+ *
+ * The personal `seenAt == 0` predicate needs a composite index, captured as an
+ * app-side index step.
  *
  * @example
  * ```tsx
@@ -28,6 +44,8 @@ export function useUnreadCount({
   refetchInterval = DEFAULT_REFETCH_INTERVAL,
   countLimit = DEFAULT_COUNT_LIMIT,
 }: UseUnreadCountOptions) {
+  const db = useFirestoreDb();
+
   const categoryConfig = config.categories[category];
   if (!categoryConfig) {
     throw new Error(`[notification-core] Unknown category: ${category}`);
@@ -36,24 +54,27 @@ export function useUnreadCount({
   const collectionPath = categoryConfig.activePath;
   const isPersonal = categoryConfig.audienceType === 'personal';
 
-  const constraints: QueryConstraint[] = [
-    ...(isPersonal ? [where('targetUserId', '==', userId)] : []),
-    orderBy('updatedAt', 'desc'),
-    limit(countLimit),
-  ];
-
-  const { data: notifications, ...rest } = useFirestoreCollection<NotificationDoc>({
-    collectionPath,
+  const { data, ...rest } = useQuery({
     queryKey: ['notifications', 'unread-count', category, userId],
-    constraints,
+    queryFn: async (): Promise<number> => {
+      const collectionRef = collection(db, collectionPath);
+      const constraints: QueryConstraint[] = isPersonal
+        ? [where('targetUserId', '==', userId), where('seenAt', '==', 0)]
+        : [];
+      const q = constraints.length > 0 ? query(collectionRef, ...constraints) : collectionRef;
+      const snapshot = await getCountFromServer(q);
+      return snapshot.data().count;
+    },
     enabled: enabled && !!userId,
-    subscribe: false,
     staleTime: refetchInterval,
+    refetchInterval,
   });
 
+  const count = data ?? 0;
+
   return {
-    count: notifications?.length ?? 0,
-    hasMore: (notifications?.length ?? 0) >= countLimit,
+    count,
+    hasMore: count > countLimit,
     ...rest,
   };
 }

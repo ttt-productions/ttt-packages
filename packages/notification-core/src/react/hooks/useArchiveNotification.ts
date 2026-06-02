@@ -1,41 +1,36 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
-import { useFirestoreDb } from '@ttt-productions/query-core/react';
-import type {
-  NotificationDoc,
-  NotificationHistoryDoc,
-  ArchivalInfo,
-  UseArchiveNotificationOptions,
-} from '../../types.js';
+import type { UseArchiveNotificationOptions } from '../../types.js';
 
 /**
- * Archive a single notification: read from active → write to history → delete from active.
+ * Archive a single notification through an app-supplied callable adapter.
+ *
+ * The notification system is Cloud-Functions-only: clients never write
+ * notification docs. This hook performs no Firestore writes — it delegates to
+ * `archiveFn` (wired by the app to `httpsCallable(functions, 'archiveNotification')`)
+ * and invalidates the read keys on success.
  *
  * @example
  * ```tsx
+ * const archiveNotification = httpsCallable(functions, 'archiveNotification');
  * const archive = useArchiveNotification({
- *   config: TTT_NOTIFICATION_CONFIG,
  *   userId: user.uid,
  *   category: 'user',
+ *   archiveFn: (notificationId) =>
+ *     archiveNotification({ category: 'user', scope: { kind: 'single', notificationId } }),
  * });
  *
- * archive.mutate({
- *   notificationId: 'abc123',
- *   archivalInfo: { archivedBy: user.uid, archivedAt: Date.now(), device: 'web' },
- * });
+ * archive.mutate('abc123');
  * ```
  */
 export function useArchiveNotification({
-  config,
   userId,
   category,
+  archiveFn,
   invalidateKeys,
 }: UseArchiveNotificationOptions) {
-  const db = useFirestoreDb();
   const queryClient = useQueryClient();
-  const categoryConfig = config.categories[category];
 
   const defaultInvalidateKeys = [
     ['notifications', 'active', category, userId],
@@ -44,47 +39,7 @@ export function useArchiveNotification({
   ];
 
   return useMutation({
-    mutationFn: async ({
-      notificationId,
-      archivalInfo,
-    }: {
-      notificationId: string;
-      archivalInfo: ArchivalInfo;
-    }) => {
-      if (!categoryConfig) {
-        throw new Error(`[notification-core] Unknown category: ${category}`);
-      }
-
-      const activePath = categoryConfig.activePath;
-      const historyPath = categoryConfig.historyPath(userId);
-
-      // Read active doc
-      const activeRef = doc(db, activePath, notificationId);
-      const activeSnap = await getDoc(activeRef);
-
-      if (!activeSnap.exists()) {
-        // Already archived or deleted — no-op
-        return;
-      }
-
-      const activeData = { id: activeSnap.id, ...activeSnap.data() } as NotificationDoc;
-
-      // Build history doc
-      const historyDoc: Omit<NotificationHistoryDoc, 'id'> = {
-        ...activeData,
-        archival: archivalInfo,
-        ...(categoryConfig.audienceType === 'shared'
-          ? { handledBy: archivalInfo.archivedBy }
-          : {}),
-      };
-
-      // Write to history
-      const historyRef = doc(db, historyPath, notificationId);
-      await setDoc(historyRef, historyDoc);
-
-      // Delete from active
-      await deleteDoc(activeRef);
-    },
+    mutationFn: async (notificationId: string) => archiveFn(notificationId),
     onSuccess: () => {
       const keysToInvalidate = invalidateKeys ?? defaultInvalidateKeys;
       keysToInvalidate.forEach((key) => {

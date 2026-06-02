@@ -184,6 +184,8 @@ describe('processBatchHelper', () => {
     expect(doc.dedupKey).toBe('report_item1');
     expect(doc.count).toBe(1);
     expect(doc.latestActorIds).toEqual(['user1']);
+    // Active docs are created unseen so the unread count() predicate matches.
+    expect(doc.seenAt).toBe(0);
     // Identity is stored id-only — no persisted display names.
     expect(doc.latestActorNames).toBeUndefined();
   });
@@ -228,6 +230,8 @@ describe('processBatchHelper', () => {
     expect(result.notificationsCreated).toBe(0);
     expect(updatedDocs).toHaveLength(1);
     expect(updatedDocs[0].data.count).toBe(4); // 3 + 1
+    // Dedup-increment re-lights the unread badge.
+    expect(updatedDocs[0].data.seenAt).toBe(0);
   });
 
   it('merges actor id lists (new first, deduped)', async () => {

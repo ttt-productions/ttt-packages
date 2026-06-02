@@ -80,4 +80,10 @@ export interface NotificationHelper {
   sendRealTime(input: CreateNotificationInput): Promise<void>;
   /** Queue for batch processing */
   queueForBatch(input: CreateNotificationInput): Promise<void>;
+  /**
+   * Queue many pending docs at once, writing in ≤500-write chunks per commit
+   * (the Firestore batch limit). Generic per-user fan-out primitive — it only
+   * sees uids + payload; the batch processor materializes per-user active docs.
+   */
+  queueManyForBatch(inputs: CreateNotificationInput[]): Promise<void>;
 }
