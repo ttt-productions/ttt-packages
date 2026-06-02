@@ -54,7 +54,7 @@ export type FullUser = {
   profilePictureUrlFull?: string | null;
   profilePictureUrlMedium?: string | null;
   profilePictureUrlSmall?: string | null;
-  artisanCreator?: string;
+  artisanCreator?: number;
   status?: 'active' | 'disabled' | 'banned';
   ownedWorkProjects?: OwnedWorkProject[];
   associatedWorkProjects?: AssociatedWorkProject[];

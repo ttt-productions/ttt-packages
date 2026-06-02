@@ -13,6 +13,6 @@ export type PublicUser = {
   profilePictureUrlFull?: string | null;
   profilePictureUrlMedium?: string | null;
   profilePictureUrlSmall?: string | null;
-  artisanCreator?: string;
+  artisanCreator?: number;
   disabled: boolean;
 };
