@@ -4,9 +4,9 @@
 // manifest for `@ttt-productions/*: "*"`.
 //
 // Source manifests legitimately carry "*" so workspace dev resolves to the
-// local package. The release flow (scripts/release-package.sh — Step 6)
-// rewrites these to exact versions at pack time. The HARD-FAIL against
-// packed/published output belongs to that release flow, NOT here — so this
+// local package. At pack time scripts/pin-internal-deps.mjs rewrites these
+// to exact versions; CI enforces the HARD-FAIL against packed/published
+// output. That hard-fail belongs to the release/CI flow, NOT here — so this
 // check only REPORTS against source and never fails.
 
 import { describe, it } from 'vitest';
@@ -38,7 +38,7 @@ describe('boundary: internal "*" range audit (report-only)', () => {
 
     if (found.length > 0) {
       console.warn(
-        `[boundary] internal "*" ranges in source (expected pre-release; rewritten to exact pins at pack time by scripts/release-package.sh):\n  ${found.join('\n  ')}`,
+        `[boundary] internal "*" ranges in source (expected pre-release; rewritten to exact pins at pack time by scripts/pin-internal-deps.mjs):\n  ${found.join('\n  ')}`,
       );
     }
     // Intentionally no assertion — the hard-fail lives in the release flow

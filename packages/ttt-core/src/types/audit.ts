@@ -106,6 +106,7 @@ export type AuditEventType =
   | 'chat.guildChatChannelArchived'
   | 'chat.guildChatMessageSent'
   | 'chat.adminThreadStarted'
+  | 'chat.adminThreadStatusChanged'
   | 'chat.attachmentTimedOut'
   // workProject
   | 'workProject.released'
