@@ -120,12 +120,12 @@ describe('BroadcastAudienceSelector', () => {
     expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: ['u1', 'u2'] }).success).toBe(true);
     expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'workMembers', workProjectId: 'wp1' }).success).toBe(true);
     expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'realmMembers', workRealmId: 'wr1' }).success).toBe(true);
-    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'artisansByRole', tradeProfession: 'Director' }).success).toBe(true);
+    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'allArtisans' }).success).toBe(true);
   });
 
-  it('rejects an empty explicit uid list and an unknown role', () => {
+  it('rejects an empty explicit uid list and extra fields on allArtisans', () => {
     expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: [] }).success).toBe(false);
-    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'artisansByRole', tradeProfession: 'Wizard' }).success).toBe(false);
+    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'allArtisans', tradeProfession: 'Director' }).success).toBe(false);
     expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'somethingElse' }).success).toBe(false);
   });
 });

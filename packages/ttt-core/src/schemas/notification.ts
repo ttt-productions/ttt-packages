@@ -23,7 +23,6 @@ import {
   thresholdItemIdSchema,
   titleSchema,
 } from './atoms.js';
-import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
 
 // String shape atoms specific to notifications.
 const notificationMessageSchema = z.string().min(1).max(2000);
@@ -32,8 +31,6 @@ const reportedItemTypeSchema = z.string().min(1).max(64);
 const reportedItemIdSchema = z.string().min(1).max(128);
 const reportGroupIdSchema = z.string().min(1);
 const workRealmIdSchema = z.string().min(1);
-
-const TRADE_PROFESSION_VALUES = [...TRADE_PROFESSION_OPTIONS] as [string, ...string[]];
 
 // ============================================================================
 // TYPE + CHANNEL CATALOG
@@ -162,10 +159,7 @@ export const BroadcastAudienceSelectorSchema = z.discriminatedUnion('kind', [
     kind: z.literal('realmMembers'),
     workRealmId: workRealmIdSchema,
   }).strict(),
-  z.object({
-    kind: z.literal('artisansByRole'),
-    tradeProfession: z.enum(TRADE_PROFESSION_VALUES),
-  }).strict(),
+  z.object({ kind: z.literal('allArtisans') }).strict(),
 ]);
 export type BroadcastAudienceSelector = z.infer<typeof BroadcastAudienceSelectorSchema>;
 
