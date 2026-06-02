@@ -61,6 +61,8 @@ Hall-library cover and sub-item upload `targetInfo` schemas carry typed ids only
 
 When adding a new media origin that writes back to Firestore, add the target-info schema and any target-field mapping here first, then publish and consume it in `ttt-prod`. Do not let application code reconstruct the old `{ docPath, fields }` pattern locally.
 
+Target-info schemas may carry user-authored domain payload, but they must not make client-supplied identity authoritative. Do not add `createdBy`, `userId`, `actorId`, owner/admin identity, or recipient identity fields to new target-info shapes unless the consuming backend derives the value from auth / `pendingMedia.userId` or verifies exact equality before persistence.
+
 ## Realm / Work discovery contract ownership
 
 `ttt-core` owns the shared Realm/discovery launch contracts before `ttt-prod` adopts them. Do not define parallel app-only interfaces, schemas, path helpers, or business constants for these shapes.

@@ -1,14 +1,26 @@
 # @ttt-productions/notification-core
 
-Generic active-to-history notification package. Two-tier model: existence in the
-active collection means unread (no `isRead` flag); archiving moves a doc to history.
+Generic active-to-history notification package. Two-tier model: active docs remain
+in the active collection until archived; personal unread state is tracked with
+`seenAt`, while shared admin notification indicators stay existence-based.
 
 ## Owns
 
 - Notification document/state types and the per-app `NotificationSystemConfig`
-- Dedup/batch processing helpers
+- Dedup/batch processing helpers that preserve the per-audience dedup scope
 - React provider/hooks/components
 - Server helpers (create/archive/batch) where applicable
+
+## Deduplication contract
+
+Deduplication is scoped by audience:
+
+- Personal/user categories: `category + targetUserId + dedupKey`.
+- Shared/admin categories: `category + dedupKey`, with `targetUserId: null`.
+
+Batch grouping and active lookups must preserve this scope. Multi-user fan-out
+must create one active stream per personal recipient, never one shared personal
+doc for several recipients.
 
 ## Identity contract
 

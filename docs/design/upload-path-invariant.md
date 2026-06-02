@@ -14,6 +14,8 @@ This doc describes the durable upload path shape used by TTT upload surfaces and
 
 Every upload path is built from an app-approved origin id and app-owned path builder. Generic packages must treat the origin id as opaque. They may validate a file against a `MediaOriginSpec`, but they must not know the TTT `FileOrigin` enum or the concrete registry.
 
+For TTT, upload `targetInfo` is also not authoritative for identity. Backends derive identity-bearing fields such as `createdBy`, `userId`, `actorId`, owner/admin fields, and notification recipients from the authenticated caller, `pendingMedia.userId`, or an explicitly checked admin/system context. A client-supplied target-info field can provide domain copy and typed ids, but it cannot be the source of truth for who performed or owns the write.
+
 For TTT, the allowed origin ids must stay aligned across:
 
 - `ttt-core` `FileOrigin`
