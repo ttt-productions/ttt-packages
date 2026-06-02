@@ -13,10 +13,27 @@ Backend/Functions code should avoid the `/react` subpath.
 
 ## Model
 
-There is **no `isRead` flag** — existence in the active collection means unread.
-Archiving moves a notification from the active collection to history (carrying an
-`ArchivalInfo` audit trail). Duplicate triggers for the same `dedupKey`
-increment a single active doc's `count` and append the actor.
+A two-tier **active → history** model. There is **no `isRead` flag**; instead,
+active docs carry a `seenAt` field (`0` = unseen). Opening the tray marks items
+seen (the consuming app stamps `seenAt` via the `markSeenHelper`), which clears
+the unread badge **without** archiving — so "seen" and "dismissed" are distinct
+states. Archiving is the explicit dismiss: it moves a notification from the
+active collection to history (carrying an `ArchivalInfo` audit trail, and an
+app-supplied `expireAt` on the history doc to back native TTL). History docs
+extend the active shape with `expireAt`.
+
+Duplicate triggers for the same `dedupKey` increment a single active doc's
+`count`, append the actor, and reset `seenAt` to `0` so new activity re-lights
+the badge.
+
+**Notifications are Cloud-Functions-only — clients never write notification
+docs.** The archive React hooks (`useArchiveNotification` /
+`useArchiveAllNotifications`) perform **no Firestore writes**; they take an
+app-supplied `archiveFn` / `archiveAllFn` adapter wired to the app's callable
+(e.g. `httpsCallable(functions, 'archiveNotification')`) and invalidate the
+read keys on success. Server helpers (`archiveNotificationHelper` /
+`archiveAllNotificationsHelper`) verify ownership before the move (personal:
+`targetUserId === callerUid`; shared: caller must be admin).
 
 ### Identity is id-only
 
