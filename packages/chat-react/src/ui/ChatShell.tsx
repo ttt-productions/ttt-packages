@@ -45,6 +45,15 @@ export type ChatShellProps = {
 
   // Disable
   composerDisabled?: boolean;
+
+  /** Fill the parent's height instead of the default fixed-height card. Lays the Card out
+   *  as `flex flex-col h-full` with the message list flexing to fill (scrolls inside), so a
+   *  full-height page panel doesn't grow unbounded or waste space on a fixed 400px box.
+   *  The consumer must give ChatShell a bounded-height parent (e.g. an `h-full` panel). */
+  fillHeight?: boolean;
+  /** Advanced override for the scrollable region's class (forwarded to MessageList).
+   *  Usually unnecessary — prefer `fillHeight`. */
+  scrollClassName?: string;
 };
 
 export function ChatShell(props: ChatShellProps) {
@@ -64,6 +73,8 @@ export function ChatShell(props: ChatShellProps) {
     renderFooter,
     onSenderClick,
     composerDisabled,
+    fillHeight = false,
+    scrollClassName,
   } = props;
 
   const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder } =
@@ -71,13 +82,18 @@ export function ChatShell(props: ChatShellProps) {
 
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
 
+  // In fill mode the Card flexes to its parent's height and the message list fills the
+  // space between header and composer; otherwise it's the default natural-height card.
+  const cardClassName = fillHeight ? "w-full flex flex-col h-full min-h-0" : "w-full";
+  const contentClassName = fillHeight ? "p-0 flex-1 min-h-0 flex flex-col" : "p-0";
+
   if (!allowed) {
     return <div className="p-4 text-sm opacity-70">You don&apos;t have access to this thread.</div>;
   }
 
   if (isInitialLoading) {
     return (
-      <Card className="w-full">
+      <Card className={cardClassName}>
         <CardHeader className="space-y-2">
           <Skeleton className="h-5 w-40" />
           <Skeleton className="h-3 w-56" />
@@ -93,7 +109,7 @@ export function ChatShell(props: ChatShellProps) {
   }
 
   return (
-    <Card className="w-full">
+    <Card className={cardClassName}>
       {(header || handlers) && (
         <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
           <div>{header}</div>
@@ -107,7 +123,7 @@ export function ChatShell(props: ChatShellProps) {
         <div className="border-b">{renderAboveMessages()}</div>
       )}
 
-      <CardContent className="p-0">
+      <CardContent className={contentClassName}>
         <MessageList
           messages={messages}
           currentUserId={config.currentUserId}
@@ -119,6 +135,8 @@ export function ChatShell(props: ChatShellProps) {
           messageRenderers={messageRenderers}
           showScrollToBottom={showScrollToBottom}
           onScrollToBottom={() => setShowScrollToBottom(false)}
+          fillHeight={fillHeight}
+          scrollClassName={scrollClassName}
           handlers={handlers}
           onSenderClick={onSenderClick}
         />

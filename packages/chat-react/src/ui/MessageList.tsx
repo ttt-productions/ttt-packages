@@ -21,10 +21,15 @@ export function MessageList(props: {
 
   showScrollToBottom?: boolean;
   onScrollToBottom?: () => void;
-  /** Class for the scrollable message region. Default `h-[400px]`; pass e.g.
-   *  `flex-1 min-h-0` so the consumer's flex layout bounds the height to the
-   *  viewport / page panel instead of a fixed height. */
+  /** Class for the scrollable message region. Overrides the default. The default is
+   *  `h-[400px]` (fixed-height card) unless `fillHeight` is set, in which case it is
+   *  `flex-1 min-h-0`. */
   scrollClassName?: string;
+  /** Fill the parent's height instead of a fixed `h-[400px]`. Makes the list a flex-col
+   *  that flexes to fill its container, so a bounded-height page panel scrolls inside.
+   *  The consuming layout must give MessageList's ancestor a bounded height (ChatShell's
+   *  `fillHeight` wires Card → CardContent → MessageList for this). */
+  fillHeight?: boolean;
 
   handlers?: ModerationHandlers;
   onSenderClick?: (senderId: string, displayName: string) => void;
@@ -40,10 +45,14 @@ export function MessageList(props: {
     messageRenderers,
     showScrollToBottom,
     onScrollToBottom,
-    scrollClassName = "h-[400px]",
+    scrollClassName,
+    fillHeight = false,
     handlers,
     onSenderClick,
   } = props;
+
+  const scrollClass = scrollClassName ?? (fillHeight ? "flex-1 min-h-0" : "h-[400px]");
+  const outerClass = fillHeight ? "relative flex flex-col flex-1 min-h-0" : "relative";
 
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const topSentinelRef = React.useRef<HTMLDivElement>(null);
@@ -140,8 +149,8 @@ export function MessageList(props: {
   let lastDay: string | null = null;
 
   return (
-    <div className="relative">
-      <div ref={scrollRef} className={`${scrollClassName} overflow-y-auto p-4`} onScroll={onScroll}>
+    <div className={outerClass}>
+      <div ref={scrollRef} className={`${scrollClass} overflow-y-auto p-4`} onScroll={onScroll}>
         {isFetchingOlder && <div className="text-center text-xs opacity-70 mb-2">Loading…</div>}
 
         <div ref={topSentinelRef} />
