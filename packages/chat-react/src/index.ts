@@ -27,12 +27,10 @@ export {
   useResolvedSenderName,
 } from "./context/ChatNameResolverContext.js";
 
-// Hooks.
 export type { UseChatMessagesResult } from "./hooks/useChatMessages.js";
 export { useChatMessages } from "./hooks/useChatMessages.js";
 export { canAccessThread } from "./hooks/useChatThreadAccess.js";
 
-// UI.
 export type { ChatShellProps } from "./ui/ChatShell.js";
 export { ChatShell } from "./ui/ChatShell.js";
 export { MessageList } from "./ui/MessageList.js";

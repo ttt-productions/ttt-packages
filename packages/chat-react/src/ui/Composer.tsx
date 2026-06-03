@@ -177,7 +177,6 @@ export function Composer(props: ComposerProps) {
 
   return (
     <div className="chat-composer">
-      {/* Pending file preview */}
       {pendingFile && !isSending && (
         <div className="chat-composer-file-preview">
           <AttachmentTypeIcon type={getAttachmentType(pendingFile)} />
@@ -194,7 +193,6 @@ export function Composer(props: ComposerProps) {
         </div>
       )}
 
-      {/* Mention autocomplete dropdown */}
       {props.mentionConfig && mentionApi.state.open && (
         <div className="relative">
           <div className="absolute bottom-full left-0 mb-1 z-10">
@@ -206,7 +204,6 @@ export function Composer(props: ComposerProps) {
         </div>
       )}
 
-      {/* Text + send row */}
       <div className="flex items-end gap-2">
         <Textarea
           ref={ref}
@@ -234,7 +231,6 @@ export function Composer(props: ComposerProps) {
         </Button>
       </div>
 
-      {/* Attachment picker */}
       {attachEnabled && attachmentConfig && (
         <div className="mt-2">
           <MediaInput

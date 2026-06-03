@@ -17,7 +17,6 @@ import type { PriorityBadgeProps } from '../types.js';
 export function PriorityBadge({ priority }: PriorityBadgeProps) {
   const { priorityThresholds } = useReportCoreContext();
 
-  // Find the first threshold that matches (thresholds are sorted high → low)
   const sorted = [...priorityThresholds].sort((a, b) => b.minScore - a.minScore);
   const matched = sorted.find((t) => priority >= t.minScore) ?? {
     label: 'UNKNOWN',

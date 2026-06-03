@@ -82,7 +82,6 @@ export function SearchDropdown<T>({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -94,7 +93,6 @@ export function SearchDropdown<T>({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Show dropdown when there are results or loading/error states
   useEffect(() => {
     if (value.length >= minChars && (results.length > 0 || isLoading || error)) {
       setIsOpen(true);
@@ -103,7 +101,6 @@ export function SearchDropdown<T>({
     }
   }, [value, results, isLoading, error, minChars]);
 
-  // Reset selected index when results change
   useEffect(() => {
     setSelectedIndex(-1);
   }, [results]);

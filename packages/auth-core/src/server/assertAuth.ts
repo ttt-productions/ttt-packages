@@ -1,5 +1,3 @@
-// packages/auth-core/src/server/assertAuth.ts
-//
 // Factory that produces an assertAuth function bound to a consuming app's
 // Firestore paths, user shape, and admin check.
 //

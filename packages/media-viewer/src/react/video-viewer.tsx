@@ -45,7 +45,6 @@ export function VideoViewer(props: VideoViewerProps) {
 
   const isFullyVisible = (entry?.intersectionRatio ?? 0) >= 0.5;
 
-  // Load/unload based on viewport (any-pixel signal)
   React.useEffect(() => {
     if (inView && !shouldLoad) {
       setShouldLoad(true);
@@ -62,7 +61,6 @@ export function VideoViewer(props: VideoViewerProps) {
     }
   }, [inView, shouldLoad, unloadOnExit, priority]);
 
-  // Reset state when URL changes
   React.useEffect(() => {
     setHasError(false);
     setIsLoaded(false);

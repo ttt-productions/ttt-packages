@@ -38,7 +38,6 @@ export async function commitInBatches<T>(
     for (const group of groups) {
       const b = writeBatch(db);
       for (const item of group) {
-        // allow apply to be sync or async
         await opts.apply(b, item);
       }
       await b.commit();

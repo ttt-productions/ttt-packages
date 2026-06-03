@@ -11,10 +11,8 @@ export function useMediaQuery(query: string) {
     const mql = window.matchMedia(query);
     const onChange = (e: MediaQueryListEvent) => setMatches(e.matches);
 
-    // set initial
     setMatches(mql.matches);
 
-    // subscribe
     if (mql.addEventListener) mql.addEventListener("change", onChange);
     else mql.addListener(onChange);
 

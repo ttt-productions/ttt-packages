@@ -26,14 +26,12 @@ export function formatDateDisplay(
   formatStr: DateFormat = "PPP",
   fallback: string = "Unknown"
 ): string {
-  // Handle null/undefined
   if (value === null || value === undefined) {
     return fallback;
   }
 
   let date: Date | null = null;
 
-  // Already a Date
   if (value instanceof Date) {
     date = value;
   }
@@ -42,13 +40,11 @@ export function formatDateDisplay(
   else if (value && typeof value === "object" && "toDate" in value) {
     date = (value as Timestamp).toDate();
   }
-  // String or number
   else if (typeof value === "string" || typeof value === "number") {
     const parsed = new Date(value);
     date = isNaN(parsed.getTime()) ? null : parsed;
   }
 
-  // Format or return fallback
   if (!date) {
     return fallback;
   }

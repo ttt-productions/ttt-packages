@@ -34,7 +34,6 @@ export function ImageViewer(props: ImageViewerProps) {
     skip: priority || !lazy,
   });
 
-  // Load when entering viewport
   React.useEffect(() => {
     if (inView && !shouldLoad) {
       setShouldLoad(true);
@@ -46,7 +45,6 @@ export function ImageViewer(props: ImageViewerProps) {
     }
   }, [inView, shouldLoad, unloadOnExit, priority]);
 
-  // Reset error state when URL changes
   React.useEffect(() => {
     setHasError(false);
     setIsLoaded(false);

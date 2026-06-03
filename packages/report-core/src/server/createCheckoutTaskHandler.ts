@@ -163,7 +163,6 @@ export function createCheckoutTaskHandler({
         checkoutDetails,
       });
 
-      // Log checkout
       const logRef = db.collection(config.collections.activityLog).doc();
       transaction.set(logRef, {
         id: logRef.id,

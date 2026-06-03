@@ -1,5 +1,3 @@
-// packages/auth-core/src/server/types.ts
-//
 // Types for the createAssertAuth factory. Fully generic over the consuming
 // app's user document shape. The package contains no app-specific knowledge.
 

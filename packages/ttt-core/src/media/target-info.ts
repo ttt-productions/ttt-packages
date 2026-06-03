@@ -15,10 +15,8 @@ import {
 
 const TRADE_PROFESSION_VALUES = [...TRADE_PROFESSION_OPTIONS] as [string, ...string[]];
 
-// profile-picture: no origin-specific fields.
 export const ProfilePictureTargetInfoSchema = z.object({}).strict();
 
-// craft-skill-media: craftSkillId + skillType + originalFileName
 export const CraftSkillMediaTargetInfoSchema = z
   .object({
     craftSkillId: z.string().min(1),
@@ -46,7 +44,6 @@ export const CommissionPostingTargetInfoSchema = z
   })
   .strict();
 
-// commission-proposal: commissionListingId + replyText.
 export const CommissionProposalTargetInfoSchema = z
   .object({
     commissionListingId: z.string().min(1),
@@ -79,7 +76,6 @@ export const AdminAuditionPromptTargetInfoSchema = z
   })
   .strict();
 
-// audition-entry: auditionId only.
 export const AuditionEntryTargetInfoSchema = z
   .object({
     auditionId: z.string().min(1),
@@ -183,7 +179,6 @@ export const ChatAttachmentTargetInfoSchema = z.discriminatedUnion('threadKind',
     .strict(),
 ]);
 
-// work-asset: workProjectId only.
 export const WorkAssetTargetInfoSchema = z
   .object({
     workProjectId: z.string().min(1),

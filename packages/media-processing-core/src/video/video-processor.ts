@@ -177,7 +177,6 @@ export async function processVideo(
       }
     }
 
-    // outputs
     const videoOut = outputPathFor(ctx.outputBasePath, "main", "mp4");
     const posterOut = outputPathFor(ctx.outputBasePath, "poster", "jpg");
 

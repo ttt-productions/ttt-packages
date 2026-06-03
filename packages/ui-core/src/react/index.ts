@@ -1,6 +1,5 @@
 "use client";
 
-// Export all components
 export type { ButtonProps } from "./components/button.js";
 export { Button, buttonVariants } from "./components/button.js";
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from "./components/card.js";
@@ -42,11 +41,9 @@ export { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./component
 export type { SearchDropdownProps } from "./components/search-dropdown.js";
 export { SearchDropdown } from "./components/search-dropdown.js";
 
-// Layout
 export type { MaxWidthOption, ScreenAdaptiveViewProps } from "./components/layout/screen-adaptive-view.js";
 export { ScreenAdaptiveView } from "./components/layout/screen-adaptive-view.js";
 
-// Hooks
 export { useMediaQuery } from "./hooks/use-media-query.js";
 
 // Shared building blocks

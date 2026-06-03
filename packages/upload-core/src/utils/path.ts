@@ -26,6 +26,5 @@ export function buildUploadPath(args: {
 
   const filePart = filename ? normalizeFilename(filename) : "file";
 
-  // Use shared helper to robustly join them
   return joinPath(...segments, filePart);
 }

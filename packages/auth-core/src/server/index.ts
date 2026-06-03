@@ -1,5 +1,3 @@
-// packages/auth-core/src/server/index.ts
-//
 // Public surface of @ttt-productions/auth-core/server.
 
 export { createAssertAuth } from "./assertAuth.js";

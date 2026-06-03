@@ -53,7 +53,6 @@ export function MediaViewer(props: MediaPreviewProps) {
   const [hasError, setHasError] = React.useState(false);
   const [sourceUrl, setSourceUrl] = React.useState<string | null>(null);
 
-  // Handle string / Blob / File / null URLs
   React.useEffect(() => {
     setHasError(false);
     let objectUrl: string | null = null;

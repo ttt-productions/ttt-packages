@@ -14,7 +14,6 @@ export function setUploadSessionPersistence(adapter: UploadSessionPersistenceAda
   persistence = adapter;
 }
 
-// ---- Persistence error reporting ----
 export type PersistenceErrorHandler = (err: unknown, op: "set" | "remove" | "get", id: string) => void;
 
 let persistenceErrorHandler: PersistenceErrorHandler | null = null;
@@ -45,7 +44,6 @@ function notifyList() {
   for (const fn of listListeners) fn();
 }
 
-// ---- Session pruning ----
 const MAX_SESSIONS = 100;
 const SUCCESS_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 const ERROR_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7d

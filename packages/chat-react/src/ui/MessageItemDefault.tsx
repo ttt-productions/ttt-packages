@@ -126,7 +126,6 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
       )}
     >
       <div className={cn("chat-bubble", mine ? "chat-bubble--mine" : "chat-bubble--theirs")}>
-        {/* Header — only on first message of a group */}
         {!isContinuation && (
           <div className="flex items-center gap-2 text-xs opacity-80 mb-1">
             <span
@@ -145,17 +144,14 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
           </div>
         )}
 
-        {/* Reply-to quote */}
         {m.replyTo && <ReplyQuote replyTo={m.replyTo} />}
 
-        {/* Message text */}
         {m.text && (
           <p className="text-sm whitespace-pre-wrap">
             <MessageText text={m.text} />
           </p>
         )}
 
-        {/* Attachment */}
         {m.attachment && (
           <div className="mt-2">
             <AttachmentView att={m.attachment} />
@@ -163,7 +159,6 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
         )}
       </div>
 
-      {/* Actions — only on first message of a group (or always if you prefer) */}
       {!isContinuation && (
         <div className="mt-1">
           <MessageActions messageId={m.messageId} isAdmin={isAdmin} handlers={handlers} />

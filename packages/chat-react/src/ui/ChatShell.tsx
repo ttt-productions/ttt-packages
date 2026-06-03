@@ -94,7 +94,6 @@ export function ChatShell(props: ChatShellProps) {
 
   return (
     <Card className="w-full">
-      {/* Header */}
       {(header || handlers) && (
         <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
           <div>{header}</div>
@@ -104,12 +103,10 @@ export function ChatShell(props: ChatShellProps) {
         </CardHeader>
       )}
 
-      {/* Above messages slot */}
       {renderAboveMessages && (
         <div className="border-b">{renderAboveMessages()}</div>
       )}
 
-      {/* Message list */}
       <CardContent className="p-0">
         <MessageList
           messages={messages}
@@ -127,12 +124,10 @@ export function ChatShell(props: ChatShellProps) {
         />
       </CardContent>
 
-      {/* Below messages slot */}
       {renderBelowMessages && (
         <div className="border-t">{renderBelowMessages()}</div>
       )}
 
-      {/* Footer: custom footer OR Composer */}
       {renderFooter ? (
         <CardFooter className="border-t">
           {renderFooter()}

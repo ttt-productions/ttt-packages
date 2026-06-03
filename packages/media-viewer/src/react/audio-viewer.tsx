@@ -33,7 +33,6 @@ export function AudioViewer(props: AudioViewerProps) {
     rootMargin: "100px",
   });
 
-  // Load when in view
   React.useEffect(() => {
     if (inView && !shouldLoad) {
       setShouldLoad(true);
@@ -49,12 +48,10 @@ export function AudioViewer(props: AudioViewerProps) {
     return () => clearTimeout(timer);
   }, [url, priority, shouldLoad]);
 
-  // Report loading state
   React.useEffect(() => {
     onLoadChange?.(!isLoaded);
   }, [isLoaded, onLoadChange]);
 
-  // Reset on URL change
   React.useEffect(() => {
     setHasError(false);
     setIsLoaded(false);
