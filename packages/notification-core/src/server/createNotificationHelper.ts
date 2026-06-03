@@ -66,14 +66,19 @@ export function createNotificationHelper(
     const countCap = typeConfig.countCap ?? DEFAULT_COUNT_CAP;
     const actorCap = typeConfig.actorCap ?? DEFAULT_ACTOR_CAP;
 
-    // Dedup check: query for existing doc with same dedupKey
+    // Dedup check: query for existing doc with same dedupKey. Personal
+    // notifications are scoped to the recipient so user B's notification never
+    // re-lights user A's active doc that shares the same dedupKey; shared
+    // notifications are intentionally a single doc for all admins.
     const activeCollection = db.collection(activePath);
-    const existingQuery = activeCollection
+    let existingQuery = activeCollection
       .where('dedupKey', '==', dedupKey)
-      .where('category', '==', typeConfig.category)
-      .limit(1);
+      .where('category', '==', typeConfig.category);
+    if (categoryConfig.audienceType === 'personal') {
+      existingQuery = existingQuery.where('targetUserId', '==', targetUserId ?? null);
+    }
 
-    const existingSnap = await existingQuery.get();
+    const existingSnap = await existingQuery.limit(1).get();
 
     if (!existingSnap.empty) {
       // Increment existing notification

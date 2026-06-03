@@ -1,6 +1,19 @@
 import { z } from "zod";
 import type { FileOrigin } from "./file-origin.js";
 import { MentionSchema } from "./atoms.js";
+import { TRADE_PROFESSION_OPTIONS } from "../constants/options.js";
+import {
+  MAX_MENTIONS,
+  MAX_COMMISSION_TITLE_LENGTH,
+  MAX_COMMISSION_DESCRIPTION_LENGTH,
+  MAX_AUDITION_TITLE_LENGTH,
+  MAX_AUDITION_DESCRIPTION_LENGTH,
+  MAX_WORK_PROJECT_STAKE_SHARES,
+  MAX_SPONSORED_AUDITION_AMOUNT_USD,
+  MAX_CHAT_REPLY_PREVIEW_LENGTH,
+} from "../constants/business.js";
+
+const TRADE_PROFESSION_VALUES = [...TRADE_PROFESSION_OPTIONS] as [string, ...string[]];
 
 // profile-picture: no origin-specific fields.
 export const ProfilePictureTargetInfoSchema = z.object({}).strict();
@@ -17,7 +30,7 @@ export const CraftSkillMediaTargetInfoSchema = z
 // squareStreetz: mentions array of structured Mention objects.
 export const SquareStreetzTargetInfoSchema = z
   .object({
-    mentions: z.array(MentionSchema),
+    mentions: z.array(MentionSchema).max(MAX_MENTIONS),
   })
   .strict();
 
@@ -25,12 +38,11 @@ export const SquareStreetzTargetInfoSchema = z
 export const CommissionPostingTargetInfoSchema = z
   .object({
     commissionListingId: z.string().min(1),
-    title: z.string().min(1),
-    description: z.string(),
-    requiredTradeProfessions: z.array(z.string()),
-    stakeSharesOffered: z.number(),
+    title: z.string().min(1).max(MAX_COMMISSION_TITLE_LENGTH),
+    description: z.string().max(MAX_COMMISSION_DESCRIPTION_LENGTH),
+    requiredTradeProfessions: z.array(z.enum(TRADE_PROFESSION_VALUES)).max(TRADE_PROFESSION_OPTIONS.length),
+    stakeSharesOffered: z.number().int().min(0).max(MAX_WORK_PROJECT_STAKE_SHARES),
     workProjectId: z.string().min(1),
-    createdBy: z.object({ uid: z.string().min(1) }).strict(),
   })
   .strict();
 
@@ -38,7 +50,7 @@ export const CommissionPostingTargetInfoSchema = z
 export const CommissionProposalTargetInfoSchema = z
   .object({
     commissionListingId: z.string().min(1),
-    replyText: z.string(),
+    replyText: z.string().max(MAX_COMMISSION_DESCRIPTION_LENGTH),
   })
   .strict();
 
@@ -47,12 +59,11 @@ export const AuditionPromptTargetInfoSchema = z
   .object({
     auditionId: z.string().min(1),
     type: z.literal('workAudition'),
-    title: z.string().min(1),
-    description: z.string(),
-    openTill: z.number(),
-    createdBy: z.object({ uid: z.string().min(1) }).strict(),
+    title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
+    description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
+    openTill: z.number().int().positive(),
     workProjectId: z.string().min(1),
-    stakeSharesOffered: z.number().optional(),
+    stakeSharesOffered: z.number().int().min(0).max(MAX_WORK_PROJECT_STAKE_SHARES).optional(),
   })
   .strict();
 
@@ -61,11 +72,10 @@ export const AdminAuditionPromptTargetInfoSchema = z
   .object({
     auditionId: z.string().min(1),
     type: z.enum(['platformAudition', 'sponsoredAudition']),
-    title: z.string().min(1),
-    description: z.string(),
-    openTill: z.number(),
-    createdBy: z.object({ uid: z.string().min(1) }).strict(),
-    sponsoredAuditionAmountUSD: z.number().optional(),
+    title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
+    description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
+    openTill: z.number().int().positive(),
+    sponsoredAuditionAmountUSD: z.number().nonnegative().finite().max(MAX_SPONSORED_AUDITION_AMOUNT_USD).optional(),
   })
   .strict();
 
@@ -143,7 +153,7 @@ const ChatReplyToSchema = z
   .object({
     messageId: z.string().min(1),
     senderId: z.string().min(1),
-    messagePreview: z.string(),
+    messagePreview: z.string().max(MAX_CHAT_REPLY_PREVIEW_LENGTH),
   })
   .strict();
 

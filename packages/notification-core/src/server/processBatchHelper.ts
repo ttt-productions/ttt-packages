@@ -75,9 +75,17 @@ export async function processBatchHelper(
       const data = docSnap.data() as Omit<PendingNotification, 'id'>;
       const typeConfig = config.types[data.type];
       if (!typeConfig) continue;
+      const categoryConfig = config.categories[data.category];
+      if (!categoryConfig) continue;
 
       const dedupKey = typeConfig.dedupKeyPattern(data.metadata);
-      const groupKey = `${data.category}::${dedupKey}`;
+      // Personal notifications dedup per-recipient: a multi-recipient fan-out
+      // (same type/metadata, different targetUserId) must never collapse into
+      // one recipient's active doc. Shared notifications are intentionally a
+      // single doc for all admins (targetUserId is null).
+      const groupKey = categoryConfig.audienceType === 'personal'
+        ? `${data.category}::${data.targetUserId}::${dedupKey}`
+        : `${data.category}::${dedupKey}`;
 
       const existing = groups.get(groupKey);
       if (existing) {
@@ -113,13 +121,17 @@ export async function processBatchHelper(
       const countCap = typeConfig.countCap ?? DEFAULT_COUNT_CAP;
       const actorCap = typeConfig.actorCap ?? DEFAULT_ACTOR_CAP;
 
-      // Check for existing active notification
-      const existingQuery = db.collection(activePath)
+      // Check for existing active notification. Personal notifications are
+      // scoped to the recipient so different recipients never share an active
+      // doc; shared notifications omit targetUserId by design.
+      let existingQuery = db.collection(activePath)
         .where('dedupKey', '==', dedupKey)
-        .where('category', '==', group.category)
-        .limit(1);
+        .where('category', '==', group.category);
+      if (categoryConfig.audienceType === 'personal') {
+        existingQuery = existingQuery.where('targetUserId', '==', group.targetUserId);
+      }
 
-      const existingSnap = await existingQuery.get();
+      const existingSnap = await existingQuery.limit(1).get();
 
       if (!existingSnap.empty) {
         // Increment existing

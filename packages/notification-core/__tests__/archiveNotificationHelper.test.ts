@@ -3,6 +3,7 @@ import {
   archiveNotificationHelper,
   archiveAllNotificationsHelper,
 } from '../src/server/archiveNotificationHelper';
+import { NotificationPermissionError } from '../src/server/errors';
 import type { NotificationSystemConfig, ArchivalInfo } from '../src/types';
 import type { ServerFirestore, ServerDocRef, ServerDocSnapshot } from '../src/server/types';
 
@@ -125,7 +126,7 @@ describe('archiveNotificationHelper', () => {
         callerIsAdmin: false,
         archivalInfo: defaultArchivalInfo,
       })
-    ).rejects.toThrow('Permission denied');
+    ).rejects.toBeInstanceOf(NotificationPermissionError);
     expect(batchCommit).not.toHaveBeenCalled();
   });
 
@@ -152,7 +153,7 @@ describe('archiveNotificationHelper', () => {
         callerIsAdmin: false,
         archivalInfo: defaultArchivalInfo,
       })
-    ).rejects.toThrow('Permission denied');
+    ).rejects.toBeInstanceOf(NotificationPermissionError);
     expect(batchCommit).not.toHaveBeenCalled();
   });
 
@@ -283,7 +284,7 @@ describe('archiveAllNotificationsHelper', () => {
         callerIsAdmin: false,
         archivalInfo: defaultArchivalInfo,
       })
-    ).rejects.toThrow('Permission denied');
+    ).rejects.toBeInstanceOf(NotificationPermissionError);
   });
 
   it('archives multiple notifications via batch (and persists expireAt)', async () => {

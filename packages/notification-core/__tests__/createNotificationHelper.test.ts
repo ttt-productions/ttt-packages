@@ -359,3 +359,99 @@ describe('createNotificationHelper', () => {
     });
   });
 });
+
+describe('createNotificationHelper — sendRealTime personal recipient scoping', () => {
+  function makePersonalRealtimeConfig(): NotificationSystemConfig {
+    return {
+      categories: {
+        user: {
+          activePath: 'userNotifications',
+          historyPath: (userId) => `userNotificationHistory/${userId}/items`,
+          audienceType: 'personal',
+        },
+      },
+      types: {
+        admin_dispatch_reply: {
+          category: 'user',
+          delivery: 'realtime',
+          dedupKeyPattern: (meta) => `adminDispatchReply_${meta.dispatchId}`,
+          titlePattern: () => 'Reply',
+          messagePattern: (_, count) => `${count} reply(ies)`,
+          defaultTargetPath: '/dispatch',
+        },
+      },
+      pendingCollectionPath: 'pendingNotifications',
+    };
+  }
+
+  it('does not re-light another recipient\'s active doc with the same dedupKey', async () => {
+    const existingForA = {
+      id: 'active_A',
+      data: {
+        dedupKey: 'adminDispatchReply_d1',
+        category: 'user',
+        targetUserId: 'userA',
+        count: 1,
+        latestActorIds: ['x'],
+      },
+    };
+    const added: Record<string, unknown>[] = [];
+    const updated: Record<string, unknown>[] = [];
+
+    const db: ServerFirestore = {
+      collection: vi.fn(() => {
+        let cDedup = '';
+        let cTarget: unknown;
+        let targetFiltered = false;
+        return {
+          where: vi.fn(function (this: any, field: string, _op: string, val: unknown) {
+            if (field === 'dedupKey') cDedup = val as string;
+            if (field === 'targetUserId') {
+              cTarget = val;
+              targetFiltered = true;
+            }
+            return this;
+          }),
+          limit: vi.fn().mockReturnThis(),
+          get: vi.fn(async () => {
+            const dedupMatch = cDedup === existingForA.data.dedupKey;
+            // Without a targetUserId filter, A's doc matches (real Firestore).
+            const targetMatch = !targetFiltered || cTarget === existingForA.data.targetUserId;
+            if (dedupMatch && targetMatch) {
+              return {
+                empty: false,
+                size: 1,
+                docs: [{
+                  id: existingForA.id,
+                  data: () => existingForA.data,
+                  ref: { id: existingForA.id, update: vi.fn(async (d: Record<string, unknown>) => { updated.push(d); }) },
+                }],
+              };
+            }
+            return { empty: true, size: 0, docs: [] };
+          }),
+          add: vi.fn(async (data: Record<string, unknown>) => {
+            added.push(data);
+            return { id: 'new' };
+          }),
+          doc: vi.fn(),
+        } as any;
+      }),
+      doc: vi.fn(),
+      batch: vi.fn(),
+    };
+
+    const helper = createNotificationHelper(db, makePersonalRealtimeConfig());
+    await helper.sendRealTime({
+      type: 'admin_dispatch_reply',
+      actorId: 'actor1',
+      targetUserId: 'userB',
+      metadata: { dispatchId: 'd1' },
+    });
+
+    // user B gets a fresh active doc; user A's doc is never touched.
+    expect(added).toHaveLength(1);
+    expect(added[0].targetUserId).toBe('userB');
+    expect(updated).toHaveLength(0);
+  });
+});

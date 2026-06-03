@@ -16,6 +16,13 @@ import {
   ChatAttachmentTargetInfoSchema,
 } from '../src/media/target-info.js';
 import { HALL_LIBRARY_TARGET_FIELDS } from '../src/media/hall-library-target-fields.js';
+import {
+  MAX_COMMISSION_DESCRIPTION_LENGTH,
+  MAX_AUDITION_DESCRIPTION_LENGTH,
+  MAX_WORK_PROJECT_STAKE_SHARES,
+  MAX_SPONSORED_AUDITION_AMOUNT_USD,
+  MAX_MENTIONS,
+} from '../src/constants/business.js';
 
 describe('ProfilePictureTargetInfoSchema', () => {
   it('accepts empty object', () => {
@@ -65,6 +72,13 @@ describe('SquareStreetzTargetInfoSchema', () => {
   it('rejects missing mentions', () => {
     expect(() => SquareStreetzTargetInfoSchema.parse({})).toThrow();
   });
+  it('rejects more than MAX_MENTIONS mentions', () => {
+    const tooMany = Array.from({ length: MAX_MENTIONS + 1 }, (_v, i) => ({
+      ...validMention,
+      placeholder: `@m${i}`,
+    }));
+    expect(() => SquareStreetzTargetInfoSchema.parse({ mentions: tooMany })).toThrow();
+  });
 });
 
 describe('CommissionPostingTargetInfoSchema', () => {
@@ -72,21 +86,43 @@ describe('CommissionPostingTargetInfoSchema', () => {
     commissionListingId: 'job_1',
     title: 'Test commission',
     description: 'desc',
-    requiredTradeProfessions: ['actor'],
+    requiredTradeProfessions: ['Actor'],
     stakeSharesOffered: 5,
     workProjectId: 'p_1',
-    createdBy: { uid: 'u_1' },
   };
   it('accepts valid', () => { expect(() => CommissionPostingTargetInfoSchema.parse(valid)).not.toThrow(); });
   it('rejects missing workProjectId', () => {
     const { workProjectId, ...rest } = valid;
     expect(() => CommissionPostingTargetInfoSchema.parse(rest)).toThrow();
   });
+  // Identity is server-derived — a client-supplied createdBy must be rejected.
+  it('rejects a client-supplied createdBy', () => {
+    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } })).toThrow();
+  });
+  it('rejects an unknown trade profession', () => {
+    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, requiredTradeProfessions: ['Astronaut'] })).toThrow();
+  });
+  it('rejects an over-long description', () => {
+    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, description: 'x'.repeat(MAX_COMMISSION_DESCRIPTION_LENGTH + 1) })).toThrow();
+  });
+  it('rejects stakeSharesOffered above the cap', () => {
+    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, stakeSharesOffered: MAX_WORK_PROJECT_STAKE_SHARES + 1 })).toThrow();
+  });
+  it('rejects a negative or non-integer stakeSharesOffered', () => {
+    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, stakeSharesOffered: -1 })).toThrow();
+    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, stakeSharesOffered: 1.5 })).toThrow();
+  });
 });
 
 describe('CommissionProposalTargetInfoSchema', () => {
   it('accepts valid', () => {
     expect(() => CommissionProposalTargetInfoSchema.parse({ commissionListingId: 'j', replyText: 'r' })).not.toThrow();
+  });
+  it('rejects an over-long replyText', () => {
+    expect(() => CommissionProposalTargetInfoSchema.parse({
+      commissionListingId: 'j',
+      replyText: 'x'.repeat(MAX_COMMISSION_DESCRIPTION_LENGTH + 1),
+    })).toThrow();
   });
 });
 
@@ -97,7 +133,6 @@ describe('AuditionPromptTargetInfoSchema', () => {
     title: 'T',
     description: 'D',
     openTill: 1_700_000_000_000,
-    createdBy: { uid: 'u_1' },
     workProjectId: 'p_1',
   };
   it('accepts minimum required fields', () => {
@@ -105,6 +140,20 @@ describe('AuditionPromptTargetInfoSchema', () => {
   });
   it("rejects type: 'platformAudition'", () => {
     expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, type: 'platformAudition' })).toThrow();
+  });
+  it('rejects a client-supplied createdBy', () => {
+    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } })).toThrow();
+  });
+  it('rejects a non-positive or non-integer openTill', () => {
+    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, openTill: 0 })).toThrow();
+    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, openTill: -1 })).toThrow();
+    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, openTill: 1.5 })).toThrow();
+  });
+  it('rejects an over-long description', () => {
+    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, description: 'x'.repeat(MAX_AUDITION_DESCRIPTION_LENGTH + 1) })).toThrow();
+  });
+  it('rejects stakeSharesOffered above the cap', () => {
+    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, stakeSharesOffered: MAX_WORK_PROJECT_STAKE_SHARES + 1 })).toThrow();
   });
 });
 
@@ -115,7 +164,6 @@ describe('AdminAuditionPromptTargetInfoSchema', () => {
     title: 'T',
     description: 'D',
     openTill: 1_700_000_000_000,
-    createdBy: { uid: 'u_1' },
   };
   it('accepts platformAudition', () => {
     expect(() => AdminAuditionPromptTargetInfoSchema.parse(valid)).not.toThrow();
@@ -127,6 +175,17 @@ describe('AdminAuditionPromptTargetInfoSchema', () => {
   });
   it("rejects type: 'workAudition'", () => {
     expect(() => AdminAuditionPromptTargetInfoSchema.parse({ ...valid, type: 'workAudition' })).toThrow();
+  });
+  it('rejects a client-supplied createdBy', () => {
+    expect(() => AdminAuditionPromptTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } })).toThrow();
+  });
+  it('rejects a sponsoredAuditionAmountUSD above the cap or negative', () => {
+    expect(() => AdminAuditionPromptTargetInfoSchema.parse({
+      ...valid, type: 'sponsoredAudition', sponsoredAuditionAmountUSD: MAX_SPONSORED_AUDITION_AMOUNT_USD + 1,
+    })).toThrow();
+    expect(() => AdminAuditionPromptTargetInfoSchema.parse({
+      ...valid, type: 'sponsoredAudition', sponsoredAuditionAmountUSD: -1,
+    })).toThrow();
   });
 });
 

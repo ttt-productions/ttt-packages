@@ -8,6 +8,7 @@ import type {
   ArchivalInfo,
 } from '../types.js';
 import type { ServerFirestore } from './types.js';
+import { NotificationPermissionError } from './errors.js';
 
 interface ArchiveInput {
   notificationId: string;
@@ -53,14 +54,14 @@ function assertCanArchive(
 ): void {
   if (audienceType === 'shared') {
     if (!callerIsAdmin) {
-      throw new Error(
+      throw new NotificationPermissionError(
         '[notification-core] Permission denied: shared notifications can only be archived by an admin',
       );
     }
     return;
   }
   if (activeData.targetUserId !== callerUid) {
-    throw new Error(
+    throw new NotificationPermissionError(
       '[notification-core] Permission denied: caller does not own this notification',
     );
   }
@@ -133,7 +134,7 @@ export async function archiveAllNotificationsHelper(
   // Shared archive-all is an admin-only bulk action; personal stays bounded to
   // the caller by the `targetUserId == callerUid` query filter below.
   if (!isPersonal && !callerIsAdmin) {
-    throw new Error(
+    throw new NotificationPermissionError(
       '[notification-core] Permission denied: shared notifications can only be archived by an admin',
     );
   }
