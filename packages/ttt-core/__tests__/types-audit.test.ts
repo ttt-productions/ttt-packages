@@ -16,7 +16,7 @@ describe('audit type catalog', () => {
       'content.taleDetailsUpdated',
       'payment.pledgePaymentCompleted',
       'system.manualIntervention',
-      'social.userFollowed',
+      'social.targetFollowed',
       'chat.guildChatMessageSent',
       'craftSkill.userCraftSkillDeleted',
       'audition.entryCreated',

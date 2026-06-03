@@ -4,7 +4,7 @@ import type { ChatMessageV1, ChatAttachment, ModerationHandlers } from "@ttt-pro
 import { MessageText } from "../mentions/MessageText.js";
 import { cn } from "@ttt-productions/ui-core";
 import { MediaViewer } from "@ttt-productions/media-viewer/react";
-import { FileText } from "lucide-react";
+import { FileText, Loader2, AlertTriangle } from "lucide-react";
 import { MessageActions } from "./menus.js";
 import { useResolvedSenderName } from "../context/ChatNameResolverContext.js";
 
@@ -13,6 +13,32 @@ import { useResolvedSenderName } from "../context/ChatNameResolverContext.js";
 // ============================================
 
 function AttachmentView({ att }: { att: ChatAttachment }) {
+  // In-flight placeholder — bytes uploaded, processing/moderation pending. No
+  // `url` yet. Rendered only to the sender (other participants can't read a
+  // pending doc — Firestore rules scope it until `status === 'ready'`).
+  if (att.status === "pending") {
+    return (
+      <div className="chat-attachment-pending">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+        <span className="truncate">{att.name}</span>
+        <span className="chat-attachment-status-label">Sending…</span>
+      </div>
+    );
+  }
+  // Processing/moderation rejected the attachment — sender-only.
+  if (att.status === "failed") {
+    return (
+      <div className="chat-attachment-rejected">
+        <AlertTriangle className="h-4 w-4 shrink-0" />
+        <span className="truncate">{att.name}</span>
+        <span className="chat-attachment-status-label">
+          {att.failureReason ?? "Couldn't send this attachment"}
+        </span>
+      </div>
+    );
+  }
+  // ready (or legacy/absent status) — a viewable attachment always has a url.
+  if (!att.url) return null;
   if (att.type === "image") {
     return <MediaViewer type="image" url={att.url} alt={att.name} className="chat-attachment-media" />;
   }

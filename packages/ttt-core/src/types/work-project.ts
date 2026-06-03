@@ -9,7 +9,6 @@ export type GuildmateStatus = 'active' | 'departed';
 
 export type GuildmateUser = {
   uid: string;
-  displayName: string;
   guildStandings: GuildStandingId[];
   tradeProfessions: string[];
   stakeShareCount: number;
@@ -24,6 +23,32 @@ export type GuildmateUser = {
    */
   holderType?: 'user' | 'foundingWork';
 };
+
+/**
+ * Public projection of a guildmate, mirrored to
+ * `allWorkProjects/{workProjectId}/publicGuildmateUsers/{uid}` for signed-in
+ * read on public Work / Hall pages. Person guildmates only — founding-work
+ * holders are excluded. Display name/avatar resolve from `publicUsers/{uid}`;
+ * the steward is identified via `publicWorkProjects.ownerUid`. Never carries
+ * `stakeShareCount` or any private invite/share field.
+ */
+export type PublicGuildmateUser = {
+  uid: string;
+  tradeProfessions: string[];
+  joinedAt: number;
+  status: GuildmateStatus;
+};
+
+/**
+ * Single source of truth for which GuildmateUser fields the public mirror copies,
+ * so the mirror trigger can't drift from the PublicGuildmateUser shape.
+ */
+export const GUILDMATE_USER_PUBLIC_FIELDS: readonly (keyof GuildmateUser)[] = [
+  'uid',
+  'tradeProfessions',
+  'joinedAt',
+  'status',
+];
 
 export type WorkAsset = {
   id: string;

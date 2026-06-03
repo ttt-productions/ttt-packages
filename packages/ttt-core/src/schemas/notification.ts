@@ -44,6 +44,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   'admin_dispatch_reply',
   'threshold_library_submission',
   'admin_announcement',
+  'followed_content_published',
 ] as const;
 
 export const NotificationTypeSchema = z.enum(NOTIFICATION_TYPE_VALUES);
@@ -81,6 +82,7 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
   admin_dispatch_reply: { category: 'user', delivery: 'realtime', defaultChannels: ['inApp'] },
   threshold_library_submission: { category: 'admin', delivery: 'queued', defaultChannels: ['inApp'] },
   admin_announcement: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
+  followed_content_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
 };
 
 // ============================================================================
@@ -132,6 +134,14 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     type: z.literal('admin_announcement'),
     title: titleSchema,
     message: notificationMessageSchema,
+  }).strict(),
+  z.object({
+    type: z.literal('followed_content_published'),
+    workProjectId: workProjectIdSchema,
+    workTitle: titleSchema,
+    hallItemId: hallItemIdSchema,
+    hallItemTitle: titleSchema,
+    hallSubItemType: z.enum(['chapter', 'track', 'episode']),
   }).strict(),
 ]);
 export type NotificationMetadataByType = z.infer<typeof NotificationMetadataByTypeSchema>;

@@ -21,6 +21,10 @@ export function MessageList(props: {
 
   showScrollToBottom?: boolean;
   onScrollToBottom?: () => void;
+  /** Class for the scrollable message region. Default `h-[400px]`; pass e.g.
+   *  `flex-1 min-h-0` so the consumer's flex layout bounds the height to the
+   *  viewport / page panel instead of a fixed height. */
+  scrollClassName?: string;
 
   handlers?: ModerationHandlers;
   onSenderClick?: (senderId: string, displayName: string) => void;
@@ -36,6 +40,7 @@ export function MessageList(props: {
     messageRenderers,
     showScrollToBottom,
     onScrollToBottom,
+    scrollClassName = "h-[400px]",
     handlers,
     onSenderClick,
   } = props;
@@ -46,6 +51,18 @@ export function MessageList(props: {
   const isAtBottomRef = React.useRef(true);
   const prevScrollHeightRef = React.useRef<number | null>(null);
   const prevCountRef = React.useRef(0);
+
+  // Count of messages that arrived while the user was scrolled up — drives the
+  // "new messages" pill. Reset when the user returns to the bottom.
+  const [unseenCount, setUnseenCount] = React.useState(0);
+
+  const scrollToBottom = React.useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+    isAtBottomRef.current = true;
+    setUnseenCount(0);
+  }, []);
 
   // IntersectionObserver for infinite scroll (older messages)
   React.useEffect(() => {
@@ -104,6 +121,10 @@ export function MessageList(props: {
           window.scrollTo({ top: savedScrollY, behavior: "instant" as ScrollBehavior });
         }
       });
+    } else if (count > prev) {
+      // New message(s) arrived while the user was scrolled up — surface the pill
+      // instead of yanking their scroll position.
+      setUnseenCount((c) => c + (count - prev));
     }
 
     prevCountRef.current = count;
@@ -111,14 +132,16 @@ export function MessageList(props: {
 
   const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    isAtBottomRef.current = scrollHeight - (scrollTop + clientHeight) < 50;
+    const atBottom = scrollHeight - (scrollTop + clientHeight) < 50;
+    isAtBottomRef.current = atBottom;
+    if (atBottom && unseenCount !== 0) setUnseenCount(0);
   };
 
   let lastDay: string | null = null;
 
   return (
     <div className="relative">
-      <div ref={scrollRef} className="h-[400px] overflow-y-auto p-4" onScroll={onScroll}>
+      <div ref={scrollRef} className={`${scrollClassName} overflow-y-auto p-4`} onScroll={onScroll}>
         {isFetchingOlder && <div className="text-center text-xs opacity-70 mb-2">Loading…</div>}
 
         <div ref={topSentinelRef} />
@@ -170,15 +193,21 @@ export function MessageList(props: {
         )}
       </div>
 
-      {showScrollToBottom && (
+      {(unseenCount > 0 || showScrollToBottom) && (
         <Button
           type="button"
           variant="outline"
-          size="icon"
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-sm"
-          onClick={onScrollToBottom}
+          size="sm"
+          aria-label={unseenCount > 0 ? `${unseenCount} new messages, scroll to latest` : "Scroll to latest"}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-sm gap-1"
+          onClick={() => {
+            scrollToBottom();
+            onScrollToBottom?.();
+          }}
         >
-          ↓
+          {unseenCount > 0
+            ? `${unseenCount} new message${unseenCount > 1 ? "s" : ""} ↓`
+            : "↓"}
         </Button>
       )}
     </div>

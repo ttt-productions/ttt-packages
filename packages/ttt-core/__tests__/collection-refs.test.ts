@@ -61,14 +61,6 @@ describe('COLLECTION_REFS', () => {
       expect(result[1]).toBe('user1');
       expect(result[2]).toBe(USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS);
     });
-
-    it('userFollows returns 3-segment tuple', () => {
-      const result = COLLECTION_REFS.userFollows('user1');
-      expect(result).toHaveLength(3);
-      expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
-      expect(result[1]).toBe('user1');
-      expect(result[2]).toBe(USER_SUBCOLLECTIONS.USER_FOLLOWS);
-    });
   });
 
   describe('WorkProject subcollection refs', () => {

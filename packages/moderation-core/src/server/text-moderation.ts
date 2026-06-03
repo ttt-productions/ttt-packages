@@ -88,7 +88,7 @@ export async function perspectiveCheck(
 
   if (!apiKey) {
     logger?.warn?.("[moderation-core] Perspective API key not provided; skipping Layer 2");
-    return { safe: true };
+    return { safe: true, perspectiveStatus: "skipped_no_key" };
   }
 
   try {
@@ -115,7 +115,7 @@ export async function perspectiveCheck(
     if (!response.ok) {
       const errorText = await response.text();
       logger?.error?.(`Perspective API error: ${response.status} - ${errorText}`);
-      return { safe: true };
+      return { safe: true, perspectiveStatus: "error" };
     }
 
     const data = (await response.json()) as {
@@ -133,21 +133,21 @@ export async function perspectiveCheck(
     };
 
     if (scores.severeToxicity > thresholds.severeToxicity) {
-      return { safe: false, reason: "Content contains severe toxicity", scores, layer: "perspective" };
+      return { safe: false, reason: "Content contains severe toxicity", scores, layer: "perspective", perspectiveStatus: "ran" };
     }
     if (scores.identityAttack > thresholds.identityAttack) {
-      return { safe: false, reason: "Content contains hate speech or identity-based attacks", scores, layer: "perspective" };
+      return { safe: false, reason: "Content contains hate speech or identity-based attacks", scores, layer: "perspective", perspectiveStatus: "ran" };
     }
     if (scores.threat > thresholds.threat) {
-      return { safe: false, reason: "Content contains threats", scores, layer: "perspective" };
+      return { safe: false, reason: "Content contains threats", scores, layer: "perspective", perspectiveStatus: "ran" };
     }
     if (scores.toxicity > thresholds.toxicity) {
-      return { safe: false, reason: "Content is too toxic", scores, layer: "perspective" };
+      return { safe: false, reason: "Content is too toxic", scores, layer: "perspective", perspectiveStatus: "ran" };
     }
-    return { safe: true, scores };
+    return { safe: true, scores, perspectiveStatus: "ran" };
   } catch (error) {
     logger?.error?.("[moderation-core] Perspective API request failed:", error);
-    return { safe: true };
+    return { safe: true, perspectiveStatus: "error" };
   }
 }
 
@@ -197,5 +197,5 @@ export async function moderateText(
   });
   if (!perspectiveResult.safe) return perspectiveResult;
 
-  return { safe: true, scores: perspectiveResult.scores };
+  return { safe: true, scores: perspectiveResult.scores, perspectiveStatus: perspectiveResult.perspectiveStatus };
 }

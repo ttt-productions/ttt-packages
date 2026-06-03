@@ -7,9 +7,9 @@ import type { ChatAttachment, ReplyTo } from "@ttt-productions/chat-schemas";
 // Re-exported from @ttt-productions/chat-schemas, the Tier 0 source of truth.
 // chat-schemas is server-safe and can be consumed by both chat-core (pure) and
 // backend code without forcing the chat UI dep graph on backend callers.
-// Every attachment on a chat message doc is fully processed and viewable —
-// rejection visibility lives on /profile/uploads (the canonical pendingMedia
-// surface), not in chat.
+// An attachment carries a lifecycle `status` (pending -> ready | failed): a
+// pending/failed placeholder is visible only to the sender (rule-enforced);
+// other participants see it once it is `ready` (or absent = ready/legacy).
 export type { ChatAttachment };
 
 // ============================================
@@ -67,13 +67,14 @@ export type ChatAccessMode = "firestore-rules" | "explicit-allowlist";
 
 /**
  * Called by the composer after the file has been uploaded to Storage. The
- * consumer wires this to a backend callable (`startUpload`) that writes the
- * pendingMedia doc with the caption text + reply pointer. The processor will
- * create the message doc itself after media moderation succeeds.
+ * consumer wires this to a backend callable that writes the pendingMedia doc
+ * (caption text + reply pointer) AND a placeholder chat message doc with
+ * `attachment.status: 'pending'`. The media processor later flips that same
+ * message doc to `ready` (sets `url`) or `failed`.
  *
- * No message doc is created at this point — the composer should render an
- * optimistic local "uploading" state until the listener delivers the real
- * message after processing completes.
+ * The placeholder bubble therefore arrives through the normal Firestore
+ * listener — the composer does not need a separate optimistic local state.
+ * While pending/failed the doc is sender-only (rule-enforced).
  */
 export type SendAttachmentInput = {
   text: string;

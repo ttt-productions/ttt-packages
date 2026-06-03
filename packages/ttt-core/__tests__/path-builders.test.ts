@@ -39,24 +39,20 @@ describe('PATH_BUILDERS', () => {
       expect(result[3]).toBe(SPECIAL_DOCS.NOTIFICATION_SETTINGS);
     });
 
-    it('userFollow returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.userFollow('userA', 'followDocX');
-      expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
-      expect(result[1]).toBe('userA');
-      expect(result[2]).toBe(USER_SUBCOLLECTIONS.USER_FOLLOWS);
-      expect(result[3]).toBe('followDocX');
+    it('followEdge returns a 2-segment tuple with a deterministic composite id', () => {
+      const result = PATH_BUILDERS.followEdge('userA', 'workProject', 'wp1');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toBe(COLLECTIONS.FOLLOW_EDGES);
+      expect(result[1]).toBe('userA__workProject__wp1');
     });
 
-    it('followedUser returns 6-segment tuple with nested history segments', () => {
-      const result = PATH_BUILDERS.followedUser('userA', 'userB');
-      expect(result).toHaveLength(6);
-      expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
-      expect(result[1]).toBe('userA');
-      expect(result[2]).toBe(USER_SUBCOLLECTIONS.USER_FOLLOWS);
-      expect(result[3]).toBe(NESTED_SUBCOLLECTIONS.FOLLOW_HISTORY);
-      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.FOLLOWED_USERS);
-      expect(result[5]).toBe('userB');
+    it('workProjectPublicGuildmateUser returns a 4-segment tuple', () => {
+      const result = PATH_BUILDERS.workProjectPublicGuildmateUser('wp1', 'userB');
+      expect(result).toHaveLength(4);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[1]).toBe('wp1');
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_GUILDMATE_USERS);
+      expect(result[3]).toBe('userB');
     });
 
     it('userLike returns 6-segment tuple with nested like history segments', () => {

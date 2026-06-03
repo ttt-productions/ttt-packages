@@ -333,7 +333,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
 
   'commission-proposal': {
     kind: 'image',
-    accept: ACCEPT_IMAGE_VIDEO,
+    accept: ACCEPT_MEDIA_ALL,
     maxBytes: 10 * 1024 * 1024,
     imageCrop: {
       aspectRatio: 4 / 3,
@@ -345,9 +345,10 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
     client: {
       allowPick: true,
-      allowCapturePhoto: false,
-      allowRecordVideo: false,
-      allowRecordAudio: false,
+      allowCapturePhoto: true,
+      allowRecordVideo: true,
+      allowRecordAudio: true,
+      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
     },
     processing: {
       image: {
@@ -364,6 +365,10 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         requiredHeight: 600,
         allowAutoFormat: true,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
+      audio: {
+        kind: 'audio',
+        audio: { maxDurationSec: 600 },
       },
     },
   },
@@ -527,6 +532,10 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         requiredHeight: 600,
         allowAutoFormat: true,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
+      audio: {
+        kind: 'audio',
+        audio: { maxDurationSec: 60 },
       },
     },
   },

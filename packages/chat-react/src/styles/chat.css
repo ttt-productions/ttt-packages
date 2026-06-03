@@ -106,6 +106,12 @@
   font-size: 0.75rem;
 }
 
+.chat-attachment-status-label {
+  margin-left: auto;
+  opacity: 0.7;
+  font-style: italic;
+}
+
 /* --- Composer --- */
 .chat-composer {
   display: flex;

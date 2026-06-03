@@ -30,14 +30,17 @@ export const ReplyToSchema = z
 export type ReplyTo = z.infer<typeof ReplyToSchema>;
 
 /**
- * Chat attachment shape — represents a media attachment on a chat message
- * after upload + moderation succeed. Used in SendChatMessage* wire schemas
- * (composed in the consuming app's callable layer) and in ChatMessage docs
- * (consumed by chat-core UI).
+ * Chat attachment shape on a chat message. With the in-flight placeholder flow,
+ * an attachment progresses `pending` -> `ready` | `failed`:
+ *  - `pending` — placeholder written on send; bytes uploaded, processing/moderation
+ *    in flight. No `url` yet. Visible only to the sender (rule-enforced).
+ *  - `ready` (or absent, for legacy/text) — processed + moderation-passed; `url` set.
+ *  - `failed` — processing/moderation rejected; no `url`, `failureReason` set; sender-only.
+ * Used in SendChatMessage* wire schemas (app callable layer) and ChatMessage docs.
  *
- * `storagePath: z.string().min(1)` — empty `storagePath` is always a bug
- * (it's the Firebase Storage path after upload); rejecting at the schema
- * layer is correct.
+ * `storagePath: z.string().min(1)` — empty `storagePath` is always a bug (it's the
+ * Firebase Storage staging/final path); rejecting at the schema layer is correct.
+ * `url` is optional because a pending/failed attachment has none yet.
  */
 export const ChatAttachmentSchema = z
   .object({
@@ -45,8 +48,10 @@ export const ChatAttachmentSchema = z
     name: z.string(),
     type: z.enum(['image', 'video', 'audio', 'text']),
     size: z.number(),
-    url: z.string(),
+    url: z.string().optional(),
     storagePath: z.string().min(1),
+    status: z.enum(['pending', 'ready', 'failed']).optional(),
+    failureReason: z.string().max(500).optional(),
   })
   .strict();
 

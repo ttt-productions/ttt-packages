@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { MentionSchema } from '../media/atoms.js';
-import { userIdSchema } from './atoms.js';
 import { MAX_POST_LENGTH } from '../constants/business.js';
 
 export const LikeSquareStreetzPostInputSchema = z.object({
@@ -13,15 +12,21 @@ export const UnlikeSquareStreetzPostInputSchema = z.object({
 }).strict();
 export type UnlikeSquareStreetzPostInput = z.infer<typeof UnlikeSquareStreetzPostInputSchema>;
 
-export const FollowUserInputSchema = z.object({
-  targetUid: userIdSchema,
-}).strict();
-export type FollowUserInput = z.infer<typeof FollowUserInputSchema>;
+/** The entity kinds a user can follow. Subset of MentionType (commissions/auditions are not followable). */
+export const FollowableTargetTypeSchema = z.enum(['user', 'workProject', 'workRealm']);
+export type FollowableTargetType = z.infer<typeof FollowableTargetTypeSchema>;
 
-export const UnfollowUserInputSchema = z.object({
-  targetUid: userIdSchema,
+export const FollowTargetInputSchema = z.object({
+  targetType: FollowableTargetTypeSchema,
+  targetId: z.string().min(1).max(128),
 }).strict();
-export type UnfollowUserInput = z.infer<typeof UnfollowUserInputSchema>;
+export type FollowTargetInput = z.infer<typeof FollowTargetInputSchema>;
+
+export const UnfollowTargetInputSchema = z.object({
+  targetType: FollowableTargetTypeSchema,
+  targetId: z.string().min(1).max(128),
+}).strict();
+export type UnfollowTargetInput = z.infer<typeof UnfollowTargetInputSchema>;
 
 export const AddToMentionHistoryInputSchema = z.object({
   mention: MentionSchema,
@@ -30,7 +35,7 @@ export type AddToMentionHistoryInput = z.infer<typeof AddToMentionHistoryInputSc
 
 export const CreateSquareStreetzTextPostInputSchema = z.object({
   textContent: z.string().min(1).max(MAX_POST_LENGTH),
-  mentions: z.array(MentionSchema).optional(),
+  mentions: z.array(MentionSchema).max(50).optional(),
 }).strict();
 export type CreateSquareStreetzTextPostInput = z.infer<typeof CreateSquareStreetzTextPostInputSchema>;
 

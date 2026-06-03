@@ -165,8 +165,9 @@ export const FollowCreatedEventSchema = z
     type: z.literal('follow.created'),
     ids: z
       .object({
-        followerId: z.string().min(1),
-        followedId: z.string().min(1),
+        followerUid: z.string().min(1),
+        targetType: z.enum(['user', 'workProject', 'workRealm']),
+        targetId: z.string().min(1),
       })
       .strict(),
   })
@@ -177,8 +178,9 @@ export const FollowRemovedEventSchema = z
     type: z.literal('follow.removed'),
     ids: z
       .object({
-        followerId: z.string().min(1),
-        followedId: z.string().min(1),
+        followerUid: z.string().min(1),
+        targetType: z.enum(['user', 'workProject', 'workRealm']),
+        targetId: z.string().min(1),
       })
       .strict(),
   })

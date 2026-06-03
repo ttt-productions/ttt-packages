@@ -21,8 +21,8 @@ export const CreateGuildChatChannelInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   channelName: z.string().min(1).max(100),
   description: z.string().max(500).optional(),
-  requiredGuildStandings: z.array(z.string()),
-  allowedUserIds: z.array(z.string()),
+  requiredGuildStandings: z.array(z.string().min(1).max(64)).max(20),
+  allowedUserIds: z.array(z.string().min(1).max(128)).max(500),
 }).strict();
 export type CreateGuildChatChannelInput = z.infer<typeof CreateGuildChatChannelInputSchema>;
 
@@ -64,8 +64,8 @@ export const UpdateGuildChatChannelInputSchema = z.object({
   guildChatChannelId: guildChatChannelIdSchema,
   channelName: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
-  requiredGuildStandings: z.array(z.string()).optional(),
-  allowedUserIds: z.array(z.string()).optional(),
+  requiredGuildStandings: z.array(z.string().min(1).max(64)).max(20).optional(),
+  allowedUserIds: z.array(z.string().min(1).max(128)).max(500).optional(),
 }).strict();
 export type UpdateGuildChatChannelInput = z.infer<typeof UpdateGuildChatChannelInputSchema>;
 

@@ -58,8 +58,30 @@ export type FullUser = {
   status?: 'active' | 'disabled' | 'banned';
   ownedWorkProjects?: OwnedWorkProject[];
   associatedWorkProjects?: AssociatedWorkProject[];
-  isWaitingForNewsApproval?: boolean;
   createdAt: number;
+};
+
+export type UserAgreements = {
+  age?: boolean;
+  nudity?: boolean;
+  meet?: boolean;
+  cookies?: boolean;
+  terms?: boolean;
+  agreedOn?: number;
+};
+
+/**
+ * Owner-only account state at `userProfiles/{uid}/privateData/{uid}` (readable
+ * only by the owner; never mirrored to publicUsers). `isWaitingForNewsApproval`,
+ * `squareStreetzAgreementsDate`, and `agreements` were relocated off the public
+ * FullUser doc so other signed-in users can't read a user's approval/agreement
+ * state. `status` deliberately stays on FullUser (the publicUsers mirror derives
+ * `disabled` from it and the bootstrap gate reads it live).
+ */
+export type UserPrivateData = {
+  email: string;
+  isWaitingForNewsApproval?: boolean;
   squareStreetzAgreementsDate?: number;
+  agreements?: UserAgreements;
 };
 

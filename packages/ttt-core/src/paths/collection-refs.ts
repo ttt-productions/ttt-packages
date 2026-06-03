@@ -19,13 +19,11 @@ export const COLLECTION_REFS = {
   squareStreetzFeed: (): [string] => [COLLECTIONS.SQUARE_STREETZ_FEED],
   commissionListings: (): [string] => [COLLECTIONS.COMMISSION_LISTINGS],
   auditionBoard: (): [string] => [COLLECTIONS.AUDITION_BOARD],
+  followEdges: (): [string] => [COLLECTIONS.FOLLOW_EDGES],
 
   // User subcollections
   userCraftSkills: (userId: string): [string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS],
-
-  userFollows: (userId: string): [string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_FOLLOWS],
 
   // WorkProject subcollections
   workProjectTales: (workProjectId: string): [string, string, string] =>
@@ -36,6 +34,9 @@ export const COLLECTION_REFS = {
 
   workProjectTelevision: (workProjectId: string): [string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION],
+
+  workProjectPublicGuildmateUsers: (workProjectId: string): [string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_GUILDMATE_USERS],
 
   guildChatChannels: (workProjectId: string): [string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS],

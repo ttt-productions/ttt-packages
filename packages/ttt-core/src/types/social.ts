@@ -1,6 +1,7 @@
 // Social types: SquareStreetz feed, Mentions, Follows, pledge payments
 export type { Mention, MentionType } from '../media/atoms.js';
 import type { Mention } from '../media/atoms.js';
+import type { FollowableTargetType } from '../schemas/social.js';
 
 // --- SquareStreetz Social Media ---
 
@@ -11,7 +12,8 @@ export type SquareStreetzPostType =
   | 'COMMISSION_ACCEPTED'
   | 'DELETE_CRAFT_SKILL'
   | 'USER_POST'
-  | 'NEW_WORK_PROJECT';
+  | 'NEW_WORK_PROJECT'
+  | 'LIBRARY_PUBLISHED';
 
 /**
  * Serializable subset of SquareStreetz post creation payload.
@@ -29,6 +31,9 @@ export type SquareStreetzPostPayload = {
   workProjectDescription?: string;
   workRealmId?: string;
   workRealmTitle?: string;
+  hallItemId?: string;
+  hallItemTitle?: string;
+  hallSubItemType?: 'chapter' | 'track' | 'episode';
   content?: string;
   mediaUrl?: string;
   mediaType?: 'image' | 'video' | 'audio' | 'other';
@@ -61,6 +66,21 @@ export type MentionHistoryItem = Mention & {
 export type MentionHistoryDocument = {
   userId: string;
   items: MentionHistoryItem[];
+};
+
+// --- Follows ---
+
+/**
+ * A follow edge in the top-level `followEdges` collection. Doc ID is
+ * `${followerUid}__${targetType}__${targetId}` (deterministic O(1) status
+ * check + dedupe). The same collection is the reverse index for release
+ * fan-out via a composite index on (targetType, targetId).
+ */
+export type FollowEdge = {
+  followerUid: string;
+  targetType: FollowableTargetType;
+  targetId: string;
+  followedOn: number;
 };
 
 // --- Pledge payments ---

@@ -18,6 +18,7 @@ export const COLLECTIONS = {
   HALL_ITEMS: 'hallItems',
   COMMISSION_LISTINGS: 'commissionListings',
   AUDITION_BOARD: 'auditionBoard',
+  FOLLOW_EDGES: 'followEdges',
 
   // System & Utility
   RESERVED_DISPLAY_NAMES: 'reservedDisplayNames',
@@ -61,7 +62,6 @@ export const USER_SUBCOLLECTIONS = {
   PROFILE_CRAFT_SKILLS: 'profileCraftSkills',
   PRIVATE_DATA: 'privateData',
   USER_METADATA: 'userMetadata',
-  USER_FOLLOWS: 'userFollows',
   USER_LIKES: 'userLikes',
   USER_PLEDGE_PAYMENTS: 'userPledgePayments',
   CHECKED_OUT_ITEMS: 'checkedOutItems',
@@ -78,6 +78,7 @@ export const WORK_PROJECT_SUBCOLLECTIONS = {
   WORK_PROJECT_TUNES: 'workProjectTunes',
   WORK_PROJECT_TELEVISION: 'workProjectTelevision',
   GUILDMATE_USERS: 'guildmateUsers',
+  PUBLIC_GUILDMATE_USERS: 'publicGuildmateUsers',
   WORK_ASSETS: 'workAssets',
   GUILD_CHAT_CHANNELS: 'guildChatChannels',
 } as const;
@@ -107,8 +108,6 @@ export const NESTED_SUBCOLLECTIONS = {
   AUDITION_ENTRIES: 'auditionEntries',
 
   // User history
-  FOLLOW_HISTORY: 'followHistory',
-  FOLLOWED_USERS: 'followedUsers',
   LIKE_HISTORY: 'likeHistory',
   SQUARE_STREETZ_LIKES: 'squareStreetzLikes',
 

@@ -10,6 +10,7 @@ import {
   NESTED_SUBCOLLECTIONS,
   SPECIAL_DOCS,
 } from './collections.js';
+import type { FollowableTargetType } from '../schemas/social.js';
 
 export const PATH_BUILDERS = {
   // ===== USER PATHS =====
@@ -25,11 +26,11 @@ export const PATH_BUILDERS = {
   userMetadata: (userId: string): [string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_METADATA, SPECIAL_DOCS.NOTIFICATION_SETTINGS],
 
-  userFollow: (userId: string, followDocId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_FOLLOWS, followDocId],
-
-  followedUser: (userId: string, followedUserId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_FOLLOWS, NESTED_SUBCOLLECTIONS.FOLLOW_HISTORY, NESTED_SUBCOLLECTIONS.FOLLOWED_USERS, followedUserId],
+  // Generic follow edge: top-level `followEdges/{followerUid__targetType__targetId}`.
+  // Deterministic ID = O(1) follow-status check + dedupe; a composite index on
+  // (targetType, targetId) makes the same collection the reverse follower index.
+  followEdge: (followerUid: string, targetType: FollowableTargetType, targetId: string): [string, string] =>
+    [COLLECTIONS.FOLLOW_EDGES, `${followerUid}__${targetType}__${targetId}`],
 
   userLike: (userId: string, postId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_LIKES, NESTED_SUBCOLLECTIONS.LIKE_HISTORY, NESTED_SUBCOLLECTIONS.SQUARE_STREETZ_LIKES, postId],
@@ -67,6 +68,9 @@ export const PATH_BUILDERS = {
 
   workProjectGuildmateUser: (workProjectId: string, uid: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILDMATE_USERS, uid],
+
+  workProjectPublicGuildmateUser: (workProjectId: string, uid: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_GUILDMATE_USERS, uid],
 
   workProjectAsset: (workProjectId: string, workAssetId: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_ASSETS, workAssetId],
