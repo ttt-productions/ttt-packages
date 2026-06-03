@@ -1,12 +1,20 @@
 #!/usr/bin/env node
 // Rewrite a package's internal @ttt-productions/* dependency ranges from "*"
-// to the EXACT current version of each internal dependency in the monorepo,
-// across dependencies, peerDependencies, AND devDependencies.
+// to a concrete range at PACK/PUBLISH time, across dependencies,
+// peerDependencies, AND devDependencies:
+//   - dependencies / devDependencies → EXACT current version ("1.2.3")
+//   - peerDependencies               → CARET range ("^1.2.3")
 //
-// WHY: source manifests legitimately use "*" so workspace dev resolves to the
-// local package. But a packed/published tarball with "*" lets a consumer
-// resolve an incompatible newer internal version. We therefore pin to exact
-// versions at PACK/PUBLISH time only — never in committed source.
+// WHY exact for deps/devDeps: source manifests legitimately use "*" so workspace
+// dev resolves to the local package. But a packed/published tarball with "*" lets
+// a consumer resolve an incompatible newer internal version, so we pin those exact.
+//
+// WHY caret for peerDeps: a peer dependency is SUPPLIED by the consuming app, which
+// hoists a single copy. Exact-pinning a peer means bumping that internal package in
+// isolation trips a peerOptional version-mismatch warning in every dependent until it
+// is also republished. A caret range (^x.y.z) lets the app provide a compatible
+// patch/minor without the warning, while still rejecting a breaking major/minor (0.x
+// caret pins the minor). Peer compatibility is a range by nature, not an exact match.
 //
 // This runs in the publish pipeline (.github/workflows/publish.yml) right
 // before `npm publish`, where the checkout is ephemeral, so the rewrite is
@@ -18,7 +26,8 @@
 //   node scripts/pin-internal-deps.mjs <pkgDir> --check    # exit 1 if any internal "*" remains (no write)
 //   node scripts/pin-internal-deps.mjs <pkgDir> --restore  # restore <pkgDir>/package.json from .pin-bak
 //
-// Exact pins ("1.2.3"), not caret, until package APIs stabilize.
+// dependencies/devDependencies use exact pins ("1.2.3"); peerDependencies use caret
+// ranges ("^1.2.3") so an app can supply a compatible patch/minor without a warning.
 
 import { readFileSync, writeFileSync, readdirSync, existsSync, copyFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -98,8 +107,11 @@ for (const field of DEP_FIELDS) {
       missing.push(`${field} › ${dep}`);
       continue;
     }
-    deps[dep] = version;
-    pinned.push(`${field} › ${dep} -> ${version}`);
+    // Peer deps are supplied by the consuming app and must tolerate a compatible
+    // patch/minor; everything else pins exact.
+    const pinnedRange = field === 'peerDependencies' ? `^${version}` : version;
+    deps[dep] = pinnedRange;
+    pinned.push(`${field} › ${dep} -> ${pinnedRange}`);
   }
 }
 
