@@ -39,6 +39,7 @@ export function MediaViewer(props: MediaPreviewProps) {
     loop,
     posterUrl,
     preload,
+    autoPlayOnVisible,
     onLoad,
     onError,
     onLoadChange,
@@ -141,6 +142,7 @@ export function MediaViewer(props: MediaPreviewProps) {
           loop={loop}
           posterUrl={posterUrl}
           preload={preload}
+          autoPlayOnVisible={autoPlayOnVisible}
           onLoad={onLoad}
           onError={handleError}
         />

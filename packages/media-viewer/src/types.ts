@@ -59,6 +59,7 @@ export type MediaPreviewProps = {
   loop?: boolean;
   posterUrl?: string;
   preload?: "auto" | "metadata" | "none";
+  autoPlayOnVisible?: boolean;
   onLoad?: () => void;
   onError?: () => void;
   onLoadChange?: (isLoading: boolean) => void;

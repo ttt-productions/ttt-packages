@@ -243,26 +243,39 @@ export const MediaOutputSchema = z
   })
   .strict();
 
-export const MediaProcessingResultSchema = z
+const MediaProcessingResultMetaSchema = z
   .object({
-    ok: z.boolean(),
-    mediaType: SimplifiedMediaTypeSchema,
-    outputs: z.array(MediaOutputSchema).optional(),
-    meta: z
-      .object({
-        mime: z.string().optional(),
-        sizeBytes: z.number().int().nonnegative().optional(),
-        width: z.number().int().positive().optional(),
-        height: z.number().int().positive().optional(),
-        durationSec: z.number().positive().optional(),
-      })
-      .strict()
-      .optional(),
-    warnings: z.array(z.string()).optional(),
-    error: MediaProcessingErrorSchema.optional(),
-    moderation: MediaModerationResultSchema.optional(),
+    mime: z.string().optional(),
+    sizeBytes: z.number().int().nonnegative().optional(),
+    width: z.number().int().positive().optional(),
+    height: z.number().int().positive().optional(),
+    durationSec: z.number().positive().optional(),
   })
   .strict();
+
+const mediaProcessingResultSharedShape = {
+  mediaType: SimplifiedMediaTypeSchema,
+  outputs: z.array(MediaOutputSchema).optional(),
+  meta: MediaProcessingResultMetaSchema.optional(),
+  warnings: z.array(z.string()).optional(),
+  moderation: MediaModerationResultSchema.optional(),
+};
+
+export const MediaProcessingResultSchema = z.discriminatedUnion("ok", [
+  z
+    .object({
+      ok: z.literal(true),
+      ...mediaProcessingResultSharedShape,
+    })
+    .strict(),
+  z
+    .object({
+      ok: z.literal(false),
+      error: MediaProcessingErrorSchema,
+      ...mediaProcessingResultSharedShape,
+    })
+    .strict(),
+]);
 
 // ---- jobs/docs ----
 

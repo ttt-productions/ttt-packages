@@ -1,4 +1,4 @@
-import type { MediaOutput, MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
+import type { MediaOutput, MediaProcessingError, MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
 import sharp from "sharp";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
@@ -97,7 +97,7 @@ async function buildBase(
   inputPath: string
 ): Promise<
   | { ok: true; base: sharp.Sharp; inputMeta: sharp.Metadata }
-  | { ok: false; error: MediaProcessingResult["error"] }
+  | { ok: false; error: MediaProcessingError }
 > {
   const input = sharp(inputPath, { failOn: "none" });
   const meta = await input.metadata();

@@ -28,6 +28,8 @@ is published + installed.**
 
 ## A1. media-viewer — forward `autoPlayOnVisible` (package-only, LOW)
 
+> ✅ **DONE** — implemented + built + tested (full package suite, 1855 tests green). **Publish `media-viewer`.** No app adoption needed.
+
 - **Why:** `VideoViewerProps.autoPlayOnVisible` exists but `MediaPreviewProps` doesn't expose it and
   `MediaViewer` doesn't forward it — a dead prop on the public API.
 - **Change:** in `packages/media-viewer/src/types.ts` add `autoPlayOnVisible?: boolean` to
@@ -36,6 +38,8 @@ is published + installed.**
 - **App adoption:** none required until a consumer opts in. Build + test media-viewer.
 
 ## A2. media-schemas — discriminate `MediaProcessingResultSchema` (LOW)
+
+> ✅ **DONE** — implemented + built + tested (1855 tests green). Required a co-change in **media-processing-core** (`src/processing/result.ts` helper signatures + `src/image/image-processor.ts` `MediaProcessingResult["error"]` → `MediaProcessingError`). **Publish `media-schemas` THEN `media-processing-core`.** App adoption = G1 (trivial; remove any `result.error!` after install).
 
 - **Why:** `packages/media-schemas/src/schemas.ts` (~L246-265) is a flat object with `ok: z.boolean()`
   and optional `error`, forcing `result.error!` non-null assertions in consumers.
