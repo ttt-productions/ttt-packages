@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import { collection, getDocs, query, where, documentId, type Firestore } from 'firebase/firestore';
+import { subscribeDoc } from './doc-subscription-registry.js';
 
 const FIRESTORE_IN_LIMIT = 30;
 
@@ -43,6 +44,17 @@ export type BatchFirestoreDocsOptions = {
    * Whether queries should be enabled (default: true)
    */
   enabled?: boolean;
+
+  /**
+   * Real-time mode (default: false). When true, each id is resolved via a shared,
+   * reference-counted `onSnapshot` listener instead of a one-shot `getDocs` batch:
+   * - a missing doc caches `null` (negative caching) and resolves the instant it appears,
+   * - identity edits propagate live, and every browser tab stays consistent,
+   * - `staleTime` is irrelevant (listeners keep the cache fresh).
+   * Initial read cost matches the batch path; listeners then stay open while mounted.
+   * Use for small, frequently-rendered, change-sensitive identity docs (e.g. publicUsers).
+   */
+  subscribe?: boolean;
 };
 
 export type BatchFirestoreDocsResult<T> = {
@@ -102,6 +114,7 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   staleTime = 30 * 60 * 1000,
   gcTime = 60 * 60 * 1000,
   enabled = true,
+  subscribe = false,
 }: BatchFirestoreDocsOptions): BatchFirestoreDocsResult<T> {
   const queryClient = useQueryClient();
 
@@ -114,9 +127,34 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
     return Array.from(new Set(parsed.filter(Boolean)));
   }, [idsKey]);
 
-  // Separate IDs into cached/fresh vs needs-fetch
+  // ── Real-time subscribe mode ──────────────────────────────────────────────
+  // Re-render trigger; bumped whenever a subscribed doc's snapshot lands.
+  const [snapshotVersion, setSnapshotVersion] = useState(0);
+  const [subscribeError, setSubscribeError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    if (!subscribe || !enabled || uniqueIds.length === 0) return;
+    setSubscribeError(null);
+    const unsubscribers = uniqueIds.map((id) =>
+      subscribeDoc({
+        queryClient,
+        db,
+        collectionPath,
+        queryKeyPrefix,
+        id,
+        onUpdate: () => setSnapshotVersion((v) => v + 1),
+        onError: (error) => setSubscribeError(error),
+      }),
+    );
+    return () => {
+      for (const unsubscribe of unsubscribers) unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- idsKey stands in for uniqueIds
+  }, [idsKey, subscribe, enabled, collectionPath, queryKeyPrefix, queryClient, db]);
+
+  // Separate IDs into cached/fresh vs needs-fetch (one-shot path only)
   const { fetchIds } = useMemo(() => {
-    if (!enabled) {
+    if (!enabled || subscribe) {
       return { fetchIds: [] };
     }
 
@@ -133,7 +171,7 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
     }
 
     return { fetchIds: needsFetch };
-  }, [uniqueIds, queryKeyPrefix, queryClient, staleTime, enabled]);
+  }, [uniqueIds, queryKeyPrefix, queryClient, staleTime, enabled, subscribe]);
 
   // Batch the fetchIds into groups of 30
   const batches = useMemo(() => {
@@ -180,10 +218,10 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
     })),
   });
 
-  // Combine results
-  const isLoading = batchQueries.some(q => q.isLoading);
-  const isError = batchQueries.some(q => q.isError);
-  const error = batchQueries.find(q => q.error)?.error || null;
+  // Combine results (one-shot batch path)
+  const batchIsLoading = batchQueries.some(q => q.isLoading);
+  const batchIsError = batchQueries.some(q => q.isError);
+  const batchError = (batchQueries.find(q => q.error)?.error as Error | null) || null;
 
   // Trigger re-derivation when batch fetches complete
   const batchSettledCount = batchQueries.filter(q => q.isSuccess || q.isError).length;
@@ -192,9 +230,10 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   const data = useMemo(() => {
     const combined: Record<string, T> = {};
 
-    // Always read all IDs from individual cache entries.
-    // Batch queries populate these entries via setQueryData; we never read
-    // batch results directly, so IDs can't fall through the cached/fetched split.
+    // Always read all IDs from individual cache entries. Both paths populate these via
+    // setQueryData (batch queryFn, or the subscribe listener); we never read batch results
+    // directly, so IDs can't fall through the cached/fetched split. A `null` entry means a
+    // doc is known-absent (subscribe negative caching) and is correctly excluded here.
     for (const id of uniqueIds) {
       const cached = queryClient.getQueryData<T>([queryKeyPrefix, id]);
       if (cached) {
@@ -203,7 +242,15 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
     }
 
     return combined;
-  }, [uniqueIds, queryKeyPrefix, queryClient, batchSettledCount, batchUpdateTimestamp]);
+    // snapshotVersion: re-derive when a subscribed doc updates.
+  }, [uniqueIds, queryKeyPrefix, queryClient, batchSettledCount, batchUpdateTimestamp, snapshotVersion]);
+
+  // In subscribe mode the batch queries are inert; "loading" means a subscribed id has not
+  // received its first snapshot yet (no cache entry — `null` counts as resolved-missing).
+  const subscribeIsLoading =
+    subscribe && enabled && uniqueIds.some(
+      (id) => queryClient.getQueryData([queryKeyPrefix, id]) === undefined,
+    );
 
   const refetch = async () => {
     await Promise.all(batchQueries.map(q => q.refetch()));
@@ -211,9 +258,9 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
 
   return {
     data,
-    isLoading,
-    isError,
-    error: error as Error | null,
+    isLoading: batchIsLoading || subscribeIsLoading,
+    isError: batchIsError || subscribeError !== null,
+    error: batchError ?? subscribeError,
     refetch,
   };
 }

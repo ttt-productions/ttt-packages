@@ -17,6 +17,8 @@ Generic TanStack Query package.
 - `./react` â€” React/TanStack runtime: provider, Firestore hooks, search hook, and the `createQueryClient` factory.
 - `./types` â€” Firestore option/type surface.
 
+`useBatchFirestoreDocs` (in `./react`) resolves many doc ids into individual cache entries. It defaults to one-shot `getDocs` batching, but accepts `subscribe: true` to instead resolve each id through a shared, reference-counted `onSnapshot` listener (one listener per id across the whole client, regardless of how many components request it). Subscribe mode adds negative caching (a missing doc caches `null`, so it resolves the moment it appears rather than staying blank until `staleTime`) and live cross-tab updates. Use it for small, change-sensitive identity docs (the canonical consumer is TTT `publicUsers`).
+
 Client peers (`react`, `react-dom`, `@tanstack/react-query`) are optional; they are needed only when importing `./react`.
 
 ## Boundary
