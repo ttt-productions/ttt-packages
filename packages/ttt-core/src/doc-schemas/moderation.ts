@@ -11,24 +11,31 @@ export const ContentViolationSchema = z.object({
   userId: z.string(),
   fileType: z.string(),
   violationType: z.enum(['text', 'media']).optional(),
-  originalFileName: z.string(),
   reason: z.string(),
+  timestamp: z.number(),
+  appealStatus: z.enum(['none', 'pending', 'approved', 'denied']),
+  // Text violations (moderateTextOrThrow / media-result-handler 'text_rejected') write these and
+  // omit the media-only fields below; media violations (logContentViolation) do the reverse.
+  flaggedWords: z.array(z.string()).optional(),
+  originalText: z.string().optional(),
+  // Media-only fields. Optional because text violations omit them, and `scores` is nullable
+  // because moderateTextOrThrow writes `scores: result.scores ?? null`.
+  originalFileName: z.string().optional(),
   scores: z.object({
     adult: z.string(),
     violence: z.string(),
     racy: z.string(),
-  }),
-  timestamp: z.number(),
-  rejectedFilePath: z.string(),
+  }).nullable().optional(),
+  rejectedFilePath: z.string().optional(),
   rejectedFileUrl: z.string().optional(),
-  appealStatus: z.enum(['none', 'pending', 'approved', 'denied']),
+  pendingFile: PendingMediaPendingSchema.partial().optional(),
+  // Appeal lifecycle (submitContentAppeal / reviewContentAppeal).
   appealMessage: z.string().optional(),
   appealedAt: z.number().optional(),
   reviewedBy: z.string().optional(),
   reviewedAt: z.number().optional(),
   reviewDecision: z.enum(['approved', 'denied']).optional(),
   reviewNotes: z.string().optional(),
-  pendingFile: PendingMediaPendingSchema.partial(),
 });
 export type ContentViolation = z.infer<typeof ContentViolationSchema>;
 

@@ -169,9 +169,6 @@ export const PATH_BUILDERS = {
   pendingMediaArchive: (docId: string): [string, string] =>
     [COLLECTIONS.PENDING_MEDIA_ARCHIVE, docId],
 
-  notificationQueue: (notificationId: string): [string, string] =>
-    [COLLECTIONS.NOTIFICATION_QUEUE, notificationId],
-
   pledgePaymentsSummary: (): [string, string] =>
     [COLLECTIONS.PLEDGE_PAYMENTS_SUMMARY, SPECIAL_DOCS.SUMMARY],
 

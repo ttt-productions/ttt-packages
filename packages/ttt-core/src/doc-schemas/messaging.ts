@@ -4,6 +4,7 @@
 // Types inferred via z.infer.
 
 import { z } from 'zod';
+import { ReplyToSchema, ChatAttachmentSchema } from '@ttt-productions/chat-schemas';
 import { InviteSourceSchema } from '../schemas/work-project-management.js';
 
 const userRefSchema = z.object({ uid: z.string() });
@@ -67,3 +68,23 @@ export const AdminDispatchSchema = z.object({
   closedBy: z.string().optional(),
 });
 export type AdminDispatch = z.infer<typeof AdminDispatchSchema>;
+
+// Per-message body stored in the three chat collections — guildChatMessages, conversationMessages,
+// and inviteMessages. All three are written by ONE path (runSendGuildChatMessage: senderId/text/
+// createdAt + optional replyTo/attachment); the admin-dispatch INITIAL message
+// (runStartAdminSupportThread) additionally stores `messageId`. This is the STORED shape — a relaxed
+// @ttt-productions/chat-core ChatMessageV1: `messageId` is the doc id (only sometimes persisted) and
+// `threadId` is not stored. Reuses the chat-schemas Zod shapes for attachment + replyTo.
+export const ChatMessageV1Schema = z.object({
+  senderId: z.string(),
+  text: z.string(),
+  createdAt: z.number(),
+  messageId: z.string().optional(),
+  threadId: z.string().optional(),
+  type: z.string().optional(),
+  attachment: ChatAttachmentSchema.optional(),
+  replyTo: ReplyToSchema.optional(),
+  isSystemMessage: z.boolean().optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
+});
+export type ChatMessageV1Doc = z.infer<typeof ChatMessageV1Schema>;

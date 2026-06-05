@@ -32,7 +32,6 @@ export const COLLECTIONS = {
   ADMIN_TASKS: 'adminTasks',
   ADMIN_ACTIVITY_LOG: 'adminActivityLog',
   SHORT_LINKS: 'shortLinks',
-  NOTIFICATION_QUEUE: 'notificationQueue',
   GUILD_INVITE_CONVERSATIONS: 'guildInviteConversations',
   STAKE_SHARE_AUDIT_EVENTS: 'stakeShareAuditEvents',
   MODERATION_CASCADE_MANIFESTS: 'moderationCascadeManifests',
@@ -42,6 +41,8 @@ export const COLLECTIONS = {
   ACTIVE_ADMIN_NOTIFICATIONS: 'activeAdminNotifications',
   ADMIN_NOTIFICATION_HISTORY: 'adminNotificationHistory',
   PENDING_NOTIFICATIONS: 'pendingNotifications',
+  // Cloud-Functions-only fan-out job queue (admin SDK writes; no client access).
+  FOLLOWER_RELEASE_JOBS: 'followerReleaseJobs',
 
   // Feedback & Metadata
   FEEDBACK_SUBMISSIONS: 'feedbackSubmissions',

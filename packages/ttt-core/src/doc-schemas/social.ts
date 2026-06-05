@@ -69,3 +69,33 @@ export const PledgePaymentSchema = z.object({
   userId: z.string(),
 });
 export type PledgePayment = z.infer<typeof PledgePaymentSchema>;
+
+// pledgePaymentsSummary/summary — running pledge totals counter updated by the Stripe webhook.
+// (functions/src/payments/stripeWebhook.ts)
+export const PledgePaymentsSummarySchema = z.object({
+  totalPledgePayments: z.number(),
+  totalPledgePaymentsByType: z.object({
+    card: z.number(),
+    paypal: z.number(),
+    crypto: z.number(),
+  }),
+  pledgePaymentCount: z.number(),
+  lastUpdatedAt: z.number(),
+});
+export type PledgePaymentsSummary = z.infer<typeof PledgePaymentsSummarySchema>;
+
+// userProfiles/{uid}/userLikes/likeHistory/squareStreetzLikes/{postId} — a user's like on a
+// SquareStreetz post; existence == liked. The path nests three of the registry segments
+// (userLikes / likeHistory / squareStreetzLikes). (functions/src/social/likeSquareStreetzPost.ts)
+export const SquareStreetzLikeSchema = z.object({
+  likedOn: z.number(),
+});
+export type SquareStreetzLike = z.infer<typeof SquareStreetzLikeSchema>;
+
+// squareStreetzFeed/trendingPosts — singleton holding the ordered top-N trending post IDs that the
+// client infinite-scrolls through. (functions/src/social/runUpdateTrendingFeed.ts)
+export const TrendingPostsSchema = z.object({
+  postIds: z.array(z.string()),
+  lastUpdated: z.number(),
+});
+export type TrendingPosts = z.infer<typeof TrendingPostsSchema>;

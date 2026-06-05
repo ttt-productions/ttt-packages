@@ -405,13 +405,6 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('pma_123');
     });
 
-    it('notificationQueue returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.notificationQueue('notif1');
-      expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.NOTIFICATION_QUEUE);
-      expect(result[1]).toBe('notif1');
-    });
-
     it('pledgePaymentsSummary returns 2-segment tuple with SUMMARY special doc', () => {
       const result = PATH_BUILDERS.pledgePaymentsSummary();
       expect(result).toHaveLength(2);

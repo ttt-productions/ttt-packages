@@ -50,6 +50,10 @@ erDiagram
     field extendHours
     field priority
   }
+  adminList {
+    field admins
+    field jrAdmins
+  }
   adminNotificationHistory {
     field id
     field type
@@ -208,20 +212,50 @@ erDiagram
     field userId
     field fileType
     field violationType
-    field originalFileName
     field reason
-    field scores
     field timestamp
-    field rejectedFilePath
-    field rejectedFileUrl
     field appealStatus
-    field appealMessage
+    field flaggedWords
+    field originalText
+    field originalFileName
+    field scores
+    field rejectedFilePath
+  }
+  conversationMessages {
+    field senderId
+    field text
+    field createdAt
+    field messageId
+    field threadId
+    field type
+    field attachment
+    field replyTo
+    field isSystemMessage
+    field meta
+  }
+  feedbackAliases {
+    field canonicalId
+    field originalType
   }
   followEdges {
     field followerUid
     field targetType
     field targetId
     field followedOn
+  }
+  followerReleaseJobs {
+    field jobId
+    field workProjectId
+    field workTitle
+    field hallItemId
+    field hallItemTitle
+    field hallSubItemType
+    field stewardUid
+    field canonRealmId
+    field status
+    field phase
+    field cursor
+    field totalSent
   }
   futurePlans {
     field lastUpdated
@@ -240,6 +274,18 @@ erDiagram
     field lastMessage
     field messageCount
     field isArchived
+  }
+  guildChatMessages {
+    field senderId
+    field text
+    field createdAt
+    field messageId
+    field threadId
+    field type
+    field attachment
+    field replyTo
+    field isSystemMessage
+    field meta
   }
   guildInviteConversations {
     field guildInviteId
@@ -278,6 +324,18 @@ erDiagram
     field coverPhotoPoster
     field coverPhotoCinematic
   }
+  inviteMessages {
+    field senderId
+    field text
+    field createdAt
+    field messageId
+    field threadId
+    field type
+    field attachment
+    field replyTo
+    field isSystemMessage
+    field meta
+  }
   mentionHistory {
     field userId
     field items
@@ -292,6 +350,19 @@ erDiagram
     field createdAt
     field completedAt
     field status
+  }
+  notificationBroadcastJobs {
+    field jobId
+    field selector
+    field title
+    field message
+    field actorUid
+    field actorSystemRole
+    field status
+    field cursor
+    field totalSent
+    field createdAt
+    field updatedAt
   }
   notificationHistory {
     field id
@@ -338,6 +409,11 @@ erDiagram
     field isWaitingForNewsApproval
     field squareStreetzAgreementsDate
     field agreements
+  }
+  profanityList {
+    field words
+    field updatedAt
+    field wordCount
   }
   profileCraftSkills {
     field id
@@ -395,6 +471,16 @@ erDiagram
     field rules
     field agreements
   }
+  shortLinks {
+    field shortId
+    field shortUrl
+    field destinationUrl
+    field type
+    field metadata
+    field createdAt
+    field createdBy
+    field clicks
+  }
   socialPosts {
     field postId
     field createdBy
@@ -409,6 +495,9 @@ erDiagram
     field postType
     field relatedAssetId
   }
+  squareStreetzLikes {
+    field likedOn
+  }
   stakeShareAuditEvents {
     field eventId
     field subtype
@@ -420,6 +509,12 @@ erDiagram
     field afterStakeShares
     field createdAt
     field source
+  }
+  summary {
+    field totalPledgePayments
+    field totalPledgePaymentsByType
+    field pledgePaymentCount
+    field lastUpdatedAt
   }
   taggedCraftSkills {
     field craftSkillId
@@ -466,6 +561,10 @@ erDiagram
     field adminNotes
     field reviewedAt
   }
+  trendingPosts {
+    field postIds
+    field lastUpdated
+  }
   tuneTracks {
     field uid
     field title
@@ -499,6 +598,12 @@ erDiagram
     field ownedWorkProjects
     field associatedWorkProjects
     field createdAt
+  }
+  userSuggestions {
+    field suggestionText
+    field count
+    field submittedBy
+    field lastSubmitted
   }
   workAssets {
     field id
@@ -556,6 +661,7 @@ erDiagram
   allWorkProjects ||--o{ auditionBoard : "workProjectId"
   allWorkProjects ||--o{ auditionEntries : "workProjectId"
   allWorkProjects ||--o{ commissionProposals : "workProjectId"
+  allWorkProjects ||--o{ followerReleaseJobs : "workProjectId"
   allWorkProjects ||--o{ guildChatChannels : "workProjectId"
   allWorkProjects ||--o{ guildInviteConversations : "workProjectId"
   allWorkProjects ||--o{ hallItems : "workProjectId"
@@ -567,7 +673,9 @@ erDiagram
   auditionBoard ||--o{ auditionEntries : "auditionId"
   commissionListings ||--o{ commissionProposals : "commissionListingId"
   commissionListings ||--o{ commissionProposals : "commissionProposalId"
+  contentViolations ||--o{ adminTasks : "violationId"
   guildInviteConversations ||--o{ commissionProposals : "guildInviteId"
+  hallItems ||--o{ followerReleaseJobs : "hallItemId"
   hallItems ||--o{ thresholdItems : "hallItemId"
   recentPledgePayments ||--o{ archivedPledgePayments : "pledgePaymentId"
   recentPledgePayments ||--o{ userPledgePayments : "pledgePaymentId"
@@ -576,16 +684,22 @@ erDiagram
   userProfiles ||--o{ activeUserNotifications : "targetUserId"
   userProfiles ||--o{ adminActivityLog : "adminUserId"
   userProfiles ||--o{ adminNotificationHistory : "targetUserId"
+  userProfiles ||--o{ adminTasks : "foundingArtisanUid"
+  userProfiles ||--o{ adminTasks : "userId"
   userProfiles ||--o{ archivedPledgePayments : "userId"
   userProfiles ||--o{ contentReports : "reportedUserId"
   userProfiles ||--o{ contentReports : "reporterUserId"
   userProfiles ||--o{ contentReports : "resolvedBy"
   userProfiles ||--o{ contentViolations : "reviewedBy"
   userProfiles ||--o{ contentViolations : "userId"
+  userProfiles ||--o{ conversationMessages : "senderId"
   userProfiles ||--o{ followEdges : "followerUid"
+  userProfiles ||--o{ guildChatMessages : "senderId"
   userProfiles ||--o{ guildmateUsers : "uid"
+  userProfiles ||--o{ inviteMessages : "senderId"
   userProfiles ||--o{ mentionHistory : "userId"
   userProfiles ||--o{ moderationCascadeManifests : "actorUid"
+  userProfiles ||--o{ notificationBroadcastJobs : "actorUid"
   userProfiles ||--o{ notificationHistory : "targetUserId"
   userProfiles ||--o{ pendingAdminDispatches : "closedBy"
   userProfiles ||--o{ pendingAdminDispatches : "initiatorUserId"

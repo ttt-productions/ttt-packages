@@ -40,6 +40,9 @@ import {
   MentionHistoryDocumentSchema,
   FollowEdgeSchema,
   PledgePaymentSchema,
+  PledgePaymentsSummarySchema,
+  SquareStreetzLikeSchema,
+  TrendingPostsSchema,
 } from './social.js';
 import {
   FullCommissionListingSchema,
@@ -52,15 +55,16 @@ import {
   GuildChatChannelSchema,
   GuildInviteConversationSchema,
   AdminDispatchSchema,
+  ChatMessageV1Schema,
 } from './messaging.js';
-import { AppConfigSchema } from './system.js';
+import { AppConfigSchema, AdminListSchema, ProfanityListSchema } from './system.js';
 import {
   ContentViolationSchema,
   ModerationCascadeManifestSchema,
   ModerationCascadeChangedDocSchema,
 } from './moderation.js';
 import {
-  AdminTaskSchema,
+  AdminTaskDocSchema,
   ReportSchema,
   ReportGroupSchema,
   ActivityLogEntrySchema,
@@ -70,9 +74,17 @@ import {
   NotificationDocSchema,
   NotificationHistoryDocSchema,
   PendingNotificationSchema,
+  FollowerReleaseJobSchema,
+  NotificationBroadcastJobSchema,
 } from './notifications.js';
 import { PendingMediaSchema, ArchivedPendingMediaSchema } from '../media/pending-media.js';
-import { ReservedDisplayNameSchema, StakeShareAuditEventSchema } from './operational.js';
+import {
+  ReservedDisplayNameSchema,
+  StakeShareAuditEventSchema,
+  ShortLinkSchema,
+  FeedbackAliasSchema,
+  UserSuggestionSchema,
+} from './operational.js';
 
 export const COLLECTION_SCHEMAS = {
   // ===== Users =====
@@ -83,6 +95,7 @@ export const COLLECTION_SCHEMAS = {
   'userProfiles/{userId}/auditionVotes/{auditionId}': UserAuditionVoteSchema,
   'userProfiles/{userId}/mentionHistory/{docId}': MentionHistoryDocumentSchema,
   'userProfiles/{userId}/notificationHistory/{notificationId}': NotificationHistoryDocSchema,
+  'userProfiles/{userId}/userLikes/likeHistory/squareStreetzLikes/{postId}': SquareStreetzLikeSchema,
   'publicUsers/{uid}': PublicUserSchema,
 
   // ===== Work / Realm / Guild =====
@@ -97,15 +110,19 @@ export const COLLECTION_SCHEMAS = {
   'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}': FullTelevisionSchema,
   'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}': FullTelevisionEpisodeSchema,
   'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}': GuildChatChannelSchema,
+  'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}/guildChatMessages/{guildChatMessageId}': ChatMessageV1Schema,
   'publicWorkProjects/{workProjectId}': PublicWorkProjectSchema,
   'workRealms/{workRealmId}': WorkRealmSchema,
   'guildInviteConversations/{guildInviteId}': GuildInviteConversationSchema,
+  'guildInviteConversations/{guildInviteId}/inviteMessages/{guildInviteMessageId}': ChatMessageV1Schema,
 
   // ===== Square / Social / Pledge =====
   'squareStreetzFeed/activePosts/socialPosts/{postId}': SquareStreetzPostSchema,
+  'squareStreetzFeed/trendingPosts': TrendingPostsSchema,
   'followEdges/{followEdgeId}': FollowEdgeSchema,
   'recentPledgePayments/{pledgePaymentId}': PledgePaymentSchema,
   'archivedPledgePayments/{pledgePaymentId}': PledgePaymentSchema,
+  'pledgePaymentsSummary/summary': PledgePaymentsSummarySchema,
 
   // ===== Threshold / Hall =====
   'thresholdItems/{thresholdItemId}': ThresholdItemSchema,
@@ -120,7 +137,7 @@ export const COLLECTION_SCHEMAS = {
   // ===== Moderation / Reports / Admin =====
   'contentReports/{reportId}': ReportSchema,
   'activeReportGroups/{groupKey}': ReportGroupSchema,
-  'adminTasks/{taskId}': AdminTaskSchema,
+  'adminTasks/{taskId}': AdminTaskDocSchema,
   'adminActivityLog/{logId}': ActivityLogEntrySchema,
   'contentViolations/{violationId}': ContentViolationSchema,
   'moderationCascadeManifests/{cascadeId}': ModerationCascadeManifestSchema,
@@ -128,6 +145,7 @@ export const COLLECTION_SCHEMAS = {
   'auditEvents/{eventId}': TTTAuditEventSchema,
   'stakeShareAuditEvents/{eventId}': StakeShareAuditEventSchema,
   'pendingAdminDispatches/{adminDispatchId}': AdminDispatchSchema,
+  'pendingAdminDispatches/{adminDispatchId}/conversationMessages/{adminDispatchMessageId}': ChatMessageV1Schema,
 
   // ===== Media pipeline =====
   'pendingMedia/{pendingMediaId}': PendingMediaSchema,
@@ -138,54 +156,48 @@ export const COLLECTION_SCHEMAS = {
   'activeAdminNotifications/{notificationId}': NotificationDocSchema,
   'adminNotificationHistory/{notificationId}': NotificationHistoryDocSchema,
   'pendingNotifications/{notificationId}': PendingNotificationSchema,
+  'followerReleaseJobs/{jobId}': FollowerReleaseJobSchema,
+  'notificationBroadcastJobs/{jobId}': NotificationBroadcastJobSchema,
 
   // ===== Craft skills index =====
   'craftSkillsByTag/{tag}/taggedCraftSkills/{compositeId}': CraftSkillReferenceSchema,
 
   // ===== Operational / utility =====
   'reservedDisplayNames/{displayNameUppercase}': ReservedDisplayNameSchema,
+  'shortLinks/{shortId}': ShortLinkSchema,
+  'feedbackAliases/{aliasId}': FeedbackAliasSchema,
+  'feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId}': UserSuggestionSchema,
 
   // ===== _config singletons =====
   '_config/app': AppConfigSchema,
   '_config/futurePlans': FuturePlansDocumentSchema,
   '_config/rulesAndAgreements': RulesAndAgreementsSchema,
+
+  // ===== _systemData singletons =====
+  '_systemData/adminList': AdminListSchema,
+  '_systemData/profanityList': ProfanityListSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;
 
 export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;
 
 /**
- * Collections that exist (in COLLECTIONS / *_SUBCOLLECTIONS or firestore.rules) but are not
- * yet bound to a schema — their document shape still needs to be reverse-engineered from
- * the backend write sites, OR (pledgePaymentsSummary) the terminology doc says they are
- * being removed. Listed EXPLICITLY so completeness is enforced and nothing is silently
- * uncovered. Each is a tracked follow-up; the registry test fails if a NEW unlisted
- * collection appears.
+ * Collections that exist (in COLLECTIONS / *_SUBCOLLECTIONS or firestore.rules) but are
+ * intentionally NOT bound to a schema, each with a reason. Listed EXPLICITLY so completeness is
+ * enforced and nothing is silently uncovered; the registry test fails if a NEW unlisted collection
+ * appears. These three are the only remaining gaps after the schema-registry binding pass:
  *
- *  - Chat message bodies (guildChatMessages / conversationMessages / inviteMessages) are
- *    owned by @ttt-productions/chat-schemas (ChatMessageV1) — bind to that schema next.
- *  - userMetadata / userLikes / likeHistory / squareStreetzLikes / checkedOutItems /
- *    userSuggestions / trendingPosts / reservedDisplayNames / shortLinks / feedback* /
- *    _systemData / stakeShareAuditEvents / notificationQueue / notificationBroadcastJobs:
- *    need a shape authored from the backend write site.
- *  - pledgePaymentsSummary: terminology doc says consolidated away (Phase 6) — confirm + remove.
+ *  - userMetadata: `userProfiles/{uid}/userMetadata/notificationSettings` — a firestore.rules
+ *    match and `PATH_BUILDERS.userMetadata` exist, but there is no live reader/writer and no
+ *    notification-settings type anywhere yet. Bind once that shape is implemented.
+ *  - checkedOutItems: a `userProfiles/{uid}/checkedOutItems` subcollection constant with no writer,
+ *    reader, rule, or path-builder (the admin "checked out items" UI reads adminTasks by
+ *    `checkoutDetails.userId`, not this subcollection). Vestigial — remove once confirmed safe.
+ *  - feedbackDenylist: `feedbackDenylist/{deniedWord}` — Console-managed (firestore.rules §3F: no
+ *    callable writes it) and submitFeedback reads it via `.exists` only, so there is no field
+ *    contract to author a schema from. The doc id is the denied word; the body is unused.
  */
 export const PENDING_COLLECTIONS: readonly string[] = [
-  'pledgePaymentsSummary',
-  'shortLinks',
-  'notificationQueue',
-  'notificationBroadcastJobs',
-  'feedbackSubmissions',
-  'feedbackAliases',
-  'feedbackDenylist',
-  'userSuggestions',
-  '_systemData',
   'userMetadata',
-  'userLikes',
-  'likeHistory',
-  'squareStreetzLikes',
   'checkedOutItems',
-  'trendingPosts',
-  'guildChatMessages',
-  'conversationMessages',
-  'inviteMessages',
+  'feedbackDenylist',
 ] as const;

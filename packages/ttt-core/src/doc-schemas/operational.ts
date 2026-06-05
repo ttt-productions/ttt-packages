@@ -26,3 +26,39 @@ export const StakeShareAuditEventSchema = z.object({
   source: z.string(),
 });
 export type StakeShareAuditEvent = z.infer<typeof StakeShareAuditEventSchema>;
+
+// shortLinks/{shortId} — short link to an Audition / AuditionEntry, with a click counter.
+// (functions/src/utility/createShortLink.ts)
+export const ShortLinkSchema = z.object({
+  shortId: z.string(),
+  shortUrl: z.string(),
+  destinationUrl: z.string(),
+  type: z.enum(['audition', 'audition-entry']),
+  metadata: z.object({
+    auditionId: z.string(),
+    auditionEntryId: z.string().nullable(),
+  }),
+  createdAt: z.number(),
+  createdBy: z.string(),
+  clicks: z.number(),
+});
+export type ShortLink = z.infer<typeof ShortLinkSchema>;
+
+// feedbackAliases/{aliasId} — Console-managed map collapsing a synonym suggestion onto a canonical
+// one; read by submitFeedback, no callable writes it. (firestore.rules §3F / submitFeedback.ts)
+export const FeedbackAliasSchema = z.object({
+  canonicalId: z.string(),
+  originalType: z.string(),
+});
+export type FeedbackAlias = z.infer<typeof FeedbackAliasSchema>;
+
+// feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId} — an aggregated user
+// suggestion with its deduped submitter list + count. The path nests the feedbackSubmissions +
+// userSuggestions registry segments. (functions/src/utility/submitFeedback.ts)
+export const UserSuggestionSchema = z.object({
+  suggestionText: z.string(),
+  count: z.number(),
+  submittedBy: z.array(z.object({ userId: z.string() })),
+  lastSubmitted: z.number(),
+});
+export type UserSuggestion = z.infer<typeof UserSuggestionSchema>;
