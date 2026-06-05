@@ -10,7 +10,6 @@
 
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
-import { ShortWorkProjectSchema } from '../media/atoms.js';
 import { isGuildStandingId, type GuildStandingId } from '../permissions/index.js';
 
 const guildStandingIdSchema = z.custom<GuildStandingId>(isGuildStandingId);
@@ -113,14 +112,3 @@ export const WorkRealmSchema = z.object({
   updatedOn: z.number(),
 });
 export type WorkRealm = z.infer<typeof WorkRealmSchema>;
-
-export const GuildInviteSchema = z.object({
-  guildInviteId: z.string(),
-  createdBy: userRefSchema,
-  createdOn: z.number(),
-  message: z.string(),
-  workProject: ShortWorkProjectSchema,
-  status: z.enum(['pending', 'accepted', 'declined']),
-  lastUpdatedAt: z.number(),
-});
-export type GuildInvite = z.infer<typeof GuildInviteSchema>;

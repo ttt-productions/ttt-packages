@@ -27,18 +27,23 @@ export const GuildChatChannelSchema = z.object({
 });
 export type GuildChatChannel = z.infer<typeof GuildChatChannelSchema>;
 
+// The guildInviteConversations/{guildInviteId} doc as actually written by inviteUserToGuild
+// (and mutated by the accept/decline/finalize/cancel callables). This is the single source of
+// truth — the former duplicate `GuildInviteSchema` in ./work-project.ts was a stale, narrower
+// shape that the callable bypassed with an `as unknown as` cast. The inviter is `createdBy`
+// (== `sender`); there is no separate `workSteward`/`workProjectTitle` field (the title lives in
+// `workProject.workingTitle`).
 export const GuildInviteConversationSchema = z.object({
   guildInviteId: z.string(),
   workProjectId: z.string(),
   relatedUserIds: z.array(z.string()),
-  workProjectTitle: z.string(),
   workProject: z.object({
     workProjectId: z.string(),
     workingTitle: z.string(),
     type: z.string(),
     workingDescription: z.string(),
   }),
-  workSteward: userRefSchema,
+  createdBy: userRefSchema,
   sender: userRefSchema,
   recipient: userRefSchema,
   stakeSharesOffered: z.number(),
@@ -46,6 +51,7 @@ export const GuildInviteConversationSchema = z.object({
   status: z.enum(['pending', 'accepted', 'declined', 'cancelled', 'finalized', 'error']),
   createdAt: z.number(),
   updatedAt: z.number(),
+  lastUpdatedAt: z.number(),
   finalizedAt: z.number().optional(),
   senderConfirmed: z.boolean(),
   recipientConfirmed: z.boolean(),

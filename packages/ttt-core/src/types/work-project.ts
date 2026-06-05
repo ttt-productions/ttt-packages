@@ -12,7 +12,6 @@ export type {
   FullWorkProject,
   PublicWorkProject,
   WorkRealm,
-  GuildInvite,
 } from '../doc-schemas/work-project.js';
 
 /**

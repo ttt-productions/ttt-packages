@@ -528,9 +528,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `guildInviteId` | `string` |  |
 | `workProjectId` | `string` |  |
 | `relatedUserIds` | `string[]` |  |
-| `workProjectTitle` | `string` |  |
 | `workProject` | `{ workProjectId, workingTitle, type, workingDescription }` |  |
-| `workSteward` | `{ uid }` |  |
+| `createdBy` | `{ uid }` |  |
 | `sender` | `{ uid }` |  |
 | `recipient` | `{ uid }` |  |
 | `stakeSharesOffered` | `number` |  |
@@ -538,6 +537,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `status` | `'pending' \| 'accepted' \| 'declined' \| 'cancelled' \| 'finalized' \| 'error'` |  |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
+| `lastUpdatedAt` | `number` |  |
 | `finalizedAt` | `number` | yes |
 | `senderConfirmed` | `boolean` |  |
 | `recipientConfirmed` | `boolean` |  |
