@@ -17,31 +17,5 @@
  * VersionGate). The other fields are reserved — they're present in the doc
  * and type so future features have a home, but no UI wires them up yet.
  */
-export type AppConfig = {
-  /**
-   * Version string for force-refresh.
-   * Bump manually in Firebase Console after a successful App Hosting deploy
-   * to force all connected clients to hard-refresh onto the new build.
-   */
-  appVersion: string;
-
-  /**
-   * Emergency maintenance mode. When `true`, the app should display
-   * `maintenanceMessage` and prevent writes. Read by a future
-   * MaintenanceGate component (not yet implemented).
-   */
-  maintenanceMode: boolean;
-
-  /**
-   * Message shown to users when `maintenanceMode` is `true`.
-   * Omitted when maintenance mode is off.
-   */
-  maintenanceMessage?: string;
-
-  /**
-   * Kill switch for new user signups. When `false`, the registration
-   * page should display a "signups temporarily closed" message.
-   * Read by a future check in the registration flow (not yet implemented).
-   */
-  registrationEnabled: boolean;
-};
+// Shape is defined as a Zod schema in ../doc-schemas/system.ts; type inferred there.
+export type { AppConfig } from '../doc-schemas/system.js';

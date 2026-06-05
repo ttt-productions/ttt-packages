@@ -72,6 +72,10 @@
             "types": "./dist/schemas/notification.d.ts",
             "default": "./dist/schemas/notification.js"
         },
+        "./doc-schemas": {
+            "types": "./dist/doc-schemas/index.d.ts",
+            "default": "./dist/doc-schemas/index.js"
+        },
         "./upload-variables": {
             "types": "./dist/upload-variables/index.d.ts",
             "default": "./dist/upload-variables/index.js"

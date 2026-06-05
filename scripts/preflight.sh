@@ -16,4 +16,7 @@ npm install
 echo "preflight: npm run build..."
 npm run build
 
+echo "preflight: schema docs in sync (docs/generated/firestore-schema.{md,mmd})..."
+node scripts/generate-schema-docs.mjs --check
+
 echo "preflight: done"

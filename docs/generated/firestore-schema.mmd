@@ -1,0 +1,614 @@
+%% GENERATED FILE — DO NOT EDIT. Run `npm run schema:docs` in ttt-packages.
+erDiagram
+  activeAdminNotifications {
+    field id
+    field type
+    field dedupKey
+    field category
+    field targetUserId
+    field title
+    field message
+    field count
+    field latestActorIds
+    field targetPath
+    field metadata
+    field seenAt
+  }
+  activeReportGroups {
+    field groupKey
+    field reportedItemId
+    field reportedItemType
+    field reportedUserId
+    field lastReportAt
+    field totalReports
+    field status
+    field reports
+  }
+  activeUserNotifications {
+    field id
+    field type
+    field dedupKey
+    field category
+    field targetUserId
+    field title
+    field message
+    field count
+    field latestActorIds
+    field targetPath
+    field metadata
+    field seenAt
+  }
+  adminActivityLog {
+    field id
+    field adminUserId
+    field action
+    field taskType
+    field taskId
+    field timestamp
+    field resolution
+    field timeSpentMinutes
+    field extendHours
+    field priority
+  }
+  adminNotificationHistory {
+    field id
+    field type
+    field dedupKey
+    field category
+    field targetUserId
+    field title
+    field message
+    field count
+    field latestActorIds
+    field targetPath
+    field metadata
+    field seenAt
+  }
+  adminTasks {
+    field id
+    field taskType
+    field taskId
+    field originalPath
+    field status
+    field checkoutDetails
+    field summary
+    field priority
+    field createdAt
+    field lastUpdatedAt
+    field completedAt
+    field itemData
+  }
+  allWorkProjects {
+    field workProjectId
+    field createdOn
+    field type
+    field workingDescription
+    field workingTitle
+    field hallWingType
+    field createdBy
+    field status
+    field guildmateUserIds
+    field invitedUserIds
+    field workRealmId
+    field realmCanonStatus
+  }
+  app {
+    field appVersion
+    field maintenanceMode
+    field maintenanceMessage
+    field registrationEnabled
+  }
+  archivedPledgePayments {
+    field pledgePaymentId
+    field stripeSessionId
+    field amount
+    field currency
+    field message
+    field status
+    field createdAt
+    field userId
+  }
+  auditEvents {
+    field id
+    field type
+    field schemaVersion
+    field actor
+    field target
+    field timestamp
+    field ip
+    field userAgent
+    field region
+    field metadata
+    field result
+    field failureReason
+  }
+  auditionBoard {
+    field auditionId
+    field type
+    field title
+    field description
+    field videoUrl
+    field mediaType
+    field openTill
+    field createdOn
+    field createdBy
+    field workProjectId
+    field sponsoredAuditionAmountUSD
+    field stakeSharesOffered
+  }
+  auditionEntries {
+    field auditionEntryId
+    field auditionId
+    field workProjectId
+    field videoUrl
+    field mediaType
+    field createdBy
+    field createdAt
+    field votes
+    field shortId
+    field shortUrl
+  }
+  auditionVotes {
+    field votedForAuditionEntryId
+    field votedOn
+    field auditionEntryArtisanCreator
+  }
+  changedDocs {
+    field docPath
+    field entityType
+    field fieldPath
+    field previousValue
+    field newValue
+    field restored
+    field restoredAt
+  }
+  commissionListings {
+    field commissionListingId
+    field title
+    field description
+    field commissionAttachment
+    field requiredTradeProfessions
+    field stakeSharesOffered
+    field createdAt
+    field createdBy
+    field workProjectAssociatedWith
+    field status
+    field savedProposalArtisans
+  }
+  commissionProposals {
+    field commissionProposalId
+    field commissionListingId
+    field workProjectId
+    field proposalText
+    field proposalFileUrl
+    field proposalFileType
+    field createdBy
+    field createdOn
+    field status
+    field guildInviteId
+    field invitedOn
+    field acceptedOn
+  }
+  contentReports {
+    field reportId
+    field reporterUserId
+    field reportedItemType
+    field reportedItemId
+    field parentItemId
+    field reportedUserId
+    field reason
+    field comment
+    field createdAt
+    field status
+    field resolvedAt
+    field resolvedBy
+  }
+  contentViolations {
+    field id
+    field userId
+    field fileType
+    field violationType
+    field originalFileName
+    field reason
+    field scores
+    field timestamp
+    field rejectedFilePath
+    field rejectedFileUrl
+    field appealStatus
+    field appealMessage
+  }
+  followEdges {
+    field followerUid
+    field targetType
+    field targetId
+    field followedOn
+  }
+  futurePlans {
+    field lastUpdated
+    field plans
+  }
+  guildChatChannels {
+    field guildChatChannelId
+    field workProjectId
+    field channelName
+    field description
+    field requiredGuildStandings
+    field allowedUserIds
+    field createdAt
+    field createdBy
+    field lastMessageAt
+    field lastMessage
+    field messageCount
+    field isArchived
+  }
+  guildInviteConversations {
+    field guildInviteId
+    field workProjectId
+    field relatedUserIds
+    field workProjectTitle
+    field workProject
+    field workSteward
+    field sender
+    field recipient
+    field stakeSharesOffered
+    field source
+    field status
+    field createdAt
+  }
+  guildmateUsers {
+    field uid
+    field guildStandings
+    field tradeProfessions
+    field stakeShareCount
+    field joinedAt
+    field status
+    field holderType
+  }
+  hallItems {
+    field hallItemId
+    field workProjectId
+    field workProjectType
+    field status
+    field createdOn
+    field publishedAt
+    field hallWingType
+    field title
+    field description
+    field coverPhotoSquare
+    field coverPhotoPoster
+    field coverPhotoCinematic
+  }
+  mentionHistory {
+    field userId
+    field items
+  }
+  moderationCascadeManifests {
+    field cascadeId
+    field action
+    field entityType
+    field entityId
+    field actorUid
+    field reason
+    field createdAt
+    field completedAt
+    field status
+  }
+  notificationHistory {
+    field id
+    field type
+    field dedupKey
+    field category
+    field targetUserId
+    field title
+    field message
+    field count
+    field latestActorIds
+    field targetPath
+    field metadata
+    field seenAt
+  }
+  pendingAdminDispatches {
+    field adminDispatchId
+    field userId
+    field initiatorUserId
+    field initiatedBy
+    field subject
+    field status
+    field createdAt
+    field lastUpdatedAt
+    field readByAdmin
+    field readByUser
+    field closedBy
+  }
+  pendingMedia {
+  }
+  pendingMediaArchive {
+  }
+  pendingNotifications {
+    field id
+    field type
+    field category
+    field targetUserId
+    field actorId
+    field metadata
+    field createdAt
+  }
+  privateData {
+    field email
+    field isWaitingForNewsApproval
+    field squareStreetzAgreementsDate
+    field agreements
+  }
+  profileCraftSkills {
+    field id
+    field name
+    field url
+    field tags
+    field createdAt
+    field type
+  }
+  publicGuildmateUsers {
+    field uid
+    field tradeProfessions
+    field joinedAt
+    field status
+  }
+  publicUsers {
+    field uid
+    field displayName
+    field displayName_lowercase
+    field profilePictureUrlFull
+    field profilePictureUrlMedium
+    field profilePictureUrlSmall
+    field artisanCreator
+    field disabled
+  }
+  publicWorkProjects {
+    field workProjectId
+    field publicWorkStatus
+    field publicWorkHidden
+    field workRealmId
+    field realmCanonStatus
+    field type
+    field hallWingType
+    field workingTitle
+    field workingTitle_lowercase
+    field workingDescription
+    field coverImageUrl
+    field workStewardUid
+  }
+  recentPledgePayments {
+    field pledgePaymentId
+    field stripeSessionId
+    field amount
+    field currency
+    field message
+    field status
+    field createdAt
+    field userId
+  }
+  reservedDisplayNames {
+    field userId
+    field displayName
+  }
+  rulesAndAgreements {
+    field rules
+    field agreements
+  }
+  socialPosts {
+    field postId
+    field createdBy
+    field authorId
+    field content
+    field mentions
+    field relatedIds
+    field mediaUrl
+    field mediaType
+    field createdAt
+    field likes
+    field postType
+    field relatedAssetId
+  }
+  stakeShareAuditEvents {
+    field eventId
+    field subtype
+    field reason
+    field workProjectId
+    field guildmateUserUid
+    field guildmateUserPath
+    field beforeStakeShares
+    field afterStakeShares
+    field createdAt
+    field source
+  }
+  taggedCraftSkills {
+    field craftSkillId
+    field compositeId
+    field userId
+    field craftSkillName
+    field craftSkillUrl
+    field craftSkillType
+    field tags
+    field createdAt
+  }
+  taleChapters {
+    field uid
+    field title
+    field content
+    field description
+    field order
+    field photoUrl
+    field status
+    field createdOn
+  }
+  televisionEpisodes {
+    field uid
+    field title
+    field description
+    field videoUrl
+    field mediaType
+    field order
+    field photoUrl
+    field status
+    field createdOn
+  }
+  thresholdItems {
+    field thresholdItemId
+    field hallItemId
+    field workProjectId
+    field workProjectType
+    field itemId
+    field itemsKey
+    field order
+    field hallWingType
+    field submittedAt
+    field reviewStatus
+    field adminNotes
+    field reviewedAt
+  }
+  tuneTracks {
+    field uid
+    field title
+    field description
+    field fileUrl
+    field mediaType
+    field order
+    field photoUrl
+    field status
+    field createdOn
+  }
+  userPledgePayments {
+    field pledgePaymentId
+    field stripeSessionId
+    field amount
+    field currency
+    field message
+    field status
+    field createdAt
+    field userId
+  }
+  userProfiles {
+    field uid
+    field displayName
+    field displayName_lowercase
+    field profilePictureUrlFull
+    field profilePictureUrlMedium
+    field profilePictureUrlSmall
+    field artisanCreator
+    field status
+    field ownedWorkProjects
+    field associatedWorkProjects
+    field createdAt
+  }
+  workAssets {
+    field id
+    field name
+    field url
+    field createdAt
+    field size
+    field type
+    field createdBy
+  }
+  workProjectTales {
+    field uid
+    field title
+    field description
+    field createdOn
+    field coverPhotoSquare
+    field coverPhotoPoster
+    field coverPhotoCinematic
+    field workGenres
+  }
+  workProjectTelevision {
+    field uid
+    field title
+    field description
+    field createdOn
+    field coverPhotoSquare
+    field coverPhotoPoster
+    field coverPhotoCinematic
+    field workGenres
+  }
+  workProjectTunes {
+    field uid
+    field title
+    field description
+    field coverPhotoSquare
+    field coverPhotoPoster
+    field coverPhotoCinematic
+    field workGenres
+    field createdOn
+  }
+  workRealms {
+    field workRealmId
+    field realmType
+    field realmStatus
+    field realmHidden
+    field workingTitle
+    field workingTitle_lowercase
+    field workingDescription
+    field workStewardUid
+    field foundingArtisanUid
+    field foundingWorkProjectId
+    field createdOn
+    field updatedOn
+  }
+  allWorkProjects ||--o{ auditionBoard : "workProjectId"
+  allWorkProjects ||--o{ auditionEntries : "workProjectId"
+  allWorkProjects ||--o{ commissionProposals : "workProjectId"
+  allWorkProjects ||--o{ guildChatChannels : "workProjectId"
+  allWorkProjects ||--o{ guildInviteConversations : "workProjectId"
+  allWorkProjects ||--o{ hallItems : "workProjectId"
+  allWorkProjects ||--o{ publicWorkProjects : "workProjectId"
+  allWorkProjects ||--o{ stakeShareAuditEvents : "workProjectId"
+  allWorkProjects ||--o{ thresholdItems : "workProjectId"
+  allWorkProjects ||--o{ workRealms : "foundingWorkProjectId"
+  auditionBoard ||--o{ auditionEntries : "auditionEntryId"
+  auditionBoard ||--o{ auditionEntries : "auditionId"
+  commissionListings ||--o{ commissionProposals : "commissionListingId"
+  commissionListings ||--o{ commissionProposals : "commissionProposalId"
+  guildInviteConversations ||--o{ commissionProposals : "guildInviteId"
+  hallItems ||--o{ thresholdItems : "hallItemId"
+  recentPledgePayments ||--o{ archivedPledgePayments : "pledgePaymentId"
+  recentPledgePayments ||--o{ userPledgePayments : "pledgePaymentId"
+  userProfiles ||--o{ activeAdminNotifications : "targetUserId"
+  userProfiles ||--o{ activeReportGroups : "reportedUserId"
+  userProfiles ||--o{ activeUserNotifications : "targetUserId"
+  userProfiles ||--o{ adminActivityLog : "adminUserId"
+  userProfiles ||--o{ adminNotificationHistory : "targetUserId"
+  userProfiles ||--o{ archivedPledgePayments : "userId"
+  userProfiles ||--o{ contentReports : "reportedUserId"
+  userProfiles ||--o{ contentReports : "reporterUserId"
+  userProfiles ||--o{ contentReports : "resolvedBy"
+  userProfiles ||--o{ contentViolations : "reviewedBy"
+  userProfiles ||--o{ contentViolations : "userId"
+  userProfiles ||--o{ followEdges : "followerUid"
+  userProfiles ||--o{ guildmateUsers : "uid"
+  userProfiles ||--o{ mentionHistory : "userId"
+  userProfiles ||--o{ moderationCascadeManifests : "actorUid"
+  userProfiles ||--o{ notificationHistory : "targetUserId"
+  userProfiles ||--o{ pendingAdminDispatches : "closedBy"
+  userProfiles ||--o{ pendingAdminDispatches : "initiatorUserId"
+  userProfiles ||--o{ pendingAdminDispatches : "userId"
+  userProfiles ||--o{ pendingNotifications : "actorId"
+  userProfiles ||--o{ pendingNotifications : "targetUserId"
+  userProfiles ||--o{ publicGuildmateUsers : "uid"
+  userProfiles ||--o{ publicUsers : "uid"
+  userProfiles ||--o{ publicWorkProjects : "foundingArtisanUid"
+  userProfiles ||--o{ publicWorkProjects : "workStewardUid"
+  userProfiles ||--o{ recentPledgePayments : "userId"
+  userProfiles ||--o{ reservedDisplayNames : "userId"
+  userProfiles ||--o{ socialPosts : "authorId"
+  userProfiles ||--o{ taggedCraftSkills : "userId"
+  userProfiles ||--o{ taleChapters : "uid"
+  userProfiles ||--o{ televisionEpisodes : "uid"
+  userProfiles ||--o{ thresholdItems : "reviewedBy"
+  userProfiles ||--o{ tuneTracks : "uid"
+  userProfiles ||--o{ userPledgePayments : "userId"
+  userProfiles ||--o{ workProjectTales : "uid"
+  userProfiles ||--o{ workProjectTelevision : "uid"
+  userProfiles ||--o{ workProjectTunes : "uid"
+  userProfiles ||--o{ workRealms : "foundingArtisanUid"
+  userProfiles ||--o{ workRealms : "workStewardUid"
+  workRealms ||--o{ allWorkProjects : "workRealmId"
+  workRealms ||--o{ publicWorkProjects : "workRealmId"
