@@ -202,6 +202,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `messageId` | `string` | yes |
 | `threadId` | `string` | yes |
 | `type` | `string` | yes |
+| `guildInviteId` | `string` | yes |
 | `attachment` | `{ id, name, type, size, url, storagePath, status, failureReason }` | yes |
 | `replyTo` | `{ messageId, senderId, messagePreview }` | yes |
 | `isSystemMessage` | `boolean` | yes |
@@ -541,6 +542,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `messageId` | `string` | yes |
 | `threadId` | `string` | yes |
 | `type` | `string` | yes |
+| `guildInviteId` | `string` | yes |
 | `attachment` | `{ id, name, type, size, url, storagePath, status, failureReason }` | yes |
 | `replyTo` | `{ messageId, senderId, messagePreview }` | yes |
 | `isSystemMessage` | `boolean` | yes |
@@ -659,6 +661,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `messageId` | `string` | yes |
 | `threadId` | `string` | yes |
 | `type` | `string` | yes |
+| `guildInviteId` | `string` | yes |
 | `attachment` | `{ id, name, type, size, url, storagePath, status, failureReason }` | yes |
 | `replyTo` | `{ messageId, senderId, messagePreview }` | yes |
 | `isSystemMessage` | `boolean` | yes |
@@ -914,7 +917,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `email` | `string` |  |
-| `isWaitingForNewsApproval` | `boolean` | yes |
+| `isWaitingForNewsApproval` | `number` | yes |
 | `squareStreetzAgreementsDate` | `number` | yes |
 | `agreements` | `{ age, nudity, meet, cookies, terms, agreedOn }` | yes |
 

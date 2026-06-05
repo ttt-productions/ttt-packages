@@ -5,7 +5,7 @@ import {
   WORK_PROJECT_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
 } from '../src/paths/collections';
-import { COLLECTION_SCHEMAS, PENDING_COLLECTIONS } from '../src/doc-schemas/registry';
+import { COLLECTION_SCHEMAS, PENDING_COLLECTIONS, COLLECTION_DOC_ID_FIELDS } from '../src/doc-schemas/registry';
 
 // Collection names that exist only in firestore.rules (no COLLECTIONS constant) — see the
 // schema-registry recon (§3). They must still be accounted for: bound or explicitly pending.
@@ -49,5 +49,21 @@ describe('Firestore collection schema registry', () => {
 
   it('closes the recon gap — auditEvents is now in the registry', () => {
     expect(boundSegments.has('auditEvents')).toBe(true);
+  });
+});
+
+describe('Doc-id field annotations (COLLECTION_DOC_ID_FIELDS)', () => {
+  it('annotates only registered paths, each with a field the bound schema actually declares', () => {
+    for (const [path, field] of Object.entries(COLLECTION_DOC_ID_FIELDS)) {
+      const schema = (COLLECTION_SCHEMAS as Record<string, { shape?: Record<string, unknown> }>)[path];
+      expect(schema, `${path} must be a registered collection`).toBeDefined();
+      // Every annotated binding is a ZodObject whose shape includes the doc-id field; the
+      // drift-check injects doc.id under this key before validating.
+      expect(schema.shape, `${path} must be a ZodObject`).toBeDefined();
+      expect(
+        Object.keys(schema.shape ?? {}),
+        `${path}: doc-id field "${field}" must exist on the bound schema`,
+      ).toContain(field);
+    }
   });
 });

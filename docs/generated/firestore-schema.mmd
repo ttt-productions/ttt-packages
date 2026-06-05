@@ -218,6 +218,7 @@ erDiagram
     field messageId
     field threadId
     field type
+    field guildInviteId
     field attachment
     field replyTo
     field isSystemMessage
@@ -272,6 +273,7 @@ erDiagram
     field messageId
     field threadId
     field type
+    field guildInviteId
     field attachment
     field replyTo
     field isSystemMessage
@@ -321,6 +323,7 @@ erDiagram
     field messageId
     field threadId
     field type
+    field guildInviteId
     field attachment
     field replyTo
     field isSystemMessage
@@ -694,6 +697,9 @@ erDiagram
   commissionListings ||--o{ commissionProposals : "commissionProposalId"
   contentViolations ||--o{ adminTasks : "violationId"
   guildInviteConversations ||--o{ commissionProposals : "guildInviteId"
+  guildInviteConversations ||--o{ conversationMessages : "guildInviteId"
+  guildInviteConversations ||--o{ guildChatMessages : "guildInviteId"
+  guildInviteConversations ||--o{ inviteMessages : "guildInviteId"
   hallItems ||--o{ followerReleaseJobs : "hallItemId"
   hallItems ||--o{ thresholdItems : "hallItemId"
   pledgePayments ||--o{ paymentWebhookQuarantine : "pledgePaymentId"

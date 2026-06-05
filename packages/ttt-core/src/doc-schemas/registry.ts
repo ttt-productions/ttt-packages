@@ -189,6 +189,31 @@ export const COLLECTION_SCHEMAS = {
 export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;
 
 /**
+ * Doc-id field annotation: for the listed bindings, the named body field equals the
+ * Firestore document id and is injected at READ time (`{ ...doc.data(), <field>: doc.id }`),
+ * never persisted — the write callables store the body via `Omit<…, '<field>'>`. The bound
+ * schema models the (correct) consumer/read shape, where the field is required, so a raw
+ * stored doc is "missing" it. The drift-check injects `{ [field]: doc.id, ...data }` before
+ * validating, generalizing the one-off `AdminTaskDocSchema` stored-shape workaround into a
+ * single mechanism so real-callable drift-checks don't false-flag every doc-id collection.
+ * The schema-doc generator ignores this map. Keys are compiler-checked against the registry.
+ */
+export const COLLECTION_DOC_ID_FIELDS = {
+  'allWorkProjects/{workProjectId}/workProjectTales/{taleId}': 'uid',
+  'allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}': 'uid',
+  'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}': 'uid',
+  'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}/tuneTracks/{trackId}': 'uid',
+  'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}': 'uid',
+  'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}': 'uid',
+  'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}': 'guildChatChannelId',
+  'activeUserNotifications/{notificationId}': 'id',
+  'activeAdminNotifications/{notificationId}': 'id',
+  'adminNotificationHistory/{notificationId}': 'id',
+  'userProfiles/{userId}/notificationHistory/{notificationId}': 'id',
+  'pendingNotifications/{notificationId}': 'id',
+} as const satisfies Partial<Record<RegisteredCollectionPath, string>>;
+
+/**
  * Collections that exist (in COLLECTIONS / *_SUBCOLLECTIONS or firestore.rules) but are
  * intentionally NOT bound to a schema, each with a reason. Listed EXPLICITLY so completeness is
  * enforced and nothing is silently uncovered; the registry test fails if a NEW unlisted collection

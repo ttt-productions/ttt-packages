@@ -108,86 +108,102 @@ export async function processBatchHelper(
       }
     }
 
-    // Process each group: dedup check against active, create or increment
-    for (const [, group] of groups) {
-      const typeConfig = config.types[group.type];
-      if (!typeConfig) continue;
+    // Process each group: dedup check against active, create or increment.
+    // Groups are processed in parallel. Each group's groupKey uniquely determines
+    // a single active doc — the active lookup filters on exactly the same
+    // dedupKey + category (+ targetUserId for personal) that compose the groupKey —
+    // so two distinct groups can never resolve to the same active doc and there is
+    // no cross-group contention to guard with a transaction. The work per group is
+    // independent I/O, so Promise.all turns N sequential round-trips into one
+    // parallel wave, removing the timeout risk under high dedup-group counts.
+    const groupResults = await Promise.all(
+      Array.from(groups.values()).map(
+        async (group): Promise<'created' | 'updated' | 'skipped'> => {
+          const typeConfig = config.types[group.type];
+          if (!typeConfig) return 'skipped';
 
-      const categoryConfig = config.categories[group.category];
-      if (!categoryConfig) continue;
+          const categoryConfig = config.categories[group.category];
+          if (!categoryConfig) return 'skipped';
 
-      const activePath = categoryConfig.activePath;
-      const dedupKey = typeConfig.dedupKeyPattern(group.metadata);
-      const countCap = typeConfig.countCap ?? DEFAULT_COUNT_CAP;
-      const actorCap = typeConfig.actorCap ?? DEFAULT_ACTOR_CAP;
+          const activePath = categoryConfig.activePath;
+          const dedupKey = typeConfig.dedupKeyPattern(group.metadata);
+          const countCap = typeConfig.countCap ?? DEFAULT_COUNT_CAP;
+          const actorCap = typeConfig.actorCap ?? DEFAULT_ACTOR_CAP;
 
-      // Check for existing active notification. Personal notifications are
-      // scoped to the recipient so different recipients never share an active
-      // doc; shared notifications omit targetUserId by design.
-      let existingQuery = db.collection(activePath)
-        .where('dedupKey', '==', dedupKey)
-        .where('category', '==', group.category);
-      if (categoryConfig.audienceType === 'personal') {
-        existingQuery = existingQuery.where('targetUserId', '==', group.targetUserId);
-      }
+          // Check for existing active notification. Personal notifications are
+          // scoped to the recipient so different recipients never share an active
+          // doc; shared notifications omit targetUserId by design.
+          let existingQuery = db.collection(activePath)
+            .where('dedupKey', '==', dedupKey)
+            .where('category', '==', group.category);
+          if (categoryConfig.audienceType === 'personal') {
+            existingQuery = existingQuery.where('targetUserId', '==', group.targetUserId);
+          }
 
-      const existingSnap = await existingQuery.limit(1).get();
+          const existingSnap = await existingQuery.limit(1).get();
 
-      if (!existingSnap.empty) {
-        // Increment existing
-        const existingDoc = existingSnap.docs[0];
-        const existingData = existingDoc.data() as Record<string, unknown>;
-        const currentCount = (existingData.count as number) || 1;
-        const currentActorIds = (existingData.latestActorIds as string[]) || [];
+          if (!existingSnap.empty) {
+            // Increment existing
+            const existingDoc = existingSnap.docs[0];
+            const existingData = existingDoc.data() as Record<string, unknown>;
+            const currentCount = (existingData.count as number) || 1;
+            const currentActorIds = (existingData.latestActorIds as string[]) || [];
 
-        // Merge actor ids (new first, deduped, capped)
-        const newActorIds = group.actorIds.filter(
-          (id) => !currentActorIds.includes(id)
-        );
-        const mergedActorIds = [
-          ...newActorIds,
-          ...currentActorIds,
-        ].slice(0, actorCap);
+            // Merge actor ids (new first, deduped, capped)
+            const newActorIds = group.actorIds.filter(
+              (id) => !currentActorIds.includes(id)
+            );
+            const mergedActorIds = [
+              ...newActorIds,
+              ...currentActorIds,
+            ].slice(0, actorCap);
 
-        const newCount = Math.min(currentCount + group.count, countCap);
+            const newCount = Math.min(currentCount + group.count, countCap);
 
-        await existingDoc.ref.update({
-          count: newCount,
-          latestActorIds: mergedActorIds,
-          message: typeConfig.messagePattern(group.metadata, newCount),
-          // New activity on an existing notification re-lights the unread badge.
-          seenAt: 0,
-          updatedAt: Date.now(),
-        });
+            await existingDoc.ref.update({
+              count: newCount,
+              latestActorIds: mergedActorIds,
+              message: typeConfig.messagePattern(group.metadata, newCount),
+              // New activity on an existing notification re-lights the unread badge.
+              seenAt: 0,
+              updatedAt: Date.now(),
+            });
 
-        notificationsUpdated++;
-      } else {
-        // Create new notification
-        const targetPath = typeof typeConfig.defaultTargetPath === 'function'
-          ? typeConfig.defaultTargetPath(group.metadata)
-          : typeConfig.defaultTargetPath;
-        const now = Date.now();
+            return 'updated';
+          } else {
+            // Create new notification
+            const targetPath = typeof typeConfig.defaultTargetPath === 'function'
+              ? typeConfig.defaultTargetPath(group.metadata)
+              : typeConfig.defaultTargetPath;
+            const now = Date.now();
 
-        const newDoc = {
-          type: group.type,
-          dedupKey,
-          category: group.category,
-          targetUserId: group.targetUserId,
-          title: typeConfig.titlePattern(group.metadata),
-          message: typeConfig.messagePattern(group.metadata, group.count),
-          count: group.count,
-          latestActorIds: group.actorIds.slice(0, actorCap),
-          targetPath,
-          metadata: group.metadata,
-          // Active docs are created unseen so the unread count() predicate matches.
-          seenAt: 0,
-          createdAt: now,
-          updatedAt: now,
-        };
+            const newDoc = {
+              type: group.type,
+              dedupKey,
+              category: group.category,
+              targetUserId: group.targetUserId,
+              title: typeConfig.titlePattern(group.metadata),
+              message: typeConfig.messagePattern(group.metadata, group.count),
+              count: group.count,
+              latestActorIds: group.actorIds.slice(0, actorCap),
+              targetPath,
+              metadata: group.metadata,
+              // Active docs are created unseen so the unread count() predicate matches.
+              seenAt: 0,
+              createdAt: now,
+              updatedAt: now,
+            };
 
-        await db.collection(activePath).add(newDoc);
-        notificationsCreated++;
-      }
+            await db.collection(activePath).add(newDoc);
+            return 'created';
+          }
+        }
+      )
+    );
+
+    for (const r of groupResults) {
+      if (r === 'created') notificationsCreated++;
+      else if (r === 'updated') notificationsUpdated++;
     }
 
     // Delete processed pending docs in batches of 500

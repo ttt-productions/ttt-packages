@@ -89,7 +89,11 @@ export type UserAgreements = z.infer<typeof UserAgreementsSchema>;
  */
 export const UserPrivateDataSchema = z.object({
   email: z.string(),
-  isWaitingForNewsApproval: z.boolean().optional(),
+  // Epoch ms when the user applied for news/political posting (not a boolean) so the
+  // applicant queue can be ordered/triaged by application date. Mirrors the
+  // `artisanCreator?: number` grant-timestamp pattern. Truthy when set, so existing
+  // truthiness reads keep working; absent until the user applies.
+  isWaitingForNewsApproval: z.number().optional(),
   squareStreetzAgreementsDate: z.number().optional(),
   agreements: UserAgreementsSchema.optional(),
 });
