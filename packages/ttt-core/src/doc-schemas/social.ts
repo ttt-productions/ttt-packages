@@ -1,7 +1,7 @@
-// Social Firestore document SCHEMAS — SquareStreetz posts, mention history,
-// follow edges, and pledge-payment ledger docs. Types inferred via z.infer.
-// (SquareStreetzPostPayload is a transport shape, not a stored doc — it stays in
-// ../types/social.ts.)
+// Social Firestore document SCHEMAS — SquareStreetz posts, mention history, and
+// follow edges. Types inferred via z.infer. (Pledge-payment ledger docs moved to
+// ../doc-schemas/payments.ts. SquareStreetzPostPayload is a transport shape, not a
+// stored doc — it stays in ../types/social.ts.)
 
 import { z } from 'zod';
 import { MentionSchema } from '../media/atoms.js';
@@ -57,32 +57,6 @@ export const FollowEdgeSchema = z.object({
   followedOn: z.number(),
 });
 export type FollowEdge = z.infer<typeof FollowEdgeSchema>;
-
-export const PledgePaymentSchema = z.object({
-  pledgePaymentId: z.string(),
-  stripeSessionId: z.string(),
-  amount: z.number(),
-  currency: z.string(),
-  message: z.string(),
-  status: z.string(),
-  createdAt: z.number(),
-  userId: z.string(),
-});
-export type PledgePayment = z.infer<typeof PledgePaymentSchema>;
-
-// pledgePaymentsSummary/summary — running pledge totals counter updated by the Stripe webhook.
-// (functions/src/payments/stripeWebhook.ts)
-export const PledgePaymentsSummarySchema = z.object({
-  totalPledgePayments: z.number(),
-  totalPledgePaymentsByType: z.object({
-    card: z.number(),
-    paypal: z.number(),
-    crypto: z.number(),
-  }),
-  pledgePaymentCount: z.number(),
-  lastUpdatedAt: z.number(),
-});
-export type PledgePaymentsSummary = z.infer<typeof PledgePaymentsSummarySchema>;
 
 // userProfiles/{uid}/userLikes/likeHistory/squareStreetzLikes/{postId} — a user's like on a
 // SquareStreetz post; existence == liked. The path nests three of the registry segments

@@ -3,6 +3,7 @@ export * from './work-project.js';
 export * from './publicUser.js';
 export * from './content.js';
 export * from './social.js';
+export * from './payments.js';
 export * from './commissions.js';
 export * from './messaging.js';
 export * from './moderation.js';

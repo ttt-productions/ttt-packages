@@ -1,16 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import { CreateStripeCheckoutSessionInputSchema } from '../src/schemas/payments';
-import { MAX_PLEDGE_PAYMENT_AMOUNT_CENTS } from '../src/constants/business';
+import {
+  MIN_PLEDGE_PAYMENT_AMOUNT_CENTS,
+  MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
+} from '../src/constants/business';
 
 describe('CreateStripeCheckoutSessionInputSchema', () => {
   describe('amount lower bound', () => {
-    it('rejects amount below the Stripe minimum of 50 cents', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({ amount: 49 });
+    it('rejects amount one cent below MIN_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
+        amount: MIN_PLEDGE_PAYMENT_AMOUNT_CENTS - 1,
+      });
       expect(result.success).toBe(false);
     });
 
-    it('accepts amount exactly at the Stripe minimum (50 cents)', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({ amount: 50 });
+    it('accepts amount exactly at MIN_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
+        amount: MIN_PLEDGE_PAYMENT_AMOUNT_CENTS,
+      });
       expect(result.success).toBe(true);
     });
   });
@@ -55,24 +62,16 @@ describe('CreateStripeCheckoutSessionInputSchema', () => {
     });
   });
 
-  describe('message field', () => {
-    it('accepts a valid amount with no message (message is optional)', () => {
+  describe('message field removed', () => {
+    it('accepts a valid amount on its own (no message field)', () => {
       const result = CreateStripeCheckoutSessionInputSchema.safeParse({ amount: 500 });
       expect(result.success).toBe(true);
     });
 
-    it('accepts a valid amount with a message under 500 chars', () => {
+    it('rejects any message field (messages were dropped; schema is .strict())', () => {
       const result = CreateStripeCheckoutSessionInputSchema.safeParse({
         amount: 500,
         message: 'Thanks for your work!',
-      });
-      expect(result.success).toBe(true);
-    });
-
-    it('rejects a message over 500 chars', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
-        amount: 500,
-        message: 'x'.repeat(501),
       });
       expect(result.success).toBe(false);
     });
@@ -86,6 +85,12 @@ describe('CreateStripeCheckoutSessionInputSchema', () => {
       });
       expect(result.success).toBe(false);
     });
+  });
+});
+
+describe('MIN_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
+  it('is the Stripe 50-cent card-charge floor', () => {
+    expect(MIN_PLEDGE_PAYMENT_AMOUNT_CENTS).toBe(50);
   });
 });
 

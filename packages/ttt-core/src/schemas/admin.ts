@@ -8,6 +8,8 @@ const ADMIN_TASK_TYPES: [AdminTaskType, ...AdminTaskType[]] = [
   'userReport',
   'content-appeal',
   'stakeShareAnomaly',
+  'pledgeLedgerAnomaly',
+  'pledgePaymentRepairNeeded',
 ];
 
 export const CheckoutNextImportantTaskInputSchema = z.object({}).strict();

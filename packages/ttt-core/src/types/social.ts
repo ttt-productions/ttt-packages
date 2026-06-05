@@ -1,10 +1,11 @@
-// Social types: SquareStreetz feed, Mentions, Follows, pledge payments
+// Social types: SquareStreetz feed, Mentions, Follows. (Pledge-payment types live in
+// ../types/payments.ts.)
 export type { Mention, MentionType } from '../media/atoms.js';
 import type { Mention } from '../media/atoms.js';
 
 // --- SquareStreetz Social Media ---
 
-// SquareStreetz post/mention-history/follow/pledge shapes are re-exported from
+// SquareStreetz post/mention-history/follow shapes are re-exported from
 // ../doc-schemas/social.ts below (single source of truth).
 
 /**
@@ -38,7 +39,6 @@ export type {
   MentionHistoryItem,
   MentionHistoryDocument,
   FollowEdge,
-  PledgePayment,
 } from '../doc-schemas/social.js';
 
 

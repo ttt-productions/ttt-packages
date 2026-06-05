@@ -39,11 +39,16 @@ import {
   SquareStreetzPostSchema,
   MentionHistoryDocumentSchema,
   FollowEdgeSchema,
-  PledgePaymentSchema,
-  PledgePaymentsSummarySchema,
   SquareStreetzLikeSchema,
   TrendingPostsSchema,
 } from './social.js';
+import {
+  PledgePaymentSchema,
+  PledgePaymentProviderRefSchema,
+  ProcessedStripeEventSchema,
+  PledgePaymentLedgerEventSchema,
+  PaymentWebhookQuarantineSchema,
+} from './payments.js';
 import {
   FullCommissionListingSchema,
   CommissionProposalSchema,
@@ -91,7 +96,6 @@ export const COLLECTION_SCHEMAS = {
   'userProfiles/{userId}': FullUserSchema,
   'userProfiles/{userId}/privateData/{userId}': UserPrivateDataSchema,
   'userProfiles/{userId}/profileCraftSkills/{craftSkillId}': CraftSkillSchema,
-  'userProfiles/{userId}/userPledgePayments/{pledgePaymentId}': PledgePaymentSchema,
   'userProfiles/{userId}/auditionVotes/{auditionId}': UserAuditionVoteSchema,
   'userProfiles/{userId}/mentionHistory/{docId}': MentionHistoryDocumentSchema,
   'userProfiles/{userId}/notificationHistory/{notificationId}': NotificationHistoryDocSchema,
@@ -116,13 +120,17 @@ export const COLLECTION_SCHEMAS = {
   'guildInviteConversations/{guildInviteId}': GuildInviteConversationSchema,
   'guildInviteConversations/{guildInviteId}/inviteMessages/{guildInviteMessageId}': ChatMessageV1Schema,
 
-  // ===== Square / Social / Pledge =====
+  // ===== Square / Social =====
   'squareStreetzFeed/activePosts/socialPosts/{postId}': SquareStreetzPostSchema,
   'squareStreetzFeed/trendingPosts': TrendingPostsSchema,
   'followEdges/{followEdgeId}': FollowEdgeSchema,
-  'recentPledgePayments/{pledgePaymentId}': PledgePaymentSchema,
-  'archivedPledgePayments/{pledgePaymentId}': PledgePaymentSchema,
-  'pledgePaymentsSummary/summary': PledgePaymentsSummarySchema,
+
+  // ===== Payments / pledge ledger =====
+  'pledgePayments/{pledgePaymentId}': PledgePaymentSchema,
+  'pledgePaymentProviderRefs/{pledgePaymentId}': PledgePaymentProviderRefSchema,
+  'processedStripeEvents/{stripeEventId}': ProcessedStripeEventSchema,
+  'pledgePaymentLedgerEvents/{ledgerId}': PledgePaymentLedgerEventSchema,
+  'paymentWebhookQuarantine/{stripeEventId}': PaymentWebhookQuarantineSchema,
 
   // ===== Threshold / Hall =====
   'thresholdItems/{thresholdItemId}': ThresholdItemSchema,

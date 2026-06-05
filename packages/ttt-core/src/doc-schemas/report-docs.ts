@@ -16,6 +16,8 @@ export const AdminTaskTypeSchema = z.enum([
   'userReport',
   'content-appeal',
   'stakeShareAnomaly',
+  'pledgeLedgerAnomaly',
+  'pledgePaymentRepairNeeded',
 ]);
 export type AdminTaskType = z.infer<typeof AdminTaskTypeSchema>;
 

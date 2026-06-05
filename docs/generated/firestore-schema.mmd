@@ -102,16 +102,6 @@ erDiagram
     field maintenanceMessage
     field registrationEnabled
   }
-  archivedPledgePayments {
-    field pledgePaymentId
-    field stripeSessionId
-    field amount
-    field currency
-    field message
-    field status
-    field createdAt
-    field userId
-  }
   auditEvents {
     field id
     field type
@@ -378,6 +368,20 @@ erDiagram
     field metadata
     field seenAt
   }
+  paymentWebhookQuarantine {
+    field eventId
+    field eventType
+    field livemode
+    field reason
+    field recoverable
+    field stripeObjectIds
+    field pledgePaymentId
+    field userId
+    field amount
+    field currency
+    field rawSafeSummary
+    field status
+  }
   pendingAdminDispatches {
     field adminDispatchId
     field userId
@@ -404,11 +408,52 @@ erDiagram
     field metadata
     field createdAt
   }
+  pledgePaymentLedgerEvents {
+    field ledgerId
+    field pledgePaymentId
+    field subtype
+    field reason
+    field before
+    field after
+    field source
+    field createdAt
+  }
+  pledgePaymentProviderRefs {
+    field pledgePaymentId
+    field userId
+    field stripeSessionId
+    field paymentIntentId
+    field latestChargeId
+    field refundIds
+    field disputeId
+    field createdAt
+    field updatedAt
+  }
+  pledgePayments {
+    field pledgePaymentId
+    field userId
+    field amount
+    field refundedAmount
+    field disputeLostAmount
+    field netAmount
+    field currency
+    field paymentInstrument
+    field status
+    field refundState
+    field disputeState
+    field createdAt
+  }
   privateData {
     field email
     field isWaitingForNewsApproval
     field squareStreetzAgreementsDate
     field agreements
+  }
+  processedStripeEvents {
+    field eventId
+    field eventType
+    field processedAt
+    field pledgePaymentId
   }
   profanityList {
     field words
@@ -452,16 +497,6 @@ erDiagram
     field workingDescription
     field coverImageUrl
     field workStewardUid
-  }
-  recentPledgePayments {
-    field pledgePaymentId
-    field stripeSessionId
-    field amount
-    field currency
-    field message
-    field status
-    field createdAt
-    field userId
   }
   reservedDisplayNames {
     field userId
@@ -509,12 +544,6 @@ erDiagram
     field afterStakeShares
     field createdAt
     field source
-  }
-  summary {
-    field totalPledgePayments
-    field totalPledgePaymentsByType
-    field pledgePaymentCount
-    field lastUpdatedAt
   }
   taggedCraftSkills {
     field craftSkillId
@@ -575,16 +604,6 @@ erDiagram
     field photoUrl
     field status
     field createdOn
-  }
-  userPledgePayments {
-    field pledgePaymentId
-    field stripeSessionId
-    field amount
-    field currency
-    field message
-    field status
-    field createdAt
-    field userId
   }
   userProfiles {
     field uid
@@ -677,8 +696,10 @@ erDiagram
   guildInviteConversations ||--o{ commissionProposals : "guildInviteId"
   hallItems ||--o{ followerReleaseJobs : "hallItemId"
   hallItems ||--o{ thresholdItems : "hallItemId"
-  recentPledgePayments ||--o{ archivedPledgePayments : "pledgePaymentId"
-  recentPledgePayments ||--o{ userPledgePayments : "pledgePaymentId"
+  pledgePayments ||--o{ paymentWebhookQuarantine : "pledgePaymentId"
+  pledgePayments ||--o{ pledgePaymentLedgerEvents : "pledgePaymentId"
+  pledgePayments ||--o{ pledgePaymentProviderRefs : "pledgePaymentId"
+  pledgePayments ||--o{ processedStripeEvents : "pledgePaymentId"
   userProfiles ||--o{ activeAdminNotifications : "targetUserId"
   userProfiles ||--o{ activeReportGroups : "reportedUserId"
   userProfiles ||--o{ activeUserNotifications : "targetUserId"
@@ -686,7 +707,6 @@ erDiagram
   userProfiles ||--o{ adminNotificationHistory : "targetUserId"
   userProfiles ||--o{ adminTasks : "foundingArtisanUid"
   userProfiles ||--o{ adminTasks : "userId"
-  userProfiles ||--o{ archivedPledgePayments : "userId"
   userProfiles ||--o{ contentReports : "reportedUserId"
   userProfiles ||--o{ contentReports : "reporterUserId"
   userProfiles ||--o{ contentReports : "resolvedBy"
@@ -701,16 +721,19 @@ erDiagram
   userProfiles ||--o{ moderationCascadeManifests : "actorUid"
   userProfiles ||--o{ notificationBroadcastJobs : "actorUid"
   userProfiles ||--o{ notificationHistory : "targetUserId"
+  userProfiles ||--o{ paymentWebhookQuarantine : "resolvedBy"
+  userProfiles ||--o{ paymentWebhookQuarantine : "userId"
   userProfiles ||--o{ pendingAdminDispatches : "closedBy"
   userProfiles ||--o{ pendingAdminDispatches : "initiatorUserId"
   userProfiles ||--o{ pendingAdminDispatches : "userId"
   userProfiles ||--o{ pendingNotifications : "actorId"
   userProfiles ||--o{ pendingNotifications : "targetUserId"
+  userProfiles ||--o{ pledgePaymentProviderRefs : "userId"
+  userProfiles ||--o{ pledgePayments : "userId"
   userProfiles ||--o{ publicGuildmateUsers : "uid"
   userProfiles ||--o{ publicUsers : "uid"
   userProfiles ||--o{ publicWorkProjects : "foundingArtisanUid"
   userProfiles ||--o{ publicWorkProjects : "workStewardUid"
-  userProfiles ||--o{ recentPledgePayments : "userId"
   userProfiles ||--o{ reservedDisplayNames : "userId"
   userProfiles ||--o{ socialPosts : "authorId"
   userProfiles ||--o{ taggedCraftSkills : "userId"
@@ -718,7 +741,6 @@ erDiagram
   userProfiles ||--o{ televisionEpisodes : "uid"
   userProfiles ||--o{ thresholdItems : "reviewedBy"
   userProfiles ||--o{ tuneTracks : "uid"
-  userProfiles ||--o{ userPledgePayments : "userId"
   userProfiles ||--o{ workProjectTales : "uid"
   userProfiles ||--o{ workProjectTelevision : "uid"
   userProfiles ||--o{ workProjectTunes : "uid"

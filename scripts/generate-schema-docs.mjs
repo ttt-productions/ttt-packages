@@ -32,7 +32,7 @@ const FK = {
   commissionListingId: 'commissionListings', commissionProposalId: 'commissionListings',
   auditionId: 'auditionBoard', auditionEntryId: 'auditionBoard', guildInviteId: 'guildInviteConversations',
   hallItemId: 'hallItems', thresholdItemId: 'thresholdItems', violationId: 'contentViolations',
-  pledgePaymentId: 'recentPledgePayments', adminDispatchId: 'pendingAdminDispatches',
+  pledgePaymentId: 'pledgePayments', adminDispatchId: 'pendingAdminDispatches',
 };
 
 function unwrap(schema) {

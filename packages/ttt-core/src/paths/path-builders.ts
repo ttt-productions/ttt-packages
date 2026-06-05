@@ -35,9 +35,6 @@ export const PATH_BUILDERS = {
   userLike: (userId: string, postId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_LIKES, NESTED_SUBCOLLECTIONS.LIKE_HISTORY, NESTED_SUBCOLLECTIONS.SQUARE_STREETZ_LIKES, postId],
 
-  userPledgePayment: (userId: string, pledgePaymentId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_PLEDGE_PAYMENTS, pledgePaymentId],
-
   userAuditionVote: (userId: string, auditionId: string): [string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.AUDITION_VOTES, auditionId],
 
@@ -169,14 +166,26 @@ export const PATH_BUILDERS = {
   pendingMediaArchive: (docId: string): [string, string] =>
     [COLLECTIONS.PENDING_MEDIA_ARCHIVE, docId],
 
-  pledgePaymentsSummary: (): [string, string] =>
-    [COLLECTIONS.PLEDGE_PAYMENTS_SUMMARY, SPECIAL_DOCS.SUMMARY],
+  // ===== PAYMENT & PLEDGE PATHS =====
+  // Public-safe canonical money record. Stripe IDs live on pledgePaymentProviderRef (server-only).
+  pledgePayment: (pledgePaymentId: string): [string, string] =>
+    [COLLECTIONS.PLEDGE_PAYMENTS, pledgePaymentId],
 
-  recentPledgePayment: (pledgePaymentId: string): [string, string] =>
-    [COLLECTIONS.RECENT_PLEDGE_PAYMENTS, pledgePaymentId],
+  // Server-only Stripe references (session/PI/charge/dispute IDs). One doc per pledge — singular.
+  pledgePaymentProviderRef: (pledgePaymentId: string): [string, string] =>
+    [COLLECTIONS.PLEDGE_PAYMENT_PROVIDER_REFS, pledgePaymentId],
 
-  archivedPledgePayment: (pledgePaymentId: string): [string, string] =>
-    [COLLECTIONS.ARCHIVED_PLEDGE_PAYMENTS, pledgePaymentId],
+  // Idempotency sentinel, keyed by the Stripe event.id.
+  processedStripeEvent: (stripeEventId: string): [string, string] =>
+    [COLLECTIONS.PROCESSED_STRIPE_EVENTS, stripeEventId],
+
+  // Independent integrity record from the ledger verification trigger.
+  pledgePaymentLedgerEvent: (ledgerId: string): [string, string] =>
+    [COLLECTIONS.PLEDGE_PAYMENT_LEDGER_EVENTS, ledgerId],
+
+  // Unrecoverable paid-event repair queue, keyed by the Stripe event.id.
+  paymentWebhookQuarantine: (stripeEventId: string): [string, string] =>
+    [COLLECTIONS.PAYMENT_WEBHOOK_QUARANTINE, stripeEventId],
 
   // ===== FEEDBACK & CRAFT PATHS =====
   feedbackSubmission: (feedbackType: string): [string, string] =>

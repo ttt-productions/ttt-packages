@@ -22,7 +22,6 @@ export const COLLECTIONS = {
 
   // System & Utility
   RESERVED_DISPLAY_NAMES: 'reservedDisplayNames',
-  PLEDGE_PAYMENTS_SUMMARY: 'pledgePaymentsSummary',
   CONTENT_REPORTS: 'contentReports',
   PENDING_MEDIA: 'pendingMedia',
   PENDING_MEDIA_ARCHIVE: 'pendingMediaArchive',
@@ -51,8 +50,13 @@ export const COLLECTIONS = {
   CRAFT_SKILLS_BY_TAG: 'craftSkillsByTag',
   SYSTEM_DATA: '_systemData',
   APP_CONFIG: '_config',
-  RECENT_PLEDGE_PAYMENTS: 'recentPledgePayments',
-  ARCHIVED_PLEDGE_PAYMENTS: 'archivedPledgePayments',
+
+  // Payments & pledge ledger
+  PLEDGE_PAYMENTS: 'pledgePayments',
+  PLEDGE_PAYMENT_PROVIDER_REFS: 'pledgePaymentProviderRefs',
+  PROCESSED_STRIPE_EVENTS: 'processedStripeEvents',
+  PLEDGE_PAYMENT_LEDGER_EVENTS: 'pledgePaymentLedgerEvents',
+  PAYMENT_WEBHOOK_QUARANTINE: 'paymentWebhookQuarantine',
 } as const;
 
 /**
@@ -64,7 +68,6 @@ export const USER_SUBCOLLECTIONS = {
   PRIVATE_DATA: 'privateData',
   USER_METADATA: 'userMetadata',
   USER_LIKES: 'userLikes',
-  USER_PLEDGE_PAYMENTS: 'userPledgePayments',
   CHECKED_OUT_ITEMS: 'checkedOutItems',
   MENTION_HISTORY: 'mentionHistory',
   AUDITION_VOTES: 'auditionVotes',

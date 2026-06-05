@@ -66,14 +66,6 @@ describe('PATH_BUILDERS', () => {
       expect(result[5]).toBe('post1');
     });
 
-    it('userPledgePayment returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.userPledgePayment('userA', 'don1');
-      expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
-      expect(result[2]).toBe(USER_SUBCOLLECTIONS.USER_PLEDGE_PAYMENTS);
-      expect(result[3]).toBe('don1');
-    });
-
     it('userAuditionVote returns 4-segment tuple', () => {
       const result = PATH_BUILDERS.userAuditionVote('userA', 'opp1');
       expect(result).toHaveLength(4);
@@ -405,25 +397,43 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('pma_123');
     });
 
-    it('pledgePaymentsSummary returns 2-segment tuple with SUMMARY special doc', () => {
-      const result = PATH_BUILDERS.pledgePaymentsSummary();
+  });
+
+  // ===== PAYMENT & PLEDGE PATHS =====
+  describe('Payment & Pledge Paths', () => {
+    it('pledgePayment returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.pledgePayment('pp1');
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.PLEDGE_PAYMENTS_SUMMARY);
-      expect(result[1]).toBe(SPECIAL_DOCS.SUMMARY);
+      expect(result[0]).toBe(COLLECTIONS.PLEDGE_PAYMENTS);
+      expect(result[1]).toBe('pp1');
     });
 
-    it('recentPledgePayment returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.recentPledgePayment('don1');
+    it('pledgePaymentProviderRef returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.pledgePaymentProviderRef('pp1');
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.RECENT_PLEDGE_PAYMENTS);
-      expect(result[1]).toBe('don1');
+      expect(result[0]).toBe(COLLECTIONS.PLEDGE_PAYMENT_PROVIDER_REFS);
+      expect(result[1]).toBe('pp1');
     });
 
-    it('archivedPledgePayment returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.archivedPledgePayment('don1');
+    it('processedStripeEvent returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.processedStripeEvent('evt_123');
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.ARCHIVED_PLEDGE_PAYMENTS);
-      expect(result[1]).toBe('don1');
+      expect(result[0]).toBe(COLLECTIONS.PROCESSED_STRIPE_EVENTS);
+      expect(result[1]).toBe('evt_123');
+    });
+
+    it('pledgePaymentLedgerEvent returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.pledgePaymentLedgerEvent('ledger1');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toBe(COLLECTIONS.PLEDGE_PAYMENT_LEDGER_EVENTS);
+      expect(result[1]).toBe('ledger1');
+    });
+
+    it('paymentWebhookQuarantine returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.paymentWebhookQuarantine('evt_123');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toBe(COLLECTIONS.PAYMENT_WEBHOOK_QUARANTINE);
+      expect(result[1]).toBe('evt_123');
     });
   });
 

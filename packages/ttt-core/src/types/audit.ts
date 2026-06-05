@@ -75,6 +75,10 @@ export type AuditEventType =
   | 'payment.pledgePaymentCompleted'
   | 'payment.pledgePaymentAbandoned'
   | 'payment.pledgePaymentFailed'
+  | 'payment.pledgePaymentQuarantined'
+  // money — independent ledger-integrity trigger (mirrors workProject.stakeShares.*)
+  | 'payment.pledgeLedger.recorded'
+  | 'payment.pledgeLedger.anomaly'
   // admin task lifecycle
   | 'admin.taskCheckedOut'
   | 'admin.taskCheckedIn'
@@ -89,7 +93,6 @@ export type AuditEventType =
   // system
   | 'system.manualIntervention'
   | 'system.appConfigUpdated'
-  | 'system.pledgePaymentsArchived'
   | 'system.pendingMediaArchived'
   | 'system.orphanUploadsCleanedUp'
   | 'admin.profanityListSeeded'

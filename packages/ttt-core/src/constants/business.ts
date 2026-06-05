@@ -239,6 +239,14 @@ export const ADMIN_TASK_STATUS = {
 // --- Payments ---
 
 /**
+ * Minimum pledgePayment amount accepted by the Stripe checkout flow, in cents
+ * (USD). 50¢ is Stripe's hard floor for a card charge. Promoted out of the Zod
+ * schema so the webhook can re-assert it server-side against the Stripe-confirmed
+ * amount, independent of the client input bound.
+ */
+export const MIN_PLEDGE_PAYMENT_AMOUNT_CENTS = 50;
+
+/**
  * Maximum pledgePayment amount accepted by the Stripe checkout flow, in cents
  * (USD). $500,000.00. Well below Stripe's hard per-charge ceiling, but
  * high enough that legitimate large gifts pass without friction. Anything

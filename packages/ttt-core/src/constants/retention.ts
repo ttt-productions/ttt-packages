@@ -5,14 +5,6 @@
 /** TTL for the in-memory profanity word list cache (1 hour). */
 export const WORD_LIST_CACHE_TTL_MS = 1000 * 60 * 60;
 
-// --- Pledge payments ---
-
-/** Minimum number of recent pledge payments always retained in the recentPledgePayments collection. */
-export const MIN_RECENT_PLEDGE_PAYMENTS = 50;
-
-/** Days after which a pledgePayment is considered old enough to archive. */
-export const PLEDGE_PAYMENT_RETENTION_DAYS = 90;
-
 // --- Pending media archive ---
 
 /** Days after which a terminal pendingMedia doc is moved to pendingMediaArchive. */
