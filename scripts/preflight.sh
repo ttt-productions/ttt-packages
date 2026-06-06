@@ -13,8 +13,8 @@ find packages -name "*.tsbuildinfo" -not -path "*/node_modules/*" -delete 2>/dev
 echo "preflight: npm install..."
 npm install
 
-echo "preflight: npm run build..."
-npm run build
+echo "preflight: npm run test:all (lint + typecheck + tsc -b --noEmit + build + test)..."
+npm run test:all
 
 echo "preflight: schema docs in sync (docs/generated/firestore-schema.{md,mmd})..."
 node scripts/generate-schema-docs.mjs --check
