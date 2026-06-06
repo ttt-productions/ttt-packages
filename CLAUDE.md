@@ -26,6 +26,14 @@ regeneration itself errors). This is effectively the release preflight minus its
 `release-*.sh` still run at publish time). Targeted: `npm run test:quiet:test` (Vitest only), or
 `node scripts/test-quiet.mjs --only <lint|typecheck|tscb|build|test|schema>` (comma-separated; `--help`).
 
+**Linting.** Root `eslint.config.mjs` (flat config, ESLint 9) lints `packages/**` only: `@eslint/js` +
+`typescript-eslint` recommended + `react-hooks` (rules-of-hooks / exhaustive-deps as **error**). Mirrors
+ttt-prod's philosophy — `no-explicit-any` off, `^_` unused-ignore (plus `ignoreRestSiblings`), empty `catch`
+allowed. Build helpers under `**/scripts/**` and generated `**/dist` are not linted. Run with `npm run lint`
+(or `lint:fix`); it is the first stage of `test:all` / `test:quiet`. Intentional react-hooks dependency
+omissions (e.g. the firestore subscription hooks that track stringified keys) carry a justified
+`eslint-disable-next-line` with the reason — prefer that over weakening the rule.
+
 ## Core architecture rules
 
 1. **Generic packages do not import `ttt-core`.** If a generic package needs app-specific values, it exposes a factory, adapter, callback, schema factory, or configuration object.

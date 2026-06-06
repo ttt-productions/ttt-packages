@@ -111,11 +111,11 @@ export function FileInput(props: FileInputProps) {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const emitError = (e: FileInputError, type: SimplifiedMediaType = "other") => {
+  const emitError = useCallback((e: FileInputError, type: SimplifiedMediaType = "other") => {
     setLocalError(e);
     onError?.(e);
     onChange({ type, error: e });
-  };
+  }, [onError, onChange]);
 
   const handleClear = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -184,7 +184,7 @@ export function FileInput(props: FileInputProps) {
     setInternalSelected(file);
     const previewUrl = makePreviewUrl(file);
     onChange({ type: fileType, file, previewUrl, revokePreviewUrl: revokeLastPreviewUrl });
-  }, [acceptTypes, maxSizeMB, cropConfig, videoMaxDurationSec, audioMaxDurationSec]);
+  }, [acceptTypes, maxSizeMB, cropConfig, videoMaxDurationSec, audioMaxDurationSec, emitError, makePreviewUrl, onChange, revokeLastPreviewUrl]);
 
   const handleCropComplete = (blob: Blob | null) => {
     setIsCropperOpen(false);

@@ -34,7 +34,7 @@ export function ChunkErrorRecovery({
   React.useEffect(() => {
     const handler = (event: ErrorEvent) => {
       if (!isChunkError(event)) return;
-      // eslint-disable-next-line no-console
+       
       console.error("Stale chunk detected — reloading.");
       setHasError(true);
       window.location.reload();

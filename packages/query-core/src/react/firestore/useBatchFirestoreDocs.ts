@@ -242,7 +242,10 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
     }
 
     return combined;
-    // snapshotVersion: re-derive when a subscribed doc updates.
+    // batchSettledCount/batchUpdateTimestamp/snapshotVersion are intentional re-derivation triggers:
+    // the cache is read imperatively via getQueryData (non-reactive), so these counters force a
+    // recompute when a batch fetch settles or a subscribed doc updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uniqueIds, queryKeyPrefix, queryClient, batchSettledCount, batchUpdateTimestamp, snapshotVersion]);
 
   // In subscribe mode the batch queries are inert; "loading" means a subscribed id has not

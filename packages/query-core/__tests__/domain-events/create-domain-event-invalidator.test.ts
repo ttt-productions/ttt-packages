@@ -53,7 +53,7 @@ describe('createDomainEventInvalidator', () => {
     const client = makeClient();
     const spy = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
 
-    // Both events produce prefix(['entities']) ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â should only fire once
+    // Both events produce prefix(['entities']) -> should only fire once
     invalidator.notifyAll(client, [
       { type: 'entity.published', ids: { entityId: 'e1' } },
       { type: 'entity.published', ids: { entityId: 'e1' } },

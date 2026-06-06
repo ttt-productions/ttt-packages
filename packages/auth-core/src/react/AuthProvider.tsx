@@ -13,7 +13,7 @@ import { useAuthState } from "./useAuthState.js";
 import { getIdTokenClaims } from "../claims.js";
 import type { AuthProviderConfig, AuthContextValue } from "./types.js";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export const AuthContext = createContext<AuthContextValue<any> | null>(null);
 
 interface AuthProviderProps<TClaims> {

@@ -15,7 +15,6 @@ function ToastKeyframes() {
   // Inject a tiny global keyframe used by the optional countdown bar.
   return (
     <style
-      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{
         __html: `@keyframes toast-progress{from{transform:scaleX(1)}to{transform:scaleX(0)}}`,
       }}

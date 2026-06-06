@@ -50,7 +50,7 @@ describe('mobile-core env', () => {
   it('isBrowser is false when window is undefined', async () => {
     vi.resetModules();
     const originalWindow = global.window;
-    // @ts-expect-error
+    // @ts-expect-error - window is typed non-optional; deleting it simulates a non-browser environment
     delete global.window;
     const mod = await import('../src/env');
     expect(mod.isBrowser).toBe(false);

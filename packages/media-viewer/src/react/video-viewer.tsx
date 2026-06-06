@@ -59,7 +59,7 @@ export function VideoViewer(props: VideoViewerProps) {
       setIsLoaded(false);
       setShouldLoad(false);
     }
-  }, [inView, shouldLoad, unloadOnExit, priority]);
+  }, [inView, shouldLoad, unloadOnExit, priority, lazy]);
 
   React.useEffect(() => {
     setHasError(false);

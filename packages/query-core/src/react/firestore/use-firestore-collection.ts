@@ -77,7 +77,9 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     );
 
     return () => unsubscribe();
-    // Use the stringified versions in the dependency array
+    // queryKey & constraints are tracked via their stringified forms above; select is intentionally
+    // excluded so an inline caller function doesn't force a re-subscribe on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db, collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe, queryClient]);
 
   return useQuery({

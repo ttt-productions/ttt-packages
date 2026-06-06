@@ -120,7 +120,6 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
         </DialogHeader>
 
         <div className="relative w-full overflow-hidden rounded-md bg-muted" style={{ aspectRatio: "4/3" }}>
-          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video
             ref={videoRef}
             autoPlay

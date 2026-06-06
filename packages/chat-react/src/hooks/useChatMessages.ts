@@ -159,7 +159,7 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     });
 
     return () => unsub();
-  }, [allowed, db, pathKey, threadId, createdAtField, pageSize, messagesSubcollection]);
+  }, [allowed, db, chatCollectionPath, pathKey, threadId, createdAtField, pageSize, messagesSubcollection]);
 
   const older = useInfiniteQuery({
     queryKey: ["chat-core", "older", pathKey, threadId, messagesSubcollection, pageSize],
@@ -197,9 +197,10 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     getNextPageParam: (last) => last.nextCursor,
   });
 
+  const { fetchNextPage: fetchOlderPage } = older;
   const fetchOlder = React.useCallback(async () => {
-    await older.fetchNextPage();
-  }, [older.fetchNextPage]);
+    await fetchOlderPage();
+  }, [fetchOlderPage]);
 
   const messages = React.useMemo(() => {
     if (!allowed) return [];

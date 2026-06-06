@@ -470,7 +470,7 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
     };
     // adapter is intentionally NOT in the deps array — adapter is read via
     // adapterRef on every snapshot, so identity changes don't re-subscribe.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [userId, subscribe]);
 
   const value = useMemo<InFlightUploadsContextValue<TFileOrigin>>(
@@ -571,7 +571,7 @@ export function useUploadActivityState<TFileOrigin extends string = string>(): I
  */
 const defaultFirestoreSubscribe: FirestoreSubscribeFn = (args) => {
   const q = query(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     collection(args.db as any, args.collectionPath),
     where('userId', '==', args.userId),
     where('createdAt', '>=', args.windowStartMs),

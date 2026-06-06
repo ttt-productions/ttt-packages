@@ -18,7 +18,7 @@ export function useAuthState(auth: Auth): AuthState {
     // Only set loading if we don't have a user and haven't loaded yet
     // This prevents the "flash" when a user is already signed in (e.g. hydration)
     // or when simply refreshing the token.
-    if (user === null && auth.currentUser === null) {
+    if (auth.currentUser === null) {
       setLoading(true);
     }
 

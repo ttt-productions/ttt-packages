@@ -69,8 +69,9 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
     );
 
     return () => unsubscribe();
-    // Note: select intentionally excluded to prevent re-subscribing on every render
-    // if the caller passes an inline function.
+    // Note: select intentionally excluded to prevent re-subscribing on every render if the caller
+    // passes an inline function. queryKey is tracked via queryKeyMemo above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db, docPath, queryKeyMemo, enabled, subscribe, queryClient]);
 
   return useQuery({

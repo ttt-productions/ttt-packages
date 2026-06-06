@@ -37,7 +37,8 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
   }
   
   export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProcessingResult> {
-    let { spec, io, outputBaseName = "media", moderation, signal, onProgress } = args;
+    let { spec } = args;
+    const { io, outputBaseName = "media", moderation, signal, onProgress } = args;
 
     if (signal?.aborted) {
       return {
