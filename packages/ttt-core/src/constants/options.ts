@@ -165,8 +165,6 @@ export const HALL_LIBRARY_SORT_OPTIONS: Record<
 > = {
   newest: { label: 'Newest First', field: 'createdOn', direction: 'desc' },
   oldest: { label: 'Oldest First', field: 'createdOn', direction: 'asc' },
-  most_pledged: { label: 'Most Pledged', field: 'totalPledgePayments', direction: 'desc' },
-  most_viewed: { label: 'Most Viewed', field: 'viewCount', direction: 'desc' },
   most_followed: { label: 'Most Followed', field: 'followerCount', direction: 'desc' },
 };
 

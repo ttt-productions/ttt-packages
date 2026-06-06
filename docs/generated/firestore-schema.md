@@ -572,9 +572,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `coverPhotoPoster` | `string` | yes |
 | `coverPhotoCinematic` | `string` | yes |
 | `workGenres` | `string[]` | yes |
-| `totalPledgePayments` | `number` | yes |
-| `pledgePaymentCount` | `number` | yes |
-| `viewCount` | `number` | yes |
 | `followerCount` | `number` | yes |
 | `hidden` | `boolean` | yes |
 

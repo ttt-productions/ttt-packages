@@ -121,9 +121,6 @@ export const PublishedHallItemSchema = z.object({
   coverPhotoPoster: z.string().optional(),
   coverPhotoCinematic: z.string().optional(),
   workGenres: z.array(z.string()).optional(),
-  totalPledgePayments: z.number().optional(),
-  pledgePaymentCount: z.number().optional(),
-  viewCount: z.number().optional(),
   followerCount: z.number().optional(),
   hidden: z.boolean().optional(),
 });
