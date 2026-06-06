@@ -141,7 +141,7 @@ Build generic Tier 0 packages first, then Tier 1 (including the now-pure `chat-c
 
 ## Release order
 
-`scripts/release-all.sh` releases all 22 packages in the same dependency-safe order: a package publishes only after every internal `@ttt-productions/*` dependency it consumes. `chat-react` releases after `chat-core` and the UI tier; `ttt-core` after `report-core`/`audit-core`/the schema packages. Internal deps are authored `"*"` in source for workspace dev and rewritten to exact versions at pack time in CI (`scripts/pin-internal-deps.mjs`, invoked from `.github/workflows/publish.yml`); published manifests never contain `"*"`. The user handles version bumps and publishing.
+`scripts/release-all.sh` releases all 22 packages in the same dependency-safe order: a package publishes only after every internal `@ttt-productions/*` dependency it consumes. `chat-react` releases after `chat-core` and the UI tier; `ttt-core` after `report-core`/`audit-core`/the schema packages. Internal deps are authored `"*"` in source for workspace dev and rewritten to **caret ranges** (`^x.y.z` — across `dependencies`, `devDependencies`, AND `peerDependencies`) at pack time in CI (`scripts/pin-internal-deps.mjs`, invoked from `.github/workflows/publish.yml`); published manifests never contain `"*"` and never an exact internal pin. Caret (not exact) means bumping one package by a patch/minor does **not** force every dependent to be republished in lockstep, so a single-package patch release installs cleanly in consumers (caret on a 0.x version still locks the minor, so a breaking minor/major is not auto-adopted). The user handles version bumps and publishing.
 
 ## Release and adoption workflow
 
