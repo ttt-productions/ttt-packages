@@ -19,6 +19,7 @@ export const COLLECTIONS = {
   COMMISSION_LISTINGS: 'commissionListings',
   AUDITION_BOARD: 'auditionBoard',
   FOLLOW_EDGES: 'followEdges',
+  FOLLOW_COUNTERS: 'followCounters',
 
   // System & Utility
   RESERVED_DISPLAY_NAMES: 'reservedDisplayNames',

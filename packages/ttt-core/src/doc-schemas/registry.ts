@@ -39,6 +39,7 @@ import {
   SquareStreetzPostSchema,
   MentionHistoryDocumentSchema,
   FollowEdgeSchema,
+  FollowCounterSchema,
   SquareStreetzLikeSchema,
   TrendingPostsSchema,
 } from './social.js';
@@ -124,6 +125,7 @@ export const COLLECTION_SCHEMAS = {
   'squareStreetzFeed/activePosts/socialPosts/{postId}': SquareStreetzPostSchema,
   'squareStreetzFeed/trendingPosts': TrendingPostsSchema,
   'followEdges/{followEdgeId}': FollowEdgeSchema,
+  'followCounters/{followCounterId}': FollowCounterSchema,
 
   // ===== Payments / pledge ledger =====
   'pledgePayments/{pledgePaymentId}': PledgePaymentSchema,

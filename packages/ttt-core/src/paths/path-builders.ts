@@ -32,6 +32,11 @@ export const PATH_BUILDERS = {
   followEdge: (followerUid: string, targetType: FollowableTargetType, targetId: string): [string, string] =>
     [COLLECTIONS.FOLLOW_EDGES, `${followerUid}__${targetType}__${targetId}`],
 
+  // Denormalized follower-count doc for a followable target: `followCounters/{targetType__targetId}`.
+  // Backend-maintained (incremented in the follow/unfollow transaction); never written by clients.
+  followCounter: (targetType: FollowableTargetType, targetId: string): [string, string] =>
+    [COLLECTIONS.FOLLOW_COUNTERS, `${targetType}__${targetId}`],
+
   userLike: (userId: string, postId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_LIKES, NESTED_SUBCOLLECTIONS.LIKE_HISTORY, NESTED_SUBCOLLECTIONS.SQUARE_STREETZ_LIKES, postId],
 

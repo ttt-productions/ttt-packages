@@ -58,6 +58,15 @@ export const FollowEdgeSchema = z.object({
 });
 export type FollowEdge = z.infer<typeof FollowEdgeSchema>;
 
+// followCounters/{targetType__targetId} — denormalized follower count for a followable target,
+// maintained by the follow/unfollow callables via FieldValue.increment (never written by clients).
+// The Hall Library "Most Followed" sort mirrors the workProject count onto hallItems.followerCount.
+export const FollowCounterSchema = z.object({
+  followerCount: z.number(),
+  updatedOn: z.number(),
+});
+export type FollowCounter = z.infer<typeof FollowCounterSchema>;
+
 // userProfiles/{uid}/userLikes/likeHistory/squareStreetzLikes/{postId} — a user's like on a
 // SquareStreetz post; existence == liked. The path nests three of the registry segments
 // (userLikes / likeHistory / squareStreetzLikes). (functions/src/social/likeSquareStreetzPost.ts)

@@ -39,6 +39,7 @@ export type {
   MentionHistoryItem,
   MentionHistoryDocument,
   FollowEdge,
+  FollowCounter,
 } from '../doc-schemas/social.js';
 
 

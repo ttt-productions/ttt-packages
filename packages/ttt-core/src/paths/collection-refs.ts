@@ -20,6 +20,7 @@ export const COLLECTION_REFS = {
   commissionListings: (): [string] => [COLLECTIONS.COMMISSION_LISTINGS],
   auditionBoard: (): [string] => [COLLECTIONS.AUDITION_BOARD],
   followEdges: (): [string] => [COLLECTIONS.FOLLOW_EDGES],
+  followCounters: (): [string] => [COLLECTIONS.FOLLOW_COUNTERS],
 
   // User subcollections
   userCraftSkills: (userId: string): [string, string, string] =>

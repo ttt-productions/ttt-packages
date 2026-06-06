@@ -47,7 +47,8 @@ export type HallLibrarySortOption =
   | 'newest'
   | 'oldest'
   | 'most_pledged'
-  | 'most_viewed';
+  | 'most_viewed'
+  | 'most_followed';
 
 export type HallLibraryFilters = {
   workGenre?: string;
