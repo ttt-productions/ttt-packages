@@ -38,6 +38,13 @@ allowed. Build helpers under `**/scripts/**` and generated `**/dist` are not lin
 omissions (e.g. the firestore subscription hooks that track stringified keys) carry a justified
 `eslint-disable-next-line` with the reason — prefer that over weakening the rule.
 
+**Release gate & tooling.** The release preflight (`scripts/preflight.sh`, run by `release-package.sh` /
+`release-all.sh`) runs `npm run test:quiet` — not the verbose `test:all` + a separate `schema:check` — so a
+release shows concise per-stage output instead of thousands of lines. Root `package.json` is `"type": "module"`
+so Vitest loads its configs via Vite's **ESM** Node API (the CJS build is deprecated). `node -p "require(...)"`
+in `release-package.sh` still works under Node 22, so the type change is safe for the release scripts — do not
+remove it to "fix" a release issue.
+
 ## Core architecture rules
 
 1. **Generic packages do not import `ttt-core`.** If a generic package needs app-specific values, it exposes a factory, adapter, callback, schema factory, or configuration object.
