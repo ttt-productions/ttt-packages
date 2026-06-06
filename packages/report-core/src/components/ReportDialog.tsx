@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
   Button,
   Dialog,
@@ -57,7 +57,6 @@ export function ReportDialog({
   const submitMutation = useReportSubmit();
   const [reason, setReason] = useState('');
   const [comment, setComment] = useState('');
-  const _commentRef = useRef<HTMLTextAreaElement>(null);
 
   const maxLength = config.maxReportCommentLength;
   const displayItemType =
@@ -141,7 +140,6 @@ export function ReportDialog({
             </Label>
             <div className="col-span-3 relative">
               <Textarea
-                ref={_commentRef}
                 id="rc-comment"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}

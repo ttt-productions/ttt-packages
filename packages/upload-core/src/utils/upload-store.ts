@@ -157,7 +157,7 @@ export function removeUploadSession(id: string) {
   if (existed) notifyList();
 }
 
-export function clearUploadSessionListeners(id: string) {
+function clearUploadSessionListeners(id: string) {
   if (listeners.has(id)) listeners.delete(id);
 }
 

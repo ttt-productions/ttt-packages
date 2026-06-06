@@ -4,8 +4,14 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { safeOutputPathFor } from "../utils/safe-path.js";
 import type { ProcessMediaOptions } from "../types.js";
-
-type Gravity = "center" | "top" | "bottom" | "left" | "right";
+import { applyImageFormat, mimeForImageFormat, pickFormat } from "./formats.js";
+import {
+  computeAspectCropBox,
+  resizeCover,
+  resizeInside,
+  toSharpPosition,
+  type Gravity,
+} from "./resize.js";
 
 function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();
@@ -28,51 +34,8 @@ function acceptAllowsMime(spec: MediaProcessingSpec, actualMime?: string): boole
   return mimes.some((a) => matchMime(a, actualMime));
 }
 
-
-function toSharpPosition(g?: Gravity): sharp.Gravity {
-  switch (g) {
-    case "top":
-      return "north";
-    case "bottom":
-      return "south";
-    case "left":
-      return "west";
-    case "right":
-      return "east";
-    case "center":
-    default:
-      return "centre";
-  }
-}
-
-function pickFormat(fmt?: string): { ext: string; format: "jpeg" | "png" | "webp" | "avif" } {
-  switch ((fmt ?? "jpeg").toLowerCase()) {
-    case "png":
-      return { ext: "png", format: "png" };
-    case "webp":
-      return { ext: "webp", format: "webp" };
-    case "avif":
-      return { ext: "avif", format: "avif" };
-    case "jpg":
-    case "jpeg":
-    default:
-      return { ext: "jpg", format: "jpeg" };
-  }
-}
-
 function outputPathFor(base: string, key: string, ext: string): string {
   return safeOutputPathFor(base, key, ext);
-}
-
-function mimeForImageFormat(fmt?: string): string | undefined {
-  if (!fmt) return undefined;
-  const f = fmt.toLowerCase();
-  if (f === "jpg") return "image/jpeg";
-  if (f === "jpeg") return "image/jpeg";
-  if (f === "png") return "image/png";
-  if (f === "webp") return "image/webp";
-  if (f === "avif") return "image/avif";
-  return `image/${f}`;
 }
 
 function aspect(width?: number, height?: number): number | undefined {
@@ -178,11 +141,7 @@ async function buildBase(
   // 1) Explicit crop spec (most strict)
   const crop = spec.imageCrop;
   if (crop) {
-    base = base.resize(crop.outputWidth, crop.outputHeight, {
-      fit: "cover",
-      position: "centre",
-      withoutEnlargement: true,
-    });
+    base = resizeCover(base, crop.outputWidth, crop.outputHeight);
     return { ok: true, base, inputMeta: meta };
   }
 
@@ -204,11 +163,7 @@ async function buildBase(
     }
 
     // Auto-fix path (or exact already): enforce normalized base
-    base = base.resize(reqW, reqH, {
-      fit: "cover",
-      position: "centre",
-      withoutEnlargement: true,
-    });
+    base = resizeCover(base, reqW, reqH);
 
     return { ok: true, base, inputMeta: meta };
   }
@@ -230,23 +185,8 @@ async function buildBase(
         };
       }
 
-      // Auto center-crop to required aspect ratio (no forced scale yet)
-      // Compute a crop box that matches reqAspect and fits within original dimensions.
-      let cropW = w;
-      let cropH = h;
-
-      if (a > reqAspect) {
-        // too wide -> reduce width
-        cropW = Math.max(1, Math.floor(h * reqAspect));
-      } else {
-        // too tall -> reduce height
-        cropH = Math.max(1, Math.floor(w / reqAspect));
-      }
-
-      const left = Math.max(0, Math.floor((w - cropW) / 2));
-      const top = Math.max(0, Math.floor((h - cropH) / 2));
-
-      base = base.extract({ left, top, width: cropW, height: cropH });
+      // Auto center-crop to required aspect ratio (no forced scale yet).
+      base = base.extract(computeAspectCropBox(w, h, reqAspect));
     }
   }
 
@@ -304,35 +244,12 @@ export async function processImage(
       let p = base.clone();
 
       if (v.crop) {
-        p = p.resize(v.crop.width, v.crop.height, {
-          fit: "cover",
-          position: toSharpPosition((v.crop.gravity as Gravity) ?? "center"),
-          withoutEnlargement: true,
-        });
+        p = resizeCover(p, v.crop.width, v.crop.height, toSharpPosition((v.crop.gravity as Gravity) ?? "center"));
       } else if (v.maxWidth || v.maxHeight) {
-        p = p.resize(v.maxWidth ?? null, v.maxHeight ?? null, {
-          fit: "inside",
-          withoutEnlargement: true,
-        });
+        p = resizeInside(p, v.maxWidth, v.maxHeight);
       }
 
-      const q = typeof v.quality === "number" ? v.quality : undefined;
-
-      switch (format) {
-        case "png":
-          p = p.png();
-          break;
-        case "webp":
-          p = p.webp(q ? { quality: q } : undefined);
-          break;
-        case "avif":
-          p = p.avif(q ? { quality: q } : undefined);
-          break;
-        case "jpeg":
-        default:
-          p = p.jpeg(q ? { quality: q } : undefined);
-          break;
-      }
+      p = applyImageFormat(p, format, v.quality);
 
       const info = await p.toFile(outPath);
 
