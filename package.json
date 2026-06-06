@@ -16,7 +16,7 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
-        "test:all": "npm run lint && npm run typecheck && npx tsc -b --noEmit && npm run build && npm run test",
+        "test:all": "npm run lint && npm run build && npm run typecheck && npx tsc -b --noEmit && npm run test",
         "schema:docs": "npm run build -w @ttt-productions/ttt-core && node scripts/generate-schema-docs.mjs",
         "schema:check": "node scripts/generate-schema-docs.mjs --check",
         "test:quiet": "node scripts/test-quiet.mjs",

@@ -11,12 +11,16 @@ Read `docs/packages/` first for package ownership. Read `docs/design/` for cross
 ## Verification
 
 `npm run test:all` is the canonical, must-pass gate for any change here — run it green BEFORE handing off a
-publish list or pushing. It chains: lint → typecheck → `npx tsc -b --noEmit` → build (all 22, topo order) →
-`vitest run`. The `tsc -b` step is the only one that type-checks `__tests__` (per-workspace `typecheck` and
-the release preflight both skip them), so `test:all` catches latent test-file type errors nothing else does.
+publish list or pushing. It chains: lint → build (all 22, topo order) → typecheck → `npx tsc -b --noEmit` →
+`vitest run`. **Build runs before the two type-check stages on purpose:** both `typecheck` (per-workspace
+`tsc --noEmit`) and `tsc -b --noEmit` resolve internal `@ttt-productions/*` imports through `node_modules →
+dist`, so `dist` must exist first — and the release preflight (and `npm run clean`) wipe `dist`, so a
+build-first order is what lets the gate (and the publish) survive a clean tree. The `tsc -b` step is the only
+one that type-checks `__tests__` (per-workspace `typecheck` and the release preflight both skip them), so
+`test:all` catches latent test-file type errors nothing else does.
 
 **Quiet runner — `npm run test:quiet` (the pre-commit / pre-publish gate).** Runs the `test:all` stages
-(lint → typecheck → `tsc -b --noEmit` → build all 22 → `vitest run`) and then, ONLY if all of them pass, a
+(lint → build all 22 → typecheck → `tsc -b --noEmit` → `vitest run`) and then, ONLY if all of them pass, a
 final `schema` stage that runs `schema:check` and **auto-regenerates** `docs/generated/firestore-schema.{md,mmd}`
 when they are stale. One line per stage; on failure it prints only the failing output (failing tests for
 Vitest, error tail for plain stages), never the full passing log. Stop-on-fail throughout — a test failure

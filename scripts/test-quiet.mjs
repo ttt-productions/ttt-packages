@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 // Quiet pre-commit / pre-publish gate for ttt-packages. Runs the canonical `test:all` stages —
-// lint -> typecheck -> `tsc -b --noEmit` -> build (all 22, topo order) -> `vitest run` — and then,
+// lint -> build (all 22, topo order) -> typecheck -> `tsc -b --noEmit` -> `vitest run` — and then,
 // ONLY if every one of those passed, a final `schema` stage that checks the generated Firestore
 // schema docs are in sync and AUTO-REGENERATES them if they are stale.
+//
+// Build runs BEFORE the type-check stages on purpose: both `typecheck` (per-workspace tsc --noEmit)
+// and `tsc -b --noEmit` resolve @ttt-productions/* through node_modules -> dist, so dist must exist
+// first. The release preflight wipes dist before every publish, so a build-first order is what lets
+// this gate (and the publish) survive a clean tree.
 //
 // Output is deliberately minimal: one line per stage. On failure it shows ONLY the failing output
 // (the failing tests for vitest, the error tail for plain stages) — never the full multi-thousand-line
@@ -268,7 +273,7 @@ async function stagePlain(name, cmd, args, cwd) {
     }
     printFail(name, fmtTime(elapsed));
     const blob = (stdout + '\n' + stderr).trim();
-    process.stdout.write(`${DIM}${tail(blob, 6000)}${RESET}\n\n`);
+    process.stdout.write(`${DIM}${tail(blob, 16000)}${RESET}\n\n`);
     record({ name, ok: false, elapsed, errorBlob: blob });
     return false;
 }
@@ -289,7 +294,7 @@ async function stageVitest(name, extraArgs, cwd) {
         printFail(name, fmtTime(elapsed));
         process.stdout.write(`${DIM}Could not parse vitest JSON output.${RESET}\n`);
         const blob = (stdout + '\n' + stderr).trim();
-        process.stdout.write(`${DIM}${tail(blob, 6000)}${RESET}\n\n`);
+        process.stdout.write(`${DIM}${tail(blob, 16000)}${RESET}\n\n`);
         record({ name, ok: false, elapsed, errorBlob: blob, totals: null });
         return false;
     }
@@ -307,9 +312,9 @@ async function stageVitest(name, extraArgs, cwd) {
     if (failures.length === 0 && code !== 0) {
         process.stdout.write(`${DIM}Vitest exited with code ${code} but the JSON report contains no failures.${RESET}\n`);
         process.stdout.write(`${DIM}Raw stderr (tail):${RESET}\n`);
-        process.stdout.write(`${DIM}${tail((stderr || '').trim(), 6000)}${RESET}\n`);
+        process.stdout.write(`${DIM}${tail((stderr || '').trim(), 16000)}${RESET}\n`);
         process.stdout.write(`${DIM}Raw stdout (tail):${RESET}\n`);
-        process.stdout.write(`${DIM}${tail((stdout || '').trim(), 6000)}${RESET}\n\n`);
+        process.stdout.write(`${DIM}${tail((stdout || '').trim(), 16000)}${RESET}\n\n`);
     }
     for (const f of failures) {
         process.stdout.write(`  ${YELLOW}${f.title}${RESET}\n`);
@@ -348,7 +353,7 @@ async function stageSchema(name, root) {
     }
     printFail(name, fmtTime(elapsed));
     const blob = (regen.stdout + '\n' + regen.stderr).trim();
-    process.stdout.write(`${DIM}${tail(blob, 6000)}${RESET}\n\n`);
+    process.stdout.write(`${DIM}${tail(blob, 16000)}${RESET}\n\n`);
     record({ name, ok: false, elapsed, errorBlob: blob });
     return false;
 }
@@ -368,14 +373,16 @@ async function stageSchema(name, root) {
     if (shouldRun('lint')) {
         if (!(await stagePlain('lint', 'npm', ['run', 'lint'], root))) return finish(overallStart);
     }
+    // Build first: the two type-check stages below resolve @ttt-productions/* via node_modules -> dist,
+    // so dist must exist. `npm run build` is topo-ordered and self-sufficient from a clean tree.
+    if (shouldRun('build')) {
+        if (!(await stagePlain('build (all 22)', 'npm', ['run', 'build'], root))) return finish(overallStart);
+    }
     if (shouldRun('typecheck')) {
         if (!(await stagePlain('typecheck', 'npm', ['run', 'typecheck'], root))) return finish(overallStart);
     }
     if (shouldRun('tscb')) {
         if (!(await stagePlain('tsc -b --noEmit', 'npx', ['tsc', '-b', '--noEmit'], root))) return finish(overallStart);
-    }
-    if (shouldRun('build')) {
-        if (!(await stagePlain('build (all 22)', 'npm', ['run', 'build'], root))) return finish(overallStart);
     }
     if (shouldRun('test')) {
         if (!(await stageVitest('vitest', [], root))) return finish(overallStart);
