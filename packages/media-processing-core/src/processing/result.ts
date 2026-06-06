@@ -2,13 +2,13 @@ import type { MediaProcessingError, MediaProcessingResult } from "@ttt-productio
 
 export function success(
   result: Omit<Extract<MediaProcessingResult, { ok: true }>, "ok">
-): MediaProcessingResult {
+): Extract<MediaProcessingResult, { ok: true }> {
   return { ok: true, ...result };
 }
 
 export function failure(
   error: MediaProcessingError
-): MediaProcessingResult {
+): Extract<MediaProcessingResult, { ok: false }> {
   return {
     ok: false,
     mediaType: "other",

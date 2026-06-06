@@ -28,6 +28,9 @@ describe('TTT_MEDIA_SPECS per-origin correctness', () => {
 
       it('has a processing branch for every accepted kind', () => {
         for (const kind of spec.accept?.kinds ?? []) {
+          // 'file' is the generic (stored-as-is) kind — it has no image/video/audio
+          // processing branch by design, so it's not part of this invariant.
+          if (kind === 'file') continue;
           expect(
             spec.processing?.[kind],
             `${origin} accepts '${kind}' but has no processing.${kind}`,

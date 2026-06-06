@@ -8,6 +8,13 @@ After the package architecture rework, the monorepo has **22 packages**. Generic
 
 Read `docs/packages/` first for package ownership. Read `docs/design/` for cross-cutting invariants such as server-safe entries, React boundaries, and upload path shape. For the one-stop model of tiers, root purity, subpath conventions, direction rules, build/release order, internal version pinning, and the boundary-guard tests, see `docs/packages/package-architecture.md`.
 
+## Verification
+
+`npm run test:all` is the canonical, must-pass gate for any change here — run it green BEFORE handing off a
+publish list or pushing. It chains: lint → typecheck → `npx tsc -b --noEmit` → build (all 22, topo order) →
+`vitest run`. The `tsc -b` step is the only one that type-checks `__tests__` (per-workspace `typecheck` and
+the release preflight both skip them), so `test:all` catches latent test-file type errors nothing else does.
+
 ## Core architecture rules
 
 1. **Generic packages do not import `ttt-core`.** If a generic package needs app-specific values, it exposes a factory, adapter, callback, schema factory, or configuration object.
