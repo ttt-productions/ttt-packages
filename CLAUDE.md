@@ -15,6 +15,17 @@ publish list or pushing. It chains: lint → typecheck → `npx tsc -b --noEmit`
 `vitest run`. The `tsc -b` step is the only one that type-checks `__tests__` (per-workspace `typecheck` and
 the release preflight both skip them), so `test:all` catches latent test-file type errors nothing else does.
 
+**Quiet runner — `npm run test:quiet` (the pre-commit / pre-publish gate).** Runs the `test:all` stages
+(lint → typecheck → `tsc -b --noEmit` → build all 22 → `vitest run`) and then, ONLY if all of them pass, a
+final `schema` stage that runs `schema:check` and **auto-regenerates** `docs/generated/firestore-schema.{md,mmd}`
+when they are stale. One line per stage; on failure it prints only the failing output (failing tests for
+Vitest, error tail for plain stages), never the full passing log. Stop-on-fail throughout — a test failure
+short-circuits before the schema stage. Exit 0 when everything passes, including when the schema docs were
+stale and got regenerated (commit them before publishing); non-zero on any failure (including if the schema
+regeneration itself errors). This is effectively the release preflight minus its clean-room reinstall (which
+`release-*.sh` still run at publish time). Targeted: `npm run test:quiet:test` (Vitest only), or
+`node scripts/test-quiet.mjs --only <lint|typecheck|tscb|build|test|schema>` (comma-separated; `--help`).
+
 ## Core architecture rules
 
 1. **Generic packages do not import `ttt-core`.** If a generic package needs app-specific values, it exposes a factory, adapter, callback, schema factory, or configuration object.
