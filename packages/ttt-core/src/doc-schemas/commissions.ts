@@ -30,6 +30,9 @@ export const FullCommissionListingSchema = z.object({
   workProjectAssociatedWith: ShortWorkProjectSchema,
   status: z.enum(['open', 'closed']),
   savedProposalArtisans: z.array(z.string()),
+  // Admin moderation hide (reversible). When true the listing is suppressed from
+  // the commission board; restored by clearing it.
+  hidden: z.boolean().optional(),
 });
 export type FullCommissionListing = z.infer<typeof FullCommissionListingSchema>;
 
@@ -70,6 +73,9 @@ export const AuditionSchema = z.object({
   auditionEntryCount: z.number().optional(),
   shortId: z.string().optional(),
   shortUrl: z.string().optional(),
+  // Admin moderation hide (reversible). When true the audition is suppressed from
+  // the audition board; restored by clearing it.
+  hidden: z.boolean().optional(),
 });
 export type Audition = z.infer<typeof AuditionSchema>;
 

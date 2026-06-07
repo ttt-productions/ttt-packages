@@ -359,6 +359,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `auditionEntryCount` | `number` | yes |
 | `shortId` | `string` | yes |
 | `shortUrl` | `string` | yes |
+| `hidden` | `boolean` | yes |
 
 ## `auditionBoard/{auditionId}/auditionEntries/{auditionEntryId}`
 
@@ -391,6 +392,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `workProjectAssociatedWith` | `{ workProjectId, type, workingDescription, workingTitle }` |  |
 | `status` | `'open' \| 'closed'` |  |
 | `savedProposalArtisans` | `string[]` |  |
+| `hidden` | `boolean` | yes |
 
 ## `commissionListings/{commissionListingId}/commissionProposals/{commissionProposalId}`
 

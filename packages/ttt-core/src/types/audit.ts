@@ -60,6 +60,7 @@ export type AuditEventType =
   | 'content.violationAccepted'
   | 'content.hidden'
   | 'content.restored'
+  | 'content.removed'
   // content (workProject content)
   | 'content.taleDetailsUpdated'
   | 'content.taleWorkGenresUpdated'
