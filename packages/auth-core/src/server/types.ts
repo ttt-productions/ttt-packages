@@ -24,25 +24,25 @@ export interface AuthRequirements {
   emailVerified?: boolean;
 
   /**
-   * Require user status is not 'banned' or 'disabled'.
+   * Require user status is not 'suspended' or 'banned'.
    * Default: true (always enforced unless allowAnyStatus=true).
    */
   notBanned?: boolean;
 
   /**
-   * Skip the not-banned check entirely. Special-case for flows where the
+   * Skip the status check entirely. Special-case for flows where the
    * user doc may not exist yet (e.g. user registration).
    * Default: false.
    */
   allowAnyStatus?: boolean;
 
   /**
-   * Allow banned users to pass the status check. Disabled users still fail.
-   * Use ONLY for callables that are a banned user's last recourse
-   * (e.g. admin-support chat).
+   * Allow suspended users to pass the status check. Banned users still fail.
+   * Use ONLY for callables that are a suspended user's last recourse
+   * (e.g. admin-support chat / ban appeal).
    * Default: false. Does NOT skip the existence check.
    */
-  allowBanned?: boolean;
+  allowSuspended?: boolean;
 
   /**
    * Require admin status. Delegates to config.requireAdmin().
@@ -80,7 +80,7 @@ export interface AuthContext<TUser = unknown, TAdmin = void> {
  * Status the consuming app reports for a user doc. The package only
  * interprets these three values.
  */
-export type UserStatus = "ok" | "banned" | "disabled";
+export type UserStatus = "active" | "suspended" | "banned";
 
 /**
  * Configuration for createAssertAuth. The consuming app supplies every
@@ -102,7 +102,7 @@ export interface AssertAuthConfig<TUser, TAdmin = void> {
 
   /**
    * Returns the user's status given the user doc data. The package only
-   * acts on 'ok' | 'banned' | 'disabled'. Apps may store status in any
+   * acts on 'active' | 'suspended' | 'banned'. Apps may store status in any
    * field; this callback interprets it.
    */
   getUserStatus: (user: TUser) => UserStatus;

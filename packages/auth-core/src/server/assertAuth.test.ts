@@ -18,7 +18,7 @@ import type { AssertAuthConfig, UserStatus } from "./types.js";
 type TestUser = {
   uid: string;
   displayName?: string;
-  status?: "active" | "banned" | "disabled";
+  status?: "active" | "suspended" | "banned";
 };
 
 
@@ -74,9 +74,9 @@ beforeEach(() => {
     firestore: () => fakeDb,
     userProfilePath: (uid) => `userProfiles/${uid}`,
     getUserStatus: (user): UserStatus => {
-      if (user.status === "disabled") return "disabled";
       if (user.status === "banned") return "banned";
-      return "ok";
+      if (user.status === "suspended") return "suspended";
+      return "active";
     },
     requireAdmin: mockRequireAdmin as any,
   };
@@ -142,10 +142,10 @@ describe("Not-banned check (default behavior)", () => {
     });
   });
 
-  it("throws permission-denied when user status is disabled", async () => {
+  it("throws permission-denied when user status is suspended", async () => {
     mockUserGet.mockResolvedValue({
       exists: true,
-      data: () => ({ ...activeUserDoc, status: "disabled" }),
+      data: () => ({ ...activeUserDoc, status: "suspended" }),
     });
     await expect(assertAuth(makeRequest())).rejects.toMatchObject({
       code: "permission-denied",
@@ -181,31 +181,31 @@ describe("Not-banned check (default behavior)", () => {
   });
 });
 
-describe("allowBanned opt-in", () => {
-  it("allows a banned user when allowBanned is true", async () => {
+describe("allowSuspended opt-in", () => {
+  it("allows a suspended user when allowSuspended is true", async () => {
+    mockUserGet.mockResolvedValue({
+      exists: true,
+      data: () => ({ ...activeUserDoc, status: "suspended" }),
+    });
+    const ctx = await assertAuth(makeRequest(), { allowSuspended: true });
+    expect(ctx.uid).toBe("uid-123");
+    expect(ctx.userDoc).toMatchObject({ status: "suspended" });
+  });
+
+  it("still blocks a banned user even when allowSuspended is true", async () => {
     mockUserGet.mockResolvedValue({
       exists: true,
       data: () => ({ ...activeUserDoc, status: "banned" }),
     });
-    const ctx = await assertAuth(makeRequest(), { allowBanned: true });
-    expect(ctx.uid).toBe("uid-123");
-    expect(ctx.userDoc).toMatchObject({ status: "banned" });
-  });
-
-  it("still blocks a disabled user even when allowBanned is true", async () => {
-    mockUserGet.mockResolvedValue({
-      exists: true,
-      data: () => ({ ...activeUserDoc, status: "disabled" }),
-    });
     await expect(
-      assertAuth(makeRequest(), { allowBanned: true })
+      assertAuth(makeRequest(), { allowSuspended: true })
     ).rejects.toMatchObject({ code: "permission-denied" });
   });
 
-  it("still requires the user doc to exist when allowBanned is true", async () => {
+  it("still requires the user doc to exist when allowSuspended is true", async () => {
     mockUserGet.mockResolvedValue({ exists: false, data: () => null });
     await expect(
-      assertAuth(makeRequest(), { allowBanned: true })
+      assertAuth(makeRequest(), { allowSuspended: true })
     ).rejects.toMatchObject({ code: "not-found" });
   });
 });
@@ -247,9 +247,9 @@ describe("Admin check", () => {
       firestore: () => fakeDbWithUser(),
       userProfilePath: (uid) => `userProfiles/${uid}`,
       getUserStatus: (user): UserStatus => {
-        if (user.status === "disabled") return "disabled";
         if (user.status === "banned") return "banned";
-        return "ok";
+        if (user.status === "suspended") return "suspended";
+        return "active";
       },
       requireAdmin: adminMock as any,
     };

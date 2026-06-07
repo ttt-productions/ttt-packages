@@ -6,7 +6,7 @@
 //   1. Authentication
 //   2. Email verification
 //   3. User doc Firestore read (when status check is needed)
-//   4. Status check (banned / disabled)
+//   4. Status check (suspended / banned)
 //   5. Admin check (delegated to config.requireAdmin)
 
 import { HttpsError } from "firebase-functions/v2/https";
@@ -52,20 +52,20 @@ export function createAssertAuth<TUser, TAdmin = void>(
 
     let userDoc: TUser | undefined;
 
-    // 4. Status check (default: block banned + disabled; skipped if allowAnyStatus)
+    // 4. Status check (default: block suspended + banned; skipped if allowAnyStatus)
     if (requirements.allowAnyStatus !== true) {
       if (!userSnap || !userSnap.exists) {
         throw new HttpsError("not-found", "User profile not found");
       }
       const userData = userSnap.data() as TUser;
       const status = config.getUserStatus(userData);
-      if (status === "disabled") {
+      if (status === "banned") {
         throw new HttpsError(
           "permission-denied",
           "Account is not in good standing"
         );
       }
-      if (status === "banned" && requirements.allowBanned !== true) {
+      if (status === "suspended" && requirements.allowSuspended !== true) {
         throw new HttpsError(
           "permission-denied",
           "Account is not in good standing"

@@ -84,6 +84,9 @@ export const AuditionEntrySchema = z.object({
   votes: z.number(),
   shortId: z.string().optional(),
   shortUrl: z.string().optional(),
+  // Admin moderation hide (reversible). When true the entry is suppressed from the
+  // audition's entry list; restored by clearing it.
+  hidden: z.boolean().optional(),
 });
 export type AuditionEntry = z.infer<typeof AuditionEntrySchema>;
 

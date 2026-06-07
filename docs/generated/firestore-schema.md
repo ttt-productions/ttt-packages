@@ -374,6 +374,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `votes` | `number` |  |
 | `shortId` | `string` | yes |
 | `shortUrl` | `string` | yes |
+| `hidden` | `boolean` | yes |
 
 ## `commissionListings/{commissionListingId}`
 
@@ -822,6 +823,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `moderationReason` | `string` | yes |
 | `moderationLayer` | `'word_filter' \| 'perspective'` | yes |
 | `visible` | `boolean` | yes |
+| `hidden` | `boolean` | yes |
 
 ## `squareStreetzFeed/trendingPosts`
 
@@ -874,7 +876,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `profilePictureUrlMedium` | `string \| null` | yes |
 | `profilePictureUrlSmall` | `string \| null` | yes |
 | `artisanCreator` | `number` | yes |
-| `status` | `'active' \| 'disabled' \| 'banned'` | yes |
+| `status` | `'active' \| 'suspended' \| 'banned'` | yes |
 | `ownedWorkProjects` | `{ workProjectId, workingTitle, workingDescription, type, createdOn, hallWingType }[]` | yes |
 | `associatedWorkProjects` | `{ workProjectId, workingTitle, workingDescription, type, joinedOn }[]` | yes |
 | `createdAt` | `number` |  |
@@ -924,6 +926,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `isWaitingForNewsApproval` | `number` | yes |
 | `squareStreetzAgreementsDate` | `number` | yes |
 | `agreements` | `{ age, nudity, meet, cookies, terms, agreedOn }` | yes |
+| `statusReason` | `string` | yes |
+| `statusReasonAt` | `number` | yes |
 
 ## `userProfiles/{userId}/profileCraftSkills/{craftSkillId}`
 

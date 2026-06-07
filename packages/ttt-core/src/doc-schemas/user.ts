@@ -66,7 +66,7 @@ export const FullUserSchema = z.object({
   profilePictureUrlMedium: z.string().nullable().optional(),
   profilePictureUrlSmall: z.string().nullable().optional(),
   artisanCreator: z.number().optional(),
-  status: z.enum(['active', 'disabled', 'banned']).optional(),
+  status: z.enum(['active', 'suspended', 'banned']).optional(),
   ownedWorkProjects: z.array(OwnedWorkProjectSchema).optional(),
   associatedWorkProjects: z.array(AssociatedWorkProjectSchema).optional(),
   createdAt: z.number(),
@@ -96,5 +96,11 @@ export const UserPrivateDataSchema = z.object({
   isWaitingForNewsApproval: z.number().optional(),
   squareStreetzAgreementsDate: z.number().optional(),
   agreements: UserAgreementsSchema.optional(),
+  // Moderation: human-readable reason for the current account status (set when an
+  // admin suspends/bans the user). Written by the setUserStatus callable via the
+  // Admin SDK; readable only by the owner (shown in their restricted view).
+  // Cleared when the account is reinstated to 'active'.
+  statusReason: z.string().optional(),
+  statusReasonAt: z.number().optional(),
 });
 export type UserPrivateData = z.infer<typeof UserPrivateDataSchema>;

@@ -29,7 +29,11 @@ export type RegisterUserInput = z.infer<typeof RegisterUserInputSchema>;
 
 export const SetUserStatusInputSchema = z.object({
   userId: userIdSchema,
-  status: z.enum(['active', 'disabled', 'banned']),
+  status: z.enum(['active', 'suspended', 'banned']),
+  // Required by the callable when status is 'suspended' or 'banned' (shown to the
+  // user in their restricted view and recorded on the audit event). Optional here
+  // so reinstating to 'active' can omit it; the callable enforces presence.
+  reason: z.string().trim().min(1).max(2000).optional(),
 }).strict();
 export type SetUserStatusInput = z.infer<typeof SetUserStatusInputSchema>;
 

@@ -38,6 +38,10 @@ export const SquareStreetzPostSchema = z.object({
   moderationReason: z.string().optional(),
   moderationLayer: z.enum(['word_filter', 'perspective']).optional(),
   visible: z.boolean().optional(),
+  // Admin moderation hide (reversible). When true the post is suppressed from all
+  // feeds/lists; restored by clearing it. Distinct from `visible` (upload/finalize
+  // gating) and `moderationStatus` (automated text-moderation outcome).
+  hidden: z.boolean().optional(),
 });
 export type SquareStreetzPost = z.infer<typeof SquareStreetzPostSchema>;
 

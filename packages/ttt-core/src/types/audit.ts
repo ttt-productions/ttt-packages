@@ -15,6 +15,7 @@ export type AuditEventType =
   | 'artisanCreator.revokedFromUser'
   | 'user.accountRegistered'
   | 'user.statusChanged'
+  | 'user.accountSuspended'
   | 'user.accountBanned'
   | 'user.accountUnbanned'
   // admin actions
@@ -57,6 +58,8 @@ export type AuditEventType =
   | 'content.hallItemPublished'
   | 'content.appealSubmitted'
   | 'content.violationAccepted'
+  | 'content.hidden'
+  | 'content.restored'
   // content (workProject content)
   | 'content.taleDetailsUpdated'
   | 'content.taleWorkGenresUpdated'
