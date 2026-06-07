@@ -33,6 +33,7 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": ">=5.0.0",
+    "@ttt-productions/query-core": "*",
     "firebase": ">=10.0.0",
     "lucide-react": ">=0.0.0",
     "react": ">=19.0.0",
@@ -40,6 +41,9 @@
   },
   "peerDependenciesMeta": {
     "@tanstack/react-query": {
+      "optional": true
+    },
+    "@ttt-productions/query-core": {
       "optional": true
     },
     "firebase": {
@@ -67,6 +71,7 @@
     "@ttt-productions/firebase-helpers": "*"
   },
   "devDependencies": {
+    "@ttt-productions/query-core": "*",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "react": "^19.0.0",

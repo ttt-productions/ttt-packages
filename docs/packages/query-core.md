@@ -6,7 +6,12 @@ Generic TanStack Query package.
 
 - Query client/default option factories with neutral names
 - Query provider and helper hooks
-- Firestore/query integration utilities
+- Firestore React hooks (in the `./react` entry): `useFirestoreDoc`,
+  `useFirestoreCollection` (one-shot or realtime via `subscribe`),
+  `useFirestoreInfinite`, `useFirestorePaginated`, `useFirestoreCount`
+  (server-side `count()`), `useFirestoreLiveInfinite` (live newest-window +
+  cursor-bridged older pages — for chat / live feeds), `useBatchFirestoreDocs`,
+  and the `useFirestoreSet/Update/Delete/Batch` mutations
 - Generic search hook/types
 - Domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`, `predicate`, `applyInvalidations`)
 

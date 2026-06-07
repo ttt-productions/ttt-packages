@@ -27,15 +27,6 @@ export interface CheckedOutTaskListProps {
   onItemSelect: (task: CheckedOutTask) => void;
 }
 
-export interface TaskQueueBrowserProps {
-  /** The task type key to browse (must exist in config.taskQueues) */
-  taskType: string;
-  /** Called when a task is checked out from the queue */
-  onTaskCheckedOut: (task: CheckedOutTask) => void;
-  /** Custom label for the checkout button. Default: "Checkout Next" */
-  checkoutButtonLabel?: string;
-}
-
 export interface TaskActionBarProps {
   taskId: string;
   taskType: string;

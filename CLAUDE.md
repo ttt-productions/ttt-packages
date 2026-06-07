@@ -52,6 +52,7 @@ remove it to "fix" a release issue.
 3. **Main entries stay server-safe.** React exports live behind `./react`; Admin SDK exports live behind `./server`; browser-only upload runtime lives behind `./browser`.
 4. **No new compatibility barrels for pre-launch package moves.** Prefer canonical imports from the package that owns the concept. Delete unused transitional subpaths once grep proves there are no consumers.
 5. **Code is source of truth.** Docs should explain durable ownership and rules; avoid duplicating exhaustive implementation details that will drift.
+6. **Firestore access goes through query-core.** React packages read/write Firestore via `@ttt-productions/query-core`'s `useFirestore*` hooks (one shared `FirestoreProvider` supplies `db`), not direct `firebase/firestore` operations. `firebase-helpers` and `query-core` are the only intentional direct-Firestore layers. Sanctioned exceptions are marked in-file with a `SANCTIONED EXCEPTION` block and listed in `docs/packages/package-architecture.md` (currently `upload-ui`'s in-flight-uploads-provider).
 
 ## Current package tiers
 

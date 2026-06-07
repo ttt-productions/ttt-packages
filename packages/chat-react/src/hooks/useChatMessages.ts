@@ -1,36 +1,17 @@
 "use client";
 
 import * as React from "react";
-import type {
-  DocumentData,
-  QueryDocumentSnapshot,
-  Firestore,
-} from "firebase/firestore";
-import {
-  collection,
-  getDocs,
-  onSnapshot,
-  orderBy,
-  query,
-  startAfter,
-  limit,
-} from "firebase/firestore";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import type { DocumentData } from "firebase/firestore";
 import { toMillis } from "@ttt-productions/firebase-helpers";
+import { useFirestoreLiveInfinite } from "@ttt-productions/query-core/react";
 import type { ChatMessageV1 } from "@ttt-productions/chat-core";
 import type { ChatCoreConfig } from "../types.js";
 import { canAccessThread } from "./useChatThreadAccess.js";
-import { messagesColPath, newestWindowQuery } from "../firestore/queries.js";
+import { messagesColPath } from "../firestore/queries.js";
 import { useOptionalChatNameResolver } from "../context/ChatNameResolverContext.js";
 
 // Safety limit to prevent memory exhaustion
 const MAX_PAGE_SIZE = 100;
-
-type NewestWindowState = {
-  ready: boolean;
-  newestDesc: ChatMessageV1[];
-  oldestDocInWindow: QueryDocumentSnapshot<DocumentData> | null;
-};
 
 export type UseChatMessagesResult = {
   allowed: boolean;
@@ -42,15 +23,15 @@ export type UseChatMessagesResult = {
 };
 
 function mapMsg(
-  doc: QueryDocumentSnapshot<DocumentData>,
+  data: DocumentData & { id: string },
   threadId: string
 ): ChatMessageV1 {
-  const d = doc.data() as any;
+  const d = data as any;
 
   const createdAt = toMillis(d.createdAt);
 
   if (!createdAt) {
-    console.error('[useChatMessages] Message missing valid createdAt:', doc.id, d.createdAt);
+    console.error('[useChatMessages] Message missing valid createdAt:', data.id, d.createdAt);
   }
 
   // replyTo: the new shape uses senderId, not senderUsername. Tolerate older
@@ -64,7 +45,7 @@ function mapMsg(
     : undefined;
 
   return {
-    messageId: doc.id,
+    messageId: data.id,
     threadId,
     createdAt: createdAt || 0,
     senderId: d.senderId,
@@ -77,25 +58,8 @@ function mapMsg(
   };
 }
 
-function dedupeAndSortAsc(all: ChatMessageV1[]) {
-  const m = new Map<string, ChatMessageV1>();
-  for (const x of all) m.set(x.messageId, x);
-  return Array.from(m.values()).sort((a, b) => a.createdAt - b.createdAt);
-}
-
-function messagesCol(
-  db: Firestore,
-  chatCollectionPath: string | string[],
-  threadId: string,
-  messagesSubcollection: string
-) {
-  const path = messagesColPath(chatCollectionPath, threadId, messagesSubcollection);
-  return collection(db, path[0], ...path.slice(1));
-}
-
 export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
   const {
-    db,
     chatCollectionPath,
     messagesSubcollection = "messages",
     threadId,
@@ -115,10 +79,6 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     );
   }
 
-  const pathKey = JSON.stringify(
-    Array.isArray(chatCollectionPath) ? chatCollectionPath : [chatCollectionPath]
-  );
-
   const allowed = React.useMemo(
     () =>
       canAccessThread({
@@ -130,83 +90,34 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     [accessMode, isAdmin, currentUserId, threadAllowedUserIds]
   );
 
-  const [newest, setNewest] = React.useState<NewestWindowState>({
-    ready: false,
-    newestDesc: [],
-    oldestDocInWindow: null,
-  });
+  // Stable key segment for the message collection path (string | string[]).
+  const pathKey = React.useMemo(
+    () =>
+      JSON.stringify(
+        Array.isArray(chatCollectionPath) ? chatCollectionPath : [chatCollectionPath]
+      ),
+    [chatCollectionPath]
+  );
 
-  React.useEffect(() => {
-    if (!allowed) return;
+  // Slash-joined collection path for the generic hook (handles nested paths).
+  const collectionPath = React.useMemo(
+    () => messagesColPath(chatCollectionPath, threadId, messagesSubcollection).join("/"),
+    [chatCollectionPath, threadId, messagesSubcollection]
+  );
 
-    const q = newestWindowQuery(
-      db,
-      chatCollectionPath,
-      threadId,
-      createdAtField,
+  const { items, isInitialLoading, fetchOlder, hasOlder, isFetchingOlder } =
+    useFirestoreLiveInfinite<ChatMessageV1>({
+      collectionPath,
+      queryKey: ["chat-core", "messages", pathKey, threadId, messagesSubcollection, pageSize],
+      orderByField: createdAtField,
       pageSize,
-      messagesSubcollection
-    );
-
-    const unsub = onSnapshot(q, (snap) => {
-      const docs = snap.docs as QueryDocumentSnapshot<DocumentData>[];
-      const mapped = docs.map((d) => mapMsg(d, threadId));
-      setNewest({
-        ready: true,
-        newestDesc: mapped,
-        oldestDocInWindow: docs[docs.length - 1] ?? null,
-      });
+      enabled: allowed,
+      sort: "asc",
+      select: (data) => mapMsg(data, threadId),
+      getSortValue: (data) => toMillis(data.createdAt) ?? 0,
     });
 
-    return () => unsub();
-  }, [allowed, db, chatCollectionPath, pathKey, threadId, createdAtField, pageSize, messagesSubcollection]);
-
-  const older = useInfiniteQuery({
-    queryKey: ["chat-core", "older", pathKey, threadId, messagesSubcollection, pageSize],
-    enabled: allowed && newest.ready,
-    initialPageParam: undefined as QueryDocumentSnapshot<DocumentData> | undefined,
-    queryFn: async ({ pageParam }) => {
-      const baseCol = messagesCol(db, chatCollectionPath, threadId, messagesSubcollection);
-
-      const cursor =
-        pageParam ?? (newest.oldestDocInWindow ?? undefined);
-
-      if (!cursor) {
-        return {
-          itemsDesc: [] as ChatMessageV1[],
-          nextCursor: undefined as QueryDocumentSnapshot<DocumentData> | undefined,
-        };
-      }
-
-      const q = query(
-        baseCol,
-        orderBy(createdAtField, "desc"),
-        startAfter(cursor),
-        limit(pageSize)
-      );
-
-      const snap = await getDocs(q);
-      const docs = snap.docs as QueryDocumentSnapshot<DocumentData>[];
-
-      const itemsDesc = docs.map((d) => mapMsg(d, threadId));
-      const nextCursor =
-        docs.length === pageSize ? docs[docs.length - 1] : undefined;
-
-      return { itemsDesc, nextCursor };
-    },
-    getNextPageParam: (last) => last.nextCursor,
-  });
-
-  const { fetchNextPage: fetchOlderPage } = older;
-  const fetchOlder = React.useCallback(async () => {
-    await fetchOlderPage();
-  }, [fetchOlderPage]);
-
-  const messages = React.useMemo(() => {
-    if (!allowed) return [];
-    const olderDesc = (older.data?.pages ?? []).flatMap((p) => p.itemsDesc);
-    return dedupeAndSortAsc([...olderDesc, ...newest.newestDesc]);
-  }, [allowed, older.data, newest.newestDesc]);
+  const messages = React.useMemo(() => (allowed ? items : []), [allowed, items]);
 
   // Pre-warm name cache for all visible senders (and reply-to senders).
   // Optional resolver: silent no-op if no provider is wrapped.
@@ -228,10 +139,10 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
 
   return {
     allowed,
-    isInitialLoading: allowed ? !newest.ready : false,
+    isInitialLoading: allowed ? isInitialLoading : false,
     messages,
     fetchOlder,
-    hasOlder: Boolean(older.hasNextPage),
-    isFetchingOlder: older.isFetchingNextPage,
+    hasOlder,
+    isFetchingOlder,
   };
 }

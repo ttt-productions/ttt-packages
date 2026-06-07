@@ -1,7 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { where, orderBy } from 'firebase/firestore';
+import { useFirestoreCollection } from '@ttt-productions/query-core/react';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import type { Report } from '../types.js';
 
@@ -10,30 +10,16 @@ import type { Report } from '../types.js';
  * Used by admin work views to see all reports against one item.
  */
 export function useIndividualReports(groupKey: string | null) {
-  const { config, db } = useReportCoreContext();
+  const { config } = useReportCoreContext();
 
-  return useQuery<Report[], Error>({
+  return useFirestoreCollection<Report>({
+    collectionPath: config.collections.reports,
     queryKey: ['report-core', 'individualReports', groupKey],
-    queryFn: async () => {
-      if (!groupKey) return [];
-
-      const reportsRef = collection(db, config.collections.reports);
-      const q = query(
-        reportsRef,
-        where('reportedItemId', '==', groupKey),
-        orderBy('createdAt', 'desc'),
-      );
-      const snapshot = await getDocs(q);
-
-      return snapshot.docs.map((docSnap) => {
-        const data = docSnap.data();
-        return {
-          ...data,
-          createdAt: data.createdAt,
-        } as Report;
-      });
-    },
+    constraints: groupKey
+      ? [where('reportedItemId', '==', groupKey), orderBy('createdAt', 'desc')]
+      : [],
     enabled: !!groupKey,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    select: (data) => data as unknown as Report,
   });
 }

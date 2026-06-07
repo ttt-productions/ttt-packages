@@ -18,6 +18,9 @@ export { useFirestoreCollection } from './firestore/use-firestore-collection.js'
 export { useFirestoreInfinite } from './firestore/use-firestore-infinite.js';
 export { useFirestorePaginated } from './firestore/use-firestore-paginated.js';
 export type { UseFirestorePaginatedResult } from './firestore/use-firestore-paginated.js';
+export { useFirestoreCount } from './firestore/use-firestore-count.js';
+export { useFirestoreLiveInfinite } from './firestore/use-firestore-live-infinite.js';
+export type { FirestoreLiveInfiniteResult } from './firestore/use-firestore-live-infinite.js';
 
 // Firestore Mutation Hooks
 export {

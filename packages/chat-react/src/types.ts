@@ -2,7 +2,6 @@
 // chat-core root; they live here so the pure chat-core package stays free of
 // react / firebase/firestore / firebase/storage references.
 
-import type { Firestore } from "firebase/firestore";
 import type { FirebaseStorage } from "firebase/storage";
 import type { ReactNode } from "react";
 import type { MediaOriginSpec } from "@ttt-productions/media-schemas";
@@ -123,7 +122,6 @@ export type ChatMentionConfig = {
 // ============================================
 
 export type ChatCoreConfig = {
-  db: Firestore;
   chatCollectionPath: string | string[];
   messagesSubcollection?: string;  // default: "messages"
   threadId: string;

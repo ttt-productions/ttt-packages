@@ -18,7 +18,6 @@ export type {
   PriorityConfig,
   ReportButtonProps,
   CheckedOutTaskListProps,
-  TaskQueueBrowserProps,
   TaskActionBarProps,
   CountdownTimerProps,
   PriorityBadgeProps,

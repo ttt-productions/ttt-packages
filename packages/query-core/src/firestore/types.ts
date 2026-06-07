@@ -90,6 +90,45 @@ export interface FirestorePaginatedOptions<T> extends FirestoreBaseOptions {
 }
 
 /**
+ * Options for count() aggregation queries.
+ */
+export interface FirestoreCountOptions extends FirestoreBaseOptions {
+  /** Collection path */
+  collectionPath: string;
+  /** Firestore query constraints (where, etc.) applied before counting */
+  constraints?: QueryConstraint[];
+  /** Polling interval in ms (omit for no polling) */
+  refetchInterval?: number;
+}
+
+/**
+ * Options for a live newest-window + cursor-bridged older-pages list
+ * (e.g. chat messages, live comment threads, live activity feeds). The newest
+ * page is a realtime onSnapshot window; older pages load on demand via getDocs,
+ * seeded from the window's oldest document so there is no gap or re-read.
+ */
+export interface FirestoreLiveInfiniteOptions<T = DocumentData & { id: string }> {
+  /** Collection path (slash-joined for nested paths, e.g. 'chats/t1/messages'). */
+  collectionPath: string;
+  /** React Query cache key. The older-pages query is keyed under `[...queryKey, 'older']`. */
+  queryKey: readonly unknown[];
+  /** Field both the live window and older pages order by (descending under the hood). */
+  orderByField: string;
+  /** Equality/filter constraints. Do NOT pass orderBy/limit/startAfter — the hook adds those. */
+  constraints?: QueryConstraint[];
+  /** Items per page / live-window size (default 20, capped at 100). */
+  pageSize?: number;
+  /** When false, no listener is opened and no pages are fetched. */
+  enabled?: boolean;
+  /** Map each raw doc (id included) to the item shape. Default: identity (WithId). */
+  select?: (data: DocumentData & { id: string }) => T;
+  /** Numeric sort key from a raw doc (id included). Default: reads `orderByField` as a number. */
+  getSortValue?: (data: DocumentData & { id: string }) => number;
+  /** Output ordering of the merged list. Default 'asc' (oldest → newest). */
+  sort?: 'asc' | 'desc';
+}
+
+/**
  * Result page for infinite queries.
  */
 export interface InfinitePage<T> {

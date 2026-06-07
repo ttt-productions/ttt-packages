@@ -1,14 +1,7 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import {
-  collection,
-  query,
-  where,
-  getCountFromServer,
-  type QueryConstraint,
-} from 'firebase/firestore';
-import { useFirestoreDb } from '@ttt-productions/query-core/react';
+import { where, type QueryConstraint } from 'firebase/firestore';
+import { useFirestoreCount } from '@ttt-productions/query-core/react';
 import type { UseUnreadCountOptions } from '../../types.js';
 
 const DEFAULT_REFETCH_INTERVAL = 30_000;
@@ -16,8 +9,8 @@ const DEFAULT_COUNT_LIMIT = 99;
 
 /**
  * Unread-count badge backed by a Firestore `count()` aggregation (a server-side
- * count, not a doc fetch). Polls for cost control; displays capped
- * (`hasMore` → `99+`).
+ * count, not a doc fetch), via query-core's `useFirestoreCount`. Polls for cost
+ * control; displays capped (`hasMore` → `99+`).
  *
  * - **personal** categories count **unseen** active items (`seenAt == 0`),
  *   scoped to the caller (`targetUserId == uid`);
@@ -44,8 +37,6 @@ export function useUnreadCount({
   refetchInterval = DEFAULT_REFETCH_INTERVAL,
   countLimit = DEFAULT_COUNT_LIMIT,
 }: UseUnreadCountOptions) {
-  const db = useFirestoreDb();
-
   const categoryConfig = config.categories[category];
   if (!categoryConfig) {
     throw new Error(`[notification-core] Unknown category: ${category}`);
@@ -54,17 +45,15 @@ export function useUnreadCount({
   const collectionPath = categoryConfig.activePath;
   const isPersonal = categoryConfig.audienceType === 'personal';
 
-  const { data, ...rest } = useQuery({
+  const constraints: QueryConstraint[] =
+    isPersonal && userId
+      ? [where('targetUserId', '==', userId), where('seenAt', '==', 0)]
+      : [];
+
+  const { data, ...rest } = useFirestoreCount({
+    collectionPath,
     queryKey: ['notifications', 'unread-count', category, userId],
-    queryFn: async (): Promise<number> => {
-      const collectionRef = collection(db, collectionPath);
-      const constraints: QueryConstraint[] = isPersonal
-        ? [where('targetUserId', '==', userId), where('seenAt', '==', 0)]
-        : [];
-      const q = constraints.length > 0 ? query(collectionRef, ...constraints) : collectionRef;
-      const snapshot = await getCountFromServer(q);
-      return snapshot.data().count;
-    },
+    constraints,
     enabled: enabled && !!userId,
     staleTime: refetchInterval,
     refetchInterval,

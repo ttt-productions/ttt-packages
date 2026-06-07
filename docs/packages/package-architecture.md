@@ -52,8 +52,9 @@ build order):
                               firebase-helpers
 
 Every other package has zero internal runtime dependencies. `ui-core`,
-`report-core`, and `notification-core` declare some `@ttt-productions/*` peers
-(e.g. `firebase-helpers`, `ui-core`, `query-core`) — peers are not build edges.
+`report-core`, `notification-core`, and `chat-react` declare some
+`@ttt-productions/*` peers (e.g. `firebase-helpers`, `ui-core`, `query-core`) —
+peers are not build edges.
 
 ## Root purity rule
 
@@ -93,6 +94,37 @@ safety:
 - Server packages must not import React/UI.
 - No dependency cycles.
 - Backend chat schema/contract imports use `chat-schemas`, not `chat-core`.
+
+## Firestore access goes through query-core
+
+React packages read and write Firestore through `@ttt-productions/query-core`'s
+hooks — `useFirestoreDoc`, `useFirestoreCollection` (one-shot or realtime via
+`subscribe`), `useFirestoreInfinite`, `useFirestorePaginated`, `useFirestoreCount`,
+`useFirestoreLiveInfinite`, `useBatchFirestoreDocs`, and the `useFirestore*`
+mutations — rather than calling `firebase/firestore` operations (`getDoc(s)`,
+`onSnapshot`, `getCountFromServer`, `setDoc`/`updateDoc`/`writeBatch`, …) directly.
+`db` comes from one shared `<FirestoreProvider>`, so a package never takes its own
+`db`. Building constraints with `where`/`orderBy`/`limit` and importing Firestore
+*types* is fine — only the runtime operations route through query-core.
+
+A package that needs those hooks declares `@ttt-productions/query-core` as an
+**optional peer** so the consuming app supplies the single instance (preserving
+`FirestoreProvider` context identity) — see `report-core`, `notification-core`,
+`chat-react`. `firebase-helpers` (low-level Firestore primitives) and `query-core`
+itself are the two layers that intentionally call `firebase/firestore` directly:
+they are the abstraction, not consumers of it.
+
+**Sanctioned exceptions** — each carries an in-file `SANCTIONED EXCEPTION` block;
+do not "migrate" them onto query-core without preserving the behavior the comment
+describes:
+
+- `upload-ui` → `react/tray` in-flight-uploads-provider: needs `onSnapshot`
+  *transition events* (`docChanges()` added/modified/removed) for one-shot
+  terminal callbacks and initial-snapshot suppression, which a "current list"
+  hook cannot express. The subscription is already abstracted behind an injectable
+  `FirestoreSubscribeFn`, so the direct firebase path is confined to
+  `defaultFirestoreSubscribe` and is swappable; a static ESM `firebase/firestore`
+  import is load-bearing there for Next.js + Turbopack module identity.
 
 ## chat-core vs chat-react
 

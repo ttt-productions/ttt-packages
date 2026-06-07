@@ -1,5 +1,24 @@
 'use client';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SANCTIONED EXCEPTION to the "packages read/write Firestore only through
+// @ttt-productions/query-core" rule (see docs/packages/package-architecture.md →
+// "Firestore access goes through query-core").
+//
+// WHY this provider reads Firestore directly instead of via a query-core hook:
+//   1. It needs snapshot *transition events* — onSnapshot's `docChanges()` with
+//      added / modified / removed — to fire one-shot terminal callbacks and to
+//      suppress the initial snapshot. query-core's hooks return "the current
+//      list", not per-doc transitions, so they cannot express this state machine.
+//   2. The subscription is already abstracted behind an injectable
+//      `FirestoreSubscribeFn` (the `subscribe` prop); the direct firebase code
+//      path lives ONLY in `defaultFirestoreSubscribe` below and is fully
+//      swappable (tests / alternate backends inject their own).
+//   3. The static ESM `firebase/firestore` import is load-bearing for Next.js +
+//      Turbopack module identity (see defaultFirestoreSubscribe's comment).
+//
+// Do NOT "migrate" this onto query-core without preserving docChanges() semantics.
+// ─────────────────────────────────────────────────────────────────────────────
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 /**

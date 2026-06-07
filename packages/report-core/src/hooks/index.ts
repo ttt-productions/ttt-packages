@@ -5,5 +5,4 @@ export { useCheckoutNextImportantTask } from './useCheckoutNextImportantTask.js'
 export { useCheckinTask } from './useCheckinTask.js';
 export { useReleaseTask } from './useReleaseTask.js';
 export { useWorkLater } from './useWorkLater.js';
-export { useTaskQueue } from './useTaskQueue.js';
 export { useIndividualReports } from './useIndividualReports.js';

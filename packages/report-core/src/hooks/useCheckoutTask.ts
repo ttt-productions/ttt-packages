@@ -4,7 +4,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface CheckoutTaskInput {
   taskType: string;
-  specificTaskId?: string;
 }
 
 interface CheckoutTaskResult {
