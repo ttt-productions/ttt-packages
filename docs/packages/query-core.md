@@ -10,14 +10,14 @@ Generic TanStack Query package.
 - Generic search hook/types
 - Domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`, `predicate`, `applyInvalidations`)
 
-## Subpaths
+## Entry points
 
-- `.` â€” server-safe root: cache helpers, Firestore types and `docWithId`, infinite-data helpers, search types, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
-- `./keys` â€” pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
-- `./react` â€” React/TanStack runtime: provider, Firestore hooks, search hook, and the `createQueryClient` factory.
-- `./types` â€” Firestore option/type surface.
+- `.` — server-safe root: cache helpers, Firestore types and `docWithId`, infinite-data helpers, search types, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
+- `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
+- `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, and the `createQueryClient` factory.
+- `./types` — Firestore option/type surface.
 
-`useBatchFirestoreDocs` (in `./react`) resolves many doc ids into individual cache entries. It defaults to one-shot `getDocs` batching, but accepts `subscribe: true` to instead resolve each id through a shared, reference-counted `onSnapshot` listener (one listener per id across the whole client, regardless of how many components request it). Subscribe mode adds negative caching (a missing doc caches `null`, so it resolves the moment it appears rather than staying blank until `staleTime`) and live cross-tab updates. Use it for small, change-sensitive identity docs (the canonical consumer is TTT `publicUsers`).
+`useBatchFirestoreDocs` (in `./react`) resolves many document ids into individual cache entries, with an optional `subscribe` mode for small, change-sensitive identity docs — a shared reference-counted listener per id plus negative caching, so a missing doc resolves the moment it appears instead of staying blank until `staleTime`. The canonical consumer is TTT `publicUsers`; detailed behavior lives in source.
 
 Client peers (`react`, `react-dom`, `@tanstack/react-query`) are optional; they are needed only when importing `./react`.
 

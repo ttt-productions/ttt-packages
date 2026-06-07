@@ -11,7 +11,7 @@ This playbook does NOT re-audit the rule itself — that's the design doc's job.
 
 - Before publishing any package whose `src/index.ts` was modified.
 - After any refactor that moves files between `src/` and `src/react/`.
-- After adding a new file under `src/` — Sonnet often forgets the rule and adds a barrel re-export to main.
+- After adding a new file under `src/` — it's easy to forget the rule and add a barrel re-export to main.
 - When the Cloud Functions emulator starts crashing with `react/jsx-runtime` resolution errors.
 - After changing package-to-package imports inside `packages/*`.
 - Quarterly as drift control.
@@ -107,7 +107,7 @@ For each package that declares any client-only peer, confirm it is marked option
 
     node -e "const p=require('./packages/<pkg>/package.json'); const meta=p.peerDependenciesMeta||{}; for (const k of Object.keys(p.peerDependencies||{})) console.log(k, meta[k]?.optional ? 'optional' : 'REQUIRED')"
 
-Every client-only peer must print `optional`. The only packages that may keep required client peers are those with no server-safe surface at all â€” currently none in `packages/`. Internal infrastructure peers that are themselves server-safe (e.g. `@ttt-productions/firebase-helpers`) may remain required.
+Every client-only peer must print `optional`. The only packages that may keep required client peers are those with no server-safe surface at all — currently none in `packages/`. Internal infrastructure peers that are themselves server-safe (e.g. `@ttt-productions/firebase-helpers`) may remain required.
 
 Optional peers are not auto-installed. So any client peer marked `optional` that a package imports in its own source must also be listed in that package's `devDependencies` — otherwise the package's own build, typecheck, and tests fail, because it can no longer rely on npm's required-peer auto-install (or a consumer) to provide it. `query-core` is the reference: `@tanstack/react-query` is both an optional peer and a devDependency.
 

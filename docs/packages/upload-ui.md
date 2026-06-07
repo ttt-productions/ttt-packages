@@ -22,12 +22,12 @@ The deferred form shell receives a neutral `MediaOriginSpec`. TTT chooses the co
 - TTT toast/rejection copy
 
 
-## Public entry points
+## Entry points
 
 The package main entry (`@ttt-productions/upload-ui`) is intentionally server-safe and empty. React runtime exports are deliberately split by concern:
 
-- `/react/upload` — local upload helper and deferred form shell.
-- `/react/guard` — local upload guard, guarded links, and guarded navigation.
-- `/react/tray` — global upload activity subscriber, tray, and clear helpers.
+- `./react/upload` — local upload helper and deferred form shell.
+- `./react/guard` — local upload guard, guarded links, and guarded navigation.
+- `./react/tray` — global upload activity subscriber, tray, and clear helpers.
 
-Do not document or consume a catch-all `/react` subpath unless the package actually exports one.
+There is no catch-all `./react` subpath; import the specific concern.

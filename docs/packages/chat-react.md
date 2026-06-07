@@ -7,10 +7,10 @@ Chat **React UI** package — the React half of the chat split.
 - Chat shell, composer, message list, attachment UI, and the
   realtime-newest-window + infinite-older hooks (`useChatMessages`,
   `canAccessThread`)
-- `ChatShell`/`MessageList` height modes: default is a fixed-height card
-  (`h-[400px]` scroll region); `fillHeight` lays the shell out `flex flex-col h-full`
-  so the message list flexes to fill a bounded-height page panel (scrolls inside)
-  instead of a fixed box. The consumer gives ChatShell a bounded-height parent.
+- `ChatShell`/`MessageList` height modes: a default fixed-height card with an
+  internal scroll region, or a `fillHeight` mode that flexes to fill a
+  bounded-height page panel (scrolling inside) instead of a fixed box. The
+  consumer gives `ChatShell` a bounded-height parent.
 - The generic mention **UI**: autocomplete dropdown, keyboard behavior,
   composer insertion, and message-text rendering
 - The name-resolver context (`ChatNameResolverProvider`, …)

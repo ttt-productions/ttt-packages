@@ -24,7 +24,7 @@ The root is pure: it exposes only contracts, claims parsing, normalized errors, 
 - `./react` — React auth provider and hooks.
 - `./server` — Admin SDK / Functions helpers, including `createAssertAuth`.
 
-## What does not belong here
+## Does not own
 
 - guild-membership requirements
 - `artisanCreator` requirements

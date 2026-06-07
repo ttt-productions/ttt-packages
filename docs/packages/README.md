@@ -1,45 +1,25 @@
 # Package docs
 
-This folder documents current ownership for each `@ttt-productions/*` package after the package architecture rework.
+One reference doc per `@ttt-productions/*` package. Each describes what that
+package **owns**, its **boundary** (what it must not own or depend on), and its
+public **entry points** — enough to use or change the package without reading its
+source. Read the relevant package's doc before importing from it or changing it.
 
-The current monorepo contains **22 packages**:
+For the cross-cutting model — tiers, the dependency graph, root purity, subpath
+conventions, direction rules, build/release order, internal version pinning, and
+the boundary-guard tests — see [`package-architecture.md`](./package-architecture.md).
+That doc is the source of truth for how the packages fit together; the
+per-package docs each cover a single package.
 
-## Generic foundations
+## Per-package doc shape
 
-- `auth-core`
-- `firebase-helpers`
-- `chat-schemas`
-- `media-schemas`
-- `mobile-core`
-- `monitoring-core`
-- `query-core`
-- `theme-core`
-- `ui-core`
-- `rate-limit-core`
-- `audit-core`
-- `moderation-core`
+- `# @ttt-productions/<name>` heading and a one-line purpose.
+- `## Owns` — what the package is responsible for.
+- `## Boundary` — what lives elsewhere and what it must not pull in. An optional
+  `## Does not own` list may spell out tempting-but-excluded responsibilities.
+- `## Entry points` — only when the package exposes more than its root. Each
+  bullet leads with the real export subpath. A boundary test fails the build if a
+  documented subpath is not an actual export, so keep these honest.
 
-## Generic feature packages
-
-- `file-input`
-- `media-viewer`
-- `media-processing-core`
-- `notification-core`
-- `report-core`
-- `upload-core`
-- `upload-ui`
-- `chat-core`
-- `chat-react`
-
-## Application data
-
-- `ttt-core`
-
-## Rework notes
-
-- `media-schemas` is the renamed generic-media successor to the old `media-contracts` package.
-- `upload-ui` is the renamed guarded-upload successor to the old `upload-form` package.
-- `chat-schemas` is intentionally separate from `chat-core` so backend code and `ttt-core` can compose chat schemas without importing the React-heavy chat runtime.
-- `chat-core` was split into a pure `chat-core` (contracts, mention parser, grouping — depends only on `chat-schemas`) and a new `chat-react` (the chat React UI, hooks, Firebase-client adapter config, and render types).
-
-Old package docs for `media-contracts` and `upload-form` should not exist in this folder. If they reappear, delete them rather than updating them.
+Generic packages stay app-agnostic; `ttt-core` is the one TTT-specific
+application-data package, and its doc is correspondingly larger.

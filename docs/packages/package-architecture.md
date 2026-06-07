@@ -153,17 +153,24 @@ packages dynamically by globbing `packages/*`, so they need no per-package edits
 Internal `@ttt-productions/*` dependencies are authored `"*"` in source so that
 workspace dev always resolves to the local package. A published tarball must
 never ship `"*"` (it would let a consumer resolve an incompatible newer internal
-version), so the release pipeline rewrites every internal `"*"` to the exact
-current version at pack time:
+version), so the release pipeline rewrites every internal `"*"` to a **caret
+range** (`^x.y.z`) at pack time — across `dependencies`, `devDependencies`, AND
+`peerDependencies`:
 
 - `scripts/release-package.sh` bumps the version, commits, tags, and pushes —
   the tag triggers CI. It does not pin; committed source keeps `"*"`.
 - `.github/workflows/publish.yml` runs `scripts/pin-internal-deps.mjs <pkgDir>`
-  on the ephemeral checkout to rewrite `"*"` → exact pins, then re-runs it with
+  on the ephemeral checkout to rewrite `"*"` → caret pins, then re-runs it with
   `--check` to **hard-fail** if any internal `"*"` survived, then `npm publish`.
 
-Because the checkout is ephemeral, the rewrite affects only the published
-tarball; the repo keeps `"*"`.
+Caret, not exact: bumping one internal package by a patch/minor must not force
+every dependent to be republished in lockstep. Exact pins caused exactly that
+cascade — a stale exact regular dep surfaced as a duplicate nested install, and a
+stale exact peer dep as a `peerOptional` ERESOLVE warning, in the consuming app
+until the dependent was also republished. Caret on a `0.x` version still locks
+the minor, so a breaking minor/major is never auto-adopted — only compatible
+patches flow through. Because the checkout is ephemeral, the rewrite affects only
+the published tarball; the repo keeps `"*"`.
 
 ## Boundary guard tests
 
