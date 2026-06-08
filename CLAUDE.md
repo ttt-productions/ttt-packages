@@ -81,6 +81,8 @@ remove it to "fix" a release issue.
 - `upload-core`
 - `chat-core` (pure — depends only on `chat-schemas`)
 
+> `file-input` also depends on `media-viewer` (it renders `MediaPreview` in `MediaInput`'s in-picker file preview) — the only intra-Tier-1 edge. Build/release order already builds `media-viewer` before `file-input`, so no tier renumbering is needed.
+
 ### Tier 2
 
 - `upload-ui`

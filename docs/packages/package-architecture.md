@@ -25,7 +25,7 @@ package may consume it.
   `monitoring-core`, `query-core`, `theme-core`, `ui-core`, `rate-limit-core`,
   `audit-core`, `moderation-core`, `auth-core`.
 - **Tier 1 — depend on Tier 0 only:** `chat-core` (→ `chat-schemas`),
-  `file-input` (→ `ui-core`, `media-schemas`), `media-viewer`
+  `file-input` (→ `ui-core`, `media-schemas`, `media-viewer`), `media-viewer`
   (→ `media-schemas`, `ui-core`), `media-processing-core` (→ `media-schemas`),
   `upload-core` (→ `firebase-helpers`), `report-core` and `notification-core`
   (no internal runtime deps; their UI/query needs are optional peers).
@@ -41,7 +41,7 @@ The internal runtime-dependency edges (peers/dev excluded — they do not affect
 build order):
 
     chat-core              -> chat-schemas
-    file-input             -> ui-core, media-schemas
+    file-input             -> ui-core, media-schemas, media-viewer
     media-viewer           -> media-schemas, ui-core
     media-processing-core  -> media-schemas
     upload-core            -> firebase-helpers
@@ -50,6 +50,12 @@ build order):
     chat-react             -> chat-core, chat-schemas, media-schemas, ui-core,
                               file-input, upload-ui, media-viewer, mobile-core,
                               firebase-helpers
+
+The `media-viewer -> file-input` edge is the only intra-Tier-1 dependency
+(`file-input` renders `MediaPreview` in `MediaInput`'s selected-file preview).
+It needs no tier renumbering: the build chain and `scripts/release-all.sh`
+already place `media-viewer` before `file-input`, so dependencies still build
+and release before their dependents.
 
 Every other package has zero internal runtime dependencies. `ui-core`,
 `report-core`, `notification-core`, and `chat-react` declare some
