@@ -11,10 +11,9 @@ describe('CheckoutTaskRequestSchema', () => {
     const r = { taskType: 'profilePicture' };
     expect(CheckoutTaskRequestSchema.parse(r)).toEqual(r);
   });
-  it('rejects specificTaskId (the cherry-pick path was removed)', () => {
-    expect(() =>
-      CheckoutTaskRequestSchema.parse({ taskType: 'profilePicture', specificTaskId: 'task-1' }),
-    ).toThrow();
+  it('accepts taskType + specificTaskId', () => {
+    const r = { taskType: 'profilePicture', specificTaskId: 'task-1' };
+    expect(CheckoutTaskRequestSchema.parse(r)).toEqual(r);
   });
   it('rejects empty taskType', () => {
     expect(() => CheckoutTaskRequestSchema.parse({ taskType: '' })).toThrow();

@@ -19,10 +19,11 @@ export interface CheckoutTaskHandlerConfig {
  *
  * Behavior:
  * 1. Verifies admin auth (requireAdmin function or adminUserIds fallback)
- * 2. Finds the highest-priority pending task of the given type
- * 3. Falls back to expired checked-out tasks
- * 4. Sets checkout details with expiration
- * 5. Logs activity
+ * 2. If specificTaskId provided, checks out that task
+ * 3. Otherwise finds the highest-priority pending task of the given type
+ * 4. Falls back to expired checked-out tasks
+ * 5. Sets checkout details with expiration
+ * 6. Logs activity
  *
  * @returns An async handler: (data, authContext) => Promise<result>
  */
@@ -53,7 +54,7 @@ export function createCheckoutTaskHandler({
     data: CheckoutTaskRequest,
     authContext: { uid: string; token: unknown },
   ): Promise<Record<string, unknown>> => {
-    const { taskType } = data;
+    const { taskType, specificTaskId } = data;
     const userId = authContext.uid;
 
     await verifyAdmin(userId, authContext.token);
@@ -69,36 +70,54 @@ export function createCheckoutTaskHandler({
     return db.runTransaction(async (transaction) => {
       const tasksRef = db.collection(config.collections.adminTasks);
       let taskDoc;
+      let taskRef;
 
-      // Find highest-priority pending task
-      const pendingQuery = tasksRef
-        .where('taskType', '==', taskType)
-        .where('status', '==', 'pending')
-        .orderBy('priority', 'desc')
-        .orderBy('createdAt', 'asc')
-        .limit(1);
+      if (specificTaskId) {
+        taskRef = tasksRef.doc(specificTaskId);
+        taskDoc = await transaction.get(taskRef);
 
-      const pendingSnap = await transaction.get(pendingQuery);
+        if (!taskDoc.exists) {
+          throw new Error('The requested task could not be found.');
+        }
 
-      if (!pendingSnap.empty) {
-        taskDoc = pendingSnap.docs[0];
+        const taskData = taskDoc.data()!;
+        if (
+          (taskData.status === 'checkedOut' || taskData.status === 'workLater') &&
+          (taskData.checkoutDetails as Record<string, unknown>)?.expiresAt as number > now
+        ) {
+          throw new Error('This task is already checked out by another admin.');
+        }
       } else {
-        // Try expired checked-out tasks
-        const expiredQuery = tasksRef
+        // Find highest-priority pending task
+        const pendingQuery = tasksRef
           .where('taskType', '==', taskType)
-          .where('status', '==', 'checkedOut')
-          .where('checkoutDetails.expiresAt', '<', now)
-          .orderBy('checkoutDetails.expiresAt', 'asc')
+          .where('status', '==', 'pending')
+          .orderBy('priority', 'desc')
+          .orderBy('createdAt', 'asc')
           .limit(1);
 
-        const expiredSnap = await transaction.get(expiredQuery);
-        if (!expiredSnap.empty) {
-          taskDoc = expiredSnap.docs[0];
+        const pendingSnap = await transaction.get(pendingQuery);
+
+        if (!pendingSnap.empty) {
+          taskDoc = pendingSnap.docs[0];
         } else {
-          throw new Error('No available tasks in this queue.');
+          // Try expired checked-out tasks
+          const expiredQuery = tasksRef
+            .where('taskType', '==', taskType)
+            .where('status', '==', 'checkedOut')
+            .where('checkoutDetails.expiresAt', '<', now)
+            .orderBy('checkoutDetails.expiresAt', 'asc')
+            .limit(1);
+
+          const expiredSnap = await transaction.get(expiredQuery);
+          if (!expiredSnap.empty) {
+            taskDoc = expiredSnap.docs[0];
+          } else {
+            throw new Error('No available tasks in this queue.');
+          }
         }
+        taskRef = taskDoc.ref;
       }
-      const taskRef = taskDoc.ref;
 
       const taskData = taskDoc!.data()!;
 

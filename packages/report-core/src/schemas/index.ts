@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 export const CheckoutTaskRequestSchema = z.object({
   taskType: z.string().min(1),
+  specificTaskId: z.string().min(1).optional(),
 }).strict();
 
 export type CheckoutTaskRequest = z.infer<typeof CheckoutTaskRequestSchema>;
