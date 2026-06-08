@@ -584,8 +584,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `cascadeId` | `string` |  |
-| `action` | `'hideRealm' \| 'restoreRealm' \| 'hideCraftSkill' \| 'restoreCraftSkill'` |  |
-| `entityType` | `'workRealm' \| 'craftSkill'` |  |
+| `action` | `'hideRealm' \| 'restoreRealm'` |  |
+| `entityType` | `"workRealm"` |  |
 | `entityId` | `string` |  |
 | `actorUid` | `string` |  |
 | `reason` | `string` |  |
@@ -598,7 +598,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `docPath` | `string` |  |
-| `entityType` | `'workProject' \| 'hallItem' \| 'subItemProjection' \| 'workRealm' \| 'craftSkillUserCopy' \| 'craftSkillTagMirror'` |  |
+| `entityType` | `'workProject' \| 'hallItem' \| 'subItemProjection' \| 'workRealm'` |  |
 | `fieldPath` | `string` |  |
 | `previousValue` | `boolean` |  |
 | `newValue` | `boolean` |  |
