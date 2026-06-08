@@ -37,3 +37,23 @@ export const SetUserStatusInputSchema = z.object({
 }).strict();
 export type SetUserStatusInput = z.infer<typeof SetUserStatusInputSchema>;
 
+// Admin forces an abusive display name off a user: the name is swapped to a neutral
+// placeholder, the old name is blocked from reuse, and the user must pick a new one.
+export const ForceDisplayNameResetInputSchema = z.object({
+  userId: userIdSchema,
+  // Optional admin note recorded on the audit event.
+  reason: z.string().trim().min(1).max(2000).optional(),
+}).strict();
+export type ForceDisplayNameResetInput = z.infer<typeof ForceDisplayNameResetInputSchema>;
+
+// User completes a forced display-name reset by choosing a new name. Only honored while
+// the caller's userProfiles doc has `displayNameResetRequired === true`.
+export const SetMyDisplayNameInputSchema = z.object({
+  displayName: z
+    .string()
+    .min(USERNAME_MIN_LENGTH)
+    .max(USERNAME_MAX_LENGTH)
+    .regex(USERNAME_REGEX),
+}).strict();
+export type SetMyDisplayNameInput = z.infer<typeof SetMyDisplayNameInputSchema>;
+

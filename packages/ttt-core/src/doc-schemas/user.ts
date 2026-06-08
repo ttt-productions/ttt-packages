@@ -73,6 +73,10 @@ export const FullUserSchema = z.object({
   profilePictureUrlSmall: z.string().nullable().optional(),
   artisanCreator: z.number().optional(),
   status: z.enum(['active', 'suspended', 'banned']).optional(),
+  // Moderation: set true by the forceDisplayNameReset callable when an admin resets an
+  // abusive display name. The app gates the user into a forced "pick a new name" flow until
+  // they complete it via setMyDisplayName (which clears this). Backend-only-writable (like `status`).
+  displayNameResetRequired: z.boolean().optional(),
   ownedWorkProjects: z.array(OwnedWorkProjectSchema).optional(),
   associatedWorkProjects: z.array(AssociatedWorkProjectSchema).optional(),
   createdAt: z.number(),

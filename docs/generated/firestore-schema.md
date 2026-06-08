@@ -887,6 +887,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `profilePictureUrlSmall` | `string \| null` | yes |
 | `artisanCreator` | `number` | yes |
 | `status` | `'active' \| 'suspended' \| 'banned'` | yes |
+| `displayNameResetRequired` | `boolean` | yes |
 | `ownedWorkProjects` | `{ workProjectId, workingTitle, workingDescription, type, createdOn, hallWingType }[]` | yes |
 | `associatedWorkProjects` | `{ workProjectId, workingTitle, workingDescription, type, joinedOn }[]` | yes |
 | `createdAt` | `number` |  |

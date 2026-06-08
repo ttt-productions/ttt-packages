@@ -18,6 +18,8 @@ export type AuditEventType =
   | 'user.accountSuspended'
   | 'user.accountBanned'
   | 'user.accountUnbanned'
+  | 'user.displayNameResetForced'
+  | 'user.displayNameChanged'
   // admin actions
   | 'admin.systemRoleGranted'
   | 'admin.systemRoleRevoked'
