@@ -51,6 +51,9 @@ export type AuditEventType =
   | 'workProject.stakeShares.anomaly'
   // craft-skills
   | 'craftSkill.userCraftSkillDeleted'
+  | 'craftSkill.hidden'
+  | 'craftSkill.restored'
+  | 'craftSkill.removed'
   // content
   | 'content.itemReported'
   | 'content.violationRecorded'

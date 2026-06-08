@@ -52,24 +52,37 @@ export const ContentAppealTaskSchema = AdminTaskSchema.extend({
 });
 export type ContentAppealTask = z.infer<typeof ContentAppealTaskSchema>;
 
-export const ModerationCascadeActionSchema = z.enum(['hideRealm', 'restoreRealm']);
+export const ModerationCascadeActionSchema = z.enum([
+  'hideRealm',
+  'restoreRealm',
+  'hideCraftSkill',
+  'restoreCraftSkill',
+]);
 export type ModerationCascadeAction = z.infer<typeof ModerationCascadeActionSchema>;
 
 export const ModerationCascadeStatusSchema = z.enum(['pending', 'complete', 'failed']);
 export type ModerationCascadeStatus = z.infer<typeof ModerationCascadeStatusSchema>;
+
+// The top-level entity a cascade hides/restores: 'workRealm' = a work realm and its
+// children/hall projections; 'craftSkill' = a craft skill across its per-user doc + tag mirrors.
+export const ModerationCascadeEntityTypeSchema = z.enum(['workRealm', 'craftSkill']);
+export type ModerationCascadeEntityType = z.infer<typeof ModerationCascadeEntityTypeSchema>;
 
 export const ModerationCascadeChangedEntityTypeSchema = z.enum([
   'workProject',
   'hallItem',
   'subItemProjection',
   'workRealm',
+  // craft-skill cascade: the owner's authoritative copy + each per-tag mirror doc.
+  'craftSkillUserCopy',
+  'craftSkillTagMirror',
 ]);
 export type ModerationCascadeChangedEntityType = z.infer<typeof ModerationCascadeChangedEntityTypeSchema>;
 
 export const ModerationCascadeManifestSchema = z.object({
   cascadeId: z.string(),
   action: ModerationCascadeActionSchema,
-  entityType: z.literal('workRealm'),
+  entityType: ModerationCascadeEntityTypeSchema,
   entityId: z.string(),
   actorUid: z.string(),
   reason: z.string(),

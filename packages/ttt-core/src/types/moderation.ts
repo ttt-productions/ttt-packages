@@ -7,6 +7,7 @@ export type {
   ContentAppealTask,
   ModerationCascadeAction,
   ModerationCascadeStatus,
+  ModerationCascadeEntityType,
   ModerationCascadeChangedEntityType,
   ModerationCascadeManifest,
   ModerationCascadeChangedDoc,

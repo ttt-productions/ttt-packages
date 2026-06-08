@@ -467,6 +467,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `craftSkillType` | `'image' \| 'video' \| 'audio'` |  |
 | `tags` | `string[]` |  |
 | `createdAt` | `number` |  |
+| `hidden` | `boolean` | yes |
 
 ## `feedbackAliases/{aliasId}`
 
@@ -583,8 +584,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `cascadeId` | `string` |  |
-| `action` | `'hideRealm' \| 'restoreRealm'` |  |
-| `entityType` | `"workRealm"` |  |
+| `action` | `'hideRealm' \| 'restoreRealm' \| 'hideCraftSkill' \| 'restoreCraftSkill'` |  |
+| `entityType` | `'workRealm' \| 'craftSkill'` |  |
 | `entityId` | `string` |  |
 | `actorUid` | `string` |  |
 | `reason` | `string` |  |
@@ -597,7 +598,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `docPath` | `string` |  |
-| `entityType` | `'workProject' \| 'hallItem' \| 'subItemProjection' \| 'workRealm'` |  |
+| `entityType` | `'workProject' \| 'hallItem' \| 'subItemProjection' \| 'workRealm' \| 'craftSkillUserCopy' \| 'craftSkillTagMirror'` |  |
 | `fieldPath` | `string` |  |
 | `previousValue` | `boolean` |  |
 | `newValue` | `boolean` |  |
@@ -941,6 +942,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `tags` | `string[]` |  |
 | `createdAt` | `number` |  |
 | `type` | `'image' \| 'video' \| 'audio'` |  |
+| `hidden` | `boolean` | yes |
 
 ## `userProfiles/{userId}/userLikes/likeHistory/squareStreetzLikes/{postId}`
 

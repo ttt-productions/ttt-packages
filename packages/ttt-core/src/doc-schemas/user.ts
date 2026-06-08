@@ -16,6 +16,10 @@ export const CraftSkillSchema = z.object({
   tags: z.array(z.string()),
   createdAt: z.number(),
   type: mediaKindSchema,
+  // Moderation visibility flag. Absent/false = visible; true = hidden by the
+  // craft-skill hide cascade (report auto-hide or admin action). Mirrored onto
+  // every taggedCraftSkills index doc so discovery surfaces can filter it.
+  hidden: z.boolean().optional(),
 });
 export type CraftSkill = z.infer<typeof CraftSkillSchema>;
 
@@ -28,6 +32,8 @@ export const CraftSkillReferenceSchema = z.object({
   craftSkillType: mediaKindSchema,
   tags: z.array(z.string()),
   createdAt: z.number(),
+  // Mirror of CraftSkill.hidden; lets the tag-browse filter hidden skills out.
+  hidden: z.boolean().optional(),
 });
 export type CraftSkillReference = z.infer<typeof CraftSkillReferenceSchema>;
 
