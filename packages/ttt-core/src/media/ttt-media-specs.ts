@@ -6,7 +6,6 @@ const DEFAULT_RECORD_DURATION_SEC = 60;
 const ACCEPT_IMAGE_ONLY = { kinds: ['image' as const] };
 const ACCEPT_VIDEO_ONLY = { kinds: ['video' as const] };
 const ACCEPT_AUDIO_ONLY = { kinds: ['audio' as const] };
-const ACCEPT_IMAGE_VIDEO = { kinds: ['image' as const, 'video' as const] };
 const ACCEPT_MEDIA_ALL = { kinds: ['image' as const, 'video' as const, 'audio' as const] };
 
 export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
@@ -100,7 +99,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
     client: {
       allowPick: true,
-      allowCapturePhoto: false,
+      allowCapturePhoto: true,
       allowRecordVideo: false,
       allowRecordAudio: false,
     },
@@ -130,7 +129,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
     client: {
       allowPick: true,
-      allowCapturePhoto: false,
+      allowCapturePhoto: true,
       allowRecordVideo: false,
       allowRecordAudio: false,
     },
@@ -160,7 +159,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
     client: {
       allowPick: true,
-      allowCapturePhoto: false,
+      allowCapturePhoto: true,
       allowRecordVideo: false,
       allowRecordAudio: false,
     },
@@ -296,8 +295,8 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
 
   'commission-posting': {
     kind: 'image',
-    accept: ACCEPT_IMAGE_VIDEO,
-    maxBytes: 5 * 1024 * 1024,
+    accept: ACCEPT_MEDIA_ALL,
+    maxBytes: 10 * 1024 * 1024,
     imageCrop: {
       aspectRatio: 4 / 3,
       outputWidth: 800,
@@ -308,9 +307,10 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
     client: {
       allowPick: true,
-      allowCapturePhoto: false,
-      allowRecordVideo: false,
-      allowRecordAudio: false,
+      allowCapturePhoto: true,
+      allowRecordVideo: true,
+      allowRecordAudio: true,
+      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
     },
     processing: {
       image: {
@@ -327,6 +327,10 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         requiredHeight: 600,
         allowAutoFormat: true,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
+      },
+      audio: {
+        kind: 'audio',
+        audio: { maxDurationSec: 600 },
       },
     },
   },
