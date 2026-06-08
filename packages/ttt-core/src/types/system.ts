@@ -19,3 +19,6 @@
  */
 // Shape is defined as a Zod schema in ../doc-schemas/system.ts; type inferred there.
 export type { AppConfig } from '../doc-schemas/system.js';
+
+// _systemData/reservedUsernames — curated reserved/impersonation usernames (UPPERCASE).
+export type { ReservedUsernames } from '../doc-schemas/system.js';

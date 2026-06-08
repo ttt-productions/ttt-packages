@@ -20,10 +20,21 @@ export const AdminListSchema = z.object({
 export type AdminList = z.infer<typeof AdminListSchema>;
 
 // _systemData/profanityList — the moderation word list read by the runtime text filter.
-// (functions/src/utility/initProfanityList.ts / curateProfanityList.ts)
+// (functions/src/utility/seedProfanityList.ts / curateProfanityList.ts)
 export const ProfanityListSchema = z.object({
   words: z.array(z.string()),
   updatedAt: z.number(),
   wordCount: z.number(),
 });
 export type ProfanityList = z.infer<typeof ProfanityListSchema>;
+
+// _systemData/reservedUsernames — curated brand/impersonation terms blocked at registration
+// by exact normalized (UPPERCASE) match. Distinct from the per-user `reservedDisplayNames`
+// uniqueness collection. Seeded by functions/src/utility/seedReservedUsernames.ts; consulted by
+// registerUser + checkDisplayNameAvailable. Names are stored UPPERCASE to match the
+// reservedDisplayName case-folding convention.
+export const ReservedUsernamesSchema = z.object({
+  names: z.array(z.string()),
+  updatedAt: z.number(),
+});
+export type ReservedUsernames = z.infer<typeof ReservedUsernamesSchema>;

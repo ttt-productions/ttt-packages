@@ -134,6 +134,7 @@ export const SPECIAL_DOCS = {
   FUTURE_PLANS: 'futurePlans',
   NOTIFICATION_SETTINGS: 'notificationSettings',
   PROFANITY_LIST: 'profanityList',
+  RESERVED_USERNAMES: 'reservedUsernames',
   RULES_AND_AGREEMENTS: 'rulesAndAgreements',
   SUMMARY: 'summary',
 } as const;

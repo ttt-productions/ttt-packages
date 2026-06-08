@@ -63,7 +63,7 @@ import {
   AdminDispatchSchema,
   ChatMessageV1Schema,
 } from './messaging.js';
-import { AppConfigSchema, AdminListSchema, ProfanityListSchema } from './system.js';
+import { AppConfigSchema, AdminListSchema, ProfanityListSchema, ReservedUsernamesSchema } from './system.js';
 import {
   ContentViolationSchema,
   ModerationCascadeManifestSchema,
@@ -186,6 +186,7 @@ export const COLLECTION_SCHEMAS = {
   // ===== _systemData singletons =====
   '_systemData/adminList': AdminListSchema,
   '_systemData/profanityList': ProfanityListSchema,
+  '_systemData/reservedUsernames': ReservedUsernamesSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;
 
 export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;

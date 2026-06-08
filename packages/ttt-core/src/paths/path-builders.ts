@@ -218,6 +218,9 @@ export const PATH_BUILDERS = {
   profanityList: (): [string, string] =>
     [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.PROFANITY_LIST],
 
+  reservedUsernames: (): [string, string] =>
+    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.RESERVED_USERNAMES],
+
   rulesAndAgreements: (): [string, string] =>
     [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.RULES_AND_AGREEMENTS],
 

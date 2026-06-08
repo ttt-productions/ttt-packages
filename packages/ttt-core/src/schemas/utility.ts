@@ -13,8 +13,19 @@ export const CreateShortLinkInputSchema = z.object({
 }).strict();
 export type CreateShortLinkInput = z.infer<typeof CreateShortLinkInputSchema>;
 
-export const InitProfanityListInputSchema = z.object({}).strict();
-export type InitProfanityListInput = z.infer<typeof InitProfanityListInputSchema>;
+// No-input seed callables (Ready for Launch tab). Each prepopulates one system
+// dataset from a canonical backend constant; the input is intentionally empty.
+export const SeedProfanityListInputSchema = z.object({}).strict();
+export type SeedProfanityListInput = z.infer<typeof SeedProfanityListInputSchema>;
+
+export const SeedReservedUsernamesInputSchema = z.object({}).strict();
+export type SeedReservedUsernamesInput = z.infer<typeof SeedReservedUsernamesInputSchema>;
+
+export const SeedRulesAndAgreementsInputSchema = z.object({}).strict();
+export type SeedRulesAndAgreementsInput = z.infer<typeof SeedRulesAndAgreementsInputSchema>;
+
+export const SeedFuturePlansInputSchema = z.object({}).strict();
+export type SeedFuturePlansInput = z.infer<typeof SeedFuturePlansInputSchema>;
 
 /** Admin add/remove words on the self-owned curated profanity list (no external sync). */
 export const CurateProfanityListInputSchema = z

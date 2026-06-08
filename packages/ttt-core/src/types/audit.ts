@@ -27,6 +27,10 @@ export type AuditEventType =
   | 'admin.thresholdItemReviewed'
   | 'admin.futurePlansUpdated'
   | 'admin.rulesAndAgreementsUpdated'
+  // admin launch-seed actions (Ready for Launch tab)
+  | 'admin.reservedUsernamesSeeded'
+  | 'admin.rulesAndAgreementsSeeded'
+  | 'admin.futurePlansSeeded'
   // workProject
   | 'workProject.created'
   | 'workProject.guildmateUserGuildStandingChanged'
