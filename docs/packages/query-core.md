@@ -4,7 +4,9 @@ Generic TanStack Query package.
 
 ## Owns
 
-- Query client/default option factories with neutral names
+- Query client/default option factories with neutral names, plus `STALE_TIMES` —
+  generic named `staleTime` presets (`short`/`medium`/`long`/`forever`) so call sites
+  use a self-documenting bucket instead of a magic number
 - Query provider and helper hooks
 - Firestore React hooks (in the `./react` entry): `useFirestoreDoc`,
   `useFirestoreCollection` (one-shot or realtime via `subscribe`),
@@ -17,7 +19,7 @@ Generic TanStack Query package.
 
 ## Entry points
 
-- `.` — server-safe root: cache helpers, Firestore types and `docWithId`, infinite-data helpers, search types, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
+- `.` — server-safe root: cache helpers, Firestore types and `docWithId`, infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
 - `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
 - `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, and the `createQueryClient` factory.
 - `./types` — Firestore option/type surface.

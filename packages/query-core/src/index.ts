@@ -1,3 +1,6 @@
+// Query defaults & staleTime presets (server-safe — plain constants, no React runtime)
+export { STALE_TIMES } from './defaults.js';
+
 // Cache Helpers
 export { invalidateByPrefix, removeByPrefix, updateQueryData } from './cache-helpers.js';
 
