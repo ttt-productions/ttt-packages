@@ -30,6 +30,10 @@ export {
   type ClearUploadActivityOptions,
 } from '../use-clear-upload-activity.js';
 export {
+  useMarkUploadActivitySeen,
+  type MarkUploadActivitySeenOptions,
+} from '../use-mark-upload-activity-seen.js';
+export {
   useUploadProcessing,
   type UploadProcessingState,
   type UseUploadProcessingOptions,

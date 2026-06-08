@@ -46,6 +46,12 @@ export interface DeferredUploadFormShellProps<
    * submit gating).
    */
   onFileChange?: (file: File | null) => void;
+  /**
+   * Optional guard forwarded to MediaInput, fired before the picker/capture
+   * opens for any action. Return false (or a Promise resolving false) to abort
+   * — e.g. an email-verification gate. See MediaInputProps.onBeforeSelect.
+   */
+  onBeforeSelect?: () => boolean | Promise<boolean>;
   children?: ReactNode;
 }
 
@@ -66,6 +72,7 @@ function DeferredUploadFormShellInner<
     onSuccess,
     onError,
     onFileChange,
+    onBeforeSelect,
     children,
   } = props;
 
@@ -139,6 +146,7 @@ function DeferredUploadFormShellInner<
           onChange={handleMediaChange}
           onClear={handleClear}
           onCancel={handleCancel}
+          onBeforeSelect={onBeforeSelect}
         />
       </div>
     </>

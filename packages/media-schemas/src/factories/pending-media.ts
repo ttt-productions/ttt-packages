@@ -69,6 +69,8 @@ export function createPendingMediaSchemas<
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),
       uploadTrayClearedBy: z.string().min(1).optional(),
+      uploadTraySeenAt: z.number().optional(),
+      uploadTraySeenBy: z.string().min(1).optional(),
       result: PendingMediaResultSchema,
     })
     .strict();
@@ -81,6 +83,8 @@ export function createPendingMediaSchemas<
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),
       uploadTrayClearedBy: z.string().min(1).optional(),
+      uploadTraySeenAt: z.number().optional(),
+      uploadTraySeenBy: z.string().min(1).optional(),
       errorCategory: PendingMediaErrorCategorySchema,
       errorMessage: z.string().min(1),
     })
@@ -94,6 +98,8 @@ export function createPendingMediaSchemas<
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),
       uploadTrayClearedBy: z.string().min(1).optional(),
+      uploadTraySeenAt: z.number().optional(),
+      uploadTraySeenBy: z.string().min(1).optional(),
       rejectionType: z.enum(['text', 'media']),
       errorMessage: z.string().min(1),
       violationId: z.string().min(1).optional(),
@@ -117,6 +123,8 @@ export function createPendingMediaSchemas<
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),
       uploadTrayClearedBy: z.string().min(1).optional(),
+      uploadTraySeenAt: z.number().optional(),
+      uploadTraySeenBy: z.string().min(1).optional(),
       result: PendingMediaResultSchema,
       archivedAt: z.number(),
     })
@@ -130,6 +138,8 @@ export function createPendingMediaSchemas<
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),
       uploadTrayClearedBy: z.string().min(1).optional(),
+      uploadTraySeenAt: z.number().optional(),
+      uploadTraySeenBy: z.string().min(1).optional(),
       errorCategory: PendingMediaErrorCategorySchema,
       errorMessage: z.string().min(1),
       archivedAt: z.number(),
@@ -144,6 +154,8 @@ export function createPendingMediaSchemas<
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),
       uploadTrayClearedBy: z.string().min(1).optional(),
+      uploadTraySeenAt: z.number().optional(),
+      uploadTraySeenBy: z.string().min(1).optional(),
       rejectionType: z.enum(['text', 'media']),
       errorMessage: z.string().min(1),
       violationId: z.string().min(1).optional(),

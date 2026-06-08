@@ -106,6 +106,8 @@ export type InFlightUploadCompleted<TFileOrigin extends string = string> =
     completedAt: number;
     uploadTrayClearedAt?: number;
     uploadTrayClearedBy?: string;
+    uploadTraySeenAt?: number;
+    uploadTraySeenBy?: string;
   };
 
 export type InFlightUploadFailed<TFileOrigin extends string = string> =
@@ -116,6 +118,8 @@ export type InFlightUploadFailed<TFileOrigin extends string = string> =
     errorMessage: string;
     uploadTrayClearedAt?: number;
     uploadTrayClearedBy?: string;
+    uploadTraySeenAt?: number;
+    uploadTraySeenBy?: string;
   };
 
 export type InFlightUploadRejected<TFileOrigin extends string = string> =
@@ -127,6 +131,8 @@ export type InFlightUploadRejected<TFileOrigin extends string = string> =
     violationId?: string;
     uploadTrayClearedAt?: number;
     uploadTrayClearedBy?: string;
+    uploadTraySeenAt?: number;
+    uploadTraySeenBy?: string;
   };
 
 export type InFlightUpload<TFileOrigin extends string = string> =
@@ -167,6 +173,8 @@ export type ParsedPendingMedia<TFileOrigin extends string = string> = {
   violationId?: string;
   uploadTrayClearedAt?: number;
   uploadTrayClearedBy?: string;
+  uploadTraySeenAt?: number;
+  uploadTraySeenBy?: string;
   /**
    * Opaque consumer-controlled domain-event payload, surfaced to the
    * `onUploadCompleted` and `onUploadRejected` callbacks for cache
@@ -311,6 +319,8 @@ function fromParsed<TFileOrigin extends string>(
       completedAt: parsed.completedAt ?? parsed.createdAt,
       uploadTrayClearedAt: parsed.uploadTrayClearedAt,
       uploadTrayClearedBy: parsed.uploadTrayClearedBy,
+      uploadTraySeenAt: parsed.uploadTraySeenAt,
+      uploadTraySeenBy: parsed.uploadTraySeenBy,
     };
   }
   if (parsed.status === 'failed') {
@@ -322,6 +332,8 @@ function fromParsed<TFileOrigin extends string>(
       errorMessage: parsed.errorMessage ?? '',
       uploadTrayClearedAt: parsed.uploadTrayClearedAt,
       uploadTrayClearedBy: parsed.uploadTrayClearedBy,
+      uploadTraySeenAt: parsed.uploadTraySeenAt,
+      uploadTraySeenBy: parsed.uploadTraySeenBy,
     };
   }
   // rejected

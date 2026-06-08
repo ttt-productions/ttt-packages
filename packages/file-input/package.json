@@ -33,6 +33,7 @@
     "dependencies": {
         "@ttt-productions/ui-core": "*",
         "@ttt-productions/media-schemas": "*",
+        "@ttt-productions/media-viewer": "*",
         "react-easy-crop": "^5.5.0"
     },
     "peerDependencies": {

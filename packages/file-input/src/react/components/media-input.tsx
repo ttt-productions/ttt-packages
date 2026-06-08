@@ -18,10 +18,10 @@ import {
   Progress,
 } from "@ttt-productions/ui-core/react";
 import { cn } from "@ttt-productions/ui-core";
+import { MediaPreview } from "@ttt-productions/media-viewer/react";
 
 import type { FileInputError, MediaInputProps, SelectedMediaMeta } from "../../types.js";
 import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from "../../index.js";
-import { AutoFormatModal } from "./auto-format-modal.js";
 import { RecordDialog } from "./record-dialog.js";
 import { ensureFileWithContentType } from "../../lib/infer-content-type.js";
 import { ImageCropperModal } from "./image-cropper-modal.js";
@@ -138,6 +138,7 @@ export function MediaInput(props: MediaInputProps) {
     selectedFile,
     onClear,
     onCancel,
+    onBeforeSelect,
     onChange,
   } = props;
 
@@ -154,9 +155,6 @@ export function MediaInput(props: MediaInputProps) {
   const [cropOpen, setCropOpen] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [pendingCropFile, setPendingCropFile] = useState<File | null>(null);
-
-  const [autoOpen, setAutoOpen] = useState(false);
-  const [pendingAutoFile, setPendingAutoFile] = useState<{ file: File; meta: SelectedMediaMeta } | null>(null);
 
   const [photoOpen, setPhotoOpen] = useState(false);
 
@@ -199,6 +197,13 @@ export function MediaInput(props: MediaInputProps) {
     if (k.includes("audio") && k.length === 1) return "audio/*";
     return undefined; // accept anything
   }, [spec]);
+
+  // Simplified kind of the currently-selected file, used to size and type the
+  // inline preview. Null when nothing is selected.
+  const previewKind = useMemo(
+    () => (selectedFile ? getSimplifiedMediaType(selectedFile) : null),
+    [selectedFile]
+  );
 
   const emit = useCallback(
     (payload: {
@@ -297,8 +302,9 @@ export function MediaInput(props: MediaInputProps) {
 
         if (!okOri || !okAspect || !okDims) {
           if (allowAutoFormat) {
-            setPendingAutoFile({ file: safeFile, meta });
-            setAutoOpen(true);
+            // Auto-format is always silent — no confirmation prompt. The file is
+            // emitted with autoFormat:true and reformatted after upload.
+            emit({ file: safeFile, previewUrl, meta, autoFormat: true });
             return;
           }
 
@@ -386,22 +392,6 @@ export function MediaInput(props: MediaInputProps) {
     [emit, fail, pendingCropFile, makeObjectUrl]
   );
 
-  const proceedAuto = useCallback(() => {
-    const p = pendingAutoFile;
-    setAutoOpen(false);
-    setPendingAutoFile(null);
-    if (!p) return;
-
-    const url = makeObjectUrl(p.file);
-
-    emit({ file: p.file, previewUrl: url, meta: p.meta, autoFormat: true });
-  }, [emit, pendingAutoFile, makeObjectUrl]);
-
-  const cancelAuto = useCallback(() => {
-    setAutoOpen(false);
-    setPendingAutoFile(null);
-  }, []);
-
   const onPhotoCapture = useCallback(
     async (file: File) => {
       setPhotoOpen(false);
@@ -464,6 +454,23 @@ export function MediaInput(props: MediaInputProps) {
     []
   );
 
+  /**
+   * Run the optional pre-select guard, then execute the action. When the guard
+   * resolves false, the picker/capture never opens. This is the single choke
+   * point for all four actions, so the gate fires on the click for every entry
+   * point (single-action button and dropdown items alike).
+   */
+  const runAction = useCallback(
+    async (action: ActionKind) => {
+      if (onBeforeSelect) {
+        const ok = await onBeforeSelect();
+        if (!ok) return;
+      }
+      executeAction(action);
+    },
+    [onBeforeSelect, executeAction]
+  );
+
   /** Build the list of enabled actions. */
   const actions = useMemo(() => {
     const list: Array<{ kind: ActionKind; label: string; icon: React.ReactNode }> = [];
@@ -492,10 +499,10 @@ export function MediaInput(props: MediaInputProps) {
   /** When there's exactly 1 action, click goes straight to it. Otherwise open menu. */
   const handleTriggerClick = useCallback(() => {
     if (actions.length === 1) {
-      executeAction(actions[0].kind);
+      void runAction(actions[0].kind);
     }
     // If > 1 action, the DropdownMenuTrigger handles opening the menu.
-  }, [actions, executeAction]);
+  }, [actions, runAction]);
 
   return (
     <Card className={cn("p-3", className)}>
@@ -510,15 +517,33 @@ export function MediaInput(props: MediaInputProps) {
         disabled={disabled || isLoading}
       />
 
-      {/* Selected file display */}
+      {/* Selected file preview + name */}
       {selectedFile && !isLoading ? (
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-sm truncate flex-1">{selectedFile.name}</span>
-          {onClear && (
-            <Button variant="ghost" size="icon" className="icon-sm hover:bg-destructive/20 shrink-0" onClick={onClear}>
-              <X className="icon-xs" />
-            </Button>
-          )}
+        <div className="mb-2 space-y-2">
+          {previewKind === "image" || previewKind === "video" || previewKind === "audio" ? (
+            <div
+              className={cn(
+                "relative w-full overflow-hidden rounded-md bg-muted",
+                previewKind === "audio" ? "h-16" : "h-48"
+              )}
+            >
+              <MediaPreview
+                url={selectedFile}
+                type={previewKind}
+                mime={selectedFile.type}
+                controls
+                className="h-full w-full"
+              />
+            </div>
+          ) : null}
+          <div className="flex items-center gap-2">
+            <span className="text-sm truncate flex-1">{selectedFile.name}</span>
+            {onClear && (
+              <Button variant="ghost" size="icon" className="icon-sm hover:bg-destructive/20 shrink-0" onClick={onClear}>
+                <X className="icon-xs" />
+              </Button>
+            )}
+          </div>
         </div>
       ) : null}
 
@@ -578,7 +603,7 @@ export function MediaInput(props: MediaInputProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               {actions.map((a) => (
-                <DropdownMenuItem key={a.kind} onClick={() => executeAction(a.kind)}>
+                <DropdownMenuItem key={a.kind} onClick={() => void runAction(a.kind)}>
                   {a.icon}
                   {a.label}
                 </DropdownMenuItem>
@@ -618,8 +643,6 @@ export function MediaInput(props: MediaInputProps) {
           onCropComplete={onCropComplete}
         />
       )}
-
-      <AutoFormatModal open={autoOpen} onProceed={proceedAuto} onCancel={cancelAuto} />
 
       {/* Photo capture modal (getUserMedia-based, works on desktop + mobile) */}
       <PhotoCaptureModal

@@ -65,9 +65,11 @@ export function RecordDialog({
   const [recordedFile, setRecordedFile] = useState<File | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordStreamRef = useRef<MediaStream | null>(null);
+  const liveStreamKindRef = useRef<"audio" | "video" | null>(null);
   const recordChunksRef = useRef<BlobPart[]>([]);
   const lastRecordUrlRef = useRef<string | null>(null);
   const livePreviewRef = useRef<HTMLVideoElement | null>(null);
@@ -91,6 +93,7 @@ export function RecordDialog({
       setRecordPreviewUrl(null);
       setElapsedMs(0);
       setDiscardConfirmOpen(false);
+      setError(null);
     }
   }, [open, initialKind]);
 
@@ -222,6 +225,7 @@ export function RecordDialog({
 
     const s = recordStreamRef.current;
     recordStreamRef.current = null;
+    liveStreamKindRef.current = null;
     if (s) s.getTracks().forEach((t) => t.stop());
 
     if (livePreviewRef.current) {
@@ -234,12 +238,59 @@ export function RecordDialog({
     stopWaveform();
   }, [stopElapsedTimer, stopWaveform]);
 
-  useEffect(() => {
-    return () => {
-      revokeLastRecordUrl();
+  // Acquire camera/mic and attach the live preview (video) or waveform (audio)
+  // WITHOUT starting the recorder. Returns the live stream for reuse on Start.
+  const acquireStream = useCallback(
+    async (kind: "audio" | "video") => {
+      const wantVideo = kind === "video";
+      const facingMode = cameraFacingMode ?? "user";
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: wantVideo ? { facingMode } : false,
+      });
+      recordStreamRef.current = stream;
+      liveStreamKindRef.current = kind;
+      setError(null);
+      if (wantVideo && livePreviewRef.current) {
+        livePreviewRef.current.srcObject = stream;
+        livePreviewRef.current.muted = true;
+        try {
+          await livePreviewRef.current.play();
+        } catch {}
+      } else if (!wantVideo) {
+        startWaveform(stream);
+      }
+      return stream;
+    },
+    [cameraFacingMode, startWaveform]
+  );
+
+  // Start a live preview for the given kind (used on open and on kind switch),
+  // tearing down any existing stream first. Surfaces permission errors inline.
+  const startLivePreview = useCallback(
+    async (kind: "audio" | "video") => {
       teardownCapture();
+      try {
+        await acquireStream(kind);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Camera/microphone access denied.");
+      }
+    },
+    [teardownCapture, acquireStream]
+  );
+
+  // Request camera/mic as soon as the dialog opens (parity with PhotoCaptureModal)
+  // so the permission prompt fires on open and the user sees a live preview before
+  // pressing Start. Release all devices when the dialog closes or unmounts.
+  useEffect(() => {
+    if (open) {
+      void startLivePreview(initialKind);
+    }
+    return () => {
+      teardownCapture();
+      revokeLastRecordUrl();
     };
-  }, [revokeLastRecordUrl, teardownCapture]);
+  }, [open, initialKind, startLivePreview, teardownCapture, revokeLastRecordUrl]);
 
   const startRecording = useCallback(
     async (kind: "audio" | "video") => {
@@ -250,25 +301,19 @@ export function RecordDialog({
       setRecordKind(kind);
 
       const wantVideo = kind === "video";
-      const facingMode = cameraFacingMode ?? "user";
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: wantVideo ? { facingMode } : false,
-      });
-
-      recordStreamRef.current = stream;
-
-      if (wantVideo && livePreviewRef.current) {
-        livePreviewRef.current.srcObject = stream;
-        livePreviewRef.current.muted = true;
+      // Reuse the live-preview stream when it matches the requested kind;
+      // otherwise acquire a fresh one (also (re)triggers the permission prompt).
+      let stream = recordStreamRef.current;
+      if (!stream || liveStreamKindRef.current !== kind) {
         try {
-          await livePreviewRef.current.play();
-        } catch {}
-      } else {
-        // Audio kind: start waveform analysis on the same stream.
-        startWaveform(stream);
+          stream = await acquireStream(kind);
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Camera/microphone access denied.");
+          return;
+        }
       }
+      if (!stream) return;
 
       const mr = new MediaRecorder(stream);
       mediaRecorderRef.current = mr;
@@ -311,13 +356,12 @@ export function RecordDialog({
       }
     },
     [
-      cameraFacingMode,
+      acquireStream,
       maxRecordDurationSec,
       makeRecordUrl,
       revokeLastRecordUrl,
       teardownCapture,
       startElapsedTimer,
-      startWaveform,
     ]
   );
 
@@ -341,8 +385,21 @@ export function RecordDialog({
     setRecordPreviewUrl(null);
     setRecordedFile(null);
     setElapsedMs(0);
+    setError(null);
     setRecorderState("idle");
-  }, [revokeLastRecordUrl]);
+    void startLivePreview(recordKind);
+  }, [revokeLastRecordUrl, startLivePreview, recordKind]);
+
+  // Switching kind in idle restarts the live preview for the new kind so the
+  // correct device prompt/preview shows before recording.
+  const handleSelectKind = useCallback(
+    (kind: "audio" | "video") => {
+      setRecordKind(kind);
+      setError(null);
+      void startLivePreview(kind);
+    },
+    [startLivePreview]
+  );
 
   const handleSave = useCallback(async () => {
     if (!recordedFile || !recordPreviewUrl) return;
@@ -409,7 +466,7 @@ export function RecordDialog({
             {canRecVideo && (
               <Button
                 variant={recordKind === "video" ? "default" : "secondary"}
-                onClick={() => setRecordKind("video")}
+                onClick={() => handleSelectKind("video")}
                 disabled={!isIdle}
               >
                 <Video className="mr-2 icon-xs" />
@@ -419,7 +476,7 @@ export function RecordDialog({
             {canRecAudio && (
               <Button
                 variant={recordKind === "audio" ? "default" : "secondary"}
-                onClick={() => setRecordKind("audio")}
+                onClick={() => handleSelectKind("audio")}
                 disabled={!isIdle}
               >
                 <Mic className="mr-2 icon-xs" />
@@ -453,8 +510,8 @@ export function RecordDialog({
             </div>
           )}
 
-          {/* Audio waveform — rendered in recording state for audio kind */}
-          {recordKind === "audio" && isRecording && (
+          {/* Audio waveform — live mic level (idle = ready indicator, recording = active) */}
+          {recordKind === "audio" && !isPreview && (
             <div className="mt-2 rounded-md bg-muted p-2 text-primary">
               <canvas
                 ref={waveformCanvasRef}
@@ -464,6 +521,12 @@ export function RecordDialog({
                 aria-label="Audio waveform"
               />
             </div>
+          )}
+
+          {error && (
+            <p className="text-sm text-destructive" role="alert">
+              {error}
+            </p>
           )}
 
           {/* Recording indicator + elapsed timer */}

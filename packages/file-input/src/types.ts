@@ -127,5 +127,14 @@ export interface MediaInputProps {
    */
   onCancel?: () => void;
 
+  /**
+   * Optional guard fired before opening the OS picker / capture UI for ANY
+   * action (choose file, take photo, record video, record audio). Return false
+   * — or a Promise resolving to false — to abort before the picker/capture
+   * opens. Consumers use this to run a precondition (e.g. an email-verification
+   * gate) on the click, not after a file has already been selected.
+   */
+  onBeforeSelect?: () => boolean | Promise<boolean>;
+
   onChange: (payload: MediaInputChangePayload) => void;
 }
