@@ -20,4 +20,14 @@ echo "preflight: npm run test:quiet (lint + build + typecheck + tsc -b --noEmit 
 # separate `generate-schema-docs.mjs --check` step here.
 npm run test:quiet
 
+# License sweep over third-party production deps — informational (never blocks a release; `|| true`).
+# Surfaces any incoming copyleft/unknown license before it lands silently. --excludePrivatePackages
+# drops our own private monorepo root (license-checker reports any `private: true` package as
+# UNLICENSED regardless of its license field), so the summary stays focused on redistributed deps.
+# Accepted licenses for published @ttt-productions/* deps: MIT, ISC, Apache-2.0, BSD-2-Clause,
+# BSD-3-Clause, 0BSD, CC0-1.0, Unlicense, Python-2.0, BlueOak-1.0.0. Anything outside that set warrants
+# a look. To make this enforcing later, swap to: --onlyAllow '<semicolon-list>'.
+echo "preflight: license sweep (npx license-checker --production --excludePrivatePackages --summary; informational)..."
+npx license-checker --production --excludePrivatePackages --summary || true
+
 echo "preflight: done"

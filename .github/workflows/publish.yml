@@ -38,6 +38,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Soft-printed, critical-blocking supply-chain gate. npm audit prints the full advisory
+      # report regardless of --audit-level; the threshold only sets the exit code. --omit=dev
+      # scopes it to deps that ship. Tighten critical -> high once the high backlog is cleared.
+      - name: Security audit (production deps)
+        run: npm audit --omit=dev --audit-level=critical
+
       - name: Build all packages
         run: npm run build
 
