@@ -8,6 +8,7 @@ export type {
   ModerationCascadeAction,
   ModerationCascadeStatus,
   ModerationCascadeChangedEntityType,
+  ModerationCascadeManifestEntityType,
   ModerationCascadeManifest,
   ModerationCascadeChangedDoc,
 } from '../doc-schemas/moderation.js';

@@ -591,8 +591,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `cascadeId` | `string` |  |
-| `action` | `'hideRealm' \| 'restoreRealm'` |  |
-| `entityType` | `"workRealm"` |  |
+| `action` | `'hideRealm' \| 'restoreRealm' \| 'hideWork' \| 'restoreWork'` |  |
+| `entityType` | `'workRealm' \| 'workProject'` |  |
 | `entityId` | `string` |  |
 | `actorUid` | `string` |  |
 | `reason` | `string` |  |

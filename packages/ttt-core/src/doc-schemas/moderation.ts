@@ -52,7 +52,7 @@ export const ContentAppealTaskSchema = AdminTaskSchema.extend({
 });
 export type ContentAppealTask = z.infer<typeof ContentAppealTaskSchema>;
 
-export const ModerationCascadeActionSchema = z.enum(['hideRealm', 'restoreRealm']);
+export const ModerationCascadeActionSchema = z.enum(['hideRealm', 'restoreRealm', 'hideWork', 'restoreWork']);
 export type ModerationCascadeAction = z.infer<typeof ModerationCascadeActionSchema>;
 
 export const ModerationCascadeStatusSchema = z.enum(['pending', 'complete', 'failed']);
@@ -66,10 +66,15 @@ export const ModerationCascadeChangedEntityTypeSchema = z.enum([
 ]);
 export type ModerationCascadeChangedEntityType = z.infer<typeof ModerationCascadeChangedEntityTypeSchema>;
 
+// The top-level entity a hide/restore cascade targets. Realm cascades fan out to many child Works;
+// a Work cascade targets one Work (its publicWorkProjects doc + that Work's Hall surfaces).
+export const ModerationCascadeManifestEntityTypeSchema = z.enum(['workRealm', 'workProject']);
+export type ModerationCascadeManifestEntityType = z.infer<typeof ModerationCascadeManifestEntityTypeSchema>;
+
 export const ModerationCascadeManifestSchema = z.object({
   cascadeId: z.string(),
   action: ModerationCascadeActionSchema,
-  entityType: z.literal('workRealm'),
+  entityType: ModerationCascadeManifestEntityTypeSchema,
   entityId: z.string(),
   actorUid: z.string(),
   reason: z.string(),
