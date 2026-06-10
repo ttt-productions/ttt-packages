@@ -1,6 +1,6 @@
 {
   "name": "@ttt-productions/chat-core",
-  "version": "0.6.5",
+  "version": "0.7.0",
   "description": "Pure chat contracts, mention parser/serializer, and grouping helpers for TTT Productions apps (no React, no Firebase)",
   "repository": {
     "type": "git",
