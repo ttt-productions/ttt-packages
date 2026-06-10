@@ -57,7 +57,6 @@ export async function processBatchHelper(
     const snapshot = await pendingQuery.get();
 
     if (snapshot.empty) {
-      hasMore = false;
       break;
     }
 

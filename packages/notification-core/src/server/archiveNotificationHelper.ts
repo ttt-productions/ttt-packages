@@ -154,7 +154,6 @@ export async function archiveAllNotificationsHelper(
     const snapshot = await q.get();
 
     if (snapshot.empty) {
-      hasMore = false;
       break;
     }
 

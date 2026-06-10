@@ -66,7 +66,7 @@ export function useReportSubmit() {
         // Firebase Functions errors arrive as { code, message } — handle both.
         const message = err instanceof Error ? err.message : String(err);
         if (message.includes('ALREADY_REPORTED')) {
-          throw new Error('ALREADY_REPORTED');
+          throw new Error('ALREADY_REPORTED', { cause: err });
         }
         throw err;
       }
