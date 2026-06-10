@@ -1,15 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createNotificationHelper } from '../src/server/createNotificationHelper';
+import { buildActiveNotificationDocId } from '../src/server/activeNotificationId';
 import type { NotificationSystemConfig } from '../src/types';
-import type { ServerFirestore, ServerDocRef } from '../src/server/types';
+import type { ServerFirestore, ServerDocRef, ServerTransaction } from '../src/server/types';
 
 // ---- Mock Firestore builder ----
-// Collections are cached so the same collection object is returned on repeated calls.
+// Backed by real in-memory maps so deterministic-ID writes (tx.set/tx.update)
+// land somewhere inspectable. Collections are cached so the same collection
+// object is returned on repeated calls.
 
 function createMockFirestore() {
   const collections = new Map<string, Map<string, Record<string, unknown>>>();
   const collectionObjects = new Map<string, ReturnType<ServerFirestore['collection']>>();
   let autoId = 0;
+  let transactionCount = 0;
 
   const getCol = (path: string) => {
     if (!collections.has(path)) collections.set(path, new Map());
@@ -18,7 +22,9 @@ function createMockFirestore() {
 
   const makeDocRef = (colPath: string, id: string): ServerDocRef => ({
     id,
-    set: vi.fn(async () => {}),
+    set: vi.fn(async (data: Record<string, unknown>) => {
+      getCol(colPath).set(id, { ...data });
+    }),
     update: vi.fn(async (data: Record<string, unknown>) => {
       const col = getCol(colPath);
       const existing = col.get(id) ?? {};
@@ -71,9 +77,30 @@ function createMockFirestore() {
       delete: vi.fn(() => ({} as any)),
       commit: vi.fn(async () => {}),
     }),
+    // Immediate-apply transaction: good enough for unit tests, which assert
+    // deterministic-ID convergence rather than real contention semantics.
+    runTransaction: async <T,>(fn: (tx: ServerTransaction) => Promise<T>): Promise<T> => {
+      transactionCount++;
+      const tx: ServerTransaction = {
+        get: async (ref) => ref.get(),
+        set: (ref, data, options) => {
+          void ref.set(data, options);
+          return tx;
+        },
+        update: (ref, data) => {
+          void ref.update(data);
+          return tx;
+        },
+        delete: (ref) => {
+          void ref.delete();
+          return tx;
+        },
+      };
+      return fn(tx);
+    },
   };
 
-  return { db, collectionObjects };
+  return { db, collections, collectionObjects, getTransactionCount: () => transactionCount };
 }
 
 // ---- Test config ----
@@ -116,15 +143,21 @@ function makeConfig(): NotificationSystemConfig {
 
 describe('createNotificationHelper', () => {
   let db: ServerFirestore;
+  let collections: Map<string, Map<string, Record<string, unknown>>>;
   let collectionObjects: Map<string, any>;
+  let getTransactionCount: () => number;
   let helper: ReturnType<typeof createNotificationHelper>;
 
   beforeEach(() => {
     const mock = createMockFirestore();
     db = mock.db;
+    collections = mock.collections;
     collectionObjects = mock.collectionObjects;
+    getTransactionCount = mock.getTransactionCount;
     helper = createNotificationHelper(db, makeConfig());
   });
+
+  const activeDocs = (path: string) => Array.from((collections.get(path) ?? new Map()).values());
 
   it('returns an object with send, sendRealTime, queueForBatch methods', () => {
     expect(typeof helper.send).toBe('function');
@@ -140,8 +173,7 @@ describe('createNotificationHelper', () => {
         actorId: 'user1',
         metadata: { itemId: 'item123' },
       });
-      const adminCol = collectionObjects.get('adminNotifications');
-      expect(adminCol?.add).toHaveBeenCalledTimes(1);
+      expect(activeDocs('adminNotifications')).toHaveLength(1);
     });
 
     it('routes queued delivery types to the pending collection', async () => {
@@ -162,26 +194,31 @@ describe('createNotificationHelper', () => {
   });
 
   describe('sendRealTime()', () => {
-    it('adds document to active collection when no existing doc', async () => {
+    it('creates the active doc at its deterministic ID inside a transaction', async () => {
       await helper.sendRealTime({
         type: 'content_report',
         actorId: 'user1',
         metadata: { itemId: 'abc' },
       });
 
-      const adminCol = collectionObjects.get('adminNotifications');
-      expect(adminCol).toBeDefined();
-      expect(adminCol!.add).toHaveBeenCalledTimes(1);
+      expect(getTransactionCount()).toBe(1);
 
-      const docData = adminCol!.add.mock.calls[0][0];
-      expect(docData.type).toBe('content_report');
-      expect(docData.dedupKey).toBe('report_abc');
-      expect(docData.count).toBe(1);
-      expect(docData.latestActorIds).toEqual(['user1']);
+      const expectedId = buildActiveNotificationDocId({
+        category: 'admin',
+        audienceType: 'shared',
+        targetUserId: null,
+        dedupKey: 'report_abc',
+      });
+      const docData = collections.get('adminNotifications')?.get(expectedId);
+      expect(docData).toBeDefined();
+      expect(docData!.type).toBe('content_report');
+      expect(docData!.dedupKey).toBe('report_abc');
+      expect(docData!.count).toBe(1);
+      expect(docData!.latestActorIds).toEqual(['user1']);
       // Active docs are created unseen so the unread count() predicate matches.
-      expect(docData.seenAt).toBe(0);
+      expect(docData!.seenAt).toBe(0);
       // Identity is stored id-only — no persisted display names.
-      expect(docData.latestActorNames).toBeUndefined();
+      expect(docData!.latestActorNames).toBeUndefined();
     });
 
     it('creates notification with correct title and message', async () => {
@@ -191,10 +228,29 @@ describe('createNotificationHelper', () => {
         metadata: { itemId: 'abc' },
       });
 
-      const adminCol = collectionObjects.get('adminNotifications');
-      const docData = adminCol!.add.mock.calls[0][0];
+      const [docData] = activeDocs('adminNotifications');
       expect(docData.title).toBe('New Report');
       expect(docData.message).toBe('1 report(s)');
+    });
+
+    it('converges concurrent same-dedup sends onto ONE active doc', async () => {
+      await helper.sendRealTime({ type: 'content_report', actorId: 'user1', metadata: { itemId: 'abc' } });
+      await helper.sendRealTime({ type: 'content_report', actorId: 'user2', metadata: { itemId: 'abc' } });
+
+      const docs = activeDocs('adminNotifications');
+      expect(docs).toHaveLength(1);
+      expect(docs[0].count).toBe(2);
+      expect(docs[0].latestActorIds).toEqual(['user2', 'user1']);
+      expect(docs[0].message).toBe('2 report(s)');
+      // New activity re-lights the unread badge.
+      expect(docs[0].seenAt).toBe(0);
+    });
+
+    it('keeps distinct dedup keys on distinct docs', async () => {
+      await helper.sendRealTime({ type: 'content_report', actorId: 'user1', metadata: { itemId: 'abc' } });
+      await helper.sendRealTime({ type: 'content_report', actorId: 'user1', metadata: { itemId: 'def' } });
+
+      expect(activeDocs('adminNotifications')).toHaveLength(2);
     });
 
     it('throws for unknown category config', async () => {
@@ -224,8 +280,7 @@ describe('createNotificationHelper', () => {
         metadata: { itemId: 'abc' },
       });
 
-      const adminCol = collectionObjects.get('adminNotifications');
-      const docData = adminCol!.add.mock.calls[0][0];
+      const [docData] = activeDocs('adminNotifications');
       expect(docData.targetUserId).toBeNull();
     });
   });
@@ -300,6 +355,9 @@ describe('createNotificationHelper', () => {
           delete: vi.fn(() => ({} as any)),
           commit: vi.fn(async () => { commits++; }),
         })),
+        runTransaction: vi.fn(async (fn: any) => fn({
+          get: vi.fn(), set: vi.fn(), update: vi.fn(), delete: vi.fn(),
+        })),
       };
 
       return { db, setCalls, commitCount: () => commits };
@@ -360,6 +418,35 @@ describe('createNotificationHelper', () => {
   });
 });
 
+describe('buildActiveNotificationDocId', () => {
+  it('is deterministic for identical inputs', () => {
+    const a = buildActiveNotificationDocId({ category: 'user', audienceType: 'personal', targetUserId: 'u1', dedupKey: 'k1' });
+    const b = buildActiveNotificationDocId({ category: 'user', audienceType: 'personal', targetUserId: 'u1', dedupKey: 'k1' });
+    expect(a).toBe(b);
+    expect(a).toMatch(/^[0-9a-f]{40}$/);
+  });
+
+  it('scopes personal notifications per recipient', () => {
+    const a = buildActiveNotificationDocId({ category: 'user', audienceType: 'personal', targetUserId: 'userA', dedupKey: 'k1' });
+    const b = buildActiveNotificationDocId({ category: 'user', audienceType: 'personal', targetUserId: 'userB', dedupKey: 'k1' });
+    expect(a).not.toBe(b);
+  });
+
+  it('ignores targetUserId for shared notifications', () => {
+    const a = buildActiveNotificationDocId({ category: 'admin', audienceType: 'shared', targetUserId: 'adminA', dedupKey: 'k1' });
+    const b = buildActiveNotificationDocId({ category: 'admin', audienceType: 'shared', targetUserId: 'adminB', dedupKey: 'k1' });
+    expect(a).toBe(b);
+  });
+
+  it('separates categories and dedup keys', () => {
+    const base = { audienceType: 'shared' as const, targetUserId: null, dedupKey: 'k1' };
+    expect(buildActiveNotificationDocId({ ...base, category: 'admin' }))
+      .not.toBe(buildActiveNotificationDocId({ ...base, category: 'user' }));
+    expect(buildActiveNotificationDocId({ ...base, category: 'admin', dedupKey: 'k2' }))
+      .not.toBe(buildActiveNotificationDocId({ ...base, category: 'admin' }));
+  });
+});
+
 describe('createNotificationHelper — sendRealTime personal recipient scoping', () => {
   function makePersonalRealtimeConfig(): NotificationSystemConfig {
     return {
@@ -385,63 +472,18 @@ describe('createNotificationHelper — sendRealTime personal recipient scoping',
   }
 
   it('does not re-light another recipient\'s active doc with the same dedupKey', async () => {
-    const existingForA = {
-      id: 'active_A',
-      data: {
-        dedupKey: 'adminDispatchReply_d1',
-        category: 'user',
-        targetUserId: 'userA',
-        count: 1,
-        latestActorIds: ['x'],
-      },
-    };
-    const added: Record<string, unknown>[] = [];
-    const updated: Record<string, unknown>[] = [];
+    const mock = createMockFirestore();
+    const helper = createNotificationHelper(mock.db, makePersonalRealtimeConfig());
 
-    const db: ServerFirestore = {
-      collection: vi.fn(() => {
-        let cDedup = '';
-        let cTarget: unknown;
-        let targetFiltered = false;
-        return {
-          where: vi.fn(function (this: any, field: string, _op: string, val: unknown) {
-            if (field === 'dedupKey') cDedup = val as string;
-            if (field === 'targetUserId') {
-              cTarget = val;
-              targetFiltered = true;
-            }
-            return this;
-          }),
-          limit: vi.fn().mockReturnThis(),
-          get: vi.fn(async () => {
-            const dedupMatch = cDedup === existingForA.data.dedupKey;
-            // Without a targetUserId filter, A's doc matches (real Firestore).
-            const targetMatch = !targetFiltered || cTarget === existingForA.data.targetUserId;
-            if (dedupMatch && targetMatch) {
-              return {
-                empty: false,
-                size: 1,
-                docs: [{
-                  id: existingForA.id,
-                  data: () => existingForA.data,
-                  ref: { id: existingForA.id, update: vi.fn(async (d: Record<string, unknown>) => { updated.push(d); }) },
-                }],
-              };
-            }
-            return { empty: true, size: 0, docs: [] };
-          }),
-          add: vi.fn(async (data: Record<string, unknown>) => {
-            added.push(data);
-            return { id: 'new' };
-          }),
-          doc: vi.fn(),
-        } as any;
-      }),
-      doc: vi.fn(),
-      batch: vi.fn(),
-    };
+    // user A already has an active doc for this dedup key.
+    await helper.sendRealTime({
+      type: 'admin_dispatch_reply',
+      actorId: 'x',
+      targetUserId: 'userA',
+      metadata: { dispatchId: 'd1' },
+    });
 
-    const helper = createNotificationHelper(db, makePersonalRealtimeConfig());
+    // user B's notification for the same dispatch must not collapse into A's doc.
     await helper.sendRealTime({
       type: 'admin_dispatch_reply',
       actorId: 'actor1',
@@ -449,9 +491,18 @@ describe('createNotificationHelper — sendRealTime personal recipient scoping',
       metadata: { dispatchId: 'd1' },
     });
 
-    // user B gets a fresh active doc; user A's doc is never touched.
-    expect(added).toHaveLength(1);
-    expect(added[0].targetUserId).toBe('userB');
-    expect(updated).toHaveLength(0);
+    const docs = mock.collections.get('userNotifications')!;
+    expect(docs.size).toBe(2);
+
+    const idA = buildActiveNotificationDocId({
+      category: 'user', audienceType: 'personal', targetUserId: 'userA', dedupKey: 'adminDispatchReply_d1',
+    });
+    const idB = buildActiveNotificationDocId({
+      category: 'user', audienceType: 'personal', targetUserId: 'userB', dedupKey: 'adminDispatchReply_d1',
+    });
+    expect(docs.get(idA)!.count).toBe(1);
+    expect(docs.get(idA)!.latestActorIds).toEqual(['x']);
+    expect(docs.get(idB)!.count).toBe(1);
+    expect(docs.get(idB)!.targetUserId).toBe('userB');
   });
 });

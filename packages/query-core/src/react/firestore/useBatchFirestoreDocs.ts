@@ -164,8 +164,10 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
       const queryKey = [queryKeyPrefix, id];
       const state = queryClient.getQueryState(queryKey);
 
-      // Check if data exists and is still fresh
-      if (!(state?.data && state.dataUpdatedAt && Date.now() - state.dataUpdatedAt < staleTime)) {
+      // Check if data exists and is still fresh. `null` counts as data — it marks a
+      // known-absent doc (negative caching) and must not be re-fetched while fresh.
+      const hasResolvedData = state !== undefined && state.data !== undefined;
+      if (!(hasResolvedData && state.dataUpdatedAt && Date.now() - state.dataUpdatedAt < staleTime)) {
         needsFetch.push(id);
       }
     }
@@ -185,7 +187,7 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   // Fetch each batch and populate individual cache entries
   const batchQueries = useQueries({
     queries: batches.map((batch, batchIndex) => ({
-      queryKey: [queryKeyPrefix, 'batch', batchIndex, ...batch.sort()],
+      queryKey: [queryKeyPrefix, 'batch', batchIndex, ...[...batch].sort()],
       queryFn: async (): Promise<T[]> => {
         if (batch.length === 0) return [];
 
@@ -196,11 +198,13 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
 
         const snapshot = await getDocs(q);
         const docs: T[] = [];
+        const returnedIds = new Set<string>();
 
         // Process each document and update individual cache entries
         snapshot.forEach((doc) => {
           const data = { id: doc.id, ...doc.data() } as unknown as T;
           docs.push(data);
+          returnedIds.add(doc.id);
 
           // Populate individual cache entry
           queryClient.setQueryData(
@@ -209,6 +213,14 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
             { updatedAt: Date.now() }
           );
         });
+
+        // Negative-cache requested ids that came back missing so they aren't
+        // re-fetched on every render while fresh (mirrors the subscribe path).
+        for (const id of batch) {
+          if (!returnedIds.has(id)) {
+            queryClient.setQueryData([queryKeyPrefix, id], null, { updatedAt: Date.now() });
+          }
+        }
 
         return docs;
       },
@@ -233,7 +245,7 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
     // Always read all IDs from individual cache entries. Both paths populate these via
     // setQueryData (batch queryFn, or the subscribe listener); we never read batch results
     // directly, so IDs can't fall through the cached/fetched split. A `null` entry means a
-    // doc is known-absent (subscribe negative caching) and is correctly excluded here.
+    // doc is known-absent (negative caching, both paths) and is correctly excluded here.
     for (const id of uniqueIds) {
       const cached = queryClient.getQueryData<T>([queryKeyPrefix, id]);
       if (cached) {

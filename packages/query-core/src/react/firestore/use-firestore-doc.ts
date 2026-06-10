@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { doc, getDoc, onSnapshot, type DocumentData } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
@@ -42,14 +42,20 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
   const queryClient = useQueryClient();
   const queryKeyMemo = JSON.stringify(queryKey);
 
+  // Listener errors can't surface through useQuery (the queryFn is disabled while
+  // subscribed), so they're tracked here and merged into the returned result.
+  const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
+
   // Set up realtime subscription
   useEffect(() => {
     if (!subscribe || !enabled) return;
 
+    setSubscriptionError(null);
     const docRef = doc(db, docPath);
     const unsubscribe = onSnapshot(
       docRef,
       (snapshot) => {
+        setSubscriptionError(null);
         if (snapshot.exists()) {
           const rawData = snapshot.data();
           // Include id in data passed to select, so it can be renamed/transformed
@@ -62,9 +68,8 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
       },
       (error) => {
         console.error('[useFirestoreDoc] Subscription error:', error);
+        setSubscriptionError(error);
         queryClient.setQueryData(queryKey, undefined);
-        // Invalidate to trigger error state
-        queryClient.invalidateQueries({ queryKey });
       }
     );
 
@@ -74,7 +79,7 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db, docPath, queryKeyMemo, enabled, subscribe, queryClient]);
 
-  return useQuery({
+  const query = useQuery({
     queryKey,
     queryFn: async (): Promise<WithId<T> | null> => {
       const docRef = doc(db, docPath);
@@ -94,4 +99,22 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
     staleTime: subscribe ? Infinity : staleTime, // Realtime data is always fresh
     gcTime,
   });
+
+  // Merge a listener error into the result so subscribed consumers see a truthful
+  // isError/error/status instead of a forever-pending disabled query.
+  if (subscribe && subscriptionError) {
+    return {
+      ...query,
+      data: undefined,
+      error: subscriptionError,
+      isError: true,
+      isLoadingError: true,
+      isSuccess: false,
+      isPending: false,
+      isLoading: false,
+      status: 'error',
+    } as UseQueryResult<WithId<T> | null, Error>;
+  }
+
+  return query;
 }

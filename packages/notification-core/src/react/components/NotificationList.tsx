@@ -5,7 +5,6 @@ import { Badge, Button, Separator } from '@ttt-productions/ui-core/react';
 import { useActiveNotifications } from '../hooks/useActiveNotifications.js';
 import { useArchiveNotification } from '../hooks/useArchiveNotification.js';
 import { useArchiveAllNotifications } from '../hooks/useArchiveAllNotifications.js';
-import { useUnreadCount } from '../hooks/useUnreadCount.js';
 import { NotificationEmptyState } from './NotificationEmptyState.js';
 import { formatRelativeTime } from './relative-time.js';
 import type { NotificationDoc, NotificationListProps } from '../../types.js';
@@ -30,13 +29,6 @@ export function NotificationList({
     hasNextPage,
     nextPage,
   } = useActiveNotifications({
-    config,
-    userId,
-    category,
-    refetchInterval,
-  });
-
-  const { count: unreadCount } = useUnreadCount({
     config,
     userId,
     category,
@@ -84,23 +76,23 @@ export function NotificationList({
     [config],
   );
 
+  const hasNotifications = !!notifications && notifications.length > 0;
+
   return (
     <div className="ntf-list">
       <div className="ntf-list-header">
-        <span className="ntf-list-header-title">Notifications</span>
-        {unreadCount > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleClearAll}
-            disabled={archiveAllMutation.isPending}
-          >
-            {archiveAllMutation.isPending ? 'Clearing...' : 'Clear All'}
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleClearAll}
+          disabled={!hasNotifications || archiveAllMutation.isPending}
+        >
+          {archiveAllMutation.isPending ? 'Clearing...' : 'Clear All'}
+        </Button>
       </div>
       <Separator />
 
+      <div className="ntf-list-body">
       {isLoading ? (
         <div className="ntf-loading">Loading...</div>
       ) : !notifications || notifications.length === 0 ? (
@@ -147,6 +139,7 @@ export function NotificationList({
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

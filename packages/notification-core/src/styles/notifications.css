@@ -11,21 +11,21 @@
   display: flex;
   flex-direction: column;
   max-height: 24rem;
+}
+
+/* Header stays pinned; only the body scrolls. */
+.ntf-list-body {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
 .ntf-list-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
+  justify-content: flex-end;
+  padding: 0.25rem 0.5rem;
   border-bottom: 1px solid hsl(var(--border));
-}
-
-.ntf-list-header-title {
-  font-weight: 600;
-  font-size: 0.875rem;
-  color: hsl(var(--foreground));
 }
 
 .ntf-list-footer {

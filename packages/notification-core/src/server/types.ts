@@ -11,6 +11,14 @@ export interface ServerFirestore {
   collection(path: string): ServerCollectionRef;
   doc(path: string): ServerDocRef;
   batch(): ServerWriteBatch;
+  runTransaction<T>(updateFunction: (transaction: ServerTransaction) => Promise<T>): Promise<T>;
+}
+
+export interface ServerTransaction {
+  get(ref: ServerDocRef): Promise<ServerDocSnapshot>;
+  set(ref: ServerDocRef, data: Record<string, unknown>, options?: { merge?: boolean }): ServerTransaction;
+  update(ref: ServerDocRef, data: Record<string, unknown>): ServerTransaction;
+  delete(ref: ServerDocRef): ServerTransaction;
 }
 
 export interface ServerCollectionRef {

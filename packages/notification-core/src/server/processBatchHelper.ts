@@ -5,6 +5,7 @@
 
 import type { NotificationSystemConfig, PendingNotification } from '../types.js';
 import type { ServerFirestore } from './types.js';
+import { buildActiveNotificationDocId } from './activeNotificationId.js';
 
 const DEFAULT_COUNT_CAP = 5000;
 const DEFAULT_ACTOR_CAP = 5;
@@ -108,14 +109,16 @@ export async function processBatchHelper(
       }
     }
 
-    // Process each group: dedup check against active, create or increment.
-    // Groups are processed in parallel. Each group's groupKey uniquely determines
-    // a single active doc — the active lookup filters on exactly the same
-    // dedupKey + category (+ targetUserId for personal) that compose the groupKey —
-    // so two distinct groups can never resolve to the same active doc and there is
-    // no cross-group contention to guard with a transaction. The work per group is
-    // independent I/O, so Promise.all turns N sequential round-trips into one
-    // parallel wave, removing the timeout risk under high dedup-group counts.
+    // Process each group: create or increment the group's active doc.
+    // Each group's groupKey uniquely determines a single active doc — the doc ID
+    // is a deterministic hash of exactly the dedupKey + category (+ targetUserId
+    // for personal) that compose the groupKey — so two distinct groups can never
+    // resolve to the same active doc and there is no cross-group contention. The
+    // work per group is independent I/O, so Promise.all turns N sequential
+    // round-trips into one parallel wave, removing the timeout risk under high
+    // dedup-group counts. WITHIN a dedup scope, the transactional read-modify-write
+    // on the deterministic ID makes concurrent writers (a racing real-time send,
+    // or an overlapping batch run) converge on one doc with correct counts.
     const groupResults = await Promise.all(
       Array.from(groups.values()).map(
         async (group): Promise<'created' | 'updated' | 'skipped'> => {
@@ -130,73 +133,76 @@ export async function processBatchHelper(
           const countCap = typeConfig.countCap ?? DEFAULT_COUNT_CAP;
           const actorCap = typeConfig.actorCap ?? DEFAULT_ACTOR_CAP;
 
-          // Check for existing active notification. Personal notifications are
-          // scoped to the recipient so different recipients never share an active
-          // doc; shared notifications omit targetUserId by design.
-          let existingQuery = db.collection(activePath)
-            .where('dedupKey', '==', dedupKey)
-            .where('category', '==', group.category);
-          if (categoryConfig.audienceType === 'personal') {
-            existingQuery = existingQuery.where('targetUserId', '==', group.targetUserId);
-          }
-
-          const existingSnap = await existingQuery.limit(1).get();
-
-          if (!existingSnap.empty) {
-            // Increment existing
-            const existingDoc = existingSnap.docs[0];
-            const existingData = existingDoc.data() as Record<string, unknown>;
-            const currentCount = (existingData.count as number) || 1;
-            const currentActorIds = (existingData.latestActorIds as string[]) || [];
-
-            // Merge actor ids (new first, deduped, capped)
-            const newActorIds = group.actorIds.filter(
-              (id) => !currentActorIds.includes(id)
-            );
-            const mergedActorIds = [
-              ...newActorIds,
-              ...currentActorIds,
-            ].slice(0, actorCap);
-
-            const newCount = Math.min(currentCount + group.count, countCap);
-
-            await existingDoc.ref.update({
-              count: newCount,
-              latestActorIds: mergedActorIds,
-              message: typeConfig.messagePattern(group.metadata, newCount),
-              // New activity on an existing notification re-lights the unread badge.
-              seenAt: 0,
-              updatedAt: Date.now(),
-            });
-
-            return 'updated';
-          } else {
-            // Create new notification
-            const targetPath = typeof typeConfig.defaultTargetPath === 'function'
-              ? typeConfig.defaultTargetPath(group.metadata)
-              : typeConfig.defaultTargetPath;
-            const now = Date.now();
-
-            const newDoc = {
-              type: group.type,
-              dedupKey,
+          // Personal notifications are scoped to the recipient so different
+          // recipients never share an active doc; shared notifications omit
+          // targetUserId by design.
+          const activeDocRef = db.collection(activePath).doc(
+            buildActiveNotificationDocId({
               category: group.category,
+              audienceType: categoryConfig.audienceType,
               targetUserId: group.targetUserId,
-              title: typeConfig.titlePattern(group.metadata),
-              message: typeConfig.messagePattern(group.metadata, group.count),
-              count: group.count,
-              latestActorIds: group.actorIds.slice(0, actorCap),
-              targetPath,
-              metadata: group.metadata,
-              // Active docs are created unseen so the unread count() predicate matches.
-              seenAt: 0,
-              createdAt: now,
-              updatedAt: now,
-            };
+              dedupKey,
+            }),
+          );
 
-            await db.collection(activePath).add(newDoc);
-            return 'created';
-          }
+          return db.runTransaction(async (tx): Promise<'created' | 'updated'> => {
+            const existingSnap = await tx.get(activeDocRef);
+
+            if (existingSnap.exists) {
+              // Increment existing
+              const existingData = (existingSnap.data() ?? {}) as Record<string, unknown>;
+              const currentCount = (existingData.count as number) || 1;
+              const currentActorIds = (existingData.latestActorIds as string[]) || [];
+
+              // Merge actor ids (new first, deduped, capped)
+              const newActorIds = group.actorIds.filter(
+                (id) => !currentActorIds.includes(id)
+              );
+              const mergedActorIds = [
+                ...newActorIds,
+                ...currentActorIds,
+              ].slice(0, actorCap);
+
+              const newCount = Math.min(currentCount + group.count, countCap);
+
+              tx.update(activeDocRef, {
+                count: newCount,
+                latestActorIds: mergedActorIds,
+                message: typeConfig.messagePattern(group.metadata, newCount),
+                // New activity on an existing notification re-lights the unread badge.
+                seenAt: 0,
+                updatedAt: Date.now(),
+              });
+
+              return 'updated';
+            } else {
+              // Create new notification
+              const targetPath = typeof typeConfig.defaultTargetPath === 'function'
+                ? typeConfig.defaultTargetPath(group.metadata)
+                : typeConfig.defaultTargetPath;
+              const now = Date.now();
+
+              const newDoc = {
+                type: group.type,
+                dedupKey,
+                category: group.category,
+                targetUserId: group.targetUserId,
+                title: typeConfig.titlePattern(group.metadata),
+                message: typeConfig.messagePattern(group.metadata, group.count),
+                count: group.count,
+                latestActorIds: group.actorIds.slice(0, actorCap),
+                targetPath,
+                metadata: group.metadata,
+                // Active docs are created unseen so the unread count() predicate matches.
+                seenAt: 0,
+                createdAt: now,
+                updatedAt: now,
+              };
+
+              tx.set(activeDocRef, newDoc);
+              return 'created';
+            }
+          });
         }
       )
     );

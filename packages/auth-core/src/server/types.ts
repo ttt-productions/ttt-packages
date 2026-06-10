@@ -24,12 +24,6 @@ export interface AuthRequirements {
   emailVerified?: boolean;
 
   /**
-   * Require user status is not 'suspended' or 'banned'.
-   * Default: true (always enforced unless allowAnyStatus=true).
-   */
-  notBanned?: boolean;
-
-  /**
    * Skip the status check entirely. Special-case for flows where the
    * user doc may not exist yet (e.g. user registration).
    * Default: false.

@@ -7,6 +7,7 @@ export {
 } from './archiveNotificationHelper.js';
 export { markSeenHelper } from './markSeenHelper.js';
 export { NotificationPermissionError } from './errors.js';
+export { buildActiveNotificationDocId } from './activeNotificationId.js';
 
 // Server types
 export type {
@@ -17,6 +18,7 @@ export type {
   ServerDocSnapshot,
   ServerDocRef,
   ServerWriteBatch,
+  ServerTransaction,
   CreateNotificationInput,
   NotificationHelper,
 } from './types.js';

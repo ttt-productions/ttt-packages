@@ -78,6 +78,9 @@ function createMockFirestore(docExists: boolean, docData: Record<string, unknown
       return makeDocRef(id);
     }),
     batch: vi.fn(() => batch),
+    runTransaction: vi.fn(async (fn: any) =>
+      fn({ get: vi.fn(), set: vi.fn(), update: vi.fn(), delete: vi.fn() }),
+    ),
   };
 
   return { db, batch, batchSetCalls, batchDeleteCalls, batchCommit };
@@ -334,6 +337,9 @@ describe('archiveAllNotificationsHelper', () => {
         return { id, set: vi.fn(), update: vi.fn(), delete: vi.fn(), get: vi.fn() };
       }),
       batch: vi.fn(() => batchMock),
+      runTransaction: vi.fn(async (fn: any) =>
+        fn({ get: vi.fn(), set: vi.fn(), update: vi.fn(), delete: vi.fn() }),
+      ),
     };
 
     const result = await archiveAllNotificationsHelper(db, makeConfig(), {

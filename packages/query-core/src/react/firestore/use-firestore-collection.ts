@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import {
   collection,
@@ -50,9 +50,14 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
   const constraintsMemo = JSON.stringify(constraints);
   const queryKeyMemo = JSON.stringify(queryKey);
 
+  // Listener errors can't surface through useQuery (the queryFn is disabled while
+  // subscribed), so they're tracked here and merged into the returned result.
+  const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
+
   useEffect(() => {
     if (!subscribe || !enabled) return;
 
+    setSubscriptionError(null);
     const collectionRef = collection(db, collectionPath);
     const q = constraints.length > 0
       ? query(collectionRef, ...constraints)
@@ -61,6 +66,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        setSubscriptionError(null);
         const items = snapshot.docs.map((docSnap) => {
           const rawData = docSnap.data();
           const dataWithId = { id: docSnap.id, ...rawData };
@@ -71,8 +77,8 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
       },
       (error) => {
         console.error('[useFirestoreCollection] Subscription error:', error);
+        setSubscriptionError(error);
         queryClient.setQueryData(queryKey, undefined);
-        queryClient.invalidateQueries({ queryKey });
       }
     );
 
@@ -82,7 +88,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db, collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe, queryClient]);
 
-  return useQuery({
+  const queryResult = useQuery({
     queryKey,
     queryFn: async (): Promise<WithId<T>[]> => {
       const collectionRef = collection(db, collectionPath);
@@ -103,4 +109,22 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     staleTime: subscribe ? Infinity : staleTime,
     gcTime,
   });
+
+  // Merge a listener error into the result so subscribed consumers see a truthful
+  // isError/error/status instead of a forever-pending disabled query.
+  if (subscribe && subscriptionError) {
+    return {
+      ...queryResult,
+      data: undefined,
+      error: subscriptionError,
+      isError: true,
+      isLoadingError: true,
+      isSuccess: false,
+      isPending: false,
+      isLoading: false,
+      status: 'error',
+    } as UseQueryResult<WithId<T>[], Error>;
+  }
+
+  return queryResult;
 }

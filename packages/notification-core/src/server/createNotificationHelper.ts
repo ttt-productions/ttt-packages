@@ -9,6 +9,7 @@ import type {
   CreateNotificationInput,
   NotificationHelper,
 } from './types.js';
+import { buildActiveNotificationDocId } from './activeNotificationId.js';
 
 const DEFAULT_COUNT_CAP = 5000;
 const DEFAULT_ACTOR_CAP = 5;
@@ -66,64 +67,69 @@ export function createNotificationHelper(
     const countCap = typeConfig.countCap ?? DEFAULT_COUNT_CAP;
     const actorCap = typeConfig.actorCap ?? DEFAULT_ACTOR_CAP;
 
-    // Dedup check: query for existing doc with same dedupKey. Personal
-    // notifications are scoped to the recipient so user B's notification never
-    // re-lights user A's active doc that shares the same dedupKey; shared
-    // notifications are intentionally a single doc for all admins.
-    const activeCollection = db.collection(activePath);
-    let existingQuery = activeCollection
-      .where('dedupKey', '==', dedupKey)
-      .where('category', '==', typeConfig.category);
-    if (categoryConfig.audienceType === 'personal') {
-      existingQuery = existingQuery.where('targetUserId', '==', targetUserId ?? null);
-    }
-
-    const existingSnap = await existingQuery.limit(1).get();
-
-    if (!existingSnap.empty) {
-      // Increment existing notification
-      const existingDoc = existingSnap.docs[0];
-      const existingData = existingDoc.data() as Record<string, unknown>;
-      const currentCount = (existingData.count as number) || 1;
-      const currentActorIds = (existingData.latestActorIds as string[]) || [];
-
-      // Cap actors (id-only — newest first, deduped)
-      const newActorIds = [actorId, ...currentActorIds.filter((id: string) => id !== actorId)].slice(0, actorCap);
-
-      const newCount = Math.min(currentCount + 1, countCap);
-
-      await existingDoc.ref.update({
-        count: newCount,
-        latestActorIds: newActorIds,
-        message: typeConfig.messagePattern(metadata, newCount),
-        // New activity on an existing notification re-lights the unread badge.
-        seenAt: 0,
-        updatedAt: Date.now(),
-      });
-    } else {
-      // Create new notification
-      const targetPath = resolveTargetPath(typeConfig.defaultTargetPath, metadata);
-      const now = Date.now();
-
-      const newDoc: Omit<import('../types.js').NotificationDoc, 'id'> = {
-        type,
-        dedupKey,
+    // Dedup via deterministic doc ID: the active doc for this scope always
+    // lives at the same ID (hash of category + audience scope + dedupKey), so
+    // concurrent sends converge on one doc inside the transaction instead of
+    // racing a query-then-write. Personal notifications are scoped to the
+    // recipient so user B's notification never re-lights user A's active doc
+    // that shares the same dedupKey; shared notifications are intentionally a
+    // single doc for all admins.
+    const activeDocRef = db.collection(activePath).doc(
+      buildActiveNotificationDocId({
         category: typeConfig.category,
+        audienceType: categoryConfig.audienceType,
         targetUserId: targetUserId ?? null,
-        title: typeConfig.titlePattern(metadata),
-        message: typeConfig.messagePattern(metadata, 1),
-        count: 1,
-        latestActorIds: [actorId],
-        targetPath,
-        metadata,
-        // Active docs are created unseen so the unread count() predicate matches.
-        seenAt: 0,
-        createdAt: now,
-        updatedAt: now,
-      };
+        dedupKey,
+      }),
+    );
 
-      await activeCollection.add(newDoc as Record<string, unknown>);
-    }
+    await db.runTransaction(async (tx) => {
+      const existingSnap = await tx.get(activeDocRef);
+
+      if (existingSnap.exists) {
+        // Increment existing notification
+        const existingData = (existingSnap.data() ?? {}) as Record<string, unknown>;
+        const currentCount = (existingData.count as number) || 1;
+        const currentActorIds = (existingData.latestActorIds as string[]) || [];
+
+        // Cap actors (id-only — newest first, deduped)
+        const newActorIds = [actorId, ...currentActorIds.filter((id: string) => id !== actorId)].slice(0, actorCap);
+
+        const newCount = Math.min(currentCount + 1, countCap);
+
+        tx.update(activeDocRef, {
+          count: newCount,
+          latestActorIds: newActorIds,
+          message: typeConfig.messagePattern(metadata, newCount),
+          // New activity on an existing notification re-lights the unread badge.
+          seenAt: 0,
+          updatedAt: Date.now(),
+        });
+      } else {
+        // Create new notification
+        const targetPath = resolveTargetPath(typeConfig.defaultTargetPath, metadata);
+        const now = Date.now();
+
+        const newDoc: Omit<import('../types.js').NotificationDoc, 'id'> = {
+          type,
+          dedupKey,
+          category: typeConfig.category,
+          targetUserId: targetUserId ?? null,
+          title: typeConfig.titlePattern(metadata),
+          message: typeConfig.messagePattern(metadata, 1),
+          count: 1,
+          latestActorIds: [actorId],
+          targetPath,
+          metadata,
+          // Active docs are created unseen so the unread count() predicate matches.
+          seenAt: 0,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        tx.set(activeDocRef, newDoc as Record<string, unknown>);
+      }
+    });
   }
 
   async function queueForBatch(input: CreateNotificationInput): Promise<void> {

@@ -19,6 +19,9 @@ function createBatchTrackingDb() {
       delete: vi.fn(() => ({} as any)),
       commit: vi.fn(async () => { commits++; }),
     })),
+    runTransaction: vi.fn(async (fn: any) =>
+      fn({ get: vi.fn(), set: vi.fn(), update: vi.fn(), delete: vi.fn() }),
+    ),
   };
 
   return { db, updateCalls, commitCount: () => commits };
