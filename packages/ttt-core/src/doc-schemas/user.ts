@@ -1,4 +1,4 @@
-// User-related Firestore document SCHEMAS — the single source of truth for the
+﻿// User-related Firestore document SCHEMAS â€” the single source of truth for the
 // `userProfiles/{uid}` doc, its `privateData/{uid}` subdoc, and craft-skill shapes.
 // (The `publicUsers/{uid}` mirror lives in ./publicUser.) TypeScript types are
 // inferred from these schemas via `z.infer`, so a document's shape and its type
@@ -19,7 +19,7 @@ export const CraftSkillSchema = z.object({
   // Moderation visibility flag. Absent/false = visible; true = hidden by the
   // craft-skill hide cascade (report auto-hide or admin action). Mirrored onto
   // every taggedCraftSkills index doc so discovery surfaces can filter it.
-  hidden: z.boolean().optional(),
+  hidden: z.boolean(),
 });
 export type CraftSkill = z.infer<typeof CraftSkillSchema>;
 
@@ -33,7 +33,7 @@ export const CraftSkillReferenceSchema = z.object({
   tags: z.array(z.string()),
   createdAt: z.number(),
   // Mirror of CraftSkill.hidden; lets the tag-browse filter hidden skills out.
-  hidden: z.boolean().optional(),
+  hidden: z.boolean(),
 });
 export type CraftSkillReference = z.infer<typeof CraftSkillReferenceSchema>;
 

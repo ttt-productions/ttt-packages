@@ -6,6 +6,11 @@ import {
 
 export const CreateStripeCheckoutSessionInputSchema = z.object({
   amount: z.number().int().min(MIN_PLEDGE_PAYMENT_AMOUNT_CENTS).max(MAX_PLEDGE_PAYMENT_AMOUNT_CENTS),
+  // One-time attempt id, generated client-side per payment intent and stable
+  // across retries of the same submit. The server derives pledgePaymentId from
+  // it and passes a Stripe idempotency key so a double-submit returns the SAME
+  // Checkout Session instead of creating a duplicate.
+  checkoutAttemptId: z.string().uuid(),
 }).strict();
 export type CreateStripeCheckoutSessionInput = z.infer<typeof CreateStripeCheckoutSessionInputSchema>;
 

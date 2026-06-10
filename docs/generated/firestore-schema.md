@@ -366,7 +366,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `auditionEntryCount` | `number` | yes |
 | `shortId` | `string` | yes |
 | `shortUrl` | `string` | yes |
-| `hidden` | `boolean` | yes |
+| `hidden` | `boolean` |  |
 
 ## `auditionBoard/{auditionId}/auditionEntries/{auditionEntryId}`
 
@@ -382,7 +382,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `votes` | `number` |  |
 | `shortId` | `string` | yes |
 | `shortUrl` | `string` | yes |
-| `hidden` | `boolean` | yes |
+| `hidden` | `boolean` |  |
 
 ## `commissionListings/{commissionListingId}`
 
@@ -399,7 +399,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `workProjectAssociatedWith` | `{ workProjectId, type, workingDescription, workingTitle }` |  |
 | `status` | `'open' \| 'closed'` |  |
 | `savedProposalArtisans` | `string[]` |  |
-| `hidden` | `boolean` | yes |
+| `hidden` | `boolean` |  |
 
 ## `commissionListings/{commissionListingId}/commissionProposals/{commissionProposalId}`
 
@@ -474,7 +474,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `craftSkillType` | `'image' \| 'video' \| 'audio'` |  |
 | `tags` | `string[]` |  |
 | `createdAt` | `number` |  |
-| `hidden` | `boolean` | yes |
+| `hidden` | `boolean` |  |
 
 ## `feedbackAliases/{aliasId}`
 
@@ -584,7 +584,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `coverPhotoCinematic` | `string` | yes |
 | `workGenres` | `string[]` | yes |
 | `followerCount` | `number` | yes |
-| `hidden` | `boolean` | yes |
+| `hidden` | `boolean` |  |
 
 ## `moderationCascadeManifests/{cascadeId}`
 
@@ -833,7 +833,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `moderationReason` | `string` | yes |
 | `moderationLayer` | `'word_filter' \| 'perspective'` | yes |
 | `visible` | `boolean` | yes |
-| `hidden` | `boolean` | yes |
+| `hidden` | `boolean` |  |
 
 ## `squareStreetzFeed/trendingPosts`
 
@@ -950,7 +950,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `tags` | `string[]` |  |
 | `createdAt` | `number` |  |
 | `type` | `'image' \| 'video' \| 'audio'` |  |
-| `hidden` | `boolean` | yes |
+| `hidden` | `boolean` |  |
 
 ## `userProfiles/{userId}/userLikes/likeHistory/squareStreetzLikes/{postId}`
 

@@ -1,4 +1,4 @@
-// Content Firestore document SCHEMAS — Tales/Tunes/Television sub-documents, the
+﻿// Content Firestore document SCHEMAS â€” Tales/Tunes/Television sub-documents, the
 // Threshold + Hall library item shapes, Hall library user preferences, and the
 // `_config` singleton docs (futurePlans, rulesAndAgreements). Types are inferred via
 // z.infer. The enum-key consts (HALL_WING_TYPE_KEYS / WORK_PROJECT_TYPE_KEYS) and the
@@ -122,7 +122,7 @@ export const PublishedHallItemSchema = z.object({
   coverPhotoCinematic: z.string().optional(),
   workGenres: z.array(z.string()).optional(),
   followerCount: z.number().optional(),
-  hidden: z.boolean().optional(),
+  hidden: z.boolean(),
 });
 export type PublishedHallItem = z.infer<typeof PublishedHallItemSchema>;
 
@@ -133,7 +133,7 @@ export const PublishedTuneTrackSchema = z.object({
   description: z.string().optional(),
   fileUrl: z.string(),
   photoUrl: z.string().optional(),
-  hidden: z.boolean().optional(),
+  hidden: z.boolean(),
 });
 export type PublishedTuneTrack = z.infer<typeof PublishedTuneTrackSchema>;
 
@@ -144,7 +144,7 @@ export const PublishedChapterSchema = z.object({
   description: z.string().optional(),
   content: z.string(),
   photoUrl: z.string().optional(),
-  hidden: z.boolean().optional(),
+  hidden: z.boolean(),
 });
 export type PublishedChapter = z.infer<typeof PublishedChapterSchema>;
 
@@ -155,7 +155,7 @@ export const PublishedTelevisionEpisodeSchema = z.object({
   description: z.string().optional(),
   videoUrl: z.string(),
   photoUrl: z.string().optional(),
-  hidden: z.boolean().optional(),
+  hidden: z.boolean(),
 });
 export type PublishedTelevisionEpisode = z.infer<typeof PublishedTelevisionEpisodeSchema>;
 

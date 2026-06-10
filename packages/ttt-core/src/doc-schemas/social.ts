@@ -1,7 +1,7 @@
-// Social Firestore document SCHEMAS — SquareStreetz posts, mention history, and
+﻿// Social Firestore document SCHEMAS â€” SquareStreetz posts, mention history, and
 // follow edges. Types inferred via z.infer. (Pledge-payment ledger docs moved to
 // ../doc-schemas/payments.ts. SquareStreetzPostPayload is a transport shape, not a
-// stored doc — it stays in ../types/social.ts.)
+// stored doc â€” it stays in ../types/social.ts.)
 
 import { z } from 'zod';
 import { MentionSchema } from '../media/atoms.js';
@@ -41,7 +41,7 @@ export const SquareStreetzPostSchema = z.object({
   // Admin moderation hide (reversible). When true the post is suppressed from all
   // feeds/lists; restored by clearing it. Distinct from `visible` (upload/finalize
   // gating) and `moderationStatus` (automated text-moderation outcome).
-  hidden: z.boolean().optional(),
+  hidden: z.boolean(),
 });
 export type SquareStreetzPost = z.infer<typeof SquareStreetzPostSchema>;
 
@@ -62,7 +62,7 @@ export const FollowEdgeSchema = z.object({
 });
 export type FollowEdge = z.infer<typeof FollowEdgeSchema>;
 
-// followCounters/{targetType__targetId} — denormalized follower count for a followable target,
+// followCounters/{targetType__targetId} â€” denormalized follower count for a followable target,
 // maintained by the follow/unfollow callables via FieldValue.increment (never written by clients).
 // The Hall Library "Most Followed" sort mirrors the workProject count onto hallItems.followerCount.
 export const FollowCounterSchema = z.object({
@@ -71,7 +71,7 @@ export const FollowCounterSchema = z.object({
 });
 export type FollowCounter = z.infer<typeof FollowCounterSchema>;
 
-// userProfiles/{uid}/userLikes/likeHistory/squareStreetzLikes/{postId} — a user's like on a
+// userProfiles/{uid}/userLikes/likeHistory/squareStreetzLikes/{postId} â€” a user's like on a
 // SquareStreetz post; existence == liked. The path nests three of the registry segments
 // (userLikes / likeHistory / squareStreetzLikes). (functions/src/social/likeSquareStreetzPost.ts)
 export const SquareStreetzLikeSchema = z.object({
@@ -79,7 +79,7 @@ export const SquareStreetzLikeSchema = z.object({
 });
 export type SquareStreetzLike = z.infer<typeof SquareStreetzLikeSchema>;
 
-// squareStreetzFeed/trendingPosts — singleton holding the ordered top-N trending post IDs that the
+// squareStreetzFeed/trendingPosts â€” singleton holding the ordered top-N trending post IDs that the
 // client infinite-scrolls through. (functions/src/social/runUpdateTrendingFeed.ts)
 export const TrendingPostsSchema = z.object({
   postIds: z.array(z.string()),

@@ -5,84 +5,107 @@ import {
   MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
 } from '../src/constants/business';
 
+const ATTEMPT_ID = 'f1f86a55-94f6-4c5e-9396-1c4e3f9b7a01';
+
+/** Valid base input; tests override/remove fields from here. */
+const valid = (overrides: Record<string, unknown> = {}) => ({
+  amount: 500,
+  checkoutAttemptId: ATTEMPT_ID,
+  ...overrides,
+});
+
 describe('CreateStripeCheckoutSessionInputSchema', () => {
   describe('amount lower bound', () => {
     it('rejects amount one cent below MIN_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
-        amount: MIN_PLEDGE_PAYMENT_AMOUNT_CENTS - 1,
-      });
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(
+        valid({ amount: MIN_PLEDGE_PAYMENT_AMOUNT_CENTS - 1 }),
+      );
       expect(result.success).toBe(false);
     });
 
     it('accepts amount exactly at MIN_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
-        amount: MIN_PLEDGE_PAYMENT_AMOUNT_CENTS,
-      });
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(
+        valid({ amount: MIN_PLEDGE_PAYMENT_AMOUNT_CENTS }),
+      );
       expect(result.success).toBe(true);
     });
   });
 
   describe('amount upper bound', () => {
     it('accepts amount exactly at MAX_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
-        amount: MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
-      });
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(
+        valid({ amount: MAX_PLEDGE_PAYMENT_AMOUNT_CENTS }),
+      );
       expect(result.success).toBe(true);
     });
 
     it('rejects amount one cent above MAX_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
-        amount: MAX_PLEDGE_PAYMENT_AMOUNT_CENTS + 1,
-      });
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(
+        valid({ amount: MAX_PLEDGE_PAYMENT_AMOUNT_CENTS + 1 }),
+      );
       expect(result.success).toBe(false);
     });
 
     it('rejects an extremely large amount (1 billion cents)', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
-        amount: 1_000_000_000,
-      });
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(
+        valid({ amount: 1_000_000_000 }),
+      );
       expect(result.success).toBe(false);
     });
   });
 
   describe('amount type guards', () => {
     it('rejects a non-integer amount (decimal cents)', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({ amount: 175.5 });
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(valid({ amount: 175.5 }));
       expect(result.success).toBe(false);
     });
 
     it('rejects a string amount', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({ amount: '175' });
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(valid({ amount: '175' }));
       expect(result.success).toBe(false);
     });
 
     it('rejects a missing amount', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({});
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
+        checkoutAttemptId: ATTEMPT_ID,
+      });
       expect(result.success).toBe(false);
     });
   });
 
-  describe('message field removed', () => {
-    it('accepts a valid amount on its own (no message field)', () => {
+  describe('checkoutAttemptId', () => {
+    it('rejects a missing checkoutAttemptId', () => {
       const result = CreateStripeCheckoutSessionInputSchema.safeParse({ amount: 500 });
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
     });
 
+    it('rejects a non-UUID checkoutAttemptId', () => {
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(
+        valid({ checkoutAttemptId: 'not-a-uuid' }),
+      );
+      expect(result.success).toBe(false);
+    });
+
+    it('accepts a UUID checkoutAttemptId', () => {
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(valid());
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe('message field removed', () => {
     it('rejects any message field (messages were dropped; schema is .strict())', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
-        amount: 500,
-        message: 'Thanks for your work!',
-      });
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(
+        valid({ message: 'Thanks for your work!' }),
+      );
       expect(result.success).toBe(false);
     });
   });
 
   describe('strict mode', () => {
     it('rejects unknown extra fields (schema is .strict())', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({
-        amount: 500,
-        unexpectedField: 'oops',
-      });
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(
+        valid({ unexpectedField: 'oops' }),
+      );
       expect(result.success).toBe(false);
     });
   });
@@ -99,4 +122,3 @@ describe('MAX_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
     expect(MAX_PLEDGE_PAYMENT_AMOUNT_CENTS).toBe(500_000 * 100);
   });
 });
-

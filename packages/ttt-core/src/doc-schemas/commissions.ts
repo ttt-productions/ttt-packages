@@ -1,4 +1,4 @@
-// Commission + Audition Firestore document SCHEMAS — commissionListings/{id} and its
+﻿// Commission + Audition Firestore document SCHEMAS â€” commissionListings/{id} and its
 // commissionProposals, auditionBoard/{id} and its auditionEntries, plus the per-user
 // auditionVotes doc. Types inferred via z.infer.
 
@@ -32,7 +32,7 @@ export const FullCommissionListingSchema = z.object({
   savedProposalArtisans: z.array(z.string()),
   // Admin moderation hide (reversible). When true the listing is suppressed from
   // the commission board; restored by clearing it.
-  hidden: z.boolean().optional(),
+  hidden: z.boolean(),
 });
 export type FullCommissionListing = z.infer<typeof FullCommissionListingSchema>;
 
@@ -75,7 +75,7 @@ export const AuditionSchema = z.object({
   shortUrl: z.string().optional(),
   // Admin moderation hide (reversible). When true the audition is suppressed from
   // the audition board; restored by clearing it.
-  hidden: z.boolean().optional(),
+  hidden: z.boolean(),
 });
 export type Audition = z.infer<typeof AuditionSchema>;
 
@@ -92,7 +92,7 @@ export const AuditionEntrySchema = z.object({
   shortUrl: z.string().optional(),
   // Admin moderation hide (reversible). When true the entry is suppressed from the
   // audition's entry list; restored by clearing it.
-  hidden: z.boolean().optional(),
+  hidden: z.boolean(),
 });
 export type AuditionEntry = z.infer<typeof AuditionEntrySchema>;
 
