@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { UploadState } from '@ttt-productions/media-schemas';
+import { onProgressSchema } from './on-progress.js';
 import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
 import {
   MAX_COMMISSION_TITLE_LENGTH,
@@ -7,11 +7,6 @@ import {
   MAX_WORK_PROJECT_STAKE_SHARES,
 } from '../constants/business.js';
 
-const onProgressSchema = z
-  .function()
-  .args(z.custom<UploadState | null>())
-  .returns(z.void())
-  .optional();
 
 const TRADE_PROFESSION_VALUES = [...TRADE_PROFESSION_OPTIONS] as [string, ...string[]];
 

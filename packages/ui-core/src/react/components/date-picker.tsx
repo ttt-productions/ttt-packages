@@ -180,16 +180,16 @@ function DatePicker({
 
       <div className="mt-4 pt-3 border-t border-border text-xs space-y-1">
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-primary" />
+          <div className="h-3 w-3 rounded-sm bg-primary" />
           <span className="text-muted-foreground">Selected</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-3 w-3 rounded bg-accent ring-2 ring-border" />
+          <div className="h-3 w-3 rounded-sm bg-accent ring-2 ring-border" />
           <span className="text-muted-foreground">Today</span>
         </div>
         {(disablePast || disableFuture || disabled) && (
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded bg-muted opacity-30 relative">
+            <div className="h-3 w-3 rounded-sm bg-muted opacity-30 relative">
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-px h-full bg-foreground transform rotate-45" />
               </div>

@@ -3,7 +3,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockLimit = vi.hoisted(() => vi.fn());
 
 vi.mock('@upstash/ratelimit', () => {
-  const Ratelimit = vi.fn().mockImplementation(() => ({ limit: mockLimit }));
+  // Function expression, not an arrow: the source does `new Ratelimit(...)` and
+  // Vitest 4 mock implementations are only constructible when the impl is.
+  const Ratelimit = vi.fn(function () { return { limit: mockLimit }; });
   (Ratelimit as unknown as { slidingWindow: unknown }).slidingWindow = vi.fn().mockReturnValue('sliding-window-algo');
   return { Ratelimit };
 });

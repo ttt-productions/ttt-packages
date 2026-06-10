@@ -1,13 +1,8 @@
 import { z } from 'zod';
-import type { UploadState } from '@ttt-productions/media-schemas';
+import { onProgressSchema } from './on-progress.js';
 import { commissionListingIdSchema } from '../schemas/atoms.js';
 import { MAX_COMMISSION_DESCRIPTION_LENGTH } from '../constants/business.js';
 
-const onProgressSchema = z
-  .function()
-  .args(z.custom<UploadState | null>())
-  .returns(z.void())
-  .optional();
 
 export const ApplyToCommissionVariablesSchema = z.object({
   commissionListingId: commissionListingIdSchema,

@@ -211,7 +211,7 @@ export function SearchDropdown<T>({
                 onMouseEnter={() => setSelectedIndex(index)}
                 className={cn(
                   'w-full text-left transition-colors cursor-pointer',
-                  'hover:bg-accent focus:bg-accent focus:outline-none',
+                  'hover:bg-accent focus:bg-accent focus:outline-hidden',
                   selectedIndex === index && 'bg-accent'
                 )}
               >

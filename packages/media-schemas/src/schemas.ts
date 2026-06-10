@@ -125,7 +125,7 @@ export const MediaModerationFindingSchema = z
     score: z.number().optional(),
     severity: z.string().optional(),
     reasons: z.array(z.string()).optional(),
-    meta: z.record(z.unknown()).optional(),
+    meta: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 
@@ -144,7 +144,7 @@ export const MediaModerationSpecSchema = z
     provider: z.string().optional(),
     stage: z.enum(["input", "output", "both"]).optional(),
     rejectOn: z.array(z.enum(["flagged", "rejected"])).optional(),
-    config: z.record(z.unknown()).optional(),
+    config: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 
@@ -225,7 +225,7 @@ export const MediaProcessingErrorSchema = z
   .object({
     code: MediaErrorCodeSchema,
     message: z.string(),
-    details: z.record(z.unknown()).optional(),
+    details: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 
@@ -239,7 +239,7 @@ export const MediaOutputSchema = z
     width: z.number().int().positive().optional(),
     height: z.number().int().positive().optional(),
     durationSec: z.number().positive().optional(),
-    extra: z.record(z.unknown()).optional(),
+    extra: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 
@@ -286,7 +286,7 @@ export const MediaJobStatusPayloadSchema = z
     reasonCode: z.string().optional(),
     updatedAt: TimestampLikeSchema.optional(),
     mediaDocId: z.string().optional(),
-    extra: z.record(z.unknown()).optional(),
+    extra: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 

@@ -41,9 +41,9 @@
         "@tanstack/react-query": ">=5.0.0",
         "@ttt-productions/query-core": "*",
         "@ttt-productions/ui-core": "*",
-        "firebase": ">=10.0.0",
-        "react": ">=18.0.0",
-        "react-dom": ">=18.0.0"
+        "firebase": ">=12.0.0",
+        "react": ">=19.0.0",
+        "react-dom": ">=19.0.0"
     },
     "peerDependenciesMeta": {
         "@tanstack/react-query": {

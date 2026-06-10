@@ -121,7 +121,7 @@ const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, To
             className={cn(
               "absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md",
               "text-foreground/60 hover:text-foreground",
-              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
+              "focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
             )}
             aria-label="Dismiss toast"
           >
@@ -151,7 +151,7 @@ const ToastClose = React.forwardRef<
     className={cn(
       "absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md",
       "text-foreground/60 hover:text-foreground",
-      "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+      "focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
       className
     )}
     {...props}

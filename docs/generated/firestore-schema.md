@@ -10,970 +10,415 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `appVersion` | `string` |  |
-| `maintenanceMode` | `boolean` |  |
-| `maintenanceMessage` | `string` | yes |
-| `registrationEnabled` | `boolean` |  |
+| _(document)_ | `unknown` |  |
 
 ## `_config/futurePlans`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `lastUpdated` | `number` |  |
-| `plans` | `{ id, title, description, order, videoUrl, mediaType }[]` |  |
+| _(document)_ | `unknown` |  |
 
 ## `_config/rulesAndAgreements`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `rules` | `{ id, title, description, videoUrl, group, subgroup, order }[]` |  |
-| `agreements` | `{ tales, tunes, television }` |  |
+| _(document)_ | `unknown` |  |
 
 ## `_systemData/adminList`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `admins` | `string[]` |  |
-| `jrAdmins` | `string[]` |  |
+| _(document)_ | `unknown` |  |
 
 ## `_systemData/profanityList`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `words` | `string[]` |  |
-| `updatedAt` | `number` |  |
-| `wordCount` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `_systemData/reservedUsernames`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `names` | `string[]` |  |
-| `updatedAt` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `activeAdminNotifications/{notificationId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `type` | `string` |  |
-| `dedupKey` | `string` |  |
-| `category` | `string` |  |
-| `targetUserId` | `string \| null` |  |
-| `title` | `string` |  |
-| `message` | `string` |  |
-| `count` | `number` |  |
-| `latestActorIds` | `string[]` |  |
-| `targetPath` | `string` |  |
-| `metadata` | `Record<string, unknown>` |  |
-| `seenAt` | `number` |  |
-| `createdAt` | `number` |  |
-| `updatedAt` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `activeReportGroups/{groupKey}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `groupKey` | `string` |  |
-| `reportedItemId` | `string` |  |
-| `reportedItemType` | `string` |  |
-| `reportedUserId` | `string \| null` |  |
-| `lastReportAt` | `number` |  |
-| `totalReports` | `number` |  |
-| `status` | `'pending' \| 'reviewing' \| 'resolved'` |  |
-| `reports` | `{ reportId, reporterUserId, reportedItemType, reportedItemId, parentItemId, reportedUserId, reason, comment, createdAt, status, resolvedAt, resolvedBy, adminNotes }[]` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `activeUserNotifications/{notificationId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `type` | `string` |  |
-| `dedupKey` | `string` |  |
-| `category` | `string` |  |
-| `targetUserId` | `string \| null` |  |
-| `title` | `string` |  |
-| `message` | `string` |  |
-| `count` | `number` |  |
-| `latestActorIds` | `string[]` |  |
-| `targetPath` | `string` |  |
-| `metadata` | `Record<string, unknown>` |  |
-| `seenAt` | `number` |  |
-| `createdAt` | `number` |  |
-| `updatedAt` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `adminActivityLog/{logId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `adminUserId` | `string` |  |
-| `action` | `'checkout' \| 'checkout_next_important' \| 'checkin_resolved' \| 'checkin_unresolved' \| 'release' \| 'mark_work_later' \| 'auto_released' \| 'auto_released_scheduled'` |  |
-| `taskType` | `string` |  |
-| `taskId` | `string` |  |
-| `timestamp` | `number` |  |
-| `resolution` | `string` | yes |
-| `timeSpentMinutes` | `number` | yes |
-| `extendHours` | `number` | yes |
-| `priority` | `number` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `adminNotificationHistory/{notificationId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `type` | `string` |  |
-| `dedupKey` | `string` |  |
-| `category` | `string` |  |
-| `targetUserId` | `string \| null` |  |
-| `title` | `string` |  |
-| `message` | `string` |  |
-| `count` | `number` |  |
-| `latestActorIds` | `string[]` |  |
-| `targetPath` | `string` |  |
-| `metadata` | `Record<string, unknown>` |  |
-| `seenAt` | `number` |  |
-| `createdAt` | `number` |  |
-| `updatedAt` | `number` |  |
-| `archival` | `{ archivedBy, archivedAt }` |  |
-| `expireAt` | `number` |  |
-| `handledBy` | `string` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `adminTasks/{taskId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` | yes |
-| `taskType` | `'adminDispatch' \| 'thresholdLibraryReview' \| 'userReport' \| 'content-appeal' \| 'stakeShareAnomaly' \| 'pledgeLedgerAnomaly' \| 'pledgePaymentRepairNeeded'` |  |
-| `taskId` | `string` |  |
-| `originalPath` | `string` |  |
-| `status` | `'pending' \| 'checkedOut' \| 'workLater' \| 'completed'` |  |
-| `checkoutDetails` | `{ userId, checkedOutAt, expiresAt, workLaterUntil } \| null` |  |
-| `summary` | `string` |  |
-| `priority` | `number` |  |
-| `createdAt` | `number` |  |
-| `lastUpdatedAt` | `number` |  |
-| `completedAt` | `number` | yes |
-| `itemData` | `unknown` | yes |
-| `violationId` | `string` | yes |
-| `userId` | `string` | yes |
-| `fileType` | `string` | yes |
-| `rejectionReason` | `string` | yes |
-| `appealMessage` | `string` | yes |
-| `rejectedFilePath` | `string` | yes |
-| `foundingArtisanUid` | `string \| null` | yes |
-| `metadata` | `Record<string, unknown>` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `workProjectId` | `string` |  |
-| `createdOn` | `number` |  |
-| `type` | `string` |  |
-| `workingDescription` | `string` |  |
-| `workingTitle` | `string` |  |
-| `hallWingType` | `'entertainment' \| 'educational' \| 'newsPolitical'` |  |
-| `createdBy` | `{ uid }` |  |
-| `status` | `'open' \| 'pendingVerification' \| 'published' \| 'rejected'` |  |
-| `guildmateUserIds` | `Record<string, boolean>` | yes |
-| `invitedUserIds` | `Record<string, boolean>` | yes |
-| `workRealmId` | `string` |  |
-| `realmCanonStatus` | `'canon' \| 'nonCanon'` |  |
-| `pendingStakeShares` | `Record<string, { amount, createdAt }>` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `guildChatChannelId` | `string` |  |
-| `workProjectId` | `string` |  |
-| `channelName` | `string` |  |
-| `description` | `string` | yes |
-| `requiredGuildStandings` | `string[]` |  |
-| `allowedUserIds` | `string[]` |  |
-| `createdAt` | `number` |  |
-| `createdBy` | `string` |  |
-| `lastMessageAt` | `string` | yes |
-| `lastMessage` | `string` | yes |
-| `messageCount` | `number` |  |
-| `isArchived` | `boolean` |  |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}/guildChatMessages/{guildChatMessageId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `senderId` | `string` |  |
-| `text` | `string` |  |
-| `createdAt` | `number` |  |
-| `messageId` | `string` | yes |
-| `threadId` | `string` | yes |
-| `type` | `string` | yes |
-| `guildInviteId` | `string` | yes |
-| `attachment` | `{ id, name, type, size, url, storagePath, status, failureReason }` | yes |
-| `replyTo` | `{ messageId, senderId, messagePreview }` | yes |
-| `isSystemMessage` | `boolean` | yes |
-| `meta` | `Record<string, unknown>` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}/guildmateUsers/{uid}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `uid` | `string` |  |
-| `guildStandings` | `any[]` |  |
-| `tradeProfessions` | `string[]` |  |
-| `stakeShareCount` | `number` |  |
-| `joinedAt` | `number` |  |
-| `status` | `'active' \| 'departed'` |  |
-| `holderType` | `'user' \| 'foundingWork'` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}/publicGuildmateUsers/{uid}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `uid` | `string` |  |
-| `tradeProfessions` | `string[]` |  |
-| `joinedAt` | `number` |  |
-| `status` | `'active' \| 'departed'` |  |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}/workAssets/{workAssetId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `name` | `string` |  |
-| `url` | `string` |  |
-| `createdAt` | `number` |  |
-| `size` | `number` |  |
-| `type` | `string` |  |
-| `createdBy` | `{ uid }` |  |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}/workProjectTales/{taleId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `uid` | `string` |  |
-| `title` | `string` |  |
-| `description` | `string` |  |
-| `createdOn` | `number` |  |
-| `coverPhotoSquare` | `string` | yes |
-| `coverPhotoPoster` | `string` | yes |
-| `coverPhotoCinematic` | `string` | yes |
-| `workGenres` | `string[]` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `uid` | `string` |  |
-| `title` | `string` |  |
-| `content` | `string` |  |
-| `description` | `string` |  |
-| `order` | `number` |  |
-| `photoUrl` | `string` | yes |
-| `status` | `'unpublished' \| 'pending_approval' \| 'published'` |  |
-| `createdOn` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `uid` | `string` |  |
-| `title` | `string` |  |
-| `description` | `string` |  |
-| `createdOn` | `number` |  |
-| `coverPhotoSquare` | `string` | yes |
-| `coverPhotoPoster` | `string` | yes |
-| `coverPhotoCinematic` | `string` | yes |
-| `workGenres` | `string[]` |  |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `uid` | `string` |  |
-| `title` | `string` |  |
-| `description` | `string` | yes |
-| `videoUrl` | `string` |  |
-| `mediaType` | `string` | yes |
-| `order` | `number` |  |
-| `photoUrl` | `string` | yes |
-| `status` | `'unpublished' \| 'pending_approval' \| 'published'` |  |
-| `createdOn` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `uid` | `string` |  |
-| `title` | `string` |  |
-| `description` | `string` |  |
-| `coverPhotoSquare` | `string` | yes |
-| `coverPhotoPoster` | `string` | yes |
-| `coverPhotoCinematic` | `string` | yes |
-| `workGenres` | `string[]` |  |
-| `createdOn` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}/tuneTracks/{trackId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `uid` | `string` |  |
-| `title` | `string` |  |
-| `description` | `string` | yes |
-| `fileUrl` | `string` | yes |
-| `mediaType` | `string` | yes |
-| `order` | `number` |  |
-| `photoUrl` | `string` | yes |
-| `status` | `'unpublished' \| 'pending_approval' \| 'published'` |  |
-| `createdOn` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `auditEvents/{eventId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `type` | `string` |  |
-| `schemaVersion` | `number` |  |
-| `actor` | `{ uid, isAdmin, actorMode } \| { uid, isAdmin, actorMode, systemRole } \| null` |  |
-| `target` | `{ uid, ref } \| null` |  |
-| `timestamp` | `number` |  |
-| `ip` | `string \| null` |  |
-| `userAgent` | `string \| null` |  |
-| `region` | `string \| null` |  |
-| `metadata` | `Record<string, unknown>` |  |
-| `result` | `'success' \| 'failure'` |  |
-| `failureReason` | `string \| null` |  |
-| `correlationId` | `string \| null` |  |
+| _(document)_ | `unknown` |  |
 
 ## `auditionBoard/{auditionId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `auditionId` | `string` |  |
-| `type` | `'platformAudition' \| 'sponsoredAudition' \| 'workAudition'` |  |
-| `title` | `string` |  |
-| `description` | `string` |  |
-| `videoUrl` | `string` |  |
-| `mediaType` | `'video' \| 'image' \| 'audio' \| 'other'` | yes |
-| `openTill` | `number` |  |
-| `createdOn` | `number` |  |
-| `createdBy` | `{ uid }` |  |
-| `workProjectId` | `string` | yes |
-| `sponsoredAuditionAmountUSD` | `number` | yes |
-| `stakeSharesOffered` | `number` | yes |
-| `status` | `'open' \| 'closed' \| 'pendingReview'` |  |
-| `auditionEntryCount` | `number` | yes |
-| `shortId` | `string` | yes |
-| `shortUrl` | `string` | yes |
-| `hidden` | `boolean` |  |
+| _(document)_ | `unknown` |  |
 
 ## `auditionBoard/{auditionId}/auditionEntries/{auditionEntryId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `auditionEntryId` | `string` |  |
-| `auditionId` | `string` |  |
-| `workProjectId` | `string` | yes |
-| `videoUrl` | `string` |  |
-| `mediaType` | `'video' \| 'image' \| 'other'` | yes |
-| `createdBy` | `{ uid }` |  |
-| `createdAt` | `number` |  |
-| `votes` | `number` |  |
-| `shortId` | `string` | yes |
-| `shortUrl` | `string` | yes |
-| `hidden` | `boolean` |  |
+| _(document)_ | `unknown` |  |
 
 ## `commissionListings/{commissionListingId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `commissionListingId` | `string` |  |
-| `title` | `string` |  |
-| `description` | `string` |  |
-| `commissionAttachment` | `{ pendingMediaId, name, url, type, size }` | yes |
-| `requiredTradeProfessions` | `string[]` |  |
-| `stakeSharesOffered` | `number` |  |
-| `createdAt` | `number` |  |
-| `createdBy` | `{ uid }` |  |
-| `workProjectAssociatedWith` | `{ workProjectId, type, workingDescription, workingTitle }` |  |
-| `status` | `'open' \| 'closed'` |  |
-| `savedProposalArtisans` | `string[]` |  |
-| `hidden` | `boolean` |  |
+| _(document)_ | `unknown` |  |
 
 ## `commissionListings/{commissionListingId}/commissionProposals/{commissionProposalId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `commissionProposalId` | `string` |  |
-| `commissionListingId` | `string` |  |
-| `workProjectId` | `string` |  |
-| `proposalText` | `string` |  |
-| `proposalFileUrl` | `string` | yes |
-| `proposalFileType` | `string` | yes |
-| `createdBy` | `{ uid }` |  |
-| `createdOn` | `number` |  |
-| `status` | `'open' \| 'invited' \| 'accepted' \| 'rejected'` |  |
-| `guildInviteId` | `string` | yes |
-| `invitedOn` | `number` | yes |
-| `acceptedOn` | `number` | yes |
-| `rejectedAt` | `number` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `contentReports/{reportId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `reportId` | `string` |  |
-| `reporterUserId` | `string` |  |
-| `reportedItemType` | `string` |  |
-| `reportedItemId` | `string` |  |
-| `parentItemId` | `string` | yes |
-| `reportedUserId` | `string` | yes |
-| `reason` | `string` |  |
-| `comment` | `string` |  |
-| `createdAt` | `number` |  |
-| `status` | `'pending_review' \| 'resolved_no_action' \| 'resolved_action_taken'` |  |
-| `resolvedAt` | `number` | yes |
-| `resolvedBy` | `string` | yes |
-| `adminNotes` | `string` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `contentViolations/{violationId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `userId` | `string` |  |
-| `fileType` | `string` |  |
-| `violationType` | `'text' \| 'media'` | yes |
-| `reason` | `string` |  |
-| `timestamp` | `number` |  |
-| `appealStatus` | `'none' \| 'pending' \| 'approved' \| 'denied'` |  |
-| `flaggedWords` | `string[]` | yes |
-| `originalText` | `string` | yes |
-| `originalFileName` | `string` | yes |
-| `scores` | `{ adult, violence, racy } \| null` | yes |
-| `rejectedFilePath` | `string` | yes |
-| `rejectedFileUrl` | `string` | yes |
-| `pendingFile` | `{ id, userId, fileOrigin, originalFileName, originalContentType, originalSize, pendingStoragePath, targetInfo, textContent, clientContext, createdAt, updatedAt, processingStartedAt, terminalAt, status }` | yes |
-| `appealMessage` | `string` | yes |
-| `appealedAt` | `number` | yes |
-| `reviewedBy` | `string` | yes |
-| `reviewedAt` | `number` | yes |
-| `reviewDecision` | `'approved' \| 'denied'` | yes |
-| `reviewNotes` | `string` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `craftSkillsByTag/{tag}/taggedCraftSkills/{compositeId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `craftSkillId` | `string` |  |
-| `compositeId` | `string` |  |
-| `userId` | `string` |  |
-| `craftSkillName` | `string` |  |
-| `craftSkillUrl` | `string` |  |
-| `craftSkillType` | `'image' \| 'video' \| 'audio'` |  |
-| `tags` | `string[]` |  |
-| `createdAt` | `number` |  |
-| `hidden` | `boolean` |  |
+| _(document)_ | `unknown` |  |
 
 ## `feedbackAliases/{aliasId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `canonicalId` | `string` |  |
-| `originalType` | `string` |  |
+| _(document)_ | `unknown` |  |
 
 ## `feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `suggestionText` | `string` |  |
-| `count` | `number` |  |
-| `submittedBy` | `{ userId }[]` |  |
-| `lastSubmitted` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `followCounters/{followCounterId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `followerCount` | `number` |  |
-| `updatedOn` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `followEdges/{followEdgeId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `followerUid` | `string` |  |
-| `targetType` | `'user' \| 'workProject' \| 'workRealm'` |  |
-| `targetId` | `string` |  |
-| `followedOn` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `followerReleaseJobs/{jobId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `jobId` | `string` |  |
-| `workProjectId` | `string` |  |
-| `workTitle` | `string` |  |
-| `hallItemId` | `string` |  |
-| `hallItemTitle` | `string` |  |
-| `hallSubItemType` | `'chapter' \| 'track' \| 'episode'` |  |
-| `stewardUid` | `string` |  |
-| `canonRealmId` | `string \| null` |  |
-| `status` | `'pending' \| 'complete' \| 'failed'` |  |
-| `phase` | `'work' \| 'realm'` |  |
-| `cursor` | `string \| null` |  |
-| `totalSent` | `number` |  |
-| `createdAt` | `number` |  |
-| `updatedAt` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `guildInviteConversations/{guildInviteId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `guildInviteId` | `string` |  |
-| `workProjectId` | `string` |  |
-| `relatedUserIds` | `string[]` |  |
-| `workProject` | `{ workProjectId, workingTitle, type, workingDescription }` |  |
-| `createdBy` | `{ uid }` |  |
-| `sender` | `{ uid }` |  |
-| `recipient` | `{ uid }` |  |
-| `stakeSharesOffered` | `number` |  |
-| `source` | `{ type } \| { type, data } \| { type, data } \| { type, data }` |  |
-| `status` | `'pending' \| 'accepted' \| 'declined' \| 'cancelled' \| 'finalized' \| 'error'` |  |
-| `createdAt` | `number` |  |
-| `updatedAt` | `number` |  |
-| `lastUpdatedAt` | `number` |  |
-| `finalizedAt` | `number` | yes |
-| `senderConfirmed` | `boolean` |  |
-| `recipientConfirmed` | `boolean` |  |
-| `lastMessage` | `string` | yes |
-| `lastMessageAt` | `string` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `guildInviteConversations/{guildInviteId}/inviteMessages/{guildInviteMessageId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `senderId` | `string` |  |
-| `text` | `string` |  |
-| `createdAt` | `number` |  |
-| `messageId` | `string` | yes |
-| `threadId` | `string` | yes |
-| `type` | `string` | yes |
-| `guildInviteId` | `string` | yes |
-| `attachment` | `{ id, name, type, size, url, storagePath, status, failureReason }` | yes |
-| `replyTo` | `{ messageId, senderId, messagePreview }` | yes |
-| `isSystemMessage` | `boolean` | yes |
-| `meta` | `Record<string, unknown>` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `hallItems/{hallItemId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `hallItemId` | `string` |  |
-| `workProjectId` | `string` |  |
-| `workProjectType` | `'Tales' \| 'Tunes' \| 'Television'` |  |
-| `status` | `'published' \| 'paused' \| 'banned'` |  |
-| `createdOn` | `number` |  |
-| `publishedAt` | `number` | yes |
-| `hallWingType` | `'entertainment' \| 'educational' \| 'newsPolitical'` |  |
-| `title` | `string` | yes |
-| `description` | `string` | yes |
-| `coverPhotoSquare` | `string` | yes |
-| `coverPhotoPoster` | `string` | yes |
-| `coverPhotoCinematic` | `string` | yes |
-| `workGenres` | `string[]` | yes |
-| `followerCount` | `number` | yes |
-| `hidden` | `boolean` |  |
+| _(document)_ | `unknown` |  |
 
 ## `moderationCascadeManifests/{cascadeId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `cascadeId` | `string` |  |
-| `action` | `'hideRealm' \| 'restoreRealm' \| 'hideWork' \| 'restoreWork'` |  |
-| `entityType` | `'workRealm' \| 'workProject'` |  |
-| `entityId` | `string` |  |
-| `actorUid` | `string` |  |
-| `reason` | `string` |  |
-| `createdAt` | `number` |  |
-| `completedAt` | `number` | yes |
-| `status` | `'pending' \| 'complete' \| 'failed'` |  |
+| _(document)_ | `unknown` |  |
 
 ## `moderationCascadeManifests/{cascadeId}/changedDocs/{changedDocId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `docPath` | `string` |  |
-| `entityType` | `'workProject' \| 'hallItem' \| 'subItemProjection' \| 'workRealm'` |  |
-| `fieldPath` | `string` |  |
-| `previousValue` | `boolean` |  |
-| `newValue` | `boolean` |  |
-| `restored` | `boolean` |  |
-| `restoredAt` | `number` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `notificationBroadcastJobs/{jobId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `jobId` | `string` |  |
-| `selector` | `{ kind } \| { kind, uids } \| { kind, workProjectId } \| { kind, workRealmId } \| { kind }` |  |
-| `title` | `string` |  |
-| `message` | `string` |  |
-| `actorUid` | `string` |  |
-| `actorSystemRole` | `string` | yes |
-| `status` | `'pending' \| 'complete' \| 'failed'` |  |
-| `cursor` | `string \| null` |  |
-| `totalSent` | `number` |  |
-| `createdAt` | `number` |  |
-| `updatedAt` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `paymentWebhookQuarantine/{stripeEventId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `eventId` | `string` |  |
-| `eventType` | `string` |  |
-| `livemode` | `boolean` |  |
-| `reason` | `string` |  |
-| `recoverable` | `boolean` |  |
-| `stripeObjectIds` | `{ sessionId, paymentIntentId, chargeId }` |  |
-| `pledgePaymentId` | `string` | yes |
-| `userId` | `string` | yes |
-| `amount` | `number` | yes |
-| `currency` | `string` | yes |
-| `rawSafeSummary` | `string` |  |
-| `status` | `'open' \| 'resolved' \| 'ignored'` |  |
-| `adminTaskId` | `string` | yes |
-| `createdAt` | `number` |  |
-| `resolvedAt` | `number` | yes |
-| `resolvedBy` | `string` | yes |
-| `resolutionNote` | `string` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `pendingAdminDispatches/{adminDispatchId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `adminDispatchId` | `string` |  |
-| `userId` | `string` |  |
-| `initiatorUserId` | `string` |  |
-| `initiatedBy` | `'user' \| 'admin'` |  |
-| `subject` | `string` |  |
-| `status` | `'open' \| 'user_reply' \| 'admin_reply' \| 'closed_resolved' \| 'closed_unresolved'` |  |
-| `createdAt` | `number` |  |
-| `lastUpdatedAt` | `number` |  |
-| `readByAdmin` | `boolean` |  |
-| `readByUser` | `boolean` |  |
-| `closedBy` | `string` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `pendingAdminDispatches/{adminDispatchId}/conversationMessages/{adminDispatchMessageId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `senderId` | `string` |  |
-| `text` | `string` |  |
-| `createdAt` | `number` |  |
-| `messageId` | `string` | yes |
-| `threadId` | `string` | yes |
-| `type` | `string` | yes |
-| `guildInviteId` | `string` | yes |
-| `attachment` | `{ id, name, type, size, url, storagePath, status, failureReason }` | yes |
-| `replyTo` | `{ messageId, senderId, messagePreview }` | yes |
-| `isSystemMessage` | `boolean` | yes |
-| `meta` | `Record<string, unknown>` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `pendingMedia/{pendingMediaId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| _(document)_ | `{ id, userId, fileOrigin, originalFileName, originalContentType, originalSize, pendingStoragePath, targetInfo, textContent, clientContext, createdAt, updatedAt, processingStartedAt, terminalAt, status } \| { id, userId, fileOrigin, originalFileName, originalContentType, originalSize, pendingStoragePath, targetInfo, textContent, clientContext, createdAt, updatedAt, processingStartedAt, terminalAt, status } \| { id, userId, fileOrigin, originalFileName, originalContentType, originalSize, pendingStoragePath, targetInfo, textContent, clientContext, createdAt, updatedAt, processingStartedAt, terminalAt, status, completedAt, uploadTrayClearedAt, uploadTrayClearedBy, uploadTraySeenAt, uploadTraySeenBy, result } \| { id, userId, fileOrigin, originalFileName, originalContentType, originalSize, pendingStoragePath, targetInfo, textContent, clientContext, createdAt, updatedAt, processingStartedAt, terminalAt, status, failedAt, uploadTrayClearedAt, uploadTrayClearedBy, uploadTraySeenAt, uploadTraySeenBy, errorCategory, errorMessage } \| { id, userId, fileOrigin, originalFileName, originalContentType, originalSize, pendingStoragePath, targetInfo, textContent, clientContext, createdAt, updatedAt, processingStartedAt, terminalAt, status, rejectedAt, uploadTrayClearedAt, uploadTrayClearedBy, uploadTraySeenAt, uploadTraySeenBy, rejectionType, errorMessage, violationId, result }` |  |
+| _(document)_ | `unknown` |  |
 
 ## `pendingMediaArchive/{pendingMediaId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| _(document)_ | `{ id, userId, fileOrigin, originalFileName, originalContentType, originalSize, pendingStoragePath, targetInfo, textContent, clientContext, createdAt, updatedAt, processingStartedAt, terminalAt, status, completedAt, uploadTrayClearedAt, uploadTrayClearedBy, uploadTraySeenAt, uploadTraySeenBy, result, archivedAt } \| { id, userId, fileOrigin, originalFileName, originalContentType, originalSize, pendingStoragePath, targetInfo, textContent, clientContext, createdAt, updatedAt, processingStartedAt, terminalAt, status, failedAt, uploadTrayClearedAt, uploadTrayClearedBy, uploadTraySeenAt, uploadTraySeenBy, errorCategory, errorMessage, archivedAt } \| { id, userId, fileOrigin, originalFileName, originalContentType, originalSize, pendingStoragePath, targetInfo, textContent, clientContext, createdAt, updatedAt, processingStartedAt, terminalAt, status, rejectedAt, uploadTrayClearedAt, uploadTrayClearedBy, uploadTraySeenAt, uploadTraySeenBy, rejectionType, errorMessage, violationId, result, archivedAt }` |  |
+| _(document)_ | `unknown` |  |
 
 ## `pendingNotifications/{notificationId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `type` | `string` |  |
-| `category` | `string` |  |
-| `targetUserId` | `string \| null` |  |
-| `actorId` | `string` |  |
-| `metadata` | `Record<string, unknown>` |  |
-| `createdAt` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `pledgePaymentLedgerEvents/{ledgerId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `ledgerId` | `string` |  |
-| `pledgePaymentId` | `string` |  |
-| `subtype` | `string` |  |
-| `reason` | `string` |  |
-| `before` | `Record<string, unknown> \| null` |  |
-| `after` | `Record<string, unknown> \| null` |  |
-| `source` | `"firestore-trigger"` |  |
-| `createdAt` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `pledgePaymentProviderRefs/{pledgePaymentId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `pledgePaymentId` | `string` |  |
-| `userId` | `string` |  |
-| `stripeSessionId` | `string` |  |
-| `paymentIntentId` | `string` |  |
-| `latestChargeId` | `string \| null` |  |
-| `refundIds` | `string[]` |  |
-| `disputeId` | `string \| null` |  |
-| `createdAt` | `number` |  |
-| `updatedAt` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `pledgePayments/{pledgePaymentId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `pledgePaymentId` | `string` |  |
-| `userId` | `string` |  |
-| `amount` | `number` |  |
-| `refundedAmount` | `number` |  |
-| `disputeLostAmount` | `number` |  |
-| `netAmount` | `number` |  |
-| `currency` | `string` |  |
-| `paymentInstrument` | `"card"` |  |
-| `status` | `"completed"` |  |
-| `refundState` | `'none' \| 'partial' \| 'full'` |  |
-| `disputeState` | `'none' \| 'underReview' \| 'won' \| 'lost'` |  |
-| `createdAt` | `number` |  |
-| `updatedAt` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `processedStripeEvents/{stripeEventId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `eventId` | `string` |  |
-| `eventType` | `string` |  |
-| `processedAt` | `number` |  |
-| `pledgePaymentId` | `string \| null` |  |
+| _(document)_ | `unknown` |  |
 
 ## `publicUsers/{uid}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `uid` | `string` |  |
-| `displayName` | `string` |  |
-| `displayName_lowercase` | `string` |  |
-| `profilePictureUrlFull` | `string \| null` | yes |
-| `profilePictureUrlMedium` | `string \| null` | yes |
-| `profilePictureUrlSmall` | `string \| null` | yes |
-| `artisanCreator` | `number` | yes |
-| `disabled` | `boolean` |  |
+| _(document)_ | `unknown` |  |
 
 ## `publicWorkProjects/{workProjectId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `workProjectId` | `string` |  |
-| `publicWorkStatus` | `'draft' \| 'released'` |  |
-| `publicWorkHidden` | `boolean` |  |
-| `workRealmId` | `string` |  |
-| `realmCanonStatus` | `'canon' \| 'nonCanon'` |  |
-| `type` | `'Tales' \| 'Tunes' \| 'Television'` |  |
-| `hallWingType` | `'entertainment' \| 'educational' \| 'newsPolitical'` |  |
-| `workingTitle` | `string` |  |
-| `workingTitle_lowercase` | `string` |  |
-| `workingDescription` | `string` |  |
-| `coverImageUrl` | `string` | yes |
-| `workStewardUid` | `string` |  |
-| `foundingArtisanUid` | `string` |  |
-| `createdOn` | `number` |  |
-| `updatedOn` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `reservedDisplayNames/{displayNameUppercase}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `userId` | `string` |  |
-| `displayName` | `string` |  |
+| _(document)_ | `unknown` |  |
 
 ## `shortLinks/{shortId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `shortId` | `string` |  |
-| `shortUrl` | `string` |  |
-| `destinationUrl` | `string` |  |
-| `type` | `'audition' \| 'audition-entry'` |  |
-| `metadata` | `{ auditionId, auditionEntryId }` |  |
-| `createdAt` | `number` |  |
-| `createdBy` | `string` |  |
-| `clicks` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `squareStreetzFeed/activePosts/socialPosts/{postId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `postId` | `string` |  |
-| `createdBy` | `{ uid }` |  |
-| `authorId` | `string` |  |
-| `content` | `string` |  |
-| `mentions` | `{ placeholder, type, id, text }[]` | yes |
-| `relatedIds` | `string[]` |  |
-| `mediaUrl` | `string` | yes |
-| `mediaType` | `'image' \| 'video' \| 'audio' \| 'other'` | yes |
-| `createdAt` | `number` |  |
-| `likes` | `number` |  |
-| `postType` | `'PROFILE_PICTURE_UPDATE' \| 'NEW_CRAFT_SKILL' \| 'NEW_ARTISAN_CREATOR' \| 'COMMISSION_ACCEPTED' \| 'DELETE_CRAFT_SKILL' \| 'USER_POST' \| 'NEW_WORK_PROJECT' \| 'LIBRARY_PUBLISHED'` | yes |
-| `relatedAssetId` | `string` | yes |
-| `moderationStatus` | `'pending' \| 'approved' \| 'rejected' \| 'pending_review'` | yes |
-| `moderationReason` | `string` | yes |
-| `moderationLayer` | `'word_filter' \| 'perspective'` | yes |
-| `visible` | `boolean` | yes |
-| `hidden` | `boolean` |  |
+| _(document)_ | `unknown` |  |
 
 ## `squareStreetzFeed/trendingPosts`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `postIds` | `string[]` |  |
-| `lastUpdated` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `stakeShareAuditEvents/{eventId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `eventId` | `string` |  |
-| `subtype` | `string` |  |
-| `reason` | `string` |  |
-| `workProjectId` | `string` |  |
-| `guildmateUserUid` | `string` |  |
-| `guildmateUserPath` | `string` |  |
-| `beforeStakeShares` | `number \| null` |  |
-| `afterStakeShares` | `number \| null` |  |
-| `createdAt` | `number` |  |
-| `source` | `string` |  |
+| _(document)_ | `unknown` |  |
 
 ## `thresholdItems/{thresholdItemId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `thresholdItemId` | `string` |  |
-| `hallItemId` | `string` |  |
-| `workProjectId` | `string` |  |
-| `workProjectType` | `'Tales' \| 'Tunes' \| 'Television'` |  |
-| `itemId` | `string` |  |
-| `itemsKey` | `'tuneTracks' \| 'chapters' \| 'televisionEpisodes'` |  |
-| `order` | `number` |  |
-| `hallWingType` | `'entertainment' \| 'educational' \| 'newsPolitical'` |  |
-| `submittedAt` | `number` |  |
-| `reviewStatus` | `'pending' \| 'needs_revision' \| 'approved'` |  |
-| `adminNotes` | `string` | yes |
-| `reviewedAt` | `number` | yes |
-| `reviewedBy` | `string` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `userProfiles/{userId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `uid` | `string` |  |
-| `displayName` | `string` |  |
-| `displayName_lowercase` | `string` |  |
-| `profilePictureUrlFull` | `string \| null` | yes |
-| `profilePictureUrlMedium` | `string \| null` | yes |
-| `profilePictureUrlSmall` | `string \| null` | yes |
-| `artisanCreator` | `number` | yes |
-| `status` | `'active' \| 'suspended' \| 'banned'` | yes |
-| `displayNameResetRequired` | `boolean` | yes |
-| `ownedWorkProjects` | `{ workProjectId, workingTitle, workingDescription, type, createdOn, hallWingType }[]` | yes |
-| `associatedWorkProjects` | `{ workProjectId, workingTitle, workingDescription, type, joinedOn }[]` | yes |
-| `createdAt` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `userProfiles/{userId}/auditionVotes/{auditionId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `votedForAuditionEntryId` | `string` |  |
-| `votedOn` | `number` |  |
-| `auditionEntryArtisanCreator` | `{ uid }` |  |
+| _(document)_ | `unknown` |  |
 
 ## `userProfiles/{userId}/mentionHistory/{docId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `userId` | `string` |  |
-| `items` | `{ placeholder, type, id, text, viewedAt }[]` |  |
+| _(document)_ | `unknown` |  |
 
 ## `userProfiles/{userId}/notificationHistory/{notificationId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `type` | `string` |  |
-| `dedupKey` | `string` |  |
-| `category` | `string` |  |
-| `targetUserId` | `string \| null` |  |
-| `title` | `string` |  |
-| `message` | `string` |  |
-| `count` | `number` |  |
-| `latestActorIds` | `string[]` |  |
-| `targetPath` | `string` |  |
-| `metadata` | `Record<string, unknown>` |  |
-| `seenAt` | `number` |  |
-| `createdAt` | `number` |  |
-| `updatedAt` | `number` |  |
-| `archival` | `{ archivedBy, archivedAt }` |  |
-| `expireAt` | `number` |  |
-| `handledBy` | `string` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `userProfiles/{userId}/privateData/{userId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `email` | `string` |  |
-| `isWaitingForNewsApproval` | `number` | yes |
-| `squareStreetzAgreementsDate` | `number` | yes |
-| `agreements` | `{ age, nudity, meet, cookies, terms, agreedOn }` | yes |
-| `statusReason` | `string` | yes |
-| `statusReasonAt` | `number` | yes |
+| _(document)_ | `unknown` |  |
 
 ## `userProfiles/{userId}/profileCraftSkills/{craftSkillId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `name` | `string` |  |
-| `url` | `string` |  |
-| `tags` | `string[]` |  |
-| `createdAt` | `number` |  |
-| `type` | `'image' \| 'video' \| 'audio'` |  |
-| `hidden` | `boolean` |  |
+| _(document)_ | `unknown` |  |
 
 ## `userProfiles/{userId}/userLikes/likeHistory/squareStreetzLikes/{postId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `likedOn` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## `workRealms/{workRealmId}`
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `workRealmId` | `string` |  |
-| `realmType` | `'public' \| 'standalone'` |  |
-| `realmStatus` | `'draft' \| 'released'` |  |
-| `realmHidden` | `boolean` |  |
-| `workingTitle` | `string` |  |
-| `workingTitle_lowercase` | `string` |  |
-| `workingDescription` | `string` |  |
-| `workStewardUid` | `string` |  |
-| `foundingArtisanUid` | `string` |  |
-| `foundingWorkProjectId` | `string` |  |
-| `createdOn` | `number` |  |
-| `updatedOn` | `number` |  |
+| _(document)_ | `unknown` |  |
 
 ## Collections pending a schema
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import {
@@ -10,8 +10,8 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return React.createElement(LocalUploadGuardProvider, null, children);
 }
 
-let addSpy: ReturnType<typeof vi.spyOn>;
-let removeSpy: ReturnType<typeof vi.spyOn>;
+let addSpy: MockInstance<typeof window.addEventListener>;
+let removeSpy: MockInstance<typeof window.removeEventListener>;
 
 beforeEach(() => {
   addSpy = vi.spyOn(window, 'addEventListener');

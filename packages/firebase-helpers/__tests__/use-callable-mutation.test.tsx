@@ -21,7 +21,7 @@ describe('useCallableMutation', () => {
   });
 
   it('returns data on success', async () => {
-    const mockCallable = vi.fn().mockResolvedValue({ data: { ok: true } });
+    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), { stream: vi.fn() });
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
     const { result } = renderHook(() =>
@@ -39,8 +39,9 @@ describe('useCallableMutation', () => {
 
   it('sets isLoading=true during the call', async () => {
     let resolveCall!: (v: { data: unknown }) => void;
-    const mockCallable = vi.fn(
-      () => new Promise<{ data: unknown }>((res) => { resolveCall = res; }),
+    const mockCallable = Object.assign(
+      vi.fn(() => new Promise<{ data: unknown }>((res) => { resolveCall = res; })),
+      { stream: vi.fn() },
     );
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
@@ -65,7 +66,7 @@ describe('useCallableMutation', () => {
 
   it('calls onError and re-throws on failure', async () => {
     const error = new Error('call failed');
-    const mockCallable = vi.fn().mockRejectedValue(error);
+    const mockCallable = Object.assign(vi.fn().mockRejectedValue(error), { stream: vi.fn() });
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
     const onError = vi.fn();
@@ -83,7 +84,7 @@ describe('useCallableMutation', () => {
 
   it('calls captureException on failure', async () => {
     const error = new Error('boom');
-    const mockCallable = vi.fn().mockRejectedValue(error);
+    const mockCallable = Object.assign(vi.fn().mockRejectedValue(error), { stream: vi.fn() });
     vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
 
     const captureException = vi.fn();

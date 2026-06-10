@@ -1,83 +1,83 @@
 {
-  "name": "@ttt-productions/chat-react",
-  "version": "0.2.6",
-  "description": "Chat React UI, hooks, and Firebase-client adapter for TTT Productions apps (realtime newest window + infinite older pagination)",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ttt-productions/ttt-packages.git",
-    "directory": "packages/chat-react"
-  },
-  "type": "module",
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "sideEffects": [
-    "src/styles/*.css"
-  ],
-  "files": [
-    "dist",
-    "src/styles"
-  ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+    "name": "@ttt-productions/chat-react",
+    "version": "0.2.6",
+    "description": "Chat React UI, hooks, and Firebase-client adapter for TTT Productions apps (realtime newest window + infinite older pagination)",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/chat-react"
     },
-    "./styles": "./src/styles/chat.css"
-  },
-  "scripts": {
-    "build": "tsc",
-    "clean": "rm -rf dist *.tsbuildinfo",
-    "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run clean && npm run build"
-  },
-  "peerDependencies": {
-    "@tanstack/react-query": ">=5.0.0",
-    "@ttt-productions/query-core": "*",
-    "firebase": ">=10.0.0",
-    "lucide-react": ">=0.0.0",
-    "react": ">=19.0.0",
-    "react-dom": ">=19.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@tanstack/react-query": {
-      "optional": true
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": [
+        "src/styles/*.css"
+    ],
+    "files": [
+        "dist",
+        "src/styles"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./styles": "./src/styles/chat.css"
     },
-    "@ttt-productions/query-core": {
-      "optional": true
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
     },
-    "firebase": {
-      "optional": true
+    "peerDependencies": {
+        "@tanstack/react-query": ">=5.0.0",
+        "@ttt-productions/query-core": "*",
+        "firebase": ">=12.0.0",
+        "lucide-react": ">=0.0.0",
+        "react": ">=19.0.0",
+        "react-dom": ">=19.0.0"
     },
-    "lucide-react": {
-      "optional": true
+    "peerDependenciesMeta": {
+        "@tanstack/react-query": {
+            "optional": true
+        },
+        "@ttt-productions/query-core": {
+            "optional": true
+        },
+        "firebase": {
+            "optional": true
+        },
+        "lucide-react": {
+            "optional": true
+        },
+        "react": {
+            "optional": true
+        },
+        "react-dom": {
+            "optional": true
+        }
     },
-    "react": {
-      "optional": true
+    "dependencies": {
+        "@ttt-productions/chat-core": "*",
+        "@ttt-productions/chat-schemas": "*",
+        "@ttt-productions/media-schemas": "*",
+        "@ttt-productions/ui-core": "*",
+        "@ttt-productions/file-input": "*",
+        "@ttt-productions/upload-ui": "*",
+        "@ttt-productions/media-viewer": "*",
+        "@ttt-productions/mobile-core": "*",
+        "@ttt-productions/firebase-helpers": "*"
     },
-    "react-dom": {
-      "optional": true
-    }
-  },
-  "dependencies": {
-    "@ttt-productions/chat-core": "*",
-    "@ttt-productions/chat-schemas": "*",
-    "@ttt-productions/media-schemas": "*",
-    "@ttt-productions/ui-core": "*",
-    "@ttt-productions/file-input": "*",
-    "@ttt-productions/upload-ui": "*",
-    "@ttt-productions/media-viewer": "*",
-    "@ttt-productions/mobile-core": "*",
-    "@ttt-productions/firebase-helpers": "*"
-  },
-  "devDependencies": {
-    "@ttt-productions/query-core": "*",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "typescript": "^5.8.3"
-  },
-  "author": "DJ (TTT Productions)",
-  "license": "MIT"
+    "devDependencies": {
+        "@ttt-productions/query-core": "*",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "typescript": "^5.8.3"
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
 }

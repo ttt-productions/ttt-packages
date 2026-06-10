@@ -1,16 +1,11 @@
 import { z } from 'zod';
-import type { UploadState } from '@ttt-productions/media-schemas';
+import { onProgressSchema } from './on-progress.js';
 import {
   MAX_AUDITION_TITLE_LENGTH,
   MAX_AUDITION_DESCRIPTION_LENGTH,
   MAX_WORK_PROJECT_STAKE_SHARES,
 } from '../constants/business.js';
 
-const onProgressSchema = z
-  .function()
-  .args(z.custom<UploadState | null>())
-  .returns(z.void())
-  .optional();
 
 export const CreateWorkProjectAuditionVariablesSchema = z.object({
   title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),

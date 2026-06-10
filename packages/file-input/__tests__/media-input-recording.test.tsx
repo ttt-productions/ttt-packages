@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, act, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { RecordDialog } from '../src/react/components/record-dialog';
 
 // Fake MediaRecorder:
@@ -9,7 +9,9 @@ type MRCtor = new (stream: MediaStream, opts?: MediaRecorderOptions) => MediaRec
 
 function installMediaRecorderMock() {
   const instances: any[] = [];
-  const ctor = vi.fn().mockImplementation((stream: MediaStream, _opts?: any) => {
+  // Function expression, not an arrow: the component does `new MediaRecorder(...)`
+  // and Vitest 4 mock implementations are only constructible when the impl is.
+  const ctor = vi.fn(function (stream: MediaStream, _opts?: any) {
     const inst: any = {
       state: 'inactive',
       mimeType: 'audio/webm',
@@ -51,12 +53,14 @@ function installGetUserMediaMock() {
 function installAudioContextMock() {
   const source = { connect: vi.fn(), disconnect: vi.fn() };
   const analyser = { fftSize: 0, frequencyBinCount: 128, getByteTimeDomainData: vi.fn() };
-  const ctor = vi.fn().mockImplementation(() => ({
-    state: 'running',
-    close: vi.fn().mockResolvedValue(undefined),
-    createMediaStreamSource: vi.fn().mockReturnValue(source),
-    createAnalyser: vi.fn().mockReturnValue(analyser),
-  }));
+  const ctor = vi.fn(function () {
+    return {
+      state: 'running',
+      close: vi.fn().mockResolvedValue(undefined),
+      createMediaStreamSource: vi.fn().mockReturnValue(source),
+      createAnalyser: vi.fn().mockReturnValue(analyser),
+    };
+  });
   (globalThis as any).AudioContext = ctor;
   return { ctor };
 }
@@ -70,8 +74,8 @@ function installObjectUrlMock() {
 }
 
 describe('RecordDialog', () => {
-  let onRecorded: ReturnType<typeof vi.fn>;
-  let onOpenChange: ReturnType<typeof vi.fn>;
+  let onRecorded: Mock<(file: File, previewUrl: string) => void | Promise<void>>;
+  let onOpenChange: Mock<(open: boolean) => void>;
   let gumMock: ReturnType<typeof installGetUserMediaMock>;
   let urlMock: ReturnType<typeof installObjectUrlMock>;
 
