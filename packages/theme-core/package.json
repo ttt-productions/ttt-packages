@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/theme-core",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "description": "Theme provider + CSS token contract for TTT Productions apps",
     "repository": {
         "type": "git",
