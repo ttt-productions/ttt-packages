@@ -19,6 +19,7 @@ const validPledgePayment = {
   status: 'completed',
   refundState: 'none',
   disputeState: 'none',
+  ageAttestedAt: 1,
   createdAt: 1,
   updatedAt: 1,
 };
@@ -60,6 +61,12 @@ describe('PledgePaymentSchema (public-safe ledger)', () => {
     const { netAmount, ...withoutNet } = validPledgePayment;
     void netAmount;
     expect(PledgePaymentSchema.safeParse(withoutNet).success).toBe(false);
+  });
+
+  it('requires ageAttestedAt (provable 18+/disclosure consent)', () => {
+    const { ageAttestedAt, ...withoutAttestation } = validPledgePayment;
+    void ageAttestedAt;
+    expect(PledgePaymentSchema.safeParse(withoutAttestation).success).toBe(false);
   });
 
   it('rejects a non-numeric amount', () => {

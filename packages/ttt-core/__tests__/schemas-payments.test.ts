@@ -11,6 +11,7 @@ const ATTEMPT_ID = 'f1f86a55-94f6-4c5e-9396-1c4e3f9b7a01';
 const valid = (overrides: Record<string, unknown> = {}) => ({
   amount: 500,
   checkoutAttemptId: ATTEMPT_ID,
+  ageAttested: true,
   ...overrides,
 });
 
@@ -68,14 +69,38 @@ describe('CreateStripeCheckoutSessionInputSchema', () => {
     it('rejects a missing amount', () => {
       const result = CreateStripeCheckoutSessionInputSchema.safeParse({
         checkoutAttemptId: ATTEMPT_ID,
+        ageAttested: true,
       });
       expect(result.success).toBe(false);
     });
   });
 
+  describe('ageAttested (18+ / public-disclosure attestation)', () => {
+    it('rejects a missing ageAttested flag', () => {
+      const { ageAttested: _omitted, ...rest } = valid();
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(rest);
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects ageAttested: false', () => {
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(valid({ ageAttested: false }));
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a truthy non-boolean ageAttested', () => {
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(valid({ ageAttested: 'true' }));
+      expect(result.success).toBe(false);
+    });
+
+    it('accepts ageAttested: true', () => {
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse(valid());
+      expect(result.success).toBe(true);
+    });
+  });
+
   describe('checkoutAttemptId', () => {
     it('rejects a missing checkoutAttemptId', () => {
-      const result = CreateStripeCheckoutSessionInputSchema.safeParse({ amount: 500 });
+      const result = CreateStripeCheckoutSessionInputSchema.safeParse({ amount: 500, ageAttested: true });
       expect(result.success).toBe(false);
     });
 

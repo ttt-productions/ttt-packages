@@ -35,48 +35,72 @@ const FK = {
   pledgePaymentId: 'pledgePayments', adminDispatchId: 'pendingAdminDispatches',
 };
 
+// Normalized schema kind. Zod 3 used `_def.typeName` ('ZodObject'); Zod 4 uses `_def.type`
+// ('object'). Normalize both to the lowercase Zod 4 names so the walkers below work on either.
+function kindOf(schema) {
+  const def = schema?._def;
+  if (!def) return null;
+  if (typeof def.typeName === 'string') return def.typeName.replace(/^Zod/, '').toLowerCase();
+  if (typeof def.type === 'string') return def.type;
+  return null;
+}
+
 function unwrap(schema) {
   let s = schema, optional = false, nullable = false;
   for (let i = 0; i < 12 && s && s._def; i++) {
-    const tn = s._def.typeName;
-    if (tn === 'ZodOptional') { optional = true; s = s._def.innerType; }
-    else if (tn === 'ZodNullable') { nullable = true; s = s._def.innerType; }
-    else if (tn === 'ZodDefault') { s = s._def.innerType; }
-    else if (tn === 'ZodEffects') { s = s._def.schema; }
+    const kind = kindOf(s);
+    if (kind === 'optional') { optional = true; s = s._def.innerType; }
+    else if (kind === 'nullable') { nullable = true; s = s._def.innerType; }
+    else if (kind === 'default' || kind === 'nonoptional' || kind === 'readonly' || kind === 'catch') { s = s._def.innerType; }
+    else if (kind === 'effects') { s = s._def.schema; } // Zod 3 .refine/.transform
+    else if (kind === 'pipe') { s = s._def.in; } // Zod 4 .transform/.pipe
     else break;
   }
   return { s, optional, nullable };
 }
 
+function enumValues(def) {
+  // Zod 3: def.values is an array; Zod 4: def.entries is a name->value record.
+  if (Array.isArray(def.values)) return def.values;
+  if (def.entries && typeof def.entries === 'object') return Object.values(def.entries);
+  return [];
+}
+
 function typeStr(schema) {
   if (!schema || !schema._def) return 'unknown';
   const def = schema._def;
-  switch (def.typeName) {
-    case 'ZodString': return 'string';
-    case 'ZodNumber': return 'number';
-    case 'ZodBoolean': return 'boolean';
-    case 'ZodUnknown': return 'unknown';
-    case 'ZodAny': return 'any';
-    case 'ZodNull': return 'null';
-    case 'ZodLiteral': return JSON.stringify(def.value);
-    case 'ZodEnum': return (def.values || []).map((v) => `'${v}'`).join(' | ');
-    case 'ZodNativeEnum': return 'enum';
-    case 'ZodArray': return `${typeStr(def.type)}[]`;
-    case 'ZodObject': return `{ ${Object.keys(shapeOf(schema) || {}).join(', ')} }`;
-    case 'ZodRecord': return `Record<string, ${typeStr(def.valueType)}>`;
-    case 'ZodUnion': return (def.options || []).map(typeStr).join(' | ');
-    case 'ZodDiscriminatedUnion': return [...(def.options || [])].map(typeStr).join(' | ');
-    case 'ZodOptional': return typeStr(def.innerType);
-    case 'ZodNullable': return `${typeStr(def.innerType)} | null`;
-    case 'ZodDefault': return typeStr(def.innerType);
-    case 'ZodEffects': return typeStr(def.schema);
-    default: return (def.typeName || 'unknown').replace(/^Zod/, '').toLowerCase();
+  switch (kindOf(schema)) {
+    case 'string': return 'string';
+    case 'number': case 'int': case 'bigint': return 'number';
+    case 'boolean': return 'boolean';
+    case 'unknown': return 'unknown';
+    case 'any': return 'any';
+    case 'null': return 'null';
+    // Zod 3: def.value (single); Zod 4: def.values (array — literals can hold several).
+    case 'literal': return (Array.isArray(def.values) ? def.values : [def.value]).map((v) => JSON.stringify(v)).join(' | ');
+    case 'enum': case 'nativeenum': return enumValues(def).map((v) => `'${v}'`).join(' | ') || 'enum';
+    // Zod 3: def.type is the element schema; Zod 4: def.element.
+    case 'array': return `${typeStr(def.element ?? def.type)}[]`;
+    case 'object': return `{ ${Object.keys(shapeOf(schema) || {}).join(', ')} }`;
+    case 'record': return `Record<string, ${typeStr(def.valueType)}>`;
+    case 'union': case 'discriminatedunion': return [...(def.options || [])].map(typeStr).join(' | ');
+    case 'optional': return typeStr(def.innerType);
+    case 'nullable': return `${typeStr(def.innerType)} | null`;
+    case 'default': return typeStr(def.innerType);
+    case 'effects': return typeStr(def.schema);
+    case 'pipe': return typeStr(def.in);
+    default: return kindOf(schema) || 'unknown';
   }
 }
 
 function shapeOf(schema) {
-  if (!schema || !schema._def || schema._def.typeName !== 'ZodObject') return null;
-  try { return schema._def.shape(); } catch { /* fallthrough */ }
+  if (kindOf(schema) !== 'object') return null;
+  const def = schema._def;
+  // Zod 3: def.shape is a function; Zod 4: def.shape is the plain shape object.
+  try {
+    const raw = typeof def.shape === 'function' ? def.shape() : def.shape;
+    if (raw && typeof raw === 'object') return raw;
+  } catch { /* fallthrough */ }
   try { return schema.shape; } catch { return null; }
 }
 
@@ -151,6 +175,19 @@ function buildMermaid() {
   }
   for (const e of [...edges].sort()) lines.push(`  ${e}`);
   return lines.join('\n');
+}
+
+// Sanity guard: if introspection breaks wholesale (e.g. a Zod major changes internals again),
+// every collection degrades to a fieldless "(document) unknown" row and --check would happily
+// pass against equally-degenerate committed output. Refuse to produce that.
+{
+  const fieldless = Object.keys(COLLECTION_SCHEMAS).filter(
+    (path) => fieldRows(COLLECTION_SCHEMAS[path]).fields.length === 0,
+  );
+  if (fieldless.length === Object.keys(COLLECTION_SCHEMAS).length) {
+    console.error('FATAL: schema introspection produced zero fields for every collection — the generator no longer understands this Zod version. Refusing to write/check degenerate docs.');
+    process.exit(1);
+  }
 }
 
 const md = buildMarkdown();

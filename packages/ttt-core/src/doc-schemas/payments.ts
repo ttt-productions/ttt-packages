@@ -23,6 +23,9 @@ export const PledgePaymentSchema = z.object({
   status: z.literal('completed'),
   refundState: z.enum(['none', 'partial', 'full']), // LAUNCH always 'none'
   disputeState: z.enum(['none', 'underReview', 'won', 'lost']), // LAUNCH always 'none'
+  // Server timestamp (ms) of the checkout's 18+/public-disclosure attestation, stamped at session
+  // creation and carried through Stripe metadata. A paid session missing it is quarantined.
+  ageAttestedAt: z.number(),
   createdAt: z.number(),
   updatedAt: z.number(),
 });

@@ -5,7 +5,12 @@ import { USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_REGEX } from '../con
 export const AcceptSquareStreetzAgreementsInputSchema = z.object({}).strict();
 export type AcceptSquareStreetzAgreementsInput = z.infer<typeof AcceptSquareStreetzAgreementsInputSchema>;
 
-export const BecomeArtisanCreatorInputSchema = z.object({}).strict();
+// The become-creator dialog's "I confirm I am 18 years of age or older" checkbox must reach the
+// server: the callable rejects when absent and records the attestation on the
+// artisanCreator.grantedToUser audit event (immutable, timestamped, with IP/UA) so it is provable.
+export const BecomeArtisanCreatorInputSchema = z.object({
+  ageAttested: z.literal(true),
+}).strict();
 export type BecomeArtisanCreatorInput = z.infer<typeof BecomeArtisanCreatorInputSchema>;
 
 export const MarkWaitingForNewsApprovalInputSchema = z.object({}).strict();

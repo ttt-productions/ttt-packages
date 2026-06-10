@@ -11,6 +11,10 @@ export const CreateStripeCheckoutSessionInputSchema = z.object({
   // it and passes a Stripe idempotency key so a double-submit returns the SAME
   // Checkout Session instead of creating a duplicate.
   checkoutAttemptId: z.string().uuid(),
+  // Payments are 18+ (site policy: 13+ to use, 18+ to pay). The checkout checkbox carries the
+  // age attestation AND the public-pledge transparency disclosure; the callable rejects when it
+  // is absent and stamps ageAttestedAt onto the pledge record so the consent is provable.
+  ageAttested: z.literal(true),
 }).strict();
 export type CreateStripeCheckoutSessionInput = z.infer<typeof CreateStripeCheckoutSessionInputSchema>;
 
