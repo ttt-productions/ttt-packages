@@ -6,7 +6,7 @@
  * what a "user" or "entity" is. The consumer parameterizes `TKind` to its own
  * union and supplies one `MentionProvider` per kind.
  *
- * Wire format â€” mentions are encoded inline in the message's `text` field as
+ * Wire format — mentions are encoded inline in the message's `text` field as
  * `@[kind:id|displayText]` tokens. The renderer parses them out at display
  * time. No schema change to ChatMessage.
  *
@@ -15,7 +15,7 @@
  */
 
 /**
- * Resolved mention â€” the value that ends up in the wire token after the user
+ * Resolved mention — the value that ends up in the wire token after the user
  * selects an autocomplete result.
  *
  * `kind` is the discriminator supplied by the consumer (e.g. `'member'`, `'tag'`); `id` is the
@@ -39,15 +39,15 @@ export type ParsedSegment<TKind extends string = string> =
 /**
  * Provider supplying autocomplete results for one mention kind.
  *
- * - `kind` â€” the discriminator. Must match `MentionRef.kind` for results
+ * - `kind` — the discriminator. Must match `MentionRef.kind` for results
  *   returned by `search`.
- * - `label` â€” human-readable label for the section / tab.
- * - `search` â€” async query. Receives the current query string (after the
+ * - `label` — human-readable label for the section / tab.
+ * - `search` — async query. Receives the current query string (after the
  *   trigger character), the consumer-supplied `context`, and an optional
  *   `signal` for cancellation. Returns up to whatever limit the provider
  *   chooses; the chat UI renders all returned results.
  *
- * `TContext` is consumer-owned â€” pass anything you need inside `search`
+ * `TContext` is consumer-owned — pass anything you need inside `search`
  * (Firestore db, current user id, surface-specific filters). The mention
  * system never inspects it.
  *
@@ -70,7 +70,7 @@ export type MentionProvider<TKind extends string = string, TContext = unknown> =
  * recent picks when the user opens the dropdown without typing a query
  * (or after typing fewer than the configured minimum characters).
  *
- * `getRecent` MAY be async â€” the autocomplete renders a spinner while it
+ * `getRecent` MAY be async — the autocomplete renders a spinner while it
  * resolves. `recordUse` is fired after a successful selection so consumers
  * can persist usage.
  */
@@ -84,8 +84,8 @@ export type RecentMentionsAdapter<TKind extends string = string> = {
  * text buffer. Tracked in component state so positionally-collocated mentions
  * with the same display string disambiguate on send.
  *
- * - `start` / `end` â€” character offsets into the current textarea value.
- * - `ref` â€” the resolved MentionRef.
+ * - `start` / `end` — character offsets into the current textarea value.
+ * - `ref` — the resolved MentionRef.
  */
 export type MentionAnchor<TKind extends string = string> = {
   start: number;

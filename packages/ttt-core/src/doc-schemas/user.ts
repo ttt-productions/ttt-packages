@@ -1,4 +1,4 @@
-﻿// User-related Firestore document SCHEMAS â€” the single source of truth for the
+﻿// User-related Firestore document SCHEMAS — the single source of truth for the
 // `userProfiles/{uid}` doc, its `privateData/{uid}` subdoc, and craft-skill shapes.
 // (The `publicUsers/{uid}` mirror lives in ./publicUser.) TypeScript types are
 // inferred from these schemas via `z.infer`, so a document's shape and its type

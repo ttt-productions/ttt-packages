@@ -6,14 +6,14 @@
  * Renders a fixed bottom-left floating action button when there is any
  * active or non-cleared terminal upload. Opens a popover listing each
  * item with backend status. Terminal items (completed / failed / rejected)
- * get a Clear (Ã—) button that calls the consumer-supplied clear mutation.
+ * get a Clear (×) button that calls the consumer-supplied clear mutation.
  *
  * Framework-agnostic via render props:
  *  - `renderViewAllLink` lets the consumer plug in their app's Link
  *    component (Next.js Link, React Router Link, anchor, etc.) routed at
  *    their canonical "view all uploads" destination.
  *  - `renderFooter` lets the consumer fully replace the footer slot.
- *  - Both omitted â€” footer is not rendered.
+ *  - Both omitted — footer is not rendered.
  */
 
 import { useMemo, type ReactNode } from 'react';
@@ -35,7 +35,7 @@ import {
 
 /**
  * Consumer-supplied formatters used by `UploadActivityTray` to render row
- * labels. The tray is intentionally domain-agnostic â€” consumers map their
+ * labels. The tray is intentionally domain-agnostic — consumers map their
  * own `FileOrigin` union to user-facing strings and choose their preferred
  * timestamp / size / content-type formatting.
  */
@@ -73,12 +73,12 @@ function getRowMeta<TFileOrigin extends string>(
 
   switch (item.status) {
     case 'pending':
-      statusLabel = 'Waiting to processâ€¦';
+      statusLabel = 'Waiting to process…';
       icon = <Loader2 className="icon-sm animate-spin" />;
       iconClassName = 'text-muted-foreground';
       break;
     case 'processing':
-      statusLabel = 'Processingâ€¦';
+      statusLabel = 'Processing…';
       icon = <Loader2 className="icon-sm animate-spin" />;
       iconClassName = 'text-primary';
       break;
@@ -131,7 +131,7 @@ function UploadActivityTrayRow<TFileOrigin extends string>({
   const meta = getRowMeta(item, nowMs, labelers);
   const subline = [meta.originLabel, meta.fileTypeLabel, meta.fileSizeLabel]
     .filter(Boolean)
-    .join(' Â· ');
+    .join(' · ');
   return (
     <div className="flex items-start gap-3 p-3">
       <div className={cn('mt-0.5 shrink-0', meta.iconClassName)}>{meta.icon}</div>
@@ -178,7 +178,7 @@ export interface UploadActivityTrayProps<TFileOrigin extends string = string> {
     variables: string | undefined;
   };
   /**
-   * Consumer-supplied formatters for row labels. Required â€” the tray has
+   * Consumer-supplied formatters for row labels. Required — the tray has
    * no built-in opinion about how to render origin / file type / size /
    * timestamp strings.
    */

@@ -1,4 +1,4 @@
-﻿// Commission + Audition Firestore document SCHEMAS â€” commissionListings/{id} and its
+﻿// Commission + Audition Firestore document SCHEMAS — commissionListings/{id} and its
 // commissionProposals, auditionBoard/{id} and its auditionEntries, plus the per-user
 // auditionVotes doc. Types inferred via z.infer.
 

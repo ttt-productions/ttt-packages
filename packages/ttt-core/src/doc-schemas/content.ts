@@ -1,4 +1,4 @@
-﻿// Content Firestore document SCHEMAS â€” Tales/Tunes/Television sub-documents, the
+﻿// Content Firestore document SCHEMAS — Tales/Tunes/Television sub-documents, the
 // Threshold + Hall library item shapes, Hall library user preferences, and the
 // `_config` singleton docs (futurePlans, rulesAndAgreements). Types are inferred via
 // z.infer. The enum-key consts (HALL_WING_TYPE_KEYS / WORK_PROJECT_TYPE_KEYS) and the
