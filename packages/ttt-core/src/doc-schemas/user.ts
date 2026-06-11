@@ -105,6 +105,10 @@ export const UserPrivateDataSchema = z.object({
   // truthiness reads keep working; absent until the user applies.
   isWaitingForNewsApproval: z.number().optional(),
   squareStreetzAgreementsDate: z.number().optional(),
+  // Epoch ms when the user accepted the one-time Hall download acknowledgement
+  // (personal offline use only, no redistribution). Written server-side by the
+  // acceptHallDownloadAcknowledgement callable; gates the Hall download button.
+  hallDownloadAcknowledgedAt: z.number().optional(),
   agreements: UserAgreementsSchema.optional(),
   // Moderation: human-readable reason for the current account status (set when an
   // admin suspends/bans the user). Written by the setUserStatus callable via the

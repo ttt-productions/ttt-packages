@@ -959,6 +959,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `email` | `string` |  |
 | `isWaitingForNewsApproval` | `number` | yes |
 | `squareStreetzAgreementsDate` | `number` | yes |
+| `hallDownloadAcknowledgedAt` | `number` | yes |
 | `agreements` | `{ age, nudity, meet, cookies, terms, agreedOn }` | yes |
 | `statusReason` | `string` | yes |
 | `statusReasonAt` | `number` | yes |

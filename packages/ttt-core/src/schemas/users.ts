@@ -5,6 +5,13 @@ import { USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_REGEX } from '../con
 export const AcceptSquareStreetzAgreementsInputSchema = z.object({}).strict();
 export type AcceptSquareStreetzAgreementsInput = z.infer<typeof AcceptSquareStreetzAgreementsInputSchema>;
 
+// One-time acknowledgement gate before a user may download Hall content for personal
+// offline use (final wording owned by the legal-and-content step). No payload — the
+// callable records the timestamp in the caller's privateData. See
+// docs/design/media-assets-and-protected-serving.md (Hall/Library downloads).
+export const AcceptHallDownloadAcknowledgementInputSchema = z.object({}).strict();
+export type AcceptHallDownloadAcknowledgementInput = z.infer<typeof AcceptHallDownloadAcknowledgementInputSchema>;
+
 // The become-creator dialog's "I confirm I am 18 years of age or older" checkbox must reach the
 // server: the callable rejects when absent and records the attestation on the
 // artisanCreator.grantedToUser audit event (immutable, timestamped, with IP/UA) so it is provable.
