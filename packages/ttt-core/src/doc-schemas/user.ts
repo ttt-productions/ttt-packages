@@ -12,7 +12,7 @@ const mediaKindSchema = z.enum(['image', 'video', 'audio']);
 export const CraftSkillSchema = z.object({
   id: z.string(),
   name: z.string(),
-  url: z.string(),
+  mediaAssetId: z.string(),
   tags: z.array(z.string()),
   createdAt: z.number(),
   type: mediaKindSchema,
@@ -28,7 +28,7 @@ export const CraftSkillReferenceSchema = z.object({
   compositeId: z.string(),
   userId: z.string(),
   craftSkillName: z.string(),
-  craftSkillUrl: z.string(),
+  craftSkillAssetId: z.string(),
   craftSkillType: mediaKindSchema,
   tags: z.array(z.string()),
   createdAt: z.number(),
@@ -40,7 +40,7 @@ export type CraftSkillReference = z.infer<typeof CraftSkillReferenceSchema>;
 export const MinimalCraftSkillSchema = z.object({
   id: z.string(),
   name: z.string(),
-  url: z.string(),
+  mediaAssetId: z.string(),
   type: mediaKindSchema,
 });
 export type MinimalCraftSkill = z.infer<typeof MinimalCraftSkillSchema>;
@@ -68,9 +68,9 @@ export const FullUserSchema = z.object({
   uid: z.string(),
   displayName: z.string(),
   displayName_lowercase: z.string(),
-  profilePictureUrlFull: z.string().nullable().optional(),
-  profilePictureUrlMedium: z.string().nullable().optional(),
-  profilePictureUrlSmall: z.string().nullable().optional(),
+  // One asset, variants full/medium/small in the mediaAssets registry; URLs
+  // are built at render time (media-assets-and-protected-serving.md).
+  profilePictureAssetId: z.string().nullable().optional(),
   artisanCreator: z.number().optional(),
   status: z.enum(['active', 'suspended', 'banned']).optional(),
   // Moderation: set true by the forceDisplayNameReset callable when an admin resets an

@@ -1,5 +1,6 @@
 // Admin + content-moderation business-rule constants — task priority, dispatches,
 // the moderation/feedback workflow, and admin-task lifecycle.
+import { ACTIVE_LIMITS } from './app-mode.js';
 
 // --- Admin Task Priority System ---
 
@@ -35,8 +36,8 @@ export const MAX_APPEAL_MESSAGE_LENGTH = 1000;
 /** Maximum length for a feedback suggestion. */
 export const MAX_FEEDBACK_SUGGESTION_LENGTH = 100;
 
-/** Maximum number of distinct submitters tracked per feedback suggestion. */
-export const MAX_FEEDBACK_SUBMITTERS = 100;
+/** Maximum number of distinct submitters tracked per feedback suggestion. Mode-varied. */
+export const MAX_FEEDBACK_SUBMITTERS = ACTIVE_LIMITS.batches.maxFeedbackSubmitters;
 
 /**
  * Canonical list of feedback types accepted by `submitFeedback`. Used both
@@ -56,8 +57,8 @@ export const FEEDBACK_TYPES = [
 /** Union of canonical feedback types. */
 export type FeedbackType = (typeof FEEDBACK_TYPES)[number];
 
-/** Maximum number of items submitted in a single hallLibrary-review submission. */
-export const MAX_HALL_LIBRARY_SUBMIT_BATCH = 50;
+/** Maximum number of items submitted in a single hallLibrary-review submission. Mode-varied. */
+export const MAX_HALL_LIBRARY_SUBMIT_BATCH = ACTIVE_LIMITS.hall.maxSubmitBatch;
 
 // --- Admin Tasks ---
 

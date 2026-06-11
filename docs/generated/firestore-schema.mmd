@@ -101,6 +101,7 @@ erDiagram
     field maintenanceMode
     field maintenanceMessage
     field registrationEnabled
+    field rateLimitMultiplier
   }
   auditEvents {
     field id
@@ -121,7 +122,7 @@ erDiagram
     field type
     field title
     field description
-    field videoUrl
+    field videoAssetId
     field mediaType
     field openTill
     field createdOn
@@ -134,7 +135,7 @@ erDiagram
     field auditionEntryId
     field auditionId
     field workProjectId
-    field videoUrl
+    field videoAssetId
     field mediaType
     field createdBy
     field createdAt
@@ -176,7 +177,7 @@ erDiagram
     field commissionListingId
     field workProjectId
     field proposalText
-    field proposalFileUrl
+    field proposalFileAssetId
     field proposalFileType
     field createdBy
     field createdOn
@@ -318,9 +319,9 @@ erDiagram
     field hallWingType
     field title
     field description
-    field coverPhotoSquare
-    field coverPhotoPoster
-    field coverPhotoCinematic
+    field coverSquareAssetId
+    field coverPosterAssetId
+    field coverCinematicAssetId
   }
   inviteMessages {
     field senderId
@@ -334,6 +335,20 @@ erDiagram
     field replyTo
     field isSystemMessage
     field meta
+  }
+  mediaAssets {
+    field mediaAssetId
+    field mediaKind
+    field fileOrigin
+    field ownerType
+    field ownerId
+    field workProjectId
+    field realmId
+    field createdByUid
+    field accessTier
+    field servingStatus
+    field variants
+    field moderationStatus
   }
   mentionHistory {
     field userId
@@ -474,7 +489,7 @@ erDiagram
   profileCraftSkills {
     field id
     field name
-    field url
+    field mediaAssetId
     field tags
     field createdAt
     field type
@@ -490,9 +505,7 @@ erDiagram
     field uid
     field displayName
     field displayName_lowercase
-    field profilePictureUrlFull
-    field profilePictureUrlMedium
-    field profilePictureUrlSmall
+    field profilePictureAssetId
     field artisanCreator
     field disabled
   }
@@ -507,7 +520,7 @@ erDiagram
     field workingTitle
     field workingTitle_lowercase
     field workingDescription
-    field coverImageUrl
+    field coverAssetId
     field workStewardUid
   }
   reservedDisplayNames {
@@ -539,7 +552,7 @@ erDiagram
     field content
     field mentions
     field relatedIds
-    field mediaUrl
+    field mediaAssetId
     field mediaType
     field createdAt
     field likes
@@ -566,7 +579,7 @@ erDiagram
     field compositeId
     field userId
     field craftSkillName
-    field craftSkillUrl
+    field craftSkillAssetId
     field craftSkillType
     field tags
     field createdAt
@@ -578,7 +591,7 @@ erDiagram
     field content
     field description
     field order
-    field photoUrl
+    field photoAssetId
     field status
     field createdOn
   }
@@ -586,10 +599,10 @@ erDiagram
     field uid
     field title
     field description
-    field videoUrl
+    field videoAssetId
     field mediaType
     field order
-    field photoUrl
+    field photoAssetId
     field status
     field createdOn
   }
@@ -615,10 +628,10 @@ erDiagram
     field uid
     field title
     field description
-    field fileUrl
+    field audioAssetId
     field mediaType
     field order
-    field photoUrl
+    field photoAssetId
     field status
     field createdOn
   }
@@ -626,9 +639,7 @@ erDiagram
     field uid
     field displayName
     field displayName_lowercase
-    field profilePictureUrlFull
-    field profilePictureUrlMedium
-    field profilePictureUrlSmall
+    field profilePictureAssetId
     field artisanCreator
     field status
     field displayNameResetRequired
@@ -645,7 +656,7 @@ erDiagram
   workAssets {
     field id
     field name
-    field url
+    field mediaAssetId
     field createdAt
     field size
     field type
@@ -656,9 +667,9 @@ erDiagram
     field title
     field description
     field createdOn
-    field coverPhotoSquare
-    field coverPhotoPoster
-    field coverPhotoCinematic
+    field coverSquareAssetId
+    field coverPosterAssetId
+    field coverCinematicAssetId
     field workGenres
   }
   workProjectTelevision {
@@ -666,18 +677,18 @@ erDiagram
     field title
     field description
     field createdOn
-    field coverPhotoSquare
-    field coverPhotoPoster
-    field coverPhotoCinematic
+    field coverSquareAssetId
+    field coverPosterAssetId
+    field coverCinematicAssetId
     field workGenres
   }
   workProjectTunes {
     field uid
     field title
     field description
-    field coverPhotoSquare
-    field coverPhotoPoster
-    field coverPhotoCinematic
+    field coverSquareAssetId
+    field coverPosterAssetId
+    field coverCinematicAssetId
     field workGenres
     field createdOn
   }
@@ -702,6 +713,7 @@ erDiagram
   allWorkProjects ||--o{ guildChatChannels : "workProjectId"
   allWorkProjects ||--o{ guildInviteConversations : "workProjectId"
   allWorkProjects ||--o{ hallItems : "workProjectId"
+  allWorkProjects ||--o{ mediaAssets : "workProjectId"
   allWorkProjects ||--o{ publicWorkProjects : "workProjectId"
   allWorkProjects ||--o{ stakeShareAuditEvents : "workProjectId"
   allWorkProjects ||--o{ thresholdItems : "workProjectId"

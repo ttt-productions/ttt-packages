@@ -106,6 +106,9 @@ export type AuditEventType =
   // system
   | 'system.manualIntervention'
   | 'system.appConfigUpdated'
+  // records (never controls) a charter↔full APP_MODE flip after deploy — written
+  // by the idempotent recordAppModeFlip admin callable
+  | 'admin.appModeFlipRecorded'
   | 'system.pendingMediaArchived'
   | 'system.orphanUploadsCleanedUp'
   | 'admin.profanityListSeeded'

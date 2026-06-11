@@ -45,7 +45,7 @@ export type PublicGuildmateUser = z.infer<typeof PublicGuildmateUserSchema>;
 export const WorkAssetSchema = z.object({
   id: z.string(),
   name: z.string(),
-  url: z.string(),
+  mediaAssetId: z.string(),
   createdAt: z.number(),
   size: z.number(),
   type: z.string(),
@@ -88,7 +88,7 @@ export const PublicWorkProjectSchema = z.object({
   workingTitle: z.string(),
   workingTitle_lowercase: z.string(),
   workingDescription: z.string(),
-  coverImageUrl: z.string().optional(),
+  coverAssetId: z.string().optional(),
   workStewardUid: z.string(),
   foundingArtisanUid: z.string(),
   createdOn: z.number(),

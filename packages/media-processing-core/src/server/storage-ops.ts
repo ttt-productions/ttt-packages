@@ -1,119 +1,180 @@
-// Storage write operations — chokepoint for every file-storage side-effect
-// in the system. Inline `bucket.upload()`, `bucket.file().move()`,
-// `bucket.file().copy()`, and `setMetadata({ firebaseStorageDownloadTokens })`
-// calls are forbidden outside this module.
+// Final-media object-store chokepoint — every final-media write/copy/delete in
+// the system goes through a MediaObjectStore. Inline storage-provider calls for
+// FINAL media are forbidden outside this module. (Upload STAGING stays plain
+// Firebase Storage and is not this module's concern.)
 //
-// Every operation generates a fresh download token, attaches it to the file's
-// metadata, and returns a `StorageWriteResult` with the emulator-aware URL.
+// There are two implementations:
+//  - R2 (S3-compatible) for deployed environments — the only place final user
+//    media lives in prod/dev; bytes are served exclusively by the gateway Worker.
+//  - Firebase Storage emulator for local dev/tests — objects get a FIXED
+//    caller-supplied download token so deterministic emulator URLs work with
+//    zero Cloudflare involvement. Production NEVER mints download tokens.
+//
+// Writes return `{ key }` — never URLs. Display URLs are built at render time
+// from asset refs (see ttt-core media-asset-url).
 
-import { randomUUID } from "node:crypto";
+import { createReadStream } from "node:fs";
+import { stat } from "node:fs/promises";
+import { AwsClient } from "aws4fetch";
 import type { getStorage } from "firebase-admin/storage";
-import { buildFirebaseDownloadUrl } from "./build-download-url.js";
 
 /** Firebase Admin Storage Bucket — inferred to avoid @google-cloud/storage dep. */
 export type Bucket = ReturnType<ReturnType<typeof getStorage>["bucket"]>;
 
-export interface StorageWriteResult {
-  url: string;
-  path: string;
-  token: string;
+export interface ObjectWriteResult {
+  key: string;
+  sizeBytes: number;
+  contentType: string;
 }
 
-const DEFAULT_CACHE_CONTROL = "public, max-age=31536000";
+export interface MediaObjectStore {
+  /** Upload a local file to the store at `key`. */
+  putFile(args: { localPath: string; key: string; contentType?: string }): Promise<ObjectWriteResult>;
+  /** Server-side copy within the store. */
+  copy(args: { fromKey: string; toKey: string }): Promise<{ key: string }>;
+  /** Delete an object. Missing objects are a no-op, not an error. */
+  delete(key: string): Promise<void>;
+}
 
-/**
- * Upload a local file to Storage. Generates a download token, attaches it
- * to the file's metadata, and returns the emulator-aware download URL.
- *
- * Use this for: pipeline outputs (sharp, ffmpeg) and any other "local file
- * → Storage" flow.
- */
-export async function uploadFileToStorage(args: {
-  bucket: Bucket;
-  localPath: string;
-  destinationPath: string;
-  contentType?: string;
-  cacheControl?: string;
-}): Promise<StorageWriteResult> {
-  const token = randomUUID();
-  const contentType =
-    args.contentType ?? getMimeFromExt(extractExt(args.localPath));
+const DEFAULT_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
-  await args.bucket.upload(args.localPath, {
-    destination: args.destinationPath,
-    metadata: {
-      contentType,
-      cacheControl: args.cacheControl ?? DEFAULT_CACHE_CONTROL,
-      metadata: { firebaseStorageDownloadTokens: token },
-    },
+// ---------------------------------------------------------------------------
+// R2 (S3-compatible) store — deployed environments
+// ---------------------------------------------------------------------------
+
+export interface CreateR2ObjectStoreArgs {
+  accountId: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  bucket: string;
+  /** Override for tests; defaults to the real R2 S3 endpoint. */
+  endpoint?: string;
+  /** Override fetch for tests. */
+  fetchImpl?: typeof fetch;
+}
+
+export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectStore {
+  const endpoint = (args.endpoint ?? `https://${args.accountId}.r2.cloudflarestorage.com`).replace(/\/$/, "");
+  const client = new AwsClient({
+    accessKeyId: args.accessKeyId,
+    secretAccessKey: args.secretAccessKey,
+    service: "s3",
+    region: "auto",
   });
+  const doFetch = args.fetchImpl ?? fetch;
 
-  return {
-    url: buildFirebaseDownloadUrl(args.bucket.name, args.destinationPath, token),
-    path: args.destinationPath,
-    token,
-  };
-}
+  const objectUrl = (key: string) =>
+    `${endpoint}/${args.bucket}/${key.split("/").map(encodeURIComponent).join("/")}`;
 
-/**
- * Move or copy a file already in Storage to a new location. Generates a
- * fresh download token at the destination, attaches it, and returns the
- * emulator-aware download URL.
- *
- * Use this for any "Storage → Storage" relocation flow.
- */
-export async function relocateStorageFile(args: {
-  bucket: Bucket;
-  fromPath: string;
-  toPath: string;
-  mode: "move" | "copy";
-}): Promise<StorageWriteResult> {
-  const token = randomUUID();
-
-  if (args.mode === "move") {
-    await args.bucket.file(args.fromPath).move(args.toPath);
-  } else {
-    await args.bucket.file(args.fromPath).copy(args.bucket.file(args.toPath));
+  async function signedFetch(url: string, init: RequestInit & { headers?: Record<string, string> }) {
+    const signed = await client.sign(url, { ...init, aws: { allHeaders: true } } as any);
+    return doFetch(signed, { ...(init.body ? { duplex: "half" } : {}) } as any);
   }
 
-  await args.bucket.file(args.toPath).setMetadata({
-    metadata: { firebaseStorageDownloadTokens: token },
-  });
-
   return {
-    url: buildFirebaseDownloadUrl(args.bucket.name, args.toPath, token),
-    path: args.toPath,
-    token,
+    async putFile({ localPath, key, contentType }) {
+      const { size } = await stat(localPath);
+      const ct = contentType ?? getMimeFromExt(extractExt(localPath));
+      const res = await signedFetch(objectUrl(key), {
+        method: "PUT",
+        headers: {
+          "content-type": ct,
+          "content-length": String(size),
+          "cache-control": DEFAULT_CACHE_CONTROL,
+        },
+        body: createReadStream(localPath) as unknown as BodyInit,
+      });
+      if (!res.ok) {
+        throw new Error(`R2 putFile failed for ${key}: ${res.status} ${await safeText(res)}`);
+      }
+      return { key, sizeBytes: size, contentType: ct };
+    },
+
+    async copy({ fromKey, toKey }) {
+      const res = await signedFetch(objectUrl(toKey), {
+        method: "PUT",
+        headers: {
+          "x-amz-copy-source": `/${args.bucket}/${fromKey.split("/").map(encodeURIComponent).join("/")}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`R2 copy failed ${fromKey} -> ${toKey}: ${res.status} ${await safeText(res)}`);
+      }
+      return { key: toKey };
+    },
+
+    async delete(key) {
+      const res = await signedFetch(objectUrl(key), { method: "DELETE" });
+      // S3 DELETE returns 204 even for missing keys; anything else non-ok is real.
+      if (!res.ok && res.status !== 404) {
+        throw new Error(`R2 delete failed for ${key}: ${res.status} ${await safeText(res)}`);
+      }
+    },
   };
 }
 
-/**
- * Attach a fresh download token to a file already at its final Storage
- * location. Use when the file is already in place and only needs a token
- * (e.g., content-moderation rejection where the file was renamed earlier).
- */
-export async function attachDownloadToken(args: {
+async function safeText(res: Response): Promise<string> {
+  try {
+    return (await res.text()).slice(0, 500);
+  } catch {
+    return "<no body>";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Firebase Storage emulator store — local dev / tests only
+// ---------------------------------------------------------------------------
+
+export interface CreateEmulatorObjectStoreArgs {
   bucket: Bucket;
-  storagePath: string;
-}): Promise<StorageWriteResult> {
-  const token = randomUUID();
+  /** Fixed token attached to every object so deterministic emulator URLs work
+   * (token URLs bypass rules in the emulator). Pass the app's constant. */
+  downloadToken: string;
+}
 
-  await args.bucket.file(args.storagePath).setMetadata({
-    metadata: { firebaseStorageDownloadTokens: token },
-  });
-
+export function createFirebaseEmulatorObjectStore(args: CreateEmulatorObjectStoreArgs): MediaObjectStore {
+  const { bucket, downloadToken } = args;
   return {
-    url: buildFirebaseDownloadUrl(args.bucket.name, args.storagePath, token),
-    path: args.storagePath,
-    token,
+    async putFile({ localPath, key, contentType }) {
+      const { size } = await stat(localPath);
+      const ct = contentType ?? getMimeFromExt(extractExt(localPath));
+      await bucket.upload(localPath, {
+        destination: key,
+        metadata: {
+          contentType: ct,
+          cacheControl: DEFAULT_CACHE_CONTROL,
+          metadata: { firebaseStorageDownloadTokens: downloadToken },
+        },
+      });
+      return { key, sizeBytes: size, contentType: ct };
+    },
+
+    async copy({ fromKey, toKey }) {
+      await bucket.file(fromKey).copy(bucket.file(toKey));
+      await bucket.file(toKey).setMetadata({
+        metadata: { firebaseStorageDownloadTokens: downloadToken },
+      });
+      return { key: toKey };
+    },
+
+    async delete(key) {
+      try {
+        await bucket.file(key).delete();
+      } catch (e: any) {
+        if (e?.code === 404 || /No such object/i.test(String(e?.message))) return;
+        throw e;
+      }
+    },
   };
 }
+
+// ---------------------------------------------------------------------------
 
 function extractExt(localPath: string): string {
   return localPath.split(".").pop() || "";
 }
 
-function getMimeFromExt(ext: string): string {
+export function getMimeFromExt(ext: string): string {
   switch (ext.toLowerCase()) {
     case "jpg":
     case "jpeg":

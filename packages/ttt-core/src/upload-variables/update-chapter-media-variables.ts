@@ -7,7 +7,7 @@ export const UpdateChapterMediaVariablesSchema = z.object({
   taleId: z.string().min(1),
   chapterId: z.string().min(1),
   file: z.instanceof(File).or(z.instanceof(Blob)),
-  mediaKey: z.literal('photoUrl'),
+  mediaKey: z.literal('photoAssetId'),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();

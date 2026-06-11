@@ -171,6 +171,9 @@ export const PATH_BUILDERS = {
   pendingMediaArchive: (docId: string): [string, string] =>
     [COLLECTIONS.PENDING_MEDIA_ARCHIVE, docId],
 
+  mediaAsset: (mediaAssetId: string): [string, string] =>
+    [COLLECTIONS.MEDIA_ASSETS, mediaAssetId],
+
   // ===== PAYMENT & PLEDGE PATHS =====
   // Public-safe canonical money record. Stripe IDs live on pledgePaymentProviderRef (server-only).
   pledgePayment: (pledgePaymentId: string): [string, string] =>

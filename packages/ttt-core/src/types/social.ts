@@ -15,8 +15,8 @@ import type { Mention } from '../media/atoms.js';
 export type SquareStreetzPostPayload = {
   userId: string;
   mentions?: Mention[];
-  newMediaUrl?: string;
-  craftSkill?: { id: string; name: string; url: string; type: 'image' | 'video' | 'audio' };
+  newMediaAssetId?: string;
+  craftSkill?: { id: string; name: string; mediaAssetId: string; type: 'image' | 'video' | 'audio' };
   craftSkillId?: string;
   workProjectTitle?: string;
   workProjectId?: string;
@@ -28,7 +28,7 @@ export type SquareStreetzPostPayload = {
   hallItemTitle?: string;
   hallSubItemType?: 'chapter' | 'track' | 'episode';
   content?: string;
-  mediaUrl?: string;
+  mediaAssetId?: string;
   mediaType?: 'image' | 'video' | 'audio' | 'other';
   createdAt?: number;
 };

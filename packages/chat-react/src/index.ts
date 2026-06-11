@@ -18,6 +18,16 @@ export type {
   MentionResultRenderer,
 } from "./types.js";
 
+// Attachment-URL resolver context (render-time URL building from mediaAssetId).
+export type {
+  ChatAttachmentUrlResolver,
+  ChatAttachmentUrlProviderProps,
+} from "./context/ChatAttachmentUrlContext.js";
+export {
+  ChatAttachmentUrlProvider,
+  useChatAttachmentUrlResolver,
+} from "./context/ChatAttachmentUrlContext.js";
+
 // Name-resolver context.
 export type { ChatNameResolverProviderProps } from "./context/ChatNameResolverContext.js";
 export {

@@ -7,9 +7,13 @@ describe('ChatAttachmentSchema', () => {
     name: 'photo.jpg',
     type: 'image' as const,
     size: 12345,
-    url: 'https://example.com/photo.jpg',
+    mediaAssetId: 'asset_1',
     storagePath: 'uploads/att_1/photo.jpg',
   };
+
+  it('rejects a stored url field (URLs are built at render time, never stored)', () => {
+    expect(() => ChatAttachmentSchema.parse({ ...valid, url: 'https://example.com/x.jpg' })).toThrow();
+  });
 
   it('accepts a valid image attachment', () => {
     expect(() => ChatAttachmentSchema.parse(valid)).not.toThrow();

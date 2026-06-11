@@ -1,7 +1,8 @@
 import type { FileOrigin } from './file-origin.js';
 
 // Server-side mapping from hallLibrary/sub-item fileOrigin to the doc field
-// that receives the processed media URL.
+// that receives the processed media-asset reference (never a URL — see
+// docs/design/media-assets-and-protected-serving.md).
 //
 // Owned in ttt-core because it's a contract fact about the upload
 // pipeline — same tier as TTT_MEDIA_SPECS and PATH_BUILDERS. Frontend
@@ -11,14 +12,14 @@ import type { FileOrigin } from './file-origin.js';
 // The Partial<Record<FileOrigin, string>> constraint guarantees only
 // valid FileOrigin strings are keys.
 export const HALL_LIBRARY_TARGET_FIELDS = {
-  'hallLibrary-cover-square':    'coverPhotoSquare',
-  'hallLibrary-cover-poster':    'coverPhotoPoster',
-  'hallLibrary-cover-cinematic': 'coverPhotoCinematic',
-  'chapter-photo':           'photoUrl',
-  'tune-track-photo':              'photoUrl',
-  'tune-track-audio':              'fileUrl',
-  'television-episode-photo':              'photoUrl',
-  'television-episode-video':              'videoUrl',
+  'hallLibrary-cover-square':    'coverSquareAssetId',
+  'hallLibrary-cover-poster':    'coverPosterAssetId',
+  'hallLibrary-cover-cinematic': 'coverCinematicAssetId',
+  'chapter-photo':           'photoAssetId',
+  'tune-track-photo':              'photoAssetId',
+  'tune-track-audio':              'audioAssetId',
+  'television-episode-photo':              'photoAssetId',
+  'television-episode-video':              'videoAssetId',
 } as const satisfies Partial<Record<FileOrigin, string>>;
 
 export type HallLibraryFileOrigin = keyof typeof HALL_LIBRARY_TARGET_FIELDS;

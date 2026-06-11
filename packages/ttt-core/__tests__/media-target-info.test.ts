@@ -290,29 +290,29 @@ describe('TelevisionEpisodePhotoTargetInfoSchema (typed IDs)', () => {
 });
 
 describe('HALL_LIBRARY_TARGET_FIELDS', () => {
-  it('maps hallLibrary-cover-square to coverPhotoSquare', () => {
-    expect(HALL_LIBRARY_TARGET_FIELDS['hallLibrary-cover-square']).toBe('coverPhotoSquare');
+  it('maps hallLibrary-cover-square to coverSquareAssetId', () => {
+    expect(HALL_LIBRARY_TARGET_FIELDS['hallLibrary-cover-square']).toBe('coverSquareAssetId');
   });
-  it('maps hallLibrary-cover-poster to coverPhotoPoster', () => {
-    expect(HALL_LIBRARY_TARGET_FIELDS['hallLibrary-cover-poster']).toBe('coverPhotoPoster');
+  it('maps hallLibrary-cover-poster to coverPosterAssetId', () => {
+    expect(HALL_LIBRARY_TARGET_FIELDS['hallLibrary-cover-poster']).toBe('coverPosterAssetId');
   });
-  it('maps hallLibrary-cover-cinematic to coverPhotoCinematic', () => {
-    expect(HALL_LIBRARY_TARGET_FIELDS['hallLibrary-cover-cinematic']).toBe('coverPhotoCinematic');
+  it('maps hallLibrary-cover-cinematic to coverCinematicAssetId', () => {
+    expect(HALL_LIBRARY_TARGET_FIELDS['hallLibrary-cover-cinematic']).toBe('coverCinematicAssetId');
   });
-  it('maps chapter-photo to photoUrl', () => {
-    expect(HALL_LIBRARY_TARGET_FIELDS['chapter-photo']).toBe('photoUrl');
+  it('maps chapter-photo to photoAssetId', () => {
+    expect(HALL_LIBRARY_TARGET_FIELDS['chapter-photo']).toBe('photoAssetId');
   });
-  it('maps tune-track-photo to photoUrl', () => {
-    expect(HALL_LIBRARY_TARGET_FIELDS['tune-track-photo']).toBe('photoUrl');
+  it('maps tune-track-photo to photoAssetId', () => {
+    expect(HALL_LIBRARY_TARGET_FIELDS['tune-track-photo']).toBe('photoAssetId');
   });
-  it('maps tune-track-audio to fileUrl', () => {
-    expect(HALL_LIBRARY_TARGET_FIELDS['tune-track-audio']).toBe('fileUrl');
+  it('maps tune-track-audio to audioAssetId', () => {
+    expect(HALL_LIBRARY_TARGET_FIELDS['tune-track-audio']).toBe('audioAssetId');
   });
-  it('maps television-episode-photo to photoUrl', () => {
-    expect(HALL_LIBRARY_TARGET_FIELDS['television-episode-photo']).toBe('photoUrl');
+  it('maps television-episode-photo to photoAssetId', () => {
+    expect(HALL_LIBRARY_TARGET_FIELDS['television-episode-photo']).toBe('photoAssetId');
   });
-  it('maps television-episode-video to videoUrl', () => {
-    expect(HALL_LIBRARY_TARGET_FIELDS['television-episode-video']).toBe('videoUrl');
+  it('maps television-episode-video to videoAssetId', () => {
+    expect(HALL_LIBRARY_TARGET_FIELDS['television-episode-video']).toBe('videoAssetId');
   });
 });
 

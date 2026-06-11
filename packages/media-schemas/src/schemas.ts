@@ -232,7 +232,9 @@ export const MediaProcessingErrorSchema = z
 export const MediaOutputSchema = z
   .object({
     key: z.string().min(1),
-    url: z.string().min(1),
+    // Internal-only (e.g. local file:// paths mid-pipeline). Final platform
+    // persistence stores object keys / asset refs — never URLs.
+    url: z.string().min(1).optional(),
     path: z.string().optional(),
     mime: z.string().optional(),
     sizeBytes: z.number().int().nonnegative().optional(),

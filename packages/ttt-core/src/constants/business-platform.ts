@@ -21,11 +21,12 @@ export const FIRESTORE_BATCH_LIMIT = 500;
 
 /**
  * Minimum pledgePayment amount accepted by the Stripe checkout flow, in cents
- * (USD). 50¢ is Stripe's hard floor for a card charge. Promoted out of the Zod
- * schema so the webhook can re-assert it server-side against the Stripe-confirmed
- * amount, independent of the client input bound.
+ * (USD). $2.50 is the platform's business floor (DJ, 2026-06-11) — above
+ * Stripe's 50¢ technical card-charge floor. Promoted out of the Zod schema so
+ * the webhook can re-assert it server-side against the Stripe-confirmed
+ * amount, independent of the client input bound. Mode-invariant by design.
  */
-export const MIN_PLEDGE_PAYMENT_AMOUNT_CENTS = 50;
+export const MIN_PLEDGE_PAYMENT_AMOUNT_CENTS = 250;
 
 /**
  * Maximum pledgePayment amount accepted by the Stripe checkout flow, in cents

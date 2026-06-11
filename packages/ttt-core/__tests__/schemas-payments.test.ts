@@ -137,8 +137,8 @@ describe('CreateStripeCheckoutSessionInputSchema', () => {
 });
 
 describe('MIN_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
-  it('is the Stripe 50-cent card-charge floor', () => {
-    expect(MIN_PLEDGE_PAYMENT_AMOUNT_CENTS).toBe(50);
+  it('is the $2.50 platform business floor (above Stripe\'s 50-cent technical floor), mode-invariant', () => {
+    expect(MIN_PLEDGE_PAYMENT_AMOUNT_CENTS).toBe(250);
   });
 });
 

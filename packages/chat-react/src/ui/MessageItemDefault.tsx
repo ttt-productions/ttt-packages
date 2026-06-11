@@ -7,15 +7,19 @@ import { MediaViewer } from "@ttt-productions/media-viewer/react";
 import { FileText, Loader2, AlertTriangle } from "lucide-react";
 import { MessageActions } from "./menus.js";
 import { useResolvedSenderName } from "../context/ChatNameResolverContext.js";
+import { useChatAttachmentUrlResolver } from "../context/ChatAttachmentUrlContext.js";
 
 // ============================================
 // Attachment rendering
 // ============================================
 
 function AttachmentView({ att }: { att: ChatAttachment }) {
+  // Display URL is built at render time by the app-injected resolver from
+  // att.mediaAssetId — attachments never store URLs (protected-gateway model).
+  const resolveAttachmentUrl = useChatAttachmentUrlResolver();
   // In-flight placeholder — bytes uploaded, processing/moderation pending. No
-  // `url` yet. Rendered only to the sender (other participants can't read a
-  // pending doc — Firestore rules scope it until `status === 'ready'`).
+  // `mediaAssetId` yet. Rendered only to the sender (other participants can't
+  // read a pending doc — Firestore rules scope it until `status === 'ready'`).
   if (att.status === "pending") {
     return (
       <div className="chat-attachment-pending">
@@ -37,21 +41,22 @@ function AttachmentView({ att }: { att: ChatAttachment }) {
       </div>
     );
   }
-  // ready (or legacy/absent status) — a viewable attachment always has a url.
-  if (!att.url) return null;
+  // ready (or legacy/absent status) — resolve the display URL from the asset ref.
+  const url = resolveAttachmentUrl(att);
+  if (!url) return null;
   if (att.type === "image") {
-    return <MediaViewer type="image" url={att.url} alt={att.name} className="chat-attachment-media" />;
+    return <MediaViewer type="image" url={url} alt={att.name} className="chat-attachment-media" />;
   }
   if (att.type === "video") {
-    return <MediaViewer type="video" url={att.url} controls className="chat-attachment-media" />;
+    return <MediaViewer type="video" url={url} controls className="chat-attachment-media" />;
   }
   if (att.type === "audio") {
-    return <MediaViewer type="audio" url={att.url} controls className="chat-attachment-media" />;
+    return <MediaViewer type="audio" url={url} controls className="chat-attachment-media" />;
   }
   // text/markdown — download link
   return (
     <a
-      href={att.url}
+      href={url}
       target="_blank"
       rel="noopener noreferrer"
       className="chat-attachment-text-link"

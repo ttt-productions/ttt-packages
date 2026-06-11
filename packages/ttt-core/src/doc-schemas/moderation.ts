@@ -26,8 +26,9 @@ export const ContentViolationSchema = z.object({
     violence: z.string(),
     racy: z.string(),
   }).nullable().optional(),
+  // Internal GCS path of the preserved rejected file — never a serving contract.
+  // Appeal viewing is owner/admin-gated (rules-gated SDK read or signed URL).
   rejectedFilePath: z.string().optional(),
-  rejectedFileUrl: z.string().optional(),
   pendingFile: PendingMediaPendingSchema.partial().optional(),
   // Appeal lifecycle (submitContentAppeal / reviewContentAppeal).
   appealMessage: z.string().optional(),

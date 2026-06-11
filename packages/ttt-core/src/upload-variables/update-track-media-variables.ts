@@ -7,7 +7,7 @@ export const UpdateTuneTrackMediaVariablesSchema = z.object({
   tuneId: z.string().min(1),
   trackId: z.string().min(1),
   file: z.instanceof(File).or(z.instanceof(Blob)),
-  mediaKey: z.enum(['photoUrl', 'fileUrl']),
+  mediaKey: z.enum(['photoAssetId', 'audioAssetId']),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();

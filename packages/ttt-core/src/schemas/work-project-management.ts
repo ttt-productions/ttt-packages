@@ -50,13 +50,11 @@ export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationM
 ]);
 export type CreateWorkProjectInput = z.infer<typeof CreateWorkProjectInputSchema>;
 
+// Identified by the workAssets subcollection doc id — never by URL parsing
+// (no delete path may depend on a URL; see media-assets-and-protected-serving.md).
 export const DeleteWorkAssetInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  file: z.object({
-    id: z.string().optional(),
-    url: z.string().min(1),
-    name: z.string().optional(),
-  }),
+  workAssetId: z.string().min(1),
 }).strict();
 export type DeleteWorkAssetInput = z.infer<typeof DeleteWorkAssetInputSchema>;
 

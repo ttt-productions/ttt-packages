@@ -84,6 +84,7 @@ import {
   NotificationBroadcastJobSchema,
 } from './notifications.js';
 import { PendingMediaSchema, ArchivedPendingMediaSchema } from '../media/pending-media.js';
+import { MediaAssetSchema } from './media-assets.js';
 import {
   ReservedDisplayNameSchema,
   StakeShareAuditEventSchema,
@@ -160,6 +161,7 @@ export const COLLECTION_SCHEMAS = {
   // ===== Media pipeline =====
   'pendingMedia/{pendingMediaId}': PendingMediaSchema,
   'pendingMediaArchive/{pendingMediaId}': ArchivedPendingMediaSchema,
+  'mediaAssets/{mediaAssetId}': MediaAssetSchema,
 
   // ===== Notifications =====
   'activeUserNotifications/{notificationId}': NotificationDocSchema,

@@ -10,9 +10,9 @@ export const PublicUserSchema = z.object({
   uid: z.string(),
   displayName: z.string(),
   displayName_lowercase: z.string(),
-  profilePictureUrlFull: z.string().nullable().optional(),
-  profilePictureUrlMedium: z.string().nullable().optional(),
-  profilePictureUrlSmall: z.string().nullable().optional(),
+  // Mirror of FullUser.profilePictureAssetId (variants live in mediaAssets;
+  // URLs built at render time).
+  profilePictureAssetId: z.string().nullable().optional(),
   artisanCreator: z.number().optional(),
   disabled: z.boolean(),
 });

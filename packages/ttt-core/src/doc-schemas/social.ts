@@ -28,7 +28,7 @@ export const SquareStreetzPostSchema = z.object({
   content: z.string(),
   mentions: z.array(MentionSchema).optional(),
   relatedIds: z.array(z.string()),
-  mediaUrl: z.string().optional(),
+  mediaAssetId: z.string().optional(),
   mediaType: mediaTypeSchema.optional(),
   createdAt: z.number(),
   likes: z.number(),

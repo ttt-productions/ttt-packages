@@ -1,7 +1,45 @@
 import type { FileOrigin } from "./file-origin.js";
 import type { MediaOriginSpec } from "@ttt-productions/media-schemas";
+import { byMode } from "../constants/app-mode.js";
 
-const DEFAULT_RECORD_DURATION_SEC = 60;
+// Mode-aware media-origin registry. Two distinct caps per origin (see
+// ttt-prod docs/design/charter-season-and-app-mode.md):
+//  - `maxBytes` — the RAW-INPUT cap at the upload gate. Deliberately generous:
+//    modern phones record high-bitrate by default and the user can't control
+//    that; the pipeline absorbs it. This is an abuse bound, not the quality cap.
+//  - processing `maxOutputBytes` / `maxDurationSec` — the PROCESSED-OUTPUT
+//    spec the transcoder enforces. This is what actually gets stored/served.
+// Charter mode = lower durations/output quality; full mode raises them.
+// storage.rules `uploadMaxBytes` mirrors the raw caps — keep in sync (S6 test).
+
+const MB = 1024 * 1024;
+
+// --- Raw-input caps (upload gate) ---
+const IMAGE_RAW_BYTES = 25 * MB; // 48MP phone HEIC/JPEG fits comfortably
+const VIDEO_RAW_BYTES = byMode(500 * MB, 1024 * MB);
+const AUDIO_RAW_BYTES = byMode(100 * MB, 250 * MB);
+const CHAT_RAW_BYTES = byMode(250 * MB, 500 * MB);
+
+// --- Output duration caps (seconds) ---
+const SHORT_VIDEO_DURATION_SEC = byMode(60, 180);
+const ADMIN_PROMPT_DURATION_SEC = byMode(120, 600);
+const TELEVISION_DURATION_SEC = byMode(300, 1800);
+const LONG_AUDIO_DURATION_SEC = byMode(600, 900);
+const CHAT_AUDIO_DURATION_SEC = byMode(60, 180);
+
+// --- Output size caps (post-transcode) ---
+const SHORT_VIDEO_OUTPUT_BYTES = byMode(60 * MB, 300 * MB);
+const TELEVISION_OUTPUT_BYTES = byMode(200 * MB, 1024 * MB);
+const AUDIO_OUTPUT_BYTES = byMode(20 * MB, 60 * MB);
+
+// --- Output resolutions (full mode unlocks 1080p on the big surfaces) ---
+const WIDE_VIDEO_WIDTH = byMode(1280, 1920);
+const WIDE_VIDEO_HEIGHT = byMode(720, 1080);
+const ENTRY_VIDEO_WIDTH = byMode(360, 720);
+const ENTRY_VIDEO_HEIGHT = byMode(640, 1280);
+
+// --- Client recording caps ---
+const RECORD_DURATION_SEC = SHORT_VIDEO_DURATION_SEC;
 
 const ACCEPT_IMAGE_ONLY = { kinds: ['image' as const] };
 const ACCEPT_VIDEO_ONLY = { kinds: ['video' as const] };
@@ -13,7 +51,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'profile-picture': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
-    maxBytes: 5 * 1024 * 1024,
+    maxBytes: IMAGE_RAW_BYTES,
     imageCrop: {
       aspectRatio: 1,
       outputWidth: 200,
@@ -46,7 +84,8 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'craft-skill-media': {
     kind: 'image',
     accept: ACCEPT_MEDIA_ALL,
-    maxBytes: 10 * 1024 * 1024,
+    maxBytes: VIDEO_RAW_BYTES,
+    maxDurationSec: SHORT_VIDEO_DURATION_SEC,
     imageCrop: {
       aspectRatio: 4 / 3,
       outputWidth: 800,
@@ -60,7 +99,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       allowCapturePhoto: true,
       allowRecordVideo: true,
       allowRecordAudio: true,
-      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxRecordDurationSec: RECORD_DURATION_SEC,
     },
     processing: {
       image: {
@@ -76,11 +115,14 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         requiredWidth: 800,
         requiredHeight: 600,
         allowAutoFormat: true,
+        maxDurationSec: SHORT_VIDEO_DURATION_SEC,
+        maxOutputBytes: SHORT_VIDEO_OUTPUT_BYTES,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
       },
       audio: {
         kind: 'audio',
-        audio: { maxDurationSec: 600 },
+        maxOutputBytes: AUDIO_OUTPUT_BYTES,
+        audio: { maxDurationSec: LONG_AUDIO_DURATION_SEC },
       },
     },
   },
@@ -88,7 +130,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'hallLibrary-cover-square': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
-    maxBytes: 5 * 1024 * 1024,
+    maxBytes: IMAGE_RAW_BYTES,
     imageCrop: {
       aspectRatio: 1,
       outputWidth: 600,
@@ -118,7 +160,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'hallLibrary-cover-poster': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
-    maxBytes: 5 * 1024 * 1024,
+    maxBytes: IMAGE_RAW_BYTES,
     imageCrop: {
       aspectRatio: 2 / 3,
       outputWidth: 400,
@@ -148,7 +190,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'hallLibrary-cover-cinematic': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
-    maxBytes: 5 * 1024 * 1024,
+    maxBytes: IMAGE_RAW_BYTES,
     imageCrop: {
       aspectRatio: 16 / 9,
       outputWidth: 1280,
@@ -178,7 +220,8 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'squareStreetz': {
     kind: 'image',
     accept: ACCEPT_MEDIA_ALL,
-    maxBytes: 10 * 1024 * 1024,
+    maxBytes: VIDEO_RAW_BYTES,
+    maxDurationSec: SHORT_VIDEO_DURATION_SEC,
     imageCrop: {
       aspectRatio: 16 / 9,
       outputWidth: 1280,
@@ -192,7 +235,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       allowCapturePhoto: true,
       allowRecordVideo: true,
       allowRecordAudio: true,
-      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxRecordDurationSec: RECORD_DURATION_SEC,
     },
     processing: {
       image: {
@@ -205,14 +248,17 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       },
       video: {
         kind: 'video',
-        requiredWidth: 1280,
-        requiredHeight: 720,
+        requiredWidth: WIDE_VIDEO_WIDTH,
+        requiredHeight: WIDE_VIDEO_HEIGHT,
         allowAutoFormat: true,
+        maxDurationSec: SHORT_VIDEO_DURATION_SEC,
+        maxOutputBytes: SHORT_VIDEO_OUTPUT_BYTES,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
       },
       audio: {
         kind: 'audio',
-        audio: { maxDurationSec: 600 },
+        maxOutputBytes: AUDIO_OUTPUT_BYTES,
+        audio: { maxDurationSec: LONG_AUDIO_DURATION_SEC },
       },
     },
   },
@@ -220,8 +266,8 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'audition-prompt': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,
-    maxBytes: 25 * 1024 * 1024,
-    maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    maxBytes: VIDEO_RAW_BYTES,
+    maxDurationSec: SHORT_VIDEO_DURATION_SEC,
     requiredAspectRatio: 16 / 9,
     videoOrientation: 'horizontal' as const,
     client: {
@@ -229,14 +275,16 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       allowCapturePhoto: false,
       allowRecordVideo: true,
       allowRecordAudio: false,
-      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxRecordDurationSec: RECORD_DURATION_SEC,
     },
     processing: {
       video: {
         kind: 'video',
-        requiredWidth: 1280,
-        requiredHeight: 720,
+        requiredWidth: WIDE_VIDEO_WIDTH,
+        requiredHeight: WIDE_VIDEO_HEIGHT,
         allowAutoFormat: true,
+        maxDurationSec: SHORT_VIDEO_DURATION_SEC,
+        maxOutputBytes: SHORT_VIDEO_OUTPUT_BYTES,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
       },
     },
@@ -245,8 +293,8 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'admin-audition-prompt': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,
-    maxBytes: 25 * 1024 * 1024,
-    maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    maxBytes: VIDEO_RAW_BYTES,
+    maxDurationSec: ADMIN_PROMPT_DURATION_SEC,
     requiredAspectRatio: 16 / 9,
     videoOrientation: 'horizontal' as const,
     client: {
@@ -254,14 +302,16 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       allowCapturePhoto: false,
       allowRecordVideo: true,
       allowRecordAudio: false,
-      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxRecordDurationSec: ADMIN_PROMPT_DURATION_SEC,
     },
     processing: {
       video: {
         kind: 'video',
-        requiredWidth: 1280,
-        requiredHeight: 720,
+        requiredWidth: WIDE_VIDEO_WIDTH,
+        requiredHeight: WIDE_VIDEO_HEIGHT,
         allowAutoFormat: true,
+        maxDurationSec: ADMIN_PROMPT_DURATION_SEC,
+        maxOutputBytes: SHORT_VIDEO_OUTPUT_BYTES,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
       },
     },
@@ -270,8 +320,8 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'audition-entry': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,
-    maxBytes: 50 * 1024 * 1024,
-    maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    maxBytes: VIDEO_RAW_BYTES,
+    maxDurationSec: SHORT_VIDEO_DURATION_SEC,
     requiredAspectRatio: 9 / 16,
     videoOrientation: 'vertical' as const,
     client: {
@@ -280,14 +330,16 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       allowRecordVideo: true,
       allowRecordAudio: false,
       cameraFacingMode: 'user' as const,
-      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxRecordDurationSec: RECORD_DURATION_SEC,
     },
     processing: {
       video: {
         kind: 'video',
-        requiredWidth: 360,
-        requiredHeight: 640,
+        requiredWidth: ENTRY_VIDEO_WIDTH,
+        requiredHeight: ENTRY_VIDEO_HEIGHT,
         allowAutoFormat: true,
+        maxDurationSec: SHORT_VIDEO_DURATION_SEC,
+        maxOutputBytes: SHORT_VIDEO_OUTPUT_BYTES,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
       },
     },
@@ -296,7 +348,8 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'commission-posting': {
     kind: 'image',
     accept: ACCEPT_MEDIA_ALL,
-    maxBytes: 10 * 1024 * 1024,
+    maxBytes: VIDEO_RAW_BYTES,
+    maxDurationSec: SHORT_VIDEO_DURATION_SEC,
     imageCrop: {
       aspectRatio: 4 / 3,
       outputWidth: 800,
@@ -310,7 +363,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       allowCapturePhoto: true,
       allowRecordVideo: true,
       allowRecordAudio: true,
-      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxRecordDurationSec: RECORD_DURATION_SEC,
     },
     processing: {
       image: {
@@ -326,11 +379,14 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         requiredWidth: 800,
         requiredHeight: 600,
         allowAutoFormat: true,
+        maxDurationSec: SHORT_VIDEO_DURATION_SEC,
+        maxOutputBytes: SHORT_VIDEO_OUTPUT_BYTES,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
       },
       audio: {
         kind: 'audio',
-        audio: { maxDurationSec: 600 },
+        maxOutputBytes: AUDIO_OUTPUT_BYTES,
+        audio: { maxDurationSec: LONG_AUDIO_DURATION_SEC },
       },
     },
   },
@@ -338,7 +394,8 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'commission-proposal': {
     kind: 'image',
     accept: ACCEPT_MEDIA_ALL,
-    maxBytes: 10 * 1024 * 1024,
+    maxBytes: VIDEO_RAW_BYTES,
+    maxDurationSec: SHORT_VIDEO_DURATION_SEC,
     imageCrop: {
       aspectRatio: 4 / 3,
       outputWidth: 800,
@@ -352,7 +409,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       allowCapturePhoto: true,
       allowRecordVideo: true,
       allowRecordAudio: true,
-      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxRecordDurationSec: RECORD_DURATION_SEC,
     },
     processing: {
       image: {
@@ -368,11 +425,14 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         requiredWidth: 800,
         requiredHeight: 600,
         allowAutoFormat: true,
+        maxDurationSec: SHORT_VIDEO_DURATION_SEC,
+        maxOutputBytes: SHORT_VIDEO_OUTPUT_BYTES,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
       },
       audio: {
         kind: 'audio',
-        audio: { maxDurationSec: 600 },
+        maxOutputBytes: AUDIO_OUTPUT_BYTES,
+        audio: { maxDurationSec: LONG_AUDIO_DURATION_SEC },
       },
     },
   },
@@ -380,7 +440,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'chapter-photo': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
-    maxBytes: 5 * 1024 * 1024,
+    maxBytes: IMAGE_RAW_BYTES,
     imageCrop: {
       aspectRatio: 1,
       outputWidth: 400,
@@ -410,7 +470,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'tune-track-photo': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
-    maxBytes: 5 * 1024 * 1024,
+    maxBytes: IMAGE_RAW_BYTES,
     imageCrop: {
       aspectRatio: 1,
       outputWidth: 400,
@@ -440,7 +500,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'television-episode-photo': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
-    maxBytes: 5 * 1024 * 1024,
+    maxBytes: IMAGE_RAW_BYTES,
     imageCrop: {
       aspectRatio: 1,
       outputWidth: 400,
@@ -470,19 +530,21 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'tune-track-audio': {
     kind: 'audio',
     accept: ACCEPT_AUDIO_ONLY,
-    maxBytes: 25 * 1024 * 1024,
+    maxBytes: AUDIO_RAW_BYTES,
+    maxDurationSec: LONG_AUDIO_DURATION_SEC,
     client: {
       allowPick: true,
       allowCapturePhoto: false,
       allowRecordVideo: false,
       allowRecordAudio: true,
-      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxRecordDurationSec: RECORD_DURATION_SEC,
     },
     processing: {
       audio: {
         kind: 'audio',
+        maxOutputBytes: AUDIO_OUTPUT_BYTES,
         audio: {
-          maxDurationSec: 600,
+          maxDurationSec: LONG_AUDIO_DURATION_SEC,
         },
       },
     },
@@ -491,20 +553,23 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'television-episode-video': {
     kind: 'video',
     accept: ACCEPT_VIDEO_ONLY,
-    maxBytes: 250 * 1024 * 1024,
+    maxBytes: VIDEO_RAW_BYTES,
+    maxDurationSec: TELEVISION_DURATION_SEC,
     client: {
       allowPick: true,
       allowCapturePhoto: false,
       allowRecordVideo: true,
       allowRecordAudio: false,
-      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxRecordDurationSec: RECORD_DURATION_SEC,
     },
     processing: {
       video: {
         kind: 'video',
-        requiredWidth: 1280,
-        requiredHeight: 720,
+        requiredWidth: WIDE_VIDEO_WIDTH,
+        requiredHeight: WIDE_VIDEO_HEIGHT,
         allowAutoFormat: true,
+        maxDurationSec: TELEVISION_DURATION_SEC,
+        maxOutputBytes: TELEVISION_OUTPUT_BYTES,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
       },
     },
@@ -513,8 +578,8 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'guild-chat-message-attachment': {
     kind: 'generic',
     accept: ACCEPT_MEDIA_ALL,
-    maxBytes: 10 * 1024 * 1024,
-    maxDurationSec: 60,
+    maxBytes: CHAT_RAW_BYTES,
+    maxDurationSec: SHORT_VIDEO_DURATION_SEC,
     client: {
       allowPick: true,
       allowCapturePhoto: true,
@@ -535,11 +600,14 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         requiredWidth: 800,
         requiredHeight: 600,
         allowAutoFormat: true,
+        maxDurationSec: SHORT_VIDEO_DURATION_SEC,
+        maxOutputBytes: SHORT_VIDEO_OUTPUT_BYTES,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
       },
       audio: {
         kind: 'audio',
-        audio: { maxDurationSec: 60 },
+        maxOutputBytes: AUDIO_OUTPUT_BYTES,
+        audio: { maxDurationSec: CHAT_AUDIO_DURATION_SEC },
       },
     },
   },
@@ -547,14 +615,14 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'work-asset': {
     kind: 'generic',
     accept: ACCEPT_MEDIA_ALL,
-    maxBytes: 5 * 1024 * 1024,
-    maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
+    maxBytes: VIDEO_RAW_BYTES,
+    maxDurationSec: SHORT_VIDEO_DURATION_SEC,
     client: {
       allowPick: true,
       allowCapturePhoto: true,
       allowRecordVideo: true,
       allowRecordAudio: true,
-      maxRecordDurationSec: DEFAULT_RECORD_DURATION_SEC,
+      maxRecordDurationSec: RECORD_DURATION_SEC,
     },
     processing: {
       image: {
@@ -567,19 +635,21 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       },
       video: {
         kind: 'video',
-        requiredWidth: 1280,
-        requiredHeight: 720,
+        requiredWidth: WIDE_VIDEO_WIDTH,
+        requiredHeight: WIDE_VIDEO_HEIGHT,
         allowAutoFormat: true,
+        maxDurationSec: SHORT_VIDEO_DURATION_SEC,
+        maxOutputBytes: SHORT_VIDEO_OUTPUT_BYTES,
         video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
       },
       audio: {
         kind: 'audio',
+        maxOutputBytes: AUDIO_OUTPUT_BYTES,
         audio: {
-          maxDurationSec: DEFAULT_RECORD_DURATION_SEC,
+          maxDurationSec: SHORT_VIDEO_DURATION_SEC,
         },
       },
     },
   },
 
 };
-

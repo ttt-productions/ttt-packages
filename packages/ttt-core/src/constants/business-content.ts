@@ -1,14 +1,15 @@
 // Content-surface business-rule constants — commissions, auditions, the social
 // feed, and messaging.
 import { MAX_WORK_PROJECT_TITLE_LENGTH } from "./business-work-project.js";
+import { ACTIVE_LIMITS } from './app-mode.js';
 
 /** The maximum character length for a SquareStreetz post created on behalf of a workProject. */
 export const MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH = 150;
 
 // --- Commission Board & Proposals ---
 
-/** Maximum number of open commissions a workProject can have. */
-export const MAX_COMMISSION_LISTINGS = 5;
+/** Maximum number of open commissions a workProject can have. Mode-varied. */
+export const MAX_COMMISSION_LISTINGS = ACTIVE_LIMITS.workProject.maxCommissionListings;
 
 /** Maximum number of proposal artisans saved to a commission. */
 export const MAX_SAVED_PROPOSAL_ARTISANS = 5;

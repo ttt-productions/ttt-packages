@@ -154,7 +154,40 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
         return result;
       }
   
-      // Persist outputs
+      // POST moderation (processed outputs) — runs on the LOCAL output paths
+      // BEFORE any final persistence, so rejected output never reaches the
+      // final store (R2 / emulator). Ordering is load-bearing — see
+      // ttt-prod docs/design/media-assets-and-protected-serving.md.
+      let mOut: MediaModerationResult | null | undefined;
+      if (moderation?.moderateOutput) {
+        onProgress?.({ phase: "moderation_output", percent: 0 });
+        mOut = attachProvider(
+          await moderation.moderateOutput({
+            spec,
+            kind: spec.kind,
+            outputs: (result.outputs ?? [])
+              .filter((o) => !!o.path)
+              .map((o) => ({ key: o.key, localPath: o.path!, mime: o.mime })),
+          }),
+          moderation.provider
+        );
+        onProgress?.({ phase: "moderation_output", percent: 1 });
+
+        if (mOut?.status === "rejected") {
+          return {
+            ok: false,
+            mediaType: result.mediaType,
+            moderation: mOut,
+            error: {
+              code: "rejected",
+              message: "Rejected by moderation.",
+              details: { provider: mOut.provider, reasons: mOut.reasons, findings: mOut.findings },
+            },
+          };
+        }
+      }
+
+      // Persist outputs — only after input AND output moderation both passed.
       onProgress?.({ phase: "persist_outputs", percent: 0 });
       const totalOut = result.outputs.length;
       let outIdx = 0;
@@ -170,37 +203,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
         outIdx += 1;
       }
       onProgress?.({ phase: "persist_outputs", percent: 1 });
-  
-      // POST moderation (processed outputs)
-      let mOut: MediaModerationResult | null | undefined;
-      if (moderation?.moderateOutput) {
-        onProgress?.({ phase: "moderation_output", percent: 0 });
-        mOut = attachProvider(
-          await moderation.moderateOutput({
-            spec,
-            kind: spec.kind,
-            outputs: (result.outputs ?? [])
-              .filter((o) => !!o.path)
-              .map((o) => ({ key: o.key, localPath: o.path!, mime: o.mime })),
-          }),
-          moderation.provider
-        );
-        onProgress?.({ phase: "moderation_output", percent: 1 });
-  
-        if (mOut?.status === "rejected") {
-          return {
-            ok: false,
-            mediaType: result.mediaType,
-            moderation: mOut,
-            error: {
-              code: "rejected",
-              message: "Rejected by moderation.",
-              details: { provider: mOut.provider, reasons: mOut.reasons, findings: mOut.findings },
-            },
-          };
-        }
-      }
-  
+
       const merged = mergeModeration(mIn ?? undefined, mOut ?? undefined);
       if (merged) result.moderation = merged;
 

@@ -92,6 +92,8 @@ export const UpdateAppConfigInputSchema = z.object({
     maintenanceMode: z.boolean().optional(),
     maintenanceMessage: z.string().max(2000).optional(),
     registrationEnabled: z.boolean().optional(),
+    // Runtime abuse throttle: 0 < m <= 1 (tighten-only; 1 = no throttle).
+    rateLimitMultiplier: z.number().gt(0).max(1).optional(),
   }).strict().refine(
     (d) => Object.keys(d).length > 0,
     { message: 'data must have at least one field' },

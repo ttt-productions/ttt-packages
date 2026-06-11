@@ -8,6 +8,11 @@ export const AppConfigSchema = z.object({
   maintenanceMode: z.boolean(),
   maintenanceMessage: z.string().optional(),
   registrationEnabled: z.boolean(),
+  // Runtime abuse throttle (incident lever — NOT the charter/full mode, which is
+  // a ttt-core code constant). Scales every rate limiter's maxRequests DOWN:
+  // 0 < m <= 1, tighten-only. Absent = 1 (no throttle). Set via updateAppConfig
+  // (audited); read by the backend limiter wrapper with a short in-memory cache.
+  rateLimitMultiplier: z.number().gt(0).max(1).optional(),
 });
 export type AppConfig = z.infer<typeof AppConfigSchema>;
 

@@ -7,7 +7,7 @@ export const UpdateTelevisionEpisodeMediaVariablesSchema = z.object({
   televisionId: z.string().min(1),
   episodeId: z.string().min(1),
   file: z.instanceof(File).or(z.instanceof(Blob)),
-  mediaKey: z.enum(['photoUrl', 'videoUrl']),
+  mediaKey: z.enum(['photoAssetId', 'videoAssetId']),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();

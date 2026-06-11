@@ -19,9 +19,9 @@ export const FullTaleSchema = z.object({
   title: z.string(),
   description: z.string(),
   createdOn: z.number(),
-  coverPhotoSquare: z.string().optional(),
-  coverPhotoPoster: z.string().optional(),
-  coverPhotoCinematic: z.string().optional(),
+  coverSquareAssetId: z.string().optional(),
+  coverPosterAssetId: z.string().optional(),
+  coverCinematicAssetId: z.string().optional(),
   workGenres: z.array(z.string()).optional(),
 });
 export type FullTale = z.infer<typeof FullTaleSchema>;
@@ -32,7 +32,7 @@ export const FullChapterSchema = z.object({
   content: z.string(),
   description: z.string(),
   order: z.number(),
-  photoUrl: z.string().optional(),
+  photoAssetId: z.string().optional(),
   status: contentStatusSchema,
   createdOn: z.number(),
 });
@@ -42,9 +42,9 @@ export const FullTuneSchema = z.object({
   uid: z.string(),
   title: z.string(),
   description: z.string(),
-  coverPhotoSquare: z.string().optional(),
-  coverPhotoPoster: z.string().optional(),
-  coverPhotoCinematic: z.string().optional(),
+  coverSquareAssetId: z.string().optional(),
+  coverPosterAssetId: z.string().optional(),
+  coverCinematicAssetId: z.string().optional(),
   workGenres: z.array(z.string()),
   createdOn: z.number(),
 });
@@ -54,10 +54,10 @@ export const FullTuneTrackSchema = z.object({
   uid: z.string(),
   title: z.string(),
   description: z.string().optional(),
-  fileUrl: z.string().optional(),
+  audioAssetId: z.string().optional(),
   mediaType: z.string().optional(),
   order: z.number(),
-  photoUrl: z.string().optional(),
+  photoAssetId: z.string().optional(),
   status: contentStatusSchema,
   createdOn: z.number(),
 });
@@ -68,9 +68,9 @@ export const FullTelevisionSchema = z.object({
   title: z.string(),
   description: z.string(),
   createdOn: z.number(),
-  coverPhotoSquare: z.string().optional(),
-  coverPhotoPoster: z.string().optional(),
-  coverPhotoCinematic: z.string().optional(),
+  coverSquareAssetId: z.string().optional(),
+  coverPosterAssetId: z.string().optional(),
+  coverCinematicAssetId: z.string().optional(),
   workGenres: z.array(z.string()),
 });
 export type FullTelevision = z.infer<typeof FullTelevisionSchema>;
@@ -79,10 +79,10 @@ export const FullTelevisionEpisodeSchema = z.object({
   uid: z.string(),
   title: z.string(),
   description: z.string().optional(),
-  videoUrl: z.string(),
+  videoAssetId: z.string(),
   mediaType: z.string().optional(),
   order: z.number(),
-  photoUrl: z.string().optional(),
+  photoAssetId: z.string().optional(),
   status: contentStatusSchema,
   createdOn: z.number(),
 });
@@ -117,9 +117,9 @@ export const PublishedHallItemSchema = z.object({
   hallWingType: z.enum(HALL_WING_TYPE_KEYS),
   title: z.string().optional(),
   description: z.string().optional(),
-  coverPhotoSquare: z.string().optional(),
-  coverPhotoPoster: z.string().optional(),
-  coverPhotoCinematic: z.string().optional(),
+  coverSquareAssetId: z.string().optional(),
+  coverPosterAssetId: z.string().optional(),
+  coverCinematicAssetId: z.string().optional(),
   workGenres: z.array(z.string()).optional(),
   followerCount: z.number().optional(),
   hidden: z.boolean(),
@@ -131,8 +131,8 @@ export const PublishedTuneTrackSchema = z.object({
   title: z.string(),
   order: z.number(),
   description: z.string().optional(),
-  fileUrl: z.string(),
-  photoUrl: z.string().optional(),
+  audioAssetId: z.string(),
+  photoAssetId: z.string().optional(),
   hidden: z.boolean(),
 });
 export type PublishedTuneTrack = z.infer<typeof PublishedTuneTrackSchema>;
@@ -143,7 +143,7 @@ export const PublishedChapterSchema = z.object({
   order: z.number(),
   description: z.string().optional(),
   content: z.string(),
-  photoUrl: z.string().optional(),
+  photoAssetId: z.string().optional(),
   hidden: z.boolean(),
 });
 export type PublishedChapter = z.infer<typeof PublishedChapterSchema>;
@@ -153,8 +153,8 @@ export const PublishedTelevisionEpisodeSchema = z.object({
   title: z.string(),
   order: z.number(),
   description: z.string().optional(),
-  videoUrl: z.string(),
-  photoUrl: z.string().optional(),
+  videoAssetId: z.string(),
+  photoAssetId: z.string().optional(),
   hidden: z.boolean(),
 });
 export type PublishedTelevisionEpisode = z.infer<typeof PublishedTelevisionEpisodeSchema>;

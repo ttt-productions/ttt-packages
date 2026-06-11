@@ -1,4 +1,5 @@
 // Pagination page sizes and hallLibrary UX constants.
+import { ACTIVE_LIMITS } from './app-mode.js';
 
 /** Default pagination size when no other size applies. */
 export const ITEMS_PER_PAGE_GENERAL = 5;
@@ -37,8 +38,8 @@ export const VIOLATIONS_PER_PAGE = 5;
 /** Page size for the craft-skills list hook. */
 export const CRAFT_SKILL_MEDIA_PER_PAGE = 12;
 
-/** Maximum number of recent posts the trending-feed scheduled commission processes per run. */
-export const TRENDING_FEED_PROCESS_LIMIT = 500;
+/** Maximum number of recent posts the trending-feed scheduled commission processes per run. Mode-varied. */
+export const TRENDING_FEED_PROCESS_LIMIT = ACTIVE_LIMITS.batches.trendingFeedProcessLimit;
 
 // --- HallLibrary UX constants ---
 

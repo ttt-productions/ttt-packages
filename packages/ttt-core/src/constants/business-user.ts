@@ -12,10 +12,20 @@ export const USERNAME_MAX_LENGTH = 20;
 /** Allowed characters in a user display name: letters and numbers only. */
 export const USERNAME_REGEX = /^[a-zA-Z0-9]+$/;
 
+import { ACTIVE_LIMITS } from './app-mode.js';
+
 // --- User Profile Craft Skills ---
 
-/** Maximum number of craft-skills a user can upload to their profile. */
-export const CRAFT_SKILL_LIMIT = 8;
+/** Maximum number of craft-skills a user can upload to their profile. Mode-varied. */
+export const CRAFT_SKILL_LIMIT = ACTIVE_LIMITS.user.maxCraftSkills;
+
+// --- Work-project participation caps (mode-varied, server-enforced) ---
+
+/** Maximum number of work projects an artisan can own (steward) at once. */
+export const MAX_OWNED_WORK_PROJECTS = ACTIVE_LIMITS.user.maxOwnedWorkProjects;
+
+/** Maximum number of active guild memberships a user can hold at once. */
+export const MAX_ASSOCIATED_WORK_PROJECTS = ACTIVE_LIMITS.user.maxAssociatedWorkProjects;
 
 /** Maximum number of tags allowed per craftSkill. */
 export const MAX_CRAFT_SKILL_TAGS = 5;

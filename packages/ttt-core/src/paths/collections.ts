@@ -26,6 +26,7 @@ export const COLLECTIONS = {
   CONTENT_REPORTS: 'contentReports',
   PENDING_MEDIA: 'pendingMedia',
   PENDING_MEDIA_ARCHIVE: 'pendingMediaArchive',
+  MEDIA_ASSETS: 'mediaAssets',
   PENDING_ADMIN_DISPATCHES: 'pendingAdminDispatches',
   ACTIVE_REPORT_GROUPS: 'activeReportGroups',
   CONTENT_VIOLATIONS: 'contentViolations',

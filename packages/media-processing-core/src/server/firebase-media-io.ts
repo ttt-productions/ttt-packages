@@ -1,38 +1,39 @@
-// Firebase Storage MediaIO adapter for the media-processing pipeline.
-//
-// Internals delegate to `uploadFileToStorage` so URL construction and
-// token attachment have a single source of truth.
+// MediaIO adapter: reads the staged upload from Firebase Storage, writes
+// processed outputs through a MediaObjectStore (R2 in deployed envs, the
+// Storage emulator locally). Output keys are extension-less:
+// `${outputKeyPrefix}/${outputKey}` — meaning lives in the asset registry,
+// not the key. Writes return the object key; no URLs anywhere.
 
 import { getStorage } from "firebase-admin/storage";
 import type { MediaIO } from "../io/types.js";
-import { uploadFileToStorage } from "./storage-ops.js";
+import type { MediaObjectStore } from "./storage-ops.js";
 
-export interface CreateFirebaseMediaIOArgs {
+export interface CreateObjectStoreMediaIOArgs {
+  /** Firebase Storage staging path of the uploaded source file. */
   inputStoragePath: string;
-  outputStorageBasePath: string;
+  /** Store receiving the processed outputs (R2 or emulator). */
+  outputStore: MediaObjectStore;
+  /** Key prefix for outputs, e.g. `mediaAssets/{mediaAssetId}`. */
+  outputKeyPrefix: string;
+  /** Optional mime hint for the input. */
+  inputMime?: string;
 }
 
-export function createFirebaseMediaIO(args: CreateFirebaseMediaIOArgs): MediaIO {
+export function createObjectStoreMediaIO(args: CreateObjectStoreMediaIOArgs): MediaIO {
   const bucket = getStorage().bucket();
 
   return {
     input: {
+      mime: args.inputMime,
       async readToFile(localPath: string) {
         await bucket.file(args.inputStoragePath).download({ destination: localPath });
       },
     },
     output: {
       async writeFromFile(localPath: string, outputKey: string) {
-        const ext = localPath.split(".").pop() || "";
-        const destinationPath = `${args.outputStorageBasePath}/${outputKey}.${ext}`;
-
-        const result = await uploadFileToStorage({
-          bucket,
-          localPath,
-          destinationPath,
-        });
-
-        return { url: result.url, path: result.path };
+        const key = `${args.outputKeyPrefix}/${outputKey}`;
+        const result = await args.outputStore.putFile({ localPath, key });
+        return { path: result.key };
       },
     },
   };
