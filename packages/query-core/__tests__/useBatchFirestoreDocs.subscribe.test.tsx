@@ -34,6 +34,12 @@ function emit(id: string, data: Record<string, unknown> | null) {
   });
 }
 
+function emitError(id: string, error: Error) {
+  act(() => {
+    caps.get(id)!.error!(error);
+  });
+}
+
 beforeEach(() => {
   caps.clear();
   onSnapshotMock.mockClear();
@@ -121,5 +127,47 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     const { Wrapper } = makeWrapper();
     renderHook(() => useBatchFirestoreDocs({ ...baseOpts, subscribe: false, ids: ['u1'] }), { wrapper: Wrapper });
     expect(onSnapshotMock).not.toHaveBeenCalled();
+  });
+
+  it('a listener error negative-caches the id: resolved-absent, never forever-loading', () => {
+    const { Wrapper, queryClient } = makeWrapper();
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['hidden'] }), { wrapper: Wrapper });
+
+    expect(result.current.isLoading).toBe(true);
+
+    // A rules-denied doc (hidden, or non-existent when the rule references
+    // resource.data) errors instead of landing a snapshot.
+    emitError('hidden', new Error('permission-denied'));
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.data).toEqual({});
+    expect(result.current.isError).toBe(true);
+    expect(result.current.error?.message).toBe('permission-denied');
+    expect(queryClient.getQueryData(['publicUser', 'hidden'])).toBeNull();
+  });
+
+  it('an errored id resolves while other ids in the batch still load and land', () => {
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['hidden', 'u1'] }), { wrapper: Wrapper });
+
+    emitError('hidden', new Error('permission-denied'));
+    // u1 has no snapshot yet — the batch is still loading on its account.
+    expect(result.current.isLoading).toBe(true);
+
+    emit('u1', { displayName: 'Alice' });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.data).toEqual({ u1: { id: 'u1', displayName: 'Alice' } });
+    expect(result.current.isError).toBe(true);
+  });
+
+  it('a later snapshot replaces the error negative-cache (e.g. doc un-hidden)', () => {
+    const { Wrapper, queryClient } = makeWrapper();
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), { wrapper: Wrapper });
+
+    emitError('u1', new Error('permission-denied'));
+    expect(queryClient.getQueryData(['publicUser', 'u1'])).toBeNull();
+
+    emit('u1', { displayName: 'Alice' });
+    expect(result.current.data.u1).toMatchObject({ displayName: 'Alice' });
   });
 });
