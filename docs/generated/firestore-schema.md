@@ -44,6 +44,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `words` | `string[]` |  |
 | `updatedAt` | `number` |  |
 | `wordCount` | `number` |  |
+| `wordListVersion` | `number` | yes |
 
 ## `_systemData/reservedUsernames`
 
@@ -205,6 +206,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `lastMessage` | `string` | yes |
 | `messageCount` | `number` |  |
 | `isArchived` | `boolean` |  |
+| `configVersion` | `number` | yes |
 
 ## `allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}/guildChatMessages/{guildChatMessageId}`
 

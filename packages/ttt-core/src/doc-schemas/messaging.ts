@@ -24,6 +24,10 @@ export const GuildChatChannelSchema = z.object({
   lastMessage: z.string().optional(),
   messageCount: z.number(),
   isArchived: z.boolean(),
+  // Monotonic config version for the chat-realtime sync layer (Contract B). Bumped by
+  // each channel create / edit / archive / delete in the authoritative txn; the
+  // `config` chatSyncEvents + channel-scoped fanout key on it. Absent ⇒ 0.
+  configVersion: z.number().optional(),
 });
 export type GuildChatChannel = z.infer<typeof GuildChatChannelSchema>;
 

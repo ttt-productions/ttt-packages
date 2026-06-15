@@ -30,6 +30,10 @@ export const ProfanityListSchema = z.object({
   words: z.array(z.string()),
   updatedAt: z.number(),
   wordCount: z.number(),
+  // Monotonic version for the chat-realtime word-list sync (Contract B). Bumped by each
+  // curation; the chat Worker KV snapshot + the channel-DO lazy version check key on it.
+  // Absent ⇒ 0.
+  wordListVersion: z.number().optional(),
 });
 export type ProfanityList = z.infer<typeof ProfanityListSchema>;
 
