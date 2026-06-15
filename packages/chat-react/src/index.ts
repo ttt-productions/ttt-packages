@@ -9,6 +9,8 @@
 // React-coupled config + render types (previously on chat-core root).
 export type {
   ChatCoreConfig,
+  ChatTransportMode,
+  ChatRealtimeTransportConfig,
   ChatAttachmentConfig,
   ChatUploadAdapter,
   ChatMentionConfig,

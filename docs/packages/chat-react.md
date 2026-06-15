@@ -18,6 +18,12 @@ Chat **React UI** package — the React half of the chat split.
   `ChatAttachmentConfig`, `ChatUploadAdapter`, `ChatMentionConfig`) and the
   React render types (`MessageRenderer`, `RenderableMentionProvider`,
   `MentionResultRenderer`)
+- A discriminated **transport config** (chat-edge-rebuild P1): `ChatCoreConfig`
+  carries an optional `transport: ChatTransportMode` (`'firestore' | 'realtime'`,
+  default `'firestore'` so existing call sites are unchanged) plus an optional
+  `realtime: ChatRealtimeTransportConfig` (opaque DO-socket handle; the concrete
+  client lands with the chat Worker, P2). On the `realtime` transport, data
+  access is enforced by the DO grant, so `accessMode` becomes **presentation-only**.
 - Chat upload adapter integration through `upload-ui`
 
 ## Boundary

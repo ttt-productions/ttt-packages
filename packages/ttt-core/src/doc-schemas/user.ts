@@ -73,6 +73,13 @@ export const FullUserSchema = z.object({
   profilePictureAssetId: z.string().nullable().optional(),
   artisanCreator: z.number().optional(),
   status: z.enum(['active', 'suspended', 'banned']).optional(),
+  // Chat-edge-rebuild account-access domain (Contract B / round-10 blocker 1): the
+  // single ban/unban ordering version + state the chat `accountAccess` sync events key
+  // on. Backend-only-writable. Deliberate defaults when ABSENT: a never-touched account
+  // is `{ accountAccessVersion: 0, accountAccessState: 'active' }` (NOT banned) — bumped
+  // atomically on suspend/ban/unban, which enqueue the accountAccessChanged fanout.
+  accountAccessVersion: z.number().optional(),
+  accountAccessState: z.enum(['active', 'suspended', 'banned']).optional(),
   // Moderation: set true by the forceDisplayNameReset callable when an admin resets an
   // abusive display name. The app gates the user into a forced "pick a new name" flow until
   // they complete it via setMyDisplayName (which clears this). Backend-only-writable (like `status`).

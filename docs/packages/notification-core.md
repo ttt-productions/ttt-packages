@@ -10,6 +10,26 @@ in the active collection until archived; personal unread state is tracked with
 - Dedup/batch processing helpers that preserve the per-audience dedup scope
 - React provider/hooks/components
 - Server helpers (create/archive/batch) where applicable
+- **The generic delivery ledger (notification redesign):** `createDeliveryLedger(db, config)` —
+  one Firestore doc per (recipient|shared, type, occurrence) that is BOTH the queue row AND the
+  idempotency ledger. `enqueue` is create-if-absent (`ALREADY_EXISTS` ⇒ a per-row duplicate
+  no-op, never a page failure); `materialize` is ONE transaction that reads the delivery row +
+  active card, applies the aggregation strategy exactly once (`increment` / `staticRelight`,
+  exported as the pure `applyAggregation`), rotates the opaque `activityGeneration`, resets
+  `seenAt`, and flips the row to `materialized`; `recordTransientFailure` / `deadLetter` /
+  `replay` / `materializeMany` (bounded concurrency) own the retry / dead-letter / replay
+  lifecycle. `expireAt` (a real Firestore `Timestamp` via the injected
+  `config.timestampFromMillis`) is set ONLY at `materialized` — a `queued` or `deadLetter` row is
+  never TTL'd. The app owns the concrete collection name + the deterministic
+  `deliveryId`/`eventId`/`aggregationKey` construction and passes fully-formed rows in.
+- **The observed-generation seen/archive protocol:** `markNotificationSeenWithGeneration`
+  (stamps `seenAt` only if the card's opaque `activityGeneration` still matches the observed one)
+  and `archiveNotificationWithGeneration` (deterministic history doc id ⇒ same-`payloadHash`
+  replay returns the stored result and touches nothing, different-`payloadHash` ⇒ conflict;
+  first-seen archives only under the observed-generation precondition).
+- A type-scoped active-doc id: `buildActiveNotificationDocId` takes an optional `notificationType`
+  so two types sharing an aggregation key never collapse onto one active doc (the legacy
+  non-type-scoped id is kept byte-identical when the type is omitted).
 
 ## Deduplication contract
 

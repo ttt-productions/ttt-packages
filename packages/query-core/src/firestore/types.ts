@@ -11,6 +11,24 @@ import type {
 export type WithId<T> = T & { id: string };
 
 /**
+ * Metadata-derived liveness of a realtime subscription. Firestore serves cached
+ * snapshots offline WITHOUT firing the error callback, so error-only detection
+ * renders a stale cached empty result as "live". This four-state is derived from
+ * `snapshot.metadata.fromCache` (server-confirmed vs cache) plus the listener
+ * error callback:
+ * - `connecting` — no server-confirmed snapshot yet (initial, or only cache-first data).
+ * - `live` — at least one server-confirmed snapshot (`fromCache === false`).
+ * - `offline` — only cached data after having been live (connectivity loss).
+ * - `error` — the listener error callback fired (e.g. permission loss).
+ *
+ * Meaningful only for `subscribe: true`; a non-subscribed hook stays `connecting`.
+ */
+export type FirestoreSourceState = 'connecting' | 'live' | 'offline' | 'error';
+
+/** A query-hook result augmented with the metadata-derived subscription source state. */
+export type WithSourceState<R> = R & { sourceState: FirestoreSourceState };
+
+/**
  * Extract document data with ID from a QueryDocumentSnapshot.
  */
 export function docWithId<T extends DocumentData>(

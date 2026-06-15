@@ -53,6 +53,8 @@ export interface ServerDocRef {
   id: string;
   set(data: Record<string, unknown>, options?: { merge?: boolean }): Promise<unknown>;
   update(data: Record<string, unknown>): Promise<unknown>;
+  /** Create-if-absent. Rejects with an `already-exists` error (gRPC code 6) if the doc exists. */
+  create(data: Record<string, unknown>): Promise<unknown>;
   delete(): Promise<unknown>;
   get(): Promise<ServerDocSnapshot>;
 }

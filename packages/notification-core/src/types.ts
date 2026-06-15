@@ -60,6 +60,18 @@ export interface NotificationDoc {
    */
   seenAt: number;
 
+  /**
+   * Opaque per-generation token (uuid), minted FRESH whenever the active doc is
+   * created or materially re-lit. The SEEN/ARCHIVE precondition compares against
+   * THIS, not a restartable integer: the active doc id is deterministic, so a
+   * delete+recreate would restart an integer and let a stale tab's "version 1"
+   * match a different card it never saw (ABA). An opaque token cannot repeat.
+   * Optional on the legacy active doc shape; the ledger materializer always sets it.
+   */
+  activityGeneration?: string;
+  /** The `activityGeneration` observed at the time `seenAt` was last set. */
+  seenAtGeneration?: string;
+
   // Timestamps (epoch ms)
   /** First occurrence */
   createdAt: number;
@@ -165,6 +177,20 @@ export interface NotificationSystemConfig {
   batchIntervalMinutes?: number;
   /** Firestore collection for pending notifications (default 'pendingNotifications') */
   pendingCollectionPath?: string;
+  /** Firestore collection for the delivery ledger (default 'notificationDeliveries'). */
+  deliveriesCollectionPath?: string;
+  /**
+   * Factory that converts epoch-ms to the app's Firestore `Timestamp` instance.
+   * REQUIRED for the delivery ledger: Firestore native TTL acts ONLY on
+   * `Timestamp` fields, so `expireAt` must be a real Timestamp (never a number).
+   * The generic package never imports firebase-admin, so the app injects this
+   * (e.g. `(ms) => admin.firestore.Timestamp.fromMillis(ms)`).
+   */
+  timestampFromMillis?: (ms: number) => unknown;
+  /** Delivery-row TTL after materialization, in ms (default 90 days). */
+  deliveryTtlMs?: number;
+  /** Max delivery attempts before a row dead-letters (default 8). */
+  maxDeliveryAttempts?: number;
 }
 
 // ============================================================================

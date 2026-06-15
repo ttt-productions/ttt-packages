@@ -20,7 +20,7 @@ set -euo pipefail
 # renamed, or removed, update BOTH this file and root package.json build chain
 # (and bump the count comment below).
 #
-# 23 packages total (added edge-protocol-core — shared signed-edge-call primitives).
+# 24 packages total (added realtime-core — generic runtime-neutral realtime primitives).
 #
 # Usage:
 #   ./scripts/release-all.sh           # patch bump
@@ -38,6 +38,8 @@ export SKIP_PREFLIGHT=1
 # Tier 0 — generic, zero @ttt-productions/* deps
 # ---------------------------------------------------------------------------
 ./scripts/release-package.sh @ttt-productions/edge-protocol-core packages/edge-protocol-core "$BUMP"
+# realtime-core depends only on edge-protocol-core — release it right after.
+./scripts/release-package.sh @ttt-productions/realtime-core      packages/realtime-core      "$BUMP"
 ./scripts/release-package.sh @ttt-productions/firebase-helpers  packages/firebase-helpers  "$BUMP"
 ./scripts/release-package.sh @ttt-productions/ui-core           packages/ui-core           "$BUMP"
 ./scripts/release-package.sh @ttt-productions/theme-core        packages/theme-core        "$BUMP"
@@ -88,4 +90,4 @@ export SKIP_PREFLIGHT=1
 ./scripts/release-package.sh @ttt-productions/rate-limit-core   packages/rate-limit-core   "$BUMP"
 ./scripts/release-package.sh @ttt-productions/moderation-core   packages/moderation-core   "$BUMP"
 
-echo "✅ Done: released all 23 packages ($BUMP)"
+echo "✅ Done: released all 24 packages ($BUMP)"

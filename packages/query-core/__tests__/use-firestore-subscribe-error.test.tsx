@@ -8,8 +8,10 @@ import React from 'react';
 const { docCaps, colCaps, onSnapshotMock } = vi.hoisted(() => {
   const docCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
   const colCaps: Array<{ next: (snap: unknown) => void; error: (e: Error) => void }> = [];
+  // 4-arg form: onSnapshot(ref, options, onNext, onError) — the hooks pass
+  // { includeMetadataChanges: true } as the 2nd argument.
   const onSnapshotMock = vi.fn(
-    (target: { __kind: 'doc' | 'col' }, next: (s: unknown) => void, error: (e: Error) => void) => {
+    (target: { __kind: 'doc' | 'col' }, _options: unknown, next: (s: unknown) => void, error: (e: Error) => void) => {
       (target.__kind === 'doc' ? docCaps : colCaps).push({ next, error });
       return vi.fn();
     },

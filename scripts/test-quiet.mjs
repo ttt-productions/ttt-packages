@@ -376,7 +376,7 @@ async function stageSchema(name, root) {
     // Build first: the two type-check stages below resolve @ttt-productions/* via node_modules -> dist,
     // so dist must exist. `npm run build` is topo-ordered and self-sufficient from a clean tree.
     if (shouldRun('build')) {
-        if (!(await stagePlain('build (all 23)', 'npm', ['run', 'build'], root))) return finish(overallStart);
+        if (!(await stagePlain('build (all 24)', 'npm', ['run', 'build'], root))) return finish(overallStart);
     }
     if (shouldRun('typecheck')) {
         if (!(await stagePlain('typecheck', 'npm', ['run', 'typecheck'], root))) return finish(overallStart);

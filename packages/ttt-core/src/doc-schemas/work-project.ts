@@ -31,6 +31,15 @@ export const GuildmateUserSchema = z.object({
    * workProjectId, NOT a user uid).
    */
   holderType: z.enum(['user', 'foundingWork']).optional(),
+  /**
+   * Per-(user, workProject) monotonic INPUT-trigger version for the chat
+   * channel-auth projection (chat-edge-rebuild Contract B / P3). Absent ⇒ 0.
+   * Bumped atomically in the authoritative mutation on member create/reactivate,
+   * departure/removal, standing change, AND trade-profession change; the
+   * `workChannelsForUser` fanout keys on the POST-increment value. It NEVER
+   * increments or replaces the per-pair OUTPUT `channelAuthVersion`.
+   */
+  guildAuthInputVersion: z.number().optional(),
 });
 export type GuildmateUser = z.infer<typeof GuildmateUserSchema>;
 

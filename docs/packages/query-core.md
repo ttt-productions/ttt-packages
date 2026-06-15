@@ -14,6 +14,18 @@ Generic TanStack Query package.
   (server-side `count()`), `useFirestoreLiveInfinite` (live newest-window +
   cursor-bridged older pages — for chat / live feeds), `useBatchFirestoreDocs`,
   and the `useFirestoreSet/Update/Delete/Batch` mutations
+- A metadata-derived **subscription source state** on the realtime `useFirestoreDoc` /
+  `useFirestoreCollection` hooks (`subscribe: true`): the result carries
+  `sourceState: 'connecting' | 'live' | 'offline' | 'error'` (`FirestoreSourceState`),
+  derived from `snapshot.metadata.fromCache` (subscribed with
+  `{ includeMetadataChanges: true }`) plus the listener error callback. Firestore
+  serves cached snapshots offline WITHOUT firing the error callback, so error-only
+  detection would render a stale cached empty result as live; the hook stays
+  `connecting` until a server-confirmed snapshot (`fromCache === false`), goes
+  `offline` when only cached data arrives after being live, `error` on the listener
+  error callback, and resets to `connecting` when the subscription identity
+  (query key / path) changes. Consumed by the TTT notification/badge tray to show a
+  degraded indicator instead of a false "all caught up".
 - Generic search hook/types
 - Domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`, `predicate`, `applyInvalidations`)
 

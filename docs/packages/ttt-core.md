@@ -19,6 +19,25 @@ TTT Productions application-data package.
 - Work guild-standing IDs, action IDs, action grants, and guild-standing-assignment policy
 - Commission proposal lifecycle schemas/types (`open`, `invited`, `accepted`, `rejected`)
 - `AuditEventType` catalog, `TTTAuditActor`, `TTTAuditTarget`, and `TTTAuditEvent` specialization of the `@ttt-productions/audit-core` generic
+- **Chat-edge-rebuild concrete contracts (P1):**
+  - The frozen deterministic ID/`hash()` helpers in `src/ids/chat-ids.ts`
+    (canonical domain-tagged SHA-256 via `edge-protocol-core`'s runtime-neutral
+    `sha256Hex`; ALL async): `channelKey`/`authPairKey`, the `chatSyncEvents`
+    eventIds, `chatSyncFanoutJobId`, the degraded-cause/scope keys, the inbox
+    projection eventId, `notificationDeliveryId`/`activeNotificationDocId`/archive
+    ids, the moderation audit ids, and `chatAnonymizeJobId`.
+  - The new Admin-SDK-only Firestore doc-schemas: `notificationDeliveries` +
+    `notificationFanoutJobs` (delivery ledger / fanout engine) and the chat-sync
+    set `chatChannelAuthProjections`, `chatScopeDegraded` (+ `causes`),
+    `chatSyncEvents`, `chatSyncFanoutJobs`, `chatMessageOutbox`,
+    `chatAdminActionCommands` — all wired into `COLLECTIONS`, `PATH_BUILDERS`, and
+    the CI-enforced `COLLECTION_SCHEMAS` registry.
+  - The `chat.moderationAction{Requested,Applied,Failed}` audit types.
+  - Version-init fields (backend-only, with frozen ABSENT defaults): user
+    `accountAccessVersion`/`accountAccessState` (absent ⇒ `{0, 'active'}`) and
+    `GuildmateUser.guildAuthInputVersion` (absent ⇒ 0), plus the
+    `activityGeneration`/`seenAtGeneration` opaque-token fields on the active
+    notification doc.
 
 ## Boundary
 

@@ -83,6 +83,19 @@ import {
   FollowerReleaseJobSchema,
   NotificationBroadcastJobSchema,
 } from './notifications.js';
+import {
+  NotificationDeliverySchema,
+  NotificationFanoutJobSchema,
+} from './notification-ledger.js';
+import {
+  ChatChannelAuthProjectionSchema,
+  ChatScopeDegradedSchema,
+  ChatScopeDegradedCauseSchema,
+  ChatSyncEventSchema,
+  ChatSyncFanoutJobSchema,
+  ChatMessageOutboxSchema,
+  ChatAdminActionCommandSchema,
+} from './chat-sync.js';
 import { PendingMediaSchema, ArchivedPendingMediaSchema } from '../media/pending-media.js';
 import { MediaAssetSchema } from './media-assets.js';
 import { MediaActivationJobSchema } from './media-activation-jobs.js';
@@ -172,6 +185,19 @@ export const COLLECTION_SCHEMAS = {
   'pendingNotifications/{notificationId}': PendingNotificationSchema,
   'followerReleaseJobs/{jobId}': FollowerReleaseJobSchema,
   'notificationBroadcastJobs/{jobId}': NotificationBroadcastJobSchema,
+
+  // ===== Notification redesign — delivery ledger + fanout engine =====
+  'notificationDeliveries/{deliveryId}': NotificationDeliverySchema,
+  'notificationFanoutJobs/{jobId}': NotificationFanoutJobSchema,
+
+  // ===== Chat realtime sync / projection / commands =====
+  'chatChannelAuthProjections/{authPairKey}': ChatChannelAuthProjectionSchema,
+  'chatScopeDegraded/{scopeKey}': ChatScopeDegradedSchema,
+  'chatScopeDegraded/{scopeKey}/causes/{causeId}': ChatScopeDegradedCauseSchema,
+  'chatSyncEvents/{eventId}': ChatSyncEventSchema,
+  'chatSyncFanoutJobs/{jobId}': ChatSyncFanoutJobSchema,
+  'chatMessageOutbox/{commandId}': ChatMessageOutboxSchema,
+  'chatAdminActionCommands/{requestId}': ChatAdminActionCommandSchema,
 
   // ===== Craft skills index =====
   'craftSkillsByTag/{tag}/taggedCraftSkills/{compositeId}': CraftSkillReferenceSchema,

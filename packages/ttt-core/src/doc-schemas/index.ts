@@ -20,5 +20,7 @@ export * from './moderation.js';
 export * from './report-docs.js';
 export * from './audit.js';
 export * from './notifications.js';
+export * from './notification-ledger.js';
+export * from './chat-sync.js';
 export * from './operational.js';
 export * from './registry.js';

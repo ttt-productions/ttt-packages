@@ -52,6 +52,7 @@ function createMockFirestore(docExists: boolean, docData: Record<string, unknown
     id,
     set: vi.fn(async () => {}),
     update: vi.fn(async () => {}),
+    create: vi.fn(async () => {}),
     delete: vi.fn(async () => {}),
     get: vi.fn(async (): Promise<ServerDocSnapshot> => ({
       id,
@@ -334,7 +335,7 @@ describe('archiveAllNotificationsHelper', () => {
       })) as any,
       doc: vi.fn((path: string) => {
         const id = path.split('/').pop() ?? 'id';
-        return { id, set: vi.fn(), update: vi.fn(), delete: vi.fn(), get: vi.fn() };
+        return { id, set: vi.fn(), update: vi.fn(), create: vi.fn(), delete: vi.fn(), get: vi.fn() };
       }),
       batch: vi.fn(() => batchMock),
       runTransaction: vi.fn(async (fn: any) =>

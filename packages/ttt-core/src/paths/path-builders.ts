@@ -178,6 +178,35 @@ export const PATH_BUILDERS = {
   mediaActivationJob: (jobId: string): [string, string] =>
     [COLLECTIONS.MEDIA_ACTIVATION_JOBS, jobId],
 
+  // ===== NOTIFICATION REDESIGN (ledger + fanout engine) PATHS =====
+  notificationDelivery: (deliveryId: string): [string, string] =>
+    [COLLECTIONS.NOTIFICATION_DELIVERIES, deliveryId],
+
+  notificationFanoutJob: (jobId: string): [string, string] =>
+    [COLLECTIONS.NOTIFICATION_FANOUT_JOBS, jobId],
+
+  // ===== CHAT REALTIME SYNC / PROJECTION / COMMAND PATHS =====
+  chatChannelAuthProjection: (authPairKey: string): [string, string] =>
+    [COLLECTIONS.CHAT_CHANNEL_AUTH_PROJECTIONS, authPairKey],
+
+  chatScopeDegraded: (scopeKey: string): [string, string] =>
+    [COLLECTIONS.CHAT_SCOPE_DEGRADED, scopeKey],
+
+  chatScopeDegradedCause: (scopeKey: string, causeId: string): [string, string, string, string] =>
+    [COLLECTIONS.CHAT_SCOPE_DEGRADED, scopeKey, NESTED_SUBCOLLECTIONS.CHAT_SCOPE_DEGRADED_CAUSES, causeId],
+
+  chatSyncEvent: (eventId: string): [string, string] =>
+    [COLLECTIONS.CHAT_SYNC_EVENTS, eventId],
+
+  chatSyncFanoutJob: (jobId: string): [string, string] =>
+    [COLLECTIONS.CHAT_SYNC_FANOUT_JOBS, jobId],
+
+  chatMessageOutboxCommand: (commandId: string): [string, string] =>
+    [COLLECTIONS.CHAT_MESSAGE_OUTBOX, commandId],
+
+  chatAdminActionCommand: (requestId: string): [string, string] =>
+    [COLLECTIONS.CHAT_ADMIN_ACTION_COMMANDS, requestId],
+
   // ===== PAYMENT & PLEDGE PATHS =====
   // Public-safe canonical money record. Stripe IDs live on pledgePaymentProviderRef (server-only).
   pledgePayment: (pledgePaymentId: string): [string, string] =>

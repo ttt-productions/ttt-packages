@@ -30,6 +30,11 @@ function createMockFirestore() {
       const existing = col.get(id) ?? {};
       col.set(id, { ...existing, ...data });
     }),
+    create: vi.fn(async (data: Record<string, unknown>) => {
+      const col = getCol(colPath);
+      if (col.has(id)) throw Object.assign(new Error('already-exists'), { code: 6 });
+      col.set(id, { ...data });
+    }),
     delete: vi.fn(async () => { getCol(colPath).delete(id); }),
     get: vi.fn(async () => {
       const data = getCol(colPath).get(id);

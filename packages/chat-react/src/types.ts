@@ -121,6 +121,28 @@ export type ChatMentionConfig = {
 // CONFIG
 // ============================================
 
+/**
+ * Which transport backs a chat thread.
+ * - `firestore` — the current Firestore newest-window + cursor path (default).
+ * - `realtime` — the Cloudflare Durable Object socket (chat-edge-rebuild). On
+ *   this transport DATA ACCESS is enforced by the DO grant, so `accessMode`
+ *   becomes PRESENTATION-ONLY (UI affordances like read-only), never a
+ *   data-access gate.
+ */
+export type ChatTransportMode = 'firestore' | 'realtime';
+
+/**
+ * Realtime (Durable Object) transport handle. The concrete socket client lands
+ * with the chat Worker build (P2); chat-react consumes it through this opaque
+ * adapter so the UI stays transport-agnostic.
+ */
+export interface ChatRealtimeTransportConfig {
+  /** Opaque channel reference the socket is scoped to (guild channel / invite thread). */
+  channelRef: unknown;
+  /** App-supplied realtime client/adapter (subscribe / send / ack / presence). Shape owned by P2. */
+  client: unknown;
+}
+
 export type ChatCoreConfig = {
   chatCollectionPath: string | string[];
   messagesSubcollection?: string;  // default: "messages"
@@ -129,7 +151,16 @@ export type ChatCoreConfig = {
   currentUserDisplayName?: string;
   isAdmin: boolean;
   /**
-   * REQUIRED. See ChatAccessMode docs in @ttt-productions/chat-core.
+   * Which transport backs this thread. Defaults to `'firestore'` (the current
+   * path) so existing call sites are unchanged. See {@link ChatTransportMode}.
+   */
+  transport?: ChatTransportMode;
+  /** Required iff `transport === 'realtime'`; ignored on the firestore transport. */
+  realtime?: ChatRealtimeTransportConfig;
+  /**
+   * The Firestore data-access gate (see ChatAccessMode docs in
+   * @ttt-productions/chat-core). REQUIRED. On the `realtime` transport this is
+   * PRESENTATION-ONLY — the DO grant is the real data-access authority.
    */
   accessMode: ChatAccessMode;
   /**

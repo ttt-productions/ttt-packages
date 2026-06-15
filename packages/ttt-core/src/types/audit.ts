@@ -126,6 +126,11 @@ export type AuditEventType =
   | 'chat.adminThreadStarted'
   | 'chat.adminThreadStatusChanged'
   | 'chat.attachmentTimedOut'
+  // chat moderation (DO-owned hide/delete via chatAdminActionCommands) — append-only,
+  // deterministic ids hash('chat-moderation-{requested,applied,failed}', requestId, …).
+  | 'chat.moderationActionRequested'
+  | 'chat.moderationActionApplied'
+  | 'chat.moderationActionFailed'
   // notification (admin-only). Actor mode is always adminReview / adminOverride.
   // Payload shapes: NotificationBroadcastSentAuditMetadata /
   // NotificationAdminArchivedAuditMetadata in ../schemas/notification.ts.

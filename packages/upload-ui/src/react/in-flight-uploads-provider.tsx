@@ -270,7 +270,26 @@ export type FirestoreSubscribeFn = (args: {
 
 export type FirestoreLikeSnapshot = {
   docChanges: () => FirestoreLikeDocChange[];
+  /**
+   * Snapshot metadata. Present when the subscription is opened with
+   * `{ includeMetadataChanges: true }` (the default firebase implementation does).
+   * `fromCache === false` means a server-confirmed snapshot. Optional so injected
+   * test fakes need not supply it (absent ⇒ treated as server-confirmed).
+   */
+  metadata?: { fromCache: boolean };
 };
+
+/**
+ * Metadata-derived liveness of the uploads listener, mirroring query-core's
+ * `FirestoreSourceState`. Firestore serves cached snapshots offline WITHOUT
+ * firing the error callback, so the Files tray source needs this to show a
+ * degraded indicator instead of a false "all caught up":
+ * - `connecting` — no server-confirmed snapshot yet.
+ * - `live` — at least one server-confirmed snapshot (`fromCache === false`).
+ * - `offline` — only cached data after having been live.
+ * - `error` — the listener error callback fired.
+ */
+export type UploadsSourceState = 'connecting' | 'live' | 'offline' | 'error';
 
 export type FirestoreLikeDocChange = {
   type: 'added' | 'modified' | 'removed';
@@ -286,6 +305,7 @@ export type FirestoreLikeDocChange = {
 
 interface InFlightUploadsContextValue<TFileOrigin extends string = string> {
   uploads: Map<string, InFlightUpload<TFileOrigin>>;
+  sourceState: UploadsSourceState;
 }
 
 const InFlightUploadsContext = createContext<InFlightUploadsContextValue | undefined>(undefined);
@@ -346,6 +366,12 @@ function fromParsed<TFileOrigin extends string>(
     violationId: parsed.violationId,
     uploadTrayClearedAt: parsed.uploadTrayClearedAt,
     uploadTrayClearedBy: parsed.uploadTrayClearedBy,
+    // Carry the seen fields through (round-9 finding 9): dropping them on the
+    // `rejected` branch — while `completed`/`failed` keep them — made a seen
+    // rejected upload relight the Files dot forever, because the tray's
+    // unseen-terminal check never saw `uploadTraySeenAt`.
+    uploadTraySeenAt: parsed.uploadTraySeenAt,
+    uploadTraySeenBy: parsed.uploadTraySeenBy,
   };
 }
 
@@ -355,6 +381,7 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
   const { adapter, subscribe = defaultFirestoreSubscribe, children } = props;
 
   const [uploads, setUploads] = useState<Map<string, InFlightUpload<TFileOrigin>>>(new Map());
+  const [sourceState, setSourceState] = useState<UploadsSourceState>('connecting');
   const seenTerminalIdsRef = useRef<Set<string>>(new Set());
   const statusByIdRef = useRef<Map<string, InFlightUploadStatus>>(new Map());
   const hasProcessedInitialSnapshotRef = useRef(false);
@@ -373,6 +400,7 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
     // Do not rely on an intermediate sign-out to clear refs between two
     // authenticated UIDs.
     setUploads(new Map());
+    setSourceState('connecting');
     seenTerminalIdsRef.current = new Set();
     statusByIdRef.current = new Map();
     hasProcessedInitialSnapshotRef.current = false;
@@ -446,6 +474,11 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
 
       hasProcessedInitialSnapshotRef.current = true;
 
+      // Metadata-derived source state: stay `connecting` until a server-confirmed
+      // snapshot, `offline` if only cached data arrives after being live.
+      const fromCache = snapshot.metadata?.fromCache ?? false;
+      setSourceState((prev) => (fromCache ? (prev === 'connecting' ? 'connecting' : 'offline') : 'live'));
+
       if (updates.length > 0) {
         setUploads((prev) => {
           const next = new Map(prev);
@@ -492,6 +525,7 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
       windowStartMs,
       onSnapshot: handleSnapshot,
       onError: (error) => {
+        setSourceState('error');
         adapterRef.current.onMonitoringEvent({ type: 'listener-error', error });
       },
     });
@@ -505,8 +539,8 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
   }, [userId, subscribe]);
 
   const value = useMemo<InFlightUploadsContextValue<TFileOrigin>>(
-    () => ({ uploads }),
-    [uploads],
+    () => ({ uploads, sourceState }),
+    [uploads, sourceState],
   );
 
   return (
@@ -540,6 +574,20 @@ export function useInFlightUpload<TFileOrigin extends string = string>(
   }
   if (!id) return undefined;
   return ctx.uploads.get(id) as InFlightUpload<TFileOrigin> | undefined;
+}
+
+/**
+ * Metadata-derived source state of the uploads listener
+ * (`connecting | live | offline | error`). The Files tray uses this to show a
+ * degraded indicator and never display "all caught up" while the source is
+ * `offline`/`error`/`connecting`.
+ */
+export function useUploadsSourceState(): UploadsSourceState {
+  const ctx = useContext(InFlightUploadsContext);
+  if (ctx === undefined) {
+    throw new Error('useUploadsSourceState must be used within InFlightUploadsProvider');
+  }
+  return ctx.sourceState;
 }
 
 // =============================================================================
@@ -602,10 +650,12 @@ export function useUploadActivityState<TFileOrigin extends string = string>(): I
  */
 const defaultFirestoreSubscribe: FirestoreSubscribeFn = (args) => {
   const q = query(
-     
+
     collection(args.db as any, args.collectionPath),
     where('userId', '==', args.userId),
     where('createdAt', '>=', args.windowStartMs),
   );
-  return onSnapshot(q, args.onSnapshot as never, args.onError as never);
+  // includeMetadataChanges so the provider can derive a `connecting|live|offline|error`
+  // source state from `snapshot.metadata.fromCache` (the Files tray degraded indicator).
+  return onSnapshot(q, { includeMetadataChanges: true }, args.onSnapshot as never, args.onError as never);
 };

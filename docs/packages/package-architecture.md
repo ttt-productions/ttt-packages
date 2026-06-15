@@ -8,7 +8,7 @@ Code is the source of truth. This document explains the durable model; exact
 exports live in each package's `package.json`, and the wiring lives in the root
 `package.json` build chain and `scripts/`.
 
-The monorepo has **23 packages**. Generic packages never know about TTT-specific
+The monorepo has **24 packages**. Generic packages never know about TTT-specific
 identifiers, Firestore collection names, copy, moderation policy, or
 domain-event catalogs — that lives in `@ttt-productions/ttt-core` or in the
 consuming app.
@@ -28,8 +28,9 @@ package may consume it.
 - **Tier 1 — depend on Tier 0 only:** `chat-core` (→ `chat-schemas`),
   `file-input` (→ `ui-core`, `media-schemas`, `media-viewer`), `media-viewer`
   (→ `media-schemas`, `ui-core`), `media-processing-core` (→ `media-schemas`),
-  `upload-core` (→ `firebase-helpers`), `report-core` and `notification-core`
-  (no internal runtime deps; their UI/query needs are optional peers).
+  `upload-core` (→ `firebase-helpers`), `realtime-core` (→ `edge-protocol-core`;
+  generic runtime-neutral realtime primitives), `report-core` and
+  `notification-core` (no internal runtime deps; their UI/query needs are optional peers).
 - **Tier 2:** `upload-ui` (→ `file-input`, `media-schemas`, `ui-core`,
   `upload-core`).
 - **Tier 3:** `chat-react` (→ `chat-core`, `chat-schemas`, `media-schemas`,
@@ -42,6 +43,7 @@ The internal runtime-dependency edges (peers/dev excluded — they do not affect
 build order):
 
     chat-core              -> chat-schemas
+    realtime-core          -> edge-protocol-core
     file-input             -> ui-core, media-schemas, media-viewer
     media-viewer           -> media-schemas, ui-core
     media-processing-core  -> media-schemas
@@ -172,7 +174,7 @@ package is added, renamed, or removed:
 - the root `package.json` `build` chain — the single source of build order;
   `scripts/build-all.sh` and `scripts/preflight.sh` delegate to it rather than
   re-listing packages.
-- `scripts/release-all.sh` — releases all 23 packages in the same order.
+- `scripts/release-all.sh` — releases all 24 packages in the same order.
 
 Key ordering constraints: `chat-schemas` before `chat-core`; `chat-core` plus
 the UI tier (`ui-core`, `file-input`, `upload-ui`, `media-viewer`,

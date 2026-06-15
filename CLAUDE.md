@@ -4,14 +4,14 @@
 
 Shared monorepo of reusable packages published under the `@ttt-productions/*` scope.
 
-After the package architecture rework, the monorepo has **23 packages**. Generic packages must not know about TTT-specific business identifiers, Firestore collection names, copy strings, moderation policies, or domain-event catalogs. TTT-specific data lives in `@ttt-productions/ttt-core` or in the consuming app wrapper.
+After the package architecture rework, the monorepo has **24 packages**. Generic packages must not know about TTT-specific business identifiers, Firestore collection names, copy strings, moderation policies, or domain-event catalogs. TTT-specific data lives in `@ttt-productions/ttt-core` or in the consuming app wrapper.
 
 Read `docs/packages/` first for package ownership. Read `docs/design/` for cross-cutting invariants such as server-safe entries, React boundaries, and upload path shape. For the one-stop model of tiers, root purity, subpath conventions, direction rules, build/release order, internal version pinning, and the boundary-guard tests, see `docs/packages/package-architecture.md`.
 
 ## Verification
 
 `npm run test:all` is the canonical, must-pass gate for any change here — run it green BEFORE handing off a
-publish list or pushing. It chains: lint → build (all 23, topo order) → typecheck → `npx tsc -b --noEmit` →
+publish list or pushing. It chains: lint → build (all 24, topo order) → typecheck → `npx tsc -b --noEmit` →
 `vitest run`. **Build runs before the two type-check stages on purpose:** both `typecheck` (per-workspace
 `tsc --noEmit`) and `tsc -b --noEmit` resolve internal `@ttt-productions/*` imports through `node_modules →
 dist`, so `dist` must exist first — and the release preflight (and `npm run clean`) wipe `dist`, so a
@@ -20,7 +20,7 @@ one that type-checks `__tests__` (per-workspace `typecheck` and the release pref
 `test:all` catches latent test-file type errors nothing else does.
 
 **Quiet runner — `npm run test:quiet` (the pre-commit / pre-publish gate).** Runs the `test:all` stages
-(lint → build all 23 → typecheck → `tsc -b --noEmit` → `vitest run`) and then, ONLY if all of them pass, a
+(lint → build all 24 → typecheck → `tsc -b --noEmit` → `vitest run`) and then, ONLY if all of them pass, a
 final `schema` stage that runs `schema:check` and **auto-regenerates** `docs/generated/firestore-schema.{md,mmd}`
 when they are stale. One line per stage; on failure it prints only the failing output (failing tests for
 Vitest, error tail for plain stages), never the full passing log. Stop-on-fail throughout — a test failure
@@ -81,6 +81,7 @@ remove it to "fix" a release issue.
 - `report-core`
 - `upload-core`
 - `chat-core` (pure — depends only on `chat-schemas`)
+- `realtime-core` (generic realtime primitives — depends only on `edge-protocol-core`)
 
 > `file-input` also depends on `media-viewer` (it renders `MediaPreview` in `MediaInput`'s in-picker file preview) — the only intra-Tier-1 edge. Build/release order already builds `media-viewer` before `file-input`, so no tier renumbering is needed.
 

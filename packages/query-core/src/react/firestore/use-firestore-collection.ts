@@ -10,7 +10,12 @@ import {
   type DocumentData,
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
-import type { FirestoreCollectionOptions, WithId } from '../../firestore/types.js';
+import type {
+  FirestoreCollectionOptions,
+  FirestoreSourceState,
+  WithId,
+  WithSourceState,
+} from '../../firestore/types.js';
 
 /**
  * Fetch all documents from a Firestore collection with optional realtime updates.
@@ -41,7 +46,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
   staleTime,
   gcTime,
   select,
-}: FirestoreCollectionOptions<T>): UseQueryResult<WithId<T>[], Error> {
+}: FirestoreCollectionOptions<T>): WithSourceState<UseQueryResult<WithId<T>[], Error>> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
@@ -53,11 +58,14 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
   // Listener errors can't surface through useQuery (the queryFn is disabled while
   // subscribed), so they're tracked here and merged into the returned result.
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
+  // Metadata-derived source state — reset whenever the subscription identity changes.
+  const [sourceState, setSourceState] = useState<FirestoreSourceState>('connecting');
 
   useEffect(() => {
     if (!subscribe || !enabled) return;
 
     setSubscriptionError(null);
+    setSourceState('connecting');
     const collectionRef = collection(db, collectionPath);
     const q = constraints.length > 0
       ? query(collectionRef, ...constraints)
@@ -65,6 +73,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
 
     const unsubscribe = onSnapshot(
       q,
+      { includeMetadataChanges: true },
       (snapshot) => {
         setSubscriptionError(null);
         const items = snapshot.docs.map((docSnap) => {
@@ -74,10 +83,13 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
           return data as WithId<T>;
         });
         queryClient.setQueryData(queryKey, items);
+        const fromCache = snapshot.metadata?.fromCache ?? false;
+        setSourceState((prev) => (fromCache ? (prev === 'connecting' ? 'connecting' : 'offline') : 'live'));
       },
       (error) => {
         console.error('[useFirestoreCollection] Subscription error:', error);
         setSubscriptionError(error);
+        setSourceState('error');
         queryClient.setQueryData(queryKey, undefined);
       }
     );
@@ -123,8 +135,9 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
       isPending: false,
       isLoading: false,
       status: 'error',
-    } as UseQueryResult<WithId<T>[], Error>;
+      sourceState,
+    } as WithSourceState<UseQueryResult<WithId<T>[], Error>>;
   }
 
-  return queryResult;
+  return { ...queryResult, sourceState } as WithSourceState<UseQueryResult<WithId<T>[], Error>>;
 }

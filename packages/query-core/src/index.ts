@@ -7,6 +7,8 @@ export { invalidateByPrefix, removeByPrefix, updateQueryData } from './cache-hel
 // Firestore Types & Pure Helpers
 export type {
   WithId,
+  FirestoreSourceState,
+  WithSourceState,
   FirestoreBaseOptions,
   FirestoreDocOptions,
   FirestoreCollectionOptions,

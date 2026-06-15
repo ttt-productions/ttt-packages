@@ -149,6 +149,12 @@ erDiagram
     field votedOn
     field auditionEntryArtisanCreator
   }
+  causes {
+    field causeId
+    field kind
+    field ref
+    field deadLetteredAt
+  }
   changedDocs {
     field docPath
     field entityType
@@ -157,6 +163,84 @@ erDiagram
     field newValue
     field restored
     field restoredAt
+  }
+  chatAdminActionCommands {
+    field requestId
+    field actorUid
+    field actorMode
+    field systemRole
+    field channelRef
+    field messageSeq
+    field action
+    field caseId
+    field reason
+    field expectedMessageRevision
+    field payloadHash
+    field state
+  }
+  chatChannelAuthProjections {
+    field channelRefScope
+    field workProjectId
+    field guildChatChannelId
+    field guildInviteId
+    field uid
+    field channelKey
+    field channelAuthState
+    field channelAuthVersion
+    field inputFingerprint
+    field updatedAt
+  }
+  chatMessageOutbox {
+    field commandId
+    field kind
+    field threadRef
+    field payload
+    field payloadVersion
+    field status
+    field attemptCount
+    field nextAttemptAt
+    field lastError
+    field createdAt
+    field appliedAt
+    field deadLetteredAt
+  }
+  chatScopeDegraded {
+    field scopeKey
+    field scopeKind
+    field workProjectId
+    field guildChatChannelId
+    field guildInviteId
+    field uid
+    field unresolvedCauseCount
+    field updatedAt
+  }
+  chatSyncEvents {
+    field eventId
+    field targetDo
+    field kind
+    field version
+    field payload
+    field tombstone
+    field payloadHash
+    field status
+    field attemptCount
+    field nextAttemptAt
+    field lastError
+    field createdAt
+  }
+  chatSyncFanoutJobs {
+    field jobId
+    field selectorKind
+    field selectorArgs
+    field causeVersion
+    field cursor
+    field revision
+    field status
+    field attemptCount
+    field nextAttemptAt
+    field lastError
+    field createdAt
+    field completedAt
   }
   commissionListings {
     field commissionListingId
@@ -308,6 +392,7 @@ erDiagram
     field joinedAt
     field status
     field holderType
+    field guildAuthInputVersion
   }
   hallItems {
     field hallItemId
@@ -391,6 +476,34 @@ erDiagram
     field totalSent
     field createdAt
     field updatedAt
+  }
+  notificationDeliveries {
+    field deliveryId
+    field state
+    field notificationType
+    field eventId
+    field recipientUid
+    field aggregationKey
+    field strategy
+    field payload
+    field payloadVersion
+    field materializationClass
+    field createdAt
+    field attemptCount
+  }
+  notificationFanoutJobs {
+    field jobId
+    field schemaVersion
+    field notificationType
+    field eventId
+    field priority
+    field payload
+    field phases
+    field phaseIndex
+    field revision
+    field status
+    field attemptCount
+    field nextAttemptAt
   }
   notificationHistory {
     field id
@@ -657,6 +770,8 @@ erDiagram
     field profilePictureAssetId
     field artisanCreator
     field status
+    field accountAccessVersion
+    field accountAccessState
     field displayNameResetRequired
     field ownedWorkProjects
     field associatedWorkProjects
@@ -723,6 +838,8 @@ erDiagram
   }
   allWorkProjects ||--o{ auditionBoard : "workProjectId"
   allWorkProjects ||--o{ auditionEntries : "workProjectId"
+  allWorkProjects ||--o{ chatChannelAuthProjections : "workProjectId"
+  allWorkProjects ||--o{ chatScopeDegraded : "workProjectId"
   allWorkProjects ||--o{ commissionProposals : "workProjectId"
   allWorkProjects ||--o{ followerReleaseJobs : "workProjectId"
   allWorkProjects ||--o{ guildChatChannels : "workProjectId"
@@ -738,6 +855,8 @@ erDiagram
   commissionListings ||--o{ commissionProposals : "commissionListingId"
   commissionListings ||--o{ commissionProposals : "commissionProposalId"
   contentViolations ||--o{ adminTasks : "violationId"
+  guildInviteConversations ||--o{ chatChannelAuthProjections : "guildInviteId"
+  guildInviteConversations ||--o{ chatScopeDegraded : "guildInviteId"
   guildInviteConversations ||--o{ commissionProposals : "guildInviteId"
   guildInviteConversations ||--o{ conversationMessages : "guildInviteId"
   guildInviteConversations ||--o{ guildChatMessages : "guildInviteId"
@@ -755,6 +874,9 @@ erDiagram
   userProfiles ||--o{ adminNotificationHistory : "targetUserId"
   userProfiles ||--o{ adminTasks : "foundingArtisanUid"
   userProfiles ||--o{ adminTasks : "userId"
+  userProfiles ||--o{ chatAdminActionCommands : "actorUid"
+  userProfiles ||--o{ chatChannelAuthProjections : "uid"
+  userProfiles ||--o{ chatScopeDegraded : "uid"
   userProfiles ||--o{ contentReports : "reportedUserId"
   userProfiles ||--o{ contentReports : "reporterUserId"
   userProfiles ||--o{ contentReports : "resolvedBy"

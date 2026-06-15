@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { doc, getDoc, onSnapshot, type DocumentData } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
-import type { FirestoreDocOptions, WithId } from '../../firestore/types.js';
+import type {
+  FirestoreDocOptions,
+  FirestoreSourceState,
+  WithId,
+  WithSourceState,
+} from '../../firestore/types.js';
 
 /**
  * Fetch a single Firestore document with optional realtime updates.
@@ -37,7 +42,7 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
   staleTime,
   gcTime,
   select,
-}: FirestoreDocOptions<T>): UseQueryResult<WithId<T> | null, Error> {
+}: FirestoreDocOptions<T>): WithSourceState<UseQueryResult<WithId<T> | null, Error>> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
   const queryKeyMemo = JSON.stringify(queryKey);
@@ -45,15 +50,19 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
   // Listener errors can't surface through useQuery (the queryFn is disabled while
   // subscribed), so they're tracked here and merged into the returned result.
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
+  // Metadata-derived source state — reset whenever the subscription identity changes.
+  const [sourceState, setSourceState] = useState<FirestoreSourceState>('connecting');
 
   // Set up realtime subscription
   useEffect(() => {
     if (!subscribe || !enabled) return;
 
     setSubscriptionError(null);
+    setSourceState('connecting');
     const docRef = doc(db, docPath);
     const unsubscribe = onSnapshot(
       docRef,
+      { includeMetadataChanges: true },
       (snapshot) => {
         setSubscriptionError(null);
         if (snapshot.exists()) {
@@ -65,10 +74,13 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
         } else {
           queryClient.setQueryData(queryKey, null);
         }
+        const fromCache = snapshot.metadata?.fromCache ?? false;
+        setSourceState((prev) => (fromCache ? (prev === 'connecting' ? 'connecting' : 'offline') : 'live'));
       },
       (error) => {
         console.error('[useFirestoreDoc] Subscription error:', error);
         setSubscriptionError(error);
+        setSourceState('error');
         queryClient.setQueryData(queryKey, undefined);
       }
     );
@@ -113,8 +125,9 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
       isPending: false,
       isLoading: false,
       status: 'error',
-    } as UseQueryResult<WithId<T> | null, Error>;
+      sourceState,
+    } as WithSourceState<UseQueryResult<WithId<T> | null, Error>>;
   }
 
-  return query;
+  return { ...query, sourceState } as WithSourceState<UseQueryResult<WithId<T> | null, Error>>;
 }

@@ -21,6 +21,11 @@ export const NotificationDocSchema = z.object({
   targetPath: z.string(),
   metadata: z.record(z.string(), z.unknown()),
   seenAt: z.number(),
+  // Opaque per-generation token rotated on create / material re-light; the
+  // SEEN/ARCHIVE precondition (notification redesign). Optional on the legacy
+  // doc shape; the ledger materializer always sets it.
+  activityGeneration: z.string().optional(),
+  seenAtGeneration: z.string().optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 });

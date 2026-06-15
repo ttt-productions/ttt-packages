@@ -46,6 +46,18 @@ export const COLLECTIONS = {
   // Cloud-Functions-only fan-out job queue (admin SDK writes; no client access).
   FOLLOWER_RELEASE_JOBS: 'followerReleaseJobs',
 
+  // Notification redesign — delivery ledger + unified fanout engine (Admin-SDK-only).
+  NOTIFICATION_DELIVERIES: 'notificationDeliveries',
+  NOTIFICATION_FANOUT_JOBS: 'notificationFanoutJobs',
+
+  // Chat realtime sync / projection / command collections (Admin-SDK-only).
+  CHAT_CHANNEL_AUTH_PROJECTIONS: 'chatChannelAuthProjections',
+  CHAT_SCOPE_DEGRADED: 'chatScopeDegraded',
+  CHAT_SYNC_EVENTS: 'chatSyncEvents',
+  CHAT_SYNC_FANOUT_JOBS: 'chatSyncFanoutJobs',
+  CHAT_MESSAGE_OUTBOX: 'chatMessageOutbox',
+  CHAT_ADMIN_ACTION_COMMANDS: 'chatAdminActionCommands',
+
   // Feedback & Metadata
   FEEDBACK_SUBMISSIONS: 'feedbackSubmissions',
   FEEDBACK_ALIASES: 'feedbackAliases',
@@ -124,6 +136,9 @@ export const NESTED_SUBCOLLECTIONS = {
 
   // Moderation
   CHANGED_DOCS: 'changedDocs',
+
+  // Chat degraded-scope causes (chatScopeDegraded/{scopeKey}/causes/{causeId}).
+  CHAT_SCOPE_DEGRADED_CAUSES: 'causes',
 } as const;
 
 /**

@@ -6,6 +6,7 @@ import {
   useInFlightUploadsState,
   useUploadActivityState,
   useInFlightUpload,
+  useUploadsSourceState,
   type InFlightUploadsAdapter,
   type FirestoreSubscribeFn,
   type FirestoreLikeSnapshot,
@@ -28,11 +29,13 @@ function makeAdapter(overrides: Partial<InFlightUploadsAdapter> = {}): InFlightU
 }
 
 type DriverSnapshot = (snapshot: FirestoreLikeSnapshot) => void;
-function makeDriver(): { subscribe: FirestoreSubscribeFn; drive: DriverSnapshot; unsubCalls: { count: number } } {
+function makeDriver(): { subscribe: FirestoreSubscribeFn; drive: DriverSnapshot; driveError: (e: unknown) => void; unsubCalls: { count: number } } {
   let driver: DriverSnapshot | null = null;
+  let errorDriver: ((e: unknown) => void) | null = null;
   const unsubCalls = { count: 0 };
   const subscribe: FirestoreSubscribeFn = (args) => {
     driver = args.onSnapshot;
+    errorDriver = args.onError;
     return () => {
       unsubCalls.count += 1;
     };
@@ -41,7 +44,16 @@ function makeDriver(): { subscribe: FirestoreSubscribeFn; drive: DriverSnapshot;
     if (!driver) throw new Error('No active subscriber');
     driver(snapshot);
   };
-  return { subscribe, drive, unsubCalls };
+  const driveError = (e: unknown) => {
+    if (!errorDriver) throw new Error('No active subscriber');
+    errorDriver(e);
+  };
+  return { subscribe, drive, driveError, unsubCalls };
+}
+
+/** A metadata-bearing snapshot (no doc changes) to drive source-state transitions. */
+function metaSnapshot(fromCache: boolean): FirestoreLikeSnapshot {
+  return { docChanges: () => [], metadata: { fromCache } };
 }
 
 function makeSnapshot(changes: Array<{ type: 'added' | 'modified' | 'removed'; id: string; data?: unknown }>): FirestoreLikeSnapshot {
@@ -287,5 +299,102 @@ describe('InFlightUploadsProvider', () => {
     });
 
     expect(result.current.map((u) => u.id)).toEqual(['b', 'a']);
+  });
+});
+
+describe('InFlightUploadsProvider — rejected seen fields (round-9 finding 9)', () => {
+  it('carries uploadTraySeenAt/By through fromParsed on the rejected branch', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    const { result } = renderHook(() => useInFlightUpload('r1'), { wrapper: wrap(adapter, subscribe) });
+
+    act(() => {
+      drive(
+        makeSnapshot([
+          {
+            type: 'added',
+            id: 'r1',
+            data: {
+              id: 'r1',
+              userId: 'user1',
+              fileOrigin: 'sample-origin',
+              status: 'rejected',
+              createdAt: 100,
+              surface: '/x',
+              rejectedAt: 110,
+              rejectionType: 'media',
+              errorMessage: 'nope',
+              uploadTraySeenAt: 120,
+              uploadTraySeenBy: 'user1',
+            },
+          },
+        ]),
+      );
+    });
+
+    const upload = result.current;
+    expect(upload?.status).toBe('rejected');
+    // Before the fix these were dropped → a seen rejected upload relit the Files dot forever.
+    expect(upload).toMatchObject({ uploadTraySeenAt: 120, uploadTraySeenBy: 'user1' });
+  });
+});
+
+describe('InFlightUploadsProvider — source state', () => {
+  it('starts connecting and goes live on a server-confirmed snapshot', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    const { result } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
+
+    expect(result.current).toBe('connecting');
+    act(() => drive(metaSnapshot(false)));
+    expect(result.current).toBe('live');
+  });
+
+  it('stays connecting on a cache-first snapshot until the server confirms', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    const { result } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
+
+    act(() => drive(metaSnapshot(true)));
+    expect(result.current).toBe('connecting');
+    act(() => drive(metaSnapshot(false)));
+    expect(result.current).toBe('live');
+  });
+
+  it('goes offline after live when only cached data arrives, then back to live', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    const { result } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
+
+    act(() => drive(metaSnapshot(false)));
+    expect(result.current).toBe('live');
+    act(() => drive(metaSnapshot(true)));
+    expect(result.current).toBe('offline');
+    act(() => drive(metaSnapshot(false)));
+    expect(result.current).toBe('live');
+  });
+
+  it('goes error on a listener error', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive, driveError } = makeDriver();
+    const { result } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
+
+    act(() => drive(metaSnapshot(false)));
+    act(() => driveError(new Error('permission-denied')));
+    expect(result.current).toBe('error');
+  });
+
+  it('resets to connecting when the user identity changes', () => {
+    let currentUserId: string | null = 'userA';
+    const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
+    const { subscribe, drive } = makeDriver();
+    const { result, rerender } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
+
+    act(() => drive(metaSnapshot(false)));
+    expect(result.current).toBe('live');
+
+    currentUserId = 'userB';
+    rerender();
+    expect(result.current).toBe('connecting');
   });
 });
