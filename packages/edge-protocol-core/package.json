@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/edge-protocol-core",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Runtime-neutral primitives for signed internal backend↔Worker/DO calls: HMAC signing, canonical payload hashing, versioned-apply rule, structured-error + protocol-version envelopes",
     "repository": {
         "type": "git",
