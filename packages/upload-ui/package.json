@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/upload-ui",
-    "version": "0.7.0",
+    "version": "0.7.1",
     "description": "Upload UI primitives: local upload guard provider, useGuardedUpload helper, DeferredUploadFormShell for forms that defer Firebase Storage upload until form submit.",
     "repository": {
         "type": "git",
