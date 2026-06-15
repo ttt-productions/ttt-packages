@@ -8,7 +8,7 @@ Code is the source of truth. This document explains the durable model; exact
 exports live in each package's `package.json`, and the wiring lives in the root
 `package.json` build chain and `scripts/`.
 
-The monorepo has **22 packages**. Generic packages never know about TTT-specific
+The monorepo has **23 packages**. Generic packages never know about TTT-specific
 identifiers, Firestore collection names, copy, moderation policy, or
 domain-event catalogs — that lives in `@ttt-productions/ttt-core` or in the
 consuming app.
@@ -23,7 +23,8 @@ package may consume it.
 - **Tier 0 — generic foundations (zero internal runtime deps):**
   `firebase-helpers`, `chat-schemas`, `media-schemas`, `mobile-core`,
   `monitoring-core`, `query-core`, `theme-core`, `ui-core`, `rate-limit-core`,
-  `audit-core`, `moderation-core`, `auth-core`.
+  `audit-core`, `moderation-core`, `auth-core`, `edge-protocol-core`
+  (runtime-neutral signed-edge-call primitives; WebCrypto + zod only).
 - **Tier 1 — depend on Tier 0 only:** `chat-core` (→ `chat-schemas`),
   `file-input` (→ `ui-core`, `media-schemas`, `media-viewer`), `media-viewer`
   (→ `media-schemas`, `ui-core`), `media-processing-core` (→ `media-schemas`),
@@ -35,7 +36,7 @@ package may consume it.
   `ui-core`, `file-input`, `upload-ui`, `media-viewer`, `mobile-core`,
   `firebase-helpers`).
 - **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
-  `media-schemas`, `report-core`).
+  `edge-protocol-core`, `media-schemas`, `report-core`).
 
 The internal runtime-dependency edges (peers/dev excluded — they do not affect
 build order):
@@ -171,7 +172,7 @@ package is added, renamed, or removed:
 - the root `package.json` `build` chain — the single source of build order;
   `scripts/build-all.sh` and `scripts/preflight.sh` delegate to it rather than
   re-listing packages.
-- `scripts/release-all.sh` — releases all 22 packages in the same order.
+- `scripts/release-all.sh` — releases all 23 packages in the same order.
 
 Key ordering constraints: `chat-schemas` before `chat-core`; `chat-core` plus
 the UI tier (`ui-core`, `file-input`, `upload-ui`, `media-viewer`,

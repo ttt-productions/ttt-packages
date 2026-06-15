@@ -85,6 +85,7 @@ import {
 } from './notifications.js';
 import { PendingMediaSchema, ArchivedPendingMediaSchema } from '../media/pending-media.js';
 import { MediaAssetSchema } from './media-assets.js';
+import { MediaActivationJobSchema } from './media-activation-jobs.js';
 import {
   ReservedDisplayNameSchema,
   StakeShareAuditEventSchema,
@@ -162,6 +163,7 @@ export const COLLECTION_SCHEMAS = {
   'pendingMedia/{pendingMediaId}': PendingMediaSchema,
   'pendingMediaArchive/{pendingMediaId}': ArchivedPendingMediaSchema,
   'mediaAssets/{mediaAssetId}': MediaAssetSchema,
+  'mediaActivationJobs/{jobId}': MediaActivationJobSchema,
 
   // ===== Notifications =====
   'activeUserNotifications/{notificationId}': NotificationDocSchema,

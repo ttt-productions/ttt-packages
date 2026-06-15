@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 // Quiet pre-commit / pre-publish gate for ttt-packages. Runs the canonical `test:all` stages —
-// lint -> build (all 22, topo order) -> typecheck -> `tsc -b --noEmit` -> `vitest run` — and then,
+// lint -> build (all 23, topo order) -> typecheck -> `tsc -b --noEmit` -> `vitest run` — and then,
 // ONLY if every one of those passed, a final `schema` stage that checks the generated Firestore
 // schema docs are in sync and AUTO-REGENERATES them if they are stale.
 //
@@ -43,7 +43,7 @@ const RESET = '\x1b[0m';
 //   lint       -> npm run lint            (eslint, all workspaces)
 //   typecheck  -> npm run typecheck       (per-workspace tsc --noEmit; skips __tests__)
 //   tscb       -> npx tsc -b --noEmit     (project refs; the ONLY step that type-checks __tests__)
-//   build      -> npm run build           (all 22 packages, topo order)
+//   build      -> npm run build           (all 23 packages, topo order)
 //   test       -> npx vitest run          (the test suite)
 //   schema     -> generate-schema-docs.mjs --check, auto-regenerating the docs if they are stale
 const argv = process.argv.slice(2);
@@ -376,7 +376,7 @@ async function stageSchema(name, root) {
     // Build first: the two type-check stages below resolve @ttt-productions/* via node_modules -> dist,
     // so dist must exist. `npm run build` is topo-ordered and self-sufficient from a clean tree.
     if (shouldRun('build')) {
-        if (!(await stagePlain('build (all 22)', 'npm', ['run', 'build'], root))) return finish(overallStart);
+        if (!(await stagePlain('build (all 23)', 'npm', ['run', 'build'], root))) return finish(overallStart);
     }
     if (shouldRun('typecheck')) {
         if (!(await stagePlain('typecheck', 'npm', ['run', 'typecheck'], root))) return finish(overallStart);

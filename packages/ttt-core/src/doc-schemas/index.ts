@@ -5,7 +5,9 @@
 // the main barrel via ../types/*; this subpath is the home of the runtime schemas.
 
 export * from './user.js';
+export * from './firestore-primitives.js';
 export * from './media-assets.js';
+export * from './media-activation-jobs.js';
 export * from './publicUser.js';
 export * from './work-project.js';
 export * from './content.js';

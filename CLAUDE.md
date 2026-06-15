@@ -4,14 +4,14 @@
 
 Shared monorepo of reusable packages published under the `@ttt-productions/*` scope.
 
-After the package architecture rework, the monorepo has **22 packages**. Generic packages must not know about TTT-specific business identifiers, Firestore collection names, copy strings, moderation policies, or domain-event catalogs. TTT-specific data lives in `@ttt-productions/ttt-core` or in the consuming app wrapper.
+After the package architecture rework, the monorepo has **23 packages**. Generic packages must not know about TTT-specific business identifiers, Firestore collection names, copy strings, moderation policies, or domain-event catalogs. TTT-specific data lives in `@ttt-productions/ttt-core` or in the consuming app wrapper.
 
 Read `docs/packages/` first for package ownership. Read `docs/design/` for cross-cutting invariants such as server-safe entries, React boundaries, and upload path shape. For the one-stop model of tiers, root purity, subpath conventions, direction rules, build/release order, internal version pinning, and the boundary-guard tests, see `docs/packages/package-architecture.md`.
 
 ## Verification
 
 `npm run test:all` is the canonical, must-pass gate for any change here — run it green BEFORE handing off a
-publish list or pushing. It chains: lint → build (all 22, topo order) → typecheck → `npx tsc -b --noEmit` →
+publish list or pushing. It chains: lint → build (all 23, topo order) → typecheck → `npx tsc -b --noEmit` →
 `vitest run`. **Build runs before the two type-check stages on purpose:** both `typecheck` (per-workspace
 `tsc --noEmit`) and `tsc -b --noEmit` resolve internal `@ttt-productions/*` imports through `node_modules →
 dist`, so `dist` must exist first — and the release preflight (and `npm run clean`) wipe `dist`, so a
@@ -20,7 +20,7 @@ one that type-checks `__tests__` (per-workspace `typecheck` and the release pref
 `test:all` catches latent test-file type errors nothing else does.
 
 **Quiet runner — `npm run test:quiet` (the pre-commit / pre-publish gate).** Runs the `test:all` stages
-(lint → build all 22 → typecheck → `tsc -b --noEmit` → `vitest run`) and then, ONLY if all of them pass, a
+(lint → build all 23 → typecheck → `tsc -b --noEmit` → `vitest run`) and then, ONLY if all of them pass, a
 final `schema` stage that runs `schema:check` and **auto-regenerates** `docs/generated/firestore-schema.{md,mmd}`
 when they are stale. One line per stage; on failure it prints only the failing output (failing tests for
 Vitest, error tail for plain stages), never the full passing log. Stop-on-fail throughout — a test failure
@@ -59,6 +59,7 @@ remove it to "fix" a release issue.
 ### Tier 0 — generic foundations
 
 - `auth-core`
+- `edge-protocol-core`
 - `firebase-helpers`
 - `chat-schemas`
 - `media-schemas`
@@ -99,6 +100,7 @@ remove it to "fix" a release issue.
 
 ## Important ownership notes
 
+- `edge-protocol-core` owns runtime-neutral primitives for signed internal backend↔Worker/Durable-Object calls: HMAC request signing/verify, canonical payload hashing, the versioned-apply decision rule, and the structured-error + protocol-version envelopes. WebCrypto + zod only (runs in Node 22 and Cloudflare Workers); deliberately domain-neutral — consumers (the media serving authority now, the chat realtime layer later) supply their own secret + audience. It never imports a chat- or media-shaped package.
 - `media-schemas` owns generic media types, media helpers, neutral media-origin spec shape, and pending-media schema factories.
 - `ttt-core` owns concrete `FileOrigin`, `TTT_MEDIA_SPECS`, TTT upload wire schemas, target-info schemas, TTT pending-media schemas, domain events, and TTT atoms.
 - `chat-schemas` owns pure chat schemas and server-safe chat contract constants that need to be safe for both UI and backend/schema consumers.
@@ -115,6 +117,7 @@ remove it to "fix" a release issue.
 Current entry shape:
 
 - `auth-core`: `.`, `./client`, `./react`, `./server`
+- `edge-protocol-core`: `.`
 - `firebase-helpers`: `.`, `./server`, `./react`, `./client`, `./firestore-client`
 - `chat-schemas`: `.`
 - `media-schemas`: `.`
@@ -140,11 +143,11 @@ Backend imports must not accidentally pull React, browser upload code, or app sh
 
 Both build order and release order are the topological order of the dependency graph (deps before dependents) and are encoded in two places that must stay in sync: the root `package.json` `build` chain (which `scripts/build-all.sh` and `scripts/preflight.sh` delegate to) and `scripts/release-all.sh`. See `docs/packages/package-architecture.md` for the full graph and the rules below.
 
-Build generic Tier 0 packages first, then Tier 1 (including the now-pure `chat-core`), then `ttt-core`, then `upload-ui`, then `chat-react`. `ttt-core` depends on `audit-core`, `chat-schemas`, `media-schemas`, and `report-core`, so those packages must build before `ttt-core`. `chat-react` depends on `chat-core` + the UI tier (`ui-core`, `file-input`, `upload-ui`, `media-viewer`, `mobile-core`) plus `media-schemas`/`firebase-helpers`, so it builds after all of them. When adopting from `ttt-prod`, publish the package-side changes first and then update the consuming app against installed `node_modules/@ttt-productions/*` packages.
+Build generic Tier 0 packages first, then Tier 1 (including the now-pure `chat-core`), then `ttt-core`, then `upload-ui`, then `chat-react`. `ttt-core` depends on `audit-core`, `chat-schemas`, `edge-protocol-core`, `media-schemas`, and `report-core`, so those packages must build before `ttt-core`. `chat-react` depends on `chat-core` + the UI tier (`ui-core`, `file-input`, `upload-ui`, `media-viewer`, `mobile-core`) plus `media-schemas`/`firebase-helpers`, so it builds after all of them. When adopting from `ttt-prod`, publish the package-side changes first and then update the consuming app against installed `node_modules/@ttt-productions/*` packages.
 
 ## Release order
 
-`scripts/release-all.sh` releases all 22 packages in the same dependency-safe order: a package publishes only after every internal `@ttt-productions/*` dependency it consumes. `chat-react` releases after `chat-core` and the UI tier; `ttt-core` after `report-core`/`audit-core`/the schema packages. Internal deps are authored `"*"` in source for workspace dev and rewritten to **caret ranges** (`^x.y.z` — across `dependencies`, `devDependencies`, AND `peerDependencies`) at pack time in CI (`scripts/pin-internal-deps.mjs`, invoked from `.github/workflows/publish.yml`); published manifests never contain `"*"` and never an exact internal pin. Caret (not exact) means bumping one package by a patch/minor does **not** force every dependent to be republished in lockstep, so a single-package patch release installs cleanly in consumers (caret on a 0.x version still locks the minor, so a breaking minor/major is not auto-adopted). The user handles version bumps and publishing.
+`scripts/release-all.sh` releases all 23 packages in the same dependency-safe order: a package publishes only after every internal `@ttt-productions/*` dependency it consumes. `chat-react` releases after `chat-core` and the UI tier; `ttt-core` after `report-core`/`audit-core`/the schema packages. Internal deps are authored `"*"` in source for workspace dev and rewritten to **caret ranges** (`^x.y.z` — across `dependencies`, `devDependencies`, AND `peerDependencies`) at pack time in CI (`scripts/pin-internal-deps.mjs`, invoked from `.github/workflows/publish.yml`); published manifests never contain `"*"` and never an exact internal pin. Caret (not exact) means bumping one package by a patch/minor does **not** force every dependent to be republished in lockstep, so a single-package patch release installs cleanly in consumers (caret on a 0.x version still locks the minor, so a breaking minor/major is not auto-adopted). The user handles version bumps and publishing.
 
 ## Release and adoption workflow
 

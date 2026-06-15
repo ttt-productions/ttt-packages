@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ClientContextSchema } from "../schemas.js";
+import { ClientContextSchema, MediaPublicationStateSchema } from "../schemas.js";
 
 export function createPendingMediaSchemas<
   TFileOriginSchema extends z.ZodTypeAny,
@@ -47,6 +47,10 @@ export function createPendingMediaSchemas<
     targetInfo: z.unknown().optional(),
     textContent: z.string().optional(),
     clientContext: ClientContextSchema,
+    // Publication/serving readiness — orthogonal to `status` (the processing
+    // outcome). Optional/additive: absent ⇒ treat as `notStarted`. Rides on
+    // every status branch + the archive branches via this shared base.
+    publicationState: MediaPublicationStateSchema.optional(),
     createdAt: z.number(),
     updatedAt: z.number(),
     processingStartedAt: z.number().optional(),

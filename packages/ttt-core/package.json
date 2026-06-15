@@ -99,6 +99,7 @@
     "dependencies": {
         "@ttt-productions/audit-core": "*",
         "@ttt-productions/chat-schemas": "*",
+        "@ttt-productions/edge-protocol-core": "*",
         "@ttt-productions/media-schemas": "*",
         "@ttt-productions/report-core": "*",
         "zod": "^4.4.3"

@@ -1,0 +1,39 @@
+{
+    "name": "@ttt-productions/edge-protocol-core",
+    "version": "0.0.0",
+    "description": "Runtime-neutral primitives for signed internal backend↔Worker/DO calls: HMAC signing, canonical payload hashing, versioned-apply rule, structured-error + protocol-version envelopes",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/edge-protocol-core"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc -b",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "typescript": "^5.8.3"
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+}

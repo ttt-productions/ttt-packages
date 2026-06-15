@@ -174,6 +174,10 @@ export const PATH_BUILDERS = {
   mediaAsset: (mediaAssetId: string): [string, string] =>
     [COLLECTIONS.MEDIA_ASSETS, mediaAssetId],
 
+  // Server-only durable activation job (prepare → activate → publish + recovery).
+  mediaActivationJob: (jobId: string): [string, string] =>
+    [COLLECTIONS.MEDIA_ACTIVATION_JOBS, jobId],
+
   // ===== PAYMENT & PLEDGE PATHS =====
   // Public-safe canonical money record. Stripe IDs live on pledgePaymentProviderRef (server-only).
   pledgePayment: (pledgePaymentId: string): [string, string] =>
