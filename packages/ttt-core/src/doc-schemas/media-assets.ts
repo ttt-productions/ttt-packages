@@ -116,6 +116,7 @@ export const MediaPublicationKindSchema = z.enum([
   'squarePostMedia',
   'workAsset',
   'hallCover',
+  'workContentMedia', // sub-item media (tale chapter / tune track / television episode) — attaches the *AssetId field on the workContent doc; scoped to the work project
   'auditionMedia',
   'commissionListingMedia',
   'commissionProposalMedia',
