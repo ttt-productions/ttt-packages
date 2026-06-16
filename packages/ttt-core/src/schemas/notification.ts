@@ -45,6 +45,13 @@ export const NOTIFICATION_TYPE_VALUES = [
   'threshold_library_submission',
   'admin_announcement',
   'followed_content_published',
+  // chat-edge-rebuild P7 — the two new fanout triggers (NOTIFICATIONS_REDESIGN "Triggers").
+  // `member_content_published`: the Hall-publish MEMBER job ("your work was published!") — same
+  //   `thresholdItemId` eventId as the follower job, different type so `deliveryId` stays distinct.
+  // `followed_craft_skill_published`: craft-skill publish → the artisan's followers
+  //   (`staticRelight` strategy — count 1 forever, static copy, no count shown).
+  'member_content_published',
+  'followed_craft_skill_published',
 ] as const;
 
 export const NotificationTypeSchema = z.enum(NOTIFICATION_TYPE_VALUES);
@@ -83,6 +90,8 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
   threshold_library_submission: { category: 'admin', delivery: 'queued', defaultChannels: ['inApp'] },
   admin_announcement: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   followed_content_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
+  member_content_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
+  followed_craft_skill_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
 };
 
 // ============================================================================
@@ -142,6 +151,24 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     hallItemId: hallItemIdSchema,
     hallItemTitle: titleSchema,
     hallSubItemType: z.enum(['chapter', 'track', 'episode']),
+  }).strict(),
+  // P7 Hall-publish MEMBER job — same Hall-publication fields as the follower type (it describes
+  // the SAME publication to the work's members; the work route + "your work was published!" copy
+  // are set by the emitter via targetPath/title, not metadata).
+  z.object({
+    type: z.literal('member_content_published'),
+    workProjectId: workProjectIdSchema,
+    workTitle: titleSchema,
+    hallItemId: hallItemIdSchema,
+    hallItemTitle: titleSchema,
+    hallSubItemType: z.enum(['chapter', 'track', 'episode']),
+  }).strict(),
+  // P7 craft-skill publish — points at the artisan whose skills updated. The actor name
+  // ("X uploaded new craft skills") + the profile/skills route resolve from `artisanUid` at
+  // render time (Display Identity Invariant); `staticRelight` shows no count.
+  z.object({
+    type: z.literal('followed_craft_skill_published'),
+    artisanUid: userIdSchema,
   }).strict(),
 ]);
 export type NotificationMetadataByType = z.infer<typeof NotificationMetadataByTypeSchema>;

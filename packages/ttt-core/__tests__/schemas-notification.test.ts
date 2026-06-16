@@ -93,6 +93,29 @@ describe('NotificationMetadataByType', () => {
       title: 'Heads up',
       message: 'Maintenance tonight.',
     }).success).toBe(true);
+
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'followed_content_published',
+      workProjectId: 'wp1',
+      workTitle: 'My Work',
+      hallItemId: 'hi1',
+      hallItemTitle: 'My Hall Item',
+      hallSubItemType: 'chapter',
+    }).success).toBe(true);
+
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'member_content_published',
+      workProjectId: 'wp1',
+      workTitle: 'My Work',
+      hallItemId: 'hi1',
+      hallItemTitle: 'My Hall Item',
+      hallSubItemType: 'track',
+    }).success).toBe(true);
+
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'followed_craft_skill_published',
+      artisanUid: 'u1',
+    }).success).toBe(true);
   });
 
   it('rejects a payload whose fields do not match its discriminant', () => {
