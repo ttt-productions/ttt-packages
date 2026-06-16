@@ -5,6 +5,8 @@ import {
   hashPayload,
   signInternalRequest,
   verifyInternalRequest,
+  signToken,
+  verifyToken,
   decideVersionedApply,
   StructuredErrorSchema,
   EDGE_PROTOCOL_VERSION,
@@ -115,6 +117,39 @@ describe('internal-auth', () => {
       secret,
     );
     expect(badSig.ok).toBe(false);
+  });
+});
+
+describe('signed-token', () => {
+  const secret = 'shared-media-session-secret';
+
+  it('produces the canonical v1.{payload}.{sig} shape and round-trips the opaque payload', async () => {
+    const claims = { v: 1, typ: 'session', uid: 'u1', art: 0, adm: 1, iat: 100, exp: 999 };
+    const token = await signToken(claims, secret);
+    expect(token.split('.')).toHaveLength(3);
+    expect(token.startsWith('v1.')).toBe(true);
+    expect(await verifyToken(token, secret)).toEqual(claims);
+  });
+
+  it('verifies to null on a tampered payload, tampered signature, or wrong secret', async () => {
+    const token = await signToken({ typ: 'grant', uid: 'u1', exp: 999 }, secret);
+    const [, payloadB64, sigB64] = token.split('.');
+    expect(await verifyToken(`v1.${payloadB64}x.${sigB64}`, secret)).toBeNull();
+    expect(await verifyToken(`v1.${payloadB64}.${sigB64.slice(0, -2)}AA`, secret)).toBeNull();
+    expect(await verifyToken(token, 'other-secret')).toBeNull();
+  });
+
+  it('rejects a non-v1 prefix and malformed tokens', async () => {
+    const token = await signToken({ a: 1 }, secret);
+    const [, payloadB64, sigB64] = token.split('.');
+    expect(await verifyToken(`v2.${payloadB64}.${sigB64}`, secret)).toBeNull();
+    expect(await verifyToken('not-a-token', secret)).toBeNull();
+    expect(await verifyToken('v1.only-two', secret)).toBeNull();
+  });
+
+  it('does NOT enforce claims — an expired-looking payload still verifies (caller checks exp)', async () => {
+    const token = await signToken({ typ: 'session', uid: 'u1', exp: 1 }, secret);
+    expect(await verifyToken(token, secret)).toEqual({ typ: 'session', uid: 'u1', exp: 1 });
   });
 });
 

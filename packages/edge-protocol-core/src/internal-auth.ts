@@ -10,36 +10,9 @@
 // enforced on verify. Everything fails closed: any malformed/mistyped/expired/
 // tampered input verifies to a typed failure, never a throw.
 
+import { bytesToB64url, b64urlToBytes, hmacKey } from './crypto-internal.js';
+
 const SIGNING_VERSION = 'v1';
-
-function bytesToB64url(bytes: Uint8Array): string {
-  let bin = '';
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function b64urlToBytes(s: string): Uint8Array | null {
-  try {
-    const b64 = s.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
-    const bin = atob(padded);
-    const bytes = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return bytes;
-  } catch {
-    return null;
-  }
-}
-
-async function hmacKey(secret: string, usage: 'verify' | 'sign'): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    [usage],
-  );
-}
 
 /** The fields covered by the signature. The verifier reconstructs this exact
  * string, so any divergence (wrong path, method, body, audience, operationId,
