@@ -71,13 +71,28 @@ export const MediaAssetPublicationStateSchema = z.enum(['unpublished', 'publishe
 export type MediaAssetPublicationState = z.infer<typeof MediaAssetPublicationStateSchema>;
 
 /**
- * Typed immutable serving scope for scoped-tier assets. Guild-chat attachments
- * carry an EXACT channel/invite scope — NEVER a bare matchable `workProjectId`
- * (a whole-Work `{w}` grant must not match a restricted channel's attachment).
- * Frozen in chat-realtime-system.md Contract E ("Chat attachment authorization").
+ * Typed immutable serving scope for scoped-tier assets. The gateway Worker matches
+ * a grant against the scope by `kind` — so a whole-Work `{w}` grant matches ONLY a
+ * `workProject` scope, NEVER a `guildChannel` scope (even though both carry a
+ * `workProjectId`): a restricted channel's attachment is not reachable by a plain
+ * Work grant, and a chat grant is not reachable by a Work asset.
+ *
+ * - `workProject` — work files / pre-publish content media (scoped to project read
+ *   membership). Carries the matchable `workProjectId`. This is the typed home for
+ *   work scope on the strongly-consistent serving record so the DO-fallback path
+ *   can authorize it (the DO persists scope only as `scopeJson`, no separate
+ *   column) — the "§15 unification" the media authority build deferred.
+ * - `guildChannel` / `guildInvite` — guild-chat attachments; an EXACT channel/
+ *   invite scope (Contract E "Chat attachment authorization"). A guildChannel's
+ *   `workProjectId` lives ONLY inside this scope, never as a bare matchable field.
+ *
  * `null` scope = no scope match required beyond the access tier (e.g. broad).
  */
 export const MediaServingScopeSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('workProject'),
+    workProjectId: z.string().min(1),
+  }).strict(),
   z.object({
     kind: z.literal('guildChannel'),
     workProjectId: z.string().min(1),
