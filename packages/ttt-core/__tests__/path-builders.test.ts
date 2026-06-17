@@ -169,15 +169,6 @@ describe('PATH_BUILDERS', () => {
       expect(result[3]).toBe('chan1');
     });
 
-    it('guildChatMessage returns 6-segment tuple', () => {
-      const result = PATH_BUILDERS.guildChatMessage('proj1', 'chan1', 'msg1');
-      expect(result).toHaveLength(6);
-      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
-      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS);
-      expect(result[3]).toBe('chan1');
-      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.GUILD_CHAT_MESSAGES);
-      expect(result[5]).toBe('msg1');
-    });
   });
 
   // ===== SQUARE PATHS =====
@@ -315,14 +306,6 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('invite1');
     });
 
-    it('inviteMessage returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.inviteMessage('invite1', 'msg1');
-      expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.GUILD_INVITE_CONVERSATIONS);
-      expect(result[1]).toBe('invite1');
-      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.INVITE_MESSAGES);
-      expect(result[3]).toBe('msg1');
-    });
 
     it('contentReport returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.contentReport('rep1');

@@ -17,7 +17,6 @@ import {
   userIdSchema,
   workProjectIdSchema,
   guildInviteIdSchema,
-  guildChatChannelIdSchema,
   adminDispatchIdSchema,
   hallItemIdSchema,
   thresholdItemIdSchema,
@@ -26,7 +25,6 @@ import {
 
 // String shape atoms specific to notifications.
 const notificationMessageSchema = z.string().min(1).max(2000);
-const channelNameSchema = z.string().min(1).max(200);
 const reportedItemTypeSchema = z.string().min(1).max(64);
 const reportedItemIdSchema = z.string().min(1).max(128);
 const reportGroupIdSchema = z.string().min(1);
@@ -40,7 +38,6 @@ export const NOTIFICATION_TYPE_VALUES = [
   'content_report',
   'content_report_csam',
   'guild_invite',
-  'guild_chat_message',
   'admin_dispatch_reply',
   'threshold_library_submission',
   'admin_announcement',
@@ -85,7 +82,6 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
   content_report: { category: 'admin', delivery: 'realtime', defaultChannels: ['inApp'] },
   content_report_csam: { category: 'admin', delivery: 'realtime', defaultChannels: ['inApp'] },
   guild_invite: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
-  guild_chat_message: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   admin_dispatch_reply: { category: 'user', delivery: 'realtime', defaultChannels: ['inApp'] },
   threshold_library_submission: { category: 'admin', delivery: 'queued', defaultChannels: ['inApp'] },
   admin_announcement: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
@@ -122,12 +118,6 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     workProjectId: workProjectIdSchema,
     guildInviteId: guildInviteIdSchema,
     workTitle: titleSchema,
-  }).strict(),
-  z.object({
-    type: z.literal('guild_chat_message'),
-    workProjectId: workProjectIdSchema,
-    channelId: guildChatChannelIdSchema,
-    channelName: channelNameSchema,
   }).strict(),
   z.object({
     type: z.literal('admin_dispatch_reply'),

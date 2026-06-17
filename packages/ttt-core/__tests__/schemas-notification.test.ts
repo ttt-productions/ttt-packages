@@ -43,7 +43,6 @@ describe('NotificationType + catalog', () => {
     expect(NOTIFICATION_TYPE_CATALOG.content_report).toMatchObject({ category: 'admin', delivery: 'realtime' });
     expect(NOTIFICATION_TYPE_CATALOG.content_report_csam).toMatchObject({ category: 'admin', delivery: 'realtime' });
     expect(NOTIFICATION_TYPE_CATALOG.guild_invite).toMatchObject({ category: 'user', delivery: 'queued' });
-    expect(NOTIFICATION_TYPE_CATALOG.guild_chat_message).toMatchObject({ category: 'user', delivery: 'queued' });
     expect(NOTIFICATION_TYPE_CATALOG.admin_dispatch_reply).toMatchObject({ category: 'user', delivery: 'realtime' });
     expect(NOTIFICATION_TYPE_CATALOG.threshold_library_submission).toMatchObject({ category: 'admin', delivery: 'queued' });
     expect(NOTIFICATION_TYPE_CATALOG.admin_announcement).toMatchObject({ category: 'user', delivery: 'queued' });
@@ -71,13 +70,6 @@ describe('NotificationMetadataByType', () => {
       workProjectId: 'wp1',
       guildInviteId: 'gi1',
       workTitle: 'My Work',
-    }).success).toBe(true);
-
-    expect(NotificationMetadataByTypeSchema.safeParse({
-      type: 'guild_chat_message',
-      workProjectId: 'wp1',
-      channelId: 'ch1',
-      channelName: 'general',
     }).success).toBe(true);
 
     expect(NotificationMetadataByTypeSchema.safeParse({

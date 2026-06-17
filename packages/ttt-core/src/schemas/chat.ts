@@ -2,7 +2,6 @@ import { z } from 'zod';
 import {
   workProjectIdSchema,
   guildChatChannelIdSchema,
-  guildInviteIdSchema,
   adminDispatchIdSchema,
 } from './atoms.js';
 import { MAX_CHAT_MESSAGE_LENGTH } from '../constants/chat.js';
@@ -26,31 +25,17 @@ export const CreateGuildChatChannelInputSchema = z.object({
 }).strict();
 export type CreateGuildChatChannelInput = z.infer<typeof CreateGuildChatChannelInputSchema>;
 
-export const SendGuildChatMessageInputSchema = z.discriminatedUnion('threadKind', [
-  z.object({
-    threadKind: z.literal('guildChatChannel'),
-    workProjectId: workProjectIdSchema,
-    guildChatChannelId: guildChatChannelIdSchema,
-    text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
-    replyTo: ReplyToSchema.optional(),
-    attachment: ChatAttachmentSchema.optional(),
-  }).strict(),
-  z.object({
-    threadKind: z.literal('guildInvite'),
-    guildInviteId: guildInviteIdSchema,
-    text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
-    replyTo: ReplyToSchema.optional(),
-    attachment: ChatAttachmentSchema.optional(),
-  }).strict(),
-  z.object({
-    threadKind: z.literal('adminSupport'),
-    adminDispatchId: adminDispatchIdSchema,
-    isUserReply: z.boolean(),
-    text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
-    replyTo: ReplyToSchema.optional(),
-    attachment: ChatAttachmentSchema.optional(),
-  }).strict(),
-]);
+// Guild channels + invite threads moved to the realtime chat (Cloudflare DOs), which
+// sends through the DO client — NOT this callable. The Firestore send path is retained
+// PERMANENTLY for admin-support threads only (docs/design/chat-realtime-system.md).
+export const SendGuildChatMessageInputSchema = z.object({
+  threadKind: z.literal('adminSupport'),
+  adminDispatchId: adminDispatchIdSchema,
+  isUserReply: z.boolean(),
+  text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
+  replyTo: ReplyToSchema.optional(),
+  attachment: ChatAttachmentSchema.optional(),
+}).strict();
 export type SendGuildChatMessageInput = z.infer<typeof SendGuildChatMessageInputSchema>;
 
 export const StartAdminSupportThreadInputSchema = z.object({

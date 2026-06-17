@@ -82,6 +82,15 @@ erDiagram
     field completedAt
     field itemData
   }
+  affectedChunks {
+    field chunkOrdinal
+    field sourceChunkKey
+    field sourceSha256
+    field replacementChunkKey
+    field replacementSha256
+    field rewriteState
+    field deleteState
+  }
   allWorkProjects {
     field workProjectId
     field createdOn
@@ -189,6 +198,20 @@ erDiagram
     field channelAuthVersion
     field inputFingerprint
     field updatedAt
+  }
+  chatHistoryAnonymizationJobs {
+    field jobId
+    field channelDoId
+    field epoch
+    field anonymizedUid
+    field sourceManifestKey
+    field sourceManifestHash
+    field sourceGeneration
+    field replacementGeneration
+    field newManifestKey
+    field scanCursor
+    field rewriteCursor
+    field deleteCursor
   }
   chatMessageOutbox {
     field commandId

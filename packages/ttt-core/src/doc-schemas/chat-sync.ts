@@ -149,3 +149,48 @@ export const ChatAdminActionCommandSchema = z.object({
   expireAt: expireAtField,
 });
 export type ChatAdminActionCommand = z.infer<typeof ChatAdminActionCommandSchema>;
+
+// ── chatHistoryAnonymizationJobs/{jobId} ────────────────────────────────────
+// Account-deletion history anonymization (Contract F; P8). Resumable + crash-safe:
+// the source-manifest identity (key/hash/generation) + the three cursors (scan/
+// rewrite/delete) make every boundary restartable. jobId =
+// hash('chat-anonymize', channelDoId, epoch, anonymizedUid). `expireAt` (native TTL)
+// is set ONLY when the job reaches `done`.
+export const ChatHistoryAnonymizationJobSchema = z.object({
+  jobId: z.string(),
+  channelDoId: z.string(),
+  epoch: z.number(),
+  anonymizedUid: z.string(),
+  sourceManifestKey: z.string(),
+  sourceManifestHash: z.string(),
+  sourceGeneration: z.number(),
+  replacementGeneration: z.number(),
+  newManifestKey: z.string().nullable(),
+  scanCursor: z.number(),
+  rewriteCursor: z.number(),
+  deleteCursor: z.number(),
+  swappedAt: z.number().nullable(),
+  state: z.enum(['scanning', 'rewriting', 'swapping', 'deleting', 'done', 'failed']),
+  legalHoldPaused: z.boolean(),
+  attemptCount: z.number(),
+  nextAttemptAt: z.number(),
+  lastError: z.string().nullable(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  expireAt: expireAtField,
+});
+export type ChatHistoryAnonymizationJob = z.infer<typeof ChatHistoryAnonymizationJobSchema>;
+
+// ── chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal} ───────
+// The non-contiguous affected-chunk set (round-16 finding 7) — a crash after the
+// manifest swap resumes deletion from these rows + `deleteCursor` without re-listing R2.
+export const ChatHistoryAnonymizationAffectedChunkSchema = z.object({
+  chunkOrdinal: z.number(),
+  sourceChunkKey: z.string(),
+  sourceSha256: z.string(),
+  replacementChunkKey: z.string().nullable(),
+  replacementSha256: z.string().nullable(),
+  rewriteState: z.enum(['pending', 'done']),
+  deleteState: z.enum(['pending', 'done']),
+});
+export type ChatHistoryAnonymizationAffectedChunk = z.infer<typeof ChatHistoryAnonymizationAffectedChunkSchema>;

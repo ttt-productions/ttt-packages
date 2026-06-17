@@ -93,6 +93,8 @@ import {
   ChatSyncFanoutJobSchema,
   ChatMessageOutboxSchema,
   ChatAdminActionCommandSchema,
+  ChatHistoryAnonymizationJobSchema,
+  ChatHistoryAnonymizationAffectedChunkSchema,
 } from './chat-sync.js';
 import { PendingMediaSchema, ArchivedPendingMediaSchema } from '../media/pending-media.js';
 import { MediaAssetSchema } from './media-assets.js';
@@ -194,6 +196,8 @@ export const COLLECTION_SCHEMAS = {
   'chatSyncFanoutJobs/{jobId}': ChatSyncFanoutJobSchema,
   'chatMessageOutbox/{commandId}': ChatMessageOutboxSchema,
   'chatAdminActionCommands/{requestId}': ChatAdminActionCommandSchema,
+  'chatHistoryAnonymizationJobs/{jobId}': ChatHistoryAnonymizationJobSchema,
+  'chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal}': ChatHistoryAnonymizationAffectedChunkSchema,
 
   // ===== Craft skills index =====
   'craftSkillsByTag/{tag}/taggedCraftSkills/{compositeId}': CraftSkillReferenceSchema,

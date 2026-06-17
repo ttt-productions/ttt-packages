@@ -83,9 +83,6 @@ export const PATH_BUILDERS = {
   guildChatChannel: (workProjectId: string, guildChatChannelId: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS, guildChatChannelId],
 
-  guildChatMessage: (workProjectId: string, guildChatChannelId: string, guildChatMessageId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS, guildChatChannelId, NESTED_SUBCOLLECTIONS.GUILD_CHAT_MESSAGES, guildChatMessageId],
-
   // ===== SQUARE PATHS =====
   activePost: (postId: string): [string, string, string, string] =>
     [COLLECTIONS.SQUARE_STREETZ_FEED, NESTED_SUBCOLLECTIONS.ACTIVE_POSTS, NESTED_SUBCOLLECTIONS.SOCIAL_POSTS, postId],
@@ -130,9 +127,6 @@ export const PATH_BUILDERS = {
 
   guildInvite: (guildInviteId: string): [string, string] =>
     [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, guildInviteId],
-
-  inviteMessage: (guildInviteId: string, guildInviteMessageId: string): [string, string, string, string] =>
-    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, guildInviteId, NESTED_SUBCOLLECTIONS.INVITE_MESSAGES, guildInviteMessageId],
 
   contentReport: (reportId: string): [string, string] =>
     [COLLECTIONS.CONTENT_REPORTS, reportId],
@@ -206,6 +200,12 @@ export const PATH_BUILDERS = {
 
   chatAdminActionCommand: (requestId: string): [string, string] =>
     [COLLECTIONS.CHAT_ADMIN_ACTION_COMMANDS, requestId],
+
+  chatHistoryAnonymizationJob: (jobId: string): [string, string] =>
+    [COLLECTIONS.CHAT_HISTORY_ANONYMIZATION_JOBS, jobId],
+
+  chatHistoryAnonymizationAffectedChunk: (jobId: string, chunkOrdinal: string): [string, string, string, string] =>
+    [COLLECTIONS.CHAT_HISTORY_ANONYMIZATION_JOBS, jobId, NESTED_SUBCOLLECTIONS.CHAT_ANONYMIZATION_AFFECTED_CHUNKS, chunkOrdinal],
 
   // ===== PAYMENT & PLEDGE PATHS =====
   // Public-safe canonical money record. Stripe IDs live on pledgePaymentProviderRef (server-only).

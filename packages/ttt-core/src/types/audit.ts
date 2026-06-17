@@ -122,7 +122,6 @@ export type AuditEventType =
   | 'chat.guildChatChannelCreated'
   | 'chat.guildChatChannelUpdated'
   | 'chat.guildChatChannelArchived'
-  | 'chat.guildChatMessageSent'
   | 'chat.adminThreadStarted'
   | 'chat.adminThreadStatusChanged'
   | 'chat.attachmentTimedOut'

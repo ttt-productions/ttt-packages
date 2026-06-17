@@ -55,6 +55,7 @@ export const COLLECTIONS = {
   CHAT_SYNC_FANOUT_JOBS: 'chatSyncFanoutJobs',
   CHAT_MESSAGE_OUTBOX: 'chatMessageOutbox',
   CHAT_ADMIN_ACTION_COMMANDS: 'chatAdminActionCommands',
+  CHAT_HISTORY_ANONYMIZATION_JOBS: 'chatHistoryAnonymizationJobs',
 
   // Feedback & Metadata
   FEEDBACK_SUBMISSIONS: 'feedbackSubmissions',
@@ -137,6 +138,8 @@ export const NESTED_SUBCOLLECTIONS = {
 
   // Chat degraded-scope causes (chatScopeDegraded/{scopeKey}/causes/{causeId}).
   CHAT_SCOPE_DEGRADED_CAUSES: 'causes',
+  // Anonymization affected-chunk set (chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal}).
+  CHAT_ANONYMIZATION_AFFECTED_CHUNKS: 'affectedChunks',
 } as const;
 
 /**

@@ -35,11 +35,6 @@ describe('toPath', () => {
     );
   });
 
-  it('works with PATH_BUILDERS.guildChatMessage output (6-segment path)', () => {
-    expect(toPath(PATH_BUILDERS.guildChatMessage('p1', 'c1', 'm1'))).toBe(
-      'allWorkProjects/p1/guildChatChannels/c1/guildChatMessages/m1'
-    );
-  });
 });
 
 
