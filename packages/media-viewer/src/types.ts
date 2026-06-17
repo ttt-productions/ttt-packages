@@ -1,4 +1,7 @@
 import type * as React from "react";
+import type { MediaDiagnosticAdapter, AssetStatusHint } from "./recovery.js";
+
+export type { MediaDiagnosticAdapter, AssetStatusHint, DiagnosisResult, RecoveryState } from "./recovery.js";
 
 export type MediaViewerType = "image" | "video" | "audio" | "other";
 export type FallbackMode = "none" | "link";
@@ -68,6 +71,23 @@ export type MediaPreviewProps = {
   filename?: string;
   mime?: string;
   name?: string;
+
+  // -------------------------------------------------------------------------
+  // Recovery adapter (additive, optional — backward-compatible)
+  // -------------------------------------------------------------------------
+  /**
+   * Injected diagnostic adapter. When provided, element load errors for
+   * assets the app believes are live will trigger the bounded recovery state
+   * machine. When omitted, the existing error fallback behavior is unchanged.
+   */
+  recoveryAdapter?: MediaDiagnosticAdapter;
+
+  /**
+   * Optional app hint about the server-side lifecycle state of the asset.
+   * Drives which recovery phase is shown (e.g. processing → skeleton,
+   * finalizing → spinner, failed/rejected → hard error immediately).
+   */
+  assetStatusHint?: AssetStatusHint;
 };
 
 /** Back-compat alias */

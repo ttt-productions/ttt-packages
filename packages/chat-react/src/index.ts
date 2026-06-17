@@ -43,6 +43,44 @@ export type { UseChatMessagesResult } from "./hooks/useChatMessages.js";
 export { useChatMessages } from "./hooks/useChatMessages.js";
 export { canAccessThread } from "./hooks/useChatThreadAccess.js";
 
+// Realtime (Cloudflare Durable Object) transport — the client half of the chat
+// worker wire protocol. Opt-in via `ChatCoreConfig.transport === 'realtime'`; the
+// firestore transport stays the unchanged default. See docs/packages/chat-react.md.
+export {
+  createRealtimeChatClient,
+  createInboxClient,
+  ChannelClient,
+  InboxClient,
+  useRealtimeChatMessages,
+  browserSocketFactory,
+  CHAT_SUBPROTOCOL,
+  CHAT_CLOSE_CODES,
+  CLIENT_FRAME,
+  SERVER_FRAME,
+  buildFrame,
+  parseFrame,
+} from "./realtime/index.js";
+export type {
+  RealtimeChatClient,
+  RealtimeTransportConfig,
+  ChannelClientState,
+  ChannelClientConfig,
+  InboxClientState,
+  InboxClientConfig,
+  UseRealtimeChatMessagesResult,
+  GrantProvider,
+  TransportTimers,
+  RealtimeStatus,
+  RealtimeSocket,
+  SocketFactory,
+  SocketHandlers,
+  ChannelRefTuple,
+  WireMessageRow,
+  WireInboxSnapshot,
+  WireRegistryEntry,
+  ServerFrame,
+} from "./realtime/index.js";
+
 export type { ChatShellProps } from "./ui/ChatShell.js";
 export { ChatShell } from "./ui/ChatShell.js";
 export { MessageList } from "./ui/MessageList.js";

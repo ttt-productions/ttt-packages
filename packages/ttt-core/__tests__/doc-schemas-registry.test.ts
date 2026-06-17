@@ -9,7 +9,7 @@ import { COLLECTION_SCHEMAS, PENDING_COLLECTIONS, COLLECTION_DOC_ID_FIELDS } fro
 
 // Collection names that exist only in firestore.rules (no COLLECTIONS constant) — see the
 // schema-registry recon (§3). They must still be accounted for: bound or explicitly pending.
-const RULES_ONLY_COLLECTIONS = ['auditEvents', 'notificationBroadcastJobs', 'notificationHistory'];
+const RULES_ONLY_COLLECTIONS = ['auditEvents', 'notificationHistory'];
 
 const allCollectionNames = [
   ...Object.values(COLLECTIONS),

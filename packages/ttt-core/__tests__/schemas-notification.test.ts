@@ -9,7 +9,11 @@ import {
   CreateNotificationBroadcastInputSchema,
   ArchiveNotificationInputSchema,
   MarkNotificationsSeenInputSchema,
+  MarkNotificationsSeenObservedInputSchema,
+  ArchiveNotificationObservedInputSchema,
   type NotificationType,
+  type MarkNotificationsSeenObservedInput,
+  type ArchiveNotificationObservedInput,
 } from '../src/schemas/notification';
 import type { AuditEventType } from '../src/types/audit';
 
@@ -203,5 +207,240 @@ describe('audit event union', () => {
 
   it('NotificationType is the inferred enum type', () => {
     expectTypeOf<NotificationType>().toEqualTypeOf<(typeof NOTIFICATION_TYPE_VALUES)[number]>();
+  });
+});
+
+// ============================================================================
+// OBSERVED-GENERATION SCHEMAS (P6 tray)
+// ============================================================================
+
+describe('MarkNotificationsSeenObservedInputSchema', () => {
+  it('accepts a valid single-item payload', () => {
+    const result = MarkNotificationsSeenObservedInputSchema.safeParse({
+      category: 'user',
+      items: [
+        { activeId: 'notif-abc', observedActivityGeneration: 'gen-uuid-1' },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts multiple items up to the page limit', () => {
+    const items = Array.from({ length: 50 }, (_, i) => ({
+      activeId: `notif-${i}`,
+      observedActivityGeneration: `gen-${i}`,
+    }));
+    expect(MarkNotificationsSeenObservedInputSchema.safeParse({ category: 'user', items }).success).toBe(true);
+  });
+
+  it('rejects an empty items array', () => {
+    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
+      category: 'user',
+      items: [],
+    }).success).toBe(false);
+  });
+
+  it('rejects when items exceeds the page limit (51 items)', () => {
+    const items = Array.from({ length: 51 }, (_, i) => ({
+      activeId: `notif-${i}`,
+      observedActivityGeneration: `gen-${i}`,
+    }));
+    expect(MarkNotificationsSeenObservedInputSchema.safeParse({ category: 'user', items }).success).toBe(false);
+  });
+
+  it('rejects category "admin" — shared admin has no per-admin seen state', () => {
+    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
+      category: 'admin',
+      items: [{ activeId: 'n1', observedActivityGeneration: 'g1' }],
+    }).success).toBe(false);
+  });
+
+  it('rejects an item with a missing activeId', () => {
+    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
+      category: 'user',
+      items: [{ observedActivityGeneration: 'g1' }],
+    }).success).toBe(false);
+  });
+
+  it('rejects an item with a missing observedActivityGeneration', () => {
+    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
+      category: 'user',
+      items: [{ activeId: 'n1' }],
+    }).success).toBe(false);
+  });
+
+  it('rejects an item with an empty activeId string', () => {
+    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
+      category: 'user',
+      items: [{ activeId: '', observedActivityGeneration: 'g1' }],
+    }).success).toBe(false);
+  });
+
+  it('rejects unknown extra fields on the top-level object (strict)', () => {
+    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
+      category: 'user',
+      items: [{ activeId: 'n1', observedActivityGeneration: 'g1' }],
+      extra: 'nope',
+    }).success).toBe(false);
+  });
+
+  it('rejects unknown extra fields inside an item (strict)', () => {
+    expect(MarkNotificationsSeenObservedInputSchema.safeParse({
+      category: 'user',
+      items: [{ activeId: 'n1', observedActivityGeneration: 'g1', extra: 'nope' }],
+    }).success).toBe(false);
+  });
+
+  it('infers the correct TypeScript type', () => {
+    expectTypeOf<MarkNotificationsSeenObservedInput>().toMatchTypeOf<{
+      category: 'user';
+      items: { activeId: string; observedActivityGeneration: string }[];
+    }>();
+  });
+});
+
+describe('ArchiveNotificationObservedInputSchema', () => {
+  it('accepts a valid single-scope payload (user)', () => {
+    const result = ArchiveNotificationObservedInputSchema.safeParse({
+      requestId: 'retry-stable-uuid-1',
+      category: 'user',
+      scope: {
+        kind: 'single',
+        notificationId: 'notif-abc',
+        observedActivityGeneration: 'gen-uuid-1',
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts a valid single-scope payload (admin)', () => {
+    expect(ArchiveNotificationObservedInputSchema.safeParse({
+      requestId: 'retry-stable-uuid-2',
+      category: 'admin',
+      scope: {
+        kind: 'single',
+        notificationId: 'notif-xyz',
+        observedActivityGeneration: 'gen-uuid-2',
+      },
+    }).success).toBe(true);
+  });
+
+  it('accepts a valid all-scope payload — no observedActivityGeneration at top level', () => {
+    expect(ArchiveNotificationObservedInputSchema.safeParse({
+      requestId: 'retry-stable-uuid-3',
+      category: 'user',
+      scope: { kind: 'all' },
+    }).success).toBe(true);
+  });
+
+  it('rejects a missing requestId', () => {
+    expect(ArchiveNotificationObservedInputSchema.safeParse({
+      category: 'user',
+      scope: { kind: 'all' },
+    }).success).toBe(false);
+  });
+
+  it('rejects an empty requestId string', () => {
+    expect(ArchiveNotificationObservedInputSchema.safeParse({
+      requestId: '',
+      category: 'user',
+      scope: { kind: 'all' },
+    }).success).toBe(false);
+  });
+
+  it('rejects a missing category', () => {
+    expect(ArchiveNotificationObservedInputSchema.safeParse({
+      requestId: 'r1',
+      scope: { kind: 'all' },
+    }).success).toBe(false);
+  });
+
+  it('rejects an invalid category value', () => {
+    expect(ArchiveNotificationObservedInputSchema.safeParse({
+      requestId: 'r1',
+      category: 'superadmin',
+      scope: { kind: 'all' },
+    }).success).toBe(false);
+  });
+
+  it('rejects single scope missing notificationId', () => {
+    expect(ArchiveNotificationObservedInputSchema.safeParse({
+      requestId: 'r1',
+      category: 'user',
+      scope: { kind: 'single', observedActivityGeneration: 'g1' },
+    }).success).toBe(false);
+  });
+
+  it('rejects single scope missing observedActivityGeneration', () => {
+    expect(ArchiveNotificationObservedInputSchema.safeParse({
+      requestId: 'r1',
+      category: 'user',
+      scope: { kind: 'single', notificationId: 'n1' },
+    }).success).toBe(false);
+  });
+
+  it('rejects all scope with an extra observedActivityGeneration field (strict)', () => {
+    // archive-all carries no single generation; reject extra fields.
+    expect(ArchiveNotificationObservedInputSchema.safeParse({
+      requestId: 'r1',
+      category: 'user',
+      scope: { kind: 'all', observedActivityGeneration: 'g1' },
+    }).success).toBe(false);
+  });
+
+  it('rejects unknown extra fields on the top-level object (strict)', () => {
+    expect(ArchiveNotificationObservedInputSchema.safeParse({
+      requestId: 'r1',
+      category: 'user',
+      scope: { kind: 'all' },
+      extra: 'nope',
+    }).success).toBe(false);
+  });
+
+  it('rejects an unknown scope kind', () => {
+    expect(ArchiveNotificationObservedInputSchema.safeParse({
+      requestId: 'r1',
+      category: 'user',
+      scope: { kind: 'category' },
+    }).success).toBe(false);
+  });
+
+  it('infers the correct TypeScript type', () => {
+    expectTypeOf<ArchiveNotificationObservedInput>().toMatchTypeOf<{
+      requestId: string;
+      category: 'user' | 'admin';
+      scope:
+        | { kind: 'single'; notificationId: string; observedActivityGeneration: string }
+        | { kind: 'all' };
+    }>();
+  });
+});
+
+describe('legacy schemas remain intact after observed-generation additions', () => {
+  it('MarkNotificationsSeenInputSchema still only requires category:user', () => {
+    expect(MarkNotificationsSeenInputSchema.safeParse({ category: 'user' }).success).toBe(true);
+    expect(MarkNotificationsSeenInputSchema.safeParse({ category: 'admin' }).success).toBe(false);
+    // Does NOT accept the new `items` field — it is the legacy schema.
+    expect(MarkNotificationsSeenInputSchema.safeParse({
+      category: 'user',
+      items: [{ activeId: 'n1', observedActivityGeneration: 'g1' }],
+    }).success).toBe(false);
+  });
+
+  it('ArchiveNotificationInputSchema still uses its original shape (no requestId / observedActivityGeneration)', () => {
+    expect(ArchiveNotificationInputSchema.safeParse({
+      category: 'user',
+      scope: { kind: 'single', notificationId: 'n1' },
+    }).success).toBe(true);
+    expect(ArchiveNotificationInputSchema.safeParse({
+      category: 'admin',
+      scope: { kind: 'all' },
+    }).success).toBe(true);
+    // New fields must not be silently accepted (strict schema).
+    expect(ArchiveNotificationInputSchema.safeParse({
+      category: 'user',
+      scope: { kind: 'all' },
+      requestId: 'r1',
+    }).success).toBe(false);
   });
 });

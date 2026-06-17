@@ -10,6 +10,8 @@ import type {
 import { Card, CardHeader, CardContent, CardFooter, Skeleton } from "@ttt-productions/ui-core/react";
 import { KeyboardAvoidingView } from "@ttt-productions/mobile-core/react";
 import { useChatMessages } from "../hooks/useChatMessages.js";
+import { useRealtimeChatMessages } from "../realtime/useRealtimeChatMessages.js";
+import type { RealtimeChatClient } from "../realtime/transport.js";
 import { MessageList } from "./MessageList.js";
 import { Composer } from "./Composer.js";
 import { ThreadActions } from "./menus.js";
@@ -20,8 +22,10 @@ export type ChatShellProps = {
   // Header
   header?: React.ReactNode;
 
-  // Send handler — text-only
-  onSend: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
+  // Send handler — text-only. On the realtime transport this is OPTIONAL: the
+  // shell sends through the DO socket. If provided, it is still called (so a
+  // consumer can mirror to analytics), but the socket send is authoritative.
+  onSend?: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
 
   // Message rendering
   renderMessage?: (m: any) => React.ReactNode;
@@ -56,11 +60,84 @@ export type ChatShellProps = {
   scrollClassName?: string;
 };
 
+/** The resolved data a transport hook hands the presentational view. */
+type ResolvedChat = {
+  allowed: boolean;
+  isInitialLoading: boolean;
+  messages: ChatMessageV1[];
+  fetchOlder: () => Promise<void>;
+  hasOlder: boolean;
+  isFetchingOlder: boolean;
+  /** The send handler the Composer calls (socket send on realtime, prop on firestore). */
+  send: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
+};
+
+/**
+ * ChatShell dispatches on `config.transport`. Hooks must be unconditional, so the
+ * two transports live in separate inner components (each calls exactly ONE data
+ * hook) and both render the shared presentational `ChatShellView`. The default
+ * (undefined / 'firestore') transport is byte-for-byte the previous behavior.
+ */
 export function ChatShell(props: ChatShellProps) {
+  if (props.config.transport === "realtime") {
+    return <RealtimeChatShell {...props} />;
+  }
+  return <FirestoreChatShell {...props} />;
+}
+
+function FirestoreChatShell(props: ChatShellProps) {
+  const { config, onSend } = props;
+  const r = useChatMessages(config);
+  const send = React.useCallback(
+    async (text: string, replyTo?: ChatMessageV1["replyTo"]) => {
+      if (onSend) await onSend(text, replyTo);
+    },
+    [onSend],
+  );
+  return <ChatShellView {...props} resolved={{ ...r, send }} />;
+}
+
+function RealtimeChatShell(props: ChatShellProps) {
+  const { config, onSend } = props;
+  const client = config.realtime?.client as RealtimeChatClient | undefined;
+  if (!client) {
+    throw new Error(
+      "[ChatShell] transport 'realtime' requires config.realtime.client (createRealtimeChatClient(...))",
+    );
+  }
+  const r = useRealtimeChatMessages(client);
+  const send = React.useCallback(
+    async (text: string, replyTo?: ChatMessageV1["replyTo"]) => {
+      // Map the UI replyTo (messageId-based) to the wire replyTo (seq + preview).
+      const wireReply =
+        replyTo && replyTo.messageId
+          ? { messageSeq: Number(replyTo.messageId), preview: replyTo.messagePreview ?? "" }
+          : null;
+      r.send(text, Number.isFinite(wireReply?.messageSeq) ? wireReply : null);
+      if (onSend) await onSend(text, replyTo); // optional mirror
+    },
+    [r, onSend],
+  );
+  return (
+    <ChatShellView
+      {...props}
+      resolved={{
+        allowed: r.allowed,
+        isInitialLoading: r.isInitialLoading,
+        messages: r.messages,
+        fetchOlder: r.fetchOlder,
+        hasOlder: r.hasOlder,
+        isFetchingOlder: r.isFetchingOlder,
+        send,
+      }}
+    />
+  );
+}
+
+function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
   const {
     config,
     header,
-    onSend,
     renderMessage,
     messageRenderers,
     handlers,
@@ -75,10 +152,10 @@ export function ChatShell(props: ChatShellProps) {
     composerDisabled,
     fillHeight = false,
     scrollClassName,
+    resolved,
   } = props;
 
-  const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder } =
-    useChatMessages(config);
+  const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder, send } = resolved;
 
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
 
@@ -154,7 +231,7 @@ export function ChatShell(props: ChatShellProps) {
         <CardFooter className="border-t">
           <KeyboardAvoidingView padding offset={8} className="w-full">
             <Composer
-              onSend={onSend}
+              onSend={send}
               attachmentConfig={attachmentConfig}
               sendAttachment={sendAttachment}
               disabled={composerDisabled}

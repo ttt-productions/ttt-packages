@@ -7,4 +7,16 @@ export type {
   AudioViewerProps,
   MediaPreviewProps,
   MediaViewerProps,
+  MediaDiagnosticAdapter,
+  AssetStatusHint,
+  DiagnosisResult,
+  RecoveryState,
 } from "./types.js";
+
+export {
+  BACKOFF_SCHEDULE_MS,
+  MAX_RECOVERY_DURATION_MS,
+  applyJitter,
+  backoffForAttempt,
+  withinBudget,
+} from "./recovery.js";

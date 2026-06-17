@@ -43,8 +43,6 @@ export const COLLECTIONS = {
   ACTIVE_ADMIN_NOTIFICATIONS: 'activeAdminNotifications',
   ADMIN_NOTIFICATION_HISTORY: 'adminNotificationHistory',
   PENDING_NOTIFICATIONS: 'pendingNotifications',
-  // Cloud-Functions-only fan-out job queue (admin SDK writes; no client access).
-  FOLLOWER_RELEASE_JOBS: 'followerReleaseJobs',
 
   // Notification redesign — delivery ledger + unified fanout engine (Admin-SDK-only).
   NOTIFICATION_DELIVERIES: 'notificationDeliveries',

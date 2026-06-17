@@ -325,20 +325,6 @@ erDiagram
     field targetId
     field followedOn
   }
-  followerReleaseJobs {
-    field jobId
-    field workProjectId
-    field workTitle
-    field hallItemId
-    field hallItemTitle
-    field hallSubItemType
-    field stewardUid
-    field canonRealmId
-    field status
-    field phase
-    field cursor
-    field totalSent
-  }
   futurePlans {
     field lastUpdated
     field plans
@@ -463,19 +449,6 @@ erDiagram
     field createdAt
     field completedAt
     field status
-  }
-  notificationBroadcastJobs {
-    field jobId
-    field selector
-    field title
-    field message
-    field actorUid
-    field actorSystemRole
-    field status
-    field cursor
-    field totalSent
-    field createdAt
-    field updatedAt
   }
   notificationDeliveries {
     field deliveryId
@@ -842,7 +815,6 @@ erDiagram
   allWorkProjects ||--o{ chatChannelAuthProjections : "workProjectId"
   allWorkProjects ||--o{ chatScopeDegraded : "workProjectId"
   allWorkProjects ||--o{ commissionProposals : "workProjectId"
-  allWorkProjects ||--o{ followerReleaseJobs : "workProjectId"
   allWorkProjects ||--o{ guildChatChannels : "workProjectId"
   allWorkProjects ||--o{ guildInviteConversations : "workProjectId"
   allWorkProjects ||--o{ hallItems : "workProjectId"
@@ -862,7 +834,6 @@ erDiagram
   guildInviteConversations ||--o{ conversationMessages : "guildInviteId"
   guildInviteConversations ||--o{ guildChatMessages : "guildInviteId"
   guildInviteConversations ||--o{ inviteMessages : "guildInviteId"
-  hallItems ||--o{ followerReleaseJobs : "hallItemId"
   hallItems ||--o{ thresholdItems : "hallItemId"
   pledgePayments ||--o{ paymentWebhookQuarantine : "pledgePaymentId"
   pledgePayments ||--o{ pledgePaymentLedgerEvents : "pledgePaymentId"
@@ -890,7 +861,6 @@ erDiagram
   userProfiles ||--o{ inviteMessages : "senderId"
   userProfiles ||--o{ mentionHistory : "userId"
   userProfiles ||--o{ moderationCascadeManifests : "actorUid"
-  userProfiles ||--o{ notificationBroadcastJobs : "actorUid"
   userProfiles ||--o{ notificationHistory : "targetUserId"
   userProfiles ||--o{ paymentWebhookQuarantine : "resolvedBy"
   userProfiles ||--o{ paymentWebhookQuarantine : "userId"

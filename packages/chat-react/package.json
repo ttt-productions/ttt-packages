@@ -62,6 +62,7 @@
     "dependencies": {
         "@ttt-productions/chat-core": "*",
         "@ttt-productions/chat-schemas": "*",
+        "@ttt-productions/realtime-core": "*",
         "@ttt-productions/media-schemas": "*",
         "@ttt-productions/ui-core": "*",
         "@ttt-productions/file-input": "*",

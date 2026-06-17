@@ -33,9 +33,11 @@ package may consume it.
   `notification-core` (no internal runtime deps; their UI/query needs are optional peers).
 - **Tier 2:** `upload-ui` (→ `file-input`, `media-schemas`, `ui-core`,
   `upload-core`).
-- **Tier 3:** `chat-react` (→ `chat-core`, `chat-schemas`, `media-schemas`,
-  `ui-core`, `file-input`, `upload-ui`, `media-viewer`, `mobile-core`,
-  `firebase-helpers`).
+- **Tier 3:** `chat-react` (→ `chat-core`, `chat-schemas`, `realtime-core`,
+  `media-schemas`, `ui-core`, `file-input`, `upload-ui`, `media-viewer`,
+  `mobile-core`, `firebase-helpers`). The `realtime-core` edge is the realtime
+  (Durable Object) chat transport client; `realtime-core` is Tier 1 so it already
+  builds before `chat-react`.
 - **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
   `edge-protocol-core`, `media-schemas`, `report-core`).
 
@@ -50,9 +52,9 @@ build order):
     upload-core            -> firebase-helpers
     upload-ui              -> file-input, media-schemas, ui-core, upload-core
     ttt-core               -> audit-core, chat-schemas, media-schemas, report-core
-    chat-react             -> chat-core, chat-schemas, media-schemas, ui-core,
-                              file-input, upload-ui, media-viewer, mobile-core,
-                              firebase-helpers
+    chat-react             -> chat-core, chat-schemas, realtime-core,
+                              media-schemas, ui-core, file-input, upload-ui,
+                              media-viewer, mobile-core, firebase-helpers
 
 The `media-viewer -> file-input` edge is the only intra-Tier-1 dependency
 (`file-input` renders `MediaPreview` in `MediaInput`'s selected-file preview).

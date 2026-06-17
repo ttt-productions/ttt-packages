@@ -132,14 +132,22 @@ export type ChatMentionConfig = {
 export type ChatTransportMode = 'firestore' | 'realtime';
 
 /**
- * Realtime (Durable Object) transport handle. The concrete socket client lands
- * with the chat Worker build (P2); chat-react consumes it through this opaque
- * adapter so the UI stays transport-agnostic.
+ * Realtime (Durable Object) transport handle. The concrete socket client is built
+ * in this package (`realtime/transport.ts`); chat-react consumes it through this
+ * config so the UI stays transport-agnostic. The app builds the `client` via
+ * `createRealtimeChatClient({ endpoint, channelRef, grantProvider, ... })` and
+ * passes it here. `channelRef`/`client` stay structurally typed (`unknown` at the
+ * config seam) so `ChatCoreConfig` does not pull the realtime module's types into
+ * every firestore consumer — the realtime hook narrows them at the call site.
  */
 export interface ChatRealtimeTransportConfig {
   /** Opaque channel reference the socket is scoped to (guild channel / invite thread). */
   channelRef: unknown;
-  /** App-supplied realtime client/adapter (subscribe / send / ack / presence). Shape owned by P2. */
+  /**
+   * The realtime client handle from `createRealtimeChatClient(...)`. Drives the
+   * channel socket (subscribe / send / ack / typing / presence / history). The UI
+   * never reaches into the socket directly — it goes through `useRealtimeChatMessages`.
+   */
   client: unknown;
 }
 

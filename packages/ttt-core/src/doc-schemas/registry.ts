@@ -80,8 +80,6 @@ import {
   NotificationDocSchema,
   NotificationHistoryDocSchema,
   PendingNotificationSchema,
-  FollowerReleaseJobSchema,
-  NotificationBroadcastJobSchema,
 } from './notifications.js';
 import {
   NotificationDeliverySchema,
@@ -183,8 +181,6 @@ export const COLLECTION_SCHEMAS = {
   'activeAdminNotifications/{notificationId}': NotificationDocSchema,
   'adminNotificationHistory/{notificationId}': NotificationHistoryDocSchema,
   'pendingNotifications/{notificationId}': PendingNotificationSchema,
-  'followerReleaseJobs/{jobId}': FollowerReleaseJobSchema,
-  'notificationBroadcastJobs/{jobId}': NotificationBroadcastJobSchema,
 
   // ===== Notification redesign — delivery ledger + fanout engine =====
   'notificationDeliveries/{deliveryId}': NotificationDeliverySchema,

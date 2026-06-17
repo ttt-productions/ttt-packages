@@ -233,6 +233,96 @@ export const MarkNotificationsSeenInputSchema = z.object({
 export type MarkNotificationsSeenInput = z.infer<typeof MarkNotificationsSeenInputSchema>;
 
 // ============================================================================
+// OBSERVED-GENERATION CALLABLE INPUT SCHEMAS (P6 tray)
+//
+// These are for the NEW observed-generation callables the P6 notification tray
+// will invoke. The LEGACY schemas above (MarkNotificationsSeenInputSchema /
+// ArchiveNotificationInputSchema) remain intact — the legacy callables still use
+// them.
+// ============================================================================
+
+// Max items per mark-seen call matches a sane notification tray page size.
+const MARK_SEEN_MAX_ITEMS = 50;
+
+/**
+ * A single rendered notification row and the generation the UI observed.
+ * `activeId` is the Firestore active-notification document id;
+ * `observedActivityGeneration` is the opaque token from that document.
+ */
+const SeenItemSchema = z.object({
+  activeId: z.string().min(1),
+  observedActivityGeneration: z.string().min(1),
+}).strict();
+
+/**
+ * Input for the new observed-generation mark-seen callable (P6 tray).
+ *
+ * The UI sends only the rows it actually rendered plus their observed
+ * `activityGeneration` tokens. The server sets `seenAt = now` ONLY when the
+ * card's current `activityGeneration` matches `observedActivityGeneration`;
+ * otherwise it is a no-op for that row (activity arrived after render, or a
+ * delete+recreate rotated the token).
+ *
+ * category is always `'user'` — shared admin notifications have no per-admin
+ * seen state.
+ */
+export const MarkNotificationsSeenObservedInputSchema = z.object({
+  category: z.literal('user'),
+  items: z.array(SeenItemSchema).min(1).max(MARK_SEEN_MAX_ITEMS),
+}).strict();
+export type MarkNotificationsSeenObservedInput = z.infer<typeof MarkNotificationsSeenObservedInputSchema>;
+
+/**
+ * Archive scope for the observed-generation callable.
+ *
+ * `single` — archive one notification card. Carries `notificationId` (the
+ *   active-card doc id) and `observedActivityGeneration` (the precondition:
+ *   the server archives only if the card's current generation matches).
+ *
+ * `all` — archive every card in the category. The per-card generation
+ *   precondition is applied server-side per card during bounded-page sweeps;
+ *   the caller supplies no single generation token here because there is no
+ *   single observed generation for the whole category. (Design choice: archive-all
+ *   carries no observedActivityGeneration at the top level; the server reads each
+ *   card's current generation as its own precondition. This is consistent with the
+ *   NOTIFICATIONS_REDESIGN "mark-all/archive-all run bounded pages with stable
+ *   cursors until exhausted" protocol and the archive-history identity formula
+ *   which keys each occurrence on requestId independently.)
+ */
+export const ArchiveNotificationObservedScopeSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('single'),
+    notificationId: z.string().min(1),
+    observedActivityGeneration: z.string().min(1),
+  }).strict(),
+  z.object({
+    kind: z.literal('all'),
+  }).strict(),
+]);
+export type ArchiveNotificationObservedScope = z.infer<typeof ArchiveNotificationObservedScopeSchema>;
+
+/**
+ * Input for the new observed-generation archive callable (P6 tray).
+ *
+ * `requestId` is a client-supplied retry-stable id (e.g. a uuid minted once per
+ * user intent). The server uses it as the `requestId` component of the
+ * deterministic `archiveOccurrenceId = hash('notification-archive', category,
+ * audienceScope, requestId)`, making the operation idempotent across retries:
+ * replaying the same requestId returns the stored history occurrence and touches
+ * nothing.
+ *
+ * `category` scopes which active-notification collection is archived
+ * (`activeUserNotifications` vs `activeAdminNotifications`) and forms part of
+ * the history doc path.
+ */
+export const ArchiveNotificationObservedInputSchema = z.object({
+  requestId: z.string().min(1),
+  category: NotificationCategorySchema,
+  scope: ArchiveNotificationObservedScopeSchema,
+}).strict();
+export type ArchiveNotificationObservedInput = z.infer<typeof ArchiveNotificationObservedInputSchema>;
+
+// ============================================================================
 // AUDIT EVENT PAYLOADS (admin-only)
 // ============================================================================
 
