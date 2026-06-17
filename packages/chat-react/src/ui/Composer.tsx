@@ -72,6 +72,7 @@ export function Composer(props: ComposerProps) {
   const [pendingFile, setPendingFile] = React.useState<File | null>(null);
   const [isSending, setIsSending] = React.useState(false);
   const [uploadState, setUploadState] = React.useState<UploadState | null>(null);
+  const [sendError, setSendError] = React.useState<string | null>(null);
   const ref = React.useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const guardedUpload = useGuardedUpload();
@@ -113,6 +114,7 @@ export function Composer(props: ComposerProps) {
     if (!v && !pendingFile) return;
 
     setIsSending(true);
+    setSendError(null);
 
     try {
       if (pendingFile && attachmentConfig && sendAttachment) {
@@ -163,9 +165,13 @@ export function Composer(props: ComposerProps) {
         setPendingFile(null);
         return;
       }
+      // C-B8: a failed send (e.g. the realtime socket was closed) must NOT clear the
+      // user's text — `setText("")` only runs on the success path above — and must NOT
+      // re-throw into the click handler (an unhandled rejection). Surface it so the
+      // user can retry with their text intact.
       console.error("[Composer] Send failed:", err);
       setPendingFile(null);
-      throw err;
+      setSendError("Couldn't send. Check your connection and try again.");
     } finally {
       abortControllerRef.current = null;
       setIsSending(false);
@@ -204,11 +210,20 @@ export function Composer(props: ComposerProps) {
         </div>
       )}
 
+      {sendError && (
+        <div className="px-1 pb-1 text-sm text-destructive" role="alert">
+          {sendError}
+        </div>
+      )}
+
       <div className="flex items-end gap-2">
         <Textarea
           ref={ref}
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            if (sendError) setSendError(null);
+          }}
           placeholder={placeholder}
           disabled={isDisabled}
           rows={1}

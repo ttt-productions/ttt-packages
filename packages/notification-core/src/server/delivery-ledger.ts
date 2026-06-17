@@ -45,7 +45,8 @@ export type MaterializationClass =
 
 /** The materialization payload carried on every delivery row. */
 export interface DeliveryPayload {
-  actorId: string;
+  /** The acting user's uid, or `null`/`''` for a system / no-actor occurrence (N-M2). */
+  actorId: string | null;
   metadata: Record<string, unknown>;
   occurrenceAt: number;
 }
@@ -111,7 +112,7 @@ function backoffMs(attemptCount: number): number {
 export function applyAggregation(params: {
   strategy: AggregationStrategy;
   existing: Pick<NotificationDoc, 'count' | 'latestActorIds'> | null;
-  actorId: string;
+  actorId: string | null;
   countCap: number;
   actorCap: number;
   buildMessage: (count: number) => string;
@@ -120,7 +121,11 @@ export function applyAggregation(params: {
 }): { count: number; latestActorIds: string[]; message: string; activityGeneration: string; seenAt: number; updatedAt: number } {
   const { strategy, existing, actorId, countCap, actorCap, buildMessage, now, generation } = params;
   const prevActors = existing?.latestActorIds ?? [];
-  const latestActorIds = [actorId, ...prevActors.filter((id) => id !== actorId)].slice(0, actorCap);
+  // N-M2: a system / no-actor occurrence (null or '') is never injected into the actor
+  // list — it would render as a blank avatar / unresolvable uid in `latestActorIds`.
+  const latestActorIds = actorId
+    ? [actorId, ...prevActors.filter((id) => id !== actorId)].slice(0, actorCap)
+    : prevActors.slice(0, actorCap);
   // staticRelight never shows a count (stays 1); increment counts up to the cap.
   const count =
     strategy === 'staticRelight'
@@ -241,6 +246,14 @@ export function createDeliveryLedger(
       const countCap = typeConfig.countCap ?? DEFAULT_COUNT_CAP;
       const actorCap = typeConfig.actorCap ?? DEFAULT_ACTOR_CAP;
       const buildMessage = (count: number) => typeConfig.messagePattern(payload.metadata, count);
+      // Latest-occurrence-derived fields — recomputed every materialize so an EXISTING
+      // aggregate card reflects the newest activity (title/targetPath/metadata), not the
+      // first occurrence's stale values (N-I4).
+      const title = typeConfig.titlePattern(payload.metadata);
+      const targetPath =
+        typeof typeConfig.defaultTargetPath === 'function'
+          ? typeConfig.defaultTargetPath(payload.metadata)
+          : typeConfig.defaultTargetPath;
 
       if (activeSnap.exists) {
         const existing = (activeSnap.data() ?? {}) as Pick<NotificationDoc, 'count' | 'latestActorIds'>;
@@ -254,7 +267,7 @@ export function createDeliveryLedger(
           now,
           generation,
         });
-        tx.update(activeRef, { ...delta });
+        tx.update(activeRef, { ...delta, title, targetPath, metadata: payload.metadata });
       } else {
         const delta = applyAggregation({
           strategy,
@@ -266,16 +279,12 @@ export function createDeliveryLedger(
           now,
           generation,
         });
-        const targetPath =
-          typeof typeConfig.defaultTargetPath === 'function'
-            ? typeConfig.defaultTargetPath(payload.metadata)
-            : typeConfig.defaultTargetPath;
         const newDoc: Omit<NotificationDoc, 'id'> = {
           type: notificationType,
           dedupKey: aggregationKey,
           category: typeConfig.category,
           targetUserId: recipientUid,
-          title: typeConfig.titlePattern(payload.metadata),
+          title,
           message: delta.message,
           count: delta.count,
           latestActorIds: delta.latestActorIds,

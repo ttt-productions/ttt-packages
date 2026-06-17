@@ -152,19 +152,27 @@ export type ChatAdminActionCommand = z.infer<typeof ChatAdminActionCommandSchema
 
 // ── chatHistoryAnonymizationJobs/{jobId} ────────────────────────────────────
 // Account-deletion history anonymization (Contract F; P8). Resumable + crash-safe:
-// the source-manifest identity (key/hash/generation) + the three cursors (scan/
-// rewrite/delete) make every boundary restartable. jobId =
+// the recorded source-manifest identity (key/hash/generation) + the three cursors
+// (scan/rewrite/delete) make every boundary restartable. jobId =
 // hash('chat-anonymize', channelDoId, epoch, anonymizedUid). `expireAt` (native TTL)
 // is set ONLY when the job reaches `done`.
+//
+// C-B1: the replacement generation is DO-OWNED — the Channel DO (single-threaded per
+// channel) allocates a DISTINCT monotonic generation per erasure off the epoch row and
+// rewrites against the CURRENT live manifest, so two erasures on one epoch chain instead
+// of colliding on a shared `anon-1` keyspace. These four fields are therefore RECORDED AT
+// SCAN (null until the DO reports/allocates them), not pinned at enqueue; if a concurrent
+// anonymization supersedes the source between scan and swap, the job resets to `scanning`
+// to re-derive against the new current manifest (keeping its own allocated generation).
 export const ChatHistoryAnonymizationJobSchema = z.object({
   jobId: z.string(),
   channelDoId: z.string(),
   epoch: z.number(),
   anonymizedUid: z.string(),
-  sourceManifestKey: z.string(),
-  sourceManifestHash: z.string(),
-  sourceGeneration: z.number(),
-  replacementGeneration: z.number(),
+  sourceManifestKey: z.string().nullable(),
+  sourceManifestHash: z.string().nullable(),
+  sourceGeneration: z.number().nullable(),
+  replacementGeneration: z.number().nullable(),
   newManifestKey: z.string().nullable(),
   scanCursor: z.number(),
   rewriteCursor: z.number(),

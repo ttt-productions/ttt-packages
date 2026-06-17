@@ -19,17 +19,20 @@ function makeClient(uid: string, harness: MockSocketHarness, clock: FakeClock, g
   });
 }
 
+// C-B7: the hook is a pure SUBSCRIBER — the owning hook (e.g. useRealtimeChannelClient)
+// is the single connect/close owner. These tests drive connect/close as that owner would.
 describe('useRealtimeChatMessages', () => {
-  it('connects on mount and exposes connecting → open status + messages', async () => {
+  it('reflects the owner-connected client state and opens NO socket of its own (C-B7)', async () => {
     const harness = createMockSocketHarness();
     const clock = createFakeClock();
     const client = makeClient('u-1', harness, clock, 'g1');
 
-    const { result } = renderHook(() => useRealtimeChatMessages(client));
-    // connect() is async (awaits the grant); flush the microtask then open the socket.
+    // The OWNER connects the client; THEN the view mounts the hook.
     await act(async () => {
-      await Promise.resolve();
+      await client.connect();
     });
+    const { result } = renderHook(() => useRealtimeChatMessages(client));
+    // The hook must not open a second socket — exactly one exists (the owner's).
     expect(harness.sockets).toHaveLength(1);
 
     await act(async () => {
@@ -56,66 +59,72 @@ describe('useRealtimeChatMessages', () => {
     expect(result.current.messages.map((m) => m.text)).toEqual(['hi']);
   });
 
-  it('send() emits an optimistic echo through the hook', async () => {
+  it('send() emits an optimistic echo and reports success through the hook', async () => {
     const harness = createMockSocketHarness();
     const clock = createFakeClock();
     const client = makeClient('u-1', harness, clock, 'g1');
+    await act(async () => {
+      await client.connect();
+    });
     const { result } = renderHook(() => useRealtimeChatMessages(client));
     await act(async () => {
-      await Promise.resolve();
       harness.last().serverOpen();
     });
+    let ok = false;
     await act(async () => {
-      result.current.send('typed message');
+      ok = result.current.send('typed message');
     });
+    expect(ok).toBe(true);
     expect(result.current.messages).toHaveLength(1);
     expect(result.current.messages[0].text).toBe('typed message');
     expect(result.current.messages[0].meta?.optimistic).toBe(true);
     expect(harness.last().sent.some((f) => f.type === 'send')).toBe(true);
   });
 
-  it('tears down the socket on unmount (auth-user switch teardown path)', async () => {
+  it('does NOT close the socket on unmount — the owner owns teardown (C-B7)', async () => {
     const harness = createMockSocketHarness();
     const clock = createFakeClock();
     const client = makeClient('u-1', harness, clock, 'g1');
+    await act(async () => {
+      await client.connect();
+    });
     const { unmount } = renderHook(() => useRealtimeChatMessages(client));
     await act(async () => {
-      await Promise.resolve();
       harness.last().serverOpen();
     });
     const sock = harness.last();
     expect(sock.closed).toBe(false);
     unmount();
-    expect(sock.closed).toBe(true);
+    // The hook only unsubscribes; the owning hook closes the socket.
+    expect(sock.closed).toBe(false);
   });
 
-  it('switching the client (new uid) closes the old socket and opens a new one', async () => {
+  it('re-subscribes to a new client on identity change (auth-user switch)', async () => {
     const harness = createMockSocketHarness();
     const clock = createFakeClock();
     const clientA = makeClient('u-A', harness, clock, 'grant-A');
+    await act(async () => {
+      await clientA.connect();
+    });
     const { result, rerender } = renderHook(({ c }: { c: RealtimeChatClient }) => useRealtimeChatMessages(c), {
       initialProps: { c: clientA },
     });
     await act(async () => {
-      await Promise.resolve();
       harness.last().serverOpen();
     });
-    const aSock = harness.sockets[0];
-    expect(aSock.grantToken).toBe('grant-A');
+    expect(harness.sockets[0].grantToken).toBe('grant-A');
 
-    // Auth switches to user B → a NEW client instance is passed; the effect cleanup
-    // closes user A's socket, then connects user B.
+    // Auth switches to user B: the OWNER closes A + connects B; the hook re-subscribes.
+    clientA.close();
     const clientB = makeClient('u-B', harness, clock, 'grant-B');
+    await act(async () => {
+      await clientB.connect();
+    });
     rerender({ c: clientB });
     await act(async () => {
-      await Promise.resolve();
-    });
-    expect(aSock.closed).toBe(true);
-    const bSock = harness.last();
-    expect(bSock.grantToken).toBe('grant-B');
-    await act(async () => {
-      bSock.serverOpen();
+      harness.last().serverOpen();
     });
     expect(result.current.status).toBe('open');
+    expect(harness.last().grantToken).toBe('grant-B');
   });
 });

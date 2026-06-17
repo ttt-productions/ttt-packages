@@ -70,6 +70,8 @@ type ResolvedChat = {
   isFetchingOlder: boolean;
   /** The send handler the Composer calls (socket send on realtime, prop on firestore). */
   send: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
+  /** Advance the authoritative read cursor (realtime only; absent on the firestore path). */
+  readAck?: (latestSeq: number, focused: boolean) => void;
 };
 
 /**
@@ -113,7 +115,10 @@ function RealtimeChatShell(props: ChatShellProps) {
         replyTo && replyTo.messageId
           ? { messageSeq: Number(replyTo.messageId), preview: replyTo.messagePreview ?? "" }
           : null;
-      r.send(text, Number.isFinite(wireReply?.messageSeq) ? wireReply : null);
+      const ok = r.send(text, Number.isFinite(wireReply?.messageSeq) ? wireReply : null);
+      // C-B8: surface a closed-socket failure so the Composer keeps the user's text
+      // instead of clearing it on a no-op send.
+      if (!ok) throw new Error("chat-send-failed");
       if (onSend) await onSend(text, replyTo); // optional mirror
     },
     [r, onSend],
@@ -129,6 +134,7 @@ function RealtimeChatShell(props: ChatShellProps) {
         hasOlder: r.hasOlder,
         isFetchingOlder: r.isFetchingOlder,
         send,
+        readAck: r.readAck,
       }}
     />
   );
@@ -155,9 +161,57 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     resolved,
   } = props;
 
-  const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder, send } = resolved;
+  const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder, send, readAck } = resolved;
 
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
+  const [atBottom, setAtBottom] = React.useState(true);
+  const [focused, setFocused] = React.useState(true);
+  const lastAckedRef = React.useRef(0);
+  const leaseHeldRef = React.useRef(false);
+
+  // The latest authoritative seq currently rendered (optimistic rows have no seq).
+  const latestSeq = React.useMemo(() => {
+    let max = 0;
+    for (const m of messages) {
+      const seq = typeof m.meta?.seq === "number" ? (m.meta?.seq as number) : 0;
+      if (seq > max) max = seq;
+    }
+    return max;
+  }, [messages]);
+
+  // Track tab focus/visibility so the read-ack "focused" lease releases on blur/hide.
+  React.useEffect(() => {
+    const compute = () =>
+      typeof document === "undefined" ||
+      (document.visibilityState !== "hidden" && (typeof document.hasFocus !== "function" || document.hasFocus()));
+    setFocused(compute());
+    const onChange = () => setFocused(compute());
+    window.addEventListener("focus", onChange);
+    window.addEventListener("blur", onChange);
+    document.addEventListener("visibilitychange", onChange);
+    return () => {
+      window.removeEventListener("focus", onChange);
+      window.removeEventListener("blur", onChange);
+      document.removeEventListener("visibilitychange", onChange);
+    };
+  }, []);
+
+  // C-B6: advance the authoritative read cursor when the reader is actually at the
+  // latest message (channel mounted + tab focused + scrolled to bottom); release the
+  // focus lease exactly once when they stop. No-op on the firestore path (no readAck).
+  React.useEffect(() => {
+    if (!readAck || latestSeq <= 0) return;
+    if (focused && atBottom) {
+      leaseHeldRef.current = true;
+      if (latestSeq > lastAckedRef.current) {
+        lastAckedRef.current = latestSeq;
+        readAck(latestSeq, true);
+      }
+    } else if (leaseHeldRef.current) {
+      leaseHeldRef.current = false;
+      readAck(latestSeq, false);
+    }
+  }, [readAck, latestSeq, atBottom, focused]);
 
   // In fill mode the Card flexes to its parent's height and the message list fills the
   // space between header and composer; otherwise it's the default natural-height card.
@@ -212,6 +266,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           messageRenderers={messageRenderers}
           showScrollToBottom={showScrollToBottom}
           onScrollToBottom={() => setShowScrollToBottom(false)}
+          onAtBottomChange={setAtBottom}
           fillHeight={fillHeight}
           scrollClassName={scrollClassName}
           handlers={handlers}

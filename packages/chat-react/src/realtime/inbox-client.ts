@@ -147,10 +147,17 @@ export class InboxClient {
 
   private onMessage(data: string): void {
     const frame = parseFrame(data);
-    if (!frame || frame.type !== 'snapshot' || !frame.payload) return;
-    const payload = frame.payload as unknown as WireInboxSnapshot;
-    if (!isInboxSnapshot(payload)) return; // ignore a stray channel snapshot
-    this.applySnapshot(payload);
+    if (!frame || !frame.payload) return;
+    // The inbox DO pushes a full `snapshot`; a future lightweight `unread` push
+    // carries either a full snapshot or a `{ hasUnread }` dock-dot patch. Route both
+    // instead of silently dropping the `unread` type (C-M2).
+    if (frame.type !== 'snapshot' && frame.type !== 'unread') return;
+    const payload = frame.payload as unknown as WireInboxSnapshot | { hasUnread: boolean };
+    if (isInboxSnapshot(payload as WireInboxSnapshot)) {
+      this.applySnapshot(payload as WireInboxSnapshot);
+    } else if (frame.type === 'unread' && typeof (payload as { hasUnread?: unknown }).hasUnread === 'boolean') {
+      this.setState({ hasUnread: Boolean((payload as { hasUnread: boolean }).hasUnread) });
+    }
   }
 
   private applySnapshot(snap: WireInboxSnapshot): void {
@@ -204,7 +211,7 @@ function deriveUnreadRefs(snap: WireInboxSnapshot): string[] {
   const refs: string[] = [];
   for (const e of snap.registry) {
     if (e.state !== 'active') continue;
-    if ((e as WireRegistryEntry & { unread?: boolean }).unread === true) refs.push(e.channelRef);
+    if (e.unread === true) refs.push(e.channelRef);
   }
   return refs;
 }

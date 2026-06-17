@@ -433,10 +433,10 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `channelDoId` | `string` |  |
 | `epoch` | `number` |  |
 | `anonymizedUid` | `string` |  |
-| `sourceManifestKey` | `string` |  |
-| `sourceManifestHash` | `string` |  |
-| `sourceGeneration` | `number` |  |
-| `replacementGeneration` | `number` |  |
+| `sourceManifestKey` | `string \| null` |  |
+| `sourceManifestHash` | `string \| null` |  |
+| `sourceGeneration` | `number \| null` |  |
+| `replacementGeneration` | `number \| null` |  |
 | `newManifestKey` | `string \| null` |  |
 | `scanCursor` | `number` |  |
 | `rewriteCursor` | `number` |  |

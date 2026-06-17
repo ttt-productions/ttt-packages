@@ -99,6 +99,11 @@ export interface WireRegistryEntry {
    * rows; the consumer falls back to hiding the open action for those entries.
    */
   ref?: ChannelRefTuple | null;
+  /**
+   * Per-entry unread flag (drives the per-row dot). Optional/absent until the inbox
+   * DO populates it; `deriveUnreadRefs` reads it as a typed field (no cast).
+   */
+  unread?: boolean;
 }
 
 /** The inbox snapshot payload pushed on connect / `resume` / live delta. */
@@ -116,6 +121,10 @@ export type ServerFrame =
   | { type: 'presence'; payload: { online: string[] } }
   | { type: 'typing'; payload: { uid: string; at: number } }
   | { type: 'snapshot'; payload: WireChannelSnapshot | WireInboxSnapshot }
+  // A standalone unread push (inbox scope): either a full inbox snapshot or a
+  // lightweight dock-dot patch. Represented in the union so the inbox client routes
+  // it instead of silently dropping it (forward-compatible with a future DO push).
+  | { type: 'unread'; payload: WireInboxSnapshot | { hasUnread: boolean } }
   | { type: 'error'; payload: { code: string; retryAfterMs?: number } }
   | { type: 'revision'; payload: Record<string, unknown> };
 

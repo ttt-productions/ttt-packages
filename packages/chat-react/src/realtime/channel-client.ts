@@ -114,6 +114,13 @@ export class ChannelClient {
   // ---- connection lifecycle ----
 
   async connect(): Promise<void> {
+    // Idempotency guard (C-B7): connect() only starts a lifecycle from a fresh
+    // (idle) or fully torn-down (closed) state. A second connect() while one is
+    // already connecting / open / reconnecting is a no-op, so a stray double-owner
+    // can't open a second WebSocket. The reconnect path uses openSocket() /
+    // scheduleReconnect() directly (never connect()), so this never blocks a
+    // legitimate reconnect.
+    if (this.state.status !== 'idle' && this.state.status !== 'closed') return;
     this.closedByUs = false;
     this.controller.start();
     this.setState({ status: 'connecting' });
@@ -314,7 +321,20 @@ export class ChannelClient {
    * Optimistic send: render the echo immediately keyed by clientMessageId, then
    * emit the `send` frame. The server `ack`/`message` reconciles on the seq.
    */
-  send(args: { clientMessageId: string; text: string; replyTo?: { messageSeq: number; preview: string } | null }): void {
+  send(args: { clientMessageId: string; text: string; replyTo?: { messageSeq: number; preview: string } | null }): boolean {
+    // C-B8: write the frame FIRST and render the optimistic echo ONLY if it was
+    // actually sent over an open socket. A closed socket returns false — no phantom
+    // "sent" bubble, and the caller keeps the composer text — so a disconnect between
+    // render and click can't silently swallow the message.
+    const sent = this.sendFrame(CLIENT_FRAME.SEND, {
+      clientMessageId: args.clientMessageId,
+      text: args.text,
+      replyTo: args.replyTo ?? null,
+    });
+    if (!sent) {
+      this.setState({ lastErrorCode: 'send-failed' });
+      return false;
+    }
     const now = this.timers.now();
     const echo = optimisticMessage({
       clientMessageId: args.clientMessageId,
@@ -326,11 +346,7 @@ export class ChannelClient {
     });
     const next = [...this.state.messages, echo].sort(sortBySeq);
     this.setState({ messages: next, lastErrorCode: null });
-    this.sendFrame(CLIENT_FRAME.SEND, {
-      clientMessageId: args.clientMessageId,
-      text: args.text,
-      replyTo: args.replyTo ?? null,
-    });
+    return true;
   }
 
   /** Explicit read ack (delivery != read). `focused` => the channel is open + at latest. */

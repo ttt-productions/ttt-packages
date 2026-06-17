@@ -2,11 +2,13 @@
 
 // React hook for the REALTIME transport, returning the SAME shape as
 // `useChatMessages` (the firestore path) so `ChatShell` is transport-agnostic.
-// It subscribes to a `RealtimeChatClient`'s observable state, connects on mount,
-// and tears every socket down on unmount OR when the auth user switches
-// (Contract A: auth-user switch tears down every socket before connecting as the
-// new uid). The client instance is owned by the caller (passed via config) so its
-// identity is the teardown key — a new client for a new uid replaces the old one.
+// It SUBSCRIBES to a `RealtimeChatClient`'s observable state. It does NOT own the
+// socket lifecycle: the caller (the app hook that CREATES the client, e.g.
+// `useRealtimeChannelClient`) is the single connect/close owner (C-B7) — connecting
+// here too opened a second WebSocket. The client instance is owned by the caller
+// (passed via config) so its identity is the subscription key — a new client for a
+// new uid replaces the old one (Contract A auth-user-switch teardown happens in the
+// owning hook).
 
 import * as React from "react";
 import type { ChatMessageV1 } from "@ttt-productions/chat-core";
@@ -25,7 +27,8 @@ export type UseRealtimeChatMessagesResult = {
   status: ChannelClientState["status"];
   typing: string[];
   presence: string[];
-  send: (text: string, replyTo?: { messageSeq: number; preview: string } | null) => void;
+  /** Returns false when the socket was closed and nothing was sent (C-B8) — the caller keeps the composer text. */
+  send: (text: string, replyTo?: { messageSeq: number; preview: string } | null) => boolean;
   readAck: (readSeq: number, focused: boolean) => void;
   signalTyping: () => void;
 };
@@ -33,15 +36,12 @@ export type UseRealtimeChatMessagesResult = {
 export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtimeChatMessagesResult {
   const [state, setState] = React.useState<ChannelClientState>(() => client.getState());
 
-  // Subscribe + connect; tear down on client identity change (auth-user switch) or unmount.
+  // Subscribe only; the owning hook drives connect/close (single lifecycle owner, C-B7).
+  // Re-subscribes on client identity change (auth-user switch).
   React.useEffect(() => {
     const unsub = client.subscribe(setState);
     setState(client.getState());
-    void client.connect();
-    return () => {
-      unsub();
-      client.close();
-    };
+    return unsub;
   }, [client]);
 
   // Pre-warm the name cache for visible senders (parity with the firestore hook).
@@ -64,9 +64,8 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
   }, [client]);
 
   const send = React.useCallback(
-    (text: string, replyTo?: { messageSeq: number; preview: string } | null) => {
-      client.channel.send({ clientMessageId: makeClientMessageId(), text, replyTo: replyTo ?? null });
-    },
+    (text: string, replyTo?: { messageSeq: number; preview: string } | null): boolean =>
+      client.channel.send({ clientMessageId: makeClientMessageId(), text, replyTo: replyTo ?? null }),
     [client],
   );
 

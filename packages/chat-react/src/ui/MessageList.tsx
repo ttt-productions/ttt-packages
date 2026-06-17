@@ -21,6 +21,9 @@ export function MessageList(props: {
 
   showScrollToBottom?: boolean;
   onScrollToBottom?: () => void;
+  /** Reports whether the list is scrolled to the bottom so the consumer can advance
+   *  authoritative read state only when the latest message is actually in view (C-B6). */
+  onAtBottomChange?: (atBottom: boolean) => void;
   /** Class for the scrollable message region. Overrides the default. The default is
    *  `h-[400px]` (fixed-height card) unless `fillHeight` is set, in which case it is
    *  `flex-1 min-h-0`. */
@@ -45,6 +48,7 @@ export function MessageList(props: {
     messageRenderers,
     showScrollToBottom,
     onScrollToBottom,
+    onAtBottomChange,
     scrollClassName,
     fillHeight = false,
     handlers,
@@ -71,7 +75,8 @@ export function MessageList(props: {
     el.scrollTop = el.scrollHeight;
     isAtBottomRef.current = true;
     setUnseenCount(0);
-  }, []);
+    onAtBottomChange?.(true);
+  }, [onAtBottomChange]);
 
   // IntersectionObserver for infinite scroll (older messages)
   React.useEffect(() => {
@@ -142,6 +147,7 @@ export function MessageList(props: {
   const onScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
     const atBottom = scrollHeight - (scrollTop + clientHeight) < 50;
+    if (atBottom !== isAtBottomRef.current) onAtBottomChange?.(atBottom);
     isAtBottomRef.current = atBottom;
     if (atBottom && unseenCount !== 0) setUnseenCount(0);
   };

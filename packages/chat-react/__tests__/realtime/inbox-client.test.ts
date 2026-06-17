@@ -136,3 +136,31 @@ describe('InboxClient — teardown', () => {
     expect(client.getState().status).toBe('closed');
   });
 });
+
+describe('InboxClient — standalone unread frame (C-M2)', () => {
+  it('applies a full inbox snapshot delivered as an `unread` frame', async () => {
+    const { client, harness } = makeInbox();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    sock.serverFrame(
+      'unread',
+      snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: true }], true),
+    );
+    expect(client.getState().hasUnread).toBe(true);
+    expect(client.channelHasUnread('c1')).toBe(true);
+  });
+
+  it('patches only the dock dot for a lightweight `{ hasUnread }` unread frame', async () => {
+    const { client, harness } = makeInbox();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    sock.serverFrame('snapshot', snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], false));
+    expect(client.getState().hasUnread).toBe(false);
+    sock.serverFrame('unread', { hasUnread: true });
+    expect(client.getState().hasUnread).toBe(true);
+    // The lightweight patch touches only the dock dot — the registry is preserved.
+    expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['c1']);
+  });
+});

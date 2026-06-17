@@ -64,6 +64,8 @@ const config: NotificationSystemConfig = {
   types: {
     test_increment: { category: 'user', delivery: 'queued', dedupKeyPattern: (m) => String(m.k), titlePattern: () => 'Title', messagePattern: (_m, c) => `count ${c}`, defaultTargetPath: '/x', countCap: 100, actorCap: 3 },
     test_static: { category: 'user', delivery: 'queued', dedupKeyPattern: (m) => String(m.k), titlePattern: () => 'Static', messagePattern: () => 'static', defaultTargetPath: '/y' },
+    // Title + targetPath derived from the occurrence metadata — exercises the N-I4 refresh.
+    test_refresh: { category: 'user', delivery: 'queued', dedupKeyPattern: (m) => String(m.k), titlePattern: (m) => `Title ${m.title}`, messagePattern: (_m, c) => `count ${c}`, defaultTargetPath: (m) => `/item/${m.id}`, countCap: 100, actorCap: 3 },
   },
   deliveriesCollectionPath: 'notificationDeliveries',
   timestampFromMillis: (ms) => ({ __ts: ms }),
@@ -107,6 +109,14 @@ describe('applyAggregation (pure)', () => {
     const d = applyAggregation({ strategy: 'increment', existing: null, actorId: 'a', countCap: 100, actorCap: 3, buildMessage, now: 5, generation: 'g' });
     expect(d.count).toBe(1);
     expect(d.latestActorIds).toEqual(['a']);
+  });
+  it('does not inject a null actor into latestActorIds (N-M2)', () => {
+    const d = applyAggregation({ strategy: 'increment', existing: { count: 1, latestActorIds: ['x'] }, actorId: null, countCap: 100, actorCap: 3, buildMessage, now: 5, generation: 'g' });
+    expect(d.latestActorIds).toEqual(['x']);
+  });
+  it('does not inject an empty-string actor into latestActorIds (N-M2)', () => {
+    const d = applyAggregation({ strategy: 'increment', existing: null, actorId: '', countCap: 100, actorCap: 3, buildMessage, now: 5, generation: 'g' });
+    expect(d.latestActorIds).toEqual([]);
   });
 });
 
@@ -201,6 +211,26 @@ describe('createDeliveryLedger.materialize', () => {
     expect(await ledger.materialize('d1')).toBe('materialized');
     expect(await ledger.materialize('d1')).toBe('already-materialized');
     expect(await ledger.materialize('nope')).toBe('missing');
+  });
+
+  it('refreshes title / targetPath / metadata from the latest occurrence on an existing card (N-I4)', async () => {
+    const { db, getCol } = createMockFirestore();
+    const ledger = createDeliveryLedger(db, config);
+    await ledger.enqueue([
+      row({ deliveryId: 'd1', notificationType: 'test_refresh', aggregationKey: 'agg', payload: { actorId: 'a1', metadata: { k: 'agg', title: 'First', id: '1' }, occurrenceAt: 1 } }),
+    ]);
+    await ledger.materialize('d1');
+    await ledger.enqueue([
+      row({ deliveryId: 'd2', notificationType: 'test_refresh', aggregationKey: 'agg', payload: { actorId: 'a2', metadata: { k: 'agg', title: 'Second', id: '2' }, occurrenceAt: 2 } }),
+    ]);
+    await ledger.materialize('d2');
+
+    const active = [...getCol('activeUserNotifications').values()][0];
+    expect(active.count).toBe(2);
+    // N-I4: the aggregated card reflects the NEWEST occurrence, not the first.
+    expect(active.title).toBe('Title Second');
+    expect(active.targetPath).toBe('/item/2');
+    expect((active.metadata as { title: string }).title).toBe('Second');
   });
 });
 

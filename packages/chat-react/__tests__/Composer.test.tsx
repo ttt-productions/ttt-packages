@@ -134,3 +134,24 @@ describe('Composer abort wiring', () => {
     expect(sendBtn).toBeDisabled();
   });
 });
+
+describe('Composer send failure (C-B8)', () => {
+  it('keeps the text and shows an error when send fails — no clear, no re-throw', async () => {
+    const onSend = vi.fn().mockRejectedValue(new Error('chat-send-failed'));
+    render(<Composer onSend={onSend} />);
+
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: 'keep me' } });
+
+    const sendBtn = screen.getByRole('button', { name: 'Send' });
+    expect(sendBtn).not.toBeDisabled();
+
+    fireEvent.click(sendBtn);
+    await act(async () => {});
+
+    expect(onSend).toHaveBeenCalled();
+    // Text preserved (setText('') only runs on the success path), error surfaced.
+    expect(textarea.value).toBe('keep me');
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
+});

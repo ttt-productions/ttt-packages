@@ -318,3 +318,46 @@ describe('ChannelClient — grant mint failure', () => {
     expect(grant).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('ChannelClient — send failure when the socket is closed (C-B8)', () => {
+  it('returns false and renders no optimistic echo when the socket is not open', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    // Socket created but NOT opened (serverOpen never called) → not writable.
+    const ok = client.send({ clientMessageId: 'c-x', text: 'lost?' });
+    expect(ok).toBe(false);
+    // No phantom "sent" bubble, and the failure is surfaced.
+    expect(client.getState().messages).toHaveLength(0);
+    expect(client.getState().lastErrorCode).toBe('send-failed');
+    expect(harness.last().sent.some((f) => f.type === 'send')).toBe(false);
+  });
+
+  it('returns false after the client has been closed', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    harness.last().serverOpen();
+    client.close();
+    expect(client.send({ clientMessageId: 'c-y', text: 'after close' })).toBe(false);
+  });
+
+  it('returns true and renders the echo when the socket is open', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    harness.last().serverOpen();
+    const ok = client.send({ clientMessageId: 'c-ok', text: 'sent' });
+    expect(ok).toBe(true);
+    expect(client.getState().messages).toHaveLength(1);
+  });
+});
+
+describe('ChannelClient — connect() idempotency (C-B7)', () => {
+  it('a second connect() while already connecting/open opens at most one socket', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    await client.connect(); // no-op: already connecting
+    expect(harness.sockets).toHaveLength(1);
+    harness.last().serverOpen();
+    await client.connect(); // no-op: already open
+    expect(harness.sockets).toHaveLength(1);
+  });
+});
