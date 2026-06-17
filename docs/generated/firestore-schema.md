@@ -408,6 +408,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `caseId` | `string` |  |
 | `reason` | `string` |  |
 | `expectedMessageRevision` | `number` |  |
+| `attachmentAssetIds` | `string[]` |  |
 | `payloadHash` | `string` |  |
 | `state` | `'queued' \| 'delivering' \| 'applied' \| 'failed' \| 'deadLetter'` |  |
 | `attemptCount` | `number` |  |
@@ -415,6 +416,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `lastError` | `string \| null` |  |
 | `result` | `Record<string, unknown> \| null` |  |
 | `doRevisionId` | `string \| null` |  |
+| `attachmentBlocked` | `boolean` |  |
 | `terminalFailureGeneration` | `number` |  |
 | `createdAt` | `number` |  |
 | `appliedAt` | `number \| null` |  |

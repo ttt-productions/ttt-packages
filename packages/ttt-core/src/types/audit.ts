@@ -131,6 +131,9 @@ export type AuditEventType =
   | 'chat.moderationActionRequested'
   | 'chat.moderationActionApplied'
   | 'chat.moderationActionFailed'
+  // case-bound admin context read (read-on-demand, REVIEW-ONLY) — audits the request
+  // AND outcome; one event per read keyed deterministically by the read's requestId.
+  | 'chat.moderationContextRead'
   // notification (admin-only). Actor mode is always adminReview / adminOverride.
   // Payload shapes: NotificationBroadcastSentAuditMetadata /
   // NotificationAdminArchivedAuditMetadata in ../schemas/notification.ts.

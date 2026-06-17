@@ -126,6 +126,10 @@ export const ChatAdminActionCommandSchema = z.object({
   caseId: z.string(),
   reason: z.string(),
   expectedMessageRevision: z.number(),
+  // Ready-attachment media asset id(s) on the moderated message (block FIRST, then
+  // DO tombstone — the attachment-redaction saga, round-10 blocker 9). Empty for a
+  // text-only message; discovered at request time from the case-bound context read.
+  attachmentAssetIds: z.array(z.string()).default([]),
   payloadHash: z.string(),
   state: z.enum(['queued', 'delivering', 'applied', 'failed', 'deadLetter']),
   attemptCount: z.number(),
@@ -133,6 +137,8 @@ export const ChatAdminActionCommandSchema = z.object({
   lastError: z.string().nullable(),
   result: z.record(z.string(), z.unknown()).nullable(),
   doRevisionId: z.string().nullable(),
+  // True once the redaction saga has blocked the attachment asset(s) for this command.
+  attachmentBlocked: z.boolean().default(false),
   terminalFailureGeneration: z.number(),
   createdAt: z.number(),
   appliedAt: z.number().nullable(),

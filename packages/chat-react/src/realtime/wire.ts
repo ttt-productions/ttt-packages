@@ -93,6 +93,12 @@ export interface WireRegistryEntry {
   kind: string;
   state: 'active' | 'tombstoned';
   registryVersion: number;
+  /**
+   * The typed channel-ref tuple — the OPENABLE identity for the Chats view (the
+   * `channelRef` is an opaque DO-id dedup key). Null/absent on legacy or pre-tuple
+   * rows; the consumer falls back to hiding the open action for those entries.
+   */
+  ref?: ChannelRefTuple | null;
 }
 
 /** The inbox snapshot payload pushed on connect / `resume` / live delta. */
