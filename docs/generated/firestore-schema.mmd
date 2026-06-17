@@ -366,19 +366,6 @@ erDiagram
     field messageCount
     field isArchived
   }
-  guildChatMessages {
-    field senderId
-    field text
-    field createdAt
-    field messageId
-    field threadId
-    field type
-    field guildInviteId
-    field attachment
-    field replyTo
-    field isSystemMessage
-    field meta
-  }
   guildInviteConversations {
     field guildInviteId
     field workProjectId
@@ -416,19 +403,6 @@ erDiagram
     field coverSquareAssetId
     field coverPosterAssetId
     field coverCinematicAssetId
-  }
-  inviteMessages {
-    field senderId
-    field text
-    field createdAt
-    field messageId
-    field threadId
-    field type
-    field guildInviteId
-    field attachment
-    field replyTo
-    field isSystemMessage
-    field meta
   }
   mediaActivationJobs {
     field jobId
@@ -855,8 +829,6 @@ erDiagram
   guildInviteConversations ||--o{ chatScopeDegraded : "guildInviteId"
   guildInviteConversations ||--o{ commissionProposals : "guildInviteId"
   guildInviteConversations ||--o{ conversationMessages : "guildInviteId"
-  guildInviteConversations ||--o{ guildChatMessages : "guildInviteId"
-  guildInviteConversations ||--o{ inviteMessages : "guildInviteId"
   hallItems ||--o{ thresholdItems : "hallItemId"
   pledgePayments ||--o{ paymentWebhookQuarantine : "pledgePaymentId"
   pledgePayments ||--o{ pledgePaymentLedgerEvents : "pledgePaymentId"
@@ -879,9 +851,7 @@ erDiagram
   userProfiles ||--o{ contentViolations : "userId"
   userProfiles ||--o{ conversationMessages : "senderId"
   userProfiles ||--o{ followEdges : "followerUid"
-  userProfiles ||--o{ guildChatMessages : "senderId"
   userProfiles ||--o{ guildmateUsers : "uid"
-  userProfiles ||--o{ inviteMessages : "senderId"
   userProfiles ||--o{ mentionHistory : "userId"
   userProfiles ||--o{ moderationCascadeManifests : "actorUid"
   userProfiles ||--o{ notificationHistory : "targetUserId"

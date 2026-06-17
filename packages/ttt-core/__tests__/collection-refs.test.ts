@@ -96,16 +96,6 @@ describe('COLLECTION_REFS', () => {
       expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS);
     });
 
-    it('guildChatMessages returns 5-segment tuple', () => {
-      const result = COLLECTION_REFS.guildChatMessages('proj1', 'chan1');
-      expect(result).toHaveLength(5);
-      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
-      expect(result[1]).toBe('proj1');
-      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS);
-      expect(result[3]).toBe('chan1');
-      expect(result[4]).toBe(NESTED_SUBCOLLECTIONS.GUILD_CHAT_MESSAGES);
-    });
-
     it('tuneTracks returns 5-segment tuple', () => {
       const result = COLLECTION_REFS.tuneTracks('proj1', 'tune1');
       expect(result).toHaveLength(5);

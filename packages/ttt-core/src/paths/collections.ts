@@ -111,10 +111,9 @@ export const NESTED_SUBCOLLECTIONS = {
   TUNE_TRACKS: 'tuneTracks',
   TELEVISION_EPISODES: 'televisionEpisodes',
 
-  // Communication
-  GUILD_CHAT_MESSAGES: 'guildChatMessages',
+  // Communication — guild channel + invite messages are REALTIME-ONLY (chat Worker
+  // Durable Object, never Firestore); only admin-support conversationMessages persist here.
   CONVERSATION_MESSAGES: 'conversationMessages',
-  INVITE_MESSAGES: 'inviteMessages',
 
   // SquareStreetz & Social
   SOCIAL_POSTS: 'socialPosts',

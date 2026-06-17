@@ -130,11 +130,10 @@ export const COLLECTION_SCHEMAS = {
   'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}': FullTelevisionSchema,
   'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}': FullTelevisionEpisodeSchema,
   'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}': GuildChatChannelSchema,
-  'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}/guildChatMessages/{guildChatMessageId}': ChatMessageV1Schema,
+  // Guild channel + invite messages are REALTIME-ONLY (chat Worker DO) — no Firestore schema.
   'publicWorkProjects/{workProjectId}': PublicWorkProjectSchema,
   'workRealms/{workRealmId}': WorkRealmSchema,
   'guildInviteConversations/{guildInviteId}': GuildInviteConversationSchema,
-  'guildInviteConversations/{guildInviteId}/inviteMessages/{guildInviteMessageId}': ChatMessageV1Schema,
 
   // ===== Square / Social =====
   'squareStreetzFeed/activePosts/socialPosts/{postId}': SquareStreetzPostSchema,

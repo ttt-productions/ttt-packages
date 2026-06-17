@@ -42,9 +42,6 @@ export const COLLECTION_REFS = {
   guildChatChannels: (workProjectId: string): [string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS],
 
-  guildChatMessages: (workProjectId: string, guildChatChannelId: string): [string, string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS, guildChatChannelId, NESTED_SUBCOLLECTIONS.GUILD_CHAT_MESSAGES],
-
   // SquareStreetz collections
   activePosts: (): [string, string, string] =>
     [COLLECTIONS.SQUARE_STREETZ_FEED, NESTED_SUBCOLLECTIONS.ACTIVE_POSTS, NESTED_SUBCOLLECTIONS.SOCIAL_POSTS],

@@ -79,8 +79,9 @@ export const AdminDispatchSchema = z.object({
 });
 export type AdminDispatch = z.infer<typeof AdminDispatchSchema>;
 
-// Per-message body stored in the three chat collections — guildChatMessages, conversationMessages,
-// and inviteMessages. All three are written by ONE path (runSendGuildChatMessage: senderId/text/
+// Per-message body for admin-support `conversationMessages` — the ONE chat surface still
+// transported through Firestore (guild channel + invite messages are realtime-only, served
+// by the chat Worker Durable Object). Written by runSendGuildChatMessage (senderId/text/
 // createdAt + optional replyTo/attachment); the admin-dispatch INITIAL message
 // (runStartAdminSupportThread) additionally stores `messageId`. This is the STORED shape — a relaxed
 // @ttt-productions/chat-core ChatMessageV1: `messageId` is the doc id (only sometimes persisted) and
