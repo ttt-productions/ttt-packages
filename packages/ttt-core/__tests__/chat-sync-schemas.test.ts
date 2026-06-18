@@ -72,6 +72,14 @@ describe('notification ledger schemas parse representative docs', () => {
     }).success).toBe(true);
   });
 
+  it('NotificationDelivery accepts a null actorId (system / no-actor occurrence)', () => {
+    expect(NotificationDeliverySchema.safeParse({
+      deliveryId: 'd2', state: 'queued', notificationType: 'content_report', eventId: 'cr1', recipientUid: null, aggregationKey: 'cr1',
+      strategy: 'staticRelight', payload: { actorId: null, metadata: {}, occurrenceAt: 1 }, payloadVersion: 1, materializationClass: 'directQueued',
+      createdAt: 1, attemptCount: 0, nextAttemptAt: 1, lastError: null, materializedAt: null, deadLetteredAt: null,
+    }).success).toBe(true);
+  });
+
   it('NotificationFanoutJob', () => {
     expect(NotificationFanoutJobSchema.safeParse({
       jobId: 'rg1:content_report', schemaVersion: 1, notificationType: 'followed_content_published', eventId: 't1', priority: 2,

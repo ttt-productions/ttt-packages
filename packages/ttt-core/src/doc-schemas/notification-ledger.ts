@@ -8,9 +8,11 @@ import { z } from 'zod';
 /** Native-TTL Timestamp (set only at the resolved-success terminal). */
 const expireAtField = z.unknown().optional();
 
-/** The materialization payload carried on every delivery row. */
+/** The materialization payload carried on every delivery row.
+ *  `actorId` is `null` for system / no-actor occurrences (the engine writes null and
+ *  never injects it into `latestActorIds`). */
 export const NotificationDeliveryPayloadSchema = z.object({
-  actorId: z.string(),
+  actorId: z.string().nullable(),
   metadata: z.record(z.string(), z.unknown()),
   occurrenceAt: z.number(),
 });

@@ -54,8 +54,9 @@ describe('ChannelClient — connect + auth handshake', () => {
 
     sock.serverOpen();
     expect(client.getState().status).toBe('open');
-    // First frame after open is the resume cursor (ackSeq 0 initially).
-    expect(sock.sent[0]).toMatchObject({ type: 'resume', payload: { ackSeq: 0 } });
+    // First frame after open is the resume cursor. The field MUST be `afterSeq` — the
+    // Channel DO reads `payload.afterSeq`; a mismatched name reads as cursorless.
+    expect(sock.sent[0]).toMatchObject({ type: 'resume', payload: { afterSeq: 0 } });
   });
 
   it('pins the subprotocol tag constant the worker echoes', () => {
@@ -121,8 +122,27 @@ describe('ChannelClient — read ack (delivery != read)', () => {
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
-    client.readAck(17, true);
+    expect(client.readAck(17, true)).toBe(true);
     expect(sock.sent.find((f) => f.type === 'read-ack')?.payload).toEqual({ readSeq: 17, focused: true });
+  });
+
+  it('returns false when the socket is closed and re-sends the cursor on reconnect (M2)', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+
+    // Drop the socket, then ack while it is closed — nothing is sent, returns false.
+    s1.serverClose(1006, 'abnormal');
+    expect(client.readAck(9, true)).toBe(false);
+
+    // Reconnect → the remembered read cursor is re-sent after open.
+    clock.tick(200);
+    await Promise.resolve();
+    const s2 = harness.sockets[1];
+    expect(s2).toBeTruthy();
+    s2.serverOpen();
+    expect(s2.sent.find((f) => f.type === 'read-ack')?.payload).toEqual({ readSeq: 9, focused: true });
   });
 });
 
@@ -207,7 +227,7 @@ describe('ChannelClient — reconnect + resume (snapshot then delta)', () => {
     expect(s2).toBeTruthy();
     s2.serverOpen();
     // Resume carries the cursor at the last applied seq (3) — snapshot then deltas.
-    expect(s2.sent.find((f) => f.type === 'resume')?.payload).toEqual({ ackSeq: 3 });
+    expect(s2.sent.find((f) => f.type === 'resume')?.payload).toEqual({ afterSeq: 3 });
 
     // The DO snapshot reports a newer tail → the client pulls the latest page to fill the gap.
     s2.serverFrame('snapshot', { lastMessageSeq: 5, readSeq: 2 });

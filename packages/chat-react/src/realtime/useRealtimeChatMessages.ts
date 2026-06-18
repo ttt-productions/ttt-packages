@@ -29,7 +29,8 @@ export type UseRealtimeChatMessagesResult = {
   presence: string[];
   /** Returns false when the socket was closed and nothing was sent (C-B8) — the caller keeps the composer text. */
   send: (text: string, replyTo?: { messageSeq: number; preview: string } | null) => boolean;
-  readAck: (readSeq: number, focused: boolean) => void;
+  /** Returns whether the ack frame was sent (false on a closed socket) so the caller advances its local cursor only on success (M2). */
+  readAck: (readSeq: number, focused: boolean) => boolean;
   signalTyping: () => void;
 };
 

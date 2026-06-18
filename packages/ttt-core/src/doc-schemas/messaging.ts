@@ -93,10 +93,10 @@ export const ChatMessageV1Schema = z.object({
   messageId: z.string().optional(),
   threadId: z.string().optional(),
   type: z.string().optional(),
-  // Stored only on the INITIAL guildInviteConversations/.../inviteMessages message
-  // (inviteUserToGuild writes the parent guildInviteId onto its first message).
-  // Optional so the same body schema still fits the guildChat / admin-dispatch messages
-  // that don't carry it.
+  // Rides on the realtime invite-thread envelope (chat Worker invite Durable Object);
+  // guild-invite messages are realtime-only — there is no Firestore inviteMessages
+  // subcollection. Optional so the same body schema still fits the guildChat /
+  // admin-dispatch messages that don't carry it.
   guildInviteId: z.string().optional(),
   attachment: ChatAttachmentSchema.optional(),
   replyTo: ReplyToSchema.optional(),

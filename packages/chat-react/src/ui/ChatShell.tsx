@@ -70,8 +70,9 @@ type ResolvedChat = {
   isFetchingOlder: boolean;
   /** The send handler the Composer calls (socket send on realtime, prop on firestore). */
   send: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
-  /** Advance the authoritative read cursor (realtime only; absent on the firestore path). */
-  readAck?: (latestSeq: number, focused: boolean) => void;
+  /** Advance the authoritative read cursor (realtime only; absent on the firestore path).
+   *  Returns whether the ack was actually sent so the caller advances its local cursor only on success (M2). */
+  readAck?: (latestSeq: number, focused: boolean) => boolean;
 };
 
 /**
@@ -204,8 +205,10 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     if (focused && atBottom) {
       leaseHeldRef.current = true;
       if (latestSeq > lastAckedRef.current) {
-        lastAckedRef.current = latestSeq;
-        readAck(latestSeq, true);
+        // Advance the local marker ONLY if the frame was actually sent — a drop during a
+        // disconnect window must stay un-acked so it retries (the client also re-sends the
+        // cursor on reconnect). (M2)
+        if (readAck(latestSeq, true)) lastAckedRef.current = latestSeq;
       }
     } else if (leaseHeldRef.current) {
       leaseHeldRef.current = false;

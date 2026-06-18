@@ -81,6 +81,9 @@ export class ChannelClient {
 
   /** Resume cursor: highest seq we've durably applied. Sent on resume after reconnect. */
   private resumeSeq = 0;
+  /** Last read-ack the UI requested; re-sent on reconnect so a drop during a closed
+   *  socket window is recovered (M2). */
+  private lastReadAck: { readSeq: number; focused: boolean } | null = null;
   /** True after a `4401` re-grant has been attempted for the CURRENT connect cycle (once-only). */
   private reauthAttempted = false;
   private presenceSubscribed = false;
@@ -153,10 +156,15 @@ export class ChannelClient {
     this.controller.onOpen();
     this.reauthAttempted = false;
     this.setState({ status: 'open' });
-    // Resume: ask the DO for the authoritative snapshot, then live deltas flow.
-    this.sendFrame(CLIENT_FRAME.RESUME, { ackSeq: this.resumeSeq });
+    // Resume: ask the DO for the authoritative snapshot, then live deltas flow. The
+    // field name MUST be `afterSeq` — the Channel DO reads `payload.afterSeq`; any other
+    // name reads as cursorless and forces a full resync every reconnect.
+    this.sendFrame(CLIENT_FRAME.RESUME, { afterSeq: this.resumeSeq });
     // If the UI had presence open, re-subscribe after a reconnect.
     if (this.presenceSubscribed) this.sendFrame(CLIENT_FRAME.PRESENCE_SUBSCRIBE, {});
+    // Re-send the last read cursor so a read-ack dropped during the disconnect window
+    // (sendFrame returns false on a closed socket) is not lost until the next message.
+    if (this.lastReadAck) this.sendFrame(CLIENT_FRAME.READ_ACK, { ...this.lastReadAck });
     this.startHeartbeat();
   }
 
@@ -349,9 +357,15 @@ export class ChannelClient {
     return true;
   }
 
-  /** Explicit read ack (delivery != read). `focused` => the channel is open + at latest. */
-  readAck(readSeq: number, focused: boolean): void {
-    this.sendFrame(CLIENT_FRAME.READ_ACK, { readSeq, focused });
+  /**
+   * Explicit read ack (delivery != read). `focused` => the channel is open + at latest.
+   * Remembers the cursor (re-sent on reconnect) and returns whether the frame was
+   * actually sent over an open socket, so the caller only advances its local
+   * already-acked marker on a real send (M2).
+   */
+  readAck(readSeq: number, focused: boolean): boolean {
+    this.lastReadAck = { readSeq, focused };
+    return this.sendFrame(CLIENT_FRAME.READ_ACK, { readSeq, focused });
   }
 
   /** Coalesced typing signal: at most one frame per TYPING_COALESCE_MS. */
