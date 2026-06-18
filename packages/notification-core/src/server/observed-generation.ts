@@ -13,7 +13,7 @@
  * only the transactional state machine, not the id formulas.
  */
 
-import type { ServerFirestore, ServerDocRef } from './types.js';
+import type { ServerFirestore, ServerDocRef, ServerTransaction } from './types.js';
 
 export type MarkSeenOutcome = 'seen' | 'generation-mismatch' | 'missing';
 
@@ -69,6 +69,15 @@ export async function archiveNotificationWithGeneration(
     timestampFromMillis: (ms: number) => unknown;
     /** Admin history quick-access field (admin category only). */
     handledBy?: string;
+    /**
+     * Optional hook to compose additional writes (e.g. an audit event) INTO the
+     * same archive transaction, so they commit atomically with the active→history
+     * move. Invoked in the write phase ONLY on the successful 'archived' path —
+     * never on replay/conflict/generation-mismatch/missing — so the audit is
+     * written iff the archive actually happens. Honor reads-before-writes: do not
+     * read inside the hook.
+     */
+    auditWrite?: (txn: ServerTransaction) => void;
   },
 ): Promise<ArchiveOutcome> {
   const {
@@ -82,6 +91,7 @@ export async function archiveNotificationWithGeneration(
     expireAtMs,
     timestampFromMillis,
     handledBy,
+    auditWrite,
   } = params;
 
   return db.runTransaction(async (tx) => {
@@ -115,6 +125,10 @@ export async function archiveNotificationWithGeneration(
 
     tx.set(historyRef, historyDoc);
     tx.delete(activeRef);
+    // Compose any caller-supplied write (e.g. an audit event) into THIS
+    // transaction so it commits atomically with the archive. Only reached on the
+    // successful path, after all reads, so reads-before-writes is preserved.
+    auditWrite?.(tx);
     return 'archived';
   });
 }

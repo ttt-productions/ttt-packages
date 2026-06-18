@@ -24,8 +24,9 @@ TTT Productions application-data package.
     (canonical domain-tagged SHA-256 via `edge-protocol-core`'s runtime-neutral
     `sha256Hex`; ALL async): `channelKey`/`authPairKey`, the `chatSyncEvents`
     eventIds, `chatSyncFanoutJobId`, the degraded-cause/scope keys, the inbox
-    projection eventId, `notificationDeliveryId`/`activeNotificationDocId`/archive
-    ids, the moderation audit ids, and `chatAnonymizeJobId`.
+    projection eventId, `notificationDeliveryId`/archive ids (the active-card id
+    is NOT here — it is `notification-core`'s `buildActiveNotificationDocId`), the
+    moderation audit ids, and `chatAnonymizeJobId`.
   - The new Admin-SDK-only Firestore doc-schemas: `notificationDeliveries` +
     `notificationFanoutJobs` (delivery ledger / fanout engine) and the chat-sync
     set `chatChannelAuthProjections`, `chatScopeDegraded` (+ `causes`),

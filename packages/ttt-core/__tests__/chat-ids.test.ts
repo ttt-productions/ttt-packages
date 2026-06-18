@@ -14,7 +14,6 @@ import {
   userWorkScopeKey,
   inboxProjectionEventId,
   notificationDeliveryId,
-  activeNotificationDocId,
   notificationArchiveHistoryId,
   notificationArchivePayloadHash,
   moderationRequestedAuditId,
@@ -103,8 +102,7 @@ describe('notification ids', () => {
     );
   });
 
-  it('type-scoped active id + archive id/payloadHash', async () => {
-    expect(await activeNotificationDocId('t', 'user:u1', 'agg')).toBe(await hash('notif-active', 't', 'user:u1', 'agg'));
+  it('archive id/payloadHash', async () => {
     expect(await notificationArchiveHistoryId('user', 'user:u1', 'req1')).toBe(
       await hash('notification-archive', 'user', 'user:u1', 'req1'),
     );

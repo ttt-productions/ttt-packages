@@ -134,15 +134,6 @@ export function notificationDeliveryId(
   return hash('notif-delivery', recipientUid ?? 'shared', notificationType, eventId);
 }
 
-/** Type-scoped active-card id. `audienceScope` = `user:{uid}` (personal) or `shared` (shared-admin). */
-export function activeNotificationDocId(
-  notificationType: string,
-  audienceScope: string,
-  aggregationKey: string,
-): Promise<string> {
-  return hash('notif-active', notificationType, audienceScope, aggregationKey);
-}
-
 /** Archive history doc id (= `archiveOccurrenceId`). */
 export function notificationArchiveHistoryId(
   category: string,

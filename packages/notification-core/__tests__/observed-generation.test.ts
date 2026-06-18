@@ -1,9 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   markNotificationSeenWithGeneration,
   archiveNotificationWithGeneration,
 } from '../src/server/observed-generation';
-import type { ServerFirestore, ServerDocRef, ServerDocSnapshot } from '../src/server/types';
+import type { ServerFirestore, ServerDocRef, ServerDocSnapshot, ServerTransaction } from '../src/server/types';
 
 function createMockFirestore() {
   const store = new Map<string, Map<string, Record<string, unknown>>>();
@@ -117,5 +117,42 @@ describe('archiveNotificationWithGeneration', () => {
   it('returns missing when the active card is already gone', async () => {
     const { db, makeDocRef } = createMockFirestore();
     expect(await archiveNotificationWithGeneration(db, baseParams(makeDocRef))).toBe('missing');
+  });
+
+  it('runs the auditWrite hook INSIDE the archive transaction on success (audit commits atomically with the move)', async () => {
+    const { db, getCol, makeDocRef } = createMockFirestore();
+    getCol('active').set('c1', { activityGeneration: 'gen1', count: 3 });
+
+    let txSeenByHook: ServerTransaction | undefined;
+    const auditWrite = vi.fn((txn: ServerTransaction) => {
+      txSeenByHook = txn;
+      // The hook composes its own write into the SAME transaction.
+      txn.set(makeDocRef('audit', 'a1'), { type: 'notification.adminArchived', handledBy: 'admin1' });
+    });
+
+    const outcome = await archiveNotificationWithGeneration(db, { ...baseParams(makeDocRef), auditWrite });
+
+    expect(outcome).toBe('archived');
+    expect(auditWrite).toHaveBeenCalledTimes(1);
+    // The hook received a real transaction handle, and its write landed alongside
+    // the active→history move — proving same-transaction composition.
+    expect(txSeenByHook).toBeDefined();
+    expect(typeof txSeenByHook!.set).toBe('function');
+    expect(getCol('active').has('c1')).toBe(false);
+    expect(getCol('history').has('h1')).toBe(true);
+    expect(getCol('audit').get('a1')).toMatchObject({ type: 'notification.adminArchived', handledBy: 'admin1' });
+  });
+
+  it('does NOT call the auditWrite hook on a conflict (no audit written for a non-archiving outcome)', async () => {
+    const { db, getCol, makeDocRef } = createMockFirestore();
+    getCol('history').set('h1', { payloadHash: 'DIFFERENT' });
+    getCol('active').set('c1', { activityGeneration: 'gen1' });
+
+    const auditWrite = vi.fn();
+    const outcome = await archiveNotificationWithGeneration(db, { ...baseParams(makeDocRef), auditWrite });
+
+    expect(outcome).toBe('conflict');
+    expect(auditWrite).not.toHaveBeenCalled();
+    expect(getCol('audit').has('a1')).toBe(false);
   });
 });

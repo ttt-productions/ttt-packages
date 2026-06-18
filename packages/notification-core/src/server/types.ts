@@ -65,35 +65,3 @@ export interface ServerWriteBatch {
   delete(ref: ServerDocRef): ServerWriteBatch;
   commit(): Promise<unknown>;
 }
-
-/**
- * Input for creating a notification via the helper.
- */
-export interface CreateNotificationInput {
-  /** Notification type (must exist in config.types) */
-  type: string;
-  /** Actor who triggered this notification (id-only — names resolved at read time) */
-  actorId: string;
-  /** Target user ID (required for 'personal' audience types) */
-  targetUserId?: string | null;
-  /** Type-specific metadata */
-  metadata: Record<string, unknown>;
-}
-
-/**
- * Return type from createNotificationHelper factory.
- */
-export interface NotificationHelper {
-  /** Send a notification using the configured delivery mode (realtime or queued) */
-  send(input: CreateNotificationInput): Promise<void>;
-  /** Send immediately (bypass queue, write directly to active collection) */
-  sendRealTime(input: CreateNotificationInput): Promise<void>;
-  /** Queue for batch processing */
-  queueForBatch(input: CreateNotificationInput): Promise<void>;
-  /**
-   * Queue many pending docs at once, writing in ≤500-write chunks per commit
-   * (the Firestore batch limit). Generic per-user fan-out primitive — it only
-   * sees uids + payload; the batch processor materializes per-user active docs.
-   */
-  queueManyForBatch(inputs: CreateNotificationInput[]): Promise<void>;
-}
