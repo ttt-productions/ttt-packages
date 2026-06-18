@@ -41,6 +41,13 @@ export type ComposerProps = {
    */
   onSend: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
 
+  /**
+   * Signal the local user is typing (R14). Called as the user edits the textarea; the
+   * realtime transport coalesces to ≤1 frame per ~2s, so calling per keystroke is safe.
+   * Optional — absent on the firestore transport (no typing broadcast).
+   */
+  onTyping?: () => void;
+
   // Attachment support
   attachmentConfig?: ChatAttachmentConfig;
   /**
@@ -61,6 +68,7 @@ export type ComposerProps = {
 export function Composer(props: ComposerProps) {
   const {
     onSend,
+    onTyping,
     attachmentConfig,
     sendAttachment,
     disabled,
@@ -223,6 +231,8 @@ export function Composer(props: ComposerProps) {
           onChange={(e) => {
             setText(e.target.value);
             if (sendError) setSendError(null);
+            // R14: broadcast a typing signal (transport-coalesced) while there is content.
+            if (onTyping && e.target.value.trim().length > 0) onTyping();
           }}
           placeholder={placeholder}
           disabled={isDisabled}

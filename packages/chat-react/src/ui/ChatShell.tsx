@@ -73,6 +73,12 @@ type ResolvedChat = {
   /** Advance the authoritative read cursor (realtime only; absent on the firestore path).
    *  Returns whether the ack was actually sent so the caller advances its local cursor only on success (M2). */
   readAck?: (latestSeq: number, focused: boolean) => boolean;
+  /** Realtime connection status — drives the disconnected banner (R13). Absent on firestore. */
+  status?: string;
+  /** uids currently typing (realtime only) — drives the typing indicator (R14). */
+  typing?: string[];
+  /** Signal the local user is typing (coalesced by the transport). Wired to the Composer (R14). */
+  signalTyping?: () => void;
 };
 
 /**
@@ -136,6 +142,9 @@ function RealtimeChatShell(props: ChatShellProps) {
         isFetchingOlder: r.isFetchingOlder,
         send,
         readAck: r.readAck,
+        status: r.status,
+        typing: r.typing,
+        signalTyping: r.signalTyping,
       }}
     />
   );
@@ -162,7 +171,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     resolved,
   } = props;
 
-  const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder, send, readAck } = resolved;
+  const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder, send, readAck, status, typing, signalTyping } = resolved;
 
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
   const [atBottom, setAtBottom] = React.useState(true);
@@ -253,6 +262,10 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
         </CardHeader>
       )}
 
+      {/* R13: a disconnected/reconnecting banner so a configured-but-unreachable Worker
+          never presents a healthy-looking empty thread. Only the realtime path sets `status`. */}
+      <ChatConnectionBanner status={status} />
+
       {renderAboveMessages && (
         <div className="border-b">{renderAboveMessages()}</div>
       )}
@@ -286,10 +299,13 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           {renderFooter()}
         </CardFooter>
       ) : (
-        <CardFooter className="border-t">
+        <CardFooter className="border-t flex-col items-stretch gap-1">
+          {/* R14: typing dots above the composer (realtime only — `typing` is undefined on firestore). */}
+          <TypingIndicator typing={typing} />
           <KeyboardAvoidingView padding offset={8} className="w-full">
             <Composer
               onSend={send}
+              onTyping={signalTyping}
               attachmentConfig={attachmentConfig}
               sendAttachment={sendAttachment}
               disabled={composerDisabled}
@@ -301,5 +317,37 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
         </CardFooter>
       )}
     </Card>
+  );
+}
+
+/**
+ * R13 — connection-state banner. The realtime path sets `status`; once the first
+ * snapshot has loaded (ChatShellView is past `isInitialLoading`), a dropped/unreachable
+ * socket surfaces here instead of a silently-empty thread. Renders nothing on the
+ * firestore path (`status` undefined) or while live (`open`).
+ */
+function ChatConnectionBanner({ status }: { status?: string }) {
+  if (status !== "reconnecting" && status !== "closed") return null;
+  return (
+    <div
+      className="px-3 py-1.5 text-xs text-center bg-muted text-muted-foreground border-b"
+      role="status"
+      aria-live="polite"
+    >
+      {status === "reconnecting"
+        ? "Reconnecting… messages may be delayed."
+        : "Disconnected — messages may be out of date."}
+    </div>
+  );
+}
+
+/** R14 — typing indicator. `typing` is the set of OTHER users typing (the transport
+ *  excludes the local user). Generic copy (no name resolution) for v1. */
+function TypingIndicator({ typing }: { typing?: string[] }) {
+  if (!typing || typing.length === 0) return null;
+  return (
+    <div className="text-xs italic text-muted-foreground" aria-live="polite">
+      {typing.length === 1 ? "Someone is typing…" : "Several people are typing…"}
+    </div>
   );
 }

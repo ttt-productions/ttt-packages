@@ -292,14 +292,15 @@ export const ArchiveNotificationObservedScopeSchema = z.discriminatedUnion('kind
 export type ArchiveNotificationObservedScope = z.infer<typeof ArchiveNotificationObservedScopeSchema>;
 
 /**
- * Input for the new observed-generation archive callable (P6 tray).
+ * Input for the observed-generation archive callable (P6 tray).
  *
- * `requestId` is a client-supplied retry-stable id (e.g. a uuid minted once per
- * user intent). The server uses it as the `requestId` component of the
- * deterministic `archiveOccurrenceId = hash('notification-archive', category,
- * audienceScope, requestId)`, making the operation idempotent across retries:
- * replaying the same requestId returns the stored history occurrence and touches
- * nothing.
+ * `requestId` is a per-call nonce — the tray mints a fresh uuid on every archive /
+ * clear-all click, so it is NOT a replay-stability token (R39). Idempotency is provided
+ * by ACTIVE-DOC DELETION: a replay finds the card already gone and no-ops, so an archive
+ * never double-applies. The server combines `requestId` with the card's `activeId` to
+ * form the deterministic history doc id (`hash('notification-archive', category,
+ * audienceScope, requestId:activeId)`), so a single archive can never collide on another
+ * card's history doc (R35).
  *
  * `category` scopes which active-notification collection is archived
  * (`activeUserNotifications` vs `activeAdminNotifications`) and forms part of

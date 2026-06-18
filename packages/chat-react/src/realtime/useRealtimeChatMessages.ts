@@ -25,6 +25,9 @@ export type UseRealtimeChatMessagesResult = {
   isFetchingOlder: boolean;
   /** Realtime extras (not present on the firestore result) — optional for the UI. */
   status: ChannelClientState["status"];
+  /** The last structured error code the DO sent (e.g. a close reason). Drives the
+   *  disconnected-banner detail (R13). */
+  lastErrorCode: string | null;
   typing: string[];
   presence: string[];
   /** Returns false when the socket was closed and nothing was sent (C-B8) — the caller keeps the composer text. */
@@ -32,6 +35,11 @@ export type UseRealtimeChatMessagesResult = {
   /** Returns whether the ack frame was sent (false on a closed socket) so the caller advances its local cursor only on success (M2). */
   readAck: (readSeq: number, focused: boolean) => boolean;
   signalTyping: () => void;
+  /** Watched-only presence (R14): the UI subscribes ONLY while a member-list / online
+   *  indicator is open, and unsubscribes when it closes, so an unwatched channel runs
+   *  zero presence alarms. `presence` stays empty until subscribed. */
+  presenceSubscribe: () => void;
+  presenceUnsubscribe: () => void;
 };
 
 export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtimeChatMessagesResult {
@@ -76,6 +84,8 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
   );
 
   const signalTyping = React.useCallback(() => client.channel.typing(), [client]);
+  const presenceSubscribe = React.useCallback(() => client.channel.presenceSubscribe(), [client]);
+  const presenceUnsubscribe = React.useCallback(() => client.channel.presenceUnsubscribe(), [client]);
 
   return {
     // On the realtime transport DATA ACCESS is enforced by the DO grant, so the
@@ -88,11 +98,14 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
     hasOlder: state.hasOlder,
     isFetchingOlder: state.isFetchingOlder,
     status: state.status,
+    lastErrorCode: state.lastErrorCode,
     typing: state.typing,
     presence: state.presence,
     send,
     readAck,
     signalTyping,
+    presenceSubscribe,
+    presenceUnsubscribe,
   };
 }
 
