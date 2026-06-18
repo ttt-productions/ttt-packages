@@ -197,6 +197,11 @@ export const MediaAssetSchema = z.object({
   authorityAppliedAt: z.number().optional(),
   publishedAt: z.number().optional(),
   lastAuthorityError: StructuredErrorSchema.optional(),
+  // Authority-sync retry ledger (M1): the scheduled worker bumps attemptCount + sets a backoff
+  // nextAttemptAt on a transient apply failure, and dead-letters (authoritySyncState='deadLetter')
+  // past a threshold. Absent ⇒ 0 attempts / immediately due.
+  authoritySyncAttemptCount: z.number().int().nonnegative().optional(),
+  authoritySyncNextAttemptAt: z.number().optional(),
 
   createdAt: z.number(),
   updatedAt: z.number(),

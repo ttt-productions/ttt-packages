@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { UseArchiveAllNotificationsOptions } from '../../types.js';
+import type { ArchiveAllResult, UseArchiveAllNotificationsOptions } from '../../types.js';
 
 /**
  * Archive the caller's whole category through an app-supplied callable adapter.
@@ -37,7 +37,23 @@ export function useArchiveAllNotifications({
   ];
 
   return useMutation({
-    mutationFn: async () => archiveAllFn(),
+    // I3: "Clear All" must actually clear ALL. The server bounds each call to a small page and
+    // returns `hasMore`; loop the adapter until it's drained (bounded so a pathological tray can't
+    // run forever), so the mutation resolves — and `onClearAll`/invalidation fire — only when the
+    // active set is fully archived.
+    mutationFn: async (): Promise<ArchiveAllResult> => {
+      const MAX_PASSES = 50; // bound: 50 × the server page cap — far beyond any real tray
+      let archived = 0;
+      let hasMore = true;
+      let pass = 0;
+      while (hasMore && pass < MAX_PASSES) {
+        const r = await archiveAllFn();
+        archived += r.archived;
+        hasMore = r.hasMore;
+        pass += 1;
+      }
+      return { archived, hasMore };
+    },
     onSuccess: () => {
       const keysToInvalidate = invalidateKeys ?? defaultInvalidateKeys;
       keysToInvalidate.forEach((key) => {

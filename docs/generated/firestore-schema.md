@@ -764,6 +764,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `authorityAppliedAt` | `number` | yes |
 | `publishedAt` | `number` | yes |
 | `lastAuthorityError` | `{ code, message, retryable, details, at }` | yes |
+| `authoritySyncAttemptCount` | `number` | yes |
+| `authoritySyncNextAttemptAt` | `number` | yes |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
 

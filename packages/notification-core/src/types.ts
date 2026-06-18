@@ -228,15 +228,26 @@ export interface UseArchiveNotificationOptions {
   invalidateKeys?: readonly unknown[][];
 }
 
+/**
+ * Result of ONE archive-all server call. `hasMore` is true when the server hit its per-invocation
+ * cap and the caller's active set was NOT fully drained — `useArchiveAllNotifications` loops the
+ * adapter until `hasMore` is false so "Clear All" actually clears all (I3).
+ */
+export interface ArchiveAllResult {
+  archived: number;
+  hasMore: boolean;
+}
+
 export interface UseArchiveAllNotificationsOptions {
   userId: string;
   category: string;
   /**
-   * App-supplied adapter that archives the caller's whole category — typically
-   * an `httpsCallable(functions, 'archiveNotification')` invoked with the
-   * `{ kind: 'all' }` scope. The hook performs no client Firestore writes.
+   * App-supplied adapter that archives ONE bounded page of the caller's whole category — typically
+   * an `httpsCallable(functions, 'archiveNotification')` invoked with the `{ kind: 'all' }` scope.
+   * Returns `{ archived, hasMore }`; the hook re-invokes it while `hasMore` is true. No client
+   * Firestore writes.
    */
-  archiveAllFn: () => Promise<unknown>;
+  archiveAllFn: () => Promise<ArchiveAllResult>;
   invalidateKeys?: readonly unknown[][];
 }
 
@@ -263,10 +274,11 @@ export interface NotificationListProps {
    */
   archiveFn: (notificationId: string) => Promise<unknown>;
   /**
-   * Adapter that archives the caller's whole category. Passed straight through
-   * to `useArchiveAllNotifications`; the app wires it to its callable.
+   * Adapter that archives ONE bounded page of the caller's whole category (returns
+   * `{ archived, hasMore }`). Passed straight through to `useArchiveAllNotifications`, which loops
+   * it until fully drained; the app wires it to its callable.
    */
-  archiveAllFn: () => Promise<unknown>;
+  archiveAllFn: () => Promise<ArchiveAllResult>;
   onClearAll?: () => void;
   refetchInterval?: number;
   emptyText?: string;
