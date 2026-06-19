@@ -6,6 +6,7 @@
 
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS } from '../types/content.js';
+import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 
 const mediaKindSchema = z.enum(['image', 'video', 'audio']);
 
@@ -123,5 +124,13 @@ export const UserPrivateDataSchema = z.object({
   // Cleared when the account is reinstated to 'active'.
   statusReason: z.string().optional(),
   statusReasonAt: z.number().optional(),
+  // Trust & Safety (§A8): silent interim safety-lock flag. Backend-only-writable,
+  // restricted to the owner's view. Set true while a child-safety/NCII action is
+  // pending against the account; the app gates the user accordingly.
+  safetyLocked: z.boolean().optional(),
+  // Trust & Safety (§A7): server-write-only age/registration fields, merged from the
+  // standalone age cluster shape (./safety/age.js) so the canonical schema and the
+  // age cluster cannot drift.
+  ...userPrivateDataAgeFieldsShape,
 });
 export type UserPrivateData = z.infer<typeof UserPrivateDataSchema>;

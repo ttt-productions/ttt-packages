@@ -37,6 +37,64 @@ export const MediaAssetOwnerTypeSchema = z.enum([
 ]);
 export type MediaAssetOwnerType = z.infer<typeof MediaAssetOwnerTypeSchema>;
 
+// ===== Media origin lineage (Appendix A0) =====
+// One canonical lineage used by media, CSAM, and safety. Embedded on every
+// media asset + every copy.
+
+/**
+ * The named-variant key set for `variantSha256s`. It is the union of declared
+ * `image.variants[].key` values across `TTT_MEDIA_SPECS` (the processing
+ * pipeline produces exactly one hash per declared variant), never an open
+ * `string`. `media-origin-lineage.test.ts` keeps this enum in sync with the
+ * declared variant keys (the same way the PhotoDNA coverage matrix tracks
+ * `accept.kinds`); a new declared variant name fails CI until added here.
+ */
+export const MediaVariantKeySchema = z.enum(['full', 'medium', 'small', 'main']);
+export type MediaVariantKey = z.infer<typeof MediaVariantKeySchema>;
+
+/** Why this asset was created from its source (A0). */
+export const MediaCopyReasonSchema = z.enum([
+  'original',
+  'variant',
+  'hall_publish',
+  'profile_derivative',
+  'chat_derivative',
+  'moderation_copy',
+  'evidence_copy',
+  'other',
+]);
+export type MediaCopyReason = z.infer<typeof MediaCopyReasonSchema>;
+
+/**
+ * Canonical media origin lineage (Appendix A0). A copy INHERITS
+ * rootIngestId/rootAssetId/originatingUploaderUid/originatingUploadEventId/
+ * originalUploadCreatedAt/rootSha256/originalSha256 unchanged; it sets its own
+ * sourceAssetId/variantSha256s/copyReason/copyActorUid/currentOwner*. Client
+ * requests can NEVER set or override any lineage field. Automatic account
+ * action targets ONLY `originatingUploaderUid`; incident-wide blocking
+ * enumerates by `rootIngestId`. Missing/corrupt lineage → safetyLocked +
+ * manual decision, never a guessed ban.
+ */
+export const MediaOriginLineageV1Schema = z.object({
+  lineageVersion: z.literal(1),
+  rootIngestId: z.string().min(1), // first-accepted ingest event id; stable across all copies
+  rootAssetId: z.string().min(1), // first asset created from that ingest
+  sourceAssetId: z.string().min(1).optional(), // immediate parent copied from (absent on the root)
+  originatingUploaderUid: z.string().min(1), // set server-side at first accepted ingest; IMMUTABLE; inherited
+  originatingUploadEventId: z.string().min(1),
+  originalUploadCreatedAt: z.number(),
+  rootSha256: z.string().min(1),
+  originalSha256: z.string().min(1).optional(),
+  variantSha256s: z.record(MediaVariantKeySchema, z.string().min(1)), // one hash per variant — typed key, never open string
+  copyReason: MediaCopyReasonSchema,
+  createdFromOwnerType: MediaAssetOwnerTypeSchema.optional(), // never a bare string
+  createdFromOwnerId: z.string().min(1).optional(),
+  copyActorUid: z.string().min(1).optional(), // who triggered the copy (distinct from the original uploader)
+  currentOwnerType: MediaAssetOwnerTypeSchema, // mutable; the asset's present owner
+  currentOwnerId: z.string().min(1),
+}).strict();
+export type MediaOriginLineageV1 = z.infer<typeof MediaOriginLineageV1Schema>;
+
 export const MediaAssetVariantSchema = z.object({
   contentType: z.string().min(1),
   sizeBytes: z.number().int().nonnegative(),
@@ -178,6 +236,11 @@ export const MediaAssetSchema = z.object({
   retentionPolicy: MediaRetentionPolicySchema,
   legalHold: z.boolean(),
   originalDeletedAt: z.number().optional(),
+
+  // T&S provenance lineage (Appendix A0). Additive/optional so assets written
+  // before the lineage rollout still parse; set server-side at first accepted
+  // ingest, inherited unchanged by every copy/variant. Never client-supplied.
+  originLineage: MediaOriginLineageV1Schema.optional(),
 
   // Realm-promotion seam (full feature is post-launch).
   realmPromotionStatus: RealmPromotionStatusSchema,

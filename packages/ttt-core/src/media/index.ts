@@ -17,5 +17,6 @@ export * from "./hall-library-target-fields.js";
 export * from "./pending-media.js";
 export * from "./upload-tray-display.js";
 export * from "./media-asset-url.js";
+export * from "./photodna-coverage.js";
 
 

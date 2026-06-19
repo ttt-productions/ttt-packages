@@ -235,18 +235,40 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
   }
 
   if (isInitialLoading) {
+    // Render the consumer's header + render-slots even while the message list is still
+    // loading — ONLY the MessageList region is skeletonized. Previously this early-return
+    // was an all-skeleton Card that SWALLOWED renderAboveMessages/renderBelowMessages/
+    // renderFooter, so a consumer that hangs critical controls off those slots (e.g. the
+    // guild-invite binding-agreement Agree/Decline/stake-share controls) showed nothing for
+    // the entire connect window while the realtime socket sat in 'connecting' (F4.1). The
+    // agreement flow must work whether or not realtime chat is connected.
     return (
       <Card className={cardClassName}>
-        <CardHeader className="space-y-2">
-          <Skeleton className="h-5 w-40" />
-          <Skeleton className="h-3 w-56" />
-        </CardHeader>
-        <CardContent>
+        {(header || handlers) && (
+          <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+            <div>{header}</div>
+            <div className="flex flex-col items-end gap-2">
+              <ThreadActions threadId={config.threadId} isAdmin={config.isAdmin} handlers={handlers} />
+            </div>
+          </CardHeader>
+        )}
+        <ChatConnectionBanner status={status} />
+        {renderAboveMessages && (
+          <div className="border-b">{renderAboveMessages()}</div>
+        )}
+        <CardContent className={contentClassName}>
           <Skeleton className="h-[240px] w-full" />
         </CardContent>
-        <CardFooter>
-          <Skeleton className="h-10 w-full" />
-        </CardFooter>
+        {renderBelowMessages && (
+          <div className="border-t">{renderBelowMessages()}</div>
+        )}
+        {renderFooter ? (
+          <CardFooter className="border-t">{renderFooter()}</CardFooter>
+        ) : (
+          <CardFooter className="border-t">
+            <Skeleton className="h-10 w-full" />
+          </CardFooter>
+        )}
       </Card>
     );
   }

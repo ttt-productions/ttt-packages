@@ -262,4 +262,193 @@ export const PATH_BUILDERS = {
 
   appConfig: (): [string, string] =>
     [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.APP_CONFIG],
+
+  // ===== TRUST & SAFETY — child-safety case spine (§A1b, §A2) =====
+  childSafetyCaseListEntry: (caseId: string): [string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASE_LIST, caseId],
+
+  childSafetyCase: (caseId: string): [string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId],
+
+  childSafetySourceSignal: (caseId: string, signalId: string): [string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_SOURCE_SIGNALS, signalId],
+
+  childSafetyDecision: (caseId: string, decisionId: string): [string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS, decisionId],
+
+  childSafetyDecisionView: (caseId: string, decisionId: string, viewId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS, decisionId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISION_VIEWS, viewId],
+
+  childSafetyCaseAccount: (caseId: string, uid: string): [string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS, uid],
+
+  childSafetyCaseAccountHistory: (caseId: string, uid: string, historyId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS, uid, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNT_HISTORY, historyId],
+
+  childSafetyNcmecSubmission: (caseId: string, submissionId: string): [string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId],
+
+  childSafetyNcmecSubmissionFile: (caseId: string, submissionId: string, fileId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSION_FILES, fileId],
+
+  childSafetyNcmecSubmissionAttempt: (caseId: string, submissionId: string, attemptId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.SAFETY_ATTEMPTS, attemptId],
+
+  childSafetyLegalProcessEvent: (caseId: string, eventId: string): [string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_LEGAL_PROCESS, eventId],
+
+  childSafetyOwningAlias: (aliasId: string): [string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_OWNING_ALIASES, aliasId],
+
+  // The doc IS the correlation→case row (childSafetyCorrelations/{correlationKey}/cases/{caseId}).
+  childSafetyCorrelationCase: (correlationKey: string, caseId: string): [string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CORRELATIONS, correlationKey, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CORRELATION_CASES, caseId],
+
+  safetyCaseMergeJob: (mergeJobId: string): [string, string] =>
+    [COLLECTIONS.SAFETY_CASE_MERGE_JOBS, mergeJobId],
+
+  // ===== TRUST & SAFETY — holds + resource commands (§A3) =====
+  // Composite doc id caseId__resourceKeyHash — a single {holdRefId} segment.
+  safetyHoldRef: (holdRefId: string): [string, string] =>
+    [COLLECTIONS.SAFETY_HOLD_REFS, holdRefId],
+
+  safetyHoldResource: (resourceKeyHash: string): [string, string] =>
+    [COLLECTIONS.SAFETY_HOLD_RESOURCES, resourceKeyHash],
+
+  // Composite doc id resourceKeyHash__commandId — a single {commandDocId} segment.
+  safetyResourceCommand: (commandDocId: string): [string, string] =>
+    [COLLECTIONS.SAFETY_RESOURCE_COMMANDS, commandDocId],
+
+  safetyResourceCommandAuthorizedRequest: (commandDocId: string, requestId: string): [string, string, string, string] =>
+    [COLLECTIONS.SAFETY_RESOURCE_COMMANDS, commandDocId, NESTED_SUBCOLLECTIONS.SAFETY_RESOURCE_COMMAND_AUTHORIZED_REQUESTS, requestId],
+
+  safetyResourceCommandBypassRef: (commandDocId: string, refId: string): [string, string, string, string] =>
+    [COLLECTIONS.SAFETY_RESOURCE_COMMANDS, commandDocId, NESTED_SUBCOLLECTIONS.SAFETY_RESOURCE_COMMAND_BYPASS_REFS, refId],
+
+  // ===== TRUST & SAFETY — evidence + provenance (§A4, §A6) =====
+  safetyEvidenceManifest: (manifestId: string): [string, string] =>
+    [COLLECTIONS.SAFETY_EVIDENCE_MANIFESTS, manifestId],
+
+  safetyEvidenceJob: (jobId: string): [string, string] =>
+    [COLLECTIONS.SAFETY_EVIDENCE_JOBS, jobId],
+
+  safetyEvidenceJobItem: (jobId: string, itemId: string): [string, string, string, string] =>
+    [COLLECTIONS.SAFETY_EVIDENCE_JOBS, jobId, NESTED_SUBCOLLECTIONS.SAFETY_EVIDENCE_JOB_ITEMS, itemId],
+
+  safetyEvidenceJobDisposition: (jobId: string, locationId: string): [string, string, string, string] =>
+    [COLLECTIONS.SAFETY_EVIDENCE_JOBS, jobId, NESTED_SUBCOLLECTIONS.SAFETY_EVIDENCE_JOB_DISPOSITION, locationId],
+
+  eventProvenance: (eventId: string): [string, string] =>
+    [COLLECTIONS.EVENT_PROVENANCE, eventId],
+
+  // ===== TRUST & SAFETY — sagas + closure (§A5) =====
+  quarantineSagaJob: (caseId: string): [string, string] =>
+    [COLLECTIONS.QUARANTINE_SAGA_JOBS, caseId],
+
+  quarantineSagaRelatedAsset: (caseId: string, assetId: string): [string, string, string, string] =>
+    [COLLECTIONS.QUARANTINE_SAGA_JOBS, caseId, NESTED_SUBCOLLECTIONS.QUARANTINE_SAGA_RELATED_ASSETS, assetId],
+
+  // Composite doc id caseId__submissionId — a single {ncmecJobId} segment.
+  ncmecSubmissionJob: (ncmecJobId: string): [string, string] =>
+    [COLLECTIONS.NCMEC_SUBMISSION_JOBS, ncmecJobId],
+
+  // Composite doc id caseId__uid — a single {accountActionCommandId} segment.
+  accountActionCommand: (accountActionCommandId: string): [string, string] =>
+    [COLLECTIONS.ACCOUNT_ACTION_COMMANDS, accountActionCommandId],
+
+  // ===== TRUST & SAFETY — SLA monitors + heartbeat (§A8) =====
+  // Composite doc id {caseId|requestId}__{monitorKind} — a single {monitorId} segment.
+  safetySlaMonitor: (monitorId: string): [string, string] =>
+    [COLLECTIONS.SAFETY_SLA_MONITORS, monitorId],
+
+  // Singleton: safetyMonitorHeartbeat/global.
+  safetyMonitorHeartbeat: (): [string, string] =>
+    [COLLECTIONS.SAFETY_MONITOR_HEARTBEAT, SPECIAL_DOCS.SAFETY_MONITOR_HEARTBEAT_GLOBAL],
+
+  // ===== TRUST & SAFETY — age attestation nonces (§A7) =====
+  ageAttestationNonce: (nonceHash: string): [string, string] =>
+    [COLLECTIONS.AGE_ATTESTATION_NONCES, nonceHash],
+
+  // ===== TRUST & SAFETY — NCII / TAKE IT DOWN (§A11) =====
+  nciiAllegation: (allegationId: string): [string, string] =>
+    [COLLECTIONS.NCII_ALLEGATIONS, allegationId],
+
+  takeItDownRequest: (requestId: string): [string, string] =>
+    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId],
+
+  // Fixed-id requester PII subdoc (takeItDownRequests/{requestId}/private/requester).
+  takeItDownRequesterPrivate: (requestId: string): [string, string, string, string] =>
+    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_PRIVATE, SPECIAL_DOCS.TAKE_IT_DOWN_REQUESTER],
+
+  takeItDownSubmission: (requestId: string, submissionId: string): [string, string, string, string] =>
+    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS, submissionId],
+
+  takeItDownValidityDecision: (requestId: string, decisionId: string): [string, string, string, string] =>
+    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS, decisionId],
+
+  takeItDownRequestAction: (requestId: string, actionId: string): [string, string, string, string] =>
+    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_ACTIONS, actionId],
+
+  // Fixed-id public status projection (takeItDownRequests/{requestId}/statusProjection/current).
+  takeItDownPublicStatus: (requestId: string): [string, string, string, string] =>
+    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_STATUS_PROJECTION, SPECIAL_DOCS.TAKE_IT_DOWN_STATUS_CURRENT],
+
+  takeItDownEvidence: (requestId: string, evidenceId: string): [string, string, string, string] =>
+    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_EVIDENCE, evidenceId],
+
+  nciiCase: (caseId: string): [string, string] =>
+    [COLLECTIONS.NCII_CASES, caseId],
+
+  nciiCaseAllegationLink: (caseId: string, allegationId: string): [string, string, string, string] =>
+    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_ALLEGATION_LINKS, allegationId],
+
+  nciiCaseRequestLink: (caseId: string, requestId: string): [string, string, string, string] =>
+    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_REQUEST_LINKS, requestId],
+
+  nciiCaseRemovalAction: (caseId: string, actionId: string): [string, string, string, string] =>
+    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_REMOVAL_ACTIONS, actionId],
+
+  nciiBlockedHash: (caseId: string, hashId: string): [string, string, string, string] =>
+    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_BLOCKED_HASHES, hashId],
+
+  nciiUploaderNotice: (caseId: string, noticeId: string): [string, string, string, string] =>
+    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_UPLOADER_NOTICES, noticeId],
+
+  nciiUploaderNoticeAttempt: (caseId: string, noticeId: string, attemptId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_UPLOADER_NOTICES, noticeId, NESTED_SUBCOLLECTIONS.SAFETY_ATTEMPTS, attemptId],
+
+  nciiTemporaryHold: (holdId: string): [string, string] =>
+    [COLLECTIONS.NCII_TEMPORARY_HOLDS, holdId],
+
+  nciiRemovalJob: (jobId: string): [string, string] =>
+    [COLLECTIONS.NCII_REMOVAL_JOBS, jobId],
+
+  nciiRemovalTarget: (jobId: string, targetKeyHash: string): [string, string, string, string] =>
+    [COLLECTIONS.NCII_REMOVAL_JOBS, jobId, NESTED_SUBCOLLECTIONS.NCII_REMOVAL_TARGETS, targetKeyHash],
+
+  // Composite doc id requestId__evidenceId — a single {scanId} segment.
+  nciiEvidenceSafetyScan: (scanId: string): [string, string] =>
+    [COLLECTIONS.NCII_EVIDENCE_SAFETY_SCANS, scanId],
+
+  nciiAppeal: (appealId: string): [string, string] =>
+    [COLLECTIONS.NCII_APPEALS, appealId],
+
+  nciiAppealSubmission: (appealId: string, submissionId: string): [string, string, string, string] =>
+    [COLLECTIONS.NCII_APPEALS, appealId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS, submissionId],
+
+  nciiAppealDecision: (appealId: string, decisionId: string): [string, string, string, string] =>
+    [COLLECTIONS.NCII_APPEALS, appealId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS, decisionId],
+
+  // ===== TRUST & SAFETY — _config singletons (§A7, §A11) =====
+  agePolicyConfig: (): [string, string] =>
+    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.AGE_POLICY],
+
+  nciiPolicyConfig: (): [string, string] =>
+    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.NCII_POLICY],
+
+  privilegedReviewerSecurityConfig: (): [string, string] =>
+    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.PRIVILEGED_REVIEWER_SECURITY],
+
+  operatorContinuityConfig: (): [string, string] =>
+    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.OPERATOR_CONTINUITY],
 } as const;

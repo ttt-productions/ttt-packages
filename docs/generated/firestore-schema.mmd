@@ -1,5 +1,38 @@
 %% GENERATED FILE — DO NOT EDIT. Run `npm run schema:docs` in ttt-packages.
 erDiagram
+  accountActionCommands {
+    field schemaVersion
+    field caseId
+    field targetUid
+    field action
+    field source
+    field status
+    field commandId
+    field attemptCount
+    field nextAttemptAt
+    field leaseOwner
+    field leaseExpiresAt
+    field lastError
+  }
+  accounts {
+    field role
+    field subjectDisposition
+    field platformAction
+    field reasonUserFacing
+    field reasonInternal
+    field updatedAt
+  }
+  actions {
+    field schemaVersion
+    field actionId
+    field at
+    field actorId
+    field capability
+    field actionType
+    field result
+    field summary
+    field detailRef
+  }
   activeAdminNotifications {
     field id
     field type
@@ -91,6 +124,27 @@ erDiagram
     field rewriteState
     field deleteState
   }
+  ageAttestationNonces {
+    field schemaVersion
+    field bracket
+    field policyVersion
+    field signingKeyVersion
+    field requestSessionHash
+    field issuedAt
+    field expiresAt
+    field consumedAt
+    field consumedByUid
+    field status
+  }
+  agePolicy {
+    field agePolicyVersion
+    field registrationGracePeriodMinutes
+    field cleanupSchedule
+    field ageTokenTtlSeconds
+    field keyRetirementVerificationMinutes
+    field noDeleteOutcomes
+    field terminalDeletableOutcomes
+  }
   allWorkProjects {
     field workProjectId
     field createdOn
@@ -105,12 +159,19 @@ erDiagram
     field workRealmId
     field realmCanonStatus
   }
+  allegationLinks {
+    field allegationId
+    field linkedAt
+    field linkedByUid
+  }
   app {
     field appVersion
     field maintenanceMode
     field maintenanceMessage
     field registrationEnabled
     field rateLimitMultiplier
+  }
+  attempts {
   }
   auditEvents {
     field id
@@ -157,6 +218,38 @@ erDiagram
     field votedForAuditionEntryId
     field votedOn
     field auditionEntryArtisanCreator
+  }
+  authorizedRequests {
+    field requestId
+    field caseId
+    field addedAt
+  }
+  blockedHashes {
+    field hashId
+    field algorithm
+    field digest
+    field source
+    field createdAt
+    field createdByUid
+    field status
+    field reversedAt
+    field reversedByUid
+    field reversalReason
+  }
+  bypassRefs {
+    field refId
+    field holdClass
+    field addedAt
+  }
+  cases {
+    field schemaVersion
+    field caseId
+    field correlationType
+    field canonicalValueHash
+    field rootIngestId
+    field originatingUploaderUid
+    field firstSeenAt
+    field sourceSignalId
   }
   causes {
     field causeId
@@ -265,6 +358,37 @@ erDiagram
     field createdAt
     field completedAt
   }
+  childSafetyCaseList {
+    field schemaVersion
+    field caseId
+    field revision
+    field canonicalIncidentKey
+    field incidentClass
+    field sourceSignalSummary
+    field workStatus
+    field preservationStatus
+    field ncmecStatus
+    field accountActionStatus
+    field reportDisposition
+    field reviewDueAt
+  }
+  childSafetyCases {
+    field schemaVersion
+    field caseId
+    field evidenceManifestId
+    field currentReasonInternal
+    field leaseOwner
+    field leaseExpiresAt
+    field fencingOwnerToken
+    field fencingGeneration
+  }
+  childSafetyOwningAliases {
+    field schemaVersion
+    field caseId
+    field aliasType
+    field canonicalValueHash
+    field createdAt
+  }
   commissionListings {
     field commissionListingId
     field title
@@ -334,9 +458,67 @@ erDiagram
     field isSystemMessage
     field meta
   }
+  current {
+    field schemaVersion
+    field requestReference
+    field publicStatus
+    field publicReasonCode
+    field missingFieldCodes
+    field nextAction
+    field removalDeadlineAt
+    field updatedAt
+  }
+  decisions {
+    field at
+    field actorId
+    field kind
+    field from
+    field to
+    field reasonInternal
+    field reasonUserFacing
+    field evidenceItemsViewedCount
+  }
+  disposition {
+    field bucket
+    field key
+    field method
+    field verifiedAt
+    field result
+    field leftoverDetail
+  }
+  eventProvenance {
+    field schemaVersion
+    field kind
+    field subjectRefs
+    field trustedClientIp
+    field userAgent
+    field at
+    field sessionId
+    field retentionClass
+  }
+  evidence {
+    field schemaVersion
+    field evidenceId
+    field requestId
+    field uploadContext
+    field submitterUid
+    field bucket
+    field key
+    field generation
+    field contentType
+    field sizeBytes
+    field sha256
+    field md5
+  }
   feedbackAliases {
     field canonicalId
     field originalType
+  }
+  files {
+    field localEvidenceItemId
+    field ncmecFileId
+    field md5
+    field fileInfoState
   }
   followCounters {
     field followerCount
@@ -351,6 +533,11 @@ erDiagram
   futurePlans {
     field lastUpdated
     field plans
+  }
+  global {
+    field schemaVersion
+    field lastRunAt
+    field expectedIntervalMs
   }
   guildChatChannels {
     field guildChatChannelId
@@ -404,6 +591,31 @@ erDiagram
     field coverPosterAssetId
     field coverCinematicAssetId
   }
+  history {
+    field role
+    field subjectDisposition
+    field platformAction
+    field reasonUserFacing
+    field reasonInternal
+    field at
+  }
+  items {
+    field role
+    field bucket
+    field key
+    field generation
+    field sizeBytes
+    field sha256
+    field md5
+    field verifyResult
+  }
+  legalProcess {
+    field at
+    field kind
+    field verifiedBy
+    field instruction
+    field handedOver
+  }
   mediaActivationJobs {
     field jobId
     field schemaVersion
@@ -447,6 +659,124 @@ erDiagram
     field completedAt
     field status
   }
+  nciiAllegations {
+    field schemaVersion
+    field allegationId
+    field caseId
+    field reporterType
+    field submittedAt
+    field targetLocator
+    field allegationReason
+    field status
+  }
+  nciiAppeals {
+    field schemaVersion
+    field appealId
+    field caseId
+    field requestIds
+    field appealKind
+    field removalGeneration
+    field appellantUid
+    field idempotencyKey
+    field state
+    field deadlineAt
+    field command
+    field createdAt
+  }
+  nciiCases {
+    field schemaVersion
+    field caseId
+    field revision
+    field lane
+    field internalStatus
+    field childSafetyLinkStatus
+    field crossover
+    field childSafetyCaseId
+    field appealState
+    field nciiRemovalDeadlineAt
+    field createdAt
+    field updatedAt
+  }
+  nciiEvidenceSafetyScans {
+    field schemaVersion
+    field requestId
+    field evidenceId
+    field scanId
+    field commandId
+    field bucket
+    field key
+    field generation
+    field status
+    field detectorProvider
+    field detectorListVersion
+    field detectorSignalId
+  }
+  nciiPolicy {
+    field policyVersion
+    field appealWindowDays
+    field requesterPiiRetentionDays
+    field evidenceRetentionDays
+    field statusTokenRetentionDays
+    field blockedHashRetentionPolicy
+    field allowedEvidenceMimeTypes
+    field maxEvidenceFileBytes
+    field maxEvidenceFilesPerRequest
+    field maxEvidenceTotalBytesPerRequest
+    field uploadReservationMinutes
+    field abandonedUploadCleanupHours
+  }
+  nciiRemovalJobs {
+    field schemaVersion
+    field jobId
+    field caseId
+    field requestId
+    field generation
+    field phase
+    field status
+    field cursor
+    field leaseOwner
+    field leaseExpiresAt
+    field attemptCount
+    field nextAttemptAt
+  }
+  nciiTemporaryHolds {
+    field schemaVersion
+    field holdId
+    field requestId
+    field caseId
+    field resourceType
+    field safetyHoldRefId
+    field target
+    field rootLineageRef
+    field contentHashes
+    field ownerUid
+    field capturedRevision
+    field capturedGeneration
+  }
+  ncmecSubmissionJobs {
+    field schemaVersion
+    field caseId
+    field submissionId
+    field state
+    field commandId
+    field attemptCount
+    field nextAttemptAt
+    field leaseOwner
+    field leaseExpiresAt
+    field lastErrorCode
+    field createdAt
+    field updatedAt
+  }
+  ncmecSubmissions {
+    field kind
+    field state
+    field completionChannel
+    field submissionCompletedAt
+    field completionProofType
+    field completionProofRef
+    field reportId
+    field responseCode
+  }
   notificationDeliveries {
     field deliveryId
     field state
@@ -488,6 +818,16 @@ erDiagram
     field targetPath
     field metadata
     field seenAt
+  }
+  operatorContinuity {
+    field operatorHeartbeatHours
+    field failsafeDisablesNewUploads
+    field failsafeHoldsAllInFlight
+    field blockedPendingOperatorSteps
+    field recordDeadlineBreaches
+    field operatorBackupContacts
+    field approvedBy
+    field counselApproved
   }
   paymentWebhookQuarantine {
     field eventId
@@ -572,6 +912,21 @@ erDiagram
     field agreements
     field statusReason
     field statusReasonAt
+    field safetyLocked
+    field accountType
+    field is18Plus
+    field agePolicyVersion
+    field accountCapabilityVersion
+  }
+  privilegedReviewerSecurity {
+    field requiredSecondFactor
+    field privilegedReauthTtlSeconds
+    field privilegedSessionDeviceBound
+    field twoStepReauthCapabilities
+    field recoveryCodeCount
+    field recoveryCodeUse
+    field allowPrivilegedSessionRevocation
+    field everyInvocationAudited
   }
   processedStripeEvents {
     field eventId
@@ -622,6 +977,52 @@ erDiagram
     field coverAssetId
     field workStewardUid
   }
+  quarantineSagaJobs {
+    field schemaVersion
+    field caseId
+    field quarantineStatus
+    field phase
+    field phaseVersion
+    field commandId
+    field relatedAssetIds
+    field attemptCount
+    field nextAttemptAt
+    field leaseOwner
+    field leaseExpiresAt
+    field lastError
+  }
+  relatedAssets {
+    field rootIngestId
+    field addedAt
+  }
+  removalActions {
+    field at
+    field actorId
+    field surface
+    field targetItemType
+    field targetItemId
+    field method
+    field result
+  }
+  requestLinks {
+    field requestId
+    field linkedAt
+    field linkedByUid
+  }
+  requester {
+    field schemaVersion
+    field requesterName
+    field contactEmail
+    field contactPhone
+    field electronicSignature
+    field authorizedRepresentative
+    field nonconsentStatement
+    field supportingFacts
+    field goodFaithCertification
+    field accuracyCertification
+    field authorityCertification
+    field createdAt
+  }
   reservedDisplayNames {
     field userId
     field displayName
@@ -633,6 +1034,100 @@ erDiagram
   rulesAndAgreements {
     field rules
     field agreements
+  }
+  safetyCaseMergeJobs {
+    field schemaVersion
+    field mergeJobId
+    field participantCaseIds
+    field winnerCaseId
+    field mergeGeneration
+    field losers
+    field status
+    field leaseOwner
+    field leaseExpiresAt
+    field attemptCount
+    field nextAttemptAt
+    field lastErrorCode
+  }
+  safetyEvidenceJobs {
+    field schemaVersion
+    field jobId
+    field caseId
+    field phase
+    field commandId
+    field status
+    field attemptCount
+    field nextAttemptAt
+    field leaseOwner
+    field leaseExpiresAt
+    field lastErrorCode
+    field createdAt
+  }
+  safetyEvidenceManifests {
+    field schemaVersion
+    field manifestId
+    field caseId
+    field createdAt
+    field sourceKind
+    field original
+    field variants
+    field lineage
+    field communication
+    field externalFact
+    field subjectAccountsRef
+    field provenanceRefs
+  }
+  safetyHoldRefs {
+    field schemaVersion
+    field caseId
+    field resourceType
+    field resourceId
+    field resourceKeyHash
+    field canonicalResourceKey
+    field blocksDeletion
+    field blocksAnonymization
+    field blocksReplacementCleanup
+    field state
+    field holdClass
+    field createdAt
+  }
+  safetyHoldResources {
+    field schemaVersion
+    field resourceKeyHash
+    field canonicalResourceKey
+    field activeRefCount
+    field blocksDeletionCount
+    field blocksAnonymizationCount
+    field blocksReplacementCleanupCount
+    field updatedAt
+  }
+  safetyResourceCommands {
+    field schemaVersion
+    field resourceKeyHash
+    field canonicalResourceKey
+    field commandId
+    field commandKind
+    field resourceType
+    field authorizedFor
+    field bypassHoldRefIds
+    field bypassHoldRefsOverflowed
+    field state
+    field attemptCount
+    field leaseOwner
+  }
+  safetySlaMonitors {
+    field schemaVersion
+    field caseId
+    field requestId
+    field monitorKind
+    field armedAt
+    field deadlineAt
+    field escalationLevel
+    field lastFiredAt
+    field monitorStage
+    field basisSubmissionId
+    field status
+    field resolvedAt
   }
   shortLinks {
     field shortId
@@ -658,6 +1153,13 @@ erDiagram
     field postType
     field relatedAssetId
   }
+  sourceSignals {
+    field at
+    field kind
+    field detector
+    field sourceRef
+    field actorId
+  }
   squareStreetzLikes {
     field likedOn
   }
@@ -673,6 +1175,19 @@ erDiagram
     field createdAt
     field source
   }
+  submissions {
+    field schemaVersion
+    field submissionId
+    field sequence
+    field receivedAt
+    field suppliedFieldCodes
+    field evidenceIds
+    field cumulativeRequestSnapshotHash
+    field cumulativeCompleteness
+    field firstCompletedRequest
+    field supersedesSubmissionId
+    field createdBy
+  }
   taggedCraftSkills {
     field craftSkillId
     field compositeId
@@ -684,6 +1199,20 @@ erDiagram
     field createdAt
     field hidden
   }
+  takeItDownRequests {
+    field schemaVersion
+    field requestId
+    field caseId
+    field requesterRole
+    field targetLocatorSummary
+    field receivedAt
+    field completenessStatus
+    field validityStatus
+    field invalidReasonCode
+    field completenessDeterminedAt
+    field validityDeterminedAt
+    field completedBySubmissionId
+  }
   taleChapters {
     field uid
     field title
@@ -693,6 +1222,20 @@ erDiagram
     field photoAssetId
     field status
     field createdOn
+  }
+  targets {
+    field targetKeyHash
+    field locator
+    field surface
+    field expectedGeneration
+    field servingDenyState
+    field removalState
+    field verificationState
+    field outcome
+    field attemptCount
+    field leaseOwner
+    field leaseExpiresAt
+    field lastErrorCode
   }
   televisionEpisodes {
     field uid
@@ -734,6 +1277,20 @@ erDiagram
     field status
     field createdOn
   }
+  uploaderNotices {
+    field schemaVersion
+    field noticeId
+    field caseId
+    field requestIds
+    field removalGeneration
+    field recipientSnapshot
+    field channel
+    field templateId
+    field templateVersion
+    field status
+    field suppressionReason
+    field rationaleRef
+  }
   userProfiles {
     field uid
     field displayName
@@ -753,6 +1310,23 @@ erDiagram
     field count
     field submittedBy
     field lastSubmitted
+  }
+  validityDecisions {
+    field schemaVersion
+    field decisionId
+    field requestId
+    field result
+    field basisSubmissionIds
+    field validFromSubmissionId
+    field validRequestReceivedAt
+    field reasonCode
+    field rationaleRef
+    field decidedByUid
+    field decidedAt
+  }
+  views {
+    field evidenceItemId
+    field at
   }
   workAssets {
     field id
@@ -834,6 +1408,7 @@ erDiagram
   pledgePayments ||--o{ pledgePaymentLedgerEvents : "pledgePaymentId"
   pledgePayments ||--o{ pledgePaymentProviderRefs : "pledgePaymentId"
   pledgePayments ||--o{ processedStripeEvents : "pledgePaymentId"
+  userProfiles ||--o{ actions : "actorId"
   userProfiles ||--o{ activeAdminNotifications : "targetUserId"
   userProfiles ||--o{ activeReportGroups : "reportedUserId"
   userProfiles ||--o{ activeUserNotifications : "targetUserId"
@@ -850,6 +1425,7 @@ erDiagram
   userProfiles ||--o{ contentViolations : "reviewedBy"
   userProfiles ||--o{ contentViolations : "userId"
   userProfiles ||--o{ conversationMessages : "senderId"
+  userProfiles ||--o{ decisions : "actorId"
   userProfiles ||--o{ followEdges : "followerUid"
   userProfiles ||--o{ guildmateUsers : "uid"
   userProfiles ||--o{ mentionHistory : "userId"
@@ -868,8 +1444,10 @@ erDiagram
   userProfiles ||--o{ publicUsers : "uid"
   userProfiles ||--o{ publicWorkProjects : "foundingArtisanUid"
   userProfiles ||--o{ publicWorkProjects : "workStewardUid"
+  userProfiles ||--o{ removalActions : "actorId"
   userProfiles ||--o{ reservedDisplayNames : "userId"
   userProfiles ||--o{ socialPosts : "authorId"
+  userProfiles ||--o{ sourceSignals : "actorId"
   userProfiles ||--o{ taggedCraftSkills : "userId"
   userProfiles ||--o{ taleChapters : "uid"
   userProfiles ||--o{ televisionEpisodes : "uid"

@@ -23,4 +23,28 @@ export * from './notifications.js';
 export * from './notification-ledger.js';
 export * from './chat-sync.js';
 export * from './operational.js';
+
+// ===== Trust & Safety — shared foundation + cluster schemas (§A1–A11) =====
+export * from './safety/foundation.js';
+export * from './safety/report.js';
+export * from './safety/case.js';
+export * from './safety/case-aliases.js';
+export * from './safety/holds.js';
+export * from './safety/evidence.js';
+export * from './safety/provenance.js';
+export * from './safety/sagas.js';
+export * from './safety/monitors.js';
+export * from './safety/age.js';
+
+// ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
+export * from './ncii/allegations.js';
+export * from './ncii/requests.js';
+export * from './ncii/cases.js';
+export * from './ncii/holds.js';
+export * from './ncii/removal.js';
+export * from './ncii/scan.js';
+export * from './ncii/appeals.js';
+export * from './ncii/notices.js';
+export * from './ncii/config.js';
+
 export * from './registry.js';

@@ -106,6 +106,88 @@ import {
   FeedbackAliasSchema,
   UserSuggestionSchema,
 } from './operational.js';
+// ===== Trust & Safety — child-safety case spine (§A1b, §A2) =====
+import {
+  ChildSafetyCaseListV1Schema,
+  ChildSafetyCaseV1Schema,
+  ChildSafetySourceSignalV1Schema,
+  ChildSafetyDecisionV1Schema,
+  ChildSafetyDecisionViewV1Schema,
+  ChildSafetyCaseAccountV1Schema,
+  ChildSafetyCaseAccountHistoryV1Schema,
+  ChildSafetyNcmecSubmissionV1Schema,
+  ChildSafetyNcmecSubmissionFileV1Schema,
+  NcmecSubmissionAttemptV1Schema,
+  ChildSafetyLegalProcessEventV1Schema,
+} from './safety/case.js';
+import {
+  ChildSafetyOwningAliasV1Schema,
+  ChildSafetyCorrelationCaseV1Schema,
+  SafetyCaseMergeJobV1Schema,
+} from './safety/case-aliases.js';
+import {
+  SafetyHoldRefV1Schema,
+  SafetyHoldResourceV1Schema,
+  SafetyResourceCommandV1Schema,
+  SafetyResourceCommandAuthorizedRequestV1Schema,
+  SafetyResourceCommandBypassRefV1Schema,
+} from './safety/holds.js';
+import {
+  SafetyEvidenceManifestV1Schema,
+  SafetyEvidenceJobV1Schema,
+  SafetyEvidenceJobItemV1Schema,
+  SafetyEvidenceDispositionV1Schema,
+} from './safety/evidence.js';
+import { EventProvenanceV1Schema } from './safety/provenance.js';
+import {
+  QuarantineSagaJobV1Schema,
+  QuarantineSagaRelatedAssetV1Schema,
+  NcmecSubmissionJobV1Schema,
+  AccountActionCommandV1Schema,
+} from './safety/sagas.js';
+import {
+  SafetySlaMonitorV1Schema,
+  SafetyMonitorHeartbeatV1Schema,
+} from './safety/monitors.js';
+import { AgeAttestationNonceV1Schema, AgePolicyConfigV1Schema } from './safety/age.js';
+// ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
+import { NciiAllegationV1Schema } from './ncii/allegations.js';
+import {
+  TakeItDownRequestRootV1Schema,
+  TakeItDownRequesterPrivateV1Schema,
+  TakeItDownSubmissionV1Schema,
+  TakeItDownValidityDecisionV1Schema,
+  TakeItDownRequestActionV1Schema,
+  TakeItDownPublicStatusV1Schema,
+  TakeItDownEvidenceV1Schema,
+} from './ncii/requests.js';
+import {
+  NciiCaseV1Schema,
+  NciiCaseAllegationLinkV1Schema,
+  NciiCaseRequestLinkV1Schema,
+  NciiCaseRemovalActionV1Schema,
+  NciiBlockedHashV1Schema,
+} from './ncii/cases.js';
+import { NciiTemporaryHoldV1Schema } from './ncii/holds.js';
+import {
+  NciiRemovalJobV1Schema,
+  NciiRemovalTargetV1Schema,
+} from './ncii/removal.js';
+import { NciiEvidenceSafetyScanV1Schema } from './ncii/scan.js';
+import {
+  NciiAppealV1Schema,
+  NciiAppealSubmissionV1Schema,
+  NciiAppealDecisionV1Schema,
+} from './ncii/appeals.js';
+import {
+  NciiUploaderNoticeV1Schema,
+  NciiUploaderNoticeAttemptV1Schema,
+} from './ncii/notices.js';
+import {
+  NciiPolicyConfigV1Schema,
+  PrivilegedReviewerSecurityProfileV1Schema,
+  OperatorContinuityConfigV1Schema,
+} from './ncii/config.js';
 
 export const COLLECTION_SCHEMAS = {
   // ===== Users =====
@@ -207,10 +289,84 @@ export const COLLECTION_SCHEMAS = {
   'feedbackAliases/{aliasId}': FeedbackAliasSchema,
   'feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId}': UserSuggestionSchema,
 
+  // ===== Trust & Safety — child-safety case spine (§A1b, §A2) =====
+  'childSafetyCaseList/{caseId}': ChildSafetyCaseListV1Schema,
+  'childSafetyCases/{caseId}': ChildSafetyCaseV1Schema,
+  'childSafetyCases/{caseId}/sourceSignals/{signalId}': ChildSafetySourceSignalV1Schema,
+  'childSafetyCases/{caseId}/decisions/{decisionId}': ChildSafetyDecisionV1Schema,
+  'childSafetyCases/{caseId}/decisions/{decisionId}/views/{viewId}': ChildSafetyDecisionViewV1Schema,
+  'childSafetyCases/{caseId}/accounts/{uid}': ChildSafetyCaseAccountV1Schema,
+  'childSafetyCases/{caseId}/accounts/{uid}/history/{historyId}': ChildSafetyCaseAccountHistoryV1Schema,
+  'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}': ChildSafetyNcmecSubmissionV1Schema,
+  'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/files/{fileId}': ChildSafetyNcmecSubmissionFileV1Schema,
+  'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/attempts/{attemptId}': NcmecSubmissionAttemptV1Schema,
+  'childSafetyCases/{caseId}/legalProcess/{eventId}': ChildSafetyLegalProcessEventV1Schema,
+  'childSafetyOwningAliases/{aliasId}': ChildSafetyOwningAliasV1Schema,
+  'childSafetyCorrelations/{correlationKey}/cases/{caseId}': ChildSafetyCorrelationCaseV1Schema,
+  'safetyCaseMergeJobs/{mergeJobId}': SafetyCaseMergeJobV1Schema,
+
+  // ===== Trust & Safety — holds + resource commands (§A3) =====
+  'safetyHoldRefs/{holdRefId}': SafetyHoldRefV1Schema,
+  'safetyHoldResources/{resourceKeyHash}': SafetyHoldResourceV1Schema,
+  'safetyResourceCommands/{commandDocId}': SafetyResourceCommandV1Schema,
+  'safetyResourceCommands/{commandDocId}/authorizedRequests/{requestId}': SafetyResourceCommandAuthorizedRequestV1Schema,
+  'safetyResourceCommands/{commandDocId}/bypassRefs/{refId}': SafetyResourceCommandBypassRefV1Schema,
+
+  // ===== Trust & Safety — evidence + provenance (§A4, §A6) =====
+  // SafetyEvidenceManifestV1Schema is a refined ZodObject (superRefine for the H5
+  // sourceKind invariant); the schema-doc generator unwraps the effect to introspect
+  // its shape, so binding the refined schema here is correct.
+  'safetyEvidenceManifests/{manifestId}': SafetyEvidenceManifestV1Schema,
+  'safetyEvidenceJobs/{jobId}': SafetyEvidenceJobV1Schema,
+  'safetyEvidenceJobs/{jobId}/items/{itemId}': SafetyEvidenceJobItemV1Schema,
+  'safetyEvidenceJobs/{jobId}/disposition/{locationId}': SafetyEvidenceDispositionV1Schema,
+  'eventProvenance/{eventId}': EventProvenanceV1Schema,
+
+  // ===== Trust & Safety — sagas + closure (§A5) =====
+  'quarantineSagaJobs/{caseId}': QuarantineSagaJobV1Schema,
+  'quarantineSagaJobs/{caseId}/relatedAssets/{assetId}': QuarantineSagaRelatedAssetV1Schema,
+  'ncmecSubmissionJobs/{ncmecJobId}': NcmecSubmissionJobV1Schema,
+  'accountActionCommands/{accountActionCommandId}': AccountActionCommandV1Schema,
+
+  // ===== Trust & Safety — SLA monitors + heartbeat (§A8) =====
+  'safetySlaMonitors/{monitorId}': SafetySlaMonitorV1Schema,
+  'safetyMonitorHeartbeat/global': SafetyMonitorHeartbeatV1Schema,
+
+  // ===== Trust & Safety — age attestation nonces (§A7) =====
+  'ageAttestationNonces/{nonceHash}': AgeAttestationNonceV1Schema,
+
+  // ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
+  'nciiAllegations/{allegationId}': NciiAllegationV1Schema,
+  'takeItDownRequests/{requestId}': TakeItDownRequestRootV1Schema,
+  'takeItDownRequests/{requestId}/private/requester': TakeItDownRequesterPrivateV1Schema,
+  'takeItDownRequests/{requestId}/submissions/{submissionId}': TakeItDownSubmissionV1Schema,
+  'takeItDownRequests/{requestId}/validityDecisions/{decisionId}': TakeItDownValidityDecisionV1Schema,
+  'takeItDownRequests/{requestId}/actions/{actionId}': TakeItDownRequestActionV1Schema,
+  'takeItDownRequests/{requestId}/statusProjection/current': TakeItDownPublicStatusV1Schema,
+  'takeItDownRequests/{requestId}/evidence/{evidenceId}': TakeItDownEvidenceV1Schema,
+  'nciiCases/{caseId}': NciiCaseV1Schema,
+  'nciiCases/{caseId}/allegationLinks/{allegationId}': NciiCaseAllegationLinkV1Schema,
+  'nciiCases/{caseId}/requestLinks/{requestId}': NciiCaseRequestLinkV1Schema,
+  'nciiCases/{caseId}/removalActions/{actionId}': NciiCaseRemovalActionV1Schema,
+  'nciiCases/{caseId}/blockedHashes/{hashId}': NciiBlockedHashV1Schema,
+  'nciiCases/{caseId}/uploaderNotices/{noticeId}': NciiUploaderNoticeV1Schema,
+  'nciiCases/{caseId}/uploaderNotices/{noticeId}/attempts/{attemptId}': NciiUploaderNoticeAttemptV1Schema,
+  'nciiTemporaryHolds/{holdId}': NciiTemporaryHoldV1Schema,
+  'nciiRemovalJobs/{jobId}': NciiRemovalJobV1Schema,
+  'nciiRemovalJobs/{jobId}/targets/{targetKeyHash}': NciiRemovalTargetV1Schema,
+  'nciiEvidenceSafetyScans/{scanId}': NciiEvidenceSafetyScanV1Schema,
+  'nciiAppeals/{appealId}': NciiAppealV1Schema,
+  'nciiAppeals/{appealId}/submissions/{submissionId}': NciiAppealSubmissionV1Schema,
+  'nciiAppeals/{appealId}/decisions/{decisionId}': NciiAppealDecisionV1Schema,
+
   // ===== _config singletons =====
   '_config/app': AppConfigSchema,
   '_config/futurePlans': FuturePlansDocumentSchema,
   '_config/rulesAndAgreements': RulesAndAgreementsSchema,
+  '_config/agePolicy': AgePolicyConfigV1Schema,
+  '_config/nciiPolicy': NciiPolicyConfigV1Schema,
+  '_config/privilegedReviewerSecurity': PrivilegedReviewerSecurityProfileV1Schema,
+  '_config/operatorContinuity': OperatorContinuityConfigV1Schema,
 
   // ===== _systemData singletons =====
   '_systemData/adminList': AdminListSchema,

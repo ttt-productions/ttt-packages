@@ -1,0 +1,159 @@
+// Trust & Safety — NCII operational case (Appendix A §A11, concept (3)) + the
+// multi-hash block ([F8]).
+//
+// `nciiCases/{caseId}` — the internal operational record linking allegations +
+// requests; minimize-retention (NOT NCMEC, NOT 1-yr). It uses bounded CHILD-LINK
+// ROWS, never unbounded root arrays. Locked invariant [H7]: an NCII case NEVER
+// "reclassifies to CSAM" — a linked child-safety case independently owns
+// preservation / CyberTipline / child-safety account actions; child-safety
+// linkage can never close/pause/replace/delete the NCII request or its 48h
+// deadline.
+//
+// Every shape here is transcribed verbatim from docs/code_changes_needed/
+// trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A §A11 (3) + [F8] — no invented
+// values, no placeholders.
+//
+// SHARED enums come from ../safety/foundation.js (the single source for every
+// cross-cluster enum); they are NEVER redefined here. This cluster IMPORTS
+// NciiInternalStatusSchema, NciiChildSafetyLinkStatusSchema, and
+// NciiChildSafetyCrossoverSchema.
+//
+// Collection note: this cluster introduces a NEW Firestore collection plus child
+// subcollections (allegationLinks / requestLinks / removalActions / blockedHashes
+// — AND `uploaderNotices`, whose schema NciiUploaderNoticeV1 is OWNED BY THE
+// REMOVAL CLUSTER, not authored here; the orchestrator binds it). Wiring
+// collections.ts / path-builders.ts / registry.ts is deferred to the app leg; the
+// doc-id shapes are documented on each schema below.
+
+import { z } from 'zod';
+import {
+  NciiInternalStatusSchema,
+  NciiChildSafetyLinkStatusSchema,
+  NciiChildSafetyCrossoverSchema,
+} from '../safety/foundation.js';
+
+// ===========================================================================
+// §A11 (3) — nciiCases/{caseId}
+// ===========================================================================
+
+/** Case lane — adult NCII vs likeness/depiction. */
+export const NciiCaseLaneSchema = z.enum(['ncii', 'likeness']);
+export type NciiCaseLane = z.infer<typeof NciiCaseLaneSchema>;
+
+/** NON-AUTHORITATIVE projection of the durable NciiAppealV1 (the
+ * `uploaderRemovalAppeal` only) — derived from the appeal's latest decision; the
+ * appeal record, not this field, is the source of truth ([H-09]). Only
+ * `nciiAppealReviewer` may drive 'granted'/reinstate. */
+export const NciiCaseAppealStateSchema = z.enum([
+  'none',
+  'submitted',
+  'underReview',
+  'granted',
+  'denied',
+]);
+export type NciiCaseAppealState = z.infer<typeof NciiCaseAppealStateSchema>;
+
+/** `nciiCases/{caseId}` — the operational record; minimize-retention; child-link
+ * rows, never unbounded root arrays. Doc id `caseId` is a deterministic/assigned
+ * id (z.string().min(1)). NO case-level `fileDeleteAfter` [M3]: a single
+ * case-level timestamp could wrongly override a LATER-linked request, so each
+ * evidence row owns its own `deleteAfter` and each request owns its own
+ * PII/status/token schedule. */
+export const NciiCaseV1Schema = z.object({
+  schemaVersion: z.literal(1),
+  caseId: z.string().min(1),
+  revision: z.number(),
+  lane: NciiCaseLaneSchema,
+  // [H7] internal operational case status
+  internalStatus: NciiInternalStatusSchema,
+  // [H7] child-safety linkage status
+  childSafetyLinkStatus: NciiChildSafetyLinkStatusSchema,
+  // [F4] the possible-minor assessment; childSafetyCaseId lives HERE ([H7], one canonical place)
+  crossover: NciiChildSafetyCrossoverSchema,
+  // OPTIONAL labeled repairable PROJECTION of crossover.childSafetyCaseId — never the source of truth
+  childSafetyCaseId: z.string().min(1).optional(),
+  // [H-09] NON-AUTHORITATIVE projection of the durable NciiAppealV1 (uploaderRemovalAppeal ONLY)
+  appealState: NciiCaseAppealStateSchema,
+  // NON-AUTHORITATIVE projection of the minimum active request monitor ([H4]); source of truth =
+  // safetySlaMonitors/{requestId}__nciiRemovalDeadline
+  nciiRemovalDeadlineAt: z.number().optional(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+}).strict();
+export type NciiCaseV1 = z.infer<typeof NciiCaseV1Schema>;
+
+// ===========================================================================
+// §A11 (3) — child-link rows (bounded; NEVER root arrays)
+// ===========================================================================
+
+/** `nciiCases/{caseId}/allegationLinks/{allegationId}` — links an allegation to
+ * the case. Doc id is the `allegationId`. */
+export const NciiCaseAllegationLinkV1Schema = z.object({
+  allegationId: z.string().min(1),
+  linkedAt: z.number(),
+  linkedByUid: z.string().min(1),
+}).strict();
+export type NciiCaseAllegationLinkV1 = z.infer<typeof NciiCaseAllegationLinkV1Schema>;
+
+/** `nciiCases/{caseId}/requestLinks/{requestId}` — links a statutory request to
+ * the case. Doc id is the `requestId`. */
+export const NciiCaseRequestLinkV1Schema = z.object({
+  requestId: z.string().min(1),
+  linkedAt: z.number(),
+  linkedByUid: z.string().min(1),
+}).strict();
+export type NciiCaseRequestLinkV1 = z.infer<typeof NciiCaseRequestLinkV1Schema>;
+
+/** Removal-action method on a `removalActions` row. */
+export const NciiCaseRemovalActionMethodSchema = z.enum(['tombstone', 'accountAction', 'assetBlock']);
+export type NciiCaseRemovalActionMethod = z.infer<typeof NciiCaseRemovalActionMethodSchema>;
+
+/** `nciiCases/{caseId}/removalActions/{actionId}` — append-only removal-action
+ * row. Doc id is the `actionId`. */
+export const NciiCaseRemovalActionV1Schema = z.object({
+  at: z.number(),
+  actorId: z.string().min(1),
+  surface: z.string(),
+  targetItemType: z.string(),
+  targetItemId: z.string().min(1),
+  method: NciiCaseRemovalActionMethodSchema,
+  result: z.string(),
+}).strict();
+export type NciiCaseRemovalActionV1 = z.infer<typeof NciiCaseRemovalActionV1Schema>;
+
+// ===========================================================================
+// §A11 (4) [F8] — nciiCases/{caseId}/blockedHashes/{hashId} (multi-hash block;
+// exact-hash blocks only; replaces the singular `reUploadBlock`)
+// ===========================================================================
+
+/** Provenance of a blocked exact hash. Transformed / non-identical content is
+ * NEVER auto-claimed identical. */
+export const NciiBlockedHashSourceSchema = z.enum([
+  'requestEvidence',
+  'platformOriginal',
+  'platformCopy',
+  'knownIdenticalCopy',
+]);
+export type NciiBlockedHashSource = z.infer<typeof NciiBlockedHashSourceSchema>;
+
+/** Blocked-hash lifecycle. Reversal is restricted + audited; adult NCII hashes do
+ * NOT enter the CSAM hash system unless child-safety criteria independently
+ * apply. */
+export const NciiBlockedHashStatusSchema = z.enum(['active', 'reversed']);
+export type NciiBlockedHashStatus = z.infer<typeof NciiBlockedHashStatusSchema>;
+
+/** `nciiCases/{caseId}/blockedHashes/{hashId}` [F8] — exact-hash block. Doc id is
+ * the `hashId`. */
+export const NciiBlockedHashV1Schema = z.object({
+  hashId: z.string().min(1),
+  algorithm: z.literal('sha256'),
+  digest: z.string().min(1),
+  source: NciiBlockedHashSourceSchema,
+  createdAt: z.number(),
+  createdByUid: z.string().min(1),
+  status: NciiBlockedHashStatusSchema,
+  reversedAt: z.number().optional(),
+  reversedByUid: z.string().min(1).optional(),
+  reversalReason: z.string().optional(),
+}).strict();
+export type NciiBlockedHashV1 = z.infer<typeof NciiBlockedHashV1Schema>;

@@ -71,6 +71,44 @@ export const COLLECTIONS = {
   PROCESSED_STRIPE_EVENTS: 'processedStripeEvents',
   PLEDGE_PAYMENT_LEDGER_EVENTS: 'pledgePaymentLedgerEvents',
   PAYMENT_WEBHOOK_QUARANTINE: 'paymentWebhookQuarantine',
+
+  // Trust & Safety — child-safety case spine (§A1b, §A2)
+  CHILD_SAFETY_CASE_LIST: 'childSafetyCaseList',
+  CHILD_SAFETY_CASES: 'childSafetyCases',
+  CHILD_SAFETY_OWNING_ALIASES: 'childSafetyOwningAliases',
+  CHILD_SAFETY_CORRELATIONS: 'childSafetyCorrelations',
+  SAFETY_CASE_MERGE_JOBS: 'safetyCaseMergeJobs',
+
+  // Trust & Safety — holds + resource commands (§A3)
+  SAFETY_HOLD_REFS: 'safetyHoldRefs',
+  SAFETY_HOLD_RESOURCES: 'safetyHoldResources',
+  SAFETY_RESOURCE_COMMANDS: 'safetyResourceCommands',
+
+  // Trust & Safety — evidence + provenance (§A4, §A6)
+  SAFETY_EVIDENCE_MANIFESTS: 'safetyEvidenceManifests',
+  SAFETY_EVIDENCE_JOBS: 'safetyEvidenceJobs',
+  EVENT_PROVENANCE: 'eventProvenance',
+
+  // Trust & Safety — sagas + closure (§A5)
+  QUARANTINE_SAGA_JOBS: 'quarantineSagaJobs',
+  NCMEC_SUBMISSION_JOBS: 'ncmecSubmissionJobs',
+  ACCOUNT_ACTION_COMMANDS: 'accountActionCommands',
+
+  // Trust & Safety — SLA monitors + heartbeat (§A8)
+  SAFETY_SLA_MONITORS: 'safetySlaMonitors',
+  SAFETY_MONITOR_HEARTBEAT: 'safetyMonitorHeartbeat',
+
+  // Trust & Safety — age attestation nonces (§A7)
+  AGE_ATTESTATION_NONCES: 'ageAttestationNonces',
+
+  // Trust & Safety — NCII / TAKE IT DOWN (§A11)
+  NCII_ALLEGATIONS: 'nciiAllegations',
+  TAKE_IT_DOWN_REQUESTS: 'takeItDownRequests',
+  NCII_CASES: 'nciiCases',
+  NCII_TEMPORARY_HOLDS: 'nciiTemporaryHolds',
+  NCII_REMOVAL_JOBS: 'nciiRemovalJobs',
+  NCII_EVIDENCE_SAFETY_SCANS: 'nciiEvidenceSafetyScans',
+  NCII_APPEALS: 'nciiAppeals',
 } as const;
 
 /**
@@ -139,6 +177,49 @@ export const NESTED_SUBCOLLECTIONS = {
   CHAT_SCOPE_DEGRADED_CAUSES: 'causes',
   // Anonymization affected-chunk set (chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal}).
   CHAT_ANONYMIZATION_AFFECTED_CHUNKS: 'affectedChunks',
+
+  // Trust & Safety — child-safety correlation→case rows (childSafetyCorrelations/{key}/cases/{caseId}).
+  CHILD_SAFETY_CORRELATION_CASES: 'cases',
+  // Trust & Safety — child-safety case append-only detail (NEVER arrays).
+  CHILD_SAFETY_SOURCE_SIGNALS: 'sourceSignals',
+  CHILD_SAFETY_DECISIONS: 'decisions',
+  CHILD_SAFETY_DECISION_VIEWS: 'views',
+  CHILD_SAFETY_CASE_ACCOUNTS: 'accounts',
+  CHILD_SAFETY_CASE_ACCOUNT_HISTORY: 'history',
+  CHILD_SAFETY_NCMEC_SUBMISSIONS: 'ncmecSubmissions',
+  CHILD_SAFETY_NCMEC_SUBMISSION_FILES: 'files',
+  // Per-step NCMEC submission attempts; also reused by nciiCases uploaderNotices/{}/attempts.
+  SAFETY_ATTEMPTS: 'attempts',
+  CHILD_SAFETY_LEGAL_PROCESS: 'legalProcess',
+
+  // Trust & Safety — resource-command subcollections (§A3).
+  SAFETY_RESOURCE_COMMAND_AUTHORIZED_REQUESTS: 'authorizedRequests',
+  SAFETY_RESOURCE_COMMAND_BYPASS_REFS: 'bypassRefs',
+
+  // Trust & Safety — evidence-job subcollections (§A4).
+  SAFETY_EVIDENCE_JOB_ITEMS: 'items',
+  SAFETY_EVIDENCE_JOB_DISPOSITION: 'disposition',
+
+  // Trust & Safety — quarantine-saga subcollection (§A5).
+  QUARANTINE_SAGA_RELATED_ASSETS: 'relatedAssets',
+
+  // Trust & Safety — TAKE IT DOWN request subcollections (§A11).
+  TAKE_IT_DOWN_PRIVATE: 'private',
+  TAKE_IT_DOWN_SUBMISSIONS: 'submissions',
+  TAKE_IT_DOWN_VALIDITY_DECISIONS: 'validityDecisions',
+  TAKE_IT_DOWN_ACTIONS: 'actions',
+  TAKE_IT_DOWN_STATUS_PROJECTION: 'statusProjection',
+  TAKE_IT_DOWN_EVIDENCE: 'evidence',
+
+  // Trust & Safety — NCII case subcollections (§A11).
+  NCII_CASE_ALLEGATION_LINKS: 'allegationLinks',
+  NCII_CASE_REQUEST_LINKS: 'requestLinks',
+  NCII_CASE_REMOVAL_ACTIONS: 'removalActions',
+  NCII_CASE_BLOCKED_HASHES: 'blockedHashes',
+  NCII_CASE_UPLOADER_NOTICES: 'uploaderNotices',
+
+  // Trust & Safety — NCII removal-job targets (§A11).
+  NCII_REMOVAL_TARGETS: 'targets',
 } as const;
 
 /**
@@ -154,4 +235,17 @@ export const SPECIAL_DOCS = {
   RESERVED_USERNAMES: 'reservedUsernames',
   RULES_AND_AGREEMENTS: 'rulesAndAgreements',
   SUMMARY: 'summary',
+
+  // Trust & Safety — singleton global SLA-monitor heartbeat (safetyMonitorHeartbeat/global).
+  SAFETY_MONITOR_HEARTBEAT_GLOBAL: 'global',
+
+  // Trust & Safety — _config singletons (§A7, §A11).
+  AGE_POLICY: 'agePolicy',
+  NCII_POLICY: 'nciiPolicy',
+  PRIVILEGED_REVIEWER_SECURITY: 'privilegedReviewerSecurity',
+  OPERATOR_CONTINUITY: 'operatorContinuity',
+
+  // Trust & Safety — fixed-id TAKE IT DOWN request subdocs (§A11).
+  TAKE_IT_DOWN_REQUESTER: 'requester', // takeItDownRequests/{requestId}/private/requester
+  TAKE_IT_DOWN_STATUS_CURRENT: 'current', // takeItDownRequests/{requestId}/statusProjection/current
 } as const;

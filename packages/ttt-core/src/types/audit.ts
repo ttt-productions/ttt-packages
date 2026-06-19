@@ -146,7 +146,50 @@ export type AuditEventType =
   | 'workRealm.released'
   | 'workRealm.detailsUpdated'
   | 'workRealm.hidden'
-  | 'workRealm.restored';
+  | 'workRealm.restored'
+  // trust & safety — child safety / CSAM
+  | 'report.childSafetyCaseOpened'
+  | 'report.nciiCaseOpened'
+  | 'childSafety.reportDispositionSet'
+  | 'childSafety.caseMerged'
+  | 'childSafety.holdPlaced'
+  | 'childSafety.holdReleased'
+  | 'childSafety.accountActionApplied'
+  | 'childSafety.accountActionReverted'
+  | 'childSafety.evidenceManifestCreated'
+  | 'childSafety.evidenceDisposed'
+  | 'childSafety.quarantineCompleted'
+  | 'childSafety.ncmecSubmissionCompleted'
+  | 'childSafety.legalProcessRecorded'
+  | 'childSafety.falsePositiveCorrected'
+  // trust & safety — age / registration
+  | 'user.ageAttested'
+  | 'user.ageUpgradedToAdult'
+  | 'user.ageManuallyCorrected'
+  | 'user.orphanAuthDeleted'
+  | 'user.safetyLocked'
+  // trust & safety — NCII / TAKE IT DOWN
+  | 'ncii.requestReceived'
+  | 'ncii.requestSupplemented'
+  | 'ncii.completenessDetermined'
+  | 'ncii.validityDecided'
+  | 'ncii.tempHoldPlaced'
+  | 'ncii.tempHoldReleased'
+  | 'ncii.removalCompleted'
+  | 'ncii.removalUnableToComplete'
+  | 'ncii.evidenceScanValidatedMatch'
+  | 'ncii.appealDecided'
+  | 'ncii.contentReinstated'
+  | 'ncii.hashBlockReversed'
+  | 'ncii.uploaderNoticeSent'
+  | 'ncii.uploaderNoticeSuppressed'
+  | 'ncii.statusTokenRevoked'
+  | 'ncii.policyConfigUpdated'
+  // trust & safety — operator security
+  | 'safety.privilegedReauthPerformed'
+  | 'safety.recoveryCodeUsed'
+  | 'safety.operatorUnavailableFailsafeTripped'
+  | 'safety.deadlineBreachRecorded';
 
 /**
  * How the actor was acting when the audited action was performed. This is

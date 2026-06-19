@@ -1,0 +1,437 @@
+// Trust & Safety — the child-safety CASE spine (Appendix A §A1b, §A9).
+//
+// The split-projection case model: a reviewer list/metadata doc
+// (`childSafetyCaseList/{caseId}` — NO content, NO reporter identity) and a
+// restricted root (`childSafetyCases/{caseId}` — adds the evidence manifest,
+// the internal reason, and the lease/fencing fields). Append-only detail lives
+// in subcollections (NEVER arrays), each enforced by writing to the
+// subcollection so there is no parent array to overflow.
+//
+// Every shape here is transcribed verbatim from docs/code_changes_needed/
+// trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A §A1b + the §A9
+// state-transition rules — no invented values, no placeholders.
+//
+// SHARED enums come from ./foundation.js (the single source for every
+// cross-cluster enum); they are NEVER redefined here. This cluster IMPORTS
+// ReportDispositionSchema, ReportDispositionReasonCodeSchema, and
+// NcmecSubmissionStateSchema from foundation.
+//
+// Collection note: this cluster introduces NEW Firestore collections; the app
+// leg (orchestrator) wires collections.ts / path-builders.ts / registry.ts.
+// The merge/alias/correlation cluster (§A2) lives in ./case-aliases.js.
+
+import { z } from 'zod';
+import {
+  ReportDispositionSchema,
+  ReportDispositionReasonCodeSchema,
+  NcmecSubmissionStateSchema,
+} from './foundation.js';
+
+// ===========================================================================
+// Cluster-local enums (§A1b + §A9). These are case-spine-specific value sets,
+// NOT cross-cluster; they live here, not in foundation.
+// ===========================================================================
+
+/** Incident classification on the case (§A1b). */
+export const ChildSafetyIncidentClassSchema = z.enum([
+  'apparentCsam',
+  'enticement',
+  'minorSexTrafficking',
+  'sextortion',
+  'csamSolicitation',
+  'imminentCsea',
+  'nonReportableSafety',
+]);
+export type ChildSafetyIncidentClass = z.infer<typeof ChildSafetyIncidentClassSchema>;
+
+/** Source-signal kind (shared by the case `sourceSignalSummary` projection and
+ * the `…/sourceSignals/{signalId}` append-only rows). */
+export const ChildSafetySignalKindSchema = z.enum([
+  'hashMatch',
+  'report',
+  'aiFlag',
+  'manual',
+  'copyMatch',
+]);
+export type ChildSafetySignalKind = z.infer<typeof ChildSafetySignalKindSchema>;
+
+/** §A9 workStatus FSM: new → triaged → reporting → actioning → operationallyResolved.
+ * `operationallyResolved` NEVER deletes the case (preservation continues). */
+export const ChildSafetyWorkStatusSchema = z.enum([
+  'new',
+  'triaged',
+  'reporting',
+  'actioning',
+  'operationallyResolved',
+]);
+export type ChildSafetyWorkStatus = z.infer<typeof ChildSafetyWorkStatusSchema>;
+
+/** §A9 preservationStatus FSM: preReportHold → statutoryHold → extendedHold? →
+ * dispositionPending → destroyed. `statutoryHold` is set only at verified
+ * completion; deletion is eligible only when every hold ref is released AND a
+ * reviewed disposition job runs (no auto-delete at exactly one year). */
+export const ChildSafetyPreservationStatusSchema = z.enum([
+  'preReportHold',
+  'statutoryHold',
+  'extendedHold',
+  'dispositionPending',
+  'destroyed',
+]);
+export type ChildSafetyPreservationStatus = z.infer<typeof ChildSafetyPreservationStatusSchema>;
+
+/** §A9 accountActionStatus — the closure projection over `accountActionCommands`
+ * (Finding-H5). A report-required case may not operationally close while
+ * `pending`/`operatorDecisionPending`. */
+export const ChildSafetyAccountActionStatusSchema = z.enum([
+  'noAccountActionRequired',
+  'operatorDecisionPending',
+  'pending',
+  'resolved',
+]);
+export type ChildSafetyAccountActionStatus = z.infer<typeof ChildSafetyAccountActionStatusSchema>;
+
+/** §A1b reportState — derived list-projection of (reportDisposition + latest
+ * submission.state) for admin-list rendering ONLY; NOT the source of truth for
+ * whether a report is required (that is reportDisposition, §A9). */
+export const ChildSafetyReportStateSchema = z.enum([
+  'reportAsSoonAsReasonablyPossible',
+  'submissionInProgress',
+  'completed',
+]);
+export type ChildSafetyReportState = z.infer<typeof ChildSafetyReportStateSchema>;
+
+/** §A1b mergeState (the case's merge participation; full merge spec in §A2 /
+ * ./case-aliases.js). */
+export const ChildSafetyMergeStateSchema = z.enum(['none', 'winner', 'merging', 'tombstoned']);
+export type ChildSafetyMergeState = z.infer<typeof ChildSafetyMergeStateSchema>;
+
+/** §A1b decisions[].kind — the append-only decision-log kind. */
+export const ChildSafetyDecisionKindSchema = z.enum([
+  'workStatus',
+  'accountAction',
+  'reportDisposition',
+  'reasonUpdate',
+]);
+export type ChildSafetyDecisionKind = z.infer<typeof ChildSafetyDecisionKindSchema>;
+
+/** §A1b accounts[].role on a case. */
+export const ChildSafetyAccountRoleSchema = z.enum([
+  'uploader',
+  'requester',
+  'distributor',
+  'questionable',
+]);
+export type ChildSafetyAccountRole = z.infer<typeof ChildSafetyAccountRoleSchema>;
+
+/** §A1b accounts[].subjectDisposition (per-account; distinct from the case-level
+ * `reportDisposition`/ReportDisposition). */
+export const ChildSafetyAccountSubjectDispositionSchema = z.enum([
+  'subject',
+  'questionable',
+  'excluded',
+]);
+export type ChildSafetyAccountSubjectDisposition = z.infer<
+  typeof ChildSafetyAccountSubjectDispositionSchema
+>;
+
+/** §A1b accounts[].platformAction. */
+export const ChildSafetyAccountPlatformActionSchema = z.enum([
+  'none',
+  'watch',
+  'suspend',
+  'safetyLocked',
+  'ban',
+]);
+export type ChildSafetyAccountPlatformAction = z.infer<
+  typeof ChildSafetyAccountPlatformActionSchema
+>;
+
+/** §A1b ncmecSubmissions[].kind. */
+export const ChildSafetyNcmecSubmissionKindSchema = z.enum([
+  'initial',
+  'supplemental',
+  'correction',
+]);
+export type ChildSafetyNcmecSubmissionKind = z.infer<
+  typeof ChildSafetyNcmecSubmissionKindSchema
+>;
+
+/** §A1b ncmecSubmissions[].completionChannel — transport-neutral completion. */
+export const ChildSafetyNcmecCompletionChannelSchema = z.enum(['ispwsApi', 'manualPortal']);
+export type ChildSafetyNcmecCompletionChannel = z.infer<
+  typeof ChildSafetyNcmecCompletionChannelSchema
+>;
+
+/** §A1b ncmecSubmissions[].completionProofType. */
+export const ChildSafetyNcmecCompletionProofTypeSchema = z.enum([
+  'reportDoneResponse',
+  'portalConfirmation',
+]);
+export type ChildSafetyNcmecCompletionProofType = z.infer<
+  typeof ChildSafetyNcmecCompletionProofTypeSchema
+>;
+
+/** §A1b ncmecSubmissions/{id}/files[].fileInfoState. */
+export const ChildSafetyNcmecFileInfoStateSchema = z.enum(['pending', 'sent', 'ack']);
+export type ChildSafetyNcmecFileInfoState = z.infer<
+  typeof ChildSafetyNcmecFileInfoStateSchema
+>;
+
+/** §A9 NcmecSubmissionAttemptV1 (Finding-M8) — per-step `outcome`. */
+export const NcmecSubmissionAttemptOutcomeSchema = z.enum([
+  'ok',
+  'retryableError',
+  'ambiguous',
+  'permanentError',
+]);
+export type NcmecSubmissionAttemptOutcome = z.infer<typeof NcmecSubmissionAttemptOutcomeSchema>;
+
+/** §A9 NcmecSubmissionAttemptV1 (Finding-M8) — per-step `reconciliation`. */
+export const NcmecSubmissionAttemptReconciliationSchema = z.enum([
+  'none',
+  'pendingRequestIdLookup',
+  'reconciledCompleted',
+  'reconciledNotFiled',
+]);
+export type NcmecSubmissionAttemptReconciliation = z.infer<
+  typeof NcmecSubmissionAttemptReconciliationSchema
+>;
+
+/** §A1b legalProcess[].kind. */
+export const ChildSafetyLegalProcessKindSchema = z.enum([
+  'leWatch',
+  'leDataRequest',
+  'leShutdown',
+  'leDestruction',
+  'disclosure',
+]);
+export type ChildSafetyLegalProcessKind = z.infer<typeof ChildSafetyLegalProcessKindSchema>;
+
+// ===========================================================================
+// §A1b — sourceSignalSummary (embedded privacy-safe projection on the list doc)
+// ===========================================================================
+
+/** Embedded latest-signal summary on `childSafetyCaseList` — NO content. */
+export const ChildSafetySourceSignalSummarySchema = z.object({
+  count: z.number(),
+  latestKind: ChildSafetySignalKindSchema,
+  latestAt: z.number(),
+}).strict();
+export type ChildSafetySourceSignalSummary = z.infer<
+  typeof ChildSafetySourceSignalSummarySchema
+>;
+
+// ===========================================================================
+// §A1b — childSafetyCaseList/{caseId} (reviewer list/metadata; NO content, NO
+// reporter identity)
+// ===========================================================================
+
+export const ChildSafetyCaseListV1Schema = z.object({
+  schemaVersion: z.literal(1),
+  caseId: z.string().min(1),
+  revision: z.number(),
+  canonicalIncidentKey: z.string(),
+  incidentClass: ChildSafetyIncidentClassSchema,
+  sourceSignalSummary: ChildSafetySourceSignalSummarySchema,
+  workStatus: ChildSafetyWorkStatusSchema,
+  preservationStatus: ChildSafetyPreservationStatusSchema,
+  ncmecStatus: NcmecSubmissionStateSchema, // §A9 NcmecSubmissionState (no `notRequired`)
+  accountActionStatus: ChildSafetyAccountActionStatusSchema,
+  reportDisposition: ReportDispositionSchema, // §A9 case-level reporting determination
+  reviewDueAt: z.number(),
+  photoDnaContractDueAt: z.number().optional(),
+  actualKnowledgeAt: z.number().optional(),
+  reportState: ChildSafetyReportStateSchema.optional(), // derived list-projection only
+  submissionCompletedAt: z.number().optional(),
+  preserveUntil: z.number().optional(),
+  openHoldCount: z.number(),
+  mergeState: ChildSafetyMergeStateSchema,
+  mergeRedirectCaseId: z.string().min(1).optional(),
+  mergeGeneration: z.number().optional(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+}).strict();
+export type ChildSafetyCaseListV1 = z.infer<typeof ChildSafetyCaseListV1Schema>;
+
+// ===========================================================================
+// §A1b — childSafetyCases/{caseId} (restricted root; childSafetyReviewer only;
+// adds the evidence manifest, the internal reason, and the lease/fencing fields)
+// ===========================================================================
+
+export const ChildSafetyCaseV1Schema = z.object({
+  schemaVersion: z.literal(1),
+  caseId: z.string().min(1),
+  evidenceManifestId: z.string().min(1),
+  currentReasonInternal: z.string(),
+  leaseOwner: z.string().min(1).optional(),
+  leaseExpiresAt: z.number().optional(),
+  fencingOwnerToken: z.string().min(1).optional(),
+  fencingGeneration: z.number().optional(),
+}).strict();
+export type ChildSafetyCaseV1 = z.infer<typeof ChildSafetyCaseV1Schema>;
+
+// ===========================================================================
+// §A1b subcollections (append-only, NEVER arrays)
+// ===========================================================================
+
+/** …/sourceSignals/{signalId} — append-only source-signal row. */
+export const ChildSafetySourceSignalV1Schema = z.object({
+  at: z.number(),
+  kind: ChildSafetySignalKindSchema,
+  detector: z.string().min(1).optional(),
+  sourceRef: z.string(),
+  actorId: z.string().min(1).optional(),
+}).strict();
+export type ChildSafetySourceSignalV1 = z.infer<typeof ChildSafetySourceSignalV1Schema>;
+
+/** …/decisions/{decisionId} — append-only decision-log row. The actual
+ * viewed-evidence ids live in …/decisions/{decisionId}/views/{viewId}. */
+export const ChildSafetyDecisionV1Schema = z.object({
+  at: z.number(),
+  actorId: z.string().min(1),
+  kind: ChildSafetyDecisionKindSchema,
+  from: z.string(),
+  to: z.string(),
+  reasonInternal: z.string(),
+  reasonUserFacing: z.string().optional(),
+  evidenceItemsViewedCount: z.number(),
+}).strict();
+export type ChildSafetyDecisionV1 = z.infer<typeof ChildSafetyDecisionV1Schema>;
+
+/** …/decisions/{decisionId}/views/{viewId} — the actual viewed-evidence ids
+ * (kept off the decision row itself). */
+export const ChildSafetyDecisionViewV1Schema = z.object({
+  evidenceItemId: z.string().min(1),
+  at: z.number(),
+}).strict();
+export type ChildSafetyDecisionViewV1 = z.infer<typeof ChildSafetyDecisionViewV1Schema>;
+
+/** …/accounts/{uid} — per-account case record. The per-account
+ * `subjectDisposition` is distinct from the case-level `reportDisposition`. */
+export const ChildSafetyCaseAccountV1Schema = z.object({
+  role: ChildSafetyAccountRoleSchema,
+  subjectDisposition: ChildSafetyAccountSubjectDispositionSchema,
+  platformAction: ChildSafetyAccountPlatformActionSchema,
+  reasonUserFacing: z.string(),
+  reasonInternal: z.string(),
+  updatedAt: z.number(),
+}).strict();
+export type ChildSafetyCaseAccountV1 = z.infer<typeof ChildSafetyCaseAccountV1Schema>;
+
+/** …/accounts/{uid}/history/{historyId} — append-only per-account history. */
+export const ChildSafetyCaseAccountHistoryV1Schema = z.object({
+  role: ChildSafetyAccountRoleSchema,
+  subjectDisposition: ChildSafetyAccountSubjectDispositionSchema,
+  platformAction: ChildSafetyAccountPlatformActionSchema,
+  reasonUserFacing: z.string(),
+  reasonInternal: z.string(),
+  at: z.number(),
+}).strict();
+export type ChildSafetyCaseAccountHistoryV1 = z.infer<
+  typeof ChildSafetyCaseAccountHistoryV1Schema
+>;
+
+/** …/ncmecSubmissions/{submissionId} — one NCMEC submission record. */
+export const ChildSafetyNcmecSubmissionV1Schema = z.object({
+  kind: ChildSafetyNcmecSubmissionKindSchema,
+  state: NcmecSubmissionStateSchema, // §A9 NcmecSubmissionState
+  completionChannel: ChildSafetyNcmecCompletionChannelSchema.optional(),
+  submissionCompletedAt: z.number().optional(),
+  completionProofType: ChildSafetyNcmecCompletionProofTypeSchema.optional(),
+  completionProofRef: z.string().min(1).optional(),
+  reportId: z.string().min(1).optional(),
+  responseCode: z.number().optional(),
+}).strict();
+export type ChildSafetyNcmecSubmissionV1 = z.infer<
+  typeof ChildSafetyNcmecSubmissionV1Schema
+>;
+
+/** …/ncmecSubmissions/{submissionId}/files/{fileId} — per-evidence-item file row. */
+export const ChildSafetyNcmecSubmissionFileV1Schema = z.object({
+  localEvidenceItemId: z.string().min(1),
+  ncmecFileId: z.string().min(1).optional(),
+  md5: z.string().min(1).optional(),
+  fileInfoState: ChildSafetyNcmecFileInfoStateSchema,
+}).strict();
+export type ChildSafetyNcmecSubmissionFileV1 = z.infer<
+  typeof ChildSafetyNcmecSubmissionFileV1Schema
+>;
+
+// ---------------------------------------------------------------------------
+// …/ncmecSubmissions/{submissionId}/attempts/{attemptId} = NcmecSubmissionAttemptV1
+// (Finding-M8 — per-step discriminated attempt; persists every step/code/ID/
+// MD5/retry/error). Discriminated by `step`; the shared envelope is merged into
+// every member.
+// ---------------------------------------------------------------------------
+
+/** Fields shared by every step of NcmecSubmissionAttemptV1. */
+const NcmecSubmissionAttemptEnvelope = {
+  schemaVersion: z.literal(1),
+  attemptId: z.string().min(1),
+  submissionId: z.string().min(1),
+  caseId: z.string().min(1),
+  at: z.number(),
+  attemptNumber: z.number(),
+  // stable hash of the exact request payload — the ambiguity-reconciliation key
+  requestFingerprint: z.string(),
+  // hash/reference of the raw NCMEC response (never the raw body)
+  responseHash: z.string().min(1).optional(),
+  responseCode: z.number().optional(), // HTTP / ispws status
+  outcome: NcmecSubmissionAttemptOutcomeSchema,
+  reconciliation: NcmecSubmissionAttemptReconciliationSchema.optional(),
+} as const;
+
+export const NcmecSubmissionAttemptV1Schema = z.discriminatedUnion('step', [
+  z.object({
+    ...NcmecSubmissionAttemptEnvelope,
+    step: z.literal('submit'),
+    ncmecReportId: z.string().min(1).optional(), // the NCMEC report id returned by /submit
+  }).strict(),
+  z.object({
+    ...NcmecSubmissionAttemptEnvelope,
+    step: z.literal('upload'),
+    ncmecFileId: z.string().min(1).optional(),
+    md5: z.string().min(1).optional(),
+    localEvidenceItemId: z.string().min(1).optional(),
+  }).strict(),
+  z.object({
+    ...NcmecSubmissionAttemptEnvelope,
+    step: z.literal('fileinfo'),
+    ncmecFileId: z.string().min(1).optional(),
+    fileInfoAccepted: z.boolean().optional(),
+  }).strict(),
+  z.object({
+    ...NcmecSubmissionAttemptEnvelope,
+    step: z.literal('finish'),
+    reportDoneRef: z.string().min(1).optional(), // immutable proof ref of a successful /finish reportDoneResponse
+  }).strict(),
+]);
+export type NcmecSubmissionAttemptV1 = z.infer<typeof NcmecSubmissionAttemptV1Schema>;
+
+/** …/legalProcess/{eventId} — append-only legal-process event. */
+export const ChildSafetyLegalProcessEventV1Schema = z.object({
+  at: z.number(),
+  kind: ChildSafetyLegalProcessKindSchema,
+  verifiedBy: z.string().min(1),
+  instruction: z.string(),
+  handedOver: z.boolean().optional(),
+}).strict();
+export type ChildSafetyLegalProcessEventV1 = z.infer<
+  typeof ChildSafetyLegalProcessEventV1Schema
+>;
+
+// ===========================================================================
+// §A9 — setReportDisposition privileged-command input (NON-DOC embedded shape).
+// Authority = `legalDispositionAuthority` (§A11 matrix); requires fresh two-step
+// reauth. Appends to …/decisions/{decisionId} with kind:'reportDisposition'.
+// `evidenceRefs` required (≥1, MAX 32).
+// ===========================================================================
+
+export const SetReportDispositionInputV1Schema = z.object({
+  caseId: z.string().min(1),
+  expectedRevision: z.number(),
+  disposition: ReportDispositionSchema,
+  dispositionReasonCode: ReportDispositionReasonCodeSchema,
+  evidenceRefs: z.array(z.string().min(1)).min(1).max(32),
+}).strict();
+export type SetReportDispositionInputV1 = z.infer<typeof SetReportDispositionInputV1Schema>;
