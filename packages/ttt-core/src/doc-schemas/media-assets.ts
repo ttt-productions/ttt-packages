@@ -81,9 +81,13 @@ export const MediaOriginLineageV1Schema = z.object({
   rootAssetId: z.string().min(1), // first asset created from that ingest
   sourceAssetId: z.string().min(1).optional(), // immediate parent copied from (absent on the root)
   originatingUploaderUid: z.string().min(1), // set server-side at first accepted ingest; IMMUTABLE; inherited
-  originatingUploadEventId: z.string().min(1),
+  // May be '' for a legacy copy synthesized from a pre-rollout source with no known upload event.
+  originatingUploadEventId: z.string(),
   originalUploadCreatedAt: z.number(),
-  rootSha256: z.string().min(1),
+  // '' until content hashing backfills the real sha256 (Phase 5 PhotoDNA / evidence capture).
+  // NOT z.string().min(1): the media pipeline does not compute a content hash at finalize yet,
+  // so a freshly-ingested asset legitimately carries an empty rootSha256 until it is hashed.
+  rootSha256: z.string(),
   originalSha256: z.string().min(1).optional(),
   // PARTIAL map: one hash per PRODUCED variant (an asset produces only the variants its
   // origin declares — e.g. full/medium/small for a profile picture, 'main' for others —
