@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/report-core",
-    "version": "0.12.0",
+    "version": "0.12.1",
     "description": "Shared report → admin review → resolution pipeline for TTT Productions apps",
     "repository": {
         "type": "git",
