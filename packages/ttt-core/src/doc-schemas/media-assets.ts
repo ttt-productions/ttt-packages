@@ -85,7 +85,12 @@ export const MediaOriginLineageV1Schema = z.object({
   originalUploadCreatedAt: z.number(),
   rootSha256: z.string().min(1),
   originalSha256: z.string().min(1).optional(),
-  variantSha256s: z.record(MediaVariantKeySchema, z.string().min(1)), // one hash per variant — typed key, never open string
+  // PARTIAL map: one hash per PRODUCED variant (an asset produces only the variants its
+  // origin declares — e.g. full/medium/small for a profile picture, 'main' for others —
+  // never all four). Typed keys, never an open string. `z.partialRecord` (NOT `z.record`):
+  // in Zod 4 `z.record(enum,…)` is EXHAUSTIVE (demands every enum key), which would reject
+  // every real asset's partial variant set; `partialRecord` makes the keys optional.
+  variantSha256s: z.partialRecord(MediaVariantKeySchema, z.string().min(1)),
   copyReason: MediaCopyReasonSchema,
   createdFromOwnerType: MediaAssetOwnerTypeSchema.optional(), // never a bare string
   createdFromOwnerId: z.string().min(1).optional(),
