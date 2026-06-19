@@ -22,7 +22,6 @@ export { useCheckoutTask } from '../hooks/useCheckoutTask.js';
 export { useCheckinTask } from '../hooks/useCheckinTask.js';
 export { useReleaseTask } from '../hooks/useReleaseTask.js';
 export { useWorkLater } from '../hooks/useWorkLater.js';
-export { useIndividualReports } from '../hooks/useIndividualReports.js';
 export { useCheckoutNextImportantTask } from '../hooks/useCheckoutNextImportantTask.js';
 
 // ============================================

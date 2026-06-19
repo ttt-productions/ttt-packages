@@ -3,7 +3,7 @@ import {
   CheckoutTaskRequestSchema,
   CheckinTaskRequestSchema,
   ReleaseTaskRequestSchema,
-  CreateContentReportRequestSchema,
+  SubmitReportRequestSchema,
 } from '../src/schemas/index';
 
 describe('CheckoutTaskRequestSchema', () => {
@@ -65,16 +65,15 @@ describe('ReleaseTaskRequestSchema', () => {
   });
 });
 
-describe('CreateContentReportRequestSchema', () => {
+describe('SubmitReportRequestSchema', () => {
   const minimal = {
-    reportedItemType: 'post',
+    itemType: 'squareStreetzPost',
     reportedItemId: 'item-1',
-    reason: 'spam',
-    comment: 'This is spam content',
+    reason: 'Spam or Misleading',
   };
 
-  it('accepts a minimal valid request (required fields only)', () => {
-    expect(CreateContentReportRequestSchema.parse(minimal)).toEqual(minimal);
+  it('accepts a minimal valid request (required fields only — comment optional)', () => {
+    expect(SubmitReportRequestSchema.parse(minimal)).toEqual(minimal);
   });
 
   it('accepts a request with all optional fields populated', () => {
@@ -82,43 +81,42 @@ describe('CreateContentReportRequestSchema', () => {
       ...minimal,
       parentItemId: 'parent-1',
       reportedUserId: 'user-2',
+      comment: 'Extra detail',
     };
-    expect(CreateContentReportRequestSchema.parse(full)).toEqual(full);
+    expect(SubmitReportRequestSchema.parse(full)).toEqual(full);
   });
 
   it('rejects empty reason', () => {
     expect(() =>
-      CreateContentReportRequestSchema.parse({ ...minimal, reason: '' }),
+      SubmitReportRequestSchema.parse({ ...minimal, reason: '' }),
     ).toThrow();
   });
 
-  it('rejects empty comment', () => {
-    expect(() =>
-      CreateContentReportRequestSchema.parse({ ...minimal, comment: '' }),
-    ).toThrow();
+  it('accepts a request with no comment (idempotent intake — comment is optional)', () => {
+    expect(SubmitReportRequestSchema.parse(minimal)).toEqual(minimal);
   });
 
   it('rejects comment over 4000 chars', () => {
     expect(() =>
-      CreateContentReportRequestSchema.parse({ ...minimal, comment: 'a'.repeat(4001) }),
+      SubmitReportRequestSchema.parse({ ...minimal, comment: 'a'.repeat(4001) }),
     ).toThrow();
   });
 
   it('rejects unknown keys (e.g. reportId should not be accepted)', () => {
     expect(() =>
-      CreateContentReportRequestSchema.parse({ ...minimal, reportId: 'uid_item-1' }),
+      SubmitReportRequestSchema.parse({ ...minimal, reportId: 'uid_item-1' }),
     ).toThrow();
   });
 
-  it('rejects empty reportedItemType', () => {
+  it('rejects empty itemType', () => {
     expect(() =>
-      CreateContentReportRequestSchema.parse({ ...minimal, reportedItemType: '' }),
+      SubmitReportRequestSchema.parse({ ...minimal, itemType: '' }),
     ).toThrow();
   });
 
   it('rejects empty reportedItemId', () => {
     expect(() =>
-      CreateContentReportRequestSchema.parse({ ...minimal, reportedItemId: '' }),
+      SubmitReportRequestSchema.parse({ ...minimal, reportedItemId: '' }),
     ).toThrow();
   });
 });

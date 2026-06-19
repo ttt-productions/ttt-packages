@@ -1,11 +1,13 @@
-// Zod schemas for the report-core-owned Firestore document shapes as stored in TTT:
-// adminTasks/{taskId} (AdminTask<AdminTaskType>), contentReports/{reportId} (Report),
-// activeReportGroups/{groupKey} (ReportGroup), adminActivityLog/{logId} (ActivityLogEntry).
+// Zod schemas for the report-core-owned admin-task-queue Firestore document shapes as
+// stored in TTT: adminTasks/{taskId} (AdminTask<AdminTaskType>) and
+// adminActivityLog/{logId} (ActivityLogEntry).
 //
-// The canonical TYPES live in @ttt-productions/report-core/contracts; these schemas are
-// authored to match them so the schema registry + drift-check have runtime schemas. A
-// type-parity test (parity.test.ts) asserts z.infer here === the report-core types, so
-// they cannot silently drift. AdminTaskType is the TTT specialization of the generic
+// The report DOC shapes (contentReports/{reportId} + activeReportGroups/{groupKey}) are
+// NO LONGER modeled here — they are owned by the Trust & Safety report spine:
+// `ProtectedReportRootV1` + `ReportPublicProjectionV1` + `ReportGroupV1` in ./safety/report.ts.
+//
+// The admin-task / activity-log TYPES still align with @ttt-productions/report-core's
+// generic shapes; AdminTaskType is the TTT specialization of the generic
 // AdminTask<TTaskType> task-type parameter.
 
 import { z } from 'zod';
@@ -68,40 +70,6 @@ export const AdminTaskDocSchema = AdminTaskSchema.extend({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 export type AdminTaskDoc = z.infer<typeof AdminTaskDocSchema>;
-
-export const ReportStatusSchema = z.enum([
-  'pending_review',
-  'resolved_no_action',
-  'resolved_action_taken',
-]);
-export const ReportGroupStatusSchema = z.enum(['pending', 'reviewing', 'resolved']);
-
-export const ReportSchema = z.object({
-  reportId: z.string(),
-  reporterUserId: z.string(),
-  reportedItemType: z.string(),
-  reportedItemId: z.string(),
-  parentItemId: z.string().optional(),
-  reportedUserId: z.string().optional(),
-  reason: z.string(),
-  comment: z.string(),
-  createdAt: z.number(),
-  status: ReportStatusSchema,
-  resolvedAt: z.number().optional(),
-  resolvedBy: z.string().optional(),
-  adminNotes: z.string().optional(),
-});
-
-export const ReportGroupSchema = z.object({
-  groupKey: z.string(),
-  reportedItemId: z.string(),
-  reportedItemType: z.string(),
-  reportedUserId: z.string().nullable(),
-  lastReportAt: z.number(),
-  totalReports: z.number(),
-  status: ReportGroupStatusSchema,
-  reports: z.array(ReportSchema).optional(),
-});
 
 export const ActivityActionSchema = z.enum([
   'checkout',

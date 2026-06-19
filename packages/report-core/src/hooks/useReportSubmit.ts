@@ -2,74 +2,49 @@
 
 import { useMutation } from '@tanstack/react-query';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
-import type { Report } from '../types.js';
-import type { CreateContentReportRequest } from '../schemas/index.js';
+import type { SubmitReportRequest, SubmitReportResult } from '../schemas/index.js';
 
+/** UI input the dialog collects. Mapped to the callable's strict request shape. */
 interface SubmitReportInput {
-  reporterUserId: string;
   itemType: string;
   itemId: string;
   parentItemId?: string;
+  /** HINT ONLY — the server re-derives the owner; never trusted as authority. */
   reportedUserId?: string;
   reason: string;
   comment: string;
 }
 
-interface CreateContentReportResult {
-  success: boolean;
-  reportId: string;
-}
+/** Default callable name; the consuming app may override via `config.submitCallableName`. */
+const DEFAULT_SUBMIT_CALLABLE_NAME = 'submitReport';
 
 /**
- * Mutation hook to submit a new content report via callable.
+ * Mutation hook to submit a report via the Trust & Safety `submitReport` callable.
  *
- * Migrated from direct setDoc to a callable-only flow per Phase 3F lockdown.
- * The callable computes reportId server-side as `${uid}_${itemId}` and throws
- * ALREADY_REPORTED if the same user has an open report on the same item.
+ * The callable name is configurable (`config.submitCallableName ?? 'submitReport'`).
+ * It maps the UI input onto the strict request shape and returns the callable's
+ * result verbatim ({ ok, reportId, reason, protectedFork, caseId }).
+ *
+ * `submitReport` is idempotent: a deterministic reportId means a duplicate submit is
+ * a benign success (the report already landed), NOT an error. There is no
+ * ALREADY_REPORTED special case any more.
  */
 export function useReportSubmit() {
-  const { callFunction } = useReportCoreContext();
+  const { callFunction, config } = useReportCoreContext();
+  const callableName = config.submitCallableName ?? DEFAULT_SUBMIT_CALLABLE_NAME;
 
   return useMutation({
-    mutationFn: async (input: SubmitReportInput): Promise<Report> => {
-      const request: CreateContentReportRequest = {
-        reportedItemType: input.itemType,
+    mutationFn: async (input: SubmitReportInput): Promise<SubmitReportResult> => {
+      const request: SubmitReportRequest = {
+        itemType: input.itemType,
         reportedItemId: input.itemId,
         ...(input.parentItemId ? { parentItemId: input.parentItemId } : {}),
         ...(input.reportedUserId ? { reportedUserId: input.reportedUserId } : {}),
         reason: input.reason,
-        comment: input.comment,
+        ...(input.comment ? { comment: input.comment } : {}),
       };
 
-      try {
-        const result = await callFunction<CreateContentReportRequest, CreateContentReportResult>(
-          'createContentReport',
-          request,
-        );
-
-        return {
-          reportId: result.reportId,
-          reporterUserId: input.reporterUserId,
-          reportedItemType: input.itemType,
-          reportedItemId: input.itemId,
-          ...(input.parentItemId && { parentItemId: input.parentItemId }),
-          ...(input.reportedUserId && { reportedUserId: input.reportedUserId }),
-          reason: input.reason,
-          comment: input.comment.trim(),
-          createdAt: Date.now(),
-          status: 'pending_review',
-        };
-      } catch (err) {
-        // Surface the existing ALREADY_REPORTED contract.
-        // The consuming app's onCall wrapper rethrows handler errors with the
-        // original message, so `err.message === 'ALREADY_REPORTED'` propagates.
-        // Firebase Functions errors arrive as { code, message } — handle both.
-        const message = err instanceof Error ? err.message : String(err);
-        if (message.includes('ALREADY_REPORTED')) {
-          throw new Error('ALREADY_REPORTED', { cause: err });
-        }
-        throw err;
-      }
+      return callFunction<SubmitReportRequest, SubmitReportResult>(callableName, request);
     },
   });
 }

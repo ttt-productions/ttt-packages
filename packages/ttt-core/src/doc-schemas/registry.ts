@@ -71,8 +71,6 @@ import {
 } from './moderation.js';
 import {
   AdminTaskDocSchema,
-  ReportSchema,
-  ReportGroupSchema,
   ActivityLogEntrySchema,
 } from './report-docs.js';
 import { TTTAuditEventSchema } from './audit.js';
@@ -106,6 +104,12 @@ import {
   FeedbackAliasSchema,
   UserSuggestionSchema,
 } from './operational.js';
+// ===== Trust & Safety — report spine (§A1) =====
+import {
+  ProtectedReportRootV1Schema,
+  ReportPublicProjectionV1Schema,
+  ReportGroupV1Schema,
+} from './safety/report.js';
 // ===== Trust & Safety — child-safety case spine (§A1b, §A2) =====
 import {
   ChildSafetyCaseListV1Schema,
@@ -241,8 +245,12 @@ export const COLLECTION_SCHEMAS = {
   'auditionBoard/{auditionId}/auditionEntries/{auditionEntryId}': AuditionEntrySchema,
 
   // ===== Moderation / Reports / Admin =====
-  'contentReports/{reportId}': ReportSchema,
-  'activeReportGroups/{groupKey}': ReportGroupSchema,
+  // The report spine (§A1): the restricted root, its public projection subdoc, and the
+  // dedup/count group. The root + projection are written by the app's submitReport
+  // callable; the group is maintained by an app-side trigger.
+  'contentReports/{reportId}': ProtectedReportRootV1Schema,
+  'contentReports/{reportId}/publicProjection/{reportId}': ReportPublicProjectionV1Schema,
+  'activeReportGroups/{groupKey}': ReportGroupV1Schema,
   'adminTasks/{taskId}': AdminTaskDocSchema,
   'adminActivityLog/{logId}': ActivityLogEntrySchema,
   'contentViolations/{violationId}': ContentViolationSchema,

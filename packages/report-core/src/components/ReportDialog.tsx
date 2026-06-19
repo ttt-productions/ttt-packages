@@ -66,8 +66,9 @@ export function ReportDialog({
     if (!reporterUserId || !reason || !comment.trim()) return;
 
     try {
+      // reporterUserId is NOT sent — the submitReport callable derives the reporter
+      // from request.auth.uid; it is only used here to gate submission on being signed in.
       await submitMutation.mutateAsync({
-        reporterUserId,
         itemType,
         itemId,
         parentItemId,

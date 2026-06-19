@@ -48,14 +48,14 @@ erDiagram
     field seenAt
   }
   activeReportGroups {
+    field schemaVersion
     field groupKey
-    field reportedItemId
-    field reportedItemType
-    field reportedUserId
-    field lastReportAt
+    field itemType
     field totalReports
+    field highestReasonScore
+    field lastReportAt
+    field latestReason
     field status
-    field reports
   }
   activeUserNotifications {
     field id
@@ -418,18 +418,18 @@ erDiagram
     field acceptedOn
   }
   contentReports {
+    field schemaVersion
     field reportId
-    field reporterUserId
-    field reportedItemType
-    field reportedItemId
-    field parentItemId
-    field reportedUserId
+    field reporterUid
     field reason
-    field comment
-    field createdAt
+    field resolvedTarget
+    field snapshotRef
+    field canonicalTargetKey
+    field narrativeRef
+    field protectedFork
     field status
-    field resolvedAt
-    field resolvedBy
+    field createdAt
+    field updatedAt
   }
   contentViolations {
     field id
@@ -955,6 +955,14 @@ erDiagram
     field joinedAt
     field status
   }
+  publicProjection {
+    field schemaVersion
+    field reportId
+    field itemType
+    field reason
+    field status
+    field createdAt
+  }
   publicUsers {
     field uid
     field displayName
@@ -1410,7 +1418,6 @@ erDiagram
   pledgePayments ||--o{ processedStripeEvents : "pledgePaymentId"
   userProfiles ||--o{ actions : "actorId"
   userProfiles ||--o{ activeAdminNotifications : "targetUserId"
-  userProfiles ||--o{ activeReportGroups : "reportedUserId"
   userProfiles ||--o{ activeUserNotifications : "targetUserId"
   userProfiles ||--o{ adminActivityLog : "adminUserId"
   userProfiles ||--o{ adminNotificationHistory : "targetUserId"
@@ -1419,9 +1426,6 @@ erDiagram
   userProfiles ||--o{ chatAdminActionCommands : "actorUid"
   userProfiles ||--o{ chatChannelAuthProjections : "uid"
   userProfiles ||--o{ chatScopeDegraded : "uid"
-  userProfiles ||--o{ contentReports : "reportedUserId"
-  userProfiles ||--o{ contentReports : "reporterUserId"
-  userProfiles ||--o{ contentReports : "resolvedBy"
   userProfiles ||--o{ contentViolations : "reviewedBy"
   userProfiles ||--o{ contentViolations : "userId"
   userProfiles ||--o{ conversationMessages : "senderId"

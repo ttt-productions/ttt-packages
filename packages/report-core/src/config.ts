@@ -40,6 +40,12 @@ export interface ReportCoreConfig {
 
   /** Priority thresholds for PriorityBadge display (score → label/color) */
   priorityThresholds?: PriorityThreshold[];
+
+  /**
+   * Name of the report-intake callable invoked by `useReportSubmit`.
+   * Defaults to `'submitReport'` (the Trust & Safety report spine) when omitted.
+   */
+  submitCallableName?: string;
 }
 
 export interface PriorityThreshold {

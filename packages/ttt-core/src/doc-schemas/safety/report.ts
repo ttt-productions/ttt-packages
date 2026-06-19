@@ -8,11 +8,11 @@
 // SHARED enums + the target locator come from ./foundation.js (the single source for
 // every cross-cluster enum); they are NEVER redefined here.
 //
-// Collection note: `ProtectedReportRootV1` is the FUTURE shape of the EXISTING
-// `contentReports/{reportId}` collection — that collection is currently bound to the
-// legacy `ReportSchema` (../report-docs.ts). This cluster introduces NO new Firestore
-// collection; rebinding `contentReports` to `ProtectedReportRootV1` is deferred to the
-// app leg (orchestrator wires collections.ts / path-builders.ts / registry.ts).
+// Collection bindings (../registry.ts): `contentReports/{reportId}` →
+// `ProtectedReportRootV1Schema`, `contentReports/{reportId}/publicProjection/{reportId}`
+// → `ReportPublicProjectionV1Schema`, and `activeReportGroups/{groupKey}` →
+// `ReportGroupV1Schema`. These REPLACED the legacy loose-string report/group schemas; the
+// report DOC shape now lives entirely in this file.
 
 import { z } from 'zod';
 import {
@@ -119,6 +119,27 @@ export const ReportPublicProjectionV1Schema = z.object({
   createdAt: z.number(),
 }).strict();
 export type ReportPublicProjectionV1 = z.infer<typeof ReportPublicProjectionV1Schema>;
+
+// ===========================================================================
+// A1 — Report group (ReportGroupV1) — dedup/count group keyed by canonicalTargetKey
+// ===========================================================================
+
+/** The dedup/count group for all reports of the same target+revision. The group key
+ * IS the `canonicalTargetKey` (== reportGroupKey). NO trusted client owner field — the
+ * owner lives on the restricted ProtectedReportRootV1 (resolvedTarget.ownerUid), never
+ * here. An app-side trigger maintains the counts; this is the public-ish group surface
+ * the admin browse + admin-task queue read. Bound to `activeReportGroups/{groupKey}`. */
+export const ReportGroupV1Schema = z.object({
+  schemaVersion: z.literal(1),
+  groupKey: z.string().min(1), // = canonicalTargetKey
+  itemType: ReportableItemTypeSchema,
+  totalReports: z.number(),
+  highestReasonScore: z.number(),
+  lastReportAt: z.number(),
+  latestReason: ReportReasonSchema,
+  status: z.enum(['pending', 'reviewing', 'resolved']),
+}).strict();
+export type ReportGroupV1 = z.infer<typeof ReportGroupV1Schema>;
 
 // ===========================================================================
 // Canonical keys (DEFINED — not inline prose). Computed server-side by the

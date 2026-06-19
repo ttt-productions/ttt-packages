@@ -2,7 +2,6 @@
 // per-concern files so the published surface (and existing `./types.js`
 // imports) stays unchanged.
 export * from './types-admin-task.js';
-export * from './types-report.js';
 export * from './types-config.js';
 export * from './types-ui-props.js';
 

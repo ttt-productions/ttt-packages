@@ -173,6 +173,11 @@ export const NESTED_SUBCOLLECTIONS = {
   // Moderation
   CHANGED_DOCS: 'changedDocs',
 
+  // Trust & Safety — report spine (§A1): the public, reporter-identity-free projection
+  // is a deterministic child of the protected report root
+  // (contentReports/{reportId}/publicProjection/{reportId}).
+  REPORT_PUBLIC_PROJECTION: 'publicProjection',
+
   // Chat degraded-scope causes (chatScopeDegraded/{scopeKey}/causes/{causeId}).
   CHAT_SCOPE_DEGRADED_CAUSES: 'causes',
   // Anonymization affected-chunk set (chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal}).

@@ -70,8 +70,8 @@ export interface UseReportButtonOptions {
 
 /**
  * Headless hook for report button logic.
- * Use when you need custom trigger UI. Duplicate detection is handled
- * by the submit handler (ALREADY_REPORTED error) rather than a pre-check.
+ * Use when you need custom trigger UI. The submit callable is idempotent, so a
+ * duplicate report is a benign no-op success — no client-side duplicate pre-check.
  */
 export function useReportButton({ currentUserId }: UseReportButtonOptions) {
   const [isOpen, setIsOpen] = useState(false);

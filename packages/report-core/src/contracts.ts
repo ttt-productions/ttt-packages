@@ -8,10 +8,6 @@
 
 // --- Data shapes ---
 export type {
-  Report,
-  ReportStatus,
-  ReportGroup,
-  ReportGroupStatus,
   TaskPriority,
   AdminTask,
   AdminTaskStatus,
@@ -41,11 +37,12 @@ export {
   CheckoutTaskRequestSchema,
   CheckinTaskRequestSchema,
   ReleaseTaskRequestSchema,
-  CreateContentReportRequestSchema,
+  SubmitReportRequestSchema,
 } from './schemas/index.js';
 export type {
   CheckoutTaskRequest,
   CheckinTaskRequest,
   ReleaseTaskRequest,
-  CreateContentReportRequest,
+  SubmitReportRequest,
+  SubmitReportResult,
 } from './schemas/index.js';

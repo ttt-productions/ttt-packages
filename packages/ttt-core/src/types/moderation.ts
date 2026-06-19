@@ -1,5 +1,6 @@
 // Content moderation types: Violations, Content appeals.
-// (Reports/ReportGroup/ReportStatus moved to @ttt-productions/report-core.)
+// (The report DOC shapes are the Trust & Safety report spine — ProtectedReportRootV1 /
+//  ReportPublicProjectionV1 / ReportGroupV1 in ../doc-schemas/safety/report.ts.)
 
 // Shapes are defined as Zod schemas in ../doc-schemas/moderation.ts (single source of truth).
 export type {

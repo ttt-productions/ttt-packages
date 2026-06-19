@@ -25,13 +25,29 @@ export const ReleaseTaskRequestSchema = z.object({
 
 export type ReleaseTaskRequest = z.infer<typeof ReleaseTaskRequestSchema>;
 
-export const CreateContentReportRequestSchema = z.object({
-  reportedItemType: z.string().min(1).max(64),
-  reportedItemId: z.string().min(1).max(128),
-  parentItemId: z.string().min(1).max(128).optional(),
-  reportedUserId: z.string().min(1).max(128).optional(),
+// The Trust & Safety `submitReport` callable wire shape. report-core is a GENERIC
+// Tier-1 package — it cannot import ttt-core's ReportReason / ReportableItemType
+// enums, so `itemType` and `reason` are typed as opaque strings here; the consuming
+// app's submitReport callable validates them against the canonical ttt-core enums.
+// `reportedUserId` is a HINT ONLY — the server re-derives the owner and never trusts
+// it as authority. `comment` is the free-text reporter narrative (segregated server-side).
+export const SubmitReportRequestSchema = z.object({
+  itemType: z.string().min(1).max(64),
+  reportedItemId: z.string().min(1).max(256),
+  parentItemId: z.string().min(1).max(256).optional(),
+  reportedUserId: z.string().min(1).max(256).optional(),
   reason: z.string().min(1).max(128),
-  comment: z.string().min(1).max(4000),
+  comment: z.string().max(4000).optional(),
 }).strict();
 
-export type CreateContentReportRequest = z.infer<typeof CreateContentReportRequestSchema>;
+export type SubmitReportRequest = z.infer<typeof SubmitReportRequestSchema>;
+
+/** The `submitReport` callable result. `protectedFork`/`caseId` are non-null only when
+ *  the protected branch (child-safety / NCII) ran; idempotent duplicates still return ok. */
+export interface SubmitReportResult {
+  ok: true;
+  reportId: string;
+  reason: string;
+  protectedFork: 'childSafetyCase' | 'nciiCase' | null;
+  caseId: string | null;
+}

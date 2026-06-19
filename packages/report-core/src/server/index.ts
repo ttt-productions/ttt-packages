@@ -1,7 +1,8 @@
-// Server-side helpers (for Cloud Functions)
-export { createReportGroupingHandler } from './createReportGroupingHandler.js';
-export type { ReportGroupingHandlerConfig } from './createReportGroupingHandler.js';
-
+// Server-side helpers (for Cloud Functions).
+// NOTE: report WRITE + grouping is no longer owned here — the consuming app's
+// `submitReport` callable writes the protected report root + public projection, and a
+// separate app trigger maintains the report group. report-core keeps only the generic
+// admin-task QUEUE machinery below.
 export { createAdminTaskHandler } from './createAdminTaskHandler.js';
 export type { AdminTaskHandlerConfig } from './createAdminTaskHandler.js';
 
@@ -16,9 +17,6 @@ export type { ReleaseTaskHandlerConfig } from './createReleaseTaskHandler.js';
 
 export { createCheckoutNextImportantHandler } from './createCheckoutNextImportantHandler.js';
 export type { CheckoutNextImportantHandlerConfig } from './createCheckoutNextImportantHandler.js';
-
-export { createContentReportHandler } from './createContentReportHandler.js';
-export type { CreateContentReportHandlerConfig } from './createContentReportHandler.js';
 
 export { calculatePriorityScore, getHighestScoringReason } from './calculatePriorityScore.js';
 
