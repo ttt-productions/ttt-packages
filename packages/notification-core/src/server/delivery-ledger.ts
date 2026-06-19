@@ -325,7 +325,17 @@ export function createDeliveryLedger(
           deadLetteredAt: now,
         });
       } else {
-        tx.update(dRef, { attemptCount, nextAttemptAt: now + backoffMs(attemptCount), lastError: message });
+        // n1: re-stamp the row into the reserved `retry` materialization lane on backoff. Without
+        // this the row keeps its original class and competes for that lane's capacity while backed
+        // off; the worker's reserved `retry` slice (separate CLASS_CAPS capacity, drained in
+        // DRAIN_ORDER) would always select 0 rows. Re-stamping moves a backed-off row into the
+        // anti-starvation lane so it drains there instead of starving in its original lane.
+        tx.update(dRef, {
+          attemptCount,
+          nextAttemptAt: now + backoffMs(attemptCount),
+          lastError: message,
+          materializationClass: 'retry' as MaterializationClass,
+        });
       }
     });
   }

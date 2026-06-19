@@ -10,6 +10,8 @@ export type {
   UseUnreadCountOptions,
   UseArchiveNotificationOptions,
   UseArchiveAllNotificationsOptions,
+  ArchiveAllResult,
+  ArchiveAllLoopResult,
   UseNotificationHistoryOptions,
   NotificationListProps,
   NotificationEmptyStateProps,

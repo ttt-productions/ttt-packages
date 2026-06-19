@@ -128,7 +128,8 @@ export const ChatAdminActionCommandSchema = z.object({
   expectedMessageRevision: z.number(),
   // Ready-attachment media asset id(s) on the moderated message (block FIRST, then
   // DO tombstone — the attachment-redaction saga, round-10 blocker 9). Empty for a
-  // text-only message; discovered at request time from the case-bound context read.
+  // text-only message. DERIVED SERVER-SIDE inside the moderation saga from the DO/message
+  // context — NEVER client-supplied (the case-bound context read does not expose them).
   attachmentAssetIds: z.array(z.string()).default([]),
   payloadHash: z.string(),
   state: z.enum(['queued', 'delivering', 'applied', 'failed', 'deadLetter']),

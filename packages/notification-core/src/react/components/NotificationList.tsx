@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { Badge, Button, Separator } from '@ttt-productions/ui-core/react';
 import { useActiveNotifications } from '../hooks/useActiveNotifications.js';
 import { useArchiveNotification } from '../hooks/useArchiveNotification.js';
@@ -59,11 +59,25 @@ export function NotificationList({
     [archiveMutation, onNotificationClick],
   );
 
+  // I3: surface a failed/incomplete clear instead of swallowing it. `onClearAll` (and the
+  // tray-closing side effects the app wires to it) fires ONLY when the active set was fully
+  // drained — otherwise the user keeps the "notifications remain — try again" affordance.
+  const [clearIncomplete, setClearIncomplete] = useState(false);
+
   const handleClearAll = useCallback(async () => {
+    setClearIncomplete(false);
+    let result;
     try {
-      await archiveAllMutation.mutateAsync();
+      result = await archiveAllMutation.mutateAsync();
     } catch {
-      // Silently fail
+      // Hard failure: do not fire onClearAll; surface the retry affordance.
+      setClearIncomplete(true);
+      return;
+    }
+    if (!result.complete) {
+      // Resolved but the active set was not fully drained — keep notifications, prompt a retry.
+      setClearIncomplete(true);
+      return;
     }
     onClearAll?.();
   }, [archiveAllMutation, onClearAll]);
@@ -89,6 +103,11 @@ export function NotificationList({
         >
           {archiveAllMutation.isPending ? 'Clearing...' : 'Clear All'}
         </Button>
+        {clearIncomplete && !archiveAllMutation.isPending && (
+          <div className="ntf-list-clear-error" role="status">
+            Some notifications remain — try again.
+          </div>
+        )}
       </div>
       <Separator />
 

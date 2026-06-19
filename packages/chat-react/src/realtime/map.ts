@@ -7,7 +7,48 @@
 // context, identical to the Firestore path.
 
 import type { ChatMessageV1 } from '@ttt-productions/chat-core';
-import type { WireMessageRow } from './wire.js';
+import type { RevisionKind, WireMessageRow } from './wire.js';
+
+/** The replacement text shown for a hidden/deleted message (the ORIGINAL never renders). */
+export const MODERATION_REDACTED_TEXT = '[message removed]' as const;
+
+/** The effective moderation overlay for a message: the max-`messageRevision` kind. */
+export interface ModerationOverlay {
+  kind: RevisionKind;
+  messageRevision: number;
+}
+
+/**
+ * Apply a moderation overlay to a mapped message so the ORIGINAL content never
+ * renders for a hidden/deleted message. Pure — returns a new message; the input
+ * is not mutated. The overlay state rides on `meta` (`meta` is opaque to
+ * chat-core), so the renderer can branch on `meta.moderated` / `meta.moderationKind`.
+ * - `delete` / `moderate` → blank/replace the text + mark moderated.
+ * - `edit` → the row already carries the overlaid text (the DO rewrites `text`),
+ *   so only the marker is stamped.
+ * - `restore` → original content (the DO row is the original); no redaction.
+ */
+export function applyModerationOverlay(message: ChatMessageV1, overlay: ModerationOverlay | null): ChatMessageV1 {
+  if (!overlay) return message;
+  const redacted = overlay.kind === 'delete' || overlay.kind === 'moderate';
+  return {
+    ...message,
+    ...(redacted ? { text: MODERATION_REDACTED_TEXT } : {}),
+    meta: {
+      ...message.meta,
+      moderationKind: overlay.kind,
+      messageRevision: overlay.messageRevision,
+      // `restore` is the absence of active moderation — it reverts to the original.
+      moderated: overlay.kind !== 'restore',
+    },
+  };
+}
+
+/** The overlay carried inline on a DO row (the getHistory/getDeltaSince merge), or null. */
+export function overlayFromRow(row: WireMessageRow): ModerationOverlay | null {
+  if (row.moderationKind == null) return null;
+  return { kind: row.moderationKind, messageRevision: row.messageRevision ?? 0 };
+}
 
 /** The DO `seq` is the stable per-channel message id (monotonic, epoch-spanning). */
 export function seqToMessageId(seq: number): string {

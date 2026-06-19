@@ -232,10 +232,29 @@ export interface UseArchiveNotificationOptions {
  * Result of ONE archive-all server call. `hasMore` is true when the server hit its per-invocation
  * cap and the caller's active set was NOT fully drained — `useArchiveAllNotifications` loops the
  * adapter until `hasMore` is false so "Clear All" actually clears all (I3).
+ *
+ * NOTE: the loop's aggregate result carries the same `archived`/`hasMore` shape PLUS a `complete`
+ * flag (`ArchiveAllLoopResult`); a single server page does not know whether the WHOLE active set
+ * was drained, so the per-call shape here intentionally has no `complete`.
  */
 export interface ArchiveAllResult {
   archived: number;
   hasMore: boolean;
+}
+
+/**
+ * Aggregate result of the `useArchiveAllNotifications` continuation loop (I3). `complete` is the
+ * load-bearing completion contract: it is `true` ONLY when the active set was fully drained
+ * (`hasMore` reached `false`). It is `false` when the loop stopped early — either the no-progress
+ * guard tripped (a pass archived nothing yet still reported `hasMore`, e.g. a generation-less head
+ * card that can't advance) or the per-mutation pass bound was hit with `hasMore` still `true`.
+ * Callers MUST gate post-clear side effects (closing the tray, `onClearAll`) on `complete`, not on
+ * mere resolution — the mutation resolves on an incomplete drain rather than throwing.
+ */
+export interface ArchiveAllLoopResult {
+  archived: number;
+  hasMore: boolean;
+  complete: boolean;
 }
 
 export interface UseArchiveAllNotificationsOptions {

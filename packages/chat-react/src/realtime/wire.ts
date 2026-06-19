@@ -64,6 +64,15 @@ export type ChannelRefTuple =
 // ---- raw wire row shapes (what the DO serializes; opaque-but-typed here) ----
 
 /**
+ * The moderation revision `kind` (chat-worker `RevisionInput.kind` + the
+ * `revisions.kind` column). The EFFECTIVE state of a message is its
+ * MAX-`messageRevision` row's kind, so a `restore` (a later revision) supersedes
+ * an earlier `moderate`/`delete`. `moderate`/`delete` blank the original text;
+ * `edit` overlays new text; `restore` reverts to the original.
+ */
+export type RevisionKind = 'delete' | 'moderate' | 'edit' | 'restore';
+
+/**
  * A message row as the Channel DO stores + broadcasts it (chat-worker
  * `MessageRow`). `replyTo`/`attachmentMeta` arrive as JSON STRINGS (or null) —
  * the DO stores them stringified and does not re-parse before broadcast. The
@@ -79,6 +88,20 @@ export interface WireMessageRow {
   attachmentMeta: string | null;
   createdAt: number;
   epoch: number;
+  /**
+   * The effective (max-`messageRevision`) moderation kind for this row, or null
+   * when never moderated. Populated by the DO's getHistory/getDeltaSince overlay
+   * merge so a hidden/deleted/edited row arrives already-moderated and its
+   * ORIGINAL text never reaches the renderer. Optional/absent on pre-overlay rows.
+   */
+  moderationKind?: RevisionKind | null;
+  /**
+   * The effective `messageRevision` that `moderationKind` reflects (the DO's
+   * max-revision). Used to break ties against a live `revision` frame: a higher
+   * `messageRevision` wins; a stale/older one is ignored. Optional/absent on
+   * pre-overlay rows (treated as revision 0).
+   */
+  messageRevision?: number;
 }
 
 /** The channel resume snapshot the DO returns for a `resume` frame. */
@@ -126,7 +149,12 @@ export type ServerFrame =
   // it instead of silently dropping it (forward-compatible with a future DO push).
   | { type: 'unread'; payload: WireInboxSnapshot | { hasUnread: boolean } }
   | { type: 'error'; payload: { code: string; retryAfterMs?: number } }
-  | { type: 'revision'; payload: Record<string, unknown> };
+  // A moderation revision was applied to one message. The Channel DO broadcasts
+  // this on a NEWLY-applied revision (chat-worker `applyModeration`) so live
+  // viewers hide/blank/edit/restore the message immediately with no extra fetch.
+  // `messageSeq` is the target message id; `kind` is the applied revision kind;
+  // `messageRevision` is its per-message revision number (max-revision wins).
+  | { type: 'revision'; payload: { messageSeq: number; kind: RevisionKind; messageRevision: number } };
 
 /** Build an outbound `{ v, type, payload }` frame (the wire format the DO reads). */
 export function buildFrame(type: string, payload: Record<string, unknown>): string {

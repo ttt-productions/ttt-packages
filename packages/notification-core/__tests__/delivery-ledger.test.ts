@@ -239,9 +239,13 @@ describe('createDeliveryLedger lifecycle', () => {
     const { db, getCol } = createMockFirestore();
     const ledger = createDeliveryLedger(db, config); // maxDeliveryAttempts: 3
     await ledger.enqueue([row({ deliveryId: 'd1' })]);
+    expect(getCol('notificationDeliveries').get('d1')!.materializationClass).toBe('directQueued');
     await ledger.recordTransientFailure('d1', new Error('e1'));
     expect(getCol('notificationDeliveries').get('d1')!.state).toBe('queued');
     expect(getCol('notificationDeliveries').get('d1')!.attemptCount).toBe(1);
+    // n1: a backed-off row is re-stamped into the reserved `retry` lane so it drains there
+    // (separate capacity) instead of competing in its original `directQueued` lane.
+    expect(getCol('notificationDeliveries').get('d1')!.materializationClass).toBe('retry');
     await ledger.recordTransientFailure('d1', new Error('e2'));
     await ledger.recordTransientFailure('d1', new Error('e3'));
     const d = getCol('notificationDeliveries').get('d1')!;

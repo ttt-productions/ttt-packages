@@ -124,7 +124,6 @@ case "$choice" in
       package.json \
       package-lock.json \
       tsconfig.json \
-      vitest.workspace.ts \
       test \
       scripts \
       CLAUDE.md \

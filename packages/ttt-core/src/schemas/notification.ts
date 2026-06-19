@@ -176,7 +176,9 @@ export const BroadcastAudienceSelectorSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('allActiveUsers') }).strict(),
   z.object({
     kind: z.literal('explicitUids'),
-    uids: z.array(userIdSchema).min(1).max(10_000),
+    // ≤2000 uids — the selector's documented audience cap (dedup + serialized-byte
+    // enforcement for work/realm snapshots is app-side).
+    uids: z.array(userIdSchema).min(1).max(2000),
   }).strict(),
   z.object({
     kind: z.literal('workMembers'),
@@ -195,6 +197,9 @@ export type BroadcastAudienceSelector = z.infer<typeof BroadcastAudienceSelector
 // ============================================================================
 
 export const CreateNotificationBroadcastInputSchema = z.object({
+  // Client-generated idempotency key — the app derives the broadcast eventId
+  // deterministically from (actorUid, requestId) so a lost-ack retry is idempotent.
+  requestId: z.string().min(1),
   selector: BroadcastAudienceSelectorSchema,
   title: titleSchema,
   message: notificationMessageSchema,

@@ -25,9 +25,17 @@ import {
   isInboxSnapshot,
   type WireMessageRow,
   type WireChannelSnapshot,
+  type RevisionKind,
 } from './wire.js';
 import type { RealtimeSocket, SocketFactory } from './socket.js';
-import { wireRowToMessage, optimisticMessage, seqToMessageId } from './map.js';
+import {
+  wireRowToMessage,
+  optimisticMessage,
+  seqToMessageId,
+  applyModerationOverlay,
+  overlayFromRow,
+  type ModerationOverlay,
+} from './map.js';
 import type { GrantProvider, TransportTimers, RealtimeStatus } from './shared.js';
 import { defaultTimers, HEARTBEAT_MS, TYPING_COALESCE_MS, HISTORY_PAGE_MAX } from './shared.js';
 
@@ -92,6 +100,19 @@ export class ChannelClient {
   private lastTypingSentAt = Number.NEGATIVE_INFINITY;
   private reconnectTimer: ReturnType<TransportTimers['setTimeout']> | null = null;
   private closedByUs = false;
+  /**
+   * Per-seq moderation overlay (the max-revision wins). A `revision` frame writes
+   * here keyed by `messageSeq` so it applies whether it arrives BEFORE its base
+   * row (re-applied when the row later renders) or AFTER (re-renders the present
+   * row in place). Merged with the row's own inline `moderationKind` so a row that
+   * arrives already-moderated from the DO AND one covered by a live frame both
+   * render the moderated state. */
+  private overlays = new Map<number, ModerationOverlay>();
+  /**
+   * The ORIGINAL (un-overlaid) mapped message per seq. A `restore` revision must
+   * revert a previously-redacted message to its original text, so re-renders start
+   * from this cache rather than the (possibly already-blanked) message in state. */
+  private originalRows = new Map<number, ChatMessageV1>();
 
   constructor(private readonly config: ChannelClientConfig) {
     this.timers = config.timers ?? defaultTimers;
@@ -231,9 +252,58 @@ export class ChannelClient {
         return this.applyChannelSnapshot(payload as unknown as WireChannelSnapshot);
       case 'error':
         return this.setState({ lastErrorCode: String((payload as { code: string }).code ?? 'error') });
+      case 'revision':
+        return this.applyRevisionFrame(payload as { messageSeq?: number; kind?: RevisionKind; messageRevision?: number });
       default:
         return; // unknown/optional types tolerated (forward compat)
     }
+  }
+
+  /**
+   * Apply a live moderation `revision` frame: record the overlay keyed by seq
+   * (max-`messageRevision` wins — a stale/older frame is ignored) and re-render the
+   * matching message in place if it is already loaded. If the base row hasn't
+   * arrived yet the overlay is retained and re-applied when the row renders, so a
+   * frame that races ahead of its message never lets the original content show.
+   */
+  private applyRevisionFrame(payload: { messageSeq?: number; kind?: RevisionKind; messageRevision?: number }): void {
+    const seq = payload.messageSeq;
+    const kind = payload.kind;
+    const messageRevision = payload.messageRevision;
+    if (typeof seq !== 'number' || kind == null || typeof messageRevision !== 'number') return;
+    const prev = this.overlays.get(seq);
+    // Max-revision merge: a higher messageRevision supersedes; an older one is dropped.
+    if (prev && prev.messageRevision >= messageRevision) return;
+    this.overlays.set(seq, { kind, messageRevision });
+    // Re-render the matching message in place if it is already present. Re-derive
+    // from the ORIGINAL row so a `restore` reverts a previously-blanked text.
+    const messageId = seqToMessageId(seq);
+    const original = this.originalRows.get(seq);
+    if (original && this.state.messages.some((m) => m.messageId === messageId)) {
+      const overlaid = applyModerationOverlay(original, this.effectiveOverlay(seq, null));
+      const next = this.state.messages.map((m) => (m.messageId === messageId ? overlaid : m));
+      this.setState({ messages: next });
+    }
+  }
+
+  /**
+   * The effective overlay for a seq = the max-`messageRevision` between the row's
+   * own inline overlay (from the DO history/delta merge) and any received `revision`
+   * frame stored in `this.overlays`. Either source may be ahead of the other.
+   */
+  private effectiveOverlay(seq: number, rowOverlay: ModerationOverlay | null): ModerationOverlay | null {
+    const fromFrame = this.overlays.get(seq) ?? null;
+    if (!rowOverlay) return fromFrame;
+    if (!fromFrame) return rowOverlay;
+    return fromFrame.messageRevision >= rowOverlay.messageRevision ? fromFrame : rowOverlay;
+  }
+
+  /** Map a DO row to a UI message with its effective moderation overlay applied. */
+  private renderRow(row: WireMessageRow): ChatMessageV1 {
+    const mapped = wireRowToMessage(row, this.config.threadId);
+    // Cache the ORIGINAL so a later `restore` frame can revert a blanked message.
+    this.originalRows.set(row.seq, mapped);
+    return applyModerationOverlay(mapped, this.effectiveOverlay(row.seq, overlayFromRow(row)));
   }
 
   private applyChannelSnapshot(snap: WireChannelSnapshot): void {
@@ -249,7 +319,7 @@ export class ChannelClient {
 
   private applyMessage(row: WireMessageRow): void {
     if (!row || typeof row.seq !== 'number') return;
-    const mapped = wireRowToMessage(row, this.config.threadId);
+    const mapped = this.renderRow(row);
     this.mergeMessage(mapped, row);
     if (row.seq > this.resumeSeq) this.resumeSeq = row.seq;
   }
@@ -290,7 +360,7 @@ export class ChannelClient {
   }
 
   private applyHistoryPage(rows: WireMessageRow[]): void {
-    const mapped = rows.map((r) => wireRowToMessage(r, this.config.threadId));
+    const mapped = rows.map((r) => this.renderRow(r));
     const bySeq = new Map<string, ChatMessageV1>();
     for (const m of this.state.messages) bySeq.set(m.messageId, m);
     for (const m of mapped) bySeq.set(m.messageId, m);
@@ -428,6 +498,8 @@ export class ChannelClient {
     this.stopHeartbeat();
     for (const t of this.typingTimers.values()) this.timers.clearTimeout(t);
     this.typingTimers.clear();
+    this.overlays.clear();
+    this.originalRows.clear();
     if (this.reconnectTimer != null) {
       this.timers.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;

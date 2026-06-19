@@ -147,17 +147,32 @@ describe('BroadcastAudienceSelector', () => {
     expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'allArtisans', tradeProfession: 'Director' }).success).toBe(false);
     expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'somethingElse' }).success).toBe(false);
   });
+
+  it('enforces the ≤2000 explicit-uid audience cap', () => {
+    const uids = (n: number) => Array.from({ length: n }, (_, i) => `u${i}`);
+    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: uids(2000) }).success).toBe(true);
+    expect(BroadcastAudienceSelectorSchema.safeParse({ kind: 'explicitUids', uids: uids(2001) }).success).toBe(false);
+  });
 });
 
 describe('callable input schemas', () => {
   it('validates createNotificationBroadcast input', () => {
     expect(CreateNotificationBroadcastInputSchema.safeParse({
+      requestId: 'req-1',
       selector: { kind: 'allActiveUsers' },
       title: 'Hi',
       message: 'Welcome to launch.',
     }).success).toBe(true);
 
+    // Missing the required idempotency key is rejected.
     expect(CreateNotificationBroadcastInputSchema.safeParse({
+      selector: { kind: 'allActiveUsers' },
+      title: 'Hi',
+      message: 'Welcome to launch.',
+    }).success).toBe(false);
+
+    expect(CreateNotificationBroadcastInputSchema.safeParse({
+      requestId: 'req-1',
       selector: { kind: 'allActiveUsers' },
       title: '',
       message: 'x',
