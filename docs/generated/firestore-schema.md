@@ -2045,6 +2045,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | --- | --- | --- |
 | `email` | `string` |  |
 | `isWaitingForNewsApproval` | `number` | yes |
+| `usPersonAttestedAt` | `number` | yes |
+| `nonUsArtisanInterest` | `{ country, region, requestedAt }` | yes |
 | `squareStreetzAgreementsDate` | `number` | yes |
 | `hallDownloadAcknowledgedAt` | `number` | yes |
 | `agreements` | `{ age, nudity, meet, cookies, terms, agreedOn }` | yes |

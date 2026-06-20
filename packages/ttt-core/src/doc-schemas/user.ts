@@ -112,6 +112,21 @@ export const UserPrivateDataSchema = z.object({
   // `artisanCreator?: number` grant-timestamp pattern. Truthy when set, so existing
   // truthiness reads keep working; absent until the user applies.
   isWaitingForNewsApproval: z.number().optional(),
+  // Epoch ms when the user attested they are a U.S.-based person while becoming an artisan
+  // (required at artisan signup for now). Mirrors the ageAttested attestation pattern; written
+  // server-side by becomeArtisanCreator.
+  usPersonAttestedAt: z.number().optional(),
+  // Non-U.S. artisan-interest "waitlist" recorded ONLY for adult accounts when a non-U.S. person
+  // asks to be notified once creator signups open in their region. Owner-only, backend-written.
+  // `requestedAt` is the immutable first-come-first-serve timestamp; `country`/`region` let signups
+  // be opened by jurisdiction as each region's laws clear. Mirrors isWaitingForNewsApproval.
+  nonUsArtisanInterest: z
+    .object({
+      country: z.string().min(1).max(100),
+      region: z.string().max(100).optional(),
+      requestedAt: z.number(),
+    })
+    .optional(),
   squareStreetzAgreementsDate: z.number().optional(),
   // Epoch ms when the user accepted the one-time Hall download acknowledgement
   // (personal offline use only, no redistribution). Written server-side by the

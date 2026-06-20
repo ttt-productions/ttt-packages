@@ -17,11 +17,25 @@ export type AcceptHallDownloadAcknowledgementInput = z.infer<typeof AcceptHallDo
 // artisanCreator.grantedToUser audit event (immutable, timestamped, with IP/UA) so it is provable.
 export const BecomeArtisanCreatorInputSchema = z.object({
   ageAttested: z.literal(true),
+  // "I confirm I am a person located in the United States" — required for now (only U.S. persons
+  // may become artisans). Mirrors ageAttested: the callable rejects when absent and records the
+  // attestation timestamp (privateData.usPersonAttestedAt) + the grant audit event.
+  usPersonAttested: z.literal(true),
 }).strict();
 export type BecomeArtisanCreatorInput = z.infer<typeof BecomeArtisanCreatorInputSchema>;
 
 export const MarkWaitingForNewsApprovalInputSchema = z.object({}).strict();
 export type MarkWaitingForNewsApprovalInput = z.infer<typeof MarkWaitingForNewsApprovalInputSchema>;
+
+// Non-U.S. artisan-interest signup (the FCFS "waitlist" fields on privateData). Mirrors
+// MarkWaitingForNewsApproval but carries the applicant's country (+ optional region) so signups
+// can be opened by jurisdiction as each region's laws clear. The callable records it ONLY for
+// adult accounts (never a minor's location).
+export const MarkNonUsArtisanInterestInputSchema = z.object({
+  country: z.string().min(1).max(100),
+  region: z.string().max(100).optional(),
+}).strict();
+export type MarkNonUsArtisanInterestInput = z.infer<typeof MarkNonUsArtisanInterestInputSchema>;
 
 export const RegisterUserInputSchema = z.object({
   displayName: z
