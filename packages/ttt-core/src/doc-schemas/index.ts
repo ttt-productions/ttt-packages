@@ -9,6 +9,7 @@ export * from './firestore-primitives.js';
 export * from './media-assets.js';
 export * from './media-activation-jobs.js';
 export * from './publicUser.js';
+export * from './account-deletion.js';
 export * from './work-project.js';
 export * from './content.js';
 export * from './social.js';

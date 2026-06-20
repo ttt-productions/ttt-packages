@@ -40,6 +40,17 @@ export const GuildmateUserSchema = z.object({
    * increments or replaces the per-pair OUTPUT `channelAuthVersion`.
    */
   guildAuthInputVersion: z.number().optional(),
+  /**
+   * N3 data-deletion / account-end forfeiture tombstone. Set together with
+   * `status: 'departed'` when a member leaves involuntarily-of-record: their
+   * stake shares STAY in the immutable 1000-split (never removed) but are
+   * forfeited — the future payout engine routes a tombstone's slice to the
+   * community fund and excludes it from active distribution. `departedReason`
+   * distinguishes the cause; `'bannedForCause'` is reserved for the future
+   * ban-forfeiture path (included now so it needs no second package publish).
+   */
+  departedReason: z.enum(['voluntaryDeletion', 'bannedForCause']).optional(),
+  departedAt: z.number().optional(),
 });
 export type GuildmateUser = z.infer<typeof GuildmateUserSchema>;
 
@@ -82,6 +93,16 @@ export const FullWorkProjectSchema = z.object({
   workRealmId: z.string(),
   realmCanonStatus: z.enum(['canon', 'nonCanon']),
   pendingStakeShares: PendingStakeSharesSchema.optional(),
+  // Moderation "require retitle" remedy (work/realm report path). When an admin
+  // upholds a report on an abusive public title/description, they may replace the
+  // text with a generic placeholder and set this flag; the steward is prompted to
+  // re-enter compliant text the next time they open the work (unpublished = direct
+  // self-edit clears it; published = via the post-launch change-request flow).
+  // Distinct from the `publicWorkHidden` hide (DMCA/copyright) — this keeps the
+  // work visible under the placeholder. Backend-only-writable.
+  moderationRetitleRequired: z.boolean().optional(),
+  moderationRetitleReason: z.string().optional(),
+  moderatedAt: z.number().optional(),
 });
 export type FullWorkProject = z.infer<typeof FullWorkProjectSchema>;
 
@@ -119,5 +140,12 @@ export const WorkRealmSchema = z.object({
   foundingWorkProjectId: z.string(),
   createdOn: z.number(),
   updatedOn: z.number(),
+  // Moderation "require retitle" remedy (see FullWorkProject above) — admin
+  // replaces an abusive realm title/description with a placeholder + sets this so
+  // the steward must re-enter compliant text. Distinct from `realmHidden` (the
+  // DMCA/copyright takedown). Backend-only-writable.
+  moderationRetitleRequired: z.boolean().optional(),
+  moderationRetitleReason: z.string().optional(),
+  moderatedAt: z.number().optional(),
 });
 export type WorkRealm = z.infer<typeof WorkRealmSchema>;

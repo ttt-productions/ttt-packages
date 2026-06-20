@@ -88,6 +88,11 @@ export const FullUserSchema = z.object({
   ownedWorkProjects: z.array(OwnedWorkProjectSchema).optional(),
   associatedWorkProjects: z.array(AssociatedWorkProjectSchema).optional(),
   createdAt: z.number(),
+  // N3 data-deletion / GDPR erasure: epoch ms when the account-deletion scrub
+  // anonymized this profile in place. When set, the identity fields have been
+  // scrubbed (displayName → the FORMER_MEMBER_DISPLAY_NAME sentinel) and the
+  // account is a tombstone. Backend-only-writable.
+  anonymizedAt: z.number().optional(),
 });
 export type FullUser = z.infer<typeof FullUserSchema>;
 

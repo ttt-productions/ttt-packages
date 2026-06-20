@@ -14,6 +14,20 @@ erDiagram
     field leaseExpiresAt
     field lastError
   }
+  accountDeletionRequests {
+    field schemaVersion
+    field uid
+    field status
+    field requestedAt
+    field scheduledScrubAt
+    field graceDays
+    field cancelledAt
+    field scrubStartedAt
+    field parkedReason
+    field parkedAt
+    field lastHoldCheckAt
+    field completedAt
+  }
   accounts {
     field role
     field subjectDisposition
@@ -576,6 +590,8 @@ erDiagram
     field status
     field holderType
     field guildAuthInputVersion
+    field departedReason
+    field departedAt
   }
   hallItems {
     field hallItemId
@@ -970,6 +986,7 @@ erDiagram
     field profilePictureAssetId
     field artisanCreator
     field disabled
+    field anonymizedAt
   }
   publicWorkProjects {
     field workProjectId
@@ -1416,6 +1433,7 @@ erDiagram
   pledgePayments ||--o{ pledgePaymentLedgerEvents : "pledgePaymentId"
   pledgePayments ||--o{ pledgePaymentProviderRefs : "pledgePaymentId"
   pledgePayments ||--o{ processedStripeEvents : "pledgePaymentId"
+  userProfiles ||--o{ accountDeletionRequests : "uid"
   userProfiles ||--o{ actions : "actorId"
   userProfiles ||--o{ activeAdminNotifications : "targetUserId"
   userProfiles ||--o{ activeUserNotifications : "targetUserId"

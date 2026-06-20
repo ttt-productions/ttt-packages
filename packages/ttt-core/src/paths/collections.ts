@@ -23,6 +23,7 @@ export const COLLECTIONS = {
 
   // System & Utility
   RESERVED_DISPLAY_NAMES: 'reservedDisplayNames',
+  ACCOUNT_DELETION_REQUESTS: 'accountDeletionRequests',
   CONTENT_REPORTS: 'contentReports',
   PENDING_MEDIA: 'pendingMedia',
   PENDING_MEDIA_ARCHIVE: 'pendingMediaArchive',

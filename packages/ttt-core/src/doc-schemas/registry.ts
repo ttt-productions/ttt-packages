@@ -15,6 +15,7 @@ import {
   CraftSkillReferenceSchema,
 } from './user.js';
 import { PublicUserSchema } from './publicUser.js';
+import { AccountDeletionRequestV1Schema } from './account-deletion.js';
 import {
   FullWorkProjectSchema,
   PublicWorkProjectSchema,
@@ -293,6 +294,7 @@ export const COLLECTION_SCHEMAS = {
 
   // ===== Operational / utility =====
   'reservedDisplayNames/{displayNameUppercase}': ReservedDisplayNameSchema,
+  'accountDeletionRequests/{uid}': AccountDeletionRequestV1Schema,
   'shortLinks/{shortId}': ShortLinkSchema,
   'feedbackAliases/{aliasId}': FeedbackAliasSchema,
   'feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId}': UserSuggestionSchema,

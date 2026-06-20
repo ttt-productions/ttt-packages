@@ -12,6 +12,14 @@ export const USERNAME_MAX_LENGTH = 20;
 /** Allowed characters in a user display name: letters and numbers only. */
 export const USERNAME_REGEX = /^[a-zA-Z0-9]+$/;
 
+/**
+ * Display-name sentinel for an erased account (N3 data-deletion / GDPR erasure).
+ * The `publicUsers/{uid}` doc is kept (so uid→name resolvers keep working) with
+ * `displayName` set to this and `anonymizedAt` stamped; uid-keyed authorship /
+ * share-tombstone records render with this label.
+ */
+export const FORMER_MEMBER_DISPLAY_NAME = 'Former member';
+
 import { ACTIVE_LIMITS } from './app-mode.js';
 
 // --- User Profile Craft Skills ---

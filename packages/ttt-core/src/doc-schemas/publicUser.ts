@@ -15,5 +15,9 @@ export const PublicUserSchema = z.object({
   profilePictureAssetId: z.string().nullable().optional(),
   artisanCreator: z.number().optional(),
   disabled: z.boolean(),
+  // N3 data-deletion / GDPR erasure: epoch ms when the scrub anonymized this user.
+  // The doc is KEPT (so uid→name resolvers keep working) with displayName set to
+  // the FORMER_MEMBER_DISPLAY_NAME sentinel. Backend-only-writable.
+  anonymizedAt: z.number().optional(),
 });
 export type PublicUser = z.infer<typeof PublicUserSchema>;

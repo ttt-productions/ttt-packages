@@ -60,6 +60,8 @@ export const ReportableItemTypeSchema = z.enum([
   'hall-library-item',
   'audition',
   'audition-entry',
+  'work-project',
+  'work-realm',
 ]);
 export type ReportableItemType = z.infer<typeof ReportableItemTypeSchema>;
 
@@ -78,6 +80,8 @@ export const TargetLocatorV1Schema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('username'), profileUid: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('craftSkill'), profileUid: z.string().min(1), craftSkillId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('commissionListing'), commissionListingId: z.string().min(1) }).strict(),
+  z.object({ kind: z.literal('workProject'), workProjectId: z.string().min(1) }).strict(),
+  z.object({ kind: z.literal('workRealm'), workRealmId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('audition'), auditionId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('auditionEntry'), auditionId: z.string().min(1), auditionEntryId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('guildInviteMessage'), channelId: z.string().min(1), messageId: z.string().min(1) }).strict(),
@@ -96,6 +100,8 @@ export const TargetLocatorKindSchema = z.enum([
   'username',
   'craftSkill',
   'commissionListing',
+  'workProject',
+  'workRealm',
   'audition',
   'auditionEntry',
   'guildInviteMessage',
