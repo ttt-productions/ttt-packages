@@ -47,3 +47,12 @@ export const ReservedUsernamesSchema = z.object({
   updatedAt: z.number(),
 });
 export type ReservedUsernames = z.infer<typeof ReservedUsernamesSchema>;
+
+// _systemData/blockedFranchiseNames — curated famous-franchise / IP names (UPPERCASE), consulted
+// when creating/publishing a Work or Realm title and by the admin trademark-assist button. Distinct
+// from reservedUsernames (registration). Seeded by an admin seed callable. (legal-convo [BUILD].)
+export const BlockedFranchiseNamesSchema = z.object({
+  names: z.array(z.string()),
+  updatedAt: z.number(),
+});
+export type BlockedFranchiseNames = z.infer<typeof BlockedFranchiseNamesSchema>;

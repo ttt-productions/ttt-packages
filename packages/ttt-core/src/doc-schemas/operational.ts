@@ -11,6 +11,15 @@ export const ReservedDisplayNameSchema = z.object({
 });
 export type ReservedDisplayName = z.infer<typeof ReservedDisplayNameSchema>;
 
+// reservedRealmNames/{workingTitleUppercase} — platform-wide Realm-name uniqueness claim, written
+// in the createWorkRealm transaction (existence == name taken). Mirrors reservedDisplayNames; key is
+// the UPPERCASE realm working title. (legal-convo [BUILD]: realm names unique platform-wide.)
+export const ReservedRealmNameSchema = z.object({
+  workRealmId: z.string(),
+  workingTitle: z.string(),
+});
+export type ReservedRealmName = z.infer<typeof ReservedRealmNameSchema>;
+
 // stakeShareAuditEvents/{eventId} — Firestore-trigger audit of guildmate stake-share changes.
 // (functions/src/audit/runWorkProjectGuildmateUserStakeShareAudit.ts)
 export const StakeShareAuditEventSchema = z.object({

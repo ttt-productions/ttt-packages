@@ -21,6 +21,9 @@ export type SeedProfanityListInput = z.infer<typeof SeedProfanityListInputSchema
 export const SeedReservedUsernamesInputSchema = z.object({}).strict();
 export type SeedReservedUsernamesInput = z.infer<typeof SeedReservedUsernamesInputSchema>;
 
+export const SeedBlockedFranchiseNamesInputSchema = z.object({}).strict();
+export type SeedBlockedFranchiseNamesInput = z.infer<typeof SeedBlockedFranchiseNamesInputSchema>;
+
 export const SeedRulesAndAgreementsInputSchema = z.object({}).strict();
 export type SeedRulesAndAgreementsInput = z.infer<typeof SeedRulesAndAgreementsInputSchema>;
 

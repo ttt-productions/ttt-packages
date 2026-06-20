@@ -156,6 +156,9 @@ export const PATH_BUILDERS = {
   reservedDisplayName: (displayNameUppercase: string): [string, string] =>
     [COLLECTIONS.RESERVED_DISPLAY_NAMES, displayNameUppercase],
 
+  reservedRealmName: (workingTitleUppercase: string): [string, string] =>
+    [COLLECTIONS.RESERVED_REALM_NAMES, workingTitleUppercase],
+
   shortLink: (shortId: string): [string, string] =>
     [COLLECTIONS.SHORT_LINKS, shortId],
 
@@ -256,6 +259,9 @@ export const PATH_BUILDERS = {
 
   reservedUsernames: (): [string, string] =>
     [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.RESERVED_USERNAMES],
+
+  blockedFranchiseNames: (): [string, string] =>
+    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.BLOCKED_FRANCHISE_NAMES],
 
   rulesAndAgreements: (): [string, string] =>
     [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.RULES_AND_AGREEMENTS],

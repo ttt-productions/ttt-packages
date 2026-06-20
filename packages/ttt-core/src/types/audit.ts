@@ -38,8 +38,12 @@ export type AuditEventType =
   | 'admin.rulesAndAgreementsUpdated'
   // admin launch-seed actions (Ready for Launch tab)
   | 'admin.reservedUsernamesSeeded'
+  | 'admin.blockedFranchiseNamesSeeded'
   | 'admin.rulesAndAgreementsSeeded'
   | 'admin.futurePlansSeeded'
+  // trademark-assist (advisory check at approval) + parody/real-people disclaimer baked at approval
+  | 'admin.trademarkChecked'
+  | 'content.parodyDisclaimerApplied'
   // workProject
   | 'workProject.created'
   | 'workProject.guildmateUserGuildStandingChanged'
@@ -178,6 +182,7 @@ export type AuditEventType =
   | 'user.ageUpgradedToAdult'
   | 'user.ageManuallyCorrected'
   | 'user.orphanAuthDeleted'
+  | 'user.accountClosedUnder13'
   | 'user.safetyLocked'
   // trust & safety — NCII / TAKE IT DOWN
   | 'ncii.requestReceived'

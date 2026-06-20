@@ -238,6 +238,10 @@ erDiagram
     field caseId
     field addedAt
   }
+  blockedFranchiseNames {
+    field names
+    field updatedAt
+  }
   blockedHashes {
     field hashId
     field algorithm
@@ -1052,6 +1056,10 @@ erDiagram
     field userId
     field displayName
   }
+  reservedRealmNames {
+    field workRealmId
+    field workingTitle
+  }
   reservedUsernames {
     field names
     field updatedAt
@@ -1482,3 +1490,4 @@ erDiagram
   userProfiles ||--o{ workRealms : "workStewardUid"
   workRealms ||--o{ allWorkProjects : "workRealmId"
   workRealms ||--o{ publicWorkProjects : "workRealmId"
+  workRealms ||--o{ reservedRealmNames : "workRealmId"

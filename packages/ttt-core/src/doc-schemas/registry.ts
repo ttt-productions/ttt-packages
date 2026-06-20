@@ -64,7 +64,7 @@ import {
   AdminDispatchSchema,
   ChatMessageV1Schema,
 } from './messaging.js';
-import { AppConfigSchema, AdminListSchema, ProfanityListSchema, ReservedUsernamesSchema } from './system.js';
+import { AppConfigSchema, AdminListSchema, ProfanityListSchema, ReservedUsernamesSchema, BlockedFranchiseNamesSchema } from './system.js';
 import {
   ContentViolationSchema,
   ModerationCascadeManifestSchema,
@@ -100,6 +100,7 @@ import { MediaAssetSchema } from './media-assets.js';
 import { MediaActivationJobSchema } from './media-activation-jobs.js';
 import {
   ReservedDisplayNameSchema,
+  ReservedRealmNameSchema,
   StakeShareAuditEventSchema,
   ShortLinkSchema,
   FeedbackAliasSchema,
@@ -294,6 +295,7 @@ export const COLLECTION_SCHEMAS = {
 
   // ===== Operational / utility =====
   'reservedDisplayNames/{displayNameUppercase}': ReservedDisplayNameSchema,
+  'reservedRealmNames/{workingTitleUppercase}': ReservedRealmNameSchema,
   'accountDeletionRequests/{uid}': AccountDeletionRequestV1Schema,
   'shortLinks/{shortId}': ShortLinkSchema,
   'feedbackAliases/{aliasId}': FeedbackAliasSchema,
@@ -382,6 +384,7 @@ export const COLLECTION_SCHEMAS = {
   '_systemData/adminList': AdminListSchema,
   '_systemData/profanityList': ProfanityListSchema,
   '_systemData/reservedUsernames': ReservedUsernamesSchema,
+  '_systemData/blockedFranchiseNames': BlockedFranchiseNamesSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;
 
 export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;

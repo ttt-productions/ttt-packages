@@ -104,6 +104,11 @@ export const ThresholdItemSchema = z.object({
   adminNotes: z.string().optional(),
   reviewedAt: z.number().optional(),
   reviewedBy: z.string().optional(),
+  // Parody / real-people legal flag (legal-convo [BUILD]). When a Work depicts real people, an admin
+  // flags it at review and sets the required satire/fiction disclaimer applied at approval — the one
+  // sanctioned exception to the no-credits/no-intros rule. Backend/admin-written.
+  hasRealPeople: z.boolean().optional(),
+  requiredDisclaimer: z.string().optional(),
 });
 export type ThresholdItem = z.infer<typeof ThresholdItemSchema>;
 
@@ -123,6 +128,10 @@ export const PublishedHallItemSchema = z.object({
   workGenres: z.array(z.string()).optional(),
   followerCount: z.number().optional(),
   hidden: z.boolean(),
+  // Parody / real-people legal disclaimer (carried from the approved ThresholdItem) — shown
+  // prominently on the published Work. Backend-written at approval.
+  hasRealPeople: z.boolean().optional(),
+  requiredDisclaimer: z.string().optional(),
 });
 export type PublishedHallItem = z.infer<typeof PublishedHallItemSchema>;
 

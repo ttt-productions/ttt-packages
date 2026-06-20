@@ -23,6 +23,7 @@ export const COLLECTIONS = {
 
   // System & Utility
   RESERVED_DISPLAY_NAMES: 'reservedDisplayNames',
+  RESERVED_REALM_NAMES: 'reservedRealmNames',
   ACCOUNT_DELETION_REQUESTS: 'accountDeletionRequests',
   CONTENT_REPORTS: 'contentReports',
   PENDING_MEDIA: 'pendingMedia',
@@ -239,6 +240,7 @@ export const SPECIAL_DOCS = {
   NOTIFICATION_SETTINGS: 'notificationSettings',
   PROFANITY_LIST: 'profanityList',
   RESERVED_USERNAMES: 'reservedUsernames',
+  BLOCKED_FRANCHISE_NAMES: 'blockedFranchiseNames',
   RULES_AND_AGREEMENTS: 'rulesAndAgreements',
   SUMMARY: 'summary',
 
