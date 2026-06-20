@@ -36,7 +36,7 @@ export const SquareStreetzPostSchema = z.object({
   relatedAssetId: z.string().optional(),
   moderationStatus: z.enum(['pending', 'approved', 'rejected', 'pending_review']).optional(),
   moderationReason: z.string().optional(),
-  moderationLayer: z.enum(['word_filter', 'perspective']).optional(),
+  moderationLayer: z.enum(['word_filter']).optional(),
   visible: z.boolean().optional(),
   // Admin moderation hide (reversible). When true the post is suppressed from all
   // feeds/lists; restored by clearing it. Distinct from `visible` (upload/finalize

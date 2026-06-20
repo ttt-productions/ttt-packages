@@ -1811,7 +1811,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `relatedAssetId` | `string` | yes |
 | `moderationStatus` | `'pending' \| 'approved' \| 'rejected' \| 'pending_review'` | yes |
 | `moderationReason` | `string` | yes |
-| `moderationLayer` | `'word_filter' \| 'perspective'` | yes |
+| `moderationLayer` | `'word_filter'` | yes |
 | `visible` | `boolean` | yes |
 | `hidden` | `boolean` |  |
 

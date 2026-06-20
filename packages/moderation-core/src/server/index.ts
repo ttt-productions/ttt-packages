@@ -12,12 +12,10 @@ export type { VideoModerationOptions } from "./video-moderation.js";
 
 export {
   moderateText,
-  perspectiveCheck,
   quickWordFilter,
   createWordListCache,
 } from "./text-moderation.js";
 export type {
   WordListProvider,
-  PerspectiveCheckOptions,
   ModerateTextOptions,
 } from "./text-moderation.js";

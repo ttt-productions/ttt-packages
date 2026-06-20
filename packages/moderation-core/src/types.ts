@@ -19,41 +19,11 @@ export interface MediaModerationResult {
   scores: MediaModerationScores;
 }
 
-export interface PerspectiveScores {
-  toxicity: number;
-  severeToxicity: number;
-  identityAttack: number;
-  insult: number;
-  profanity: number;
-  threat: number;
-}
-
 export interface TextModerationResult {
   safe: boolean;
   reason?: string;
   flaggedWords?: string[];
-  scores?: PerspectiveScores;
-  layer?: "word_filter" | "perspective";
-  /**
-   * Status of the Perspective (Layer 2) check, so the caller can apply its own
-   * availability policy. Absent when Perspective wasn't reached (empty/too-short
-   * text, or a word-filter rejection). The package always fails OPEN itself
-   * (`safe: true`) when Perspective is unavailable — the caller decides whether
-   * a missing key or an API error should instead block or alert.
-   *  - `'ran'`            — Perspective was called and returned scores.
-   *  - `'skipped_no_key'` — no API key was provided (Layer 2 did not run).
-   *  - `'error'`          — Perspective returned non-OK or threw.
-   */
-  perspectiveStatus?: "ran" | "skipped_no_key" | "error";
-}
-
-export interface PerspectiveThresholds {
-  toxicity: number;
-  severeToxicity: number;
-  identityAttack: number;
-  insult: number;
-  profanity: number;
-  threat: number;
+  layer?: "word_filter";
 }
 
 /** Generic logger used for diagnostic output. Consumers wire to their own. */

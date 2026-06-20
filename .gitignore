@@ -54,3 +54,14 @@ packages/*/src/**/*.js
 packages/*/src/**/*.d.ts
 packages/*/src/**/*.map
 ttt-packages-*.zip
+
+# --- Microsoft PhotoDNA SDK / CSAM hashing material — CONFIDENTIAL, NEVER COMMIT ---
+# Licensed-to-us Microsoft material (EdgeHashGeneration WASM / binaries / zips) must never
+# enter a repo. The photodna-coverage.ts code IS committed (no SDK/hashes/keys); only the SDK
+# ARTIFACTS are ignored. Keys live ONLY in Secret Manager.
+Microsoft_PhotoDNA_SDK*/
+**/Microsoft_PhotoDNA_SDK*/
+*EdgeHashGeneration*
+*EdgeHash*.wasm
+photodna-sdk/
+**/photodna-sdk/

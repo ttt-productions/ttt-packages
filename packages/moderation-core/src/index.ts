@@ -2,9 +2,7 @@ export type {
   Likelihood,
   MediaModerationScores,
   MediaModerationResult,
-  PerspectiveScores,
   TextModerationResult,
-  PerspectiveThresholds,
   ModerationLogger,
 } from "./types.js";
 

@@ -1,9 +1,4 @@
-import type {
-  ModerationLogger,
-  PerspectiveScores,
-  PerspectiveThresholds,
-  TextModerationResult,
-} from "../types.js";
+import type { ModerationLogger, TextModerationResult } from "../types.js";
 
 export interface WordListProvider {
   /** Returns the active profanity word list. May read from cache, Firestore, etc. */
@@ -71,108 +66,22 @@ export async function quickWordFilter(
   return { pass: flagged.length === 0, flaggedWords: flagged };
 }
 
-export interface PerspectiveCheckOptions {
-  apiKey: string;
-  thresholds: PerspectiveThresholds;
-  logger?: ModerationLogger;
-  /** Fetch implementation override (test-friendly). Defaults to globalThis.fetch. */
-  fetchImpl?: typeof fetch;
-}
-
-export async function perspectiveCheck(
-  text: string,
-  options: PerspectiveCheckOptions,
-): Promise<TextModerationResult> {
-  const { apiKey, thresholds, logger } = options;
-  const f = options.fetchImpl ?? fetch;
-
-  if (!apiKey) {
-    logger?.warn?.("[moderation-core] Perspective API key not provided; skipping Layer 2");
-    return { safe: true, perspectiveStatus: "skipped_no_key" };
-  }
-
-  try {
-    const response = await f(
-      `https://commentanalyzer.googleapis.com/v1alpha1/comments:analyze?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          comment: { text },
-          languages: ["en"],
-          requestedAttributes: {
-            TOXICITY: {},
-            SEVERE_TOXICITY: {},
-            IDENTITY_ATTACK: {},
-            INSULT: {},
-            PROFANITY: {},
-            THREAT: {},
-          },
-        }),
-      },
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      logger?.error?.(`Perspective API error: ${response.status} - ${errorText}`);
-      return { safe: true, perspectiveStatus: "error" };
-    }
-
-    const data = (await response.json()) as {
-      attributeScores?: Record<string, { summaryScore?: { value?: number } }>;
-    };
-    const get = (k: string) => data.attributeScores?.[k]?.summaryScore?.value ?? 0;
-
-    const scores: PerspectiveScores = {
-      toxicity: get("TOXICITY"),
-      severeToxicity: get("SEVERE_TOXICITY"),
-      identityAttack: get("IDENTITY_ATTACK"),
-      insult: get("INSULT"),
-      profanity: get("PROFANITY"),
-      threat: get("THREAT"),
-    };
-
-    if (scores.severeToxicity > thresholds.severeToxicity) {
-      return { safe: false, reason: "Content contains severe toxicity", scores, layer: "perspective", perspectiveStatus: "ran" };
-    }
-    if (scores.identityAttack > thresholds.identityAttack) {
-      return { safe: false, reason: "Content contains hate speech or identity-based attacks", scores, layer: "perspective", perspectiveStatus: "ran" };
-    }
-    if (scores.threat > thresholds.threat) {
-      return { safe: false, reason: "Content contains threats", scores, layer: "perspective", perspectiveStatus: "ran" };
-    }
-    if (scores.toxicity > thresholds.toxicity) {
-      return { safe: false, reason: "Content is too toxic", scores, layer: "perspective", perspectiveStatus: "ran" };
-    }
-    return { safe: true, scores, perspectiveStatus: "ran" };
-  } catch (error) {
-    logger?.error?.("[moderation-core] Perspective API request failed:", error);
-    return { safe: true, perspectiveStatus: "error" };
-  }
-}
-
 export interface ModerateTextOptions {
   wordList: WordListProvider;
-  perspective: {
-    getApiKey: () => string | undefined;
-    thresholds: PerspectiveThresholds;
-    fetchImpl?: typeof fetch;
-  };
   /** Minimum text length before any moderation runs. Default 0 (always run). */
   minLength?: number;
   logger?: ModerationLogger;
 }
 
 /**
- * Two-layer text moderation: word filter (cheap, local) → Perspective API.
- * Returns a generic result — the caller decides how to respond
- * (throw HttpsError, log violation, etc.).
+ * Word-list text moderation (cheap, local). Returns a generic result — the
+ * caller decides how to respond (throw HttpsError, log violation, etc.).
  */
 export async function moderateText(
   text: string,
   options: ModerateTextOptions,
 ): Promise<TextModerationResult> {
-  const { wordList, perspective, minLength = 0, logger } = options;
+  const { wordList, minLength = 0, logger } = options;
   if (!text || text.trim().length === 0) return { safe: true };
   if (text.trim().length < minLength) return { safe: true };
 
@@ -188,14 +97,5 @@ export async function moderateText(
     };
   }
 
-  const apiKey = perspective.getApiKey();
-  const perspectiveResult = await perspectiveCheck(text, {
-    apiKey: apiKey ?? "",
-    thresholds: perspective.thresholds,
-    logger,
-    fetchImpl: perspective.fetchImpl,
-  });
-  if (!perspectiveResult.safe) return perspectiveResult;
-
-  return { safe: true, scores: perspectiveResult.scores, perspectiveStatus: perspectiveResult.perspectiveStatus };
+  return { safe: true };
 }
