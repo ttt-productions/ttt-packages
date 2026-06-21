@@ -236,6 +236,8 @@ export const NESTED_SUBCOLLECTIONS = {
 export const SPECIAL_DOCS = {
   ADMIN_LIST: 'adminList',
   APP_CONFIG: 'app',
+  // Charter→full app-mode marker doc (_systemData/appMode) that recordAppModeFlip writes.
+  APP_MODE: 'appMode',
   FUTURE_PLANS: 'futurePlans',
   NOTIFICATION_SETTINGS: 'notificationSettings',
   PROFANITY_LIST: 'profanityList',

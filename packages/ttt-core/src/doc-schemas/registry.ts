@@ -64,7 +64,7 @@ import {
   AdminDispatchSchema,
   ChatMessageV1Schema,
 } from './messaging.js';
-import { AppConfigSchema, AdminListSchema, ProfanityListSchema, ReservedUsernamesSchema, BlockedFranchiseNamesSchema } from './system.js';
+import { AppConfigSchema, AdminListSchema, ProfanityListSchema, ReservedUsernamesSchema, BlockedFranchiseNamesSchema, AppModeMarkerSchema } from './system.js';
 import {
   ContentViolationSchema,
   ModerationCascadeManifestSchema,
@@ -385,6 +385,7 @@ export const COLLECTION_SCHEMAS = {
   '_systemData/profanityList': ProfanityListSchema,
   '_systemData/reservedUsernames': ReservedUsernamesSchema,
   '_systemData/blockedFranchiseNames': BlockedFranchiseNamesSchema,
+  '_systemData/appMode': AppModeMarkerSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;
 
 export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;

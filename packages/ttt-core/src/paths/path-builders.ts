@@ -269,6 +269,9 @@ export const PATH_BUILDERS = {
   appConfig: (): [string, string] =>
     [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.APP_CONFIG],
 
+  appModeMarker: (): [string, string] =>
+    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.APP_MODE],
+
   // ===== TRUST & SAFETY — child-safety case spine (§A1b, §A2) =====
   childSafetyCaseListEntry: (caseId: string): [string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASE_LIST, caseId],

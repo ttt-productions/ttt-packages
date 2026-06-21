@@ -56,3 +56,11 @@ export const BlockedFranchiseNamesSchema = z.object({
   updatedAt: z.number(),
 });
 export type BlockedFranchiseNames = z.infer<typeof BlockedFranchiseNamesSchema>;
+
+// _systemData/appMode — the charter→full mode marker that recordAppModeFlip writes.
+// `current` mirrors the deployed `APP_MODE` constant after a flip is recorded.
+export const AppModeMarkerSchema = z.object({
+  current: z.enum(['charter', 'full']),
+  updatedAt: z.number(),
+});
+export type AppModeMarker = z.infer<typeof AppModeMarkerSchema>;
