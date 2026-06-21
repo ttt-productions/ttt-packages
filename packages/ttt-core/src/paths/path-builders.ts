@@ -435,10 +435,6 @@ export const PATH_BUILDERS = {
   nciiRemovalTarget: (jobId: string, targetKeyHash: string): [string, string, string, string] =>
     [COLLECTIONS.NCII_REMOVAL_JOBS, jobId, NESTED_SUBCOLLECTIONS.NCII_REMOVAL_TARGETS, targetKeyHash],
 
-  // Composite doc id requestId__evidenceId — a single {scanId} segment.
-  nciiEvidenceSafetyScan: (scanId: string): [string, string] =>
-    [COLLECTIONS.NCII_EVIDENCE_SAFETY_SCANS, scanId],
-
   nciiAppeal: (appealId: string): [string, string] =>
     [COLLECTIONS.NCII_APPEALS, appealId],
 

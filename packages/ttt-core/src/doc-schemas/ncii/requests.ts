@@ -246,8 +246,10 @@ export type TakeItDownPublicStatusV1 = z.infer<typeof TakeItDownPublicStatusV1Sc
 // §A11 (2) [F10] — takeItDownRequests/{requestId}/evidence/{evidenceId} = the
 // public-evidence-upload record (account-less + in-app evidence lands in an
 // ISOLATED admin-only Firebase Storage bucket, never R2, never served, no durable
-// URL). Safety-scan state is tracked separately by NciiEvidenceSafetyScanV1 [H5]
-// (owned by the removal cluster).
+// URL). Evidence rides the STANDARD upload pipeline (`ncii-evidence` fileOrigin →
+// startUpload → pre-publication PhotoDNA scan, byte-exact, no transcode). This
+// record exists ONLY after a CLEAN scan; a validated match opens a child-safety
+// case and the bytes are held there instead (no evidence record, never shown).
 // ===========================================================================
 
 /** `takeItDownRequests/{requestId}/evidence/{evidenceId}` — the [F10] public

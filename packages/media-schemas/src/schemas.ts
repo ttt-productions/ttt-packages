@@ -234,6 +234,13 @@ export const MediaOriginSpecSchema = MediaProcessingSpecSchema
   })
   .extend({
     processing: MediaProcessingByKindSchema.optional(),
+    // EXPLICIT preserve-original marker. When true, the upload is stored
+    // byte-exact and NEVER transcoded/resized (no `processing` branches) — the
+    // safety scan still runs, only variant generation is skipped. Used for legal
+    // evidence (e.g. ncii-evidence). Distinguishes an intentional no-transcode
+    // origin from a forgotten `processing` block (the per-origin test requires
+    // EITHER full processing OR this flag).
+    preserveOriginal: z.boolean().optional(),
   });
 
 export const MediaProcessingErrorSchema = z

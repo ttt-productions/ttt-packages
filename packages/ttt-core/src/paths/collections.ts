@@ -109,7 +109,6 @@ export const COLLECTIONS = {
   NCII_CASES: 'nciiCases',
   NCII_TEMPORARY_HOLDS: 'nciiTemporaryHolds',
   NCII_REMOVAL_JOBS: 'nciiRemovalJobs',
-  NCII_EVIDENCE_SAFETY_SCANS: 'nciiEvidenceSafetyScans',
   NCII_APPEALS: 'nciiAppeals',
 } as const;
 

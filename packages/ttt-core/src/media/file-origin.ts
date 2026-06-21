@@ -19,6 +19,9 @@ export const FileOriginSchema = z.enum([
   'television-episode-video',
   'guild-chat-message-attachment',
   'work-asset',
+  // NCII / TAKE IT DOWN evidence upload (App-Check, no login). Preserved byte-exact,
+  // never transcoded, never served — lands in the admin-only nciiEvidence bucket.
+  'ncii-evidence',
 ]);
 
 export type FileOrigin = z.infer<typeof FileOriginSchema>;

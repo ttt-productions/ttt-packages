@@ -45,6 +45,7 @@ const ACCEPT_IMAGE_ONLY = { kinds: ['image' as const] };
 const ACCEPT_VIDEO_ONLY = { kinds: ['video' as const] };
 const ACCEPT_AUDIO_ONLY = { kinds: ['audio' as const] };
 const ACCEPT_MEDIA_ALL = { kinds: ['image' as const, 'video' as const, 'audio' as const] };
+const ACCEPT_IMAGE_VIDEO = { kinds: ['image' as const, 'video' as const] };
 
 export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
 
@@ -649,6 +650,26 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
           maxDurationSec: SHORT_VIDEO_DURATION_SEC,
         },
       },
+    },
+  },
+
+  // NCII / TAKE IT DOWN evidence: a take-it-down requester (App Check, no login)
+  // uploads the actual image/video as evidence. Preserved BYTE-EXACT — NO
+  // `processing` block, so the pipeline never transcodes/resizes it (legal
+  // integrity + the hash). Never served — the evidence processor scans it, lands
+  // the original in the admin-only nciiEvidence bucket, and stops.
+  'ncii-evidence': {
+    kind: 'generic',
+    accept: ACCEPT_IMAGE_VIDEO,
+    maxBytes: VIDEO_RAW_BYTES,
+    // Byte-exact: scanned, but NEVER transcoded/resized (legal evidence integrity).
+    // The explicit flag marks this no-`processing` origin as intentional, not forgotten.
+    preserveOriginal: true,
+    client: {
+      allowPick: true,
+      allowCapturePhoto: false,
+      allowRecordVideo: false,
+      allowRecordAudio: false,
     },
   },
 

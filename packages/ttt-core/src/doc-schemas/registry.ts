@@ -179,7 +179,6 @@ import {
   NciiRemovalJobV1Schema,
   NciiRemovalTargetV1Schema,
 } from './ncii/removal.js';
-import { NciiEvidenceSafetyScanV1Schema } from './ncii/scan.js';
 import {
   NciiAppealV1Schema,
   NciiAppealSubmissionV1Schema,
@@ -366,7 +365,6 @@ export const COLLECTION_SCHEMAS = {
   'nciiTemporaryHolds/{holdId}': NciiTemporaryHoldV1Schema,
   'nciiRemovalJobs/{jobId}': NciiRemovalJobV1Schema,
   'nciiRemovalJobs/{jobId}/targets/{targetKeyHash}': NciiRemovalTargetV1Schema,
-  'nciiEvidenceSafetyScans/{scanId}': NciiEvidenceSafetyScanV1Schema,
   'nciiAppeals/{appealId}': NciiAppealV1Schema,
   'nciiAppeals/{appealId}/submissions/{submissionId}': NciiAppealSubmissionV1Schema,
   'nciiAppeals/{appealId}/decisions/{decisionId}': NciiAppealDecisionV1Schema,

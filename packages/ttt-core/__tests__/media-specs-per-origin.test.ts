@@ -26,7 +26,13 @@ describe('TTT_MEDIA_SPECS per-origin correctness', () => {
         expect(spec.accept?.kinds?.length ?? 0).toBeGreaterThan(0);
       });
 
-      it('has a processing branch for every accepted kind', () => {
+      it('has a processing branch for every accepted kind (unless preserveOriginal)', () => {
+        // A `preserveOriginal: true` origin is stored byte-exact and never
+        // transcoded (e.g. `ncii-evidence` — legal evidence). It INTENTIONALLY has
+        // no per-kind processing. An origin with NEITHER processing NOR
+        // preserveOriginal is a bug (forgotten processing) — the assertion below
+        // still fires for it, so this exemption can't hide a real oversight.
+        if (spec.preserveOriginal === true) return;
         for (const kind of spec.accept?.kinds ?? []) {
           // 'file' is the generic (stored-as-is) kind — it has no image/video/audio
           // processing branch by design, so it's not part of this invariant.

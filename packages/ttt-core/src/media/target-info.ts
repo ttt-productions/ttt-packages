@@ -206,6 +206,15 @@ export type TelevisionEpisodeVideoTargetInfo = z.infer<typeof TelevisionEpisodeV
 export type ChatAttachmentTargetInfo = z.infer<typeof ChatAttachmentTargetInfoSchema>;
 export type WorkAssetTargetInfo = z.infer<typeof WorkAssetTargetInfoSchema>;
 
+// ncii-evidence: ties the uploaded evidence to a take-it-down request by its
+// public reference. The processor attaches the evidence record to that request.
+export const NciiEvidenceTargetInfoSchema = z
+  .object({
+    requestReference: z.string().min(1),
+  })
+  .strict();
+export type NciiEvidenceTargetInfo = z.infer<typeof NciiEvidenceTargetInfoSchema>;
+
 // Mapped type: given a FileOrigin literal, returns its targetInfo shape.
 export type TargetInfoFor<O extends FileOrigin> =
   O extends 'profile-picture' ? ProfilePictureTargetInfo
@@ -226,6 +235,7 @@ export type TargetInfoFor<O extends FileOrigin> =
   : O extends 'television-episode-video' ? TelevisionEpisodeVideoTargetInfo
   : O extends 'guild-chat-message-attachment' ? ChatAttachmentTargetInfo
   : O extends 'work-asset' ? WorkAssetTargetInfo
+  : O extends 'ncii-evidence' ? NciiEvidenceTargetInfo
   : never;
 
 function assertNever(x: never): never {
@@ -255,6 +265,7 @@ export function parseTargetInfo<O extends FileOrigin>(
     case 'television-episode-video': return TelevisionEpisodeVideoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'guild-chat-message-attachment': return ChatAttachmentTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'work-asset': return WorkAssetTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'ncii-evidence': return NciiEvidenceTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     default: return assertNever(fileOrigin);
   }
 }

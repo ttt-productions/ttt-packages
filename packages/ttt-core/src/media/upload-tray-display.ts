@@ -27,6 +27,7 @@ export const fileOriginRowLabel: Record<FileOrigin, string> = {
   'television-episode-video': 'Episode video',
   'work-asset': 'Work asset',
   'guild-chat-message-attachment': 'Guild chat attachment',
+  'ncii-evidence': 'Take-it-down evidence',
 };
 
 // =============================================================================
