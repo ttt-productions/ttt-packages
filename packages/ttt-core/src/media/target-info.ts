@@ -182,6 +182,9 @@ export const ChatAttachmentTargetInfoSchema = z.discriminatedUnion('threadKind',
 export const WorkAssetTargetInfoSchema = z
   .object({
     workProjectId: z.string().min(1),
+    // The folder the file is uploaded INTO (S7 folder system). Custom folders gate
+    // upload by trade profession; the default folder accepts any active guildmate.
+    folderId: z.string().min(1),
   })
   .strict();
 
