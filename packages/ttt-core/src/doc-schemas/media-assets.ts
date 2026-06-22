@@ -144,11 +144,17 @@ export type MediaAssetPublicationState = z.infer<typeof MediaAssetPublicationSta
  * `workProjectId`): a restricted channel's attachment is not reachable by a plain
  * Work grant, and a chat grant is not reachable by a Work asset.
  *
- * - `workProject` — work files / pre-publish content media (scoped to project read
- *   membership). Carries the matchable `workProjectId`. This is the typed home for
- *   work scope on the strongly-consistent serving record so the DO-fallback path
- *   can authorize it (the DO persists scope only as `scopeJson`, no separate
- *   column) — the "§15 unification" the media authority build deferred.
+ * - `workProject` — pre-publish content media (hall covers / sub-item media during
+ *   authoring), scoped to project read membership. Carries the matchable
+ *   `workProjectId`. This is the typed home for work scope on the strongly-consistent
+ *   serving record so the DO-fallback path can authorize it (the DO persists scope
+ *   only as `scopeJson`, no separate column).
+ * - `workFileFolder` — a work-project FILE living in a folder. The EXACT folder scope,
+ *   NOT the whole-Work `{w}` grant: a custom folder's bytes must be unreachable by a
+ *   guildmate outside that folder's view trade-professions, so the grant callable runs
+ *   the per-folder view check and the Worker EXACT-matches `{workProjectId,
+ *   workFileFolderId}` — a plain Work `{w}` grant NEVER matches a folder file, and a
+ *   folder grant NEVER matches a `workProject`-scoped content asset.
  * - `guildChannel` / `guildInvite` — guild-chat attachments; an EXACT channel/
  *   invite scope (Contract E "Chat attachment authorization"). A guildChannel's
  *   `workProjectId` lives ONLY inside this scope, never as a bare matchable field.
@@ -159,6 +165,11 @@ export const MediaServingScopeSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('workProject'),
     workProjectId: z.string().min(1),
+  }).strict(),
+  z.object({
+    kind: z.literal('workFileFolder'),
+    workProjectId: z.string().min(1),
+    workFileFolderId: z.string().min(1),
   }).strict(),
   z.object({
     kind: z.literal('guildChannel'),

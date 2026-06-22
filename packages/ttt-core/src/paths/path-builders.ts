@@ -74,9 +74,6 @@ export const PATH_BUILDERS = {
   workProjectPublicGuildmateUser: (workProjectId: string, uid: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_GUILDMATE_USERS, uid],
 
-  workProjectAsset: (workProjectId: string, workAssetId: string): [string, string, string, string] =>
-    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_ASSETS, workAssetId],
-
   workFileFolder: (workProjectId: string, workFileFolderId: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_FILE_FOLDERS, workFileFolderId],
 

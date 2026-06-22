@@ -62,17 +62,6 @@ export const PublicGuildmateUserSchema = z.object({
 });
 export type PublicGuildmateUser = z.infer<typeof PublicGuildmateUserSchema>;
 
-export const WorkAssetSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  mediaAssetId: z.string(),
-  createdAt: z.number(),
-  size: z.number(),
-  type: z.string(),
-  createdBy: userRefSchema,
-});
-export type WorkAsset = z.infer<typeof WorkAssetSchema>;
-
 export const PendingStakeSharesSchema = z.record(
   z.string(),
   z.object({ amount: z.number(), createdAt: z.number() }),
@@ -149,6 +138,10 @@ export const WorkFileFolderSchema = z.object({
   canUploadTradeProfessions: z.array(z.string()),
   canDeleteTradeProfessions: z.array(z.string()),
   fileCount: z.number(),
+  /** Sum of this folder's files' `sizeBytes`. Maintained alongside `fileCount`
+   *  (increment on upload, decrement on delete); the project-wide storage usage +
+   *  `MAX_WORK_FILE_STORAGE_BYTES` cap are computed by summing this across folders. */
+  storageBytes: z.number(),
   createdBy: userRefSchema,
   createdAt: z.number(),
   updatedAt: z.number(),

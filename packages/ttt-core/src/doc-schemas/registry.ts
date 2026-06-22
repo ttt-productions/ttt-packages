@@ -24,7 +24,6 @@ import {
   WorkRealmSchema,
   GuildmateUserSchema,
   PublicGuildmateUserSchema,
-  WorkAssetSchema,
 } from './work-project.js';
 import {
   FullTaleSchema,
@@ -211,7 +210,6 @@ export const COLLECTION_SCHEMAS = {
   'allWorkProjects/{workProjectId}': FullWorkProjectSchema,
   'allWorkProjects/{workProjectId}/guildmateUsers/{uid}': GuildmateUserSchema,
   'allWorkProjects/{workProjectId}/publicGuildmateUsers/{uid}': PublicGuildmateUserSchema,
-  'allWorkProjects/{workProjectId}/workAssets/{workAssetId}': WorkAssetSchema,
   'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}': WorkFileFolderSchema,
   'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}/workFiles/{workFileId}': WorkFileSchema,
   'allWorkProjects/{workProjectId}/workProjectTales/{taleId}': FullTaleSchema,

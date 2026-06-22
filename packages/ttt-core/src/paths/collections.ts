@@ -136,7 +136,6 @@ export const WORK_PROJECT_SUBCOLLECTIONS = {
   WORK_PROJECT_TELEVISION: 'workProjectTelevision',
   GUILDMATE_USERS: 'guildmateUsers',
   PUBLIC_GUILDMATE_USERS: 'publicGuildmateUsers',
-  WORK_ASSETS: 'workAssets',
   WORK_FILE_FOLDERS: 'workFileFolders',
   GUILD_CHAT_CHANNELS: 'guildChatChannels',
 } as const;

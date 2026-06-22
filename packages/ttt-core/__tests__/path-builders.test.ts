@@ -153,12 +153,21 @@ describe('PATH_BUILDERS', () => {
       expect(result[3]).toBe('uid1');
     });
 
-    it('workProjectAsset returns 4-segment tuple', () => {
-      const result = PATH_BUILDERS.workProjectAsset('proj1', 'file1');
+    it('workFileFolder returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.workFileFolder('proj1', 'folder1');
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
-      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_ASSETS);
-      expect(result[3]).toBe('file1');
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_FILE_FOLDERS);
+      expect(result[3]).toBe('folder1');
+    });
+
+    it('workFile returns 6-segment tuple nested under its folder', () => {
+      const result = PATH_BUILDERS.workFile('proj1', 'folder1', 'file1');
+      expect(result).toHaveLength(6);
+      expect(result[0]).toBe(COLLECTIONS.ALL_WORK_PROJECTS);
+      expect(result[2]).toBe(WORK_PROJECT_SUBCOLLECTIONS.WORK_FILE_FOLDERS);
+      expect(result[3]).toBe('folder1');
+      expect(result[5]).toBe('file1');
     });
 
     it('guildChatChannel returns 4-segment tuple', () => {

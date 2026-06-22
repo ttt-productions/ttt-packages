@@ -6,7 +6,6 @@ export * from './create-admin-audition-variables.js';
 export * from './create-audition-entry-variables.js';
 export * from './upload-profile-picture-variables.js';
 export * from './upload-craft-skill-variables.js';
-export * from './upload-work-asset-variables.js';
 export * from './update-tale-cover-photo-variables.js';
 export * from './update-tune-cover-photo-variables.js';
 export * from './update-television-cover-photo-variables.js';
