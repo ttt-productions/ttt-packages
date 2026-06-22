@@ -77,6 +77,12 @@ export const PATH_BUILDERS = {
   workProjectAsset: (workProjectId: string, workAssetId: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_ASSETS, workAssetId],
 
+  workFileFolder: (workProjectId: string, workFileFolderId: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_FILE_FOLDERS, workFileFolderId],
+
+  workFile: (workProjectId: string, workFileFolderId: string, workFileId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_FILE_FOLDERS, workFileFolderId, NESTED_SUBCOLLECTIONS.WORK_FILES, workFileId],
+
   stakeShareAuditEvent: (eventId: string): [string, string] =>
     [COLLECTIONS.STAKE_SHARE_AUDIT_EVENTS, eventId],
 

@@ -246,10 +246,15 @@ export type TakeItDownPublicStatusV1 = z.infer<typeof TakeItDownPublicStatusV1Sc
 // §A11 (2) [F10] — takeItDownRequests/{requestId}/evidence/{evidenceId} = the
 // public-evidence-upload record (account-less + in-app evidence lands in an
 // ISOLATED admin-only Firebase Storage bucket, never R2, never served, no durable
-// URL). Evidence rides the STANDARD upload pipeline (`ncii-evidence` fileOrigin →
-// startUpload → pre-publication PhotoDNA scan, byte-exact, no transcode). This
-// record exists ONLY after a CLEAN scan; a validated match opens a child-safety
-// case and the bytes are held there instead (no evidence record, never shown).
+// URL). Evidence reuses the `ncii-evidence` fileOrigin spec and the ONE shared
+// PhotoDNA scan (image → PhotoDNA; video → frame-extraction → PhotoDNA per frame),
+// byte-exact / no transcode (`preserveOriginal`). It does NOT use the auth-gated
+// `startUpload` path — a not-logged-in victim can't call it — so the browser writes
+// the file DIRECTLY to the isolated bucket (App-Check + create-only + image/video +
+// size-cap storage rules; path keyed by the opaque `requestReference`) and a Storage
+// onFinalize trigger runs that same scan. This record exists ONLY after a CLEAN
+// scan; a validated match opens a child-safety case and the bytes are held there
+// instead (no evidence record, never shown).
 // ===========================================================================
 
 /** `takeItDownRequests/{requestId}/evidence/{evidenceId}` — the [F10] public

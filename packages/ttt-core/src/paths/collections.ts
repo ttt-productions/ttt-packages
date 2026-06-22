@@ -137,6 +137,7 @@ export const WORK_PROJECT_SUBCOLLECTIONS = {
   GUILDMATE_USERS: 'guildmateUsers',
   PUBLIC_GUILDMATE_USERS: 'publicGuildmateUsers',
   WORK_ASSETS: 'workAssets',
+  WORK_FILE_FOLDERS: 'workFileFolders',
   GUILD_CHAT_CHANNELS: 'guildChatChannels',
 } as const;
 
@@ -149,6 +150,9 @@ export const NESTED_SUBCOLLECTIONS = {
   TALE_CHAPTERS: 'taleChapters',
   TUNE_TRACKS: 'tuneTracks',
   TELEVISION_EPISODES: 'televisionEpisodes',
+
+  // Work-project file folders (S7): files nested under each folder.
+  WORK_FILES: 'workFiles',
 
   // Communication — guild channel + invite messages are REALTIME-ONLY (chat Worker
   // Durable Object, never Firestore); only admin-support conversationMessages persist here.

@@ -34,7 +34,9 @@ export interface TttLimits {
   };
   workProject: {
     maxGuildSize: number;
-    maxWorkAssets: number;
+    maxFileFolders: number;
+    maxWorkFiles: number;
+    maxWorkFileStorageBytes: number;
     maxWorkProjectAuditions: number;
     maxCommissionListings: number;
     maxChapters: number;
@@ -86,7 +88,9 @@ export const CHARTER_LIMITS: TttLimits = {
   },
   workProject: {
     maxGuildSize: 25,
-    maxWorkAssets: 5,
+    maxFileFolders: 10,
+    maxWorkFiles: 100,
+    maxWorkFileStorageBytes: 2_684_354_560, // 2.5 GiB
     maxWorkProjectAuditions: 3,
     maxCommissionListings: 3,
     maxChapters: 5,
@@ -134,7 +138,9 @@ export const FULL_LIMITS: TttLimits = {
   },
   workProject: {
     maxGuildSize: 250,
-    maxWorkAssets: 25,
+    maxFileFolders: 25,
+    maxWorkFiles: 1000,
+    maxWorkFileStorageBytes: 26_843_545_600, // 25 GiB
     maxWorkProjectAuditions: 10,
     maxCommissionListings: 10,
     maxChapters: 50,

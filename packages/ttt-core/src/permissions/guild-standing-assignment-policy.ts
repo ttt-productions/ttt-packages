@@ -11,6 +11,7 @@ export const STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS = [
   'WorkProjectManager',
   'GuildStandingManager',
   'StakeShareManager',
+  'WorkAssetAdmin',
 ] as const satisfies readonly GuildStandingId[];
 
 const ownerOnlyAssignable = new Set<GuildStandingId>(STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS);

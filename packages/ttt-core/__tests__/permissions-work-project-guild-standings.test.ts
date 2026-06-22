@@ -184,7 +184,7 @@ describe('canAssignGuildStanding', () => {
       canAssignGuildStanding({
         actorIsStewardOwner: false,
         actorGuildStandings: ['WorkProjectManager'],
-        targetGuildStanding: 'WorkAssetViewer',
+        targetGuildStanding: 'WorkAssetAdmin',
         action: 'add',
         actorUid: 'same-uid',
         targetUid: 'same-uid',
@@ -232,14 +232,14 @@ describe('UpdateGuildmateStandingInputSchema', () => {
     expect(
       UpdateGuildmateStandingInputSchema.parse({
         ...validBase,
-        guildStanding: 'WorkAssetViewer',
+        guildStanding: 'WorkAssetAdmin',
         action: 'add',
       }).action,
     ).toBe('add');
     expect(
       UpdateGuildmateStandingInputSchema.parse({
         ...validBase,
-        guildStanding: 'WorkAssetViewer',
+        guildStanding: 'WorkAssetAdmin',
         action: 'remove',
       }).action,
     ).toBe('remove');
@@ -249,7 +249,7 @@ describe('UpdateGuildmateStandingInputSchema', () => {
     expect(() =>
       UpdateGuildmateStandingInputSchema.parse({
         ...validBase,
-        guildStanding: 'WorkAssetViewer',
+        guildStanding: 'WorkAssetAdmin',
         extra: 'nope',
       }),
     ).toThrow();

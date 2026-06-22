@@ -21,8 +21,14 @@ export const MAX_WORK_PROJECT_TITLE_LENGTH = 150;
 /** Maximum length for a workProject description. */
 export const MAX_WORK_PROJECT_DESCRIPTION_LENGTH = 300;
 
-/** Maximum number of files attached to a workProject. Mode-varied. */
-export const MAX_WORK_ASSETS = ACTIVE_LIMITS.workProject.maxWorkAssets;
+/** Maximum number of file folders per workProject. Mode-varied. */
+export const MAX_FILE_FOLDERS = ACTIVE_LIMITS.workProject.maxFileFolders;
+
+/** Maximum number of files across a workProject's folders. Mode-varied. */
+export const MAX_WORK_FILES = ACTIVE_LIMITS.workProject.maxWorkFiles;
+
+/** Maximum total file-storage bytes per workProject. Mode-varied. */
+export const MAX_WORK_FILE_STORAGE_BYTES = ACTIVE_LIMITS.workProject.maxWorkFileStorageBytes;
 
 /** Allowed characters in titles: letters, numbers, spaces. */
 export const TITLE_PATTERN = /^[a-zA-Z0-9 ]+$/;

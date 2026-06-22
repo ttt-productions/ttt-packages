@@ -1360,6 +1360,30 @@ erDiagram
     field type
     field createdBy
   }
+  workFileFolders {
+    field workFileFolderId
+    field workProjectId
+    field name
+    field isDefault
+    field canViewTradeProfessions
+    field canUploadTradeProfessions
+    field canDeleteTradeProfessions
+    field fileCount
+    field createdBy
+    field createdAt
+    field updatedAt
+  }
+  workFiles {
+    field workFileId
+    field workProjectId
+    field workFileFolderId
+    field name
+    field mediaAssetId
+    field contentType
+    field sizeBytes
+    field uploadedBy
+    field createdAt
+  }
   workProjectTales {
     field uid
     field title
@@ -1416,6 +1440,8 @@ erDiagram
   allWorkProjects ||--o{ publicWorkProjects : "workProjectId"
   allWorkProjects ||--o{ stakeShareAuditEvents : "workProjectId"
   allWorkProjects ||--o{ thresholdItems : "workProjectId"
+  allWorkProjects ||--o{ workFileFolders : "workProjectId"
+  allWorkProjects ||--o{ workFiles : "workProjectId"
   allWorkProjects ||--o{ workRealms : "foundingWorkProjectId"
   auditionBoard ||--o{ auditionEntries : "auditionEntryId"
   auditionBoard ||--o{ auditionEntries : "auditionId"

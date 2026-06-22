@@ -126,6 +126,49 @@ export const PublicWorkProjectSchema = z.object({
 });
 export type PublicWorkProject = z.infer<typeof PublicWorkProjectSchema>;
 
+// ===========================================================================
+// Work-project FILE FOLDER system (S7) — supersedes the flat workAssets model.
+// A default folder (every active guildmate views/uploads) + custom folders whose
+// audience is controlled by TRADE PROFESSIONS, while file-system ADMINISTRATION is
+// controlled by guild standings (StewardOwner / WorkProjectManager / WorkAssetAdmin).
+// See docs/design/work-project-file-folders.md. Realm promotion of a file is the
+// `realmPromotion*` seam on the file's mediaAssets doc (media-assets.ts).
+// ===========================================================================
+
+/** `allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}`. */
+export const WorkFileFolderSchema = z.object({
+  workFileFolderId: z.string(),
+  workProjectId: z.string(),
+  name: z.string(),
+  // The auto-created "All Guildmates" folder (view/upload open to every active
+  // guildmate; delete/manage needs file-admin). Exactly one per work project.
+  isDefault: z.boolean(),
+  // Custom-folder access — trade-profession ids (TRADE_PROFESSION_OPTIONS). Empty
+  // on the default folder; file admins always see/manage every folder regardless.
+  canViewTradeProfessions: z.array(z.string()),
+  canUploadTradeProfessions: z.array(z.string()),
+  canDeleteTradeProfessions: z.array(z.string()),
+  fileCount: z.number(),
+  createdBy: userRefSchema,
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+export type WorkFileFolder = z.infer<typeof WorkFileFolderSchema>;
+
+/** `allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}/workFiles/{workFileId}`. */
+export const WorkFileSchema = z.object({
+  workFileId: z.string(),
+  workProjectId: z.string(),
+  workFileFolderId: z.string(),
+  name: z.string(),
+  mediaAssetId: z.string(),
+  contentType: z.string(),
+  sizeBytes: z.number(),
+  uploadedBy: userRefSchema,
+  createdAt: z.number(),
+});
+export type WorkFile = z.infer<typeof WorkFileSchema>;
+
 // Realm source of truth and Realm search/tag surface. Server/callable-written only.
 export const WorkRealmSchema = z.object({
   workRealmId: z.string(),

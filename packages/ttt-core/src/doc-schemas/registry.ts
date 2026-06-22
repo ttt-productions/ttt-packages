@@ -19,6 +19,8 @@ import { AccountDeletionRequestV1Schema } from './account-deletion.js';
 import {
   FullWorkProjectSchema,
   PublicWorkProjectSchema,
+  WorkFileFolderSchema,
+  WorkFileSchema,
   WorkRealmSchema,
   GuildmateUserSchema,
   PublicGuildmateUserSchema,
@@ -210,6 +212,8 @@ export const COLLECTION_SCHEMAS = {
   'allWorkProjects/{workProjectId}/guildmateUsers/{uid}': GuildmateUserSchema,
   'allWorkProjects/{workProjectId}/publicGuildmateUsers/{uid}': PublicGuildmateUserSchema,
   'allWorkProjects/{workProjectId}/workAssets/{workAssetId}': WorkAssetSchema,
+  'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}': WorkFileFolderSchema,
+  'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}/workFiles/{workFileId}': WorkFileSchema,
   'allWorkProjects/{workProjectId}/workProjectTales/{taleId}': FullTaleSchema,
   'allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}': FullChapterSchema,
   'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}': FullTuneSchema,

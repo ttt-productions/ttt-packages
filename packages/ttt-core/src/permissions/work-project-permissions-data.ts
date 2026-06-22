@@ -23,13 +23,9 @@ export const GUILD_STANDINGS = {
     label: 'Invite Manager',
     description: 'Can send workProject invites, view invite state, and cancel or revoke pending invites.',
   },
-  WorkAssetViewer: {
-    label: 'Work Asset Viewer',
-    description: 'Can view workProject assets stored in the work-asset subcollection.',
-  },
-  WorkAssetManager: {
-    label: 'Work Asset Manager',
-    description: 'Can upload and delete workProject assets.',
+  WorkAssetAdmin: {
+    label: 'Work Asset Admin',
+    description: 'Delegated file-system administration: create/rename file folders, assign folder trade-profession access, view every folder and file, and delete any file. Assignable only by the Steward.',
   },
   CommissionManager: {
     label: 'Commission Manager',
@@ -62,8 +58,7 @@ export const GUILD_STANDING_VALUE_BY_ID = {
   GuildStandingManager: 'GuildStandingManager',
   StakeShareManager: 'StakeShareManager',
   InviteManager: 'InviteManager',
-  WorkAssetViewer: 'WorkAssetViewer',
-  WorkAssetManager: 'WorkAssetManager',
+  WorkAssetAdmin: 'WorkAssetAdmin',
   CommissionManager: 'CommissionManager',
   AuditionManager: 'AuditionManager',
   HallLibraryEditor: 'HallLibraryEditor',
@@ -124,20 +119,35 @@ export const WORK_PROJECT_ACTIONS = {
     description: 'Increase stakes offered on a pending invite.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'StakeShareManager'],
   },
-  'workAsset.view': {
-    label: 'View work assets',
-    description: 'Read workProject asset metadata from the work-asset subcollection.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetViewer', 'WorkAssetManager'],
+  'fileFolder.create': {
+    label: 'Create file folders',
+    description: 'Create workProject file folders and set their trade-profession access lists.',
+    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
   },
-  'workAsset.upload': {
-    label: 'Upload work assets',
-    description: 'Upload shared workProject assets.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetManager'],
+  'fileFolder.manage': {
+    label: 'Manage file folders',
+    description: 'Rename folders, edit folder trade-profession access lists, and delete folders.',
+    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
   },
-  'workAsset.delete': {
-    label: 'Delete work assets',
-    description: 'Delete shared workProject assets.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetManager'],
+  'fileFolder.viewAll': {
+    label: 'View all file folders',
+    description: 'View every folder and file regardless of folder trade-profession access (admin override).',
+    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
+  },
+  'workFile.uploadAny': {
+    label: 'Upload to any folder',
+    description: 'Upload files to any folder regardless of folder trade-profession access (admin override).',
+    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
+  },
+  'workFile.deleteAny': {
+    label: 'Delete any file',
+    description: 'Delete any file regardless of folder trade-profession access (admin override).',
+    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
+  },
+  'workFile.promoteToRealm': {
+    label: 'Promote file to realm',
+    description: 'Flag a file as a candidate for the realm shared-file library.',
+    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
   },
   'commission.open': {
     label: 'Open commissions',
