@@ -109,7 +109,6 @@ export const COLLECTIONS = {
   NCII_CASES: 'nciiCases',
   NCII_TEMPORARY_HOLDS: 'nciiTemporaryHolds',
   NCII_REMOVAL_JOBS: 'nciiRemovalJobs',
-  NCII_APPEALS: 'nciiAppeals',
 } as const;
 
 /**
@@ -197,7 +196,7 @@ export const NESTED_SUBCOLLECTIONS = {
   CHILD_SAFETY_CASE_ACCOUNT_HISTORY: 'history',
   CHILD_SAFETY_NCMEC_SUBMISSIONS: 'ncmecSubmissions',
   CHILD_SAFETY_NCMEC_SUBMISSION_FILES: 'files',
-  // Per-step NCMEC submission attempts; also reused by nciiCases uploaderNotices/{}/attempts.
+  // Per-step NCMEC submission attempts.
   SAFETY_ATTEMPTS: 'attempts',
   CHILD_SAFETY_LEGAL_PROCESS: 'legalProcess',
 
@@ -225,7 +224,6 @@ export const NESTED_SUBCOLLECTIONS = {
   NCII_CASE_REQUEST_LINKS: 'requestLinks',
   NCII_CASE_REMOVAL_ACTIONS: 'removalActions',
   NCII_CASE_BLOCKED_HASHES: 'blockedHashes',
-  NCII_CASE_UPLOADER_NOTICES: 'uploaderNotices',
 
   // Trust & Safety — NCII removal-job targets (§A11).
   NCII_REMOVAL_TARGETS: 'targets',
@@ -255,7 +253,6 @@ export const SPECIAL_DOCS = {
   AGE_POLICY: 'agePolicy',
   NCII_POLICY: 'nciiPolicy',
   PRIVILEGED_REVIEWER_SECURITY: 'privilegedReviewerSecurity',
-  OPERATOR_CONTINUITY: 'operatorContinuity',
 
   // Trust & Safety — fixed-id TAKE IT DOWN request subdocs (§A11).
   TAKE_IT_DOWN_REQUESTER: 'requester', // takeItDownRequests/{requestId}/private/requester

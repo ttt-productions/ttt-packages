@@ -19,11 +19,9 @@
 // NciiChildSafetyCrossoverSchema.
 //
 // Collection note: this cluster introduces a NEW Firestore collection plus child
-// subcollections (allegationLinks / requestLinks / removalActions / blockedHashes
-// — AND `uploaderNotices`, whose schema NciiUploaderNoticeV1 is OWNED BY THE
-// REMOVAL CLUSTER, not authored here; the orchestrator binds it). Wiring
-// collections.ts / path-builders.ts / registry.ts is deferred to the app leg; the
-// doc-id shapes are documented on each schema below.
+// subcollections (allegationLinks / requestLinks / removalActions / blockedHashes).
+// Wiring collections.ts / path-builders.ts / registry.ts is deferred to the app leg;
+// the doc-id shapes are documented on each schema below.
 
 import { z } from 'zod';
 import {
@@ -39,19 +37,6 @@ import {
 /** Case lane — adult NCII vs likeness/depiction. */
 export const NciiCaseLaneSchema = z.enum(['ncii', 'likeness']);
 export type NciiCaseLane = z.infer<typeof NciiCaseLaneSchema>;
-
-/** NON-AUTHORITATIVE projection of the durable NciiAppealV1 (the
- * `uploaderRemovalAppeal` only) — derived from the appeal's latest decision; the
- * appeal record, not this field, is the source of truth ([H-09]). Only
- * `nciiAppealReviewer` may drive 'granted'/reinstate. */
-export const NciiCaseAppealStateSchema = z.enum([
-  'none',
-  'submitted',
-  'underReview',
-  'granted',
-  'denied',
-]);
-export type NciiCaseAppealState = z.infer<typeof NciiCaseAppealStateSchema>;
 
 /** `nciiCases/{caseId}` — the operational record; minimize-retention; child-link
  * rows, never unbounded root arrays. Doc id `caseId` is a deterministic/assigned
@@ -72,8 +57,6 @@ export const NciiCaseV1Schema = z.object({
   crossover: NciiChildSafetyCrossoverSchema,
   // OPTIONAL labeled repairable PROJECTION of crossover.childSafetyCaseId — never the source of truth
   childSafetyCaseId: z.string().min(1).optional(),
-  // [H-09] NON-AUTHORITATIVE projection of the durable NciiAppealV1 (uploaderRemovalAppeal ONLY)
-  appealState: NciiCaseAppealStateSchema,
   // NON-AUTHORITATIVE projection of the minimum active request monitor ([H4]); source of truth =
   // safetySlaMonitors/{requestId}__nciiRemovalDeadline
   nciiRemovalDeadlineAt: z.number().optional(),

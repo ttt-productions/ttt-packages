@@ -79,9 +79,7 @@ export const TakeItDownRequestRootV1Schema = z.object({
   statusTokenExpiresAt: z.number().optional(), // [M3] expires from FINAL request closure (statusTokenRetentionDays)
   requestClosedAt: z.number().optional(), // when the request reached a terminal disposition
   removalCompletionAt: z.number().optional(), // [M-01] set when removal verified-completes
-  verifiedRemovalNoticeSentAt: z.number().optional(), // [M-01] set when uploader removal notice verifiably sent; ABSENT when suppressed
-  appealWindowStartsAt: z.number().optional(), // [M-01] DETERMINISTIC formula in the M3 retention section
-  finalClosedAt: z.number().optional(), // [H-08] = appealWindowStartsAt + appealWindowDays; arms for EVERY terminal disposition
+  finalClosedAt: z.number().optional(), // [H-08] = requestClosedAt (no appeal window); arms for EVERY terminal disposition. The request's retention clocks (PII / evidence / status-token) count from here.
   removalCompletionOutcome: NciiRemovalCompletionOutcomeSchema.optional(), // [H4] honest derived completion — NEVER 'completed' for a partial technical failure
   createdAt: z.number(),
   updatedAt: z.number(),

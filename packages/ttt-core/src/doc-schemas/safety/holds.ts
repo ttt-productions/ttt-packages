@@ -51,6 +51,12 @@ export const SafetyHoldRefV1Schema = z.object({
   resourceId: z.string().min(1),
   resourceKeyHash: z.string().min(1),
   canonicalResourceKey: z.string().min(1),
+  // [C-07] The uid that OWNS the held resource (the content uploader / account subject),
+  // when one is resolvable. NOT load-bearing for the destructive guard (that reads ONLY
+  // the resourceKeyHash aggregate) — this is an admin-observability index so active holds
+  // can be listed per account ("does this account have pending safety actions?"). Optional:
+  // some resources have no single owning uid, and the `account` key already encodes the uid.
+  ownerUid: z.string().min(1).optional(),
   blocksDeletion: z.boolean(),
   blocksAnonymization: z.boolean(),
   blocksReplacementCleanup: z.boolean(),
@@ -113,6 +119,13 @@ export type SafetyResourceCommandState = z.infer<typeof SafetyResourceCommandSta
 export const SafetyResourceCommandAuthorizedForV1Schema = z.object({
   requestIds: z.array(z.string().min(1)).max(64),
   caseId: z.string().min(1).optional(),
+  /** Additional case ids this command is authorized to bypass SERVING holds for — the
+   *  LINKED child-safety case(s) in an NCII↔child-safety crossover (C-08). An
+   *  `nciiRemoval` command authorized for the NCII `caseId` may bypass the linked
+   *  child-safety case's hold on the SERVING resource so the 48h removal isn't stalled;
+   *  the evidence-vault preservation hold has a DISTINCT resource key and is never
+   *  bypassable. Bounded — a crossover links at most a handful of cases. */
+  linkedCaseIds: z.array(z.string().min(1)).max(32).optional(),
   requestIdsOverflowed: z.boolean().optional(),
 }).strict();
 export type SafetyResourceCommandAuthorizedForV1 = z.infer<typeof SafetyResourceCommandAuthorizedForV1Schema>;

@@ -423,12 +423,6 @@ export const PATH_BUILDERS = {
   nciiBlockedHash: (caseId: string, hashId: string): [string, string, string, string] =>
     [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_BLOCKED_HASHES, hashId],
 
-  nciiUploaderNotice: (caseId: string, noticeId: string): [string, string, string, string] =>
-    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_UPLOADER_NOTICES, noticeId],
-
-  nciiUploaderNoticeAttempt: (caseId: string, noticeId: string, attemptId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_UPLOADER_NOTICES, noticeId, NESTED_SUBCOLLECTIONS.SAFETY_ATTEMPTS, attemptId],
-
   nciiTemporaryHold: (holdId: string): [string, string] =>
     [COLLECTIONS.NCII_TEMPORARY_HOLDS, holdId],
 
@@ -437,15 +431,6 @@ export const PATH_BUILDERS = {
 
   nciiRemovalTarget: (jobId: string, targetKeyHash: string): [string, string, string, string] =>
     [COLLECTIONS.NCII_REMOVAL_JOBS, jobId, NESTED_SUBCOLLECTIONS.NCII_REMOVAL_TARGETS, targetKeyHash],
-
-  nciiAppeal: (appealId: string): [string, string] =>
-    [COLLECTIONS.NCII_APPEALS, appealId],
-
-  nciiAppealSubmission: (appealId: string, submissionId: string): [string, string, string, string] =>
-    [COLLECTIONS.NCII_APPEALS, appealId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS, submissionId],
-
-  nciiAppealDecision: (appealId: string, decisionId: string): [string, string, string, string] =>
-    [COLLECTIONS.NCII_APPEALS, appealId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS, decisionId],
 
   // ===== TRUST & SAFETY — _config singletons (§A7, §A11) =====
   agePolicyConfig: (): [string, string] =>
@@ -456,7 +441,4 @@ export const PATH_BUILDERS = {
 
   privilegedReviewerSecurityConfig: (): [string, string] =>
     [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.PRIVILEGED_REVIEWER_SECURITY],
-
-  operatorContinuityConfig: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.OPERATOR_CONTINUITY],
 } as const;

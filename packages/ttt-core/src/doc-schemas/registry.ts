@@ -181,18 +181,8 @@ import {
   NciiRemovalTargetV1Schema,
 } from './ncii/removal.js';
 import {
-  NciiAppealV1Schema,
-  NciiAppealSubmissionV1Schema,
-  NciiAppealDecisionV1Schema,
-} from './ncii/appeals.js';
-import {
-  NciiUploaderNoticeV1Schema,
-  NciiUploaderNoticeAttemptV1Schema,
-} from './ncii/notices.js';
-import {
   NciiPolicyConfigV1Schema,
   PrivilegedReviewerSecurityProfileV1Schema,
-  OperatorContinuityConfigV1Schema,
 } from './ncii/config.js';
 
 export const COLLECTION_SCHEMAS = {
@@ -362,14 +352,9 @@ export const COLLECTION_SCHEMAS = {
   'nciiCases/{caseId}/requestLinks/{requestId}': NciiCaseRequestLinkV1Schema,
   'nciiCases/{caseId}/removalActions/{actionId}': NciiCaseRemovalActionV1Schema,
   'nciiCases/{caseId}/blockedHashes/{hashId}': NciiBlockedHashV1Schema,
-  'nciiCases/{caseId}/uploaderNotices/{noticeId}': NciiUploaderNoticeV1Schema,
-  'nciiCases/{caseId}/uploaderNotices/{noticeId}/attempts/{attemptId}': NciiUploaderNoticeAttemptV1Schema,
   'nciiTemporaryHolds/{holdId}': NciiTemporaryHoldV1Schema,
   'nciiRemovalJobs/{jobId}': NciiRemovalJobV1Schema,
   'nciiRemovalJobs/{jobId}/targets/{targetKeyHash}': NciiRemovalTargetV1Schema,
-  'nciiAppeals/{appealId}': NciiAppealV1Schema,
-  'nciiAppeals/{appealId}/submissions/{submissionId}': NciiAppealSubmissionV1Schema,
-  'nciiAppeals/{appealId}/decisions/{decisionId}': NciiAppealDecisionV1Schema,
 
   // ===== _config singletons =====
   '_config/app': AppConfigSchema,
@@ -378,7 +363,6 @@ export const COLLECTION_SCHEMAS = {
   '_config/agePolicy': AgePolicyConfigV1Schema,
   '_config/nciiPolicy': NciiPolicyConfigV1Schema,
   '_config/privilegedReviewerSecurity': PrivilegedReviewerSecurityProfileV1Schema,
-  '_config/operatorContinuity': OperatorContinuityConfigV1Schema,
 
   // ===== _systemData singletons =====
   '_systemData/adminList': AdminListSchema,

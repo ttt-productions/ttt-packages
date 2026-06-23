@@ -43,8 +43,6 @@ export * from './ncii/requests.js';
 export * from './ncii/cases.js';
 export * from './ncii/holds.js';
 export * from './ncii/removal.js';
-export * from './ncii/appeals.js';
-export * from './ncii/notices.js';
 export * from './ncii/config.js';
 
 export * from './registry.js';

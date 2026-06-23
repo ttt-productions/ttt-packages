@@ -194,17 +194,13 @@ export type AuditEventType =
   | 'ncii.removalCompleted'
   | 'ncii.removalUnableToComplete'
   | 'ncii.evidenceScanValidatedMatch'
-  | 'ncii.appealDecided'
-  | 'ncii.contentReinstated'
   | 'ncii.hashBlockReversed'
-  | 'ncii.uploaderNoticeSent'
-  | 'ncii.uploaderNoticeSuppressed'
   | 'ncii.statusTokenRevoked'
+  | 'ncii.requesterPiiScrubbed'
   | 'ncii.policyConfigUpdated'
   // trust & safety — operator security
   | 'safety.privilegedReauthPerformed'
   | 'safety.recoveryCodeUsed'
-  | 'safety.operatorUnavailableFailsafeTripped'
   | 'safety.deadlineBreachRecorded';
 
 /**

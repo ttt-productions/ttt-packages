@@ -304,7 +304,7 @@ export const TakeItDownPublicStatusSchema = z.enum([
 ]);
 export type TakeItDownPublicStatus = z.infer<typeof TakeItDownPublicStatusSchema>;
 
-/** Request action types ([L1] + [H-10] — every UploaderNoticeStatus recordable). */
+/** Request action types ([L1]). */
 export const NciiActionTypeSchema = z.enum([
   'intakeReceived',
   'completenessDecided',
@@ -313,13 +313,6 @@ export const NciiActionTypeSchema = z.enum([
   'tempHoldReleased',
   'removalStarted',
   'removalCompleted',
-  'uploaderNoticeSent',
-  'uploaderNoticeDelayed',
-  'uploaderNoticeNotApplicable',
-  'uploaderNoticeSuppressed',
-  'appealReceived',
-  'appealDecided',
-  'contentReinstated',
   'hashBlockReversed',
   'childSafetyCaseLinked',
   'legalDispositionRecorded',
@@ -373,8 +366,6 @@ export const NciiInternalStatusSchema = z.enum([
   'removalInProgress',
   'removed',
   'rejected',
-  'appealPending',
-  'reinstated',
   'closed',
 ]);
 export type NciiInternalStatus = z.infer<typeof NciiInternalStatusSchema>;
@@ -387,26 +378,6 @@ export const NciiChildSafetyLinkStatusSchema = z.enum([
   'resolvedNoChildSafetyCase',
 ]);
 export type NciiChildSafetyLinkStatus = z.infer<typeof NciiChildSafetyLinkStatusSchema>;
-
-/** Two appeal kinds — never conflated. */
-export const NciiAppealKindSchema = z.enum(['requesterValidityCorrection', 'uploaderRemovalAppeal']);
-export type NciiAppealKind = z.infer<typeof NciiAppealKindSchema>;
-
-/** Uploader-notice status + suppression reasons ([F11]). */
-export const UploaderNoticeStatusSchema = z.enum(['pending', 'sent', 'delayed', 'suppressed', 'notApplicable']);
-export type UploaderNoticeStatus = z.infer<typeof UploaderNoticeStatusSchema>;
-
-export const UploaderNoticeReasonSchema = z.enum([
-  'victimSafetyRisk',
-  'retaliationRisk',
-  'extortionRisk',
-  'lawEnforcementRequest',
-  'childSafetyInvestigation',
-  'evidencePreservationRisk',
-  'legalRestriction',
-  'otherApproved',
-]);
-export type UploaderNoticeReason = z.infer<typeof UploaderNoticeReasonSchema>;
 
 // ===========================================================================
 // A11 [F4] — child-safety crossover (possible-minor ≠ automatic CSAM).

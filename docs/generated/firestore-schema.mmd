@@ -693,20 +693,6 @@ erDiagram
     field allegationReason
     field status
   }
-  nciiAppeals {
-    field schemaVersion
-    field appealId
-    field caseId
-    field requestIds
-    field appealKind
-    field removalGeneration
-    field appellantUid
-    field idempotencyKey
-    field state
-    field deadlineAt
-    field command
-    field createdAt
-  }
   nciiCases {
     field schemaVersion
     field caseId
@@ -716,14 +702,12 @@ erDiagram
     field childSafetyLinkStatus
     field crossover
     field childSafetyCaseId
-    field appealState
     field nciiRemovalDeadlineAt
     field createdAt
     field updatedAt
   }
   nciiPolicy {
     field policyVersion
-    field appealWindowDays
     field requesterPiiRetentionDays
     field evidenceRetentionDays
     field statusTokenRetentionDays
@@ -734,6 +718,7 @@ erDiagram
     field maxEvidenceTotalBytesPerRequest
     field uploadReservationMinutes
     field abandonedUploadCleanupHours
+    field tempHoldInitialHours
   }
   nciiRemovalJobs {
     field schemaVersion
@@ -828,16 +813,6 @@ erDiagram
     field targetPath
     field metadata
     field seenAt
-  }
-  operatorContinuity {
-    field operatorHeartbeatHours
-    field failsafeDisablesNewUploads
-    field failsafeHoldsAllInFlight
-    field blockedPendingOperatorSteps
-    field recordDeadlineBreaches
-    field operatorBackupContacts
-    field approvedBy
-    field counselApproved
   }
   paymentWebhookQuarantine {
     field eventId
@@ -1107,12 +1082,12 @@ erDiagram
     field resourceId
     field resourceKeyHash
     field canonicalResourceKey
+    field ownerUid
     field blocksDeletion
     field blocksAnonymization
     field blocksReplacementCleanup
     field state
     field holdClass
-    field createdAt
   }
   safetyHoldResources {
     field schemaVersion
@@ -1299,20 +1274,6 @@ erDiagram
     field photoAssetId
     field status
     field createdOn
-  }
-  uploaderNotices {
-    field schemaVersion
-    field noticeId
-    field caseId
-    field requestIds
-    field removalGeneration
-    field recipientSnapshot
-    field channel
-    field templateId
-    field templateVersion
-    field status
-    field suppressionReason
-    field rationaleRef
   }
   userProfiles {
     field uid
