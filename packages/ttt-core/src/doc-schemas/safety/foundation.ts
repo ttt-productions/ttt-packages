@@ -143,23 +143,17 @@ export const ReportDispositionReasonCodeSchema = z.enum([
 ]);
 export type ReportDispositionReasonCode = z.infer<typeof ReportDispositionReasonCodeSchema>;
 
-/** NCMEC submission lifecycle (§A9). NO `notRequired` — that is ReportDisposition.
- * Completion is transport-neutral (API /finish OR verified manual portal). */
+/** NCMEC submission lifecycle — MANUAL-PORTAL model (§A9). NO `notRequired` (that is
+ * ReportDisposition). There is no automated ispws API: a report-needed obligation sits in
+ * `awaitingManualFiling` from enqueue until the operator files on the NCMEC portal and records the
+ * confirmation (markNcmecPortalComplete → `completed`). `queued` is the case-list `ncmecStatus`
+ * "report queued" projection; `retracted` is a terminal exit. The old API-drive states
+ * (opening/open/uploading/addingFileDetails/finishing/retryableFailure/ambiguousResult/permanentFailure)
+ * were removed with the live-API client. */
 export const NcmecSubmissionStateSchema = z.enum([
   'queued',
-  'opening',
-  'open',
-  'uploading',
-  'addingFileDetails',
-  'finishing',
-  'completed',
-  'retryableFailure',
-  'ambiguousResult',
-  // [NCMEC rip] launch = MANUAL portal filing only. A report-needed obligation sits here until the
-  // operator files on the NCMEC portal and records the confirmation (markNcmecPortalComplete). There
-  // is no automated ispws API to "fall back" from — the old `manualFallbackRequired` was misnamed.
   'awaitingManualFiling',
-  'permanentFailure',
+  'completed',
   'retracted',
 ]);
 export type NcmecSubmissionState = z.infer<typeof NcmecSubmissionStateSchema>;

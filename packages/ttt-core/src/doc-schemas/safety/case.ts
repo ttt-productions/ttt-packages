@@ -178,26 +178,6 @@ export type ChildSafetyNcmecFileInfoState = z.infer<
   typeof ChildSafetyNcmecFileInfoStateSchema
 >;
 
-/** §A9 NcmecSubmissionAttemptV1 (Finding-M8) — per-step `outcome`. */
-export const NcmecSubmissionAttemptOutcomeSchema = z.enum([
-  'ok',
-  'retryableError',
-  'ambiguous',
-  'permanentError',
-]);
-export type NcmecSubmissionAttemptOutcome = z.infer<typeof NcmecSubmissionAttemptOutcomeSchema>;
-
-/** §A9 NcmecSubmissionAttemptV1 (Finding-M8) — per-step `reconciliation`. */
-export const NcmecSubmissionAttemptReconciliationSchema = z.enum([
-  'none',
-  'pendingRequestIdLookup',
-  'reconciledCompleted',
-  'reconciledNotFiled',
-]);
-export type NcmecSubmissionAttemptReconciliation = z.infer<
-  typeof NcmecSubmissionAttemptReconciliationSchema
->;
-
 /** §A1b legalProcess[].kind. */
 export const ChildSafetyLegalProcessKindSchema = z.enum([
   'leWatch',
@@ -357,57 +337,6 @@ export const ChildSafetyNcmecSubmissionFileV1Schema = z.object({
 export type ChildSafetyNcmecSubmissionFileV1 = z.infer<
   typeof ChildSafetyNcmecSubmissionFileV1Schema
 >;
-
-// ---------------------------------------------------------------------------
-// …/ncmecSubmissions/{submissionId}/attempts/{attemptId} = NcmecSubmissionAttemptV1
-// (Finding-M8 — per-step discriminated attempt; persists every step/code/ID/
-// MD5/retry/error). Discriminated by `step`; the shared envelope is merged into
-// every member.
-// ---------------------------------------------------------------------------
-
-/** Fields shared by every step of NcmecSubmissionAttemptV1. */
-const NcmecSubmissionAttemptEnvelope = {
-  schemaVersion: z.literal(1),
-  attemptId: z.string().min(1),
-  submissionId: z.string().min(1),
-  caseId: z.string().min(1),
-  at: z.number(),
-  attemptNumber: z.number(),
-  // stable hash of the exact request payload — the ambiguity-reconciliation key
-  requestFingerprint: z.string(),
-  // hash/reference of the raw NCMEC response (never the raw body)
-  responseHash: z.string().min(1).optional(),
-  responseCode: z.number().optional(), // HTTP / ispws status
-  outcome: NcmecSubmissionAttemptOutcomeSchema,
-  reconciliation: NcmecSubmissionAttemptReconciliationSchema.optional(),
-} as const;
-
-export const NcmecSubmissionAttemptV1Schema = z.discriminatedUnion('step', [
-  z.object({
-    ...NcmecSubmissionAttemptEnvelope,
-    step: z.literal('submit'),
-    ncmecReportId: z.string().min(1).optional(), // the NCMEC report id returned by /submit
-  }).strict(),
-  z.object({
-    ...NcmecSubmissionAttemptEnvelope,
-    step: z.literal('upload'),
-    ncmecFileId: z.string().min(1).optional(),
-    md5: z.string().min(1).optional(),
-    localEvidenceItemId: z.string().min(1).optional(),
-  }).strict(),
-  z.object({
-    ...NcmecSubmissionAttemptEnvelope,
-    step: z.literal('fileinfo'),
-    ncmecFileId: z.string().min(1).optional(),
-    fileInfoAccepted: z.boolean().optional(),
-  }).strict(),
-  z.object({
-    ...NcmecSubmissionAttemptEnvelope,
-    step: z.literal('finish'),
-    reportDoneRef: z.string().min(1).optional(), // immutable proof ref of a successful /finish reportDoneResponse
-  }).strict(),
-]);
-export type NcmecSubmissionAttemptV1 = z.infer<typeof NcmecSubmissionAttemptV1Schema>;
 
 /** …/legalProcess/{eventId} — append-only legal-process event. */
 export const ChildSafetyLegalProcessEventV1Schema = z.object({

@@ -196,8 +196,6 @@ export const NESTED_SUBCOLLECTIONS = {
   CHILD_SAFETY_CASE_ACCOUNT_HISTORY: 'history',
   CHILD_SAFETY_NCMEC_SUBMISSIONS: 'ncmecSubmissions',
   CHILD_SAFETY_NCMEC_SUBMISSION_FILES: 'files',
-  // Per-step NCMEC submission attempts.
-  SAFETY_ATTEMPTS: 'attempts',
   CHILD_SAFETY_LEGAL_PROCESS: 'legalProcess',
 
   // Trust & Safety — resource-command subcollections (§A3).

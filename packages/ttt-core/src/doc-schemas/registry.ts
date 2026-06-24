@@ -124,7 +124,6 @@ import {
   ChildSafetyCaseAccountHistoryV1Schema,
   ChildSafetyNcmecSubmissionV1Schema,
   ChildSafetyNcmecSubmissionFileV1Schema,
-  NcmecSubmissionAttemptV1Schema,
   ChildSafetyLegalProcessEventV1Schema,
 } from './safety/case.js';
 import {
@@ -302,7 +301,6 @@ export const COLLECTION_SCHEMAS = {
   'childSafetyCases/{caseId}/accounts/{uid}/history/{historyId}': ChildSafetyCaseAccountHistoryV1Schema,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}': ChildSafetyNcmecSubmissionV1Schema,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/files/{fileId}': ChildSafetyNcmecSubmissionFileV1Schema,
-  'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/attempts/{attemptId}': NcmecSubmissionAttemptV1Schema,
   'childSafetyCases/{caseId}/legalProcess/{eventId}': ChildSafetyLegalProcessEventV1Schema,
   'childSafetyOwningAliases/{aliasId}': ChildSafetyOwningAliasV1Schema,
   'childSafetyCorrelations/{correlationKey}/cases/{caseId}': ChildSafetyCorrelationCaseV1Schema,
