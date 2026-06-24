@@ -1660,7 +1660,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `blocksAnonymization` | `boolean` |  |
 | `blocksReplacementCleanup` | `boolean` |  |
 | `state` | `'active' \| 'released'` |  |
-| `holdClass` | `'childSafety' \| 'nciiTemporary' \| 'legalRetention' \| 'preservationEvidence'` |  |
+| `holdClass` | `'childSafety' \| 'nciiTemporary' \| 'legalRetention' \| 'preservationEvidence' \| 'ordinaryReport'` |  |
 | `createdAt` | `number` |  |
 | `releasedAt` | `number` | yes |
 | `releaseReason` | `string` | yes |
@@ -1724,7 +1724,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `refId` | `string` |  |
-| `holdClass` | `'childSafety' \| 'nciiTemporary' \| 'legalRetention' \| 'preservationEvidence'` |  |
+| `holdClass` | `'childSafety' \| 'nciiTemporary' \| 'legalRetention' \| 'preservationEvidence' \| 'ordinaryReport'` |  |
 | `addedAt` | `number` |  |
 
 ## `safetySlaMonitors/{monitorId}`

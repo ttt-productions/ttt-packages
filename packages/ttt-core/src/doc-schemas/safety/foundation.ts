@@ -187,6 +187,12 @@ export const SafetyHoldClassSchema = z.enum([
   'nciiTemporary',
   'legalRetention',
   'preservationEvidence',
+  // An OPEN ordinary (non-protected) content report places an account-level hold
+  // (resourceType 'account', ownerUid = the reported user) so a user can't delete
+  // their data out from under an unreviewed report (e.g. a DMCA/IP complaint, then
+  // delete-to-clear-tracks). blocksDeletion + blocksAnonymization; released when the
+  // report group's admin close-out resolves it. Durable (no expiresAt).
+  'ordinaryReport',
 ]);
 export type SafetyHoldClass = z.infer<typeof SafetyHoldClassSchema>;
 
