@@ -707,7 +707,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `sourceSignalSummary` | `{ count, latestKind, latestAt }` |  |
 | `workStatus` | `'new' \| 'triaged' \| 'reporting' \| 'actioning' \| 'operationallyResolved'` |  |
 | `preservationStatus` | `'preReportHold' \| 'statutoryHold' \| 'extendedHold' \| 'dispositionPending' \| 'destroyed'` |  |
-| `ncmecStatus` | `'queued' \| 'opening' \| 'open' \| 'uploading' \| 'addingFileDetails' \| 'finishing' \| 'completed' \| 'retryableFailure' \| 'ambiguousResult' \| 'manualFallbackRequired' \| 'permanentFailure' \| 'retracted'` |  |
+| `ncmecStatus` | `'queued' \| 'opening' \| 'open' \| 'uploading' \| 'addingFileDetails' \| 'finishing' \| 'completed' \| 'retryableFailure' \| 'ambiguousResult' \| 'awaitingManualFiling' \| 'permanentFailure' \| 'retracted'` |  |
 | `accountActionStatus` | `'noAccountActionRequired' \| 'operatorDecisionPending' \| 'pending' \| 'resolved'` |  |
 | `reportDisposition` | `'undetermined' \| 'reportRequired' \| 'notRequired' \| 'correctedNoApparentViolation'` |  |
 | `reviewDueAt` | `number` |  |
@@ -793,10 +793,10 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `kind` | `'initial' \| 'supplemental' \| 'correction'` |  |
-| `state` | `'queued' \| 'opening' \| 'open' \| 'uploading' \| 'addingFileDetails' \| 'finishing' \| 'completed' \| 'retryableFailure' \| 'ambiguousResult' \| 'manualFallbackRequired' \| 'permanentFailure' \| 'retracted'` |  |
-| `completionChannel` | `'ispwsApi' \| 'manualPortal'` | yes |
+| `state` | `'queued' \| 'opening' \| 'open' \| 'uploading' \| 'addingFileDetails' \| 'finishing' \| 'completed' \| 'retryableFailure' \| 'ambiguousResult' \| 'awaitingManualFiling' \| 'permanentFailure' \| 'retracted'` |  |
+| `completionChannel` | `'manualPortal'` | yes |
 | `submissionCompletedAt` | `number` | yes |
-| `completionProofType` | `'reportDoneResponse' \| 'portalConfirmation'` | yes |
+| `completionProofType` | `'portalConfirmation'` | yes |
 | `completionProofRef` | `string` | yes |
 | `reportId` | `string` | yes |
 | `responseCode` | `number` | yes |
@@ -1270,7 +1270,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `schemaVersion` | `1` |  |
 | `caseId` | `string` |  |
 | `submissionId` | `string` |  |
-| `state` | `'queued' \| 'opening' \| 'open' \| 'uploading' \| 'addingFileDetails' \| 'finishing' \| 'completed' \| 'retryableFailure' \| 'ambiguousResult' \| 'manualFallbackRequired' \| 'permanentFailure' \| 'retracted'` |  |
+| `state` | `'queued' \| 'opening' \| 'open' \| 'uploading' \| 'addingFileDetails' \| 'finishing' \| 'completed' \| 'retryableFailure' \| 'ambiguousResult' \| 'awaitingManualFiling' \| 'permanentFailure' \| 'retracted'` |  |
 | `commandId` | `string` |  |
 | `attemptCount` | `number` |  |
 | `nextAttemptAt` | `number` |  |

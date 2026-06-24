@@ -156,15 +156,16 @@ export type ChildSafetyNcmecSubmissionKind = z.infer<
   typeof ChildSafetyNcmecSubmissionKindSchema
 >;
 
-/** §A1b ncmecSubmissions[].completionChannel — transport-neutral completion. */
-export const ChildSafetyNcmecCompletionChannelSchema = z.enum(['ispwsApi', 'manualPortal']);
+/** §A1b ncmecSubmissions[].completionChannel — launch = MANUAL portal only (the automated ispws API
+ *  is a post-launch feature, not built; the speculative live-API client was removed). */
+export const ChildSafetyNcmecCompletionChannelSchema = z.enum(['manualPortal']);
 export type ChildSafetyNcmecCompletionChannel = z.infer<
   typeof ChildSafetyNcmecCompletionChannelSchema
 >;
 
-/** §A1b ncmecSubmissions[].completionProofType. */
+/** §A1b ncmecSubmissions[].completionProofType — manual portal only at launch (no API /finish
+ *  reportDoneResponse; the proof is the operator-recorded portal confirmation). */
 export const ChildSafetyNcmecCompletionProofTypeSchema = z.enum([
-  'reportDoneResponse',
   'portalConfirmation',
 ]);
 export type ChildSafetyNcmecCompletionProofType = z.infer<

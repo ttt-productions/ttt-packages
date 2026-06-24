@@ -155,7 +155,10 @@ export const NcmecSubmissionStateSchema = z.enum([
   'completed',
   'retryableFailure',
   'ambiguousResult',
-  'manualFallbackRequired',
+  // [NCMEC rip] launch = MANUAL portal filing only. A report-needed obligation sits here until the
+  // operator files on the NCMEC portal and records the confirmation (markNcmecPortalComplete). There
+  // is no automated ispws API to "fall back" from — the old `manualFallbackRequired` was misnamed.
+  'awaitingManualFiling',
   'permanentFailure',
   'retracted',
 ]);
