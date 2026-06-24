@@ -124,12 +124,17 @@ export type NcmecSubmissionJobV1 = z.infer<typeof NcmecSubmissionJobV1Schema>;
 // (idempotent `commandId` + merge-generation check).
 // ===========================================================================
 
-/** The per-account safety action this command applies. */
+/** The per-account safety action this command applies. `reinstate` is the inverse of a
+ *  restriction: it restores `status:'active'`, clears `privateData.safetyLocked`, and
+ *  re-enables a disabled Auth account (used to lift a safety-lock / ban when a case is
+ *  closed as a false positive). The case's safety HOLDS are released separately by the
+ *  case-close path, not by this action. */
 export const AccountActionSchema = z.enum([
   'ban',
   'suspend',
   'watch',
   'safetyLocked',
+  'reinstate',
   'none',
 ]);
 export type AccountAction = z.infer<typeof AccountActionSchema>;

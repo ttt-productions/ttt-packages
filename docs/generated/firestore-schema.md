@@ -132,7 +132,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `schemaVersion` | `1` |  |
 | `caseId` | `string` |  |
 | `targetUid` | `string` |  |
-| `action` | `'ban' \| 'suspend' \| 'watch' \| 'safetyLocked' \| 'none'` |  |
+| `action` | `'ban' \| 'suspend' \| 'watch' \| 'safetyLocked' \| 'reinstate' \| 'none'` |  |
 | `source` | `'autoHash' \| 'operator'` |  |
 | `status` | `'pending' \| 'applied' \| 'reverted'` |  |
 | `commandId` | `string` |  |
