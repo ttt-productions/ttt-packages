@@ -124,7 +124,6 @@ export type PrivilegedReviewerSecondFactor = z.infer<typeof PrivilegedReviewerSe
 export const PrivilegedTwoStepReauthCapabilitySchema = z.enum([
   'evidenceReveal',
   'ncmecCredentialUse',
-  'reinstateContent',
   'reverseHashBlock',
   'legalDisposition',
   'falsePositiveCorrection',
@@ -162,7 +161,6 @@ export const DEFAULT_PRIVILEGED_REVIEWER_SECURITY_PROFILE_V1: PrivilegedReviewer
   twoStepReauthCapabilities: [
     'evidenceReveal',
     'ncmecCredentialUse',
-    'reinstateContent',
     'reverseHashBlock',
     'legalDisposition',
     'falsePositiveCorrection',

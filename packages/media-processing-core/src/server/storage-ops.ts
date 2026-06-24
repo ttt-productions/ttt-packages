@@ -13,8 +13,10 @@
 // Writes return `{ key }` — never URLs. Display URLs are built at render time
 // from asset refs (see ttt-core media-asset-url).
 
-import { createReadStream } from "node:fs";
+import { createReadStream, createWriteStream } from "node:fs";
 import { stat } from "node:fs/promises";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { AwsClient } from "aws4fetch";
 import type { getStorage } from "firebase-admin/storage";
 
@@ -27,11 +29,24 @@ export interface ObjectWriteResult {
   contentType: string;
 }
 
+export interface ObjectReadResult {
+  sizeBytes: number;
+  contentType: string;
+}
+
 export interface MediaObjectStore {
   /** Upload a local file to the store at `key`. */
   putFile(args: { localPath: string; key: string; contentType?: string }): Promise<ObjectWriteResult>;
   /** Server-side copy within the store. */
   copy(args: { fromKey: string; toKey: string }): Promise<{ key: string }>;
+  /**
+   * Download an object's bytes from the store to a local file (streamed, so a
+   * large video never sits fully in memory). Used by safety evidence capture to
+   * pull prod media — which in deployed envs lives in R2 — before writing it into
+   * the separate (GCS) evidence vault: capture is inherently read-here-then-write,
+   * NOT a server-side copy, because source and vault are different backends.
+   */
+  readToFile(args: { key: string; localPath: string }): Promise<ObjectReadResult>;
   /** Delete an object. Missing objects are a no-op, not an error. */
   delete(key: string): Promise<void>;
 }
@@ -103,6 +118,19 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
       return { key: toKey };
     },
 
+    async readToFile({ key, localPath }) {
+      const res = await signedFetch(objectUrl(key), { method: "GET" });
+      if (!res.ok || !res.body) {
+        throw new Error(`R2 readToFile failed for ${key}: ${res.status} ${await safeText(res)}`);
+      }
+      const contentType = res.headers.get("content-type") ?? "application/octet-stream";
+      // res.body is a web ReadableStream; stream it to disk so large media never
+      // sits fully in memory.
+      await pipeline(Readable.fromWeb(res.body as Parameters<typeof Readable.fromWeb>[0]), createWriteStream(localPath));
+      const { size } = await stat(localPath);
+      return { sizeBytes: size, contentType };
+    },
+
     async delete(key) {
       const res = await signedFetch(objectUrl(key), { method: "DELETE" });
       // S3 DELETE returns 204 even for missing keys; anything else non-ok is real.
@@ -155,6 +183,15 @@ export function createFirebaseEmulatorObjectStore(args: CreateEmulatorObjectStor
         metadata: { firebaseStorageDownloadTokens: downloadToken },
       });
       return { key: toKey };
+    },
+
+    async readToFile({ key, localPath }) {
+      const file = bucket.file(key);
+      await file.download({ destination: localPath });
+      const [meta] = await file.getMetadata();
+      const { size } = await stat(localPath);
+      const contentType = (meta.contentType as string | undefined) ?? "application/octet-stream";
+      return { sizeBytes: size, contentType };
     },
 
     async delete(key) {

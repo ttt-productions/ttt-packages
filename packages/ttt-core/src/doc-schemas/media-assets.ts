@@ -34,6 +34,7 @@ export const MediaAssetOwnerTypeSchema = z.enum([
   'auditionEntry',
   'guildChatAttachment',
   'realmFile', // reserved seam — realm shared files are post-launch
+  'safetyEvidence', // inert system sentinel — synthetic NCII-evidence assets (never an account surface)
 ]);
 export type MediaAssetOwnerType = z.infer<typeof MediaAssetOwnerTypeSchema>;
 

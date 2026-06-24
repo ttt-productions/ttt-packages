@@ -73,6 +73,24 @@ export const ReportTargetSnapshotV1Schema = z.object({
 export type ReportTargetSnapshotV1 = z.infer<typeof ReportTargetSnapshotV1Schema>;
 
 // ===========================================================================
+// A1 — Segregated reporter narrative (NarrativeRecordV1)
+// ===========================================================================
+
+/** The reporter's free-text narrative — segregated reporter PII. Lives in a
+ * restricted subcollection (`contentReports/{reportId}/private/narrative`),
+ * admin-read-only, client-write-forbidden; NEVER inlined on the report root or
+ * the public projection. The frozen target snapshot is stored alongside it at
+ * `contentReports/{reportId}/private/snapshot` (ReportTargetSnapshotV1). */
+export const NarrativeRecordV1Schema = z.object({
+  schemaVersion: z.literal(1),
+  reportId: z.string().min(1),
+  reporterUid: z.string().min(1), // stored so account-erasure can scrub the narrative
+  text: z.string().min(1).max(4000),
+  createdAt: z.number(),
+}).strict();
+export type NarrativeRecordV1 = z.infer<typeof NarrativeRecordV1Schema>;
+
+// ===========================================================================
 // A1 — Protected report root (ProtectedReportRootV1)
 // ===========================================================================
 

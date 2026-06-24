@@ -222,7 +222,6 @@ export const TakeItDownPublicNextActionSchema = z.enum([
   'none',
   'submitSupplement',
   'checkLater',
-  'appealAvailable',
 ]);
 export type TakeItDownPublicNextAction = z.infer<typeof TakeItDownPublicNextActionSchema>;
 

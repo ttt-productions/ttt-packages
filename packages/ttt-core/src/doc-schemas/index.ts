@@ -28,6 +28,7 @@ export * from './operational.js';
 // ===== Trust & Safety — shared foundation + cluster schemas (§A1–A11) =====
 export * from './safety/foundation.js';
 export * from './safety/report.js';
+export * from './safety/case-alert.js';
 export * from './safety/case.js';
 export * from './safety/case-aliases.js';
 export * from './safety/holds.js';

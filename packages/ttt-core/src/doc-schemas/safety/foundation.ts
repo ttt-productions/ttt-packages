@@ -53,6 +53,7 @@ export const ReportableItemTypeSchema = z.enum([
   'username',
   'craft-skill',
   'commission-listing',
+  'commission-proposal',
   'square-streetz-post',
   'profile-picture',
   'guild-invite-message',
@@ -61,6 +62,7 @@ export const ReportableItemTypeSchema = z.enum([
   'audition',
   'audition-entry',
   'work-project',
+  'work-asset',
   'work-realm',
 ]);
 export type ReportableItemType = z.infer<typeof ReportableItemTypeSchema>;
@@ -80,7 +82,9 @@ export const TargetLocatorV1Schema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('username'), profileUid: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('craftSkill'), profileUid: z.string().min(1), craftSkillId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('commissionListing'), commissionListingId: z.string().min(1) }).strict(),
+  z.object({ kind: z.literal('commissionProposal'), commissionListingId: z.string().min(1), commissionProposalId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('workProject'), workProjectId: z.string().min(1) }).strict(),
+  z.object({ kind: z.literal('workAsset'), workProjectId: z.string().min(1), workAssetId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('workRealm'), workRealmId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('audition'), auditionId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('auditionEntry'), auditionId: z.string().min(1), auditionEntryId: z.string().min(1) }).strict(),
@@ -100,7 +104,9 @@ export const TargetLocatorKindSchema = z.enum([
   'username',
   'craftSkill',
   'commissionListing',
+  'commissionProposal',
   'workProject',
+  'workAsset',
   'workRealm',
   'audition',
   'auditionEntry',
@@ -289,7 +295,9 @@ export type TakeItDownCompletenessStatus = z.infer<typeof TakeItDownCompleteness
 export const TakeItDownValidityStatusSchema = z.enum(['pending', 'valid', 'invalid', 'unableToLocate']);
 export type TakeItDownValidityStatus = z.infer<typeof TakeItDownValidityStatusSchema>;
 
-/** The public no-login status-page status set (root + statusProjection). */
+/** The public no-login status-page status set (root + statusProjection). No
+ * appeal model — no `appealedCorrected` (the appeal/reinstatement flow was
+ * removed; protected reports have no uploader appeal/notice/reinstatement). */
 export const TakeItDownPublicStatusSchema = z.enum([
   'received',
   'needsMoreInfo',
@@ -297,7 +305,6 @@ export const TakeItDownPublicStatusSchema = z.enum([
   'completed',
   'unableToLocate',
   'invalidGeneralReason',
-  'appealedCorrected',
 ]);
 export type TakeItDownPublicStatus = z.infer<typeof TakeItDownPublicStatusSchema>;
 

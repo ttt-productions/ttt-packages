@@ -81,6 +81,10 @@ export const COLLECTIONS = {
   CHILD_SAFETY_CORRELATIONS: 'childSafetyCorrelations',
   SAFETY_CASE_MERGE_JOBS: 'safetyCaseMergeJobs',
 
+  // Trust & Safety — time-sensitive admin-tray "case needs work" pins (admin-readable
+  // projection; the 5th notification-tray tab reads it, the Safety Case Console owns detail).
+  ACTIVE_SAFETY_CASE_ALERTS: 'activeSafetyCaseAlerts',
+
   // Trust & Safety — holds + resource commands (§A3)
   SAFETY_HOLD_REFS: 'safetyHoldRefs',
   SAFETY_HOLD_RESOURCES: 'safetyHoldResources',
@@ -180,6 +184,10 @@ export const NESTED_SUBCOLLECTIONS = {
   // is a deterministic child of the protected report root
   // (contentReports/{reportId}/publicProjection/{reportId}).
   REPORT_PUBLIC_PROJECTION: 'publicProjection',
+  // Restricted reporter/requester PII subcollection ('private'), shared by the report
+  // spine (contentReports/{reportId}/private/{snapshot,narrative}) and TAKE IT DOWN
+  // (takeItDownRequests/{requestId}/private/requester). Admin-read-only / server-only.
+  PRIVATE: 'private',
 
   // Chat degraded-scope causes (chatScopeDegraded/{scopeKey}/causes/{causeId}).
   CHAT_SCOPE_DEGRADED_CAUSES: 'causes',
@@ -209,8 +217,8 @@ export const NESTED_SUBCOLLECTIONS = {
   // Trust & Safety — quarantine-saga subcollection (§A5).
   QUARANTINE_SAGA_RELATED_ASSETS: 'relatedAssets',
 
-  // Trust & Safety — TAKE IT DOWN request subcollections (§A11).
-  TAKE_IT_DOWN_PRIVATE: 'private',
+  // Trust & Safety — TAKE IT DOWN request subcollections (§A11). The 'private'
+  // subcollection uses the shared generic `PRIVATE` constant above.
   TAKE_IT_DOWN_SUBMISSIONS: 'submissions',
   TAKE_IT_DOWN_VALIDITY_DECISIONS: 'validityDecisions',
   TAKE_IT_DOWN_ACTIONS: 'actions',
@@ -255,4 +263,8 @@ export const SPECIAL_DOCS = {
   // Trust & Safety — fixed-id TAKE IT DOWN request subdocs (§A11).
   TAKE_IT_DOWN_REQUESTER: 'requester', // takeItDownRequests/{requestId}/private/requester
   TAKE_IT_DOWN_STATUS_CURRENT: 'current', // takeItDownRequests/{requestId}/statusProjection/current
+
+  // Trust & Safety — fixed-id report-spine private subdocs (§A1).
+  REPORT_SNAPSHOT: 'snapshot', // contentReports/{reportId}/private/snapshot
+  REPORT_NARRATIVE: 'narrative', // contentReports/{reportId}/private/narrative
 } as const;

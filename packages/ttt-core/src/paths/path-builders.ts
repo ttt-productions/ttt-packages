@@ -134,8 +134,19 @@ export const PATH_BUILDERS = {
   contentReport: (reportId: string): [string, string] =>
     [COLLECTIONS.CONTENT_REPORTS, reportId],
 
+  // Fixed-id restricted report-PII subdocs (contentReports/{reportId}/private/{snapshot,narrative}).
+  reportPrivateSnapshot: (reportId: string): [string, string, string, string] =>
+    [COLLECTIONS.CONTENT_REPORTS, reportId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.REPORT_SNAPSHOT],
+
+  reportPrivateNarrative: (reportId: string): [string, string, string, string] =>
+    [COLLECTIONS.CONTENT_REPORTS, reportId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.REPORT_NARRATIVE],
+
   activeReportGroup: (groupKey: string): [string, string] =>
     [COLLECTIONS.ACTIVE_REPORT_GROUPS, groupKey],
+
+  // Time-sensitive admin-tray "case needs work" pin (activeSafetyCaseAlerts/{caseId}).
+  safetyCaseAlert: (caseId: string): [string, string] =>
+    [COLLECTIONS.ACTIVE_SAFETY_CASE_ALERTS, caseId],
 
   contentViolation: (violationId: string): [string, string] =>
     [COLLECTIONS.CONTENT_VIOLATIONS, violationId],
@@ -387,7 +398,7 @@ export const PATH_BUILDERS = {
 
   // Fixed-id requester PII subdoc (takeItDownRequests/{requestId}/private/requester).
   takeItDownRequesterPrivate: (requestId: string): [string, string, string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_PRIVATE, SPECIAL_DOCS.TAKE_IT_DOWN_REQUESTER],
+    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.TAKE_IT_DOWN_REQUESTER],
 
   takeItDownSubmission: (requestId: string, submissionId: string): [string, string, string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS, submissionId],

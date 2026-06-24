@@ -71,6 +71,12 @@ erDiagram
     field latestReason
     field status
   }
+  activeSafetyCaseAlerts {
+    field schemaVersion
+    field caseId
+    field caseKind
+    field createdAt
+  }
   activeUserNotifications {
     field id
     field type
@@ -681,6 +687,13 @@ erDiagram
     field completedAt
     field status
   }
+  narrative {
+    field schemaVersion
+    field reportId
+    field reporterUid
+    field text
+    field createdAt
+  }
   nciiAllegations {
     field schemaVersion
     field allegationId
@@ -1134,6 +1147,15 @@ erDiagram
     field createdAt
     field createdBy
     field clicks
+  }
+  snapshot {
+    field schemaVersion
+    field itemType
+    field canonicalItemId
+    field revision
+    field contentSummaryRef
+    field contentHashes
+    field capturedAt
   }
   socialPosts {
     field postId

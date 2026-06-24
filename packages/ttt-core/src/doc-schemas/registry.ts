@@ -112,7 +112,10 @@ import {
   ProtectedReportRootV1Schema,
   ReportPublicProjectionV1Schema,
   ReportGroupV1Schema,
+  ReportTargetSnapshotV1Schema,
+  NarrativeRecordV1Schema,
 } from './safety/report.js';
+import { SafetyCaseAlertV1Schema } from './safety/case-alert.js';
 // ===== Trust & Safety — child-safety case spine (§A1b, §A2) =====
 import {
   ChildSafetyCaseListV1Schema,
@@ -242,6 +245,8 @@ export const COLLECTION_SCHEMAS = {
   // callable; the group is maintained by an app-side trigger.
   'contentReports/{reportId}': ProtectedReportRootV1Schema,
   'contentReports/{reportId}/publicProjection/{reportId}': ReportPublicProjectionV1Schema,
+  'contentReports/{reportId}/private/snapshot': ReportTargetSnapshotV1Schema,
+  'contentReports/{reportId}/private/narrative': NarrativeRecordV1Schema,
   'activeReportGroups/{groupKey}': ReportGroupV1Schema,
   'adminTasks/{taskId}': AdminTaskDocSchema,
   'adminActivityLog/{logId}': ActivityLogEntrySchema,
@@ -293,6 +298,7 @@ export const COLLECTION_SCHEMAS = {
 
   // ===== Trust & Safety — child-safety case spine (§A1b, §A2) =====
   'childSafetyCaseList/{caseId}': ChildSafetyCaseListV1Schema,
+  'activeSafetyCaseAlerts/{caseId}': SafetyCaseAlertV1Schema,
   'childSafetyCases/{caseId}': ChildSafetyCaseV1Schema,
   'childSafetyCases/{caseId}/sourceSignals/{signalId}': ChildSafetySourceSignalV1Schema,
   'childSafetyCases/{caseId}/decisions/{decisionId}': ChildSafetyDecisionV1Schema,
