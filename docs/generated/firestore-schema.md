@@ -1159,7 +1159,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `schemaVersion` | `1` |  |
 | `allegationId` | `string` |  |
 | `caseId` | `string` | yes |
-| `reporterType` | `'authenticatedUser' \| 'anonymousPublic'` |  |
+| `reporterType` | `'authenticatedUser' \| 'anonymousPublic' \| 'operator'` |  |
 | `submittedAt` | `number` |  |
 | `targetLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, url } \| { kind, textRef }` |  |
 | `allegationReason` | `string` |  |

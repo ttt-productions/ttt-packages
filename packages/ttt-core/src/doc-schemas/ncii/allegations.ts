@@ -26,8 +26,11 @@ import { TargetLocatorV1Schema } from '../safety/foundation.js';
 // §A11 (1) — nciiAllegations/{allegationId}
 // ===========================================================================
 
-/** Who alleged: an authenticated user or an anonymous member of the public. */
-export const NciiAllegationReporterTypeSchema = z.enum(['authenticatedUser', 'anonymousPublic']);
+/** Who alleged: an authenticated user, an anonymous member of the public, or an `operator` — an
+ *  admin who found existing on-platform content and marked it as NCII-linked evidence (the
+ *  admin-only "NCII linked evidence" report option). Operator allegations are the unlinked
+ *  evidence POOL (status `received`, no `caseId`) until an operator links one to a case. */
+export const NciiAllegationReporterTypeSchema = z.enum(['authenticatedUser', 'anonymousPublic', 'operator']);
 export type NciiAllegationReporterType = z.infer<typeof NciiAllegationReporterTypeSchema>;
 
 /** Allegation lifecycle status — `received` until triaged into one of the
