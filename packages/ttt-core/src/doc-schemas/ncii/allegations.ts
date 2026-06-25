@@ -21,6 +21,7 @@
 
 import { z } from 'zod';
 import { TargetLocatorV1Schema } from '../safety/foundation.js';
+import { ResolvedReportTargetV1Schema } from '../safety/report.js';
 
 // ===========================================================================
 // §A11 (1) — nciiAllegations/{allegationId}
@@ -51,5 +52,11 @@ export const NciiAllegationV1Schema = z.object({
   targetLocator: TargetLocatorV1Schema,
   allegationReason: z.string(), // free-text reason; NEVER substitutes for a statutory request
   status: NciiAllegationStatusSchema,
+  // For an OPERATOR-marked evidence allegation (reporterType 'operator'): the server-resolved
+  // target captured at mark time (owner / canonical parent+item / revision). Carried so the
+  // link-to-case step can arm the `nciiTemporary` preservation hold and pre-fill the ban target
+  // WITHOUT re-resolving (a TargetLocatorV1 kind does not map cleanly back to a report itemType).
+  // Absent on authenticatedUser / anonymousPublic allegations.
+  resolvedTarget: ResolvedReportTargetV1Schema.optional(),
 }).strict();
 export type NciiAllegationV1 = z.infer<typeof NciiAllegationV1Schema>;
