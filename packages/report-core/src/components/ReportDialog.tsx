@@ -53,29 +53,41 @@ export function ReportDialog({
   onSubmitSuccess,
   onSubmitError,
 }: ReportDialogProps) {
-  const { config } = useReportCoreContext();
+  const { config, additionalReportActions } = useReportCoreContext();
   const submitMutation = useReportSubmit();
   const [reason, setReason] = useState('');
   const [comment, setComment] = useState('');
+  const [actionPending, setActionPending] = useState(false);
 
   const maxLength = config.maxReportCommentLength;
   const displayItemType =
     config.reportableItems[itemType]?.displayName ?? itemType;
 
+  // The picker value for a consumer-supplied additional action is its id, prefixed so it can never
+  // collide with a real report reason.
+  const ACTION_PREFIX = '__rc_action__:';
+  const selectedAction = additionalReportActions.find((a) => `${ACTION_PREFIX}${a.id}` === reason);
+
   const handleSubmit = async () => {
     if (!reporterUserId || !reason || !comment.trim()) return;
 
     try {
-      // reporterUserId is NOT sent — the submitReport callable derives the reporter
-      // from request.auth.uid; it is only used here to gate submission on being signed in.
-      await submitMutation.mutateAsync({
-        itemType,
-        itemId,
-        parentItemId,
-        reportedUserId,
-        reason,
-        comment,
-      });
+      if (selectedAction) {
+        // A consumer action (e.g. an admin "mark as NCII evidence") — call ITS handler, never submitReport.
+        setActionPending(true);
+        await selectedAction.handler({ itemType, itemId, parentItemId, reportedUserId }, comment);
+      } else {
+        // reporterUserId is NOT sent — the submitReport callable derives the reporter
+        // from request.auth.uid; it is only used here to gate submission on being signed in.
+        await submitMutation.mutateAsync({
+          itemType,
+          itemId,
+          parentItemId,
+          reportedUserId,
+          reason,
+          comment,
+        });
+      }
 
       onOpenChange(false);
       setReason('');
@@ -83,6 +95,8 @@ export function ReportDialog({
       onSubmitSuccess?.();
     } catch (error) {
       onSubmitError?.(error instanceof Error ? error : new Error(String(error)));
+    } finally {
+      setActionPending(false);
     }
   };
 
@@ -100,7 +114,8 @@ export function ReportDialog({
     !!reason &&
     !!comment.trim() &&
     !isOverLimit &&
-    !submitMutation.isPending;
+    !submitMutation.isPending &&
+    !actionPending;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChangeInternal}>
@@ -128,6 +143,11 @@ export function ReportDialog({
                 {config.reportReasons.map((opt) => (
                   <SelectItem key={opt} value={opt}>
                     {opt}
+                  </SelectItem>
+                ))}
+                {additionalReportActions.map((a) => (
+                  <SelectItem key={a.id} value={`${ACTION_PREFIX}${a.id}`}>
+                    {a.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -173,10 +193,10 @@ export function ReportDialog({
             disabled={!canSubmit}
             className="touch-target h-11"
           >
-            {submitMutation.isPending && (
+            {(submitMutation.isPending || actionPending) && (
               <Loader2 className="mr-2 spinner-xs" />
             )}
-            Submit Report
+            {selectedAction ? selectedAction.label : 'Submit Report'}
           </Button>
         </DialogFooter>
       </DialogContent>
