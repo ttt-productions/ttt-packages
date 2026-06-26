@@ -68,6 +68,12 @@ export const ReportTargetSnapshotV1Schema = z.object({
   revision: z.number(),
   contentSummaryRef: z.string(), // pointer to a sanitized content snapshot (restricted)
   contentHashes: z.array(z.string()).max(16).optional(),
+  // [H-11/EUAS-013/R14] The sanitized REPORTED CONTENT captured at report time, so an author can't edit
+  // the violating text/media out before review and have the operator see only the cleaned live doc
+  // (edit-to-evade). `capturedText` = the bounded reported text/title/description (NO PII);
+  // `capturedMediaAssetIds` = the reported media asset ids. Frozen + immutable like the rest.
+  capturedText: z.string().max(4000).optional(),
+  capturedMediaAssetIds: z.array(z.string()).max(32).optional(),
   capturedAt: z.number(),
 }).strict();
 export type ReportTargetSnapshotV1 = z.infer<typeof ReportTargetSnapshotV1Schema>;

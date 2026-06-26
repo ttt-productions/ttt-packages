@@ -80,6 +80,10 @@ export const NciiCaseAllegationLinkV1Schema = z.object({
   allegationId: z.string().min(1),
   linkedAt: z.number(),
   linkedByUid: z.string().min(1),
+  // [EUAS-016/R4] The originating in-app report id, so a case close can flip the protected report
+  // root(s) terminal (the child-safety path resolves this via sourceSignals; NCII via this field).
+  // Optional for backward compat — a link written before this field simply yields no flip.
+  reportId: z.string().min(1).optional(),
 }).strict();
 export type NciiCaseAllegationLinkV1 = z.infer<typeof NciiCaseAllegationLinkV1Schema>;
 

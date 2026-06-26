@@ -926,6 +926,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `revision` | `number` |  |
 | `contentSummaryRef` | `string` |  |
 | `contentHashes` | `string[]` | yes |
+| `capturedText` | `string` | yes |
+| `capturedMediaAssetIds` | `string[]` | yes |
 | `capturedAt` | `number` |  |
 
 ## `contentReports/{reportId}/publicProjection/{reportId}`
@@ -1192,6 +1194,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `allegationId` | `string` |  |
 | `linkedAt` | `number` |  |
 | `linkedByUid` | `string` |  |
+| `reportId` | `string` | yes |
 
 ## `nciiCases/{caseId}/blockedHashes/{hashId}`
 

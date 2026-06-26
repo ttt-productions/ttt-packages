@@ -80,9 +80,13 @@ export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
   statusTokenRetentionDays: 180,
   blockedHashRetentionPolicy: 'indefiniteUntilReversed',
   allowedEvidenceMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'],
-  maxEvidenceFileBytes: 524288000,
+  // [H-01/R10] 100MB per file (was 500MB): the evidence-scan trigger downloads the whole object into a
+  // ~512MiB Function before scanning, so an allowed file must fit in memory. Total = 3×100MB = 300MB.
+  // Count stays 3. The storage.rules `nciiEvidence` per-file cap mirrors this 100MB (rules can't read
+  // this config).
+  maxEvidenceFileBytes: 104857600,
   maxEvidenceFilesPerRequest: 3,
-  maxEvidenceTotalBytesPerRequest: 1572864000,
+  maxEvidenceTotalBytesPerRequest: 314572800,
   uploadReservationMinutes: 30,
   abandonedUploadCleanupHours: 24,
   tempHoldInitialHours: 72,
