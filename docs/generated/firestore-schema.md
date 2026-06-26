@@ -1881,6 +1881,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `goodFaithCertification` | `boolean` |  |
 | `accuracyCertification` | `boolean` | yes |
 | `authorityCertification` | `boolean` | yes |
+| `targetLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, url } \| { kind, textRef }` | yes |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
 

@@ -34,6 +34,7 @@
 import { z } from 'zod';
 import {
   TakeItDownRequesterRoleSchema,
+  TargetLocatorV1Schema,
   TargetLocatorSummaryV1Schema,
   TakeItDownCompletenessStatusSchema,
   TakeItDownValidityStatusSchema,
@@ -128,6 +129,12 @@ export const TakeItDownRequesterPrivateV1Schema = z.object({
   goodFaithCertification: z.boolean(),
   accuracyCertification: z.boolean().optional(), // [H2] NOT a hard validity gate by default — counsel decides
   authorityCertification: z.boolean().optional(), // [H2] NOT a hard validity gate by default — counsel decides
+  // The EXACT validated locator the requester submitted (restricted; operator-only — never on the
+  // PII-free root, which keeps only TargetLocatorSummaryV1). For the public no-login url-only intake
+  // this is the raw `{ kind:'url', url }` so the operator can FIND the on-platform content and
+  // mark + link it as NCII evidence (the public intake never auto-resolves a TTT target — C-03
+  // anti-abuse). Optional so a not-yet-backfilled request still validates; intake always writes it.
+  targetLocator: TargetLocatorV1Schema.optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 }).strict();
