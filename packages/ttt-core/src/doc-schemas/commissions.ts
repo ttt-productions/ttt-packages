@@ -50,6 +50,10 @@ export const CommissionProposalSchema = z.object({
   invitedOn: z.number().optional(),
   acceptedOn: z.number().optional(),
   rejectedAt: z.number().optional(),
+  // [EUAS-006] Admin moderation hide (reversible) — matches the listing/audition/entry pattern. When
+  // true the proposal's TEXT is suppressed from the board (tombstoned for ordinary viewers); restored
+  // by clearing it. Optional so existing/seeded proposals don't need backfilling pre-launch.
+  hidden: z.boolean().optional(),
 });
 export type CommissionProposal = z.infer<typeof CommissionProposalSchema>;
 

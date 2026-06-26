@@ -59,6 +59,12 @@ export const ReportableItemTypeSchema = z.enum([
   'guild-invite-message',
   'guild-chat-message',
   'hall-library-item',
+  // [EUAS-017] a single Hall sub-item (a Tale chapter / Tune track / Television episode). The
+  // `hallItem` TargetLocatorV1 already carries an optional `subItemId`; the report UI passes the
+  // sub-item id + its parent hall item, and the resolver derives the canonical sub-item path
+  // server-side. Admins can already hide a single sub-item (runSetHallSubItemHidden) — this makes the
+  // matching user-facing report reachable.
+  'hall-library-sub-item',
   'audition',
   'audition-entry',
   'work-project',

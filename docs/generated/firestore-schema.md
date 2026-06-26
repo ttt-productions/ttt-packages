@@ -193,7 +193,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | --- | --- | --- |
 | `schemaVersion` | `1` |  |
 | `groupKey` | `string` |  |
-| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'hall-library-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
+| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'hall-library-item' \| 'hall-library-sub-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
 | `totalReports` | `number` |  |
 | `highestReasonScore` | `number` |  |
 | `lastReportAt` | `number` |  |
@@ -887,6 +887,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `invitedOn` | `number` | yes |
 | `acceptedOn` | `number` | yes |
 | `rejectedAt` | `number` | yes |
+| `hidden` | `boolean` | yes |
 
 ## `contentReports/{reportId}`
 
@@ -920,7 +921,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `schemaVersion` | `1` |  |
-| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'hall-library-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
+| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'hall-library-item' \| 'hall-library-sub-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
 | `canonicalItemId` | `string` |  |
 | `revision` | `number` |  |
 | `contentSummaryRef` | `string` |  |
@@ -933,7 +934,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | --- | --- | --- |
 | `schemaVersion` | `1` |  |
 | `reportId` | `string` |  |
-| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'hall-library-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
+| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'hall-library-item' \| 'hall-library-sub-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
 | `reason` | `'Spam' \| 'Harassment' \| 'Hate Speech' \| 'Violence or Threats' \| 'Sexual Content' \| 'Self-Harm' \| 'Impersonation' \| 'Intellectual Property' \| 'Child Safety Concern' \| 'Nonconsensual Intimate Image (NCII)' \| 'Other'` |  |
 | `status` | `'pending_review' \| 'grouped' \| 'actioned' \| 'dismissed'` |  |
 | `createdAt` | `number` |  |
