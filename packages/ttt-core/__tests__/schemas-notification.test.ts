@@ -41,7 +41,6 @@ describe('NotificationType + catalog', () => {
 
   it('maps category + delivery per the design table', () => {
     expect(NOTIFICATION_TYPE_CATALOG.content_report).toMatchObject({ category: 'admin', delivery: 'realtime' });
-    expect(NOTIFICATION_TYPE_CATALOG.content_report_csam).toMatchObject({ category: 'admin', delivery: 'realtime' });
     expect(NOTIFICATION_TYPE_CATALOG.guild_invite).toMatchObject({ category: 'user', delivery: 'queued' });
     expect(NOTIFICATION_TYPE_CATALOG.admin_dispatch_reply).toMatchObject({ category: 'user', delivery: 'realtime' });
     expect(NOTIFICATION_TYPE_CATALOG.threshold_library_submission).toMatchObject({ category: 'admin', delivery: 'queued' });

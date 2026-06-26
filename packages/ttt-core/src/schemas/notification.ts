@@ -36,7 +36,6 @@ const workRealmIdSchema = z.string().min(1);
 
 export const NOTIFICATION_TYPE_VALUES = [
   'content_report',
-  'content_report_csam',
   'guild_invite',
   'admin_dispatch_reply',
   'threshold_library_submission',
@@ -80,7 +79,6 @@ export interface NotificationTypeCatalogEntry {
  */
 export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTypeCatalogEntry> = {
   content_report: { category: 'admin', delivery: 'realtime', defaultChannels: ['inApp'] },
-  content_report_csam: { category: 'admin', delivery: 'realtime', defaultChannels: ['inApp'] },
   guild_invite: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   admin_dispatch_reply: { category: 'user', delivery: 'realtime', defaultChannels: ['inApp'] },
   threshold_library_submission: { category: 'admin', delivery: 'queued', defaultChannels: ['inApp'] },
@@ -103,12 +101,6 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
 export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('content_report'),
-    reportGroupId: reportGroupIdSchema,
-    reportedItemType: reportedItemTypeSchema,
-    reportedItemId: reportedItemIdSchema,
-  }).strict(),
-  z.object({
-    type: z.literal('content_report_csam'),
     reportGroupId: reportGroupIdSchema,
     reportedItemType: reportedItemTypeSchema,
     reportedItemId: reportedItemIdSchema,
