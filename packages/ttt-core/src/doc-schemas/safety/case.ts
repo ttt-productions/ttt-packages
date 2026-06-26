@@ -25,6 +25,7 @@ import {
   ReportDispositionSchema,
   ReportDispositionReasonCodeSchema,
   NcmecSubmissionStateSchema,
+  SafetyCaseClosureV1Schema,
 } from './foundation.js';
 
 // ===========================================================================
@@ -105,12 +106,14 @@ export type ChildSafetyReportState = z.infer<typeof ChildSafetyReportStateSchema
 export const ChildSafetyMergeStateSchema = z.enum(['none', 'winner', 'merging', 'tombstoned']);
 export type ChildSafetyMergeState = z.infer<typeof ChildSafetyMergeStateSchema>;
 
-/** §A1b decisions[].kind — the append-only decision-log kind. */
+/** §A1b decisions[].kind — the append-only decision-log kind. `caseClosed` [EUAS-008]
+ * is the terminal close decision carrying the structured closure record. */
 export const ChildSafetyDecisionKindSchema = z.enum([
   'workStatus',
   'accountAction',
   'reportDisposition',
   'reasonUpdate',
+  'caseClosed',
 ]);
 export type ChildSafetyDecisionKind = z.infer<typeof ChildSafetyDecisionKindSchema>;
 
@@ -276,6 +279,9 @@ export const ChildSafetyDecisionV1Schema = z.object({
   reasonInternal: z.string(),
   reasonUserFacing: z.string().optional(),
   evidenceItemsViewedCount: z.number(),
+  // [EUAS-008] present only on a `caseClosed` row — the structured operator closure record
+  // (outcome / summary / note + actor / timestamp) persisted when the case is closed.
+  closure: SafetyCaseClosureV1Schema.optional(),
 }).strict();
 export type ChildSafetyDecisionV1 = z.infer<typeof ChildSafetyDecisionV1Schema>;
 

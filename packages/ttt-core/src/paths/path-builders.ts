@@ -416,6 +416,11 @@ export const PATH_BUILDERS = {
   takeItDownEvidence: (requestId: string, evidenceId: string): [string, string, string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_EVIDENCE, evidenceId],
 
+  // [H-01] a retained-but-unrecorded NCII-evidence inventory row (top-level; id is deterministic on
+  // bucket+key+generation so a re-fire is idempotent).
+  nciiRetainedEvidenceInventory: (inventoryId: string): [string, string] =>
+    [COLLECTIONS.NCII_RETAINED_EVIDENCE_INVENTORY, inventoryId],
+
   nciiCase: (caseId: string): [string, string] =>
     [COLLECTIONS.NCII_CASES, caseId],
 

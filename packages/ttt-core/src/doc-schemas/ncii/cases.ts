@@ -28,6 +28,7 @@ import {
   NciiInternalStatusSchema,
   NciiChildSafetyLinkStatusSchema,
   NciiChildSafetyCrossoverSchema,
+  SafetyCaseClosureV1Schema,
 } from '../safety/foundation.js';
 
 // ===========================================================================
@@ -60,6 +61,10 @@ export const NciiCaseV1Schema = z.object({
   // NON-AUTHORITATIVE projection of the minimum active request monitor ([H4]); source of truth =
   // safetySlaMonitors/{requestId}__nciiRemovalDeadline
   nciiRemovalDeadlineAt: z.number().optional(),
+  // [EUAS-008] the structured operator closure record, set when the case is closed via the guided
+  // resolution flow. The terminal `internalStatus: 'closed'` flip is the lifecycle status; THIS is
+  // who closed it, why, and with what outcome. Absent until closed.
+  closure: SafetyCaseClosureV1Schema.optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 }).strict();

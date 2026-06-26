@@ -285,6 +285,45 @@ export const TakeItDownEvidenceV1Schema = z.object({
 export type TakeItDownEvidenceV1 = z.infer<typeof TakeItDownEvidenceV1Schema>;
 
 // ===========================================================================
+// [H-01] nciiRetainedEvidenceInventory/{inventoryId} = NciiRetainedEvidenceInventoryV1
+// — a durable, OPERATOR-VISIBLE inventory row for an NCII-evidence object that the
+// onNciiEvidenceUploaded scan RETAINED but did NOT record as evidence (orphan /
+// oversized / spoof / malformed / archive-polyglot). The bytes are preserved (NO
+// auto-delete EVER — disposal stays verified-LE-only); this row makes the retained
+// object visible + accountable in the admin console instead of living only in a log
+// line. METADATA only — never bytes, never a served URL.
+// ===========================================================================
+
+/** Why an evidence object was retained without an evidence record. */
+export const NciiRetainedEvidenceReasonSchema = z.enum([
+  'orphan', // requestReference matched no real request
+  'fileTooLarge', // over maxEvidenceFileBytes
+  'imageTooLarge', // over the decode pixel / dimension budget
+  'archiveOrPolyglot', // archive/polyglot signature
+  'malformedPath', // not a 3-segment nciiEvidence/{ref}/{file} key
+  'scanRejected', // PhotoDNA scan rejected it as a spoof (magic bytes / kind)
+]);
+export type NciiRetainedEvidenceReason = z.infer<typeof NciiRetainedEvidenceReasonSchema>;
+
+/** `nciiRetainedEvidenceInventory/{inventoryId}` — the [H-01] retained-object row.
+ * Doc id is deterministic on bucket+key+generation (idempotent re-fire). */
+export const NciiRetainedEvidenceInventoryV1Schema = z.object({
+  schemaVersion: z.literal(1),
+  inventoryId: z.string().min(1),
+  reason: NciiRetainedEvidenceReasonSchema,
+  bucket: z.string().min(1),
+  key: z.string().min(1),
+  generation: z.string().min(1),
+  /** The path segment (an orphan reference matches no request). */
+  requestReference: z.string().min(1).optional(),
+  contentType: z.string().min(1).optional(),
+  sizeBytes: z.number().optional(),
+  detectedAt: z.number(),
+  createdAt: z.number(),
+}).strict();
+export type NciiRetainedEvidenceInventoryV1 = z.infer<typeof NciiRetainedEvidenceInventoryV1Schema>;
+
+// ===========================================================================
 // §A11 [C-02] — conditional completeness predicate (`computeCompleteness`).
 // requiredFieldCodes(requesterRole) + a contact one-of. These are EMBEDDED /
 // NON-DOC shapes (not Firestore documents): the counsel-ratified required set + a

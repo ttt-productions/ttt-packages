@@ -149,6 +149,30 @@ export const ReportDispositionReasonCodeSchema = z.enum([
 ]);
 export type ReportDispositionReasonCode = z.infer<typeof ReportDispositionReasonCodeSchema>;
 
+// ===========================================================================
+// [EUAS-008] Structured safety-case CLOSURE record — the operator's terminal
+// determination persisted when a CSAM / NCII case is closed via the guided
+// resolution flow (resolveAdminTask). Embedded on the NCII case (`closure`) and on
+// a child-safety `decisions/{id}` row (kind `caseClosed`) so both case types carry
+// the SAME structured outcome/summary/note + actor/timestamp — not just a status
+// flip. This does NOT replace the case lifecycle's own terminal status; it records
+// WHO closed it, WHY, and with what outcome.
+// ===========================================================================
+
+/** founded = a violation was substantiated; unfounded = no violation on review. */
+export const SafetyCaseClosureOutcomeSchema = z.enum(['founded', 'unfounded']);
+export type SafetyCaseClosureOutcome = z.infer<typeof SafetyCaseClosureOutcomeSchema>;
+
+/** The structured closure record written on a safety-case close. */
+export const SafetyCaseClosureV1Schema = z.object({
+  outcome: SafetyCaseClosureOutcomeSchema,
+  resolutionSummary: z.string().min(1).max(2000),
+  adminNote: z.string().max(4000).optional(),
+  closedByUid: z.string().min(1),
+  closedAt: z.number(),
+}).strict();
+export type SafetyCaseClosureV1 = z.infer<typeof SafetyCaseClosureV1Schema>;
+
 /** NCMEC submission lifecycle — MANUAL-PORTAL model (§A9). NO `notRequired` (that is
  * ReportDisposition). There is no automated ispws API: a report-needed obligation sits in
  * `awaitingManualFiling` from enqueue until the operator files on the NCMEC portal and records the

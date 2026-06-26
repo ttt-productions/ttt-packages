@@ -503,6 +503,7 @@ erDiagram
     field reasonInternal
     field reasonUserFacing
     field evidenceItemsViewedCount
+    field closure
   }
   disposition {
     field bucket
@@ -715,6 +716,7 @@ erDiagram
     field crossover
     field childSafetyCaseId
     field nciiRemovalDeadlineAt
+    field closure
     field createdAt
     field updatedAt
   }
@@ -745,6 +747,19 @@ erDiagram
     field leaseExpiresAt
     field attemptCount
     field nextAttemptAt
+  }
+  nciiRetainedEvidenceInventory {
+    field schemaVersion
+    field inventoryId
+    field reason
+    field bucket
+    field key
+    field generation
+    field requestReference
+    field contentType
+    field sizeBytes
+    field detectedAt
+    field createdAt
   }
   nciiTemporaryHolds {
     field schemaVersion

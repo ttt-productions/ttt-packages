@@ -169,6 +169,7 @@ import {
   TakeItDownRequestActionV1Schema,
   TakeItDownPublicStatusV1Schema,
   TakeItDownEvidenceV1Schema,
+  NciiRetainedEvidenceInventoryV1Schema,
 } from './ncii/requests.js';
 import {
   NciiCaseV1Schema,
@@ -356,6 +357,7 @@ export const COLLECTION_SCHEMAS = {
   'nciiCases/{caseId}/requestLinks/{requestId}': NciiCaseRequestLinkV1Schema,
   'nciiCases/{caseId}/removalActions/{actionId}': NciiCaseRemovalActionV1Schema,
   'nciiCases/{caseId}/blockedHashes/{hashId}': NciiBlockedHashV1Schema,
+  'nciiRetainedEvidenceInventory/{inventoryId}': NciiRetainedEvidenceInventoryV1Schema,
   'nciiTemporaryHolds/{holdId}': NciiTemporaryHoldV1Schema,
   'nciiRemovalJobs/{jobId}': NciiRemovalJobV1Schema,
   'nciiRemovalJobs/{jobId}/targets/{targetKeyHash}': NciiRemovalTargetV1Schema,

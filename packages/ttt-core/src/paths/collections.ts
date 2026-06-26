@@ -113,6 +113,9 @@ export const COLLECTIONS = {
   NCII_CASES: 'nciiCases',
   NCII_TEMPORARY_HOLDS: 'nciiTemporaryHolds',
   NCII_REMOVAL_JOBS: 'nciiRemovalJobs',
+  // [H-01] durable operator-visible inventory of NCII-evidence objects RETAINED but never recorded
+  // as evidence (orphan / oversized / spoof / unknown-reference). Never auto-deleted.
+  NCII_RETAINED_EVIDENCE_INVENTORY: 'nciiRetainedEvidenceInventory',
 } as const;
 
 /**
