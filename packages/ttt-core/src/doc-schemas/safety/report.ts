@@ -161,7 +161,13 @@ export const ReportGroupV1Schema = z.object({
   highestReasonScore: z.number(),
   lastReportAt: z.number(),
   latestReason: ReportReasonSchema,
-  status: z.enum(['pending', 'reviewing', 'resolved']),
+  // [R12] close-lifecycle states. An ordinary report's admin close (hide/remove/restore) moves the
+  // group to `processing` and STAYS in the queue — it is NEVER cleared on the click. The group flips
+  // to the terminal `resolved` ONLY when the edge serving-deny (hide/remove) or block-clear (restore)
+  // VERIFIES. If the content-serving-sync saga exhausts its retries (dead-letter), the group moves to
+  // `failed` — kept in the queue, surfaced in the Safety Console failed-jobs view, with a Restart that
+  // re-arms the job. Both are explicit values (never derived).
+  status: z.enum(['pending', 'reviewing', 'processing', 'failed', 'resolved']),
 }).strict();
 export type ReportGroupV1 = z.infer<typeof ReportGroupV1Schema>;
 

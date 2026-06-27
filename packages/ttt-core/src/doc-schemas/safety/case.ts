@@ -57,12 +57,23 @@ export const ChildSafetySignalKindSchema = z.enum([
 export type ChildSafetySignalKind = z.infer<typeof ChildSafetySignalKindSchema>;
 
 /** §A9 workStatus FSM: new → triaged → reporting → actioning → operationallyResolved.
- * `operationallyResolved` NEVER deletes the case (preservation continues). */
+ * `operationallyResolved` NEVER deletes the case (preservation continues).
+ *
+ * [R12] close-lifecycle states: clicking **Close** (after the strict-closable gate passes)
+ * applies the staged actions and moves the case to `processing` — it STAYS pinned/in-queue,
+ * it is NEVER cleared on the click. The WORKER (quarantine saga / NCII removal / edge
+ * serving-deny) flips the case to the terminal `operationallyResolved` ONLY on VERIFIED
+ * completion (which clears the time-sensitive pin via onSafetyCaseClosed). If the saga
+ * exhausts its retries (dead-letter), the case moves to `failed` — kept pinned, surfaced in
+ * the Safety Console failed-jobs view, with a Restart that re-arms the job. Both are explicit
+ * values (never derived). */
 export const ChildSafetyWorkStatusSchema = z.enum([
   'new',
   'triaged',
   'reporting',
   'actioning',
+  'processing',
+  'failed',
   'operationallyResolved',
 ]);
 export type ChildSafetyWorkStatus = z.infer<typeof ChildSafetyWorkStatusSchema>;

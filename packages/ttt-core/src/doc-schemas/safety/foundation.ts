@@ -400,10 +400,20 @@ export const NciiTerminalExceptionSchema = z.enum([
 ]);
 export type NciiTerminalException = z.infer<typeof NciiTerminalExceptionSchema>;
 
-/** Internal operational case status ([H7]). */
+/** Internal operational case status ([H7]).
+ *
+ * [R12] close-lifecycle states: clicking **Close** (after the strict-closable gate passes)
+ * applies the staged actions and moves the case to `processing` — it STAYS pinned/in-queue,
+ * NEVER cleared on the click. The NCII removal worker flips the case to the terminal `closed`
+ * ONLY on VERIFIED removal completion (clearing the pin via onSafetyCaseClosed). If the
+ * removal saga exhausts its retries (dead-letter), the case moves to `failed` — kept pinned,
+ * surfaced in the Safety Console failed-jobs view, with a Restart that re-arms the job. Both
+ * are explicit values (never derived). */
 export const NciiInternalStatusSchema = z.enum([
   'open',
   'removalInProgress',
+  'processing',
+  'failed',
   'removed',
   'rejected',
   'closed',

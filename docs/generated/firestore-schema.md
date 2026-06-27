@@ -198,7 +198,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `highestReasonScore` | `number` |  |
 | `lastReportAt` | `number` |  |
 | `latestReason` | `'Spam' \| 'Harassment' \| 'Hate Speech' \| 'Violence or Threats' \| 'Sexual Content' \| 'Self-Harm' \| 'Impersonation' \| 'Intellectual Property' \| 'Child Safety Concern' \| 'Nonconsensual Intimate Image (NCII)' \| 'Other'` |  |
-| `status` | `'pending' \| 'reviewing' \| 'resolved'` |  |
+| `status` | `'pending' \| 'reviewing' \| 'processing' \| 'failed' \| 'resolved'` |  |
 
 ## `activeSafetyCaseAlerts/{caseId}`
 
@@ -714,7 +714,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `canonicalIncidentKey` | `string` |  |
 | `incidentClass` | `'apparentCsam' \| 'enticement' \| 'minorSexTrafficking' \| 'sextortion' \| 'csamSolicitation' \| 'imminentCsea' \| 'nonReportableSafety'` |  |
 | `sourceSignalSummary` | `{ count, latestKind, latestAt }` |  |
-| `workStatus` | `'new' \| 'triaged' \| 'reporting' \| 'actioning' \| 'operationallyResolved'` |  |
+| `workStatus` | `'new' \| 'triaged' \| 'reporting' \| 'actioning' \| 'processing' \| 'failed' \| 'operationallyResolved'` |  |
 | `preservationStatus` | `'preReportHold' \| 'statutoryHold' \| 'extendedHold' \| 'dispositionPending' \| 'destroyed'` |  |
 | `ncmecStatus` | `'queued' \| 'awaitingManualFiling' \| 'completed' \| 'retracted'` |  |
 | `accountActionStatus` | `'noAccountActionRequired' \| 'operatorDecisionPending' \| 'pending' \| 'resolved'` |  |
@@ -1178,7 +1178,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `caseId` | `string` |  |
 | `revision` | `number` |  |
 | `lane` | `'ncii' \| 'likeness'` |  |
-| `internalStatus` | `'open' \| 'removalInProgress' \| 'removed' \| 'rejected' \| 'closed'` |  |
+| `internalStatus` | `'open' \| 'removalInProgress' \| 'processing' \| 'failed' \| 'removed' \| 'rejected' \| 'closed'` |  |
 | `childSafetyLinkStatus` | `'none' \| 'assessmentPending' \| 'linked' \| 'resolvedNoChildSafetyCase'` |  |
 | `crossover` | `{ minorAssessment, csamAssessment, childSafetyCaseId, assessedByUid, assessedAt }` |  |
 | `childSafetyCaseId` | `string` | yes |
