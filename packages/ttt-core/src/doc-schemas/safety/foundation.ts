@@ -96,6 +96,10 @@ export const TargetLocatorV1Schema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('auditionEntry'), auditionId: z.string().min(1), auditionEntryId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('guildInviteMessage'), channelId: z.string().min(1), messageId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('chatAttachment'), channelId: z.string().min(1), messageId: z.string().min(1), attachmentId: z.string().min(1) }).strict(),
+  // [H-04 V1] Plain guild chat message (text-only or Worker-unresolved). Distinct from
+  // `chatAttachment` (which carries an actual attachment id) so a text-only protected chat
+  // report has a clean, unambiguous locator without misusing the attachment variant.
+  z.object({ kind: z.literal('guildChatMessage'), channelId: z.string().min(1), messageId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('url'), url: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('additionalText'), textRef: z.string().min(1) }).strict(),
 ]);
@@ -118,6 +122,8 @@ export const TargetLocatorKindSchema = z.enum([
   'auditionEntry',
   'guildInviteMessage',
   'chatAttachment',
+  // [H-04 V1] Plain guild chat message locator (text-only / Worker-unresolved protected report).
+  'guildChatMessage',
   'url',
   'additionalText',
 ]);

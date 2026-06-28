@@ -26,6 +26,7 @@ import {
   ReportDispositionReasonCodeSchema,
   NcmecSubmissionStateSchema,
   SafetyCaseClosureV1Schema,
+  TargetLocatorV1Schema,
 } from './foundation.js';
 
 // ===========================================================================
@@ -243,6 +244,12 @@ export const ChildSafetyCaseListV1Schema = z.object({
   mergeState: ChildSafetyMergeStateSchema,
   mergeRedirectCaseId: z.string().min(1).optional(),
   mergeGeneration: z.number().optional(),
+  // [H-04 V1] Set to true when a protected-reason chat report's Worker context could not be
+  // resolved at intake (text-only / Worker-down / attachment-not-ready). The case is still a
+  // fully-valid protected case; context resolution is retried async. Absent = false (no pending
+  // context). Cleared once context is attached. Surfaced in the safety console so the reviewer
+  // knows to trigger a manual re-fetch if the async retry hasn't landed yet.
+  contextResolutionPending: z.boolean().optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 }).strict();
@@ -262,6 +269,17 @@ export const ChildSafetyCaseV1Schema = z.object({
   leaseExpiresAt: z.number().optional(),
   fencingOwnerToken: z.string().min(1).optional(),
   fencingGeneration: z.number().optional(),
+  // [H-04 V1] Immutable channel/message locator stored at case open when the Worker context
+  // could not be resolved at intake. This is the AUTHORITATIVE source-of-truth locator that
+  // the best-effort async re-fetch (and the operator's manual re-fetch) use to retrieve the
+  // message text/sender. NEVER updated after creation — if context resolves, the resolved
+  // context is ATTACHED to the case; this field stays unchanged as the permanent intake record.
+  // Uses TargetLocatorV1 (a `guildChatMessage` or `chatAttachment` kind); absent on media-resolved
+  // cases that went through the normal protected path with a ready attachment.
+  chatMessageLocator: TargetLocatorV1Schema.optional(),
+  // [H-04 V1] Mirror of the list-doc field — kept in sync so the restricted root can be
+  // independently queried/checked without a join against childSafetyCaseList.
+  contextResolutionPending: z.boolean().optional(),
 }).strict();
 export type ChildSafetyCaseV1 = z.infer<typeof ChildSafetyCaseV1Schema>;
 
