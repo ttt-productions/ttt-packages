@@ -175,6 +175,7 @@ export type AuditEventType =
   | 'childSafety.evidenceDisposed'
   | 'childSafety.quarantineCompleted'
   | 'childSafety.ncmecSubmissionCompleted'
+  | 'childSafety.ncmecPortalReceiptArtifactRecorded'
   | 'childSafety.legalProcessRecorded'
   | 'childSafety.falsePositiveCorrected'
   // trust & safety — age / registration
