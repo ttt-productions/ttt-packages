@@ -421,6 +421,11 @@ export const PATH_BUILDERS = {
   nciiRetainedEvidenceInventory: (inventoryId: string): [string, string] =>
     [COLLECTIONS.NCII_RETAINED_EVIDENCE_INVENTORY, inventoryId],
 
+  // [H-01] dead-letter entry for an inventory row that could not be written to the primary
+  // nciiRetainedEvidenceInventory collection (id mirrors the primary row id for traceability).
+  nciiInventoryDeadLetter: (inventoryId: string): [string, string] =>
+    [COLLECTIONS.NCII_INVENTORY_DEAD_LETTER, inventoryId],
+
   nciiCase: (caseId: string): [string, string] =>
     [COLLECTIONS.NCII_CASES, caseId],
 

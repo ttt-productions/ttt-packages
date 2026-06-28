@@ -116,6 +116,10 @@ export const COLLECTIONS = {
   // [H-01] durable operator-visible inventory of NCII-evidence objects RETAINED but never recorded
   // as evidence (orphan / oversized / spoof / unknown-reference). Never auto-deleted.
   NCII_RETAINED_EVIDENCE_INVENTORY: 'nciiRetainedEvidenceInventory',
+  // [H-01] app-only dead-letter sink for NCII retained-evidence inventory rows that could not be
+  // written to the primary nciiRetainedEvidenceInventory collection (e.g. write failure during
+  // the onNciiEvidenceUploaded trigger). Never auto-deleted; operator-visible for manual triage.
+  NCII_INVENTORY_DEAD_LETTER: 'nciiInventoryDeadLetter',
 } as const;
 
 /**

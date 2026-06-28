@@ -721,6 +721,19 @@ erDiagram
     field createdAt
     field updatedAt
   }
+  nciiInventoryDeadLetter {
+    field schemaVersion
+    field inventoryId
+    field reason
+    field bucket
+    field key
+    field generation
+    field requestReference
+    field contentType
+    field sizeBytes
+    field detectedAt
+    field createdAt
+  }
   nciiPolicy {
     field policyVersion
     field requesterPiiRetentionDays
@@ -1042,8 +1055,8 @@ erDiagram
     field supportingFacts
     field goodFaithCertification
     field accuracyCertification
-    field authorityCertification
     field targetLocator
+    field createdAt
   }
   reservedDisplayNames {
     field userId

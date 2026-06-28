@@ -105,12 +105,45 @@ export const TakeItDownElectronicSignatureV1Schema = z.object({
 }).strict();
 export type TakeItDownElectronicSignatureV1 = z.infer<typeof TakeItDownElectronicSignatureV1Schema>;
 
+/** [H-02] Server-owned scan status for the optional authority-proof photo.
+ * Written by `onNciiEvidenceUploaded` when the authority-evidence prefix is
+ * matched. `pending` until the scan resolves; `clean` = safe for operator
+ * review; `matched` = PhotoDNA hit (converges to child-safety path); `rejected`
+ * = spoof/magic-byte rejection; `unavailable` = scan could not produce a
+ * verdict (fail-closed until resolved). Absence of the photo leaves the status
+ * absent — operators must not be shown/allowed to act on proof until `clean`. */
+export const AuthorityProofScanStatusSchema = z.enum([
+  'pending',
+  'clean',
+  'matched',
+  'rejected',
+  'unavailable',
+]);
+export type AuthorityProofScanStatus = z.infer<typeof AuthorityProofScanStatusSchema>;
+
+/** [H-02] Server-owned authority-proof scan state. Embedded on the authorized-
+ * representative block; written by the `onNciiEvidenceUploaded` trigger (never
+ * by the client). Present only when an authority-proof photo was uploaded. */
+export const AuthorityProofScanStateV1Schema = z.object({
+  scanStatus: AuthorityProofScanStatusSchema,
+  objectGeneration: z.string().min(1),
+  objectHash: z.string().min(1),
+  scannedAt: z.number().optional(),
+}).strict();
+export type AuthorityProofScanStateV1 = z.infer<typeof AuthorityProofScanStateV1Schema>;
+
 /** The authorized-representative block — present only for an
- * `authorizedRepresentative` requester. */
+ * `authorizedRepresentative` requester.
+ * [H-03] `authorityCertification` is a required good-faith attestation of
+ * authority; `authorityEvidenceRef` + `authorityProofScan` are OPTIONAL
+ * (presence is supporting material; absence never blocks completeness or the
+ * 48h clock). */
 export const TakeItDownAuthorizedRepresentativeV1Schema = z.object({
   representedPersonName: z.string(),
   authorityBasis: z.string(),
+  authorityCertification: z.boolean(),
   authorityEvidenceRef: z.string().min(1).optional(),
+  authorityProofScan: AuthorityProofScanStateV1Schema.optional(),
 }).strict();
 export type TakeItDownAuthorizedRepresentativeV1 = z.infer<typeof TakeItDownAuthorizedRepresentativeV1Schema>;
 
@@ -127,8 +160,7 @@ export const TakeItDownRequesterPrivateV1Schema = z.object({
   nonconsentStatement: z.string(), // the statutory non-consent statement
   supportingFacts: z.string(),
   goodFaithCertification: z.boolean(),
-  accuracyCertification: z.boolean().optional(), // [H2] NOT a hard validity gate by default — counsel decides
-  authorityCertification: z.boolean().optional(), // [H2] NOT a hard validity gate by default — counsel decides
+  accuracyCertification: z.boolean().optional(), // NOT a hard validity gate by default — counsel decides
   // The EXACT validated locator the requester submitted (restricted; operator-only — never on the
   // PII-free root, which keeps only TargetLocatorSummaryV1). For the public no-login url-only intake
   // this is the raw `{ kind:'url', url }` so the operator can FIND the on-platform content and
@@ -340,12 +372,14 @@ export const REQUIRED_FIELD_CODES_DEPICTED_PERSON = [
   'goodFaithCertification',
 ] as const satisfies readonly TakeItDownFieldCode[];
 
-/** [C-02] Required field codes for an `authorizedRepresentative` request =
- * depicted-person set ∪ { authorityBasis, authorityEvidence } (counsel-ratified). */
+/** [C-02 / H-03] Required field codes for an `authorizedRepresentative` request =
+ * depicted-person set ∪ { authorityBasis, authorityCertification }.
+ * `authorityEvidence` (the optional documentary photo) is NOT required;
+ * absence or pending scan never blocks completeness or the 48h clock. */
 export const REQUIRED_FIELD_CODES_AUTHORIZED_REPRESENTATIVE = [
   ...REQUIRED_FIELD_CODES_DEPICTED_PERSON,
   'authorityBasis',
-  'authorityEvidence',
+  'authorityCertification',
 ] as const satisfies readonly TakeItDownFieldCode[];
 
 /** [C-02] The contact one-of: at least ONE of these must be present (neither is
@@ -355,12 +389,13 @@ export const CONTACT_ONE_OF_FIELD_CODES = [
   'contactPhone',
 ] as const satisfies readonly TakeItDownFieldCode[];
 
-/** [C-02] `requiredFieldCodes(requesterRole)` — the counsel-ratified required set.
+/** [C-02 / H-03] `requiredFieldCodes(requesterRole)` — the required set.
  * `supportingFacts` is collected but is NOT a completeness gate; `contactEmail` /
  * `contactPhone` are governed by the contact one-of (see CONTACT_ONE_OF_FIELD_CODES),
- * never individually required. The implementer uses EXACTLY this set and never
- * hard-requires `contactPhone` or the authorizedRepresentative block on a
- * depicted-person request. */
+ * never individually required. `authorityEvidence` (the optional documentary photo)
+ * is NOT required; absence or a pending/unavailable scan never blocks completeness
+ * or the 48h clock. The implementer uses EXACTLY this set and never hard-requires
+ * `contactPhone` or the authorizedRepresentative block on a depicted-person request. */
 export function requiredFieldCodes(
   requesterRole: TakeItDownRequesterRole,
 ): readonly TakeItDownFieldCode[] {
@@ -369,13 +404,16 @@ export function requiredFieldCodes(
     : REQUIRED_FIELD_CODES_DEPICTED_PERSON;
 }
 
-/** [C-02] `computeCompleteness` — returns `complete` iff every code in
+/** [C-02 / H-02 / H-03] `computeCompleteness` — returns `complete` iff every code in
  * `requiredFieldCodes(requesterRole)` is supplied AND the contact one-of holds;
  * otherwise `incomplete` with the missing codes surfaced (those become
  * `TakeItDownPublicStatusV1.missingFieldCodes`). The missing-set lists the role's
  * unmet required codes, plus a `contactEmail`/`contactPhone` representative for an
  * unmet contact one-of (the implementer/UI decides which contact code to surface;
- * here we surface `contactEmail` as the canonical missing-contact marker). */
+ * here we surface `contactEmail` as the canonical missing-contact marker).
+ * [H-02] The optional authority-proof photo's presence, absence, or pending scan
+ * (`authorityProofScan.scanStatus`) is NEVER a gate — completeness is purely the
+ * written statutory elements + the authority certification. */
 export function computeCompleteness(input: {
   requesterRole: TakeItDownRequesterRole;
   suppliedFieldCodes: readonly TakeItDownFieldCode[];

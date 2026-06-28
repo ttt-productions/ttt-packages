@@ -282,6 +282,7 @@ export const TakeItDownFieldCodeSchema = z.enum([
   'requesterRole',
   'electronicSignature',
   'authorityBasis',
+  'authorityCertification',
   'authorityEvidence',
   'targetLocator',
   'nonconsentStatement',

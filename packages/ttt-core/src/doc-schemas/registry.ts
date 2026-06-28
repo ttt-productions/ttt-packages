@@ -358,6 +358,9 @@ export const COLLECTION_SCHEMAS = {
   'nciiCases/{caseId}/removalActions/{actionId}': NciiCaseRemovalActionV1Schema,
   'nciiCases/{caseId}/blockedHashes/{hashId}': NciiBlockedHashV1Schema,
   'nciiRetainedEvidenceInventory/{inventoryId}': NciiRetainedEvidenceInventoryV1Schema,
+  // [H-01] dead-letter sink for inventory rows that could not be written to the primary
+  // nciiRetainedEvidenceInventory collection. Stores the same document shape.
+  'nciiInventoryDeadLetter/{inventoryId}': NciiRetainedEvidenceInventoryV1Schema,
   'nciiTemporaryHolds/{holdId}': NciiTemporaryHoldV1Schema,
   'nciiRemovalJobs/{jobId}': NciiRemovalJobV1Schema,
   'nciiRemovalJobs/{jobId}/targets/{targetKeyHash}': NciiRemovalTargetV1Schema,
