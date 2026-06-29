@@ -105,6 +105,13 @@ export interface MediaInputProps {
   className?: string;
   buttonLabel?: string;
 
+  /**
+   * Extra advisory notes shown in the "Info" affordance alongside the built-in default
+   * ("keep your own copy — this isn't a backup/storage service"). Every MediaInput shows that
+   * default note; pass surface-specific notes here to append to it. The Info button always renders.
+   */
+  helpNotes?: string[];
+
   /** Phase-aware upload state. When provided, drives the upload/processing UI. */
   uploadState?: UploadState | null;
   /**

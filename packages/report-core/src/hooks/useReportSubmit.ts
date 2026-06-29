@@ -13,6 +13,9 @@ interface SubmitReportInput {
   reportedUserId?: string;
   reason: string;
   comment: string;
+  /** Confirmed upgrade of an existing report to a protected reason (the 2nd call after the
+   *  `upgradeAvailable` outcome). Only meaningful with a protected reason. */
+  confirmUpgrade?: boolean;
 }
 
 /** Default callable name; the consuming app may override via `config.submitCallableName`. */
@@ -23,11 +26,12 @@ const DEFAULT_SUBMIT_CALLABLE_NAME = 'submitReport';
  *
  * The callable name is configurable (`config.submitCallableName ?? 'submitReport'`).
  * It maps the UI input onto the strict request shape and returns the callable's
- * result verbatim ({ ok, reportId, reason, protectedFork, caseId }).
+ * `SubmitReportResult` verbatim (discriminated on `outcome`).
  *
- * `submitReport` is idempotent: a deterministic reportId means a duplicate submit is
- * a benign success (the report already landed), NOT an error. There is no
- * ALREADY_REPORTED special case any more.
+ * One report per reporter per target: a duplicate ordinary submit returns
+ * `outcome: 'alreadyReported'` (honest deny), and a protected (Child Safety / NCII) reason on an
+ * already-reported item returns `outcome: 'upgradeAvailable'` — the UI prompts to upgrade, then
+ * re-calls with `confirmUpgrade: true` (→ `outcome: 'upgraded'`). The consumer branches on `outcome`.
  */
 export function useReportSubmit() {
   const { callFunction, config } = useReportCoreContext();
@@ -42,6 +46,7 @@ export function useReportSubmit() {
         ...(input.reportedUserId ? { reportedUserId: input.reportedUserId } : {}),
         reason: input.reason,
         ...(input.comment ? { comment: input.comment } : {}),
+        ...(input.confirmUpgrade ? { confirmUpgrade: true } : {}),
       };
 
       return callFunction<SubmitReportRequest, SubmitReportResult>(callableName, request);

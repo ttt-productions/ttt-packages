@@ -38,16 +38,50 @@ export const SubmitReportRequestSchema = z.object({
   reportedUserId: z.string().min(1).max(256).optional(),
   reason: z.string().min(1).max(128),
   comment: z.string().max(4000).optional(),
+  // When true, this is the user-confirmed SECOND call that escalates an EXISTING report on the same
+  // target to a protected reason (Child Safety / NCII). Only meaningful when `reason` is a protected
+  // reason and the reporter already has a report on this target; the server then opens the protected
+  // case for the existing report (the original deadline/disposition is preserved). Ignored otherwise.
+  confirmUpgrade: z.boolean().optional(),
 }).strict();
 
 export type SubmitReportRequest = z.infer<typeof SubmitReportRequestSchema>;
 
-/** The `submitReport` callable result. `protectedFork`/`caseId` are non-null only when
- *  the protected branch (child-safety / NCII) ran; idempotent duplicates still return ok. */
-export interface SubmitReportResult {
-  ok: true;
-  reportId: string;
-  reason: string;
-  protectedFork: 'childSafetyCase' | 'nciiCase' | null;
-  caseId: string | null;
-}
+/**
+ * The `submitReport` callable result — discriminated on `outcome`.
+ *
+ * One report per reporter per target+revision:
+ *  - `filed`            — a new report was created (today's shape). `protectedFork`/`caseId` are
+ *                         non-null only when the protected branch ran on this first submission.
+ *  - `alreadyReported`  — the reporter already reported this item under an ordinary reason; denied
+ *                         honestly, no new work created.
+ *  - `upgradeAvailable` — the reporter already reported this item and the NEW reason is protected
+ *                         (Child Safety / NCII), not yet confirmed; the UI prompts to upgrade the
+ *                         existing report. A second call with `confirmUpgrade: true` performs it.
+ *  - `upgraded`         — an existing report was escalated to a protected case (confirmUpgrade path).
+ */
+export type SubmitReportResult =
+  | {
+      outcome: 'filed';
+      ok: true;
+      reportId: string;
+      reason: string;
+      protectedFork: 'childSafetyCase' | 'nciiCase' | null;
+      caseId: string | null;
+    }
+  | {
+      outcome: 'alreadyReported';
+      reportId: string;
+    }
+  | {
+      outcome: 'upgradeAvailable';
+      reportId: string;
+      reason: string;
+    }
+  | {
+      outcome: 'upgraded';
+      reportId: string;
+      reason: string;
+      protectedFork: 'childSafetyCase' | 'nciiCase';
+      caseId: string;
+    };

@@ -1188,6 +1188,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `childSafetyCaseId` | `string` | yes |
 | `nciiRemovalDeadlineAt` | `number` | yes |
 | `closure` | `{ outcome, resolutionSummary, adminNote, closedByUid, closedAt }` | yes |
+| `chatMessageLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, url } \| { kind, textRef }` | yes |
+| `contextResolutionPending` | `boolean` | yes |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
 

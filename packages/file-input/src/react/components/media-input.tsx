@@ -30,6 +30,11 @@ import { PhotoCaptureModal } from "./photo-capture-modal.js";
 import { readMediaMeta } from "../../lib/read-media-meta.js";
 import { validateMediaDuration } from "../../lib/validate-media-duration.js";
 
+/** Built-in advisory shown on EVERY MediaInput's Info affordance (overridable via `helpNotes`,
+ *  which appends). Generic + app-agnostic: uploaded files are not a backup/storage service. */
+const DEFAULT_BACKUP_NOTE =
+  "Keep your own copy of files you upload — this isn't a backup or storage service.";
+
 function err(code: FileInputError["code"], message: string, details?: Record<string, unknown>): FileInputError {
   return { code, message, details };
 }
@@ -140,6 +145,7 @@ export function MediaInput(props: MediaInputProps) {
     onCancel,
     onBeforeSelect,
     onChange,
+    helpNotes,
   } = props;
 
   const id = useId();
@@ -150,7 +156,11 @@ export function MediaInput(props: MediaInputProps) {
   const [localError, setLocalError] = useState<FileInputError | null>(null);
 
   const [showInfo, setShowInfo] = useState(false);
-  const showInfoToggle = hasConstraints(spec);
+  // Every MediaInput carries the default backup advisory + any surface-specific notes, so the Info
+  // affordance always renders (constraints, if any, are shown under the notes).
+  const infoNotes = useMemo(() => [DEFAULT_BACKUP_NOTE, ...(helpNotes ?? [])], [helpNotes]);
+  const specHasConstraints = hasConstraints(spec);
+  const showInfoToggle = specHasConstraints || infoNotes.length > 0;
 
   const [cropOpen, setCropOpen] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
@@ -620,7 +630,18 @@ export function MediaInput(props: MediaInputProps) {
         ) : null}
       </div>
 
-      {showInfo && showInfoToggle ? <MediaConstraintsHint spec={spec} className="mt-3" /> : null}
+      {showInfo && showInfoToggle ? (
+        <div className="mt-3 space-y-2">
+          {infoNotes.length > 0 ? (
+            <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-1">
+              {infoNotes.map((n, i) => (
+                <li key={i}>{n}</li>
+              ))}
+            </ul>
+          ) : null}
+          {specHasConstraints ? <MediaConstraintsHint spec={spec} /> : null}
+        </div>
+      ) : null}
 
       {localError && (
         <Alert variant="destructive" className="mt-3">

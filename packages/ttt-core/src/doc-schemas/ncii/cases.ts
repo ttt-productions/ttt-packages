@@ -29,6 +29,7 @@ import {
   NciiChildSafetyLinkStatusSchema,
   NciiChildSafetyCrossoverSchema,
   SafetyCaseClosureV1Schema,
+  TargetLocatorV1Schema,
 } from '../safety/foundation.js';
 
 // ===========================================================================
@@ -65,6 +66,13 @@ export const NciiCaseV1Schema = z.object({
   // resolution flow. The terminal `internalStatus: 'closed'` flip is the lifecycle status; THIS is
   // who closed it, why, and with what outcome. Absent until closed.
   closure: SafetyCaseClosureV1Schema.optional(),
+  // [F-014] Protected chat-report context recovery — parity with the child-safety case
+  // (doc-schemas/safety/case.ts). When an NCII case opens from a chat report while the chat Worker is
+  // unavailable, the immutable channel/message locator is preserved here and `contextResolutionPending`
+  // flags that surrounding context still needs an operator re-fetch. Both optional; absent for
+  // non-chat NCII cases.
+  chatMessageLocator: TargetLocatorV1Schema.optional(),
+  contextResolutionPending: z.boolean().optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 }).strict();
