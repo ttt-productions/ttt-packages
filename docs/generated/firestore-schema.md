@@ -309,6 +309,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `consumedAt` | `number` | yes |
 | `consumedByUid` | `string` | yes |
 | `status` | `'issued' \| 'consumed' \| 'expired'` |  |
+| `ttlExpireAt` | `unknown` | yes |
 
 ## `allWorkProjects/{workProjectId}`
 

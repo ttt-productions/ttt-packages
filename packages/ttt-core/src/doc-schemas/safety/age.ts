@@ -37,7 +37,8 @@ import { RegistrationCompletionOutcomeSchema } from './foundation.js';
 // One-time, 256-bit server-generated nonce. Only the nonce's SHA-256 is the doc id;
 // the raw nonce appears only inside the signed token. 10-minute TTL; one successful
 // consume, transactionally bound to the new Auth uid AND the requestSessionHash;
-// expired/used/unknown fails closed. Worker deletes records 24h after expiry/consume.
+// expired/used/unknown fails closed. Spent records auto-delete ~24h after consume/expiry
+// via a Firestore native-TTL policy on `ttlExpireAt` (F-018) — no scheduled reaper.
 // ===========================================================================
 
 /** Server-derived audience bracket — NEVER client-derived. */
@@ -62,6 +63,14 @@ export const AgeAttestationNonceV1Schema = z.object({
   consumedAt: z.number().optional(), // epoch ms; set on the one successful consume
   consumedByUid: z.string().min(1).optional(), // the new Auth uid this nonce was transactionally bound to
   status: AgeAttestationNonceStatusSchema,
+  // [F-018] Firestore NATIVE-TTL field. Set to a real Firestore `Timestamp` of (consume/expire time +
+  // ~24h) at the moment the nonce becomes spent; a TTL policy on `ageAttestationNonces.ttlExpireAt`
+  // then auto-deletes the spent single-use record (no scheduled reaper). DOCUMENTED EXCEPTION to this
+  // file's epoch-ms-number convention: native TTL requires a real Timestamp, and this field is
+  // WRITE-ONLY (never read by app code), so it is typed opaquely here (`z.unknown`) to avoid pulling a
+  // firebase `Timestamp` type into the environment-agnostic ttt-core schema layer (the app writes it via
+  // `admin.firestore.Timestamp.fromMillis`, mirroring notification-core's `expireAt`). Absent until spent.
+  ttlExpireAt: z.unknown().optional(),
 }).strict();
 export type AgeAttestationNonceV1 = z.infer<typeof AgeAttestationNonceV1Schema>;
 
