@@ -35,6 +35,8 @@ export const SentryNodeAdapter: MonitoringAdapter = {
       environment: options.environment,
       enabled: true,
       release: options.release,
+      ...(options.tracesSampleRate !== undefined ? { tracesSampleRate: options.tracesSampleRate } : {}),
+      ...(options.integrations !== undefined ? { integrations: options.integrations } : {}),
     });
   },
 

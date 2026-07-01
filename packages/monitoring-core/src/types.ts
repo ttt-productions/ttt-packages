@@ -6,6 +6,13 @@ export type MonitoringInitOptions = {
   environment?: string;
   enabled?: boolean; // default true
   release?: string;
+  /** Performance-trace sample rate (0–1), passed through to the provider's init.
+   *  Omit to use the provider default. */
+  tracesSampleRate?: number;
+  /** Provider integrations passed through to the SDK init — e.g. `[]` to disable the
+   *  default auto-integrations and keep init lightweight (the TTT Cloud Functions
+   *  bootstrap does this). Typed loosely: it is a provider-specific pass-through. */
+  integrations?: unknown[];
 };
 
 export type MonitoringUser = {
