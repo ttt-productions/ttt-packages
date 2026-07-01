@@ -83,3 +83,35 @@ export const SetMyDisplayNameInputSchema = z.object({
 }).strict();
 export type SetMyDisplayNameInput = z.infer<typeof SetMyDisplayNameInputSchema>;
 
+// Unauthenticated soft-check the register page runs BEFORE creating the Auth user so a
+// taken name never orphans an auth account. Mirrors the RegisterUser displayName contract
+// (same length + regex). The authoritative claim still happens inside registerUser.
+export const CheckDisplayNameAvailableInputSchema = z.object({
+  displayName: z
+    .string()
+    .min(USERNAME_MIN_LENGTH)
+    .max(USERNAME_MAX_LENGTH)
+    .regex(USERNAME_REGEX),
+}).strict();
+export type CheckDisplayNameAvailableInput = z.infer<typeof CheckDisplayNameAvailableInputSchema>;
+
+// Teen→adult upgrade: a transient DOB (never persisted) the callable re-derives adult
+// eligibility from server-side against a fresh attestation. Only the shape is validated
+// here; the age math + attestation binding live in the callable.
+export const UpgradeAccountToAdultInputSchema = z.object({
+  dob: z.object({
+    year: z.number().int(),
+    month: z.number().int().min(1).max(12),
+    day: z.number().int().min(1).max(31),
+  }).strict(),
+}).strict();
+export type UpgradeAccountToAdultInput = z.infer<typeof UpgradeAccountToAdultInputSchema>;
+
+// Admin-only user lookup for the User Management view (prefix search on publicUsers by
+// displayName). Only the trimmed query string is validated here; authz (admin/jr-admin)
+// lives in the callable.
+export const SearchPublicUsersInputSchema = z.object({
+  query: z.string().trim().min(1).max(100),
+}).strict();
+export type SearchPublicUsersInput = z.infer<typeof SearchPublicUsersInputSchema>;
+

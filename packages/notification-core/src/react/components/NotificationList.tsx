@@ -18,7 +18,8 @@ export function NotificationList({
   category,
   onNotificationClick,
   archiveFn,
-  archiveAllFn,
+  enqueueArchiveAllFn,
+  getArchiveAllStatusFn,
   onClearAll,
   refetchInterval,
   emptyText,
@@ -44,7 +45,8 @@ export function NotificationList({
   const archiveAllMutation = useArchiveAllNotifications({
     userId,
     category,
-    archiveAllFn,
+    enqueueArchiveAllFn,
+    getArchiveAllStatusFn,
   });
 
   const handleNotificationClick = useCallback(
@@ -59,9 +61,11 @@ export function NotificationList({
     [archiveMutation, onNotificationClick],
   );
 
-  // I3: surface a failed/incomplete clear instead of swallowing it. `onClearAll` (and the
-  // tray-closing side effects the app wires to it) fires ONLY when the active set was fully
-  // drained — otherwise the user keeps the "notifications remain — try again" affordance.
+  // Surface a failed/incomplete clear instead of swallowing it. `onClearAll` (and the tray-closing
+  // side effects the app wires to it) fires ONLY when the server job fully drained the category —
+  // otherwise the user keeps the "notifications remain — try again" affordance. The poller resolves
+  // with an explicit terminal result (`complete` | `incomplete` | `failed`) and only rejects on a
+  // hard enqueue/poll throw.
   const [clearIncomplete, setClearIncomplete] = useState(false);
 
   const handleClearAll = useCallback(async () => {
@@ -70,12 +74,13 @@ export function NotificationList({
     try {
       result = await archiveAllMutation.mutateAsync();
     } catch {
-      // Hard failure: do not fire onClearAll; surface the retry affordance.
+      // Hard failure (enqueue/poll threw): do not fire onClearAll; surface the retry affordance.
       setClearIncomplete(true);
       return;
     }
     if (!result.complete) {
-      // Resolved but the active set was not fully drained — keep notifications, prompt a retry.
+      // Job terminated without fully draining the category (incomplete/failed) — keep the
+      // notifications and prompt a retry.
       setClearIncomplete(true);
       return;
     }

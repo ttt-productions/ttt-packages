@@ -72,9 +72,25 @@ export const AuditionSchema = z.object({
   createdBy: userRefSchema,
   workProjectId: z.string().optional(),
   // Curated vs open. 'open' (default when absent — existing auditions): anyone may post reply
-  // entries AND vote. 'curated': the creating work posts the option entries itself (min 2, no max,
+  // entries AND vote. 'curated': the creating work posts the option entries itself (min 2, max 8,
   // each `isCreatorOption: true`) and users may ONLY vote — community reply entries are rejected.
   mode: z.enum(['open', 'curated']).optional(),
+  // Curated atomic-reveal state (only meaningful when mode === 'curated'). The prompt + all N option
+  // videos upload as ONE fixed batch; the audition stays non-votable + off the public board until the
+  // WHOLE batch is live and every video passed moderation:
+  //   'assembling' — batch still processing/moderating; not votable, not on the board (status stays
+  //                  'pendingReview'), only the creator sees a "preparing…" state.
+  //   'ready'      — all N+1 landed and approved; app flips status → 'open' and the audition reveals.
+  //   'failed'     — any video in the batch was rejected by moderation; the whole audition fails.
+  //                  status stays non-open; only the creator sees it (on the project page) to Edit &
+  //                  resubmit or Discard.
+  curatedAssemblyStatus: z.enum(['assembling', 'ready', 'failed']).optional(),
+  // The fixed number of creator option videos submitted at create-time (2..8). Used to know when the
+  // whole batch has landed (all expected entries approved → reveal).
+  expectedOptionCount: z.number().int().optional(),
+  // Set when curatedAssemblyStatus === 'failed': which video was rejected, for the creator-only
+  // failed-audition surface on the project page.
+  curatedFailureReason: z.string().optional(),
   sponsoredAuditionAmountUSD: z.number().optional(),
   stakeSharesOffered: z.number().optional(),
   status: z.enum(['open', 'closed', 'pendingReview']),

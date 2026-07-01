@@ -53,6 +53,16 @@ export const NciiPolicyConfigV1Schema = z.object({
   tempHoldPendingValidityExtensionHours: z.number(),
   tempHoldMaxTotalHours: z.number(),
   incompleteInvalidReleaseDelayHours: z.number(),
+  // [NCII route rate-limit hardening — 2026-07-01, OPERATIONAL operator defaults, not legal-retention
+  // values; counsel may tune]. Public routes return 429 + Retry-After and NEVER discard a submission.
+  // Supplement route is limited PER opaque requestReference (victim-safe, no cross-IP collision).
+  // Intake route keeps App-Check as the PRIMARY defense with only a GENEROUS per-IP burst backstop
+  // (generous enough not to throttle a real VPN/shared-IP victim — per-IP was rejected for the evidence
+  // BYTES path; this is the HTTP route only).
+  supplementRateLimitWindowSeconds: z.number(),
+  supplementRateLimitMaxPerReference: z.number(),
+  intakeRateLimitWindowSeconds: z.number(),
+  intakeRateLimitMaxPerIp: z.number(),
   statusTokenEntropyBits: z.number(),
   statusTokenTtlDays: z.number(),
   // [H-07] dedup window for the deterministic initial-intake idempotency key
@@ -93,6 +103,11 @@ export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
   tempHoldPendingValidityExtensionHours: 48,
   tempHoldMaxTotalHours: 336,
   incompleteInvalidReleaseDelayHours: 24,
+  // [NCII route rate-limit hardening — 2026-07-01 operator defaults; generous, counsel may tune]
+  supplementRateLimitWindowSeconds: 3600, // per opaque requestReference
+  supplementRateLimitMaxPerReference: 10, // a victim supplementing their OWN request — generous
+  intakeRateLimitWindowSeconds: 3600, // per source IP (secondary flood guard; App-Check is primary)
+  intakeRateLimitMaxPerIp: 20, // generous so a shared/VPN IP with several genuine victims isn't throttled
   statusTokenEntropyBits: 256,
   statusTokenTtlDays: 180,
   idempotencyWindowHours: 72,

@@ -143,6 +143,80 @@ export const UpdateWorkRealmDetailsInputSchema = z.object({
 }).strict();
 export type UpdateWorkRealmDetailsInput = z.infer<typeof UpdateWorkRealmDetailsInputSchema>;
 
+// Unauthenticated soft-check for a Realm working title. Must match the authoritative
+// realmWorkingTitle contract in CreateWorkProjectInputSchema — min(1).max(200), no
+// character restriction. Never be stricter than the create transaction or a valid-at-create
+// name would be rejected at form time.
+export const CheckRealmNameAvailableInputSchema = z.object({
+  workingTitle: z.string().min(1).max(200),
+}).strict();
+export type CheckRealmNameAvailableInput = z.infer<typeof CheckRealmNameAvailableInputSchema>;
 
+// ---- work-project file folders (S7) ---------------------------------------------------
+// The default "All Guildmates" folder is immutable; custom-folder access is by trade
+// profession. All four callables require a file-admin standing via assertCanManageFolders.
+
+const tradeProfessionListSchema = z
+  .array(z.enum(TRADE_PROFESSION_VALUES))
+  .max(TRADE_PROFESSION_OPTIONS.length);
+
+export const CreateFileFolderInputSchema = z.object({
+  workProjectId: z.string().min(1),
+  name: z.string().min(1).max(100),
+  canViewTradeProfessions: tradeProfessionListSchema,
+  canUploadTradeProfessions: tradeProfessionListSchema,
+  canDeleteTradeProfessions: tradeProfessionListSchema,
+}).strict();
+export type CreateFileFolderInput = z.infer<typeof CreateFileFolderInputSchema>;
+
+export const RenameFileFolderInputSchema = z.object({
+  workProjectId: z.string().min(1),
+  folderId: z.string().min(1),
+  name: z.string().min(1).max(100),
+}).strict();
+export type RenameFileFolderInput = z.infer<typeof RenameFileFolderInputSchema>;
+
+export const UpdateFolderProfessionsInputSchema = z.object({
+  workProjectId: z.string().min(1),
+  folderId: z.string().min(1),
+  canViewTradeProfessions: tradeProfessionListSchema,
+  canUploadTradeProfessions: tradeProfessionListSchema,
+  canDeleteTradeProfessions: tradeProfessionListSchema,
+}).strict();
+export type UpdateFolderProfessionsInput = z.infer<typeof UpdateFolderProfessionsInputSchema>;
+
+export const DeleteFileFolderInputSchema = z.object({
+  workProjectId: z.string().min(1),
+  folderId: z.string().min(1),
+}).strict();
+export type DeleteFileFolderInput = z.infer<typeof DeleteFileFolderInputSchema>;
+
+// ---- realm shared files ---------------------------------------------------------------
+
+// Delete a single work file (by folder + file id). File-admin authz is enforced in the
+// callable/core transaction.
+export const DeleteWorkFileInputSchema = z.object({
+  workProjectId: z.string().min(1),
+  folderId: z.string().min(1),
+  workFileId: z.string().min(1),
+}).strict();
+export type DeleteWorkFileInput = z.infer<typeof DeleteWorkFileInputSchema>;
+
+// Set canon status on a realm shared file. Realm-steward-only authz is enforced inside the
+// core's transaction against workRealms/{workRealmId}.workStewardUid.
+export const UpdateWorkFileRealmCanonInputSchema = z.object({
+  workRealmId: z.string().min(1),
+  mediaAssetId: z.string().min(1),
+  canon: z.boolean(),
+}).strict();
+export type UpdateWorkFileRealmCanonInput = z.infer<typeof UpdateWorkFileRealmCanonInputSchema>;
+
+// Share (promote) a work file into its Realm's shared-file pool as non-canon. File-admin
+// authz (`workFile.promoteToRealm`) is enforced inside the core's transaction.
+export const UpdateWorkFileRealmShareInputSchema = z.object({
+  workProjectId: z.string().min(1),
+  workFileId: z.string().min(1),
+}).strict();
+export type UpdateWorkFileRealmShareInput = z.infer<typeof UpdateWorkFileRealmShareInputSchema>;
 
 

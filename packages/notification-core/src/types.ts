@@ -207,45 +207,101 @@ export interface UseArchiveNotificationOptions {
   invalidateKeys?: readonly unknown[][];
 }
 
+// ----------------------------------------------------------------------------
+// Archive-all — server-owned job + thin client status poller
+// ----------------------------------------------------------------------------
+//
+// Archive-all is NOT a browser loop. The client enqueues ONE server-owned
+// archive-all job (scoped to a single notification category/tab), then polls its
+// status until the job reaches a terminal state. All paging + ownership-checked
+// per-card deletion happen server-side in a bounded scheduled/queued worker; the
+// hook never touches Firestore and never chains archive calls. The generic
+// package hardcodes NO callable name — the app injects both adapters below.
+
 /**
- * Result of ONE archive-all server call. `hasMore` is true when the server hit its per-invocation
- * cap and the caller's active set was NOT fully drained — `useArchiveAllNotifications` loops the
- * adapter until `hasMore` is false so "Clear All" actually clears all (I3).
+ * Terminal + transient states of a server-owned archive-all job, as surfaced to the UI.
  *
- * NOTE: the loop's aggregate result carries the same `archived`/`hasMore` shape PLUS a `complete`
- * flag (`ArchiveAllLoopResult`); a single server page does not know whether the WHOLE active set
- * was drained, so the per-call shape here intentionally has no `complete`.
+ * - `idle`        — nothing enqueued yet (initial / reset state).
+ * - `enqueuing`   — the enqueue adapter is in flight (job not yet acknowledged).
+ * - `in-progress` — the job is enqueued/running; the worker is still draining the category.
+ * - `complete`    — TERMINAL: the worker fully drained the category's active set.
+ * - `incomplete`  — TERMINAL: the job stopped without draining everything (e.g. hit its own
+ *                   bound / a non-advanceable card). The tray keeps a "some remain — try again"
+ *                   affordance, mirroring the old loop's incomplete result.
+ * - `failed`      — TERMINAL: the enqueue call threw, or the job dead-lettered / reported failure.
  */
-export interface ArchiveAllResult {
-  archived: number;
-  hasMore: boolean;
+export type ArchiveAllJobStatus =
+  | 'idle'
+  | 'enqueuing'
+  | 'in-progress'
+  | 'complete'
+  | 'incomplete'
+  | 'failed';
+
+/**
+ * Result of the INJECTED enqueue adapter — triggers exactly one server-owned archive-all job for
+ * the given category and returns immediately with the job's id (idempotent per user+category+request
+ * on the app side). The app wires this to its `httpsCallable(functions, 'enqueueArchiveAll')`
+ * (or equivalent); the generic package never names the callable.
+ */
+export interface EnqueueArchiveAllResult {
+  /** Server job id the poller then polls via the status adapter. */
+  jobId: string;
 }
 
 /**
- * Aggregate result of the `useArchiveAllNotifications` continuation loop (I3). `complete` is the
- * load-bearing completion contract: it is `true` ONLY when the active set was fully drained
- * (`hasMore` reached `false`). It is `false` when the loop stopped early — either the no-progress
- * guard tripped (a pass archived nothing yet still reported `hasMore`, e.g. a generation-less head
- * card that can't advance) or the per-mutation pass bound was hit with `hasMore` still `true`.
- * Callers MUST gate post-clear side effects (closing the tray, `onClearAll`) on `complete`, not on
- * mere resolution — the mutation resolves on an incomplete drain rather than throwing.
+ * Snapshot of a server-owned archive-all job, returned by the INJECTED status-query adapter.
+ * The poller maps `state` → {@link ArchiveAllJobStatus} and stops polling on any terminal state.
+ * `category` echoes the tab/category the job was enqueued for so the UI can assert per-tab scoping.
  */
-export interface ArchiveAllLoopResult {
+export interface ArchiveAllJobSnapshot {
+  /** Job lifecycle state as owned by the server worker. */
+  state: 'in-progress' | 'complete' | 'incomplete' | 'failed';
+  /** The notification category/tab this job is scoped to (must match the enqueue category). */
+  category: string;
+  /** Cards archived so far (monotonic); optional progress for the UI. */
+  archived?: number;
+  /** Human-readable failure reason when `state === 'failed'` (optional). */
+  error?: string;
+}
+
+/**
+ * Aggregate result the poller resolves with once the job reaches a terminal state.
+ * `complete` is the load-bearing completion contract (true ONLY when the whole category was
+ * drained), preserved from the old loop so callers gate side effects the same way.
+ */
+export interface ArchiveAllPollResult {
+  status: Extract<ArchiveAllJobStatus, 'complete' | 'incomplete' | 'failed'>;
+  category: string;
   archived: number;
-  hasMore: boolean;
   complete: boolean;
+  error?: string;
 }
 
 export interface UseArchiveAllNotificationsOptions {
   userId: string;
   category: string;
   /**
-   * App-supplied adapter that archives ONE bounded page of the caller's whole category — typically
-   * an `httpsCallable(functions, 'archiveNotification')` invoked with the `{ kind: 'all' }` scope.
-   * Returns `{ archived, hasMore }`; the hook re-invokes it while `hasMore` is true. No client
-   * Firestore writes.
+   * App-supplied adapter that ENQUEUES one server-owned archive-all job scoped to `category` and
+   * returns its `jobId`. The `category` is passed so the app callable can carry the tab/source into
+   * the job (per-tab scoping is REQUIRED — the worker archives only that category's active cards).
+   * Typically `(category) => enqueueArchiveAll({ category })` over an `httpsCallable`.
    */
-  archiveAllFn: () => Promise<ArchiveAllResult>;
+  enqueueArchiveAllFn: (category: string) => Promise<EnqueueArchiveAllResult>;
+  /**
+   * App-supplied adapter that returns the current {@link ArchiveAllJobSnapshot} for a job id — the
+   * hook polls it until the job reaches a terminal state. Typically
+   * `(jobId) => getArchiveAllStatus({ jobId })` over an `httpsCallable`, or a Firestore read of the
+   * job doc. No client Firestore writes.
+   */
+  getArchiveAllStatusFn: (jobId: string) => Promise<ArchiveAllJobSnapshot>;
+  /** Poll interval in ms while the job is in-progress (default 1500). */
+  pollIntervalMs?: number;
+  /**
+   * Max number of status polls before the poller gives up and resolves `incomplete` (guards a job
+   * that never reaches a terminal state — default 120, i.e. ~3 min at the default interval).
+   */
+  maxPolls?: number;
   invalidateKeys?: readonly unknown[][];
 }
 
@@ -264,11 +320,17 @@ export interface NotificationListProps {
    */
   archiveFn: (notificationId: string) => Promise<unknown>;
   /**
-   * Adapter that archives ONE bounded page of the caller's whole category (returns
-   * `{ archived, hasMore }`). Passed straight through to `useArchiveAllNotifications`, which loops
-   * it until fully drained; the app wires it to its callable.
+   * Adapter that ENQUEUES one server-owned archive-all job scoped to `category` and returns its
+   * `jobId`. Passed straight through to `useArchiveAllNotifications`; the app wires it to its
+   * enqueue callable. Per-tab scoping: the category flows through to the job.
    */
-  archiveAllFn: () => Promise<ArchiveAllResult>;
+  enqueueArchiveAllFn: (category: string) => Promise<EnqueueArchiveAllResult>;
+  /**
+   * Adapter that returns the current status snapshot for an archive-all `jobId`. Passed straight
+   * through to `useArchiveAllNotifications`, which polls it until the job is terminal; the app wires
+   * it to its status callable / job-doc read.
+   */
+  getArchiveAllStatusFn: (jobId: string) => Promise<ArchiveAllJobSnapshot>;
   onClearAll?: () => void;
   refetchInterval?: number;
   emptyText?: string;

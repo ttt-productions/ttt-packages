@@ -54,6 +54,10 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `tempHoldPendingValidityExtensionHours` | `number` |  |
 | `tempHoldMaxTotalHours` | `number` |  |
 | `incompleteInvalidReleaseDelayHours` | `number` |  |
+| `supplementRateLimitWindowSeconds` | `number` |  |
+| `supplementRateLimitMaxPerReference` | `number` |  |
+| `intakeRateLimitWindowSeconds` | `number` |  |
+| `intakeRateLimitMaxPerIp` | `number` |  |
 | `statusTokenEntropyBits` | `number` |  |
 | `statusTokenTtlDays` | `number` |  |
 | `idempotencyWindowHours` | `number` |  |
@@ -510,6 +514,9 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `createdBy` | `{ uid }` |  |
 | `workProjectId` | `string` | yes |
 | `mode` | `'open' \| 'curated'` | yes |
+| `curatedAssemblyStatus` | `'assembling' \| 'ready' \| 'failed'` | yes |
+| `expectedOptionCount` | `number` | yes |
+| `curatedFailureReason` | `string` | yes |
 | `sponsoredAuditionAmountUSD` | `number` | yes |
 | `stakeSharesOffered` | `number` | yes |
 | `status` | `'open' \| 'closed' \| 'pendingReview'` |  |
