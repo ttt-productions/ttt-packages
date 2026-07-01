@@ -61,6 +61,10 @@ export const AuditionPromptTargetInfoSchema = z
     openTill: z.number().int().positive(),
     workProjectId: z.string().min(1),
     stakeSharesOffered: z.number().int().min(0).max(MAX_WORK_PROJECT_STAKE_SHARES).optional(),
+    // Curated vs open audition. Absent ⇒ 'open' (community replies + votes). 'curated' ⇒ the
+    // creating work posts the option entries itself and users may ONLY vote (the create/reply
+    // callable derives each option entry's isCreatorOption server-side and rejects community replies).
+    mode: z.enum(['open', 'curated']).optional(),
   })
   .strict();
 
@@ -73,6 +77,8 @@ export const AdminAuditionPromptTargetInfoSchema = z
     description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
     openTill: z.number().int().positive(),
     sponsoredAuditionAmountUSD: z.number().nonnegative().finite().max(MAX_SPONSORED_AUDITION_AMOUNT_USD).optional(),
+    // Curated vs open (see AuditionPromptTargetInfoSchema.mode). Absent ⇒ 'open'.
+    mode: z.enum(['open', 'curated']).optional(),
   })
   .strict();
 
