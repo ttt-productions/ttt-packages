@@ -14,6 +14,31 @@ import {
 import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
 import { GUILD_STANDING_VALUES } from '../permissions/index.js';
 import { MAX_GUILD_INVITE_MESSAGE_LENGTH } from '../constants/business.js';
+import { RealmFileCanonStatusSchema } from '../doc-schemas/media-assets.js';
+
+// ===========================================================================
+// S7 realm shared-files gallery (ARTISAN-ONLY). `mediaAssets` is client-unreadable, so the gallery
+// reads realm-shared work files via THIS server projection callable (never a client query). The
+// callable is artisan-gated; the whole section is hidden from non-artisans. Serving is the reserved
+// `'artisan'` media tier (mutate-in-place scoped→artisan on promote). V1 = view + download.
+// ===========================================================================
+
+export const RealmSharedFileProjectionSchema = z.object({
+  mediaAssetId: z.string(),
+  mediaKind: z.enum(['image', 'video', 'audio']),
+  // 'nonCanon' | 'canon' for a shared file (never 'none' — that means not-shared).
+  realmFileCanonStatus: RealmFileCanonStatusSchema,
+  creatorUid: z.string(),
+  // For the per-file steward canon toggle + download (updateWorkFileRealmCanon takes these).
+  workProjectId: z.string(),
+  workFileId: z.string(),
+}).strict();
+export type RealmSharedFileProjection = z.infer<typeof RealmSharedFileProjectionSchema>;
+
+export const GetRealmSharedFilesInputSchema = z.object({
+  realmId: z.string().min(1),
+}).strict();
+export type GetRealmSharedFilesInput = z.infer<typeof GetRealmSharedFilesInputSchema>;
 
 const baseFields = {
   workingTitle: z.string().min(1).max(200),

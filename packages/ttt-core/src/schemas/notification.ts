@@ -311,6 +311,28 @@ export const ArchiveNotificationObservedInputSchema = z.object({
 export type ArchiveNotificationObservedInput = z.infer<typeof ArchiveNotificationObservedInputSchema>;
 
 // ============================================================================
+// SERVER-OWNED ARCHIVE-ALL JOB (replaces the browser clear-all loop)
+//
+// `enqueueArchiveAll` enqueues ONE durable archive-all job scoped to the tab's
+// category (idempotent per user+category+requestId) and returns { jobId }; the
+// bounded server worker drains that category's active cards each in its own
+// atomic archive+audit txn (per-card observed-generation precondition preserved).
+// `getArchiveAllStatus` is polled by the thin client hook. Per-tab scoping is
+// REQUIRED — a job only ever archives its own category, never all tabs.
+// ============================================================================
+
+export const EnqueueArchiveAllInputSchema = z.object({
+  requestId: z.string().min(1),
+  category: NotificationCategorySchema,
+}).strict();
+export type EnqueueArchiveAllInput = z.infer<typeof EnqueueArchiveAllInputSchema>;
+
+export const GetArchiveAllStatusInputSchema = z.object({
+  jobId: z.string().min(1),
+}).strict();
+export type GetArchiveAllStatusInput = z.infer<typeof GetArchiveAllStatusInputSchema>;
+
+// ============================================================================
 // AUDIT EVENT PAYLOADS (admin-only)
 // ============================================================================
 

@@ -1,10 +1,21 @@
 import { z } from 'zod';
-import { ReportableItemTypeSchema } from '../doc-schemas/safety/foundation.js';
+import { ReportableItemTypeSchema, NciiMinorAssessmentSchema } from '../doc-schemas/safety/foundation.js';
 
 // NCII / TAKE IT DOWN callable-input schemas. Cross-boundary contracts for the
 // `functions/src/ncii/` callables — moved here from local `functions/` definitions so the
 // callable-validation standard (parse `request.data` with a `.strict()` ttt-core schema before any
 // auth check) is met from one authoritative place. See docs/design/callable-validation.md.
+
+// Operator sets the child-safety crossover minorAssessment on an NCII case (CSAM possible-minor
+// crossover — DECISION 2026-07-01: operator-only, no automated age signal). A routing action: it
+// opens/links a PARALLEL child-safety review + deny-serving + PhotoDNA, WITHOUT touching the NCII
+// removal clock and WITHOUT auto-NCMEC (that still needs a validated hash or explicit human
+// confirmApparentViolation). Writes the `ncii.minorAssessmentSet` audit event.
+export const SetNciiMinorAssessmentInputSchema = z.object({
+  caseId: z.string().min(1),
+  minorAssessment: NciiMinorAssessmentSchema,
+}).strict();
+export type SetNciiMinorAssessmentInput = z.infer<typeof SetNciiMinorAssessmentInputSchema>;
 
 // ===========================================================================
 // listNciiEvidencePool — admin-only pool read for the find-&-link flow.
