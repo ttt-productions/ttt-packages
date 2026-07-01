@@ -403,8 +403,8 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}': 'guildChatChannelId',
   'activeUserNotifications/{notificationId}': 'id',
   'activeAdminNotifications/{notificationId}': 'id',
-  'adminNotificationHistory/{notificationId}': 'id',
-  'userProfiles/{userId}/notificationHistory/{notificationId}': 'id',
+  'adminNotificationHistory/{notificationId}': 'archiveOccurrenceId',
+  'userProfiles/{userId}/notificationHistory/{notificationId}': 'archiveOccurrenceId',
   'pendingNotifications/{notificationId}': 'id',
 } as const satisfies Partial<Record<RegisteredCollectionPath, string>>;
 

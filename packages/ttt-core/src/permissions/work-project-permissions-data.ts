@@ -145,8 +145,9 @@ export const WORK_PROJECT_ACTIONS = {
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
   },
   'workFile.promoteToRealm': {
-    label: 'Promote file to realm',
-    description: 'Flag a file as a candidate for the realm shared-file library.',
+    label: 'Share file to realm',
+    description: 'Instantly share a work file into its realm shared-file pool (as non-canon). ' +
+      'Canon promotion is a separate realm-steward power, evaluated at the realm level, not here.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
   },
   'commission.open': {

@@ -108,18 +108,17 @@ erDiagram
     field jrAdmins
   }
   adminNotificationHistory {
-    field id
-    field type
-    field dedupKey
+    field archiveOccurrenceId
+    field requestId
+    field payloadHash
+    field activeId
+    field observedActivityGeneration
     field category
-    field targetUserId
-    field title
-    field message
-    field count
-    field latestActorIds
-    field targetPath
-    field metadata
-    field seenAt
+    field audienceScope
+    field archivedSnapshot
+    field archivedAt
+    field expireAt
+    field handledBy
   }
   adminTasks {
     field id
@@ -222,8 +221,8 @@ erDiagram
     field createdOn
     field createdBy
     field workProjectId
+    field mode
     field sponsoredAuditionAmountUSD
-    field stakeSharesOffered
   }
   auditionEntries {
     field auditionEntryId
@@ -236,6 +235,7 @@ erDiagram
     field votes
     field shortId
     field shortUrl
+    field isCreatorOption
     field hidden
   }
   auditionVotes {
@@ -845,18 +845,17 @@ erDiagram
     field nextAttemptAt
   }
   notificationHistory {
-    field id
-    field type
-    field dedupKey
+    field archiveOccurrenceId
+    field requestId
+    field payloadHash
+    field activeId
+    field observedActivityGeneration
     field category
-    field targetUserId
-    field title
-    field message
-    field count
-    field latestActorIds
-    field targetPath
-    field metadata
-    field seenAt
+    field audienceScope
+    field archivedSnapshot
+    field archivedAt
+    field expireAt
+    field handledBy
   }
   paymentWebhookQuarantine {
     field eventId
@@ -1336,13 +1335,13 @@ erDiagram
     field displayName_lowercase
     field profilePictureAssetId
     field artisanCreator
+    field hasPledged
     field status
     field accountAccessVersion
     field accountAccessState
     field displayNameResetRequired
     field ownedWorkProjects
     field associatedWorkProjects
-    field createdAt
   }
   userSuggestions {
     field suggestionText
@@ -1470,7 +1469,6 @@ erDiagram
   userProfiles ||--o{ activeAdminNotifications : "targetUserId"
   userProfiles ||--o{ activeUserNotifications : "targetUserId"
   userProfiles ||--o{ adminActivityLog : "adminUserId"
-  userProfiles ||--o{ adminNotificationHistory : "targetUserId"
   userProfiles ||--o{ adminTasks : "foundingArtisanUid"
   userProfiles ||--o{ adminTasks : "userId"
   userProfiles ||--o{ chatAdminActionCommands : "actorUid"
@@ -1484,7 +1482,6 @@ erDiagram
   userProfiles ||--o{ guildmateUsers : "uid"
   userProfiles ||--o{ mentionHistory : "userId"
   userProfiles ||--o{ moderationCascadeManifests : "actorUid"
-  userProfiles ||--o{ notificationHistory : "targetUserId"
   userProfiles ||--o{ paymentWebhookQuarantine : "resolvedBy"
   userProfiles ||--o{ paymentWebhookQuarantine : "userId"
   userProfiles ||--o{ pendingAdminDispatches : "closedBy"

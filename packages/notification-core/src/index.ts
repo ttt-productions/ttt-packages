@@ -1,7 +1,5 @@
 export type {
   NotificationDoc,
-  NotificationHistoryDoc,
-  ArchivalInfo,
   PendingNotification,
   NotificationCategoryConfig,
   NotificationTypeConfig,
@@ -12,9 +10,7 @@ export type {
   UseArchiveAllNotificationsOptions,
   ArchiveAllResult,
   ArchiveAllLoopResult,
-  UseNotificationHistoryOptions,
   NotificationListProps,
   NotificationEmptyStateProps,
-  NotificationHistoryListProps,
   NotificationUnreadBadgeProps,
 } from './types.js';

@@ -39,6 +39,11 @@ export const ReviewThresholdItemInputSchema = z.object({
   thresholdItemId: thresholdItemIdSchema,
   decision: z.enum(['approved', 'needs_revision']),
   adminNotes: z.string().max(2000).nullable().optional(),
+  // Reviewer checklist confirmations, recorded on the review (mirrors `teachesSomething`).
+  // Optional here so a `needs_revision` decision still validates; the callable REQUIRES both
+  // true on an `approved` decision. First two: no-begging-for-bouquets, no-credits-in-content.
+  confirmedNoBegging: z.boolean().optional(),
+  confirmedNoCredits: z.boolean().optional(),
 }).strict();
 export type ReviewThresholdItemInput = z.infer<typeof ReviewThresholdItemInputSchema>;
 

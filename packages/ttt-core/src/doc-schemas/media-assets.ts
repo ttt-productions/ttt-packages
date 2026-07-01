@@ -121,10 +121,14 @@ export const MediaRetentionPolicySchema = z.enum([
 ]);
 export type MediaRetentionPolicy = z.infer<typeof MediaRetentionPolicySchema>;
 
-export const RealmPromotionStatusSchema = z.enum([
-  'none', 'candidate', 'pendingReview', 'promoted', 'rejected',
-]);
-export type RealmPromotionStatus = z.infer<typeof RealmPromotionStatusSchema>;
+// Realm shared-files: a work file's standing in its realm's shared pool.
+//   none     — not shared to the realm (default)
+//   nonCanon — shared to the realm's pool, non-canon
+//   canon    — shared and marked canon (realm steward/owner toggles canon ↔ nonCanon)
+// Moderation/takedown is NOT a value here — a hidden file is hidden via the shared
+// media path (`servingStatus: 'hidden'`), so the gallery filters on servingStatus.
+export const RealmFileCanonStatusSchema = z.enum(['none', 'nonCanon', 'canon']);
+export type RealmFileCanonStatus = z.infer<typeof RealmFileCanonStatusSchema>;
 
 // ===== Serving authority (Durable Object) + publication gating =====
 // See MEDIA_AUTHORITY_DO_DESIGN.md §6–§9/§13 and media-assets-and-protected-serving.md.
@@ -263,11 +267,10 @@ export const MediaAssetSchema = z.object({
   // ingest, inherited unchanged by every copy/variant. Never client-supplied.
   originLineage: MediaOriginLineageV1Schema.optional(),
 
-  // Realm-promotion seam (full feature is post-launch).
-  realmPromotionStatus: RealmPromotionStatusSchema,
-  realmPromotionNote: z.string().max(2000).optional(),
-  realmPromotionRequestedByUid: z.string().optional(),
-  realmPromotionRequestedAt: z.number().optional(),
+  // Realm shared-files seam. A file's standing in its realm's shared pool; set at
+  // creation to 'none' and moved by the realm shared-files callables. Attribution
+  // fields (who set canon, when) are added by that feature when it ships.
+  realmFileCanonStatus: RealmFileCanonStatusSchema,
 
   // Serving authority + publication gating (§13). Additive/optional so assets
   // written before the authority build still parse: absent authorityVersion ⇒

@@ -120,8 +120,8 @@ export type PublicWorkProject = z.infer<typeof PublicWorkProjectSchema>;
 // A default folder (every active guildmate views/uploads) + custom folders whose
 // audience is controlled by TRADE PROFESSIONS, while file-system ADMINISTRATION is
 // controlled by guild standings (StewardOwner / WorkProjectManager / WorkAssetAdmin).
-// See docs/design/work-project-file-folders.md. Realm promotion of a file is the
-// `realmPromotion*` seam on the file's mediaAssets doc (media-assets.ts).
+// See docs/design/work-project-file-folders.md. Realm sharing of a file is the
+// `realmFileCanonStatus` seam on the file's mediaAssets doc (media-assets.ts).
 // ===========================================================================
 
 /** `allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}`. */

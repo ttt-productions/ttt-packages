@@ -250,24 +250,16 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `type` | `string` |  |
-| `dedupKey` | `string` |  |
+| `archiveOccurrenceId` | `string` |  |
+| `requestId` | `string` |  |
+| `payloadHash` | `string` |  |
+| `activeId` | `string` |  |
+| `observedActivityGeneration` | `string` |  |
 | `category` | `string` |  |
-| `targetUserId` | `string \| null` |  |
-| `title` | `string` |  |
-| `message` | `string` |  |
-| `count` | `number` |  |
-| `latestActorIds` | `string[]` |  |
-| `targetPath` | `string` |  |
-| `metadata` | `Record<string, unknown>` |  |
-| `seenAt` | `number` |  |
-| `activityGeneration` | `string` | yes |
-| `seenAtGeneration` | `string` | yes |
-| `createdAt` | `number` |  |
-| `updatedAt` | `number` |  |
-| `archival` | `{ archivedBy, archivedAt }` |  |
-| `expireAt` | `number` |  |
+| `audienceScope` | `string` |  |
+| `archivedSnapshot` | `{ id, type, dedupKey, category, targetUserId, title, message, count, latestActorIds, targetPath, metadata, seenAt, activityGeneration, seenAtGeneration, createdAt, updatedAt }` |  |
+| `archivedAt` | `number` |  |
+| `expireAt` | `custom` |  |
 | `handledBy` | `string` | yes |
 
 ## `adminTasks/{taskId}`
@@ -517,6 +509,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `createdOn` | `number` |  |
 | `createdBy` | `{ uid }` |  |
 | `workProjectId` | `string` | yes |
+| `mode` | `'open' \| 'curated'` | yes |
 | `sponsoredAuditionAmountUSD` | `number` | yes |
 | `stakeSharesOffered` | `number` | yes |
 | `status` | `'open' \| 'closed' \| 'pendingReview'` |  |
@@ -539,6 +532,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `votes` | `number` |  |
 | `shortId` | `string` | yes |
 | `shortUrl` | `string` | yes |
+| `isCreatorOption` | `boolean` | yes |
 | `hidden` | `boolean` |  |
 
 ## `chatAdminActionCommands/{requestId}`
@@ -1118,10 +1112,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `legalHold` | `boolean` |  |
 | `originalDeletedAt` | `number` | yes |
 | `originLineage` | `{ lineageVersion, rootIngestId, rootAssetId, sourceAssetId, originatingUploaderUid, originatingUploadEventId, originalUploadCreatedAt, rootSha256, originalSha256, variantSha256s, copyReason, createdFromOwnerType, createdFromOwnerId, copyActorUid, currentOwnerType, currentOwnerId }` | yes |
-| `realmPromotionStatus` | `'none' \| 'candidate' \| 'pendingReview' \| 'promoted' \| 'rejected'` |  |
-| `realmPromotionNote` | `string` | yes |
-| `realmPromotionRequestedByUid` | `string` | yes |
-| `realmPromotionRequestedAt` | `number` | yes |
+| `realmFileCanonStatus` | `'none' \| 'nonCanon' \| 'canon'` |  |
 | `authorityVersion` | `number` | yes |
 | `authorityPayloadHash` | `string` | yes |
 | `authoritySyncState` | `'pending' \| 'applied' \| 'deadLetter'` | yes |
@@ -2003,6 +1994,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `displayName_lowercase` | `string` |  |
 | `profilePictureAssetId` | `string \| null` | yes |
 | `artisanCreator` | `number` | yes |
+| `hasPledged` | `boolean` | yes |
 | `status` | `'active' \| 'suspended' \| 'banned'` | yes |
 | `accountAccessVersion` | `number` | yes |
 | `accountAccessState` | `'active' \| 'suspended' \| 'banned'` | yes |
@@ -2031,24 +2023,16 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `type` | `string` |  |
-| `dedupKey` | `string` |  |
+| `archiveOccurrenceId` | `string` |  |
+| `requestId` | `string` |  |
+| `payloadHash` | `string` |  |
+| `activeId` | `string` |  |
+| `observedActivityGeneration` | `string` |  |
 | `category` | `string` |  |
-| `targetUserId` | `string \| null` |  |
-| `title` | `string` |  |
-| `message` | `string` |  |
-| `count` | `number` |  |
-| `latestActorIds` | `string[]` |  |
-| `targetPath` | `string` |  |
-| `metadata` | `Record<string, unknown>` |  |
-| `seenAt` | `number` |  |
-| `activityGeneration` | `string` | yes |
-| `seenAtGeneration` | `string` | yes |
-| `createdAt` | `number` |  |
-| `updatedAt` | `number` |  |
-| `archival` | `{ archivedBy, archivedAt }` |  |
-| `expireAt` | `number` |  |
+| `audienceScope` | `string` |  |
+| `archivedSnapshot` | `{ id, type, dedupKey, category, targetUserId, title, message, count, latestActorIds, targetPath, metadata, seenAt, activityGeneration, seenAtGeneration, createdAt, updatedAt }` |  |
+| `archivedAt` | `number` |  |
+| `expireAt` | `custom` |  |
 | `handledBy` | `string` | yes |
 
 ## `userProfiles/{userId}/privateData/{userId}`

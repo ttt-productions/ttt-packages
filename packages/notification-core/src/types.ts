@@ -79,32 +79,11 @@ export interface NotificationDoc {
   updatedAt: number;
 }
 
-/**
- * Archival audit trail — stored on every history doc.
- */
-export interface ArchivalInfo {
-  /** userId who clicked/dismissed */
-  archivedBy: string;
-  /** Epoch ms */
-  archivedAt: number;
-}
-
-/**
- * History document — extends active with archival info.
- */
-export interface NotificationHistoryDoc extends NotificationDoc {
-  /** Who/when/how it was archived */
-  archival: ArchivalInfo;
-  /**
-   * Epoch ms after which native Firestore TTL may delete this history doc.
-   * The retention window is app policy (set by the consuming app at archive
-   * time); the helper just persists whatever value it is handed. Generic
-   * field — no domain knowledge.
-   */
-  expireAt: number;
-  /** Admin userId (admin history only, quick-access field) */
-  handledBy?: string;
-}
+// Archived history docs are persisted as an untyped wrapper by the server archive
+// helper (server/observed-generation.ts) — `archivedSnapshot` (the full active doc)
+// plus archive metadata + a native-TTL `expireAt` Timestamp. There is no consumer-
+// facing TS type for that shape; the canonical registry schema lives in ttt-core
+// (doc-schemas/notifications.ts → NotificationHistoryDocSchema).
 
 /**
  * Pending notification — queue item for the batch processor.
@@ -270,14 +249,6 @@ export interface UseArchiveAllNotificationsOptions {
   invalidateKeys?: readonly unknown[][];
 }
 
-export interface UseNotificationHistoryOptions {
-  config: NotificationSystemConfig;
-  userId: string;
-  category: string;
-  enabled?: boolean;
-  pageSize?: number;
-}
-
 // ============================================================================
 // COMPONENT PROP TYPES
 // ============================================================================
@@ -305,13 +276,6 @@ export interface NotificationListProps {
 
 export interface NotificationEmptyStateProps {
   text?: string;
-}
-
-export interface NotificationHistoryListProps {
-  config: NotificationSystemConfig;
-  userId: string;
-  category: string;
-  onNotificationClick?: (notification: NotificationHistoryDoc) => void;
 }
 
 export interface NotificationUnreadBadgeProps {

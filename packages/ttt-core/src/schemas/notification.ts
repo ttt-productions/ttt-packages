@@ -205,7 +205,7 @@ export const ArchiveNotificationScopeSchema = z.discriminatedUnion('kind', [
 ]);
 export type ArchiveNotificationScope = z.infer<typeof ArchiveNotificationScopeSchema>;
 
-// No `device` field — it was dropped from the package's ArchivalInfo (A1).
+// No `device` field on the archive input — archive metadata is server-derived (A1).
 export const ArchiveNotificationInputSchema = z.object({
   category: NotificationCategorySchema,
   scope: ArchiveNotificationScopeSchema,

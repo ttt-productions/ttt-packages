@@ -73,6 +73,12 @@ export const FullUserSchema = z.object({
   // are built at render time (media-assets-and-protected-serving.md).
   profilePictureAssetId: z.string().nullable().optional(),
   artisanCreator: z.number().optional(),
+  // Cosmetic supporter badge. Set true via the Admin SDK inside the Stripe webhook's
+  // pledge-record transaction once the user completes a pledge; rendered on the profile
+  // page. Lives here (not publicUsers) because userProfiles/{uid} is already readable by
+  // any authenticated user, so other viewers see the badge with no mirror. Not PII.
+  // Revoked (→ false) on refund once refunds ship.
+  hasPledged: z.boolean().optional(),
   status: z.enum(['active', 'suspended', 'banned']).optional(),
   // Chat-edge-rebuild account-access domain (Contract B / round-10 blocker 1): the
   // single ban/unban ordering version + state the chat `accountAccess` sync events key

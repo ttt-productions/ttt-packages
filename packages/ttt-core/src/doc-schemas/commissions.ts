@@ -71,6 +71,10 @@ export const AuditionSchema = z.object({
   createdOn: z.number(),
   createdBy: userRefSchema,
   workProjectId: z.string().optional(),
+  // Curated vs open. 'open' (default when absent — existing auditions): anyone may post reply
+  // entries AND vote. 'curated': the creating work posts the option entries itself (min 2, no max,
+  // each `isCreatorOption: true`) and users may ONLY vote — community reply entries are rejected.
+  mode: z.enum(['open', 'curated']).optional(),
   sponsoredAuditionAmountUSD: z.number().optional(),
   stakeSharesOffered: z.number().optional(),
   status: z.enum(['open', 'closed', 'pendingReview']),
@@ -94,6 +98,9 @@ export const AuditionEntrySchema = z.object({
   votes: z.number(),
   shortId: z.string().optional(),
   shortUrl: z.string().optional(),
+  // Curated-mode option: true when this entry is a work-authored voting option on a
+  // `mode: 'curated'` audition (posted by the creating work at creation), not a community reply.
+  isCreatorOption: z.boolean().optional(),
   // Admin moderation hide (reversible). When true the entry is suppressed from the
   // audition's entry list; restored by clearing it.
   hidden: z.boolean(),
