@@ -94,10 +94,12 @@ failure backoff, inbox unread projection, and auth-switch teardown.
   IF the snapshot carries one (forward-compatible) and otherwise returns false —
   the dock dot still lights. If per-row dots are required at launch, the inbox DO
   snapshot must add a per-entry `unread` field.
-- The channel `resume` frame sends `{ ackSeq }`; the DO's current `resume` handler
-  ignores the cursor and returns `{ lastMessageSeq, readSeq }`. The client treats a
-  DO tail ahead of its applied seq as a gap and pulls a history page. If the DO
-  later honors `ackSeq` to send only deltas, this client already sends the cursor.
+- The channel `resume` frame sends `{ afterSeq }` (the client's resume cursor). The
+  DO's `resume` handler honors it via `resumeSince()` and returns
+  `{ lastMessageSeq, readSeq, resync, delta }` — a real delta when the gap is
+  within the resume backlog (≤500 messages); a gap beyond that is treated as a
+  tail-behind and the client pulls a history page instead. Confirmed against
+  `channel-do.ts`.
 - Read-ack focus: the client sends `{ readSeq, focused }`; the DO reads
   `payload.focused`. Confirmed against `channel-do.ts`.
 

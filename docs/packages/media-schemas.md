@@ -5,9 +5,10 @@ Generic media schema and helper package. This replaces the old `media-contracts`
 ## Owns
 
 - Generic media data types such as upload phase/state, media kind/category, processing status, job status, and media error codes
-- Generic helpers such as `getSimplifiedMediaType` and `ensureFileWithContentType`
+- Generic helpers such as `getSimplifiedMediaType` (`ensureFileWithContentType` lives in `file-input`, not here)
 - Neutral media-origin spec shape (`MediaOriginSpec`)
 - Generic media constraints and processing spec types
+- Publication/serving-readiness state (`MediaPublicationStateSchema`/`MediaPublicationState`: `notStarted`/`activating`/`publishing`/`live`/`publicationFailed`), baked into the pending-media factory's base shape
 - `createPendingMediaSchemas(...)` factory for composing app-specific pending-media schemas
 
 ## Boundary

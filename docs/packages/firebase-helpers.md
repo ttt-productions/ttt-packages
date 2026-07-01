@@ -22,8 +22,8 @@ Backend code should prefer `@ttt-productions/firebase-helpers/server` when it ne
 
 The root is pure/server-safe — pure path, timestamp, pagination, and batch helpers that never load a browser Firebase runtime. Client-only and Admin-only runtimes live behind explicit subpaths.
 
-- `.` — pure helpers (paths, timestamps, pagination, batch, `getFileNameFromUrl`); server-safe.
-- `./server` — Admin SDK init helper and server-only handles.
+- `.` — pure helpers (paths, timestamps, `getFileNameFromUrl`); server-safe. Pagination and batch are NOT on root — they live on `./firestore-client` (client SDK) and `./server` (Admin SDK batch), since both need a runtime `firebase/firestore` import.
+- `./server` — Admin SDK init helper, server-only handles, and admin-SDK batch helpers.
 - `./react` — generic callable hook/client primitives.
 - `./client` — Firebase **client** app init helper (browser runtime).
 - `./firestore-client` — client Firestore helpers (browser runtime).

@@ -9,9 +9,9 @@ Generic moderation adapter package.
 - Generic result normalization
 - Generic word-list text moderation/throw helpers where policy is injected
 
-## Contract shape
+## Entry points
 
-Entry points: `.` (pure types + likelihood helpers), `./server` (API adapters).
+`.` (pure types + likelihood helpers), `./server` (API adapters).
 
 - `.` — `Likelihood` union + `LIKELIHOOD_MAP`/`LIKELIHOOD_ORDER`/`likelihoodToString`/`isRejectionLikelihood(value, rejectionLikelihoods)`; result types `MediaModerationResult` (`{ safe, reason?, scores }`), `TextModerationResult` (`{ safe, reason?, flaggedWords?, layer? }`).
 - `./server` —

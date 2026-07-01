@@ -13,13 +13,15 @@ Cloud Functions and schema-only consumers must not import module graphs that pul
 ## Current examples
 
 - `chat-schemas` is pure and safe for `ttt-core` and backend/schema composition.
-- `chat-core` main entry is intended to stay server-safe; React UI is behind `./react`.
+- `chat-core` main entry is pure (no React, no Firebase reachable from it) — its React UI was extracted into a fully separate sibling package, `chat-react` (own `.` and `./styles` entries), rather than living behind a `./react` subpath on `chat-core` itself.
 - `upload-core` exposes browser upload runtime behind `./browser`; guarded UI is split across `upload-ui/react/upload`, `upload-ui/react/guard`, and `upload-ui/react/tray`.
 - `firebase-helpers/server` is the correct import for Admin SDK helpers.
 
 ## Audit checks
 
 When a backend or schema package imports another package, inspect the target package entrypoint and its transitive exports. Do not rely only on TypeScript type-only intent; package root exports can still pull runtime modules if the entrypoint is not split correctly.
+
+For the full mechanical procedure (per-package classification, transitive-export checks, built-`dist` grep, and a runnable peer-optionality check), see `docs/playbooks/REACT_LEAK_AUDIT_PLAYBOOK.md`.
 
 ## Dependency (install-graph) safety
 

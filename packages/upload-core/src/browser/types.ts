@@ -15,13 +15,6 @@ export interface UploadFileResumableArgs {
   metadata?: UploadMetadata;
   onProgress?: UploadProgressHandler;
 
-  /** Optional retry policy for transient failures. */
-  retry?: {
-    maxRetries?: number;
-    baseDelayMs?: number;
-    maxDelayMs?: number;
-  };
-
   /** Optional cancellation signal. */
   signal?: AbortSignal;
 }

@@ -5,8 +5,8 @@ Guarded upload UI/mechanism package. This replaces the old `upload-form` package
 ## Owns
 
 - `@ttt-productions/upload-ui/react/upload` exports `useGuardedUpload` and `DeferredUploadFormShell`
-- `@ttt-productions/upload-ui/react/guard` exports `LocalUploadGuardProvider`, `useLocalUploadGuard`, `GuardedLink`, and `useGuardedNavigation`
-- `@ttt-productions/upload-ui/react/tray` exports the upload activity provider/hook/tray primitives and upload processing cleanup helpers
+- `@ttt-productions/upload-ui/react/guard` exports `LocalUploadGuardProvider`, `useLocalUploadGuard`, `GuardedLink`, and `useGuardedNavigation` (plus the lower-level `useLocalUploadGuardContext` — most consumers should use `useLocalUploadGuard` instead)
+- `@ttt-productions/upload-ui/react/tray` exports the upload activity provider/hook/tray primitives and upload processing cleanup helpers, including `useMarkUploadActivitySeen` and `useUploadProcessing`
 - A metadata-derived **uploads source state** on the in-flight-uploads provider: `useUploadsSourceState()` returns `'connecting' | 'live' | 'offline' | 'error'` (`UploadsSourceState`), derived from `snapshot.metadata.fromCache` (the default subscription now opens with `{ includeMetadataChanges: true }`) plus the listener error callback, and resets on user-identity change. Mirrors `query-core`'s `FirestoreSourceState` so the Files source of the notification tray can show a degraded indicator instead of a false "all caught up". The injected `FirestoreSubscribeFn` snapshot gained an optional `metadata.fromCache`; injected test fakes may omit it (absent ⇒ server-confirmed).
 
 ## Boundary

@@ -18,6 +18,8 @@ TTT Productions application-data package.
 - Work stake-share-operation schemas/types, including the invite-only pending-stake-share reservation contract
 - Work guild-standing IDs, action IDs, action grants, and guild-standing-assignment policy
 - Commission proposal lifecycle schemas/types (`open`, `invited`, `accepted`, `rejected`)
+- The whole-app Firestore document-schema registry (`./doc-schemas` — `COLLECTION_SCHEMAS`, CI-enforced for completeness): user, work-project, content, social, payments, commissions, messaging, moderation, safety/NCII, notifications, chat-sync, and more
+- The notification type catalog and broadcast/archive schemas (`./schemas/notification` — `NotificationType`, `NOTIFICATION_TYPE_CATALOG`, broadcast/archive input schemas)
 - `AuditEventType` catalog, `TTTAuditActor`, `TTTAuditTarget`, and `TTTAuditEvent` specialization of the `@ttt-productions/audit-core` generic
 - **Chat-edge-rebuild concrete contracts (P1):**
   - The frozen deterministic ID/`hash()` helpers in `src/ids/chat-ids.ts`
@@ -39,6 +41,17 @@ TTT Productions application-data package.
     `GuildmateUser.guildAuthInputVersion` (absent ⇒ 0), plus the
     `activityGeneration`/`seenAtGeneration` opaque-token fields on the active
     notification doc.
+
+## Entry points
+
+`ttt-core` is the application-data package and is the sanctioned exception to the "generic packages stay minimal" pattern — it exposes many subpaths beyond root. Current `exports` (see `package.json` for the authoritative list):
+
+- `.` — core types/schemas/constants
+- `./types`, `./paths`, `./utils`, `./media`, `./permissions`, `./upload-variables` — typed surfaces by concern
+- `./constants`, plus `./constants/business`, `./constants/moderation`, `./constants/options`, `./constants/pagination`, `./constants/retention`, `./constants/scheduled-jobs`, `./constants/storage-keys` — constant catalogs split by domain
+- `./schemas` — general TTT wire/data schemas
+- `./schemas/notification` — the notification type catalog and broadcast/archive input schemas
+- `./doc-schemas` — the whole-app Firestore document-schema registry (`COLLECTION_SCHEMAS`)
 
 ## Boundary
 

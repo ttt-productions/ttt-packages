@@ -9,6 +9,7 @@ Generic mobile/browser behavior package.
 - Keyboard/focused-input helpers
 - Safe-area and scroll-lock helpers
 - React setup components such as `IOSSetup` and `ViewportHeightSetter`
+- Pull-to-refresh gesture handling (`usePullToRefresh`, `PullToRefreshContainer`)
 
 ## Boundary
 

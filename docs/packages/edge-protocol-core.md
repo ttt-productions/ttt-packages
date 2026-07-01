@@ -18,15 +18,17 @@ and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
 - **Envelopes** — `StructuredErrorSchema` (edge responses + durable-job `lastError`),
   `EDGE_PROTOCOL_VERSION` + `isProtocolSupported` (one rolling version of
   backward/forward compatibility for rolling Worker/DO deploys).
+- **Signed opaque tokens** — `signToken` / `verifyToken`: the `v1.{payload}.{sig}`
+  signed-token format used for short-lived, verifiable capability tokens.
 
 ## Boundary
 
 Deliberately **domain-neutral**: it never names chat or media, never imports a
 chat- or media-shaped package, and holds no state. Each consumer supplies its own
 secret + audience (e.g. the media authority's `MEDIA_AUTHORITY_SYNC_SECRET` +
-audience `ttt-media-authority:{env}`). The media serving authority consumes it
-now; the chat realtime layer (sync/command/outbox signing + versioned apply)
-builds on it later. Concrete domain schemas and collection names live in
+audience `ttt-media-authority:{env}`). The media serving authority and the chat
+realtime layer (chat-sync writer, chat-grant minting, chat-worker auth) both
+consume it today. Concrete domain schemas and collection names live in
 `ttt-core`, never here.
 
 ## Entry points

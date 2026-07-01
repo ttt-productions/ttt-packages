@@ -8,7 +8,7 @@ in the active collection until archived; personal unread state is tracked with
 
 - Notification document/state types and the per-app `NotificationSystemConfig`
 - Dedup/batch processing helpers that preserve the per-audience dedup scope
-- React provider/hooks/components
+- React hooks and components (no context provider — hooks take `NotificationSystemConfig` as a plain prop and consume `query-core`'s `FirestoreProvider` directly)
 - The batch-processing server helper (`processBatchHelper`) for the pending-queue path
 - **The generic delivery ledger (notification redesign):** `createDeliveryLedger(db, config)` —
   one Firestore doc per (recipient|shared, type, occurrence) that is BOTH the queue row AND the
@@ -60,6 +60,6 @@ supplied through `NotificationSystemConfig`.
 The root is server-safe. React UI lives behind `./react`.
 
 - `.` — types and the config contract (server-safe).
-- `./react` — provider, hooks, and components.
-- `./server` — the delivery ledger, observed-generation seen/archive protocol, the `processBatchHelper` batch path, and `buildActiveNotificationDocId`.
+- `./react` — hooks and components (no provider/context).
+- `./server` — the delivery ledger, observed-generation seen/archive protocol, the `processBatchHelper` batch path, `buildActiveNotificationDocId`, and `NotificationPermissionError` (thrown on permission-denied archive attempts).
 - `./styles` — notification CSS.

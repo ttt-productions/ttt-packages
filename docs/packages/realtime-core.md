@@ -41,6 +41,10 @@ SQLite DDL, the domain message kinds, and the signing secrets are app-level
 (`ttt-master-app/chat-worker`), built against these interfaces — they are NOT in
 this package. The state-machine/allocator/apply logic here is pure and unit-tested.
 
+`@ttt-productions/chat-react` is also a direct, architecturally-sanctioned
+consumer — it imports `createReconnectController` for its client-side realtime
+transport, not just the server-side DO Worker.
+
 ## Entry points
 
 - `.` — the single server-safe root (no React, no Firebase, no Node-only APIs).

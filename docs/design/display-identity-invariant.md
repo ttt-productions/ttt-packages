@@ -31,10 +31,11 @@ This applies to: public content, chat messages, report payloads, admin-task queu
 
 - Every type defined in `@ttt-productions/*` that crosses the package/app boundary. If a type lives in a package and an app consumes it, the type follows this rule.
 - Chat messages (`@ttt-productions/chat-core`): `senderId` only.
-- Notifications (`@ttt-productions/notification-core`): `actorUid`, `subjectUid`, never names.
-- Reports (`@ttt-productions/report-core`): `reporterUid`, `targetUid`, never display info.
-- Admin task queue entries: uid references for actor and subject.
-- TTT-specific types in `@ttt-productions/ttt-core`: uid references. Current TTT work stewardship is modeled as the `StewardOwner` guild standing on a guildmate document, not as a work `ownedBy` field.
+- Notifications (`@ttt-productions/notification-core`): `targetUserId` (recipient) and `latestActorIds` (a capped array of actor uids), never names.
+- Reports (`@ttt-productions/report-core`): the reporter's identity comes from the authenticated caller, never a client-supplied field; `reportedUserId` is an optional, non-authoritative hint the server always re-derives — never display info.
+- Admin task queue entries: uid references for actor and subject (`userId`, `adminUserId`).
+- TTT-specific types in `@ttt-productions/ttt-core`: uid references. Work stewardship uses two aligned uid-only signals: the authoritative `StewardOwner` guild standing on a guildmate document (what report routing trusts), and a cached `workStewardUid` field on `PublicWorkProject` (what search filters, ownership checks, and UI attribution read) — never a work `ownedBy` field.
+- Mentions (`@ttt-productions/ttt-core`'s `Mention` type, embedded in Square Streetz posts/comments): `{ type, id, placeholder }` with `text` always written empty; display surfaces resolve the current name by id at render time.
 
 ## What it forbids
 
@@ -46,7 +47,7 @@ This applies to: public content, chat messages, report payloads, admin-task queu
 
 ## What it allows
 
-- **Audit/historical records** keeping snapshots. `auditEvents` collection in ttt-prod intentionally captures `actorDisplayName` at the time of the event because the audit record's purpose is to preserve who-did-what at the time of action, even if names change later. These records are NOT shared cross-boundary types — they live in app-specific Firestore collections.
+- **Audit/historical records** could keep a frozen display-name snapshot in principle — a record whose whole purpose is to preserve who-did-what at the time of action, even if names change later, would be a legitimate audit-only exception (and would NOT be a shared cross-boundary type). In practice, ttt-prod's `auditEvents` collection does not do this today: `TTTAuditActor` (`@ttt-productions/ttt-core`) is uid-only (`{ uid, isAdmin, actorMode, systemRole }`); display names are resolved at read time from `publicUsers` like everywhere else. See `docs/design/audit-events-and-actor-context.md` for the actor shape.
 - **App-internal denormalization** where the app has decided to denormalize for its own reasons. ttt-prod's `publicUsers` mirror IS denormalization — but it's the resolver source, not the consumer. The rule is that shared types don't carry the denormalized data; apps can structure their own internal storage however they want.
 
 ## When to revisit

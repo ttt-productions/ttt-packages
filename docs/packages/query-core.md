@@ -27,14 +27,14 @@ Generic TanStack Query package.
   (query key / path) changes. Consumed by the TTT notification/badge tray to show a
   degraded indicator instead of a false "all caught up".
 - Generic search hook/types
-- Domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`, `predicate`, `applyInvalidations`)
+- Domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`, `predicate`, `applyInvalidations`, `serializeInvalidation`)
 
 ## Entry points
 
 - `.` — server-safe root: cache helpers, Firestore types and `docWithId`, infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
 - `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
 - `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, and the `createQueryClient` factory.
-- `./types` — Firestore option/type surface.
+- `./types` — Firestore option/type surface, including `FirestoreCountOptions` and `FirestoreLiveInfiniteOptions` (these two are not re-exported from root, unlike the other Firestore option types).
 
 `useBatchFirestoreDocs` (in `./react`) resolves many document ids into individual cache entries, with an optional `subscribe` mode for small, change-sensitive identity docs — a shared reference-counted listener per id plus negative caching, so a missing doc resolves the moment it appears instead of staying blank until `staleTime`. The canonical consumer is TTT `publicUsers`; detailed behavior lives in source.
 

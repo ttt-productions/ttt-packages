@@ -8,7 +8,7 @@ This doc describes the durable upload path shape used by TTT upload surfaces and
 - `ttt-core` owns concrete `FileOrigin`, concrete `TTT_MEDIA_SPECS`, upload target-info schemas, `StartUploadRequestSchema`, and `parseTargetInfo`.
 - `upload-core` owns the low-level browser upload primitive.
 - `upload-ui` owns guarded upload UX and is the only feature-level caller of the low-level primitive.
-- TTT app/backend code owns concrete storage path builders and Firestore rule alignment.
+- TTT app/backend code owns concrete storage path builders and the path-equality check that enforces this invariant (`startUpload`'s `storagePath !== expectedPath` comparison — application code, not a `firestore.rules` expression).
 
 ## Invariant
 
@@ -20,8 +20,9 @@ For TTT, the allowed origin ids must stay aligned across:
 
 - `ttt-core` `FileOrigin`
 - `ttt-core` `TTT_MEDIA_SPECS`
-- backend `startUpload` / processor dispatch
-- Firestore and Storage rules
+- backend `startUpload` / processor dispatch (`resolve-processor-kind.ts`) — pinned in sync with `FileOrigin` by `functions/src/media/uploadPathInvariant.test.ts`
+- `storage.rules` (`uploadMaxBytes` origin switch — unknown origins fail closed to 0 bytes)
+- `startUpload`'s path-equality check (`storagePath !== expectedPath`) — `firestore.rules` itself carries no fileOrigin allowlist or path enforcement anymore; that check moved into application code
 - app upload form/shell wiring
 
 ## Package rule

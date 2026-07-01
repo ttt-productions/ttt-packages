@@ -8,6 +8,7 @@ Generic Firebase Auth package.
 - Claims parsing helpers
 - Server-side `createAssertAuth<TUser, TAdmin>(config)` factory pattern. Both the factory and `AuthContext<TUser, TAdmin>` are generic over the consuming app's admin-check result type; the package stays app-agnostic and the consumer supplies `TAdmin`.
 - Generic auth floors such as signed-in, email-verified, banned/status handling, and admin requirements supplied by the consuming app. When a callable requests `requirements.admin`, the factory delegates to `config.requireAdmin` and surfaces its result on `ctx.admin` (left `undefined` when no admin check ran).
+- Normalized auth-error mapping (`normalizeAuthError`, `getErrorMessage`) and environment helpers (`getAppEnvironment`, `isDevelopment`, `isProduction`)
 
 ## Boundary
 
