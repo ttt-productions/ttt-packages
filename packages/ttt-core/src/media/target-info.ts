@@ -65,6 +65,10 @@ export const AuditionPromptTargetInfoSchema = z
     // creating work posts the option entries itself and users may ONLY vote (the create/reply
     // callable derives each option entry's isCreatorOption server-side and rejects community replies).
     mode: z.enum(['open', 'curated']).optional(),
+    // Curated ONLY: the fixed number of creator option videos (2..8) in the atomic batch, carried from
+    // the Create click through targetInfo so the create core sets it on the Audition doc and the reveal
+    // coordinator knows when ALL options have landed. Required by the create core when mode==='curated'.
+    expectedOptionCount: z.number().int().min(2).max(8).optional(),
   })
   .strict();
 
@@ -79,6 +83,9 @@ export const AdminAuditionPromptTargetInfoSchema = z
     sponsoredAuditionAmountUSD: z.number().nonnegative().finite().max(MAX_SPONSORED_AUDITION_AMOUNT_USD).optional(),
     // Curated vs open (see AuditionPromptTargetInfoSchema.mode). Absent ⇒ 'open'.
     mode: z.enum(['open', 'curated']).optional(),
+    // Curated ONLY: fixed number of option videos (2..8) in the atomic batch (see
+    // AuditionPromptTargetInfoSchema.expectedOptionCount). Required by the create core when curated.
+    expectedOptionCount: z.number().int().min(2).max(8).optional(),
   })
   .strict();
 
