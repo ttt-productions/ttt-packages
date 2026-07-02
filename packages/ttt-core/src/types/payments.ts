@@ -13,7 +13,7 @@ export type {
 
 /**
  * Totals view-model shared by every "total raised" surface. The stored source of truth is the
- * `pledgePaymentTotals/current` singleton (PledgePaymentTotalsDoc — webhook-maintained); the
+ * `pledgePaymentTotals/summary` singleton (PledgePaymentTotalsDoc — webhook-maintained); the
  * admin getOpsStatus additionally computes the same shape live via Firestore aggregation as a
  * drift check. `netRaised` drives the goal bar.
  */
