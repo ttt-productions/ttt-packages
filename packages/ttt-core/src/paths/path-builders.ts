@@ -233,6 +233,11 @@ export const PATH_BUILDERS = {
   pledgePaymentProviderRef: (pledgePaymentId: string): [string, string] =>
     [COLLECTIONS.PLEDGE_PAYMENT_PROVIDER_REFS, pledgePaymentId],
 
+  // Running-totals singleton — incremented in the Stripe webhook's pledge-record transaction;
+  // read (ONE doc) by the public raised-total surfaces instead of a collection-wide aggregation.
+  pledgePaymentTotals: (): [string, string] =>
+    [COLLECTIONS.PLEDGE_PAYMENT_TOTALS, SPECIAL_DOCS.SUMMARY],
+
   // Idempotency sentinel, keyed by the Stripe event.id.
   processedStripeEvent: (stripeEventId: string): [string, string] =>
     [COLLECTIONS.PROCESSED_STRIPE_EVENTS, stripeEventId],

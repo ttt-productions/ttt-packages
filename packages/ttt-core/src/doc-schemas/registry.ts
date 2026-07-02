@@ -51,6 +51,7 @@ import {
   ProcessedStripeEventSchema,
   PledgePaymentLedgerEventSchema,
   PaymentWebhookQuarantineSchema,
+  PledgePaymentTotalsDocSchema,
 } from './payments.js';
 import {
   FullCommissionListingSchema,
@@ -229,6 +230,7 @@ export const COLLECTION_SCHEMAS = {
   'processedStripeEvents/{stripeEventId}': ProcessedStripeEventSchema,
   'pledgePaymentLedgerEvents/{ledgerId}': PledgePaymentLedgerEventSchema,
   'paymentWebhookQuarantine/{stripeEventId}': PaymentWebhookQuarantineSchema,
+  'pledgePaymentTotals/summary': PledgePaymentTotalsDocSchema,
 
   // ===== Threshold / Hall =====
   'thresholdItems/{thresholdItemId}': ThresholdItemSchema,

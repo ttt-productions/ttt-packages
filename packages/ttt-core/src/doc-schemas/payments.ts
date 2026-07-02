@@ -49,6 +49,21 @@ export const PledgePaymentProviderRefSchema = z.object({
 });
 export type PledgePaymentProviderRef = z.infer<typeof PledgePaymentProviderRefSchema>;
 
+// pledgePaymentTotals/summary — the stored running-totals singleton behind every "total raised"
+// surface. Incremented via FieldValue.increment INSIDE the Stripe webhook's pledge-record
+// transaction (same commit as the pledgePayments doc — the two can never drift on a completed
+// pledge); refund/dispute paths decrement when those handlers ship. Auth-readable, server-only
+// writes. An idempotent recompute script rebuilds/verifies it from pledgePayments for drift
+// repair. Shape mirrors the PledgePaymentTotals view-model + updatedAt.
+export const PledgePaymentTotalsDocSchema = z.object({
+  netRaised: z.number(),
+  grossRaised: z.number(),
+  totalRefunded: z.number(),
+  pledgeCount: z.number(),
+  updatedAt: z.number(),
+});
+export type PledgePaymentTotalsDoc = z.infer<typeof PledgePaymentTotalsDocSchema>;
+
 // processedStripeEvents/{stripeEventId} — idempotency sentinel, one doc per processed Stripe
 // event.id, kept forever. Checked + written in the same transaction as the side effect so a
 // redelivered event (completion, expiry, failure, or quarantine) produces no duplicate.

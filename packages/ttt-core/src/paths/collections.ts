@@ -73,6 +73,8 @@ export const COLLECTIONS = {
   PROCESSED_STRIPE_EVENTS: 'processedStripeEvents',
   PLEDGE_PAYMENT_LEDGER_EVENTS: 'pledgePaymentLedgerEvents',
   PAYMENT_WEBHOOK_QUARANTINE: 'paymentWebhookQuarantine',
+  // Running-totals singleton (pledgePaymentTotals/current) — auth-readable, server-only writes.
+  PLEDGE_PAYMENT_TOTALS: 'pledgePaymentTotals',
 
   // Trust & Safety — child-safety case spine (§A1b, §A2)
   CHILD_SAFETY_CASE_LIST: 'childSafetyCaseList',
@@ -257,6 +259,7 @@ export const SPECIAL_DOCS = {
   RESERVED_USERNAMES: 'reservedUsernames',
   BLOCKED_FRANCHISE_NAMES: 'blockedFranchiseNames',
   RULES_AND_AGREEMENTS: 'rulesAndAgreements',
+  // Also the doc id of the pledge running-totals singleton (pledgePaymentTotals/summary).
   SUMMARY: 'summary',
 
   // Trust & Safety — singleton global SLA-monitor heartbeat (safetyMonitorHeartbeat/global).
