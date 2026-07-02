@@ -66,9 +66,10 @@ export type AuditEventType =
   | 'workProject.stakeShares.created'
   | 'workProject.stakeShares.increased'
   | 'workProject.stakeShares.anomaly'
-  // realm shared files — a work file promoted into its realm's shared pool + canon toggles
+  // realm shared files — a work file promoted into its realm's shared pool + canon toggles + un-share
   | 'workFile.sharedToRealm'
   | 'workFile.realmCanonChanged'
+  | 'workFile.unsharedFromRealm'
   // craft-skills
   | 'craftSkill.userCraftSkillDeleted'
   | 'craftSkill.hidden'
