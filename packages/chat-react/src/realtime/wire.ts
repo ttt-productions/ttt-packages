@@ -104,10 +104,22 @@ export interface WireMessageRow {
   messageRevision?: number;
 }
 
-/** The channel resume snapshot the DO returns for a `resume` frame. */
+/**
+ * The channel resume snapshot the DO returns for a `resume` frame (Contract C).
+ * `resync` / `delta` are the durable gap-repair half of the contract:
+ *  - `resync: false` + `delta` = the contiguous ≤500-message backlog after the
+ *    client's cursor (oldest-first); the client APPLIES the delta and advances its
+ *    cursor to `lastMessageSeq` — a missed broadcast is never permanent.
+ *  - `resync: true` = the gap exceeds the backlog (or the client sent no cursor);
+ *    the client DROPS its local tail and re-pages history from the top.
+ * Both are OPTIONAL/absent on a pre-contract DO (treated as `resync: true`, empty
+ * delta — the safe re-page path) so a stale worker can't leave a client stuck.
+ */
 export interface WireChannelSnapshot {
   lastMessageSeq: number;
   readSeq: number;
+  resync?: boolean;
+  delta?: WireMessageRow[];
 }
 
 /** A registry entry in the inbox snapshot (chat-worker `RegistryEntry`). */

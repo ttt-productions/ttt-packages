@@ -79,6 +79,14 @@ describe('WORK_PROJECT_ACTIONS', () => {
     );
   });
 
+  it('guildmateUser.tradeProfession.update is restricted to file-admin standings (no GuildStandingManager)', () => {
+    // tradeProfessions gate custom-folder visibility + chat-channel access, so editing
+    // them is an access-granting power that must NOT be held by a non-file-admin standing.
+    const grantedTo = WORK_PROJECT_ACTIONS['guildmateUser.tradeProfession.update'].grantedTo;
+    expect([...grantedTo].sort()).toEqual(['StewardOwner', 'WorkProjectManager']);
+    expect(grantedTo).not.toContain('GuildStandingManager' as GuildStandingId);
+  });
+
   it('getActionsForGuildStanding returns only valid action IDs', () => {
     const knownActionIds = new Set<string>(WORK_PROJECT_ACTION_IDS);
     for (const guildStandingId of GUILD_STANDING_IDS) {

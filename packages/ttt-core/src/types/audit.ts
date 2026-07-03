@@ -50,6 +50,12 @@ export type AuditEventType =
   | 'workProject.guildmateUserTradeProfessionsChanged'
   | 'workProject.publicDetailsUpdated'
   | 'workProject.workAssetDeleted'
+  // work-file folders (S7). fileFolderAccessChanged is an ACL change (folder trade-profession
+  // view/upload/delete lists gate custom-folder confidentiality) — audited with before/after lists.
+  | 'workProject.fileFolderCreated'
+  | 'workProject.fileFolderRenamed'
+  | 'workProject.fileFolderAccessChanged'
+  | 'workProject.fileFolderDeleted'
   | 'workProject.guildInviteSent'
   | 'workProject.guildInviteAccepted'
   | 'workProject.guildInviteDeclined'

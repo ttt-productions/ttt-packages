@@ -32,6 +32,13 @@ export type UseRealtimeChatMessagesResult = {
   presence: string[];
   /** Returns false when the socket was closed and nothing was sent (C-B8) — the caller keeps the composer text. */
   send: (text: string, replyTo?: { messageSeq: number; preview: string } | null) => boolean;
+  /** Retry a failed/un-acked send by its ORIGINAL clientMessageId (read from the
+   *  failed row's `meta.clientMessageId`) — the transport re-queues the tracked
+   *  pending send with the SAME id so the DO's send-idempotency dedups any copy
+   *  that already landed. Returns false for an unknown id (already acked/
+   *  reconciled). ChatShell wires this to MessageItemDefault's failed-bubble
+   *  retry affordance by default. */
+  retrySend: (clientMessageId: string) => boolean;
   /** Returns whether the ack frame was sent (false on a closed socket) so the caller advances its local cursor only on success (M2). */
   readAck: (readSeq: number, focused: boolean) => boolean;
   signalTyping: () => void;
@@ -78,6 +85,11 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
     [client],
   );
 
+  const retrySend = React.useCallback(
+    (clientMessageId: string): boolean => client.channel.retrySend(clientMessageId),
+    [client],
+  );
+
   const readAck = React.useCallback(
     (readSeq: number, focused: boolean) => client.channel.readAck(readSeq, focused),
     [client],
@@ -102,6 +114,7 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
     typing: state.typing,
     presence: state.presence,
     send,
+    retrySend,
     readAck,
     signalTyping,
     presenceSubscribe,

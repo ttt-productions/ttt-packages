@@ -20,6 +20,7 @@ import {
   adminDispatchIdSchema,
   hallItemIdSchema,
   thresholdItemIdSchema,
+  notificationFanoutJobIdSchema,
   titleSchema,
 } from './atoms.js';
 
@@ -331,6 +332,15 @@ export const GetArchiveAllStatusInputSchema = z.object({
   jobId: z.string().min(1),
 }).strict();
 export type GetArchiveAllStatusInput = z.infer<typeof GetArchiveAllStatusInputSchema>;
+
+// Wire contract for the `resumeFanoutJob` callable — the admin console re-arms a
+// dead-lettered notification fanout job by id. Admin console-invoked, but still a
+// wire contract, so it lives here (callable-validation convention) rather than as a
+// local schema in the functions repo.
+export const ResumeFanoutJobInputSchema = z.object({
+  jobId: notificationFanoutJobIdSchema,
+}).strict();
+export type ResumeFanoutJobInput = z.infer<typeof ResumeFanoutJobInputSchema>;
 
 // ============================================================================
 // AUDIT EVENT PAYLOADS (admin-only)

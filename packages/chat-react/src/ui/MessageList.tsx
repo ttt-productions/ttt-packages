@@ -36,6 +36,8 @@ export function MessageList(props: {
 
   handlers?: ModerationHandlers;
   onSenderClick?: (senderId: string, displayName: string) => void;
+  /** Retry a failed realtime send by clientMessageId (realtime transport only). */
+  onRetrySend?: (clientMessageId: string) => void;
 }) {
   const {
     messages,
@@ -53,6 +55,7 @@ export function MessageList(props: {
     fillHeight = false,
     handlers,
     onSenderClick,
+    onRetrySend,
   } = props;
 
   const scrollClass = scrollClassName ?? (fillHeight ? "flex-1 min-h-0" : "h-[400px]");
@@ -187,6 +190,7 @@ export function MessageList(props: {
                     handlers={handlers}
                     isContinuation={continuation}
                     onSenderClick={onSenderClick}
+                    onRetrySend={onRetrySend}
                   />
                 );
 

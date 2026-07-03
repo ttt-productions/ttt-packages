@@ -81,11 +81,28 @@ export function createCheckoutTaskHandler({
         }
 
         const taskData = taskDoc.data()!;
-        if (
-          (taskData.status === 'checkedOut' || taskData.status === 'workLater') &&
-          (taskData.checkoutDetails as Record<string, unknown>)?.expiresAt as number > now
-        ) {
-          throw new Error('This task is already checked out by another admin.');
+        // Status guard: only a `pending` task, or a `checkedOut`/`workLater` task whose
+        // lock has EXPIRED (the legitimate steal), may be checked out here. A `completed`
+        // (resolved) task — or any other status — must be rejected, otherwise a stale
+        // preview lets an admin re-check-out and re-work an already-resolved task
+        // (re-applying its actions on the underlying group / racing another admin's close).
+        const status = taskData.status;
+        const lockExpiresAt = (taskData.checkoutDetails as Record<string, unknown> | undefined)?.expiresAt as
+          | number
+          | undefined;
+        const lockActive =
+          (status === 'checkedOut' || status === 'workLater') &&
+          typeof lockExpiresAt === 'number' &&
+          lockExpiresAt > now;
+        const stealableExpired =
+          (status === 'checkedOut' || status === 'workLater') && !lockActive;
+
+        if (status !== 'pending' && !stealableExpired) {
+          if (lockActive) {
+            throw new Error('This task is already checked out by another admin.');
+          }
+          // completed / resolved / unknown terminal — nothing to check out.
+          throw new Error('This task has already been resolved.');
         }
       } else {
         // Find highest-priority pending task

@@ -37,7 +37,29 @@ import {
   type ModerationOverlay,
 } from './map.js';
 import type { GrantProvider, TransportTimers, RealtimeStatus } from './shared.js';
-import { defaultTimers, HEARTBEAT_MS, TYPING_COALESCE_MS, HISTORY_PAGE_MAX } from './shared.js';
+import {
+  defaultTimers,
+  HEARTBEAT_MS,
+  TYPING_COALESCE_MS,
+  HISTORY_PAGE_MAX,
+  MAX_PENDING_SEND_ATTEMPTS,
+  PENDING_SEND_MAX_AGE_MS,
+} from './shared.js';
+
+/** An un-acked send tracked for reconnect resend (clientMessageId idempotency). */
+interface PendingSend {
+  clientMessageId: string;
+  text: string;
+  replyTo: { messageSeq: number; preview: string } | null;
+  /** When the send was first attempted (for the age cap). Reset by retrySend(). */
+  sentAt: number;
+  /** How many times it has been (re)sent over a socket. Reset by retrySend(). */
+  attempts: number;
+  /** True once the attempt/age cap flipped this send to the visible failed state.
+   *  A failed entry is RETAINED (not deleted) so retrySend() can re-queue it with
+   *  the SAME clientMessageId; it is skipped by the automatic reconnect resend. */
+  failed: boolean;
+}
 
 export interface ChannelClientState {
   status: RealtimeStatus;
@@ -113,6 +135,15 @@ export class ChannelClient {
    * revert a previously-redacted message to its original text, so re-renders start
    * from this cache rather than the (possibly already-blanked) message in state. */
   private originalRows = new Map<number, ChatMessageV1>();
+  /**
+   * Un-acked sends keyed by clientMessageId. A send is added here when its frame is
+   * written and removed when its `ack` (or the canonical `message` echo carrying the
+   * same clientMessageId) arrives. On every reconnect resume they are RE-SENT with
+   * the SAME clientMessageId — the DO dedups (re-acks without re-broadcast), so a
+   * send that lost its socket before the ack is delivered exactly once. A pending
+   * send that exceeds the attempt/age cap is flipped to a visible failed state
+   * (retry affordance) instead of staying a ghost. */
+  private pendingSends = new Map<string, PendingSend>();
 
   constructor(private readonly config: ChannelClientConfig) {
     this.timers = config.timers ?? defaultTimers;
@@ -186,7 +217,88 @@ export class ChannelClient {
     // Re-send the last read cursor so a read-ack dropped during the disconnect window
     // (sendFrame returns false on a closed socket) is not lost until the next message.
     if (this.lastReadAck) this.sendFrame(CLIENT_FRAME.READ_ACK, { ...this.lastReadAck });
+    // Re-send every un-acked pending send with its ORIGINAL clientMessageId so a send
+    // that lost its socket before the ack is not silently dropped. The DO dedups
+    // (re-acks, no re-broadcast, no flood-token) — this is the client half of the
+    // Contract C send-idempotency the server side was built for.
+    this.resendPendingSends();
     this.startHeartbeat();
+  }
+
+  /**
+   * On reconnect, re-send each un-acked pending send with the SAME clientMessageId
+   * (the DO dedups). A send that has exceeded the attempt or age cap is flipped to a
+   * visible failed state instead of being resent forever — the ghost becomes a
+   * retryable failure the UI can surface.
+   */
+  private resendPendingSends(): void {
+    if (this.pendingSends.size === 0) return;
+    const now = this.timers.now();
+    for (const pending of [...this.pendingSends.values()]) {
+      // Already flipped to the visible failed state — only an explicit retrySend()
+      // re-queues it; the automatic reconnect resend leaves it alone.
+      if (pending.failed) continue;
+      const tooOld = now - pending.sentAt >= PENDING_SEND_MAX_AGE_MS;
+      const tooManyAttempts = pending.attempts >= MAX_PENDING_SEND_ATTEMPTS;
+      if (tooOld || tooManyAttempts) {
+        this.failPendingSend(pending.clientMessageId);
+        continue;
+      }
+      const sent = this.sendFrame(CLIENT_FRAME.SEND, {
+        clientMessageId: pending.clientMessageId,
+        text: pending.text,
+        replyTo: pending.replyTo,
+      });
+      if (sent) pending.attempts += 1;
+    }
+  }
+
+  /**
+   * Flip an un-acked optimistic row to a visible failed state. The pending entry is
+   * RETAINED (marked `failed`) so retrySend() can re-queue it with the SAME
+   * clientMessageId; the row is marked `meta.sendFailed` so the default renderer
+   * shows a failure with a retry affordance rather than an indistinguishable
+   * "sent" bubble. A late ack/echo still reconciles + clears it.
+   */
+  private failPendingSend(clientMessageId: string): void {
+    const pending = this.pendingSends.get(clientMessageId);
+    if (!pending || pending.failed) return;
+    pending.failed = true;
+    const next = this.state.messages.map((m) =>
+      m.meta?.optimistic && m.meta?.clientMessageId === clientMessageId
+        ? { ...m, meta: { ...m.meta, sendFailed: true } }
+        : m,
+    );
+    this.setState({ messages: next, lastErrorCode: 'send-failed' });
+  }
+
+  /**
+   * Retry a FAILED (or still-pending) send, RE-USING its original clientMessageId
+   * so the DO's send-idempotency dedups against any copy that actually landed.
+   * Resets the attempt/age budget, clears the row's `sendFailed` marker (back to
+   * the normal pending/optimistic look), and re-sends immediately when the socket
+   * is open — otherwise the entry rides the next reconnect's automatic resend.
+   * Returns false when the clientMessageId is not a tracked pending send (already
+   * acked/reconciled, or never sent from this client).
+   */
+  retrySend(clientMessageId: string): boolean {
+    const pending = this.pendingSends.get(clientMessageId);
+    if (!pending) return false;
+    pending.failed = false;
+    pending.sentAt = this.timers.now();
+    const sent = this.sendFrame(CLIENT_FRAME.SEND, {
+      clientMessageId: pending.clientMessageId,
+      text: pending.text,
+      replyTo: pending.replyTo,
+    });
+    pending.attempts = sent ? 1 : 0;
+    const next = this.state.messages.map((m) =>
+      m.meta?.optimistic && m.meta?.clientMessageId === clientMessageId && m.meta?.sendFailed
+        ? { ...m, meta: { ...m.meta, sendFailed: false } }
+        : m,
+    );
+    this.setState({ messages: next, lastErrorCode: null });
+    return true;
   }
 
   private onError(): void {
@@ -306,15 +418,54 @@ export class ChannelClient {
     return applyModerationOverlay(mapped, this.effectiveOverlay(row.seq, overlayFromRow(row)));
   }
 
+  /**
+   * Apply the Contract C resume snapshot. The DO always returns the authoritative
+   * tail + read cursor and, per the pinned contract, EITHER a contiguous delta
+   * (`resync:false`) OR a resync directive (`resync:true`).
+   *
+   * - `resync === false`: apply the contiguous `delta` (the ≤500-message backlog
+   *   after our cursor, oldest-first) through the same render/merge path as a live
+   *   `message`, then advance `resumeSeq` to `lastMessageSeq`. This heals ANY gap
+   *   within the backlog — including moderation `revision`s the DO baked into the
+   *   delta rows — with no history fetch, so a >50-message reconnect gap is no
+   *   longer a permanent hole.
+   * - `resync === true`: the gap is beyond the backlog (or we sent no cursor). Drop
+   *   the local tail (messages + overlays + original-row cache) and re-page history
+   *   from the top via a cursorless `requestHistory(null)`.
+   *
+   * A pre-contract DO (no `resync`/`delta`) is treated as `resync:true` ⇒ the safe
+   * re-page path, so a stale worker never strands the client. An empty delta with
+   * `resync:false` (already caught up) is a no-op beyond advancing the cursor.
+   */
   private applyChannelSnapshot(snap: WireChannelSnapshot): void {
     // Guard: an inbox snapshot must never reach a channel client.
     if (isInboxSnapshot(snap as never)) return;
-    // The snapshot tells us the authoritative tail + our read cursor. If the DO's
-    // tail is ahead of what we have, a missed delta is repaired by a history fetch.
-    if (typeof snap.lastMessageSeq === 'number' && snap.lastMessageSeq > this.resumeSeq) {
-      // We've reconnected and may have gaps below the tail — pull the latest page.
-      this.requestHistory(null);
+    if (typeof snap.lastMessageSeq !== 'number') return;
+
+    // Absent `resync` (legacy/pre-contract DO) is treated as a resync directive.
+    const resync = snap.resync !== false;
+
+    if (!resync) {
+      // Apply the contiguous delta oldest-first, exactly like live messages, then
+      // advance the cursor to the authoritative tail so the NEXT resume tells the DO
+      // we're caught up only after we actually applied the backlog.
+      const delta = Array.isArray(snap.delta) ? snap.delta : [];
+      for (const row of delta) this.applyMessage(row);
+      if (snap.lastMessageSeq > this.resumeSeq) this.resumeSeq = snap.lastMessageSeq;
+      return;
     }
+
+    // Resync: drop the local tail and re-page from the top per the pinned contract.
+    // Clear the derived caches too so a stale overlay/original-row can't resurrect a
+    // message the re-page will reload fresh (with its baked-in moderation state).
+    // KEEP un-acked optimistic rows — they aren't server history yet; their pending
+    // sends were already re-sent in onOpen and reconcile when the DO echoes them.
+    this.overlays.clear();
+    this.originalRows.clear();
+    this.resumeSeq = 0;
+    const keptOptimistic = this.state.messages.filter((m) => m.meta?.optimistic);
+    this.setState({ messages: keptOptimistic, hasOlder: true, isFetchingOlder: false });
+    this.requestHistory(null);
   }
 
   private applyMessage(row: WireMessageRow): void {
@@ -330,6 +481,10 @@ export class ChannelClient {
    * Keeps the list sorted ascending by seq with optimistic rows at the tail.
    */
   private mergeMessage(mapped: ChatMessageV1, row: WireMessageRow): void {
+    // If this canonical row carries a clientMessageId we still have pending (the
+    // sender's own broadcast, or a resume delta that included our send), the send
+    // landed — stop tracking it for reconnect resend.
+    if (row.clientMessageId) this.pendingSends.delete(row.clientMessageId);
     const next = this.state.messages.filter(
       (m) =>
         m.messageId !== mapped.messageId &&
@@ -349,11 +504,15 @@ export class ChannelClient {
     // ack guarantees the seq even if the broadcast is dropped/reordered.
     const seq = payload.seq;
     const cmid = payload.clientMessageId;
-    const next = this.state.messages.map((m) =>
-      m.meta?.optimistic && m.meta?.clientMessageId === cmid
-        ? { ...m, messageId: seqToMessageId(seq), meta: { ...m.meta, optimistic: false, seq } }
-        : m,
-    );
+    // The send is acked — stop tracking it for reconnect resend.
+    this.pendingSends.delete(cmid);
+    const next = this.state.messages.map((m) => {
+      if (!m.meta?.optimistic || m.meta?.clientMessageId !== cmid) return m;
+      // Strip any failed marker — a late ack (e.g. a retry raced the cap) means the
+      // send actually landed, so the row must render as delivered, not failed.
+      const { sendFailed: _sendFailed, ...restMeta } = m.meta;
+      return { ...m, messageId: seqToMessageId(seq), meta: { ...restMeta, optimistic: false, seq } };
+    });
     next.sort(sortBySeq);
     if (seq > this.resumeSeq) this.resumeSeq = seq;
     this.setState({ messages: next });
@@ -361,8 +520,25 @@ export class ChannelClient {
 
   private applyHistoryPage(rows: WireMessageRow[]): void {
     const mapped = rows.map((r) => this.renderRow(r));
+    // Mirror mergeMessage's optimistic reconciliation: a history row carrying a
+    // clientMessageId we still hold as an optimistic placeholder IS that send (the
+    // DO stored it; the ack was lost). Drop the placeholder — keyed `optimistic:{cmid}`,
+    // it would otherwise survive alongside its seq-keyed server row as a duplicate
+    // bubble after a resync + re-page — and stop tracking it for resend.
+    const incomingCmids = new Set<string>();
+    for (const r of rows) {
+      if (r.clientMessageId) {
+        incomingCmids.add(r.clientMessageId);
+        this.pendingSends.delete(r.clientMessageId);
+      }
+    }
     const bySeq = new Map<string, ChatMessageV1>();
-    for (const m of this.state.messages) bySeq.set(m.messageId, m);
+    for (const m of this.state.messages) {
+      if (m.meta?.optimistic && typeof m.meta?.clientMessageId === 'string' && incomingCmids.has(m.meta.clientMessageId)) {
+        continue; // reconciled by the incoming server row
+      }
+      bySeq.set(m.messageId, m);
+    }
     for (const m of mapped) bySeq.set(m.messageId, m);
     const merged = [...bySeq.values()].sort(sortBySeq);
     for (const r of rows) if (r.seq > this.resumeSeq) this.resumeSeq = r.seq;
@@ -414,6 +590,16 @@ export class ChannelClient {
       return false;
     }
     const now = this.timers.now();
+    // Track the un-acked send so a reconnect re-sends it with the same
+    // clientMessageId (the DO dedups) — until the ack/echo clears it.
+    this.pendingSends.set(args.clientMessageId, {
+      clientMessageId: args.clientMessageId,
+      text: args.text,
+      replyTo: args.replyTo ?? null,
+      sentAt: now,
+      attempts: 1,
+      failed: false,
+    });
     const echo = optimisticMessage({
       clientMessageId: args.clientMessageId,
       threadId: this.config.threadId,
@@ -500,6 +686,7 @@ export class ChannelClient {
     this.typingTimers.clear();
     this.overlays.clear();
     this.originalRows.clear();
+    this.pendingSends.clear();
     if (this.reconnectTimer != null) {
       this.timers.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;

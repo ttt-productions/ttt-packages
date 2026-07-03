@@ -2,6 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   InviteSourceSchema,
   InviteUserToGuildInputSchema,
+  ListGuildInvitesInputSchema,
+  CheckRealmNameAvailableInputSchema,
+  CreateWorkProjectInputSchema,
+  realmWorkingTitleSchema,
 } from '../src/schemas/work-project-management';
 import { MAX_GUILD_INVITE_MESSAGE_LENGTH } from '../src/constants/business';
 
@@ -181,6 +185,72 @@ describe('InviteUserToGuildInputSchema', () => {
         source: validStandaloneSource,
         extraField: 'bad',
       }),
+    ).toThrow();
+  });
+});
+
+describe('ListGuildInvitesInputSchema', () => {
+  it('accepts finalized (the terminal success state) in the statuses filter', () => {
+    const parsed = ListGuildInvitesInputSchema.parse({
+      workProjectId: 'workProject-1',
+      statuses: ['finalized'],
+    });
+    expect(parsed.statuses).toContain('finalized');
+  });
+
+  it('accepts the full terminal + in-flight set', () => {
+    const statuses = ['pending', 'accepted', 'declined', 'cancelled', 'finalized'] as const;
+    expect(
+      ListGuildInvitesInputSchema.parse({ workProjectId: 'workProject-1', statuses: [...statuses] }).statuses,
+    ).toEqual([...statuses]);
+  });
+
+  it('rejects the removed dead "error" status', () => {
+    expect(() =>
+      ListGuildInvitesInputSchema.parse({ workProjectId: 'workProject-1', statuses: ['error'] }),
+    ).toThrow();
+  });
+
+  it('rejects an empty statuses array', () => {
+    expect(() =>
+      ListGuildInvitesInputSchema.parse({ workProjectId: 'workProject-1', statuses: [] }),
+    ).toThrow();
+  });
+});
+
+describe('realmWorkingTitleSchema (reservedRealmNames doc-ID safety)', () => {
+  it('accepts an ordinary title', () => {
+    expect(realmWorkingTitleSchema.parse('Tales of Wonder')).toBe('Tales of Wonder');
+  });
+
+  it('rejects a title containing a slash (breaks the reservedRealmNames doc path)', () => {
+    expect(() => realmWorkingTitleSchema.parse('Tales of A/B Testing')).toThrow();
+  });
+
+  it('rejects the reserved doc IDs "." and ".."', () => {
+    expect(() => realmWorkingTitleSchema.parse('.')).toThrow();
+    expect(() => realmWorkingTitleSchema.parse('..')).toThrow();
+  });
+
+  it('is enforced identically by CheckRealmNameAvailableInputSchema and CreateWorkProjectInputSchema', () => {
+    // Same schema on both surfaces — a name valid at create is never rejected at form time.
+    const validCreateBase = {
+      workingTitle: 'Work',
+      workingDescription: 'desc',
+      workProjectType: 'Tales' as const,
+      hallWingType: 'entertainment' as const,
+      realmCreationMode: 'newPublicRealm' as const,
+      realmWorkingDescription: 'realm desc',
+    };
+    // A valid realm title parses on both surfaces.
+    expect(CheckRealmNameAvailableInputSchema.parse({ workingTitle: 'Good Realm' }).workingTitle).toBe('Good Realm');
+    expect(
+      CreateWorkProjectInputSchema.parse({ ...validCreateBase, realmWorkingTitle: 'Good Realm' }).realmCreationMode,
+    ).toBe('newPublicRealm');
+    // The slash-bearing title is rejected on both (only the realm title is invalid here).
+    expect(() => CheckRealmNameAvailableInputSchema.parse({ workingTitle: 'A/B' })).toThrow();
+    expect(() =>
+      CreateWorkProjectInputSchema.parse({ ...validCreateBase, realmWorkingTitle: 'A/B' }),
     ).toThrow();
   });
 });

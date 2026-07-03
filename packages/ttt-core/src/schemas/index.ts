@@ -5,6 +5,7 @@ export * from './safety.js';
 export * from './ncii.js';
 export * from './uploads.js';
 export * from './chat.js';
+export * from './media.js';
 export * from './commissions.js';
 export * from './hall-library.js';
 export * from './auditions.js';

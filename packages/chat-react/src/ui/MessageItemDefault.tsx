@@ -3,6 +3,7 @@
 import type { ChatMessageV1, ChatAttachment, ModerationHandlers } from "@ttt-productions/chat-core";
 import { MessageText } from "../mentions/MessageText.js";
 import { cn } from "@ttt-productions/ui-core";
+import { Button } from "@ttt-productions/ui-core/react";
 import { MediaViewer } from "@ttt-productions/media-viewer/react";
 import { FileText, Loader2, AlertTriangle } from "lucide-react";
 import { MessageActions } from "./menus.js";
@@ -109,10 +110,15 @@ export type MessageItemDefaultProps = {
   // Sender interaction
   onSenderClick?: (senderId: string, displayName: string) => void;
 
+  /** Retry a failed realtime send by its original clientMessageId (wired by
+   *  ChatShell on the realtime transport; absent on firestore). Enables the
+   *  retry affordance on a `meta.sendFailed` bubble. */
+  onRetrySend?: (clientMessageId: string) => void;
+
 };
 
 export function MessageItemDefault(props: MessageItemDefaultProps) {
-  const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick } = props;
+  const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick, onRetrySend } = props;
   const senderName = useResolvedSenderName(m.senderId);
 
   // System messages render differently
@@ -122,6 +128,15 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
 
   const mine = m.senderId === currentUserId;
 
+  // Realtime optimistic-send lifecycle (meta is stamped by the channel client):
+  // an un-acked echo renders subtly pending; one past the retry/age cap renders a
+  // visibly failed bubble with a retry affordance (same clientMessageId — the DO
+  // dedups, so a retry can never double-send).
+  const sendFailed = m.meta?.sendFailed === true;
+  const sendPending = m.meta?.optimistic === true && !sendFailed;
+  const clientMessageId =
+    typeof m.meta?.clientMessageId === "string" ? m.meta.clientMessageId : null;
+
   return (
     <div
       className={cn(
@@ -130,7 +145,14 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
         isContinuation ? "chat-continuation-gap" : "chat-group-gap"
       )}
     >
-      <div className={cn("chat-bubble", mine ? "chat-bubble--mine" : "chat-bubble--theirs")}>
+      <div
+        className={cn(
+          "chat-bubble",
+          mine ? "chat-bubble--mine" : "chat-bubble--theirs",
+          sendPending && "chat-bubble--pending",
+          sendFailed && "chat-bubble--failed"
+        )}
+      >
         {!isContinuation && (
           <div className="flex items-center gap-2 text-xs opacity-80 mb-1">
             <span
@@ -163,6 +185,32 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
           </div>
         )}
       </div>
+
+      {/* Send-state status rows render regardless of grouping — a pending/failed
+          send must never be indistinguishable from a delivered one. */}
+      {sendPending && (
+        <div className="chat-send-status mt-0.5" role="status" aria-live="polite">
+          <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
+          <span>Sending…</span>
+        </div>
+      )}
+      {sendFailed && (
+        <div className="chat-send-status chat-send-status--failed mt-0.5" role="alert">
+          <AlertTriangle className="h-3 w-3 shrink-0" />
+          <span>Couldn&apos;t send</span>
+          {onRetrySend && clientMessageId && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-5 px-1.5 text-[0.6875rem]"
+              onClick={() => onRetrySend(clientMessageId)}
+            >
+              Retry
+            </Button>
+          )}
+        </div>
+      )}
 
       {!isContinuation && (
         <div className="mt-1">

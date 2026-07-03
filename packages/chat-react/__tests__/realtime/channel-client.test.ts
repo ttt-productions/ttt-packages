@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ChannelClient } from '../../src/realtime/channel-client.js';
 import { CHAT_CLOSE_CODES, CHAT_SUBPROTOCOL, type WireMessageRow } from '../../src/realtime/wire.js';
+import { MAX_PENDING_SEND_ATTEMPTS, PENDING_SEND_MAX_AGE_MS } from '../../src/realtime/shared.js';
 import { createMockSocketHarness, createFakeClock } from './mock-socket.js';
 
 function wireRow(seq: number, senderUid: string, text: string, clientMessageId = `srv-${seq}`): WireMessageRow {
@@ -208,7 +209,7 @@ describe('ChannelClient — history pagination', () => {
   });
 });
 
-describe('ChannelClient — reconnect + resume (snapshot then delta)', () => {
+describe('ChannelClient — reconnect + resume (Contract C snapshot: delta / resync)', () => {
   it('reconnects after a transient close and resumes from the last applied seq', async () => {
     const { client, harness, clock } = makeClient();
     await client.connect();
@@ -220,7 +221,6 @@ describe('ChannelClient — reconnect + resume (snapshot then delta)', () => {
     // Transient drop (not auth/revoke) → backoff reconnect.
     s1.serverClose(1006, 'abnormal');
     expect(client.getState().status).toBe('reconnecting');
-    // Advance past the (jitter=0 → 0ms? no: floor base) backoff window.
     clock.tick(200);
     await Promise.resolve();
     const s2 = harness.sockets[1];
@@ -229,12 +229,340 @@ describe('ChannelClient — reconnect + resume (snapshot then delta)', () => {
     // Resume carries the cursor at the last applied seq (3) — snapshot then deltas.
     expect(s2.sent.find((f) => f.type === 'resume')?.payload).toEqual({ afterSeq: 3 });
 
-    // The DO snapshot reports a newer tail → the client pulls the latest page to fill the gap.
-    s2.serverFrame('snapshot', { lastMessageSeq: 5, readSeq: 2 });
-    expect(s2.sent.some((f) => f.type === 'history')).toBe(true);
-    // Live delta after resume.
-    s2.serverFrame('message', { message: wireRow(4, 'u-b', 'four') });
-    expect(client.getState().messages.map((m) => m.messageId)).toEqual(['3', '4']);
+    // Within-backlog resume: the DO ships the contiguous delta (resync:false). The
+    // client APPLIES it — no history fetch — and advances the cursor to the tail.
+    s2.serverFrame('snapshot', {
+      lastMessageSeq: 5,
+      readSeq: 2,
+      resync: false,
+      delta: [wireRow(4, 'u-b', 'four'), wireRow(5, 'u-c', 'five')],
+    });
+    expect(s2.sent.some((f) => f.type === 'history')).toBe(false);
+    expect(client.getState().messages.map((m) => m.messageId)).toEqual(['3', '4', '5']);
+    // Next resume would report caught-up at the tail.
+    expect((client as unknown as { resumeSeq: number }).resumeSeq).toBe(5);
+  });
+
+  it('applies a >50-message backlog delta with no permanent hole (the critical fix)', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverFrame('message', { message: wireRow(10, 'u-a', 'old tail') });
+
+    // 120-message gap during a disconnect, all within the ≤500 backlog → one delta.
+    const delta = Array.from({ length: 120 }, (_, i) => wireRow(11 + i, 'u-b', `gap ${i}`));
+    s1.serverFrame('snapshot', { lastMessageSeq: 130, readSeq: 0, resync: false, delta });
+
+    const ids = client.getState().messages.map((m) => m.messageId);
+    expect(ids).toHaveLength(121); // 10 + 11..130
+    expect(ids[0]).toBe('10');
+    expect(ids[ids.length - 1]).toBe('130');
+    // No gap: every seq 11..130 present, contiguous.
+    expect(ids.includes('71')).toBe(true);
+    // No history fetch was needed — the delta healed it.
+    expect(s1.sent.some((f) => f.type === 'history')).toBe(false);
+  });
+
+  it('applies a moderation revision baked into a delta row (hidden text never renders)', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    // A delta row that arrives already-moderated (the DO overlay merge).
+    const moderated: WireMessageRow = { ...wireRow(4, 'u-x', 'secret'), moderationKind: 'moderate', messageRevision: 2 };
+    s1.serverFrame('snapshot', { lastMessageSeq: 4, readSeq: 0, resync: false, delta: [moderated] });
+    const msg = client.getState().messages.find((m) => m.messageId === '4');
+    expect(msg?.text).not.toBe('secret');
+    expect(msg?.meta?.moderated).toBe(true);
+  });
+
+  it('on resync=true drops the local tail and re-pages history from the top', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverFrame('message', { message: wireRow(3, 'u-a', 'three') });
+    s1.serverFrame('message', { message: wireRow(4, 'u-b', 'four') });
+    expect(client.getState().messages).toHaveLength(2);
+
+    // Gap beyond the backlog → resync: drop the tail, re-page from the top.
+    s1.serverFrame('snapshot', { lastMessageSeq: 900, readSeq: 0, resync: true, delta: [] });
+    expect(client.getState().messages).toHaveLength(0);
+    expect((client as unknown as { resumeSeq: number }).resumeSeq).toBe(0);
+    // A cursorless history request went out (re-page from the top).
+    expect(s1.sent.filter((f) => f.type === 'history').at(-1)?.payload).toMatchObject({ beforeSeq: null, limit: 50 });
+  });
+
+  it('treats a legacy snapshot (no resync/delta) as a resync re-page', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverFrame('message', { message: wireRow(3, 'u-a', 'three') });
+    // Pre-contract DO: bare { lastMessageSeq, readSeq }.
+    s1.serverFrame('snapshot', { lastMessageSeq: 5, readSeq: 2 });
+    expect(client.getState().messages).toHaveLength(0);
+    expect(s1.sent.filter((f) => f.type === 'history').at(-1)?.payload).toMatchObject({ beforeSeq: null });
+  });
+
+  it('keeps un-acked optimistic rows through a resync', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverFrame('message', { message: wireRow(3, 'u-a', 'three') });
+    client.send({ clientMessageId: 'c-live', text: 'unsent-through-resync' });
+    expect(client.getState().messages.some((m) => m.meta?.optimistic)).toBe(true);
+
+    s1.serverFrame('snapshot', { lastMessageSeq: 900, readSeq: 0, resync: true, delta: [] });
+    const msgs = client.getState().messages;
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].meta?.optimistic).toBe(true);
+    expect(msgs[0].meta?.clientMessageId).toBe('c-live');
+  });
+});
+
+describe('ChannelClient — un-acked send retry on reconnect (clientMessageId idempotency)', () => {
+  it('re-sends an un-acked pending send with the SAME clientMessageId on resume', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    // Send lands on the socket but the ack never arrives before the drop.
+    client.send({ clientMessageId: 'c-1', text: 'hello?' });
+    expect(s1.sent.filter((f) => f.type === 'send')).toHaveLength(1);
+
+    s1.serverClose(1006, 'abnormal');
+    clock.tick(200);
+    await Promise.resolve();
+    const s2 = harness.sockets[1];
+    s2.serverOpen();
+    // The same send is re-emitted with the SAME clientMessageId (the DO dedups).
+    const resent = s2.sent.find((f) => f.type === 'send');
+    expect(resent?.payload).toMatchObject({ clientMessageId: 'c-1', text: 'hello?' });
+    // The optimistic bubble is still present (not a ghost yet — it's being retried).
+    expect(client.getState().messages.some((m) => m.meta?.clientMessageId === 'c-1' && m.meta?.optimistic)).toBe(true);
+  });
+
+  it('stops resending once the send is acked', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+    s1.serverFrame('ack', { clientMessageId: 'c-1', seq: 7 });
+
+    s1.serverClose(1006, 'abnormal');
+    clock.tick(200);
+    await Promise.resolve();
+    const s2 = harness.sockets[1];
+    s2.serverOpen();
+    // No resend — the ack cleared the pending send.
+    expect(s2.sent.some((f) => f.type === 'send')).toBe(false);
+  });
+
+  it('stops resending once the canonical message echo carries the clientMessageId', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+    // The sender's own broadcast (no separate ack) reconciles the echo.
+    s1.serverFrame('message', { message: wireRow(7, 'u-me', 'hi', 'c-1') });
+
+    s1.serverClose(1006, 'abnormal');
+    clock.tick(200);
+    await Promise.resolve();
+    const s2 = harness.sockets[1];
+    s2.serverOpen();
+    expect(s2.sent.some((f) => f.type === 'send')).toBe(false);
+  });
+
+  it('flips a pending send to a visible failed state after the attempt cap', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    let sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'never acked' });
+
+    // Reconnect repeatedly without ever acking → attempts accrue until the cap.
+    for (let i = 0; i < MAX_PENDING_SEND_ATTEMPTS + 1; i++) {
+      sock.serverClose(1006, 'abnormal');
+      clock.tick(2000);
+      await Promise.resolve();
+      sock = harness.last();
+      sock.serverOpen();
+    }
+
+    const failed = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(failed?.meta?.sendFailed).toBe(true);
+    expect(client.getState().lastErrorCode).toBe('send-failed');
+  });
+
+  it('flips a pending send to failed once it exceeds the age cap', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    client.send({ clientMessageId: 'c-old', text: 'stale' });
+
+    s1.serverClose(1006, 'abnormal');
+    // Advance well past PENDING_SEND_MAX_AGE_MS before the reconnect resumes.
+    clock.tick(PENDING_SEND_MAX_AGE_MS + 5000);
+    await Promise.resolve();
+    const s2 = harness.sockets[1];
+    s2.serverOpen();
+    const failed = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-old');
+    expect(failed?.meta?.sendFailed).toBe(true);
+  });
+
+  it('does NOT auto-resend a failed send on later reconnects (retry is explicit)', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    let sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'never acked' });
+
+    // Age it out → the next resume flips it to failed (no resend on that resume).
+    sock.serverClose(1006, 'abnormal');
+    clock.tick(PENDING_SEND_MAX_AGE_MS + 1000);
+    await Promise.resolve();
+    sock = harness.last();
+    sock.serverOpen();
+    expect(sock.sent.some((f) => f.type === 'send')).toBe(false);
+
+    // A further reconnect still leaves the failed entry alone.
+    sock.serverClose(1006, 'abnormal');
+    clock.tick(2000);
+    await Promise.resolve();
+    sock = harness.last();
+    sock.serverOpen();
+    expect(sock.sent.some((f) => f.type === 'send')).toBe(false);
+  });
+});
+
+describe('ChannelClient — retrySend (explicit retry, same clientMessageId)', () => {
+  /** Drive a send into the failed state via the age cap; returns the live socket. */
+  async function makeFailedSend() {
+    const ctx = makeClient();
+    await ctx.client.connect();
+    let sock = ctx.harness.last();
+    sock.serverOpen();
+    ctx.client.send({ clientMessageId: 'c-1', text: 'hello?', replyTo: { messageSeq: 3, preview: 'orig' } });
+    sock.serverClose(1006, 'abnormal');
+    ctx.clock.tick(PENDING_SEND_MAX_AGE_MS + 1000);
+    await Promise.resolve();
+    sock = ctx.harness.last();
+    sock.serverOpen();
+    const failedRow = ctx.client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(failedRow?.meta?.sendFailed).toBe(true);
+    return { ...ctx, sock };
+  }
+
+  it('re-sends with the SAME clientMessageId (and payload) and clears the failed marker', async () => {
+    const { client, sock } = await makeFailedSend();
+
+    expect(client.retrySend('c-1')).toBe(true);
+    // The retry frame reuses the ORIGINAL clientMessageId + payload — the DO dedups.
+    const resent = sock.sent.find((f) => f.type === 'send');
+    expect(resent?.payload).toMatchObject({
+      clientMessageId: 'c-1',
+      text: 'hello?',
+      replyTo: { messageSeq: 3, preview: 'orig' },
+    });
+    // The bubble is back to the normal pending look (no more failed ghost).
+    const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(row?.meta?.sendFailed).toBe(false);
+    expect(row?.meta?.optimistic).toBe(true);
+    expect(client.getState().lastErrorCode).toBeNull();
+
+    // The ack reconciles it as delivered, with no failed residue.
+    sock.serverFrame('ack', { clientMessageId: 'c-1', seq: 42 });
+    const acked = client.getState().messages.find((m) => m.messageId === '42');
+    expect(acked?.meta?.optimistic).toBe(false);
+    expect(acked?.meta?.sendFailed).toBeUndefined();
+  });
+
+  it('a retry over a dead socket re-queues for the next reconnect resume', async () => {
+    const { client, harness, clock, sock } = await makeFailedSend();
+
+    // Drop the socket, retry while offline — nothing sent yet, but re-queued.
+    sock.serverClose(1006, 'abnormal');
+    expect(client.retrySend('c-1')).toBe(true);
+
+    clock.tick(2000);
+    await Promise.resolve();
+    const s2 = harness.last();
+    s2.serverOpen();
+    // The reconnect's automatic resend picks the retried entry back up.
+    expect(s2.sent.find((f) => f.type === 'send')?.payload).toMatchObject({ clientMessageId: 'c-1' });
+  });
+
+  it('returns false for an unknown/already-acked clientMessageId', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+    sock.serverFrame('ack', { clientMessageId: 'c-1', seq: 7 });
+
+    expect(client.retrySend('c-1')).toBe(false); // acked — nothing pending
+    expect(client.retrySend('c-unknown')).toBe(false);
+  });
+});
+
+describe('ChannelClient — history-page reconciles optimistic placeholders (no duplicate)', () => {
+  it('drops an optimistic row when a history page returns its server counterpart (resync + lost re-ack)', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverFrame('message', { message: wireRow(3, 'u-a', 'three') });
+    client.send({ clientMessageId: 'c-1', text: 'mine' });
+
+    // Resync: local tail drops, the optimistic row survives (kept deliberately).
+    s1.serverFrame('snapshot', { lastMessageSeq: 900, readSeq: 0, resync: true, delta: [] });
+    expect(client.getState().messages.map((m) => m.messageId)).toEqual(['optimistic:c-1']);
+
+    // The re-page returns the server-stored copy of that very send (the DO stored it;
+    // the ack — including the resend's re-ack — was lost). ONE row must remain.
+    s1.serverFrame('history-page', {
+      messages: [wireRow(899, 'u-a', 'context'), wireRow(900, 'u-me', 'mine', 'c-1')],
+    });
+    const ids = client.getState().messages.map((m) => m.messageId);
+    expect(ids).toEqual(['899', '900']);
+    expect(ids).not.toContain('optimistic:c-1');
+    const mine = client.getState().messages.find((m) => m.messageId === '900');
+    expect(mine?.meta?.optimistic).toBeUndefined();
+  });
+
+  it('after the history-page reconcile, a reconnect does not resend the landed message', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'mine' });
+    s1.serverFrame('history-page', { messages: [wireRow(10, 'u-me', 'mine', 'c-1')] });
+    expect(client.getState().messages.map((m) => m.messageId)).toEqual(['10']);
+
+    s1.serverClose(1006, 'abnormal');
+    clock.tick(200);
+    await Promise.resolve();
+    const s2 = harness.sockets[1];
+    s2.serverOpen();
+    expect(s2.sent.some((f) => f.type === 'send')).toBe(false);
+  });
+
+  it('an unrelated optimistic row survives a history page untouched', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    client.send({ clientMessageId: 'c-other', text: 'still in flight' });
+    s1.serverFrame('history-page', { messages: [wireRow(5, 'u-a', 'someone else', 'srv-5')] });
+    const ids = client.getState().messages.map((m) => m.messageId);
+    expect(ids).toEqual(['5', 'optimistic:c-other']);
   });
 });
 

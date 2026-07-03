@@ -1044,7 +1044,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `recipient` | `{ uid }` |  |
 | `stakeSharesOffered` | `number` |  |
 | `source` | `{ type } \| { type, data } \| { type, data } \| { type, data }` |  |
-| `status` | `'pending' \| 'accepted' \| 'declined' \| 'cancelled' \| 'finalized' \| 'error'` |  |
+| `status` | `'pending' \| 'accepted' \| 'declined' \| 'cancelled' \| 'finalized'` |  |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
 | `lastUpdatedAt` | `number` |  |
@@ -1829,10 +1829,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `likes` | `number` |  |
 | `postType` | `'PROFILE_PICTURE_UPDATE' \| 'NEW_CRAFT_SKILL' \| 'NEW_ARTISAN_CREATOR' \| 'COMMISSION_ACCEPTED' \| 'DELETE_CRAFT_SKILL' \| 'USER_POST' \| 'NEW_WORK_PROJECT' \| 'LIBRARY_PUBLISHED'` | yes |
 | `relatedAssetId` | `string` | yes |
-| `moderationStatus` | `'pending' \| 'approved' \| 'rejected' \| 'pending_review'` | yes |
-| `moderationReason` | `string` | yes |
-| `moderationLayer` | `'word_filter'` | yes |
-| `visible` | `boolean` | yes |
 | `hidden` | `boolean` |  |
 
 ## `squareStreetzFeed/trendingPosts`

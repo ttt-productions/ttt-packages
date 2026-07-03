@@ -70,6 +70,9 @@ type ResolvedChat = {
   isFetchingOlder: boolean;
   /** The send handler the Composer calls (socket send on realtime, prop on firestore). */
   send: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
+  /** Retry a failed realtime send by its original clientMessageId (realtime only;
+   *  absent on firestore). Wired to MessageItemDefault's failed-bubble retry. */
+  retrySend?: (clientMessageId: string) => void;
   /** Advance the authoritative read cursor (realtime only; absent on the firestore path).
    *  Returns whether the ack was actually sent so the caller advances its local cursor only on success (M2). */
   readAck?: (latestSeq: number, focused: boolean) => boolean;
@@ -141,6 +144,7 @@ function RealtimeChatShell(props: ChatShellProps) {
         hasOlder: r.hasOlder,
         isFetchingOlder: r.isFetchingOlder,
         send,
+        retrySend: r.retrySend,
         readAck: r.readAck,
         status: r.status,
         typing: r.typing,
@@ -171,7 +175,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     resolved,
   } = props;
 
-  const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder, send, readAck, status, typing, signalTyping } = resolved;
+  const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder, send, retrySend, readAck, status, typing, signalTyping } = resolved;
 
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
   const [atBottom, setAtBottom] = React.useState(true);
@@ -309,6 +313,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           scrollClassName={scrollClassName}
           handlers={handlers}
           onSenderClick={onSenderClick}
+          onRetrySend={retrySend}
         />
       </CardContent>
 

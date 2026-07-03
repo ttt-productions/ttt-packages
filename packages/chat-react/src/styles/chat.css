@@ -18,6 +18,33 @@
   background-color: hsl(var(--muted));
 }
 
+/* --- Send-state (realtime optimistic sends) --- */
+
+/* Un-acked optimistic echo — subtly dimmed until the server ack reconciles it. */
+.chat-bubble--pending {
+  opacity: 0.65;
+}
+
+/* Send hit the retry/age cap — visibly distinct failed bubble. */
+.chat-bubble--failed {
+  opacity: 0.85;
+  border: 1px solid hsl(var(--destructive) / 0.4);
+  background-color: hsl(var(--destructive) / 0.08);
+}
+
+/* Status row under a pending/failed bubble. */
+.chat-send-status {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.chat-send-status--failed {
+  color: hsl(var(--destructive));
+}
+
 /* --- Message grouping --- */
 .chat-group-gap {
   margin-top: 0.75rem;

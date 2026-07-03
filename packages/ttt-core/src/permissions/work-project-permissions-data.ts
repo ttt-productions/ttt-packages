@@ -13,7 +13,7 @@ export const GUILD_STANDINGS = {
   },
   GuildStandingManager: {
     label: 'Guild Standing Manager',
-    description: 'Can assign and remove ordinary workProject guild standings without escalating manager or stake-share authority.',
+    description: 'Can assign and remove ordinary workProject guild standings without escalating manager, stake-share, or trade-profession authority (tradeProfessions are folder/chat access keys, editable only by file-admin standings).',
   },
   StakeShareManager: {
     label: 'Stake Share Manager',
@@ -86,8 +86,13 @@ export const WORK_PROJECT_ACTIONS = {
   },
   'guildmateUser.tradeProfession.update': {
     label: 'Update Guildmate tradeProfessions',
-    description: 'Assign or remove Guildmate tradeProfessions/staffing labels.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildStandingManager'],
+    description:
+      'Assign or remove Guildmate tradeProfessions. tradeProfessions gate custom-folder ' +
+      'visibility and chat-channel access targeting — they are access keys, not just staffing ' +
+      'labels — so this is restricted to file-admin standings (Steward + WorkProject Manager). ' +
+      'A trade edit can never grant the editor access they lack, since every grantee already ' +
+      'holds file-admin override.',
+    grantedTo: ['StewardOwner', 'WorkProjectManager'],
   },
   'workProject.stakeShares.manage': {
     label: 'Manage workProject stakes',

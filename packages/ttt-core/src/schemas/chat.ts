@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   workProjectIdSchema,
   guildChatChannelIdSchema,
+  guildInviteIdSchema,
   adminDispatchIdSchema,
 } from './atoms.js';
 import { MAX_CHAT_MESSAGE_LENGTH } from '../constants/chat.js';
@@ -43,6 +44,18 @@ export const StartAdminSupportThreadInputSchema = z.object({
   initialMessage: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
 }).strict();
 export type StartAdminSupportThreadInput = z.infer<typeof StartAdminSupportThreadInputSchema>;
+
+// CLIENT-CALLED wire contract for the `mintChatGrant` callable (Contract A; P3).
+// Crosses the backend↔frontend boundary — the web client (and any future mobile/TV
+// client) constructs this payload — so it lives here per the callable-validation
+// convention, not locally in the functions repo. The REAL Firestore authorization
+// check happens in the callable; this schema pins the scope shape.
+export const ChatGrantInputSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('channel'), workProjectId: workProjectIdSchema, guildChatChannelId: guildChatChannelIdSchema }).strict(),
+  z.object({ kind: z.literal('invite'), guildInviteId: guildInviteIdSchema }).strict(),
+  z.object({ kind: z.literal('inbox') }).strict(),
+]);
+export type ChatGrantInput = z.infer<typeof ChatGrantInputSchema>;
 
 export const UpdateGuildChatChannelInputSchema = z.object({
   workProjectId: workProjectIdSchema,

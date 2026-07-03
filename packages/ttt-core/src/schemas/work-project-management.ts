@@ -47,6 +47,22 @@ const baseFields = {
   hallWingType: hallWingTypeSchema,
 };
 
+// A Realm working title is reserved under `reservedRealmNames/{UPPER(title)}` — the
+// UPPERCASED title IS the Firestore doc ID (runCreateWorkRealm.reservedRealmNameRef).
+// Firestore doc IDs cannot contain `/` and cannot be exactly `.` or `..`, so a title
+// that would produce an invalid/ambiguous doc ID must be rejected at the callable
+// boundary (both the create transaction and the soft availability check) rather than
+// hard-failing with an opaque `internal` error deep inside ref construction. Length is
+// min(1).max(200); only the doc-ID-breaking characters are forbidden. Keep
+// CheckRealmNameAvailableInputSchema in lockstep so a valid-at-create name is never
+// rejected at form time (and vice-versa).
+export const realmWorkingTitleSchema = z
+  .string()
+  .min(1)
+  .max(200)
+  .refine((v) => !v.includes('/'), { message: 'Realm name cannot contain a slash (/).' })
+  .refine((v) => v !== '.' && v !== '..', { message: 'Realm name cannot be "." or "..".' });
+
 export const RealmCreationModeSchema = z.enum([
   'newPublicRealm',
   'newStandaloneRealm',
@@ -58,13 +74,13 @@ export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationM
   z.object({
     ...baseFields,
     realmCreationMode: z.literal('newPublicRealm'),
-    realmWorkingTitle: z.string().min(1).max(200),
+    realmWorkingTitle: realmWorkingTitleSchema,
     realmWorkingDescription: z.string().min(1).max(2000),
   }).strict(),
   z.object({
     ...baseFields,
     realmCreationMode: z.literal('newStandaloneRealm'),
-    realmWorkingTitle: z.string().min(1).max(200),
+    realmWorkingTitle: realmWorkingTitleSchema,
     realmWorkingDescription: z.string().min(1).max(2000),
   }).strict(),
   z.object({
@@ -128,9 +144,13 @@ export const InviteUserToGuildInputSchema = z.object({
 }).strict();
 export type InviteUserToGuildInput = z.infer<typeof InviteUserToGuildInputSchema>;
 
+// `finalized` is the terminal SUCCESS state (`accepted` is a transient state a trigger
+// consumes within seconds). Managers must be able to list finalized invites to see the
+// guild's actual recruitment history — not only failures and in-flight items. The enum
+// mirrors the terminal + in-flight states on GuildInviteConversationSchema (no 'error').
 export const ListGuildInvitesInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  statuses: z.array(z.enum(['pending', 'accepted', 'declined', 'cancelled'])).min(1),
+  statuses: z.array(z.enum(['pending', 'accepted', 'declined', 'cancelled', 'finalized'])).min(1),
 }).strict();
 export type ListGuildInvitesInput = z.infer<typeof ListGuildInvitesInputSchema>;
 
@@ -169,11 +189,12 @@ export const UpdateWorkRealmDetailsInputSchema = z.object({
 export type UpdateWorkRealmDetailsInput = z.infer<typeof UpdateWorkRealmDetailsInputSchema>;
 
 // Unauthenticated soft-check for a Realm working title. Must match the authoritative
-// realmWorkingTitle contract in CreateWorkProjectInputSchema — min(1).max(200), no
-// character restriction. Never be stricter than the create transaction or a valid-at-create
-// name would be rejected at form time.
+// realmWorkingTitle contract in CreateWorkProjectInputSchema (realmWorkingTitleSchema:
+// min(1).max(200), rejecting the doc-ID-breaking `/` and reserved `.`/`..`). Never be
+// stricter than the create transaction or a valid-at-create name would be rejected at
+// form time — reuse the SAME schema so the two can never drift.
 export const CheckRealmNameAvailableInputSchema = z.object({
-  workingTitle: z.string().min(1).max(200),
+  workingTitle: realmWorkingTitleSchema,
 }).strict();
 export type CheckRealmNameAvailableInput = z.infer<typeof CheckRealmNameAvailableInputSchema>;
 

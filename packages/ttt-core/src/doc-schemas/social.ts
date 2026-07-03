@@ -34,13 +34,13 @@ export const SquareStreetzPostSchema = z.object({
   likes: z.number(),
   postType: SquareStreetzPostTypeSchema.optional(),
   relatedAssetId: z.string().optional(),
-  moderationStatus: z.enum(['pending', 'approved', 'rejected', 'pending_review']).optional(),
-  moderationReason: z.string().optional(),
-  moderationLayer: z.enum(['word_filter']).optional(),
-  visible: z.boolean().optional(),
   // Admin moderation hide (reversible). When true the post is suppressed from all
-  // feeds/lists; restored by clearing it. Distinct from `visible` (upload/finalize
-  // gating) and `moderationStatus` (automated text-moderation outcome).
+  // feeds/lists; restored by clearing it. `hidden` is the ONLY operative moderation
+  // flag on a post — the legacy pre-finalize upload-gating (`visible`) and automated
+  // text-moderation outcome (`moderationStatus`/`moderationReason`/`moderationLayer`)
+  // fields were removed 2026-07-03: nothing wrote them (posts are created only AFTER
+  // media finalize under pattern C), so they were dead. See
+  // CODE_CHANGE_feed_slice_hygiene_misc.md item 1.
   hidden: z.boolean(),
 });
 export type SquareStreetzPost = z.infer<typeof SquareStreetzPostSchema>;

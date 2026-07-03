@@ -52,7 +52,10 @@ export const GuildInviteConversationSchema = z.object({
   recipient: userRefSchema,
   stakeSharesOffered: z.number(),
   source: InviteSourceSchema,
-  status: z.enum(['pending', 'accepted', 'declined', 'cancelled', 'finalized', 'error']),
+  // State machine: pending → accepted (transient, trigger-consumed) → finalized (terminal
+  // success), or pending → declined / cancelled (terminal failure). No 'error' state is ever
+  // written (dead state removed 2026-07-03; see CODE_CHANGE_list_invites_missing_finalized).
+  status: z.enum(['pending', 'accepted', 'declined', 'cancelled', 'finalized']),
   createdAt: z.number(),
   updatedAt: z.number(),
   lastUpdatedAt: z.number(),

@@ -37,3 +37,16 @@ export const HEARTBEAT_MS = 20_000;
 export const TYPING_COALESCE_MS = 2_000;
 /** History page cap (worker `HISTORY_PAGE_MAX`). */
 export const HISTORY_PAGE_MAX = 50;
+
+/**
+ * Max reconnect resends of one un-acked send before its optimistic row is flipped
+ * to a visible failed state (retry affordance) instead of a permanent ghost. Each
+ * reconnect that resumes with the pending send still un-acked counts one attempt.
+ */
+export const MAX_PENDING_SEND_ATTEMPTS = 5;
+
+/**
+ * Max wall-clock age of an un-acked pending send before it is flipped to failed on
+ * the next resume, even if the attempt cap hasn't been hit (a long offline window).
+ */
+export const PENDING_SEND_MAX_AGE_MS = 60_000;
