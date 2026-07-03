@@ -3,7 +3,6 @@
 // auditionVotes doc. Types inferred via z.infer.
 
 import { z } from 'zod';
-import { ShortWorkProjectSchema } from '../media/atoms.js';
 import { CommissionProposalStatusSchema } from '../schemas/commissions.js';
 
 const userRefSchema = z.object({ uid: z.string() });
@@ -27,7 +26,15 @@ export const FullCommissionListingSchema = z.object({
   stakeSharesOffered: z.number(),
   createdAt: z.number(),
   createdBy: userRefSchema,
-  workProjectAssociatedWith: ShortWorkProjectSchema,
+  // Work reference only — title/description are NOT snapshotted (Display Identity Invariant:
+  // resolve at render from publicWorkProjects by id, fallback label if the work is gone).
+  // `type` (Tales/Tunes/Television) is an immutable classification, not display text, and IS
+  // consumed by a commission-board type filter/index, so it stays — mirroring the
+  // GuildInviteConversation `workProject: { workProjectId, type }` precedent.
+  workProjectAssociatedWith: z.object({
+    workProjectId: z.string(),
+    type: z.string(),
+  }),
   status: z.enum(['open', 'closed']),
   savedProposalArtisans: z.array(z.string()),
   // Admin moderation hide (reversible). When true the listing is suppressed from

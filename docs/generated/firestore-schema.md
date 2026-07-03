@@ -872,7 +872,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `stakeSharesOffered` | `number` |  |
 | `createdAt` | `number` |  |
 | `createdBy` | `{ uid }` |  |
-| `workProjectAssociatedWith` | `{ workProjectId, type, workingDescription, workingTitle }` |  |
+| `workProjectAssociatedWith` | `{ workProjectId, type }` |  |
 | `status` | `'open' \| 'closed'` |  |
 | `savedProposalArtisans` | `string[]` |  |
 | `hidden` | `boolean` |  |
