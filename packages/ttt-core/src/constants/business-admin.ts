@@ -20,6 +20,38 @@ export const TASK_PRIORITY_LABELS = {
   1: 'LOW',
 } as const;
 
+/**
+ * Canonical NUMERIC priority scale for `adminTasks.priority`, shared by BOTH
+ * priority systems so `checkoutNextImportantTask` (orderBy priority desc across all
+ * task types) compares commensurable values. The userReport report-core score formula
+ * already writes on this scale (≈40–2250); the level-based types (thresholdLibraryReview,
+ * content-appeal, adminDispatch) map their TASK_PRIORITY level onto these numbers instead
+ * of writing the raw 1–4.
+ *
+ * Resulting order: safety reports (1200–2250) > money anomalies (1100) >
+ * CRITICAL (1000) > HIGH (800) > routine reports interleave below > spam-tier (~80).
+ */
+export const TASK_PRIORITY_SCORE = {
+  LOW: 50,
+  NORMAL: 200,
+  HIGH: 800,
+  CRITICAL: 1000,
+  /** Money-integrity anomaly (stake-share / pledge-ledger corruption signal) — outranks
+   * everything except safety-class reports. The three anomaly creators that previously
+   * hardcoded `priority: 1` (LOW) all write this. */
+  MONEY_ANOMALY: 1100,
+} as const;
+
+export type TaskPriorityScore = (typeof TASK_PRIORITY_SCORE)[keyof typeof TASK_PRIORITY_SCORE];
+
+/** Maps a level-based TASK_PRIORITY value (1–4) to its canonical numeric score. */
+export const TASK_PRIORITY_LEVEL_TO_SCORE = {
+  [TASK_PRIORITY.LOW]: TASK_PRIORITY_SCORE.LOW,
+  [TASK_PRIORITY.NORMAL]: TASK_PRIORITY_SCORE.NORMAL,
+  [TASK_PRIORITY.HIGH]: TASK_PRIORITY_SCORE.HIGH,
+  [TASK_PRIORITY.CRITICAL]: TASK_PRIORITY_SCORE.CRITICAL,
+} as const;
+
 // --- Admin Dispatches ---
 
 /** Maximum length for an admin-dispatch subject line. */

@@ -53,15 +53,6 @@ export function createReleaseTaskHandler({
       });
 
       const now = Date.now();
-      const logRef = db.collection(config.collections.activityLog).doc();
-      transaction.set(logRef, {
-        id: logRef.id,
-        adminUserId: userId,
-        action: 'release',
-        taskType: taskData.taskType as string,
-        taskId: taskData.taskId as string,
-        timestamp: now,
-      });
       if (onAuditEvent) {
         await onAuditEvent(
           {

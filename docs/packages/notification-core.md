@@ -9,6 +9,7 @@ in the active collection until archived; personal unread state is tracked with
 - Notification document/state types and the per-app `NotificationSystemConfig`
 - Dedup/batch processing helpers that preserve the per-audience dedup scope
 - React hooks and components (no context provider — hooks take `NotificationSystemConfig` as a plain prop and consume `query-core`'s `FirestoreProvider` directly)
+- **The history (archived) read surface:** `useNotificationHistory` (paginated read of the archived-history collection resolved from the category's `historyPath`, ordered `archivedAt desc`, flattening each `archivedSnapshot` wrapper into a `NotificationHistoryItem` via a `select` mapper) and the read-only `NotificationHistoryList` component. Owner-only (user) / admin-only (admin) reads are enforced by Firestore rules; history rows are immutable (archive is one-way — no re-archive). The active read surface stays `useActiveNotifications` / `NotificationList`.
 - The batch-processing server helper (`processBatchHelper`) for the pending-queue path
 - **The generic delivery ledger (notification redesign):** `createDeliveryLedger(db, config)` —
   one Firestore doc per (recipient|shared, type, occurrence) that is BOTH the queue row AND the

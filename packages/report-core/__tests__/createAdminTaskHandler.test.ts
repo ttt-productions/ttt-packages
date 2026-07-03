@@ -7,7 +7,6 @@ const TEST_CONFIG: ServerReportCoreConfig = {
     reports: 'contentReports',
     reportGroups: 'activeReportGroups',
     adminTasks: 'adminTasks',
-    activityLog: 'adminActivityLog',
   },
   taskQueues: {
     userReport: { defaultCheckoutMinutes: 60, workLaterMinutes: 120, maxWorkLaterMinutes: 480 },

@@ -12,7 +12,6 @@ import type { AuditEvent } from '@ttt-productions/audit-core';
 export type AuditEventType =
   // user status
   | 'artisanCreator.grantedToUser'
-  | 'artisanCreator.revokedFromUser'
   | 'user.accountRegistered'
   | 'user.statusChanged'
   | 'user.accountSuspended'
@@ -32,7 +31,6 @@ export type AuditEventType =
   | 'admin.systemRoleRevoked'
   | 'admin.systemRoleSyncedFromDirectEdit'
   | 'admin.contentAppealReviewed'
-  | 'admin.violationDecisionAccepted'
   | 'admin.thresholdItemReviewed'
   | 'admin.futurePlansUpdated'
   | 'admin.rulesAndAgreementsUpdated'
@@ -41,6 +39,10 @@ export type AuditEventType =
   | 'admin.blockedFranchiseNamesSeeded'
   | 'admin.rulesAndAgreementsSeeded'
   | 'admin.futurePlansSeeded'
+  // admin direct-delete callables (replaced the last two direct-SDK admin-browser deletes):
+  // deleteAdminDispatch (support thread + its conversationMessages) and deleteShortLink.
+  | 'admin.dispatchDeleted'
+  | 'admin.shortLinkDeleted'
   // trademark-assist (advisory check at approval) + parody/real-people disclaimer baked at approval
   | 'admin.trademarkChecked'
   | 'content.parodyDisclaimerApplied'
@@ -63,7 +65,6 @@ export type AuditEventType =
   | 'workProject.guildInviteStakeSharesUpdated'
   | 'workProject.commissionListingCreated'
   | 'workProject.commissionProposalCreated'
-  | 'workProject.commissionProposalAccepted'
   | 'workProject.commissionClosed'
   | 'workProject.commissionDeleted'
   | 'workProject.commissionProposalSaveToggled'
@@ -124,6 +125,9 @@ export type AuditEventType =
   | 'admin.auditionCreated'
   | 'audition.entryCreated'
   | 'audition.closedByUser'
+  // system-actor event: a curated audition's option batch failed to assemble (media
+  // rejection) and its curatedAssemblyStatus flipped to 'failed' (runFailCuratedAudition).
+  | 'audition.curatedBatchFailed'
   // system
   | 'system.manualIntervention'
   | 'system.appConfigUpdated'
@@ -176,7 +180,6 @@ export type AuditEventType =
   | 'report.childSafetyCaseOpened'
   | 'report.nciiCaseOpened'
   | 'childSafety.reportDispositionSet'
-  | 'childSafety.caseMerged'
   | 'childSafety.holdPlaced'
   | 'childSafety.holdReleased'
   | 'childSafety.accountActionApplied'
@@ -191,7 +194,6 @@ export type AuditEventType =
   // trust & safety — age / registration
   | 'user.ageAttested'
   | 'user.ageUpgradedToAdult'
-  | 'user.ageManuallyCorrected'
   | 'user.orphanAuthDeleted'
   | 'user.accountClosedUnder13'
   | 'user.safetyLocked'
@@ -215,7 +217,6 @@ export type AuditEventType =
   | 'ncii.minorAssessmentSet'
   // trust & safety — operator security
   | 'safety.privilegedReauthPerformed'
-  | 'safety.recoveryCodeUsed'
   | 'safety.deadlineBreachRecorded';
 
 /**

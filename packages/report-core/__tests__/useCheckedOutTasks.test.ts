@@ -26,7 +26,6 @@ const config = {
     reports: 'contentReports',
     reportGroups: 'activeReportGroups',
     adminTasks: 'adminTasks',
-    activityLog: 'adminActivityLog',
   },
   reportableItems: {},
   reportReasons: [],

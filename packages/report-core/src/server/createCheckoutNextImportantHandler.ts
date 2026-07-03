@@ -88,16 +88,6 @@ export function createCheckoutNextImportantHandler({
         checkoutDetails,
       });
 
-      const logRef = db.collection(config.collections.activityLog).doc();
-      transaction.set(logRef, {
-        id: logRef.id,
-        adminUserId: userId,
-        action: 'checkout_next_important',
-        taskType,
-        taskId: taskData.taskId as string,
-        priority: taskData.priority,
-        timestamp: now,
-      });
       if (onAuditEvent) {
         await onAuditEvent(
           {

@@ -5,6 +5,8 @@ export type {
   NotificationTypeConfig,
   NotificationSystemConfig,
   UseActiveNotificationsOptions,
+  UseNotificationHistoryOptions,
+  NotificationHistoryItem,
   UseUnreadCountOptions,
   UseArchiveNotificationOptions,
   UseArchiveAllNotificationsOptions,
@@ -13,6 +15,7 @@ export type {
   ArchiveAllJobSnapshot,
   ArchiveAllPollResult,
   NotificationListProps,
+  NotificationHistoryListProps,
   NotificationEmptyStateProps,
   NotificationUnreadBadgeProps,
 } from './types.js';

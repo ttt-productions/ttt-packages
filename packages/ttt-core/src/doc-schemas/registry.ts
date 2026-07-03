@@ -367,13 +367,15 @@ export const COLLECTION_SCHEMAS = {
   'nciiRemovalJobs/{jobId}': NciiRemovalJobV1Schema,
   'nciiRemovalJobs/{jobId}/targets/{targetKeyHash}': NciiRemovalTargetV1Schema,
 
-  // ===== _config singletons =====
+  // ===== _config singletons (public) =====
   '_config/app': AppConfigSchema,
   '_config/futurePlans': FuturePlansDocumentSchema,
   '_config/rulesAndAgreements': RulesAndAgreementsSchema,
-  '_config/agePolicy': AgePolicyConfigV1Schema,
-  '_config/nciiPolicy': NciiPolicyConfigV1Schema,
-  '_config/privilegedReviewerSecurity': PrivilegedReviewerSecurityProfileV1Schema,
+
+  // ===== _serverData singletons (server-only — Cloud-Functions-only readers, Rule 32) =====
+  '_serverData/agePolicy': AgePolicyConfigV1Schema,
+  '_serverData/nciiPolicy': NciiPolicyConfigV1Schema,
+  '_serverData/privilegedReviewerSecurity': PrivilegedReviewerSecurityProfileV1Schema,
 
   // ===== _systemData singletons =====
   '_systemData/adminList': AdminListSchema,

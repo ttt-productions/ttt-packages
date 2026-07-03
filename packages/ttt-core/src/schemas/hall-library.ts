@@ -13,6 +13,15 @@ import {
   thresholdItemIdSchema,
 } from './atoms.js';
 import { MAX_HALL_LIBRARY_SUBMIT_BATCH } from '../constants/business.js';
+import { WORK_PROJECT_SPECIFIC_GENRES } from '../constants/options.js';
+
+// Canonical per-type genre enums. `WORK_PROJECT_SPECIFIC_GENRES.<type>` is a readonly
+// tuple of the exact genre strings the UI offers; the schema is the cross-boundary
+// contract, so a crafted callable can no longer put arbitrary/unmoderated text (or an
+// unbounded array of distinct strings) onto the public hall parent.
+const TALE_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Tales as unknown as [string, ...string[]];
+const TUNE_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Tunes as unknown as [string, ...string[]];
+const TELEVISION_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Television as unknown as [string, ...string[]];
 
 export const CreateChapterInputSchema = z.object({
   workProjectId: workProjectIdSchema,
@@ -84,7 +93,7 @@ export type UpdateTuneTrackDetailsInput = z.infer<typeof UpdateTuneTrackDetailsI
 export const UpdateTaleWorkGenresInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   taleId: taleIdSchema,
-  workGenre: z.string().min(1).max(50),
+  workGenre: z.enum(TALE_GENRE_VALUES),
   action: addRemoveActionSchema,
 }).strict();
 export type UpdateTaleWorkGenresInput = z.infer<typeof UpdateTaleWorkGenresInputSchema>;
@@ -100,7 +109,7 @@ export type UpdateTaleDetailsInput = z.infer<typeof UpdateTaleDetailsInputSchema
 export const UpdateTelevisionWorkGenresInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   televisionId: televisionIdSchema,
-  workGenre: z.string().min(1).max(50),
+  workGenre: z.enum(TELEVISION_GENRE_VALUES),
   action: addRemoveActionSchema,
 }).strict();
 export type UpdateTelevisionWorkGenresInput = z.infer<typeof UpdateTelevisionWorkGenresInputSchema>;
@@ -116,7 +125,7 @@ export type UpdateTelevisionDetailsInput = z.infer<typeof UpdateTelevisionDetail
 export const UpdateTuneWorkGenresInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   tuneId: tuneIdSchema,
-  workGenre: z.string().min(1).max(50),
+  workGenre: z.enum(TUNE_GENRE_VALUES),
   action: addRemoveActionSchema,
 }).strict();
 export type UpdateTuneWorkGenresInput = z.infer<typeof UpdateTuneWorkGenresInputSchema>;

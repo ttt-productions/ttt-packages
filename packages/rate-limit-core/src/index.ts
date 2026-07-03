@@ -8,6 +8,7 @@ export { createRateLimiterFactory } from "./rate-limiter.js";
 export type {
   RateLimitConfig,
   RateLimiterFactoryOptions,
+  RateLimiterDegradation,
 } from "./rate-limiter.js";
 
 export { getRateLimitErrorMessage } from "./error-message.js";

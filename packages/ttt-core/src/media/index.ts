@@ -3,6 +3,7 @@ export {
   ShortWorkProjectSchema,
   MentionSchema,
   MentionTypeSchema,
+  rejectDuplicateMentionPlaceholders,
   type ShortWorkProject,
   type Mention,
   type MentionType,

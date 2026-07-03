@@ -4,7 +4,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface WorkLaterInput {
   taskId: string;
-  taskType: string;
   extendHours: 24 | 48;
 }
 

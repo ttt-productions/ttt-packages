@@ -6,18 +6,6 @@ Source of truth: `COLLECTION_SCHEMAS` in `@ttt-productions/ttt-core/doc-schemas`
 
 See `firestore-schema.mmd` for the relationship (ER) diagram.
 
-## `_config/agePolicy`
-
-| Field | Type | Optional |
-| --- | --- | --- |
-| `agePolicyVersion` | `string` |  |
-| `registrationGracePeriodMinutes` | `number` |  |
-| `cleanupSchedule` | `string` |  |
-| `ageTokenTtlSeconds` | `number` |  |
-| `keyRetirementVerificationMinutes` | `number` |  |
-| `noDeleteOutcomes` | `'completed' \| 'alreadyCompletedSameUid' \| 'retryableInfrastructureFailure' \| 'reauthenticationRequired' \| 'appCheckRetryRequired' \| 'nonceExpired' \| 'nonceUnknown' \| 'nonceConsumedDifferentUid' \| 'sessionHashMismatch' \| 'attestationSignatureInvalid' \| 'privateDataConflict' \| 'policyVersionRejected'[]` |  |
-| `terminalDeletableOutcomes` | `'completed' \| 'alreadyCompletedSameUid' \| 'retryableInfrastructureFailure' \| 'reauthenticationRequired' \| 'appCheckRetryRequired' \| 'nonceExpired' \| 'nonceUnknown' \| 'nonceConsumedDifferentUid' \| 'sessionHashMismatch' \| 'attestationSignatureInvalid' \| 'privateDataConflict' \| 'policyVersionRejected'[]` |  |
-
 ## `_config/app`
 
 | Field | Type | Optional |
@@ -35,7 +23,26 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `lastUpdated` | `number` |  |
 | `plans` | `{ id, title, description, order, videoUrl, mediaType }[]` |  |
 
-## `_config/nciiPolicy`
+## `_config/rulesAndAgreements`
+
+| Field | Type | Optional |
+| --- | --- | --- |
+| `rules` | `{ id, title, description, videoUrl, group, subgroup, order }[]` |  |
+| `agreements` | `{ tales, tunes, television }` |  |
+
+## `_serverData/agePolicy`
+
+| Field | Type | Optional |
+| --- | --- | --- |
+| `agePolicyVersion` | `string` |  |
+| `registrationGracePeriodMinutes` | `number` |  |
+| `cleanupSchedule` | `string` |  |
+| `ageTokenTtlSeconds` | `number` |  |
+| `keyRetirementVerificationMinutes` | `number` |  |
+| `noDeleteOutcomes` | `'completed' \| 'alreadyCompletedSameUid' \| 'retryableInfrastructureFailure' \| 'reauthenticationRequired' \| 'appCheckRetryRequired' \| 'nonceExpired' \| 'nonceUnknown' \| 'nonceConsumedDifferentUid' \| 'sessionHashMismatch' \| 'attestationSignatureInvalid' \| 'privateDataConflict' \| 'policyVersionRejected'[]` |  |
+| `terminalDeletableOutcomes` | `'completed' \| 'alreadyCompletedSameUid' \| 'retryableInfrastructureFailure' \| 'reauthenticationRequired' \| 'appCheckRetryRequired' \| 'nonceExpired' \| 'nonceUnknown' \| 'nonceConsumedDifferentUid' \| 'sessionHashMismatch' \| 'attestationSignatureInvalid' \| 'privateDataConflict' \| 'policyVersionRejected'[]` |  |
+
+## `_serverData/nciiPolicy`
 
 | Field | Type | Optional |
 | --- | --- | --- |
@@ -72,7 +79,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `approvedBy` | `"operatorLaunchDefault"` |  |
 | `counselApproved` | `boolean` |  |
 
-## `_config/privilegedReviewerSecurity`
+## `_serverData/privilegedReviewerSecurity`
 
 | Field | Type | Optional |
 | --- | --- | --- |
@@ -84,13 +91,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `recoveryCodeUse` | `"auditedHighSeverity+forcesReenroll+criticalAlarm"` |  |
 | `allowPrivilegedSessionRevocation` | `boolean` |  |
 | `everyInvocationAudited` | `boolean` |  |
-
-## `_config/rulesAndAgreements`
-
-| Field | Type | Optional |
-| --- | --- | --- |
-| `rules` | `{ id, title, description, videoUrl, group, subgroup, order }[]` |  |
-| `agreements` | `{ tales, tunes, television }` |  |
 
 ## `_systemData/adminList`
 
@@ -1038,7 +1038,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `guildInviteId` | `string` |  |
 | `workProjectId` | `string` |  |
 | `relatedUserIds` | `string[]` |  |
-| `workProject` | `{ workProjectId, workingTitle, type, workingDescription }` |  |
+| `workProject` | `{ workProjectId, type }` |  |
 | `createdBy` | `{ uid }` |  |
 | `sender` | `{ uid }` |  |
 | `recipient` | `{ uid }` |  |
@@ -1821,7 +1821,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `createdBy` | `{ uid }` |  |
 | `authorId` | `string` |  |
 | `content` | `string` |  |
-| `mentions` | `{ placeholder, type, id, text }[]` | yes |
+| `mentions` | `{ placeholder, type, id }[]` | yes |
 | `relatedIds` | `string[]` |  |
 | `mediaAssetId` | `string` | yes |
 | `mediaType` | `'image' \| 'video' \| 'audio' \| 'other'` | yes |
@@ -2031,7 +2031,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `userId` | `string` |  |
-| `items` | `{ placeholder, type, id, text, viewedAt }[]` |  |
+| `items` | `{ placeholder, type, id, viewedAt }[]` |  |
 
 ## `userProfiles/{userId}/notificationHistory/{notificationId}`
 

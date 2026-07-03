@@ -90,6 +90,41 @@ describe('InboxClient — registry + unread projection (dots only)', () => {
     expect(client.channelHasUnread('c2')).toBe(false);
   });
 
+  it('keeps ARCHIVED rows in the registry (Chats view renders them under the Archived toggle)', async () => {
+    const { client, harness } = makeInbox();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    sock.serverFrame('snapshot', {
+      registry: [
+        { channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 },
+        { channelRef: 'c2', kind: 'channel', state: 'active', registryVersion: 1, archived: true },
+        { channelRef: 'c3', kind: 'channel', state: 'tombstoned', registryVersion: 1 },
+      ],
+      hasUnread: false,
+    } as unknown as Record<string, unknown>);
+    // Active + archived pass through; tombstoned is filtered out.
+    expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['c1', 'c2']);
+    expect(client.getState().registry.find((e) => e.channelRef === 'c2')?.archived).toBe(true);
+  });
+
+  it('excludes ARCHIVED rows from the per-row unread set (archive = done)', async () => {
+    const { client, harness } = makeInbox();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    sock.serverFrame('snapshot', {
+      registry: [
+        { channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: true },
+        { channelRef: 'c2', kind: 'channel', state: 'active', registryVersion: 1, unread: true, archived: true },
+      ],
+      hasUnread: true,
+    } as unknown as Record<string, unknown>);
+    expect(client.channelHasUnread('c1')).toBe(true);
+    // c2 carries unread:true but is archived — it must NOT show a dot.
+    expect(client.channelHasUnread('c2')).toBe(false);
+  });
+
   it('ignores a stray channel snapshot (guards inbox vs channel snapshot shape)', async () => {
     const { client, harness } = makeInbox();
     await client.connect();

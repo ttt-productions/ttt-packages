@@ -4,6 +4,7 @@ import {
   ProfilePictureTargetInfoSchema,
   CraftSkillMediaTargetInfoSchema,
   SquareStreetzTargetInfoSchema,
+  SquareStreetzCaptionSchema,
   CommissionPostingTargetInfoSchema,
   CommissionProposalTargetInfoSchema,
   AuditionPromptTargetInfoSchema,
@@ -22,6 +23,7 @@ import {
   MAX_WORK_PROJECT_STAKE_SHARES,
   MAX_SPONSORED_AUDITION_AMOUNT_USD,
   MAX_MENTIONS,
+  MAX_POST_LENGTH,
 } from '../src/constants/business.js';
 
 describe('ProfilePictureTargetInfoSchema', () => {
@@ -53,7 +55,6 @@ describe('SquareStreetzTargetInfoSchema', () => {
     placeholder: '@m1',
     type: 'user' as const,
     id: 'user_abc',
-    text: '@John Doe',
   };
   it('accepts empty mentions', () => {
     expect(() => SquareStreetzTargetInfoSchema.parse({ mentions: [] })).not.toThrow();
@@ -78,6 +79,38 @@ describe('SquareStreetzTargetInfoSchema', () => {
       placeholder: `@m${i}`,
     }));
     expect(() => SquareStreetzTargetInfoSchema.parse({ mentions: tooMany })).toThrow();
+  });
+  it('strips/rejects a client-supplied mention.text (no text field on the wire shape)', () => {
+    expect(() => SquareStreetzTargetInfoSchema.parse({
+      mentions: [{ ...validMention, text: '@John Doe' }],
+    })).toThrow();
+  });
+  it('rejects a placeholder longer than 32 chars', () => {
+    expect(() => SquareStreetzTargetInfoSchema.parse({
+      mentions: [{ ...validMention, placeholder: '@'.padEnd(33, 'm') }],
+    })).toThrow();
+  });
+  it('rejects an id longer than 128 chars', () => {
+    expect(() => SquareStreetzTargetInfoSchema.parse({
+      mentions: [{ ...validMention, id: 'u'.repeat(129) }],
+    })).toThrow();
+  });
+  it('rejects duplicate mention placeholders', () => {
+    expect(() => SquareStreetzTargetInfoSchema.parse({
+      mentions: [validMention, { ...validMention, id: 'user_def' }],
+    })).toThrow();
+  });
+});
+
+describe('SquareStreetzCaptionSchema (per-origin media caption rule)', () => {
+  it('accepts a normal caption', () => {
+    expect(() => SquareStreetzCaptionSchema.parse('hello world')).not.toThrow();
+  });
+  it('rejects an empty caption', () => {
+    expect(() => SquareStreetzCaptionSchema.parse('')).toThrow();
+  });
+  it('rejects a caption longer than MAX_POST_LENGTH', () => {
+    expect(() => SquareStreetzCaptionSchema.parse('x'.repeat(MAX_POST_LENGTH + 1))).toThrow();
   });
 });
 

@@ -455,13 +455,14 @@ export const PATH_BUILDERS = {
   nciiRemovalTarget: (jobId: string, targetKeyHash: string): [string, string, string, string] =>
     [COLLECTIONS.NCII_REMOVAL_JOBS, jobId, NESTED_SUBCOLLECTIONS.NCII_REMOVAL_TARGETS, targetKeyHash],
 
-  // ===== TRUST & SAFETY — _config singletons (§A7, §A11) =====
+  // ===== TRUST & SAFETY — _serverData (server-only) singletons (§A7, §A11) =====
+  // Moved from _config (public) to _serverData (Rule 32 — Cloud-Functions-only readers).
   agePolicyConfig: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.AGE_POLICY],
+    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.AGE_POLICY],
 
   nciiPolicyConfig: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.NCII_POLICY],
+    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.NCII_POLICY],
 
   privilegedReviewerSecurityConfig: (): [string, string] =>
-    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.PRIVILEGED_REVIEWER_SECURITY],
+    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.PRIVILEGED_REVIEWER_SECURITY],
 } as const;

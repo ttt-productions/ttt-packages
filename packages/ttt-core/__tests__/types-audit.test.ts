@@ -19,6 +19,9 @@ describe('audit type catalog', () => {
       'social.targetFollowed',
       'craftSkill.userCraftSkillDeleted',
       'audition.entryCreated',
+      'audition.curatedBatchFailed',
+      'admin.dispatchDeleted',
+      'admin.shortLinkDeleted',
       'workProject.fileFolderAccessChanged',
     ];
     expectTypeOf(sample).toEqualTypeOf<AuditEventType[]>();

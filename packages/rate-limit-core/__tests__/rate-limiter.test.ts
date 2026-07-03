@@ -52,4 +52,60 @@ describe('createRateLimiterFactory', () => {
     const result = await checkRateLimit('u1', { prefix: 'ratelimit:test', maxRequests: 5, window: '1 m' });
     expect(result).toEqual({ allowed: true });
   });
+
+  describe('fail-open posture + onDegraded reporting', () => {
+    it('reports `unavailable` ONCE on the first checkRateLimit when Redis is null, then stays quiet', async () => {
+      const onDegraded = vi.fn();
+      const { checkRateLimit } = createRateLimiterFactory({ getRedis: () => null, onDegraded });
+      const config = { prefix: 'ratelimit:upload', maxRequests: 5, window: '1 m' };
+
+      const first = await checkRateLimit('u1', config);
+      const second = await checkRateLimit('u2', config);
+
+      expect(first).toEqual({ allowed: true });
+      expect(second).toEqual({ allowed: true });
+      expect(onDegraded).toHaveBeenCalledTimes(1);
+      expect(onDegraded).toHaveBeenCalledWith({ reason: 'unavailable', prefix: 'ratelimit:upload' });
+    });
+
+    it('does not require an onDegraded hook (unavailable path still fails open)', async () => {
+      const { checkRateLimit } = createRateLimiterFactory({ getRedis: () => null });
+      const result = await checkRateLimit('u1', { prefix: 'p', maxRequests: 5, window: '1 m' });
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it('fails OPEN and reports `limit-error` when limiter.limit() rejects', async () => {
+      const boom = new Error('upstash outage');
+      mockLimit.mockRejectedValueOnce(boom);
+      const onDegraded = vi.fn();
+      const { checkRateLimit } = createRateLimiterFactory({ getRedis: () => ({} as never), onDegraded });
+
+      const result = await checkRateLimit('u1', { prefix: 'ratelimit:test', maxRequests: 5, window: '1 m' });
+
+      expect(result).toEqual({ allowed: true });
+      expect(onDegraded).toHaveBeenCalledTimes(1);
+      expect(onDegraded).toHaveBeenCalledWith({ reason: 'limit-error', prefix: 'ratelimit:test', error: boom });
+    });
+
+    it('reports limit-error per failed call (not latched like unavailable)', async () => {
+      mockLimit.mockRejectedValue(new Error('down'));
+      const onDegraded = vi.fn();
+      const { checkRateLimit } = createRateLimiterFactory({ getRedis: () => ({} as never), onDegraded });
+      const config = { prefix: 'ratelimit:test', maxRequests: 5, window: '1 m' };
+
+      await checkRateLimit('u1', config);
+      await checkRateLimit('u2', config);
+
+      expect(onDegraded).toHaveBeenCalledTimes(2);
+    });
+
+    it('a throwing onDegraded hook never breaks the fail-open path', async () => {
+      mockLimit.mockRejectedValueOnce(new Error('down'));
+      const onDegraded = vi.fn(() => { throw new Error('hook blew up'); });
+      const { checkRateLimit } = createRateLimiterFactory({ getRedis: () => ({} as never), onDegraded });
+
+      const result = await checkRateLimit('u1', { prefix: 'ratelimit:test', maxRequests: 5, window: '1 m' });
+      expect(result).toEqual({ allowed: true });
+    });
+  });
 });

@@ -161,11 +161,13 @@ export class InboxClient {
   }
 
   private applySnapshot(snap: WireInboxSnapshot): void {
+    // Keep every non-tombstoned entry — including ARCHIVED rows — so the Chats view can
+    // render both the active list and the Archived toggle. `archived` is a distinct
+    // dimension from `tombstoned`; archived rows are still `state: 'active'`.
     const registry = snap.registry.filter((e) => e.state === 'active');
-    // The DO's `hasUnread` is the authoritative dock dot. Per-row dots are derived
-    // from the same projection: the DO only keeps unread for ACTIVE entries, and a
-    // future snapshot field can carry per-channel unread; until then the dock dot
-    // is authoritative and per-row unread is surfaced via the projected set below.
+    // The DO's `hasUnread` is the authoritative dock dot. Per-row dots are derived from
+    // the same projection but exclude ARCHIVED rows (archive = done — an archived row
+    // never shows a dot). The DO clears unread on archive, so this is belt-and-braces.
     this.setState({
       registry,
       hasUnread: Boolean(snap.hasUnread),
@@ -206,11 +208,15 @@ export class InboxClient {
  * NOT yet enumerate which entries are unread. We surface a per-entry `unread`
  * field when the DO provides it (forward-compatible), else fall back to empty
  * per-row dots (the dock dot still lights). See the ASSUMPTIONS note in the docs.
+ *
+ * ARCHIVED rows are excluded from the unread roll-up (archive = done — the DO clears
+ * unread on archive; the client also never counts them).
  */
 function deriveUnreadRefs(snap: WireInboxSnapshot): string[] {
   const refs: string[] = [];
   for (const e of snap.registry) {
     if (e.state !== 'active') continue;
+    if (e.archived === true) continue;
     if (e.unread === true) refs.push(e.channelRef);
   }
   return refs;

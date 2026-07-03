@@ -7,7 +7,6 @@ const TEST_CONFIG: ServerReportCoreConfig = {
     reports: 'contentReports',
     reportGroups: 'activeReportGroups',
     adminTasks: 'adminTasks',
-    activityLog: 'adminActivityLog',
   },
   taskQueues: {
     userReport: { defaultCheckoutMinutes: 60, workLaterMinutes: 120, maxWorkLaterMinutes: 480 },
@@ -109,7 +108,7 @@ describe('createReleaseTaskHandler', () => {
     );
   });
 
-  it('logs "release" activity', async () => {
+  it('writes no adminActivityLog doc (auditEvents is the canonical trail)', async () => {
     const taskData = {
       taskType: 'userReport',
       taskId: 'group1',
@@ -121,8 +120,7 @@ describe('createReleaseTaskHandler', () => {
 
     await handler({ taskId: 'task1' }, { uid: 'admin1' });
 
-    expect(sets).toHaveLength(1);
-    expect(sets[0].data.action).toBe('release');
+    expect(sets).toHaveLength(0);
   });
 
   it('invokes onAuditEvent inside the transaction with the correct payload', async () => {

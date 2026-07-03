@@ -20,9 +20,6 @@ export type { CheckoutNextImportantHandlerConfig } from './createCheckoutNextImp
 
 export { calculatePriorityScore, getHighestScoringReason } from './calculatePriorityScore.js';
 
-export { recalculateAllPriorities } from './recalculateAllPriorities.js';
-export type { RecalculateConfig } from './recalculateAllPriorities.js';
-
 // Server types
 export type {
   AdminAuthConfig,

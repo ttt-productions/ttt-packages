@@ -66,6 +66,11 @@ export const COLLECTIONS = {
   CRAFT_SKILLS_BY_TAG: 'craftSkillsByTag',
   SYSTEM_DATA: '_systemData',
   APP_CONFIG: '_config',
+  // Server-only singleton bucket (Rule 32 — least-privileged reader). Docs whose ONLY
+  // readers are Cloud Functions (Admin SDK) live here, never in the public `_config`
+  // bucket. Firestore rules deny all client reads/writes on `_serverData`.
+  // Docs: agePolicy, nciiPolicy, privilegedReviewerSecurity.
+  SERVER_DATA: '_serverData',
 
   // Payments & pledge ledger
   PLEDGE_PAYMENTS: 'pledgePayments',
@@ -265,7 +270,8 @@ export const SPECIAL_DOCS = {
   // Trust & Safety — singleton global SLA-monitor heartbeat (safetyMonitorHeartbeat/global).
   SAFETY_MONITOR_HEARTBEAT_GLOBAL: 'global',
 
-  // Trust & Safety — _config singletons (§A7, §A11).
+  // Trust & Safety — _serverData (server-only) singletons (§A7, §A11). Moved out of the
+  // public _config bucket: their only readers are Cloud Functions (Rule 32).
   AGE_POLICY: 'agePolicy',
   NCII_POLICY: 'nciiPolicy',
   PRIVILEGED_REVIEWER_SECURITY: 'privilegedReviewerSecurity',

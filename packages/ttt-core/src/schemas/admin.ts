@@ -6,17 +6,6 @@ import {
   hallItemIdSchema,
   workProjectTypeSchema,
 } from './atoms.js';
-import type { AdminTaskType } from '../types/admin.js';
-
-const ADMIN_TASK_TYPES: [AdminTaskType, ...AdminTaskType[]] = [
-  'adminDispatch',
-  'thresholdLibraryReview',
-  'userReport',
-  'content-appeal',
-  'stakeShareAnomaly',
-  'pledgeLedgerAnomaly',
-  'pledgePaymentRepairNeeded',
-];
 
 export const CheckoutNextImportantTaskInputSchema = z.object({}).strict();
 export type CheckoutNextImportantTaskInput = z.infer<typeof CheckoutNextImportantTaskInputSchema>;
@@ -26,9 +15,10 @@ export const GetContentViolationInputSchema = z.object({
 }).strict();
 export type GetContentViolationInput = z.infer<typeof GetContentViolationInputSchema>;
 
+// `taskType` was removed — the server derives it from the task doc; the client copy was
+// ignored (and forgeable). Callers pass only the task id + the extension window.
 export const MarkWorkLaterInputSchema = z.object({
   taskId: taskIdSchema,
-  taskType: z.enum(ADMIN_TASK_TYPES),
   extendHours: z.union([z.literal(24), z.literal(48)]),
 }).strict();
 export type MarkWorkLaterInput = z.infer<typeof MarkWorkLaterInputSchema>;

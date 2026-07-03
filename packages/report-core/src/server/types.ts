@@ -143,7 +143,6 @@ export interface ServerReportCoreConfig {
     reports: string;
     reportGroups: string;
     adminTasks: string;
-    activityLog: string;
   };
   taskQueues: Record<string, {
     defaultCheckoutMinutes: number;

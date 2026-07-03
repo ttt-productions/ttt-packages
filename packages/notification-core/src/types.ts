@@ -185,6 +185,30 @@ export interface UseActiveNotificationsOptions {
   refetchInterval?: number;
 }
 
+/**
+ * A flattened archived-history item for the read surface. The history doc is a
+ * wrapper (`archivedSnapshot` + archive metadata + TTL); this shape lifts the
+ * snapshot's display fields to the top level so the history list renders exactly
+ * like the active list, plus `archivedAt` for ordering/display and
+ * `archiveOccurrenceId` as the stable React key.
+ */
+export interface NotificationHistoryItem extends NotificationDoc {
+  /** The history doc id (stable key — the `archiveOccurrenceId`). */
+  archiveOccurrenceId: string;
+  /** Epoch ms the notification was archived (history docs order by this). */
+  archivedAt: number;
+}
+
+export interface UseNotificationHistoryOptions {
+  config: NotificationSystemConfig;
+  userId: string;
+  category: string;
+  enabled?: boolean;
+  pageSize?: number;
+  /** Read-freshness stale time in ms (archived rows are immutable; default 60s). */
+  staleTime?: number;
+}
+
 export interface UseUnreadCountOptions {
   config: NotificationSystemConfig;
   userId: string;
@@ -333,6 +357,21 @@ export interface NotificationListProps {
   getArchiveAllStatusFn: (jobId: string) => Promise<ArchiveAllJobSnapshot>;
   onClearAll?: () => void;
   refetchInterval?: number;
+  emptyText?: string;
+}
+
+export interface NotificationHistoryListProps {
+  config: NotificationSystemConfig;
+  userId: string;
+  category: string;
+  /**
+   * Optional click handler for an archived row (e.g. navigate to `targetPath`).
+   * Archived rows are read-only — there is no re-archive; the row does not mutate
+   * state on click. Omit to render non-interactive rows.
+   */
+  onNotificationClick?: (notification: NotificationHistoryItem) => void;
+  pageSize?: number;
+  staleTime?: number;
   emptyText?: string;
 }
 

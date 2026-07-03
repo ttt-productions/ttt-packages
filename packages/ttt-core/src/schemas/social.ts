@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { MentionSchema } from '../media/atoms.js';
-import { MAX_POST_LENGTH } from '../constants/business.js';
+import { MentionSchema, rejectDuplicateMentionPlaceholders } from '../media/atoms.js';
+import { MAX_POST_LENGTH, MAX_MENTIONS } from '../constants/business.js';
 
 export const LikeSquareStreetzPostInputSchema = z.object({
   postId: z.string().min(1),
@@ -35,7 +35,11 @@ export type AddToMentionHistoryInput = z.infer<typeof AddToMentionHistoryInputSc
 
 export const CreateSquareStreetzTextPostInputSchema = z.object({
   textContent: z.string().min(1).max(MAX_POST_LENGTH),
-  mentions: z.array(MentionSchema).max(50).optional(),
+  mentions: z
+    .array(MentionSchema)
+    .max(MAX_MENTIONS)
+    .superRefine(rejectDuplicateMentionPlaceholders)
+    .optional(),
 }).strict();
 export type CreateSquareStreetzTextPostInput = z.infer<typeof CreateSquareStreetzTextPostInputSchema>;
 

@@ -3,6 +3,7 @@
 // Hooks
 export {
   useActiveNotifications,
+  useNotificationHistory,
   useUnreadCount,
   useArchiveNotification,
   useArchiveAllNotifications,
@@ -11,6 +12,7 @@ export {
 // Components
 export {
   NotificationList,
+  NotificationHistoryList,
   NotificationEmptyState,
   NotificationUnreadBadge,
 } from './components/index.js';

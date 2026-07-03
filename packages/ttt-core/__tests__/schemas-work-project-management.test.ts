@@ -25,7 +25,6 @@ const validCommissionSource = {
     data: {
       commissionListingId: 'commission-1',
       commissionProposalId: 'proposal-1',
-      commissionTitle: 'Lead Developer',
       proposalArtisanUserId: 'user-2',
       postingStakeSharesOffered: 10,
     },
@@ -36,7 +35,6 @@ const validAuditionSource = {
     data: {
       auditionId: 'opp-1',
       auditionEntryId: 'reply-2',
-      auditionTitle: 'Featured Placement',
       respondentUserId: 'user-3',
       postingStakeSharesOffered: 5,
     },
@@ -109,6 +107,24 @@ describe('InviteSourceSchema', () => {
       InviteSourceSchema.parse({
         type: 'audition',
         data: { ...validAuditionSource.data, postingStakeSharesOffered: 0 },
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a snapshotted commissionTitle (dropped — resolve at render)', () => {
+    expect(() =>
+      InviteSourceSchema.parse({
+        type: 'commission',
+        data: { ...validCommissionSource.data, commissionTitle: 'Lead Developer' },
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a snapshotted auditionTitle (dropped — resolve at render)', () => {
+    expect(() =>
+      InviteSourceSchema.parse({
+        type: 'audition',
+        data: { ...validAuditionSource.data, auditionTitle: 'Featured Placement' },
       }),
     ).toThrow();
   });

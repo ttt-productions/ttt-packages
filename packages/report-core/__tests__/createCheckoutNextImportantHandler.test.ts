@@ -7,7 +7,6 @@ const TEST_CONFIG: ServerReportCoreConfig = {
     reports: 'contentReports',
     reportGroups: 'activeReportGroups',
     adminTasks: 'adminTasks',
-    activityLog: 'adminActivityLog',
   },
   taskQueues: {
     userReport: { defaultCheckoutMinutes: 60, workLaterMinutes: 120, maxWorkLaterMinutes: 480 },
@@ -200,7 +199,7 @@ describe('createCheckoutNextImportantHandler', () => {
     expect((updates[0].data.checkoutDetails as any).userId).toBe('admin1');
   });
 
-  it('logs "checkout_next_important" with priority', async () => {
+  it('audits "checkout_next_important" with priority and writes no activity-log doc', async () => {
     const { db, sets } = createMockDb({
       pendingTask: {
         id: 'task1',
@@ -213,17 +212,21 @@ describe('createCheckoutNextImportantHandler', () => {
         },
       },
     });
+    const onAuditEvent = vi.fn();
     const handler = createCheckoutNextImportantHandler({
       config: TEST_CONFIG,
       db,
       auth: { adminUserIds: ['admin1'] },
+      onAuditEvent,
     });
 
     await handler({}, { uid: 'admin1', token: null });
 
-    expect(sets).toHaveLength(1);
-    expect(sets[0].data.action).toBe('checkout_next_important');
-    expect(sets[0].data.priority).toBe(42);
+    expect(sets).toHaveLength(0);
+    expect(onAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'checkout_next_important', priority: 42 }),
+      expect.anything(),
+    );
   });
 
   it('uses adminUserIds fallback for admin verification', async () => {

@@ -139,6 +139,14 @@ export interface WireRegistryEntry {
    * DO populates it; `deriveUnreadRefs` reads it as a typed field (no cast).
    */
   unread?: boolean;
+  /**
+   * Archived state — DISTINCT from `tombstoned`. An archived row is still an ACTIVE
+   * membership (`state: 'active'`, history readable) but is grouped under the Chats
+   * view's Archived toggle instead of the active list. The client must NOT count
+   * archived rows in the unread roll-up (archive = done; the DO clears unread on
+   * archive). Optional/absent on a pre-archive DO (treated as not-archived).
+   */
+  archived?: boolean;
 }
 
 /** The inbox snapshot payload pushed on connect / `resume` / live delta. */

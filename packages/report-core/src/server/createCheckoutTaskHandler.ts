@@ -142,18 +142,9 @@ export function createCheckoutTaskHandler({
       const originalDocRef = db.doc(taskData.originalPath as string);
       const originalDoc = await transaction.get(originalDocRef);
 
-      // Log auto-release if previously checked out
+      // Audit auto-release if previously checked out
       if (taskData.checkoutDetails) {
         const prevCheckout = taskData.checkoutDetails as Record<string, unknown>;
-        const autoReleaseLogRef = db.collection(config.collections.activityLog).doc();
-        transaction.set(autoReleaseLogRef, {
-          id: autoReleaseLogRef.id,
-          adminUserId: prevCheckout.userId as string,
-          action: 'auto_released',
-          taskType: taskData.taskType as string,
-          taskId: taskData.taskId as string,
-          timestamp: now,
-        });
         if (onAuditEvent) {
           await onAuditEvent(
             {
@@ -180,15 +171,6 @@ export function createCheckoutTaskHandler({
         checkoutDetails,
       });
 
-      const logRef = db.collection(config.collections.activityLog).doc();
-      transaction.set(logRef, {
-        id: logRef.id,
-        adminUserId: userId,
-        action: 'checkout',
-        taskType: taskData.taskType as string,
-        taskId: taskData.taskId as string,
-        timestamp: now,
-      });
       if (onAuditEvent) {
         await onAuditEvent(
           {

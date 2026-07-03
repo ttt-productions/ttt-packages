@@ -7,7 +7,6 @@ const TEST_CONFIG: ServerReportCoreConfig = {
     reports: 'contentReports',
     reportGroups: 'activeReportGroups',
     adminTasks: 'adminTasks',
-    activityLog: 'adminActivityLog',
   },
   taskQueues: {
     userReport: { defaultCheckoutMinutes: 60, workLaterMinutes: 120, maxWorkLaterMinutes: 480 },
@@ -144,7 +143,7 @@ describe('createCheckinTaskHandler', () => {
     ).rejects.toThrow('do not have this task checked out');
   });
 
-  it('logs activity with action "checkin_resolved" when resolved', async () => {
+  it('writes no adminActivityLog doc (auditEvents is the canonical trail)', async () => {
     const now = Date.now();
     const taskData = {
       taskType: 'userReport',
@@ -157,11 +156,10 @@ describe('createCheckinTaskHandler', () => {
 
     await handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
 
-    expect(sets).toHaveLength(1);
-    expect(sets[0].data.action).toBe('checkin_resolved');
+    expect(sets).toHaveLength(0);
   });
 
-  it('logs activity with action "checkin_unresolved" when not resolved', async () => {
+  it('audits action "checkin_unresolved" when not resolved', async () => {
     const now = Date.now();
     const taskData = {
       taskType: 'userReport',
@@ -169,15 +167,19 @@ describe('createCheckinTaskHandler', () => {
       status: 'checkedOut',
       checkoutDetails: { userId: 'admin1', checkedOutAt: now - 1000 },
     };
-    const { db, sets } = createMockDb(taskData);
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db });
+    const { db } = createMockDb(taskData);
+    const onAuditEvent = vi.fn();
+    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
 
     await handler({ taskId: 'task1', resolved: false }, { uid: 'admin1' });
 
-    expect(sets[0].data.action).toBe('checkin_unresolved');
+    expect(onAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'checkin_unresolved' }),
+      expect.anything(),
+    );
   });
 
-  it('logs timeSpentMinutes based on checkedOutAt', async () => {
+  it('audits timeSpentMinutes based on checkedOutAt', async () => {
     const now = Date.now();
     const checkedOutAt = now - 10 * 60_000; // 10 minutes ago
     const taskData = {
@@ -186,13 +188,15 @@ describe('createCheckinTaskHandler', () => {
       status: 'checkedOut',
       checkoutDetails: { userId: 'admin1', checkedOutAt },
     };
-    const { db, sets } = createMockDb(taskData);
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db });
+    const { db } = createMockDb(taskData);
+    const onAuditEvent = vi.fn();
+    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
 
     await handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
 
-    expect(typeof sets[0].data.timeSpentMinutes).toBe('number');
-    expect(sets[0].data.timeSpentMinutes).toBeGreaterThanOrEqual(9);
+    const payload = onAuditEvent.mock.calls[0][0] as { timeSpentMinutes: number };
+    expect(typeof payload.timeSpentMinutes).toBe('number');
+    expect(payload.timeSpentMinutes).toBeGreaterThanOrEqual(9);
   });
 
   it('invokes onAuditEvent inside the transaction with the correct payload', async () => {

@@ -15,8 +15,6 @@ export interface ReportCoreCollections {
   reportGroups: string;
   /** Collection for admin tasks. Default: "adminTasks" */
   adminTasks: string;
-  /** Collection for admin activity log. Default: "adminActivityLog" */
-  activityLog: string;
 }
 
 export interface ReportCoreConfig {

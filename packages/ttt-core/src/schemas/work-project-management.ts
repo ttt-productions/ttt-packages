@@ -113,10 +113,13 @@ export const InviteSourceSchema = z.discriminatedUnion('type', [
   }).strict(),
   z.object({
     type: z.literal('commission'),
+    // Titles are NOT snapshotted here (Display Identity Invariant — client display text
+    // must be re-sourced at render by id). `postingStakeSharesOffered` is not display text;
+    // the server re-sources it from the posting doc in the invite transaction (never trusts
+    // the client copy) — kept so the shape stays server-writable.
     data: z.object({
       commissionListingId: commissionListingIdSchema,
       commissionProposalId: commissionProposalIdSchema,
-      commissionTitle: z.string().min(1).max(200),
       proposalArtisanUserId: userIdSchema,
       postingStakeSharesOffered: z.number().int().min(1),
     }).strict(),
@@ -126,7 +129,6 @@ export const InviteSourceSchema = z.discriminatedUnion('type', [
     data: z.object({
       auditionId: auditionIdSchema,
       auditionEntryId: auditionEntryIdSchema,
-      auditionTitle: z.string().min(1).max(200),
       respondentUserId: userIdSchema,
       postingStakeSharesOffered: z.number().int().min(1),
     }).strict(),

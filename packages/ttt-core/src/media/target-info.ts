@@ -1,9 +1,10 @@
 import { z } from "zod";
 import type { FileOrigin } from "./file-origin.js";
-import { MentionSchema } from "./atoms.js";
+import { MentionSchema, rejectDuplicateMentionPlaceholders } from "./atoms.js";
 import { TRADE_PROFESSION_OPTIONS } from "../constants/options.js";
 import {
   MAX_MENTIONS,
+  MAX_POST_LENGTH,
   MAX_COMMISSION_TITLE_LENGTH,
   MAX_COMMISSION_DESCRIPTION_LENGTH,
   MAX_AUDITION_TITLE_LENGTH,
@@ -25,12 +26,25 @@ export const CraftSkillMediaTargetInfoSchema = z
   })
   .strict();
 
-// squareStreetz: mentions array of structured Mention objects.
+// squareStreetz: mentions array of structured Mention objects. Capped at
+// MAX_MENTIONS with unique placeholders (duplicate placeholders collide at render
+// time — both tokens resolve to the later entity).
 export const SquareStreetzTargetInfoSchema = z
   .object({
-    mentions: z.array(MentionSchema).max(MAX_MENTIONS),
+    mentions: z
+      .array(MentionSchema)
+      .max(MAX_MENTIONS)
+      .superRefine(rejectDuplicateMentionPlaceholders),
   })
   .strict();
+
+// Per-origin text (caption) rule for the squareStreetz media-upload path. The caption
+// travels as StartUploadRequest.textContent (top-level, generic + optional) — not inside
+// targetInfo — so `startUpload` validates it with THIS schema when
+// fileOrigin === 'squareStreetz', mirroring the text-post callable's
+// CreateSquareStreetzTextPostInputSchema.textContent (min 1, max MAX_POST_LENGTH). This
+// closes the media-path gap where a caption was accepted unbounded / empty.
+export const SquareStreetzCaptionSchema = z.string().min(1).max(MAX_POST_LENGTH);
 
 // commission-posting: full commission creation payload.
 export const CommissionPostingTargetInfoSchema = z
@@ -39,7 +53,10 @@ export const CommissionPostingTargetInfoSchema = z
     title: z.string().min(1).max(MAX_COMMISSION_TITLE_LENGTH),
     description: z.string().max(MAX_COMMISSION_DESCRIPTION_LENGTH),
     requiredTradeProfessions: z.array(z.enum(TRADE_PROFESSION_VALUES)).max(TRADE_PROFESSION_OPTIONS.length),
-    stakeSharesOffered: z.number().int().min(0).max(MAX_WORK_PROJECT_STAKE_SHARES),
+    // min(1): the create core rejects 0 shares (invalid-argument) at PUBLISH — after
+    // upload/transcode/moderation — so fail fast at the trust boundary instead of burning
+    // the activation-job retry budget on a deterministic dead-letter.
+    stakeSharesOffered: z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES),
     workProjectId: z.string().min(1),
   })
   .strict();
@@ -60,7 +77,9 @@ export const AuditionPromptTargetInfoSchema = z
     description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
     openTill: z.number().int().positive(),
     workProjectId: z.string().min(1),
-    stakeSharesOffered: z.number().int().min(0).max(MAX_WORK_PROJECT_STAKE_SHARES).optional(),
+    // min(1): the create core rejects <1 shares at PUBLISH (see CommissionPosting above).
+    // Optional — defaults to a floor of 1 at invite time when absent.
+    stakeSharesOffered: z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES).optional(),
     // Curated vs open audition. Absent ⇒ 'open' (community replies + votes). 'curated' ⇒ the
     // creating work posts the option entries itself and users may ONLY vote (the create/reply
     // callable derives each option entry's isCreatorOption server-side and rejects community replies).

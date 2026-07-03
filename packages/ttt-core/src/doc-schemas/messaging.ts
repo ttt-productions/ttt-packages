@@ -41,11 +41,13 @@ export const GuildInviteConversationSchema = z.object({
   guildInviteId: z.string(),
   workProjectId: z.string(),
   relatedUserIds: z.array(z.string()),
+  // Title/description are NOT snapshotted (Display Identity Invariant — resolve at render
+  // from publicWorkProjects by id). `type` (Tales/Tunes/Television) is an immutable
+  // classification, not display text, and IS consumed by an invites-list type filter
+  // (guild-invites-section.tsx), so it stays. Triggers read only `workProjectId`.
   workProject: z.object({
     workProjectId: z.string(),
-    workingTitle: z.string(),
     type: z.string(),
-    workingDescription: z.string(),
   }),
   createdBy: userRefSchema,
   sender: userRefSchema,

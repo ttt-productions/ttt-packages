@@ -65,17 +65,6 @@ export function createCheckinTaskHandler({
         completedAt: resolved ? now : null,
       });
 
-      const logRef = db.collection(config.collections.activityLog).doc();
-      transaction.set(logRef, {
-        id: logRef.id,
-        adminUserId: userId,
-        action: resolved ? 'checkin_resolved' : 'checkin_unresolved',
-        taskType: taskData.taskType as string,
-        taskId: taskData.taskId as string,
-        timestamp: now,
-        resolution: resolution ?? null,
-        timeSpentMinutes,
-      });
       if (onAuditEvent) {
         await onAuditEvent(
           {
