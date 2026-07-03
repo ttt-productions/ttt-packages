@@ -74,7 +74,6 @@ import {
 } from './moderation.js';
 import {
   AdminTaskDocSchema,
-  ActivityLogEntrySchema,
 } from './report-docs.js';
 import { TTTAuditEventSchema } from './audit.js';
 import {
@@ -252,7 +251,6 @@ export const COLLECTION_SCHEMAS = {
   'contentReports/{reportId}/private/narrative': NarrativeRecordV1Schema,
   'activeReportGroups/{groupKey}': ReportGroupV1Schema,
   'adminTasks/{taskId}': AdminTaskDocSchema,
-  'adminActivityLog/{logId}': ActivityLogEntrySchema,
   'contentViolations/{violationId}': ContentViolationSchema,
   'moderationCascadeManifests/{cascadeId}': ModerationCascadeManifestSchema,
   'moderationCascadeManifests/{cascadeId}/changedDocs/{changedDocId}': ModerationCascadeChangedDocSchema,

@@ -350,13 +350,6 @@ describe('PATH_BUILDERS', () => {
       expect(result[0]).toBe(COLLECTIONS.ADMIN_TASKS);
       expect(result[1]).toBe('thresholdLibraryReview-item123');
     });
-
-    it('adminActivityLog returns 2-segment tuple', () => {
-      const result = PATH_BUILDERS.adminActivityLog('log1');
-      expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.ADMIN_ACTIVITY_LOG);
-      expect(result[1]).toBe('log1');
-    });
   });
 
   // ===== UTILITY PATHS =====

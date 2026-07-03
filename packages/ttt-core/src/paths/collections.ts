@@ -34,7 +34,6 @@ export const COLLECTIONS = {
   ACTIVE_REPORT_GROUPS: 'activeReportGroups',
   CONTENT_VIOLATIONS: 'contentViolations',
   ADMIN_TASKS: 'adminTasks',
-  ADMIN_ACTIVITY_LOG: 'adminActivityLog',
   SHORT_LINKS: 'shortLinks',
   GUILD_INVITE_CONVERSATIONS: 'guildInviteConversations',
   STAKE_SHARE_AUDIT_EVENTS: 'stakeShareAuditEvents',

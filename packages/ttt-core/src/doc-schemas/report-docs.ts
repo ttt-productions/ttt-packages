@@ -1,14 +1,13 @@
-// Zod schemas for the report-core-owned admin-task-queue Firestore document shapes as
-// stored in TTT: adminTasks/{taskId} (AdminTask<AdminTaskType>) and
-// adminActivityLog/{logId} (ActivityLogEntry).
+// Zod schemas for the report-core-owned admin-task-queue Firestore document shape as
+// stored in TTT: adminTasks/{taskId} (AdminTask<AdminTaskType>).
 //
 // The report DOC shapes (contentReports/{reportId} + activeReportGroups/{groupKey}) are
 // NO LONGER modeled here — they are owned by the Trust & Safety report spine:
 // `ProtectedReportRootV1` + `ReportPublicProjectionV1` + `ReportGroupV1` in ./safety/report.ts.
 //
-// The admin-task / activity-log TYPES still align with @ttt-productions/report-core's
-// generic shapes; AdminTaskType is the TTT specialization of the generic
-// AdminTask<TTaskType> task-type parameter.
+// The admin-task TYPES still align with @ttt-productions/report-core's generic shapes;
+// AdminTaskType is the TTT specialization of the generic AdminTask<TTaskType>
+// task-type parameter.
 
 import { z } from 'zod';
 
@@ -70,27 +69,3 @@ export const AdminTaskDocSchema = AdminTaskSchema.extend({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 export type AdminTaskDoc = z.infer<typeof AdminTaskDocSchema>;
-
-export const ActivityActionSchema = z.enum([
-  'checkout',
-  'checkout_next_important',
-  'checkin_resolved',
-  'checkin_unresolved',
-  'release',
-  'mark_work_later',
-  'auto_released',
-  'auto_released_scheduled',
-]);
-
-export const ActivityLogEntrySchema = z.object({
-  id: z.string(),
-  adminUserId: z.string(),
-  action: ActivityActionSchema,
-  taskType: z.string(),
-  taskId: z.string(),
-  timestamp: z.number(),
-  resolution: z.string().optional(),
-  timeSpentMinutes: z.number().optional(),
-  extendHours: z.number().optional(),
-  priority: z.number().optional(),
-});

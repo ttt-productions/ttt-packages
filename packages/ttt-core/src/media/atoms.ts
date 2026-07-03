@@ -1,16 +1,5 @@
 import { z } from "zod";
 
-export const ShortWorkProjectSchema = z
-  .object({
-    workProjectId: z.string().min(1),
-    type: z.string().min(1),
-    workingDescription: z.string(),
-    workingTitle: z.string(),
-  })
-  .strict();
-
-export type ShortWorkProject = z.infer<typeof ShortWorkProjectSchema>;
-
 export const MentionTypeSchema = z.enum(['user', 'workProject', 'workRealm', 'commission', 'audition']);
 
 // The persisted + wire Mention shape carries ids ONLY — never display text. Display

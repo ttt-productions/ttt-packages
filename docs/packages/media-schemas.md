@@ -15,4 +15,4 @@ Generic media schema and helper package. This replaces the old `media-contracts`
 
 `media-schemas` does not know TTT origins, TTT target-info schemas, TTT domain events, TTT atoms, or TTT media registry values. The concrete TTT pending-media schema is composed in `ttt-core` from this package's generic factory.
 
-Concrete TTT media values live in `ttt-core`, not here: `FileOrigin`, `TTT_MEDIA_SPECS`, the upload-request/response schemas, `parseTargetInfo` and target-info schemas, `DomainEvent` variants, and TTT atoms such as `ShortWorkProject`, `Mention`, and `MentionType`.
+Concrete TTT media values live in `ttt-core`, not here: `FileOrigin`, `TTT_MEDIA_SPECS`, the upload-request/response schemas, `parseTargetInfo` and target-info schemas, `DomainEvent` variants, and TTT atoms such as `Mention` and `MentionType`.

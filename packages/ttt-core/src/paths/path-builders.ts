@@ -157,9 +157,6 @@ export const PATH_BUILDERS = {
   adminTaskForItem: (taskType: string, itemId: string): [string, string] =>
     [COLLECTIONS.ADMIN_TASKS, `${taskType}-${itemId}`],
 
-  adminActivityLog: (logId: string): [string, string] =>
-    [COLLECTIONS.ADMIN_ACTIVITY_LOG, logId],
-
   moderationCascadeManifest: (cascadeId: string): [string, string] =>
     [COLLECTIONS.MODERATION_CASCADE_MANIFESTS, cascadeId],
 

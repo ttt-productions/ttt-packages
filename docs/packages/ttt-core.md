@@ -9,7 +9,7 @@ TTT Productions application-data package.
 - Upload wire schemas, target-info schemas, `parseTargetInfo`, and server-owned hall-library upload target-field mappings
 - Concrete TTT pending-media schemas composed from `media-schemas`
 - TTT domain-event union/schema/catalog
-- TTT atoms such as `ShortWorkProject`, `Mention`, and `MentionType`
+- TTT atoms such as `Mention` and `MentionType`
 - TTT moderation constants
 - TTT upload-variable schemas
 - TTT mention kinds/schemas/validation rules

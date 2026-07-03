@@ -1,6 +1,4 @@
 // WorkProject-related Firestore document types
-export type { ShortWorkProject } from '../media/atoms.js';
-
 import type { GuildmateUser } from '../doc-schemas/work-project.js';
 
 export type {

@@ -1,10 +1,8 @@
 export { FileOriginSchema, type FileOrigin } from "./file-origin.js";
 export {
-  ShortWorkProjectSchema,
   MentionSchema,
   MentionTypeSchema,
   rejectDuplicateMentionPlaceholders,
-  type ShortWorkProject,
   type Mention,
   type MentionType,
 } from "./atoms.js";

@@ -91,18 +91,6 @@ erDiagram
     field metadata
     field seenAt
   }
-  adminActivityLog {
-    field id
-    field adminUserId
-    field action
-    field taskType
-    field taskId
-    field timestamp
-    field resolution
-    field timeSpentMinutes
-    field extendHours
-    field priority
-  }
   adminList {
     field admins
     field jrAdmins
@@ -1476,7 +1464,6 @@ erDiagram
   userProfiles ||--o{ actions : "actorId"
   userProfiles ||--o{ activeAdminNotifications : "targetUserId"
   userProfiles ||--o{ activeUserNotifications : "targetUserId"
-  userProfiles ||--o{ adminActivityLog : "adminUserId"
   userProfiles ||--o{ adminTasks : "foundingArtisanUid"
   userProfiles ||--o{ adminTasks : "userId"
   userProfiles ||--o{ chatAdminActionCommands : "actorUid"
