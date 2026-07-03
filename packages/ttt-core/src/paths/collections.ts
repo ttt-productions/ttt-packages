@@ -79,6 +79,9 @@ export const COLLECTIONS = {
   PAYMENT_WEBHOOK_QUARANTINE: 'paymentWebhookQuarantine',
   // Running-totals singleton (pledgePaymentTotals/current) — auth-readable, server-only writes.
   PLEDGE_PAYMENT_TOTALS: 'pledgePaymentTotals',
+  // User-initiated pledge refund requests (post-launch handler; keyed by requestId). No Stripe ids
+  // here — those stay on pledgePaymentProviderRefs. Server-only writes.
+  PLEDGE_REFUND_REQUESTS: 'pledgeRefundRequests',
 
   // Trust & Safety — child-safety case spine (§A1b, §A2)
   CHILD_SAFETY_CASE_LIST: 'childSafetyCaseList',
@@ -126,6 +129,11 @@ export const COLLECTIONS = {
   // written to the primary nciiRetainedEvidenceInventory collection (e.g. write failure during
   // the onNciiEvidenceUploaded trigger). Never auto-deleted; operator-visible for manual triage.
   NCII_INVENTORY_DEAD_LETTER: 'nciiInventoryDeadLetter',
+
+  // Backend-only retry queue for post-commit auth-effect reconciliation: when an account-status
+  // change committed to Firestore but the follow-on Auth effect (custom-claim / disable) failed,
+  // a queue entry keyed by uid drives a retry loop toward the target status. Admin-SDK-only.
+  STATUS_RECONCILE_QUEUE: 'statusReconcileQueue',
 } as const;
 
 /**

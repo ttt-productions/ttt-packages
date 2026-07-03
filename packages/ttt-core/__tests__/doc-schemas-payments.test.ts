@@ -5,6 +5,7 @@ import {
   ProcessedStripeEventSchema,
   PledgePaymentLedgerEventSchema,
   PaymentWebhookQuarantineSchema,
+  PledgeRefundRequestSchema,
 } from '../src/doc-schemas/payments';
 
 const validPledgePayment = {
@@ -211,5 +212,43 @@ describe('PaymentWebhookQuarantineSchema (admin-readable, safe summary only)', (
         createdAt: 1,
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('PledgeRefundRequestSchema (user-initiated refund request)', () => {
+  const validRequest = {
+    pledgePaymentId: 'pp1',
+    userId: 'u1',
+    amount: 1000,
+    status: 'requested' as const,
+    requestedAt: 1,
+  };
+
+  it('accepts a minimal requested record (no resolution fields yet)', () => {
+    expect(PledgeRefundRequestSchema.safeParse(validRequest).success).toBe(true);
+  });
+
+  it('accepts a completed record with resolution + completion timestamps', () => {
+    expect(
+      PledgeRefundRequestSchema.safeParse({
+        ...validRequest,
+        status: 'completed',
+        reason: 'accidental double pledge',
+        resolvedBy: 'admin1',
+        resolvedAt: 2,
+        completedAt: 3,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('constrains status to requested | initiated | denied | completed', () => {
+    expect(PledgeRefundRequestSchema.safeParse({ ...validRequest, status: 'cancelled' }).success).toBe(false);
+  });
+
+  it('carries no Stripe ids on the shape (they stay on the provider-refs doc)', () => {
+    const parsed = PledgeRefundRequestSchema.parse(validRequest);
+    expect(parsed).not.toHaveProperty('refundId');
+    expect(parsed).not.toHaveProperty('paymentIntentId');
+    expect(parsed).not.toHaveProperty('stripeSessionId');
   });
 });

@@ -17,6 +17,15 @@ export const ArchiveGuildChatChannelInputSchema = z.object({
 }).strict();
 export type ArchiveGuildChatChannelInput = z.infer<typeof ArchiveGuildChatChannelInputSchema>;
 
+// Tombstone (delete) a guild chat channel — same input shape as archive. The callable marks the
+// channel `isDeleted`, bumps configVersion, revokes grants, and re-projects members to `removed`;
+// storage is retained (never a physical purge). See docs/design/chat-realtime-system.md.
+export const DeleteGuildChatChannelInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
+  guildChatChannelId: guildChatChannelIdSchema,
+}).strict();
+export type DeleteGuildChatChannelInput = z.infer<typeof DeleteGuildChatChannelInputSchema>;
+
 export const CreateGuildChatChannelInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   channelName: z.string().min(1).max(100),

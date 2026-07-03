@@ -247,6 +247,11 @@ export const PATH_BUILDERS = {
   paymentWebhookQuarantine: (stripeEventId: string): [string, string] =>
     [COLLECTIONS.PAYMENT_WEBHOOK_QUARANTINE, stripeEventId],
 
+  // User-initiated pledge refund request (post-launch), keyed by requestId. No Stripe ids on this
+  // doc — those live on pledgePaymentProviderRefs.
+  pledgeRefundRequest: (requestId: string): [string, string] =>
+    [COLLECTIONS.PLEDGE_REFUND_REQUESTS, requestId],
+
   // ===== FEEDBACK & CRAFT PATHS =====
   feedbackSubmission: (feedbackType: string): [string, string] =>
     [COLLECTIONS.FEEDBACK_SUBMISSIONS, feedbackType],
@@ -287,6 +292,10 @@ export const PATH_BUILDERS = {
 
   appModeMarker: (): [string, string] =>
     [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.APP_MODE],
+
+  // Backend-only post-commit auth-effect reconcile queue entry, keyed by the affected uid.
+  statusReconcileQueueEntry: (uid: string): [string, string] =>
+    [COLLECTIONS.STATUS_RECONCILE_QUEUE, uid],
 
   // ===== TRUST & SAFETY — child-safety case spine (§A1b, §A2) =====
   childSafetyCaseListEntry: (caseId: string): [string, string] =>

@@ -52,6 +52,7 @@ import {
   PledgePaymentLedgerEventSchema,
   PaymentWebhookQuarantineSchema,
   PledgePaymentTotalsDocSchema,
+  PledgeRefundRequestSchema,
 } from './payments.js';
 import {
   FullCommissionListingSchema,
@@ -106,6 +107,7 @@ import {
   ShortLinkSchema,
   FeedbackAliasSchema,
   UserSuggestionSchema,
+  StatusReconcileQueueEntrySchema,
 } from './operational.js';
 // ===== Trust & Safety — report spine (§A1) =====
 import {
@@ -230,6 +232,7 @@ export const COLLECTION_SCHEMAS = {
   'pledgePaymentLedgerEvents/{ledgerId}': PledgePaymentLedgerEventSchema,
   'paymentWebhookQuarantine/{stripeEventId}': PaymentWebhookQuarantineSchema,
   'pledgePaymentTotals/summary': PledgePaymentTotalsDocSchema,
+  'pledgeRefundRequests/{requestId}': PledgeRefundRequestSchema,
 
   // ===== Threshold / Hall =====
   'thresholdItems/{thresholdItemId}': ThresholdItemSchema,
@@ -296,6 +299,7 @@ export const COLLECTION_SCHEMAS = {
   'shortLinks/{shortId}': ShortLinkSchema,
   'feedbackAliases/{aliasId}': FeedbackAliasSchema,
   'feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId}': UserSuggestionSchema,
+  'statusReconcileQueue/{uid}': StatusReconcileQueueEntrySchema,
 
   // ===== Trust & Safety — child-safety case spine (§A1b, §A2) =====
   'childSafetyCaseList/{caseId}': ChildSafetyCaseListV1Schema,
@@ -408,6 +412,7 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'adminNotificationHistory/{notificationId}': 'archiveOccurrenceId',
   'userProfiles/{userId}/notificationHistory/{notificationId}': 'archiveOccurrenceId',
   'pendingNotifications/{notificationId}': 'id',
+  'statusReconcileQueue/{uid}': 'uid',
 } as const satisfies Partial<Record<RegisteredCollectionPath, string>>;
 
 /**

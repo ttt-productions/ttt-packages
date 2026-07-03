@@ -91,6 +91,12 @@ export const FullWorkProjectSchema = z.object({
   // work visible under the placeholder. Backend-only-writable.
   moderationRetitleRequired: z.boolean().optional(),
   moderationRetitleReason: z.string().optional(),
+  // Per-field extension of the retitle remedy (uniform with the Tale/Tune/Television content family):
+  // which text fields ('title', 'description', …) an admin cleared to a placeholder — "all or any",
+  // instead of the always-both retitle — and the operator's reason surfaced on the steward's edit
+  // surface. Empty/absent when nothing was cleared. Backend-only-writable.
+  moderationClearedFields: z.array(z.string()).optional(),
+  moderationClearedReason: z.string().optional(),
   moderatedAt: z.number().optional(),
 });
 export type FullWorkProject = z.infer<typeof FullWorkProjectSchema>;
@@ -182,6 +188,10 @@ export const WorkRealmSchema = z.object({
   // DMCA/copyright takedown). Backend-only-writable.
   moderationRetitleRequired: z.boolean().optional(),
   moderationRetitleReason: z.string().optional(),
+  // Per-field extension of the retitle remedy (see FullWorkProject) — which realm text fields an
+  // admin cleared to a placeholder ("all or any"), plus the operator's reason. Backend-only-writable.
+  moderationClearedFields: z.array(z.string()).optional(),
+  moderationClearedReason: z.string().optional(),
   moderatedAt: z.number().optional(),
 });
 export type WorkRealm = z.infer<typeof WorkRealmSchema>;

@@ -87,6 +87,15 @@ describe('WORK_PROJECT_ACTIONS', () => {
     expect(grantedTo).not.toContain('GuildStandingManager' as GuildStandingId);
   });
 
+  it('guildChatChannel.delete has the same standing bundle as guildChatChannel.archive', () => {
+    expect([...WORK_PROJECT_ACTIONS['guildChatChannel.delete'].grantedTo].sort()).toEqual(
+      [...WORK_PROJECT_ACTIONS['guildChatChannel.archive'].grantedTo].sort(),
+    );
+    expect(WORK_PROJECT_ACTIONS['guildChatChannel.delete'].grantedTo).toEqual(
+      expect.arrayContaining(['StewardOwner', 'WorkProjectManager', 'GuildChatChannelManager']),
+    );
+  });
+
   it('getActionsForGuildStanding returns only valid action IDs', () => {
     const knownActionIds = new Set<string>(WORK_PROJECT_ACTION_IDS);
     for (const guildStandingId of GUILD_STANDING_IDS) {

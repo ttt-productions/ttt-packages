@@ -36,3 +36,11 @@ export const MIN_PLEDGE_PAYMENT_AMOUNT_CENTS = 250;
  * or any rate-limit / audit-event side effects are incurred.
  */
 export const MAX_PLEDGE_PAYMENT_AMOUNT_CENTS = 50_000_000;
+
+/**
+ * Eligibility window for a user-initiated pledge refund REQUEST: 60 days from the
+ * pledge, in milliseconds. Cross-boundary — the UI shows/hides the "request refund"
+ * button by comparing `Date.now() - pledge.createdAt` against this, and the
+ * requestPledgeRefund callable re-enforces it server-side before creating the request.
+ */
+export const PLEDGE_REFUND_REQUEST_WINDOW_MS = 60 * 24 * 60 * 60 * 1000;

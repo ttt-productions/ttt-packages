@@ -120,3 +120,21 @@ export const PaymentWebhookQuarantineSchema = z.object({
   resolutionNote: z.string().optional(),
 });
 export type PaymentWebhookQuarantine = z.infer<typeof PaymentWebhookQuarantineSchema>;
+
+// pledgeRefundRequests/{requestId} — user-initiated pledge refund request (post-launch handler).
+// Lifecycle: requested → (admin approves) initiated → completed, or requested → (admin) denied.
+// NO Stripe ids on this doc — the refund id lands on pledgePaymentProviderRefs.refundIds. Server-only
+// writes. Timestamps are epoch-millis numbers (this repo never uses Firestore Timestamps).
+export const PledgeRefundRequestSchema = z.object({
+  pledgePaymentId: z.string(),
+  userId: z.string(),
+  amount: z.number(),
+  status: z.enum(['requested', 'initiated', 'denied', 'completed']),
+  reason: z.string().optional(), // the requester's stated reason
+  denialReason: z.string().optional(), // set when an admin denies
+  resolvedBy: z.string().optional(), // admin uid who approved/denied
+  requestedAt: z.number(),
+  resolvedAt: z.number().optional(),
+  completedAt: z.number().optional(),
+});
+export type PledgeRefundRequest = z.infer<typeof PledgeRefundRequestSchema>;

@@ -18,3 +18,23 @@ export const CreateStripeCheckoutSessionInputSchema = z.object({
 }).strict();
 export type CreateStripeCheckoutSessionInput = z.infer<typeof CreateStripeCheckoutSessionInputSchema>;
 
+// User-initiated pledge refund request (post-launch). The callable resolves userId from auth and
+// enforces the PLEDGE_REFUND_REQUEST_WINDOW_MS eligibility window server-side; the client only
+// names which pledge it wants refunded.
+export const RequestPledgeRefundInputSchema = z.object({
+  pledgePaymentId: z.string(),
+}).strict();
+export type RequestPledgeRefundInput = z.infer<typeof RequestPledgeRefundInputSchema>;
+
+// Admin resolution of a pending pledge refund request: approve (initiate the Stripe refund) or deny.
+// `denialReason` is REQUIRED when denying and forbidden/ignored otherwise.
+export const AdminResolvePledgeRefundRequestInputSchema = z.object({
+  requestId: z.string(),
+  decision: z.enum(['approve', 'deny']),
+  denialReason: z.string().optional(),
+}).strict().refine(
+  (v) => v.decision !== 'deny' || (typeof v.denialReason === 'string' && v.denialReason.length > 0),
+  { message: 'denialReason is required when decision is "deny"', path: ['denialReason'] },
+);
+export type AdminResolvePledgeRefundRequestInput = z.infer<typeof AdminResolvePledgeRefundRequestInputSchema>;
+

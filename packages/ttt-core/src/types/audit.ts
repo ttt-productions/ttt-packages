@@ -111,6 +111,14 @@ export type AuditEventType =
   | 'payment.pledgePaymentAbandoned'
   | 'payment.pledgePaymentFailed'
   | 'payment.pledgePaymentQuarantined'
+  // money — refund + dispute lifecycle (post-launch handlers; types added now to avoid a
+  // second package publish). Refund REQUESTS are the user-initiated ask; the refund itself is
+  // the money movement. Disputes are Stripe-initiated (chargeback) open/close.
+  | 'payment.pledgePaymentRefunded'
+  | 'payment.pledgePaymentDisputeOpened'
+  | 'payment.pledgePaymentDisputeClosed'
+  | 'payment.pledgeRefundRequested'
+  | 'payment.pledgeRefundRequestResolved'
   // money — independent ledger-integrity trigger (mirrors workProject.stakeShares.*)
   | 'payment.pledgeLedger.recorded'
   | 'payment.pledgeLedger.anomaly'
@@ -147,6 +155,7 @@ export type AuditEventType =
   | 'chat.guildChatChannelCreated'
   | 'chat.guildChatChannelUpdated'
   | 'chat.guildChatChannelArchived'
+  | 'chat.guildChatChannelDeleted'
   | 'chat.adminThreadStarted'
   | 'chat.adminThreadStatusChanged'
   | 'chat.attachmentTimedOut'
@@ -176,6 +185,10 @@ export type AuditEventType =
   | 'workRealm.restored'
   | 'workRealm.moderationPlaceholderApplied'
   | 'workRealm.moderationRetitleCleared'
+  // hall-content moderation text-clear remedy (extends the workProject/workRealm placeholder
+  // family across Tale/Tune/Television details + their chapter/track/episode sub-items and the
+  // published Hall projections). Same past-tense placeholder-applied shape as the pair above.
+  | 'hallItem.moderationPlaceholderApplied'
   // trust & safety — child safety / CSAM
   | 'report.childSafetyCaseOpened'
   | 'report.nciiCaseOpened'

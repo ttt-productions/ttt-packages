@@ -64,6 +64,7 @@ export const ModerationCascadeChangedEntityTypeSchema = z.enum([
   'hallItem',
   'subItemProjection',
   'workRealm',
+  'mediaAsset',
 ]);
 export type ModerationCascadeChangedEntityType = z.infer<typeof ModerationCascadeChangedEntityTypeSchema>;
 

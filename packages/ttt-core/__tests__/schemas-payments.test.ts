@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { CreateStripeCheckoutSessionInputSchema } from '../src/schemas/payments';
+import {
+  CreateStripeCheckoutSessionInputSchema,
+  RequestPledgeRefundInputSchema,
+  AdminResolvePledgeRefundRequestInputSchema,
+} from '../src/schemas/payments';
 import {
   MIN_PLEDGE_PAYMENT_AMOUNT_CENTS,
   MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
+  PLEDGE_REFUND_REQUEST_WINDOW_MS,
 } from '../src/constants/business';
 
 const ATTEMPT_ID = 'f1f86a55-94f6-4c5e-9396-1c4e3f9b7a01';
@@ -145,5 +150,89 @@ describe('MIN_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
 describe('MAX_PLEDGE_PAYMENT_AMOUNT_CENTS', () => {
   it('equals $500,000.00 expressed in cents', () => {
     expect(MAX_PLEDGE_PAYMENT_AMOUNT_CENTS).toBe(500_000 * 100);
+  });
+});
+
+describe('PLEDGE_REFUND_REQUEST_WINDOW_MS', () => {
+  it('is 60 days in milliseconds', () => {
+    expect(PLEDGE_REFUND_REQUEST_WINDOW_MS).toBe(60 * 24 * 60 * 60 * 1000);
+  });
+});
+
+describe('RequestPledgeRefundInputSchema', () => {
+  it('accepts a bare pledgePaymentId', () => {
+    expect(RequestPledgeRefundInputSchema.safeParse({ pledgePaymentId: 'pp1' }).success).toBe(true);
+  });
+
+  it('requires pledgePaymentId', () => {
+    expect(RequestPledgeRefundInputSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('is strict — rejects unknown fields (e.g. a client-supplied userId or amount)', () => {
+    expect(
+      RequestPledgeRefundInputSchema.safeParse({ pledgePaymentId: 'pp1', userId: 'u1' }).success,
+    ).toBe(false);
+    expect(
+      RequestPledgeRefundInputSchema.safeParse({ pledgePaymentId: 'pp1', amount: 1000 }).success,
+    ).toBe(false);
+  });
+});
+
+describe('AdminResolvePledgeRefundRequestInputSchema', () => {
+  it('accepts approve without a denialReason', () => {
+    expect(
+      AdminResolvePledgeRefundRequestInputSchema.safeParse({
+        requestId: 'r1',
+        decision: 'approve',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('accepts deny with a non-empty denialReason', () => {
+    expect(
+      AdminResolvePledgeRefundRequestInputSchema.safeParse({
+        requestId: 'r1',
+        decision: 'deny',
+        denialReason: 'outside the refund window',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('rejects deny with a missing denialReason (refine)', () => {
+    expect(
+      AdminResolvePledgeRefundRequestInputSchema.safeParse({
+        requestId: 'r1',
+        decision: 'deny',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects deny with an empty-string denialReason (refine)', () => {
+    expect(
+      AdminResolvePledgeRefundRequestInputSchema.safeParse({
+        requestId: 'r1',
+        decision: 'deny',
+        denialReason: '',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('constrains decision to approve | deny', () => {
+    expect(
+      AdminResolvePledgeRefundRequestInputSchema.safeParse({
+        requestId: 'r1',
+        decision: 'defer',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('is strict — rejects unknown fields', () => {
+    expect(
+      AdminResolvePledgeRefundRequestInputSchema.safeParse({
+        requestId: 'r1',
+        decision: 'approve',
+        extra: 'nope',
+      }).success,
+    ).toBe(false);
   });
 });

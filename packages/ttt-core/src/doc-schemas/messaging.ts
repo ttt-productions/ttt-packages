@@ -24,6 +24,11 @@ export const GuildChatChannelSchema = z.object({
   lastMessage: z.string().optional(),
   messageCount: z.number(),
   isArchived: z.boolean(),
+  // Delete/tombstone marker (docs/design/chat-realtime-system.md "Channel lifecycle semantics").
+  // Independent of `isArchived`: archive = visible-under-a-toggle, delete = gone from every user's
+  // UI with grants revoked and sends rejected DO-side; storage is RETAINED (never a physical purge).
+  // Optional, absent ⇒ false, so existing/seeded channels need no backfill. Backend-only-writable.
+  isDeleted: z.boolean().optional(),
   // Monotonic config version for the chat-realtime sync layer (Contract B). Bumped by
   // each channel create / edit / archive / delete in the authoritative txn; the
   // `config` chatSyncEvents + channel-scoped fanout key on it. Absent ⇒ 0.

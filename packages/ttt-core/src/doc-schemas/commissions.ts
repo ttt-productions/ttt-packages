@@ -91,7 +91,9 @@ export const AuditionSchema = z.object({
   //   'failed'     — any video in the batch was rejected by moderation; the whole audition fails.
   //                  status stays non-open; only the creator sees it (on the project page) to Edit &
   //                  resubmit or Discard.
-  curatedAssemblyStatus: z.enum(['assembling', 'ready', 'failed']).optional(),
+  //   'closed'     — a curated audition that was closed (by its creator or an admin) after reveal;
+  //                  terminal, kept for record. Distinct from the pre-reveal assembly states above.
+  curatedAssemblyStatus: z.enum(['assembling', 'ready', 'failed', 'closed']).optional(),
   // The fixed number of creator option videos submitted at create-time (2..8). Used to know when the
   // whole batch has landed (all expected entries approved → reveal).
   expectedOptionCount: z.number().int().optional(),

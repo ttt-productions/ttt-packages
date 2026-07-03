@@ -45,7 +45,7 @@ export const GUILD_STANDINGS = {
   },
   GuildChatChannelManager: {
     label: 'Guild Chat Channel Manager',
-    description: 'Can create, update, archive, and moderate workProject chat channels.',
+    description: 'Can create, update, archive, delete, and moderate workProject chat channels.',
   },
 } as const;
 
@@ -283,6 +283,11 @@ export const WORK_PROJECT_ACTIONS = {
   'guildChatChannel.archive': {
     label: 'Archive chat channels',
     description: 'Archive workProject chat channels.',
+    grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildChatChannelManager'],
+  },
+  'guildChatChannel.delete': {
+    label: 'Delete chat channels',
+    description: 'Delete (tombstone) workProject chat channels; storage is retained.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildChatChannelManager'],
   },
   'guildChatMessage.moderate': {

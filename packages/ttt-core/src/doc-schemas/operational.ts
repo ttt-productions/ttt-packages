@@ -53,6 +53,21 @@ export const ShortLinkSchema = z.object({
 });
 export type ShortLink = z.infer<typeof ShortLinkSchema>;
 
+// statusReconcileQueue/{uid} — backend-only retry queue for post-commit auth-effect reconciliation.
+// Written when an account-status change committed to Firestore but the follow-on Auth effect
+// (custom-claim set / account disable) failed; a retry loop drives the account toward `targetStatus`
+// and deletes the entry on success. Keyed by the affected uid (doc id == uid); Admin-SDK-only.
+// Timestamps are epoch-millis numbers (this repo never uses Firestore Timestamps).
+export const StatusReconcileQueueEntrySchema = z.object({
+  uid: z.string(),
+  enqueuedAt: z.number(),
+  lastAttemptAt: z.number().optional(),
+  attemptCount: z.number(),
+  targetStatus: z.enum(['active', 'suspended', 'banned']),
+  reason: z.literal('postCommitAuthEffectFailed'),
+});
+export type StatusReconcileQueueEntry = z.infer<typeof StatusReconcileQueueEntrySchema>;
+
 // feedbackAliases/{aliasId} — Console-managed map collapsing a synonym suggestion onto a canonical
 // one; read by submitFeedback, no callable writes it. (firestore.rules §3F / submitFeedback.ts)
 export const FeedbackAliasSchema = z.object({

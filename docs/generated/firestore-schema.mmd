@@ -921,6 +921,18 @@ erDiagram
     field disputeState
     field ageAttestedAt
   }
+  pledgeRefundRequests {
+    field pledgePaymentId
+    field userId
+    field amount
+    field status
+    field reason
+    field denialReason
+    field resolvedBy
+    field requestedAt
+    field resolvedAt
+    field completedAt
+  }
   privateData {
     field email
     field isWaitingForNewsApproval
@@ -1216,6 +1228,14 @@ erDiagram
     field createdAt
     field source
   }
+  statusReconcileQueue {
+    field uid
+    field enqueuedAt
+    field lastAttemptAt
+    field attemptCount
+    field targetStatus
+    field reason
+  }
   submissions {
     field schemaVersion
     field submissionId
@@ -1270,6 +1290,8 @@ erDiagram
     field photoAssetId
     field status
     field createdOn
+    field moderationClearedFields
+    field moderationClearedReason
   }
   targets {
     field targetKeyHash
@@ -1295,6 +1317,8 @@ erDiagram
     field photoAssetId
     field status
     field createdOn
+    field moderationClearedFields
+    field moderationClearedReason
   }
   thresholdItems {
     field thresholdItemId
@@ -1324,6 +1348,8 @@ erDiagram
     field photoAssetId
     field status
     field createdOn
+    field moderationClearedFields
+    field moderationClearedReason
   }
   userProfiles {
     field uid
@@ -1396,6 +1422,8 @@ erDiagram
     field coverPosterAssetId
     field coverCinematicAssetId
     field workGenres
+    field moderationClearedFields
+    field moderationClearedReason
   }
   workProjectTelevision {
     field uid
@@ -1406,6 +1434,8 @@ erDiagram
     field coverPosterAssetId
     field coverCinematicAssetId
     field workGenres
+    field moderationClearedFields
+    field moderationClearedReason
   }
   workProjectTunes {
     field uid
@@ -1416,6 +1446,8 @@ erDiagram
     field coverCinematicAssetId
     field workGenres
     field createdOn
+    field moderationClearedFields
+    field moderationClearedReason
   }
   workRealms {
     field workRealmId
@@ -1459,6 +1491,7 @@ erDiagram
   pledgePayments ||--o{ paymentWebhookQuarantine : "pledgePaymentId"
   pledgePayments ||--o{ pledgePaymentLedgerEvents : "pledgePaymentId"
   pledgePayments ||--o{ pledgePaymentProviderRefs : "pledgePaymentId"
+  pledgePayments ||--o{ pledgeRefundRequests : "pledgePaymentId"
   pledgePayments ||--o{ processedStripeEvents : "pledgePaymentId"
   userProfiles ||--o{ accountDeletionRequests : "uid"
   userProfiles ||--o{ actions : "actorId"
@@ -1486,6 +1519,8 @@ erDiagram
   userProfiles ||--o{ pendingNotifications : "targetUserId"
   userProfiles ||--o{ pledgePaymentProviderRefs : "userId"
   userProfiles ||--o{ pledgePayments : "userId"
+  userProfiles ||--o{ pledgeRefundRequests : "resolvedBy"
+  userProfiles ||--o{ pledgeRefundRequests : "userId"
   userProfiles ||--o{ publicGuildmateUsers : "uid"
   userProfiles ||--o{ publicUsers : "uid"
   userProfiles ||--o{ publicWorkProjects : "foundingArtisanUid"
@@ -1494,6 +1529,7 @@ erDiagram
   userProfiles ||--o{ reservedDisplayNames : "userId"
   userProfiles ||--o{ socialPosts : "authorId"
   userProfiles ||--o{ sourceSignals : "actorId"
+  userProfiles ||--o{ statusReconcileQueue : "uid"
   userProfiles ||--o{ taggedCraftSkills : "userId"
   userProfiles ||--o{ taleChapters : "uid"
   userProfiles ||--o{ televisionEpisodes : "uid"

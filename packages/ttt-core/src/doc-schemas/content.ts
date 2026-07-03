@@ -9,6 +9,17 @@ import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js
 
 const contentStatusSchema = z.enum(['unpublished', 'pending_approval', 'published']);
 
+// Per-field moderation text-clear remedy (shared shape across the content family — Tale/Tune/
+// Television details, their chapter/track/episode sub-items, and the published Hall projections of
+// both). `moderationClearedFields` lists which text fields (e.g. 'title', 'description', 'content')
+// an admin cleared to a neutral placeholder and which now await steward re-entry; empty/absent when
+// nothing was cleared. `moderationClearedReason` is the operator's reason, surfaced on the member's
+// edit surface. Extends the workProject/workRealm placeholder remedy per-field. Backend-only-writable.
+const moderationClearedFieldsShape = {
+  moderationClearedFields: z.array(z.string()).optional(),
+  moderationClearedReason: z.string().optional(),
+};
+
 export const ItemsKeySchema = z.enum(['tuneTracks', 'chapters', 'televisionEpisodes']);
 export type ItemsKey = z.infer<typeof ItemsKeySchema>;
 
@@ -23,6 +34,7 @@ export const FullTaleSchema = z.object({
   coverPosterAssetId: z.string().optional(),
   coverCinematicAssetId: z.string().optional(),
   workGenres: z.array(z.string()).optional(),
+  ...moderationClearedFieldsShape,
 });
 export type FullTale = z.infer<typeof FullTaleSchema>;
 
@@ -35,6 +47,7 @@ export const FullChapterSchema = z.object({
   photoAssetId: z.string().optional(),
   status: contentStatusSchema,
   createdOn: z.number(),
+  ...moderationClearedFieldsShape,
 });
 export type FullChapter = z.infer<typeof FullChapterSchema>;
 
@@ -47,6 +60,7 @@ export const FullTuneSchema = z.object({
   coverCinematicAssetId: z.string().optional(),
   workGenres: z.array(z.string()),
   createdOn: z.number(),
+  ...moderationClearedFieldsShape,
 });
 export type FullTune = z.infer<typeof FullTuneSchema>;
 
@@ -60,6 +74,7 @@ export const FullTuneTrackSchema = z.object({
   photoAssetId: z.string().optional(),
   status: contentStatusSchema,
   createdOn: z.number(),
+  ...moderationClearedFieldsShape,
 });
 export type FullTuneTrack = z.infer<typeof FullTuneTrackSchema>;
 
@@ -72,6 +87,7 @@ export const FullTelevisionSchema = z.object({
   coverPosterAssetId: z.string().optional(),
   coverCinematicAssetId: z.string().optional(),
   workGenres: z.array(z.string()),
+  ...moderationClearedFieldsShape,
 });
 export type FullTelevision = z.infer<typeof FullTelevisionSchema>;
 
@@ -85,6 +101,7 @@ export const FullTelevisionEpisodeSchema = z.object({
   photoAssetId: z.string().optional(),
   status: contentStatusSchema,
   createdOn: z.number(),
+  ...moderationClearedFieldsShape,
 });
 export type FullTelevisionEpisode = z.infer<typeof FullTelevisionEpisodeSchema>;
 
@@ -128,6 +145,15 @@ export const PublishedHallItemSchema = z.object({
   workGenres: z.array(z.string()).optional(),
   followerCount: z.number().optional(),
   hidden: z.boolean(),
+  // Whether the current hide was applied DIRECTly to this item or propagated by a moderation
+  // CASCADE from a parent (realm/work). Absent when not hidden. Backend-only-writable.
+  hiddenBy: z.enum(['direct', 'cascade']).optional(),
+  // Moderation text-clear remedy (extends the workProject/workRealm placeholder family, per-field):
+  // which text fields an admin cleared to a neutral placeholder and now await steward re-entry
+  // (e.g. ['title', 'description']). Empty/absent when nothing was cleared. `moderationClearedReason`
+  // is the operator's reason (shown on the steward's edit surface). Backend-only-writable.
+  moderationClearedFields: z.array(z.string()).optional(),
+  moderationClearedReason: z.string().optional(),
   // Parody / real-people legal disclaimer (carried from the approved ThresholdItem) — shown
   // prominently on the published Work. Backend-written at approval.
   hasRealPeople: z.boolean().optional(),
@@ -143,6 +169,12 @@ export const PublishedTuneTrackSchema = z.object({
   audioAssetId: z.string(),
   photoAssetId: z.string().optional(),
   hidden: z.boolean(),
+  // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
+  hiddenBy: z.enum(['direct', 'cascade']).optional(),
+  // Per-field moderation text-clear remedy (see PublishedHallItemSchema): which text fields were
+  // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
+  moderationClearedFields: z.array(z.string()).optional(),
+  moderationClearedReason: z.string().optional(),
 });
 export type PublishedTuneTrack = z.infer<typeof PublishedTuneTrackSchema>;
 
@@ -154,6 +186,12 @@ export const PublishedChapterSchema = z.object({
   content: z.string(),
   photoAssetId: z.string().optional(),
   hidden: z.boolean(),
+  // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
+  hiddenBy: z.enum(['direct', 'cascade']).optional(),
+  // Per-field moderation text-clear remedy (see PublishedHallItemSchema): which text fields were
+  // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
+  moderationClearedFields: z.array(z.string()).optional(),
+  moderationClearedReason: z.string().optional(),
 });
 export type PublishedChapter = z.infer<typeof PublishedChapterSchema>;
 
@@ -165,6 +203,12 @@ export const PublishedTelevisionEpisodeSchema = z.object({
   videoAssetId: z.string(),
   photoAssetId: z.string().optional(),
   hidden: z.boolean(),
+  // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
+  hiddenBy: z.enum(['direct', 'cascade']).optional(),
+  // Per-field moderation text-clear remedy (see PublishedHallItemSchema): which text fields were
+  // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
+  moderationClearedFields: z.array(z.string()).optional(),
+  moderationClearedReason: z.string().optional(),
 });
 export type PublishedTelevisionEpisode = z.infer<typeof PublishedTelevisionEpisodeSchema>;
 

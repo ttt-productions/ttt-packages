@@ -19,6 +19,10 @@ export const AdminTaskTypeSchema = z.enum([
   'stakeShareAnomaly',
   'pledgeLedgerAnomaly',
   'pledgePaymentRepairNeeded',
+  // Payment refund/dispute admin tray tasks (post-launch handlers). A Stripe chargeback opens a
+  // dispute task; a user refund request opens a refund-request task for admin resolution.
+  'pledgeDisputeOpened',
+  'pledgeRefundRequested',
 ]);
 export type AdminTaskType = z.infer<typeof AdminTaskTypeSchema>;
 

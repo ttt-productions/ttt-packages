@@ -420,6 +420,23 @@ describe('PATH_BUILDERS', () => {
       expect(result[0]).toBe(COLLECTIONS.PAYMENT_WEBHOOK_QUARANTINE);
       expect(result[1]).toBe('evt_123');
     });
+
+    it('pledgeRefundRequest returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.pledgeRefundRequest('req1');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toBe(COLLECTIONS.PLEDGE_REFUND_REQUESTS);
+      expect(result[1]).toBe('req1');
+    });
+  });
+
+  // ===== BACKEND-ONLY QUEUES =====
+  describe('Backend-only queue paths', () => {
+    it('statusReconcileQueueEntry returns 2-segment tuple keyed by uid', () => {
+      const result = PATH_BUILDERS.statusReconcileQueueEntry('uid1');
+      expect(result).toHaveLength(2);
+      expect(result[0]).toBe(COLLECTIONS.STATUS_RECONCILE_QUEUE);
+      expect(result[1]).toBe('uid1');
+    });
   });
 
   // ===== FEEDBACK & CRAFT PATHS =====

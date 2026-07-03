@@ -23,6 +23,14 @@ describe('audit type catalog', () => {
       'admin.dispatchDeleted',
       'admin.shortLinkDeleted',
       'workProject.fileFolderAccessChanged',
+      // fable-review campaign additions
+      'chat.guildChatChannelDeleted',
+      'payment.pledgePaymentRefunded',
+      'payment.pledgePaymentDisputeOpened',
+      'payment.pledgePaymentDisputeClosed',
+      'payment.pledgeRefundRequested',
+      'payment.pledgeRefundRequestResolved',
+      'hallItem.moderationPlaceholderApplied',
     ];
     expectTypeOf(sample).toEqualTypeOf<AuditEventType[]>();
   });
