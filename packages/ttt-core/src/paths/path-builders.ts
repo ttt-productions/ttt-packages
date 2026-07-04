@@ -331,13 +331,6 @@ export const PATH_BUILDERS = {
   childSafetyOwningAlias: (aliasId: string): [string, string] =>
     [COLLECTIONS.CHILD_SAFETY_OWNING_ALIASES, aliasId],
 
-  // The doc IS the correlation→case row (childSafetyCorrelations/{correlationKey}/cases/{caseId}).
-  childSafetyCorrelationCase: (correlationKey: string, caseId: string): [string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CORRELATIONS, correlationKey, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CORRELATION_CASES, caseId],
-
-  safetyCaseMergeJob: (mergeJobId: string): [string, string] =>
-    [COLLECTIONS.SAFETY_CASE_MERGE_JOBS, mergeJobId],
-
   // ===== TRUST & SAFETY — holds + resource commands (§A3) =====
   // Composite doc id caseId__resourceKeyHash — a single {holdRefId} segment.
   safetyHoldRef: (holdRefId: string): [string, string] =>
@@ -419,10 +412,6 @@ export const PATH_BUILDERS = {
 
   takeItDownRequestAction: (requestId: string, actionId: string): [string, string, string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_ACTIONS, actionId],
-
-  // Fixed-id public status projection (takeItDownRequests/{requestId}/statusProjection/current).
-  takeItDownPublicStatus: (requestId: string): [string, string, string, string] =>
-    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_STATUS_PROJECTION, SPECIAL_DOCS.TAKE_IT_DOWN_STATUS_CURRENT],
 
   takeItDownEvidence: (requestId: string, evidenceId: string): [string, string, string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_EVIDENCE, evidenceId],

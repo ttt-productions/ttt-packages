@@ -91,16 +91,31 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
         );
         onProgress?.({ phase: "moderation_input", percent: 1 });
   
-        if (mIn?.status === "rejected") {
+        // Fail closed on both "rejected" (policy violation) and "error" (the
+        // moderation check itself did not complete — quota/outage/API failure).
+        // A non-passing check must NEVER fall through to transcode + persist:
+        // published bytes must always have been scanned. An "error" is a system
+        // failure, not a content rejection, so it returns the distinct,
+        // retryable `processing_failed` code AND carries `moderation` (status
+        // "error") on the result — callers route that to their retryable
+        // moderation lane and land the row failed rather than publishing it.
+        if (mIn?.status === "rejected" || mIn?.status === "error") {
           return {
             ok: false,
             mediaType: mediaTypeFromSpecKind(spec.kind),
             moderation: mIn,
-            error: {
-              code: "rejected",
-              message: "Rejected by moderation.",
-              details: { provider: mIn.provider, reasons: mIn.reasons, findings: mIn.findings },
-            },
+            error:
+              mIn.status === "error"
+                ? {
+                    code: "processing_failed",
+                    message: "Moderation check did not complete.",
+                    details: { provider: mIn.provider, reason: "moderation_error" },
+                  }
+                : {
+                    code: "rejected",
+                    message: "Rejected by moderation.",
+                    details: { provider: mIn.provider, reasons: mIn.reasons, findings: mIn.findings },
+                  },
           };
         }
       }
@@ -173,16 +188,27 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
         );
         onProgress?.({ phase: "moderation_output", percent: 1 });
 
-        if (mOut?.status === "rejected") {
+        // Same fail-closed posture as the input check: block both "rejected"
+        // and "error" before any persistence, so an incomplete check can never
+        // publish unscanned output. Ordering is load-bearing — see ttt-prod
+        // docs/design/media-assets-and-protected-serving.md.
+        if (mOut?.status === "rejected" || mOut?.status === "error") {
           return {
             ok: false,
             mediaType: result.mediaType,
             moderation: mOut,
-            error: {
-              code: "rejected",
-              message: "Rejected by moderation.",
-              details: { provider: mOut.provider, reasons: mOut.reasons, findings: mOut.findings },
-            },
+            error:
+              mOut.status === "error"
+                ? {
+                    code: "processing_failed",
+                    message: "Moderation check did not complete.",
+                    details: { provider: mOut.provider, reason: "moderation_error" },
+                  }
+                : {
+                    code: "rejected",
+                    message: "Rejected by moderation.",
+                    details: { provider: mOut.provider, reasons: mOut.reasons, findings: mOut.findings },
+                  },
           };
         }
       }

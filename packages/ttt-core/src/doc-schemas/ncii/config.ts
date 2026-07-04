@@ -40,7 +40,6 @@ export const NciiPolicyConfigV1Schema = z.object({
   policyVersion: z.literal('ncii.2026-06-23.v1'),
   requesterPiiRetentionDays: z.number(),
   evidenceRetentionDays: z.number(),
-  statusTokenRetentionDays: z.number(),
   blockedHashRetentionPolicy: NciiBlockedHashRetentionPolicySchema,
   allowedEvidenceMimeTypes: z.array(z.string().min(1)),
   maxEvidenceFileBytes: z.number(),
@@ -48,23 +47,19 @@ export const NciiPolicyConfigV1Schema = z.object({
   maxEvidenceTotalBytesPerRequest: z.number(),
   uploadReservationMinutes: z.number(),
   abandonedUploadCleanupHours: z.number(),
-  // [H1/M3] temp-hold + status/supplement token values:
+  // [H1/M3] temp-hold values:
   tempHoldInitialHours: z.number(),
   tempHoldPendingValidityExtensionHours: z.number(),
   tempHoldMaxTotalHours: z.number(),
   incompleteInvalidReleaseDelayHours: z.number(),
   // [NCII route rate-limit hardening — 2026-07-01, OPERATIONAL operator defaults, not legal-retention
-  // values; counsel may tune]. Public routes return 429 + Retry-After and NEVER discard a submission.
-  // Supplement route is limited PER opaque requestReference (victim-safe, no cross-IP collision).
-  // Intake route keeps App-Check as the PRIMARY defense with only a GENEROUS per-IP burst backstop
-  // (generous enough not to throttle a real VPN/shared-IP victim — per-IP was rejected for the evidence
-  // BYTES path; this is the HTTP route only).
-  supplementRateLimitWindowSeconds: z.number(),
-  supplementRateLimitMaxPerReference: z.number(),
+  // values; counsel may tune]. The public intake route returns 429 + Retry-After and NEVER discards a
+  // submission. App-Check is the PRIMARY defense with only a GENEROUS per-IP burst backstop (generous
+  // enough not to throttle a real VPN/shared-IP victim — per-IP was rejected for the evidence BYTES
+  // path; this is the HTTP route only). (The supplement route + status token were removed with the
+  // public post-submission tracking tail — the public flow is submit-only.)
   intakeRateLimitWindowSeconds: z.number(),
   intakeRateLimitMaxPerIp: z.number(),
-  statusTokenEntropyBits: z.number(),
-  statusTokenTtlDays: z.number(),
   // [H-07] dedup window for the deterministic initial-intake idempotency key
   idempotencyWindowHours: z.number(),
   // [M-10] evidence parser-hardening budgets (attacker-controlled bytes):
@@ -87,7 +82,6 @@ export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
   policyVersion: 'ncii.2026-06-23.v1',
   requesterPiiRetentionDays: 90,
   evidenceRetentionDays: 60,
-  statusTokenRetentionDays: 180,
   blockedHashRetentionPolicy: 'indefiniteUntilReversed',
   allowedEvidenceMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'],
   // [H-01/R10] 100MB per file (was 500MB): the evidence-scan trigger downloads the whole object into a
@@ -104,12 +98,8 @@ export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
   tempHoldMaxTotalHours: 336,
   incompleteInvalidReleaseDelayHours: 24,
   // [NCII route rate-limit hardening — 2026-07-01 operator defaults; generous, counsel may tune]
-  supplementRateLimitWindowSeconds: 3600, // per opaque requestReference
-  supplementRateLimitMaxPerReference: 10, // a victim supplementing their OWN request — generous
   intakeRateLimitWindowSeconds: 3600, // per source IP (secondary flood guard; App-Check is primary)
   intakeRateLimitMaxPerIp: 20, // generous so a shared/VPN IP with several genuine victims isn't throttled
-  statusTokenEntropyBits: 256,
-  statusTokenTtlDays: 180,
   idempotencyWindowHours: 72,
   maxEvidenceDecodePixels: 40000000,
   maxEvidenceImageDimension: 12000,

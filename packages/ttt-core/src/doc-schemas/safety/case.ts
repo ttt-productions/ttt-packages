@@ -113,11 +113,6 @@ export const ChildSafetyReportStateSchema = z.enum([
 ]);
 export type ChildSafetyReportState = z.infer<typeof ChildSafetyReportStateSchema>;
 
-/** §A1b mergeState (the case's merge participation; full merge spec in §A2 /
- * ./case-aliases.js). */
-export const ChildSafetyMergeStateSchema = z.enum(['none', 'winner', 'merging', 'tombstoned']);
-export type ChildSafetyMergeState = z.infer<typeof ChildSafetyMergeStateSchema>;
-
 /** §A1b decisions[].kind — the append-only decision-log kind. `caseClosed` [EUAS-008]
  * is the terminal close decision carrying the structured closure record. */
 export const ChildSafetyDecisionKindSchema = z.enum([
@@ -235,15 +230,16 @@ export const ChildSafetyCaseListV1Schema = z.object({
   accountActionStatus: ChildSafetyAccountActionStatusSchema,
   reportDisposition: ReportDispositionSchema, // §A9 case-level reporting determination
   reviewDueAt: z.number(),
-  photoDnaContractDueAt: z.number().optional(),
   actualKnowledgeAt: z.number().optional(),
   reportState: ChildSafetyReportStateSchema.optional(), // derived list-projection only
   submissionCompletedAt: z.number().optional(),
   preserveUntil: z.number().optional(),
   openHoldCount: z.number(),
-  mergeState: ChildSafetyMergeStateSchema,
-  mergeRedirectCaseId: z.string().min(1).optional(),
-  mergeGeneration: z.number().optional(),
+  // Cross-links to other cases that claimed the same owning alias (a rare operator NCII-crossover
+  // re-scan collision). arrayUnion'd on both cases in the intake transaction that detected the claim;
+  // the console renders these as plain links on the case view. The original alias owner is kept — the
+  // colliding case never `tx.create`-throws (see childSafetyOwningAliases intake). Additive/optional.
+  relatedCaseIds: z.array(z.string().min(1)).optional(),
   // [H-04 V1] Set to true when a protected-reason chat report's Worker context could not be
   // resolved at intake (text-only / Worker-down / attachment-not-ready). The case is still a
   // fully-valid protected case; context resolution is retried async. Absent = false (no pending

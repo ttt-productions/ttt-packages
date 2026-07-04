@@ -17,6 +17,14 @@ export interface CreateObjectStoreMediaIOArgs {
   outputKeyPrefix: string;
   /** Optional mime hint for the input. */
   inputMime?: string;
+  /**
+   * Optional object generation to pin the input download to. When set, the
+   * download resolves the exact immutable generation of the staged object
+   * (per GCS generation-precondition semantics), so a concurrent overwrite of
+   * the source path cannot swap the bytes that get read. Accepts the numeric
+   * generation or its string form (GCS generations exceed 2^53).
+   */
+  inputGeneration?: string | number;
 }
 
 export function createObjectStoreMediaIO(args: CreateObjectStoreMediaIOArgs): MediaIO {
@@ -26,7 +34,11 @@ export function createObjectStoreMediaIO(args: CreateObjectStoreMediaIOArgs): Me
     input: {
       mime: args.inputMime,
       async readToFile(localPath: string) {
-        await bucket.file(args.inputStoragePath).download({ destination: localPath });
+        const file =
+          args.inputGeneration != null
+            ? bucket.file(args.inputStoragePath, { generation: args.inputGeneration })
+            : bucket.file(args.inputStoragePath);
+        await file.download({ destination: localPath });
       },
     },
     output: {

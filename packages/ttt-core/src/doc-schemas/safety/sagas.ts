@@ -143,8 +143,10 @@ export type AccountAction = z.infer<typeof AccountActionSchema>;
 export const AccountActionSourceSchema = z.enum(['autoHash', 'operator']);
 export type AccountActionSource = z.infer<typeof AccountActionSourceSchema>;
 
-/** Command lifecycle status. */
-export const AccountActionStatusSchema = z.enum(['pending', 'applied', 'reverted']);
+/** Command lifecycle status. `deadLetter` parks a command whose attempt budget is
+ * exhausted (the drain query stops matching it); an operator replays it via
+ * `adminReplayDeadLetter` (generic reset to `pending`). */
+export const AccountActionStatusSchema = z.enum(['pending', 'applied', 'reverted', 'deadLetter']);
 export type AccountActionStatus = z.infer<typeof AccountActionStatusSchema>;
 
 /** `accountActionCommands/{caseId}__{uid}` — per-account safety-action durable

@@ -8,7 +8,6 @@ import {
 import { MAX_CHAT_MESSAGE_LENGTH } from '../constants/chat.js';
 import {
   ReplyToSchema,
-  ChatAttachmentSchema,
 } from '@ttt-productions/chat-schemas';
 
 export const ArchiveGuildChatChannelInputSchema = z.object({
@@ -44,7 +43,6 @@ export const SendGuildChatMessageInputSchema = z.object({
   isUserReply: z.boolean(),
   text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
   replyTo: ReplyToSchema.optional(),
-  attachment: ChatAttachmentSchema.optional(),
 }).strict();
 export type SendGuildChatMessageInput = z.infer<typeof SendGuildChatMessageInputSchema>;
 

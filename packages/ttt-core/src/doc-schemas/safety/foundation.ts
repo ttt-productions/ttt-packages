@@ -188,15 +188,15 @@ export type SafetyCaseClosureV1 = z.infer<typeof SafetyCaseClosureV1Schema>;
 /** NCMEC submission lifecycle — MANUAL-PORTAL model (§A9). NO `notRequired` (that is
  * ReportDisposition). There is no automated ispws API: a report-needed obligation sits in
  * `awaitingManualFiling` from enqueue until the operator files on the NCMEC portal and records the
- * confirmation (markNcmecPortalComplete → `completed`). `queued` is the case-list `ncmecStatus`
- * "report queued" projection; `retracted` is a terminal exit. The old API-drive states
+ * confirmation (markNcmecPortalComplete → `completed`). Jobs are born `awaitingManualFiling`; the
+ * case-list `ncmecStatus` projection uses the same value (no separate `queued` state). There is no
+ * in-app retraction — corrections are portal-manual (correction-lifecycle decision). The old
+ * API-drive states
  * (opening/open/uploading/addingFileDetails/finishing/retryableFailure/ambiguousResult/permanentFailure)
  * were removed with the live-API client. */
 export const NcmecSubmissionStateSchema = z.enum([
-  'queued',
   'awaitingManualFiling',
   'completed',
-  'retracted',
 ]);
 export type NcmecSubmissionState = z.infer<typeof NcmecSubmissionStateSchema>;
 

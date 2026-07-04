@@ -66,6 +66,49 @@ describe('runMediaPipeline ordering', () => {
     expect(events[1]).toBe('persist:main');
   });
 
+  it('input moderation "error" (incomplete check) fails closed — nothing transcodes or persists', async () => {
+    const events: string[] = [];
+    processMediaMock.mockImplementation(() => {
+      events.push('transcode');
+      return Promise.resolve({ ok: true, mediaType: 'image', outputs: [] });
+    });
+    const moderation: ModerationAdapter = {
+      provider: 'test',
+      moderateInput: async () => ({ status: 'error', reasons: ['quota'] }),
+    };
+
+    const result = await runMediaPipeline({ spec, io: makeIO(events), moderation });
+
+    expect(result.ok).toBe(false);
+    // Distinct retryable failure code (not "rejected"), moderation carried through.
+    if (!result.ok) expect(result.error?.code).toBe('processing_failed');
+    expect(result.moderation?.status).toBe('error');
+    // The check terminated before transcode — no processing, no persistence.
+    expect(events).not.toContain('transcode');
+    expect(events.filter((e) => e.startsWith('persist:'))).toHaveLength(0);
+  });
+
+  it('output moderation "error" fails closed — nothing is persisted', async () => {
+    const events: string[] = [];
+    const localOut = await makeLocalOutput();
+    processMediaMock.mockResolvedValue({
+      ok: true,
+      mediaType: 'image',
+      outputs: [{ key: 'main', path: localOut }],
+    });
+    const moderation: ModerationAdapter = {
+      provider: 'test',
+      moderateOutput: async () => ({ status: 'error', reasons: ['outage'] }),
+    };
+
+    const result = await runMediaPipeline({ spec, io: makeIO(events), moderation });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error?.code).toBe('processing_failed');
+    expect(result.moderation?.status).toBe('error');
+    expect(events.filter((e) => e.startsWith('persist:'))).toHaveLength(0);
+  });
+
   it('rejected output moderation means NOTHING is persisted', async () => {
     const events: string[] = [];
     const localOut = await makeLocalOutput();

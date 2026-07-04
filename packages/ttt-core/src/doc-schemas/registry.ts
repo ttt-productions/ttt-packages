@@ -133,8 +133,6 @@ import {
 } from './safety/case.js';
 import {
   ChildSafetyOwningAliasV1Schema,
-  ChildSafetyCorrelationCaseV1Schema,
-  SafetyCaseMergeJobV1Schema,
 } from './safety/case-aliases.js';
 import {
   SafetyHoldRefV1Schema,
@@ -169,7 +167,6 @@ import {
   TakeItDownSubmissionV1Schema,
   TakeItDownValidityDecisionV1Schema,
   TakeItDownRequestActionV1Schema,
-  TakeItDownPublicStatusV1Schema,
   TakeItDownEvidenceV1Schema,
   NciiRetainedEvidenceInventoryV1Schema,
 } from './ncii/requests.js';
@@ -314,8 +311,6 @@ export const COLLECTION_SCHEMAS = {
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/files/{fileId}': ChildSafetyNcmecSubmissionFileV1Schema,
   'childSafetyCases/{caseId}/legalProcess/{eventId}': ChildSafetyLegalProcessEventV1Schema,
   'childSafetyOwningAliases/{aliasId}': ChildSafetyOwningAliasV1Schema,
-  'childSafetyCorrelations/{correlationKey}/cases/{caseId}': ChildSafetyCorrelationCaseV1Schema,
-  'safetyCaseMergeJobs/{mergeJobId}': SafetyCaseMergeJobV1Schema,
 
   // ===== Trust & Safety — holds + resource commands (§A3) =====
   'safetyHoldRefs/{holdRefId}': SafetyHoldRefV1Schema,
@@ -354,7 +349,6 @@ export const COLLECTION_SCHEMAS = {
   'takeItDownRequests/{requestId}/submissions/{submissionId}': TakeItDownSubmissionV1Schema,
   'takeItDownRequests/{requestId}/validityDecisions/{decisionId}': TakeItDownValidityDecisionV1Schema,
   'takeItDownRequests/{requestId}/actions/{actionId}': TakeItDownRequestActionV1Schema,
-  'takeItDownRequests/{requestId}/statusProjection/current': TakeItDownPublicStatusV1Schema,
   'takeItDownRequests/{requestId}/evidence/{evidenceId}': TakeItDownEvidenceV1Schema,
   'nciiCases/{caseId}': NciiCaseV1Schema,
   'nciiCases/{caseId}/allegationLinks/{allegationId}': NciiCaseAllegationLinkV1Schema,

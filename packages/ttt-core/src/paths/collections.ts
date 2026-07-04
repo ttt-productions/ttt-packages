@@ -87,8 +87,6 @@ export const COLLECTIONS = {
   CHILD_SAFETY_CASE_LIST: 'childSafetyCaseList',
   CHILD_SAFETY_CASES: 'childSafetyCases',
   CHILD_SAFETY_OWNING_ALIASES: 'childSafetyOwningAliases',
-  CHILD_SAFETY_CORRELATIONS: 'childSafetyCorrelations',
-  SAFETY_CASE_MERGE_JOBS: 'safetyCaseMergeJobs',
 
   // Trust & Safety — time-sensitive admin-tray "case needs work" pins (admin-readable
   // projection; the 5th notification-tray tab reads it, the Safety Case Console owns detail).
@@ -215,8 +213,6 @@ export const NESTED_SUBCOLLECTIONS = {
   // Anonymization affected-chunk set (chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal}).
   CHAT_ANONYMIZATION_AFFECTED_CHUNKS: 'affectedChunks',
 
-  // Trust & Safety — child-safety correlation→case rows (childSafetyCorrelations/{key}/cases/{caseId}).
-  CHILD_SAFETY_CORRELATION_CASES: 'cases',
   // Trust & Safety — child-safety case append-only detail (NEVER arrays).
   CHILD_SAFETY_SOURCE_SIGNALS: 'sourceSignals',
   CHILD_SAFETY_DECISIONS: 'decisions',
@@ -243,7 +239,6 @@ export const NESTED_SUBCOLLECTIONS = {
   TAKE_IT_DOWN_SUBMISSIONS: 'submissions',
   TAKE_IT_DOWN_VALIDITY_DECISIONS: 'validityDecisions',
   TAKE_IT_DOWN_ACTIONS: 'actions',
-  TAKE_IT_DOWN_STATUS_PROJECTION: 'statusProjection',
   TAKE_IT_DOWN_EVIDENCE: 'evidence',
 
   // Trust & Safety — NCII case subcollections (§A11).
@@ -285,7 +280,6 @@ export const SPECIAL_DOCS = {
 
   // Trust & Safety — fixed-id TAKE IT DOWN request subdocs (§A11).
   TAKE_IT_DOWN_REQUESTER: 'requester', // takeItDownRequests/{requestId}/private/requester
-  TAKE_IT_DOWN_STATUS_CURRENT: 'current', // takeItDownRequests/{requestId}/statusProjection/current
 
   // Trust & Safety — fixed-id report-spine private subdocs (§A1).
   REPORT_SNAPSHOT: 'snapshot', // contentReports/{reportId}/private/snapshot

@@ -29,8 +29,19 @@ import {
 // set or hashing scheme changes.
 // ===========================================================================
 
-/** Version token folded into every canonical key formula below. */
-export const REPORT_CANONICAL_KEY_VERSION = 'v1';
+/** Version token folded into every canonical key formula below.
+ *
+ * v2 (pre-launch, no migration): two coordinated formula-input changes ride this
+ * single bump —
+ *   (1) `canonicalTargetKey` composition is now INJECTIVE: each field is
+ *       length-prefixed (`len:value`) before joining, so no pair of adjacent
+ *       attacker-controlled fields (chat `canonicalParentPath` + `canonicalItemId`)
+ *       can produce a colliding preimage across different (channel, message) pairs.
+ *   (2) `revision` is derived from CONTENT-relevant state only (the content-edit
+ *       stamp `updatedAt`, falling back to `createdAt`) — NEVER the Firestore write
+ *       clock (`updateTime`). Counter writes (likes/votes/follows) no longer fragment
+ *       report groups or defeat per-reporter dedupe. */
+export const REPORT_CANONICAL_KEY_VERSION = 'v2';
 
 // ===========================================================================
 // A1 — Server resolver result (ResolvedReportTargetV1)
@@ -43,7 +54,8 @@ export const ResolvedReportTargetV1Schema = z.object({
   itemType: ReportableItemTypeSchema,
   canonicalParentPath: z.string(), // server-derived parent doc path
   canonicalItemId: z.string(), // server-derived item id (NEVER the client hint)
-  revision: z.number(), // the reported revision/generation
+  revision: z.number(), // reported content revision — derived from the content-edit stamp
+                        // (updatedAt, falling back to createdAt), NEVER the write clock (updateTime)
   ownerUid: z.string(), // server-derived owner/sender uid (NOT client-supplied)
   ownerBlockKey: z.string(), // derived owner block key
   mediaAssetId: z.string().optional(), // typed per surface
@@ -115,7 +127,7 @@ export type ProtectedReportRootStatus = z.infer<typeof ProtectedReportRootStatus
  * (Phase 1 step 2a). */
 export const ProtectedReportRootV1Schema = z.object({
   schemaVersion: z.literal(1),
-  reportId: z.string().min(1), // = sha256(version + ':' + reporterUid + ':' + canonicalTargetKey) — see formulas below
+  reportId: z.string().min(1), // = sha256(lp(version) + lp(reporterUid) + lp(canonicalTargetKey)) — see injective formulas below
   reporterUid: z.string().min(1),
   reason: ReportReasonSchema,
   resolvedTarget: ResolvedReportTargetV1Schema,
@@ -174,12 +186,20 @@ export type ReportGroupV1 = z.infer<typeof ReportGroupV1Schema>;
 // ===========================================================================
 // Canonical keys (DEFINED — not inline prose). Computed server-side by the
 // resolver/writer; documented here, NOT computed in this schema layer. The
-// `version` token in each formula is `REPORT_CANONICAL_KEY_VERSION` above.
+// `version` token in each formula is `REPORT_CANONICAL_KEY_VERSION` above (now v2).
 //
-//   canonicalTargetKey = sha256(version + ':' + itemType + ':' + canonicalParentPath
-//                               + ':' + canonicalItemId + ':' + revision)
+//   canonicalTargetKey = sha256( lp(version) + lp(itemType) + lp(canonicalParentPath)
+//                                + lp(canonicalItemId) + lp(String(revision)) )
+//                        // v2: INJECTIVE composition. lp(s) length-prefixes each field
+//                        // as `<byteLength>:<s>` (or hash each field separately) so no ':'
+//                        // ambiguity can straddle two adjacent attacker-controlled fields.
+//                        // The old `[...].join(':')` was collision-prone for chat targets,
+//                        // whose canonicalParentPath + canonicalItemId are BOTH client-
+//                        // derived strings (synthetic:chat:<channelRef> / <messageId>).
+//                        // `revision` is the CONTENT revision (content-edit stamp, never
+//                        // the Firestore write clock) — see REPORT_CANONICAL_KEY_VERSION.
 //
-//   reportId           = sha256(version + ':' + reporterUid + ':' + canonicalTargetKey)
+//   reportId           = sha256( lp(version) + lp(reporterUid) + lp(canonicalTargetKey) )
 //                        // deterministic dup-key: one report per reporter+target+revision.
 //                        // This determinism is what makes the protected branch's retry a
 //                        // no-op on the already-committed hold (Phase 1 step 2a).

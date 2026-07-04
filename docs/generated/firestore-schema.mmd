@@ -258,16 +258,6 @@ erDiagram
     field holdClass
     field addedAt
   }
-  cases {
-    field schemaVersion
-    field caseId
-    field correlationType
-    field canonicalValueHash
-    field rootIngestId
-    field originatingUploaderUid
-    field firstSeenAt
-    field sourceSignalId
-  }
   causes {
     field causeId
     field kind
@@ -476,16 +466,6 @@ erDiagram
     field replyTo
     field isSystemMessage
     field meta
-  }
-  current {
-    field schemaVersion
-    field requestReference
-    field publicStatus
-    field publicReasonCode
-    field missingFieldCodes
-    field nextAction
-    field removalDeadlineAt
-    field updatedAt
   }
   decisions {
     field at
@@ -730,7 +710,6 @@ erDiagram
     field policyVersion
     field requesterPiiRetentionDays
     field evidenceRetentionDays
-    field statusTokenRetentionDays
     field blockedHashRetentionPolicy
     field allowedEvidenceMimeTypes
     field maxEvidenceFileBytes
@@ -739,6 +718,7 @@ erDiagram
     field uploadReservationMinutes
     field abandonedUploadCleanupHours
     field tempHoldInitialHours
+    field tempHoldPendingValidityExtensionHours
   }
   nciiRemovalJobs {
     field schemaVersion
@@ -1076,20 +1056,6 @@ erDiagram
   rulesAndAgreements {
     field rules
     field agreements
-  }
-  safetyCaseMergeJobs {
-    field schemaVersion
-    field mergeJobId
-    field participantCaseIds
-    field winnerCaseId
-    field mergeGeneration
-    field losers
-    field status
-    field leaseOwner
-    field leaseExpiresAt
-    field attemptCount
-    field nextAttemptAt
-    field lastErrorCode
   }
   safetyEvidenceJobs {
     field schemaVersion

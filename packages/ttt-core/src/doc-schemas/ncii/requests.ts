@@ -1,15 +1,20 @@
 // Trust & Safety — NCII statutory TAKE IT DOWN requests (Appendix A §A11, concept
 // (2)) — the SPLIT model: a PII-free root + a restricted requester-PII subdoc +
-// immutable submissions/validityDecisions + operator actions + a public-safe
-// status projection + isolated public evidence uploads.
+// immutable submissions/validityDecisions + operator actions + isolated public
+// evidence uploads.
 //
 // Only a COMPLETE + VALID request can arm the 48h clock. The public no-login form
 // CANNOT submit a "valid request" without the required fields; validation
 // failures use the enumerated TakeItDownInvalidReasonCode. The root holds NO
 // requester PII / narrative / signature / authority — those live in the restricted
-// `/private/requester` subdoc. Status is shown publicly via an unguessable
-// status-token hash (rotatable + revocable) + a public-safe projection — never via
-// the root or any queue projection.
+// `/private/requester` subdoc.
+//
+// The public post-submission tracking tail (status page / status route / supplement
+// route / status token / public status projection) was removed (DJ 2026-07-02, feature
+// never wanted): the public flow is submit-only, so the status-token fields and the
+// `TakeItDownPublicStatusV1` projection no longer exist. Evidence folders re-key on the
+// intake `idempotencyKey` (like `nciiAuthorityEvidence/`), so no `statusProjection`
+// collection-group lookup remains.
 //
 // Every shape here is transcribed verbatim from docs/code_changes_needed/
 // trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A §A11 (2) + [C-02] + [F7] +
@@ -21,15 +26,14 @@
 // TakeItDownCompletenessStatusSchema, TakeItDownValidityStatusSchema,
 // TakeItDownInvalidReasonCodeSchema, TakeItDownPublicStatusSchema,
 // NciiRemovalCompletionOutcomeSchema, NciiActionTypeSchema, NciiActionResultSchema,
-// TakeItDownFieldCodeSchema, TakeItDownPublicReasonCodeSchema, and
-// SafetyReviewerCapabilitySchema.
+// TakeItDownFieldCodeSchema, and SafetyReviewerCapabilitySchema.
 //
 // Collection note: this cluster introduces a NEW Firestore collection plus several
 // subcollections (private/requester, submissions, validityDecisions, actions,
-// statusProjection/current, evidence). Wiring collections.ts / path-builders.ts /
-// registry.ts is deferred to the app leg (the orchestrator binds the schemas +
-// path builders there); the doc-id shapes (including the deterministic intake
-// requestId [H-07]) are documented on each schema below.
+// evidence). Wiring collections.ts / path-builders.ts / registry.ts is deferred to
+// the app leg (the orchestrator binds the schemas + path builders there); the doc-id
+// shapes (including the deterministic intake requestId [H-07]) are documented on each
+// schema below.
 
 import { z } from 'zod';
 import {
@@ -44,7 +48,6 @@ import {
   NciiActionTypeSchema,
   NciiActionResultSchema,
   TakeItDownFieldCodeSchema,
-  TakeItDownPublicReasonCodeSchema,
   SafetyReviewerCapabilitySchema,
   type TakeItDownFieldCode,
   type TakeItDownRequesterRole,
@@ -74,10 +77,6 @@ export const TakeItDownRequestRootV1Schema = z.object({
   validRequestReceivedAt: z.number().optional(), // [F3] EARLIEST complete+valid receipt — pins the clock
   removalDeadlineAt: z.number().optional(), // = validRequestReceivedAt + 48h (non-authoritative projection; [H4])
   publicStatus: TakeItDownPublicStatusSchema,
-  statusTokenHash: z.string().min(1), // sha256(token) ONLY — the raw token is never stored
-  statusTokenVersion: z.number(), // rotation
-  statusTokenRevokedAt: z.number().optional(), // revocation
-  statusTokenExpiresAt: z.number().optional(), // [M3] expires from FINAL request closure (statusTokenRetentionDays)
   requestClosedAt: z.number().optional(), // when the request reached a terminal disposition
   removalCompletionAt: z.number().optional(), // [M-01] set when removal verified-completes
   finalClosedAt: z.number().optional(), // [H-08] = requestClosedAt (no appeal window); arms for EVERY terminal disposition. The request's retention clocks (PII / evidence / status-token) count from here.
@@ -251,34 +250,6 @@ export const TakeItDownRequestActionV1Schema = z.object({
 export type TakeItDownRequestActionV1 = z.infer<typeof TakeItDownRequestActionV1Schema>;
 
 // ===========================================================================
-// §A11 (2) [H3] — takeItDownRequests/{requestId}/statusProjection/current =
-// TakeItDownPublicStatusV1 (public-safe ONLY — the single row the no-login status
-// page reads). Routed on the OPAQUE requestReference, never the raw requestId.
-// ===========================================================================
-
-/** The public status page's `nextAction` hint. */
-export const TakeItDownPublicNextActionSchema = z.enum([
-  'none',
-  'submitSupplement',
-  'checkLater',
-]);
-export type TakeItDownPublicNextAction = z.infer<typeof TakeItDownPublicNextActionSchema>;
-
-/** `takeItDownRequests/{requestId}/statusProjection/current` =
- * TakeItDownPublicStatusV1. Fixed doc id `current`. */
-export const TakeItDownPublicStatusV1Schema = z.object({
-  schemaVersion: z.literal(1),
-  requestReference: z.string().min(1), // opaque public reference (NOT the requestId, NOT PII)
-  publicStatus: TakeItDownPublicStatusSchema,
-  publicReasonCode: TakeItDownPublicReasonCodeSchema.optional(),
-  missingFieldCodes: z.array(TakeItDownFieldCodeSchema).max(16).optional(),
-  nextAction: TakeItDownPublicNextActionSchema.optional(),
-  removalDeadlineAt: z.number().optional(),
-  updatedAt: z.number(),
-}).strict();
-export type TakeItDownPublicStatusV1 = z.infer<typeof TakeItDownPublicStatusV1Schema>;
-
-// ===========================================================================
 // §A11 (2) [F10] — takeItDownRequests/{requestId}/evidence/{evidenceId} = the
 // public-evidence-upload record (account-less + in-app evidence lands in an
 // ISOLATED admin-only Firebase Storage bucket, never R2, never served, no durable
@@ -334,6 +305,7 @@ export const NciiRetainedEvidenceReasonSchema = z.enum([
   'archiveOrPolyglot', // archive/polyglot signature
   'malformedPath', // not a 3-segment nciiEvidence/{ref}/{file} key
   'scanRejected', // PhotoDNA scan rejected it as a spoof (magic bytes / kind)
+  'capOverflow', // past the per-request count or total-bytes cap — retained but not recorded as evidence
 ]);
 export type NciiRetainedEvidenceReason = z.infer<typeof NciiRetainedEvidenceReasonSchema>;
 
@@ -432,4 +404,91 @@ export function computeCompleteness(input: {
     status: missingFieldCodes.length === 0 ? 'complete' : 'incomplete',
     missingFieldCodes,
   };
+}
+
+// ===========================================================================
+// §A11 [C-02 / H-03] — intake field-code derivation + completeness (SINGLE-SOURCED).
+// `NciiIntakeFacts`, `suppliedFieldCodes`, and `deriveCompleteness` are pure and sit
+// beside `computeCompleteness` so BOTH the public route graph (src/) and the functions
+// graph (functions/src/) import the ONE implementation — the two "byte-identical"
+// intakeShared mirrors that had already drifted ([H-03] authorityCertification existed
+// on only one side) are eliminated. These are EMBEDDED / NON-DOC shapes (not Firestore
+// documents).
+// ===========================================================================
+
+/** The decoded intake payload the field-code extractor inspects. The route/callable
+ *  maps the raw body onto this AFTER zod-validating it. */
+export interface NciiIntakeFacts {
+  readonly requesterRole: TakeItDownRequesterRole;
+  readonly requesterName?: string;
+  readonly contactEmail?: string;
+  readonly contactPhone?: string;
+  readonly electronicSignature?: { signedName: string; signatureMethod: string };
+  readonly nonconsentStatement?: string;
+  readonly supportingFacts?: string;
+  readonly goodFaithCertification?: boolean;
+  readonly authorityBasis?: string;
+  /** [H-03] The required good-faith authority certification. Arms completeness alongside
+   *  authorityBasis; the optional documentary photo never gates completeness. */
+  readonly authorityCertification?: boolean;
+  /** [H-03] Optional documentary authority-proof photo ref. Present/absent never blocks
+   *  completeness or the 48h clock; it is supporting material only. */
+  readonly authorityEvidenceRef?: string;
+  /** Present only for a resolvable/recorded locator (TTT-hosted or external). */
+  readonly hasLocator: boolean;
+}
+
+function nonEmpty(s: string | undefined): boolean {
+  return typeof s === 'string' && s.trim().length > 0;
+}
+
+/**
+ * Derive the set of supplied `TakeItDownFieldCode`s from the decoded facts. This is
+ * the bridge between the raw form fields and the enumerated codes the
+ * `computeCompleteness` predicate consumes — completeness is NEVER "every field code
+ * arrived", it is exactly the counsel-ratified required set (handled by
+ * `computeCompleteness`) over THIS supplied set.
+ */
+export function suppliedFieldCodes(facts: NciiIntakeFacts): TakeItDownFieldCode[] {
+  const codes: TakeItDownFieldCode[] = [];
+  if (nonEmpty(facts.requesterName)) codes.push('requesterName');
+  if (nonEmpty(facts.contactEmail)) codes.push('contactEmail');
+  if (nonEmpty(facts.contactPhone)) codes.push('contactPhone');
+  // requesterRole is always present (it is required to even shape the request).
+  codes.push('requesterRole');
+  if (facts.electronicSignature && nonEmpty(facts.electronicSignature.signedName)) {
+    codes.push('electronicSignature');
+  }
+  if (facts.hasLocator) codes.push('targetLocator');
+  if (nonEmpty(facts.nonconsentStatement)) codes.push('nonconsentStatement');
+  if (nonEmpty(facts.supportingFacts)) codes.push('supportingFacts');
+  if (facts.goodFaithCertification === true) codes.push('goodFaithCertification');
+  if (nonEmpty(facts.authorityBasis)) codes.push('authorityBasis');
+  // [H-03] authorityCertification is the required authority attestation that arms completeness.
+  if (facts.authorityCertification === true) codes.push('authorityCertification');
+  // [H-03] authorityEvidence (documentary photo) is OPTIONAL — recorded when present but
+  // never a completeness gate; absence never blocks the 48h clock.
+  if (nonEmpty(facts.authorityEvidenceRef)) codes.push('authorityEvidence');
+  return codes;
+}
+
+/** The full completeness determination: status + the supplied set + the missing set. */
+export interface NciiCompletenessOutcome {
+  readonly status: 'incomplete' | 'complete';
+  readonly suppliedFieldCodes: TakeItDownFieldCode[];
+  readonly missingFieldCodes: TakeItDownFieldCode[];
+}
+
+/**
+ * Compute completeness from the decoded facts using the shared `computeCompleteness`
+ * predicate ([C-02]). One call so every intake (public route + logged-in callable +
+ * any functions-graph recompute) uses an identical determination.
+ */
+export function deriveCompleteness(facts: NciiIntakeFacts): NciiCompletenessOutcome {
+  const supplied = suppliedFieldCodes(facts);
+  const { status, missingFieldCodes } = computeCompleteness({
+    requesterRole: facts.requesterRole,
+    suppliedFieldCodes: supplied,
+  });
+  return { status, suppliedFieldCodes: supplied, missingFieldCodes };
 }

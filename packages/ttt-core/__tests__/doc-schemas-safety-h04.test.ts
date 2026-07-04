@@ -92,12 +92,11 @@ const BASE_CASE_LIST_DOC = {
   sourceSignalSummary: { count: 1, latestKind: 'report' as const, latestAt: 1000 },
   workStatus: 'new' as const,
   preservationStatus: 'preReportHold' as const,
-  ncmecStatus: 'queued' as const,
+  ncmecStatus: 'awaitingManualFiling' as const,
   accountActionStatus: 'noAccountActionRequired' as const,
   reportDisposition: 'undetermined' as const,
   reviewDueAt: 2000,
   openHoldCount: 1,
-  mergeState: 'none' as const,
   createdAt: 1000,
   updatedAt: 1000,
 };
