@@ -9,4 +9,6 @@ export type {
   GuildChatChannel,
   GuildInviteConversation,
   AdminDispatch,
+  AdminDispatchPartyKind,
+  AdminDispatchContextRef,
 } from '../doc-schemas/messaging.js';

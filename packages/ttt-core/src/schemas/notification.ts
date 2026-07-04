@@ -115,6 +115,10 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('admin_dispatch_reply'),
     adminDispatchId: adminDispatchIdSchema,
+    // Party-generic dispatch: present on workProject-party threads so the card routes
+    // to the Work's correspondence surface. Absent on user-party threads (legacy shape).
+    partyKind: z.enum(['user', 'workProject']).optional(),
+    workProjectId: workProjectIdSchema.optional(),
   }).strict(),
   z.object({
     type: z.literal('threshold_library_submission'),

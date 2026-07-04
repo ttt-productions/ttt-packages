@@ -267,7 +267,12 @@ export const WORK_PROJECT_ACTIONS = {
   },
   'hallLibrary.review.submit': {
     label: 'Submit hall review',
-    description: 'Submit workProject content for admin hall review.',
+    description: 'Submit workProject content for admin hall review. Also gates withdrawing a still-pending submission.',
+    grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibrarySubmitter'],
+  },
+  'hallLibrary.changeRequest.submit': {
+    label: 'Request published changes',
+    description: 'Propose text changes to a PUBLISHED hall item (reviewed by admins before anything changes).',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibrarySubmitter'],
   },
   'guildChatChannel.create': {
@@ -294,6 +299,13 @@ export const WORK_PROJECT_ACTIONS = {
     label: 'Moderate chat messages',
     description: 'Update or delete workProject channel messages for moderation.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildChatChannelManager'],
+  },
+  'adminDispatch.start': {
+    label: 'Start admin correspondence',
+    description:
+      'Open a platform correspondence thread with the admin team on behalf of the workProject. ' +
+      'Replying in an open workProject thread is any active Guildmate (not gated here).',
+    grantedTo: ['StewardOwner', 'WorkProjectManager'],
   },
 } as const satisfies Record<string, {
   label: string;

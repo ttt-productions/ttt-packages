@@ -129,6 +129,53 @@ export const ThresholdItemSchema = z.object({
 });
 export type ThresholdItem = z.infer<typeof ThresholdItemSchema>;
 
+// --- Published change requests (launch: text-only) ---
+
+/** The published hall-content surfaces whose TEXT fields a change request (and the
+ *  moderation text-clear remedy) can target. Detail surfaces live on the hall parent;
+ *  sub-item surfaces on the published chapter/track/episode doc. */
+export const HallContentTextSurfaceSchema = z.enum([
+  'tale',
+  'tune',
+  'television',
+  'chapter',
+  'tuneTrack',
+  'televisionEpisode',
+]);
+export type HallContentTextSurface = z.infer<typeof HallContentTextSurfaceSchema>;
+
+// A member's proposal to change TEXT fields on a PUBLISHED hall item (Ruling 2 of the
+// admin-work-correspondence order). The live published item is NEVER unlocked and never
+// edited by the member — this doc carries the PROPOSED values only; OLD values render
+// live from the published docs. Approve = server writes the values onto the published
+// item + its live in-Work source doc; deny = nothing changes, `resolutionReason` shown
+// to the member. Writes are callable-only; reads are the owning work's active guildmates
+// + admins. `requestKind` future-proofs a media variant (new kind, no schema break).
+export const HallContentChangeRequestSchema = z.object({
+  changeRequestId: z.string(),
+  requestKind: z.literal('text'),
+  // One-open-per-target enforcement/query key: `${hallItemId}_${subItemId ?? 'detail'}`.
+  targetKey: z.string(),
+  hallItemId: z.string(),
+  workProjectId: z.string(),
+  workProjectType: z.enum(WORK_PROJECT_TYPE_KEYS),
+  surface: HallContentTextSurfaceSchema,
+  // null ⇒ the hall parent DETAIL; set ⇒ a chapter/track/episode sub-item.
+  subItemId: z.string().nullable(),
+  proposerUid: z.string(),
+  // Raw doc field name → proposed new text. Allowlist + per-field caps enforced by the
+  // submit runner against HALL_CONTENT_TEXT_FIELDS / HALL_CONTENT_TEXT_FIELD_MAX.
+  proposedFields: z.record(z.string(), z.string()),
+  status: z.enum(['requested', 'approved', 'denied']),
+  createdAt: z.number(),
+  lastUpdatedAt: z.number(),
+  resolvedAt: z.number().optional(),
+  resolvedBy: z.string().optional(),
+  // Admin's reason, surfaced to the member (required on a deny).
+  resolutionReason: z.string().optional(),
+});
+export type HallContentChangeRequest = z.infer<typeof HallContentChangeRequestSchema>;
+
 export const PublishedHallItemSchema = z.object({
   hallItemId: z.string(),
   workProjectId: z.string(),

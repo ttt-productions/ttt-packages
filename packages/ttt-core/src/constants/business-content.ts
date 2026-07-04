@@ -20,6 +20,33 @@ export const MAX_COMMISSION_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
 /** Maximum length for a commission description / cover letter. */
 export const MAX_COMMISSION_DESCRIPTION_LENGTH = 400;
 
+// --- Published hall-content text fields (change requests + moderation text-clear) ---
+
+/**
+ * The raw doc field names each published hall-content surface exposes as changeable TEXT.
+ * Cross-boundary: the member "Update details" field picker offers this set per surface and
+ * the change-request submit runner validates against it. Detail surfaces (tale/tune/
+ * television) live on the hall parent doc; sub-item surfaces on the published chapter/
+ * track/episode doc. Mirrors the hall surfaces of the backend moderation text-clear
+ * allowlist (functions moderationClearText.ts) — keep the two in lockstep.
+ */
+export const HALL_CONTENT_TEXT_FIELDS = {
+  tale: ['title', 'description'],
+  tune: ['title', 'description'],
+  television: ['title', 'description'],
+  chapter: ['title', 'content'],
+  tuneTrack: ['title', 'description'],
+  televisionEpisode: ['title', 'description'],
+} as const satisfies Record<string, readonly string[]>;
+
+/** Per-field max lengths for proposed hall-content text (matches the authoring input
+ *  schemas: titleSchema 200 / description 5000 / chapter content 100000). */
+export const HALL_CONTENT_TEXT_FIELD_MAX = {
+  title: 200,
+  description: 5000,
+  content: 100000,
+} as const satisfies Record<string, number>;
+
 // --- Auditions ---
 
 /** Maximum length for an audition title. */

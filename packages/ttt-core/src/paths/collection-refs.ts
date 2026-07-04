@@ -51,6 +51,8 @@ export const COLLECTION_REFS = {
 
   hallItems: (): [string] => [COLLECTIONS.HALL_ITEMS],
 
+  hallContentChangeRequests: (): [string] => [COLLECTIONS.HALL_CONTENT_CHANGE_REQUESTS],
+
   // Commission/Audition collections
   commissionProposals: (commissionListingId: string): [string, string, string] =>
     [COLLECTIONS.COMMISSION_LISTINGS, commissionListingId, NESTED_SUBCOLLECTIONS.COMMISSION_PROPOSALS],

@@ -11,6 +11,8 @@ import {
   titleSchema,
   addRemoveActionSchema,
   thresholdItemIdSchema,
+  hallItemIdSchema,
+  changeRequestIdSchema,
 } from './atoms.js';
 import { MAX_HALL_LIBRARY_SUBMIT_BATCH } from '../constants/business.js';
 import { WORK_PROJECT_SPECIFIC_GENRES } from '../constants/options.js';
@@ -62,6 +64,40 @@ export const SubmitForThresholdLibraryReviewInputSchema = z.object({
   selectedItemIds: z.array(z.string().min(1)).min(1).max(MAX_HALL_LIBRARY_SUBMIT_BATCH),
 }).strict();
 export type SubmitForThresholdLibraryReviewInput = z.infer<typeof SubmitForThresholdLibraryReviewInputSchema>;
+
+// Member-initiated pull-back of a still-pending threshold submission. The runner derives
+// everything else from the threshold doc; rejects unless reviewStatus === 'pending'.
+export const WithdrawFromThresholdLibraryReviewInputSchema = z.object({
+  thresholdItemId: thresholdItemIdSchema,
+}).strict();
+export type WithdrawFromThresholdLibraryReviewInput = z.infer<typeof WithdrawFromThresholdLibraryReviewInputSchema>;
+
+// Published change request (text-only at launch): the member proposes new values for TEXT
+// fields on a PUBLISHED hall item (the hall parent detail when `subItemId` is absent, else
+// the chapter/track/episode sub-item). Field names are validated by the runner against the
+// per-surface HALL_CONTENT_TEXT_FIELDS allowlist + HALL_CONTENT_TEXT_FIELD_MAX caps; the
+// schema-level 100000 cap is the largest field cap anywhere (chapter content).
+export const SubmitHallContentChangeRequestInputSchema = z.object({
+  hallItemId: hallItemIdSchema,
+  workProjectType: workProjectTypeSchema,
+  subItemId: z.string().min(1).nullish(),
+  proposedFields: z.record(z.string().min(1).max(64), z.string().trim().min(1).max(100000))
+    .refine((fields) => Object.keys(fields).length > 0, { message: 'Propose at least one field change.' }),
+}).strict();
+export type SubmitHallContentChangeRequestInput = z.infer<typeof SubmitHallContentChangeRequestInputSchema>;
+
+// Admin decision on a published change request. `resolutionReason` is REQUIRED on a deny
+// (the member is shown why); optional note on approve.
+export const ReviewHallContentChangeRequestInputSchema = z.object({
+  changeRequestId: changeRequestIdSchema,
+  decision: z.enum(['approved', 'denied']),
+  resolutionReason: z.string().trim().max(2000).optional(),
+}).strict().superRefine((val, ctx) => {
+  if (val.decision === 'denied' && (!val.resolutionReason || val.resolutionReason.length === 0)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'A reason is required when denying a change request.', path: ['resolutionReason'] });
+  }
+});
+export type ReviewHallContentChangeRequestInput = z.infer<typeof ReviewHallContentChangeRequestInputSchema>;
 
 export const UpdateChapterDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,

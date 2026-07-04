@@ -16,6 +16,7 @@ export const COLLECTIONS = {
   SQUARE_STREETZ_FEED: 'squareStreetzFeed',
   THRESHOLD_ITEMS: 'thresholdItems',
   HALL_ITEMS: 'hallItems',
+  HALL_CONTENT_CHANGE_REQUESTS: 'hallContentChangeRequests',
   COMMISSION_LISTINGS: 'commissionListings',
   AUDITION_BOARD: 'auditionBoard',
   FOLLOW_EDGES: 'followEdges',

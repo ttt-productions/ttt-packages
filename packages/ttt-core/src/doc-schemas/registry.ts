@@ -34,6 +34,7 @@ import {
   FullTelevisionEpisodeSchema,
   ThresholdItemSchema,
   PublishedHallItemSchema,
+  HallContentChangeRequestSchema,
   FuturePlansDocumentSchema,
   RulesAndAgreementsSchema,
 } from './content.js';
@@ -234,6 +235,7 @@ export const COLLECTION_SCHEMAS = {
   // ===== Threshold / Hall =====
   'thresholdItems/{thresholdItemId}': ThresholdItemSchema,
   'hallItems/{hallItemId}': PublishedHallItemSchema,
+  'hallContentChangeRequests/{changeRequestId}': HallContentChangeRequestSchema,
 
   // ===== Commission / Audition =====
   'commissionListings/{commissionListingId}': FullCommissionListingSchema,

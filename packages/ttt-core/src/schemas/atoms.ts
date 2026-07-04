@@ -26,6 +26,7 @@ export const adminDispatchIdSchema = z.string().min(1);
 export const hallItemIdSchema = z.string().min(1);
 export const itemIdSchema = z.string().min(1);
 export const thresholdItemIdSchema = z.string().min(1);
+export const changeRequestIdSchema = z.string().min(1);
 
 // Action / enum atoms.
 export const addRemoveActionSchema = z.enum(['add', 'remove']);

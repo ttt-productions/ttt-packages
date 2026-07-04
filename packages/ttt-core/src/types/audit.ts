@@ -86,7 +86,14 @@ export type AuditEventType =
   | 'content.itemReported'
   | 'content.violationRecorded'
   | 'content.thresholdItemSubmitted'
+  // Member-initiated pull-back of a still-pending threshold submission (withdraw callable —
+  // deletes the threshold doc + admin task, flips the live sub-item back to unpublished).
+  | 'content.thresholdItemWithdrawn'
   | 'content.hallItemPublished'
+  // Published change requests (text-only at launch): a member proposes new text-field values
+  // for a PUBLISHED hall item; an admin approves (server writes values in place) or denies.
+  | 'content.hallContentChangeRequestSubmitted'
+  | 'admin.hallContentChangeRequestResolved'
   | 'content.appealSubmitted'
   | 'content.violationAccepted'
   | 'content.hidden'

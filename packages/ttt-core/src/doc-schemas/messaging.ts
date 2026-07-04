@@ -74,8 +74,37 @@ export const GuildInviteConversationSchema = z.object({
 });
 export type GuildInviteConversation = z.infer<typeof GuildInviteConversationSchema>;
 
+// Typed context ref carried by a dispatch thread born from a review send-back, a
+// moderation placeholder, or a published change request — lets the admin queue card
+// say what the thread is about without parsing the subject line. Extensible union;
+// server-validated against the thread's party (never trusted raw from the client).
+export const AdminDispatchContextRefSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('thresholdItem'), thresholdItemId: z.string() }),
+  z.object({
+    kind: z.literal('hallContent'),
+    hallItemId: z.string(),
+    // null ⇒ the hall parent DETAIL; set ⇒ a chapter/track/episode sub-item.
+    subItemId: z.string().nullable(),
+  }),
+  z.object({ kind: z.literal('hallContentChangeRequest'), changeRequestId: z.string() }),
+]);
+export type AdminDispatchContextRef = z.infer<typeof AdminDispatchContextRefSchema>;
+
+export const AdminDispatchPartyKindSchema = z.enum(['user', 'workProject']);
+export type AdminDispatchPartyKind = z.infer<typeof AdminDispatchPartyKindSchema>;
+
 export const AdminDispatchSchema = z.object({
   adminDispatchId: z.string(),
+  // Party-generic dispatch: the platform corresponds with a PARTY — a user or a
+  // workProject. Absent ⇒ 'user' (every pre-generalization thread). For 'user'
+  // threads `userId` is the thread owner (the sole member-side authority). For
+  // 'workProject' threads `workProjectId` is set, read/reply authority is ACTIVE
+  // GUILDMATE standing evaluated server-side (never a stored member list), and
+  // `userId` holds the INITIATING member's uid for attribution only — it is never
+  // a work-thread authority.
+  partyKind: AdminDispatchPartyKindSchema.optional(),
+  workProjectId: z.string().optional(),
+  contextRef: AdminDispatchContextRefSchema.optional(),
   userId: z.string(),
   initiatorUserId: z.string(),
   initiatedBy: z.enum(['user', 'admin']),

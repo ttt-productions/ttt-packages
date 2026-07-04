@@ -9,6 +9,7 @@ import { MAX_CHAT_MESSAGE_LENGTH } from '../constants/chat.js';
 import {
   ReplyToSchema,
 } from '@ttt-productions/chat-schemas';
+import { AdminDispatchContextRefSchema } from '../doc-schemas/messaging.js';
 
 export const ArchiveGuildChatChannelInputSchema = z.object({
   workProjectId: workProjectIdSchema,
@@ -51,6 +52,28 @@ export const StartAdminSupportThreadInputSchema = z.object({
   initialMessage: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
 }).strict();
 export type StartAdminSupportThreadInput = z.infer<typeof StartAdminSupportThreadInputSchema>;
+
+// Member-initiated workProject → admin correspondence thread (party-generic dispatch,
+// partyKind 'workProject'). Initiating is a Work ACTION (`adminDispatch.start`, Rule 23);
+// the callable enforces the one-open-work-initiated-thread spam guard. `contextRef` is
+// server-validated against the workProject before it is stored.
+export const StartWorkProjectAdminSupportThreadInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
+  subject: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
+  initialMessage: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
+  contextRef: AdminDispatchContextRefSchema.optional(),
+}).strict();
+export type StartWorkProjectAdminSupportThreadInput = z.infer<typeof StartWorkProjectAdminSupportThreadInputSchema>;
+
+// Admin-initiated dispatch to a workProject party (mirrors the admin→user dispatch:
+// lands unread for the work's active guildmates, creates NO admin task, uncapped).
+export const CreateAdminDispatchToWorkProjectInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
+  subject: z.string().trim().min(1).max(200),
+  message: z.string().trim().min(1).max(5000),
+  contextRef: AdminDispatchContextRefSchema.optional(),
+}).strict();
+export type CreateAdminDispatchToWorkProjectInput = z.infer<typeof CreateAdminDispatchToWorkProjectInputSchema>;
 
 // CLIENT-CALLED wire contract for the `mintChatGrant` callable (Contract A; P3).
 // Crosses the backend↔frontend boundary — the web client (and any future mobile/TV

@@ -23,6 +23,9 @@ export const AdminTaskTypeSchema = z.enum([
   // dispute task; a user refund request opens a refund-request task for admin resolution.
   'pledgeDisputeOpened',
   'pledgeRefundRequested',
+  // A member's proposal to change TEXT fields on a PUBLISHED hall item — reviewed in the same
+  // admin queue as library publishes (hallContentChangeRequests/{changeRequestId} is the source doc).
+  'hallContentChangeRequest',
 ]);
 export type AdminTaskType = z.infer<typeof AdminTaskTypeSchema>;
 
@@ -71,5 +74,10 @@ export const AdminTaskDocSchema = AdminTaskSchema.extend({
   rejectedFilePath: z.string().optional(),
   foundingArtisanUid: z.string().nullable().optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  // Party-generic dispatch (adminDispatch tasks) + change-request tasks: the queue card
+  // says which party/content the item is about. Denormalized from the source doc.
+  partyKind: z.enum(['user', 'workProject']).optional(),
+  workProjectId: z.string().optional(),
+  hallItemId: z.string().optional(),
 });
 export type AdminTaskDoc = z.infer<typeof AdminTaskDocSchema>;

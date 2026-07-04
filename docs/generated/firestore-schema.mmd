@@ -579,6 +579,20 @@ erDiagram
     field departedReason
     field departedAt
   }
+  hallContentChangeRequests {
+    field changeRequestId
+    field requestKind
+    field targetKey
+    field hallItemId
+    field workProjectId
+    field workProjectType
+    field surface
+    field subItemId
+    field proposerUid
+    field proposedFields
+    field status
+    field createdAt
+  }
   hallItems {
     field hallItemId
     field workProjectId
@@ -842,6 +856,9 @@ erDiagram
   }
   pendingAdminDispatches {
     field adminDispatchId
+    field partyKind
+    field workProjectId
+    field contextRef
     field userId
     field initiatorUserId
     field initiatedBy
@@ -850,8 +867,6 @@ erDiagram
     field createdAt
     field lastUpdatedAt
     field readByAdmin
-    field readByUser
-    field closedBy
   }
   pendingMedia {
   }
@@ -1429,6 +1444,7 @@ erDiagram
     field createdOn
     field updatedOn
   }
+  allWorkProjects ||--o{ adminTasks : "workProjectId"
   allWorkProjects ||--o{ auditionBoard : "workProjectId"
   allWorkProjects ||--o{ auditionEntries : "workProjectId"
   allWorkProjects ||--o{ chatChannelAuthProjections : "workProjectId"
@@ -1436,8 +1452,10 @@ erDiagram
   allWorkProjects ||--o{ commissionProposals : "workProjectId"
   allWorkProjects ||--o{ guildChatChannels : "workProjectId"
   allWorkProjects ||--o{ guildInviteConversations : "workProjectId"
+  allWorkProjects ||--o{ hallContentChangeRequests : "workProjectId"
   allWorkProjects ||--o{ hallItems : "workProjectId"
   allWorkProjects ||--o{ mediaAssets : "workProjectId"
+  allWorkProjects ||--o{ pendingAdminDispatches : "workProjectId"
   allWorkProjects ||--o{ publicWorkProjects : "workProjectId"
   allWorkProjects ||--o{ stakeShareAuditEvents : "workProjectId"
   allWorkProjects ||--o{ thresholdItems : "workProjectId"
@@ -1453,6 +1471,8 @@ erDiagram
   guildInviteConversations ||--o{ chatScopeDegraded : "guildInviteId"
   guildInviteConversations ||--o{ commissionProposals : "guildInviteId"
   guildInviteConversations ||--o{ conversationMessages : "guildInviteId"
+  hallItems ||--o{ adminTasks : "hallItemId"
+  hallItems ||--o{ hallContentChangeRequests : "hallItemId"
   hallItems ||--o{ thresholdItems : "hallItemId"
   pledgePayments ||--o{ paymentWebhookQuarantine : "pledgePaymentId"
   pledgePayments ||--o{ pledgePaymentLedgerEvents : "pledgePaymentId"
@@ -1474,6 +1494,7 @@ erDiagram
   userProfiles ||--o{ decisions : "actorId"
   userProfiles ||--o{ followEdges : "followerUid"
   userProfiles ||--o{ guildmateUsers : "uid"
+  userProfiles ||--o{ hallContentChangeRequests : "resolvedBy"
   userProfiles ||--o{ mentionHistory : "userId"
   userProfiles ||--o{ moderationCascadeManifests : "actorUid"
   userProfiles ||--o{ paymentWebhookQuarantine : "resolvedBy"

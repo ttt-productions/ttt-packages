@@ -103,6 +103,9 @@ export const PATH_BUILDERS = {
   hallItemType: (hallItemId: string, workProjectType: string, itemId: string): [string, string, string, string] =>
     [COLLECTIONS.HALL_ITEMS, hallItemId, workProjectType, itemId],
 
+  hallContentChangeRequest: (changeRequestId: string): [string, string] =>
+    [COLLECTIONS.HALL_CONTENT_CHANGE_REQUESTS, changeRequestId],
+
   // ===== COMMISSION PATHS =====
   commissionListing: (commissionListingId: string): [string, string] =>
     [COLLECTIONS.COMMISSION_LISTINGS, commissionListingId],

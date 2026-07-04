@@ -33,6 +33,8 @@ export type {
   PublishedTuneTrack,
   PublishedChapter,
   PublishedTelevisionEpisode,
+  HallContentChangeRequest,
+  HallContentTextSurface,
 } from '../doc-schemas/content.js';
 
 export type { HallLibraryPreferences } from '../doc-schemas/content.js';
