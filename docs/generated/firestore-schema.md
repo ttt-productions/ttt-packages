@@ -1107,7 +1107,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `authorityPayloadHash` | `string` | yes |
 | `authoritySyncState` | `'pending' \| 'applied' \| 'deadLetter'` | yes |
 | `publicationState` | `'unpublished' \| 'published' \| 'retired'` | yes |
-| `scope` | `{ kind, workProjectId } \| { kind, workProjectId, workFileFolderId } \| { kind, workProjectId, guildChatChannelId } \| { kind, guildInviteId }` | yes |
+| `scope` | `{ kind, workProjectId } \| { kind, workProjectId, workFileFolderId } \| { kind, workProjectId, guildChatChannelId } \| { kind, guildInviteId } \| { kind, adminDispatchId }` | yes |
 | `authorityAppliedAt` | `number` | yes |
 | `publishedAt` | `number` | yes |
 | `lastAuthorityError` | `{ code, message, retryable, details, at }` | yes |

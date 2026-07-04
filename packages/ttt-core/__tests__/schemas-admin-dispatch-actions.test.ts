@@ -10,7 +10,6 @@ describe('UpdateAdminDispatchStatusInputSchema', () => {
     const input = {
       adminDispatchId: 'msg-1',
       newStatus: 'closed_resolved',
-      lastMessage: 'Thanks, all resolved.',
     };
     expect(UpdateAdminDispatchStatusInputSchema.parse(input)).toEqual(input);
   });
@@ -19,7 +18,6 @@ describe('UpdateAdminDispatchStatusInputSchema', () => {
     const input = {
       adminDispatchId: 'msg-1',
       newStatus: 'closed_unresolved',
-      lastMessage: 'Closing without resolution.',
     };
     expect(UpdateAdminDispatchStatusInputSchema.parse(input)).toEqual(input);
   });
@@ -29,17 +27,16 @@ describe('UpdateAdminDispatchStatusInputSchema', () => {
       UpdateAdminDispatchStatusInputSchema.parse({
         adminDispatchId: 'msg-1',
         newStatus: 'open',
-        lastMessage: 'x',
       }),
     ).toThrow();
   });
 
-  it('rejects empty lastMessage', () => {
+  it('rejects a client-supplied lastMessage (close text is composed server-side; .strict)', () => {
     expect(() =>
       UpdateAdminDispatchStatusInputSchema.parse({
         adminDispatchId: 'msg-1',
         newStatus: 'closed_resolved',
-        lastMessage: '',
+        lastMessage: 'x',
       }),
     ).toThrow();
   });
@@ -49,7 +46,6 @@ describe('UpdateAdminDispatchStatusInputSchema', () => {
       UpdateAdminDispatchStatusInputSchema.parse({
         adminDispatchId: 'msg-1',
         newStatus: 'closed_resolved',
-        lastMessage: 'x',
         extra: 'bad',
       }),
     ).toThrow();

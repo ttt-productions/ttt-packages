@@ -185,6 +185,10 @@ export const MediaServingScopeSchema = z.discriminatedUnion('kind', [
     kind: z.literal('guildInvite'),
     guildInviteId: z.string().min(1),
   }).strict(),
+  z.object({
+    kind: z.literal('adminSupport'),
+    adminDispatchId: z.string().min(1),
+  }).strict(),
 ]);
 export type MediaServingScope = z.infer<typeof MediaServingScopeSchema>;
 

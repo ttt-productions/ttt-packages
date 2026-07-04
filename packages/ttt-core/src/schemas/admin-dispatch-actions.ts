@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { adminDispatchIdSchema, guildInviteIdSchema } from './atoms.js';
-import { MAX_CHAT_MESSAGE_LENGTH } from '../constants/chat.js';
 
+// The close message is composed SERVER-SIDE from the authoritative actor role; the client
+// supplies no message text (a client-supplied value would be a system-message spoof vector).
 export const UpdateAdminDispatchStatusInputSchema = z.object({
   adminDispatchId: adminDispatchIdSchema,
   newStatus: z.enum(['closed_resolved', 'closed_unresolved']),
-  lastMessage: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
 }).strict();
 export type UpdateAdminDispatchStatusInput = z.infer<typeof UpdateAdminDispatchStatusInputSchema>;
 

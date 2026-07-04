@@ -221,7 +221,6 @@ export type AuditEventType =
   | 'ncii.removalUnableToComplete'
   | 'ncii.evidenceScanValidatedMatch'
   | 'ncii.hashBlockReversed'
-  | 'ncii.statusTokenRevoked'
   | 'ncii.requesterPiiScrubbed'
   | 'ncii.policyConfigUpdated'
   // operator sets the child-safety crossover minorAssessment on an NCII case (e.g. → 'possibleMinor'):

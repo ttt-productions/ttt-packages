@@ -6,6 +6,7 @@ import {
   workFileFolderIdSchema,
   commissionListingIdSchema,
   commissionProposalIdSchema,
+  adminDispatchIdSchema,
 } from './atoms.js';
 
 // Scoped-media grant request for the gateway Worker (design doc: scoped tier =
@@ -45,6 +46,13 @@ export const CreateMediaGrantInputSchema = z.discriminatedUnion('scopeKind', [
   z.object({
     scopeKind: z.literal('guildInvite'),
     guildInviteId: guildInviteIdSchema,
+  }).strict(),
+  // An admin-support THREAD chat attachment — per-thread scope keyed by adminDispatchId
+  // (thread owner or admin authority; the callable runs the same checks startUpload's
+  // adminSupport branch does).
+  z.object({
+    scopeKind: z.literal('adminSupport'),
+    adminDispatchId: adminDispatchIdSchema,
   }).strict(),
 ]);
 export type CreateMediaGrantInput = z.infer<typeof CreateMediaGrantInputSchema>;
