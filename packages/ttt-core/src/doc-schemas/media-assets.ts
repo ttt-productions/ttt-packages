@@ -209,6 +209,10 @@ export const MediaPublicationKindSchema = z.enum([
   'commissionProposalMedia',
   'craftSkillMedia',
   'chatAttachment',
+  // Admin-support thread attachment: Firestore-transported (no Durable Object), so its
+  // publication adapter does a Firestore owner write (flips the dispatch message placeholder),
+  // unlike DO-ack'd `chatAttachment`. Carries the typed `adminSupport` MediaServingScope.
+  'adminSupportAttachment',
 ]);
 export type MediaPublicationKind = z.infer<typeof MediaPublicationKindSchema>;
 
