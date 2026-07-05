@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { violationIdSchema, auditionIdSchema, auditionEntryIdSchema } from './atoms.js';
+import {
+  violationIdSchema,
+  auditionIdSchema,
+  auditionEntryIdSchema,
+  commissionListingIdSchema,
+} from './atoms.js';
 import { MAX_APPEAL_MESSAGE_LENGTH, MAX_FEEDBACK_SUGGESTION_LENGTH, FEEDBACK_TYPES } from '../constants/business.js';
 
 export const AcceptViolationDecisionInputSchema = z.object({
@@ -7,10 +12,27 @@ export const AcceptViolationDecisionInputSchema = z.object({
 }).strict();
 export type AcceptViolationDecisionInput = z.infer<typeof AcceptViolationDecisionInputSchema>;
 
-export const CreateShortLinkInputSchema = z.object({
-  auditionId: auditionIdSchema,
-  auditionEntryId: auditionEntryIdSchema.optional(),
-}).strict();
+// Share-target types the short-link system can point at. New system entities (hall items,
+// etc.) slot in by adding a `targetType` literal + its own union member below — no rework
+// of the existing members. Each member carries exactly the id(s) its destination URL needs.
+export const ShortLinkTargetTypeSchema = z.enum(['audition', 'audition-entry', 'commission']);
+export type ShortLinkTargetType = z.infer<typeof ShortLinkTargetTypeSchema>;
+
+export const CreateShortLinkInputSchema = z.discriminatedUnion('targetType', [
+  z.object({
+    targetType: z.literal('audition'),
+    auditionId: auditionIdSchema,
+  }).strict(),
+  z.object({
+    targetType: z.literal('audition-entry'),
+    auditionId: auditionIdSchema,
+    auditionEntryId: auditionEntryIdSchema,
+  }).strict(),
+  z.object({
+    targetType: z.literal('commission'),
+    commissionListingId: commissionListingIdSchema,
+  }).strict(),
+]);
 export type CreateShortLinkInput = z.infer<typeof CreateShortLinkInputSchema>;
 
 // No-input seed callables (Ready for Launch tab). Each prepopulates one system

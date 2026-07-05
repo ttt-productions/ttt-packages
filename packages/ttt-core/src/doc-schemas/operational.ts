@@ -36,16 +36,20 @@ export const StakeShareAuditEventSchema = z.object({
 });
 export type StakeShareAuditEvent = z.infer<typeof StakeShareAuditEventSchema>;
 
-// shortLinks/{shortId} — short link to an Audition / AuditionEntry, with a click counter.
-// (functions/src/utility/createShortLink.ts)
+// shortLinks/{shortId} — short link to a share target (Audition / AuditionEntry /
+// Commission), with a click counter. (functions/src/utility/createShortLink.ts)
+// `type` mirrors the CreateShortLinkInput target type; `metadata` carries the target
+// id(s) the destination URL was built from. Fields are per-target-optional so a new
+// target type slots in without reworking the map. Add a `type` value when adding a target.
 export const ShortLinkSchema = z.object({
   shortId: z.string(),
   shortUrl: z.string(),
   destinationUrl: z.string(),
-  type: z.enum(['audition', 'audition-entry']),
+  type: z.enum(['audition', 'audition-entry', 'commission']),
   metadata: z.object({
-    auditionId: z.string(),
+    auditionId: z.string().nullable(),
     auditionEntryId: z.string().nullable(),
+    commissionListingId: z.string().nullable(),
   }),
   createdAt: z.number(),
   createdBy: z.string(),

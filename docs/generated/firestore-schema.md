@@ -967,6 +967,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `tags` | `string[]` |  |
 | `createdAt` | `number` |  |
 | `hidden` | `boolean` |  |
+| `kind` | `'original' \| 'mimicOnTtt' \| 'mimicOffTtt'` |  |
+| `source` | `{ type, id }` | yes |
 
 ## `eventProvenance/{eventId}`
 
@@ -1811,8 +1813,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `shortId` | `string` |  |
 | `shortUrl` | `string` |  |
 | `destinationUrl` | `string` |  |
-| `type` | `'audition' \| 'audition-entry'` |  |
-| `metadata` | `{ auditionId, auditionEntryId }` |  |
+| `type` | `'audition' \| 'audition-entry' \| 'commission'` |  |
+| `metadata` | `{ auditionId, auditionEntryId, commissionListingId }` |  |
 | `createdAt` | `number` |  |
 | `createdBy` | `string` |  |
 | `clicks` | `number` |  |
@@ -2088,13 +2090,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `id` | `string` |  |
-| `name` | `string` |  |
-| `mediaAssetId` | `string` |  |
-| `tags` | `string[]` |  |
-| `createdAt` | `number` |  |
-| `type` | `'image' \| 'video' \| 'audio'` |  |
-| `hidden` | `boolean` |  |
+| _(document)_ | `{ id, name, mediaAssetId, tags, createdAt, type, hidden, attestation, kind } \| { id, name, mediaAssetId, tags, createdAt, type, hidden, attestation, kind, source } \| { id, name, mediaAssetId, tags, createdAt, type, hidden, attestation, kind }` |  |
 
 ## `userProfiles/{userId}/userLikes/likeHistory/squareStreetzLikes/{postId}`
 

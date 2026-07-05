@@ -10,7 +10,42 @@ import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 
 const mediaKindSchema = z.enum(['image', 'video', 'audio']);
 
-export const CraftSkillSchema = z.object({
+// Craft-skill kind — mandatory choice at upload, no default (see
+// CODE_CHANGE_craft_skill_kinds.md). 'original' = the artisan's own original creation;
+// 'mimicOnTtt' = a performance/recreation of work that originated in the TTT community
+// (requires a source reference); 'mimicOffTtt' = a performance/recreation of work from
+// outside TTT (covers covers + public-domain works, no source reference).
+export const CraftSkillKindSchema = z.enum(['original', 'mimicOnTtt', 'mimicOffTtt']);
+export type CraftSkillKind = z.infer<typeof CraftSkillKindSchema>;
+
+// Source reference for a 'mimicOnTtt' skill — the original artisan OR the original work,
+// linked mention-style (id only, no name snapshots, resolved at render per the Display
+// Identity Invariant). 'workProject' is the safe framing today; linking a specific hall
+// item is optional future scope.
+export const CraftSkillSourceReferenceSchema = z
+  .object({
+    type: z.enum(['user', 'workProject']),
+    id: z.string().min(1),
+  })
+  .strict();
+export type CraftSkillSourceReference = z.infer<typeof CraftSkillSourceReferenceSchema>;
+
+// The agreed attestation recorded on the doc: which statement (keyed by kind) the
+// uploader agreed to, its version, and when (epoch ms, always a number — never a
+// Firestore Timestamp).
+export const CraftSkillAttestationSchema = z
+  .object({
+    statementKind: CraftSkillKindSchema,
+    statementVersion: z.number().int().min(1),
+    agreedAt: z.number(),
+  })
+  .strict();
+export type CraftSkillAttestation = z.infer<typeof CraftSkillAttestationSchema>;
+
+// Base craft-skill fields shared across all kinds. The `kind` + `source` relationship is
+// layered on top as a discriminated union so an invalid combination (e.g. a source on an
+// 'original', or a missing source on a 'mimicOnTtt') fails schema validation.
+const craftSkillBaseShape = {
   id: z.string(),
   name: z.string(),
   mediaAssetId: z.string(),
@@ -21,7 +56,25 @@ export const CraftSkillSchema = z.object({
   // craft-skill hide cascade (report auto-hide or admin action). Mirrored onto
   // every taggedCraftSkills index doc so discovery surfaces can filter it.
   hidden: z.boolean(),
-});
+  attestation: CraftSkillAttestationSchema,
+};
+
+export const CraftSkillSchema = z.discriminatedUnion('kind', [
+  z.object({
+    ...craftSkillBaseShape,
+    kind: z.literal('original'),
+  }),
+  z.object({
+    ...craftSkillBaseShape,
+    kind: z.literal('mimicOnTtt'),
+    // REQUIRED for the on-TTT mimic kind: the linked original artisan or work.
+    source: CraftSkillSourceReferenceSchema,
+  }),
+  z.object({
+    ...craftSkillBaseShape,
+    kind: z.literal('mimicOffTtt'),
+  }),
+]);
 export type CraftSkill = z.infer<typeof CraftSkillSchema>;
 
 export const CraftSkillReferenceSchema = z.object({
@@ -35,6 +88,13 @@ export const CraftSkillReferenceSchema = z.object({
   createdAt: z.number(),
   // Mirror of CraftSkill.hidden; lets the tag-browse filter hidden skills out.
   hidden: z.boolean(),
+  // Mirror of CraftSkill.kind so the tag-browse card can render the kind badge without a
+  // second read.
+  kind: CraftSkillKindSchema,
+  // Mirror of CraftSkill.source — present ONLY when kind === 'mimicOnTtt' (the source-doc
+  // discriminated union guarantees that invariant on the authoritative side). Lets the
+  // browse card render the clickable "someone performed my work" source link.
+  source: CraftSkillSourceReferenceSchema.optional(),
 });
 export type CraftSkillReference = z.infer<typeof CraftSkillReferenceSchema>;
 
