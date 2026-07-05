@@ -23,6 +23,7 @@ export function NotificationList({
   onClearAll,
   refetchInterval,
   emptyText,
+  renderRowAction,
 }: NotificationListProps) {
   const {
     data: notifications,
@@ -150,6 +151,15 @@ export function NotificationList({
               {notification.count > 1 && (
                 <div className="ntf-item-count">
                   <Badge variant="secondary">×{notification.count}</Badge>
+                </div>
+              )}
+              {renderRowAction && (
+                <div
+                  className="ntf-item-row-action"
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
+                  {renderRowAction(notification)}
                 </div>
               )}
             </div>

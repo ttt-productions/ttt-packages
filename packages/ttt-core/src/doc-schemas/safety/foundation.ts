@@ -32,6 +32,7 @@ export const ReportReasonSchema = z.enum([
   'Intellectual Property',
   'Child Safety Concern', // → protected fork: childSafetyCase
   'Nonconsensual Intimate Image (NCII)', // → protected fork: nciiCase
+  'Not related to on-site entertainment',
   'Other',
 ]);
 export type ReportReason = z.infer<typeof ReportReasonSchema>;

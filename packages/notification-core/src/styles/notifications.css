@@ -107,6 +107,14 @@
   align-self: center;
 }
 
+/* Sibling action slot next to the archive control — consumer-supplied via
+ * `renderRowAction`. Purely a layout/isolation wrapper; the consumer's node
+ * supplies its own visual treatment. */
+.ntf-item-row-action {
+  flex-shrink: 0;
+  align-self: center;
+}
+
 /* === EMPTY STATE === */
 .ntf-empty {
   display: flex;

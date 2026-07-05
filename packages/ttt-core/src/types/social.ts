@@ -31,6 +31,12 @@ export type SquareStreetzPostPayload = {
   mediaAssetId?: string;
   mediaType?: 'image' | 'video' | 'audio' | 'other';
   createdAt?: number;
+  auditionId?: string;
+  commissionListingId?: string;
+  // Discriminates the announcement voice/mention shape for a NEW_AUDITION post: 'work' names the
+  // creating work inline; 'platform' | 'sponsored' name TTT Productions the company instead (no
+  // work mention). Irrelevant for other post types.
+  auditionAnnounceKind?: 'work' | 'platform' | 'sponsored';
 };
 
 export type {

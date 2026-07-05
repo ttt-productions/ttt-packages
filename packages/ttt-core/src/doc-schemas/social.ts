@@ -18,6 +18,8 @@ export const SquareStreetzPostTypeSchema = z.enum([
   'USER_POST',
   'NEW_WORK_PROJECT',
   'LIBRARY_PUBLISHED',
+  'NEW_AUDITION',
+  'NEW_COMMISSION',
 ]);
 export type SquareStreetzPostType = z.infer<typeof SquareStreetzPostTypeSchema>;
 

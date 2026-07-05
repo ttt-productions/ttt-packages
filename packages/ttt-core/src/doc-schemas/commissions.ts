@@ -37,6 +37,8 @@ export const FullCommissionListingSchema = z.object({
   }),
   status: z.enum(['open', 'closed']),
   savedProposalArtisans: z.array(z.string()),
+  shortId: z.string().optional(),
+  shortUrl: z.string().optional(),
   // Admin moderation hide (reversible). When true the listing is suppressed from
   // the commission board; restored by clearing it.
   hidden: z.boolean(),

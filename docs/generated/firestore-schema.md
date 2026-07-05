@@ -197,7 +197,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `totalReports` | `number` |  |
 | `highestReasonScore` | `number` |  |
 | `lastReportAt` | `number` |  |
-| `latestReason` | `'Spam' \| 'Harassment' \| 'Hate Speech' \| 'Violence or Threats' \| 'Sexual Content' \| 'Self-Harm' \| 'Impersonation' \| 'Intellectual Property' \| 'Child Safety Concern' \| 'Nonconsensual Intimate Image (NCII)' \| 'Other'` |  |
+| `latestReason` | `'Spam' \| 'Harassment' \| 'Hate Speech' \| 'Violence or Threats' \| 'Sexual Content' \| 'Self-Harm' \| 'Impersonation' \| 'Intellectual Property' \| 'Child Safety Concern' \| 'Nonconsensual Intimate Image (NCII)' \| 'Not related to on-site entertainment' \| 'Other'` |  |
 | `status` | `'pending' \| 'reviewing' \| 'processing' \| 'failed' \| 'resolved'` |  |
 
 ## `activeSafetyCaseAlerts/{caseId}`
@@ -857,6 +857,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `workProjectAssociatedWith` | `{ workProjectId, type }` |  |
 | `status` | `'open' \| 'closed'` |  |
 | `savedProposalArtisans` | `string[]` |  |
+| `shortId` | `string` | yes |
+| `shortUrl` | `string` | yes |
 | `hidden` | `boolean` |  |
 
 ## `commissionListings/{commissionListingId}/commissionProposals/{commissionProposalId}`
@@ -885,7 +887,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `schemaVersion` | `1` |  |
 | `reportId` | `string` |  |
 | `reporterUid` | `string` |  |
-| `reason` | `'Spam' \| 'Harassment' \| 'Hate Speech' \| 'Violence or Threats' \| 'Sexual Content' \| 'Self-Harm' \| 'Impersonation' \| 'Intellectual Property' \| 'Child Safety Concern' \| 'Nonconsensual Intimate Image (NCII)' \| 'Other'` |  |
+| `reason` | `'Spam' \| 'Harassment' \| 'Hate Speech' \| 'Violence or Threats' \| 'Sexual Content' \| 'Self-Harm' \| 'Impersonation' \| 'Intellectual Property' \| 'Child Safety Concern' \| 'Nonconsensual Intimate Image (NCII)' \| 'Not related to on-site entertainment' \| 'Other'` |  |
 | `resolvedTarget` | `{ schemaVersion, itemType, canonicalParentPath, canonicalItemId, revision, ownerUid, ownerBlockKey, mediaAssetId, channelId, messageId, attachmentId, locator, resolvedAt }` |  |
 | `snapshotRef` | `string` |  |
 | `canonicalTargetKey` | `string` |  |
@@ -926,7 +928,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `schemaVersion` | `1` |  |
 | `reportId` | `string` |  |
 | `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'hall-library-item' \| 'hall-library-sub-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
-| `reason` | `'Spam' \| 'Harassment' \| 'Hate Speech' \| 'Violence or Threats' \| 'Sexual Content' \| 'Self-Harm' \| 'Impersonation' \| 'Intellectual Property' \| 'Child Safety Concern' \| 'Nonconsensual Intimate Image (NCII)' \| 'Other'` |  |
+| `reason` | `'Spam' \| 'Harassment' \| 'Hate Speech' \| 'Violence or Threats' \| 'Sexual Content' \| 'Self-Harm' \| 'Impersonation' \| 'Intellectual Property' \| 'Child Safety Concern' \| 'Nonconsensual Intimate Image (NCII)' \| 'Not related to on-site entertainment' \| 'Other'` |  |
 | `status` | `'pending_review' \| 'grouped' \| 'actioned' \| 'dismissed'` |  |
 | `createdAt` | `number` |  |
 
@@ -1833,7 +1835,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `mediaType` | `'image' \| 'video' \| 'audio' \| 'other'` | yes |
 | `createdAt` | `number` |  |
 | `likes` | `number` |  |
-| `postType` | `'PROFILE_PICTURE_UPDATE' \| 'NEW_CRAFT_SKILL' \| 'NEW_ARTISAN_CREATOR' \| 'COMMISSION_ACCEPTED' \| 'DELETE_CRAFT_SKILL' \| 'USER_POST' \| 'NEW_WORK_PROJECT' \| 'LIBRARY_PUBLISHED'` | yes |
+| `postType` | `'PROFILE_PICTURE_UPDATE' \| 'NEW_CRAFT_SKILL' \| 'NEW_ARTISAN_CREATOR' \| 'COMMISSION_ACCEPTED' \| 'DELETE_CRAFT_SKILL' \| 'USER_POST' \| 'NEW_WORK_PROJECT' \| 'LIBRARY_PUBLISHED' \| 'NEW_AUDITION' \| 'NEW_COMMISSION'` | yes |
 | `relatedAssetId` | `string` | yes |
 | `hidden` | `boolean` |  |
 

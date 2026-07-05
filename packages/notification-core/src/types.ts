@@ -5,6 +5,10 @@
  * No `isRead` flag — existence in the active collection means unread.
  */
 
+// Type-only import: erased at compile time, so this does not force React into
+// the server-safe main entry's runtime graph (the `react` peer dep stays optional).
+import type { ReactNode } from 'react';
+
 // ============================================================================
 // DOCUMENT TYPES
 // ============================================================================
@@ -358,6 +362,15 @@ export interface NotificationListProps {
   onClearAll?: () => void;
   refetchInterval?: number;
   emptyText?: string;
+  /**
+   * Optional per-row action slot rendered alongside the existing archive control.
+   * Purely additive: the package renders exactly as today when omitted. The
+   * consumer decides what the action does (e.g. an explicit "go to" button) —
+   * this package has no opinion on it and takes no dependency on its shape.
+   * The rendered node is wrapped so clicks inside it do not bubble to the row's
+   * own click handler (`onNotificationClick` / archive-on-click).
+   */
+  renderRowAction?: (notification: NotificationDoc) => ReactNode;
 }
 
 export interface NotificationHistoryListProps {
@@ -373,6 +386,14 @@ export interface NotificationHistoryListProps {
   pageSize?: number;
   staleTime?: number;
   emptyText?: string;
+  /**
+   * Optional per-row action slot rendered alongside each history row. Purely
+   * additive: the package renders exactly as today when omitted. The consumer
+   * decides what the action does — this package has no opinion on it and takes
+   * no dependency on its shape. The rendered node is wrapped so clicks inside it
+   * do not bubble to the row's own click handler (when `onNotificationClick` is set).
+   */
+  renderRowAction?: (notification: NotificationHistoryItem) => ReactNode;
 }
 
 export interface NotificationEmptyStateProps {
