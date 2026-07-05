@@ -30,7 +30,6 @@ import {
   CommissionProposalRemovedEventSchema,
   HallLibraryCoverUpdatedEventSchema,
   HallLibrarySubItemUpdatedEventSchema,
-  HallLibraryPreferenceUpdatedEventSchema,
   ThresholdLibrarySubmittedEventSchema,
 } from "./domain-events-work.js";
 import {
@@ -106,7 +105,6 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   ThresholdLibraryApprovedEventSchema,
   ThresholdLibraryRejectedEventSchema,
   ThresholdLibraryNeedsRevisionEventSchema,
-  HallLibraryPreferenceUpdatedEventSchema,
   AdminDispatchSystemMarkedEventSchema,
   AdminDispatchThreadUpdatedEventSchema,
   AdminAppealReviewedEventSchema,

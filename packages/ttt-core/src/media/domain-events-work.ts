@@ -243,18 +243,6 @@ export const HallLibrarySubItemUpdatedEventSchema = z
   })
   .strict();
 
-export const HallLibraryPreferenceUpdatedEventSchema = z
-  .object({
-    type: z.literal('hallLibrary.preferenceUpdated'),
-    ids: z
-      .object({
-        userId: z.string().min(1),
-        hallItemId: z.string().min(1),
-      })
-      .strict(),
-  })
-  .strict();
-
 export const ThresholdLibrarySubmittedEventSchema = z
   .object({
     type: z.literal('thresholdLibrary.submitted'),
