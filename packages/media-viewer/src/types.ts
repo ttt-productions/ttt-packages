@@ -6,6 +6,65 @@ export type { MediaDiagnosticAdapter, AssetStatusHint, DiagnosisResult, Recovery
 export type MediaViewerType = "image" | "video" | "audio" | "other";
 export type FallbackMode = "none" | "link";
 
+/**
+ * Imperative playback controls, exposed via the `playbackControlsRef` prop on
+ * `VideoViewer` / `AudioViewer` (and forwarded by `MediaPreview` for
+ * video/audio). Obtain via `React.useRef<MediaPlaybackControls>(null)`.
+ */
+export type MediaPlaybackControls = {
+  /** Seek to 0 and play from the start. Clears any end-overlay. */
+  restart(): void;
+  /** Seek to the given position (seconds), clamped to [0, duration]. */
+  seekTo(seconds: number): void;
+};
+
+/**
+ * Additive, fully optional playback API shared by `VideoViewer` and
+ * `AudioViewer`. Every field is optional; when all are absent the viewers
+ * behave exactly as before.
+ */
+export type MediaPlaybackProps = {
+  /**
+   * Fires when the media element ends (native `ended` event) with the play
+   * cursor at duration. NOTE: when `loop` is set the browser restarts natively
+   * and emits no `ended` event, so `onEnded` never fires in that mode.
+   */
+  onEnded?: () => void;
+
+  /**
+   * Periodic playback-position reporting. Contract:
+   * - While playing, fires at most once every ~5 seconds of playback
+   *   (throttled off `timeupdate`).
+   * - Fires once immediately on pause, on seek completion (`seeked`), and on
+   *   ended — each carrying the exact position at that moment.
+   * - Never fires while paused (aside from the single pause-flush above).
+   * `durationSeconds` is `0` until the element's duration is known.
+   */
+  onProgressSample?: (currentTimeSeconds: number, durationSeconds: number) => void;
+
+  /**
+   * Initial playback position (seconds), applied once the element has metadata.
+   * Survives the `unloadOnExit` unload/remount cycle: once playback has started
+   * the viewer tracks the live position internally and resumes from the LAST
+   * KNOWN position on remount — it does not re-apply this prop and does not
+   * restart at 0.
+   */
+  startAtSeconds?: number;
+
+  /**
+   * Rendered as an overlay covering the media area when the media has ended.
+   * Removed when playback restarts (native replay or imperative `restart()`).
+   * The overlay only intercepts pointer events while shown and renders above
+   * the element. In a native-fullscreen exit state the overlay reappears over
+   * the inline element (it is part of normal document flow, not the fullscreen
+   * layer).
+   */
+  endOverlay?: React.ReactNode;
+
+  /** Imperative controls handle — see {@link MediaPlaybackControls}. */
+  playbackControlsRef?: React.Ref<MediaPlaybackControls>;
+};
+
 export type BaseMediaProps = {
   url: string;
   className?: string;
@@ -26,7 +85,7 @@ export type ImageViewerProps = BaseMediaProps & {
   preventGestures?: boolean;
 };
 
-export type VideoViewerProps = BaseMediaProps & {
+export type VideoViewerProps = BaseMediaProps & MediaPlaybackProps & {
   controls?: boolean;
   autoPlay?: boolean;
   muted?: boolean;
@@ -38,7 +97,7 @@ export type VideoViewerProps = BaseMediaProps & {
   autoPlayOnVisible?: boolean;
 };
 
-export type AudioViewerProps = BaseMediaProps & {
+export type AudioViewerProps = BaseMediaProps & MediaPlaybackProps & {
   controls?: boolean;
   autoPlay?: boolean;
   loop?: boolean;
@@ -66,6 +125,17 @@ export type MediaPreviewProps = {
   onLoad?: () => void;
   onError?: () => void;
   onLoadChange?: (isLoading: boolean) => void;
+
+  // -------------------------------------------------------------------------
+  // Playback API (additive, optional) — forwarded to the video/audio viewer.
+  // Ignored for image/other types. See MediaPlaybackProps for the contract.
+  // -------------------------------------------------------------------------
+  onEnded?: MediaPlaybackProps["onEnded"];
+  onProgressSample?: MediaPlaybackProps["onProgressSample"];
+  startAtSeconds?: MediaPlaybackProps["startAtSeconds"];
+  endOverlay?: MediaPlaybackProps["endOverlay"];
+  playbackControlsRef?: MediaPlaybackProps["playbackControlsRef"];
+
   fallbackMode?: FallbackMode;
   fallbackLabel?: string;
   filename?: string;

@@ -138,6 +138,39 @@ const { recoveryState, onMediaError, onMediaLoad, manualRetry } = useMediaRecove
 
 Wire `onMediaError` / `onMediaLoad` to the element's `onError` / `onLoad` (or `onLoadedData` for video/audio). Call `manualRetry` from a Retry button in `max-wait-fallback` state.
 
+---
+
+## Playback API (VideoViewer / AudioViewer)
+
+Additive, fully optional playback surface on `VideoViewer` and `AudioViewer`, forwarded by `MediaPreview` / `MediaViewer` for `type="video"` / `type="audio"`. Every field is optional; when all are absent the viewers behave exactly as before. It derives entirely from native media-element events — it adds **no** IntersectionObserver (Rule 22). Types are exported from the package root: `MediaPlaybackProps`, `MediaPlaybackControls`.
+
+```tsx
+import type { MediaPlaybackControls } from "@ttt-productions/media-viewer";
+import { MediaPreview } from "@ttt-productions/media-viewer/react";
+
+const controls = React.useRef<MediaPlaybackControls>(null);
+
+<MediaPreview
+  url={url}
+  type="video"
+  startAtSeconds={resumePosition}
+  onEnded={() => advanceToNext()}
+  onProgressSample={(t, dur) => persistPosition(t, dur)}
+  endOverlay={<NextUpCard onReplay={() => controls.current?.restart()} />}
+  playbackControlsRef={controls}
+/>
+```
+
+| Prop | Contract |
+|---|---|
+| `onEnded?: () => void` | Fires on the native `ended` event (cursor at duration). With `loop` set, the browser restarts natively and emits **no** `ended` event, so `onEnded` never fires in loop mode. |
+| `onProgressSample?: (currentTimeSeconds, durationSeconds) => void` | Periodic position reporting. While playing, fires at most once per `PROGRESS_SAMPLE_INTERVAL_MS` (~5 s) of playback (throttled off `timeupdate`). Also fires once immediately on **pause**, on **seek completion** (`seeked`), and on **ended** — each with the exact position. Never fires while paused (aside from the single pause-flush). `durationSeconds` is `0` until duration is known. |
+| `startAtSeconds?: number` | Initial position, applied once the element has metadata (clamped to duration). **Survives the `unloadOnExit` unload/remount cycle:** once playback has started the viewer tracks the live position internally and resumes the remounted element from the LAST KNOWN position — it does not re-apply `startAtSeconds` and does not restart at 0. |
+| `endOverlay?: React.ReactNode` | Rendered as an overlay covering the media area when the media has ended; removed when playback restarts (native replay or imperative `restart()`). Only mounted (and only intercepts pointer events) while shown, and layered above the element (`z-index: 2`). It is part of normal document flow, so on native-fullscreen **exit** it reappears over the inline element (it is not injected into the browser's fullscreen layer). |
+| `playbackControlsRef?: React.Ref<MediaPlaybackControls>` | Imperative handle: `restart()` seeks to 0, clears the overlay, and plays; `seekTo(seconds)` seeks (clamped to `[0, duration]`). |
+
+The `PROGRESS_SAMPLE_INTERVAL_MS` constant and a low-level `useMediaPlayback` hook (for custom video/audio rendering) are exported from `@ttt-productions/media-viewer/react`.
+
 ### Recovery UI classes
 
 The built-in `MediaPreview` recovery overlay uses these CSS classes (all optional to style):

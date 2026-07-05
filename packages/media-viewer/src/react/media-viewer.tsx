@@ -132,6 +132,11 @@ export function MediaViewer(props: MediaPreviewProps) {
     onLoad,
     onError,
     onLoadChange,
+    onEnded,
+    onProgressSample,
+    startAtSeconds,
+    endOverlay,
+    playbackControlsRef,
     fallbackMode = "link",
     fallbackLabel,
     filename,
@@ -288,6 +293,11 @@ export function MediaViewer(props: MediaPreviewProps) {
           autoPlayOnVisible={autoPlayOnVisible}
           onLoad={handleLoad}
           onError={handleError}
+          onEnded={onEnded}
+          onProgressSample={onProgressSample}
+          startAtSeconds={startAtSeconds}
+          endOverlay={endOverlay}
+          playbackControlsRef={playbackControlsRef}
         />
       </div>
     );
@@ -309,6 +319,11 @@ export function MediaViewer(props: MediaPreviewProps) {
           onLoad={handleLoad}
           onLoadChange={onLoadChange}
           onError={handleError}
+          onEnded={onEnded}
+          onProgressSample={onProgressSample}
+          startAtSeconds={startAtSeconds}
+          endOverlay={endOverlay}
+          playbackControlsRef={playbackControlsRef}
         />
       </div>
     );

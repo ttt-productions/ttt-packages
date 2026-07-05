@@ -37,6 +37,7 @@ import {
   HallContentChangeRequestSchema,
   FuturePlansDocumentSchema,
   RulesAndAgreementsSchema,
+  HallLibraryPreferencesSchema,
 } from './content.js';
 import {
   SquareStreetzPostSchema,
@@ -192,6 +193,7 @@ export const COLLECTION_SCHEMAS = {
   // ===== Users =====
   'userProfiles/{userId}': FullUserSchema,
   'userProfiles/{userId}/privateData/{userId}': UserPrivateDataSchema,
+  'userProfiles/{userId}/privateData/hallLibraryPreferences': HallLibraryPreferencesSchema,
   'userProfiles/{userId}/profileCraftSkills/{craftSkillId}': CraftSkillSchema,
   'userProfiles/{userId}/auditionVotes/{auditionId}': UserAuditionVoteSchema,
   'userProfiles/{userId}/mentionHistory/{docId}': MentionHistoryDocumentSchema,

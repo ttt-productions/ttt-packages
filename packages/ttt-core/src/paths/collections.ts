@@ -263,6 +263,9 @@ export const SPECIAL_DOCS = {
   APP_MODE: 'appMode',
   FUTURE_PLANS: 'futurePlans',
   NOTIFICATION_SETTINGS: 'notificationSettings',
+  // Hall viewing-state doc id under userProfiles/{uid}/privateData/ (hall-viewing-experience
+  // Area 2, ruled 2026-07-04). Mirrors the NOTIFICATION_SETTINGS fixed-id privateData pattern.
+  HALL_LIBRARY_PREFERENCES: 'hallLibraryPreferences',
   PROFANITY_LIST: 'profanityList',
   RESERVED_USERNAMES: 'reservedUsernames',
   BLOCKED_FRANCHISE_NAMES: 'blockedFranchiseNames',

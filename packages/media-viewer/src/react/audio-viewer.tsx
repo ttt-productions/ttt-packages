@@ -2,6 +2,7 @@ import * as React from "react";
 import { useInView } from "react-intersection-observer";
 import { Skeleton } from "@ttt-productions/ui-core/react";
 import type { AudioViewerProps } from "../types.js";
+import { useMediaPlayback } from "./use-media-playback.js";
 
 export function AudioViewer(props: AudioViewerProps) {
   const {
@@ -19,12 +20,25 @@ export function AudioViewer(props: AudioViewerProps) {
     onLoadChange,
     onError,
     fallback,
+    onEnded,
+    onProgressSample,
+    startAtSeconds,
+    endOverlay,
+    playbackControlsRef,
   } = props;
 
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
   const [shouldLoad, setShouldLoad] = React.useState(priority || !lazy);
   const audioRef = React.useRef<HTMLAudioElement>(null);
+
+  // Additive playback API — derives from element events (no observer, Rule 22).
+  const { hasEnded, handlers: playbackHandlers } = useMediaPlayback(
+    audioRef,
+    { onEnded, onProgressSample, startAtSeconds, endOverlay },
+    playbackControlsRef,
+    url,
+  );
 
   const { ref: inViewRef, inView } = useInView({
     triggerOnce: false,
@@ -131,12 +145,26 @@ export function AudioViewer(props: AudioViewerProps) {
             onLoadedData={handleLoadedData}
             onCanPlay={handleCanPlay}
             onError={handleError}
+            onLoadedMetadata={playbackHandlers.onLoadedMetadata}
+            onTimeUpdate={playbackHandlers.onTimeUpdate}
+            onPlay={playbackHandlers.onPlay}
+            onPause={playbackHandlers.onPause}
+            onSeeked={playbackHandlers.onSeeked}
+            onEnded={playbackHandlers.onEnded}
             style={{
               width: "100%",
               opacity: isLoaded ? 1 : 0,
               transition: "opacity 300ms ease",
             }}
           />
+          {endOverlay != null && hasEnded && (
+            <div
+              className="mv-end-overlay"
+              style={{ position: "absolute", inset: 0, zIndex: 2 }}
+            >
+              {endOverlay}
+            </div>
+          )}
         </>
       )}
     </div>

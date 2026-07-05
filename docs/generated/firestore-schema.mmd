@@ -607,6 +607,15 @@ erDiagram
     field coverPosterAssetId
     field coverCinematicAssetId
   }
+  hallLibraryPreferences {
+    field userId
+    field hiddenWorkIds
+    field inkedWorkIds
+    field inProgress
+    field recentlyViewed
+    field settings
+    field lastUpdated
+  }
   history {
     field role
     field subjectDisposition
@@ -1495,6 +1504,7 @@ erDiagram
   userProfiles ||--o{ followEdges : "followerUid"
   userProfiles ||--o{ guildmateUsers : "uid"
   userProfiles ||--o{ hallContentChangeRequests : "resolvedBy"
+  userProfiles ||--o{ hallLibraryPreferences : "userId"
   userProfiles ||--o{ mentionHistory : "userId"
   userProfiles ||--o{ moderationCascadeManifests : "actorUid"
   userProfiles ||--o{ paymentWebhookQuarantine : "resolvedBy"

@@ -12,6 +12,7 @@ import {
   addRemoveActionSchema,
   thresholdItemIdSchema,
   hallItemIdSchema,
+  itemIdSchema,
   changeRequestIdSchema,
 } from './atoms.js';
 import { MAX_HALL_LIBRARY_SUBMIT_BATCH } from '../constants/business.js';
@@ -174,5 +175,47 @@ export const UpdateTuneDetailsInputSchema = z.object({
 }).strict();
 export type UpdateTuneDetailsInput = z.infer<typeof UpdateTuneDetailsInputSchema>;
 
+// --- Per-user Hall viewing-state doc (hall-viewing-experience Area 2, ruled 2026-07-04) ---
+// One core (`runX`) owns the single privateData doc per Rule 3; writes are CALLABLE-ONLY —
+// no direct client Firestore writes anywhere in this system. Every list on the doc is capped
+// (HALL_LIBRARY_PREFS_CAPS in ../constants/business.js); cap enforcement is the backend
+// core's job, not this input-validation layer.
+
+export const UpdateHallWorkHiddenInputSchema = z.object({
+  hallItemId: hallItemIdSchema,
+  hidden: z.boolean(),
+}).strict();
+export type UpdateHallWorkHiddenInput = z.infer<typeof UpdateHallWorkHiddenInputSchema>;
+
+// "Inked" save-for-later watchlist toggle (My Playbill Area 7) — deliberately separate from
+// follows (Inked is private organization; follow is semi-public with a counter + notifications).
+export const UpdateHallInkedWorkInputSchema = z.object({
+  hallItemId: hallItemIdSchema,
+  inked: z.boolean(),
+}).strict();
+export type UpdateHallInkedWorkInput = z.infer<typeof UpdateHallInkedWorkInputSchema>;
+
+// Playback-progress heartbeat (throttled client-side to ~60s during playback, plus writes on
+// pause / pane-exit / media-end). `durationSeconds` is optional — not always known up front.
+export const UpdateHallPlaybackProgressInputSchema = z.object({
+  hallItemId: hallItemIdSchema,
+  itemId: itemIdSchema,
+  positionSeconds: z.number().min(0),
+  durationSeconds: z.number().min(0).optional(),
+}).strict();
+export type UpdateHallPlaybackProgressInput = z.infer<typeof UpdateHallPlaybackProgressInputSchema>;
+
+// Recently-viewed / History rail record. `itemId` is optional — a work-level view (no
+// sub-item selected yet) still records History.
+export const UpdateHallRecentlyViewedInputSchema = z.object({
+  hallItemId: hallItemIdSchema,
+  itemId: itemIdSchema.nullish(),
+}).strict();
+export type UpdateHallRecentlyViewedInput = z.infer<typeof UpdateHallRecentlyViewedInputSchema>;
+
+export const UpdateHallLibrarySettingsInputSchema = z.object({
+  tunesAutoplay: z.boolean(),
+}).strict();
+export type UpdateHallLibrarySettingsInput = z.infer<typeof UpdateHallLibrarySettingsInputSchema>;
 
 

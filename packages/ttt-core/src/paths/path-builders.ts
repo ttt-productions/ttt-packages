@@ -26,6 +26,12 @@ export const PATH_BUILDERS = {
   userMetadata: (userId: string): [string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_METADATA, SPECIAL_DOCS.NOTIFICATION_SETTINGS],
 
+  // Per-user Hall viewing-state doc (hall-viewing-experience Area 2, ruled 2026-07-04):
+  // userProfiles/{uid}/privateData/hallLibraryPreferences. Fixed-id privateData subdoc,
+  // same shape as userMetadata above.
+  hallLibraryPreferences: (userId: string): [string, string, string, string] =>
+    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PRIVATE_DATA, SPECIAL_DOCS.HALL_LIBRARY_PREFERENCES],
+
   // Generic follow edge: top-level `followEdges/{followerUid__targetType__targetId}`.
   // Deterministic ID = O(1) follow-status check + dedupe; a composite index on
   // (targetType, targetId) makes the same collection the reverse follower index.

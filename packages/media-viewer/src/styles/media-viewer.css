@@ -78,6 +78,15 @@
   font-size: 0.875rem;
 }
 
+/* End-of-playback overlay (only rendered when the media has ended; it covers
+   the media area above the element. Consumers style their own overlay content;
+   this just sizes and layers the container). */
+.mv-end-overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Audio error state */
 .mv-audio-error {
   display: flex;

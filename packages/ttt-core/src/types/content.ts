@@ -37,13 +37,12 @@ export type {
   HallContentTextSurface,
 } from '../doc-schemas/content.js';
 
-export type { HallLibraryPreferences } from '../doc-schemas/content.js';
-
-export type HallLibraryUserStatus = {
-  followed: boolean;
-  bookmarked: boolean;
-  inProgress: boolean;
-};
+export type {
+  HallLibraryPreferences,
+  HallLibraryInProgressEntry,
+  HallLibraryRecentlyViewedEntry,
+  HallLibrarySettings,
+} from '../doc-schemas/content.js';
 
 export type HallLibrarySortOption =
   | 'newest'

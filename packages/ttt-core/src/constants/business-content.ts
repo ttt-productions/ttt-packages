@@ -47,6 +47,24 @@ export const HALL_CONTENT_TEXT_FIELD_MAX = {
   content: 100000,
 } as const satisfies Record<string, number>;
 
+// --- Hall library per-user viewing-state doc (hall-viewing-experience Area 2, ruled 2026-07-04) ---
+
+/**
+ * Caps for the per-user Hall viewing-state doc (`HallLibraryPreferencesSchema`,
+ * `userProfiles/{uid}/privateData/hallLibraryPreferences`). Every list on that doc is
+ * capped for launch — no unbounded per-user lists. `hiddenWorkIds`/`inkedWorkIds` are
+ * oldest-pruned (or the write is rejected with a friendly message once full);
+ * `inProgress` is LRU-pruned by `updatedAt`; `recentlyViewed` is capped, newest-kept.
+ * Enforcement lives in the backend core (`runX`) that owns this doc — this is the
+ * shared source of truth for the cap values themselves.
+ */
+export const HALL_LIBRARY_PREFS_CAPS = {
+  hiddenWorkIds: 200,
+  inkedWorkIds: 200,
+  inProgress: 50,
+  recentlyViewed: 20,
+} as const satisfies Record<string, number>;
+
 // --- Auditions ---
 
 /** Maximum length for an audition title. */

@@ -254,4 +254,31 @@ describe('MediaViewer', () => {
       expect(container.querySelector('img')).toBeInTheDocument();
     });
   });
+
+  describe('playback API pass-through', () => {
+    it('forwards onEnded to the video child', () => {
+      const onEnded = vi.fn();
+      const { container } = render(
+        <MediaPreview url="https://example.com/v.mp4" type="video" priority onEnded={onEnded} />,
+      );
+      fireEvent.ended(container.querySelector('video')!);
+      expect(onEnded).toHaveBeenCalledTimes(1);
+    });
+
+    it('forwards endOverlay to the audio child', () => {
+      const { container, queryByTestId } = render(
+        <MediaPreview
+          url="https://example.com/a.mp3"
+          type="audio"
+          priority
+          endOverlay={<div data-testid="mp-end">done</div>}
+        />,
+      );
+      const audio = container.querySelector('audio')!;
+      Object.defineProperty(audio, 'currentTime', { configurable: true, value: 10 });
+      Object.defineProperty(audio, 'duration', { configurable: true, value: 10 });
+      fireEvent.ended(audio);
+      expect(queryByTestId('mp-end')).toBeInTheDocument();
+    });
+  });
 });

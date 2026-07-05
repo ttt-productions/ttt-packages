@@ -7,6 +7,8 @@ export type {
   AudioViewerProps,
   MediaPreviewProps,
   MediaViewerProps,
+  MediaPlaybackProps,
+  MediaPlaybackControls,
   MediaDiagnosticAdapter,
   AssetStatusHint,
   DiagnosisResult,

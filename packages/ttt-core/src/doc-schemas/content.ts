@@ -259,15 +259,47 @@ export const PublishedTelevisionEpisodeSchema = z.object({
 });
 export type PublishedTelevisionEpisode = z.infer<typeof PublishedTelevisionEpisodeSchema>;
 
-// --- Hall library user preferences ---
+// --- Hall library user preferences (per-user Hall viewing-state doc) ---
+
+// One per-user home, server-synced from day 1 (hall-viewing-experience Area 2, ruled
+// 2026-07-04): `userProfiles/{uid}/privateData/hallLibraryPreferences` (see
+// PATH_BUILDERS.hallLibraryPreferences). Writes are CALLABLE-ONLY — one core owns this
+// doc; heartbeat throttling for playback progress is client-side before the callable
+// fires. Every list on this doc is capped for launch (see HALL_LIBRARY_PREFS_CAPS) —
+// no unbounded per-user lists.
+export const HallLibraryInProgressEntrySchema = z.object({
+  itemId: z.string(),
+  positionSeconds: z.number(),
+  durationSeconds: z.number().optional(),
+  updatedAt: z.number(),
+});
+export type HallLibraryInProgressEntry = z.infer<typeof HallLibraryInProgressEntrySchema>;
+
+export const HallLibraryRecentlyViewedEntrySchema = z.object({
+  hallItemId: z.string(),
+  itemId: z.string().optional(),
+  viewedAt: z.number(),
+});
+export type HallLibraryRecentlyViewedEntry = z.infer<typeof HallLibraryRecentlyViewedEntrySchema>;
+
+export const HallLibrarySettingsSchema = z.object({
+  tunesAutoplay: z.boolean(),
+});
+export type HallLibrarySettings = z.infer<typeof HallLibrarySettingsSchema>;
 
 export const HallLibraryPreferencesSchema = z.object({
   userId: z.string(),
-  hiddenItems: z.array(z.string()),
-  followedItems: z.array(z.string()),
-  bookmarkedItems: z.array(z.string()),
-  inProgressItems: z.array(z.string()),
-  recentlyViewed: z.array(z.object({ itemId: z.string(), viewedAt: z.number() })),
+  // Hall items the user personally hid (view filter only — see Area 6 ruling 5). Capped
+  // ~200: oldest-pruned, or the hide is rejected with a friendly message once full.
+  hiddenWorkIds: z.array(z.string()),
+  // The "Inked" save-for-later watchlist (My Playbill Area 7). Capped ~200.
+  inkedWorkIds: z.array(z.string()),
+  // Resume position per hallItemId, LRU-capped ~50 (see HALL_LIBRARY_PREFS_CAPS.inProgress).
+  // Cap enforcement is the backend core's job on write; this schema only models the shape.
+  inProgress: z.record(z.string(), HallLibraryInProgressEntrySchema),
+  // Server-side Keep-going/History rail source, capped ~20.
+  recentlyViewed: z.array(HallLibraryRecentlyViewedEntrySchema),
+  settings: HallLibrarySettingsSchema,
   lastUpdated: z.number(),
 });
 export type HallLibraryPreferences = z.infer<typeof HallLibraryPreferencesSchema>;

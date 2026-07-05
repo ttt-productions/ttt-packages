@@ -2,6 +2,7 @@ import * as React from "react";
 import { useInView } from "react-intersection-observer";
 import { Skeleton } from "@ttt-productions/ui-core/react";
 import type { VideoViewerProps } from "../types.js";
+import { useMediaPlayback } from "./use-media-playback.js";
 
 export function VideoViewer(props: VideoViewerProps) {
   const {
@@ -23,6 +24,11 @@ export function VideoViewer(props: VideoViewerProps) {
     onLoad,
     onError,
     fallback,
+    onEnded,
+    onProgressSample,
+    startAtSeconds,
+    endOverlay,
+    playbackControlsRef,
   } = props;
 
   const resolvedMuted = muted ?? autoPlay;
@@ -32,6 +38,16 @@ export function VideoViewer(props: VideoViewerProps) {
   const [hasError, setHasError] = React.useState(false);
   const [shouldLoad, setShouldLoad] = React.useState(priority || !lazy);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+
+  // Additive playback API (onEnded, progress sampling, startAt/resume,
+  // endOverlay, imperative controls). Derives everything from element events —
+  // adds no observer (Rule 22).
+  const { hasEnded, handlers: playbackHandlers } = useMediaPlayback(
+    videoRef,
+    { onEnded, onProgressSample, startAtSeconds, endOverlay },
+    playbackControlsRef,
+    url,
+  );
 
   // Single observer for both lazy-load gating AND autoplay-on-visible.
   // threshold: [0, 0.5] — 0 fires "any pixel visible" (drives shouldLoad),
@@ -157,6 +173,12 @@ export function VideoViewer(props: VideoViewerProps) {
           poster={posterUrl}
           onLoadedData={handleLoadedData}
           onError={handleError}
+          onLoadedMetadata={playbackHandlers.onLoadedMetadata}
+          onTimeUpdate={playbackHandlers.onTimeUpdate}
+          onPlay={playbackHandlers.onPlay}
+          onPause={playbackHandlers.onPause}
+          onSeeked={playbackHandlers.onSeeked}
+          onEnded={playbackHandlers.onEnded}
           preload={priority ? "auto" : preload}
           playsInline
           style={{
@@ -170,6 +192,14 @@ export function VideoViewer(props: VideoViewerProps) {
             WebkitTapHighlightColor: "transparent",
           } as React.CSSProperties}
         />
+      )}
+      {endOverlay != null && hasEnded && (
+        <div
+          className="mv-end-overlay"
+          style={{ position: "absolute", inset: 0, zIndex: 2 }}
+        >
+          {endOverlay}
+        </div>
       )}
     </div>
   );
