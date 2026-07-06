@@ -45,6 +45,7 @@ describe('NotificationType + catalog', () => {
     expect(NOTIFICATION_TYPE_CATALOG.admin_dispatch_reply).toMatchObject({ category: 'user', delivery: 'realtime' });
     expect(NOTIFICATION_TYPE_CATALOG.threshold_library_submission).toMatchObject({ category: 'admin', delivery: 'queued' });
     expect(NOTIFICATION_TYPE_CATALOG.admin_announcement).toMatchObject({ category: 'user', delivery: 'queued' });
+    expect(NOTIFICATION_TYPE_CATALOG.report_action_taken).toMatchObject({ category: 'user', delivery: 'queued' });
   });
 
   it('accepts the three channel values', () => {
@@ -111,6 +112,19 @@ describe('NotificationMetadataByType', () => {
       type: 'followed_craft_skill_published',
       artisanUid: 'u1',
     }).success).toBe(true);
+
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'report_action_taken',
+      reportId: 'r1',
+    }).success).toBe(true);
+
+    // Privacy ceiling: reporter-feedback metadata must never carry fields that
+    // identify the reported user/content/remedy.
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'report_action_taken',
+      reportId: 'r1',
+      reportedItemId: 'nope',
+    }).success).toBe(false);
   });
 
   it('rejects a payload whose fields do not match its discriminant', () => {

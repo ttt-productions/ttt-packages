@@ -51,6 +51,12 @@ export function createPendingMediaSchemas<
     // outcome). Optional/additive: absent ⇒ treat as `notStarted`. Rides on
     // every status branch + the archive branches via this shared base.
     publicationState: MediaPublicationStateSchema.optional(),
+    // Server-set moderation-override marker: a human moderator's decision that
+    // supersedes the automated input-moderation check (e.g. an admin approving a
+    // rejection appeal re-queues the media with this set so the classifier the
+    // human overruled is not re-run). NEVER client-suppliable — consumers must
+    // set it only from trusted backend paths and honor only values they minted.
+    moderationOverride: z.string().min(1).optional(),
     createdAt: z.number(),
     updatedAt: z.number(),
     processingStartedAt: z.number().optional(),

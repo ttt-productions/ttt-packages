@@ -29,6 +29,7 @@ const notificationMessageSchema = z.string().min(1).max(2000);
 const reportedItemTypeSchema = z.string().min(1).max(64);
 const reportedItemIdSchema = z.string().min(1).max(128);
 const reportGroupIdSchema = z.string().min(1);
+const reportIdSchema = z.string().min(1);
 const workRealmIdSchema = z.string().min(1);
 
 // ============================================================================
@@ -49,6 +50,12 @@ export const NOTIFICATION_TYPE_VALUES = [
   //   (`staticRelight` strategy — count 1 forever, static copy, no count shown).
   'member_content_published',
   'followed_craft_skill_published',
+  // Reporter feedback (DJ ruling 2026-07-06): when a report a user submitted is
+  // closed as a REAL case WITH action (ordinary report root flips to `actioned`),
+  // the reporter gets one light informational card. Never sent on dismissals.
+  // Generic copy only — the card must not reveal the reported user, reason, or
+  // remedy (a bad-faith reporter must not be able to probe moderation outcomes).
+  'report_action_taken',
 ] as const;
 
 export const NotificationTypeSchema = z.enum(NOTIFICATION_TYPE_VALUES);
@@ -87,6 +94,7 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
   followed_content_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   member_content_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   followed_craft_skill_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
+  report_action_taken: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
 };
 
 // ============================================================================
@@ -156,6 +164,15 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('followed_craft_skill_published'),
     artisanUid: userIdSchema,
+  }).strict(),
+  // Reporter feedback — metadata is deliberately minimal: `reportId` is the
+  // reporter's OWN report-root doc id (deterministic per reporterUid + target,
+  // see writeOrdinaryReport), used only as the dedup/aggregation key so a
+  // reporter gets at most one card per report they filed. NO fields that
+  // identify the reported user/content/remedy may ever be added here.
+  z.object({
+    type: z.literal('report_action_taken'),
+    reportId: reportIdSchema,
   }).strict(),
 ]);
 export type NotificationMetadataByType = z.infer<typeof NotificationMetadataByTypeSchema>;
