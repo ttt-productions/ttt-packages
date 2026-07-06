@@ -34,6 +34,9 @@ import {
   FullTelevisionEpisodeSchema,
   ThresholdItemSchema,
   PublishedHallItemSchema,
+  PublishedChapterSchema,
+  PublishedTuneTrackSchema,
+  PublishedTelevisionEpisodeSchema,
   HallContentChangeRequestSchema,
   FuturePlansDocumentSchema,
   RulesAndAgreementsSchema,
@@ -239,6 +242,12 @@ export const COLLECTION_SCHEMAS = {
   // ===== Threshold / Hall =====
   'thresholdItems/{thresholdItemId}': ThresholdItemSchema,
   'hallItems/{hallItemId}': PublishedHallItemSchema,
+  // Published hall sub-item projections — the chapter/track/episode docs copied out of
+  // the Work at publish time (runPublishApprovedHallLibraryItem). Segment names are the
+  // HALL_ITEM_SUBCOLLECTIONS constants (the lowercased WorkProjectType).
+  'hallItems/{hallItemId}/tales/{itemId}': PublishedChapterSchema,
+  'hallItems/{hallItemId}/tunes/{itemId}': PublishedTuneTrackSchema,
+  'hallItems/{hallItemId}/television/{itemId}': PublishedTelevisionEpisodeSchema,
   'hallContentChangeRequests/{changeRequestId}': HallContentChangeRequestSchema,
 
   // ===== Commission / Audition =====
@@ -413,6 +422,11 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}': 'uid',
   'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}': 'uid',
   'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}': 'guildChatChannelId',
+  // Published hall sub-items: the doc id IS the live sub-item's id; `uid` is injected at
+  // read (the publish writer spreads the live doc's stored body, which has no `uid`).
+  'hallItems/{hallItemId}/tales/{itemId}': 'uid',
+  'hallItems/{hallItemId}/tunes/{itemId}': 'uid',
+  'hallItems/{hallItemId}/television/{itemId}': 'uid',
   'activeUserNotifications/{notificationId}': 'id',
   'activeAdminNotifications/{notificationId}': 'id',
   'adminNotificationHistory/{notificationId}': 'archiveOccurrenceId',

@@ -1,6 +1,8 @@
 // Firestore collection name constants — canonical source of truth
 // Changes to these values require database migration.
 
+import type { WorkProjectType } from '../types/content.js';
+
 /**
  * TOP-LEVEL COLLECTIONS
  */
@@ -162,6 +164,30 @@ export const WORK_PROJECT_SUBCOLLECTIONS = {
   WORK_FILE_FOLDERS: 'workFileFolders',
   GUILD_CHAT_CHANNELS: 'guildChatChannels',
 } as const;
+
+/**
+ * HALL ITEM SUBCOLLECTIONS
+ * Nested under hallItems/{hallItemId}/ — the PUBLISHED sub-item projections
+ * (chapters/tracks/episodes copied out of the Work at publish time by
+ * runPublishApprovedHallLibraryItem). The segment is the lowercased
+ * WorkProjectType; use HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE to derive it —
+ * never `workProjectType.toLowerCase()`.
+ */
+export const HALL_ITEM_SUBCOLLECTIONS = {
+  TALES: 'tales',
+  TUNES: 'tunes',
+  TELEVISION: 'television',
+} as const;
+
+export type HallItemSubcollection =
+  (typeof HALL_ITEM_SUBCOLLECTIONS)[keyof typeof HALL_ITEM_SUBCOLLECTIONS];
+
+/** WorkProjectType → published hall sub-item subcollection segment. */
+export const HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE: Record<WorkProjectType, HallItemSubcollection> = {
+  Tales: HALL_ITEM_SUBCOLLECTIONS.TALES,
+  Tunes: HALL_ITEM_SUBCOLLECTIONS.TUNES,
+  Television: HALL_ITEM_SUBCOLLECTIONS.TELEVISION,
+};
 
 /**
  * DEEPLY NESTED SUBCOLLECTIONS

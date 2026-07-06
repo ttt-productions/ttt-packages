@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PATH_BUILDERS } from '../src/paths/path-builders';
-import { COLLECTIONS, USER_SUBCOLLECTIONS, WORK_PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
+import { COLLECTIONS, USER_SUBCOLLECTIONS, WORK_PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS, HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE } from '../src/paths/collections';
 
 describe('PATH_BUILDERS', () => {
   // ===== USER PATHS =====
@@ -215,12 +215,12 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('lib1');
     });
 
-    it('hallItemType returns 4-segment tuple with workProjectType and itemId', () => {
-      const result = PATH_BUILDERS.hallItemType('lib1', 'Tales', 'item1');
+    it('hallItemType returns 4-segment tuple with the canonical subcollection segment and itemId', () => {
+      const result = PATH_BUILDERS.hallItemType('lib1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales, 'item1');
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.HALL_ITEMS);
       expect(result[1]).toBe('lib1');
-      expect(result[2]).toBe('Tales');
+      expect(result[2]).toBe('tales');
       expect(result[3]).toBe('item1');
     });
   });

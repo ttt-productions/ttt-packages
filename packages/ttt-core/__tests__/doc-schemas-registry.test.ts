@@ -3,6 +3,7 @@ import {
   COLLECTIONS,
   USER_SUBCOLLECTIONS,
   WORK_PROJECT_SUBCOLLECTIONS,
+  HALL_ITEM_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
 } from '../src/paths/collections';
 import { COLLECTION_SCHEMAS, PENDING_COLLECTIONS, COLLECTION_DOC_ID_FIELDS } from '../src/doc-schemas/registry';
@@ -15,6 +16,7 @@ const allCollectionNames = [
   ...Object.values(COLLECTIONS),
   ...Object.values(USER_SUBCOLLECTIONS),
   ...Object.values(WORK_PROJECT_SUBCOLLECTIONS),
+  ...Object.values(HALL_ITEM_SUBCOLLECTIONS),
   ...Object.values(NESTED_SUBCOLLECTIONS),
   ...RULES_ONLY_COLLECTIONS,
 ];

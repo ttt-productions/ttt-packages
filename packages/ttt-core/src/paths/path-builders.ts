@@ -9,6 +9,7 @@ import {
   WORK_PROJECT_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
   SPECIAL_DOCS,
+  type HallItemSubcollection,
 } from './collections.js';
 import type { FollowableTargetType } from '../schemas/social.js';
 
@@ -106,8 +107,11 @@ export const PATH_BUILDERS = {
   hallItem: (hallItemId: string): [string, string] =>
     [COLLECTIONS.HALL_ITEMS, hallItemId],
 
-  hallItemType: (hallItemId: string, workProjectType: string, itemId: string): [string, string, string, string] =>
-    [COLLECTIONS.HALL_ITEMS, hallItemId, workProjectType, itemId],
+  // Published hall sub-item projection (chapter/track/episode). The subcollection
+  // segment is constrained to the canonical HALL_ITEM_SUBCOLLECTIONS values — derive
+  // it from HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE, never `workProjectType.toLowerCase()`.
+  hallItemType: (hallItemId: string, subcollection: HallItemSubcollection, itemId: string): [string, string, string, string] =>
+    [COLLECTIONS.HALL_ITEMS, hallItemId, subcollection, itemId],
 
   hallContentChangeRequest: (changeRequestId: string): [string, string] =>
     [COLLECTIONS.HALL_CONTENT_CHANGE_REQUESTS, changeRequestId],

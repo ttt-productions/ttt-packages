@@ -1289,6 +1289,18 @@ erDiagram
     field moderationClearedFields
     field moderationClearedReason
   }
+  tales {
+    field uid
+    field title
+    field order
+    field description
+    field content
+    field photoAssetId
+    field hidden
+    field hiddenBy
+    field moderationClearedFields
+    field moderationClearedReason
+  }
   targets {
     field targetKeyHash
     field locator
@@ -1302,6 +1314,18 @@ erDiagram
     field leaseOwner
     field leaseExpiresAt
     field lastErrorCode
+  }
+  television {
+    field uid
+    field title
+    field order
+    field description
+    field videoAssetId
+    field photoAssetId
+    field hidden
+    field hiddenBy
+    field moderationClearedFields
+    field moderationClearedReason
   }
   televisionEpisodes {
     field uid
@@ -1349,6 +1373,18 @@ erDiagram
     field photoAssetId
     field status
     field createdOn
+    field moderationClearedFields
+    field moderationClearedReason
+  }
+  tunes {
+    field uid
+    field title
+    field order
+    field description
+    field audioAssetId
+    field photoAssetId
+    field hidden
+    field hiddenBy
     field moderationClearedFields
     field moderationClearedReason
   }
@@ -1540,9 +1576,12 @@ erDiagram
   userProfiles ||--o{ statusReconcileQueue : "uid"
   userProfiles ||--o{ taggedCraftSkills : "userId"
   userProfiles ||--o{ taleChapters : "uid"
+  userProfiles ||--o{ tales : "uid"
+  userProfiles ||--o{ television : "uid"
   userProfiles ||--o{ televisionEpisodes : "uid"
   userProfiles ||--o{ thresholdItems : "reviewedBy"
   userProfiles ||--o{ tuneTracks : "uid"
+  userProfiles ||--o{ tunes : "uid"
   userProfiles ||--o{ workProjectTales : "uid"
   userProfiles ||--o{ workProjectTelevision : "uid"
   userProfiles ||--o{ workProjectTunes : "uid"
