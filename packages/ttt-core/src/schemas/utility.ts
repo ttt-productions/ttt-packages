@@ -52,6 +52,17 @@ export type SeedRulesAndAgreementsInput = z.infer<typeof SeedRulesAndAgreementsI
 export const SeedFuturePlansInputSchema = z.object({}).strict();
 export type SeedFuturePlansInput = z.infer<typeof SeedFuturePlansInputSchema>;
 
+// Content-pages migration (DJ ruling 2026-07-06): seed callables for the three
+// editable content-page singletons (strict seed-if-empty — doc exists ⇒ no-op).
+export const SeedTermsPageInputSchema = z.object({}).strict();
+export type SeedTermsPageInput = z.infer<typeof SeedTermsPageInputSchema>;
+
+export const SeedPrivacyPageInputSchema = z.object({}).strict();
+export type SeedPrivacyPageInput = z.infer<typeof SeedPrivacyPageInputSchema>;
+
+export const SeedTakeItDownPageCopyInputSchema = z.object({}).strict();
+export type SeedTakeItDownPageCopyInput = z.infer<typeof SeedTakeItDownPageCopyInputSchema>;
+
 /** Admin add/remove words on the self-owned curated profanity list (no external sync). */
 export const CurateProfanityListInputSchema = z
   .object({
