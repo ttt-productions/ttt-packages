@@ -21,6 +21,17 @@ export const BecomeArtisanCreatorInputSchema = z.object({
   // may become artisans). Mirrors ageAttested: the callable rejects when absent and records the
   // attestation timestamp (privateData.usPersonAttestedAt) + the grant audit event.
   usPersonAttested: z.literal(true),
+  // [Q21.5 REVISED — DJ 2026-07-06] The artisan's date of birth — the ONLY point in the system
+  // where a DOB is collected for persistence (registration/upgrade derive the bracket and store
+  // nothing). The dialog copy tells the user this must be THEIR birthday: when the payout system
+  // ships, it has to match their payout (KYC) identity. The callable re-derives 18+ server-side
+  // from this value; an under-18 derivation rejects (failure audit, nothing stored). Stored as
+  // privateData attestedDateOfBirth + attestedDobSource 'artisanOnboarding'.
+  dob: z.object({
+    year: z.number().int(),
+    month: z.number().int().min(1).max(12),
+    day: z.number().int().min(1).max(31),
+  }).strict(),
 }).strict();
 export type BecomeArtisanCreatorInput = z.infer<typeof BecomeArtisanCreatorInputSchema>;
 

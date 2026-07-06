@@ -288,7 +288,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `consumedAt` | `number` | yes |
 | `consumedByUid` | `string` | yes |
 | `status` | `'issued' \| 'consumed' \| 'expired'` |  |
-| `dateOfBirth` | `string` | yes |
 | `ttlExpireAt` | `unknown` | yes |
 
 ## `allWorkProjects/{workProjectId}`
@@ -2086,7 +2085,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `ageManualCorrection` | `{ at, actorId, reason }` | yes |
 | `attestedDateOfBirth` | `string` | yes |
 | `attestedDobRecordedAt` | `number` | yes |
-| `attestedDobSource` | `'registration' \| 'adultUpgrade'` | yes |
+| `attestedDobSource` | `'artisanOnboarding'` | yes |
 
 ## `userProfiles/{userId}/profileCraftSkills/{craftSkillId}`
 

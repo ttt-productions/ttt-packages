@@ -63,13 +63,11 @@ export const AgeAttestationNonceV1Schema = z.object({
   consumedAt: z.number().optional(), // epoch ms; set on the one successful consume
   consumedByUid: z.string().min(1).optional(), // the new Auth uid this nonce was transactionally bound to
   status: AgeAttestationNonceStatusSchema,
-  // [Q21.5 — DJ 2026-07-02] The attested DOB, present ONLY when bracket === 'adult'. NEVER
-  // written for a teen bracket (teen DOBs are never persisted anywhere — minor-data
-  // minimization is unchanged). Carried on this backend-only doc (not in the client-held JWS)
-  // so /api/register/complete can copy it to privateData in the consume transaction; the spent
-  // nonce record — DOB included — then auto-deletes via the existing ttlExpireAt native TTL.
-  // Subject to the same no-log posture as the raw DOB (telemetry scrubber + canary).
-  dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), // 'YYYY-MM-DD'
+  // [Q21.5 REVISED — DJ 2026-07-06] The nonce carries NO date of birth for ANY bracket.
+  // Registration never persists a DOB (adult or teen — only the derived bracket survives);
+  // the previous adult-bracket `dateOfBirth` carry field was removed. The ONLY place a DOB
+  // is ever persisted is becomeArtisanCreator ('artisanOnboarding') — see
+  // UserPrivateDataAgeFieldsSchema below. Raw DOBs remain no-log everywhere.
   // [F-018] Firestore NATIVE-TTL field. Set to a real Firestore `Timestamp` of (consume/expire time +
   // ~24h) at the moment the nonce becomes spent; a TTL policy on `ageAttestationNonces.ttlExpireAt`
   // then auto-deletes the spent single-use record (no scheduled reaper). DOCUMENTED EXCEPTION to this
@@ -232,16 +230,18 @@ export const UserPrivateDataAgeFieldsSchema = z.object({
   ageAttestedAt: z.number(), // epoch ms
   adultUpgradedAt: z.number().optional(), // epoch ms; set on a successful teen→adult upgrade
   ageManualCorrection: UserPrivateDataAgeManualCorrectionSchema.optional(),
-  // [Q21.5 — DJ 2026-07-02, counsel review pending in the lawyer packet] The DOB the user
-  // attested when claiming 18+ — stored ONLY for adult accounts (at registration via the
-  // nonce-doc carry, or at the teen→adult upgrade from the callable input). TEENS STAY
-  // DOB-LESS: never written while accountType === 'teen'; a teen→adult upgrade writes it
-  // together with adultUpgradedAt. Purpose: fraud evidence + the future payout-KYC
-  // cross-check (compare to Stripe KYC DOB before paying out). PII — privateData only
-  // (Invariant #5); same no-log posture as the raw DOB (telemetry scrubber + canary).
+  // [Q21.5 REVISED — DJ 2026-07-06, counsel review pending in the lawyer packet] The DOB is
+  // persisted at EXACTLY ONE point: becomeArtisanCreator ('artisanOnboarding'). Registration
+  // and the teen→adult upgrade derive the bracket server-side and persist NO DOB for anyone
+  // (the register screen's "It is not stored" notice is literally true). Rationale: the
+  // payout-KYC cross-check (compare to Stripe KYC DOB before paying out) only ever applies to
+  // artisans — the money boundary — so collection happens there, with UI copy warning the
+  // DOB must match the user's future payout identity. Server re-derives 18+ from the entered
+  // DOB; an under-18 derivation rejects with a failure audit and stores nothing. PII —
+  // privateData only (Invariant #5); same no-log posture as the raw DOB (scrubber + canary).
   attestedDateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), // 'YYYY-MM-DD'
   attestedDobRecordedAt: z.number().optional(), // epoch ms
-  attestedDobSource: z.enum(['registration', 'adultUpgrade']).optional(),
+  attestedDobSource: z.enum(['artisanOnboarding']).optional(),
 }).strict();
 export type UserPrivateDataAgeFields = z.infer<typeof UserPrivateDataAgeFieldsSchema>;
 
@@ -257,7 +257,7 @@ export const userPrivateDataAgeFieldsShape = {
   ageManualCorrection: UserPrivateDataAgeManualCorrectionSchema.optional(),
   attestedDateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   attestedDobRecordedAt: z.number().optional(),
-  attestedDobSource: z.enum(['registration', 'adultUpgrade']).optional(),
+  attestedDobSource: z.enum(['artisanOnboarding']).optional(),
 } as const;
 
 // ===========================================================================
