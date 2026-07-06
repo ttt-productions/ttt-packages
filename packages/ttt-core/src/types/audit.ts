@@ -34,11 +34,18 @@ export type AuditEventType =
   | 'admin.thresholdItemReviewed'
   | 'admin.futurePlansUpdated'
   | 'admin.rulesAndAgreementsUpdated'
+  // content-pages migration (DJ ruling 2026-07-06): per-page admin editors
+  | 'admin.termsPageUpdated'
+  | 'admin.privacyPageUpdated'
+  | 'admin.takeItDownPageCopyUpdated'
   // admin launch-seed actions (Ready for Launch tab)
   | 'admin.reservedUsernamesSeeded'
   | 'admin.blockedFranchiseNamesSeeded'
   | 'admin.rulesAndAgreementsSeeded'
   | 'admin.futurePlansSeeded'
+  | 'admin.termsPageSeeded'
+  | 'admin.privacyPageSeeded'
+  | 'admin.takeItDownPageCopySeeded'
   // admin direct-delete callables (replaced the last two direct-SDK admin-browser deletes):
   // deleteAdminDispatch (support thread + its conversationMessages) and deleteShortLink.
   | 'admin.dispatchDeleted'

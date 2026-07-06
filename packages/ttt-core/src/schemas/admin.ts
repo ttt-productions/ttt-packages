@@ -79,6 +79,40 @@ export const UpdateRulesAndAgreementsInputSchema = z.object({
 );
 export type UpdateRulesAndAgreementsInput = z.infer<typeof UpdateRulesAndAgreementsInputSchema>;
 
+// --- Content-pages migration (DJ ruling 2026-07-06): per-page update callables ---
+// One callable per page (never a `kind` discriminator): updateTermsPage /
+// updatePrivacyPage / updateTakeItDownPageCopy. The client NEVER sends `version`
+// — the server bumps it atomically on every save.
+
+const ContentPageSectionInputSchema = z.object({
+  id: z.string().min(1).max(128),
+  heading: z.string().min(1).max(300),
+  level: z.union([z.literal(1), z.literal(2)]),
+  body: z.string().min(1).max(20000),
+  order: z.number().int().min(0),
+}).strict();
+
+export const UpdateTermsPageInputSchema = z.object({
+  sections: z.array(ContentPageSectionInputSchema).min(1).max(300),
+}).strict();
+export type UpdateTermsPageInput = z.infer<typeof UpdateTermsPageInputSchema>;
+
+export const UpdatePrivacyPageInputSchema = z.object({
+  sections: z.array(ContentPageSectionInputSchema).min(1).max(300),
+}).strict();
+export type UpdatePrivacyPageInput = z.infer<typeof UpdatePrivacyPageInputSchema>;
+
+export const UpdateTakeItDownPageCopyInputSchema = z.object({
+  strings: z.record(z.string().min(1).max(128), z.string().min(1).max(8000)),
+}).strict().refine(
+  (data) => {
+    const count = Object.keys(data.strings).length;
+    return count >= 1 && count <= 200;
+  },
+  { message: 'strings must contain between 1 and 200 entries.' },
+);
+export type UpdateTakeItDownPageCopyInput = z.infer<typeof UpdateTakeItDownPageCopyInputSchema>;
+
 const AppConfigDocIdSchema = z.literal('app');
 
 export const UpdateAppConfigInputSchema = z.object({

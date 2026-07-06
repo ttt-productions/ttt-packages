@@ -319,6 +319,10 @@ export type FuturePlanItem = z.infer<typeof FuturePlanItemSchema>;
 export const FuturePlansDocumentSchema = z.object({
   lastUpdated: z.number(),
   plans: z.array(FuturePlanItemSchema),
+  // Content version — bumped by the update callable on EVERY save (content-pages
+  // migration, DJ ruling 2026-07-06). Optional because pre-migration docs lack
+  // it; readers treat absence as version 1.
+  version: z.number().optional(),
 });
 export type FuturePlansDocument = z.infer<typeof FuturePlansDocumentSchema>;
 
@@ -352,5 +356,52 @@ export const RulesAndAgreementsSchema = z.object({
     tunes: AgreementCategorySchema.optional(),
     television: AgreementCategorySchema.optional(),
   }),
+  // Content version — bumped by the update callable on EVERY save (content-pages
+  // migration, DJ ruling 2026-07-06). Optional because pre-migration docs lack
+  // it; readers treat absence as version 1.
+  version: z.number().optional(),
 });
 export type RulesAndAgreements = z.infer<typeof RulesAndAgreementsSchema>;
+
+// --- Editable content-page docs (content-pages Firestore migration, DJ ruling 2026-07-06) ---
+//
+// /terms, /privacy, and the /take-it-down page copy render EXCLUSIVELY from
+// these `_config` singletons — no hardcoded fallbacks anywhere (banned design).
+// Seed callables create them (strict seed-if-empty: doc exists ⇒ no-op); admin
+// editors are the only writers after that, and every save bumps `version`.
+// Acceptance records (e.g. privateData.agreements.termsVersion) read `version`
+// from the DOC server-side at acceptance time — never from a constant.
+// There is NO draft flag on any content doc (DJ ruling 2026-07-06).
+
+/** One section of a long-form content page. `level` 1 = section (h2), 2 = subsection (h3). */
+export const ContentPageSectionSchema = z.object({
+  id: z.string(),
+  heading: z.string(),
+  level: z.union([z.literal(1), z.literal(2)]),
+  /** Plain text; blank-line-separated paragraphs. */
+  body: z.string(),
+  order: z.number(),
+});
+export type ContentPageSection = z.infer<typeof ContentPageSectionSchema>;
+
+/** Long-form legal page doc — the shape of BOTH `_config/termsOfService` and `_config/privacyPolicy`. */
+export const LegalPageDocumentSchema = z.object({
+  version: z.number(),
+  lastUpdated: z.number(),
+  sections: z.array(ContentPageSectionSchema),
+});
+export type LegalPageDocument = z.infer<typeof LegalPageDocumentSchema>;
+
+/**
+ * `_config/takeItDownPageCopy` — the /take-it-down page's user-facing language as
+ * a keyed strings map (the page is a functional form, so its copy is discrete
+ * labeled strings, not long-form sections). Keys are stable identifiers defined
+ * by the page (e.g. `pageTitle`, `introBody`); the admin editor renders one
+ * labeled text field per key.
+ */
+export const TakeItDownPageCopySchema = z.object({
+  version: z.number(),
+  lastUpdated: z.number(),
+  strings: z.record(z.string(), z.string()),
+});
+export type TakeItDownPageCopy = z.infer<typeof TakeItDownPageCopySchema>;

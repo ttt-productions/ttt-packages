@@ -37,6 +37,8 @@ import {
   HallContentChangeRequestSchema,
   FuturePlansDocumentSchema,
   RulesAndAgreementsSchema,
+  LegalPageDocumentSchema,
+  TakeItDownPageCopySchema,
   HallLibraryPreferencesSchema,
 } from './content.js';
 import {
@@ -371,6 +373,12 @@ export const COLLECTION_SCHEMAS = {
   '_config/app': AppConfigSchema,
   '_config/futurePlans': FuturePlansDocumentSchema,
   '_config/rulesAndAgreements': RulesAndAgreementsSchema,
+  // Content-pages migration (DJ ruling 2026-07-06): /terms, /privacy, and the
+  // /take-it-down page copy render exclusively from these (all public pages —
+  // take-it-down is a NO-LOGIN page, so its copy doc must be publicly readable).
+  '_config/termsOfService': LegalPageDocumentSchema,
+  '_config/privacyPolicy': LegalPageDocumentSchema,
+  '_config/takeItDownPageCopy': TakeItDownPageCopySchema,
 
   // ===== _serverData singletons (server-only — Cloud-Functions-only readers, Rule 32) =====
   '_serverData/agePolicy': AgePolicyConfigV1Schema,

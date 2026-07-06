@@ -296,6 +296,15 @@ export const PATH_BUILDERS = {
   rulesAndAgreements: (): [string, string] =>
     [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.RULES_AND_AGREEMENTS],
 
+  termsPage: (): [string, string] =>
+    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.TERMS_PAGE],
+
+  privacyPage: (): [string, string] =>
+    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.PRIVACY_PAGE],
+
+  takeItDownPageCopy: (): [string, string] =>
+    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY],
+
   appConfig: (): [string, string] =>
     [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.APP_CONFIG],
 

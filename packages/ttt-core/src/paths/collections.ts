@@ -270,6 +270,12 @@ export const SPECIAL_DOCS = {
   RESERVED_USERNAMES: 'reservedUsernames',
   BLOCKED_FRANCHISE_NAMES: 'blockedFranchiseNames',
   RULES_AND_AGREEMENTS: 'rulesAndAgreements',
+  // Editable content-page singletons under _config (content-pages Firestore
+  // migration, DJ ruling 2026-07-06): the ONLY source for /terms, /privacy, and
+  // the /take-it-down page copy — no hardcoded fallbacks anywhere.
+  TERMS_PAGE: 'termsOfService',
+  PRIVACY_PAGE: 'privacyPolicy',
+  TAKE_IT_DOWN_PAGE_COPY: 'takeItDownPageCopy',
   // Also the doc id of the pledge running-totals singleton (pledgePaymentTotals/summary).
   SUMMARY: 'summary',
 

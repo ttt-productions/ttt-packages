@@ -532,6 +532,7 @@ erDiagram
   futurePlans {
     field lastUpdated
     field plans
+    field version
   }
   global {
     field schemaVersion
@@ -936,6 +937,11 @@ erDiagram
     field resolvedAt
     field completedAt
   }
+  privacyPolicy {
+    field version
+    field lastUpdated
+    field sections
+  }
   privateData {
     field email
     field isWaitingForNewsApproval
@@ -1072,6 +1078,7 @@ erDiagram
   rulesAndAgreements {
     field rules
     field agreements
+    field version
   }
   safetyEvidenceJobs {
     field schemaVersion
@@ -1251,6 +1258,11 @@ erDiagram
     field kind
     field source
   }
+  takeItDownPageCopy {
+    field version
+    field lastUpdated
+    field strings
+  }
   takeItDownRequests {
     field schemaVersion
     field requestId
@@ -1303,6 +1315,11 @@ erDiagram
     field createdOn
     field moderationClearedFields
     field moderationClearedReason
+  }
+  termsOfService {
+    field version
+    field lastUpdated
+    field sections
   }
   thresholdItems {
     field thresholdItemId
