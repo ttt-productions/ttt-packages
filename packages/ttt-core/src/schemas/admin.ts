@@ -88,7 +88,11 @@ const ContentPageSectionInputSchema = z.object({
   id: z.string().min(1).max(128),
   heading: z.string().min(1).max(300),
   level: z.union([z.literal(1), z.literal(2)]),
-  body: z.string().min(1).max(20000),
+  // Empty body is LEGAL: a bare divider heading (e.g. terms "Part 1 — Our
+  // Intention") is real content. The input schema must accept everything the
+  // stored ContentPageSectionSchema accepts, or a faithfully-seeded doc becomes
+  // unsaveable in the admin editor (found by adversarial review 2026-07-06).
+  body: z.string().max(20000),
   order: z.number().int().min(0),
 }).strict();
 

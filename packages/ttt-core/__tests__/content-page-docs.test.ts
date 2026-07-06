@@ -75,6 +75,11 @@ describe('content-page update-callable input schemas', () => {
   it('accepts a valid sections payload and rejects extra keys / version smuggling', () => {
     expect(UpdateTermsPageInputSchema.safeParse({ sections: [section] }).success).toBe(true);
     expect(UpdatePrivacyPageInputSchema.safeParse({ sections: [section] }).success).toBe(true);
+    // A bare divider heading (empty body) is legal content — a faithfully-seeded
+    // doc must round-trip through the editor's save.
+    expect(UpdateTermsPageInputSchema.safeParse({
+      sections: [{ ...section, body: '' }],
+    }).success).toBe(true);
     // `version` is server-bumped — a client sending it is rejected (strict).
     expect(UpdateTermsPageInputSchema.safeParse({ sections: [section], version: 99 }).success).toBe(false);
     // Empty sections would blank a legal page — rejected.
