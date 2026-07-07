@@ -155,3 +155,53 @@ describe('Composer send failure (C-B8)', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 });
+
+describe('Composer navigation-guard registration (in-flight send)', () => {
+  it('registers with the LocalUploadGuard while a send is in flight and unregisters when it settles', async () => {
+    const { LocalUploadGuardProvider, useLocalUploadGuard } = await import(
+      '@ttt-productions/upload-ui/react/guard'
+    );
+    function GuardCountProbe() {
+      const { activeUploadCount } = useLocalUploadGuard();
+      return <div data-testid="guard-count">{activeUploadCount}</div>;
+    }
+
+    let resolveSend: () => void = () => {};
+    const sendAttachment = vi.fn(
+      () => new Promise<void>((res) => { resolveSend = res; }),
+    );
+
+    render(
+      <LocalUploadGuardProvider>
+        <GuardCountProbe />
+        <Composer
+          onSend={vi.fn().mockResolvedValue(undefined)}
+          attachmentConfig={makeAttachmentConfig()}
+          sendAttachment={sendAttachment}
+        />
+      </LocalUploadGuardProvider>,
+    );
+
+    fireEvent.click(screen.getByTestId('media-input-select'));
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    // Registered for the whole in-flight window: upload phase…
+    expect(screen.getByTestId('guard-count').textContent).toBe('1');
+    await act(async () => { guardedUploadCalls.at(-1)?.resolve(); });
+    // …and the backend-send phase (this is what a navigation would abort).
+    expect(screen.getByTestId('guard-count').textContent).toBe('1');
+
+    await act(async () => { resolveSend(); });
+    expect(screen.getByTestId('guard-count').textContent).toBe('0');
+  });
+
+  it('degrades gracefully without a LocalUploadGuardProvider (optional accessor)', async () => {
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    render(<Composer onSend={onSend} />);
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: 'no provider' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    await act(async () => {});
+    expect(onSend).toHaveBeenCalled();
+  });
+});

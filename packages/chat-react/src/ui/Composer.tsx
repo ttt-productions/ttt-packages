@@ -8,6 +8,7 @@ import { MediaInput } from "@ttt-productions/file-input/react";
 import type { MediaInputChangePayload } from "@ttt-productions/file-input";
 import type { UploadState } from "@ttt-productions/media-schemas";
 import { useGuardedUpload } from "@ttt-productions/upload-ui/react/upload";
+import { useOptionalLocalUploadGuard } from "@ttt-productions/upload-ui/react/guard";
 import { Loader2, X, FileText, ImageIcon, VideoIcon, MicIcon } from "lucide-react";
 import type { ChatAttachment, ChatMessageV1, SendAttachmentFn } from "@ttt-productions/chat-core";
 import type { ChatAttachmentConfig } from "../types.js";
@@ -84,6 +85,13 @@ export function Composer(props: ComposerProps) {
   const ref = React.useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
   const guardedUpload = useGuardedUpload();
+  // Navigation guard for the in-flight send: a send that has left the composer
+  // but not yet committed is killable by navigation/sign-out with zero warning
+  // (observed live: the callable aborted, the message silently never delivered).
+  // Registering with the app's one guarded-navigation system makes beforeunload
+  // fire on hard navs and lets GuardedLink-style navigation confirm first.
+  // Optional accessor — consumers without the provider degrade to old behavior.
+  const navigationGuard = useOptionalLocalUploadGuard();
 
   const mentionApi = useMentionAutocomplete({
     textareaRef: ref as React.RefObject<HTMLTextAreaElement>,
@@ -123,6 +131,8 @@ export function Composer(props: ComposerProps) {
 
     setIsSending(true);
     setSendError(null);
+    const sendGuardId = `chat-send-${genId()}`;
+    navigationGuard?.registerUpload(sendGuardId);
 
     try {
       if (pendingFile && attachmentConfig && sendAttachment) {
@@ -181,6 +191,7 @@ export function Composer(props: ComposerProps) {
       setPendingFile(null);
       setSendError("Couldn't send. Check your connection and try again.");
     } finally {
+      navigationGuard?.unregisterUpload(sendGuardId);
       abortControllerRef.current = null;
       setIsSending(false);
       setUploadState(null);

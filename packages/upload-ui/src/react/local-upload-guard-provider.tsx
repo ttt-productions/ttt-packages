@@ -156,6 +156,16 @@ export function useLocalUploadGuardContext(): LocalUploadGuardContextValue {
 }
 
 /**
+ * Optional accessor: returns the guard context, or `null` when rendered
+ * outside a `LocalUploadGuardProvider`. For package components (e.g. the
+ * chat composer registering an in-flight send) that must degrade gracefully
+ * in consumers that don't mount the provider, instead of throwing.
+ */
+export function useOptionalLocalUploadGuard(): LocalUploadGuardContextValue | null {
+  return useContext(LocalUploadGuardContext) ?? null;
+}
+
+/**
  * Public hook for the local upload navigation guard.
  *
  * Returns `{ activeUploadCount, registerUpload, unregisterUpload }`.

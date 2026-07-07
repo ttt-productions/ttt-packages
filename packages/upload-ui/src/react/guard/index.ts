@@ -2,6 +2,7 @@ export {
   LocalUploadGuardProvider,
   useLocalUploadGuard,
   useLocalUploadGuardContext,
+  useOptionalLocalUploadGuard,
   type LocalUploadGuardProviderProps,
 } from '../local-upload-guard-provider.js';
 export { useGuardedNavigation } from '../use-guarded-navigation.js';
