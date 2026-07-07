@@ -26,6 +26,10 @@ export const CLIENT_FRAME = {
   PRESENCE_UNSUBSCRIBE: 'presence-unsubscribe',
   HEARTBEAT: 'heartbeat',
   RESUME: 'resume',
+  /** INBOX-socket-only: clear a channel's unread without opening it. The inbox DO
+   *  validates the ref against the caller's registry, advances the read cursor to
+   *  tail on the channel DO, then pushes a fresh authoritative snapshot. */
+  MARK_READ: 'mark-read',
 } as const;
 
 /** DO → client message `type`s (chat-worker `SERVER_KINDS`). */

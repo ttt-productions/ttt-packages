@@ -186,6 +186,18 @@ export class InboxClient {
     return this.state.unreadChannelRefs.includes(channelRef);
   }
 
+  /**
+   * Clear a channel/invite's unread WITHOUT opening it (the Chats-tray X / go-to
+   * controls). Sends `mark-read` on the inbox socket; the inbox DO advances the
+   * member's read cursor to tail on the channel DO and then pushes a fresh
+   * authoritative snapshot, which is what removes the row — there is NO optimistic
+   * local clear, so a failed mark-read honestly leaves the dot in place.
+   * Returns false when the socket is not open (the caller may surface a retry).
+   */
+  markRead(channelRef: string): boolean {
+    return this.sendFrame(CLIENT_FRAME.MARK_READ, { channelRef });
+  }
+
   /** Permanently close (auth-user switch / unmount). Idempotent. */
   close(): void {
     this.closedByUs = true;

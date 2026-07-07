@@ -172,6 +172,38 @@ describe('InboxClient — teardown', () => {
   });
 });
 
+describe('InboxClient — markRead (tray clear without opening the chat)', () => {
+  it('sends a mark-read frame with the channelRef and does NOT optimistically clear local state', async () => {
+    const { client, harness } = makeInbox();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    sock.serverFrame(
+      'snapshot',
+      snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: true }], true),
+    );
+    expect(client.markRead('c1')).toBe(true);
+    const frame = sock.sent.find((f) => f.type === 'mark-read');
+    expect(frame?.payload).toEqual({ channelRef: 'c1' });
+    // No optimistic clear — only the DO's pushed snapshot removes the dot.
+    expect(client.channelHasUnread('c1')).toBe(true);
+    expect(client.getState().hasUnread).toBe(true);
+    // The DO applies the cursor advance and pushes the authoritative snapshot.
+    sock.serverFrame(
+      'snapshot',
+      snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: false }], false),
+    );
+    expect(client.channelHasUnread('c1')).toBe(false);
+    expect(client.getState().hasUnread).toBe(false);
+  });
+
+  it('returns false when the socket is not open', async () => {
+    const { client } = makeInbox();
+    // Never connected — no socket to send on.
+    expect(client.markRead('c1')).toBe(false);
+  });
+});
+
 describe('InboxClient — standalone unread frame (C-M2)', () => {
   it('applies a full inbox snapshot delivered as an `unread` frame', async () => {
     const { client, harness } = makeInbox();
