@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { doc, getDoc, onSnapshot, type DocumentData } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
+import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
 import type {
   FirestoreDocOptions,
   FirestoreSourceState,
@@ -59,33 +60,65 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
 
     setSubscriptionError(null);
     setSourceState('connecting');
-    const docRef = doc(db, docPath);
-    const unsubscribe = onSnapshot(
-      docRef,
-      { includeMetadataChanges: true },
-      (snapshot) => {
-        setSubscriptionError(null);
-        if (snapshot.exists()) {
-          const rawData = snapshot.data();
-          // Include id in data passed to select, so it can be renamed/transformed
-          const dataWithId = { id: snapshot.id, ...rawData };
-          const data = select ? select(dataWithId) : dataWithId;
-          queryClient.setQueryData(queryKey, data as WithId<T>);
-        } else {
-          queryClient.setQueryData(queryKey, null);
-        }
-        const fromCache = snapshot.metadata?.fromCache ?? false;
-        setSourceState((prev) => (fromCache ? (prev === 'connecting' ? 'connecting' : 'offline') : 'live'));
-      },
-      (error) => {
-        console.error('[useFirestoreDoc] Subscription error:', error);
-        setSubscriptionError(error);
-        setSourceState('error');
-        queryClient.setQueryData(queryKey, undefined);
-      }
-    );
 
-    return () => unsubscribe();
+    // Bounded resubscribe: a transient `permission-denied` (e.g. a failed mid-session
+    // App Check token refresh) is retried on the RESUBSCRIBE_DELAYS_MS ladder before the
+    // error is surfaced. `attempt` resets on any healthy snapshot; `disposed`/timers are
+    // cleaned up on unmount so a pending retry never fires after teardown.
+    let currentUnsubscribe: (() => void) | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let attempt = 0;
+    let disposed = false;
+
+    const start = () => {
+      if (disposed) return;
+      const docRef = doc(db, docPath);
+      currentUnsubscribe = onSnapshot(
+        docRef,
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          attempt = 0;
+          setSubscriptionError(null);
+          if (snapshot.exists()) {
+            const rawData = snapshot.data();
+            // Include id in data passed to select, so it can be renamed/transformed
+            const dataWithId = { id: snapshot.id, ...rawData };
+            const data = select ? select(dataWithId) : dataWithId;
+            queryClient.setQueryData(queryKey, data as WithId<T>);
+          } else {
+            queryClient.setQueryData(queryKey, null);
+          }
+          const fromCache = snapshot.metadata?.fromCache ?? false;
+          setSourceState((prev) => (fromCache ? (prev === 'connecting' ? 'connecting' : 'offline') : 'live'));
+        },
+        (error) => {
+          // Heal a transient permission-denied by resubscribing on the backoff ladder,
+          // keeping the last-known data visible. Only surface the error once the ladder
+          // is exhausted; any other error surfaces immediately, as before.
+          if (isPermissionDeniedError(error) && attempt < RESUBSCRIBE_DELAYS_MS.length) {
+            currentUnsubscribe?.();
+            currentUnsubscribe = null;
+            const delay = RESUBSCRIBE_DELAYS_MS[attempt];
+            attempt += 1;
+            setSourceState('connecting');
+            retryTimer = setTimeout(start, delay);
+            return;
+          }
+          console.error('[useFirestoreDoc] Subscription error:', error);
+          setSubscriptionError(error);
+          setSourceState('error');
+          queryClient.setQueryData(queryKey, undefined);
+        }
+      );
+    };
+
+    start();
+
+    return () => {
+      disposed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      currentUnsubscribe?.();
+    };
     // Note: select intentionally excluded to prevent re-subscribing on every render if the caller
     // passes an inline function. queryKey is tracked via queryKeyMemo above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
