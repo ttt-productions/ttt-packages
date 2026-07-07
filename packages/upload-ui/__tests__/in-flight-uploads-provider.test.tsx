@@ -374,14 +374,19 @@ describe('InFlightUploadsProvider — source state', () => {
     expect(result.current).toBe('live');
   });
 
-  it('goes error on a listener error', () => {
-    const adapter = makeAdapter();
-    const { subscribe, drive, driveError } = makeDriver();
-    const { result } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
+  it('a listener error RETRIES (connecting) instead of going terminal — see the resubscribe describe', () => {
+    vi.useFakeTimers();
+    try {
+      const adapter = makeAdapter();
+      const { subscribe, drive, driveError } = makeDriver();
+      const { result } = renderHook(() => useUploadsSourceState(), { wrapper: wrap(adapter, subscribe) });
 
-    act(() => drive(metaSnapshot(false)));
-    act(() => driveError(new Error('permission-denied')));
-    expect(result.current).toBe('error');
+      act(() => drive(metaSnapshot(false)));
+      act(() => driveError(new Error('permission-denied')));
+      expect(result.current).toBe('connecting');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('resets to connecting when the user identity changes', () => {
@@ -396,5 +401,61 @@ describe('InFlightUploadsProvider — source state', () => {
     currentUserId = 'userB';
     rerender();
     expect(result.current).toBe('connecting');
+  });
+});
+
+describe('bounded resubscribe on listener error', () => {
+  it('retries after an error (connecting, new subscription) and recovers to live', () => {
+    vi.useFakeTimers();
+    try {
+      const adapter = makeAdapter();
+      const d = makeDriver();
+      let subscribeCount = 0;
+      const countingSubscribe: FirestoreSubscribeFn = (args) => {
+        subscribeCount += 1;
+        return d.subscribe(args);
+      };
+      const { result } = renderHook(() => useUploadsSourceState(), {
+        wrapper: wrap(adapter, countingSubscribe),
+      });
+      expect(subscribeCount).toBe(1);
+
+      // Cold-session race (e.g. App Check enforcement before the token mints).
+      act(() => d.driveError(new Error('permission-denied')));
+      expect(result.current).toBe('connecting'); // retrying, NOT terminal
+
+      act(() => {
+        vi.advanceTimersByTime(1_000);
+      });
+      expect(subscribeCount).toBe(2);
+
+      act(() => d.drive(metaSnapshot(false)));
+      expect(result.current).toBe('live');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('goes terminal error only after exhausting the retry ladder', () => {
+    vi.useFakeTimers();
+    try {
+      const adapter = makeAdapter();
+      const d = makeDriver();
+      const { result } = renderHook(() => useUploadsSourceState(), {
+        wrapper: wrap(adapter, d.subscribe),
+      });
+      for (const ms of [1_000, 3_000, 10_000, 30_000]) {
+        act(() => d.driveError(new Error('denied')));
+        expect(result.current).toBe('connecting');
+        act(() => {
+          vi.advanceTimersByTime(ms);
+        });
+      }
+      // Fifth consecutive error: ladder exhausted → terminal.
+      act(() => d.driveError(new Error('denied')));
+      expect(result.current).toBe('error');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

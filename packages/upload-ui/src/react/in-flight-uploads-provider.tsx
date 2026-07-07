@@ -518,24 +518,56 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
       }
     }
 
-    const unsubscribe = subscribe({
-      db: a.db,
-      collectionPath: a.collectionPath,
-      userId,
-      windowStartMs,
-      onSnapshot: handleSnapshot,
-      onError: (error) => {
-        setSourceState('error');
-        adapterRef.current.onMonitoringEvent({ type: 'listener-error', error });
-      },
-    });
+    // Bounded RESUBSCRIBE on listener error: a cold-session race (e.g. Firestore
+    // App Check enforcement rejecting the first attach before the token is
+    // minted) must not kill the listener for the whole session — observed live:
+    // one permission-denied at first login → sourceState 'error' forever, every
+    // tray file status dead until reload. Retry on a short ladder; a snapshot
+    // resets the ladder (healthy again); exhausting it goes terminal 'error'
+    // (a real rules denial stays denied — retries are cheap and bounded).
+    const RESUBSCRIBE_DELAYS_MS = [1_000, 3_000, 10_000, 30_000];
+    let attempt = 0;
+    let disposed = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let unsubscribe: (() => void) | undefined;
+
+    const start = () => {
+      unsubscribe = subscribe({
+        db: a.db,
+        collectionPath: a.collectionPath,
+        userId,
+        windowStartMs,
+        onSnapshot: (snapshot) => {
+          attempt = 0; // healthy — future errors get a fresh ladder
+          handleSnapshot(snapshot);
+        },
+        onError: (error) => {
+          adapterRef.current.onMonitoringEvent({ type: 'listener-error', error });
+          unsubscribe?.();
+          unsubscribe = undefined;
+          if (disposed || attempt >= RESUBSCRIBE_DELAYS_MS.length) {
+            setSourceState('error');
+            return;
+          }
+          setSourceState('connecting');
+          retryTimer = setTimeout(() => {
+            if (disposed) return;
+            attempt += 1;
+            start();
+          }, RESUBSCRIBE_DELAYS_MS[attempt]);
+        },
+      });
+    };
+    start();
 
     return () => {
-      unsubscribe();
+      disposed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      unsubscribe?.();
     };
     // adapter is intentionally NOT in the deps array — adapter is read via
     // adapterRef on every snapshot, so identity changes don't re-subscribe.
-     
+
   }, [userId, subscribe]);
 
   const value = useMemo<InFlightUploadsContextValue<TFileOrigin>>(
