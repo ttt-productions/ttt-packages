@@ -105,7 +105,11 @@ export const CHARTER_LIMITS: TttLimits = {
     UPLOAD: { maxRequests: 15, window: '1 h' },
     VOTE: { maxRequests: 100, window: '1 h' },
     MODERATION: { maxRequests: 50, window: '1 h' },
-    SENSITIVE_ACTION: { maxRequests: 5, window: '1 h' },
+    // 30/h: one bucket is shared by ~35 callables (register, become-artisan,
+    // create-work, invites, trades, appeals, …) — a real first-hour artisan does
+    // 10-15 legitimate sensitive actions; 5/h blocked the intended golden path
+    // (proven live by the hosted-dev E2E, 2026-07-07). DJ ruling 2026-07-08.
+    SENSITIVE_ACTION: { maxRequests: 30, window: '1 h' },
     DISPLAY_NAME_CHECK: { maxRequests: 20, window: '1 h' },
     CHAT_MESSAGE: { maxRequests: 125, window: '1 h' },
     ADMIN_TASK: { maxRequests: 60, window: '1 h' },
@@ -153,7 +157,11 @@ export const FULL_LIMITS: TttLimits = {
     UPLOAD: { maxRequests: 30, window: '1 h' },
     VOTE: { maxRequests: 200, window: '1 h' },
     MODERATION: { maxRequests: 50, window: '1 h' },
-    SENSITIVE_ACTION: { maxRequests: 5, window: '1 h' },
+    // 60/h: full-mode power users managing several works do dozens of legitimate
+    // management actions per hour; still a hard backstop against scripts.
+    // DJ ruling 2026-07-08 (charter 30 / full 60, single bucket; a bucket split
+    // is filed post-launch in ttt-prod docs/post-launch/).
+    SENSITIVE_ACTION: { maxRequests: 60, window: '1 h' },
     DISPLAY_NAME_CHECK: { maxRequests: 20, window: '1 h' },
     CHAT_MESSAGE: { maxRequests: 150, window: '1 h' },
     ADMIN_TASK: { maxRequests: 60, window: '1 h' },
