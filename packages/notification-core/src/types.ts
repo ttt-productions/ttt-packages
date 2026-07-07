@@ -337,11 +337,21 @@ export interface UseArchiveAllNotificationsOptions {
 // COMPONENT PROP TYPES
 // ============================================================================
 
+/**
+ * Per-row actions the list hands to `renderRowAction`. The row itself is inert
+ * (DJ ruling 2026-07-07) — every affordance lives in the controls the consumer
+ * renders in the slot. `archive` performs the active→history archive for that
+ * row; it is present ONLY on the active list (archived history rows cannot be
+ * re-archived, so it is absent there).
+ */
+export interface NotificationRowActions {
+  archive?: () => Promise<void>;
+}
+
 export interface NotificationListProps {
   config: NotificationSystemConfig;
   userId: string;
   category: string;
-  onNotificationClick: (notification: NotificationDoc) => void;
   /**
    * Adapter that archives one notification (active → history). Passed straight
    * through to `useArchiveNotification`; the app wires it to its callable.
@@ -363,37 +373,27 @@ export interface NotificationListProps {
   refetchInterval?: number;
   emptyText?: string;
   /**
-   * Optional per-row action slot rendered alongside the existing archive control.
-   * Purely additive: the package renders exactly as today when omitted. The
-   * consumer decides what the action does (e.g. an explicit "go to" button) —
-   * this package has no opinion on it and takes no dependency on its shape.
-   * The rendered node is wrapped so clicks inside it do not bubble to the row's
-   * own click handler (`onNotificationClick` / archive-on-click).
+   * Per-row control slot. The row itself is inert (DJ ruling 2026-07-07); the
+   * consumer renders the row's controls here — typically an ArrowRight "go to"
+   * (which may call `actions.archive` then navigate) plus a clear/archive button
+   * (calls `actions.archive`). Omit to render a row with no controls.
    */
-  renderRowAction?: (notification: NotificationDoc) => ReactNode;
+  renderRowAction?: (notification: NotificationDoc, actions: NotificationRowActions) => ReactNode;
 }
 
 export interface NotificationHistoryListProps {
   config: NotificationSystemConfig;
   userId: string;
   category: string;
-  /**
-   * Optional click handler for an archived row (e.g. navigate to `targetPath`).
-   * Archived rows are read-only — there is no re-archive; the row does not mutate
-   * state on click. Omit to render non-interactive rows.
-   */
-  onNotificationClick?: (notification: NotificationHistoryItem) => void;
   pageSize?: number;
   staleTime?: number;
   emptyText?: string;
   /**
-   * Optional per-row action slot rendered alongside each history row. Purely
-   * additive: the package renders exactly as today when omitted. The consumer
-   * decides what the action does — this package has no opinion on it and takes
-   * no dependency on its shape. The rendered node is wrapped so clicks inside it
-   * do not bubble to the row's own click handler (when `onNotificationClick` is set).
+   * Per-row control slot for archived rows. The row is inert; archived rows are
+   * read-only (no re-archive), so `actions.archive` is absent — the consumer
+   * typically renders only an ArrowRight "go to". Omit for a row with no controls.
    */
-  renderRowAction?: (notification: NotificationHistoryItem) => ReactNode;
+  renderRowAction?: (notification: NotificationHistoryItem, actions: NotificationRowActions) => ReactNode;
 }
 
 export interface NotificationEmptyStateProps {

@@ -8,16 +8,15 @@ import { formatRelativeTime } from './relative-time.js';
 import type { NotificationHistoryItem, NotificationHistoryListProps } from '../../types.js';
 
 /**
- * Read-only, paginated list of ARCHIVED notifications (the history tier). Rows do
- * not mutate state on click — archive is one-way; there is no re-archive. When
- * `onNotificationClick` is supplied, rows are interactive (e.g. navigate to
- * `targetPath`); otherwise they render non-interactive.
+ * Read-only, paginated list of ARCHIVED notifications (the history tier). Rows are
+ * inert (DJ ruling 2026-07-07) and read-only — archive is one-way, there is no
+ * re-archive, so the row exposes no `archive` action. Any per-row control (e.g. an
+ * ArrowRight "go to") is rendered by the consumer via `renderRowAction`.
  */
 export function NotificationHistoryList({
   config,
   userId,
   category,
-  onNotificationClick,
   pageSize,
   staleTime,
   emptyText,
@@ -41,8 +40,6 @@ export function NotificationHistoryList({
     [config],
   );
 
-  const interactive = typeof onNotificationClick === 'function';
-
   return (
     <div className="ntf-list ntf-list-history">
       <div className="ntf-list-body">
@@ -53,24 +50,10 @@ export function NotificationHistoryList({
         ) : (
           <>
             {notifications.map((notification: NotificationHistoryItem) => {
-              const interactiveProps = interactive
-                ? {
-                    role: 'button',
-                    tabIndex: 0,
-                    onClick: () => onNotificationClick?.(notification),
-                    onKeyDown: (e: React.KeyboardEvent) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onNotificationClick?.(notification);
-                      }
-                    },
-                  }
-                : {};
               return (
                 <div
                   key={notification.archiveOccurrenceId}
                   className="ntf-item ntf-item-archived"
-                  {...interactiveProps}
                 >
                   <div className="ntf-item-icon">{getTypeIcon(notification.type)}</div>
                   <div className="ntf-item-content">
@@ -86,12 +69,8 @@ export function NotificationHistoryList({
                     </div>
                   )}
                   {renderRowAction && (
-                    <div
-                      className="ntf-item-row-action"
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                    >
-                      {renderRowAction(notification)}
+                    <div className="ntf-item-row-action">
+                      {renderRowAction(notification, {})}
                     </div>
                   )}
                 </div>

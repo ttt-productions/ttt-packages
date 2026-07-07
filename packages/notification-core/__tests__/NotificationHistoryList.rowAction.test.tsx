@@ -10,7 +10,7 @@ vi.mock('../src/react/hooks/useNotificationHistory.js', () => ({
 }));
 
 import { NotificationHistoryList } from '../src/react/components/NotificationHistoryList';
-import type { NotificationHistoryItem, NotificationSystemConfig } from '../src/types';
+import type { NotificationHistoryItem, NotificationRowActions, NotificationSystemConfig } from '../src/types';
 
 function makeConfig(): NotificationSystemConfig {
   return {
@@ -47,9 +47,7 @@ function makeHistoryItem(overrides: Partial<NotificationHistoryItem> = {}): Noti
   };
 }
 
-describe('NotificationHistoryList — renderRowAction', () => {
-  const onNotificationClick = vi.fn();
-
+describe('NotificationHistoryList — renderRowAction (inert, read-only rows)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.useNotificationHistory.mockReturnValue({
@@ -69,71 +67,39 @@ describe('NotificationHistoryList — renderRowAction', () => {
     category: 'user',
   };
 
-  it('renders exactly as before when renderRowAction is absent', () => {
-    const { container } = render(<NotificationHistoryList {...baseProps} onNotificationClick={onNotificationClick} />);
+  it('renders a plain row with no action slot when renderRowAction is absent', () => {
+    const { container } = render(<NotificationHistoryList {...baseProps} />);
     expect(container.querySelectorAll('.ntf-item')).toHaveLength(2);
     expect(container.querySelectorAll('.ntf-item-row-action')).toHaveLength(0);
   });
 
-  it('renders the row action per row and receives the notification', () => {
-    const renderRowAction = vi.fn((notification: NotificationHistoryItem) => (
-      <button aria-label={`go-to-${notification.id}`}>Go</button>
-    ));
-    render(
-      <NotificationHistoryList
-        {...baseProps}
-        onNotificationClick={onNotificationClick}
-        renderRowAction={renderRowAction}
-      />,
-    );
-
-    expect(screen.getByLabelText('go-to-n1')).toBeInTheDocument();
-    expect(screen.getByLabelText('go-to-n2')).toBeInTheDocument();
-    expect(renderRowAction).toHaveBeenCalledWith(expect.objectContaining({ id: 'n1', archiveOccurrenceId: 'occ-1' }));
-    expect(renderRowAction).toHaveBeenCalledWith(expect.objectContaining({ id: 'n2', archiveOccurrenceId: 'occ-2' }));
-  });
-
-  it('does not fire the row click handler when clicking inside the rendered action', () => {
-    const renderRowAction = vi.fn((notification: NotificationHistoryItem) => (
-      <button aria-label={`go-to-${notification.id}`}>Go</button>
-    ));
-    render(
-      <NotificationHistoryList
-        {...baseProps}
-        onNotificationClick={onNotificationClick}
-        renderRowAction={renderRowAction}
-      />,
-    );
-
-    fireEvent.click(screen.getByLabelText('go-to-n1'));
-
-    expect(onNotificationClick).not.toHaveBeenCalled();
-  });
-
-  it('still fires the row click handler when clicking the row itself', () => {
-    const renderRowAction = vi.fn((notification: NotificationHistoryItem) => (
-      <button aria-label={`go-to-${notification.id}`}>Go</button>
-    ));
-    const { container } = render(
-      <NotificationHistoryList
-        {...baseProps}
-        onNotificationClick={onNotificationClick}
-        renderRowAction={renderRowAction}
-      />,
-    );
-
-    const row = container.querySelectorAll('.ntf-item')[0] as HTMLElement;
-    fireEvent.click(row);
-
-    expect(onNotificationClick).toHaveBeenCalledWith(expect.objectContaining({ id: 'n1' }));
-  });
-
-  it('renders the action even when rows are non-interactive (no onNotificationClick)', () => {
-    const renderRowAction = vi.fn((notification: NotificationHistoryItem) => (
-      <button aria-label={`go-to-${notification.id}`}>Go</button>
-    ));
+  it('renders the row action per row, receiving the item and NO archive action (read-only)', () => {
+    const seen: NotificationRowActions[] = [];
+    const renderRowAction = vi.fn((notification: NotificationHistoryItem, actions: NotificationRowActions) => {
+      seen.push(actions);
+      return <button aria-label={`go-to-${notification.id}`}>Go</button>;
+    });
     render(<NotificationHistoryList {...baseProps} renderRowAction={renderRowAction} />);
 
     expect(screen.getByLabelText('go-to-n1')).toBeInTheDocument();
+    expect(screen.getByLabelText('go-to-n2')).toBeInTheDocument();
+    expect(renderRowAction).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'n1', archiveOccurrenceId: 'occ-1' }),
+      expect.anything(),
+    );
+    // Archived rows cannot be re-archived — no archive action is exposed.
+    expect(seen.every((a) => a.archive === undefined)).toBe(true);
+  });
+
+  it('makes the archived row inert — no role=button', () => {
+    const renderRowAction = (notification: NotificationHistoryItem) => (
+      <button aria-label={`go-to-${notification.id}`}>Go</button>
+    );
+    const { container } = render(<NotificationHistoryList {...baseProps} renderRowAction={renderRowAction} />);
+
+    const row = container.querySelectorAll('.ntf-item')[0] as HTMLElement;
+    expect(row).not.toHaveAttribute('role', 'button');
+    // Clicking the row is a no-op (nothing throws, no handler).
+    fireEvent.click(row);
   });
 });

@@ -14,6 +14,7 @@ export type {
   EnqueueArchiveAllResult,
   ArchiveAllJobSnapshot,
   ArchiveAllPollResult,
+  NotificationRowActions,
   NotificationListProps,
   NotificationHistoryListProps,
   NotificationEmptyStateProps,

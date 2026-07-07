@@ -16,7 +16,6 @@ export function NotificationList({
   config,
   userId,
   category,
-  onNotificationClick,
   archiveFn,
   enqueueArchiveAllFn,
   getArchiveAllStatusFn,
@@ -49,18 +48,6 @@ export function NotificationList({
     enqueueArchiveAllFn,
     getArchiveAllStatusFn,
   });
-
-  const handleNotificationClick = useCallback(
-    async (notification: NotificationDoc) => {
-      try {
-        await archiveMutation.mutateAsync(notification.id);
-      } catch {
-        // Still navigate even if archive fails
-      }
-      onNotificationClick(notification);
-    },
-    [archiveMutation, onNotificationClick],
-  );
 
   // Surface a failed/incomplete clear instead of swallowing it. `onClearAll` (and the tray-closing
   // side effects the app wires to it) fires ONLY when the server job fully drained the category —
@@ -125,19 +112,7 @@ export function NotificationList({
       ) : (
         <>
           {notifications.map((notification: NotificationDoc) => (
-            <div
-              key={notification.id}
-              className="ntf-item"
-              role="button"
-              tabIndex={0}
-              onClick={() => handleNotificationClick(notification)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  handleNotificationClick(notification);
-                }
-              }}
-            >
+            <div key={notification.id} className="ntf-item">
               <div className="ntf-item-icon">
                 {getTypeIcon(notification.type)}
               </div>
@@ -154,12 +129,12 @@ export function NotificationList({
                 </div>
               )}
               {renderRowAction && (
-                <div
-                  className="ntf-item-row-action"
-                  onClick={(e) => e.stopPropagation()}
-                  onKeyDown={(e) => e.stopPropagation()}
-                >
-                  {renderRowAction(notification)}
+                <div className="ntf-item-row-action">
+                  {renderRowAction(notification, {
+                    archive: async () => {
+                      await archiveMutation.mutateAsync(notification.id);
+                    },
+                  })}
                 </div>
               )}
             </div>

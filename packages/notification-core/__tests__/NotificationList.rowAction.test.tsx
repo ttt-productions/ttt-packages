@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
   useActiveNotifications: vi.fn(),
@@ -18,7 +18,7 @@ vi.mock('../src/react/hooks/useArchiveAllNotifications.js', () => ({
 }));
 
 import { NotificationList } from '../src/react/components/NotificationList';
-import type { NotificationDoc, NotificationSystemConfig } from '../src/types';
+import type { NotificationDoc, NotificationRowActions, NotificationSystemConfig } from '../src/types';
 
 function makeConfig(): NotificationSystemConfig {
   return {
@@ -53,8 +53,7 @@ function makeNotification(overrides: Partial<NotificationDoc> = {}): Notificatio
   };
 }
 
-describe('NotificationList — renderRowAction', () => {
-  const onNotificationClick = vi.fn();
+describe('NotificationList — renderRowAction (inert row + exposed archive)', () => {
   const archiveMutateAsync = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
@@ -79,19 +78,18 @@ describe('NotificationList — renderRowAction', () => {
     config: makeConfig(),
     userId: 'u1',
     category: 'user',
-    onNotificationClick,
     archiveFn: vi.fn(),
     enqueueArchiveAllFn: vi.fn(),
     getArchiveAllStatusFn: vi.fn(),
   };
 
-  it('renders exactly as before when renderRowAction is absent', () => {
+  it('renders a plain row with no action slot when renderRowAction is absent', () => {
     const { container } = render(<NotificationList {...baseProps} />);
     expect(container.querySelectorAll('.ntf-item')).toHaveLength(2);
     expect(container.querySelectorAll('.ntf-item-row-action')).toHaveLength(0);
   });
 
-  it('renders the row action per row and receives the notification', () => {
+  it('renders the row action per row and receives the notification + an archive action', () => {
     const renderRowAction = vi.fn((notification: NotificationDoc) => (
       <button aria-label={`go-to-${notification.id}`}>Go</button>
     ));
@@ -99,31 +97,33 @@ describe('NotificationList — renderRowAction', () => {
 
     expect(screen.getByLabelText('go-to-n1')).toBeInTheDocument();
     expect(screen.getByLabelText('go-to-n2')).toBeInTheDocument();
-    expect(renderRowAction).toHaveBeenCalledWith(expect.objectContaining({ id: 'n1' }));
-    expect(renderRowAction).toHaveBeenCalledWith(expect.objectContaining({ id: 'n2' }));
+    expect(renderRowAction).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'n1' }),
+      expect.objectContaining({ archive: expect.any(Function) }),
+    );
   });
 
-  it('does not fire the row click handler when clicking inside the rendered action', () => {
-    const renderRowAction = vi.fn((notification: NotificationDoc) => (
-      <button aria-label={`go-to-${notification.id}`}>Go</button>
-    ));
-    render(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
-
-    fireEvent.click(screen.getByLabelText('go-to-n1'));
-
-    expect(onNotificationClick).not.toHaveBeenCalled();
-    expect(archiveMutateAsync).not.toHaveBeenCalled();
-  });
-
-  it('still fires the row click handler when clicking the row itself', async () => {
+  it('makes the row itself inert — no role=button and a row click archives nothing', () => {
     const renderRowAction = vi.fn((notification: NotificationDoc) => (
       <button aria-label={`go-to-${notification.id}`}>Go</button>
     ));
     const { container } = render(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
 
     const row = container.querySelectorAll('.ntf-item')[0] as HTMLElement;
+    expect(row).not.toHaveAttribute('role', 'button');
     fireEvent.click(row);
+    expect(archiveMutateAsync).not.toHaveBeenCalled();
+  });
 
-    expect(archiveMutateAsync).toHaveBeenCalledWith('n1');
+  it('archives that row when the exposed archive action is invoked', async () => {
+    const renderRowAction = (notification: NotificationDoc, actions: NotificationRowActions) => (
+      <button aria-label={`clear-${notification.id}`} onClick={() => actions.archive?.()}>
+        Clear
+      </button>
+    );
+    render(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
+
+    fireEvent.click(screen.getByLabelText('clear-n1'));
+    await waitFor(() => expect(archiveMutateAsync).toHaveBeenCalledWith('n1'));
   });
 });
