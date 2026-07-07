@@ -33,6 +33,25 @@ export function AuthProvider<TClaims = Record<string, unknown>>(
   const configRef = useRef(config);
   configRef.current = config;
 
+  // --- Optional readiness gate (see AuthProviderConfig.readyGate) ---
+  // Open immediately when no gate is configured; otherwise held closed until the
+  // gate settles. Fail-open: a rejected gate is reported and then treated as open.
+  const [gateOpen, setGateOpen] = useState(() => !config.readyGate);
+  useEffect(() => {
+    const gate = configRef.current.readyGate;
+    if (!gate) return;
+    let cancelled = false;
+    Promise.resolve()
+      .then(() => gate())
+      .catch((err) => configRef.current.onError?.(err, "readyGate"))
+      .finally(() => {
+        if (!cancelled) setGateOpen(true);
+      });
+    return () => { cancelled = true; };
+    // Mount-only by design (reads only the stable configRef): the gate is a
+    // one-time client readiness signal.
+  }, []);
+
   // --- Claims fetching ---
   useEffect(() => {
     if (authLoading) return;
@@ -79,7 +98,7 @@ export function AuthProvider<TClaims = Record<string, unknown>>(
   }, [user]);
 
   // --- Context value ---
-  const loading = authLoading || claimsLoading;
+  const loading = authLoading || claimsLoading || !gateOpen;
 
   const value = useMemo<AuthContextValue<TClaims>>(
     () => ({
