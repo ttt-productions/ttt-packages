@@ -79,7 +79,7 @@ type ToastRootProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root
   };
 
 const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, ToastRootProps>(
-  ({ className, variant, duration, dismissible = true, persistent = false, style, children, ...props }, ref) => {
+  ({ className, variant, duration, dismissible = true, persistent = false, style, children, onOpenChange, ...props }, ref) => {
     // Caller is the source of truth for duration. Persistent toasts disable
     // the auto-dismiss entirely by passing `Infinity` to Radix.
     const effectiveDuration = persistent ? Infinity : (duration ?? 5000);
@@ -97,6 +97,7 @@ const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, To
         data-persistent={persistent ? "" : undefined}
         className={cn(toastVariants({ variant }), className)}
         style={mergedStyle}
+        onOpenChange={onOpenChange}
         {...props}
       >
         <ToastKeyframes />
@@ -105,12 +106,22 @@ const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, To
         {/* countdown bar — hidden entirely for persistent toasts */}
         {!persistent ? (
           <div
+            aria-hidden
             className={cn("absolute bottom-0 left-0 h-1 w-full bg-foreground/30", "origin-left")}
             style={{
               animationName: "toast-progress",
               animationDuration: `${effectiveDuration}ms`,
               animationTimingFunction: "linear",
               animationFillMode: "forwards",
+            }}
+            // Radix's own auto-close timer PAUSES on pointer-over the viewport,
+            // focus, and window-blur — but this CSS bar does not. When the bar
+            // empties we must dismiss regardless of Radix's paused timer, so the
+            // toast never lingers after the countdown visibly reaches zero.
+            // Radix's `duration` above remains a motion-independent backstop
+            // (e.g. under prefers-reduced-motion where this event may not fire).
+            onAnimationEnd={(e) => {
+              if (e.animationName === "toast-progress") onOpenChange?.(false);
             }}
           />
         ) : null}
