@@ -176,6 +176,14 @@ export const UpdateGuildmateStandingInputSchema = z.object({
 }).strict();
 export type UpdateGuildmateStandingInput = z.infer<typeof UpdateGuildmateStandingInputSchema>;
 
+// Member self-leave (leaveWorkProject). The leaver is ALWAYS request.auth.uid — never a
+// client-supplied uid (invariant 3) — so the input carries only the workProjectId. The
+// callable composes the internal `depart` stake-share operation for ctx.uid.
+export const LeaveWorkProjectInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
+}).strict();
+export type LeaveWorkProjectInput = z.infer<typeof LeaveWorkProjectInputSchema>;
+
 export const UpdatePublicWorkProjectDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   workingTitle: z.string().min(1).max(200),

@@ -54,6 +54,13 @@ export const StakeShareOperationSchema = z.discriminatedUnion('type', [
     user: userRefSchema.optional(),
     sourceId: z.string().min(1).optional(),
   }).strict(),
+  // Member self-leave (leaveWorkProject). Pre-publish only; forfeits the leaver's
+  // shares back to the pool. `user` is the leaver (server sets it to request.auth.uid).
+  z.object({
+    type: z.literal('depart'),
+    user: userRefSchema,
+    reason: z.literal('selfLeave'),
+  }).strict(),
 ]);
 
 export type StakeShareOperation = z.infer<typeof StakeShareOperationSchema>;
@@ -76,6 +83,7 @@ export type ManageWorkProjectStakeSharesInput = z.infer<typeof ManageWorkProject
 // - remove-pending: handleInviteDeclined + handleInviteCancelled
 // - create-workProject: createWorkProject
 // - convert-invite: handleInviteAccepted
+// - depart: leaveWorkProject (member self-leave; forfeits shares to the pool)
 //
 // Internal callers run workProject-action auth (invite.send,
 // guildInvite.stakeShares.update, and related checks) before composing into

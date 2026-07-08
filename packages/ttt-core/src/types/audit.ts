@@ -57,6 +57,8 @@ export type AuditEventType =
   | 'workProject.created'
   | 'workProject.guildmateUserGuildStandingChanged'
   | 'workProject.guildmateUserTradeProfessionsChanged'
+  // Member self-leave (leaveWorkProject) — pre-publish voluntary exit, shares forfeited to the pool.
+  | 'workProject.guildMemberDeparted'
   | 'workProject.publicDetailsUpdated'
   | 'workProject.workAssetDeleted'
   // work-file folders (S7). fileFolderAccessChanged is an ACL change (folder trade-profession

@@ -48,8 +48,16 @@ export const GuildmateUserSchema = z.object({
    * community fund and excludes it from active distribution. `departedReason`
    * distinguishes the cause; `'bannedForCause'` is reserved for the future
    * ban-forfeiture path (included now so it needs no second package publish).
+   *
+   * `'selfLeave'` is DIFFERENT share semantics: a PRE-PUBLISH voluntary guild
+   * exit (leaveWorkProject). There the 1000-split is still fluid, so the
+   * member's `stakeShareCount` is ZEROED and returned to the pool for the
+   * steward to re-allocate — NOT retained as a community-fund tombstone. A
+   * self-leave is impossible once `status: 'published'` (the stake-share freeze
+   * blocks it), so the tombstone and the pool-return dispositions never overlap
+   * in a single Work's lifecycle.
    */
-  departedReason: z.enum(['voluntaryDeletion', 'bannedForCause']).optional(),
+  departedReason: z.enum(['voluntaryDeletion', 'bannedForCause', 'selfLeave']).optional(),
   departedAt: z.number().optional(),
 });
 export type GuildmateUser = z.infer<typeof GuildmateUserSchema>;

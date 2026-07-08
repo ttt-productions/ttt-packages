@@ -370,7 +370,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `status` | `'active' \| 'departed'` |  |
 | `holderType` | `'user' \| 'foundingWork'` | yes |
 | `guildAuthInputVersion` | `number` | yes |
-| `departedReason` | `'voluntaryDeletion' \| 'bannedForCause'` | yes |
+| `departedReason` | `'voluntaryDeletion' \| 'bannedForCause' \| 'selfLeave'` | yes |
 | `departedAt` | `number` | yes |
 
 ## `allWorkProjects/{workProjectId}/publicGuildmateUsers/{uid}`
