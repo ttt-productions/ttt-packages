@@ -250,10 +250,16 @@ export function createDeliveryLedger(
       // aggregate card reflects the newest activity (title/targetPath/metadata), not the
       // first occurrence's stale values (N-I4).
       const title = typeConfig.titlePattern(payload.metadata);
+      // A type with no defaultTargetPath is linkless: the doc must OMIT the field
+      // entirely (Firestore rejects `undefined` values). A pre-existing doc written
+      // before a type went linkless keeps its stale targetPath until archived.
       const targetPath =
-        typeof typeConfig.defaultTargetPath === 'function'
-          ? typeConfig.defaultTargetPath(payload.metadata)
-          : typeConfig.defaultTargetPath;
+        typeConfig.defaultTargetPath === undefined
+          ? undefined
+          : typeof typeConfig.defaultTargetPath === 'function'
+            ? typeConfig.defaultTargetPath(payload.metadata)
+            : typeConfig.defaultTargetPath;
+      const targetPathField = targetPath === undefined ? {} : { targetPath };
 
       if (activeSnap.exists) {
         const existing = (activeSnap.data() ?? {}) as Pick<NotificationDoc, 'count' | 'latestActorIds'>;
@@ -267,7 +273,7 @@ export function createDeliveryLedger(
           now,
           generation,
         });
-        tx.update(activeRef, { ...delta, title, targetPath, metadata: payload.metadata });
+        tx.update(activeRef, { ...delta, title, ...targetPathField, metadata: payload.metadata });
       } else {
         const delta = applyAggregation({
           strategy,
@@ -288,7 +294,7 @@ export function createDeliveryLedger(
           message: delta.message,
           count: delta.count,
           latestActorIds: delta.latestActorIds,
-          targetPath,
+          ...targetPathField,
           metadata: payload.metadata,
           seenAt: 0,
           activityGeneration: generation,

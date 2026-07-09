@@ -49,11 +49,12 @@ export SKIP_PREFLIGHT=1
 ./scripts/release-package.sh @ttt-productions/chat-schemas      packages/chat-schemas      "$BUMP"
 
 # ---------------------------------------------------------------------------
-# report-core + audit-core — must release BEFORE ttt-core
-# (ttt-core depends on both)
+# report-core + audit-core + notification-core — must release BEFORE ttt-core
+# (ttt-core depends on all three; notification-core has only optional peers)
 # ---------------------------------------------------------------------------
 ./scripts/release-package.sh @ttt-productions/report-core       packages/report-core       "$BUMP"
 ./scripts/release-package.sh @ttt-productions/audit-core        packages/audit-core        "$BUMP"
+./scripts/release-package.sh @ttt-productions/notification-core packages/notification-core "$BUMP"
 
 # ---------------------------------------------------------------------------
 # Application data
@@ -85,8 +86,8 @@ export SKIP_PREFLIGHT=1
 
 # ---------------------------------------------------------------------------
 # Remaining packages — order matches root package.json build chain tail
+# (notification-core moved up: ttt-core depends on it)
 # ---------------------------------------------------------------------------
-./scripts/release-package.sh @ttt-productions/notification-core packages/notification-core "$BUMP"
 ./scripts/release-package.sh @ttt-productions/rate-limit-core   packages/rate-limit-core   "$BUMP"
 ./scripts/release-package.sh @ttt-productions/moderation-core   packages/moderation-core   "$BUMP"
 

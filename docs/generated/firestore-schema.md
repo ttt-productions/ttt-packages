@@ -205,7 +205,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `message` | `string` |  |
 | `count` | `number` |  |
 | `latestActorIds` | `string[]` |  |
-| `targetPath` | `string` |  |
+| `targetPath` | `string` | yes |
 | `metadata` | `Record<string, unknown>` |  |
 | `seenAt` | `number` |  |
 | `activityGeneration` | `string` | yes |
@@ -248,7 +248,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `message` | `string` |  |
 | `count` | `number` |  |
 | `latestActorIds` | `string[]` |  |
-| `targetPath` | `string` |  |
+| `targetPath` | `string` | yes |
 | `metadata` | `Record<string, unknown>` |  |
 | `seenAt` | `number` |  |
 | `activityGeneration` | `string` | yes |

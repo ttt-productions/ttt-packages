@@ -66,6 +66,8 @@ const config: NotificationSystemConfig = {
     test_static: { category: 'user', delivery: 'queued', dedupKeyPattern: (m) => String(m.k), titlePattern: () => 'Static', messagePattern: () => 'static', defaultTargetPath: '/y' },
     // Title + targetPath derived from the occurrence metadata — exercises the N-I4 refresh.
     test_refresh: { category: 'user', delivery: 'queued', dedupKeyPattern: (m) => String(m.k), titlePattern: (m) => `Title ${m.title}`, messagePattern: (_m, c) => `count ${c}`, defaultTargetPath: (m) => `/item/${m.id}`, countCap: 100, actorCap: 3 },
+    // No defaultTargetPath — a linkless, clear-only type; the doc must OMIT targetPath.
+    test_linkless: { category: 'user', delivery: 'queued', dedupKeyPattern: (m) => String(m.k), titlePattern: () => 'Linkless', messagePattern: () => 'linkless', countCap: 1, actorCap: 1 },
   },
   deliveriesCollectionPath: 'notificationDeliveries',
   timestampFromMillis: (ms) => ({ __ts: ms }),
@@ -231,6 +233,24 @@ describe('createDeliveryLedger.materialize', () => {
     expect(active.title).toBe('Title Second');
     expect(active.targetPath).toBe('/item/2');
     expect((active.metadata as { title: string }).title).toBe('Second');
+  });
+
+  it('omits targetPath entirely for a type with no defaultTargetPath (linkless)', async () => {
+    const { db, getCol } = createMockFirestore();
+    const ledger = createDeliveryLedger(db, config);
+    await ledger.enqueue([row({ deliveryId: 'd1', notificationType: 'test_linkless' })]);
+    await ledger.materialize('d1');
+
+    const active = [...getCol('activeUserNotifications').values()][0];
+    // The KEY must be absent (a Firestore write with an `undefined` value throws),
+    // so the consumer's `targetPath ?` check renders a clear-only row.
+    expect(Object.keys(active)).not.toContain('targetPath');
+
+    // An aggregate update on the existing card must not introduce the field either.
+    await ledger.enqueue([row({ deliveryId: 'd2', eventId: 'e2', notificationType: 'test_linkless' })]);
+    await ledger.materialize('d2');
+    const relit = [...getCol('activeUserNotifications').values()][0];
+    expect(Object.keys(relit)).not.toContain('targetPath');
   });
 });
 

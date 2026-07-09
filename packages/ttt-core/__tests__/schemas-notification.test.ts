@@ -91,6 +91,47 @@ describe('NotificationMetadataByType', () => {
     }).success).toBe(true);
 
     expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'threshold_library_reviewed',
+      thresholdItemId: 'ti1',
+      hallItemId: 'hi1',
+      workProjectId: 'wp1',
+      workProjectType: 'Tunes',
+      itemId: 'song-1',
+      decision: 'needs_revision',
+      adminNotes: 'please fix',
+    }).success).toBe(true);
+
+    // adminNotes is nullable — the writer sends null when the reviewer left none.
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'threshold_library_reviewed',
+      thresholdItemId: 'ti1',
+      hallItemId: 'hi1',
+      workProjectId: 'wp1',
+      workProjectType: 'Tales',
+      itemId: 'ch-1',
+      decision: 'needs_revision',
+      adminNotes: null,
+    }).success).toBe(true);
+
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'hall_content_change_request_resolved',
+      changeRequestId: 'cr1',
+      hallItemId: 'hi1',
+      workProjectId: 'wp1',
+      decision: 'denied',
+      resolutionReason: 'title mismatch',
+    }).success).toBe(true);
+
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'hall_content_change_request_resolved',
+      changeRequestId: 'cr1',
+      hallItemId: 'hi1',
+      workProjectId: 'wp1',
+      decision: 'approved',
+      resolutionReason: null,
+    }).success).toBe(true);
+
+    expect(NotificationMetadataByTypeSchema.safeParse({
       type: 'followed_content_published',
       workProjectId: 'wp1',
       workTitle: 'My Work',

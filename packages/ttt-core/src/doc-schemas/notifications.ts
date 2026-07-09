@@ -22,7 +22,9 @@ export const NotificationDocSchema = z.object({
   message: z.string(),
   count: z.number(),
   latestActorIds: z.array(z.string()),
-  targetPath: z.string(),
+  // Absent on linkless types (no defaultTargetPath in the type config) — the
+  // tray renders a clear-only row for those.
+  targetPath: z.string().optional(),
   metadata: z.record(z.string(), z.unknown()),
   seenAt: z.number(),
   // Opaque per-generation token rotated on create / material re-light; the

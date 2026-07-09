@@ -175,10 +175,13 @@ export async function processBatchHelper(
 
               return 'updated';
             } else {
-              // Create new notification
-              const targetPath = typeof typeConfig.defaultTargetPath === 'function'
-                ? typeConfig.defaultTargetPath(group.metadata)
-                : typeConfig.defaultTargetPath;
+              // Create new notification. A type with no defaultTargetPath is
+              // linkless — OMIT the field (Firestore rejects `undefined` values).
+              const targetPath = typeConfig.defaultTargetPath === undefined
+                ? undefined
+                : typeof typeConfig.defaultTargetPath === 'function'
+                  ? typeConfig.defaultTargetPath(group.metadata)
+                  : typeConfig.defaultTargetPath;
               const now = Date.now();
 
               const newDoc = {
@@ -190,7 +193,7 @@ export async function processBatchHelper(
                 message: typeConfig.messagePattern(group.metadata, group.count),
                 count: group.count,
                 latestActorIds: group.actorIds.slice(0, actorCap),
-                targetPath,
+                ...(targetPath === undefined ? {} : { targetPath }),
                 metadata: group.metadata,
                 // Active docs are created unseen so the unread count() predicate matches.
                 seenAt: 0,

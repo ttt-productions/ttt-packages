@@ -20,6 +20,8 @@ import {
   adminDispatchIdSchema,
   hallItemIdSchema,
   thresholdItemIdSchema,
+  changeRequestIdSchema,
+  workProjectTypeSchema,
   notificationFanoutJobIdSchema,
   titleSchema,
 } from './atoms.js';
@@ -41,6 +43,11 @@ export const NOTIFICATION_TYPE_VALUES = [
   'guild_invite',
   'admin_dispatch_reply',
   'threshold_library_submission',
+  // Author feedback for a Threshold Library review decision (only needs_revision is
+  // delivered today — an approval reaches the author via the publish member fanout).
+  'threshold_library_reviewed',
+  // Proposer feedback for a PUBLISHED change-request decision (approve/deny).
+  'hall_content_change_request_resolved',
   'admin_announcement',
   'followed_content_published',
   // chat-edge-rebuild P7 — the two new fanout triggers (NOTIFICATIONS_REDESIGN "Triggers").
@@ -90,6 +97,8 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
   guild_invite: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   admin_dispatch_reply: { category: 'user', delivery: 'realtime', defaultChannels: ['inApp'] },
   threshold_library_submission: { category: 'admin', delivery: 'queued', defaultChannels: ['inApp'] },
+  threshold_library_reviewed: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
+  hall_content_change_request_resolved: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   admin_announcement: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   followed_content_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   member_content_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
@@ -133,6 +142,30 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     thresholdItemId: thresholdItemIdSchema,
     hallItemId: hallItemIdSchema,
     workProjectId: workProjectIdSchema,
+  }).strict(),
+  // Author feedback for a review decision. Mirrors what runReviewThresholdItem
+  // (ttt-prod) sends: only `needs_revision` is delivered today; `adminNotes` is
+  // the reviewer's note, sent as null when the reviewer left none.
+  z.object({
+    type: z.literal('threshold_library_reviewed'),
+    thresholdItemId: thresholdItemIdSchema,
+    hallItemId: hallItemIdSchema,
+    workProjectId: workProjectIdSchema,
+    workProjectType: workProjectTypeSchema,
+    itemId: z.string().min(1),
+    decision: z.literal('needs_revision'),
+    adminNotes: z.string().max(2000).nullable(),
+  }).strict(),
+  // Proposer feedback for a published change-request decision. Mirrors what
+  // runReviewHallContentChangeRequest (ttt-prod) sends: `resolutionReason` is
+  // required on a deny, optional on an approve — null when absent.
+  z.object({
+    type: z.literal('hall_content_change_request_resolved'),
+    changeRequestId: changeRequestIdSchema,
+    hallItemId: hallItemIdSchema,
+    workProjectId: workProjectIdSchema,
+    decision: z.enum(['approved', 'denied']),
+    resolutionReason: z.string().max(2000).nullable(),
   }).strict(),
   z.object({
     type: z.literal('admin_announcement'),

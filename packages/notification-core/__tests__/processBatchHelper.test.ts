@@ -24,6 +24,14 @@ function makeConfig(): NotificationSystemConfig {
         messagePattern: (_, count) => `${count} report(s)`,
         defaultTargetPath: '/admin/reports',
       },
+      // No defaultTargetPath — a linkless, clear-only type; the doc must OMIT targetPath.
+      linkless_note: {
+        category: 'admin',
+        delivery: 'queued',
+        dedupKeyPattern: (meta) => `linkless_${meta.itemId}`,
+        titlePattern: () => 'Linkless',
+        messagePattern: () => 'linkless',
+      },
     },
     pendingCollectionPath: 'pendingNotifications',
   };
@@ -214,6 +222,23 @@ describe('processBatchHelper', () => {
     expect(doc!.seenAt).toBe(0);
     // Identity is stored id-only — no persisted display names.
     expect(doc!.latestActorNames).toBeUndefined();
+  });
+
+  it('omits targetPath entirely for a type with no defaultTargetPath (linkless)', async () => {
+    const pending = makePendingDoc({
+      type: 'linkless_note',
+      actorId: 'user1',
+      metadata: { itemId: 'item1' },
+    });
+    const { db, activeDocs } = createMockDb({ pendingDocs: [pending] });
+
+    await processBatchHelper(db, makeConfig());
+
+    const [doc] = activeDocs('adminNotifications');
+    expect(doc).toBeDefined();
+    // The KEY must be absent (a Firestore write with `undefined` throws), so the
+    // consumer's `targetPath ?` check renders a clear-only row.
+    expect(Object.keys(doc)).not.toContain('targetPath');
   });
 
   it('sets title and message on created notification', async () => {

@@ -48,8 +48,12 @@ export interface NotificationDoc {
   latestActorIds: string[];
 
   // Navigation
-  /** Route path when clicked (e.g. '/admin' or '/entities/abc') */
-  targetPath: string;
+  /**
+   * Route path when clicked (e.g. '/admin' or '/entities/abc'). ABSENT when the
+   * type declares no `defaultTargetPath` — a linkless, informational-only
+   * notification (the consumer renders no "go to" affordance for it).
+   */
+  targetPath?: string;
   /** Type-specific metadata (e.g. { entityId, reason }) */
   metadata: Record<string, unknown>;
 
@@ -138,8 +142,12 @@ export interface NotificationTypeConfig {
   titlePattern: (metadata: Record<string, unknown>) => string;
   /** Function to build the message from metadata + count */
   messagePattern: (metadata: Record<string, unknown>, count: number) => string;
-  /** Default target path, or function to build from metadata */
-  defaultTargetPath: string | ((metadata: Record<string, unknown>) => string);
+  /**
+   * Default target path, or function to build from metadata. OMIT to declare a
+   * linkless type: the written doc carries no `targetPath` and the consumer
+   * renders no "go to" affordance (clear-only rows).
+   */
+  defaultTargetPath?: string | ((metadata: Record<string, unknown>) => string);
   /** Max count value (default 5000) */
   countCap?: number;
   /** Max latestActorIds array length (default 5) */
