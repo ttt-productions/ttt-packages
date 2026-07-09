@@ -134,6 +134,40 @@ describe('createAdminTaskHandler', () => {
     expect(setFn).not.toHaveBeenCalled();
   });
 
+  it('persists report identity fields so admin queues can filter/scope by reported user + item', async () => {
+    const { db, setFn } = makeMockDb();
+    const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
+
+    await handler(
+      {
+        reportedItemType: 'post',
+        totalReports: 1,
+        highestReasonScore: 10,
+        reportedUserId: 'owner-1',
+        reportedItemId: 'post-1',
+        parentItemId: 'thread-1',
+      },
+      'g-identity',
+    );
+    const args = setFn.mock.calls[0][0];
+    expect(args.reportedUserId).toBe('owner-1');
+    expect(args.reportedItemType).toBe('post');
+    expect(args.reportedItemId).toBe('post-1');
+    expect(args.parentItemId).toBe('thread-1');
+  });
+
+  it('coalesces missing report identity fields to null (Admin SDK rejects undefined)', async () => {
+    const { db, setFn } = makeMockDb();
+    const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });
+
+    await handler({ reportedItemType: 'post', totalReports: 1, highestReasonScore: 10 }, 'g-null');
+    const args = setFn.mock.calls[0][0];
+    expect(args.reportedUserId).toBeNull();
+    expect(args.reportedItemId).toBeNull();
+    expect(args.parentItemId).toBeNull();
+    expect(args.reportedItemType).toBe('post'); // itemType present → the string, not null
+  });
+
   it('includes createdAt and lastUpdatedAt timestamps', async () => {
     const { db, setFn } = makeMockDb();
     const handler = createAdminTaskHandler({ config: TEST_CONFIG, db });

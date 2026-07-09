@@ -51,6 +51,16 @@ export function createAdminTaskHandler({
       checkoutDetails: null,
       summary: `${count} report${count > 1 ? 's' : ''} for ${itemDesc}`,
       priority,
+      // Report identity — persisted on the task so admin task surfaces can filter/scope by
+      // the reported user and item WITHOUT re-reading the group (a reported-user filter on an
+      // admin report queue queries `reportedUserId` on the task doc). The caller passes these
+      // in groupData; coalesce to null since the Admin SDK rejects `undefined` and an
+      // unresolved owner (e.g. a chat report whose sender isn't resolved yet) legitimately has
+      // no reportedUserId.
+      reportedUserId: (groupData.reportedUserId as string | undefined) ?? null,
+      reportedItemType: itemType ?? null,
+      reportedItemId: (groupData.reportedItemId as string | undefined) ?? null,
+      parentItemId: (groupData.parentItemId as string | undefined) ?? null,
       createdAt: now,
       lastUpdatedAt: now,
     });
