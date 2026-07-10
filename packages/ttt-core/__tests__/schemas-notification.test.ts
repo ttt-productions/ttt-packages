@@ -46,6 +46,7 @@ describe('NotificationType + catalog', () => {
     expect(NOTIFICATION_TYPE_CATALOG.threshold_library_submission).toMatchObject({ category: 'admin', delivery: 'queued' });
     expect(NOTIFICATION_TYPE_CATALOG.admin_announcement).toMatchObject({ category: 'user', delivery: 'queued' });
     expect(NOTIFICATION_TYPE_CATALOG.report_action_taken).toMatchObject({ category: 'user', delivery: 'queued' });
+    expect(NOTIFICATION_TYPE_CATALOG.content_appeal_reviewed).toMatchObject({ category: 'user', delivery: 'queued' });
   });
 
   it('accepts the three channel values', () => {
@@ -89,6 +90,23 @@ describe('NotificationMetadataByType', () => {
       title: 'Heads up',
       message: 'Maintenance tonight.',
     }).success).toBe(true);
+
+    // Appellant feedback — both decisions valid; anything else rejected.
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'content_appeal_reviewed',
+      appealId: 'ap1',
+      decision: 'approved',
+    }).success).toBe(true);
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'content_appeal_reviewed',
+      appealId: 'ap1',
+      decision: 'denied',
+    }).success).toBe(true);
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'content_appeal_reviewed',
+      appealId: 'ap1',
+      decision: 'pending',
+    }).success).toBe(false);
 
     expect(NotificationMetadataByTypeSchema.safeParse({
       type: 'threshold_library_reviewed',

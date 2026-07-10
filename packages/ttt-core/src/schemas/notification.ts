@@ -32,6 +32,7 @@ const notificationMessageSchema = z.string().min(1).max(2000);
 const reportedItemTypeSchema = z.string().min(1).max(64);
 const reportedItemIdSchema = z.string().min(1).max(128);
 const reportIdSchema = z.string().min(1);
+const appealIdSchema = z.string().min(1);
 const workRealmIdSchema = z.string().min(1);
 
 // ============================================================================
@@ -63,6 +64,13 @@ export const NOTIFICATION_TYPE_VALUES = [
   // Generic copy only — the card must not reveal the reported user, reason, or
   // remedy (a bad-faith reporter must not be able to probe moderation outcomes).
   'report_action_taken',
+  // Appellant feedback for a content-appeal decision (DJ ruling 2026-07-10 —
+  // gap found by the hosted E2E build: reviewContentAppeal decided appeals with
+  // NO channel reporting the outcome to the appellant). Fired on BOTH approve
+  // and deny. It is the appellant's OWN appeal, so unlike report_action_taken
+  // there is no privacy ceiling: the card states the outcome plainly and
+  // targets My Uploads, where the resulting upload state lives.
+  'content_appeal_reviewed',
 ] as const;
 
 export const NotificationTypeSchema = z.enum(NOTIFICATION_TYPE_VALUES);
@@ -104,6 +112,7 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
   member_content_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   followed_craft_skill_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   report_action_taken: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
+  content_appeal_reviewed: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
 };
 
 // ============================================================================
@@ -206,6 +215,14 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('report_action_taken'),
     reportId: reportIdSchema,
+  }).strict(),
+  // Appellant feedback for a content-appeal decision. `appealId` is the
+  // appellant's OWN appeal doc id (the dedup/aggregation key — one card per
+  // appeal, a re-decision coalesces); `decision` drives the card copy.
+  z.object({
+    type: z.literal('content_appeal_reviewed'),
+    appealId: appealIdSchema,
+    decision: z.enum(['approved', 'denied']),
   }).strict(),
 ]);
 export type NotificationMetadataByType = z.infer<typeof NotificationMetadataByTypeSchema>;

@@ -162,6 +162,25 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       actorCap: 1,
       icon: '🛡️',
     },
+    // Appellant feedback for a content-appeal decision (approve/deny). Keyed per
+    // appeal so a re-decision coalesces. It is the appellant's OWN appeal — no
+    // privacy ceiling applies (contrast report_action_taken): the card states the
+    // outcome plainly. Targets My Uploads, where the resulting upload state lives
+    // (an approval re-queues the content for processing; a denial leaves the
+    // rejected state standing).
+    content_appeal_reviewed: {
+      ...catalogEntry('content_appeal_reviewed'),
+      dedupKeyPattern: (meta) => `appealReviewed_${meta.appealId}`,
+      titlePattern: () => 'Appeal decision',
+      messagePattern: (meta) =>
+        meta.decision === 'approved'
+          ? 'Your appeal was approved — your content is being restored.'
+          : 'Your appeal was denied. The moderation decision stands.',
+      defaultTargetPath: '/profile/uploads',
+      countCap: 100,
+      actorCap: 1,
+      icon: '⚖️',
+    },
     // Admin broadcast. LINKLESS — the card IS the content (title + message);
     // there is nowhere meaningful to navigate.
     admin_announcement: {
