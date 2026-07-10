@@ -139,6 +139,11 @@ export const FullUserSchema = z.object({
   // any authenticated user, so other viewers see the badge with no mirror. Not PII.
   // Revoked (→ false) on refund once refunds ship.
   hasPledged: z.boolean().optional(),
+  // Charter honor stamp: written once at registration by /api/register/complete as
+  // byMode(true, false) — true only for accounts created during Charter Season. The
+  // flip publish makes new signups false automatically; no backfill, no date math.
+  // Backend-only-writable, cosmetic, not PII (docs/charter-season/honor-roll-and-badges.md).
+  charterSignupMember: z.boolean().optional(),
   status: z.enum(['active', 'suspended', 'banned']).optional(),
   // Chat-edge-rebuild account-access domain (Contract B / round-10 blocker 1): the
   // single ban/unban ordering version + state the chat `accountAccess` sync events key

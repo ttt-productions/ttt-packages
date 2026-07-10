@@ -2081,6 +2081,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `profilePictureAssetId` | `string \| null` | yes |
 | `artisanCreator` | `number` | yes |
 | `hasPledged` | `boolean` | yes |
+| `charterSignupMember` | `boolean` | yes |
 | `status` | `'active' \| 'suspended' \| 'banned'` | yes |
 | `accountAccessVersion` | `number` | yes |
 | `accountAccessState` | `'active' \| 'suspended' \| 'banned'` | yes |

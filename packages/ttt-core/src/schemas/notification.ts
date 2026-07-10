@@ -24,13 +24,13 @@ import {
   workProjectTypeSchema,
   notificationFanoutJobIdSchema,
   titleSchema,
+  reportGroupIdSchema,
 } from './atoms.js';
 
 // String shape atoms specific to notifications.
 const notificationMessageSchema = z.string().min(1).max(2000);
 const reportedItemTypeSchema = z.string().min(1).max(64);
 const reportedItemIdSchema = z.string().min(1).max(128);
-const reportGroupIdSchema = z.string().min(1);
 const reportIdSchema = z.string().min(1);
 const workRealmIdSchema = z.string().min(1);
 

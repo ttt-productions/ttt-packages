@@ -7,6 +7,8 @@ import {
   commissionListingIdSchema,
   commissionProposalIdSchema,
   adminDispatchIdSchema,
+  reportGroupIdSchema,
+  mediaAssetIdSchema,
 } from './atoms.js';
 
 // Scoped-media grant request for the gateway Worker (design doc: scoped tier =
@@ -53,6 +55,17 @@ export const CreateMediaGrantInputSchema = z.discriminatedUnion('scopeKind', [
   z.object({
     scopeKind: z.literal('adminSupport'),
     adminDispatchId: adminDispatchIdSchema,
+  }).strict(),
+  // Moderation reveal of ONE reported asset, bound to its report group — full or jr
+  // admin only (the callable's explicit secure check, matching getReportedContentDetail's
+  // gate). The callable verifies the asset belongs to the group's derived target (or its
+  // frozen report-time snapshot) before minting; the grant is bound to exactly that asset
+  // id, short TTL. Admins see reported things BECAUSE they were reported — this is never
+  // a browse-any-asset scope.
+  z.object({
+    scopeKind: z.literal('adminReview'),
+    reportGroupId: reportGroupIdSchema,
+    mediaAssetId: mediaAssetIdSchema,
   }).strict(),
 ]);
 export type CreateMediaGrantInput = z.infer<typeof CreateMediaGrantInputSchema>;

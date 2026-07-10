@@ -625,6 +625,105 @@ describe('ChannelClient — error frames', () => {
   });
 });
 
+describe('ChannelClient — membership-pending retry (send vs. membership-sync race)', () => {
+  it('keeps the send pending (no visible error) and re-sends after retryAfterMs, delivered on the late ack', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+
+    client.send({ clientMessageId: 'c-1', text: 'fast first message' });
+    // The DO's member row hasn't synced yet → retryable error frame, socket stays open.
+    sock.serverFrame('error', { code: 'membership-pending', retryAfterMs: 2000 });
+
+    // NOT surfaced as an error — the optimistic bubble stays a normal "Sending…".
+    expect(client.getState().lastErrorCode).toBeNull();
+    expect(client.getState().status).toBe('open');
+    const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(row?.meta?.sendFailed).toBeUndefined();
+
+    // No resend before the delay; one resend (same clientMessageId) after it.
+    expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(1);
+    clock.tick(2000);
+    const sends = sock.sent.filter((f) => f.type === 'send');
+    expect(sends).toHaveLength(2);
+    expect(sends[1].payload).toMatchObject({ clientMessageId: 'c-1', text: 'fast first message' });
+
+    // Membership landed — the ack reconciles the send as delivered.
+    sock.serverFrame('ack', { clientMessageId: 'c-1', seq: 5 });
+    const acked = client.getState().messages.find((m) => m.messageId === '5');
+    expect(acked?.meta?.optimistic).toBe(false);
+    expect(acked?.meta?.sendFailed).toBeUndefined();
+  });
+
+  it('repeated membership-pending frames exhaust the attempt cap into the visible failed state', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'never syncs' });
+
+    // Every resend gets another membership-pending until the attempt cap flips it.
+    for (let i = 0; i < MAX_PENDING_SEND_ATTEMPTS + 1; i++) {
+      sock.serverFrame('error', { code: 'membership-pending', retryAfterMs: 1000 });
+      clock.tick(1000);
+    }
+    const failed = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(failed?.meta?.sendFailed).toBe(true);
+    // The socket was never closed — this is the retryable path end-to-end.
+    expect(client.getState().status).toBe('open');
+  });
+
+  it('a membership-pending frame with no retryAfterMs falls back to the default delay', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hello' });
+    sock.serverFrame('error', { code: 'membership-pending' });
+    expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(1);
+    clock.tick(2000); // MEMBERSHIP_PENDING_DEFAULT_RETRY_MS
+    expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2);
+  });
+});
+
+describe('ChannelClient — terminal close flips pending sends to failed', () => {
+  it('4403 REVOKED flips every un-acked pending send to the visible failed state', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'in flight' });
+    client.send({ clientMessageId: 'c-2', text: 'also in flight' });
+
+    s1.serverClose(CHAT_CLOSE_CODES.REVOKED, 'not authorized');
+
+    expect(client.getState().status).toBe('closed');
+    // 'revoked' stays the surfaced code (failPendingSend's 'send-failed' must not win).
+    expect(client.getState().lastErrorCode).toBe('revoked');
+    const rows = client.getState().messages.filter((m) => m.meta?.optimistic);
+    expect(rows).toHaveLength(2);
+    for (const row of rows) expect(row.meta?.sendFailed).toBe(true);
+  });
+
+  it('reconnect give-up (maxAttempts exhausted) flips pending sends to failed', async () => {
+    // maxAttempts: 1 → the first abnormal close exhausts the budget (onClose
+    // returns null) and the client lands terminally closed with no reconnect.
+    const { client, harness } = makeClient({ reconnect: { maxAttempts: 1 } });
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'doomed' });
+
+    sock.serverClose(1006, 'abnormal');
+
+    expect(client.getState().status).toBe('closed');
+    expect(harness.sockets).toHaveLength(1);
+    const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(row?.meta?.sendFailed).toBe(true);
+  });
+});
+
 describe('ChannelClient — teardown', () => {
   it('closes the socket and clears timers on close()', async () => {
     const { client, harness, clock } = makeClient();

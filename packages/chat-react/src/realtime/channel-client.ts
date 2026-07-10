@@ -102,6 +102,17 @@ const INITIAL: ChannelClientState = {
   lastErrorCode: null,
 };
 
+/**
+ * Retryable error-frame code the channel DO sends when a send arrives BEFORE the
+ * member row has synced through the async backend→worker pipeline (a just-created
+ * invite/channel). The socket stays open; the client re-sends after `retryAfterMs`
+ * through the normal resendPendingSends machinery (same caps). The string is the
+ * wire contract with chat-worker's handleSend — change both together.
+ */
+const MEMBERSHIP_PENDING_CODE = 'membership-pending';
+/** Fallback retry delay when the frame omits/breaks `retryAfterMs`. */
+const MEMBERSHIP_PENDING_DEFAULT_RETRY_MS = 2000;
+
 export class ChannelClient {
   private readonly timers: TransportTimers;
   private readonly controller: ReconnectController;
@@ -121,6 +132,8 @@ export class ChannelClient {
   private typingTimers = new Map<string, ReturnType<TransportTimers['setTimeout']>>();
   private lastTypingSentAt = Number.NEGATIVE_INFINITY;
   private reconnectTimer: ReturnType<TransportTimers['setTimeout']> | null = null;
+  /** Single scheduled re-send for the membership-pending window (never stacks). */
+  private membershipRetryTimer: ReturnType<TransportTimers['setTimeout']> | null = null;
   private closedByUs = false;
   /**
    * Per-seq moderation overlay (the max-revision wins). A `revision` frame writes
@@ -272,6 +285,27 @@ export class ChannelClient {
     this.setState({ messages: next, lastErrorCode: 'send-failed' });
   }
 
+  /** One timer for the membership-pending re-send window; a newer frame resets it. */
+  private scheduleMembershipPendingRetry(delayMs: number): void {
+    if (this.membershipRetryTimer != null) this.timers.clearTimeout(this.membershipRetryTimer);
+    this.membershipRetryTimer = this.timers.setTimeout(() => {
+      this.membershipRetryTimer = null;
+      if (this.closedByUs) return;
+      this.resendPendingSends();
+    }, delayMs);
+  }
+
+  /**
+   * Flip EVERY un-acked pending send to the visible failed state. Called on the
+   * terminal close paths (4403 REVOKED, reconnect give-up) — without this, a send
+   * in flight when the socket dies for good shows "Sending…" until unmount.
+   */
+  private failAllPendingSends(): void {
+    for (const clientMessageId of [...this.pendingSends.keys()]) {
+      this.failPendingSend(clientMessageId);
+    }
+  }
+
   /**
    * Retry a FAILED (or still-pending) send, RE-USING its original clientMessageId
    * so the DO's send-idempotency dedups against any copy that actually landed.
@@ -320,9 +354,13 @@ export class ChannelClient {
       return;
     }
     // 4403 REVOKED: access pulled. Stop — a reconnect would just re-deny at mint.
+    // Terminal: flip every un-acked pending send to the visible failed state first
+    // (failPendingSend sets lastErrorCode 'send-failed'; the 'revoked' set below
+    // wins as the final surfaced code).
     if (code === CHAT_CLOSE_CODES.REVOKED) {
       this.closedByUs = true;
       this.controller.close();
+      this.failAllPendingSends();
       this.setState({ status: 'closed', lastErrorCode: 'revoked' });
       return;
     }
@@ -332,6 +370,9 @@ export class ChannelClient {
   private scheduleReconnect(): void {
     const delay = this.controller.onClose();
     if (delay == null) {
+      // Reconnect give-up: terminal, same as REVOKED — pending sends must not stay
+      // an eternal "Sending…"; flip them to the visible failed/retry state.
+      this.failAllPendingSends();
       this.setState({ status: 'closed' });
       return;
     }
@@ -362,8 +403,20 @@ export class ChannelClient {
         return this.applyTyping((payload as { uid: string }).uid);
       case 'snapshot':
         return this.applyChannelSnapshot(payload as unknown as WireChannelSnapshot);
-      case 'error':
-        return this.setState({ lastErrorCode: String((payload as { code: string }).code ?? 'error') });
+      case 'error': {
+        const code = String((payload as { code?: unknown }).code ?? 'error');
+        // Retryable: membership row not yet synced to the DO. Keep the send pending
+        // (no visible error — the optimistic bubble stays "Sending…") and re-send
+        // after the server-suggested delay via the normal resend machinery, whose
+        // attempt/age caps flip it to the visible failed state if the window never
+        // closes. Everything else surfaces as before.
+        if (code === MEMBERSHIP_PENDING_CODE) {
+          const raw = (payload as { retryAfterMs?: unknown }).retryAfterMs;
+          const delay = typeof raw === 'number' && raw > 0 ? raw : MEMBERSHIP_PENDING_DEFAULT_RETRY_MS;
+          return this.scheduleMembershipPendingRetry(delay);
+        }
+        return this.setState({ lastErrorCode: code });
+      }
       case 'revision':
         return this.applyRevisionFrame(payload as { messageSeq?: number; kind?: RevisionKind; messageRevision?: number });
       default:
@@ -690,6 +743,10 @@ export class ChannelClient {
     if (this.reconnectTimer != null) {
       this.timers.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+    }
+    if (this.membershipRetryTimer != null) {
+      this.timers.clearTimeout(this.membershipRetryTimer);
+      this.membershipRetryTimer = null;
     }
     if (this.socket) {
       this.socket.close(1000, 'client teardown');
