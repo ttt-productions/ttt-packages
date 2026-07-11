@@ -1,7 +1,9 @@
 import type * as React from "react";
 import type { MediaDiagnosticAdapter, AssetStatusHint } from "./recovery.js";
+import type { AudioVisualizerMode } from "./visualizer.js";
 
 export type { MediaDiagnosticAdapter, AssetStatusHint, DiagnosisResult, RecoveryState } from "./recovery.js";
+export type { AudioVisualizerMode } from "./visualizer.js";
 
 export type MediaViewerType = "image" | "video" | "audio" | "other";
 export type FallbackMode = "none" | "link";
@@ -103,6 +105,20 @@ export type AudioViewerProps = BaseMediaProps & MediaPlaybackProps & {
   loop?: boolean;
   preload?: "auto" | "metadata" | "none";
   onLoadChange?: (isLoading: boolean) => void;
+
+  // ---------------------------------------------------------------------------
+  // Custom player chrome (additive, optional). `chrome: "player"` replaces the
+  // native controls strip with the package's owned control surface (play/seek/
+  // time/volume) plus the visualizer panel. Default "native" — unchanged
+  // behavior. The remaining fields only apply with `chrome: "player"`.
+  // ---------------------------------------------------------------------------
+  chrome?: "native" | "player";
+  /** Initial visualizer mode ("line" oscilloscope | "bars" EQ). A persisted user choice wins. */
+  visualizerMode?: AudioVisualizerMode;
+  /** localStorage key base for the minimize/mode prefs. `null` disables persistence. */
+  persistKey?: string | null;
+  /** App-injected action buttons rendered at the end of the player control row. */
+  extraActions?: React.ReactNode;
 };
 
 export type MediaPreviewProps = {
@@ -135,6 +151,15 @@ export type MediaPreviewProps = {
   startAtSeconds?: MediaPlaybackProps["startAtSeconds"];
   endOverlay?: MediaPlaybackProps["endOverlay"];
   playbackControlsRef?: MediaPlaybackProps["playbackControlsRef"];
+
+  // -------------------------------------------------------------------------
+  // Custom audio player chrome (additive, optional) — forwarded to AudioViewer
+  // for `type="audio"`, ignored for every other type. Default native controls.
+  // -------------------------------------------------------------------------
+  audioChrome?: "native" | "player";
+  audioVisualizerMode?: AudioVisualizerMode;
+  audioPersistKey?: string | null;
+  audioExtraActions?: React.ReactNode;
 
   fallbackMode?: FallbackMode;
   fallbackLabel?: string;

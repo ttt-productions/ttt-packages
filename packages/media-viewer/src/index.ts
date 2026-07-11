@@ -1,4 +1,5 @@
 export type {
+  AudioVisualizerMode,
   MediaViewerType,
   FallbackMode,
   BaseMediaProps,
@@ -22,3 +23,6 @@ export {
   backoffForAttempt,
   withinBudget,
 } from "./recovery.js";
+
+export { startWaveformLoop, drawIdleFrame } from "./visualizer.js";
+export type { StartWaveformLoopOptions } from "./visualizer.js";

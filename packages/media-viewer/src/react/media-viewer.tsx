@@ -137,6 +137,10 @@ export function MediaViewer(props: MediaPreviewProps) {
     startAtSeconds,
     endOverlay,
     playbackControlsRef,
+    audioChrome,
+    audioVisualizerMode,
+    audioPersistKey,
+    audioExtraActions,
     fallbackMode = "link",
     fallbackLabel,
     filename,
@@ -316,6 +320,10 @@ export function MediaViewer(props: MediaPreviewProps) {
           autoPlay={autoPlay}
           loop={loop}
           preload={preload}
+          chrome={audioChrome}
+          visualizerMode={audioVisualizerMode}
+          persistKey={audioPersistKey}
+          extraActions={audioExtraActions}
           onLoad={handleLoad}
           onLoadChange={onLoadChange}
           onError={handleError}

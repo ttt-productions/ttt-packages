@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Video, Mic, X, RotateCcw, Check } from "lucide-react";
+import { startWaveformLoop } from "@ttt-productions/media-viewer";
 import { ensureFileWithContentType } from "../../lib/infer-content-type.js";
 import {
   Button,
@@ -81,7 +82,7 @@ export function RecordDialog({
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioAnalyserRef = useRef<AnalyserNode | null>(null);
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-  const waveformRafRef = useRef<number | null>(null);
+  const waveformStopRef = useRef<(() => void) | null>(null);
   const waveformCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Reset all transient state whenever the dialog opens.
@@ -132,10 +133,8 @@ export function RecordDialog({
   }, [stopElapsedTimer]);
 
   const stopWaveform = useCallback(() => {
-    if (waveformRafRef.current !== null) {
-      cancelAnimationFrame(waveformRafRef.current);
-      waveformRafRef.current = null;
-    }
+    waveformStopRef.current?.();
+    waveformStopRef.current = null;
     try {
       audioSourceRef.current?.disconnect();
     } catch {}
@@ -166,47 +165,14 @@ export function RecordDialog({
         audioSourceRef.current = source;
         audioAnalyserRef.current = analyser;
 
-        const bufferLength = analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-
-        const draw = () => {
-          const canvas = waveformCanvasRef.current;
-          const currAnalyser = audioAnalyserRef.current;
-          if (!canvas || !currAnalyser) {
-            waveformRafRef.current = null;
-            return;
-          }
-          currAnalyser.getByteTimeDomainData(dataArray);
-
-          const canvasCtx = canvas.getContext("2d");
-          if (!canvasCtx) {
-            waveformRafRef.current = null;
-            return;
-          }
-
-          const { width, height } = canvas;
-          canvasCtx.clearRect(0, 0, width, height);
-
-          canvasCtx.lineWidth = 2;
-          canvasCtx.strokeStyle = "currentColor";
-          canvasCtx.beginPath();
-
-          const sliceWidth = width / bufferLength;
-          let x = 0;
-          for (let i = 0; i < bufferLength; i++) {
-            const v = dataArray[i] / 128.0; // 0..2 centered on 1.0
-            const y = (v * height) / 2;
-            if (i === 0) canvasCtx.moveTo(x, y);
-            else canvasCtx.lineTo(x, y);
-            x += sliceWidth;
-          }
-          canvasCtx.lineTo(width, height / 2);
-          canvasCtx.stroke();
-
-          waveformRafRef.current = requestAnimationFrame(draw);
-        };
-
-        waveformRafRef.current = requestAnimationFrame(draw);
+        // Draw loop is the shared media-viewer engine (the same one the
+        // playback AudioPlayer uses) in oscilloscope mode — one waveform
+        // implementation across recording and playback.
+        waveformStopRef.current = startWaveformLoop({
+          analyser,
+          getCanvas: () => waveformCanvasRef.current,
+          mode: "line",
+        });
       } catch {
         // Waveform is best-effort; silent failures are acceptable.
       }

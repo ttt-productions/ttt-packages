@@ -140,6 +140,27 @@ Wire `onMediaError` / `onMediaLoad` to the element's `onError` / `onLoad` (or `o
 
 ---
 
+## Custom audio player (AudioPlayer / chrome="player")
+
+The package owns a custom audio control surface that replaces the browser's native `controls` strip: play/pause, seek, time readout, mute/volume, and a visualizer panel (oscilloscope `line` or frequency `bars`) with minimize and mode toggles — both persisted to localStorage. Opt in per call site; the default everywhere remains native controls.
+
+```tsx
+import { AudioPlayer } from "@ttt-productions/media-viewer/react";
+
+<AudioPlayer
+  url={audioUrl}
+  visualizerMode="bars"            // initial mode; a persisted user choice wins
+  persistKey="mv-audio-player"     // localStorage key base; null disables persistence
+  extraActions={<InkItButton />}   // app-injected buttons at the end of the control row
+/>
+```
+
+Equivalent forms: `<AudioViewer chrome="player" …/>`, or through the router as `<MediaPreview type="audio" audioChrome="player" audioVisualizerMode=… audioPersistKey=… audioExtraActions=… />`. All the Playback API props (below) work unchanged.
+
+Mechanics: the Web Audio graph (`createMediaElementSource` → `AnalyserNode` → destination) is created lazily on the first `play` event (autoplay policies suspend fresh `AudioContext`s; a user-gesture play resumes them) and is best-effort — if it fails, playback still works and only the visualizer goes dark. The element source is once-per-element and keyed to the element instance. The draw loop runs only while playing. Requires same-origin (or CORS-clean) audio, or the analyser reads silence.
+
+The shared render engine `startWaveformLoop({ analyser, getCanvas, mode })` (root export, no React) is the ONE waveform implementation — file-input's record dialog consumes it for the live-mic waveform. Chrome styling uses `.mv-player*` semantic classes (see styles) with token fallbacks.
+
 ## Playback API (VideoViewer / AudioViewer)
 
 Additive, fully optional playback surface on `VideoViewer` and `AudioViewer`, forwarded by `MediaPreview` / `MediaViewer` for `type="video"` / `type="audio"`. Every field is optional; when all are absent the viewers behave exactly as before. It derives entirely from native media-element events — it adds **no** IntersectionObserver (Rule 22). Types are exported from the package root: `MediaPlaybackProps`, `MediaPlaybackControls`.
