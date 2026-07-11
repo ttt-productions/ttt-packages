@@ -12,6 +12,10 @@ export const FileOriginSchema = z.enum([
   'hallLibrary-cover-square',
   'hallLibrary-cover-poster',
   'hallLibrary-cover-cinematic',
+  // Realm cover art (square). Optional while a realm is a draft; REQUIRED to
+  // release the realm — enforced in the realm release callable, not at founding
+  // (realms are founded by a work; the image never blocks work creation).
+  'realm-cover',
   'chapter-photo',
   'tune-track-photo',
   'tune-track-audio',

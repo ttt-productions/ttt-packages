@@ -20,6 +20,7 @@ export const fileOriginRowLabel: Record<FileOrigin, string> = {
   'hallLibrary-cover-square': 'Work cover',
   'hallLibrary-cover-poster': 'Work cover',
   'hallLibrary-cover-cinematic': 'Work cover',
+  'realm-cover': 'Realm cover',
   'chapter-photo': 'Chapter photo',
   'tune-track-photo': 'Track photo',
   'tune-track-audio': 'Track audio',

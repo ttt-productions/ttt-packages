@@ -137,6 +137,15 @@ export const HallLibraryCoverSquareTargetInfoSchema = HallLibraryCoverTargetInfo
 export const HallLibraryCoverPosterTargetInfoSchema = HallLibraryCoverTargetInfoSchema;
 export const HallLibraryCoverCinematicTargetInfoSchema = HallLibraryCoverTargetInfoSchema;
 
+// realm-cover: the Realm's square cover art. The processor writes
+// `realmCoverAssetId` on workRealms/{workRealmId}. Steward-only (the upload
+// callable authorizes against the realm's workStewardUid).
+export const RealmCoverTargetInfoSchema = z
+  .object({
+    workRealmId: z.string().min(1),
+  })
+  .strict();
+
 // ───────────────────────────────────────────────────────────────────
 // SUB-ITEM target info — one shape per item type, NOT per media kind.
 // chapter-photo uses ChapterPhotoTargetInfoSchema.
@@ -233,6 +242,7 @@ export type AuditionEntryTargetInfo = z.infer<typeof AuditionEntryTargetInfoSche
 export type HallLibraryCoverSquareTargetInfo = z.infer<typeof HallLibraryCoverSquareTargetInfoSchema>;
 export type HallLibraryCoverPosterTargetInfo = z.infer<typeof HallLibraryCoverPosterTargetInfoSchema>;
 export type HallLibraryCoverCinematicTargetInfo = z.infer<typeof HallLibraryCoverCinematicTargetInfoSchema>;
+export type RealmCoverTargetInfo = z.infer<typeof RealmCoverTargetInfoSchema>;
 export type ChapterPhotoTargetInfo = z.infer<typeof ChapterPhotoTargetInfoSchema>;
 export type TuneTrackPhotoTargetInfo = z.infer<typeof TuneTrackPhotoTargetInfoSchema>;
 export type TuneTrackAudioTargetInfo = z.infer<typeof TuneTrackAudioTargetInfoSchema>;
@@ -263,6 +273,7 @@ export type TargetInfoFor<O extends FileOrigin> =
   : O extends 'hallLibrary-cover-square' ? HallLibraryCoverSquareTargetInfo
   : O extends 'hallLibrary-cover-poster' ? HallLibraryCoverPosterTargetInfo
   : O extends 'hallLibrary-cover-cinematic' ? HallLibraryCoverCinematicTargetInfo
+  : O extends 'realm-cover' ? RealmCoverTargetInfo
   : O extends 'chapter-photo' ? ChapterPhotoTargetInfo
   : O extends 'tune-track-photo' ? TuneTrackPhotoTargetInfo
   : O extends 'tune-track-audio' ? TuneTrackAudioTargetInfo
@@ -293,6 +304,7 @@ export function parseTargetInfo<O extends FileOrigin>(
     case 'hallLibrary-cover-square': return HallLibraryCoverSquareTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'hallLibrary-cover-poster': return HallLibraryCoverPosterTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'hallLibrary-cover-cinematic': return HallLibraryCoverCinematicTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'realm-cover': return RealmCoverTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'chapter-photo': return ChapterPhotoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'tune-track-photo': return TuneTrackPhotoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'tune-track-audio': return TuneTrackAudioTargetInfoSchema.parse(raw) as TargetInfoFor<O>;

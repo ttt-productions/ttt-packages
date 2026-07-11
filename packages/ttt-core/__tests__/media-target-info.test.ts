@@ -369,3 +369,15 @@ describe('parseTargetInfo dispatch', () => {
 
 
 
+
+describe('RealmCoverTargetInfoSchema (realm-cover)', () => {
+  it('accepts a valid workRealmId and dispatches via parseTargetInfo', () => {
+    expect(parseTargetInfo('realm-cover', { workRealmId: 'realm_1' })).toEqual({ workRealmId: 'realm_1' });
+  });
+  it('rejects a missing workRealmId', () => {
+    expect(() => parseTargetInfo('realm-cover', {})).toThrow();
+  });
+  it('rejects unknown fields (strict)', () => {
+    expect(() => parseTargetInfo('realm-cover', { workRealmId: 'realm_1', extra: true })).toThrow();
+  });
+});

@@ -185,6 +185,11 @@ export const WorkRealmSchema = z.object({
   workingTitle: z.string(),
   workingTitle_lowercase: z.string(),
   workingDescription: z.string(),
+  // Square realm cover art (the 'realm-cover' upload origin; processor-written).
+  // Optional while the realm is a DRAFT; releasing the realm REQUIRES it — the
+  // realm release callable enforces presence (never required at founding, so a
+  // work creation is never blocked on realm art).
+  realmCoverAssetId: z.string().optional(),
   workStewardUid: z.string(),
   foundingArtisanUid: z.string(),
   foundingWorkProjectId: z.string(),

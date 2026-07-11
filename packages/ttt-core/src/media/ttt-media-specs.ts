@@ -163,6 +163,38 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
+  // Realm cover art — same square recipe as the Work square cover. One 'full'
+  // variant; draft realms may lack a cover, release requires one.
+  'realm-cover': {
+    kind: 'image',
+    accept: ACCEPT_IMAGE_ONLY,
+    maxBytes: IMAGE_RAW_BYTES,
+    imageCrop: {
+      aspectRatio: 1,
+      outputWidth: 600,
+      outputHeight: 600,
+      format: 'jpeg',
+      quality: 85,
+      aspectRatioDisplay: '1:1',
+    },
+    client: {
+      allowPick: true,
+      allowCapturePhoto: true,
+      allowRecordVideo: false,
+      allowRecordAudio: false,
+    },
+    processing: {
+      image: {
+        kind: 'image',
+        image: {
+          variants: [
+            { key: 'full', crop: { width: 600, height: 600, gravity: 'center' }, format: 'jpeg', quality: 85 },
+          ],
+        },
+      },
+    },
+  },
+
   'hallLibrary-cover-poster': {
     kind: 'image',
     accept: ACCEPT_IMAGE_ONLY,
