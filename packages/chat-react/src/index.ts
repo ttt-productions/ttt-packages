@@ -30,6 +30,19 @@ export {
   useChatAttachmentUrlResolver,
 } from "./context/ChatAttachmentUrlContext.js";
 
+// Attachment media-component injection (optional) — the app hands chat its own
+// display-path wrapper (recovery adapter, custom audio player chrome) so chat
+// media rides the same pipeline as every other surface; default stays the
+// package MediaViewer.
+export type {
+  ChatAttachmentMediaComponent,
+  ChatAttachmentMediaProviderProps,
+} from "./context/ChatAttachmentMediaContext.js";
+export {
+  ChatAttachmentMediaProvider,
+  useChatAttachmentMediaComponent,
+} from "./context/ChatAttachmentMediaContext.js";
+
 // Name-resolver context.
 export type { ChatNameResolverProviderProps } from "./context/ChatNameResolverContext.js";
 export {

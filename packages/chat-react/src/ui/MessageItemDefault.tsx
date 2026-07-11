@@ -9,6 +9,7 @@ import { FileText, Loader2, AlertTriangle } from "lucide-react";
 import { MessageActions } from "./menus.js";
 import { useResolvedSenderName } from "../context/ChatNameResolverContext.js";
 import { useChatAttachmentUrlResolver } from "../context/ChatAttachmentUrlContext.js";
+import { useChatAttachmentMediaComponent } from "../context/ChatAttachmentMediaContext.js";
 
 // ============================================
 // Attachment rendering
@@ -18,6 +19,10 @@ function AttachmentView({ att }: { att: ChatAttachment }) {
   // Display URL is built at render time by the app-injected resolver from
   // att.mediaAssetId — attachments never store URLs (protected-gateway model).
   const resolveAttachmentUrl = useChatAttachmentUrlResolver();
+  // App-injected media component (optional) — lets chat attachments ride the
+  // app's ONE display path (recovery adapter, custom player chrome). Falls
+  // back to the package's own MediaViewer when no provider is present.
+  const Media = useChatAttachmentMediaComponent() ?? MediaViewer;
   // In-flight placeholder — bytes uploaded, processing/moderation pending. No
   // `mediaAssetId` yet. Rendered only to the sender (other participants can't
   // read a pending doc — Firestore rules scope it until `status === 'ready'`).
@@ -46,13 +51,13 @@ function AttachmentView({ att }: { att: ChatAttachment }) {
   const url = resolveAttachmentUrl(att);
   if (!url) return null;
   if (att.type === "image") {
-    return <MediaViewer type="image" url={url} alt={att.name} className="chat-attachment-media" />;
+    return <Media type="image" url={url} alt={att.name} className="chat-attachment-media" />;
   }
   if (att.type === "video") {
-    return <MediaViewer type="video" url={url} controls className="chat-attachment-media" />;
+    return <Media type="video" url={url} controls className="chat-attachment-media" />;
   }
   if (att.type === "audio") {
-    return <MediaViewer type="audio" url={url} controls className="chat-attachment-media" />;
+    return <Media type="audio" url={url} controls className="chat-attachment-media" />;
   }
   // text/markdown — download link
   return (
