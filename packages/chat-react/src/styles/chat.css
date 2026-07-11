@@ -8,6 +8,14 @@
 .chat-bubble {
   padding: 0.75rem;
   border-radius: 0.5rem;
+  /* An unbroken long token (a URL, an id, "xxxx…") must WRAP, never widen the
+     bubble past its cap — a right-anchored (own) bubble that overflows spills
+     its start off-screen LEFT, making the message unreadable. min-width: 0
+     lets the bubble shrink below the token's intrinsic width inside its flex
+     column; overflow-wrap breaks the token at the edge. */
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .chat-bubble--mine {
