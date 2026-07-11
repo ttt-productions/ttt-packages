@@ -77,3 +77,20 @@ describe('DomainEventSchema discriminated union', () => {
 
 
 
+
+describe('workRealm.coverUpdated (realm cover publication)', () => {
+  it('accepts a valid event through the union', () => {
+    const result = DomainEventSchema.parse({ type: 'workRealm.coverUpdated', ids: { workRealmId: 'realm_1' } });
+    expect(result.type).toBe('workRealm.coverUpdated');
+  });
+
+  it('rejects a missing workRealmId', () => {
+    expect(() => DomainEventSchema.parse({ type: 'workRealm.coverUpdated', ids: {} })).toThrow();
+  });
+
+  it('rejects unknown id fields (strict)', () => {
+    expect(() =>
+      DomainEventSchema.parse({ type: 'workRealm.coverUpdated', ids: { workRealmId: 'realm_1', extra: 'x' } }),
+    ).toThrow();
+  });
+});

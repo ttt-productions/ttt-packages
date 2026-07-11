@@ -203,6 +203,9 @@ export const MediaPublicationKindSchema = z.enum([
   'squarePostMedia',
   'workAsset',
   'hallCover',
+  // Realm cover — Firestore-owner adapter writes `realmCoverAssetId` onto
+  // workRealms/{workRealmId} (the 'realm-cover' upload origin).
+  'realmCover',
   'workContentMedia', // sub-item media (tale chapter / tune track / television episode) — attaches the *AssetId field on the workContent doc; scoped to the work project
   'auditionMedia',
   'commissionListingMedia',

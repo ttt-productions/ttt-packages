@@ -29,6 +29,7 @@ import {
   CommissionProposalSavedEventSchema,
   CommissionProposalRemovedEventSchema,
   HallLibraryCoverUpdatedEventSchema,
+  WorkRealmCoverUpdatedEventSchema,
   HallLibrarySubItemUpdatedEventSchema,
   ThresholdLibrarySubmittedEventSchema,
 } from "./domain-events-work.js";
@@ -79,6 +80,7 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   CommissionProposalSubmittedEventSchema,
   WorkProjectUpdatedEventSchema,
   HallLibraryCoverUpdatedEventSchema,
+  WorkRealmCoverUpdatedEventSchema,
   HallLibrarySubItemUpdatedEventSchema,
   ModerationViolationCreatedEventSchema,
   ChatAttachmentFinalizedEventSchema,

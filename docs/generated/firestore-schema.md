@@ -1168,7 +1168,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `authorityVersion` | `number` |  |
 | `payloadHash` | `string` |  |
 | `authorityPayload` | `{ schemaVersion, assetId, authorityVersion, operationId, payloadHash, servingStatus, accessTier, ownerType, ownerId, scope, variants, updatedAtMs }` |  |
-| `publicationKind` | `'profilePicture' \| 'squarePostMedia' \| 'workAsset' \| 'hallCover' \| 'workContentMedia' \| 'auditionMedia' \| 'commissionListingMedia' \| 'commissionProposalMedia' \| 'craftSkillMedia' \| 'chatAttachment' \| 'adminSupportAttachment'` |  |
+| `publicationKind` | `'profilePicture' \| 'squarePostMedia' \| 'workAsset' \| 'hallCover' \| 'realmCover' \| 'workContentMedia' \| 'auditionMedia' \| 'commissionListingMedia' \| 'commissionProposalMedia' \| 'craftSkillMedia' \| 'chatAttachment' \| 'adminSupportAttachment'` |  |
 | `publicationArgs` | `unknown` |  |
 | `status` | `'pending' \| 'authorityApplied' \| 'complete' \| 'deadLetter'` |  |
 | `attemptCount` | `number` |  |

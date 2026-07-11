@@ -229,6 +229,19 @@ export const HallLibraryCoverUpdatedEventSchema = z
   })
   .strict();
 
+// Realm cover published — the 'realm-cover' upload origin's publication adapter
+// wrote `realmCoverAssetId` onto workRealms/{workRealmId}.
+export const WorkRealmCoverUpdatedEventSchema = z
+  .object({
+    type: z.literal('workRealm.coverUpdated'),
+    ids: z
+      .object({
+        workRealmId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
 export const HallLibrarySubItemUpdatedEventSchema = z
   .object({
     type: z.literal('hallLibrary.subItemUpdated'),
