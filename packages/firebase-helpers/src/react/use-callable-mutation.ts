@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { httpsCallable, type Functions, type HttpsCallable } from "firebase/functions";
+import { type Functions } from "firebase/functions";
+import { callCallable, type CallCallableCallbacks } from "../client/call-callable.js";
 
-export interface CallableMutationCallbacks {
-  /** Called when a call throws. The hook still re-throws after this fires. */
-  onError?: (error: unknown, ctx: { functionName: string; requestData: unknown }) => void;
-  /** Optional structured error reporter (Sentry, etc.). Generic — no toast semantics. */
-  captureException?: (error: unknown, ctx: Record<string, unknown>) => void;
-}
+/** Alias of the shared callback contract — kept for existing consumers' imports. */
+export type CallableMutationCallbacks = CallCallableCallbacks;
 
 export interface UseCallableMutationOptions extends CallableMutationCallbacks {
   /**
@@ -56,16 +53,12 @@ export function useCallableMutation(
       }
       setIsLoading(true);
       try {
-        const fn: HttpsCallable<TRequest, TResponse> = httpsCallable(
-          functions,
-          functionName,
-        );
-        const result = await fn(data as TRequest);
-        return result.data as TResponse;
-      } catch (error) {
-        captureRef.current?.(error, { functionName, requestData: data });
-        onErrorRef.current?.(error, { functionName, requestData: data });
-        throw error;
+        // Delegate to the ONE shared invocation primitive (owns the
+        // undefined-strip + error-callback contract — see client/call-callable.ts).
+        return await callCallable<TRequest, TResponse>(functions, functionName, data, {
+          onError: (error, ctx) => onErrorRef.current?.(error, ctx),
+          captureException: (error, ctx) => captureRef.current?.(error, ctx),
+        });
       } finally {
         setIsLoading(false);
       }
