@@ -1709,6 +1709,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | --- | --- | --- |
 | `workRealmId` | `string` |  |
 | `workingTitle` | `string` |  |
+| `retired` | `boolean` | yes |
 
 ## `safetyEvidenceJobs/{jobId}`
 

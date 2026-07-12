@@ -141,7 +141,12 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
           ? `Your requested changes were approved.${reason}`
           : `Your requested changes were denied.${reason}`;
       },
-      defaultTargetPath: (meta) => `/work-projects/${meta.workProjectId}`,
+      // Realm-grain resolutions (R1) deep-link to the realm page — the request's status
+      // hint lives there, not on the founding Work the request carries as workProjectId.
+      defaultTargetPath: (meta) =>
+        typeof meta.workRealmId === 'string' && meta.workRealmId.length > 0
+          ? `/work-realms/${meta.workRealmId}`
+          : `/work-projects/${meta.workProjectId}`,
       countCap: 100,
       actorCap: 1,
       icon: '📝',

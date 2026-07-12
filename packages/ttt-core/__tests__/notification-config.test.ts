@@ -55,6 +55,15 @@ describe('TTT_NOTIFICATION_CONFIG', () => {
     expect(fn({ adminDispatchId: 'd1' })).toBe('/messages');
   });
 
+  it('hall_content_change_request_resolved routes the realm grain to the realm page, hall grains to the Work', () => {
+    const target = TTT_NOTIFICATION_CONFIG.types.hall_content_change_request_resolved.defaultTargetPath;
+    expect(typeof target).toBe('function');
+    const fn = target as (meta: Record<string, unknown>) => string;
+    expect(fn({ workProjectId: 'wp1', workRealmId: 'realm1' })).toBe('/work-realms/realm1');
+    expect(fn({ workProjectId: 'wp1', workRealmId: null })).toBe('/work-projects/wp1');
+    expect(fn({ workProjectId: 'wp1' })).toBe('/work-projects/wp1');
+  });
+
   it('category collection paths come from COLLECTIONS', () => {
     expect(TTT_NOTIFICATION_CONFIG.categories.user.activePath).toBe(
       COLLECTIONS.ACTIVE_USER_NOTIFICATIONS,

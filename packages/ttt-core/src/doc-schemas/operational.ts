@@ -17,6 +17,12 @@ export type ReservedDisplayName = z.infer<typeof ReservedDisplayNameSchema>;
 export const ReservedRealmNameSchema = z.object({
   workRealmId: z.string(),
   workingTitle: z.string(),
+  // RETIRED name (DJ ruling 2026-07-12, option B): set true when a moderation
+  // force-retitle removes this name — the name is dead platform-wide FOREVER; no
+  // realm (including the original owner) can ever claim it again, and no rename
+  // path releases the reservation. Ordinary renames release un-retired
+  // reservations normally. Backend-only-writable.
+  retired: z.boolean().optional(),
 });
 export type ReservedRealmName = z.infer<typeof ReservedRealmNameSchema>;
 
