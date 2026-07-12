@@ -19,6 +19,8 @@ export type {
 export {
   BACKOFF_SCHEDULE_MS,
   MAX_RECOVERY_DURATION_MS,
+  LOAD_WATCHDOG_MS,
+  PHASE_MAX_WAIT_MS,
   applyJitter,
   backoffForAttempt,
   withinBudget,

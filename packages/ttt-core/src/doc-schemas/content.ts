@@ -121,11 +121,14 @@ export const ThresholdItemSchema = z.object({
   adminNotes: z.string().optional(),
   reviewedAt: z.number().optional(),
   reviewedBy: z.string().optional(),
-  // Parody / real-people legal flag (legal-convo [BUILD]). When a Work depicts real people, an admin
-  // flags it at review and sets the required satire/fiction disclaimer applied at approval — the one
-  // sanctioned exception to the no-credits/no-intros rule. Backend/admin-written.
-  hasRealPeople: z.boolean().optional(),
-  requiredDisclaimer: z.string().optional(),
+  // Parody / real-people AUTHOR ATTESTATION (R3, 2026-07-12). The submitting artisan
+  // attests at threshold SUBMIT time that this work depicts real people (parody /
+  // satire / commentary); stored with the submission and displayed READ-ONLY to the
+  // reviewer. Admins never set or edit it — a reviewer who believes the flag is
+  // needed and missing sends the item back needs-revision. The disclaimer shown on
+  // published items is the ONE standard platform message
+  // (REAL_PEOPLE_DISCLAIMER_MESSAGE) — there is no free-text disclaimer anywhere.
+  hasRealPeople: z.boolean(),
 });
 export type ThresholdItem = z.infer<typeof ThresholdItemSchema>;
 
@@ -133,7 +136,9 @@ export type ThresholdItem = z.infer<typeof ThresholdItemSchema>;
 
 /** The published hall-content surfaces whose TEXT fields a change request (and the
  *  moderation text-clear remedy) can target. Detail surfaces live on the hall parent;
- *  sub-item surfaces on the published chapter/track/episode doc. */
+ *  sub-item surfaces on the published chapter/track/episode doc; the `workRealm`
+ *  surface targets the single `workRealms/{id}` doc (the realm grain of the one
+ *  text-change pipeline — R1, 2026-07-12). */
 export const HallContentTextSurfaceSchema = z.enum([
   'tale',
   'tune',
@@ -141,6 +146,7 @@ export const HallContentTextSurfaceSchema = z.enum([
   'chapter',
   'tuneTrack',
   'televisionEpisode',
+  'workRealm',
 ]);
 export type HallContentTextSurface = z.infer<typeof HallContentTextSurfaceSchema>;
 
@@ -154,13 +160,22 @@ export type HallContentTextSurface = z.infer<typeof HallContentTextSurfaceSchema
 export const HallContentChangeRequestSchema = z.object({
   changeRequestId: z.string(),
   requestKind: z.literal('text'),
-  // One-open-per-target enforcement/query key: `${hallItemId}_${subItemId ?? 'detail'}`.
+  // One-open-per-target enforcement/query key. Hall grains:
+  // `${hallItemId}_${subItemId ?? 'detail'}`; realm grain: `realm_${workRealmId}`.
   targetKey: z.string(),
-  hallItemId: z.string(),
+  // null ⇒ the workRealm grain (no hall item involved).
+  hallItemId: z.string().nullable(),
+  // Always set. On the workRealm grain this is the realm's foundingWorkProjectId
+  // (server-derived) so the owner list read, rules, and admin-task fields keep
+  // one uniform key across all grains.
   workProjectId: z.string(),
-  workProjectType: z.enum(WORK_PROJECT_TYPE_KEYS),
+  // null ⇒ the workRealm grain (a realm has no work-project type).
+  workProjectType: z.enum(WORK_PROJECT_TYPE_KEYS).nullable(),
   surface: HallContentTextSurfaceSchema,
-  // null ⇒ the hall parent DETAIL; set ⇒ a chapter/track/episode sub-item.
+  // Set ⇒ the workRealm grain; null on the hall grains.
+  workRealmId: z.string().nullable(),
+  // null ⇒ the hall parent DETAIL (or the workRealm grain); set ⇒ a
+  // chapter/track/episode sub-item.
   subItemId: z.string().nullable(),
   proposerUid: z.string(),
   // Raw doc field name → proposed new text. Allowlist + per-field caps enforced by the
@@ -201,10 +216,11 @@ export const PublishedHallItemSchema = z.object({
   // is the operator's reason (shown on the steward's edit surface). Backend-only-writable.
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
-  // Parody / real-people legal disclaimer (carried from the approved ThresholdItem) — shown
-  // prominently on the published Work. Backend-written at approval.
+  // Parody / real-people flag (carried from the approved ThresholdItem's AUTHOR
+  // attestation — R3, 2026-07-12). When true, display surfaces render the ONE
+  // standard platform message (REAL_PEOPLE_DISCLAIMER_MESSAGE) prominently on the
+  // published Work — never a stored free-text disclaimer. Backend-written at publish.
   hasRealPeople: z.boolean().optional(),
-  requiredDisclaimer: z.string().optional(),
 });
 export type PublishedHallItem = z.infer<typeof PublishedHallItemSchema>;
 

@@ -195,6 +195,13 @@ export const WorkRealmSchema = z.object({
   foundingWorkProjectId: z.string(),
   createdOn: z.number(),
   updatedOn: z.number(),
+  // MONOTONIC publish lock (R1 ruling, 2026-07-12): set true by the hall publish
+  // core the first time any work in this realm publishes, and never unset — even
+  // if that work later unpublishes (the realm name already went public). While
+  // absent/false, realm info is direct-edit; once true, realm text changes route
+  // exclusively through the change-request pipeline (surface 'workRealm').
+  // Backend-only-writable.
+  hasEverPublishedWork: z.boolean().optional(),
   // Moderation "require retitle" remedy (see FullWorkProject above) — admin
   // replaces an abusive realm title/description with a placeholder + sets this so
   // the steward must re-enter compliant text. Distinct from `realmHidden` (the

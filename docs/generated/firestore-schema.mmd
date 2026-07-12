@@ -587,11 +587,11 @@ erDiagram
     field workProjectId
     field workProjectType
     field surface
+    field workRealmId
     field subItemId
     field proposerUid
     field proposedFields
     field status
-    field createdAt
   }
   hallItems {
     field hallItemId
@@ -1588,5 +1588,6 @@ erDiagram
   userProfiles ||--o{ workRealms : "foundingArtisanUid"
   userProfiles ||--o{ workRealms : "workStewardUid"
   workRealms ||--o{ allWorkProjects : "workRealmId"
+  workRealms ||--o{ hallContentChangeRequests : "workRealmId"
   workRealms ||--o{ publicWorkProjects : "workRealmId"
   workRealms ||--o{ reservedRealmNames : "workRealmId"

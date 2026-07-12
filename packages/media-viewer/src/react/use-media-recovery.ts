@@ -9,6 +9,7 @@ import type {
 import {
   backoffForAttempt,
   withinBudget,
+  PHASE_MAX_WAIT_MS,
 } from "../recovery.js";
 
 // ---------------------------------------------------------------------------
@@ -220,6 +221,24 @@ export function useMediaRecovery({
       onRemountRef.current?.();
     }, remaining);
   }, [isElementVisible, isDocVisible, recoveryState]);
+
+  // -------------------------------------------------------------------------
+  // Bounded processing/finalizing: these hint-driven phases were unbounded —
+  // a doc that never reaches a terminal status left the overlay spinning
+  // forever. After PHASE_MAX_WAIT_MS they resolve to max-wait-fallback
+  // (manual Retry), the same terminal the retry budget uses.
+  // -------------------------------------------------------------------------
+  React.useEffect(() => {
+    if (recoveryState.phase !== "processing" && recoveryState.phase !== "finalizing") {
+      return;
+    }
+    const timer = setTimeout(() => {
+      const fallbackState: RecoveryState = { phase: "max-wait-fallback" };
+      setRecoveryState(fallbackState);
+      if (stableUrl) broadcastForUrl(stableUrl, fallbackState);
+    }, PHASE_MAX_WAIT_MS);
+    return () => clearTimeout(timer);
+  }, [recoveryState.phase, stableUrl]);
 
   // -------------------------------------------------------------------------
   // Visibility snapshot ref (kept current so timer callbacks read fresh values)

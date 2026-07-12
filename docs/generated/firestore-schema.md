@@ -1072,10 +1072,11 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `changeRequestId` | `string` |  |
 | `requestKind` | `"text"` |  |
 | `targetKey` | `string` |  |
-| `hallItemId` | `string` |  |
+| `hallItemId` | `string \| null` |  |
 | `workProjectId` | `string` |  |
-| `workProjectType` | `'Tales' \| 'Tunes' \| 'Television'` |  |
-| `surface` | `'tale' \| 'tune' \| 'television' \| 'chapter' \| 'tuneTrack' \| 'televisionEpisode'` |  |
+| `workProjectType` | `'Tales' \| 'Tunes' \| 'Television' \| null` |  |
+| `surface` | `'tale' \| 'tune' \| 'television' \| 'chapter' \| 'tuneTrack' \| 'televisionEpisode' \| 'workRealm'` |  |
+| `workRealmId` | `string \| null` |  |
 | `subItemId` | `string \| null` |  |
 | `proposerUid` | `string` |  |
 | `proposedFields` | `Record<string, string>` |  |
@@ -1109,7 +1110,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `moderationClearedFields` | `string[]` | yes |
 | `moderationClearedReason` | `string` | yes |
 | `hasRealPeople` | `boolean` | yes |
-| `requiredDisclaimer` | `string` | yes |
 
 ## `hallItems/{hallItemId}/tales/{itemId}`
 
@@ -2068,8 +2068,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `adminNotes` | `string` | yes |
 | `reviewedAt` | `number` | yes |
 | `reviewedBy` | `string` | yes |
-| `hasRealPeople` | `boolean` | yes |
-| `requiredDisclaimer` | `string` | yes |
+| `hasRealPeople` | `boolean` |  |
 
 ## `userProfiles/{userId}`
 
@@ -2188,6 +2187,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `foundingWorkProjectId` | `string` |  |
 | `createdOn` | `number` |  |
 | `updatedOn` | `number` |  |
+| `hasEverPublishedWork` | `boolean` | yes |
 | `moderationRetitleRequired` | `boolean` | yes |
 | `moderationRetitleReason` | `string` | yes |
 | `moderationClearedFields` | `string[]` | yes |

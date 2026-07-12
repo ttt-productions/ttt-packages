@@ -77,6 +77,13 @@ export type BaseMediaProps = {
   onLoad?: () => void;
   onError?: () => void;
   fallback?: React.ReactNode;
+  /**
+   * Load-watchdog budget in ms (default LOAD_WATCHDOG_MS). A visible, loading
+   * element that produces neither a load/metadata nor an error event within
+   * this budget synthesizes an error so the asset resolves to a bounded
+   * terminal state instead of an eternal skeleton. `0` disables.
+   */
+  loadTimeoutMs?: number;
 };
 
 export type ImageViewerProps = BaseMediaProps & {
@@ -183,6 +190,9 @@ export type MediaPreviewProps = {
    * finalizing → spinner, failed/rejected → hard error immediately).
    */
   assetStatusHint?: AssetStatusHint;
+
+  /** Load-watchdog budget forwarded to the underlying viewer — see BaseMediaProps. */
+  loadTimeoutMs?: number;
 };
 
 /** Back-compat alias */

@@ -3,6 +3,7 @@ import { useInView } from "react-intersection-observer";
 import { Skeleton } from "@ttt-productions/ui-core/react";
 import type { VideoViewerProps } from "../types.js";
 import { useMediaPlayback } from "./use-media-playback.js";
+import { useLoadWatchdog } from "./use-load-watchdog.js";
 
 export function VideoViewer(props: VideoViewerProps) {
   const {
@@ -24,6 +25,7 @@ export function VideoViewer(props: VideoViewerProps) {
     onLoad,
     onError,
     fallback,
+    loadTimeoutMs,
     onEnded,
     onProgressSample,
     startAtSeconds,
@@ -36,6 +38,7 @@ export function VideoViewer(props: VideoViewerProps) {
 
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
+  const [hasMetadata, setHasMetadata] = React.useState(false);
   const [shouldLoad, setShouldLoad] = React.useState(priority || !lazy);
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
@@ -73,6 +76,7 @@ export function VideoViewer(props: VideoViewerProps) {
         video.load();
       }
       setIsLoaded(false);
+      setHasMetadata(false);
       setShouldLoad(false);
     }
   }, [inView, shouldLoad, unloadOnExit, priority, lazy]);
@@ -80,6 +84,7 @@ export function VideoViewer(props: VideoViewerProps) {
   React.useEffect(() => {
     setHasError(false);
     setIsLoaded(false);
+    setHasMetadata(false);
   }, [url]);
 
   const handleLoadedData = React.useCallback(() => {
@@ -91,6 +96,22 @@ export function VideoViewer(props: VideoViewerProps) {
     setHasError(true);
     onError?.();
   }, [onError]);
+
+  // Watchdog settles on METADATA, not loadeddata — a healthy preload="metadata"
+  // list video may not fire loadeddata until play, and must not false-positive.
+  const handleLoadedMetadata = React.useCallback(
+    (e: React.SyntheticEvent<HTMLVideoElement>) => {
+      setHasMetadata(true);
+      playbackHandlers.onLoadedMetadata(e);
+    },
+    [playbackHandlers]
+  );
+
+  useLoadWatchdog(
+    shouldLoad && !isLoaded && !hasMetadata && !hasError,
+    loadTimeoutMs,
+    handleError
+  );
 
   // Autoplay on >=50% visible / pause when below (same single observer above)
   React.useEffect(() => {
@@ -173,7 +194,7 @@ export function VideoViewer(props: VideoViewerProps) {
           poster={posterUrl}
           onLoadedData={handleLoadedData}
           onError={handleError}
-          onLoadedMetadata={playbackHandlers.onLoadedMetadata}
+          onLoadedMetadata={handleLoadedMetadata}
           onTimeUpdate={playbackHandlers.onTimeUpdate}
           onPlay={playbackHandlers.onPlay}
           onPause={playbackHandlers.onPause}

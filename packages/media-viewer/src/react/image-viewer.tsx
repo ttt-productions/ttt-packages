@@ -2,6 +2,7 @@ import * as React from "react";
 import { useInView } from "react-intersection-observer";
 import { Skeleton } from "@ttt-productions/ui-core/react";
 import type { ImageViewerProps } from "../types.js";
+import { useLoadWatchdog } from "./use-load-watchdog.js";
 
 export function ImageViewer(props: ImageViewerProps) {
   const {
@@ -19,6 +20,7 @@ export function ImageViewer(props: ImageViewerProps) {
     onLoad,
     onError,
     fallback,
+    loadTimeoutMs,
   } = props;
 
   const [isLoaded, setIsLoaded] = React.useState(false);
@@ -59,6 +61,10 @@ export function ImageViewer(props: ImageViewerProps) {
     setHasError(true);
     onError?.();
   }, [onError]);
+
+  // Bounded load: a visible image that fires neither load nor error within the
+  // budget is treated as errored so it resolves instead of skeleton-ing forever.
+  useLoadWatchdog(shouldLoad && !isLoaded && !hasError, loadTimeoutMs, handleError);
 
   // iOS: prevent multi-touch zoom gestures on the image
   React.useEffect(() => {

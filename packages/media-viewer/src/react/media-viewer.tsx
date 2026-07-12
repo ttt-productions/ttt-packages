@@ -148,6 +148,7 @@ export function MediaViewer(props: MediaPreviewProps) {
     name,
     recoveryAdapter,
     assetStatusHint,
+    loadTimeoutMs,
   } = props;
 
   const [hasError, setHasError] = React.useState(false);
@@ -270,6 +271,7 @@ export function MediaViewer(props: MediaPreviewProps) {
           skeleton={skeleton}
           unloadOnExit={unloadOnExit}
           isCircular={isCircular}
+          loadTimeoutMs={loadTimeoutMs}
           onLoad={handleLoad}
           onError={handleError}
           fallback={<ErrorFallback isCircular={isCircular} />}
@@ -295,6 +297,7 @@ export function MediaViewer(props: MediaPreviewProps) {
           posterUrl={posterUrl}
           preload={preload}
           autoPlayOnVisible={autoPlayOnVisible}
+          loadTimeoutMs={loadTimeoutMs}
           onLoad={handleLoad}
           onError={handleError}
           onEnded={onEnded}
@@ -324,6 +327,7 @@ export function MediaViewer(props: MediaPreviewProps) {
           visualizerMode={audioVisualizerMode}
           persistKey={audioPersistKey}
           extraActions={audioExtraActions}
+          loadTimeoutMs={loadTimeoutMs}
           onLoad={handleLoad}
           onLoadChange={onLoadChange}
           onError={handleError}

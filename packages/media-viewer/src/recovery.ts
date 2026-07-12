@@ -83,6 +83,25 @@ export const BACKOFF_SCHEDULE_MS = [2000, 5000, 10000, 20000, 30000, 30000] as c
 /** Maximum total time from first failure before giving up, in ms. */
 export const MAX_RECOVERY_DURATION_MS = 120_000;
 
+/**
+ * Load watchdog: maximum time a visible, loading media element may sit with
+ * NEITHER a load nor an error event before the viewer synthesizes an error
+ * and enters the bounded recovery path. Guarantees every viewer resolves to
+ * a terminal state — an asset that hangs (blocked, dead connection, gateway
+ * that never responds) can otherwise show a skeleton forever, since the
+ * recovery machine only engages on an error event. Overridable per-viewer
+ * via the `loadTimeoutMs` prop; `0` disables the watchdog.
+ */
+export const LOAD_WATCHDOG_MS = 20_000;
+
+/**
+ * Maximum time the `processing` / `finalizing` overlay phases may hold before
+ * transitioning to `max-wait-fallback` (manual Retry). These phases are driven
+ * by an app status hint and were previously unbounded — a doc that never
+ * reaches a terminal status left the viewer spinning forever.
+ */
+export const PHASE_MAX_WAIT_MS = 180_000;
+
 /** Jitter factor (±20%). */
 const JITTER_FACTOR = 0.2;
 

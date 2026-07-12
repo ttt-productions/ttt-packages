@@ -52,10 +52,15 @@ export const ReviewThresholdItemInputSchema = z.object({
   decision: z.enum(['approved', 'needs_revision']),
   adminNotes: z.string().max(2000).nullable().optional(),
   // Reviewer checklist confirmations, recorded on the review (mirrors `teachesSomething`).
-  // Optional here so a `needs_revision` decision still validates; the callable REQUIRES both
+  // Optional here so a `needs_revision` decision still validates; the callable REQUIRES all
   // true on an `approved` decision. First two: no-begging-for-bouquets, no-credits-in-content.
   confirmedNoBegging: z.boolean().optional(),
   confirmedNoCredits: z.boolean().optional(),
+  // Reviewer verified the AUTHOR's real-people/parody attestation sits in the correct
+  // position for the content they reviewed — checked if the work depicts real people,
+  // unchecked if it does not (R3, DJ 2026-07-12). A wrong position is a needs-revision
+  // send-back, never an admin edit.
+  confirmedRealPeopleAttestation: z.boolean().optional(),
 }).strict();
 export type ReviewThresholdItemInput = z.infer<typeof ReviewThresholdItemInputSchema>;
 
@@ -63,6 +68,12 @@ export const SubmitForThresholdLibraryReviewInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   workProjectType: workProjectTypeSchema,
   selectedItemIds: z.array(z.string().min(1)).min(1).max(MAX_HALL_LIBRARY_SUBMIT_BATCH),
+  // AUTHOR attestation (R3, 2026-07-12): the submitting artisan attests this work
+  // depicts real people (parody / satire / commentary). Stored on the threshold
+  // item as `hasRealPeople`; the reviewer sees it READ-ONLY. When true, published
+  // surfaces render the ONE standard platform disclaimer
+  // (REAL_PEOPLE_DISCLAIMER_MESSAGE) — no free-text disclaimer input exists.
+  depictsRealPeople: z.boolean(),
 }).strict();
 export type SubmitForThresholdLibraryReviewInput = z.infer<typeof SubmitForThresholdLibraryReviewInputSchema>;
 
@@ -74,17 +85,55 @@ export const WithdrawFromThresholdLibraryReviewInputSchema = z.object({
 export type WithdrawFromThresholdLibraryReviewInput = z.infer<typeof WithdrawFromThresholdLibraryReviewInputSchema>;
 
 // Published change request (text-only at launch): the member proposes new values for TEXT
-// fields on a PUBLISHED hall item (the hall parent detail when `subItemId` is absent, else
-// the chapter/track/episode sub-item). Field names are validated by the runner against the
-// per-surface HALL_CONTENT_TEXT_FIELDS allowlist + HALL_CONTENT_TEXT_FIELD_MAX caps; the
-// schema-level 100000 cap is the largest field cap anywhere (chapter content).
+// fields on a PUBLISHED surface — one pipeline, three grains (R1, 2026-07-12):
+//  - hall grains: `hallItemId` set (+ `workProjectType`); the hall parent detail when
+//    `subItemId` is absent, else the chapter/track/episode sub-item.
+//  - realm grain: `workRealmId` set; targets the `workRealms/{id}` doc once the realm
+//    counts as published. `workProjectType`/`subItemId` do not apply.
+// Exactly one of `hallItemId` / `workRealmId` must be set. Field names are validated by
+// the runner against the per-surface HALL_CONTENT_TEXT_FIELDS allowlist +
+// HALL_CONTENT_TEXT_FIELD_MAX caps; the schema-level 100000 cap is the largest field cap
+// anywhere (chapter content).
 export const SubmitHallContentChangeRequestInputSchema = z.object({
-  hallItemId: hallItemIdSchema,
-  workProjectType: workProjectTypeSchema,
+  hallItemId: hallItemIdSchema.nullish(),
+  workProjectType: workProjectTypeSchema.nullish(),
+  workRealmId: z.string().min(1).nullish(),
   subItemId: z.string().min(1).nullish(),
   proposedFields: z.record(z.string().min(1).max(64), z.string().trim().min(1).max(100000))
     .refine((fields) => Object.keys(fields).length > 0, { message: 'Propose at least one field change.' }),
-}).strict();
+}).strict().superRefine((val, ctx) => {
+  const hasHallItem = typeof val.hallItemId === 'string' && val.hallItemId.length > 0;
+  const hasRealm = typeof val.workRealmId === 'string' && val.workRealmId.length > 0;
+  if (hasHallItem === hasRealm) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Provide exactly one of hallItemId or workRealmId.',
+      path: [hasRealm ? 'workRealmId' : 'hallItemId'],
+    });
+    return;
+  }
+  if (hasHallItem && (val.workProjectType === null || val.workProjectType === undefined)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'workProjectType is required for a hall-item change request.',
+      path: ['workProjectType'],
+    });
+  }
+  if (hasRealm && (val.workProjectType !== null && val.workProjectType !== undefined)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'workProjectType does not apply to a realm change request.',
+      path: ['workProjectType'],
+    });
+  }
+  if (hasRealm && typeof val.subItemId === 'string' && val.subItemId.length > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'subItemId does not apply to a realm change request.',
+      path: ['subItemId'],
+    });
+  }
+});
 export type SubmitHallContentChangeRequestInput = z.infer<typeof SubmitHallContentChangeRequestInputSchema>;
 
 // Admin decision on a published change request. `resolutionReason` is REQUIRED on a deny

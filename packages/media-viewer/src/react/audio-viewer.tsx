@@ -4,6 +4,7 @@ import { Skeleton } from "@ttt-productions/ui-core/react";
 import type { AudioViewerProps } from "../types.js";
 import { useMediaPlayback } from "./use-media-playback.js";
 import { AudioPlayerChrome } from "./audio-player-chrome.js";
+import { useLoadWatchdog } from "./use-load-watchdog.js";
 
 export function AudioViewer(props: AudioViewerProps) {
   const {
@@ -21,6 +22,7 @@ export function AudioViewer(props: AudioViewerProps) {
     onLoadChange,
     onError,
     fallback,
+    loadTimeoutMs,
     onEnded,
     onProgressSample,
     startAtSeconds,
@@ -39,6 +41,7 @@ export function AudioViewer(props: AudioViewerProps) {
 
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
+  const [hasMetadata, setHasMetadata] = React.useState(false);
   const [shouldLoad, setShouldLoad] = React.useState(priority || !lazy);
   const audioRef = React.useRef<HTMLAudioElement>(null);
 
@@ -79,6 +82,7 @@ export function AudioViewer(props: AudioViewerProps) {
   React.useEffect(() => {
     setHasError(false);
     setIsLoaded(false);
+    setHasMetadata(false);
   }, [url]);
 
   const handleLoadedData = React.useCallback(() => {
@@ -95,6 +99,22 @@ export function AudioViewer(props: AudioViewerProps) {
     setIsLoaded(true); // Stop skeleton on error
     onError?.();
   }, [onError]);
+
+  // Watchdog settles on METADATA — preload="metadata" audio may not fire
+  // loadeddata/canplay until play, and must not false-positive.
+  const handleLoadedMetadata = React.useCallback(
+    (e: React.SyntheticEvent<HTMLAudioElement>) => {
+      setHasMetadata(true);
+      playbackHandlers.onLoadedMetadata(e);
+    },
+    [playbackHandlers]
+  );
+
+  useLoadWatchdog(
+    shouldLoad && !isLoaded && !hasMetadata && !hasError,
+    loadTimeoutMs,
+    handleError
+  );
 
   // Tap-to-toggle when controls are off
   const togglePlay = React.useCallback(() => {
@@ -159,7 +179,7 @@ export function AudioViewer(props: AudioViewerProps) {
             onLoadedData={handleLoadedData}
             onCanPlay={handleCanPlay}
             onError={handleError}
-            onLoadedMetadata={playbackHandlers.onLoadedMetadata}
+            onLoadedMetadata={handleLoadedMetadata}
             onTimeUpdate={playbackHandlers.onTimeUpdate}
             onPlay={playbackHandlers.onPlay}
             onPause={playbackHandlers.onPause}

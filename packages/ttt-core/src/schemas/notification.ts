@@ -167,11 +167,14 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
   }).strict(),
   // Proposer feedback for a published change-request decision. Mirrors what
   // runReviewHallContentChangeRequest (ttt-prod) sends: `resolutionReason` is
-  // required on a deny, optional on an approve — null when absent.
+  // required on a deny, optional on an approve — null when absent. The realm
+  // grain (R1) sends `workRealmId` with `hallItemId` null; hall grains the
+  // reverse.
   z.object({
     type: z.literal('hall_content_change_request_resolved'),
     changeRequestId: changeRequestIdSchema,
-    hallItemId: hallItemIdSchema,
+    hallItemId: hallItemIdSchema.nullable(),
+    workRealmId: z.string().min(1).nullish(),
     workProjectId: workProjectIdSchema,
     decision: z.enum(['approved', 'denied']),
     resolutionReason: z.string().max(2000).nullable(),

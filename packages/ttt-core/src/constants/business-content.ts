@@ -37,15 +37,47 @@ export const HALL_CONTENT_TEXT_FIELDS = {
   chapter: ['title', 'content'],
   tuneTrack: ['title', 'description'],
   televisionEpisode: ['title', 'description'],
+  // Realm grain (R1, 2026-07-12): targets the `workRealms/{id}` doc directly.
+  workRealm: ['workingTitle', 'workingDescription'],
 } as const satisfies Record<string, readonly string[]>;
 
 /** Per-field max lengths for proposed hall-content text (matches the authoring input
- *  schemas: titleSchema 200 / description 5000 / chapter content 100000). */
+ *  schemas: titleSchema 200 / description 5000 / chapter content 100000; realm fields
+ *  match UpdateWorkRealmDetailsInputSchema: workingTitle 200 / workingDescription 2000). */
 export const HALL_CONTENT_TEXT_FIELD_MAX = {
   title: 200,
   description: 5000,
   content: 100000,
+  workingTitle: 200,
+  workingDescription: 2000,
 } as const satisfies Record<string, number>;
+
+// --- Real-people / parody disclaimer (R3, 2026-07-12) ---
+
+/**
+ * The ONE standard platform disclaimer rendered on every published work whose
+ * author attested it depicts real people (parody / satire / commentary). Two
+ * layers, always shown together (DJ, 2026-07-12): the themed playbill HEADER
+ * on top, the plain legal MESSAGE underneath. There is no free-text disclaimer
+ * anywhere — these constants are the only wording, so a wording change is a
+ * single edit here (display surfaces and any backend consumer read these; the
+ * text is never persisted on docs). The MESSAGE deliberately never ADMITS the
+ * work depicts real people — it hedges ("even those based on real people",
+ * the standard film-boilerplate move) so the disclaimer never hands over the
+ * depiction element of a claim. Legal wording pending counsel confirmation
+ * (tracked in docs/ttt-prod-legal/).
+ */
+export const REAL_PEOPLE_DISCLAIMER_HEADER =
+  'A Notice from the Management: the faces may be familiar, but the players are pure ' +
+  'invention — parody and satire, in the grand old tradition of the stage.';
+
+export const REAL_PEOPLE_DISCLAIMER_MESSAGE =
+  'All characters, statements, and events in this work, even those based on real people, ' +
+  'are entirely fictional and are presented as parody, satire, or commentary. Any voices, ' +
+  'likenesses, or portrayals of real people are impersonated or fictionalized, and nothing ' +
+  'in this work should be understood as a statement of fact about, or as speech by, any ' +
+  'real person. This work is not created by, affiliated with, sponsored by, or endorsed by ' +
+  'any real person portrayed or referenced in it.';
 
 // --- Hall library per-user viewing-state doc (hall-viewing-experience Area 2, ruled 2026-07-04) ---
 
