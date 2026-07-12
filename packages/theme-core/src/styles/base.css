@@ -1,6 +1,11 @@
 html, body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  /* overflow-wrap is INHERITED: one rule here makes every text node in the system break
+     long unbroken runs (URLs, hashtag piles, seed xxxx strings) instead of blowing out of
+     its container. Flex/grid children additionally need min-w-0 where a row lets them
+     expand past their track — that part is per-component; this is the universal net. */
+  overflow-wrap: break-word;
 }
 
 * {
