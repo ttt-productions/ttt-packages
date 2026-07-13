@@ -5,7 +5,15 @@ import {
   guildInviteIdSchema,
   adminDispatchIdSchema,
 } from './atoms.js';
-import { MAX_CHAT_MESSAGE_LENGTH } from '../constants/chat.js';
+import {
+  MAX_CHAT_MESSAGE_LENGTH,
+  MAX_GUILD_CHAT_CHANNEL_NAME_LENGTH,
+  MAX_GUILD_CHAT_CHANNEL_DESCRIPTION_LENGTH,
+} from '../constants/chat.js';
+import {
+  MAX_ADMIN_DISPATCH_SUBJECT_LENGTH,
+  MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH,
+} from '../constants/business.js';
 import {
   ReplyToSchema,
 } from '@ttt-productions/chat-schemas';
@@ -28,8 +36,8 @@ export type DeleteGuildChatChannelInput = z.infer<typeof DeleteGuildChatChannelI
 
 export const CreateGuildChatChannelInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  channelName: z.string().min(1).max(100),
-  description: z.string().max(500).optional(),
+  channelName: z.string().min(1).max(MAX_GUILD_CHAT_CHANNEL_NAME_LENGTH),
+  description: z.string().max(MAX_GUILD_CHAT_CHANNEL_DESCRIPTION_LENGTH).optional(),
   requiredGuildStandings: z.array(z.string().min(1).max(64)).max(20),
   allowedUserIds: z.array(z.string().min(1).max(128)).max(500),
 }).strict();
@@ -47,9 +55,11 @@ export const SendGuildChatMessageInputSchema = z.object({
 }).strict();
 export type SendGuildChatMessageInput = z.infer<typeof SendGuildChatMessageInputSchema>;
 
+// Subject/initial-text share the admin-dispatch caps (the "contact admin" composer
+// enforces them) — the old MAX_CHAT_MESSAGE_LENGTH bound let a 4000-char SUBJECT through.
 export const StartAdminSupportThreadInputSchema = z.object({
-  subject: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
-  initialMessage: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
+  subject: z.string().min(1).max(MAX_ADMIN_DISPATCH_SUBJECT_LENGTH),
+  initialMessage: z.string().min(1).max(MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH),
 }).strict();
 export type StartAdminSupportThreadInput = z.infer<typeof StartAdminSupportThreadInputSchema>;
 
@@ -59,8 +69,8 @@ export type StartAdminSupportThreadInput = z.infer<typeof StartAdminSupportThrea
 // server-validated against the workProject before it is stored.
 export const StartWorkProjectAdminSupportThreadInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  subject: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
-  initialMessage: z.string().min(1).max(MAX_CHAT_MESSAGE_LENGTH),
+  subject: z.string().min(1).max(MAX_ADMIN_DISPATCH_SUBJECT_LENGTH),
+  initialMessage: z.string().min(1).max(MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH),
   contextRef: AdminDispatchContextRefSchema.optional(),
 }).strict();
 export type StartWorkProjectAdminSupportThreadInput = z.infer<typeof StartWorkProjectAdminSupportThreadInputSchema>;
@@ -69,8 +79,8 @@ export type StartWorkProjectAdminSupportThreadInput = z.infer<typeof StartWorkPr
 // lands unread for the work's active guildmates, creates NO admin task, uncapped).
 export const CreateAdminDispatchToWorkProjectInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  subject: z.string().trim().min(1).max(200),
-  message: z.string().trim().min(1).max(5000),
+  subject: z.string().trim().min(1).max(MAX_ADMIN_DISPATCH_SUBJECT_LENGTH),
+  message: z.string().trim().min(1).max(MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH),
   contextRef: AdminDispatchContextRefSchema.optional(),
 }).strict();
 export type CreateAdminDispatchToWorkProjectInput = z.infer<typeof CreateAdminDispatchToWorkProjectInputSchema>;
@@ -90,8 +100,8 @@ export type ChatGrantInput = z.infer<typeof ChatGrantInputSchema>;
 export const UpdateGuildChatChannelInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   guildChatChannelId: guildChatChannelIdSchema,
-  channelName: z.string().min(1).max(100).optional(),
-  description: z.string().max(500).optional(),
+  channelName: z.string().min(1).max(MAX_GUILD_CHAT_CHANNEL_NAME_LENGTH).optional(),
+  description: z.string().max(MAX_GUILD_CHAT_CHANNEL_DESCRIPTION_LENGTH).optional(),
   requiredGuildStandings: z.array(z.string().min(1).max(64)).max(20).optional(),
   allowedUserIds: z.array(z.string().min(1).max(128)).max(500).optional(),
 }).strict();

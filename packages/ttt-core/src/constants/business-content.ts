@@ -1,6 +1,12 @@
 // Content-surface business-rule constants — commissions, auditions, the social
 // feed, and messaging.
-import { MAX_WORK_PROJECT_TITLE_LENGTH } from "./business-work-project.js";
+import {
+  MAX_WORK_PROJECT_TITLE_LENGTH,
+  MAX_WORK_PROJECT_DESCRIPTION_LENGTH,
+  MAX_CHAPTER_CONTENT_LENGTH,
+  MAX_WORK_REALM_TITLE_LENGTH,
+  MAX_WORK_REALM_DESCRIPTION_LENGTH,
+} from "./business-work-project.js";
 import { ACTIVE_LIMITS } from './app-mode.js';
 
 /** The maximum character length for a SquareStreetz post created on behalf of a workProject. */
@@ -41,16 +47,21 @@ export const HALL_CONTENT_TEXT_FIELDS = {
   workRealm: ['workingTitle', 'workingDescription'],
 } as const satisfies Record<string, readonly string[]>;
 
-/** Per-field max lengths for proposed hall-content text (matches the authoring input
- *  schemas: titleSchema 200 / description 5000 / chapter content 100000; realm fields
- *  match UpdateWorkRealmDetailsInputSchema: workingTitle 200 / workingDescription 2000). */
+/** Per-field max lengths for proposed hall-content text. DERIVED from the owning
+ *  constants — never independent numbers — so the change-request pipeline can never
+ *  drift from the authoring limits again (the pre-2026-07-13 copy carried its own
+ *  200/5000/100000 set while authoring enforced 150/300/2500). */
 export const HALL_CONTENT_TEXT_FIELD_MAX = {
-  title: 200,
-  description: 5000,
-  content: 100000,
-  workingTitle: 200,
-  workingDescription: 2000,
+  title: MAX_WORK_PROJECT_TITLE_LENGTH,
+  description: MAX_WORK_PROJECT_DESCRIPTION_LENGTH,
+  content: MAX_CHAPTER_CONTENT_LENGTH,
+  workingTitle: MAX_WORK_REALM_TITLE_LENGTH,
+  workingDescription: MAX_WORK_REALM_DESCRIPTION_LENGTH,
 } as const satisfies Record<string, number>;
+
+/** Admin decision reason on a published change request (required on a deny; shown to
+ *  the member). One owner for the review callable schema AND the admin work-view input. */
+export const MAX_HALL_CHANGE_REQUEST_REASON_LENGTH = 2000;
 
 // --- Real-people / parody disclaimer (R3, 2026-07-12) ---
 

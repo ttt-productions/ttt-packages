@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { userIdSchema } from './atoms.js';
-import { USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH, USERNAME_REGEX } from '../constants/business.js';
+import {
+  USERNAME_MIN_LENGTH,
+  USERNAME_MAX_LENGTH,
+  USERNAME_REGEX,
+  MAX_ARTISAN_LOCATION_LENGTH,
+  MAX_INTERNAL_REASON_LENGTH,
+} from '../constants/business.js';
 
 export const AcceptSquareStreetzAgreementsInputSchema = z.object({}).strict();
 export type AcceptSquareStreetzAgreementsInput = z.infer<typeof AcceptSquareStreetzAgreementsInputSchema>;
@@ -43,8 +49,8 @@ export type MarkWaitingForNewsApprovalInput = z.infer<typeof MarkWaitingForNewsA
 // can be opened by jurisdiction as each region's laws clear. The callable records it ONLY for
 // adult accounts (never a minor's location).
 export const MarkNonUsArtisanInterestInputSchema = z.object({
-  country: z.string().min(1).max(100),
-  region: z.string().max(100).optional(),
+  country: z.string().min(1).max(MAX_ARTISAN_LOCATION_LENGTH),
+  region: z.string().max(MAX_ARTISAN_LOCATION_LENGTH).optional(),
 }).strict();
 export type MarkNonUsArtisanInterestInput = z.infer<typeof MarkNonUsArtisanInterestInputSchema>;
 
@@ -70,7 +76,7 @@ export const SetUserStatusInputSchema = z.object({
   // Required by the callable when status is 'suspended' or 'banned' (shown to the
   // user in their restricted view and recorded on the audit event). Optional here
   // so reinstating to 'active' can omit it; the callable enforces presence.
-  reason: z.string().trim().min(1).max(2000).optional(),
+  reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH).optional(),
 }).strict();
 export type SetUserStatusInput = z.infer<typeof SetUserStatusInputSchema>;
 
@@ -79,7 +85,7 @@ export type SetUserStatusInput = z.infer<typeof SetUserStatusInputSchema>;
 export const ForceDisplayNameResetInputSchema = z.object({
   userId: userIdSchema,
   // Optional admin note recorded on the audit event.
-  reason: z.string().trim().min(1).max(2000).optional(),
+  reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH).optional(),
 }).strict();
 export type ForceDisplayNameResetInput = z.infer<typeof ForceDisplayNameResetInputSchema>;
 

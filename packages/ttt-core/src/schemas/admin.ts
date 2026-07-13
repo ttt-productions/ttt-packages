@@ -6,6 +6,15 @@ import {
   hallItemIdSchema,
   workProjectTypeSchema,
 } from './atoms.js';
+import {
+  MAX_WORK_PROJECT_TITLE_LENGTH,
+  MAX_ADMIN_DISPATCH_SUBJECT_LENGTH,
+  MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH,
+  MAX_INTERNAL_REASON_LENGTH,
+  MAX_USER_FACING_REASON_LENGTH,
+  MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH,
+  MAX_SAFETY_ADMIN_NOTE_LENGTH,
+} from '../constants/business.js';
 
 export const CheckoutNextImportantTaskInputSchema = z.object({}).strict();
 export type CheckoutNextImportantTaskInput = z.infer<typeof CheckoutNextImportantTaskInputSchema>;
@@ -170,13 +179,13 @@ export type UpdateAdminListInput = z.infer<typeof UpdateAdminListInputSchema>;
 
 export const CheckTrademarkInputSchema = z.object({
   // Primary: the work project's title (franchise-level check).
-  workTitle: z.string().min(1).max(200),
+  workTitle: z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH),
   // Optional: the sub-item title (chapter, track, episode). Checked secondarily.
   // `.nullish()` (not `.optional()`): the Firebase callable client serializes an
   // undefined argument as JSON null, and the work-view caller passes
   // `subItemTitle: subItem?.title` which is undefined when the sub-item hasn't
   // loaded — that arrives here as null. A bare `.optional()` would 400 on it.
-  subItemTitle: z.string().max(200).nullish(),
+  subItemTitle: z.string().max(MAX_WORK_PROJECT_TITLE_LENGTH).nullish(),
 }).strict();
 export type CheckTrademarkInput = z.infer<typeof CheckTrademarkInputSchema>;
 
@@ -261,8 +270,10 @@ const WarnUserSchema = z
   .object({
     button: z.literal('warnUser'),
     userId: z.string().min(1),
-    subject: z.string().trim().min(1).max(200),
-    message: z.string().trim().min(1).max(5000),
+    // A warning IS an admin dispatch (resolveAdminTask → runCreateAdminDispatchToUser),
+    // so it shares the dispatch subject/body caps.
+    subject: z.string().trim().min(1).max(MAX_ADMIN_DISPATCH_SUBJECT_LENGTH),
+    message: z.string().trim().min(1).max(MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH),
   })
   .strict();
 
@@ -270,16 +281,16 @@ const SuspendOrBanSchema = z
   .object({
     button: z.enum(['suspendUser', 'banUser']),
     userId: z.string().min(1),
-    reason: z.string().trim().min(1).max(2000),
+    reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH),
   })
   .strict();
 
 const ReinstateUserSchema = z
-  .object({ button: z.literal('reinstateUser'), userId: z.string().min(1), reason: z.string().trim().max(2000).optional() })
+  .object({ button: z.literal('reinstateUser'), userId: z.string().min(1), reason: z.string().trim().max(MAX_INTERNAL_REASON_LENGTH).optional() })
   .strict();
 
 const ForceUsernameResetSchema = z
-  .object({ button: z.literal('forceUsernameReset'), userId: z.string().min(1), reason: z.string().trim().min(1).max(2000).optional() })
+  .object({ button: z.literal('forceUsernameReset'), userId: z.string().min(1), reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH).optional() })
   .strict();
 
 /** Whole-object Work/Realm remedies — `reportedItemId` is the workProjectId / workRealmId. */
@@ -320,11 +331,11 @@ export const NormalReportInputSchema = z
     caseType: z.literal('normalReport').default('normalReport'),
     taskId: z.string().min(1),
     outcome: z.enum(['founded', 'unfounded']),
-    resolutionSummary: z.string().trim().min(1).max(2000),
+    resolutionSummary: z.string().trim().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
     actions: z.array(StagedActionSchema).max(16).default([]),
     userFacingReasonCode: z.string().trim().min(1).max(128).optional(),
     userFacingReasonDetail: z.string().trim().max(2000).optional(),
-    adminNote: z.string().trim().max(4000).optional(),
+    adminNote: z.string().trim().max(MAX_SAFETY_ADMIN_NOTE_LENGTH).optional(),
   })
   .strict();
 export type ResolveAdminTaskInput = z.infer<typeof NormalReportInputSchema>;
@@ -355,8 +366,8 @@ const SafetyAccountActionSchema = z
   .object({
     button: z.enum(['suspendUser', 'banUser', 'reinstateUser']),
     targetUid: z.string().min(1),
-    reasonInternal: z.string().trim().min(4).max(2000),
-    reasonUserFacing: z.string().trim().min(1).max(280),
+    reasonInternal: z.string().trim().min(4).max(MAX_INTERNAL_REASON_LENGTH),
+    reasonUserFacing: z.string().trim().min(1).max(MAX_USER_FACING_REASON_LENGTH),
     role: z.enum(['uploader', 'requester', 'distributor', 'questionable']),
     subjectDisposition: z.enum(['subject', 'questionable', 'excluded']),
   })
@@ -375,9 +386,9 @@ export const SafetyCaseInputSchema = z
     caseType: z.enum(['csam', 'ncii']),
     caseId: z.string().min(1),
     outcome: z.enum(['founded', 'unfounded']),
-    resolutionSummary: z.string().trim().min(1).max(2000),
+    resolutionSummary: z.string().trim().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
     actions: z.array(SafetyStagedActionSchema).max(16).default([]),
-    adminNote: z.string().trim().max(4000).optional(),
+    adminNote: z.string().trim().max(MAX_SAFETY_ADMIN_NOTE_LENGTH).optional(),
     // [EUAS-017] Optimistic-concurrency token (`childSafetyCaseList.revision` / `nciiCases.revision`).
     // The close is rejected if the case changed since the operator loaded it — concurrent stale closes
     // can't silently overwrite. Optional for backward compatibility; the console always supplies it.
@@ -393,7 +404,7 @@ export const ReopenSafetyCaseInputSchema = z
   .object({
     caseType: z.enum(['csam', 'ncii']),
     caseId: z.string().min(1),
-    reasonInternal: z.string().trim().min(4).max(2000),
+    reasonInternal: z.string().trim().min(4).max(MAX_INTERNAL_REASON_LENGTH),
     expectedRevision: z.number().int().nonnegative().optional(),
     confirmation: z.literal('I confirm reopening this safety case'),
   })

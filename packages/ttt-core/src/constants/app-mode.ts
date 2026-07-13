@@ -6,7 +6,9 @@
 //
 // Only real cost/abuse drivers vary by mode: media specs (ttt-media-specs.ts),
 // rate-limit values, count caps, batch sizes. Text-length limits and payment
-// min/max are deliberately mode-invariant.
+// min/max are deliberately mode-invariant — with ONE ruled exception (DJ
+// 2026-07-13): chapter body content (maxChapterContentLength), because it
+// bounds threshold-review reading effort per item during charter season.
 
 export type AppMode = 'charter' | 'full';
 
@@ -40,6 +42,8 @@ export interface TttLimits {
     maxWorkProjectAuditions: number;
     maxCommissionListings: number;
     maxChapters: number;
+    /** Chapter BODY length (chars) — the one mode-varied text limit (DJ 2026-07-13). */
+    maxChapterContentLength: number;
     maxTuneTracks: number;
     maxTelevisionEpisodes: number;
   };
@@ -94,6 +98,9 @@ export const CHARTER_LIMITS: TttLimits = {
     maxWorkProjectAuditions: 3,
     maxCommissionListings: 3,
     maxChapters: 5,
+    // ~5,000 words — a full real chapter, while keeping the human threshold-review
+    // reading effort per item bounded during charter season.
+    maxChapterContentLength: 30_000,
     maxTuneTracks: 5,
     maxTelevisionEpisodes: 3,
   },
@@ -148,6 +155,10 @@ export const FULL_LIMITS: TttLimits = {
     maxWorkProjectAuditions: 10,
     maxCommissionListings: 10,
     maxChapters: 50,
+    // The intentional design ceiling (~17,000 words; trivially inside Firestore's
+    // 1 MiB doc limit) — the audit trail deliberately stores field LENGTHS, not
+    // content, because chapters can be this large (runUpdateChapterDetails).
+    maxChapterContentLength: 100_000,
     maxTuneTracks: 50,
     maxTelevisionEpisodes: 25,
   },

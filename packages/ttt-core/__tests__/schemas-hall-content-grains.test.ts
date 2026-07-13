@@ -26,6 +26,10 @@ import {
   REAL_PEOPLE_DISCLAIMER_HEADER,
   REAL_PEOPLE_DISCLAIMER_MESSAGE,
 } from '../src/constants/business-content';
+import {
+  MAX_WORK_REALM_TITLE_LENGTH,
+  MAX_WORK_REALM_DESCRIPTION_LENGTH,
+} from '../src/constants/business-work-project';
 
 describe('SubmitHallContentChangeRequestInputSchema grains', () => {
   const fields = { title: 'New title' };
@@ -121,9 +125,9 @@ describe('realm grain surface + allowlist', () => {
     expect(HALL_CONTENT_TEXT_FIELDS.workRealm).toEqual(['workingTitle', 'workingDescription']);
   });
 
-  it('realm field caps match UpdateWorkRealmDetailsInputSchema (200 / 2000)', () => {
-    expect(HALL_CONTENT_TEXT_FIELD_MAX.workingTitle).toBe(200);
-    expect(HALL_CONTENT_TEXT_FIELD_MAX.workingDescription).toBe(2000);
+  it('realm field caps derive from the owning realm constants (one truth set)', () => {
+    expect(HALL_CONTENT_TEXT_FIELD_MAX.workingTitle).toBe(MAX_WORK_REALM_TITLE_LENGTH);
+    expect(HALL_CONTENT_TEXT_FIELD_MAX.workingDescription).toBe(MAX_WORK_REALM_DESCRIPTION_LENGTH);
   });
 
   it('every allowlisted field name has a cap', () => {

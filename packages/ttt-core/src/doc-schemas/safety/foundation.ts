@@ -14,6 +14,10 @@
 // doc-schemas` subpath.
 
 import { z } from 'zod';
+import {
+  MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH,
+  MAX_SAFETY_ADMIN_NOTE_LENGTH,
+} from '../../constants/business.js';
 
 // ===========================================================================
 // A1 — Report reasons + reportable item types
@@ -179,8 +183,8 @@ export type SafetyCaseClosureOutcome = z.infer<typeof SafetyCaseClosureOutcomeSc
 /** The structured closure record written on a safety-case close. */
 export const SafetyCaseClosureV1Schema = z.object({
   outcome: SafetyCaseClosureOutcomeSchema,
-  resolutionSummary: z.string().min(1).max(2000),
-  adminNote: z.string().max(4000).optional(),
+  resolutionSummary: z.string().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
+  adminNote: z.string().max(MAX_SAFETY_ADMIN_NOTE_LENGTH).optional(),
   closedByUid: z.string().min(1),
   closedAt: z.number(),
 }).strict();

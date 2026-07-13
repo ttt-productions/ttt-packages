@@ -21,6 +21,10 @@ import {
   ProtectedForkSchema,
   TargetLocatorV1Schema,
 } from './foundation.js';
+import {
+  MAX_REPORT_NARRATIVE_LENGTH,
+  MAX_REPORT_SNAPSHOT_TEXT_LENGTH,
+} from '../../constants/business.js';
 
 // ===========================================================================
 // Canonical-key version token. The key formulas are DEFINED below as comments
@@ -84,7 +88,7 @@ export const ReportTargetSnapshotV1Schema = z.object({
   // the violating text/media out before review and have the operator see only the cleaned live doc
   // (edit-to-evade). `capturedText` = the bounded reported text/title/description (NO PII);
   // `capturedMediaAssetIds` = the reported media asset ids. Frozen + immutable like the rest.
-  capturedText: z.string().max(4000).optional(),
+  capturedText: z.string().max(MAX_REPORT_SNAPSHOT_TEXT_LENGTH).optional(),
   capturedMediaAssetIds: z.array(z.string()).max(32).optional(),
   capturedAt: z.number(),
 }).strict();
@@ -103,7 +107,7 @@ export const NarrativeRecordV1Schema = z.object({
   schemaVersion: z.literal(1),
   reportId: z.string().min(1),
   reporterUid: z.string().min(1), // stored so account-erasure can scrub the narrative
-  text: z.string().min(1).max(4000),
+  text: z.string().min(1).max(MAX_REPORT_NARRATIVE_LENGTH),
   createdAt: z.number(),
 }).strict();
 export type NarrativeRecordV1 = z.infer<typeof NarrativeRecordV1Schema>;

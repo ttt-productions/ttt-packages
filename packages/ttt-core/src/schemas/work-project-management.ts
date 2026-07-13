@@ -13,7 +13,15 @@ import {
 } from './atoms.js';
 import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
 import { GUILD_STANDING_VALUES } from '../permissions/index.js';
-import { MAX_GUILD_INVITE_MESSAGE_LENGTH } from '../constants/business.js';
+import {
+  MAX_GUILD_INVITE_MESSAGE_LENGTH,
+  MAX_WORK_PROJECT_TITLE_LENGTH,
+  MAX_WORK_PROJECT_DESCRIPTION_LENGTH,
+  MAX_WORK_REALM_TITLE_LENGTH,
+  MAX_WORK_REALM_DESCRIPTION_LENGTH,
+  MAX_CRAFT_SKILL_NAME_LENGTH,
+  MAX_FILE_FOLDER_NAME_LENGTH,
+} from '../constants/business.js';
 import { RealmFileCanonStatusSchema } from '../doc-schemas/media-assets.js';
 
 // ===========================================================================
@@ -41,8 +49,8 @@ export const GetRealmSharedFilesInputSchema = z.object({
 export type GetRealmSharedFilesInput = z.infer<typeof GetRealmSharedFilesInputSchema>;
 
 const baseFields = {
-  workingTitle: z.string().min(1).max(200),
-  workingDescription: z.string().min(1).max(2000),
+  workingTitle: z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH),
+  workingDescription: z.string().min(1).max(MAX_WORK_PROJECT_DESCRIPTION_LENGTH),
   workProjectType: workProjectTypeSchema,
   hallWingType: hallWingTypeSchema,
 };
@@ -52,14 +60,14 @@ const baseFields = {
 // Firestore doc IDs cannot contain `/` and cannot be exactly `.` or `..`, so a title
 // that would produce an invalid/ambiguous doc ID must be rejected at the callable
 // boundary (both the create transaction and the soft availability check) rather than
-// hard-failing with an opaque `internal` error deep inside ref construction. Length is
-// min(1).max(200); only the doc-ID-breaking characters are forbidden. Keep
-// CheckRealmNameAvailableInputSchema in lockstep so a valid-at-create name is never
-// rejected at form time (and vice-versa).
+// hard-failing with an opaque `internal` error deep inside ref construction. Length
+// derives from MAX_WORK_REALM_TITLE_LENGTH; only the doc-ID-breaking characters are
+// forbidden. Keep CheckRealmNameAvailableInputSchema in lockstep so a valid-at-create
+// name is never rejected at form time (and vice-versa).
 export const realmWorkingTitleSchema = z
   .string()
   .min(1)
-  .max(200)
+  .max(MAX_WORK_REALM_TITLE_LENGTH)
   .refine((v) => !v.includes('/'), { message: 'Realm name cannot contain a slash (/).' })
   .refine((v) => v !== '.' && v !== '..', { message: 'Realm name cannot be "." or "..".' });
 
@@ -75,13 +83,13 @@ export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationM
     ...baseFields,
     realmCreationMode: z.literal('newPublicRealm'),
     realmWorkingTitle: realmWorkingTitleSchema,
-    realmWorkingDescription: z.string().min(1).max(2000),
+    realmWorkingDescription: z.string().min(1).max(MAX_WORK_REALM_DESCRIPTION_LENGTH),
   }).strict(),
   z.object({
     ...baseFields,
     realmCreationMode: z.literal('newStandaloneRealm'),
     realmWorkingTitle: realmWorkingTitleSchema,
-    realmWorkingDescription: z.string().min(1).max(2000),
+    realmWorkingDescription: z.string().min(1).max(MAX_WORK_REALM_DESCRIPTION_LENGTH),
   }).strict(),
   z.object({
     ...baseFields,
@@ -108,7 +116,7 @@ export const InviteSourceSchema = z.discriminatedUnion('type', [
     data: z.object({
       craftSkillId: craftSkillIdSchema,
       craftSkillOwnerUserId: userIdSchema,
-      craftSkillName: z.string().min(1).max(200),
+      craftSkillName: z.string().min(1).max(MAX_CRAFT_SKILL_NAME_LENGTH),
     }).strict(),
   }).strict(),
   z.object({
@@ -186,21 +194,21 @@ export type LeaveWorkProjectInput = z.infer<typeof LeaveWorkProjectInputSchema>;
 
 export const UpdatePublicWorkProjectDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  workingTitle: z.string().min(1).max(200),
-  workingDescription: z.string().min(1).max(2000),
+  workingTitle: z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH),
+  workingDescription: z.string().min(1).max(MAX_WORK_PROJECT_DESCRIPTION_LENGTH),
 }).strict();
 export type UpdatePublicWorkProjectDetailsInput = z.infer<typeof UpdatePublicWorkProjectDetailsInputSchema>;
 
 export const UpdateWorkRealmDetailsInputSchema = z.object({
   workRealmId: z.string().min(1),
-  workingTitle: z.string().min(1).max(200),
-  workingDescription: z.string().min(1).max(2000),
+  workingTitle: z.string().min(1).max(MAX_WORK_REALM_TITLE_LENGTH),
+  workingDescription: z.string().min(1).max(MAX_WORK_REALM_DESCRIPTION_LENGTH),
 }).strict();
 export type UpdateWorkRealmDetailsInput = z.infer<typeof UpdateWorkRealmDetailsInputSchema>;
 
 // Unauthenticated soft-check for a Realm working title. Must match the authoritative
 // realmWorkingTitle contract in CreateWorkProjectInputSchema (realmWorkingTitleSchema:
-// min(1).max(200), rejecting the doc-ID-breaking `/` and reserved `.`/`..`). Never be
+// MAX_WORK_REALM_TITLE_LENGTH, rejecting the doc-ID-breaking `/` and reserved `.`/`..`). Never be
 // stricter than the create transaction or a valid-at-create name would be rejected at
 // form time — reuse the SAME schema so the two can never drift.
 export const CheckRealmNameAvailableInputSchema = z.object({
@@ -218,7 +226,7 @@ const tradeProfessionListSchema = z
 
 export const CreateFileFolderInputSchema = z.object({
   workProjectId: z.string().min(1),
-  name: z.string().min(1).max(100),
+  name: z.string().min(1).max(MAX_FILE_FOLDER_NAME_LENGTH),
   canViewTradeProfessions: tradeProfessionListSchema,
   canUploadTradeProfessions: tradeProfessionListSchema,
   canDeleteTradeProfessions: tradeProfessionListSchema,
@@ -228,7 +236,7 @@ export type CreateFileFolderInput = z.infer<typeof CreateFileFolderInputSchema>;
 export const RenameFileFolderInputSchema = z.object({
   workProjectId: z.string().min(1),
   folderId: z.string().min(1),
-  name: z.string().min(1).max(100),
+  name: z.string().min(1).max(MAX_FILE_FOLDER_NAME_LENGTH),
 }).strict();
 export type RenameFileFolderInput = z.infer<typeof RenameFileFolderInputSchema>;
 

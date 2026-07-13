@@ -38,6 +38,12 @@ export const MAX_ASSOCIATED_WORK_PROJECTS = ACTIVE_LIMITS.user.maxAssociatedWork
 /** Maximum number of tags allowed per craftSkill. */
 export const MAX_CRAFT_SKILL_TAGS = 5;
 
+/** Maximum length for a craft-skill name. */
+export const MAX_CRAFT_SKILL_NAME_LENGTH = 200;
+
+/** Non-US artisan-interest country/region free-text (input schema + privateData doc). */
+export const MAX_ARTISAN_LOCATION_LENGTH = 100;
+
 // --- Mention History ---
 
 /** Maximum number of recent mentions kept in the user's mention-history hook. */

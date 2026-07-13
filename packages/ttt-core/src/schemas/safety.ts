@@ -13,6 +13,10 @@
 // broaden or weaken them.
 
 import { z } from 'zod';
+import {
+  MAX_INTERNAL_REASON_LENGTH,
+  MAX_USER_FACING_REASON_LENGTH,
+} from '../constants/business.js';
 
 // ---------------------------------------------------------------------------
 // commandAccountAction — apply a per-account safety action on a child-safety case.
@@ -39,9 +43,9 @@ export const CommandAccountActionInputSchema = z
     targetUid: z.string().min(1),
     action: CommandAccountActionSchema,
     /** Operator-facing internal rationale (LE-loggable). */
-    reasonInternal: z.string().min(4, 'An internal reason is required.'),
+    reasonInternal: z.string().min(4, 'An internal reason is required.').max(MAX_INTERNAL_REASON_LENGTH),
     /** The generic owner-readable reason (no detail leaks). */
-    reasonUserFacing: z.string().min(1).max(280),
+    reasonUserFacing: z.string().min(1).max(MAX_USER_FACING_REASON_LENGTH),
     /** Per-account case role (A1b). */
     role: z.enum(['uploader', 'requester', 'distributor', 'questionable']),
     subjectDisposition: z.enum(['subject', 'questionable', 'excluded']),

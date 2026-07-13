@@ -6,6 +6,7 @@
 
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS } from '../types/content.js';
+import { MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business.js';
 import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 
 const mediaKindSchema = z.enum(['image', 'video', 'audio']);
@@ -198,8 +199,8 @@ export const UserPrivateDataSchema = z.object({
   // be opened by jurisdiction as each region's laws clear. Mirrors isWaitingForNewsApproval.
   nonUsArtisanInterest: z
     .object({
-      country: z.string().min(1).max(100),
-      region: z.string().max(100).optional(),
+      country: z.string().min(1).max(MAX_ARTISAN_LOCATION_LENGTH),
+      region: z.string().max(MAX_ARTISAN_LOCATION_LENGTH).optional(),
       requestedAt: z.number(),
     })
     .optional(),

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../constants/business.js';
 
 // ID atoms — every callable input that includes an ID field uses one of these.
 // Kept as separate constants (not aliases of a generic `idSchema`) so consumers
@@ -35,7 +36,9 @@ export const addRemoveActionSchema = z.enum(['add', 'remove']);
 export const workProjectTypeSchema = z.enum(['Tales', 'Tunes', 'Television']);
 export const hallWingTypeSchema = z.enum(['entertainment', 'educational', 'newsPolitical']);
 
-// String shape atoms.
-export const titleSchema = z.string().min(1).max(200);
+// String shape atoms. Length derives from the owning constant — every title alias
+// (tale/tune/tv/chapter/track/episode/commission) resolves to the same value, so the
+// UI counter, the Save guard, and this server bound are provably the same rule.
+export const titleSchema = z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH);
 
 

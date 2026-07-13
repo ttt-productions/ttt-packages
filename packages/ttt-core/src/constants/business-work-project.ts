@@ -18,8 +18,20 @@ export const EXISTING_REALM_STAKE_SHARES = 75;
 /** Maximum length for a workProject title. */
 export const MAX_WORK_PROJECT_TITLE_LENGTH = 150;
 
-/** Maximum length for a workProject description. */
-export const MAX_WORK_PROJECT_DESCRIPTION_LENGTH = 300;
+/** Maximum length for a workProject description (DJ ruling 2026-07-13: 1000 — room for
+ *  a real paragraph; browse cards render a truncated excerpt with click-to-expand). */
+export const MAX_WORK_PROJECT_DESCRIPTION_LENGTH = 1000;
+
+// --- Work Realm titles & descriptions ---
+// Aliases of the workProject pair — realms share the platform title/description limits.
+// NOTE: a realm working title doubles as the `reservedRealmNames/{UPPER(title)}` doc ID,
+// so realmWorkingTitleSchema layers doc-ID character rules on top of this length.
+
+export const MAX_WORK_REALM_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
+export const MAX_WORK_REALM_DESCRIPTION_LENGTH = MAX_WORK_PROJECT_DESCRIPTION_LENGTH;
+
+/** Maximum length for a work-project file-folder name. */
+export const MAX_FILE_FOLDER_NAME_LENGTH = 100;
 
 /** Maximum number of file folders per workProject. Mode-varied. */
 export const MAX_FILE_FOLDERS = ACTIVE_LIMITS.workProject.maxFileFolders;
@@ -54,8 +66,9 @@ export const MAX_CHAPTERS = ACTIVE_LIMITS.workProject.maxChapters;
 /** Maximum length for a chapter title. */
 export const MAX_CHAPTER_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
 
-/** Maximum length for chapter body content. */
-export const MAX_CHAPTER_CONTENT_LENGTH = 2500;
+/** Maximum length for chapter body content. Mode-varied (charter 30k / full 100k) —
+ *  the ONE mode-varied text limit (DJ 2026-07-13); the flip raises it automatically. */
+export const MAX_CHAPTER_CONTENT_LENGTH = ACTIVE_LIMITS.workProject.maxChapterContentLength;
 
 /** Maximum number of tracks a Tunes workProject can have. Mode-varied. */
 export const MAX_TUNE_TRACKS = ACTIVE_LIMITS.workProject.maxTuneTracks;

@@ -15,7 +15,17 @@ import {
   itemIdSchema,
   changeRequestIdSchema,
 } from './atoms.js';
-import { MAX_HALL_LIBRARY_SUBMIT_BATCH } from '../constants/business.js';
+import {
+  MAX_HALL_LIBRARY_SUBMIT_BATCH,
+  MAX_CHAPTER_CONTENT_LENGTH,
+  MAX_TALE_DESCRIPTION_LENGTH,
+  MAX_TUNE_DESCRIPTION_LENGTH,
+  MAX_TELEVISION_DESCRIPTION_LENGTH,
+  MAX_TUNE_TRACK_DESCRIPTION_LENGTH,
+  MAX_TELEVISION_EPISODE_DESCRIPTION_LENGTH,
+  MAX_THRESHOLD_REVIEW_NOTES_LENGTH,
+  MAX_HALL_CHANGE_REQUEST_REASON_LENGTH,
+} from '../constants/business.js';
 import { WORK_PROJECT_SPECIFIC_GENRES } from '../constants/options.js';
 
 // Canonical per-type genre enums. `WORK_PROJECT_SPECIFIC_GENRES.<type>` is a readonly
@@ -50,7 +60,7 @@ export type CreateTuneTrackInput = z.infer<typeof CreateTuneTrackInputSchema>;
 export const ReviewThresholdItemInputSchema = z.object({
   thresholdItemId: thresholdItemIdSchema,
   decision: z.enum(['approved', 'needs_revision']),
-  adminNotes: z.string().max(2000).nullable().optional(),
+  adminNotes: z.string().max(MAX_THRESHOLD_REVIEW_NOTES_LENGTH).nullable().optional(),
   // Reviewer checklist confirmations, recorded on the review (mirrors `teachesSomething`).
   // Optional here so a `needs_revision` decision still validates; the callable REQUIRES all
   // true on an `approved` decision. First two: no-begging-for-bouquets, no-credits-in-content.
@@ -92,14 +102,14 @@ export type WithdrawFromThresholdLibraryReviewInput = z.infer<typeof WithdrawFro
 //    counts as published. `workProjectType`/`subItemId` do not apply.
 // Exactly one of `hallItemId` / `workRealmId` must be set. Field names are validated by
 // the runner against the per-surface HALL_CONTENT_TEXT_FIELDS allowlist +
-// HALL_CONTENT_TEXT_FIELD_MAX caps; the schema-level 100000 cap is the largest field cap
-// anywhere (chapter content).
+// HALL_CONTENT_TEXT_FIELD_MAX caps; the schema-level cap is the largest field cap
+// anywhere (chapter content), derived from the same owning constant.
 export const SubmitHallContentChangeRequestInputSchema = z.object({
   hallItemId: hallItemIdSchema.nullish(),
   workProjectType: workProjectTypeSchema.nullish(),
   workRealmId: z.string().min(1).nullish(),
   subItemId: z.string().min(1).nullish(),
-  proposedFields: z.record(z.string().min(1).max(64), z.string().trim().min(1).max(100000))
+  proposedFields: z.record(z.string().min(1).max(64), z.string().trim().min(1).max(MAX_CHAPTER_CONTENT_LENGTH))
     .refine((fields) => Object.keys(fields).length > 0, { message: 'Propose at least one field change.' }),
 }).strict().superRefine((val, ctx) => {
   const hasHallItem = typeof val.hallItemId === 'string' && val.hallItemId.length > 0;
@@ -141,7 +151,7 @@ export type SubmitHallContentChangeRequestInput = z.infer<typeof SubmitHallConte
 export const ReviewHallContentChangeRequestInputSchema = z.object({
   changeRequestId: changeRequestIdSchema,
   decision: z.enum(['approved', 'denied']),
-  resolutionReason: z.string().trim().max(2000).optional(),
+  resolutionReason: z.string().trim().max(MAX_HALL_CHANGE_REQUEST_REASON_LENGTH).optional(),
 }).strict().superRefine((val, ctx) => {
   if (val.decision === 'denied' && (!val.resolutionReason || val.resolutionReason.length === 0)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'A reason is required when denying a change request.', path: ['resolutionReason'] });
@@ -154,7 +164,7 @@ export const UpdateChapterDetailsInputSchema = z.object({
   taleId: taleIdSchema,
   chapterId: chapterIdSchema,
   title: titleSchema.optional(),
-  content: z.string().max(100000).optional(),
+  content: z.string().max(MAX_CHAPTER_CONTENT_LENGTH).optional(),
 }).strict();
 export type UpdateChapterDetailsInput = z.infer<typeof UpdateChapterDetailsInputSchema>;
 
@@ -163,7 +173,7 @@ export const UpdateTelevisionEpisodeDetailsInputSchema = z.object({
   televisionId: televisionIdSchema,
   episodeId: episodeIdSchema,
   title: titleSchema.optional(),
-  description: z.string().max(5000).optional(),
+  description: z.string().max(MAX_TELEVISION_EPISODE_DESCRIPTION_LENGTH).optional(),
 }).strict();
 export type UpdateTelevisionEpisodeDetailsInput = z.infer<typeof UpdateTelevisionEpisodeDetailsInputSchema>;
 
@@ -172,7 +182,7 @@ export const UpdateTuneTrackDetailsInputSchema = z.object({
   tuneId: tuneIdSchema,
   trackId: trackIdSchema,
   title: titleSchema.optional(),
-  description: z.string().max(5000).optional(),
+  description: z.string().max(MAX_TUNE_TRACK_DESCRIPTION_LENGTH).optional(),
 }).strict();
 export type UpdateTuneTrackDetailsInput = z.infer<typeof UpdateTuneTrackDetailsInputSchema>;
 
@@ -188,7 +198,7 @@ export const UpdateTaleDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   taleId: taleIdSchema,
   title: titleSchema.optional(),
-  description: z.string().max(5000).optional(),
+  description: z.string().max(MAX_TALE_DESCRIPTION_LENGTH).optional(),
 }).strict();
 export type UpdateTaleDetailsInput = z.infer<typeof UpdateTaleDetailsInputSchema>;
 
@@ -204,7 +214,7 @@ export const UpdateTelevisionDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   televisionId: televisionIdSchema,
   title: titleSchema.optional(),
-  description: z.string().max(5000).optional(),
+  description: z.string().max(MAX_TELEVISION_DESCRIPTION_LENGTH).optional(),
 }).strict();
 export type UpdateTelevisionDetailsInput = z.infer<typeof UpdateTelevisionDetailsInputSchema>;
 
@@ -220,7 +230,7 @@ export const UpdateTuneDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   tuneId: tuneIdSchema,
   title: titleSchema.optional(),
-  description: z.string().max(5000).optional(),
+  description: z.string().max(MAX_TUNE_DESCRIPTION_LENGTH).optional(),
 }).strict();
 export type UpdateTuneDetailsInput = z.infer<typeof UpdateTuneDetailsInputSchema>;
 

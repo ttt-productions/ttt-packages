@@ -65,6 +65,34 @@ export const MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH = 1000;
 /** Maximum length for a content-violation appeal message. */
 export const MAX_APPEAL_MESSAGE_LENGTH = 1000;
 
+/** Threshold-review reviewer notes (revision notes shown to the author). One owner for
+ *  the review callable schema AND the admin work-view input. */
+export const MAX_THRESHOLD_REVIEW_NOTES_LENGTH = 2000;
+
+// --- Moderation / safety operator text caps ---
+// Each is declared ONCE here and derived by every input schema AND persisted doc schema
+// that carries the field — the numbers must never be re-hardcoded at an enforcement point.
+
+/** Operator-facing INTERNAL reason/rationale (LE-loggable; account actions, case reopens). */
+export const MAX_INTERNAL_REASON_LENGTH = 2000;
+
+/** The generic owner-readable (user-facing) reason — deliberately short, no detail leaks. */
+export const MAX_USER_FACING_REASON_LENGTH = 280;
+
+/** Structured close-out summary on report/safety-case resolutions. */
+export const MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH = 2000;
+
+/** Optional operator note attached to a close-out. */
+export const MAX_SAFETY_ADMIN_NOTE_LENGTH = 4000;
+
+// --- Report intake text caps ---
+
+/** Reporter free-text narrative/comment (segregated private doc; never on the root). */
+export const MAX_REPORT_NARRATIVE_LENGTH = 4000;
+
+/** The frozen report-time captured text snapshot (edit-to-evade guard; NO PII). */
+export const MAX_REPORT_SNAPSHOT_TEXT_LENGTH = 4000;
+
 /** Maximum length for a feedback suggestion. */
 export const MAX_FEEDBACK_SUGGESTION_LENGTH = 100;
 

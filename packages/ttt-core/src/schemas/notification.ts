@@ -26,6 +26,10 @@ import {
   titleSchema,
   reportGroupIdSchema,
 } from './atoms.js';
+import {
+  MAX_THRESHOLD_REVIEW_NOTES_LENGTH,
+  MAX_HALL_CHANGE_REQUEST_REASON_LENGTH,
+} from '../constants/business.js';
 
 // String shape atoms specific to notifications.
 const notificationMessageSchema = z.string().min(1).max(2000);
@@ -163,7 +167,7 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     workProjectType: workProjectTypeSchema,
     itemId: z.string().min(1),
     decision: z.literal('needs_revision'),
-    adminNotes: z.string().max(2000).nullable(),
+    adminNotes: z.string().max(MAX_THRESHOLD_REVIEW_NOTES_LENGTH).nullable(),
   }).strict(),
   // Proposer feedback for a published change-request decision. Mirrors what
   // runReviewHallContentChangeRequest (ttt-prod) sends: `resolutionReason` is
@@ -177,7 +181,7 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     workRealmId: z.string().min(1).nullish(),
     workProjectId: workProjectIdSchema,
     decision: z.enum(['approved', 'denied']),
-    resolutionReason: z.string().max(2000).nullable(),
+    resolutionReason: z.string().max(MAX_HALL_CHANGE_REQUEST_REASON_LENGTH).nullable(),
   }).strict(),
   z.object({
     type: z.literal('admin_announcement'),

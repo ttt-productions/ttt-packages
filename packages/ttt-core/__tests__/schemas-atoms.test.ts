@@ -6,6 +6,7 @@ import {
   workProjectTypeSchema,
   titleSchema,
 } from '../src/schemas/atoms';
+import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../src/constants/business';
 
 describe('atom schemas', () => {
   describe('workProjectIdSchema', () => {
@@ -63,11 +64,13 @@ describe('atom schemas', () => {
     it('rejects empty title', () => {
       expect(() => titleSchema.parse('')).toThrow();
     });
-    it('rejects title longer than 200 chars', () => {
-      expect(() => titleSchema.parse('a'.repeat(201))).toThrow();
+    it('rejects title longer than MAX_WORK_PROJECT_TITLE_LENGTH', () => {
+      expect(() => titleSchema.parse('a'.repeat(MAX_WORK_PROJECT_TITLE_LENGTH + 1))).toThrow();
     });
-    it('accepts exactly 200 chars', () => {
-      expect(titleSchema.parse('a'.repeat(200))).toBe('a'.repeat(200));
+    it('accepts exactly MAX_WORK_PROJECT_TITLE_LENGTH chars', () => {
+      expect(titleSchema.parse('a'.repeat(MAX_WORK_PROJECT_TITLE_LENGTH))).toBe(
+        'a'.repeat(MAX_WORK_PROJECT_TITLE_LENGTH),
+      );
     });
   });
 });
