@@ -148,6 +148,18 @@ export const MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH = 500;
 /** Operator proof note on a manual NCMEC portal filing. */
 export const MAX_NCMEC_PORTAL_PROOF_TEXT_LENGTH = 2000;
 
+/** Requester's typed name on the no-login TAKE IT DOWN statutory intake. */
+export const MAX_NCII_REQUESTER_NAME_LENGTH = 256;
+
+/** Name of the depicted person a representative files on behalf of. */
+export const MAX_NCII_REPRESENTED_PERSON_NAME_LENGTH = 256;
+
+/** Representative's stated basis of authority (parent/guardian/counsel etc.). */
+export const MAX_NCII_AUTHORITY_BASIS_LENGTH = 2000;
+
+/** Optional pointer/reference to authority evidence supplied by a representative. */
+export const MAX_NCII_AUTHORITY_EVIDENCE_REF_LENGTH = 512;
+
 /** Maximum length for a feedback suggestion. */
 export const MAX_FEEDBACK_SUGGESTION_LENGTH = 100;
 
