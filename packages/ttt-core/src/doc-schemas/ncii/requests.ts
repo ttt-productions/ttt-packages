@@ -36,6 +36,7 @@
 // schema below.
 
 import { z } from 'zod';
+import { MAX_NCII_ACTION_SUMMARY_LENGTH } from '../../constants/business.js';
 import {
   TakeItDownRequesterRoleSchema,
   TargetLocatorV1Schema,
@@ -244,7 +245,7 @@ export const TakeItDownRequestActionV1Schema = z.object({
   capability: SafetyReviewerCapabilitySchema, // = the §[M4] matrix capability used
   actionType: NciiActionTypeSchema,
   result: NciiActionResultSchema,
-  summary: z.string().max(280), // BOUNDED ≤ 280 chars, non-sensitive
+  summary: z.string().max(MAX_NCII_ACTION_SUMMARY_LENGTH), // BOUNDED, non-sensitive
   detailRef: z.string().min(1), // pointer to a RESTRICTED detail row holding any sensitive rationale
 }).strict();
 export type TakeItDownRequestActionV1 = z.infer<typeof TakeItDownRequestActionV1Schema>;

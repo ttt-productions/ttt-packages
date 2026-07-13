@@ -29,10 +29,11 @@ import {
 import {
   MAX_THRESHOLD_REVIEW_NOTES_LENGTH,
   MAX_HALL_CHANGE_REQUEST_REASON_LENGTH,
+  MAX_NOTIFICATION_MESSAGE_LENGTH,
 } from '../constants/business.js';
 
 // String shape atoms specific to notifications.
-const notificationMessageSchema = z.string().min(1).max(2000);
+const notificationMessageSchema = z.string().min(1).max(MAX_NOTIFICATION_MESSAGE_LENGTH);
 const reportedItemTypeSchema = z.string().min(1).max(64);
 const reportedItemIdSchema = z.string().min(1).max(128);
 const reportIdSchema = z.string().min(1);

@@ -16,6 +16,8 @@ import { z } from 'zod';
 import {
   MAX_INTERNAL_REASON_LENGTH,
   MAX_USER_FACING_REASON_LENGTH,
+  MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH,
+  MAX_NCMEC_PORTAL_PROOF_TEXT_LENGTH,
 } from '../constants/business.js';
 
 // ---------------------------------------------------------------------------
@@ -146,7 +148,7 @@ export const RecordNcmecPortalReceiptArtifactInputSchema = z
     /** The key of an object already in the restricted evidence vault (verified via statObject). */
     evidenceVaultKey: z.string().min(1, 'An evidence vault object key is required.'),
     /** Optional operator description of what the artifact is (e.g. "NCMEC portal screenshot"). */
-    description: z.string().min(1).max(500).optional(),
+    description: z.string().min(1).max(MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH).optional(),
     /** Explicit typed confirmation (interim control until the passkey profile lands). */
     confirmation: z.literal('I confirm this is the NCMEC portal receipt'),
   })
@@ -166,7 +168,7 @@ export const MarkNcmecPortalCompleteInputSchema = z
     /** [Q13/H-06] The sha256 hex digest recorded on the artifact at registration time (content-integrity check). */
     artifactSha256: z.string().regex(/^[0-9a-f]{64}$/, 'artifactSha256 must be a 64-character hex string.'),
     /** Optional operator free-text note describing the portal confirmation. */
-    proofText: z.string().min(1).max(2000).optional(),
+    proofText: z.string().min(1).max(MAX_NCMEC_PORTAL_PROOF_TEXT_LENGTH).optional(),
     /** The NCMEC-assigned report id — REQUIRED (it IS the proof; no "filed, number pending" grace). */
     ncmecReportId: z.string().min(1, 'The NCMEC report id is required to mark the report complete.'),
     /** Explicit typed confirmation (interim control until the passkey profile lands). */

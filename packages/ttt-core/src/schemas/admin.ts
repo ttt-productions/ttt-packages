@@ -14,6 +14,18 @@ import {
   MAX_USER_FACING_REASON_LENGTH,
   MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH,
   MAX_SAFETY_ADMIN_NOTE_LENGTH,
+  MAX_FUTURE_PLAN_TITLE_LENGTH,
+  MAX_FUTURE_PLAN_DESCRIPTION_LENGTH,
+  MAX_PLATFORM_RULE_TITLE_LENGTH,
+  MAX_PLATFORM_RULE_DESCRIPTION_LENGTH,
+  MAX_AGREEMENT_POINT_LENGTH,
+  MAX_CONTENT_PAGE_HEADING_LENGTH,
+  MAX_CONTENT_PAGE_BODY_LENGTH,
+  MAX_TAKE_IT_DOWN_COPY_LENGTH,
+  MAX_MAINTENANCE_MESSAGE_LENGTH,
+  MAX_APPEAL_REVIEW_NOTES_LENGTH,
+  MAX_REQUIRE_RETITLE_REASON_LENGTH,
+  MAX_USER_FACING_REASON_DETAIL_LENGTH,
 } from '../constants/business.js';
 
 export const CheckoutNextImportantTaskInputSchema = z.object({}).strict();
@@ -36,7 +48,7 @@ export const ReviewContentAppealInputSchema = z.object({
   violationId: violationIdSchema,
   taskId: taskIdSchema,
   decision: z.enum(['approved', 'denied']),
-  adminNotes: z.string().max(2000),
+  adminNotes: z.string().max(MAX_APPEAL_REVIEW_NOTES_LENGTH),
 }).strict();
 export type ReviewContentAppealInput = z.infer<typeof ReviewContentAppealInputSchema>;
 
@@ -44,8 +56,8 @@ export type ReviewContentAppealInput = z.infer<typeof ReviewContentAppealInputSc
 
 const FuturePlanItemSchema = z.object({
   id: z.string().min(1).max(128),
-  title: z.string().min(1).max(200),
-  description: z.string().min(1).max(4000),
+  title: z.string().min(1).max(MAX_FUTURE_PLAN_TITLE_LENGTH),
+  description: z.string().min(1).max(MAX_FUTURE_PLAN_DESCRIPTION_LENGTH),
   order: z.number().int().min(0),
   videoUrl: z.string().url().max(2048).optional(),
   mediaType: z.enum(['video', 'image', 'audio', 'other']).optional(),
@@ -58,8 +70,8 @@ export type UpdateFuturePlansInput = z.infer<typeof UpdateFuturePlansInputSchema
 
 const RuleSchema = z.object({
   id: z.string().min(1).max(128),
-  title: z.string().min(1).max(200),
-  description: z.string().min(1).max(4000),
+  title: z.string().min(1).max(MAX_PLATFORM_RULE_TITLE_LENGTH),
+  description: z.string().min(1).max(MAX_PLATFORM_RULE_DESCRIPTION_LENGTH),
   videoUrl: z.string().url().max(2048).optional(),
   group: z.enum(['generic', 'workProjectType', 'hallWingType', 'workRealm', 'merchandising']).optional(),
   subgroup: z.enum(['Tales', 'Tunes', 'Television', 'entertainment', 'educational', 'newsPolitical']).optional(),
@@ -67,7 +79,7 @@ const RuleSchema = z.object({
 }).strict();
 
 const AgreementCategorySchema = z.object({
-  points: z.array(z.string().min(1).max(2000)).max(200),
+  points: z.array(z.string().min(1).max(MAX_AGREEMENT_POINT_LENGTH)).max(200),
   videoUrl: z.string().url().max(2048).optional(),
 }).strict();
 
@@ -95,13 +107,13 @@ export type UpdateRulesAndAgreementsInput = z.infer<typeof UpdateRulesAndAgreeme
 
 const ContentPageSectionInputSchema = z.object({
   id: z.string().min(1).max(128),
-  heading: z.string().min(1).max(300),
+  heading: z.string().min(1).max(MAX_CONTENT_PAGE_HEADING_LENGTH),
   level: z.union([z.literal(1), z.literal(2)]),
   // Empty body is LEGAL: a bare divider heading (e.g. terms "Part 1 — Our
   // Intention") is real content. The input schema must accept everything the
   // stored ContentPageSectionSchema accepts, or a faithfully-seeded doc becomes
   // unsaveable in the admin editor (found by adversarial review 2026-07-06).
-  body: z.string().max(20000),
+  body: z.string().max(MAX_CONTENT_PAGE_BODY_LENGTH),
   order: z.number().int().min(0),
 }).strict();
 
@@ -116,7 +128,7 @@ export const UpdatePrivacyPageInputSchema = z.object({
 export type UpdatePrivacyPageInput = z.infer<typeof UpdatePrivacyPageInputSchema>;
 
 export const UpdateTakeItDownPageCopyInputSchema = z.object({
-  strings: z.record(z.string().min(1).max(128), z.string().min(1).max(8000)),
+  strings: z.record(z.string().min(1).max(128), z.string().min(1).max(MAX_TAKE_IT_DOWN_COPY_LENGTH)),
 }).strict().refine(
   (data) => {
     const count = Object.keys(data.strings).length;
@@ -133,7 +145,7 @@ export const UpdateAppConfigInputSchema = z.object({
   data: z.object({
     appVersion: z.string().min(1).max(64).optional(),
     maintenanceMode: z.boolean().optional(),
-    maintenanceMessage: z.string().max(2000).optional(),
+    maintenanceMessage: z.string().max(MAX_MAINTENANCE_MESSAGE_LENGTH).optional(),
     registrationEnabled: z.boolean().optional(),
     // Runtime abuse throttle: 0 < m <= 1 (tighten-only; 1 = no throttle).
     rateLimitMultiplier: z.number().gt(0).max(1).optional(),
@@ -236,7 +248,7 @@ export type RestoreWorkRealmInput = z.infer<typeof RestoreWorkRealmInputSchema>;
 // The `requireWorkProjectRetitle` / `requireWorkRealmRetitle` callables share this base
 // `{ reason }` shape and each `.extend(...)` it with its own id field at parse time.
 export const RequireRetitleInputSchema = z.object({
-  reason: z.string().min(1).max(500),
+  reason: z.string().min(1).max(MAX_REQUIRE_RETITLE_REASON_LENGTH),
 }).strict();
 export type RequireRetitleInput = z.infer<typeof RequireRetitleInputSchema>;
 
@@ -334,7 +346,7 @@ export const NormalReportInputSchema = z
     resolutionSummary: z.string().trim().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
     actions: z.array(StagedActionSchema).max(16).default([]),
     userFacingReasonCode: z.string().trim().min(1).max(128).optional(),
-    userFacingReasonDetail: z.string().trim().max(2000).optional(),
+    userFacingReasonDetail: z.string().trim().max(MAX_USER_FACING_REASON_DETAIL_LENGTH).optional(),
     adminNote: z.string().trim().max(MAX_SAFETY_ADMIN_NOTE_LENGTH).optional(),
   })
   .strict();

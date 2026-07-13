@@ -6,6 +6,7 @@ import {
   USERNAME_REGEX,
   MAX_ARTISAN_LOCATION_LENGTH,
   MAX_INTERNAL_REASON_LENGTH,
+  MAX_USER_SEARCH_QUERY_LENGTH,
 } from '../constants/business.js';
 
 export const AcceptSquareStreetzAgreementsInputSchema = z.object({}).strict();
@@ -128,7 +129,7 @@ export type UpgradeAccountToAdultInput = z.infer<typeof UpgradeAccountToAdultInp
 // displayName). Only the trimmed query string is validated here; authz (admin/jr-admin)
 // lives in the callable.
 export const SearchPublicUsersInputSchema = z.object({
-  query: z.string().trim().min(1).max(100),
+  query: z.string().trim().min(1).max(MAX_USER_SEARCH_QUERY_LENGTH),
 }).strict();
 export type SearchPublicUsersInput = z.infer<typeof SearchPublicUsersInputSchema>;
 

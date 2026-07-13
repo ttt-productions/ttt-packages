@@ -93,6 +93,61 @@ export const MAX_REPORT_NARRATIVE_LENGTH = 4000;
 /** The frozen report-time captured text snapshot (edit-to-evade guard; NO PII). */
 export const MAX_REPORT_SNAPSHOT_TEXT_LENGTH = 4000;
 
+// --- Admin console config-content text caps ---
+// Every number the system uses lives HERE — even a field only one surface consumes
+// today, because any future client (TV / phone / admin app) reads ttt-core.
+
+export const MAX_FUTURE_PLAN_TITLE_LENGTH = 200;
+export const MAX_FUTURE_PLAN_DESCRIPTION_LENGTH = 4000;
+export const MAX_PLATFORM_RULE_TITLE_LENGTH = 200;
+export const MAX_PLATFORM_RULE_DESCRIPTION_LENGTH = 4000;
+export const MAX_AGREEMENT_POINT_LENGTH = 2000;
+export const MAX_CONTENT_PAGE_HEADING_LENGTH = 300;
+export const MAX_CONTENT_PAGE_BODY_LENGTH = 20000;
+export const MAX_TAKE_IT_DOWN_COPY_LENGTH = 8000;
+export const MAX_MAINTENANCE_MESSAGE_LENGTH = 2000;
+
+/** Admin notes on a content-appeal review (reviewContentAppeal). */
+export const MAX_APPEAL_REVIEW_NOTES_LENGTH = 2000;
+
+/** Admin reason on a Work/Realm forced-retitle remedy. */
+export const MAX_REQUIRE_RETITLE_REASON_LENGTH = 500;
+
+/** Optional user-facing DETAIL text on a normal-report resolution. */
+export const MAX_USER_FACING_REASON_DETAIL_LENGTH = 2000;
+
+/** Admin broadcast / user notification message body. */
+export const MAX_NOTIFICATION_MESSAGE_LENGTH = 2000;
+
+/** Admin user-search query input. */
+export const MAX_USER_SEARCH_QUERY_LENGTH = 100;
+
+// --- NCII / child-safety statutory + operator text caps ---
+
+/** Operator reason on the admin "mark as NCII linked evidence" intake. */
+export const MAX_NCII_EVIDENCE_REASON_LENGTH = 1000;
+
+/** Operator written rationale on a TAKE IT DOWN validity decision (immutable row). */
+export const MAX_NCII_RATIONALE_LENGTH = 4000;
+
+/** Requester's statement of nonconsent (statutory intake — in-app and no-login). */
+export const MAX_NCII_NONCONSENT_STATEMENT_LENGTH = 4000;
+
+/** Typed-name electronic signature on a statutory request. */
+export const MAX_NCII_SIGNED_NAME_LENGTH = 256;
+
+/** Requester's optional supporting facts (statutory intake). */
+export const MAX_NCII_SUPPORTING_FACTS_LENGTH = 8000;
+
+/** Bounded, non-sensitive summary on an NCII request action row. */
+export const MAX_NCII_ACTION_SUMMARY_LENGTH = 280;
+
+/** Operator description of a registered evidence artifact (e.g. portal screenshot). */
+export const MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH = 500;
+
+/** Operator proof note on a manual NCMEC portal filing. */
+export const MAX_NCMEC_PORTAL_PROOF_TEXT_LENGTH = 2000;
+
 /** Maximum length for a feedback suggestion. */
 export const MAX_FEEDBACK_SUGGESTION_LENGTH = 100;
 

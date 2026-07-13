@@ -70,6 +70,9 @@ export const MAX_CHAPTER_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
  *  the ONE mode-varied text limit (DJ 2026-07-13); the flip raises it automatically. */
 export const MAX_CHAPTER_CONTENT_LENGTH = ACTIVE_LIMITS.workProject.maxChapterContentLength;
 
+/** Chapter-body EXCERPT length for preview rows (hall reading view chapter list). */
+export const CHAPTER_EXCERPT_LENGTH = 180;
+
 /** Maximum number of tracks a Tunes workProject can have. Mode-varied. */
 export const MAX_TUNE_TRACKS = ACTIVE_LIMITS.workProject.maxTuneTracks;
 

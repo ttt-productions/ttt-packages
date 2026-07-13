@@ -1,5 +1,12 @@
 import { z } from 'zod';
 import { ReportableItemTypeSchema, NciiMinorAssessmentSchema } from '../doc-schemas/safety/foundation.js';
+import {
+  MAX_NCII_EVIDENCE_REASON_LENGTH,
+  MAX_NCII_RATIONALE_LENGTH,
+  MAX_NCII_NONCONSENT_STATEMENT_LENGTH,
+  MAX_NCII_SIGNED_NAME_LENGTH,
+  MAX_NCII_SUPPORTING_FACTS_LENGTH,
+} from '../constants/business.js';
 
 // NCII / TAKE IT DOWN callable-input schemas. Cross-boundary contracts for the
 // `functions/src/ncii/` callables — moved here from local `functions/` definitions so the
@@ -50,7 +57,7 @@ export const MarkNciiEvidenceInputSchema = z.object({
   reportedItemId: z.string().min(1),
   parentItemId: z.string().min(1).optional(),
   reportedUserId: z.string().min(1).optional(),
-  reason: z.string().trim().max(1000).optional(),
+  reason: z.string().trim().max(MAX_NCII_EVIDENCE_REASON_LENGTH).optional(),
 }).strict();
 export type MarkNciiEvidenceInput = z.infer<typeof MarkNciiEvidenceInputSchema>;
 
@@ -86,7 +93,7 @@ export const DecideTakeItDownValidityInputSchema = z.object({
     .string()
     .trim()
     .min(10, 'A substantive rationale is required for a validity decision.')
-    .max(4000),
+    .max(MAX_NCII_RATIONALE_LENGTH),
   /** Explicit typed confirmation (interim control until the passkey profile lands). */
   confirmation: z.literal('I confirm this TAKE IT DOWN validity decision'),
 }).strict();
@@ -102,13 +109,13 @@ export const SubmitInAppNciiRequestInputSchema = z
     itemType: ReportableItemTypeSchema,
     reportedItemId: z.string().min(1).max(256),
     parentItemId: z.string().min(1).max(256).optional(),
-    nonconsentStatement: z.string().min(1).max(4000),
+    nonconsentStatement: z.string().min(1).max(MAX_NCII_NONCONSENT_STATEMENT_LENGTH),
     /** Typed-name electronic signature. */
-    signedName: z.string().min(1).max(256),
+    signedName: z.string().min(1).max(MAX_NCII_SIGNED_NAME_LENGTH),
     goodFaithCertification: z.literal(true),
     contactEmail: z.string().email().max(320).optional(),
     contactPhone: z.string().min(3).max(64).optional(),
-    supportingFacts: z.string().max(8000).default(''),
+    supportingFacts: z.string().max(MAX_NCII_SUPPORTING_FACTS_LENGTH).default(''),
   })
   .strict()
   // At least one contact method — the form prefills the account email but allows an override.

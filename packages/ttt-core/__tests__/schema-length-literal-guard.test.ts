@@ -32,24 +32,26 @@ import { CHARTER_LIMITS, FULL_LIMITS, ACTIVE_LIMITS } from '../src/constants/app
 const PKG_ROOT = path.resolve(__dirname, '..');
 const SCANNED_DIRS = ['src/schemas', 'src/doc-schemas'];
 
-/** Reviewed structural `.max(<digits>)` literals per file (sorted ascending).
- *  Matches in comments count too — a comment asserting a stale number is drift. */
+/** Reviewed STRUCTURAL `.max(<digits>)` literals per file (sorted ascending) — opaque-id
+ *  caps, array/fan-out counts, URL 2048, RFC email 320, calendar month/day, 0–1 ratios.
+ *  Every user/admin-facing TEXT field bound derives from a constants/ export; none are
+ *  allowed here. Matches in comments count too — a stale number in a comment is drift. */
 const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
   'src/schemas/admin.ts': [
-    1, 16, 16, 32, 64, 128, 128, 128, 128, 128, 128, 200, 200, 200, 200, 300, 300, 300,
-    500, 500, 2000, 2000, 2000, 2000, 2048, 2048, 2048, 4000, 4000, 8000, 20000,
+    1, 16, 16, 32, 64, 128, 128, 128, 128, 128, 128, 200, 200, 300, 300, 500,
+    2048, 2048, 2048,
   ],
   'src/schemas/chat.ts': [20, 20, 64, 64, 128, 128, 500, 500],
   'src/schemas/hall-library.ts': [64],
-  'src/schemas/ncii.ts': [64, 256, 256, 256, 256, 256, 256, 320, 1000, 4000, 4000, 8000],
-  'src/schemas/notification.ts': [64, 128, 2000, 2000],
-  'src/schemas/safety.ts': [200, 500, 2000],
+  'src/schemas/ncii.ts': [64, 256, 256, 256, 256, 256, 320],
+  'src/schemas/notification.ts': [64, 128, 2000],
+  'src/schemas/safety.ts': [200],
   'src/schemas/social.ts': [128, 128],
   'src/schemas/uploads.ts': [200],
-  'src/schemas/users.ts': [12, 12, 31, 31, 100],
+  'src/schemas/users.ts': [12, 12, 31, 31],
   'src/schemas/utility.ts': [64, 64, 64, 128, 500, 500],
   'src/doc-schemas/ncii/holds.ts': [16],
-  'src/doc-schemas/ncii/requests.ts': [16, 16, 16, 280],
+  'src/doc-schemas/ncii/requests.ts': [16, 16, 16],
   'src/doc-schemas/safety/case.ts': [32],
   'src/doc-schemas/safety/evidence.ts': [32, 64, 64, 256],
   'src/doc-schemas/safety/holds.ts': [32, 64, 256],
