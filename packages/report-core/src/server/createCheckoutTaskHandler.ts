@@ -3,6 +3,7 @@ import type {
   ServerReportCoreConfig,
   AdminAuthConfig,
   OnAuditEvent,
+  ServerDocRef,
 } from './types.js';
 import type { CheckoutTaskRequest } from '../schemas/index.js';
 
@@ -13,6 +14,16 @@ export interface CheckoutTaskHandlerConfig {
   onAuditEvent?: OnAuditEvent;
   logger?: { info: (...args: unknown[]) => void; error: (...args: unknown[]) => void };
 }
+
+/**
+ * Query→claim rounds attempted before reporting contention. Candidate discovery runs
+ * OUTSIDE the transaction: a range query inside it takes a range lock over the whole
+ * pending queue, so every concurrent status flip (any checkout or release) becomes a
+ * transaction conflict and all admin queue mutations serialize. Each round re-queries,
+ * then claims the specific candidate doc with an in-transaction status re-check —
+ * doc-level conflicts only.
+ */
+const MAX_CLAIM_ROUNDS = 5;
 
 /**
  * Factory that returns the handler for the checkoutTask callable function.
@@ -64,19 +75,24 @@ export function createCheckoutTaskHandler({
       throw new Error('Invalid task type specified.');
     }
 
-    const now = Date.now();
-    const expiresAt = now + queueConfig.defaultCheckoutMinutes * 60 * 1000;
+    /**
+     * Claim ONE specific task doc in a doc-level transaction, re-checking its status
+     * inside the transaction. `onConflict: 'throw'` (the specificTaskId path) surfaces
+     * the precise rejection to the caller; `onConflict: 'skip'` (the queue path)
+     * returns null so the caller re-queries for the next candidate.
+     */
+    const claimTask = (
+      taskRef: ServerDocRef,
+      opts: { onConflict: 'throw' | 'skip' },
+    ): Promise<Record<string, unknown> | null> =>
+      db.runTransaction(async (transaction) => {
+        const now = Date.now();
 
-    return db.runTransaction(async (transaction) => {
-      const tasksRef = db.collection(config.collections.adminTasks);
-      let taskDoc;
-      let taskRef;
-
-      if (specificTaskId) {
-        taskRef = tasksRef.doc(specificTaskId);
-        taskDoc = await transaction.get(taskRef);
+        // ── READS (all reads must happen before any writes in a Firestore transaction) ──
+        const taskDoc = await transaction.get(taskRef);
 
         if (!taskDoc.exists) {
+          if (opts.onConflict === 'skip') return null;
           throw new Error('The requested task could not be found.');
         }
 
@@ -98,58 +114,58 @@ export function createCheckoutTaskHandler({
           (status === 'checkedOut' || status === 'workLater') && !lockActive;
 
         if (status !== 'pending' && !stealableExpired) {
+          if (opts.onConflict === 'skip') return null;
           if (lockActive) {
             throw new Error('This task is already checked out by another admin.');
           }
           // completed / resolved / unknown terminal — nothing to check out.
           throw new Error('This task has already been resolved.');
         }
-      } else {
-        // Find highest-priority pending task
-        const pendingQuery = tasksRef
-          .where('taskType', '==', taskType)
-          .where('status', '==', 'pending')
-          .orderBy('priority', 'desc')
-          .orderBy('createdAt', 'asc')
-          .limit(1);
+        if (opts.onConflict === 'skip' && lockActive) {
+          // Queue candidate stolen between the query and this transaction.
+          return null;
+        }
 
-        const pendingSnap = await transaction.get(pendingQuery);
+        // Fetch original document (must read before any writes in the transaction)
+        const originalDocRef = db.doc(taskData.originalPath as string);
+        const originalDoc = await transaction.get(originalDocRef);
 
-        if (!pendingSnap.empty) {
-          taskDoc = pendingSnap.docs[0];
-        } else {
-          // Try expired checked-out tasks
-          const expiredQuery = tasksRef
-            .where('taskType', '==', taskType)
-            .where('status', '==', 'checkedOut')
-            .where('checkoutDetails.expiresAt', '<', now)
-            .orderBy('checkoutDetails.expiresAt', 'asc')
-            .limit(1);
-
-          const expiredSnap = await transaction.get(expiredQuery);
-          if (!expiredSnap.empty) {
-            taskDoc = expiredSnap.docs[0];
-          } else {
-            throw new Error('No available tasks in this queue.');
+        // Audit auto-release if previously checked out
+        if (taskData.checkoutDetails) {
+          const prevCheckout = taskData.checkoutDetails as Record<string, unknown>;
+          if (onAuditEvent) {
+            await onAuditEvent(
+              {
+                action: 'auto_released',
+                adminUserId: prevCheckout.userId as string,
+                taskType: taskData.taskType as string,
+                taskId: taskData.taskId as string,
+                timestamp: now,
+              },
+              transaction,
+            );
           }
         }
-        taskRef = taskDoc.ref;
-      }
 
-      const taskData = taskDoc!.data()!;
+        const expiresAt = now + queueConfig.defaultCheckoutMinutes * 60 * 1000;
+        const checkoutDetails = {
+          userId,
+          checkedOutAt: now,
+          expiresAt,
+          workLaterUntil: null,
+        };
 
-      // Fetch original document (must read before any writes in the transaction)
-      const originalDocRef = db.doc(taskData.originalPath as string);
-      const originalDoc = await transaction.get(originalDocRef);
+        // ── WRITES (no more reads after this point) ──
+        transaction.update(taskRef, {
+          status: 'checkedOut',
+          checkoutDetails,
+        });
 
-      // Audit auto-release if previously checked out
-      if (taskData.checkoutDetails) {
-        const prevCheckout = taskData.checkoutDetails as Record<string, unknown>;
         if (onAuditEvent) {
           await onAuditEvent(
             {
-              action: 'auto_released',
-              adminUserId: prevCheckout.userId as string,
+              action: 'checkout',
+              adminUserId: userId,
               taskType: taskData.taskType as string,
               taskId: taskData.taskId as string,
               timestamp: now,
@@ -157,49 +173,65 @@ export function createCheckoutTaskHandler({
             transaction,
           );
         }
-      }
 
-      const checkoutDetails = {
-        userId,
-        checkedOutAt: now,
-        expiresAt,
-        workLaterUntil: null,
-      };
-
-      transaction.update(taskRef!, {
-        status: 'checkedOut',
-        checkoutDetails,
+        return {
+          success: true,
+          task: {
+            id: taskDoc.id,
+            taskType: taskData.taskType,
+            taskId: taskData.taskId,
+            originalPath: taskData.originalPath,
+            summary: taskData.summary,
+            priority: taskData.priority,
+            checkedOutAt: now,
+            expiresAt,
+            status: 'checkedOut',
+            checkoutDetails,
+            itemData: originalDoc.exists ? originalDoc.data() : null,
+          },
+        };
       });
 
-      if (onAuditEvent) {
-        await onAuditEvent(
-          {
-            action: 'checkout',
-            adminUserId: userId,
-            taskType: taskData.taskType as string,
-            taskId: taskData.taskId as string,
-            timestamp: now,
-          },
-          transaction,
-        );
+    const tasksRef = db.collection(config.collections.adminTasks);
+
+    if (specificTaskId) {
+      // Doc-level transaction on the named task; the status guard throws the precise error.
+      return (await claimTask(tasksRef.doc(specificTaskId), { onConflict: 'throw' }))!;
+    }
+
+    for (let round = 0; round < MAX_CLAIM_ROUNDS; round++) {
+      // Candidate discovery — OUTSIDE the transaction (see MAX_CLAIM_ROUNDS).
+      // Find highest-priority pending task
+      const pendingSnap = await tasksRef
+        .where('taskType', '==', taskType)
+        .where('status', '==', 'pending')
+        .orderBy('priority', 'desc')
+        .orderBy('createdAt', 'asc')
+        .limit(1)
+        .get();
+
+      let candidateRef = pendingSnap.empty ? undefined : pendingSnap.docs[0].ref;
+
+      if (!candidateRef) {
+        // Try expired checked-out tasks
+        const expiredSnap = await tasksRef
+          .where('taskType', '==', taskType)
+          .where('status', '==', 'checkedOut')
+          .where('checkoutDetails.expiresAt', '<', Date.now())
+          .orderBy('checkoutDetails.expiresAt', 'asc')
+          .limit(1)
+          .get();
+        candidateRef = expiredSnap.empty ? undefined : expiredSnap.docs[0].ref;
       }
 
-      return {
-        success: true,
-        task: {
-          id: taskDoc!.id,
-          taskType: taskData.taskType,
-          taskId: taskData.taskId,
-          originalPath: taskData.originalPath,
-          summary: taskData.summary,
-          priority: taskData.priority,
-          checkedOutAt: now,
-          expiresAt,
-          status: 'checkedOut',
-          checkoutDetails,
-          itemData: originalDoc.exists ? originalDoc.data() : null,
-        },
-      };
-    });
+      if (!candidateRef) {
+        throw new Error('No available tasks in this queue.');
+      }
+
+      const result = await claimTask(candidateRef, { onConflict: 'skip' });
+      if (result) return result;
+    }
+
+    throw new Error('The task queue is busy right now — please try again.');
   };
 }
