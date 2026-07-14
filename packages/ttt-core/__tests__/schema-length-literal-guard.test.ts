@@ -37,8 +37,10 @@ const SCANNED_DIRS = ['src/schemas', 'src/doc-schemas'];
  *  Every user/admin-facing TEXT field bound derives from a constants/ export; none are
  *  allowed here. Matches in comments count too — a stale number in a comment is drift. */
 const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
+  // Two extra 200s (2026-07-13): the dead-letter docId structural bound (nested-path
+  // ids) and the getDeadLetters per-ledger row cap — structural, not business limits.
   'src/schemas/admin.ts': [
-    1, 16, 16, 32, 64, 128, 128, 128, 128, 128, 128, 200, 200, 300, 300, 500,
+    1, 16, 16, 32, 64, 128, 128, 128, 128, 128, 128, 200, 200, 200, 200, 300, 300, 500,
     2048, 2048, 2048,
   ],
   'src/schemas/chat.ts': [20, 20, 64, 64, 128, 128, 500, 500],

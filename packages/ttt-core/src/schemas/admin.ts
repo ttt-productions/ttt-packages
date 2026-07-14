@@ -427,4 +427,49 @@ export const ReopenSafetyCaseInputSchema = z
   .strict();
 export type ReopenSafetyCaseInput = z.infer<typeof ReopenSafetyCaseInputSchema>;
 
+// ---------------------------------------------------------------------------
+// Dead-letter operations — adminReplayDeadLetter + getDeadLetters (Ops Repairs).
+// ---------------------------------------------------------------------------
+
+/** Every ledger the dead-letter replay callable supports. `hallSubItemEdgeSync`
+ * rows live at a 4-segment nested path, so their docId IS the full document path
+ * (the callable splits it); every other lane is the flat [collection, docId] tuple. */
+export const DeadLetterCollectionSchema = z.enum([
+  'chatSyncEvents',
+  'chatAdminActionCommands',
+  'notificationDeliveries',
+  'chatMessageOutbox',
+  'chatSyncFanoutJobs',
+  'mediaAssets',
+  'quarantineSagaJobs',
+  'nciiRemovalJobs',
+  'safetyEvidenceJobs',
+  'accountActionCommands',
+  'activeReportGroups',
+  'hallSubItemEdgeSync',
+]);
+export type DeadLetterCollection = z.infer<typeof DeadLetterCollectionSchema>;
+
+export const AdminReplayDeadLetterInputSchema = z
+  .object({
+    collection: DeadLetterCollectionSchema,
+    // Structural id bound (hallSubItemEdgeSync docIds are full nested paths).
+    docId: z.string().min(1).max(200),
+    reason: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
+    dryRun: z.boolean().optional(),
+  })
+  .strict();
+export type AdminReplayDeadLetterInput = z.infer<typeof AdminReplayDeadLetterInputSchema>;
+
+export const GetDeadLettersInputSchema = z
+  .object({
+    /** Restrict to one ledger; absent = all supported ledgers. */
+    collection: DeadLetterCollectionSchema.optional(),
+    /** Per-ledger row cap (the callable's own ceiling applies regardless). */
+    limit: z.number().int().min(1).max(200).optional(),
+  })
+  .strict()
+  .nullish();
+export type GetDeadLettersInput = z.infer<typeof GetDeadLettersInputSchema>;
+
 

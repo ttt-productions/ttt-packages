@@ -150,6 +150,14 @@ Build generic Tier 0 packages first, then Tier 1 (including the now-pure `chat-c
 
 `scripts/release-all.sh` releases all 23 packages in the same dependency-safe order: a package publishes only after every internal `@ttt-productions/*` dependency it consumes. `chat-react` releases after `chat-core` and the UI tier; `ttt-core` after `report-core`/`audit-core`/the schema packages. Internal deps are authored `"*"` in source for workspace dev and rewritten to **caret ranges** (`^x.y.z` — across `dependencies`, `devDependencies`, AND `peerDependencies`) at pack time in CI (`scripts/pin-internal-deps.mjs`, invoked from `.github/workflows/publish.yml`); published manifests never contain `"*"` and never an exact internal pin. Caret (not exact) means bumping one package by a patch/minor does **not** force every dependent to be republished in lockstep, so a single-package patch release installs cleanly in consumers (caret on a 0.x version still locks the minor, so a breaking minor/major is not auto-adopted). The user handles version bumps and publishing.
 
+## Version bump selection (get this right — a wrong bump breaks the consuming install)
+
+All packages are 0.x, and published internal peer ranges are carets (`^0.11.0`), which on 0.x **lock the minor**. Therefore:
+
+- **`patch` is the default for every non-breaking change** — additive exports, new schemas/constants/modules, fixes. Dependents' existing `^0.x.y` peer ranges accept it; nothing else needs republishing.
+- **`minor` is ONLY for a deliberate breaking contract change.** On 0.x it escapes every dependent's caret peer range, so the consuming app's `npm install` ERESOLVE-fails until every package that **directly declares** the bumped package (grep `packages/*/package.json` for its name) is republished in the same release, deps-first. Never hand off a `minor` publish without that dependent list in the same command.
+- "It adds new capability" is NOT a reason for `minor` — additive = `patch` here, always.
+
 ## Release and adoption workflow
 
 - Keep package-source changes and consuming-app adoption separate.
