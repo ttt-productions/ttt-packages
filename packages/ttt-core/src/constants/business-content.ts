@@ -37,6 +37,15 @@ export const MODERATION_CLEAR_PLACEHOLDER =
   'Removed by moderation — awaiting an update by the steward.';
 
 /**
+ * Default REASON strings recorded on a moderation action when the admin supplies no
+ * user-facing reason. Distinct from MODERATION_CLEAR_PLACEHOLDER (which is written INTO
+ * cleared content fields) — these are the recorded justification text. Canonical wording;
+ * consumers (resolveAdminTask's forceRetitle / chat-delete actions) never inline them.
+ */
+export const MODERATION_DEFAULT_REMOVAL_REASON = 'Removed by moderation.';
+export const MODERATION_DEFAULT_RETITLE_REASON = 'Title/description removed by moderation.';
+
+/**
  * CANONICAL clearable text-field map for the per-field moderation TEXT-CLEAR remedy.
  * Cross-boundary single owner: the admin field-picker offers this set per surface and
  * the backend clear runner validates + normalizes caller-supplied fields against it.
