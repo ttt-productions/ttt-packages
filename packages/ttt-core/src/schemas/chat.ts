@@ -56,6 +56,18 @@ export const SendGuildChatMessageInputSchema = z.object({
 }).strict();
 export type SendGuildChatMessageInput = z.infer<typeof SendGuildChatMessageInputSchema>;
 
+// Wire result contract for the sendGuildChatMessage callable — what the CLIENT relies on.
+// The backend core's internal result type extends this with composition-only
+// inline-materialize fields (backend↔backend contract; see runSendGuildChatMessage) —
+// those extra fields may appear on the wire and are not part of the client contract,
+// so this schema is deliberately non-strict.
+export const SendGuildChatMessageResultSchema = z.object({
+  success: z.literal(true),
+  messageId: z.string().min(1),
+  messageDocPath: z.string().min(1),
+});
+export type SendGuildChatMessageResult = z.infer<typeof SendGuildChatMessageResultSchema>;
+
 // Subject/initial-text share the admin-dispatch caps (the "contact admin" composer
 // enforces them) — the old MAX_CHAT_MESSAGE_LENGTH bound let a 4000-char SUBJECT through.
 export const StartAdminSupportThreadInputSchema = z.object({

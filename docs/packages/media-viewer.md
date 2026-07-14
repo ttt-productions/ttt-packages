@@ -13,6 +13,14 @@ Generic media display package.
 
 The package does not own upload, moderation, or TTT-specific media origins. It does not know about Cloudflare Workers, `x-ttt-deny` headers, Firebase session cookies, or any TTT business concept. All domain-specific behavior is injected via a `MediaDiagnosticAdapter`.
 
+## Sizing contract — the parent owns the size
+
+`MediaPreview` / `MediaViewer` **fill their parent**: the wrapper and the inner media element carry inline `width: 100%; height: 100%` (with `max-width/max-height: 100%` on the element). Consequences for consumers:
+
+- The component always expands to its containing box. To bound it, the **call site must own the size** — wrap it in a container with definite/max dimensions (and `overflow: hidden` where clipping is intended).
+- Because inline styles win over classes, `width`/`height` utilities passed via `className` are ignored; only `max-*` utilities take effect, and only reliably on the wrapper. Passing sizing classes instead of providing a sized parent is a consumer bug.
+- This fill-the-slot behavior is deliberate (feed cells, cover slots, thumbnails all size the slot, not the media). A surface that has no natural slot (admin/detail panes) must introduce one.
+
 ---
 
 ## Recovery state machine

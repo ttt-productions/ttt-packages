@@ -35,7 +35,10 @@ const GUARDED: Record<string, { owner: string; allowed: string[] }> = {
   },
   adminWorkMessage: {
     owner: 'ttt-core/src/doc-schemas/safety/foundation.ts',
-    allowed: [],
+    // The NCII intake derivations switch exhaustively over TargetLocatorV1['kind'] in
+    // normalizedTargetKey / surfaceLabelFor — a missing/typo'd case fails the exhaustive
+    // return, so the literals are compiler-checked derived usages.
+    allowed: ['ttt-core/src/safety/ncii-intake-derivations.ts'],
   },
   'admin-work-message': {
     owner: 'ttt-core/src/doc-schemas/safety/foundation.ts',
