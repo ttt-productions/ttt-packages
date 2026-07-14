@@ -39,8 +39,12 @@ const GUARDED: Record<string, { owner: string; allowed: string[] }> = {
   },
   'admin-work-message': {
     owner: 'ttt-core/src/doc-schemas/safety/foundation.ts',
-    // Label/multiplier maps are Record<ReportableItemType, …> — compiler-checked.
-    allowed: ['ttt-core/src/report/report-config-values.ts'],
+    // Label/multiplier maps are Record<ReportableItemType, …> and the content-action
+    // target tuple carries `satisfies readonly ReportableItemType[]` — compiler-checked.
+    allowed: [
+      'ttt-core/src/report/report-config-values.ts',
+      'ttt-core/src/schemas/admin.ts',
+    ],
   },
   possibleMinor: {
     owner: 'ttt-core/src/doc-schemas/safety/foundation.ts',

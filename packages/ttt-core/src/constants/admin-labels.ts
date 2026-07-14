@@ -9,6 +9,7 @@
 import type { UserAccountStatus } from '../doc-schemas/user.js';
 import type { ReportDisposition } from '../doc-schemas/safety/foundation.js';
 import type { BroadcastAudienceSelector } from '../schemas/notification.js';
+import type { DeadLetterCollection } from '../schemas/admin.js';
 
 /** Moderation status labels (user-management view, status badges). */
 export const USER_ACCOUNT_STATUS_LABELS: Record<UserAccountStatus, string> = {
@@ -24,6 +25,22 @@ export const BROADCAST_AUDIENCE_KIND_LABELS: Record<BroadcastAudienceSelector['k
   explicitUids: 'Specific users (paste uids)',
   workMembers: "A Work's guild members",
   realmMembers: "A Realm's members",
+};
+
+/** Human labels for the dead-letter replay ledgers (Ops Repairs dead-letter table). */
+export const DEAD_LETTER_COLLECTION_LABELS: Record<DeadLetterCollection, string> = {
+  chatSyncEvents: 'Chat sync event',
+  chatAdminActionCommands: 'Chat moderation command',
+  notificationDeliveries: 'Notification delivery',
+  chatMessageOutbox: 'Chat message publish',
+  chatSyncFanoutJobs: 'Chat access fanout',
+  mediaAssets: 'Media authority sync',
+  quarantineSagaJobs: 'Quarantine saga',
+  nciiRemovalJobs: 'NCII removal',
+  safetyEvidenceJobs: 'Safety evidence job',
+  accountActionCommands: 'Account safety action',
+  activeReportGroups: 'Report edge sync',
+  hallSubItemEdgeSync: 'Hall sub-item edge sync',
 };
 
 /** Operator-settable report dispositions with their console copy. 'undetermined' is the

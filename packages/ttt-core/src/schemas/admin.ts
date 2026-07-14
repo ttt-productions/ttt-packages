@@ -9,6 +9,7 @@ import {
 import {
   ReportDispositionSchema,
   ReportDispositionReasonCodeSchema,
+  type ReportableItemType,
 } from '../doc-schemas/safety/foundation.js';
 import {
   ChildSafetyAccountRoleSchema,
@@ -275,7 +276,10 @@ const CONTENT_ACTION_TARGET_TYPES = [
   'hall-library-item',
   'craft-skill',
   'hall-library-sub-item',
-] as const;
+  // Work-party admin correspondence message — single-doc `hidden` flip via
+  // `runModerateReportedContent` (tombstone rendering in the thread views).
+  'admin-work-message',
+] as const satisfies readonly ReportableItemType[];
 
 const ContentActionSchema = z
   .object({

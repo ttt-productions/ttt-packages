@@ -37,6 +37,9 @@ export type ChatMessageV1 = {
   attachment?: ChatAttachment; // single, not array
   replyTo?: ReplyTo;
   isSystemMessage?: boolean;
+  /** Moderation tombstone flag on the stored message (backend-written); consumers
+   * render a tombstone instead of the content when true. */
+  hidden?: boolean;
   meta?: Record<string, unknown>;
 };
 

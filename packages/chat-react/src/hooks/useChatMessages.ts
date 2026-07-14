@@ -54,6 +54,9 @@ function mapMsg(
     attachment: d.attachment ?? undefined,
     replyTo,
     isSystemMessage: d.isSystemMessage ?? undefined,
+    // Moderation tombstone flag (backend-written) — carried through so renderers
+    // can tombstone the content.
+    hidden: d.hidden ?? undefined,
     meta: d.meta,
   };
 }
