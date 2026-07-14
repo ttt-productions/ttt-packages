@@ -8,6 +8,7 @@ export * from './commissions.js';
 export * from './messaging.js';
 export * from './moderation.js';
 export * from './admin.js';
+export * from './admin-ops.js';
 export * from './system.js';
 export * from './audit.js';
 export type { InviteSource, InviteSourceType, RealmCreationMode } from '../schemas/work-project-management.js';

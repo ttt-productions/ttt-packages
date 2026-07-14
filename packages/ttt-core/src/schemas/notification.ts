@@ -30,11 +30,15 @@ import {
   MAX_THRESHOLD_REVIEW_NOTES_LENGTH,
   MAX_HALL_CHANGE_REQUEST_REASON_LENGTH,
   MAX_NOTIFICATION_MESSAGE_LENGTH,
+  MAX_BROADCAST_EXPLICIT_UIDS,
 } from '../constants/business.js';
+import { HallSubItemTypeSchema } from '../doc-schemas/content.js';
+import { ReportableItemTypeSchema } from '../doc-schemas/safety/foundation.js';
 
 // String shape atoms specific to notifications.
 const notificationMessageSchema = z.string().min(1).max(MAX_NOTIFICATION_MESSAGE_LENGTH);
-const reportedItemTypeSchema = z.string().min(1).max(64);
+// The canonical reportable-item enum — never an open string (Rule 36).
+const reportedItemTypeSchema = ReportableItemTypeSchema;
 const reportedItemIdSchema = z.string().min(1).max(128);
 const reportIdSchema = z.string().min(1);
 const appealIdSchema = z.string().min(1);
@@ -195,7 +199,7 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     workTitle: titleSchema,
     hallItemId: hallItemIdSchema,
     hallItemTitle: titleSchema,
-    hallSubItemType: z.enum(['chapter', 'track', 'episode']),
+    hallSubItemType: HallSubItemTypeSchema,
   }).strict(),
   // P7 Hall-publish MEMBER job — same Hall-publication fields as the follower type (it describes
   // the SAME publication to the work's members; the work route + "your work was published!" copy
@@ -206,7 +210,7 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     workTitle: titleSchema,
     hallItemId: hallItemIdSchema,
     hallItemTitle: titleSchema,
-    hallSubItemType: z.enum(['chapter', 'track', 'episode']),
+    hallSubItemType: HallSubItemTypeSchema,
   }).strict(),
   // P7 craft-skill publish — points at the artisan whose skills updated. The actor name
   // ("X uploaded new craft skills") + the profile/skills route resolve from `artisanUid` at
@@ -248,9 +252,9 @@ export const BroadcastAudienceSelectorSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('allActiveUsers') }).strict(),
   z.object({
     kind: z.literal('explicitUids'),
-    // ≤2000 uids — the selector's documented audience cap (dedup + serialized-byte
-    // enforcement for work/realm snapshots is app-side).
-    uids: z.array(userIdSchema).min(1).max(2000),
+    // The selector's documented audience cap (dedup + serialized-byte enforcement
+    // for work/realm snapshots is app-side). Derives from the ONE named constant.
+    uids: z.array(userIdSchema).min(1).max(MAX_BROADCAST_EXPLICIT_UIDS),
   }).strict(),
   z.object({
     kind: z.literal('workMembers'),

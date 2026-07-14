@@ -4,6 +4,8 @@ import {
   MAX_AUDITION_TITLE_LENGTH,
   MAX_AUDITION_DESCRIPTION_LENGTH,
   MAX_WORK_PROJECT_STAKE_SHARES,
+  MIN_CURATED_AUDITION_OPTIONS,
+  MAX_CURATED_AUDITION_OPTIONS,
 } from '../constants/business.js';
 
 
@@ -21,7 +23,7 @@ export const CreateWorkProjectAuditionVariablesSchema = z.object({
   // Curated only: the fixed number of creator option videos (2..8) being uploaded as one batch, so
   // the server knows when the whole atomic batch has landed. Required by the callable when mode
   // === 'curated'; ignored for open auditions.
-  expectedOptionCount: z.number().int().min(2).max(8).optional(),
+  expectedOptionCount: z.number().int().min(MIN_CURATED_AUDITION_OPTIONS).max(MAX_CURATED_AUDITION_OPTIONS).optional(),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();

@@ -2,6 +2,12 @@
 // ../types/payments.ts.)
 export type { Mention, MentionType } from '../media/atoms.js';
 import type { Mention } from '../media/atoms.js';
+import type { CraftSkillKind, CraftSkillSourceReference } from '../doc-schemas/user.js';
+import type { ContentMediaKind } from '../doc-schemas/media-assets.js';
+import type { MediaType, AuditionAnnounceKind } from '../doc-schemas/social.js';
+import type { HallSubItemType } from '../doc-schemas/content.js';
+import type { CraftSkillTagId } from '../constants/options.js';
+import type { WorkProjectType } from './content.js';
 
 // --- SquareStreetz Social Media ---
 
@@ -11,32 +17,44 @@ import type { Mention } from '../media/atoms.js';
 /**
  * Serializable subset of SquareStreetz post creation payload.
  * Frontend extends this with `mediaFile?: File` locally.
+ * Every union/allowlist field derives from its ONE canonical declaration (Rule 36) —
+ * never an inline literal union.
  */
 export type SquareStreetzPostPayload = {
   userId: string;
   mentions?: Mention[];
   newMediaAssetId?: string;
-  craftSkill?: { id: string; name: string; mediaAssetId: string; type: 'image' | 'video' | 'audio' };
+  // `tags` (canonical discipline-tag ids), `kind` (attestation kind), and `source`
+  // (the mimicOnTtt original — a user/workProject reference, rendered as a resolvable
+  // mention link) let the NEW_CRAFT_SKILL Streetz announcement describe the craft
+  // WITHOUT the client-supplied file name (`name` = originalFileName — never put a
+  // file name in public post content).
+  craftSkill?: {
+    id: string;
+    name: string;
+    mediaAssetId: string;
+    type: ContentMediaKind;
+    tags?: CraftSkillTagId[];
+    kind?: CraftSkillKind;
+    source?: CraftSkillSourceReference;
+  };
   craftSkillId?: string;
   workProjectTitle?: string;
   workProjectId?: string;
-  workProjectType?: string;
+  workProjectType?: WorkProjectType;
   workProjectDescription?: string;
   workRealmId?: string;
   workRealmTitle?: string;
   hallItemId?: string;
   hallItemTitle?: string;
-  hallSubItemType?: 'chapter' | 'track' | 'episode';
+  hallSubItemType?: HallSubItemType;
   content?: string;
   mediaAssetId?: string;
-  mediaType?: 'image' | 'video' | 'audio' | 'other';
+  mediaType?: MediaType;
   createdAt?: number;
   auditionId?: string;
   commissionListingId?: string;
-  // Discriminates the announcement voice/mention shape for a NEW_AUDITION post: 'work' names the
-  // creating work inline; 'platform' | 'sponsored' name TTT Productions the company instead (no
-  // work mention). Irrelevant for other post types.
-  auditionAnnounceKind?: 'work' | 'platform' | 'sponsored';
+  auditionAnnounceKind?: AuditionAnnounceKind;
 };
 
 export type {
@@ -47,5 +65,3 @@ export type {
   FollowEdge,
   FollowCounter,
 } from '../doc-schemas/social.js';
-
-

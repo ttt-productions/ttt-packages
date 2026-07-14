@@ -113,6 +113,12 @@ export const HALL_LIBRARY_PREFS_CAPS = {
 /** Maximum length for an audition title. */
 export const MAX_AUDITION_TITLE_LENGTH = 150;
 
+/** Curated-audition option-video batch bounds (the fixed 2..8 option count carried
+ * from the Create click through targetInfo/upload-variables to the create core's
+ * re-check). ONE declaration — every `.min()/.max()` derives from these. */
+export const MIN_CURATED_AUDITION_OPTIONS = 2;
+export const MAX_CURATED_AUDITION_OPTIONS = 8;
+
 /** Maximum length for an audition description. */
 export const MAX_AUDITION_DESCRIPTION_LENGTH = 1000;
 

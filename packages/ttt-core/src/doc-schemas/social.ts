@@ -7,7 +7,18 @@ import { z } from 'zod';
 import { MentionSchema } from '../media/atoms.js';
 import { FollowableTargetTypeSchema } from '../schemas/social.js';
 
-const mediaTypeSchema = z.enum(['image', 'video', 'audio', 'other']);
+/** The ONE canonical display/transport media-type family (the 'other' bucket covers
+ * non-previewable kinds). Distinct from the 3-value stored ContentMediaKindSchema
+ * (doc-schemas/media-assets.ts) and media-schemas' generic MediaKindSchema. */
+export const MediaTypeSchema = z.enum(['image', 'video', 'audio', 'other']);
+export type MediaType = z.infer<typeof MediaTypeSchema>;
+const mediaTypeSchema = MediaTypeSchema;
+
+/** Discriminates the announcement voice/mention shape of a NEW_AUDITION Streetz post:
+ * 'work' names the creating work inline; 'platform' | 'sponsored' name TTT Productions
+ * the company instead (no work mention). The ONE declaration of this union. */
+export const AuditionAnnounceKindSchema = z.enum(['work', 'platform', 'sponsored']);
+export type AuditionAnnounceKind = z.infer<typeof AuditionAnnounceKindSchema>;
 
 export const SquareStreetzPostTypeSchema = z.enum([
   'PROFILE_PICTURE_UPDATE',

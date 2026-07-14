@@ -2,6 +2,7 @@
 // part of a feature domain. Reverse-engineered from their backend write sites. Types via z.infer.
 
 import { z } from 'zod';
+import { UserAccountStatusSchema } from './user.js';
 
 // reservedDisplayNames/{displayNameUppercase} — uniqueness claim written in the registerUser
 // transaction; existence == name taken. (functions/src/users/registerUser.ts)
@@ -73,7 +74,7 @@ export const StatusReconcileQueueEntrySchema = z.object({
   enqueuedAt: z.number(),
   lastAttemptAt: z.number().optional(),
   attemptCount: z.number(),
-  targetStatus: z.enum(['active', 'suspended', 'banned']),
+  targetStatus: UserAccountStatusSchema,
   reason: z.literal('postCommitAuthEffectFailed'),
 });
 export type StatusReconcileQueueEntry = z.infer<typeof StatusReconcileQueueEntrySchema>;

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../constants/business.js';
+import { WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 
 // ID atoms — every callable input that includes an ID field uses one of these.
 // Kept as separate constants (not aliases of a generic `idSchema`) so consumers
@@ -33,8 +34,23 @@ export const changeRequestIdSchema = z.string().min(1);
 
 // Action / enum atoms.
 export const addRemoveActionSchema = z.enum(['add', 'remove']);
-export const workProjectTypeSchema = z.enum(['Tales', 'Tunes', 'Television']);
+// Derives from the ONE canonical WORK_PROJECT_TYPE_KEYS (types/content.ts) — never re-declared.
+export const workProjectTypeSchema = z.enum(WORK_PROJECT_TYPE_KEYS);
 export const hallWingTypeSchema = z.enum(['entertainment', 'educational', 'newsPolitical']);
+
+// The ONE canonical guild-invite conversation status set (state machine: pending →
+// accepted (transient, trigger-consumed) → finalized, or pending → declined/cancelled).
+// Lives here (a leaf module) because both the doc schema (doc-schemas/messaging.ts) and
+// the list-invites input (work-project-management.ts) derive from it and those two files
+// import each other's siblings — never re-declare it inline.
+export const guildInviteConversationStatusSchema = z.enum([
+  'pending',
+  'accepted',
+  'declined',
+  'cancelled',
+  'finalized',
+]);
+export type GuildInviteConversationStatus = z.infer<typeof guildInviteConversationStatusSchema>;
 
 // String shape atoms. Length derives from the owning constant — every title alias
 // (tale/tune/tv/chapter/track/episode/commission) resolves to the same value, so the

@@ -7,6 +7,14 @@ import {
   workProjectTypeSchema,
 } from './atoms.js';
 import {
+  ReportDispositionSchema,
+  ReportDispositionReasonCodeSchema,
+} from '../doc-schemas/safety/foundation.js';
+import {
+  ChildSafetyAccountRoleSchema,
+  ChildSafetyAccountSubjectDispositionSchema,
+} from '../doc-schemas/safety/case.js';
+import {
   MAX_WORK_PROJECT_TITLE_LENGTH,
   MAX_ADMIN_DISPATCH_SUBJECT_LENGTH,
   MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH,
@@ -355,14 +363,10 @@ export type ResolveAdminTaskInput = z.infer<typeof NormalReportInputSchema>;
 const SafetyDispositionActionSchema = z
   .object({
     button: z.literal('setReportDisposition'),
-    disposition: z.enum(['reportRequired', 'notRequired', 'correctedNoApparentViolation']),
-    dispositionReasonCode: z.enum([
-      'outOfScopeNotCsea',
-      'basisInvalidatedFalseMatch',
-      'duplicateOfFiledReport',
-      'leDirectedNoReport',
-      'nonReportableSafetyConfirmed',
-    ]),
+    // Derived from the ONE canonical disposition enum — 'undetermined' is the initial
+    // state, never an operator-settable target, so it is excluded (not re-declared).
+    disposition: ReportDispositionSchema.exclude(['undetermined']),
+    dispositionReasonCode: ReportDispositionReasonCodeSchema,
     evidenceRefs: z.array(z.string().min(1)).min(1).max(32),
     expectedRevision: z.number().int().nonnegative(),
   })
@@ -380,8 +384,8 @@ const SafetyAccountActionSchema = z
     targetUid: z.string().min(1),
     reasonInternal: z.string().trim().min(4).max(MAX_INTERNAL_REASON_LENGTH),
     reasonUserFacing: z.string().trim().min(1).max(MAX_USER_FACING_REASON_LENGTH),
-    role: z.enum(['uploader', 'requester', 'distributor', 'questionable']),
-    subjectDisposition: z.enum(['subject', 'questionable', 'excluded']),
+    role: ChildSafetyAccountRoleSchema,
+    subjectDisposition: ChildSafetyAccountSubjectDispositionSchema,
   })
   .strict();
 

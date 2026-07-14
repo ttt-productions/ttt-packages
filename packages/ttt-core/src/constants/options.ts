@@ -81,6 +81,26 @@ export const CRAFT_SKILL_TAG_OPTIONS = [
   'sound-design',
 ] as const;
 
+/** The canonical tag-ID type — every tags field/param derives from this, never `string`. */
+export type CraftSkillTagId = (typeof CRAFT_SKILL_TAG_OPTIONS)[number];
+
+/** The canonical trade-profession ID type. */
+export type TradeProfessionId = (typeof TRADE_PROFESSION_OPTIONS)[number];
+
+/** TRADE_PROFESSION_OPTIONS as a non-empty tuple for `z.enum(...)` consumers — the ONE
+ * cast, here beside the declaration (never re-cast locally in schema files). */
+export const TRADE_PROFESSION_VALUES = TRADE_PROFESSION_OPTIONS as unknown as [
+  TradeProfessionId,
+  ...TradeProfessionId[],
+];
+
+/** The same allowlist as a non-empty tuple for `z.enum(...)` consumers — the ONE cast,
+ * here beside the declaration (schema files import this, never re-cast locally). */
+export const CRAFT_SKILL_TAG_VALUES = CRAFT_SKILL_TAG_OPTIONS as unknown as [
+  CraftSkillTagId,
+  ...CraftSkillTagId[],
+];
+
 /** Human display labels for each craft-skill tag ID. Keyed by the machine-safe ID. */
 export const CRAFT_SKILL_TAG_LABELS: Record<(typeof CRAFT_SKILL_TAG_OPTIONS)[number], string> = {
   'acting': 'Acting',

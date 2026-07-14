@@ -8,6 +8,15 @@ import {
   MAX_INTERNAL_REASON_LENGTH,
   MAX_USER_SEARCH_QUERY_LENGTH,
 } from '../constants/business.js';
+import { UserAccountStatusSchema } from '../doc-schemas/user.js';
+
+/** The ONE composed display-name field validator (length bounds + charset). Every
+ * callable accepting a display name spreads this — never a re-composed copy. */
+export const displayNameSchema = z
+  .string()
+  .min(USERNAME_MIN_LENGTH)
+  .max(USERNAME_MAX_LENGTH)
+  .regex(USERNAME_REGEX);
 
 export const AcceptSquareStreetzAgreementsInputSchema = z.object({}).strict();
 export type AcceptSquareStreetzAgreementsInput = z.infer<typeof AcceptSquareStreetzAgreementsInputSchema>;
@@ -56,11 +65,7 @@ export const MarkNonUsArtisanInterestInputSchema = z.object({
 export type MarkNonUsArtisanInterestInput = z.infer<typeof MarkNonUsArtisanInterestInputSchema>;
 
 export const RegisterUserInputSchema = z.object({
-  displayName: z
-    .string()
-    .min(USERNAME_MIN_LENGTH)
-    .max(USERNAME_MAX_LENGTH)
-    .regex(USERNAME_REGEX),
+  displayName: displayNameSchema,
   agreements: z.object({
     age: z.literal(true),
     nudity: z.literal(true),
@@ -73,7 +78,7 @@ export type RegisterUserInput = z.infer<typeof RegisterUserInputSchema>;
 
 export const SetUserStatusInputSchema = z.object({
   userId: userIdSchema,
-  status: z.enum(['active', 'suspended', 'banned']),
+  status: UserAccountStatusSchema,
   // Required by the callable when status is 'suspended' or 'banned' (shown to the
   // user in their restricted view and recorded on the audit event). Optional here
   // so reinstating to 'active' can omit it; the callable enforces presence.
@@ -93,11 +98,7 @@ export type ForceDisplayNameResetInput = z.infer<typeof ForceDisplayNameResetInp
 // User completes a forced display-name reset by choosing a new name. Only honored while
 // the caller's userProfiles doc has `displayNameResetRequired === true`.
 export const SetMyDisplayNameInputSchema = z.object({
-  displayName: z
-    .string()
-    .min(USERNAME_MIN_LENGTH)
-    .max(USERNAME_MAX_LENGTH)
-    .regex(USERNAME_REGEX),
+  displayName: displayNameSchema,
 }).strict();
 export type SetMyDisplayNameInput = z.infer<typeof SetMyDisplayNameInputSchema>;
 
@@ -105,11 +106,7 @@ export type SetMyDisplayNameInput = z.infer<typeof SetMyDisplayNameInputSchema>;
 // taken name never orphans an auth account. Mirrors the RegisterUser displayName contract
 // (same length + regex). The authoritative claim still happens inside registerUser.
 export const CheckDisplayNameAvailableInputSchema = z.object({
-  displayName: z
-    .string()
-    .min(USERNAME_MIN_LENGTH)
-    .max(USERNAME_MAX_LENGTH)
-    .regex(USERNAME_REGEX),
+  displayName: displayNameSchema,
 }).strict();
 export type CheckDisplayNameAvailableInput = z.infer<typeof CheckDisplayNameAvailableInputSchema>;
 

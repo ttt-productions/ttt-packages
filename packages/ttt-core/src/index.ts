@@ -5,3 +5,5 @@ export * from './utils/index.js';
 export * from './media/index.js';
 export * from './permissions/index.js';
 export * from './ids/index.js';
+export * from './capabilities/index.js';
+export * from './report/index.js';

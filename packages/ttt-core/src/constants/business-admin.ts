@@ -90,6 +90,23 @@ export const MAX_SAFETY_ADMIN_NOTE_LENGTH = 4000;
 /** Reporter free-text narrative/comment (segregated private doc; never on the root). */
 export const MAX_REPORT_NARRATIVE_LENGTH = 4000;
 
+/** The report DIALOG's comment field cap (the client-side compose bound — tighter than
+ * the server narrative cap above, which also absorbs upgrade concatenations). */
+export const MAX_REPORT_COMMENT_LENGTH = 1000;
+
+/** Minimum operator rationale/reason length on safety-console staged actions. */
+export const MIN_SAFETY_RATIONALE_LENGTH = 10;
+
+/** Broadcast explicitUids selector audience cap (schema + composer both derive). */
+export const MAX_BROADCAST_EXPLICIT_UIDS = 2000;
+
+// --- Operator step-up sentinel error codes ---
+// The two backend HttpsError messages the operator TOTP step-up throws; the frontend
+// matches them to open the step-up dialog in ENROLL vs VERIFY mode. ONE declaration —
+// both the callable (functions operatorStepUp.ts) and the frontend hook import these.
+export const STEP_UP_ENROLL_REQUIRED = 'OPERATOR_STEP_UP_ENROLL_REQUIRED';
+export const STEP_UP_REQUIRED = 'OPERATOR_STEP_UP_REQUIRED';
+
 /** The frozen report-time captured text snapshot (edit-to-evade guard; NO PII). */
 export const MAX_REPORT_SNAPSHOT_TEXT_LENGTH = 4000;
 

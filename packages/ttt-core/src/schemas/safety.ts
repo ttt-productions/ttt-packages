@@ -19,24 +19,22 @@ import {
   MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH,
   MAX_NCMEC_PORTAL_PROOF_TEXT_LENGTH,
 } from '../constants/business.js';
+import { AccountActionSchema } from '../doc-schemas/safety/sagas.js';
+import {
+  ChildSafetyAccountRoleSchema,
+  ChildSafetyAccountSubjectDispositionSchema,
+} from '../doc-schemas/safety/case.js';
 
 // ---------------------------------------------------------------------------
 // commandAccountAction — apply a per-account safety action on a child-safety case.
 // ---------------------------------------------------------------------------
 
 /**
- * The per-account safety action the operator command applies. Mirrors the
- * `AccountActionSchema` enum in `../doc-schemas/safety/sagas.ts` (kept as a local literal so
- * this schemas subpath never imports from doc-schemas). Keep the two enums in sync.
+ * The per-account safety action the operator command applies — an ALIAS of the ONE
+ * canonical `AccountActionSchema` (../doc-schemas/safety/sagas.ts), re-exported under
+ * the callable-input name. Never a re-declared literal (Rule 36).
  */
-export const CommandAccountActionSchema = z.enum([
-  'ban',
-  'suspend',
-  'watch',
-  'safetyLocked',
-  'reinstate',
-  'none',
-]);
+export const CommandAccountActionSchema = AccountActionSchema;
 export type CommandAccountActionValue = z.infer<typeof CommandAccountActionSchema>;
 
 export const CommandAccountActionInputSchema = z
@@ -48,9 +46,9 @@ export const CommandAccountActionInputSchema = z
     reasonInternal: z.string().min(4, 'An internal reason is required.').max(MAX_INTERNAL_REASON_LENGTH),
     /** The generic owner-readable reason (no detail leaks). */
     reasonUserFacing: z.string().min(1).max(MAX_USER_FACING_REASON_LENGTH),
-    /** Per-account case role (A1b). */
-    role: z.enum(['uploader', 'requester', 'distributor', 'questionable']),
-    subjectDisposition: z.enum(['subject', 'questionable', 'excluded']),
+    /** Per-account case role (A1b) — the canonical case enums, never re-declared. */
+    role: ChildSafetyAccountRoleSchema,
+    subjectDisposition: ChildSafetyAccountSubjectDispositionSchema,
     confirmation: z.literal('I confirm this account action'),
   })
   .strict();

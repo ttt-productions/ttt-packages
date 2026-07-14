@@ -10,8 +10,9 @@ import {
   auditionIdSchema,
   auditionEntryIdSchema,
   craftSkillIdSchema,
+  guildInviteConversationStatusSchema,
 } from './atoms.js';
-import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
+import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
 import { GUILD_STANDING_VALUES } from '../permissions/index.js';
 import {
   MAX_GUILD_INVITE_MESSAGE_LENGTH,
@@ -22,7 +23,7 @@ import {
   MAX_CRAFT_SKILL_NAME_LENGTH,
   MAX_FILE_FOLDER_NAME_LENGTH,
 } from '../constants/business.js';
-import { RealmFileCanonStatusSchema } from '../doc-schemas/media-assets.js';
+import { RealmFileCanonStatusSchema, ContentMediaKindSchema } from '../doc-schemas/media-assets.js';
 
 // ===========================================================================
 // S7 realm shared-files gallery (ARTISAN-ONLY). `mediaAssets` is client-unreadable, so the gallery
@@ -33,7 +34,9 @@ import { RealmFileCanonStatusSchema } from '../doc-schemas/media-assets.js';
 
 export const RealmSharedFileProjectionSchema = z.object({
   mediaAssetId: z.string(),
-  mediaKind: z.enum(['image', 'video', 'audio']),
+  // The canonical stored media kind — RealmSharedFileProjection is a projection OF a
+  // MediaAsset, so it shares the ONE ContentMediaKindSchema.
+  mediaKind: ContentMediaKindSchema,
   // 'nonCanon' | 'canon' for a shared file (never 'none' — that means not-shared).
   realmFileCanonStatus: RealmFileCanonStatusSchema,
   creatorUid: z.string(),
@@ -156,15 +159,13 @@ export type InviteUserToGuildInput = z.infer<typeof InviteUserToGuildInputSchema
 
 // `finalized` is the terminal SUCCESS state (`accepted` is a transient state a trigger
 // consumes within seconds). Managers must be able to list finalized invites to see the
-// guild's actual recruitment history — not only failures and in-flight items. The enum
-// mirrors the terminal + in-flight states on GuildInviteConversationSchema (no 'error').
+// guild's actual recruitment history — not only failures and in-flight items. Derives from
+// the ONE canonical status enum (schemas/atoms.ts), never a re-declared literal.
 export const ListGuildInvitesInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  statuses: z.array(z.enum(['pending', 'accepted', 'declined', 'cancelled', 'finalized'])).min(1),
+  statuses: z.array(guildInviteConversationStatusSchema).min(1),
 }).strict();
 export type ListGuildInvitesInput = z.infer<typeof ListGuildInvitesInputSchema>;
-
-const TRADE_PROFESSION_VALUES = [...TRADE_PROFESSION_OPTIONS] as [string, ...string[]];
 
 export const UpdateGuildmateTradeProfessionsInputSchema = z.object({
   workProjectId: workProjectIdSchema,

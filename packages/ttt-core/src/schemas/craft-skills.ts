@@ -1,8 +1,6 @@
 import { z } from 'zod';
 import { craftSkillIdSchema, addRemoveActionSchema } from './atoms.js';
-import { CRAFT_SKILL_TAG_OPTIONS } from '../constants/options.js';
-
-const CRAFT_SKILL_TAG_VALUES = CRAFT_SKILL_TAG_OPTIONS as unknown as [string, ...string[]];
+import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
 
 export const DeleteCraftSkillInputSchema = z.object({
   craftSkillId: craftSkillIdSchema,

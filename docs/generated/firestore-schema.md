@@ -219,7 +219,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | --- | --- | --- |
 | `schemaVersion` | `1` |  |
 | `groupKey` | `string` |  |
-| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'hall-library-item' \| 'hall-library-sub-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
+| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'admin-work-message' \| 'hall-library-item' \| 'hall-library-sub-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
 | `totalReports` | `number` |  |
 | `highestReasonScore` | `number` |  |
 | `lastReportAt` | `number` |  |
@@ -769,7 +769,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `leaseExpiresAt` | `number` | yes |
 | `fencingOwnerToken` | `string` | yes |
 | `fencingGeneration` | `number` | yes |
-| `chatMessageLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, url } \| { kind, textRef }` | yes |
+| `chatMessageLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, adminDispatchId, messageId } \| { kind, url } \| { kind, textRef }` | yes |
 | `contextResolutionPending` | `boolean` | yes |
 
 ## `childSafetyCases/{caseId}/accounts/{uid}`
@@ -937,7 +937,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `schemaVersion` | `1` |  |
-| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'hall-library-item' \| 'hall-library-sub-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
+| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'admin-work-message' \| 'hall-library-item' \| 'hall-library-sub-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
 | `canonicalItemId` | `string` |  |
 | `revision` | `number` |  |
 | `contentSummaryRef` | `string` |  |
@@ -952,7 +952,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | --- | --- | --- |
 | `schemaVersion` | `1` |  |
 | `reportId` | `string` |  |
-| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'hall-library-item' \| 'hall-library-sub-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
+| `itemType` | `'username' \| 'craft-skill' \| 'commission-listing' \| 'commission-proposal' \| 'square-streetz-post' \| 'profile-picture' \| 'guild-invite-message' \| 'guild-chat-message' \| 'admin-work-message' \| 'hall-library-item' \| 'hall-library-sub-item' \| 'audition' \| 'audition-entry' \| 'work-project' \| 'work-asset' \| 'work-realm'` |  |
 | `reason` | `'Spam' \| 'Harassment' \| 'Hate Speech' \| 'Violence or Threats' \| 'Sexual Content' \| 'Self-Harm' \| 'Impersonation' \| 'Intellectual Property' \| 'Child Safety Concern' \| 'Nonconsensual Intimate Image (NCII)' \| 'Not related to on-site entertainment' \| 'Other'` |  |
 | `status` | `'pending_review' \| 'grouped' \| 'actioned' \| 'dismissed'` |  |
 | `createdAt` | `number` |  |
@@ -991,7 +991,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `craftSkillName` | `string` |  |
 | `craftSkillAssetId` | `string` |  |
 | `craftSkillType` | `'image' \| 'video' \| 'audio'` |  |
-| `tags` | `string[]` |  |
+| `tags` | `'acting' \| 'voice-over' \| 'singing' \| 'rapping' \| 'instrumental-performance' \| 'dance-choreography' \| 'stand-up-sketch-comedy' \| 'writing-storytelling' \| 'songwriting' \| 'poetry-spoken-word' \| 'drawing-illustration' \| 'painting' \| 'animation' \| 'graphic-design' \| 'photography' \| 'cinematography-camera' \| 'video-editing' \| 'visual-effects' \| 'directing' \| 'costume-makeup' \| 'set-prop-design' \| 'music-production' \| 'composing-scoring' \| 'sound-design'[]` |  |
 | `createdAt` | `number` |  |
 | `hidden` | `boolean` |  |
 | `kind` | `'original' \| 'mimicOnTtt' \| 'mimicOffTtt'` |  |
@@ -1249,7 +1249,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `caseId` | `string` | yes |
 | `reporterType` | `'authenticatedUser' \| 'anonymousPublic' \| 'operator'` |  |
 | `submittedAt` | `number` |  |
-| `targetLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, url } \| { kind, textRef }` |  |
+| `targetLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, adminDispatchId, messageId } \| { kind, url } \| { kind, textRef }` |  |
 | `allegationReason` | `string` |  |
 | `status` | `'received' \| 'linked' \| 'dismissed' \| 'escalated'` |  |
 | `resolvedTarget` | `{ schemaVersion, itemType, canonicalParentPath, canonicalItemId, revision, ownerUid, ownerBlockKey, mediaAssetId, channelId, messageId, attachmentId, locator, resolvedAt }` | yes |
@@ -1268,7 +1268,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `childSafetyCaseId` | `string` | yes |
 | `nciiRemovalDeadlineAt` | `number` | yes |
 | `closure` | `{ outcome, resolutionSummary, adminNote, closedByUid, closedAt }` | yes |
-| `chatMessageLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, url } \| { kind, textRef }` | yes |
+| `chatMessageLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, adminDispatchId, messageId } \| { kind, url } \| { kind, textRef }` | yes |
 | `contextResolutionPending` | `boolean` | yes |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
@@ -1360,7 +1360,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `targetKeyHash` | `string` |  |
-| `locator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, url } \| { kind, textRef }` |  |
+| `locator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, adminDispatchId, messageId } \| { kind, url } \| { kind, textRef }` |  |
 | `surface` | `'original' \| 'hallCopy' \| 'profileMedia' \| 'chatAttachment' \| 'variant' \| 'cacheServing' \| 'exactHashMatch'` |  |
 | `expectedGeneration` | `number` | yes |
 | `servingDenyState` | `'pending' \| 'denied' \| 'failed'` |  |
@@ -1399,7 +1399,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `caseId` | `string` | yes |
 | `resourceType` | `"nciiTemporaryTarget"` |  |
 | `safetyHoldRefId` | `string` |  |
-| `target` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, url } \| { kind, textRef }` |  |
+| `target` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, adminDispatchId, messageId } \| { kind, url } \| { kind, textRef }` |  |
 | `rootLineageRef` | `string` | yes |
 | `contentHashes` | `string[]` | yes |
 | `ownerUid` | `string` | yes |
@@ -1532,6 +1532,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `replyTo` | `{ messageId, senderId, messagePreview }` | yes |
 | `isSystemMessage` | `boolean` | yes |
 | `meta` | `Record<string, unknown>` | yes |
+| `hidden` | `boolean` | yes |
 
 ## `pendingMedia/{pendingMediaId}`
 
@@ -1832,7 +1833,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `canonicalResourceKey` | `string` |  |
 | `commandId` | `string` |  |
 | `commandKind` | `'nciiRemoval' \| 'csamActiveByteRemoval' \| 'evidenceDisposition'` |  |
-| `resourceType` | `'mediaAsset' \| 'hallItem' \| 'squarePost' \| 'profileImage' \| 'username' \| 'craftSkill' \| 'commissionListing' \| 'commissionProposal' \| 'workProject' \| 'workAsset' \| 'workRealm' \| 'audition' \| 'auditionEntry' \| 'guildInviteMessage' \| 'chatAttachment' \| 'guildChatMessage' \| 'url' \| 'additionalText'` |  |
+| `resourceType` | `'mediaAsset' \| 'hallItem' \| 'squarePost' \| 'profileImage' \| 'username' \| 'craftSkill' \| 'commissionListing' \| 'commissionProposal' \| 'workProject' \| 'workAsset' \| 'workRealm' \| 'audition' \| 'auditionEntry' \| 'guildInviteMessage' \| 'chatAttachment' \| 'guildChatMessage' \| 'adminWorkMessage' \| 'url' \| 'additionalText'` |  |
 | `authorizedFor` | `{ requestIds, caseId, linkedCaseIds, requestIdsOverflowed }` |  |
 | `bypassHoldRefIds` | `string[]` |  |
 | `bypassHoldRefsOverflowed` | `boolean` | yes |
@@ -2016,7 +2017,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `supportingFacts` | `string` |  |
 | `goodFaithCertification` | `boolean` |  |
 | `accuracyCertification` | `boolean` | yes |
-| `targetLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, url } \| { kind, textRef }` | yes |
+| `targetLocator` | `{ kind, mediaAssetId } \| { kind, hallItemId, subItemId } \| { kind, postId } \| { kind, profileUid } \| { kind, profileUid } \| { kind, profileUid, craftSkillId } \| { kind, commissionListingId } \| { kind, commissionListingId, commissionProposalId } \| { kind, workProjectId } \| { kind, workProjectId, workAssetId } \| { kind, workRealmId } \| { kind, auditionId } \| { kind, auditionId, auditionEntryId } \| { kind, channelId, messageId } \| { kind, channelId, messageId, attachmentId } \| { kind, channelId, messageId } \| { kind, adminDispatchId, messageId } \| { kind, url } \| { kind, textRef }` | yes |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
 

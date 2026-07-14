@@ -1,14 +1,11 @@
 import { z } from 'zod';
 import { onProgressSchema } from './on-progress.js';
-import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
+import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
 import {
   MAX_COMMISSION_TITLE_LENGTH,
   MAX_COMMISSION_DESCRIPTION_LENGTH,
   MAX_WORK_PROJECT_STAKE_SHARES,
 } from '../constants/business.js';
-
-
-const TRADE_PROFESSION_VALUES = [...TRADE_PROFESSION_OPTIONS] as [string, ...string[]];
 
 export const CreateCommissionVariablesSchema = z.object({
   workProjectId: z.string().min(1),

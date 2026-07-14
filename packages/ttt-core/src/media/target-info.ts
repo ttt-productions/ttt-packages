@@ -1,7 +1,8 @@
 import { z } from "zod";
 import type { FileOrigin } from "./file-origin.js";
 import { MentionSchema, rejectDuplicateMentionPlaceholders } from "./atoms.js";
-import { TRADE_PROFESSION_OPTIONS } from "../constants/options.js";
+import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from "../constants/options.js";
+import { MediaTypeSchema } from "../doc-schemas/social.js";
 import {
   MAX_MENTIONS,
   MAX_POST_LENGTH,
@@ -12,16 +13,17 @@ import {
   MAX_WORK_PROJECT_STAKE_SHARES,
   MAX_SPONSORED_AUDITION_AMOUNT_USD,
   MAX_CHAT_REPLY_PREVIEW_LENGTH,
+  MIN_CURATED_AUDITION_OPTIONS,
+  MAX_CURATED_AUDITION_OPTIONS,
 } from "../constants/business.js";
-
-const TRADE_PROFESSION_VALUES = [...TRADE_PROFESSION_OPTIONS] as [string, ...string[]];
 
 export const ProfilePictureTargetInfoSchema = z.object({}).strict();
 
 export const CraftSkillMediaTargetInfoSchema = z
   .object({
     craftSkillId: z.string().min(1),
-    skillType: z.enum(['image', 'video', 'audio', 'other']),
+    // The canonical display/transport media-type family — never re-declared (Rule 36).
+    skillType: MediaTypeSchema,
     originalFileName: z.string().min(1),
   })
   .strict();
@@ -87,7 +89,7 @@ export const AuditionPromptTargetInfoSchema = z
     // Curated ONLY: the fixed number of creator option videos (2..8) in the atomic batch, carried from
     // the Create click through targetInfo so the create core sets it on the Audition doc and the reveal
     // coordinator knows when ALL options have landed. Required by the create core when mode==='curated'.
-    expectedOptionCount: z.number().int().min(2).max(8).optional(),
+    expectedOptionCount: z.number().int().min(MIN_CURATED_AUDITION_OPTIONS).max(MAX_CURATED_AUDITION_OPTIONS).optional(),
   })
   .strict();
 
@@ -104,7 +106,7 @@ export const AdminAuditionPromptTargetInfoSchema = z
     mode: z.enum(['open', 'curated']).optional(),
     // Curated ONLY: fixed number of option videos (2..8) in the atomic batch (see
     // AuditionPromptTargetInfoSchema.expectedOptionCount). Required by the create core when curated.
-    expectedOptionCount: z.number().int().min(2).max(8).optional(),
+    expectedOptionCount: z.number().int().min(MIN_CURATED_AUDITION_OPTIONS).max(MAX_CURATED_AUDITION_OPTIONS).optional(),
   })
   .strict();
 

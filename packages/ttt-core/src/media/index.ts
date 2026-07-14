@@ -17,5 +17,6 @@ export * from "./pending-media.js";
 export * from "./upload-tray-display.js";
 export * from "./media-asset-url.js";
 export * from "./photodna-coverage.js";
+export * from "./edge-serving-contract.js";
 
 

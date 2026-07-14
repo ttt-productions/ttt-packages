@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { ReplyToSchema, ChatAttachmentSchema } from '@ttt-productions/chat-schemas';
 import { InviteSourceSchema } from '../schemas/work-project-management.js';
+import { guildInviteConversationStatusSchema } from '../schemas/atoms.js';
 
 const userRefSchema = z.object({ uid: z.string() });
 
@@ -62,7 +63,7 @@ export const GuildInviteConversationSchema = z.object({
   // State machine: pending → accepted (transient, trigger-consumed) → finalized (terminal
   // success), or pending → declined / cancelled (terminal failure). No 'error' state is ever
   // written (dead state removed 2026-07-03; see CODE_CHANGE_list_invites_missing_finalized).
-  status: z.enum(['pending', 'accepted', 'declined', 'cancelled', 'finalized']),
+  status: guildInviteConversationStatusSchema,
   createdAt: z.number(),
   updatedAt: z.number(),
   lastUpdatedAt: z.number(),
@@ -141,5 +142,10 @@ export const ChatMessageV1Schema = z.object({
   replyTo: ReplyToSchema.optional(),
   isSystemMessage: z.boolean().optional(),
   meta: z.record(z.string(), z.unknown()).optional(),
+  // Moderation tombstone flag — the single-doc `hidden` flip written by the admin
+  // moderateReportedContent pipeline (the admin-work-message itemType). Backend-only
+  // writable (conversationMessages is callable-only in rules); absent ⇒ visible.
+  // Thread views render a hidden message as a moderation tombstone.
+  hidden: z.boolean().optional(),
 });
 export type ChatMessageV1Doc = z.infer<typeof ChatMessageV1Schema>;

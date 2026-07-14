@@ -61,10 +61,19 @@ describe('NotificationMetadataByType', () => {
   it('validates each per-type payload', () => {
     expect(NotificationMetadataByTypeSchema.safeParse({
       type: 'content_report',
+      // reportedItemType is the canonical ReportableItemType enum (tightened from an
+      // open string, 2026-07-13) — a non-canonical value must now fail.
+      reportGroupId: 'rg1',
+      reportedItemType: 'hall-library-item',
+      reportedItemId: 'tale1',
+    }).success).toBe(true);
+
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'content_report',
       reportGroupId: 'rg1',
       reportedItemType: 'tale',
       reportedItemId: 'tale1',
-    }).success).toBe(true);
+    }).success).toBe(false);
 
     expect(NotificationMetadataByTypeSchema.safeParse({
       type: 'guild_invite',

@@ -52,6 +52,11 @@ const ACCEPT_AUDIO_ONLY = { kinds: ['audio' as const] };
 const ACCEPT_MEDIA_ALL = { kinds: ['image' as const, 'video' as const, 'audio' as const] };
 const ACCEPT_IMAGE_VIDEO = { kinds: ['image' as const, 'video' as const] };
 
+// Variant `key` values below are USAGES of the ONE canonical variant-key set
+// (`MEDIA_VARIANT_KEYS`, doc-schemas/media-assets.ts). The generic MediaOriginSpec
+// types them as open strings, so the CI validation lives in
+// media-origin-lineage.test.ts: every declared key must parse against
+// MediaVariantKeySchema (and every schema member must be declared somewhere).
 export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
 
   'profile-picture': {

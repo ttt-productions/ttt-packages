@@ -7,9 +7,18 @@
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS } from '../types/content.js';
 import { MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business.js';
+import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
 import { userPrivateDataAgeFieldsShape } from './safety/age.js';
+import { ContentMediaKindSchema } from './media-assets.js';
 
-const mediaKindSchema = z.enum(['image', 'video', 'audio']);
+// The canonical stored media kind — declared once in doc-schemas/media-assets.ts.
+const mediaKindSchema = ContentMediaKindSchema;
+
+/** The ONE canonical application account status (userProfiles.status is the
+ * authoritative value; the chat access projection and the status-reconcile queue
+ * derive from the same set). Never re-declare inline. */
+export const UserAccountStatusSchema = z.enum(['active', 'suspended', 'banned']);
+export type UserAccountStatus = z.infer<typeof UserAccountStatusSchema>;
 
 // Craft-skill kind — mandatory choice at upload, no default (see
 // CODE_CHANGE_craft_skill_kinds.md). 'original' = the artisan's own original creation;
@@ -50,7 +59,8 @@ const craftSkillBaseShape = {
   id: z.string(),
   name: z.string(),
   mediaAssetId: z.string(),
-  tags: z.array(z.string()),
+  // Canonical discipline-tag allowlist — never open strings (DJ ruling 2026-07-13).
+  tags: z.array(z.enum(CRAFT_SKILL_TAG_VALUES)),
   createdAt: z.number(),
   type: mediaKindSchema,
   // Moderation visibility flag. Absent/false = visible; true = hidden by the
@@ -85,7 +95,7 @@ export const CraftSkillReferenceSchema = z.object({
   craftSkillName: z.string(),
   craftSkillAssetId: z.string(),
   craftSkillType: mediaKindSchema,
-  tags: z.array(z.string()),
+  tags: z.array(z.enum(CRAFT_SKILL_TAG_VALUES)),
   createdAt: z.number(),
   // Mirror of CraftSkill.hidden; lets the tag-browse filter hidden skills out.
   hidden: z.boolean(),
@@ -145,14 +155,14 @@ export const FullUserSchema = z.object({
   // flip publish makes new signups false automatically; no backfill, no date math.
   // Backend-only-writable, cosmetic, not PII (docs/charter-season/honor-roll-and-badges.md).
   charterSignupMember: z.boolean().optional(),
-  status: z.enum(['active', 'suspended', 'banned']).optional(),
+  status: UserAccountStatusSchema.optional(),
   // Chat-edge-rebuild account-access domain (Contract B / round-10 blocker 1): the
   // single ban/unban ordering version + state the chat `accountAccess` sync events key
   // on. Backend-only-writable. Deliberate defaults when ABSENT: a never-touched account
   // is `{ accountAccessVersion: 0, accountAccessState: 'active' }` (NOT banned) — bumped
   // atomically on suspend/ban/unban, which enqueue the accountAccessChanged fanout.
   accountAccessVersion: z.number().optional(),
-  accountAccessState: z.enum(['active', 'suspended', 'banned']).optional(),
+  accountAccessState: UserAccountStatusSchema.optional(),
   // Moderation: set true by the forceDisplayNameReset callable when an admin resets an
   // abusive display name. The app gates the user into a forced "pick a new name" flow until
   // they complete it via setMyDisplayName (which clears this). Backend-only-writable (like `status`).

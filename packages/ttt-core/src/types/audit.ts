@@ -239,7 +239,7 @@ export type AuditEventType =
   | 'ncii.hashBlockReversed'
   | 'ncii.requesterPiiScrubbed'
   | 'ncii.policyConfigUpdated'
-  // operator sets the child-safety crossover minorAssessment on an NCII case (e.g. → 'possibleMinor'):
+  // operator sets the child-safety crossover minorAssessment on an NCII case (e.g. → possibleMinor):
   // routing action that opens/links a PARALLEL child-safety review + deny-serving + PhotoDNA, WITHOUT
   // touching the NCII removal clock and WITHOUT auto-NCMEC. Payload records from→to assessment.
   | 'ncii.minorAssessmentSet'

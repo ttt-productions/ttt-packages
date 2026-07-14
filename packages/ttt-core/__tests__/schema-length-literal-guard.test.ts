@@ -44,7 +44,9 @@ const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
   'src/schemas/chat.ts': [20, 20, 64, 64, 128, 128, 500, 500],
   'src/schemas/hall-library.ts': [64],
   'src/schemas/ncii.ts': [64, 256, 256, 256, 256, 256, 320],
-  'src/schemas/notification.ts': [64, 128, 2000],
+  // 64 died with reportedItemTypeSchema tightening to the canonical enum; 2000 became
+  // MAX_BROADCAST_EXPLICIT_UIDS (2026-07-13 consolidation sweep).
+  'src/schemas/notification.ts': [128],
   'src/schemas/safety.ts': [200],
   'src/schemas/social.ts': [128, 128],
   'src/schemas/uploads.ts': [200],

@@ -42,15 +42,20 @@ export type MediaAssetOwnerType = z.infer<typeof MediaAssetOwnerTypeSchema>;
 // One canonical lineage used by media, CSAM, and safety. Embedded on every
 // media asset + every copy.
 
+/** The ONE canonical stored content media kind (what the pipeline produces and the
+ * asset doc records). Distinct from the 4-value display/transport MediaTypeSchema
+ * (doc-schemas/social.ts, adds 'other') and media-schemas' generic MediaKindSchema. */
+export const ContentMediaKindSchema = z.enum(['image', 'video', 'audio']);
+export type ContentMediaKind = z.infer<typeof ContentMediaKindSchema>;
+
 /**
- * The named-variant key set for `variantSha256s`. It is the union of declared
- * `image.variants[].key` values across `TTT_MEDIA_SPECS` (the processing
- * pipeline produces exactly one hash per declared variant), never an open
- * `string`. `media-origin-lineage.test.ts` keeps this enum in sync with the
- * declared variant keys (the same way the PhotoDNA coverage matrix tracks
- * `accept.kinds`); a new declared variant name fails CI until added here.
+ * The named-variant key set for `variantSha256s` — declared ONCE here; every declared
+ * `image.variants[].key` in `TTT_MEDIA_SPECS` is compile-checked against this union
+ * (the specs type their variant keys as `MediaVariantKey`), so an undeclared variant
+ * name fails the BUILD — no sync test needed. Never an open `string`.
  */
-export const MediaVariantKeySchema = z.enum(['full', 'medium', 'small', 'main']);
+export const MEDIA_VARIANT_KEYS = ['full', 'medium', 'small', 'main'] as const;
+export const MediaVariantKeySchema = z.enum(MEDIA_VARIANT_KEYS);
 export type MediaVariantKey = z.infer<typeof MediaVariantKeySchema>;
 
 /** Why this asset was created from its source (A0). */
@@ -248,7 +253,7 @@ export type MediaServingAuthorityRecord = z.infer<typeof MediaServingAuthorityRe
 
 export const MediaAssetSchema = z.object({
   mediaAssetId: z.string().min(1),
-  mediaKind: z.enum(['image', 'video', 'audio']),
+  mediaKind: ContentMediaKindSchema,
   fileOrigin: FileOriginSchema,
 
   // Ownership / scope. ownerId is the owning doc's id within ownerType's

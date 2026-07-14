@@ -150,6 +150,17 @@ export const HallContentTextSurfaceSchema = z.enum([
 ]);
 export type HallContentTextSurface = z.infer<typeof HallContentTextSurfaceSchema>;
 
+/** The ONE canonical hall sub-item kind (a Tale chapter / Tune track / Television
+ * episode) as carried on notification metadata and Streetz post payloads. Distinct
+ * from `HallContentTextSurfaceSchema` (which keys text-change surfaces and uses the
+ * compound `tuneTrack`/`televisionEpisode` identifiers). Never re-declare inline. */
+export const HallSubItemTypeSchema = z.enum(['chapter', 'track', 'episode']);
+export type HallSubItemType = z.infer<typeof HallSubItemTypeSchema>;
+
+/** The ONE canonical published-hall-item lifecycle status. */
+export const PublishedHallItemStatusSchema = z.enum(['published', 'paused', 'banned']);
+export type PublishedHallItemStatus = z.infer<typeof PublishedHallItemStatusSchema>;
+
 // A member's proposal to change TEXT fields on a PUBLISHED hall item (Ruling 2 of the
 // admin-work-correspondence order). The live published item is NEVER unlocked and never
 // edited by the member — this doc carries the PROPOSED values only; OLD values render
@@ -195,7 +206,7 @@ export const PublishedHallItemSchema = z.object({
   hallItemId: z.string(),
   workProjectId: z.string(),
   workProjectType: z.enum(WORK_PROJECT_TYPE_KEYS),
-  status: z.enum(['published', 'paused', 'banned']),
+  status: PublishedHallItemStatusSchema,
   createdOn: z.number(),
   publishedAt: z.number().optional(),
   hallWingType: z.enum(HALL_WING_TYPE_KEYS),

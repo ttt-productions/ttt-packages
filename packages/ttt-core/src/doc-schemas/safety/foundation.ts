@@ -63,6 +63,12 @@ export const ReportableItemTypeSchema = z.enum([
   'profile-picture',
   'guild-invite-message',
   'guild-chat-message',
+  // A single message in a WORK-PARTY admin correspondence thread (pendingAdminDispatches
+  // partyKind 'workProject' — the one multi-member chat surface transported through
+  // Firestore `conversationMessages`). The resolver enforces the work-party kind
+  // server-side; user↔admin support threads are NOT reportable (an admin is already a
+  // participant in every thread — DJ ruling 2026-07-13).
+  'admin-work-message',
   'hall-library-item',
   // [EUAS-017] a single Hall sub-item (a Tale chapter / Tune track / Television episode). The
   // `hallItem` TargetLocatorV1 already carries an optional `subItemId`; the report UI passes the
@@ -77,6 +83,33 @@ export const ReportableItemTypeSchema = z.enum([
   'work-realm',
 ]);
 export type ReportableItemType = z.infer<typeof ReportableItemTypeSchema>;
+
+/** The DO-transported chat report types — no Firestore message doc / owner exists to
+ * hold at intake (H-04 V1); the resolver goes through the signed chat-Worker context
+ * read. `admin-work-message` is NOT here: its messages are Firestore docs. Derived
+ * subset — compile-linked to the canonical enum, never a re-declared string set. */
+export const CHAT_REPORT_ITEM_TYPES = [
+  'guild-chat-message',
+  'guild-invite-message',
+] as const satisfies readonly ReportableItemType[];
+
+/** Item types whose report work-view renders the content-action (moderate) panel —
+ * the backend moderation cores accept these. Compile-linked subset of the enum. */
+export const CONTENT_ACTION_PANEL_ITEM_TYPES = [
+  'square-streetz-post',
+  'audition',
+  'audition-entry',
+  'commission-listing',
+  'commission-proposal',
+  'work-asset',
+  'profile-picture',
+  'hall-library-item',
+  'hall-library-sub-item',
+  'craft-skill',
+  // Work-party admin correspondence message — single-doc hidden flip (2026-07-13).
+  'admin-work-message',
+] as const satisfies readonly ReportableItemType[];
+export type ContentActionPanelItemType = (typeof CONTENT_ACTION_PANEL_ITEM_TYPES)[number];
 
 // ===========================================================================
 // A11 — Target locator (the ONE typed locator used by allegations, temp holds,
@@ -105,6 +138,11 @@ export const TargetLocatorV1Schema = z.discriminatedUnion('kind', [
   // `chatAttachment` (which carries an actual attachment id) so a text-only protected chat
   // report has a clean, unambiguous locator without misusing the attachment variant.
   z.object({ kind: z.literal('guildChatMessage'), channelId: z.string().min(1), messageId: z.string().min(1) }).strict(),
+  // A work-party admin correspondence message — a Firestore doc at
+  // pendingAdminDispatches/{adminDispatchId}/conversationMessages/{messageId} (unlike the
+  // DO-addressed guildChatMessage/guildInviteMessage locators, messageId here is a doc id,
+  // not a numeric seq).
+  z.object({ kind: z.literal('adminWorkMessage'), adminDispatchId: z.string().min(1), messageId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('url'), url: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('additionalText'), textRef: z.string().min(1) }).strict(),
 ]);
@@ -129,6 +167,8 @@ export const TargetLocatorKindSchema = z.enum([
   'chatAttachment',
   // [H-04 V1] Plain guild chat message locator (text-only / Worker-unresolved protected report).
   'guildChatMessage',
+  // Work-party admin correspondence message (Firestore conversationMessages doc).
+  'adminWorkMessage',
   'url',
   'additionalText',
 ]);
