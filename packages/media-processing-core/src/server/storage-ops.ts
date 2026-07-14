@@ -11,7 +11,7 @@
 //    zero Cloudflare involvement. Production NEVER mints download tokens.
 //
 // Writes return `{ key }` — never URLs. Display URLs are built at render time
-// from asset refs (see ttt-core media-asset-url).
+// from asset refs (see the consuming app's media-asset-url helper).
 
 import { createReadStream, createWriteStream } from "node:fs";
 import { stat } from "node:fs/promises";

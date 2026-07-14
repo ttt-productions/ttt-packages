@@ -1,6 +1,14 @@
 import { z } from 'zod';
 
 /**
+ * The chat realtime wire contract (subprotocol, frame-kind maps, close codes,
+ * channel-ref tuple + schema, grant scope/audience, and the client-agreed
+ * limits) — the single owner consumed by the chat React client, the chat
+ * Cloudflare Worker, and Cloud Functions.
+ */
+export * from './realtime-wire.js';
+
+/**
  * Pure-Zod chat schemas package.
  *
  * Consumed directly as `@ttt-productions/chat-schemas` — by `chat-core` (the

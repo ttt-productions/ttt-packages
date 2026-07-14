@@ -172,7 +172,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
       // POST moderation (processed outputs) — runs on the LOCAL output paths
       // BEFORE any final persistence, so rejected output never reaches the
       // final store (R2 / emulator). Ordering is load-bearing — see
-      // ttt-prod docs/design/media-assets-and-protected-serving.md.
+      // the consuming app's media-serving design docs.
       let mOut: MediaModerationResult | null | undefined;
       if (moderation?.moderateOutput) {
         onProgress?.({ phase: "moderation_output", percent: 0 });
@@ -190,8 +190,8 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
 
         // Same fail-closed posture as the input check: block both "rejected"
         // and "error" before any persistence, so an incomplete check can never
-        // publish unscanned output. Ordering is load-bearing — see ttt-prod
-        // docs/design/media-assets-and-protected-serving.md.
+        // publish unscanned output. Ordering is load-bearing — see the
+        // consuming app's media-serving design docs.
         if (mOut?.status === "rejected" || mOut?.status === "error") {
           return {
             ok: false,

@@ -13,6 +13,7 @@ import {
 import {
   MAX_ADMIN_DISPATCH_SUBJECT_LENGTH,
   MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH,
+  MAX_CHAT_MODERATION_REASON_LENGTH,
 } from '../constants/business.js';
 import {
   ReplyToSchema,
@@ -106,6 +107,46 @@ export const UpdateGuildChatChannelInputSchema = z.object({
   allowedUserIds: z.array(z.string().min(1).max(128)).max(500).optional(),
 }).strict();
 export type UpdateGuildChatChannelInput = z.infer<typeof UpdateGuildChatChannelInputSchema>;
+
+// --- Admin chat moderation callables (review-only; chat-realtime-system.md) ---
+
+// The CLIENT-facing channel-ref for the admin chat-moderation callables
+// (`adminModerateChatMessage` / `adminReadChannelContext`). This is the WIRE shape, which
+// is `kind`-discriminated — NOT the internal `scope`-keyed `ChannelRefTupleSchema`
+// (@ttt-productions/chat-schemas), which the callables map to server-side AFTER parsing.
+// Mirrors the existing `TombstoneChatSchema.channel` union in schemas/admin.ts.
+export const AdminChatModerationChannelSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('channel'), workProjectId: workProjectIdSchema, guildChatChannelId: guildChatChannelIdSchema }).strict(),
+  z.object({ kind: z.literal('invite'), guildInviteId: guildInviteIdSchema }).strict(),
+]);
+export type AdminChatModerationChannel = z.infer<typeof AdminChatModerationChannelSchema>;
+
+// `adminModerateChatMessage` — queue a DO-owned hide/delete command. The moderated message's
+// attachment asset id(s) are NEVER client-supplied (the drain derives them server-side), so
+// `.strict()` rejects any such field.
+export const AdminModerateChatMessageInputSchema = z.object({
+  requestId: z.string().min(1).max(200),
+  action: z.enum(['hide', 'delete']),
+  messageSeq: z.number().int().nonnegative(),
+  expectedMessageRevision: z.number().int().nonnegative(),
+  caseId: z.string().min(1).max(200),
+  reason: z.string().min(1).max(MAX_CHAT_MODERATION_REASON_LENGTH),
+  channel: AdminChatModerationChannelSchema,
+}).strict();
+export type AdminModerateChatMessageInput = z.infer<typeof AdminModerateChatMessageInputSchema>;
+
+// `adminReadChannelContext` — case-bound admin read of a bounded (≤50 before / ≤50 after)
+// message window around a reported message. Requires a case id + reason; both request and
+// outcome are audited.
+export const AdminReadChannelContextInputSchema = z.object({
+  reportedSeq: z.number().int().nonnegative(),
+  caseId: z.string().min(1).max(200),
+  reason: z.string().min(1).max(MAX_CHAT_MODERATION_REASON_LENGTH),
+  before: z.number().int().min(0).max(50).optional(),
+  after: z.number().int().min(0).max(50).optional(),
+  channel: AdminChatModerationChannelSchema,
+}).strict();
+export type AdminReadChannelContextInput = z.infer<typeof AdminReadChannelContextInputSchema>;
 
 
 

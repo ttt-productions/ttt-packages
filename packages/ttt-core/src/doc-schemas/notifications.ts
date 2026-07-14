@@ -2,39 +2,27 @@
 // activeUserNotifications/{id} + activeAdminNotifications/{id} (NotificationDoc),
 // adminNotificationHistory/{id} + userProfiles/{uid}/notificationHistory/{id}
 // (the archived-history wrapper), pendingNotifications/{id} (PendingNotification).
-// NotificationDoc/PendingNotification TYPES live in @ttt-productions/notification-core;
-// the history doc has no consumer-facing package type (the server archive helper builds
-// it as an untyped wrapper), so NotificationHistoryDocSchema below is its canonical shape.
-// These schemas mirror the package's shapes by hand — there is currently no parity test
-// enforcing that they stay in sync; a drift here would go unnoticed until it broke
-// something at runtime.
+//
+// @ttt-productions/notification-core OWNS the generic NotificationDoc and
+// PendingNotification shapes AND their schemas; ttt-core composes those schemas
+// here (single owner — no hand-mirroring, so drift is impossible). The history
+// doc has no consumer-facing package type (the server archive helper builds it as
+// an untyped wrapper), so NotificationHistoryDocSchema below is its canonical
+// shape and stays owned by ttt-core.
 
 import { z } from 'zod';
+import {
+  NotificationDocSchema as NotificationDocSchemaBase,
+  PendingNotificationSchema as PendingNotificationSchemaBase,
+} from '@ttt-productions/notification-core';
 import { FirestoreTimestampSchema } from './firestore-primitives.js';
 
-export const NotificationDocSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  dedupKey: z.string(),
-  category: z.string(),
-  targetUserId: z.string().nullable(),
-  title: z.string(),
-  message: z.string(),
-  count: z.number(),
-  latestActorIds: z.array(z.string()),
-  // Absent on linkless types (no defaultTargetPath in the type config) — the
-  // tray renders a clear-only row for those.
-  targetPath: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()),
-  seenAt: z.number(),
-  // Opaque per-generation token rotated on create / material re-light; the
-  // SEEN/ARCHIVE precondition (notification redesign). Optional on the legacy
-  // doc shape; the ledger materializer always sets it.
-  activityGeneration: z.string().optional(),
-  seenAtGeneration: z.string().optional(),
-  createdAt: z.number(),
-  updatedAt: z.number(),
-});
+// TTT stores the generic shapes verbatim (no TTT-specific field refinements), so
+// these re-export notification-core's canonical schemas under ttt-core's stable
+// registry names. If TTT ever refines a field, compose via `.extend`/`.merge` on
+// the base schema rather than re-declaring it here.
+export const NotificationDocSchema = NotificationDocSchemaBase;
+export const PendingNotificationSchema = PendingNotificationSchemaBase;
 
 // Archived history doc = the wrapper persisted by notification-core's server archive
 // helper (server/observed-generation.ts): the full active notification nested under
@@ -53,14 +41,3 @@ export const NotificationHistoryDocSchema = z.object({
   expireAt: FirestoreTimestampSchema,
   handledBy: z.string().optional(),
 });
-
-export const PendingNotificationSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  category: z.string(),
-  targetUserId: z.string().nullable(),
-  actorId: z.string(),
-  metadata: z.record(z.string(), z.unknown()),
-  createdAt: z.number(),
-});
-

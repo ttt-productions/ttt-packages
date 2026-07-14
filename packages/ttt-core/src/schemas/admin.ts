@@ -15,6 +15,11 @@ import {
   ChildSafetyAccountRoleSchema,
   ChildSafetyAccountSubjectDispositionSchema,
 } from '../doc-schemas/safety/case.js';
+import { MAX_MANIFEST_NCMEC_RECEIPTS } from '../doc-schemas/safety/evidence.js';
+import {
+  MODERATION_CLEARABLE_TEXT_FIELDS,
+  HALL_CLEARABLE_TEXT_FIELD_NAMES,
+} from '../constants/business-content.js';
 import {
   MAX_WORK_PROJECT_TITLE_LENGTH,
   MAX_ADMIN_DISPATCH_SUBJECT_LENGTH,
@@ -261,6 +266,88 @@ export const RequireRetitleInputSchema = z.object({
 }).strict();
 export type RequireRetitleInput = z.infer<typeof RequireRetitleInputSchema>;
 
+// --- Page-level "Clear text (moderation)" callables (per-field extension of the retitle family) ---
+
+// The clearable SHELL fields (raw doc field names) for the workProject + workRealm contexts.
+// Derived from the canonical clearable-field map — the two shell surfaces share the same fields.
+const ModerationShellClearFieldSchema = z.enum(MODERATION_CLEARABLE_TEXT_FIELDS.workProject);
+export type ModerationShellClearField = z.infer<typeof ModerationShellClearFieldSchema>;
+
+export const ClearWorkProjectTextInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
+  fields: z.array(ModerationShellClearFieldSchema).min(1),
+  reason: z.string().trim().min(1).max(MAX_REQUIRE_RETITLE_REASON_LENGTH),
+}).strict();
+export type ClearWorkProjectTextInput = z.infer<typeof ClearWorkProjectTextInputSchema>;
+
+export const ClearWorkRealmTextInputSchema = z.object({
+  workRealmId: z.string().min(1),
+  fields: z.array(ModerationShellClearFieldSchema).min(1),
+  reason: z.string().trim().min(1).max(MAX_REQUIRE_RETITLE_REASON_LENGTH),
+}).strict();
+export type ClearWorkRealmTextInput = z.infer<typeof ClearWorkRealmTextInputSchema>;
+
+// The clearable TEXT fields across the whole hall content family — derived from the canonical
+// map (union of every hall surface's fields), never restated literals.
+const HallClearFieldSchema = z.enum(HALL_CLEARABLE_TEXT_FIELD_NAMES);
+export type HallClearField = z.infer<typeof HallClearFieldSchema>;
+
+export const ClearHallContentTextInputSchema = z.object({
+  hallItemId: hallItemIdSchema,
+  workProjectType: workProjectTypeSchema,
+  subItemId: z.string().min(1).optional(),
+  fields: z.array(HallClearFieldSchema).min(1),
+  reason: z.string().trim().min(1).max(MAX_REQUIRE_RETITLE_REASON_LENGTH),
+}).strict();
+export type ClearHallContentTextInput = z.infer<typeof ClearHallContentTextInputSchema>;
+
+// --- getLatestHideCascade — resolve the latest hide-cascade id for a Work/Realm ---
+
+export const GetLatestHideCascadeInputSchema = z.object({
+  entityId: z.string().min(1),
+  targetType: z.enum(['work-project', 'work-realm']),
+}).strict();
+export type GetLatestHideCascadeInput = z.infer<typeof GetLatestHideCascadeInputSchema>;
+
+// --- moderateReportedContent — hide / restore / soft perma-remove an individual reported item ---
+
+// The single-item content-action target set (SUBSET of ReportableItemType — excludes the
+// close-out-only hall-library-sub-item). `admin-work-message` is allowlisted for this file in
+// the definition-redeclaration guard.
+const MODERATE_REPORTED_CONTENT_TARGET_TYPES = [
+  'square-streetz-post',
+  'audition',
+  'audition-entry',
+  'commission-listing',
+  'commission-proposal',
+  'work-asset',
+  'profile-picture',
+  'hall-library-item',
+  'craft-skill',
+  'admin-work-message',
+] as const satisfies readonly ReportableItemType[];
+
+export const ModerateReportedContentInputSchema = z.object({
+  reportGroupId: z.string().min(1),
+  targetType: z.enum(MODERATE_REPORTED_CONTENT_TARGET_TYPES),
+  reportedItemId: z.string().min(1),
+  parentItemId: z.string().min(1).optional(),
+  action: z.enum(['hide', 'restore', 'remove']),
+  // [EUAS-023] A destructive action (hide/remove) MUST carry a reason; restore is a reversal.
+  reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH).optional(),
+})
+  .strict()
+  .superRefine((val, ctx) => {
+    if ((val.action === 'hide' || val.action === 'remove') && !val.reason) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'A reason is required to hide or remove content.',
+        path: ['reason'],
+      });
+    }
+  });
+export type ModerateReportedContentInput = z.infer<typeof ModerateReportedContentInputSchema>;
+
 // --- resolveAdminTask — the ONE guided close-out for EVERY admin case type ---
 
 // [EUAS-005] The content-action target set ALSO accepts hall-library-sub-item (hide/restore only),
@@ -371,7 +458,9 @@ const SafetyDispositionActionSchema = z
     // state, never an operator-settable target, so it is excluded (not re-declared).
     disposition: ReportDispositionSchema.exclude(['undetermined']),
     dispositionReasonCode: ReportDispositionReasonCodeSchema,
-    evidenceRefs: z.array(z.string().min(1)).min(1).max(32),
+    // Derived from the ONE receipts-cap constant (doc-schemas/safety/evidence.ts) — the same
+    // bound the callable + the embedded SetReportDispositionInputV1Schema use.
+    evidenceRefs: z.array(z.string().min(1)).min(1).max(MAX_MANIFEST_NCMEC_RECEIPTS),
     expectedRevision: z.number().int().nonnegative(),
   })
   .strict();

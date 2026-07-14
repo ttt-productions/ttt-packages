@@ -273,6 +273,8 @@ export const NESTED_SUBCOLLECTIONS = {
   NCII_CASE_REQUEST_LINKS: 'requestLinks',
   NCII_CASE_REMOVAL_ACTIONS: 'removalActions',
   NCII_CASE_BLOCKED_HASHES: 'blockedHashes',
+  // Append-only NCII case closure/reopen events (nciiCases/{caseId}/closureEvents/{eventId}).
+  NCII_CASE_CLOSURE_EVENTS: 'closureEvents',
 
   // Trust & Safety — NCII removal-job targets (§A11).
   NCII_REMOVAL_TARGETS: 'targets',

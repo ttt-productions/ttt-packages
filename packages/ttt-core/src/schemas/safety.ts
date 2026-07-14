@@ -24,6 +24,7 @@ import {
   ChildSafetyAccountRoleSchema,
   ChildSafetyAccountSubjectDispositionSchema,
 } from '../doc-schemas/safety/case.js';
+import { SafetyEvidenceExternalFactKindSchema } from '../doc-schemas/safety/evidence.js';
 
 // ---------------------------------------------------------------------------
 // commandAccountAction — apply a per-account safety action on a child-safety case.
@@ -210,3 +211,75 @@ export const RefetchProtectedCaseContextInputSchema = z
   })
   .strict();
 export type RefetchProtectedCaseContextInput = z.infer<typeof RefetchProtectedCaseContextInputSchema>;
+
+// ---------------------------------------------------------------------------
+// preserveAsEvidence — general-purpose ADMIN "Preserve as Evidence" callable.
+// ---------------------------------------------------------------------------
+
+/**
+ * A target to preserve, discriminated by surface. Non-strict members are carried faithfully
+ * from the source callable. The id / path / ref bounds are opaque structural caps (not user
+ * text), and the augmentation `factKind` REUSES the canonical evidence external-fact enum
+ * (`SafetyEvidenceExternalFactKindSchema`) rather than re-declaring its members.
+ */
+export const PreserveTargetSchema = z.discriminatedUnion('targetKind', [
+  z.object({
+    targetKind: z.literal('media'),
+    mediaAssetId: z.string().min(1).max(256),
+  }),
+  z.object({
+    targetKind: z.literal('post'),
+    postDocPath: z.string().min(1).max(1024),
+    revision: z.number().int().nonnegative().optional(),
+  }),
+  z.object({
+    targetKind: z.literal('profile'),
+    uid: z.string().min(1).max(256),
+    revision: z.number().int().nonnegative().optional(),
+  }),
+  z.object({
+    targetKind: z.literal('chat'),
+    channelId: z.string().min(1).max(256),
+    messageSeqStart: z.number().int().nonnegative(),
+    messageSeqEnd: z.number().int().nonnegative(),
+    transcriptObjectRef: z.string().min(1).max(1024),
+    attachmentItemIds: z.array(z.string().min(1)).max(256).optional(),
+  }),
+]);
+export type PreserveTarget = z.infer<typeof PreserveTargetSchema>;
+
+export const PreserveAsEvidenceInputSchema = z
+  .object({
+    /** Attach to an existing case; absent → open a standalone preservation case. */
+    caseId: z.string().min(1).max(256).optional(),
+    target: PreserveTargetSchema,
+    /** Operator note recorded on the case (internal). */
+    reasonInternal: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
+    /** Optional admin AUGMENTATION — extra externalFact refs preserved alongside the baseline. */
+    augmentations: z
+      .array(
+        z.object({
+          factKind: SafetyEvidenceExternalFactKindSchema,
+          narrativeRef: z.string().min(1).max(1024),
+        }),
+      )
+      .max(32)
+      .optional(),
+  })
+  .strict();
+export type PreserveAsEvidenceInput = z.infer<typeof PreserveAsEvidenceInputSchema>;
+
+// ---------------------------------------------------------------------------
+// recordNcmecPortalCorrection — record an operator's NCMEC manual-portal correction filing.
+// ---------------------------------------------------------------------------
+
+export const RecordNcmecPortalCorrectionInputSchema = z
+  .object({
+    caseId: z.string().min(1),
+    ncmecReportId: z.string().min(1),
+    correctionFiledAt: z.number(),
+    reason: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
+    confirmation: z.literal('I confirm this NCMEC portal correction was filed'),
+  })
+  .strict();
+export type RecordNcmecPortalCorrectionInput = z.infer<typeof RecordNcmecPortalCorrectionInputSchema>;

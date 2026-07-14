@@ -3,7 +3,7 @@
 // sync/command/outbox endpoints). Reuses the media Worker's `v1.` HMAC-SHA256
 // pattern (token.ts) but is a SEPARATE concern from the session/grant cookie:
 // each consumer uses its own secret + audience (e.g. MEDIA_AUTHORITY_SYNC_SECRET,
-// audience `ttt-media-authority:{env}`). WebCrypto only — runs in Node 22 + Workers.
+// audience `media-authority:{env}`). WebCrypto only — runs in Node 22 + Workers.
 //
 // The signature covers: protocol marker, audience, method, exact path, timestamp,
 // SHA-256 body hash, and a deterministic operationId. A narrow replay window is
@@ -18,7 +18,7 @@ const SIGNING_VERSION = 'v1';
  * string, so any divergence (wrong path, method, body, audience, operationId,
  * or timestamp) fails the MAC. */
 export interface InternalRequestFields {
-  /** Per-consumer audience, e.g. `ttt-media-authority:prod`. */
+  /** Per-consumer audience, e.g. `media-authority:prod`. */
   audience: string;
   /** HTTP method, e.g. `POST` (compared case-insensitively via upper-casing). */
   method: string;

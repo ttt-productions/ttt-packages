@@ -1,5 +1,5 @@
 /**
- * Generic realtime wire envelopes (GENERIC — no TTT specifics).
+ * Generic realtime wire envelopes (GENERIC — no product specifics).
  *
  * The client↔DO message envelope carries an app-defined `kind` + opaque
  * `payload`; the realtime layer only interprets the transport fields

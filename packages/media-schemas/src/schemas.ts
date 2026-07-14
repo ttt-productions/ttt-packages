@@ -24,8 +24,8 @@ export const MediaProcessingStatusSchema = z.enum(["pending", "processing", "rea
 // A media upload's processing can be `completed` while it is not yet servable
 // from every edge; this axis tracks that readiness so the UI never shows "Done"
 // off processing-complete alone. notStarted → activating → publishing → live
-// (or publicationFailed). See ttt-prod media-assets-and-protected-serving.md
-// (serving authority + publication gating) and upload-and-media-pipeline.md.
+// (or publicationFailed). See the consuming app's media-serving and
+// upload-pipeline design docs (serving authority + publication gating).
 export const MediaPublicationStateSchema = z.enum([
   "notStarted",
   "activating",

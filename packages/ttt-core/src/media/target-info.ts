@@ -21,7 +21,8 @@ export const ProfilePictureTargetInfoSchema = z.object({}).strict();
 
 export const CraftSkillMediaTargetInfoSchema = z
   .object({
-    craftSkillId: z.string().min(1),
+    // No craftSkillId: the backend mints the craft-skill doc id from the pendingMedia id;
+    // a client-supplied id was dead input the processor ignored, so it is not accepted.
     // The canonical display/transport media-type family — never re-declared (Rule 36).
     skillType: MediaTypeSchema,
     originalFileName: z.string().min(1),
@@ -51,7 +52,8 @@ export const SquareStreetzCaptionSchema = z.string().min(1).max(MAX_POST_LENGTH)
 // commission-posting: full commission creation payload.
 export const CommissionPostingTargetInfoSchema = z
   .object({
-    commissionListingId: z.string().min(1),
+    // No commissionListingId: the backend mints the listing id server-side at publish;
+    // it is not accepted from the client.
     title: z.string().min(1).max(MAX_COMMISSION_TITLE_LENGTH),
     description: z.string().max(MAX_COMMISSION_DESCRIPTION_LENGTH),
     requiredTradeProfessions: z.array(z.enum(TRADE_PROFESSION_VALUES)).max(TRADE_PROFESSION_OPTIONS.length),
@@ -73,6 +75,12 @@ export const CommissionProposalTargetInfoSchema = z
 // audition-prompt: workProject-owned audition creation payload (workAudition only).
 export const AuditionPromptTargetInfoSchema = z
   .object({
+    // SANCTIONED client-minted upload-batch correlation ID. A curated audition uploads
+    // MULTIPLE files that must all share ONE audition id before any Audition doc exists,
+    // so the client mints it and stamps every file in the batch with it. The backend must
+    // treat it with create-no-overwrite semantics (first write wins; a colliding id from a
+    // different actor/batch is rejected, never overwritten). This is NOT a reference to an
+    // existing audition (contrast audition-entry's auditionId).
     auditionId: z.string().min(1),
     type: z.literal('workAudition'),
     title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
@@ -96,6 +104,10 @@ export const AuditionPromptTargetInfoSchema = z
 // admin-audition-prompt: admin-operated featured/sponsored audition creation payload.
 export const AdminAuditionPromptTargetInfoSchema = z
   .object({
+    // SANCTIONED client-minted upload-batch correlation ID (see AuditionPromptTargetInfoSchema.
+    // auditionId): a curated audition's multiple option videos share this one id before any
+    // Audition doc exists; the backend uses create-no-overwrite semantics. NOT a reference to
+    // an existing audition.
     auditionId: z.string().min(1),
     type: z.enum(['platformAudition', 'sponsoredAudition']),
     title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),

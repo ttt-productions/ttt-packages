@@ -511,6 +511,60 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe(SPECIAL_DOCS.RULES_AND_AGREEMENTS);
     });
   });
+
+  // ===== ADOPTION-GAP BUILDERS (added for hand-assembled call sites) =====
+  describe('Adoption-gap builders', () => {
+    it('publicUser returns 2-segment tuple', () => {
+      const result = PATH_BUILDERS.publicUser('uid1');
+      expect(result).toEqual([COLLECTIONS.PUBLIC_USERS, 'uid1']);
+    });
+
+    it('accountDeletionRequest returns 2-segment tuple keyed by uid', () => {
+      const result = PATH_BUILDERS.accountDeletionRequest('uid1');
+      expect(result).toEqual([COLLECTIONS.ACCOUNT_DELETION_REQUESTS, 'uid1']);
+    });
+
+    it('userMentionHistoryEntry returns 4-segment tuple', () => {
+      const result = PATH_BUILDERS.userMentionHistoryEntry('uid1', 'entry1');
+      expect(result).toEqual([COLLECTIONS.USER_PROFILES, 'uid1', USER_SUBCOLLECTIONS.MENTION_HISTORY, 'entry1']);
+    });
+
+    it('taleChapters returns 5-segment collection tuple', () => {
+      const result = PATH_BUILDERS.taleChapters('wp1', 'tale1');
+      expect(result).toEqual([
+        COLLECTIONS.ALL_WORK_PROJECTS, 'wp1', WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES, 'tale1', NESTED_SUBCOLLECTIONS.TALE_CHAPTERS,
+      ]);
+    });
+
+    it('televisionEpisodes returns 5-segment collection tuple', () => {
+      const result = PATH_BUILDERS.televisionEpisodes('wp1', 'tv1');
+      expect(result).toEqual([
+        COLLECTIONS.ALL_WORK_PROJECTS, 'wp1', WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION, 'tv1', NESTED_SUBCOLLECTIONS.TELEVISION_EPISODES,
+      ]);
+    });
+
+    it('hallItemSubItems returns 3-segment collection tuple with the canonical subcollection segment', () => {
+      const result = PATH_BUILDERS.hallItemSubItems('hall1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes);
+      expect(result).toEqual([COLLECTIONS.HALL_ITEMS, 'hall1', 'tunes']);
+    });
+
+    it('childSafetySourceSignals / childSafetyDecisions / childSafetyCaseAccounts return 3-segment collection tuples', () => {
+      expect(PATH_BUILDERS.childSafetySourceSignals('c1')).toEqual([COLLECTIONS.CHILD_SAFETY_CASES, 'c1', NESTED_SUBCOLLECTIONS.CHILD_SAFETY_SOURCE_SIGNALS]);
+      expect(PATH_BUILDERS.childSafetyDecisions('c1')).toEqual([COLLECTIONS.CHILD_SAFETY_CASES, 'c1', NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS]);
+      expect(PATH_BUILDERS.childSafetyCaseAccounts('c1')).toEqual([COLLECTIONS.CHILD_SAFETY_CASES, 'c1', NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS]);
+    });
+
+    it('takeItDownSubmissions returns 3-segment collection tuple', () => {
+      expect(PATH_BUILDERS.takeItDownSubmissions('req1')).toEqual([COLLECTIONS.TAKE_IT_DOWN_REQUESTS, 'req1', NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS]);
+    });
+
+    it('nciiCase collection + closure-event builders', () => {
+      expect(PATH_BUILDERS.nciiCaseAllegationLinks('c1')).toEqual([COLLECTIONS.NCII_CASES, 'c1', NESTED_SUBCOLLECTIONS.NCII_CASE_ALLEGATION_LINKS]);
+      expect(PATH_BUILDERS.nciiCaseRequestLinks('c1')).toEqual([COLLECTIONS.NCII_CASES, 'c1', NESTED_SUBCOLLECTIONS.NCII_CASE_REQUEST_LINKS]);
+      expect(PATH_BUILDERS.nciiCaseClosureEvents('c1')).toEqual([COLLECTIONS.NCII_CASES, 'c1', NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS]);
+      expect(PATH_BUILDERS.nciiCaseClosureEvent('c1', 'e1')).toEqual([COLLECTIONS.NCII_CASES, 'c1', NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS, 'e1']);
+    });
+  });
 });
 
 

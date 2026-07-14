@@ -36,14 +36,13 @@ describe('ProfilePictureTargetInfoSchema', () => {
 });
 
 describe('CraftSkillMediaTargetInfoSchema', () => {
-  const valid = { craftSkillId: 'sk_1', skillType: 'image' as const, originalFileName: 'a.jpg' };
+  const valid = { skillType: 'image' as const, originalFileName: 'a.jpg' };
   it('accepts valid', () => { expect(() => CraftSkillMediaTargetInfoSchema.parse(valid)).not.toThrow(); });
   it('rejects unknown skillType', () => {
     expect(() => CraftSkillMediaTargetInfoSchema.parse({ ...valid, skillType: 'pdf' })).toThrow();
   });
-  it('rejects missing craftSkillId', () => {
-    const { craftSkillId, ...rest } = valid;
-    expect(() => CraftSkillMediaTargetInfoSchema.parse(rest)).toThrow();
+  it('rejects a client-supplied craftSkillId (backend mints the doc id from pendingMedia)', () => {
+    expect(() => CraftSkillMediaTargetInfoSchema.parse({ ...valid, craftSkillId: 'sk_1' })).toThrow();
   });
   it('rejects unknown fields', () => {
     expect(() => CraftSkillMediaTargetInfoSchema.parse({ ...valid, extra: 1 })).toThrow();
@@ -116,7 +115,6 @@ describe('SquareStreetzCaptionSchema (per-origin media caption rule)', () => {
 
 describe('CommissionPostingTargetInfoSchema', () => {
   const valid = {
-    commissionListingId: 'job_1',
     title: 'Test commission',
     description: 'desc',
     requiredTradeProfessions: ['Actor'],
@@ -124,6 +122,9 @@ describe('CommissionPostingTargetInfoSchema', () => {
     workProjectId: 'p_1',
   };
   it('accepts valid', () => { expect(() => CommissionPostingTargetInfoSchema.parse(valid)).not.toThrow(); });
+  it('rejects a client-supplied commissionListingId (backend mints the listing id)', () => {
+    expect(() => CommissionPostingTargetInfoSchema.parse({ ...valid, commissionListingId: 'job_1' })).toThrow();
+  });
   it('rejects missing workProjectId', () => {
     const { workProjectId, ...rest } = valid;
     expect(() => CommissionPostingTargetInfoSchema.parse(rest)).toThrow();
@@ -354,8 +355,8 @@ describe('parseTargetInfo dispatch', () => {
     expect(parseTargetInfo('profile-picture', {})).toEqual({});
   });
   it('dispatches to craft-skill-media schema', () => {
-    const result = parseTargetInfo('craft-skill-media', { craftSkillId: 's_1', skillType: 'image', originalFileName: 'a.jpg' });
-    expect(result).toMatchObject({ craftSkillId: 's_1' });
+    const result = parseTargetInfo('craft-skill-media', { skillType: 'image', originalFileName: 'a.jpg' });
+    expect(result).toMatchObject({ skillType: 'image', originalFileName: 'a.jpg' });
   });
   it('dispatches to guild-chat-message-attachment schema', () => {
     const result = parseTargetInfo('guild-chat-message-attachment', { threadKind: 'guildChatChannel', workProjectId: 'p_1', guildChatChannelId: 'c_1' });

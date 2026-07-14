@@ -29,6 +29,22 @@ import { z } from 'zod';
 import { MediaOriginLineageV1Schema } from '../media-assets.js';
 
 // ===========================================================================
+// §A4 manifest / communication array caps — the ONE named declaration (Rule 36).
+// Every `.max(...)` bound below derives from these; the app's evidence-manifest
+// writer imports the SAME constants for its `bound(...)` checks so the schema and the
+// writer can never drift to two different numbers.
+// ===========================================================================
+
+/** MAX variants[] on a media manifest (§A4). */
+export const MAX_MANIFEST_VARIANTS = 64;
+/** MAX provenanceRefs[] (eventProvenance ids promoted into the case) on a manifest (§A4). */
+export const MAX_MANIFEST_PROVENANCE_REFS = 64;
+/** MAX ncmecReceiptRefs[] on a manifest (§A4). */
+export const MAX_MANIFEST_NCMEC_RECEIPTS = 32;
+/** MAX attachmentItemIds[] on a communication manifest (§A4). */
+export const MAX_COMMUNICATION_ATTACHMENTS = 256;
+
+// ===========================================================================
 // §A4 — safetyEvidenceManifests/{manifestId} = SafetyEvidenceManifestV1
 // (Finding-H5). IMMUTABLE, versioned. `sourceKind` selects the present sub-object.
 // ===========================================================================
@@ -73,7 +89,7 @@ export const SafetyEvidenceCommunicationV1Schema = z.object({
   messageSeqStart: z.number(),
   messageSeqEnd: z.number(),
   transcriptObjectRef: z.string().min(1),
-  attachmentItemIds: z.array(z.string().min(1)).max(256),
+  attachmentItemIds: z.array(z.string().min(1)).max(MAX_COMMUNICATION_ATTACHMENTS),
 }).strict();
 export type SafetyEvidenceCommunicationV1 = z.infer<typeof SafetyEvidenceCommunicationV1Schema>;
 
@@ -150,20 +166,20 @@ export const SafetyEvidenceManifestV1Schema = z.object({
   createdAt: z.number(),
   sourceKind: SafetyEvidenceSourceKindSchema, // REQUIRED — selects the present sub-object
   original: SafetyEvidenceOriginalV1Schema.optional(), // present ONLY when sourceKind='media'
-  variants: z.array(SafetyEvidenceVariantV1Schema).max(64).optional(), // media only
+  variants: z.array(SafetyEvidenceVariantV1Schema).max(MAX_MANIFEST_VARIANTS).optional(), // media only
   lineage: MediaOriginLineageV1Schema.optional(), // present ONLY when sourceKind='media'
   communication: SafetyEvidenceCommunicationV1Schema.optional(), // present ONLY when sourceKind='communication'
   externalFact: SafetyEvidenceExternalFactV1Schema.optional(), // present ONLY when sourceKind='externalFact'
   // multi-subject lives in the case childSafetyCases/{caseId}/accounts subcollection
   // (no fake uploader on the manifest); this points at …/accounts:
   subjectAccountsRef: z.string().min(1),
-  provenanceRefs: z.array(z.string().min(1)).max(64), // eventProvenance ids promoted into the case
+  provenanceRefs: z.array(z.string().min(1)).max(MAX_MANIFEST_PROVENANCE_REFS), // eventProvenance ids promoted into the case
   contentDocSnapshotRef: z.string().min(1).optional(),
   contentDocRevision: z.number().optional(),
   detector: SafetyEvidenceDetectorV1Schema.optional(), // never the raw hash
   evidenceCopy: SafetyEvidenceCopyV1Schema.optional(), // media only
   reporter: SafetyEvidenceReporterV1Schema.optional(), // restricted; segregated from ordinary admin views
-  ncmecReceiptRefs: z.array(z.string().min(1)).max(32),
+  ncmecReceiptRefs: z.array(z.string().min(1)).max(MAX_MANIFEST_NCMEC_RECEIPTS),
 }).strict().superRefine((val, ctx) => {
   // H5 invariant: the sourceKind→present-object set. `media` requires original +
   // lineage and forbids communication/externalFact; `communication` requires

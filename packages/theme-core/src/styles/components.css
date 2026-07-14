@@ -48,7 +48,7 @@
 /* Spinners rendered INSIDE a button inherit the button's text color. The
    standalone default above is brand --primary — which on a bg-primary button
    is primary-on-primary and therefore INVISIBLE while it spins (found live:
-   the become-artisan submit showed no working indicator). currentColor makes
+   a bg-primary submit button showed no working indicator). currentColor makes
    the spinner text-primary-foreground on default buttons, and correct on any
    other button variant automatically. */
 button .spinner-xs,

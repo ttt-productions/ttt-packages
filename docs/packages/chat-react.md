@@ -44,10 +44,15 @@ The realtime transport is the client for the chat Worker's Durable Objects
 (Contract A connection + Contract C wire protocol). It is GENERIC — it imports
 the generic [`@ttt-productions/realtime-core`](./realtime-core.md) primitives
 (reconnect/resume controller, versioned-apply) and NEVER imports `ttt-core` or
-the chat Worker. The wire shapes (`{ v, type, payload }` frames, close codes,
-`MessageRow`) are mirrored from `ttt-master-app/chat-worker/src` by hand; neither
-side imports the other. The app injects everything app-specific (the grant
-provider, the endpoint, the channel ref).
+the chat Worker. The canonical wire contract (`{ v, type, payload }` frame
+version, `CLIENT_KINDS` / `SERVER_KINDS`, close codes, `ChannelRefTuple`, grant
+scope/audience, and the client-agreed limits) is owned by
+[`@ttt-productions/chat-schemas`](./chat-schemas.md); the transport imports it
+(re-exporting the frame-kind maps under its historical `CLIENT_FRAME` /
+`SERVER_FRAME` names) and adds the client-side row/frame shapes (`WireMessageRow`,
+`ServerFrame`, …) it maps into the UI message shape. The chat Worker consumes the
+same contract, so the two agree on the wire without importing each other. The app
+injects everything app-specific (the grant provider, the endpoint, the channel ref).
 
 **Pieces** (all under `src/realtime/`, re-exported from the package root):
 

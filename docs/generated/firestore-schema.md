@@ -2203,3 +2203,4 @@ Bound in a future pass (shape needs reverse-engineering from the backend write s
 - `userMetadata`
 - `checkedOutItems`
 - `feedbackDenylist`
+- `closureEvents`

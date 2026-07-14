@@ -1,10 +1,11 @@
 // Shared injected contracts + tunable constants for the realtime transport.
 //
-// The constants mirror the worker's V1 limits (`ttt-master-app/chat-worker/src/
-// limits.ts`) for the values the CLIENT must agree on. They are duplicated (not
-// imported) on purpose — this package is generic and never imports the worker;
-// the worker is the authority and rejects anything out of bounds, so a drift is
-// caught server-side, but the client uses these to coalesce/paginate politely.
+// The client-agreed limits (`HEARTBEAT_MS`, `TYPING_COALESCE_MS`,
+// `HISTORY_PAGE_MAX`) come from the one wire contract in
+// `@ttt-productions/chat-schemas`; they are re-exported here so the transport's
+// existing import sites are unchanged. The worker runtime is the authority and
+// rejects anything out of bounds, but the client uses these to coalesce and
+// paginate politely. The remaining constants below are client-only retry policy.
 
 /**
  * Mints a short-lived chat grant token for the socket's scope. The app wires this
@@ -31,12 +32,9 @@ export const defaultTimers: TransportTimers = {
 /** Connection status surfaced to the UI. */
 export type RealtimeStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'closed';
 
-/** Client heartbeat cadence (worker `CLIENT_HEARTBEAT_MS`). */
-export const HEARTBEAT_MS = 20_000;
-/** Typing coalescing minimum interval (worker `TYPING_COALESCE_MS`). */
-export const TYPING_COALESCE_MS = 2_000;
-/** History page cap (worker `HISTORY_PAGE_MAX`). */
-export const HISTORY_PAGE_MAX = 50;
+// The client-agreed limits live in the wire contract; re-export to keep this
+// module's public surface stable.
+export { HEARTBEAT_MS, TYPING_COALESCE_MS, HISTORY_PAGE_MAX } from '@ttt-productions/chat-schemas';
 
 /**
  * Max reconnect resends of one un-acked send before its optimistic row is flipped

@@ -3,8 +3,8 @@
 // not failing. Consumers use it to keep benign rejections out of Sentry (the
 // backend Sentry event processor drops them; the client callable wrapper skips
 // capture + shows the toast). Consolidated 2026-07-13 from the former "keep the
-// two code sets in sync" pair (ttt-prod functions/src/index.ts ↔
-// src/hooks/use-functions.tsx). Generic Firebase codes — deliberately
+// two code sets in sync" pair in the consuming app (its Cloud Functions entry ↔
+// its client callable hook). Generic Firebase codes — deliberately
 // app-agnostic, so it lives here rather than an app-data package.
 
 /** Bare HttpsError codes (server-side shape, e.g. `failed-precondition`). */

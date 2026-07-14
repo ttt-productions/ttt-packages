@@ -18,7 +18,7 @@ export interface ReportTargetRef {
 
 /**
  * A consumer-supplied EXTRA option in the report-reason picker — generic; report-core knows nothing
- * about what it does. The consumer (e.g. the TTT app) supplies these, already filtered for who may
+ * about what it does. The consumer (e.g. the consuming app) supplies these, already filtered for who may
  * see them (an admin-only action is supplied only when the current user is an admin). When the user
  * selects one and submits, the dialog calls `handler(target, comment)` INSTEAD of the report-intake
  * callable. Example use: an admin "mark as NCII linked evidence" option that calls a different callable.

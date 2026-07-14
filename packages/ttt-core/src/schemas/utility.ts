@@ -97,3 +97,10 @@ export const MarkAdminDispatchReadInputSchema = z.object({
 }).strict();
 export type MarkAdminDispatchReadInput = z.infer<typeof MarkAdminDispatchReadInputSchema>;
 
+// Admin/jr-admin deletes a short link (`deleteShortLink`). Non-strict posture is carried
+// faithfully from the source callable.
+export const DeleteShortLinkInputSchema = z.object({
+  shortId: z.string().min(1, 'shortId is required'),
+});
+export type DeleteShortLinkInput = z.infer<typeof DeleteShortLinkInputSchema>;
+

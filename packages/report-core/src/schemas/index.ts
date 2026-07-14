@@ -26,9 +26,10 @@ export const ReleaseTaskRequestSchema = z.object({
 export type ReleaseTaskRequest = z.infer<typeof ReleaseTaskRequestSchema>;
 
 // The Trust & Safety `submitReport` callable wire shape. report-core is a GENERIC
-// Tier-1 package — it cannot import ttt-core's ReportReason / ReportableItemType
-// enums, so `itemType` and `reason` are typed as opaque strings here; the consuming
-// app's submitReport callable validates them against the canonical ttt-core enums.
+// Tier-1 package — it cannot import the app core package's ReportReason /
+// ReportableItemType enums, so `itemType` and `reason` are typed as opaque strings
+// here; the consuming app's submitReport callable validates them against the
+// canonical app-core enums.
 // `reportedUserId` is a HINT ONLY — the server re-derives the owner and never trusts
 // it as authority. `comment` is the free-text reporter narrative (segregated server-side).
 export const SubmitReportRequestSchema = z.object({

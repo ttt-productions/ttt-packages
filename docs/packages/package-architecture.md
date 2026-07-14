@@ -39,7 +39,7 @@ package may consume it.
   (Durable Object) chat transport client; `realtime-core` is Tier 1 so it already
   builds before `chat-react`.
 - **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
-  `edge-protocol-core`, `media-schemas`, `report-core`).
+  `edge-protocol-core`, `media-schemas`, `notification-core`, `report-core`).
 
 The internal runtime-dependency edges (peers/dev excluded — they do not affect
 build order):
@@ -51,12 +51,13 @@ build order):
     media-processing-core  -> media-schemas
     upload-core            -> firebase-helpers
     upload-ui              -> file-input, media-schemas, ui-core, upload-core
-    ttt-core               -> audit-core, chat-schemas, media-schemas, report-core
+    ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
+                              media-schemas, notification-core, report-core
     chat-react             -> chat-core, chat-schemas, realtime-core,
                               media-schemas, ui-core, file-input, upload-ui,
                               media-viewer, mobile-core, firebase-helpers
 
-The `media-viewer -> file-input` edge is the only intra-Tier-1 dependency
+The `file-input -> media-viewer` edge is the only intra-Tier-1 dependency
 (`file-input` renders `MediaPreview` in `MediaInput`'s selected-file preview).
 It needs no tier renumbering: the build chain and `scripts/release-all.sh`
 already place `media-viewer` before `file-input`, so dependencies still build

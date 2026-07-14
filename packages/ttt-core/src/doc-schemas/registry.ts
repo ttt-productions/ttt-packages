@@ -455,4 +455,7 @@ export const PENDING_COLLECTIONS: readonly string[] = [
   'userMetadata',
   'checkedOutItems',
   'feedbackDenylist',
+  // Append-only NCII case closure/reopen event rows — the doc shape is owned app-side
+  // (NciiCaseV1 closure events), not modeled in ttt-core doc-schemas.
+  'closureEvents',
 ] as const;

@@ -13,8 +13,8 @@
 /**
  * Opaque diagnosis result returned by the app's probe(). The package treats
  * this value OPAQUELY — it only checks the `kind` discriminant; all
- * domain-specific interpretation (x-ttt-deny, HTTP status codes, etc.) lives
- * in the app adapter.
+ * domain-specific interpretation (a product-specific deny header, HTTP status
+ * codes, etc.) lives in the app adapter.
  */
 export type DiagnosisResult =
   | { kind: "transient" }
@@ -24,7 +24,7 @@ export type DiagnosisResult =
 /**
  * Optional hint from the app about the asset's known server-side lifecycle
  * state. When provided it informs which recovery states are applicable.
- * The package treats these opaquely — it does not interpret TTT-specific
+ * The package treats these opaquely — it does not interpret product-specific
  * pendingMedia.publicationState fields directly.
  */
 export type AssetStatusHint =
@@ -35,7 +35,7 @@ export type AssetStatusHint =
   | "rejected";    // terminal rejection — no recovery
 
 /**
- * Injected adapter interface. The TTT app implements this; generic consumers
+ * Injected adapter interface. The consuming app implements this; generic consumers
  * may supply a no-op or partial adapter.
  *
  * Every method is optional — callers guard before invoking.

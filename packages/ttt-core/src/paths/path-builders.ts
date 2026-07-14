@@ -18,6 +18,17 @@ export const PATH_BUILDERS = {
   userProfile: (userId: string): [string, string] =>
     [COLLECTIONS.USER_PROFILES, userId],
 
+  // Backend-mirrored public identity projection (publicUsers/{uid}).
+  publicUser: (uid: string): [string, string] =>
+    [COLLECTIONS.PUBLIC_USERS, uid],
+
+  // Per-user account-deletion / erasure request, keyed by uid.
+  accountDeletionRequest: (uid: string): [string, string] =>
+    [COLLECTIONS.ACCOUNT_DELETION_REQUESTS, uid],
+
+  userMentionHistoryEntry: (userId: string, entryId: string): [string, string, string, string] =>
+    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.MENTION_HISTORY, entryId],
+
   userCraftSkill: (userId: string, craftSkillId: string): [string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS, craftSkillId],
 
@@ -63,6 +74,10 @@ export const PATH_BUILDERS = {
   taleChapter: (workProjectId: string, taleId: string, chapterId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES, taleId, NESTED_SUBCOLLECTIONS.TALE_CHAPTERS, chapterId],
 
+  // Collection of chapters under a tale (parent of taleChapter).
+  taleChapters: (workProjectId: string, taleId: string): [string, string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES, taleId, NESTED_SUBCOLLECTIONS.TALE_CHAPTERS],
+
   workProjectTune: (workProjectId: string, tuneId: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TUNES, tuneId],
 
@@ -74,6 +89,10 @@ export const PATH_BUILDERS = {
 
   televisionEpisode: (workProjectId: string, televisionId: string, episodeId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION, televisionId, NESTED_SUBCOLLECTIONS.TELEVISION_EPISODES, episodeId],
+
+  // Collection of episodes under a television item (parent of televisionEpisode).
+  televisionEpisodes: (workProjectId: string, televisionId: string): [string, string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TELEVISION, televisionId, NESTED_SUBCOLLECTIONS.TELEVISION_EPISODES],
 
   workProjectGuildmateUser: (workProjectId: string, uid: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILDMATE_USERS, uid],
@@ -112,6 +131,12 @@ export const PATH_BUILDERS = {
   // it from HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE, never `workProjectType.toLowerCase()`.
   hallItemType: (hallItemId: string, subcollection: HallItemSubcollection, itemId: string): [string, string, string, string] =>
     [COLLECTIONS.HALL_ITEMS, hallItemId, subcollection, itemId],
+
+  // Collection of published hall sub-items for one type (parent of hallItemType). The
+  // subcollection segment is the canonical HallItemSubcollection — derive it from
+  // HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE, never `workProjectType.toLowerCase()`.
+  hallItemSubItems: (hallItemId: string, subcollection: HallItemSubcollection): [string, string, string] =>
+    [COLLECTIONS.HALL_ITEMS, hallItemId, subcollection],
 
   hallContentChangeRequest: (changeRequestId: string): [string, string] =>
     [COLLECTIONS.HALL_CONTENT_CHANGE_REQUESTS, changeRequestId],
@@ -329,14 +354,26 @@ export const PATH_BUILDERS = {
   childSafetySourceSignal: (caseId: string, signalId: string): [string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_SOURCE_SIGNALS, signalId],
 
+  // Collection of source-signal rows for a case (parent of childSafetySourceSignal).
+  childSafetySourceSignals: (caseId: string): [string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_SOURCE_SIGNALS],
+
   childSafetyDecision: (caseId: string, decisionId: string): [string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS, decisionId],
+
+  // Collection of decision rows for a case (parent of childSafetyDecision).
+  childSafetyDecisions: (caseId: string): [string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS],
 
   childSafetyDecisionView: (caseId: string, decisionId: string, viewId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISIONS, decisionId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_DECISION_VIEWS, viewId],
 
   childSafetyCaseAccount: (caseId: string, uid: string): [string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS, uid],
+
+  // Collection of per-account rows for a case (parent of childSafetyCaseAccount).
+  childSafetyCaseAccounts: (caseId: string): [string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS],
 
   childSafetyCaseAccountHistory: (caseId: string, uid: string, historyId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS, uid, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNT_HISTORY, historyId],
@@ -429,6 +466,10 @@ export const PATH_BUILDERS = {
   takeItDownSubmission: (requestId: string, submissionId: string): [string, string, string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS, submissionId],
 
+  // Collection of submissions under a request (parent of takeItDownSubmission).
+  takeItDownSubmissions: (requestId: string): [string, string, string] =>
+    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS],
+
   takeItDownValidityDecision: (requestId: string, decisionId: string): [string, string, string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS, decisionId],
 
@@ -454,8 +495,24 @@ export const PATH_BUILDERS = {
   nciiCaseAllegationLink: (caseId: string, allegationId: string): [string, string, string, string] =>
     [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_ALLEGATION_LINKS, allegationId],
 
+  // Collection of allegation links for a case (parent of nciiCaseAllegationLink).
+  nciiCaseAllegationLinks: (caseId: string): [string, string, string] =>
+    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_ALLEGATION_LINKS],
+
   nciiCaseRequestLink: (caseId: string, requestId: string): [string, string, string, string] =>
     [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_REQUEST_LINKS, requestId],
+
+  // Collection of request links for a case (parent of nciiCaseRequestLink).
+  nciiCaseRequestLinks: (caseId: string): [string, string, string] =>
+    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_REQUEST_LINKS],
+
+  // Append-only NCII case closure/reopen events.
+  nciiCaseClosureEvent: (caseId: string, eventId: string): [string, string, string, string] =>
+    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS, eventId],
+
+  // Collection of closure/reopen events for a case (parent of nciiCaseClosureEvent).
+  nciiCaseClosureEvents: (caseId: string): [string, string, string] =>
+    [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_CLOSURE_EVENTS],
 
   nciiCaseRemovalAction: (caseId: string, actionId: string): [string, string, string, string] =>
     [COLLECTIONS.NCII_CASES, caseId, NESTED_SUBCOLLECTIONS.NCII_CASE_REMOVAL_ACTIONS, actionId],

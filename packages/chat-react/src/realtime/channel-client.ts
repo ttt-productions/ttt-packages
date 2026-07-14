@@ -106,8 +106,8 @@ const INITIAL: ChannelClientState = {
  * Retryable error-frame code the channel DO sends when a send arrives BEFORE the
  * member row has synced through the async backend→worker pipeline (a just-created
  * invite/channel). The socket stays open; the client re-sends after `retryAfterMs`
- * through the normal resendPendingSends machinery (same caps). The string is the
- * wire contract with chat-worker's handleSend — change both together.
+ * through the normal resendPendingSends machinery (same caps). The string is part
+ * of the wire contract with the worker runtime's send handler.
  */
 const MEMBERSHIP_PENDING_CODE = 'membership-pending';
 /** Fallback retry delay when the frame omits/breaks `retryAfterMs`. */

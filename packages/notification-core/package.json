@@ -37,6 +37,9 @@
         "typecheck": "tsc --noEmit",
         "prepublishOnly": "npm run build"
     },
+    "dependencies": {
+        "zod": "^4.4.3"
+    },
     "peerDependencies": {
         "@tanstack/react-query": ">=5.0.0",
         "@ttt-productions/query-core": "*",

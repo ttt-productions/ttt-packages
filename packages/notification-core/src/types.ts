@@ -90,8 +90,8 @@ export interface NotificationDoc {
 // Archived history docs are persisted as an untyped wrapper by the server archive
 // helper (server/observed-generation.ts) — `archivedSnapshot` (the full active doc)
 // plus archive metadata + a native-TTL `expireAt` Timestamp. There is no consumer-
-// facing TS type for that shape; the canonical registry schema lives in ttt-core
-// (doc-schemas/notifications.ts → NotificationHistoryDocSchema).
+// facing TS type for that shape; the canonical registry schema lives in the
+// consuming app's core package (doc-schemas/notifications.ts → NotificationHistoryDocSchema).
 
 /**
  * Pending notification — queue item for the batch processor.

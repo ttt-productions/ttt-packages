@@ -7,10 +7,12 @@
 // context, identical to the Firestore path.
 
 import type { ChatMessageV1 } from '@ttt-productions/chat-core';
+import { MODERATION_REDACTED_TEXT } from '@ttt-productions/chat-schemas';
 import type { RevisionKind, WireMessageRow } from './wire.js';
 
-/** The replacement text shown for a hidden/deleted message (the ORIGINAL never renders). */
-export const MODERATION_REDACTED_TEXT = '[message removed]' as const;
+// The redacted-text constant lives in the wire contract; re-export to keep this
+// module's public surface stable.
+export { MODERATION_REDACTED_TEXT };
 
 /** The effective moderation overlay for a message: the max-`messageRevision` kind. */
 export interface ModerationOverlay {

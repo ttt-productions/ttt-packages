@@ -4,7 +4,7 @@
  * Generic mutation hook to mark terminal pendingMedia items as seen in the tray.
  *
  * Pure adapter: the consumer supplies `markFn` (typically a wrapped Firebase
- * callable in ttt-prod that writes `uploadTraySeenAt`/`uploadTraySeenBy` on the
+ * callable in the consuming app that writes `uploadTraySeenAt`/`uploadTraySeenBy` on the
  * caller's own terminal pendingMedia docs). The package owns the useMutation
  * wiring and the optional `onError` hook; the consumer owns the network call.
  *

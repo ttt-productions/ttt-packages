@@ -28,6 +28,7 @@ import {
   SafetyCaseClosureV1Schema,
   TargetLocatorV1Schema,
 } from './foundation.js';
+import { MAX_MANIFEST_NCMEC_RECEIPTS } from './evidence.js';
 
 // ===========================================================================
 // Cluster-local enums (§A1b + §A9). These are case-spine-specific value sets,
@@ -393,6 +394,19 @@ export const SetReportDispositionInputV1Schema = z.object({
   expectedRevision: z.number(),
   disposition: ReportDispositionSchema,
   dispositionReasonCode: ReportDispositionReasonCodeSchema,
-  evidenceRefs: z.array(z.string().min(1)).min(1).max(32),
+  // MAX derives from the ONE receipts cap (evidence.ts) — the callable + admin.ts use the same.
+  evidenceRefs: z.array(z.string().min(1)).min(1).max(MAX_MANIFEST_NCMEC_RECEIPTS),
 }).strict();
 export type SetReportDispositionInputV1 = z.infer<typeof SetReportDispositionInputV1Schema>;
+
+// The PRIVILEGED CALLABLE input (`setReportDisposition`) — extends the embedded shape with the
+// ≥1-required, MAX-bounded evidenceRefs and the interim explicit typed confirmation (stands in
+// for the passkey two-step until [H-17]). Lives beside the base shape it extends.
+export const SetReportDispositionCallableInputSchema = SetReportDispositionInputV1Schema.extend({
+  evidenceRefs: z
+    .array(z.string().min(1))
+    .min(1, 'At least one evidence ref is required.')
+    .max(MAX_MANIFEST_NCMEC_RECEIPTS),
+  confirmation: z.literal('I confirm this legal reporting disposition'),
+});
+export type SetReportDispositionCallableInput = z.infer<typeof SetReportDispositionCallableInputSchema>;

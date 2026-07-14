@@ -4,7 +4,7 @@
  * Generic mutation hook to clear a terminal pendingMedia item from the tray.
  *
  * Pure adapter: the consumer supplies `clearFn` (typically a wrapped Firebase
- * callable in ttt-prod, or a fetch call elsewhere). The package owns the
+ * callable in the consuming app, or a fetch call elsewhere). The package owns the
  * useMutation wiring and the optional `onError` toast hook; the consumer owns
  * the network call.
  *

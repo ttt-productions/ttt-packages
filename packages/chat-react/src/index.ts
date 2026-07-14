@@ -97,7 +97,7 @@ export type {
 // TODO (re-export when a consumer needs them): the moderation-overlay helpers
 // `RevisionKind`, `ModerationOverlay`, `applyModerationOverlay`, `overlayFromRow`,
 // and `MODERATION_REDACTED_TEXT` live in `./realtime` but are intentionally NOT
-// re-exported from this package root yet — the ttt-prod renderer reads moderation
+// re-exported from this package root yet — the consuming app's renderer reads moderation
 // state off `message.meta` (the realtime client applies the overlay internally), so
 // nothing imports them from here today. Add them to the block above when a consumer
 // genuinely needs to apply the overlay directly. (Comment-only; rides the next publish.)

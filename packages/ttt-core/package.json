@@ -91,6 +91,10 @@
         "./permissions": {
             "types": "./dist/permissions/index.d.ts",
             "default": "./dist/permissions/index.js"
+        },
+        "./safety": {
+            "types": "./dist/safety/index.d.ts",
+            "default": "./dist/safety/index.js"
         }
     },
     "scripts": {

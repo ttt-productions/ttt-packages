@@ -3,10 +3,11 @@
 // real network is touched.
 //
 // Contract A transport: the grant token is offered as the SECOND WebSocket
-// subprotocol — `Sec-WebSocket-Protocol: ttt.chat.v1, <grant-token>` — never in
-// the URL (tokens never appear in URLs; Contract A). The browser sets that header
-// from `new WebSocket(url, ['ttt.chat.v1', grantToken])`. The worker validates
-// cookie + grant + Origin BEFORE accept and echoes back only `ttt.chat.v1`.
+// subprotocol — `Sec-WebSocket-Protocol: <CHAT_SUBPROTOCOL>, <grant-token>` —
+// never in the URL (tokens never appear in URLs; Contract A). The browser sets
+// that header from `new WebSocket(url, [CHAT_SUBPROTOCOL, grantToken])`. The
+// worker validates cookie + grant + Origin BEFORE accept and echoes back only
+// CHAT_SUBPROTOCOL.
 
 import { CHAT_SUBPROTOCOL } from './wire.js';
 
@@ -56,7 +57,7 @@ type WebSocketCtor = new (url: string, protocols?: string | string[]) => Minimal
 const WS_OPEN = 1;
 
 /**
- * The default browser socket factory. Offers `['ttt.chat.v1', grantToken]` as the
+ * The default browser socket factory. Offers `[CHAT_SUBPROTOCOL, grantToken]` as the
  * subprotocol list so the grant rides in `Sec-WebSocket-Protocol`, never the URL.
  */
 export const browserSocketFactory: SocketFactory = ({ url, grantToken, handlers }) => {

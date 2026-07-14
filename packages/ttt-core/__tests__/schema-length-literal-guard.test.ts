@@ -39,25 +39,30 @@ const SCANNED_DIRS = ['src/schemas', 'src/doc-schemas'];
 const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
   // Two extra 200s (2026-07-13): the dead-letter docId structural bound (nested-path
   // ids) and the getDeadLetters per-ledger row cap — structural, not business limits.
+  // The former lone 32 (evidenceRefs) now derives from MAX_MANIFEST_NCMEC_RECEIPTS.
   'src/schemas/admin.ts': [
-    1, 16, 16, 32, 64, 128, 128, 128, 128, 128, 128, 200, 200, 200, 200, 300, 300, 500,
+    1, 16, 16, 64, 128, 128, 128, 128, 128, 128, 200, 200, 200, 200, 300, 300, 500,
     2048, 2048, 2048,
   ],
-  'src/schemas/chat.ts': [20, 20, 64, 64, 128, 128, 500, 500],
+  // 200s = admin chat-moderation requestId/caseId opaque-id caps; 50s = the ≤50 before/after
+  // context-window pagination bound (adminModerateChatMessage / adminReadChannelContext).
+  'src/schemas/chat.ts': [20, 20, 50, 50, 64, 64, 128, 128, 200, 200, 200, 500, 500],
   'src/schemas/hall-library.ts': [64],
   'src/schemas/ncii.ts': [64, 256, 256, 256, 256, 256, 320],
   // 64 died with reportedItemTypeSchema tightening to the canonical enum; 2000 became
   // MAX_BROADCAST_EXPLICIT_UIDS (2026-07-13 consolidation sweep).
   'src/schemas/notification.ts': [128],
-  'src/schemas/safety.ts': [200],
+  // preserveAsEvidence structural caps: 256 opaque-id caps (mediaAssetId / profile uid / chat
+  // channelId / attachment-ids array / caseId), 1024 ref/path caps (postDocPath /
+  // transcriptObjectRef / narrativeRef), 32 augmentations fan-out cap.
+  'src/schemas/safety.ts': [32, 200, 256, 256, 256, 256, 256, 1024, 1024, 1024],
   'src/schemas/social.ts': [128, 128],
   'src/schemas/uploads.ts': [200],
   'src/schemas/users.ts': [12, 12, 31, 31],
   'src/schemas/utility.ts': [64, 64, 64, 128, 500, 500],
   'src/doc-schemas/ncii/holds.ts': [16],
   'src/doc-schemas/ncii/requests.ts': [16, 16, 16],
-  'src/doc-schemas/safety/case.ts': [32],
-  'src/doc-schemas/safety/evidence.ts': [32, 64, 64, 256],
+  // The former lone 32 (evidenceRefs) now derives from MAX_MANIFEST_NCMEC_RECEIPTS.
   'src/doc-schemas/safety/holds.ts': [32, 64, 256],
   'src/doc-schemas/safety/provenance.ts': [256],
   'src/doc-schemas/safety/report.ts': [16, 32],

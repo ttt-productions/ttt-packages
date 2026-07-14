@@ -66,6 +66,21 @@ const GUARDED: Record<string, { owner: string; allowed: string[] }> = {
     // the same scope kind (its union also carries request-only kinds); reviewed.
     allowed: ['ttt-core/src/schemas/media.ts'],
   },
+  '[message removed]': {
+    // The canonical moderation-redaction wire text (MODERATION_REDACTED_TEXT).
+    owner: 'chat-schemas/src/realtime-wire.ts',
+    allowed: [],
+  },
+  'ttt.chat.v1': {
+    // The canonical chat WebSocket subprotocol token (CHAT_SUBPROTOCOL).
+    owner: 'chat-schemas/src/realtime-wire.ts',
+    allowed: [],
+  },
+  'Removed by moderation — awaiting an update by the steward.': {
+    // The canonical moderation text-clear placeholder (MODERATION_CLEAR_PLACEHOLDER).
+    owner: 'ttt-core/src/constants/business-content.ts',
+    allowed: [],
+  },
 };
 
 function walk(dir: string, out: string[]): void {

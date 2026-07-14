@@ -1,74 +1,36 @@
-// Chat realtime WIRE PROTOCOL (Contract C) — the client side of the chat-worker
-// Channel + Inbox Durable Object protocol. These shapes mirror the worker's
-// `ttt-master-app/chat-worker/src` BYTE-FOR-BYTE so the DO and this client agree
-// on the wire without sharing code (the worker stays ttt-core-free; this package
-// stays generic — neither imports the other).
+// Chat realtime WIRE PROTOCOL (Contract C) — the client side of the Channel +
+// Inbox Durable Object protocol. The canonical protocol declarations (subprotocol,
+// frame-kind maps, close codes, channel-ref tuple, grant scope, client-agreed
+// limits) are owned by `@ttt-productions/chat-schemas`; this file consumes them
+// and adds the client-side raw row/frame shapes the transport maps into the UI
+// message shape. The client and the worker runtime agree on the wire by both
+// importing that one contract; neither imports the other.
 //
 // Frame shape on the socket is `{ v, type, payload }` (NOT realtime-core's
-// `{ v, kind, payload }`): the chat worker `send`/`broadcast` emit
+// `{ v, kind, payload }`): the worker runtime `send`/`broadcast` emit
 // `JSON.stringify({ v: 1, type, payload })` and read `env.type` + `env.payload`.
 // We keep that field name here to match; realtime-core's envelope schema is the
-// generic transport primitive, the chat worker chose `type` for its DO frames.
+// generic transport primitive, the chat protocol chose `type` for its frames.
 
-/** The pinned WebSocket subprotocol tag offered alongside the grant token. */
-export const CHAT_SUBPROTOCOL = 'ttt.chat.v1' as const;
+// Re-export the canonical wire contract so this package's public surface is
+// unchanged. `CLIENT_FRAME`/`SERVER_FRAME` are this package's historical names
+// for the frame-kind maps (`CLIENT_KINDS`/`SERVER_KINDS` in the contract).
+export {
+  CHAT_SUBPROTOCOL,
+  CHAT_WIRE_VERSION,
+  CHAT_CLOSE_CODES,
+  CLIENT_KINDS as CLIENT_FRAME,
+  SERVER_KINDS as SERVER_FRAME,
+} from '@ttt-productions/chat-schemas';
+export type { ChatCloseCode, ChannelRefTuple } from '@ttt-productions/chat-schemas';
 
-/** Wire envelope protocol version (the worker emits and accepts `v: 1`). */
-export const CHAT_WIRE_VERSION = 1 as const;
-
-/** Client → DO message `type`s (chat-worker `CLIENT_KINDS`). */
-export const CLIENT_FRAME = {
-  SEND: 'send',
-  READ_ACK: 'read-ack',
-  HISTORY: 'history',
-  TYPING: 'typing',
-  PRESENCE_SUBSCRIBE: 'presence-subscribe',
-  PRESENCE_UNSUBSCRIBE: 'presence-unsubscribe',
-  HEARTBEAT: 'heartbeat',
-  RESUME: 'resume',
-  /** INBOX-socket-only: clear a channel's unread without opening it. The inbox DO
-   *  validates the ref against the caller's registry, advances the read cursor to
-   *  tail on the channel DO, then pushes a fresh authoritative snapshot. */
-  MARK_READ: 'mark-read',
-} as const;
-
-/** DO → client message `type`s (chat-worker `SERVER_KINDS`). */
-export const SERVER_FRAME = {
-  MESSAGE: 'message',
-  ACK: 'ack',
-  HISTORY_PAGE: 'history-page',
-  PRESENCE: 'presence',
-  TYPING: 'typing',
-  UNREAD: 'unread',
-  SNAPSHOT: 'snapshot',
-  ERROR: 'error',
-  REVISION: 'revision',
-} as const;
-
-/**
- * WebSocket close codes (Contract C). 4xxx are app codes; 1013 is the standard
- * "try again later". Mirrors chat-worker `CLOSE_CODES`.
- */
-export const CHAT_CLOSE_CODES = {
-  AUTH_EXPIRED: 4401,
-  REVOKED: 4403,
-  FLOOD: 4408,
-  TOO_LARGE: 4413,
-  SOCKET_CAP: 4429,
-  OVERLOADED: 1013,
-} as const;
-
-export type ChatCloseCode = (typeof CHAT_CLOSE_CODES)[keyof typeof CHAT_CLOSE_CODES];
-
-/** A logical chat channel — typed tuple (NEVER a path string). Mirrors the worker's ChannelRefTuple. */
-export type ChannelRefTuple =
-  | { scope: 'channel'; workProjectId: string; guildChatChannelId: string }
-  | { scope: 'invite'; guildInviteId: string };
+import { CHAT_WIRE_VERSION } from '@ttt-productions/chat-schemas';
+import type { ChannelRefTuple } from '@ttt-productions/chat-schemas';
 
 // ---- raw wire row shapes (what the DO serializes; opaque-but-typed here) ----
 
 /**
- * The moderation revision `kind` (chat-worker `RevisionInput.kind` + the
+ * The moderation revision `kind` (the worker runtime's revision input + the
  * `revisions.kind` column). The EFFECTIVE state of a message is its
  * MAX-`messageRevision` row's kind, so a `restore` (a later revision) supersedes
  * an earlier `moderate`/`delete`. `moderate`/`delete` blank the original text;
@@ -77,8 +39,8 @@ export type ChannelRefTuple =
 export type RevisionKind = 'delete' | 'moderate' | 'edit' | 'restore';
 
 /**
- * A message row as the Channel DO stores + broadcasts it (chat-worker
- * `MessageRow`). `replyTo`/`attachmentMeta` arrive as JSON STRINGS (or null) —
+ * A message row as the Channel DO stores + broadcasts it (the worker runtime's
+ * message row). `replyTo`/`attachmentMeta` arrive as JSON STRINGS (or null) —
  * the DO stores them stringified and does not re-parse before broadcast. The
  * adapter mapping in `map.ts` parses them into the UI `ChatMessageV1` shape.
  */
@@ -126,14 +88,14 @@ export interface WireChannelSnapshot {
   delta?: WireMessageRow[];
 }
 
-/** A registry entry in the inbox snapshot (chat-worker `RegistryEntry`). */
+/** A registry entry in the inbox snapshot (the worker runtime's registry entry). */
 export interface WireRegistryEntry {
   channelRef: string;
   kind: string;
   state: 'active' | 'tombstoned';
   registryVersion: number;
   /**
-   * The typed channel-ref tuple — the OPENABLE identity for the Chats view (the
+   * The typed channel-ref tuple — the OPENABLE identity for the inbox view (the
    * `channelRef` is an opaque DO-id dedup key). Null/absent on legacy or pre-tuple
    * rows; the consumer falls back to hiding the open action for those entries.
    */
@@ -145,7 +107,7 @@ export interface WireRegistryEntry {
   unread?: boolean;
   /**
    * Archived state — DISTINCT from `tombstoned`. An archived row is still an ACTIVE
-   * membership (`state: 'active'`, history readable) but is grouped under the Chats
+   * membership (`state: 'active'`, history readable) but is grouped under the inbox
    * view's Archived toggle instead of the active list. The client must NOT count
    * archived rows in the unread roll-up (archive = done; the DO clears unread on
    * archive). Optional/absent on a pre-archive DO (treated as not-archived).
@@ -174,7 +136,7 @@ export type ServerFrame =
   | { type: 'unread'; payload: WireInboxSnapshot | { hasUnread: boolean } }
   | { type: 'error'; payload: { code: string; retryAfterMs?: number } }
   // A moderation revision was applied to one message. The Channel DO broadcasts
-  // this on a NEWLY-applied revision (chat-worker `applyModeration`) so live
+  // this on a NEWLY-applied revision (the worker runtime's moderation apply) so live
   // viewers hide/blank/edit/restore the message immediately with no extra fetch.
   // `messageSeq` is the target message id; `kind` is the applied revision kind;
   // `messageRevision` is its per-message revision number (max-revision wins).

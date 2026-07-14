@@ -10,8 +10,8 @@ export type MonitoringInitOptions = {
    *  Omit to use the provider default. */
   tracesSampleRate?: number;
   /** Provider integrations passed through to the SDK init — e.g. `[]` to disable the
-   *  default auto-integrations and keep init lightweight (the TTT Cloud Functions
-   *  bootstrap does this). Typed loosely: it is a provider-specific pass-through. */
+   *  default auto-integrations and keep init lightweight (the consuming app's Cloud
+   *  Functions bootstrap does this). Typed loosely: it is a provider-specific pass-through. */
   integrations?: unknown[];
 };
 

@@ -21,4 +21,11 @@ export const UpdateGuildInviteStakeSharesInputSchema = z.object({
 }).strict();
 export type UpdateGuildInviteStakeSharesInput = z.infer<typeof UpdateGuildInviteStakeSharesInputSchema>;
 
+// Admin/jr-admin deletes a user's support dispatch thread (`deleteAdminDispatch`). Non-strict
+// posture is carried faithfully from the source callable.
+export const DeleteAdminDispatchInputSchema = z.object({
+  adminDispatchId: adminDispatchIdSchema,
+});
+export type DeleteAdminDispatchInput = z.infer<typeof DeleteAdminDispatchInputSchema>;
+
 

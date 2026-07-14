@@ -97,6 +97,10 @@ export const MAX_REPORT_COMMENT_LENGTH = 1000;
 /** Minimum operator rationale/reason length on safety-console staged actions. */
 export const MIN_SAFETY_RATIONALE_LENGTH = 10;
 
+/** Operator reason on an admin chat-moderation action (adminModerateChatMessage /
+ *  adminReadChannelContext). ONE owner for both callables' `reason` bound. */
+export const MAX_CHAT_MODERATION_REASON_LENGTH = 1000;
+
 /** Broadcast explicitUids selector audience cap (schema + composer both derive). */
 export const MAX_BROADCAST_EXPLICIT_UIDS = 2000;
 

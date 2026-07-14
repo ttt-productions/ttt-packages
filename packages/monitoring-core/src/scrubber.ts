@@ -8,9 +8,9 @@
  *
  * This package is GENERIC — it ships only obvious, domain-neutral defaults
  * (full IPv4/IPv6 addresses, bearer/authorization tokens, generic credential
- * assignments). TTT-specific patterns (evidence-bucket URL prefixes,
+ * assignments). Product-specific patterns (evidence-bucket URL prefixes,
  * detector-hash shapes, NCMEC credential markers) are INJECTED by the consuming
- * app via {@link createTelemetryScrubber}'s `patterns` option. No `ttt-core`
+ * app via {@link createTelemetryScrubber}'s `patterns` option. No app-data-package
  * import, no app-specific literals.
  */
 
@@ -209,14 +209,14 @@ export type BeforeSendHook = (event: ScrubbableEvent, hint?: unknown) => Scrubba
 
 /**
  * Build a `beforeSend` hook that scrubs every outgoing event. The app supplies
- * its TTT-specific `patterns`; generic defaults are included unless disabled.
+ * its product-specific `patterns`; generic defaults are included unless disabled.
  *
  * @example
  * Sentry.init({
  *   dsn,
  *   beforeSend: createTelemetryScrubber({
  *     patterns: [
- *       'https://storage.googleapis.com/ttt-prod-ncii-evidence/',
+ *       'https://storage.googleapis.com/example-ncii-evidence/',
  *       /\bncmec-[a-z0-9]{16,}\b/gi,
  *       /\b[a-f0-9]{64}\b/g, // detector hash shape
  *     ],

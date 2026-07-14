@@ -18,7 +18,7 @@ const FAKE_DETECTOR_HASH = 'a'.repeat(64); // 64 hex chars — detector-hash sha
 const FAKE_NCMEC_CRED = 'ncmec-key-abcdef0123456789';
 const FAKE_BEARER = 'Bearer sk_live_abcdef0123456789ABCDEF';
 
-// App-injected TTT-specific patterns (the shape the app supplies at init).
+// App-injected product-specific patterns (the shape the app supplies at init).
 const TTT_PATTERNS = [
   FAKE_EVIDENCE_PREFIX, // literal string prefix
   /\bncmec-[a-z]+-[a-z0-9]{16,}\b/gi, // NCMEC credential marker

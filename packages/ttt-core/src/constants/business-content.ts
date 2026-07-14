@@ -26,25 +26,75 @@ export const MAX_COMMISSION_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
 /** Maximum length for a commission description / cover letter. */
 export const MAX_COMMISSION_DESCRIPTION_LENGTH = 400;
 
-// --- Published hall-content text fields (change requests + moderation text-clear) ---
+// --- Moderation text-clear + published hall-content text fields ---
+
+/**
+ * Neutral placeholder written into a single cleared text field by the moderation
+ * text-clear remedy. Canonical wording — the backend `runModerationClearText`
+ * core writes exactly this string; a wording change is a single edit here.
+ */
+export const MODERATION_CLEAR_PLACEHOLDER =
+  'Removed by moderation — awaiting an update by the steward.';
+
+/**
+ * CANONICAL clearable text-field map for the per-field moderation TEXT-CLEAR remedy.
+ * Cross-boundary single owner: the admin field-picker offers this set per surface and
+ * the backend clear runner validates + normalizes caller-supplied fields against it.
+ * Keys are surfaces; values are the exact document field names (NOT display labels)
+ * recorded verbatim in `moderationClearedFields`. Covers every clearable surface —
+ * workProject/workRealm shell metadata, hall parent details (tale/tune/television),
+ * and hall sub-items (chapter/track/episode).
+ */
+export const MODERATION_CLEARABLE_TEXT_FIELDS = {
+  // workProject + workRealm shell metadata
+  workProject: ['workingTitle', 'workingDescription'],
+  workRealm: ['workingTitle', 'workingDescription'],
+  // hall content parent details
+  tale: ['title', 'description'],
+  tune: ['title', 'description'],
+  television: ['title', 'description'],
+  // hall content sub-items
+  chapter: ['title', 'content'],
+  tuneTrack: ['title', 'description'],
+  televisionEpisode: ['title', 'description'],
+} as const satisfies Record<string, readonly string[]>;
+
+/** A surface whose text fields the moderation clear remedy can neutralize. */
+export type ModerationClearableSurface = keyof typeof MODERATION_CLEARABLE_TEXT_FIELDS;
+
+/**
+ * The DISTINCT clearable text-field NAMES across the whole hall content family (tale/tune/
+ * television detail → title/description; chapter → title/content; track/episode →
+ * title/description). DERIVED from the canonical MODERATION_CLEARABLE_TEXT_FIELDS map — the
+ * union of every hall surface's fields — so the `clearHallContentText` callable's field-enum
+ * (`HallClearFieldSchema`) never restates the `title`/`description`/`content` literals. Index
+ * access on the map's readonly tuples preserves the literal types, so this stays a typed
+ * `readonly ['title','description','content']` a `z.enum(...)` can consume directly.
+ */
+export const HALL_CLEARABLE_TEXT_FIELD_NAMES = [
+  MODERATION_CLEARABLE_TEXT_FIELDS.tale[0], // title
+  MODERATION_CLEARABLE_TEXT_FIELDS.tale[1], // description
+  MODERATION_CLEARABLE_TEXT_FIELDS.chapter[1], // content
+] as const;
 
 /**
  * The raw doc field names each published hall-content surface exposes as changeable TEXT.
  * Cross-boundary: the member "Update details" field picker offers this set per surface and
  * the change-request submit runner validates against it. Detail surfaces (tale/tune/
  * television) live on the hall parent doc; sub-item surfaces on the published chapter/
- * track/episode doc. Mirrors the hall surfaces of the backend moderation text-clear
- * allowlist (functions moderationClearText.ts) — keep the two in lockstep.
+ * track/episode doc. This is the HALL-SURFACE SUBSET of the canonical
+ * MODERATION_CLEARABLE_TEXT_FIELDS above (it excludes the `workProject` shell) — every
+ * tuple is projected from that one owner, so the two can never drift.
  */
 export const HALL_CONTENT_TEXT_FIELDS = {
-  tale: ['title', 'description'],
-  tune: ['title', 'description'],
-  television: ['title', 'description'],
-  chapter: ['title', 'content'],
-  tuneTrack: ['title', 'description'],
-  televisionEpisode: ['title', 'description'],
+  tale: MODERATION_CLEARABLE_TEXT_FIELDS.tale,
+  tune: MODERATION_CLEARABLE_TEXT_FIELDS.tune,
+  television: MODERATION_CLEARABLE_TEXT_FIELDS.television,
+  chapter: MODERATION_CLEARABLE_TEXT_FIELDS.chapter,
+  tuneTrack: MODERATION_CLEARABLE_TEXT_FIELDS.tuneTrack,
+  televisionEpisode: MODERATION_CLEARABLE_TEXT_FIELDS.televisionEpisode,
   // Realm grain (R1, 2026-07-12): targets the `workRealms/{id}` doc directly.
-  workRealm: ['workingTitle', 'workingDescription'],
+  workRealm: MODERATION_CLEARABLE_TEXT_FIELDS.workRealm,
 } as const satisfies Record<string, readonly string[]>;
 
 /** Per-field max lengths for proposed hall-content text. DERIVED from the owning

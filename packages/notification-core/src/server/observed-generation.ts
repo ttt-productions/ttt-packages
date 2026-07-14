@@ -9,8 +9,8 @@
  * replay return the stored result and touch nothing.
  *
  * GENERIC: the app constructs the deterministic ids (`historyRef`, `payloadHash`)
- * via its own canonical hash (ttt-core) and passes the refs in; this module owns
- * only the transactional state machine, not the id formulas.
+ * via its own canonical hash (in the consuming app's core package) and passes the
+ * refs in; this module owns only the transactional state machine, not the id formulas.
  */
 
 import type { ServerFirestore, ServerDocRef, ServerTransaction } from './types.js';

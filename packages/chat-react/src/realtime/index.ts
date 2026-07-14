@@ -1,5 +1,5 @@
 // The realtime (Cloudflare Durable Object) chat transport — the client half of
-// the chat-worker wire protocol (Contract A connection + Contract C wire). The
+// the chat Worker wire protocol (Contract A connection + Contract C wire). The
 // FIRESTORE transport stays the unchanged default; this is opt-in via
 // `ChatCoreConfig.transport === 'realtime'` + a `realtime.client` from
 // `createRealtimeChatClient(...)`.

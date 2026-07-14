@@ -1,6 +1,6 @@
 // The Inbox realtime client: a SEPARATE WebSocket (scope `inbox`) to the user's
 // inbox DO. It maintains the channel/invite registry + unread projection that
-// drives the Chats view — DOTS ONLY, no counts (Contract C / "Unread + inbox").
+// drives the inbox view — DOTS ONLY, no counts (Contract C / "Unread + inbox").
 //
 // The inbox DO pushes a full `snapshot` ({ registry, hasUnread }) on connect, on
 // `resume`, and on every live delta (a projection apply). This client just
@@ -24,7 +24,7 @@ import { defaultTimers } from './shared.js';
 
 export interface InboxClientState {
   status: RealtimeStatus;
-  /** Active (non-tombstoned) channel/invite registry entries — Chats-view visibility. */
+  /** Active (non-tombstoned) channel/invite registry entries — inbox-view visibility. */
   registry: WireRegistryEntry[];
   /** True if ANY active channel/invite has unread (drives the dock dot). */
   hasUnread: boolean;
@@ -161,7 +161,7 @@ export class InboxClient {
   }
 
   private applySnapshot(snap: WireInboxSnapshot): void {
-    // Keep every non-tombstoned entry — including ARCHIVED rows — so the Chats view can
+    // Keep every non-tombstoned entry — including ARCHIVED rows — so the inbox view can
     // render both the active list and the Archived toggle. `archived` is a distinct
     // dimension from `tombstoned`; archived rows are still `state: 'active'`.
     const registry = snap.registry.filter((e) => e.state === 'active');
@@ -187,7 +187,7 @@ export class InboxClient {
   }
 
   /**
-   * Clear a channel/invite's unread WITHOUT opening it (the Chats-tray X / go-to
+   * Clear a channel/invite's unread WITHOUT opening it (the inbox-view mark-read
    * controls). Sends `mark-read` on the inbox socket; the inbox DO advances the
    * member's read cursor to tail on the channel DO and then pushes a fresh
    * authoritative snapshot, which is what removes the row — there is NO optimistic
