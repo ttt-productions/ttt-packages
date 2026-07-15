@@ -452,6 +452,14 @@ export const PATH_BUILDERS = {
   ageAttestationNonce: (nonceHash: string): [string, string] =>
     [COLLECTIONS.AGE_ATTESTATION_NONCES, nonceHash],
 
+  // ===== TRUST & SAFETY — per-operator privileged-reviewer security (§A11 [M-6] / [H-17]) =====
+  // Backend-only per-operator docs keyed by uid (mirrors operatorStepUp/{uid}).
+  privilegedReviewerPasskeyProfile: (uid: string): [string, string] =>
+    [COLLECTIONS.PRIVILEGED_REVIEWER_PASSKEY_PROFILES, uid],
+
+  privilegedReviewerCapabilityGrant: (uid: string): [string, string] =>
+    [COLLECTIONS.PRIVILEGED_REVIEWER_CAPABILITY_GRANTS, uid],
+
   // ===== TRUST & SAFETY — NCII / TAKE IT DOWN (§A11) =====
   nciiAllegation: (allegationId: string): [string, string] =>
     [COLLECTIONS.NCII_ALLEGATIONS, allegationId],

@@ -27,6 +27,7 @@ import {
   NcmecSubmissionStateSchema,
   SafetyCaseClosureV1Schema,
   TargetLocatorV1Schema,
+  SafetyCrossoverLegStatusSchema,
 } from './foundation.js';
 import { MAX_MANIFEST_NCMEC_RECEIPTS } from './evidence.js';
 
@@ -277,6 +278,27 @@ export const ChildSafetyCaseV1Schema = z.object({
   // [H-04 V1] Mirror of the list-doc field — kept in sync so the restricted root can be
   // independently queried/checked without a join against childSafetyCaseList.
   contextResolutionPending: z.boolean().optional(),
+  // [H-2] Per-leg persisted state for the two POST-COMMIT possible-minor crossover side-effects
+  // (serving-deny + PhotoDNA) that `setNciiMinorAssessment` fans out when it opens/links this
+  // parallel crossover case. Written via dotted-path update() (`crossoverLegs.servingDeny` etc.)
+  // AFTER the case root is created in-tx, so an operator/reconciler can see which leg is
+  // pending/done/failed and drive a replay — a leg failure never rolls back the committed
+  // assessment, and the NCII removal clock is never touched. ABSENT on non-crossover cases (this
+  // object exists only on a crossover child-safety case), and each leg field is absent when that
+  // leg never applied (external / no-media target). The app also writes an in-transaction initial
+  // `pending` marker, so the status enum includes `pending`.
+  crossoverLegs: z.object({
+    // Serving-deny leg: `pending` (in-tx marker) → `done` | `failed`.
+    servingDeny: SafetyCrossoverLegStatusSchema.optional(),
+    servingDeniedAt: z.number().optional(), // epoch ms; set when servingDeny → done
+    servingDenyFailedAt: z.number().optional(), // epoch ms; set when servingDeny → failed
+    servingDenyLastError: z.string().optional(), // error name captured on failure (never raw bytes/PII)
+    // PhotoDNA leg: `pending` (in-tx marker) → `done` | `failed`.
+    photoDna: SafetyCrossoverLegStatusSchema.optional(),
+    photoDnaScannedAt: z.number().optional(), // epoch ms; set when photoDna → done
+    photoDnaFailedAt: z.number().optional(), // epoch ms; set when photoDna → failed
+    photoDnaLastError: z.string().optional(), // error name captured on failure
+  }).strict().optional(),
 }).strict();
 export type ChildSafetyCaseV1 = z.infer<typeof ChildSafetyCaseV1Schema>;
 

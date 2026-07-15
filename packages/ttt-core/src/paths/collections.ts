@@ -117,6 +117,13 @@ export const COLLECTIONS = {
   // Trust & Safety — age attestation nonces (§A7)
   AGE_ATTESTATION_NONCES: 'ageAttestationNonces',
 
+  // Trust & Safety — per-operator privileged-reviewer security (§A11 [M-6] / [H-17]). BACKEND-ONLY,
+  // keyed by uid (mirrors the operatorStepUp per-operator pattern). Distinct from the global
+  // _serverData/privilegedReviewerSecurity POLICY singleton: these hold each operator's enrolled
+  // WebAuthn passkeys + reauth grant window, and each operator's granted reviewer capabilities.
+  PRIVILEGED_REVIEWER_PASSKEY_PROFILES: 'privilegedReviewerPasskeyProfiles',
+  PRIVILEGED_REVIEWER_CAPABILITY_GRANTS: 'privilegedReviewerCapabilityGrants',
+
   // Trust & Safety — NCII / TAKE IT DOWN (§A11)
   NCII_ALLEGATIONS: 'nciiAllegations',
   TAKE_IT_DOWN_REQUESTS: 'takeItDownRequests',

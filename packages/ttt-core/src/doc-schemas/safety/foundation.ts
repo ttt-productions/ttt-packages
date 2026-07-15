@@ -505,3 +505,12 @@ export const NciiChildSafetyCrossoverSchema = z.object({
   assessedAt: z.number().optional(),
 }).strict();
 export type NciiChildSafetyCrossover = z.infer<typeof NciiChildSafetyCrossoverSchema>;
+
+/** [H-2] Per-leg lifecycle status for the possible-minor crossover side-effects (serving-deny,
+ * PhotoDNA) persisted on the crossover child-safety case (see ChildSafetyCaseV1.crossoverLegs).
+ * `pending` is the in-transaction initial marker the assessment writes before the post-commit leg
+ * runs; the leg then flips it to `done` (succeeded) or `failed` (captureException'd, awaiting a
+ * reconcile/replay). A leg is ABSENT (not `pending`) when it never applied — an external / no-media
+ * target has no bytes to deny or scan. */
+export const SafetyCrossoverLegStatusSchema = z.enum(['pending', 'done', 'failed']);
+export type SafetyCrossoverLegStatus = z.infer<typeof SafetyCrossoverLegStatusSchema>;

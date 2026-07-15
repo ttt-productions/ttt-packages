@@ -166,6 +166,10 @@ import {
   SafetyMonitorHeartbeatV1Schema,
 } from './safety/monitors.js';
 import { AgeAttestationNonceV1Schema, AgePolicyConfigV1Schema } from './safety/age.js';
+import {
+  PrivilegedReviewerPasskeyProfileV1Schema,
+  PrivilegedReviewerCapabilityGrantV1Schema,
+} from './safety/reviewer-security.js';
 // ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
 import { NciiAllegationV1Schema } from './ncii/allegations.js';
 import {
@@ -356,6 +360,11 @@ export const COLLECTION_SCHEMAS = {
 
   // ===== Trust & Safety — age attestation nonces (§A7) =====
   'ageAttestationNonces/{nonceHash}': AgeAttestationNonceV1Schema,
+
+  // ===== Trust & Safety — per-operator privileged-reviewer security (§A11 [M-6] / [H-17]) =====
+  // Backend-only (Cloud-Functions-only readers/writers; client access denied in firestore.rules).
+  'privilegedReviewerPasskeyProfiles/{uid}': PrivilegedReviewerPasskeyProfileV1Schema,
+  'privilegedReviewerCapabilityGrants/{uid}': PrivilegedReviewerCapabilityGrantV1Schema,
 
   // ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
   'nciiAllegations/{allegationId}': NciiAllegationV1Schema,

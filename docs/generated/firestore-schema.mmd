@@ -389,6 +389,7 @@ erDiagram
     field fencingGeneration
     field chatMessageLocator
     field contextResolutionPending
+    field crossoverLegs
   }
   childSafetyOwningAliases {
     field schemaVersion
@@ -481,6 +482,7 @@ erDiagram
   disposition {
     field bucket
     field key
+    field generation
     field method
     field verifiedAt
     field result
@@ -956,6 +958,24 @@ erDiagram
     field safetyLocked
     field accountType
     field is18Plus
+  }
+  privilegedReviewerCapabilityGrants {
+    field schemaVersion
+    field uid
+    field grantedCapabilities
+    field grantedByUid
+    field createdAt
+    field updatedAt
+  }
+  privilegedReviewerPasskeyProfiles {
+    field schemaVersion
+    field uid
+    field credentials
+    field pendingChallenge
+    field grantExpiresAt
+    field twoStepReauthCapabilities
+    field createdAt
+    field updatedAt
   }
   privilegedReviewerSecurity {
     field requiredSecondFactor
@@ -1567,6 +1587,8 @@ erDiagram
   userProfiles ||--o{ pledgePayments : "userId"
   userProfiles ||--o{ pledgeRefundRequests : "resolvedBy"
   userProfiles ||--o{ pledgeRefundRequests : "userId"
+  userProfiles ||--o{ privilegedReviewerCapabilityGrants : "uid"
+  userProfiles ||--o{ privilegedReviewerPasskeyProfiles : "uid"
   userProfiles ||--o{ publicGuildmateUsers : "uid"
   userProfiles ||--o{ publicUsers : "uid"
   userProfiles ||--o{ publicWorkProjects : "foundingArtisanUid"

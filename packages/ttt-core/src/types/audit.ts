@@ -243,9 +243,18 @@ export type AuditEventType =
   // routing action that opens/links a PARALLEL child-safety review + deny-serving + PhotoDNA, WITHOUT
   // touching the NCII removal clock and WITHOUT auto-NCMEC. Payload records from→to assessment.
   | 'ncii.minorAssessmentSet'
+  // [H-2] a failed possible-minor crossover leg (serving-deny / PhotoDNA) was reconciled or replayed
+  // by an operator/reconciler (crossoverLegs.<leg> failed → done). Payload records which leg + outcome.
+  | 'ncii.crossoverLegReconciled'
   // trust & safety — operator security
+  // Passkey enrollment/assertion reuses safety.privilegedReauthPerformed (the reauth catalog entry, as
+  // the TOTP step-up enroll/confirm/verify phases already do) — no distinct passkey-registration type.
   | 'safety.privilegedReauthPerformed'
-  | 'safety.deadlineBreachRecorded';
+  | 'safety.deadlineBreachRecorded'
+  // [M-6] per-operator reviewer-capability grant lifecycle (privilegedReviewerCapabilityGrants/{uid}).
+  // Granting/revoking a SafetyReviewerCapability is an authorization change — always audited.
+  | 'safety.reviewerCapabilityGranted'
+  | 'safety.reviewerCapabilityRevoked';
 
 /**
  * How the actor was acting when the audited action was performed. This is

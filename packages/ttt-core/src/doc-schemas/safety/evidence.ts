@@ -303,10 +303,22 @@ export const SafetyEvidenceDispositionResultSchema = z.enum(['gone', 'leftover']
 export type SafetyEvidenceDispositionResult = z.infer<typeof SafetyEvidenceDispositionResultSchema>;
 
 /** `safetyEvidenceJobs/{jobId}/disposition/{locationId}` — per-evidence-location
- * deletion-verification record. Doc id is the `locationId`. */
+ * deletion-verification record. Doc id is the `locationId`.
+ *
+ * [M-5] This IS the durable hard-deletion attestation body: the disposition worker runs only after
+ * the case reaches `preservationStatus:'dispositionPending'` (every hold ref released + a reviewed
+ * disposition job), and records `method` + `verifiedAt` + `result`. Because soft-delete is DISABLED
+ * on the evidence bucket, `result:'gone'` attests a verified TRUE hard-deletion (there is no
+ * soft-delete/lifecycle tombstone to model — no `softDeletedAt`/`hardDeleteTime`). `generation`
+ * pins the exact object generation that was destroyed, so a later object re-created at the same
+ * bucket/key (a new generation) is never falsely attested as this destruction. */
 export const SafetyEvidenceDispositionV1Schema = z.object({
   bucket: z.string().min(1),
   key: z.string().min(1),
+  // [M-5] the exact object generation this record attests destroyed — pins the attestation to a
+  // single immutable object version so a same-key re-upload (new generation) is not covered by it.
+  // Optional: an object with no generation concept (or a leftover with none read) omits it.
+  generation: z.string().min(1).optional(),
   method: SafetyEvidenceDispositionMethodSchema,
   verifiedAt: z.number(),
   result: SafetyEvidenceDispositionResultSchema,
