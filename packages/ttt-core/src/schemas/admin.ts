@@ -9,6 +9,7 @@ import {
 import {
   ReportDispositionSchema,
   ReportDispositionReasonCodeSchema,
+  refineReportDispositionReasonCode,
   type ReportableItemType,
 } from '../doc-schemas/safety/foundation.js';
 import {
@@ -247,15 +248,17 @@ export const HideWorkRealmInputSchema = z.object({
 }).strict();
 export type HideWorkRealmInput = z.infer<typeof HideWorkRealmInputSchema>;
 
+// `cascadeId` is OPTIONAL: the app backends derive all active cascades for the target when it is
+// omitted, and restore just that one cascade when it is supplied.
 export const RestoreWorkProjectInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  cascadeId: z.string().min(1),
+  cascadeId: z.string().min(1).optional(),
 }).strict();
 export type RestoreWorkProjectInput = z.infer<typeof RestoreWorkProjectInputSchema>;
 
 export const RestoreWorkRealmInputSchema = z.object({
   workRealmId: z.string().min(1),
-  cascadeId: z.string().min(1),
+  cascadeId: z.string().min(1).optional(),
 }).strict();
 export type RestoreWorkRealmInput = z.infer<typeof RestoreWorkRealmInputSchema>;
 
@@ -482,12 +485,18 @@ const SafetyAccountActionSchema = z
   })
   .strict();
 
-export const SafetyStagedActionSchema = z.discriminatedUnion('button', [
-  SafetyDispositionActionSchema,
-  QuarantineActionSchema,
-  HashRemoveActionSchema,
-  SafetyAccountActionSchema,
-]);
+export const SafetyStagedActionSchema = z
+  .discriminatedUnion('button', [
+    SafetyDispositionActionSchema,
+    QuarantineActionSchema,
+    HashRemoveActionSchema,
+    SafetyAccountActionSchema,
+  ])
+  // The setReportDisposition arm reuses the ONE canonical disposition↔reason pairing (foundation.ts)
+  // via the shared refinement — never re-declaring the pairing here. Other arms carry no such fields.
+  .superRefine((value, ctx) => {
+    if (value.button === 'setReportDisposition') refineReportDispositionReasonCode(value, ctx);
+  });
 export type SafetyStagedAction = z.infer<typeof SafetyStagedActionSchema>;
 
 export const SafetyCaseInputSchema = z

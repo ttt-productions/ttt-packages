@@ -31,6 +31,7 @@ describe('audit type catalog', () => {
       'payment.pledgeRefundRequested',
       'payment.pledgeRefundRequestResolved',
       'hallItem.moderationPlaceholderApplied',
+      'ncii.evidenceMarked',
     ];
     expectTypeOf(sample).toEqualTypeOf<AuditEventType[]>();
   });

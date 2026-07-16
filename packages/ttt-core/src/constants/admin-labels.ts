@@ -67,3 +67,33 @@ export const REPORT_DISPOSITION_OPTIONS: readonly {
     description: 'There was a triggering signal but on review it is a false positive.',
   },
 ];
+
+/** One user-facing reason option (shown to the affected user for any user-affecting action). */
+export interface UserFacingReasonOption {
+  code: string;
+  label: string;
+  description: string;
+}
+
+/** User-facing reason picklist for the guided case-resolution flow — the affected user sees the
+ * label for any user-affecting action. Canonical home (Rule 36): the codes ARE this list's own
+ * enumeration, so every client (web, phone, TV, admin app) renders the same options + labels by
+ * importing from here. Final user-/legal-facing wording is subject to lawyer review; these are
+ * functional defaults. */
+export const USER_FACING_REASON_OPTIONS: readonly UserFacingReasonOption[] = [
+  { code: 'harassment', label: 'Harassment or bullying', description: 'Targeted abuse, threats, or sustained harassment of a person.' },
+  { code: 'hate', label: 'Hate speech', description: 'Attacks on people based on a protected characteristic.' },
+  { code: 'adult-content', label: 'Explicit / adult content', description: 'Sexual or graphic content not allowed on the platform.' },
+  { code: 'violence', label: 'Violence or threats', description: 'Threats of violence, or content glorifying or inciting it.' },
+  { code: 'spam', label: 'Spam or scam', description: 'Unsolicited bulk content, deceptive links, or fraud.' },
+  { code: 'impersonation', label: 'Impersonation', description: 'Pretending to be another person, brand, or entity.' },
+  { code: 'ip', label: 'Intellectual property', description: 'Use of someone else’s work without the right to do so.' },
+  { code: 'nonconsensual', label: 'Nonconsensual intimate imagery', description: 'Intimate or sexual imagery shared without the subject’s consent.' },
+  { code: 'safety', label: 'Safety violation', description: 'A serious safety violation handled under our safety policies.' },
+  { code: 'other', label: 'Other (explain)', description: 'A policy violation not covered above — describe it in the detail box.' },
+] as const;
+
+/** The user-facing label for a reason code (undefined when the code is unknown/absent). */
+export function userFacingReasonLabel(code: string | undefined): string | undefined {
+  return USER_FACING_REASON_OPTIONS.find((o) => o.code === code)?.label;
+}

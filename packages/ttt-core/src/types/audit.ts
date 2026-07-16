@@ -235,6 +235,9 @@ export type AuditEventType =
   | 'ncii.tempHoldReleased'
   | 'ncii.removalCompleted'
   | 'ncii.removalUnableToComplete'
+  // operator marks NCII evidence (e.g. flags/annotates an evidence item on the case) — a reviewed
+  // evidence-handling action, audited like the other ncii evidence events.
+  | 'ncii.evidenceMarked'
   | 'ncii.evidenceScanValidatedMatch'
   | 'ncii.hashBlockReversed'
   | 'ncii.requesterPiiScrubbed'

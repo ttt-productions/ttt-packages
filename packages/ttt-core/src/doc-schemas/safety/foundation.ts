@@ -196,15 +196,70 @@ export const ReportDispositionSchema = z.enum([
 ]);
 export type ReportDisposition = z.infer<typeof ReportDispositionSchema>;
 
-/** Reason codes for the privileged setReportDisposition command (§A9). */
+/** Reason codes for the privileged setReportDisposition command (§A9). The first five are the
+ * not-required / exception reasons (no NCMEC report ever arose, or a triggering signal was
+ * corrected); the last two are the report-required reasons (a report IS legally required). The
+ * disposition↔reason pairing is enforced by the ONE cross-field rule below (Rule 36). */
 export const ReportDispositionReasonCodeSchema = z.enum([
   'outOfScopeNotCsea',
   'basisInvalidatedFalseMatch',
   'duplicateOfFiledReport',
   'leDirectedNoReport',
   'nonReportableSafetyConfirmed',
+  // Report-required reasons — valid ONLY with disposition 'reportRequired'.
+  'apparentCsamConfirmed', // human review confirmed apparent CSAM
+  'hashMatchValidated', // validated hash match
 ]);
 export type ReportDispositionReasonCode = z.infer<typeof ReportDispositionReasonCodeSchema>;
+
+/** The reason codes that ASSERT a reporting obligation — legal ONLY with 'reportRequired'.
+ * Compile-linked subset of the canonical reason enum. */
+export const REPORT_REQUIRED_DISPOSITION_REASON_CODES = [
+  'apparentCsamConfirmed',
+  'hashMatchValidated',
+] as const satisfies readonly ReportDispositionReasonCode[];
+
+/** The not-required / exception reason codes — legal with every disposition that does NOT assert a
+ * reporting obligation ('notRequired', 'correctedNoApparentViolation'). Compile-linked subset. */
+export const NOT_REQUIRED_DISPOSITION_REASON_CODES = [
+  'outOfScopeNotCsea',
+  'basisInvalidatedFalseMatch',
+  'duplicateOfFiledReport',
+  'leDirectedNoReport',
+  'nonReportableSafetyConfirmed',
+] as const satisfies readonly ReportDispositionReasonCode[];
+
+/** The ONE cross-field pairing (§A9, Rule 36): which reason codes each disposition permits.
+ * Declared HERE once; both the setReportDisposition input (case.ts) and the SafetyDispositionAction
+ * console command (admin.ts) apply `refineReportDispositionReasonCode` derived from this map rather
+ * than re-declaring the pairing. 'undetermined' is the initial state, never an operator-settable
+ * target, so it permits NO reason code (the operator command excludes it). Typed as an exhaustive
+ * Record so a new disposition fails to compile until its permitted codes are declared. */
+export const REPORT_DISPOSITION_ALLOWED_REASON_CODES: Record<
+  ReportDisposition,
+  readonly ReportDispositionReasonCode[]
+> = {
+  undetermined: [],
+  reportRequired: REPORT_REQUIRED_DISPOSITION_REASON_CODES,
+  notRequired: NOT_REQUIRED_DISPOSITION_REASON_CODES,
+  correctedNoApparentViolation: NOT_REQUIRED_DISPOSITION_REASON_CODES,
+};
+
+/** Shared cross-field refinement enforcing the disposition↔reason pairing above. Applied by BOTH
+ * the setReportDisposition input schemas and the SafetyDispositionAction console command so the
+ * rule lives in exactly one place. Reports the failure on the `dispositionReasonCode` path. */
+export function refineReportDispositionReasonCode(
+  value: { disposition: ReportDisposition; dispositionReasonCode: ReportDispositionReasonCode },
+  ctx: z.RefinementCtx,
+): void {
+  if (!REPORT_DISPOSITION_ALLOWED_REASON_CODES[value.disposition].includes(value.dispositionReasonCode)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['dispositionReasonCode'],
+      message: `Reason code '${value.dispositionReasonCode}' is not valid for disposition '${value.disposition}'.`,
+    });
+  }
+}
 
 // ===========================================================================
 // [EUAS-008] Structured safety-case CLOSURE record — the operator's terminal

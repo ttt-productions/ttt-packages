@@ -196,6 +196,12 @@ export const RevealCaseEvidenceInputSchema = z
     caseId: z.string().min(1),
     /** Explicit typed confirmation (interim control until the passkey profile lands). */
     confirmation: z.literal('I confirm I am revealing case evidence under reauth'),
+    /** The operator's child-safety warning acknowledgement, carried so the backend can persist it
+     * in the reveal audit trail. This schema serves ONLY the safety-console reveal-under-reauth
+     * flow (its sibling `confirmation` literal gates the same surface), so the acknowledgement is a
+     * required `true` — consistent with the existing explicit-confirmation style. Server-side
+     * enforcement + audit persistence land app-side. */
+    warningAcknowledged: z.literal(true),
   })
   .strict();
 export type RevealCaseEvidenceInput = z.infer<typeof RevealCaseEvidenceInputSchema>;
