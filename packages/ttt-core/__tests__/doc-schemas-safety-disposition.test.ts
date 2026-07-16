@@ -172,3 +172,95 @@ describe('SafetyStagedActionSchema derives the same pairing (setReportDispositio
     expect(SafetyStagedActionSchema.safeParse({ button: 'hashRemoveFile' }).success).toBe(true);
   });
 });
+
+describe('evidenceRefs cross-field rule (reportRequired ⇒ ≥1; every other disposition may be empty)', () => {
+  it('rejects reportRequired with empty evidenceRefs on the input schema (path evidenceRefs)', () => {
+    const result = SetReportDispositionInputV1Schema.safeParse({
+      ...baseInput,
+      evidenceRefs: [],
+      disposition: 'reportRequired',
+      dispositionReasonCode: 'apparentCsamConfirmed',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path[0] === 'evidenceRefs')).toBe(true);
+    }
+  });
+
+  it('rejects reportRequired with empty evidenceRefs on the callable schema', () => {
+    expect(
+      SetReportDispositionCallableInputSchema.safeParse({
+        ...baseInput,
+        evidenceRefs: [],
+        confirmation: 'I confirm this legal reporting disposition',
+        disposition: 'reportRequired',
+        dispositionReasonCode: 'hashMatchValidated',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects reportRequired with empty evidenceRefs on the staged-action schema (path evidenceRefs)', () => {
+    const result = SafetyStagedActionSchema.safeParse({
+      button: 'setReportDisposition',
+      evidenceRefs: [],
+      expectedRevision: 0,
+      disposition: 'reportRequired',
+      dispositionReasonCode: 'apparentCsamConfirmed',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.path[0] === 'evidenceRefs')).toBe(true);
+    }
+  });
+
+  it('accepts notRequired with empty evidenceRefs (input + staged-action schemas)', () => {
+    expect(
+      SetReportDispositionInputV1Schema.safeParse({
+        ...baseInput,
+        evidenceRefs: [],
+        disposition: 'notRequired',
+        dispositionReasonCode: 'nonReportableSafetyConfirmed',
+      }).success,
+    ).toBe(true);
+    expect(
+      SafetyStagedActionSchema.safeParse({
+        button: 'setReportDisposition',
+        evidenceRefs: [],
+        expectedRevision: 0,
+        disposition: 'notRequired',
+        dispositionReasonCode: 'nonReportableSafetyConfirmed',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('accepts correctedNoApparentViolation with empty evidenceRefs', () => {
+    expect(
+      SetReportDispositionInputV1Schema.safeParse({
+        ...baseInput,
+        evidenceRefs: [],
+        disposition: 'correctedNoApparentViolation',
+        dispositionReasonCode: 'basisInvalidatedFalseMatch',
+      }).success,
+    ).toBe(true);
+  });
+
+  it('accepts reportRequired with exactly one evidence ref', () => {
+    expect(
+      SetReportDispositionInputV1Schema.safeParse({
+        ...baseInput,
+        evidenceRefs: ['ev-1'],
+        disposition: 'reportRequired',
+        dispositionReasonCode: 'apparentCsamConfirmed',
+      }).success,
+    ).toBe(true);
+    expect(
+      SafetyStagedActionSchema.safeParse({
+        button: 'setReportDisposition',
+        evidenceRefs: ['ev-1'],
+        expectedRevision: 0,
+        disposition: 'reportRequired',
+        dispositionReasonCode: 'apparentCsamConfirmed',
+      }).success,
+    ).toBe(true);
+  });
+});

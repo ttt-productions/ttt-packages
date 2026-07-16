@@ -261,6 +261,26 @@ export function refineReportDispositionReasonCode(
   }
 }
 
+/** Shared cross-field rule (§A9): disposition 'reportRequired' MUST carry at least one evidence ref —
+ * a reporting obligation can only be asserted once the evidence has been revealed. Every OTHER
+ * disposition ('notRequired', 'correctedNoApparentViolation', 'undetermined') MAY leave evidenceRefs
+ * empty. Declared HERE once (Rule 36) and applied — alongside refineReportDispositionReasonCode — by
+ * BOTH the setReportDisposition input schemas (case.ts) and the SafetyStagedAction console command
+ * (admin.ts), never re-declared. Reports the failure on the `evidenceRefs` path. */
+export function refineReportDispositionEvidenceRefs(
+  value: { disposition: ReportDisposition; evidenceRefs: readonly string[] },
+  ctx: z.RefinementCtx,
+): void {
+  if (value.disposition === 'reportRequired' && value.evidenceRefs.length === 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['evidenceRefs'],
+      message:
+        "Disposition 'reportRequired' requires at least one evidence ref (evidence must have been revealed).",
+    });
+  }
+}
+
 // ===========================================================================
 // [EUAS-008] Structured safety-case CLOSURE record — the operator's terminal
 // determination persisted when a CSAM / NCII case is closed via the guided

@@ -10,6 +10,7 @@ import {
   ReportDispositionSchema,
   ReportDispositionReasonCodeSchema,
   refineReportDispositionReasonCode,
+  refineReportDispositionEvidenceRefs,
   type ReportableItemType,
 } from '../doc-schemas/safety/foundation.js';
 import {
@@ -462,8 +463,10 @@ const SafetyDispositionActionSchema = z
     disposition: ReportDispositionSchema.exclude(['undetermined']),
     dispositionReasonCode: ReportDispositionReasonCodeSchema,
     // Derived from the ONE receipts-cap constant (doc-schemas/safety/evidence.ts) — the same
-    // bound the callable + the embedded SetReportDispositionInputV1Schema use.
-    evidenceRefs: z.array(z.string().min(1)).min(1).max(MAX_MANIFEST_NCMEC_RECEIPTS),
+    // bound the callable + the embedded SetReportDispositionInputV1Schema use. No field-level min:
+    // the reportRequired⇒non-empty rule lives in the shared cross-field refinement below, so every
+    // other disposition may legally stage this action with no evidence revealed.
+    evidenceRefs: z.array(z.string().min(1)).max(MAX_MANIFEST_NCMEC_RECEIPTS),
     expectedRevision: z.number().int().nonnegative(),
   })
   .strict();
@@ -492,10 +495,14 @@ export const SafetyStagedActionSchema = z
     HashRemoveActionSchema,
     SafetyAccountActionSchema,
   ])
-  // The setReportDisposition arm reuses the ONE canonical disposition↔reason pairing (foundation.ts)
-  // via the shared refinement — never re-declaring the pairing here. Other arms carry no such fields.
+  // The setReportDisposition arm reuses the ONE canonical cross-field rules (foundation.ts) via the
+  // shared refinements — never re-declaring them here: the disposition↔reason pairing AND the
+  // reportRequired⇒evidence-present rule. Other arms carry no such fields.
   .superRefine((value, ctx) => {
-    if (value.button === 'setReportDisposition') refineReportDispositionReasonCode(value, ctx);
+    if (value.button === 'setReportDisposition') {
+      refineReportDispositionReasonCode(value, ctx);
+      refineReportDispositionEvidenceRefs(value, ctx);
+    }
   });
 export type SafetyStagedAction = z.infer<typeof SafetyStagedActionSchema>;
 

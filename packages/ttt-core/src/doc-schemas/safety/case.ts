@@ -25,6 +25,7 @@ import {
   ReportDispositionSchema,
   ReportDispositionReasonCodeSchema,
   refineReportDispositionReasonCode,
+  refineReportDispositionEvidenceRefs,
   NcmecSubmissionStateSchema,
   SafetyCaseClosureV1Schema,
   TargetLocatorV1Schema,
@@ -409,32 +410,36 @@ export type ChildSafetyLegalProcessEventV1 = z.infer<
 // §A9 — setReportDisposition privileged-command input (NON-DOC embedded shape).
 // Authority = `legalDispositionAuthority` (§A11 matrix); requires fresh two-step
 // reauth. Appends to …/decisions/{decisionId} with kind:'reportDisposition'.
-// `evidenceRefs` required (≥1, MAX 32).
+// `evidenceRefs` is an array capped at MAX; it MAY be empty EXCEPT for disposition
+// 'reportRequired', which requires ≥1 (enforced by the shared
+// refineReportDispositionEvidenceRefs cross-field rule, not a field-level min).
 // ===========================================================================
 
 // The base object shape (kept as a ZodObject so the callable input can `.extend` it); the exported
-// schema below adds the ONE canonical disposition↔reason cross-field refinement.
+// schema below adds the TWO canonical cross-field refinements (disposition↔reason pairing +
+// reportRequired⇒evidence-present).
 const SetReportDispositionInputV1ObjectSchema = z.object({
   caseId: z.string().min(1),
   expectedRevision: z.number(),
   disposition: ReportDispositionSchema,
   dispositionReasonCode: ReportDispositionReasonCodeSchema,
-  // MAX derives from the ONE receipts cap (evidence.ts) — the callable + admin.ts use the same.
-  evidenceRefs: z.array(z.string().min(1)).min(1).max(MAX_MANIFEST_NCMEC_RECEIPTS),
+  // MAX derives from the ONE receipts cap (evidence.ts) — the callable + admin.ts use the same. No
+  // field-level min: the reportRequired⇒non-empty rule lives in the shared cross-field refinement so
+  // every other disposition may legally leave this empty.
+  evidenceRefs: z.array(z.string().min(1)).max(MAX_MANIFEST_NCMEC_RECEIPTS),
 }).strict();
-export const SetReportDispositionInputV1Schema =
-  SetReportDispositionInputV1ObjectSchema.superRefine(refineReportDispositionReasonCode);
+export const SetReportDispositionInputV1Schema = SetReportDispositionInputV1ObjectSchema
+  .superRefine(refineReportDispositionReasonCode)
+  .superRefine(refineReportDispositionEvidenceRefs);
 export type SetReportDispositionInputV1 = z.infer<typeof SetReportDispositionInputV1Schema>;
 
 // The PRIVILEGED CALLABLE input (`setReportDisposition`) — extends the embedded shape with the
-// ≥1-required, MAX-bounded evidenceRefs and the interim explicit typed confirmation (stands in
-// for the passkey two-step until [H-17]). Extends the object base, then applies the SAME shared
-// disposition↔reason refinement. Lives beside the base shape it extends.
+// interim explicit typed confirmation (stands in for the passkey two-step until [H-17]), then applies
+// the SAME shared cross-field refinements. evidenceRefs is inherited from the base (MAX-bounded,
+// empty allowed except when disposition is 'reportRequired'). Lives beside the base shape it extends.
 export const SetReportDispositionCallableInputSchema = SetReportDispositionInputV1ObjectSchema.extend({
-  evidenceRefs: z
-    .array(z.string().min(1))
-    .min(1, 'At least one evidence ref is required.')
-    .max(MAX_MANIFEST_NCMEC_RECEIPTS),
   confirmation: z.literal('I confirm this legal reporting disposition'),
-}).superRefine(refineReportDispositionReasonCode);
+})
+  .superRefine(refineReportDispositionReasonCode)
+  .superRefine(refineReportDispositionEvidenceRefs);
 export type SetReportDispositionCallableInput = z.infer<typeof SetReportDispositionCallableInputSchema>;
