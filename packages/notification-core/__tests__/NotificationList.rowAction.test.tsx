@@ -153,6 +153,7 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
 
     await waitFor(() => expect(screen.getByTestId('pending-n1')).toHaveTextContent('true'));
     expect(screen.getByTestId('pending-n2')).toHaveTextContent('true');
+    expect(screen.getByRole('button', { name: 'Clearing...' }).querySelector('.spinner-xs')).not.toBeNull();
     await act(async () => { resolveClearAll({ complete: false }); });
   });
 

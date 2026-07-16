@@ -13,7 +13,8 @@ in the active collection until archived; personal unread state is tracked with
   list places the title left and Clear All right; history is title-only and
   read-only. Active row actions receive `isArchivePending`, which remains true
   after a successful callable response until the authoritative active query
-  removes that row.
+  removes that row. Clear All is disabled with a visible spinner for the full
+  pending interval; a text-only loading swap is never the async affordance.
 - **The history (archived) read surface:** `useNotificationHistory` (paginated read of the archived-history collection resolved from the category's `historyPath`, ordered `archivedAt desc`, flattening each `archivedSnapshot` wrapper into a `NotificationHistoryItem` via a `select` mapper) and the read-only `NotificationHistoryList` component. Owner-only (user) / admin-only (admin) reads are enforced by Firestore rules; history rows are immutable (archive is one-way — no re-archive). The active read surface stays `useActiveNotifications` / `NotificationList`.
 - The batch-processing server helper (`processBatchHelper`) for the pending-queue path
 - **The generic delivery ledger (notification redesign):** `createDeliveryLedger(db, config)` —

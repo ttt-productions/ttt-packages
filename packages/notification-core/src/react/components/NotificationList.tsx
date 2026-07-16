@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { Badge, Button, Separator } from '@ttt-productions/ui-core/react';
 import { useActiveNotifications } from '../hooks/useActiveNotifications.js';
 import { useArchiveNotification } from '../hooks/useArchiveNotification.js';
@@ -139,6 +140,7 @@ export function NotificationList({
           onClick={handleClearAll}
           disabled={!hasNotifications || isClearAllPending}
         >
+          {isClearAllPending && <Loader2 className="mr-2 spinner-xs" aria-hidden="true" />}
           {isClearAllPending ? 'Clearing...' : 'Clear All'}
         </Button>
         {clearIncomplete && !isClearAllPending && (

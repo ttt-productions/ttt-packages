@@ -2,6 +2,13 @@
 
 Read this repository's `CLAUDE.md` before reviewing, planning, editing, or running commands. The workspace-level `C:\DjDev\AGENTS.md` also applies.
 
+## Mandatory architecture preflight
+
+- Before reviewing implementation, planning or proposing a design, editing code/tests/docs, or running implementation commands, the main agent must read `docs/packages/package-architecture.md` in full, list `docs/packages/` and `docs/design/`, and read the relevant ownership and cross-cutting design docs.
+- This preflight applies on every new package task. Do not infer package ownership from memory or duplicate a capability because its existing owner was not checked.
+- Confirm the dependency direction and public entry-point boundary before adding an import or export. Main entries remain server-safe; React, browser, and Admin SDK code stay behind their canonical subpaths.
+- Update an existing package design/ownership doc when behavior changes. Do not create a new documentation file unless the user asks.
+
 ## Package implementation
 
 - Implement shared behavior in the package that owns the concept. Keep generic packages free of TTT-specific identifiers, copy, paths, and business policy; compose application-specific behavior in `ttt-core` or the consuming app.
