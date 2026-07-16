@@ -121,7 +121,7 @@ export interface MediaInputProps {
    * Pass `Infinity` to always use the spinner. Pass `0` to always use the bar.
    */
   progressBarMinBytes?: number;
-  /** Currently selected file. Shows filename + clear button when set. */
+  /** Currently selected file. Shows a semantic media label + clear button when set. */
   selectedFile?: File | null;
   /** Called when user clears the selected file. */
   onClear?: () => void;

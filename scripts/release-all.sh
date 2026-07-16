@@ -17,8 +17,8 @@ set -euo pipefail
 # preflight already handles it.
 #
 # Order mirrors the root `package.json` build chain. When packages are added,
-# renamed, or removed, update BOTH this file and root package.json build chain
-# (and bump the count comment below).
+# renamed, or removed, update this file, scripts/release-multiple.sh, and the
+# root package.json build chain (and bump the count comment below).
 #
 # 24 packages total (added realtime-core — generic runtime-neutral realtime primitives).
 #

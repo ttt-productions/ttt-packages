@@ -21,6 +21,15 @@ function err(code: FileInputError["code"], message: string, details?: Record<str
   return { code, message, details };
 }
 
+function getSelectedFileLabel(file: File): string {
+  switch (getSimplifiedMediaType(file)) {
+    case "image": return "Image selected";
+    case "video": return "Video selected";
+    case "audio": return "Audio selected";
+    default: return "File selected";
+  }
+}
+
 export function FileInput(props: FileInputProps) {
   const {
     acceptTypes,
@@ -246,7 +255,7 @@ export function FileInput(props: FileInputProps) {
                   <><Loader2 className="mr-2 spinner-xs" /> {isUploading ? `${(uploadProgress ?? 0).toFixed(0)}%` : "Processing..."}</>
                 ) : fileValue ? (
                   <span className="flex items-center justify-between w-full">
-                    <span className="truncate pr-2">{fileValue.name}</span>
+                    <span className="truncate pr-2">{getSelectedFileLabel(fileValue)}</span>
                     <Button variant="ghost" size="icon" className="icon-sm hover:bg-destructive/20 shrink-0" onClick={handleClear}>
                       <X className="icon-xs" />
                     </Button>

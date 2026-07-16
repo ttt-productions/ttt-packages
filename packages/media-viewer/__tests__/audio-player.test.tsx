@@ -77,11 +77,11 @@ afterEach(() => {
 
 function renderPlayer(extra?: Partial<React.ComponentProps<typeof AudioViewer>>) {
   return render(
-    <AudioViewer url="https://example.com/a.mp3" priority chrome="player" {...extra} />
+    <AudioViewer url="https://example.com/a.mp3" priority {...extra} />
   );
 }
 
-describe("AudioViewer chrome='player'", () => {
+describe("AudioViewer canonical player", () => {
   it("renders the custom chrome and disables native controls", () => {
     const { container } = renderPlayer();
     expect(container.querySelector("[data-mv-player]")).toBeInTheDocument();
@@ -176,10 +176,10 @@ describe("AudioViewer chrome='player'", () => {
     expect(container.querySelector("[data-mv-player]")).toHaveAttribute("data-mode", "line");
   });
 
-  it("default native chrome is unchanged (controls attribute present, no player chrome)", () => {
+  it("uses the owned player by default with no native controls", () => {
     const { container } = render(<AudioViewer url="https://example.com/a.mp3" priority />);
-    expect(container.querySelector("audio")).toHaveAttribute("controls");
-    expect(container.querySelector("[data-mv-player]")).toBeNull();
+    expect(container.querySelector("audio")).not.toHaveAttribute("controls");
+    expect(container.querySelector("[data-mv-player]")).toBeInTheDocument();
   });
 });
 

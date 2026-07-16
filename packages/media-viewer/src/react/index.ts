@@ -6,8 +6,6 @@ export { VideoViewer } from "./video-viewer.js";
 export { AudioViewer } from "./audio-viewer.js";
 export { AudioPlayer } from "./audio-player.js";
 export type { AudioPlayerProps } from "./audio-player.js";
-export { AudioPlayerChrome } from "./audio-player-chrome.js";
-export type { AudioPlayerChromeProps } from "./audio-player-chrome.js";
 export { MediaFallbackLink, shouldShowFallback, EmptyFallback, ErrorFallback } from "./fallback.js";
 export { useMediaRecovery } from "./use-media-recovery.js";
 export type { UseMediaRecoveryOptions, UseMediaRecoveryResult } from "./use-media-recovery.js";

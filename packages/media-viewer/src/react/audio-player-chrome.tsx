@@ -1,8 +1,7 @@
 "use client";
 
-// Custom audio player chrome — the owned control surface that replaces the
-// browser's native `controls` strip when AudioViewer is given
-// `chrome="player"`. Owns: play/pause, seek, time readout, mute/volume, and
+// Custom audio player chrome — the one owned control surface used by every
+// AudioViewer. Owns: play/pause, seek, time readout, mute/volume, and
 // the visualizer panel (shared engine in ../visualizer.ts) with minimize and
 // line/bars mode toggles. The media ELEMENT (loading, errors, playback API)
 // stays owned by AudioViewer — this component only reads/drives it.

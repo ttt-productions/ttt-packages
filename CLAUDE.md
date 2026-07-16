@@ -38,12 +38,14 @@ allowed. Build helpers under `**/scripts/**` and generated `**/dist` are not lin
 omissions (e.g. the firestore subscription hooks that track stringified keys) carry a justified
 `eslint-disable-next-line` with the reason — prefer that over weakening the rule.
 
-**Release gate & tooling.** The release preflight (`scripts/preflight.sh`, run by `release-package.sh` /
-`release-all.sh`) runs `npm run test:quiet` — not the verbose `test:all` + a separate `schema:check` — so a
-release shows concise per-stage output instead of thousands of lines. Root `package.json` is `"type": "module"`
-so Vitest loads its configs via Vite's **ESM** Node API (the CJS build is deprecated). `node -p "require(...)"`
-in `release-package.sh` still works under Node 22, so the type change is safe for the release scripts — do not
-remove it to "fix" a release issue.
+**Release gate & tooling.** The user-facing entrypoint for a selected package set is ALWAYS
+`./scripts/release-multiple.sh <folder> [<folder> ...] <patch|minor|major>` with short folder names. Never hand
+the user `release-package.sh` directly; it is only the internal per-package engine invoked by the batch script.
+The batch runs `scripts/preflight.sh` once, and the preflight runs `npm run test:quiet` — not the verbose
+`test:all` plus a separate `schema:check` — so a release shows concise per-stage output instead of thousands
+of lines. Root `package.json` is `"type": "module"` so Vitest loads its configs via Vite's **ESM** Node API
+(the CJS build is deprecated). The internal release engine's `node -p "require(...)"` usage still works under
+Node 22, so the type change is safe for the release scripts — do not remove it to "fix" a release issue.
 
 ## Core architecture rules
 
@@ -142,13 +144,13 @@ Backend imports must not accidentally pull React, browser upload code, or app sh
 
 ## Build order
 
-Both build order and release order are the topological order of the dependency graph (deps before dependents) and are encoded in two places that must stay in sync: the root `package.json` `build` chain (which `scripts/build-all.sh` and `scripts/preflight.sh` delegate to) and `scripts/release-all.sh`. See `docs/packages/package-architecture.md` for the full graph and the rules below.
+Both build order and release order are the topological order of the dependency graph (deps before dependents) and are encoded in three places that must stay in sync: the root `package.json` `build` chain (which `scripts/build-all.sh` and `scripts/preflight.sh` delegate to), `scripts/release-all.sh`, and the `RELEASE_ORDER` in `scripts/release-multiple.sh`. See `docs/packages/package-architecture.md` for the full graph and the rules below.
 
 Build generic Tier 0 packages first, then Tier 1 (including the now-pure `chat-core`), then `ttt-core`, then `upload-ui`, then `chat-react`. `ttt-core` depends on `audit-core`, `chat-schemas`, `edge-protocol-core`, `media-schemas`, `notification-core`, and `report-core`, so those packages must build before `ttt-core`. `chat-react` depends on `chat-core` + the UI tier (`ui-core`, `file-input`, `upload-ui`, `media-viewer`, `mobile-core`) plus `media-schemas`/`firebase-helpers`, so it builds after all of them. When adopting from `ttt-prod`, publish the package-side changes first and then update the consuming app against installed `node_modules/@ttt-productions/*` packages.
 
 ## Release order
 
-`scripts/release-all.sh` releases all 24 packages in the same dependency-safe order: a package publishes only after every internal `@ttt-productions/*` dependency it consumes. `chat-react` releases after `chat-core` and the UI tier; `ttt-core` after `report-core`/`audit-core`/the schema packages. Internal deps are authored `"*"` in source for workspace dev and rewritten to **caret ranges** (`^x.y.z` — across `dependencies`, `devDependencies`, AND `peerDependencies`) at pack time in CI (`scripts/pin-internal-deps.mjs`, invoked from `.github/workflows/publish.yml`); published manifests never contain `"*"` and never an exact internal pin. Caret (not exact) means bumping one package by a patch/minor does **not** force every dependent to be republished in lockstep, so a single-package patch release installs cleanly in consumers (caret on a 0.x version still locks the minor, so a breaking minor/major is not auto-adopted). The user handles version bumps and publishing.
+`scripts/release-all.sh` releases all 24 packages, while `scripts/release-multiple.sh` releases a selected subset in the same dependency-safe order: a package publishes only after every selected internal `@ttt-productions/*` dependency it consumes. `chat-react` releases after `chat-core` and the UI tier; `ttt-core` after `report-core`/`audit-core`/`notification-core`/the schema packages. Internal deps are authored `"*"` in source for workspace dev and rewritten to **caret ranges** (`^x.y.z` — across `dependencies`, `devDependencies`, AND `peerDependencies`) at pack time in CI (`scripts/pin-internal-deps.mjs`, invoked from `.github/workflows/publish.yml`); published manifests never contain `"*"` and never an exact internal pin. Caret (not exact) means bumping one package by a patch/minor does **not** force every dependent to be republished in lockstep, so a single-package patch release installs cleanly in consumers (caret on a 0.x version still locks the minor, so a breaking minor/major is not auto-adopted). The user handles version bumps and publishing.
 
 ## Version bump selection (get this right — a wrong bump breaks the consuming install)
 

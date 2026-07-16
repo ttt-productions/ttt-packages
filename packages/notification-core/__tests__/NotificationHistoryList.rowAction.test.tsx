@@ -73,6 +73,14 @@ describe('NotificationHistoryList — renderRowAction (inert, read-only rows)', 
     expect(container.querySelectorAll('.ntf-item-row-action')).toHaveLength(0);
   });
 
+  it('renders a read-only title header with no Clear All control', () => {
+    const { container } = render(
+      <NotificationHistoryList {...baseProps} title="Notifications" />,
+    );
+    expect(container.querySelector('.ntf-list-title')).toHaveTextContent('Notifications');
+    expect(screen.queryByText('Clear All')).toBeNull();
+  });
+
   it('renders the row action per row, receiving the item and NO archive action (read-only)', () => {
     const seen: NotificationRowActions[] = [];
     const renderRowAction = vi.fn((notification: NotificationHistoryItem, actions: NotificationRowActions) => {
@@ -88,7 +96,7 @@ describe('NotificationHistoryList — renderRowAction (inert, read-only rows)', 
       expect.anything(),
     );
     // Archived rows cannot be re-archived — no archive action is exposed.
-    expect(seen.every((a) => a.archive === undefined)).toBe(true);
+    expect(seen.every((a) => a.archive === undefined && a.isArchivePending === undefined)).toBe(true);
   });
 
   it('makes the archived row inert — no role=button', () => {

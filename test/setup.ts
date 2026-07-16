@@ -1,6 +1,13 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// jsdom does not implement canvas drawing. Media visualizers are best-effort
+// and no-op when a 2D context is unavailable, so mirror that browser-safe path
+// without emitting jsdom's noisy "not implemented" errors in every audio test.
+if (typeof HTMLCanvasElement !== 'undefined') {
+  HTMLCanvasElement.prototype.getContext = vi.fn(() => null) as unknown as typeof HTMLCanvasElement.prototype.getContext;
+}
+
 // Mock firebase modules for all packages
 vi.mock('firebase/app', () => ({
   initializeApp: vi.fn(() => ({})),

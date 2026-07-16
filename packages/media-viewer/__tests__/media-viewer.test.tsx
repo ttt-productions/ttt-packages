@@ -66,9 +66,11 @@ describe('MediaViewer', () => {
       expect(container.querySelector('video')).toBeInTheDocument();
     });
 
-    it('renders AudioViewer when type="audio"', () => {
+    it('renders the canonical audio player when type="audio"', () => {
       const { container } = render(<MediaViewer url="https://example.com/x" type="audio" />);
       expect(container.querySelector('audio')).toBeInTheDocument();
+      expect(container.querySelector('audio')).not.toHaveAttribute('controls');
+      expect(container.querySelector('[data-mv-player]')).toBeInTheDocument();
     });
 
     it('renders fallback link when type="other"', () => {

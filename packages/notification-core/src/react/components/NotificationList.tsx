@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Badge, Button, Separator } from '@ttt-productions/ui-core/react';
 import { useActiveNotifications } from '../hooks/useActiveNotifications.js';
 import { useArchiveNotification } from '../hooks/useArchiveNotification.js';
@@ -19,6 +19,7 @@ export function NotificationList({
   archiveFn,
   enqueueArchiveAllFn,
   getArchiveAllStatusFn,
+  title,
   onClearAll,
   refetchInterval,
   emptyText,
@@ -55,25 +56,66 @@ export function NotificationList({
   // with an explicit terminal result (`complete` | `incomplete` | `failed`) and only rejects on a
   // hard enqueue/poll throw.
   const [clearIncomplete, setClearIncomplete] = useState(false);
+  const [pendingArchiveIds, setPendingArchiveIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const [pendingClearAllIds, setPendingClearAllIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+
+  // Successful archive requests stay visibly pending until the authoritative
+  // active-notification query removes each row. A callable response alone does
+  // not prove the listener/cache has reconciled yet.
+  useEffect(() => {
+    if (!notifications) return;
+    const activeIds = new Set(notifications.map((notification) => notification.id));
+    const keepActive = (current: ReadonlySet<string>) => {
+      const next = new Set([...current].filter((id) => activeIds.has(id)));
+      return next.size === current.size ? current : next;
+    };
+    setPendingArchiveIds(keepActive);
+    setPendingClearAllIds(keepActive);
+  }, [notifications]);
+
+  const archiveOne = useCallback(async (notificationId: string) => {
+    setPendingArchiveIds((current) => {
+      const next = new Set(current);
+      next.add(notificationId);
+      return next;
+    });
+    try {
+      await archiveMutation.mutateAsync(notificationId);
+    } catch (error) {
+      setPendingArchiveIds((current) => {
+        const next = new Set(current);
+        next.delete(notificationId);
+        return next;
+      });
+      throw error;
+    }
+  }, [archiveMutation]);
 
   const handleClearAll = useCallback(async () => {
     setClearIncomplete(false);
+    setPendingClearAllIds(new Set((notifications ?? []).map((notification) => notification.id)));
     let result;
     try {
       result = await archiveAllMutation.mutateAsync();
     } catch {
       // Hard failure (enqueue/poll threw): do not fire onClearAll; surface the retry affordance.
+      setPendingClearAllIds(new Set());
       setClearIncomplete(true);
       return;
     }
     if (!result.complete) {
       // Job terminated without fully draining the category (incomplete/failed) — keep the
       // notifications and prompt a retry.
+      setPendingClearAllIds(new Set());
       setClearIncomplete(true);
       return;
     }
     onClearAll?.();
-  }, [archiveAllMutation, onClearAll]);
+  }, [archiveAllMutation, notifications, onClearAll]);
 
   const getTypeIcon = useCallback(
     (type: string) => {
@@ -84,19 +126,22 @@ export function NotificationList({
   );
 
   const hasNotifications = !!notifications && notifications.length > 0;
+  const isClearAllPending = archiveAllMutation.isPending || pendingClearAllIds.size > 0;
 
   return (
     <div className="ntf-list">
       <div className="ntf-list-header">
+        {title != null && <div className="ntf-list-title">{title}</div>}
         <Button
+          className="ntf-list-clear-all"
           variant="ghost"
           size="sm"
           onClick={handleClearAll}
-          disabled={!hasNotifications || archiveAllMutation.isPending}
+          disabled={!hasNotifications || isClearAllPending}
         >
-          {archiveAllMutation.isPending ? 'Clearing...' : 'Clear All'}
+          {isClearAllPending ? 'Clearing...' : 'Clear All'}
         </Button>
-        {clearIncomplete && !archiveAllMutation.isPending && (
+        {clearIncomplete && !isClearAllPending && (
           <div className="ntf-list-clear-error" role="status">
             Some notifications remain — try again.
           </div>
@@ -131,9 +176,9 @@ export function NotificationList({
               {renderRowAction && (
                 <div className="ntf-item-row-action">
                   {renderRowAction(notification, {
-                    archive: async () => {
-                      await archiveMutation.mutateAsync(notification.id);
-                    },
+                    archive: () => archiveOne(notification.id),
+                    isArchivePending:
+                      pendingClearAllIds.has(notification.id) || pendingArchiveIds.has(notification.id),
                   })}
                 </div>
               )}

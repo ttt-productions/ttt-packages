@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { Badge, Button } from '@ttt-productions/ui-core/react';
+import { Badge, Button, Separator } from '@ttt-productions/ui-core/react';
 import { useNotificationHistory } from '../hooks/useNotificationHistory.js';
 import { NotificationEmptyState } from './NotificationEmptyState.js';
 import { formatRelativeTime } from './relative-time.js';
@@ -20,6 +20,7 @@ export function NotificationHistoryList({
   pageSize,
   staleTime,
   emptyText,
+  title,
   renderRowAction,
 }: NotificationHistoryListProps) {
   const {
@@ -42,6 +43,14 @@ export function NotificationHistoryList({
 
   return (
     <div className="ntf-list ntf-list-history">
+      {title != null && (
+        <>
+          <div className="ntf-list-header ntf-list-header-read-only">
+            <div className="ntf-list-title">{title}</div>
+          </div>
+          <Separator />
+        </>
+      )}
       <div className="ntf-list-body">
         {isLoading ? (
           <div className="ntf-loading">Loading...</div>

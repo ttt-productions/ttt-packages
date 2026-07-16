@@ -4,6 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import { RecordDialog } from '../src/react/components/record-dialog';
 
+vi.mock('@ttt-productions/media-viewer/react', async () =>
+  import('../../media-viewer/src/react/index.js'),
+);
+
 // Fake MediaRecorder:
 type MRCtor = new (stream: MediaStream, opts?: MediaRecorderOptions) => MediaRecorder;
 
@@ -86,6 +90,19 @@ describe('RecordDialog', () => {
     gumMock = installGetUserMediaMock();
     installAudioContextMock();
     urlMock = installObjectUrlMock();
+    vi.stubGlobal('requestAnimationFrame', vi.fn().mockReturnValue(1));
+    vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({
+      clearRect: vi.fn(),
+      fillRect: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      stroke: vi.fn(),
+      fillStyle: '',
+      lineWidth: 1,
+      strokeStyle: '',
+    } as unknown as CanvasRenderingContext2D));
     // Stub play to avoid jsdom errors
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
       configurable: true,
@@ -95,6 +112,7 @@ describe('RecordDialog', () => {
 
   afterEach(() => {
     cleanup();
+    vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
@@ -116,12 +134,15 @@ describe('RecordDialog', () => {
 
   it('does not emit onRecorded when recording stops (Save gate)', async () => {
     const user = userEvent.setup();
-    renderDialog();
+    const { baseElement } = renderDialog();
     await user.click(screen.getByRole('button', { name: /^start$/i }));
     // mr.start was called; now stop
     await user.click(screen.getByRole('button', { name: /^stop$/i }));
     // After stop, dialog transitions to preview state. onRecorded MUST NOT have fired.
     expect(onRecorded).not.toHaveBeenCalled();
+    // Recorded audio previews use the one package-owned player, never native chrome.
+    expect(baseElement.querySelector('[data-mv-player]')).toBeInTheDocument();
+    expect(baseElement.querySelector('audio')).not.toHaveAttribute('controls');
   });
 
   it('emits onRecorded once when Save is clicked in preview', async () => {

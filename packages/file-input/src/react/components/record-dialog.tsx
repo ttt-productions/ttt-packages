@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, Video, Mic, X, RotateCcw, Check } from "lucide-react";
 import { startWaveformLoop } from "@ttt-productions/media-viewer";
+import { MediaPreview } from "@ttt-productions/media-viewer/react";
 import { ensureFileWithContentType } from "../../lib/infer-content-type.js";
 import {
   Button,
@@ -509,11 +510,13 @@ export function RecordDialog({
           {/* Recorded preview — only in preview state */}
           {isPreview && recordPreviewUrl && (
             <div className="mt-2">
-              {recordKind === "video" ? (
-                <video src={recordPreviewUrl} controls className="w-full rounded-md" />
-              ) : (
-                <audio src={recordPreviewUrl} controls className="w-full" />
-              )}
+              <MediaPreview
+                url={recordPreviewUrl}
+                type={recordKind}
+                controls
+                priority
+                className="w-full rounded-md"
+              />
             </div>
           )}
 

@@ -16,12 +16,13 @@ Chat **React UI** package — the React half of the chat split.
 - The name-resolver context (`ChatNameResolverProvider`, …)
 - The attachment **media-component injection** context
   (`ChatAttachmentMediaProvider` / `useChatAttachmentMediaComponent`, optional):
-  the app hands chat its own display-path wrapper (recovery adapter, custom
-  audio player chrome) as a `ComponentType<MediaPreviewProps>`, so chat
+  the app hands chat its own display-path wrapper (recovery adapter,
+  diagnostics, telemetry) as a `ComponentType<MediaPreviewProps>`, so chat
   attachments ride the SAME display pipeline as every other app surface. When
   no provider is present the default renderer uses the package's bare
   `MediaViewer` — pre-injection behavior, unchanged. Text attachments always
-  render the download link (never the media component).
+  render a semantic download link (never the media component). Attachment
+  filenames remain internal metadata/download hints and are not displayed.
 - The Firebase-client adapter config types (`ChatCoreConfig`,
   `ChatAttachmentConfig`, `ChatUploadAdapter`, `ChatMentionConfig`) and the
   React render types (`MessageRenderer`, `RenderableMentionProvider`,

@@ -11,7 +11,6 @@ export function AudioViewer(props: AudioViewerProps) {
     url,
     className,
     mediaClassName,
-    controls = true,
     autoPlay,
     loop = false,
     lazy = true,
@@ -28,16 +27,10 @@ export function AudioViewer(props: AudioViewerProps) {
     startAtSeconds,
     endOverlay,
     playbackControlsRef,
-    chrome = "native",
     visualizerMode,
     persistKey,
     extraActions,
   } = props;
-
-  // The custom player chrome owns the control surface — the native strip and
-  // the tap-to-toggle container semantics both stand down.
-  const isPlayerChrome = chrome === "player";
-  const showNativeControls = isPlayerChrome ? false : controls;
 
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
@@ -116,29 +109,6 @@ export function AudioViewer(props: AudioViewerProps) {
     handleError
   );
 
-  // Tap-to-toggle when controls are off
-  const togglePlay = React.useCallback(() => {
-    const el = audioRef.current;
-    if (!el) return;
-    if (el.paused) void el.play().catch(() => {});
-    else el.pause();
-  }, []);
-
-  // Tap-to-toggle applies only to the bare controls-less element — with the
-  // player chrome there are real buttons, so container semantics stand down.
-  const tapToToggle = !showNativeControls && !isPlayerChrome;
-
-  const onKeyDown = React.useCallback(
-    (e: React.KeyboardEvent) => {
-      if (!tapToToggle) return;
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        togglePlay();
-      }
-    },
-    [tapToToggle, togglePlay]
-  );
-
   if (hasError) {
     if (fallback) return <>{fallback}</>;
     return (
@@ -154,11 +124,6 @@ export function AudioViewer(props: AudioViewerProps) {
     <div
       ref={inViewRef}
       className={className}
-      role={tapToToggle ? "button" : undefined}
-      tabIndex={tapToToggle ? 0 : undefined}
-      aria-label={tapToToggle ? "Toggle audio playback" : undefined}
-      onClick={tapToToggle ? togglePlay : undefined}
-      onKeyDown={tapToToggle ? onKeyDown : undefined}
       style={{ position: "relative", width: "100%", outline: "none" }}
     >
       {!shouldLoad ? (
@@ -172,7 +137,7 @@ export function AudioViewer(props: AudioViewerProps) {
             ref={audioRef}
             src={url}
             className={mediaClassName}
-            controls={showNativeControls}
+            controls={false}
             autoPlay={autoPlay}
             loop={loop}
             preload={preload}
@@ -191,14 +156,12 @@ export function AudioViewer(props: AudioViewerProps) {
               transition: "opacity 300ms ease",
             }}
           />
-          {isPlayerChrome && (
-            <AudioPlayerChrome
-              audioRef={audioRef}
-              visualizerMode={visualizerMode}
-              persistKey={persistKey}
-              extraActions={extraActions}
-            />
-          )}
+          <AudioPlayerChrome
+            audioRef={audioRef}
+            visualizerMode={visualizerMode}
+            persistKey={persistKey}
+            extraActions={extraActions}
+          />
           {endOverlay != null && hasEnded && (
             <div
               className="mv-end-overlay"

@@ -35,6 +35,15 @@ function AttachmentTypeIcon({ type }: { type: ChatAttachment["type"] }) {
   }
 }
 
+function getSelectedAttachmentLabel(type: ChatAttachment["type"]): string {
+  switch (type) {
+    case "image": return "Image selected";
+    case "video": return "Video selected";
+    case "audio": return "Audio selected";
+    default: return "File selected";
+  }
+}
+
 export type ComposerProps = {
   /**
    * Text-only send. Composer calls this when there is no pending attachment.
@@ -205,7 +214,9 @@ export function Composer(props: ComposerProps) {
       {pendingFile && !isSending && (
         <div className="chat-composer-file-preview">
           <AttachmentTypeIcon type={getAttachmentType(pendingFile)} />
-          <span className="chat-composer-file-name">{pendingFile.name}</span>
+          <span className="chat-composer-file-name">
+            {getSelectedAttachmentLabel(getAttachmentType(pendingFile))}
+          </span>
           <Button
             type="button"
             variant="ghost"

@@ -354,6 +354,8 @@ export interface UseArchiveAllNotificationsOptions {
  */
 export interface NotificationRowActions {
   archive?: () => Promise<void>;
+  /** True while this row is archiving, including a category-wide Clear All. */
+  isArchivePending?: boolean;
 }
 
 export interface NotificationListProps {
@@ -377,6 +379,8 @@ export interface NotificationListProps {
    * it to its status callable / job-doc read.
    */
   getArchiveAllStatusFn: (jobId: string) => Promise<ArchiveAllJobSnapshot>;
+  /** Left-aligned title for the active-list header. */
+  title?: ReactNode;
   onClearAll?: () => void;
   refetchInterval?: number;
   emptyText?: string;
@@ -396,6 +400,8 @@ export interface NotificationHistoryListProps {
   pageSize?: number;
   staleTime?: number;
   emptyText?: string;
+  /** Left-aligned title for the read-only archived-list header. */
+  title?: ReactNode;
   /**
    * Per-row control slot for archived rows. The row is inert; archived rows are
    * read-only (no re-archive), so `actions.archive` is absent — the consumer

@@ -137,7 +137,6 @@ export function MediaViewer(props: MediaPreviewProps) {
     startAtSeconds,
     endOverlay,
     playbackControlsRef,
-    audioChrome,
     audioVisualizerMode,
     audioPersistKey,
     audioExtraActions,
@@ -319,11 +318,9 @@ export function MediaViewer(props: MediaPreviewProps) {
           lazy={lazy}
           priority={priority}
           skeleton={skeleton}
-          controls={controls}
           autoPlay={autoPlay}
           loop={loop}
           preload={preload}
-          chrome={audioChrome}
           visualizerMode={audioVisualizerMode}
           persistKey={audioPersistKey}
           extraActions={audioExtraActions}

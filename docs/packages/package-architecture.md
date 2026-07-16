@@ -59,9 +59,9 @@ build order):
 
 The `file-input -> media-viewer` edge is the only intra-Tier-1 dependency
 (`file-input` renders `MediaPreview` in `MediaInput`'s selected-file preview).
-It needs no tier renumbering: the build chain and `scripts/release-all.sh`
-already place `media-viewer` before `file-input`, so dependencies still build
-and release before their dependents.
+It needs no tier renumbering: the build chain, `scripts/release-all.sh`, and
+`scripts/release-multiple.sh` already place `media-viewer` before `file-input`,
+so dependencies still build and release before their dependents.
 
 Every other package has zero internal runtime dependencies. `ui-core`,
 `report-core`, `notification-core`, and `chat-react` declare some
@@ -171,18 +171,21 @@ app's boundary, never inside `auth-core`.
 
 Both orders are the topological order of the runtime-dependency graph above:
 a package builds (and releases) only after every internal dependency it
-consumes. The order is encoded in two places that must stay in sync whenever a
+consumes. The order is encoded in three places that must stay in sync whenever a
 package is added, renamed, or removed:
 
 - the root `package.json` `build` chain — the single source of build order;
   `scripts/build-all.sh` and `scripts/preflight.sh` delegate to it rather than
   re-listing packages.
 - `scripts/release-all.sh` — releases all 24 packages in the same order.
+- `scripts/release-multiple.sh` — releases a selected subset by walking the same
+  canonical `RELEASE_ORDER`.
 
 Key ordering constraints: `chat-schemas` before `chat-core`; `chat-core` plus
 the UI tier (`ui-core`, `file-input`, `upload-ui`, `media-viewer`,
 `mobile-core`) plus `media-schemas`/`firebase-helpers` before `chat-react`;
-`report-core`/`audit-core`/`media-schemas`/`chat-schemas` before `ttt-core`;
+`report-core`/`audit-core`/`notification-core`/`media-schemas`/`chat-schemas`
+before `ttt-core`;
 `firebase-helpers` before `upload-core`; `file-input`/`ui-core`/`upload-core`/
 `media-schemas` before `upload-ui`.
 

@@ -148,9 +148,9 @@ Wire `onMediaError` / `onMediaLoad` to the element's `onError` / `onLoad` (or `o
 
 ---
 
-## Custom audio player (AudioPlayer / chrome="player")
+## Canonical audio player (AudioViewer / AudioPlayer / MediaPreview)
 
-The package owns a custom audio control surface that replaces the browser's native `controls` strip: play/pause, seek, time readout, mute/volume, and a visualizer panel (oscilloscope `line` or frequency `bars`) with minimize and mode toggles — both persisted to localStorage. Opt in per call site; the default everywhere remains native controls.
+The package owns the single audio control surface used by every audio render: play/pause, seek, time readout, mute/volume, and a visualizer panel (oscilloscope `line` or frequency `bars`) with minimize and mode toggles — both persisted to localStorage. Browser-native audio controls are not exposed, so callers cannot accidentally render a different player.
 
 ```tsx
 import { AudioPlayer } from "@ttt-productions/media-viewer/react";
@@ -163,7 +163,7 @@ import { AudioPlayer } from "@ttt-productions/media-viewer/react";
 />
 ```
 
-Equivalent forms: `<AudioViewer chrome="player" …/>`, or through the router as `<MediaPreview type="audio" audioChrome="player" audioVisualizerMode=… audioPersistKey=… audioExtraActions=… />`. All the Playback API props (below) work unchanged.
+Equivalent forms: `<AudioViewer …/>`, or through the router as `<MediaPreview type="audio" audioVisualizerMode=… audioPersistKey=… audioExtraActions=… />`. All the Playback API props (below) work unchanged.
 
 Mechanics: the Web Audio graph (`createMediaElementSource` → `AnalyserNode` → destination) is created lazily on the first `play` event (autoplay policies suspend fresh `AudioContext`s; a user-gesture play resumes them) and is best-effort — if it fails, playback still works and only the visualizer goes dark. The element source is once-per-element and keyed to the element instance. The draw loop runs only while playing. Requires same-origin (or CORS-clean) audio, or the analyser reads silence.
 

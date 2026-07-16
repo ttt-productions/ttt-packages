@@ -157,17 +157,11 @@ describe('AudioViewer', () => {
     });
   });
 
-  describe('attribute pass-through', () => {
-    it('passes controls prop (default true)', () => {
+  describe('canonical player contract', () => {
+    it('always disables native controls and renders the package-owned player', () => {
       const { container } = render(<AudioViewer url="https://example.com/a.mp3" priority />);
-      expect(container.querySelector('audio')).toHaveAttribute('controls');
-    });
-
-    it('omits controls when controls=false', () => {
-      const { container } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority controls={false} />
-      );
       expect(container.querySelector('audio')).not.toHaveAttribute('controls');
+      expect(container.querySelector('[data-mv-player]')).toBeInTheDocument();
     });
 
     it('passes autoPlay prop', () => {
@@ -197,54 +191,11 @@ describe('AudioViewer', () => {
     });
   });
 
-  describe('tap-to-toggle (controls=false)', () => {
-    it('wrapper has role="button" and tabIndex when controls=false', () => {
-      const { getByRole } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority controls={false} />
-      );
-      expect(getByRole('button')).toBeInTheDocument();
-      expect(getByRole('button')).toHaveAttribute('tabindex', '0');
-    });
-
-    it('wrapper has no button role when controls=true (default)', () => {
-      const { queryByRole } = render(<AudioViewer url="https://example.com/a.mp3" priority />);
-      expect(queryByRole('button')).not.toBeInTheDocument();
-    });
-
-    it('clicking the wrapper calls audio.play when paused', () => {
-      const playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
-      const { getByRole } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority controls={false} />
-      );
-      fireEvent.click(getByRole('button'));
-      expect(playSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('Enter key triggers togglePlay when controls=false', () => {
-      const playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
-      const { getByRole } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority controls={false} />
-      );
-      fireEvent.keyDown(getByRole('button'), { key: 'Enter' });
-      expect(playSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('Space key triggers togglePlay when controls=false', () => {
-      const playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
-      const { getByRole } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority controls={false} />
-      );
-      fireEvent.keyDown(getByRole('button'), { key: ' ' });
-      expect(playSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('other keys do not toggle playback', () => {
-      const playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
-      const { getByRole } = render(
-        <AudioViewer url="https://example.com/a.mp3" priority controls={false} />
-      );
-      fireEvent.keyDown(getByRole('button'), { key: 'a' });
-      expect(playSpy).not.toHaveBeenCalled();
+  describe('wrapper semantics', () => {
+    it('leaves playback interaction to the real player controls', () => {
+      const { container } = render(<AudioViewer url="https://example.com/a.mp3" priority />);
+      expect(container.querySelector('[role="button"][aria-label="Toggle audio playback"]')).toBeNull();
+      expect(container.querySelector('[data-mv-player]')).toBeInTheDocument();
     });
   });
 

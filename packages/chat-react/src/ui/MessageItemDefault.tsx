@@ -15,12 +15,21 @@ import { useChatAttachmentMediaComponent } from "../context/ChatAttachmentMediaC
 // Attachment rendering
 // ============================================
 
+function getAttachmentLabel(type: ChatAttachment["type"]): string {
+  switch (type) {
+    case "image": return "Image attachment";
+    case "video": return "Video attachment";
+    case "audio": return "Audio attachment";
+    default: return "File attachment";
+  }
+}
+
 function AttachmentView({ att }: { att: ChatAttachment }) {
   // Display URL is built at render time by the app-injected resolver from
   // att.mediaAssetId — attachments never store URLs (protected-gateway model).
   const resolveAttachmentUrl = useChatAttachmentUrlResolver();
   // App-injected media component (optional) — lets chat attachments ride the
-  // app's ONE display path (recovery adapter, custom player chrome). Falls
+  // app's ONE display path (recovery adapter, diagnostics, telemetry). Falls
   // back to the package's own MediaViewer when no provider is present.
   const Media = useChatAttachmentMediaComponent() ?? MediaViewer;
   // In-flight placeholder — bytes uploaded, processing/moderation pending. No
@@ -30,7 +39,7 @@ function AttachmentView({ att }: { att: ChatAttachment }) {
     return (
       <div className="chat-attachment-pending">
         <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-        <span className="truncate">{att.name}</span>
+        <span className="truncate">{getAttachmentLabel(att.type)}</span>
         <span className="chat-attachment-status-label">Sending…</span>
       </div>
     );
@@ -40,7 +49,7 @@ function AttachmentView({ att }: { att: ChatAttachment }) {
     return (
       <div className="chat-attachment-rejected">
         <AlertTriangle className="h-4 w-4 shrink-0" />
-        <span className="truncate">{att.name}</span>
+        <span className="truncate">{getAttachmentLabel(att.type)}</span>
         <span className="chat-attachment-status-label">
           {att.failureReason ?? "Couldn't send this attachment"}
         </span>
@@ -51,7 +60,7 @@ function AttachmentView({ att }: { att: ChatAttachment }) {
   const url = resolveAttachmentUrl(att);
   if (!url) return null;
   if (att.type === "image") {
-    return <Media type="image" url={url} alt={att.name} className="chat-attachment-media" />;
+    return <Media type="image" url={url} alt="Image attachment" className="chat-attachment-media" />;
   }
   if (att.type === "video") {
     return <Media type="video" url={url} controls className="chat-attachment-media" />;
@@ -63,12 +72,13 @@ function AttachmentView({ att }: { att: ChatAttachment }) {
   return (
     <a
       href={url}
+      download={att.name}
       target="_blank"
       rel="noopener noreferrer"
       className="chat-attachment-text-link"
     >
       <FileText className="h-4 w-4 shrink-0" />
-      <span className="truncate">{att.name}</span>
+      <span className="truncate">Download attachment</span>
     </a>
   );
 }

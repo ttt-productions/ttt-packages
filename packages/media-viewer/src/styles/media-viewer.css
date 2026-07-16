@@ -88,7 +88,7 @@
 }
 
 /* ---------------------------------------------------------------------------
-   Custom audio player chrome (AudioViewer chrome="player" / AudioPlayer).
+   Canonical audio player chrome (AudioViewer / AudioPlayer).
    Semantic classes with token fallbacks; apps re-skin freely.
    --------------------------------------------------------------------------- */
 .mv-player {

@@ -214,6 +214,14 @@ export function MediaInput(props: MediaInputProps) {
     () => (selectedFile ? getSimplifiedMediaType(selectedFile) : null),
     [selectedFile]
   );
+  const selectedFileLabel =
+    previewKind === "image"
+      ? "Image selected"
+      : previewKind === "video"
+        ? "Video selected"
+        : previewKind === "audio"
+          ? "Audio selected"
+          : "File selected";
 
   const emit = useCallback(
     (payload: {
@@ -527,14 +535,14 @@ export function MediaInput(props: MediaInputProps) {
         disabled={disabled || isLoading}
       />
 
-      {/* Selected file preview + name */}
+      {/* Selected file preview + semantic status (original names stay metadata-only). */}
       {selectedFile && !isLoading ? (
         <div className="mb-2 space-y-2">
           {previewKind === "image" || previewKind === "video" || previewKind === "audio" ? (
             <div
               className={cn(
-                "relative w-full overflow-hidden rounded-md bg-muted",
-                previewKind === "audio" ? "h-16" : "h-48"
+                "relative w-full rounded-md bg-muted",
+                previewKind === "audio" ? "p-2" : "h-48 overflow-hidden"
               )}
             >
               <MediaPreview
@@ -542,12 +550,12 @@ export function MediaInput(props: MediaInputProps) {
                 type={previewKind}
                 mime={selectedFile.type}
                 controls
-                className="h-full w-full"
+                className={previewKind === "audio" ? "w-full" : "h-full w-full"}
               />
             </div>
           ) : null}
           <div className="flex items-center gap-2">
-            <span className="text-sm truncate flex-1">{selectedFile.name}</span>
+            <span className="text-sm truncate flex-1">{selectedFileLabel}</span>
             {onClear && (
               <Button variant="ghost" size="icon" className="icon-sm hover:bg-destructive/20 shrink-0" onClick={onClear}>
                 <X className="icon-xs" />

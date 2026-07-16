@@ -71,6 +71,8 @@ describe("MessageItemDefault — attachment media injection", () => {
       expect(getByTestId("injected-media")).toHaveAttribute("data-type", type);
       expect(seen[0]?.url).toBe("https://media.test/asset-1");
       expect(seen[0]?.className).toBe("chat-attachment-media");
+      if (type === "image") expect(seen[0]?.alt).toBe("Image attachment");
+      expect(JSON.stringify(seen[0])).not.toContain(`file.${type}`);
     },
   );
 
@@ -88,7 +90,20 @@ describe("MessageItemDefault — attachment media injection", () => {
       FakeMedia as unknown as React.ComponentType<MediaPreviewProps>,
     );
     expect(queryByTestId("injected-media")).toBeNull();
-    expect(container.querySelector(".chat-attachment-text-link")).toBeTruthy();
+    const link = container.querySelector(".chat-attachment-text-link");
+    expect(link).toHaveTextContent("Download attachment");
+    expect(link).not.toHaveTextContent("file.text");
+    expect(link).toHaveAttribute("download", "file.text");
     expect(FakeMedia).not.toHaveBeenCalled();
   });
+
+  it.each(["pending", "failed"] as const)(
+    "uses a semantic label for a %s attachment without displaying its filename",
+    (status) => {
+      const attachment = { ...makeAttachment("audio"), status };
+      const { getByText, queryByText } = renderWithProviders(makeMessage(attachment));
+      expect(getByText("Audio attachment")).toBeInTheDocument();
+      expect(queryByText("file.audio")).toBeNull();
+    },
+  );
 });

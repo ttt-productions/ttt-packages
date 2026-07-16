@@ -31,7 +31,7 @@ export {
 } from "./context/ChatAttachmentUrlContext.js";
 
 // Attachment media-component injection (optional) — the app hands chat its own
-// display-path wrapper (recovery adapter, custom audio player chrome) so chat
+// display-path wrapper (recovery adapter, diagnostics, telemetry) so chat
 // media rides the same pipeline as every other surface; default stays the
 // package MediaViewer.
 export type {

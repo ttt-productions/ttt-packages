@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
   useActiveNotifications: vi.fn(),
@@ -89,6 +89,15 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     expect(container.querySelectorAll('.ntf-item-row-action')).toHaveLength(0);
   });
 
+  it('renders the supplied title on the left and Clear All on the right', () => {
+    const { container } = render(<NotificationList {...baseProps} title="Notifications" />);
+    const header = container.querySelector('.ntf-list-header')!;
+    expect(header.querySelector('.ntf-list-title')).toHaveTextContent('Notifications');
+    expect(header.querySelector('.ntf-list-clear-all')).toHaveTextContent('Clear All');
+    expect(header.firstElementChild).toHaveClass('ntf-list-title');
+    expect(header.querySelector('.ntf-list-clear-all')).toBe(header.children[1]);
+  });
+
   it('renders the row action per row and receives the notification + an archive action', () => {
     const renderRowAction = vi.fn((notification: NotificationDoc) => (
       <button aria-label={`go-to-${notification.id}`}>Go</button>
@@ -125,5 +134,81 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
 
     fireEvent.click(screen.getByLabelText('clear-n1'));
     await waitFor(() => expect(archiveMutateAsync).toHaveBeenCalledWith('n1'));
+  });
+
+  it('marks every targeted row pending while Clear All is running', async () => {
+    let resolveClearAll: (value: { complete: boolean }) => void = () => {};
+    mocks.useArchiveAllNotifications.mockReturnValue({
+      mutateAsync: vi.fn(
+        () => new Promise<{ complete: boolean }>((resolve) => { resolveClearAll = resolve; }),
+      ),
+      isPending: false,
+    });
+    const renderRowAction = (notification: NotificationDoc, actions: NotificationRowActions) => (
+      <span data-testid={`pending-${notification.id}`}>{String(actions.isArchivePending)}</span>
+    );
+
+    render(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
+    fireEvent.click(screen.getByText('Clear All'));
+
+    await waitFor(() => expect(screen.getByTestId('pending-n1')).toHaveTextContent('true'));
+    expect(screen.getByTestId('pending-n2')).toHaveTextContent('true');
+    await act(async () => { resolveClearAll({ complete: false }); });
+  });
+
+  it('marks only the targeted row pending during a single archive', async () => {
+    let resolveArchive: () => void = () => {};
+    archiveMutateAsync.mockImplementationOnce(
+      () => new Promise<void>((resolve) => { resolveArchive = resolve; }),
+    );
+    const renderRowAction = (notification: NotificationDoc, actions: NotificationRowActions) => (
+      <button
+        aria-label={`${actions.isArchivePending ? 'pending' : 'clear'}-${notification.id}`}
+        onClick={() => { void actions.archive?.(); }}
+      >
+        {actions.isArchivePending ? 'Pending' : 'Clear'}
+      </button>
+    );
+    const view = render(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
+
+    fireEvent.click(screen.getByLabelText('clear-n1'));
+    await waitFor(() => expect(screen.getByLabelText('pending-n1')).toBeInTheDocument());
+    expect(screen.getByLabelText('clear-n2')).toBeInTheDocument();
+
+    await act(async () => { resolveArchive(); });
+    // Callable completion is not authoritative: the row keeps spinning while
+    // it remains in the active query.
+    expect(screen.getByLabelText('pending-n1')).toBeInTheDocument();
+
+    mocks.useActiveNotifications.mockReturnValue({
+      data: [makeNotification({ id: 'n2' })],
+      isLoading: false,
+      hasNextPage: false,
+      nextPage: vi.fn(),
+    });
+    view.rerender(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
+    await waitFor(() => expect(screen.queryByLabelText('pending-n1')).toBeNull());
+  });
+
+  it('stops a row spinner on archive failure while the row remains active', async () => {
+    let rejectArchive: (error: Error) => void = () => {};
+    archiveMutateAsync.mockImplementationOnce(
+      () => new Promise<void>((_resolve, reject) => { rejectArchive = reject; }),
+    );
+    const renderRowAction = (notification: NotificationDoc, actions: NotificationRowActions) => (
+      <button
+        aria-label={`${actions.isArchivePending ? 'pending' : 'clear'}-${notification.id}`}
+        onClick={() => { void actions.archive?.().catch(() => {}); }}
+      >
+        Clear
+      </button>
+    );
+    render(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
+
+    fireEvent.click(screen.getByLabelText('clear-n1'));
+    await waitFor(() => expect(screen.getByLabelText('pending-n1')).toBeInTheDocument());
+    await act(async () => { rejectArchive(new Error('archive failed')); });
+    await waitFor(() => expect(screen.getByLabelText('clear-n1')).toBeInTheDocument());
+    expect(screen.getByLabelText('clear-n2')).toBeInTheDocument();
   });
 });

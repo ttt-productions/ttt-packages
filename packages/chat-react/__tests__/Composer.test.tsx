@@ -103,6 +103,9 @@ describe('Composer abort wiring', () => {
     fireEvent.click(screen.getByTestId('media-input-select'));
     await act(async () => { });
 
+    expect(screen.getByText('Image selected')).toBeInTheDocument();
+    expect(screen.queryByText('hello.png')).toBeNull();
+
     // Send button is enabled once pendingFile is set
     const sendBtn = screen.getByRole('button', { name: 'Send' });
     expect(sendBtn).not.toBeDisabled();

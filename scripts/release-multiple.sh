@@ -37,9 +37,10 @@ RELEASE_ORDER=(
   monitoring-core
   media-schemas
   chat-schemas
-  # report-core + audit-core — must release BEFORE ttt-core
+  # report-core + audit-core + notification-core — must release BEFORE ttt-core
   report-core
   audit-core
+  notification-core
   # Application data
   ttt-core
   # Tier 1 — depend on Tier 0
@@ -55,7 +56,6 @@ RELEASE_ORDER=(
   chat-core
   chat-react
   # Remaining
-  notification-core
   rate-limit-core
   moderation-core
 )

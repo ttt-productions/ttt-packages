@@ -21,16 +21,34 @@
 }
 
 .ntf-list-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: flex-end;
+  gap: 0.25rem 0.75rem;
   padding: 0.25rem 0.5rem;
   border-bottom: 1px solid hsl(var(--border));
 }
 
+.ntf-list-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.ntf-list-clear-all {
+  grid-column: 2;
+}
+
+.ntf-list-header-read-only .ntf-list-title {
+  grid-column: 1 / -1;
+}
+
 .ntf-list-clear-error {
-  /* Pushed to the left edge so the "Clear All" button stays right-aligned (I3). */
-  margin-right: auto;
+  grid-column: 1 / -1;
   font-size: 0.8125rem;
   color: hsl(var(--destructive));
 }

@@ -107,19 +107,13 @@ export type VideoViewerProps = BaseMediaProps & MediaPlaybackProps & {
 };
 
 export type AudioViewerProps = BaseMediaProps & MediaPlaybackProps & {
-  controls?: boolean;
   autoPlay?: boolean;
   loop?: boolean;
   preload?: "auto" | "metadata" | "none";
   onLoadChange?: (isLoading: boolean) => void;
 
-  // ---------------------------------------------------------------------------
-  // Custom player chrome (additive, optional). `chrome: "player"` replaces the
-  // native controls strip with the package's owned control surface (play/seek/
-  // time/volume) plus the visualizer panel. Default "native" — unchanged
-  // behavior. The remaining fields only apply with `chrome: "player"`.
-  // ---------------------------------------------------------------------------
-  chrome?: "native" | "player";
+  // AudioViewer always uses the package-owned control surface. Native browser
+  // audio controls are intentionally not part of the public contract.
   /** Initial visualizer mode ("line" oscilloscope | "bars" EQ). A persisted user choice wins. */
   visualizerMode?: AudioVisualizerMode;
   /** localStorage key base for the minimize/mode prefs. `null` disables persistence. */
@@ -138,6 +132,7 @@ export type MediaPreviewProps = {
   priority?: boolean;
   skeleton?: boolean;
   lazy?: boolean;
+  /** Video controls only. Audio always renders the canonical package-owned controls. */
   controls?: boolean;
   autoPlay?: boolean;
   muted?: boolean;
@@ -159,11 +154,8 @@ export type MediaPreviewProps = {
   endOverlay?: MediaPlaybackProps["endOverlay"];
   playbackControlsRef?: MediaPlaybackProps["playbackControlsRef"];
 
-  // -------------------------------------------------------------------------
-  // Custom audio player chrome (additive, optional) — forwarded to AudioViewer
-  // for `type="audio"`, ignored for every other type. Default native controls.
-  // -------------------------------------------------------------------------
-  audioChrome?: "native" | "player";
+  // Audio always uses the package-owned player. These props customize that
+  // single control surface and are ignored for every other media type.
   audioVisualizerMode?: AudioVisualizerMode;
   audioPersistKey?: string | null;
   audioExtraActions?: React.ReactNode;

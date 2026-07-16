@@ -6,8 +6,8 @@ import type { MediaPreviewProps } from "@ttt-productions/media-viewer";
 /**
  * The component chat attachments render their media through. Defaults to the
  * bare media-viewer `MediaViewer` when no provider is present; the consuming
- * app injects its own wrapper (recovery adapter, custom audio player chrome,
- * telemetry — whatever the app's one display path adds) so chat media rides
+ * app injects its own wrapper (recovery adapter, diagnostics, telemetry —
+ * whatever the app's one display path adds) so chat media rides
  * the SAME display pipeline as every other surface. chat-react stays
  * app-agnostic: it renders whatever component it is handed with plain
  * MediaPreview props.
