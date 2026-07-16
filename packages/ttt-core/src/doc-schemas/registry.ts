@@ -104,6 +104,7 @@ import {
   ChatHistoryAnonymizationJobSchema,
   ChatHistoryAnonymizationAffectedChunkSchema,
 } from './chat-sync.js';
+import { SquareAnnouncementJobSchema } from './square-announcement-jobs.js';
 import { PendingMediaSchema, ArchivedPendingMediaSchema } from '../media/pending-media.js';
 import { MediaAssetSchema } from './media-assets.js';
 import { MediaActivationJobSchema } from './media-activation-jobs.js';
@@ -233,6 +234,8 @@ export const COLLECTION_SCHEMAS = {
   'squareStreetzFeed/trendingPosts': TrendingPostsSchema,
   'followEdges/{followEdgeId}': FollowEdgeSchema,
   'followCounters/{followCounterId}': FollowCounterSchema,
+  // Durable Square announcement outbox (Admin-SDK-only; deterministic job ids).
+  'squareAnnouncementJobs/{jobId}': SquareAnnouncementJobSchema,
 
   // ===== Payments / pledge ledger =====
   'pledgePayments/{pledgePaymentId}': PledgePaymentSchema,

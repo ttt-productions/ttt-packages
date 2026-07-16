@@ -104,3 +104,31 @@ export const DeleteShortLinkInputSchema = z.object({
 });
 export type DeleteShortLinkInput = z.infer<typeof DeleteShortLinkInputSchema>;
 
+// --- Authoritative mutation RESULTS (non-strict server → client posture) ---
+
+export const MarkAdminDispatchReadResultSchema = z.object({
+  success: z.literal(true),
+});
+export type MarkAdminDispatchReadResult = z.infer<typeof MarkAdminDispatchReadResultSchema>;
+
+// submitContentAppeal — the transaction sets appealStatus 'pending' + appealedAt = now on
+// the violation; both are known at commit and let the client patch its violations list.
+export const SubmitContentAppealResultSchema = z.object({
+  success: z.literal(true),
+  violationId: violationIdSchema,
+  /** The violation's appeal state after commit. */
+  appealStatus: z.literal('pending'),
+  appealedAt: z.number(),
+});
+export type SubmitContentAppealResult = z.infer<typeof SubmitContentAppealResultSchema>;
+
+// acceptViolationDecision — the violation record (and its pendingMedia/archive docs) are
+// removed at commit; the client drops the row from its violation + pendingMedia caches.
+export const AcceptViolationDecisionResultSchema = z.object({
+  success: z.literal(true),
+  violationId: violationIdSchema,
+  /** True when the record was already gone (idempotent accept). */
+  alreadyRemoved: z.boolean(),
+});
+export type AcceptViolationDecisionResult = z.infer<typeof AcceptViolationDecisionResultSchema>;
+

@@ -13,6 +13,7 @@ export * from './account-deletion.js';
 export * from './work-project.js';
 export * from './content.js';
 export * from './social.js';
+export * from './square-announcement-jobs.js';
 export * from './payments.js';
 export * from './commissions.js';
 export * from './messaging.js';

@@ -119,6 +119,11 @@ export const PATH_BUILDERS = {
   trendingPosts: (): [string, string] =>
     [COLLECTIONS.SQUARE_STREETZ_FEED, NESTED_SUBCOLLECTIONS.TRENDING_POSTS],
 
+  // Server-only durable Square announcement outbox job. jobId is DETERMINISTIC —
+  // ALWAYS derive it via buildSquareAnnouncementJobId (doc-schemas/square-announcement-jobs.ts).
+  squareAnnouncementJob: (jobId: string): [string, string] =>
+    [COLLECTIONS.SQUARE_ANNOUNCEMENT_JOBS, jobId],
+
   // ===== HALL PATHS =====
   thresholdItem: (thresholdItemId: string): [string, string] =>
     [COLLECTIONS.THRESHOLD_ITEMS, thresholdItemId],

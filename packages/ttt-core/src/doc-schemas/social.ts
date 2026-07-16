@@ -67,6 +67,20 @@ export const MentionHistoryDocumentSchema = z.object({
 });
 export type MentionHistoryDocument = z.infer<typeof MentionHistoryDocumentSchema>;
 
+// Authoritative result of the addToMentionHistory callable — the transaction computes
+// the deduped, capped list in memory before committing, so returning it costs no read.
+// Declared HERE (not schemas/social.ts) because it composes MentionHistoryItemSchema
+// and this module already imports schemas/social.js (FollowableTargetTypeSchema) — the
+// reverse runtime import would be a module cycle. Re-exported on the ./schemas subpath
+// via schemas/index.ts. Non-strict (server → client result posture).
+export const AddToMentionHistoryResultSchema = z.object({
+  success: z.literal(true),
+  itemCount: z.number().int().nonnegative(),
+  /** The full, deduped, capped history AFTER this write — a drop-in cache replacement. */
+  items: z.array(MentionHistoryItemSchema),
+});
+export type AddToMentionHistoryResult = z.infer<typeof AddToMentionHistoryResultSchema>;
+
 export const FollowEdgeSchema = z.object({
   followerUid: z.string(),
   targetType: FollowableTargetTypeSchema,

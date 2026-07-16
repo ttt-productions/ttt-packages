@@ -61,6 +61,12 @@ export const COLLECTIONS = {
   CHAT_ADMIN_ACTION_COMMANDS: 'chatAdminActionCommands',
   CHAT_HISTORY_ANONYMIZATION_JOBS: 'chatHistoryAnonymizationJobs',
 
+  // Square Streetz announcement outbox (Admin-SDK-only): durable jobs enqueued in the
+  // announcing domain's transaction and drained by the outbox trigger worker. Job ids
+  // are deterministic so a replayed transaction collides instead of duplicating —
+  // ALWAYS derive them via buildSquareAnnouncementJobId (doc-schemas/square-announcement-jobs.ts).
+  SQUARE_ANNOUNCEMENT_JOBS: 'squareAnnouncementJobs',
+
   // Feedback & Metadata
   FEEDBACK_SUBMISSIONS: 'feedbackSubmissions',
   FEEDBACK_ALIASES: 'feedbackAliases',

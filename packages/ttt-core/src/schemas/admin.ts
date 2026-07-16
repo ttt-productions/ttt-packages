@@ -60,13 +60,30 @@ export const MarkWorkLaterInputSchema = z.object({
 }).strict();
 export type MarkWorkLaterInput = z.infer<typeof MarkWorkLaterInputSchema>;
 
+/** The two appeal-review decisions (ONE canonical declaration — shared by the review
+ * input and its authoritative result). */
+export const ContentAppealDecisionSchema = z.enum(['approved', 'denied']);
+export type ContentAppealDecision = z.infer<typeof ContentAppealDecisionSchema>;
+
 export const ReviewContentAppealInputSchema = z.object({
   violationId: violationIdSchema,
   taskId: taskIdSchema,
-  decision: z.enum(['approved', 'denied']),
+  decision: ContentAppealDecisionSchema,
   adminNotes: z.string().max(MAX_APPEAL_REVIEW_NOTES_LENGTH),
 }).strict();
 export type ReviewContentAppealInput = z.infer<typeof ReviewContentAppealInputSchema>;
+
+// Authoritative result of reviewContentAppeal. Non-strict (server → client posture).
+export const ReviewContentAppealResultSchema = z.object({
+  success: z.literal(true),
+  violationId: violationIdSchema,
+  /** Echo of the requested decision (always known — it is the input). */
+  decision: ContentAppealDecisionSchema,
+  /** The appealing user's uid ('' on the orphaned-task cleanup path, where the
+   * underlying violation was already gone and only the stale task was cleared). */
+  userId: z.string(),
+});
+export type ReviewContentAppealResult = z.infer<typeof ReviewContentAppealResultSchema>;
 
 // --- System-doc admin updates ---
 
@@ -202,6 +219,18 @@ export const UpdateAdminListInputSchema = z.object({
   );
 
 export type UpdateAdminListInput = z.infer<typeof UpdateAdminListInputSchema>;
+
+// Authoritative result of updateAdminList — the grant/revoke delta counts computed inside
+// the roster transaction (uids already in their target state are no-ops and not counted).
+// Non-strict (server → client result posture).
+export const UpdateAdminListResultSchema = z.object({
+  success: z.literal(true),
+  adminsGranted: z.number().int().nonnegative(),
+  adminsRevoked: z.number().int().nonnegative(),
+  jrAdminsGranted: z.number().int().nonnegative(),
+  jrAdminsRevoked: z.number().int().nonnegative(),
+});
+export type UpdateAdminListResult = z.infer<typeof UpdateAdminListResultSchema>;
 
 // --- Admin moderation: hide / restore / retitle content + Work/Realm objects ---
 

@@ -76,6 +76,16 @@ export const StartAdminSupportThreadInputSchema = z.object({
 }).strict();
 export type StartAdminSupportThreadInput = z.infer<typeof StartAdminSupportThreadInputSchema>;
 
+// Authoritative result of startAdminSupportThread — both ids are minted inside the
+// creating transaction. Non-strict (server → client result posture).
+export const StartAdminSupportThreadResultSchema = z.object({
+  success: z.literal(true),
+  adminDispatchId: z.string().min(1),
+  /** Doc id of the initial conversation message. */
+  messageId: z.string().min(1),
+});
+export type StartAdminSupportThreadResult = z.infer<typeof StartAdminSupportThreadResultSchema>;
+
 // Member-initiated workProject → admin correspondence thread (party-generic dispatch,
 // partyKind 'workProject'). Initiating is a Work ACTION (`adminDispatch.start`, Rule 23);
 // the callable enforces the one-open-work-initiated-thread spam guard. `contextRef` is

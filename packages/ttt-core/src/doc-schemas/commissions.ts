@@ -66,6 +66,22 @@ export const CommissionProposalSchema = z.object({
 });
 export type CommissionProposal = z.infer<typeof CommissionProposalSchema>;
 
+// Authoritative result of the createCommissionProposalText callable — the created item,
+// exactly as the transaction committed it; the client seeds its proposal caches from this
+// instead of refetching. Declared HERE (not schemas/commissions.ts) because it composes
+// CommissionProposalSchema and this module already imports schemas/commissions.js
+// (CommissionProposalStatusSchema) — the reverse runtime import would be a module cycle.
+// Re-exported on the ./schemas subpath via schemas/index.ts. Non-strict (server → client
+// result posture).
+export const CreateCommissionProposalTextResultSchema = z.object({
+  success: z.literal(true),
+  commissionListingId: z.string().min(1),
+  commissionProposalId: z.string().min(1),
+  /** The proposal doc exactly as committed. */
+  proposal: CommissionProposalSchema,
+});
+export type CreateCommissionProposalTextResult = z.infer<typeof CreateCommissionProposalTextResultSchema>;
+
 export const AuditionTypeSchema = z.enum(['platformAudition', 'sponsoredAudition', 'workAudition']);
 export type AuditionType = z.infer<typeof AuditionTypeSchema>;
 
