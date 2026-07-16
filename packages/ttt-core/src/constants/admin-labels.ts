@@ -33,6 +33,7 @@ export const DEAD_LETTER_COLLECTION_LABELS: Record<DeadLetterCollection, string>
   chatAdminActionCommands: 'Chat moderation command',
   notificationDeliveries: 'Notification delivery',
   chatMessageOutbox: 'Chat message publish',
+  squareAnnouncementJobs: 'Square announcement',
   chatSyncFanoutJobs: 'Chat access fanout',
   mediaAssets: 'Media authority sync',
   quarantineSagaJobs: 'Quarantine saga',

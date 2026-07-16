@@ -577,6 +577,7 @@ export const DeadLetterCollectionSchema = z.enum([
   'chatAdminActionCommands',
   'notificationDeliveries',
   'chatMessageOutbox',
+  'squareAnnouncementJobs',
   'chatSyncFanoutJobs',
   'mediaAssets',
   'quarantineSagaJobs',
