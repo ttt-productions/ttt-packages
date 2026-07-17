@@ -2,6 +2,8 @@ import React from 'react';
 import { render, screen, act, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
+import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
+import { MediaInput } from '../src/react/components/media-input';
 import { RecordDialog } from '../src/react/components/record-dialog';
 
 vi.mock('@ttt-productions/media-viewer/react', async () =>
@@ -11,14 +13,20 @@ vi.mock('@ttt-productions/media-viewer/react', async () =>
 // Fake MediaRecorder:
 type MRCtor = new (stream: MediaStream, opts?: MediaRecorderOptions) => MediaRecorder;
 
-function installMediaRecorderMock() {
+function installMediaRecorderMock(opts?: {
+  /** mimeType the fake recorder reports (default 'audio/webm'). */
+  mimeType?: string;
+  /** When provided, installed as the static MediaRecorder.isTypeSupported. */
+  isTypeSupported?: (type: string) => boolean;
+}) {
+  const reportedMimeType = opts?.mimeType ?? 'audio/webm';
   const instances: any[] = [];
   // Function expression, not an arrow: the component does `new MediaRecorder(...)`
   // and Vitest 4 mock implementations are only constructible when the impl is.
   const ctor = vi.fn(function (stream: MediaStream, _opts?: any) {
     const inst: any = {
       state: 'inactive',
-      mimeType: 'audio/webm',
+      mimeType: reportedMimeType,
       ondataavailable: null,
       onstop: null,
       start: vi.fn(function (this: any) { this.state = 'recording'; }),
@@ -26,7 +34,7 @@ function installMediaRecorderMock() {
         this.state = 'inactive';
         // Simulate a chunk, then fire onstop synchronously so the preview state flips before assertions
         act(() => {
-          this.ondataavailable?.({ data: new Blob(['chunk'], { type: 'audio/webm' }), size: 5 } as any);
+          this.ondataavailable?.({ data: new Blob(['chunk'], { type: reportedMimeType }), size: 5 } as any);
           this.onstop?.();
         });
       }),
@@ -35,6 +43,9 @@ function installMediaRecorderMock() {
     instances.push(inst);
     return inst;
   });
+  if (opts?.isTypeSupported) {
+    (ctor as any).isTypeSupported = vi.fn(opts.isTypeSupported);
+  }
   (globalThis as any).MediaRecorder = ctor as unknown as MRCtor;
   return { ctor, instances };
 }
@@ -92,6 +103,20 @@ describe('RecordDialog', () => {
     urlMock = installObjectUrlMock();
     vi.stubGlobal('requestAnimationFrame', vi.fn().mockReturnValue(1));
     vi.stubGlobal('cancelAnimationFrame', vi.fn());
+    // MediaInput's selected-file preview (react-intersection-observer) needs
+    // an IntersectionObserver; jsdom has none.
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        root = null;
+        rootMargin = '';
+        thresholds = [];
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+        takeRecords() { return []; }
+      },
+    );
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => ({
       clearRect: vi.fn(),
       fillRect: vi.fn(),
@@ -220,5 +245,66 @@ describe('RecordDialog', () => {
     expect(onRequestPhoto).toHaveBeenCalledTimes(1);
     // And the dialog requested close (onOpenChange(false))
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  // --- Recorded-audio MIME normalization (regression: Chrome's
+  // "audio/webm;codecs=opus" used to fail validation, fall back to the
+  // .webm extension map, and emit video/webm for every audio recording). ---
+
+  async function recordStopSave() {
+    const user = userEvent.setup();
+    renderDialog();
+    await user.click(screen.getByRole('button', { name: /^start$/i }));
+    await user.click(screen.getByRole('button', { name: /^stop$/i }));
+    await user.click(screen.getByRole('button', { name: /^save$/i }));
+    expect(onRecorded).toHaveBeenCalledTimes(1);
+    return onRecorded.mock.calls[0][0];
+  }
+
+  it('requests an explicit supported container and normalizes a Chrome-style parameterized audio recording to audio/webm', async () => {
+    const { ctor } = installMediaRecorderMock({
+      mimeType: 'audio/webm;codecs=opus',
+      isTypeSupported: (t) => t === 'audio/webm;codecs=opus',
+    });
+    const file = await recordStopSave();
+    // The first supported candidate was requested explicitly.
+    expect((ctor as any).isTypeSupported).toHaveBeenCalledWith('audio/webm;codecs=opus');
+    expect(ctor).toHaveBeenCalledWith(expect.anything(), { mimeType: 'audio/webm;codecs=opus' });
+    // Emitted File carries the parameter-less base type (storage rules
+    // validate a parameter-less image|video|audio regex).
+    expect(file.type).toBe('audio/webm');
+    expect(file.name).toBe('recording.webm');
+  });
+
+  it('falls back to the no-argument constructor when isTypeSupported is unavailable (test environments)', async () => {
+    const { ctor } = installMediaRecorderMock(); // no static isTypeSupported
+    const file = await recordStopSave();
+    expect(ctor.mock.calls[0][1]).toBeUndefined();
+    expect(file.type).toBe('audio/webm');
+  });
+
+  it('a recorder that reports video/* for a chosen-audio recording still emits audio/* (chosen kind wins)', async () => {
+    installMediaRecorderMock({ mimeType: 'video/webm' });
+    const file = await recordStopSave();
+    expect(file.type).toBe('audio/webm');
+  });
+
+  it('the saved recorded-audio File reads "Audio selected" in MediaInput', async () => {
+    installMediaRecorderMock({
+      mimeType: 'audio/webm;codecs=opus',
+      isTypeSupported: (t) => t.startsWith('audio/webm'),
+    });
+    const file = await recordStopSave();
+    expect(file.type.startsWith('audio/')).toBe(true);
+
+    const spec: MediaOriginSpec = {
+      kind: 'audio',
+      accept: { kinds: ['audio'], mimes: ['audio/webm'] },
+    };
+    render(
+      <MediaInput spec={spec} selectedFile={file} onChange={vi.fn()} onClear={vi.fn()} />,
+    );
+    expect(screen.getByText('Audio selected')).toBeInTheDocument();
+    expect(screen.queryByText('Video selected')).toBeNull();
   });
 });

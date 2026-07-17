@@ -1,7 +1,12 @@
-// Defense-in-depth: guarantee every File we emit has a valid media MIME
-// (image/*, video/*, or audio/*). If file.type is missing or unusable,
-// infer from the extension; if the extension is unknown, fall back to a
-// kind-appropriate default.
+// Defense-in-depth: guarantee every File we emit has a valid, parameter-less
+// media MIME (image/*, video/*, or audio/*). If file.type is missing or
+// unusable, infer from the extension; if the extension is unknown, fall back
+// to a kind-appropriate default.
+//
+// MediaRecorder (and some pickers) report parameterized types such as
+// "audio/webm;codecs=opus". Downstream storage rules validate a
+// parameter-less image|video|audio regex, so we always emit the base type
+// ("audio/webm"), never the parameterized form.
 //
 // Consumers of @ttt-productions/file-input should never see a File whose
 // .type is "" or "application/octet-stream". upload-core will refuse them.
@@ -34,17 +39,38 @@ const EXT_TO_MIME: Record<string, string> = {
   flac: "audio/flac",
 };
 
+// Containers that legitimately hold either audio or video. When the caller
+// declares a kind (e.g. the record dialog's chosen recording kind), that kind
+// picks the matching side; without a kind we keep the historical single-kind
+// guess in EXT_TO_MIME (webm → video, ogg → audio).
+const AMBIGUOUS_EXT_TO_MIME: Record<string, Partial<Record<InferKind, string>>> = {
+  webm: { audio: "audio/webm", video: "video/webm" },
+  ogg: { audio: "audio/ogg", video: "video/ogg" },
+};
+
 const KIND_DEFAULT: Record<InferKind, string> = {
   image: "image/jpeg",
   video: "video/webm",
   audio: "audio/webm",
 };
 
-function isValid(mime: string | undefined | null): mime is string {
-  if (!mime) return false;
-  const ct = mime.toLowerCase().trim();
-  if (ct === "application/octet-stream") return false;
-  return /^(image|video|audio)\/[a-z0-9.+-]+$/.test(ct);
+const BASE_MEDIA_MIME_RE = /^(image|video|audio)\/[a-z0-9.+-]+$/;
+
+/**
+ * Extracts the parameter-less base MIME ("audio/webm" from
+ * "audio/webm;codecs=opus"), lowercased, when it is a usable media type.
+ * Returns null for empty values, application/octet-stream, and anything
+ * whose base is not image/*, video/*, or audio/*.
+ */
+function parseBaseMime(mime: string | undefined | null): string | null {
+  if (!mime) return null;
+  const base = mime.split(";")[0].trim().toLowerCase();
+  if (base === "application/octet-stream") return null;
+  return BASE_MEDIA_MIME_RE.test(base) ? base : null;
+}
+
+function kindOfMime(base: string): InferKind {
+  return base.slice(0, base.indexOf("/")) as InferKind;
 }
 
 function extOf(name: string): string | null {
@@ -54,14 +80,30 @@ function extOf(name: string): string | null {
 }
 
 /**
- * Returns a valid media MIME for the given File, using file.type when possible,
- * falling back to extension lookup, and finally to a kind-default.
+ * Returns a valid, parameter-less media MIME for the given File.
+ *
+ * Precedence:
+ * 1. The base of file.type (parameters stripped, lowercased) when valid —
+ *    unless `fallbackKind` is supplied and disagrees with the declared
+ *    top-level kind. A caller-declared kind (e.g. the record dialog's chosen
+ *    recording kind) is authoritative context, so a conflicting declared type
+ *    is treated as untrustworthy and resolution falls through to the
+ *    extension.
+ * 2. Extension lookup. For ambiguous containers (webm/ogg exist as both audio
+ *    and video) a supplied `fallbackKind` picks the matching side; unambiguous
+ *    extensions keep their single mapping.
+ * 3. The kind default for `fallbackKind`, then image/jpeg as last resort.
  */
 export function inferContentType(file: File, fallbackKind?: InferKind): string {
-  if (isValid(file.type)) return file.type.toLowerCase();
+  const base = parseBaseMime(file.type);
+  if (base && (!fallbackKind || kindOfMime(base) === fallbackKind)) return base;
 
   const ext = extOf(file.name);
-  if (ext && EXT_TO_MIME[ext]) return EXT_TO_MIME[ext];
+  if (ext) {
+    const byKind = fallbackKind ? AMBIGUOUS_EXT_TO_MIME[ext]?.[fallbackKind] : undefined;
+    if (byKind) return byKind;
+    if (EXT_TO_MIME[ext]) return EXT_TO_MIME[ext];
+  }
 
   if (fallbackKind) return KIND_DEFAULT[fallbackKind];
 
@@ -71,12 +113,14 @@ export function inferContentType(file: File, fallbackKind?: InferKind): string {
 }
 
 /**
- * Returns a new File with a guaranteed valid contentType. If the original
- * file already has a valid type, returns it unchanged. Otherwise wraps the
- * bytes in a new File with the inferred type.
+ * Returns a File whose .type is exactly the valid, parameter-less media MIME
+ * from inferContentType. If the original file already carries that exact
+ * type, it is returned unchanged; otherwise (missing type, parameterized
+ * type, wrong case, or a type overridden by fallbackKind precedence) the
+ * bytes are wrapped in a new File with the normalized type.
  */
 export function ensureFileWithContentType(file: File, fallbackKind?: InferKind): File {
-  if (isValid(file.type)) return file;
   const type = inferContentType(file, fallbackKind);
+  if (file.type === type) return file;
   return new File([file], file.name, { type, lastModified: file.lastModified });
 }

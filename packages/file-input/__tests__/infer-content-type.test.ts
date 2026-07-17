@@ -50,6 +50,64 @@ describe('inferContentType', () => {
   it('handles files with no extension at all', () => {
     expect(inferContentType(makeFile('recording', ''), 'audio')).toBe('audio/webm');
   });
+
+  it('strips codec parameters and returns the parameter-less base type', () => {
+    // Chrome MediaRecorder's default audio container — the recorded-audio defect.
+    expect(inferContentType(makeFile('recording.webm', 'audio/webm;codecs=opus'))).toBe('audio/webm');
+    expect(inferContentType(makeFile('x.mp4', 'video/mp4;codecs=avc1.42e01e,mp4a.40.2'))).toBe('video/mp4');
+    // Whitespace around the base or parameters is tolerated.
+    expect(inferContentType(makeFile('recording.webm', 'audio/webm ; codecs=opus'))).toBe('audio/webm');
+  });
+
+  it('parameterized types still respect the fallbackKind match', () => {
+    expect(inferContentType(makeFile('recording.webm', 'audio/webm;codecs=opus'), 'audio')).toBe('audio/webm');
+    expect(inferContentType(makeFile('recording.m4a', 'audio/mp4;codecs=mp4a.40.2'), 'audio')).toBe('audio/mp4');
+  });
+
+  it('rejects a type whose base is not a media MIME even with parameters', () => {
+    expect(inferContentType(makeFile('x.png', 'application/octet-stream;foo=bar'))).toBe('image/png');
+    expect(inferContentType(makeFile('x.wav', 'text/plain;charset=utf-8'))).toBe('audio/wav');
+  });
+
+  it('empty type with chosen kind audio and a .webm name infers audio/webm (ambiguous container)', () => {
+    expect(inferContentType(makeFile('recording.webm', ''), 'audio')).toBe('audio/webm');
+  });
+
+  it('resolves ambiguous containers (webm/ogg) by the chosen kind', () => {
+    expect(inferContentType(makeFile('clip.webm', ''), 'video')).toBe('video/webm');
+    expect(inferContentType(makeFile('clip.ogg', ''), 'video')).toBe('video/ogg');
+    expect(inferContentType(makeFile('clip.ogg', ''), 'audio')).toBe('audio/ogg');
+  });
+
+  it('keeps the historical single-kind guess for ambiguous containers when no kind is supplied', () => {
+    expect(inferContentType(makeFile('clip.webm', ''))).toBe('video/webm');
+    expect(inferContentType(makeFile('clip.ogg', ''))).toBe('audio/ogg');
+  });
+
+  it('conflicting video/* type on a chosen-audio recording: chosen kind wins via the ambiguous container', () => {
+    expect(inferContentType(makeFile('recording.webm', 'video/webm'), 'audio')).toBe('audio/webm');
+    expect(inferContentType(makeFile('recording.ogg', 'video/ogg;codecs=theora'), 'audio')).toBe('audio/ogg');
+  });
+
+  it('a declared type that MATCHES the chosen kind wins over the extension (current behavior preserved)', () => {
+    expect(inferContentType(makeFile('x.mp3', 'video/mp4'), 'video')).toBe('video/mp4');
+  });
+
+  it('conflicting type with an unambiguous extension: the extension supplies the in-kind resolution', () => {
+    // Chosen kind audio distrusts the declared video/mp4; mp3 is audio-only.
+    expect(inferContentType(makeFile('x.mp3', 'video/mp4'), 'audio')).toBe('audio/mpeg');
+  });
+
+  it('conflicting type with no usable extension falls back to the chosen-kind default', () => {
+    expect(inferContentType(makeFile('recording', 'video/mp4'), 'audio')).toBe('audio/webm');
+  });
+
+  it('unambiguous extensions are unchanged when a matching or unrelated kind is supplied', () => {
+    expect(inferContentType(makeFile('x.mp3', ''), 'audio')).toBe('audio/mpeg');
+    expect(inferContentType(makeFile('x.mp4', ''), 'video')).toBe('video/mp4');
+    expect(inferContentType(makeFile('x.mov', ''), 'video')).toBe('video/quicktime');
+    expect(inferContentType(makeFile('x.m4a', ''), 'audio')).toBe('audio/mp4');
+  });
 });
 
 describe('ensureFileWithContentType', () => {
@@ -83,5 +141,24 @@ describe('ensureFileWithContentType', () => {
     const f = makeFile('mystery', '');
     const wrapped = ensureFileWithContentType(f, 'video');
     expect(wrapped.type).toBe('video/webm');
+  });
+
+  it('wraps a parameterized recorded-audio type into the parameter-less base (audio/webm;codecs=opus → audio/webm)', () => {
+    const f = makeFile('recording.webm', 'audio/webm;codecs=opus');
+    const wrapped = ensureFileWithContentType(f, 'audio');
+    expect(wrapped).not.toBe(f);
+    expect(wrapped.type).toBe('audio/webm');
+    expect(wrapped.name).toBe('recording.webm');
+  });
+
+  it('wraps a conflicting video/* type on a chosen-audio recording into audio/webm', () => {
+    const f = makeFile('recording.webm', 'video/webm');
+    const wrapped = ensureFileWithContentType(f, 'audio');
+    expect(wrapped.type).toBe('audio/webm');
+  });
+
+  it('returns the same File when the type already equals the normalized base', () => {
+    const f = makeFile('recording.webm', 'audio/webm');
+    expect(ensureFileWithContentType(f, 'audio')).toBe(f);
   });
 });

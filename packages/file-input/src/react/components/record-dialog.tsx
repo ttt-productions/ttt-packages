@@ -25,6 +25,51 @@ import {
 
 type RecorderState = "idle" | "recording" | "preview";
 
+// Explicit MediaRecorder container preferences, probed via isTypeSupported.
+// A no-argument MediaRecorder leaves the container to the browser (Chrome
+// reports "audio/webm;codecs=opus" for audio); requesting an explicit
+// supported type keeps the recorded container deterministic. Safari has no
+// webm support and falls through to mp4. When isTypeSupported is unavailable
+// or nothing matches (test environments), we fall back to the no-argument
+// constructor and normalize whatever the recorder produced.
+const RECORDER_MIME_CANDIDATES: Record<"audio" | "video", readonly string[]> = {
+  audio: ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"],
+  video: ["video/webm;codecs=vp9,opus", "video/webm", "video/mp4"],
+};
+
+function pickRecorderMimeType(kind: "audio" | "video"): string | undefined {
+  if (
+    typeof MediaRecorder === "undefined" ||
+    typeof MediaRecorder.isTypeSupported !== "function"
+  ) {
+    return undefined;
+  }
+  for (const candidate of RECORDER_MIME_CANDIDATES[kind]) {
+    try {
+      if (MediaRecorder.isTypeSupported(candidate)) return candidate;
+    } catch {
+      // Treat probe errors as "unsupported" and keep trying.
+    }
+  }
+  return undefined;
+}
+
+// Name the recording after its actual container so the filename never
+// contradicts the emitted contentType (a webm-named mp4 would mislead any
+// extension-based fallback downstream).
+function recordingFileName(mime: string): string {
+  const base = mime.split(";")[0].trim().toLowerCase();
+  const ext =
+    base === "audio/mp4"
+      ? "m4a"
+      : base === "video/mp4"
+        ? "mp4"
+        : base === "audio/ogg" || base === "video/ogg"
+          ? "ogg"
+          : "webm";
+  return `recording.${ext}`;
+}
+
 interface RecordDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -282,7 +327,18 @@ export function RecordDialog({
       }
       if (!stream) return;
 
-      const mr = new MediaRecorder(stream);
+      // Request an explicit, supported container so mr.mimeType is
+      // deterministic; fall back to the browser default when the explicit
+      // request is unavailable or rejected.
+      const preferredMimeType = pickRecorderMimeType(kind);
+      let mr: MediaRecorder;
+      try {
+        mr = preferredMimeType
+          ? new MediaRecorder(stream, { mimeType: preferredMimeType })
+          : new MediaRecorder(stream);
+      } catch {
+        mr = new MediaRecorder(stream);
+      }
       mediaRecorderRef.current = mr;
       recordChunksRef.current = [];
 
@@ -292,11 +348,17 @@ export function RecordDialog({
 
       mr.onstop = () => {
         const blob = new Blob(recordChunksRef.current, {
-          type: mr.mimeType || (wantVideo ? "video/webm" : "audio/webm"),
+          type:
+            mr.mimeType ||
+            preferredMimeType ||
+            (wantVideo ? "video/webm" : "audio/webm"),
         });
 
-        const rawFile = new File([blob], "recording.webm", { type: blob.type });
-        // Defense-in-depth: ensure a valid media MIME even if MediaRecorder returned ""
+        const rawFile = new File([blob], recordingFileName(blob.type), { type: blob.type });
+        // Normalize to the valid, parameter-less base type
+        // ("audio/webm;codecs=opus" → "audio/webm"). The chosen kind is
+        // authoritative: an audio recording must never emit a video/* type
+        // even if the recorder reports a surprising container.
         const file = ensureFileWithContentType(rawFile, wantVideo ? "video" : "audio");
         const url = makeRecordUrl(file);
 
