@@ -84,6 +84,45 @@ const GUARDED: Record<string, { owner: string; allowed: string[] }> = {
     owner: 'ttt-core/src/constants/business-content.ts',
     allowed: [],
   },
+  // Safety operator typed-confirmation attestations — each gates a callable schema via
+  // z.literal(PHRASE) and is typed/sent from the frontend; ONE declaration in the phrases
+  // file, every schema derives. (See constants/safety-confirmation-phrases.ts.)
+  'I confirm these safety actions': {
+    owner: 'ttt-core/src/constants/safety-confirmation-phrases.ts',
+    allowed: [],
+  },
+  'I confirm reopening this safety case': {
+    owner: 'ttt-core/src/constants/safety-confirmation-phrases.ts',
+    allowed: [],
+  },
+  'I confirm this account action': {
+    owner: 'ttt-core/src/constants/safety-confirmation-phrases.ts',
+    allowed: [],
+  },
+  'I confirm this is the NCMEC portal receipt': {
+    owner: 'ttt-core/src/constants/safety-confirmation-phrases.ts',
+    allowed: [],
+  },
+  'I confirm this NCMEC report was filed via the manual portal': {
+    owner: 'ttt-core/src/constants/safety-confirmation-phrases.ts',
+    allowed: [],
+  },
+  'I confirm I am revealing case evidence under reauth': {
+    owner: 'ttt-core/src/constants/safety-confirmation-phrases.ts',
+    allowed: [],
+  },
+  'I confirm this NCMEC portal correction was filed': {
+    owner: 'ttt-core/src/constants/safety-confirmation-phrases.ts',
+    allowed: [],
+  },
+  'I confirm this TAKE IT DOWN validity decision': {
+    owner: 'ttt-core/src/constants/safety-confirmation-phrases.ts',
+    allowed: [],
+  },
+  'I confirm this legal reporting disposition': {
+    owner: 'ttt-core/src/constants/safety-confirmation-phrases.ts',
+    allowed: [],
+  },
 };
 
 function walk(dir: string, out: string[]): void {

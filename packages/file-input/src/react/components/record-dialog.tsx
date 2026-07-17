@@ -56,17 +56,24 @@ function pickRecorderMimeType(kind: "audio" | "video"): string | undefined {
 
 // Name the recording after its actual container so the filename never
 // contradicts the emitted contentType (a webm-named mp4 would mislead any
-// extension-based fallback downstream).
-function recordingFileName(mime: string): string {
+// extension-based fallback downstream). The mp4 container holds either audio
+// (.m4a → audio/mp4) or video (.mp4 → video/mp4), and — unlike webm/ogg — mp4
+// is NOT in the extension-inference ambiguous map (a user-picked .mp4 is trusted
+// as video). Here the RecordDialog's selected `kind` IS authoritative: an audio
+// recording uses an audio-only, `video: false` getUserMedia stream, so no video
+// track can exist. A surprising `video/mp4` mimeType on that audio recording is
+// therefore still named `.m4a`; ensureFileWithContentType distrusts the
+// kind-mismatched video/mp4 type and the `.m4a` extension yields audio/mp4.
+function recordingFileName(mime: string, kind: "audio" | "video"): string {
   const base = mime.split(";")[0].trim().toLowerCase();
   const ext =
-    base === "audio/mp4"
-      ? "m4a"
-      : base === "video/mp4"
-        ? "mp4"
-        : base === "audio/ogg" || base === "video/ogg"
-          ? "ogg"
-          : "webm";
+    base === "audio/mp4" || base === "video/mp4"
+      ? kind === "audio"
+        ? "m4a"
+        : "mp4"
+      : base === "audio/ogg" || base === "video/ogg"
+        ? "ogg"
+        : "webm";
   return `recording.${ext}`;
 }
 
@@ -354,7 +361,7 @@ export function RecordDialog({
             (wantVideo ? "video/webm" : "audio/webm"),
         });
 
-        const rawFile = new File([blob], recordingFileName(blob.type), { type: blob.type });
+        const rawFile = new File([blob], recordingFileName(blob.type, kind), { type: blob.type });
         // Normalize to the valid, parameter-less base type
         // ("audio/webm;codecs=opus" → "audio/webm"). The chosen kind is
         // authoritative: an audio recording must never emit a video/* type

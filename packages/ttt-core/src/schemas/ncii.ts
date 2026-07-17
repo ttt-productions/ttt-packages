@@ -7,6 +7,7 @@ import {
   MAX_NCII_SIGNED_NAME_LENGTH,
   MAX_NCII_SUPPORTING_FACTS_LENGTH,
 } from '../constants/business.js';
+import { TAKE_IT_DOWN_VALIDITY_CONFIRMATION } from '../constants/safety-confirmation-phrases.js';
 
 // NCII / TAKE IT DOWN callable-input schemas. Cross-boundary contracts for the
 // `functions/src/ncii/` callables — moved here from local `functions/` definitions so the
@@ -95,7 +96,7 @@ export const DecideTakeItDownValidityInputSchema = z.object({
     .min(10, 'A substantive rationale is required for a validity decision.')
     .max(MAX_NCII_RATIONALE_LENGTH),
   /** Explicit typed confirmation (interim control until the passkey profile lands). */
-  confirmation: z.literal('I confirm this TAKE IT DOWN validity decision'),
+  confirmation: z.literal(TAKE_IT_DOWN_VALIDITY_CONFIRMATION),
 }).strict();
 export type DecideTakeItDownValidityInput = z.infer<typeof DecideTakeItDownValidityInputSchema>;
 

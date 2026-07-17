@@ -289,6 +289,56 @@ describe('RecordDialog', () => {
     expect(file.type).toBe('audio/webm');
   });
 
+  it('a recorder that reports video/mp4 for a chosen-audio recording emits audio/mp4 named recording.m4a', async () => {
+    // Defensive edge: an audio-only stream (video:false) reported as the mp4
+    // container. mp4 is not in the ambiguous-extension map, so naming the file
+    // by its declared video/mp4 would re-derive video/mp4 from the .mp4 extension.
+    // The recorder's authoritative audio kind names it .m4a → audio/mp4.
+    installMediaRecorderMock({ mimeType: 'video/mp4' });
+    const file = await recordStopSave();
+    expect(file.type).toBe('audio/mp4');
+    expect(file.name).toBe('recording.m4a');
+  });
+
+  it('a video/mp4-misreported audio recording reads "Audio selected" in MediaInput, never "Video selected"', async () => {
+    installMediaRecorderMock({ mimeType: 'video/mp4' });
+    const file = await recordStopSave();
+    expect(file.type).toBe('audio/mp4');
+
+    const spec: MediaOriginSpec = {
+      kind: 'audio',
+      accept: { kinds: ['audio'], mimes: ['audio/mp4'] },
+    };
+    render(
+      <MediaInput spec={spec} selectedFile={file} onChange={vi.fn()} onClear={vi.fn()} />,
+    );
+    expect(screen.getByText('Audio selected')).toBeInTheDocument();
+    expect(screen.queryByText('Video selected')).toBeNull();
+  });
+
+  it('a Safari-style audio/mp4 audio recording is preserved as audio/mp4 named recording.m4a', async () => {
+    installMediaRecorderMock({
+      mimeType: 'audio/mp4',
+      isTypeSupported: (t) => t === 'audio/mp4',
+    });
+    const file = await recordStopSave();
+    expect(file.type).toBe('audio/mp4');
+    expect(file.name).toBe('recording.m4a');
+  });
+
+  it('a video recording reporting video/mp4 is preserved as video/mp4 named recording.mp4 (video kind)', async () => {
+    installMediaRecorderMock({ mimeType: 'video/mp4' });
+    const user = userEvent.setup();
+    renderDialog({ initialKind: 'video' });
+    await user.click(screen.getByRole('button', { name: /^start$/i }));
+    await user.click(screen.getByRole('button', { name: /^stop$/i }));
+    await user.click(screen.getByRole('button', { name: /^save$/i }));
+    expect(onRecorded).toHaveBeenCalledTimes(1);
+    const file = onRecorded.mock.calls[0][0];
+    expect(file.type).toBe('video/mp4');
+    expect(file.name).toBe('recording.mp4');
+  });
+
   it('the saved recorded-audio File reads "Audio selected" in MediaInput', async () => {
     installMediaRecorderMock({
       mimeType: 'audio/webm;codecs=opus',

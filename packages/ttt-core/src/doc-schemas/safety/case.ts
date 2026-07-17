@@ -32,6 +32,7 @@ import {
   SafetyCrossoverLegStatusSchema,
 } from './foundation.js';
 import { MAX_MANIFEST_NCMEC_RECEIPTS } from './evidence.js';
+import { LEGAL_REPORTING_DISPOSITION_CONFIRMATION } from '../../constants/safety-confirmation-phrases.js';
 
 // ===========================================================================
 // Cluster-local enums (§A1b + §A9). These are case-spine-specific value sets,
@@ -438,7 +439,7 @@ export type SetReportDispositionInputV1 = z.infer<typeof SetReportDispositionInp
 // the SAME shared cross-field refinements. evidenceRefs is inherited from the base (MAX-bounded,
 // empty allowed except when disposition is 'reportRequired'). Lives beside the base shape it extends.
 export const SetReportDispositionCallableInputSchema = SetReportDispositionInputV1ObjectSchema.extend({
-  confirmation: z.literal('I confirm this legal reporting disposition'),
+  confirmation: z.literal(LEGAL_REPORTING_DISPOSITION_CONFIRMATION),
 })
   .superRefine(refineReportDispositionReasonCode)
   .superRefine(refineReportDispositionEvidenceRefs);

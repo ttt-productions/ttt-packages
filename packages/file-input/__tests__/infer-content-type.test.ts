@@ -108,6 +108,21 @@ describe('inferContentType', () => {
     expect(inferContentType(makeFile('x.mov', ''), 'video')).toBe('video/quicktime');
     expect(inferContentType(makeFile('x.m4a', ''), 'audio')).toBe('audio/mp4');
   });
+
+  it('an audio recording misreported as video/mp4 but named .m4a resolves to audio/mp4', () => {
+    // The mp4 container is audio-only-capable (.m4a). The RecordDialog names an
+    // audio-only recording `.m4a`; a surprising video/mp4 mimeType is distrusted
+    // (kind mismatch) and the .m4a extension supplies the in-kind audio/mp4. This
+    // is the contract the recorder relies on for its video/mp4 defensive case.
+    expect(inferContentType(makeFile('recording.m4a', 'video/mp4'), 'audio')).toBe('audio/mp4');
+  });
+
+  it('a user-picked .mp4 with no chosen kind is still trusted as video/mp4 (scope guard)', () => {
+    // Only the recorder knows a stream is audio-only; an arbitrary .mp4 pick (no
+    // fallbackKind) must NOT be reinterpreted as audio.
+    expect(inferContentType(makeFile('clip.mp4', 'video/mp4'))).toBe('video/mp4');
+    expect(inferContentType(makeFile('clip.mp4', ''))).toBe('video/mp4');
+  });
 });
 
 describe('ensureFileWithContentType', () => {
@@ -160,5 +175,13 @@ describe('ensureFileWithContentType', () => {
   it('returns the same File when the type already equals the normalized base', () => {
     const f = makeFile('recording.webm', 'audio/webm');
     expect(ensureFileWithContentType(f, 'audio')).toBe(f);
+  });
+
+  it('wraps a conflicting video/mp4 type on a chosen-audio .m4a recording into audio/mp4', () => {
+    const f = makeFile('recording.m4a', 'video/mp4');
+    const wrapped = ensureFileWithContentType(f, 'audio');
+    expect(wrapped).not.toBe(f);
+    expect(wrapped.type).toBe('audio/mp4');
+    expect(wrapped.name).toBe('recording.m4a');
   });
 });

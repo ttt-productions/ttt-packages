@@ -6,6 +6,7 @@ export * from './options.js';
 export * from './admin-labels.js';
 export * from './craft-skill-statements.js';
 export * from './publish-attestations.js';
+export * from './safety-confirmation-phrases.js';
 export * from './safety-telemetry-patterns.js';
 export * from './pagination.js';
 export * from './release-flags.js';

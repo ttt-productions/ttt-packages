@@ -43,6 +43,10 @@ import {
   MAX_REQUIRE_RETITLE_REASON_LENGTH,
   MAX_USER_FACING_REASON_DETAIL_LENGTH,
 } from '../constants/business.js';
+import {
+  SAFETY_ACTIONS_CONFIRMATION,
+  SAFETY_CASE_REOPEN_CONFIRMATION,
+} from '../constants/safety-confirmation-phrases.js';
 
 export const CheckoutNextImportantTaskInputSchema = z.object({}).strict();
 export type CheckoutNextImportantTaskInput = z.infer<typeof CheckoutNextImportantTaskInputSchema>;
@@ -556,7 +560,7 @@ export const SafetyCaseInputSchema = z
     expectedRevision: z.number().int().nonnegative().optional(),
     // Interim reauth: a single explicit typed confirmation for the privileged safety actions,
     // standing in for the passkey two-step until [H-17]. The callable is full-admin gated.
-    confirmation: z.literal('I confirm these safety actions'),
+    confirmation: z.literal(SAFETY_ACTIONS_CONFIRMATION),
   })
   .strict();
 export type SafetyCaseInput = z.infer<typeof SafetyCaseInputSchema>;
@@ -567,7 +571,7 @@ export const ReopenSafetyCaseInputSchema = z
     caseId: z.string().min(1),
     reasonInternal: z.string().trim().min(4).max(MAX_INTERNAL_REASON_LENGTH),
     expectedRevision: z.number().int().nonnegative().optional(),
-    confirmation: z.literal('I confirm reopening this safety case'),
+    confirmation: z.literal(SAFETY_CASE_REOPEN_CONFIRMATION),
   })
   .strict();
 export type ReopenSafetyCaseInput = z.infer<typeof ReopenSafetyCaseInputSchema>;

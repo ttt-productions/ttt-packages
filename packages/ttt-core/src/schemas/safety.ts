@@ -19,6 +19,13 @@ import {
   MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH,
   MAX_NCMEC_PORTAL_PROOF_TEXT_LENGTH,
 } from '../constants/business.js';
+import {
+  SAFETY_ACCOUNT_ACTION_CONFIRMATION,
+  NCMEC_PORTAL_RECEIPT_CONFIRMATION,
+  NCMEC_MANUAL_PORTAL_FILED_CONFIRMATION,
+  REVEAL_CASE_EVIDENCE_CONFIRMATION,
+  NCMEC_PORTAL_CORRECTION_CONFIRMATION,
+} from '../constants/safety-confirmation-phrases.js';
 import { AccountActionSchema } from '../doc-schemas/safety/sagas.js';
 import {
   ChildSafetyAccountRoleSchema,
@@ -50,7 +57,7 @@ export const CommandAccountActionInputSchema = z
     /** Per-account case role (A1b) — the canonical case enums, never re-declared. */
     role: ChildSafetyAccountRoleSchema,
     subjectDisposition: ChildSafetyAccountSubjectDispositionSchema,
-    confirmation: z.literal('I confirm this account action'),
+    confirmation: z.literal(SAFETY_ACCOUNT_ACTION_CONFIRMATION),
   })
   .strict();
 export type CommandAccountActionInput = z.infer<typeof CommandAccountActionInputSchema>;
@@ -149,7 +156,7 @@ export const RecordNcmecPortalReceiptArtifactInputSchema = z
     /** Optional operator description of what the artifact is (e.g. "NCMEC portal screenshot"). */
     description: z.string().min(1).max(MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH).optional(),
     /** Explicit typed confirmation (interim control until the passkey profile lands). */
-    confirmation: z.literal('I confirm this is the NCMEC portal receipt'),
+    confirmation: z.literal(NCMEC_PORTAL_RECEIPT_CONFIRMATION),
   })
   .strict();
 export type RecordNcmecPortalReceiptArtifactInput = z.infer<
@@ -171,7 +178,7 @@ export const MarkNcmecPortalCompleteInputSchema = z
     /** The NCMEC-assigned report id — REQUIRED (it IS the proof; no "filed, number pending" grace). */
     ncmecReportId: z.string().min(1, 'The NCMEC report id is required to mark the report complete.'),
     /** Explicit typed confirmation (interim control until the passkey profile lands). */
-    confirmation: z.literal('I confirm this NCMEC report was filed via the manual portal'),
+    confirmation: z.literal(NCMEC_MANUAL_PORTAL_FILED_CONFIRMATION),
   })
   .strict();
 export type MarkNcmecPortalCompleteInput = z.infer<typeof MarkNcmecPortalCompleteInputSchema>;
@@ -195,7 +202,7 @@ export const RevealCaseEvidenceInputSchema = z
   .object({
     caseId: z.string().min(1),
     /** Explicit typed confirmation (interim control until the passkey profile lands). */
-    confirmation: z.literal('I confirm I am revealing case evidence under reauth'),
+    confirmation: z.literal(REVEAL_CASE_EVIDENCE_CONFIRMATION),
     /** The operator's child-safety warning acknowledgement, carried so the backend can persist it
      * in the reveal audit trail. This schema serves ONLY the safety-console reveal-under-reauth
      * flow (its sibling `confirmation` literal gates the same surface), so the acknowledgement is a
@@ -285,7 +292,7 @@ export const RecordNcmecPortalCorrectionInputSchema = z
     ncmecReportId: z.string().min(1),
     correctionFiledAt: z.number(),
     reason: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
-    confirmation: z.literal('I confirm this NCMEC portal correction was filed'),
+    confirmation: z.literal(NCMEC_PORTAL_CORRECTION_CONFIRMATION),
   })
   .strict();
 export type RecordNcmecPortalCorrectionInput = z.infer<typeof RecordNcmecPortalCorrectionInputSchema>;
