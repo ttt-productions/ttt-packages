@@ -82,6 +82,9 @@ export const ReviewContentAppealResultSchema = z.object({
   /** The appealing user's uid ('' on the orphaned-task cleanup path, where the
    * underlying violation was already gone and only the stale task was cleared). */
   userId: z.string(),
+  /** Operation-receipt audit id — the `admin.contentAppealReviewed` event written in the same
+   * transaction. Optional/additive so an older backend that omits it still type-checks. */
+  auditEventId: z.string().min(1).optional(),
 });
 export type ReviewContentAppealResult = z.infer<typeof ReviewContentAppealResultSchema>;
 
@@ -229,6 +232,10 @@ export const UpdateAdminListResultSchema = z.object({
   adminsRevoked: z.number().int().nonnegative(),
   jrAdminsGranted: z.number().int().nonnegative(),
   jrAdminsRevoked: z.number().int().nonnegative(),
+  /** Operation-receipt audit id — the `admin.systemRoleGranted` / `admin.systemRoleRevoked`
+   * event(s) key off the same roster transaction. Optional/additive. (No single domain id: a
+   * roster edit spans multiple uids, so only the audit id is a meaningful receipt handle.) */
+  auditEventId: z.string().min(1).optional(),
 });
 export type UpdateAdminListResult = z.infer<typeof UpdateAdminListResultSchema>;
 

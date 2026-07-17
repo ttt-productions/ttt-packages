@@ -71,6 +71,7 @@ export interface TttLimits {
     FOLLOW: RateLimitValue;
     MENTION_HISTORY: RateLimitValue;
     ADMIN_MESSAGE_READ: RateLimitValue;
+    USER_LOOKUP: RateLimitValue;
     NOTIFICATION_BROADCAST: RateLimitValue;
     NOTIFICATION_ARCHIVE: RateLimitValue;
     NOTIFICATION_MARK_SEEN: RateLimitValue;
@@ -128,6 +129,10 @@ export const CHARTER_LIMITS: TttLimits = {
     FOLLOW: { maxRequests: 20, window: '1 m' },
     MENTION_HISTORY: { maxRequests: 120, window: '1 h' },
     ADMIN_MESSAGE_READ: { maxRequests: 60, window: '1 h' },
+    // Admin exact-account lookup (searchPublicUsers / lookupUserByEmailOrUid) — a read, so a
+    // generous per-minute bucket that still backstops a scripted enumeration sweep. Admin-only
+    // and not a cost driver, so the value is the same in both modes (like MODERATION/ADMIN_TASK).
+    USER_LOOKUP: { maxRequests: 30, window: '1 m' },
     NOTIFICATION_BROADCAST: { maxRequests: 10, window: '1 h' },
     NOTIFICATION_ARCHIVE: { maxRequests: 120, window: '1 h' },
     NOTIFICATION_MARK_SEEN: { maxRequests: 120, window: '1 h' },
@@ -184,6 +189,8 @@ export const FULL_LIMITS: TttLimits = {
     FOLLOW: { maxRequests: 60, window: '1 m' },
     MENTION_HISTORY: { maxRequests: 120, window: '1 h' },
     ADMIN_MESSAGE_READ: { maxRequests: 60, window: '1 h' },
+    // Admin exact-account lookup — same read bucket in both modes (see CHARTER_LIMITS note).
+    USER_LOOKUP: { maxRequests: 30, window: '1 m' },
     NOTIFICATION_BROADCAST: { maxRequests: 10, window: '1 h' },
     NOTIFICATION_ARCHIVE: { maxRequests: 120, window: '1 h' },
     NOTIFICATION_MARK_SEEN: { maxRequests: 120, window: '1 h' },

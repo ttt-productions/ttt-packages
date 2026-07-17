@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   BecomeArtisanCreatorInputSchema,
   MarkNonUsArtisanInterestInputSchema,
+  LookupUserByEmailOrUidInputSchema,
 } from '../src/schemas/users';
+import { MAX_USER_SEARCH_QUERY_LENGTH } from '../src/constants/business';
 
 describe('BecomeArtisanCreatorInputSchema (18+ AND U.S.-person attestation + DOB)', () => {
   const dob = { year: 1990, month: 5, day: 17 };
@@ -66,5 +68,36 @@ describe('MarkNonUsArtisanInterestInputSchema (non-U.S. artisan waitlist signup)
 
   it('rejects unknown extra fields (schema is .strict())', () => {
     expect(MarkNonUsArtisanInterestInputSchema.safeParse({ country: 'Canada', extra: 1 }).success).toBe(false);
+  });
+});
+
+describe('LookupUserByEmailOrUidInputSchema (admin exact-account lookup)', () => {
+  it('accepts a single trimmed query and strips surrounding whitespace', () => {
+    const parsed = LookupUserByEmailOrUidInputSchema.parse({ query: '  someone@example.com  ' });
+    expect(parsed).toEqual({ query: 'someone@example.com' });
+  });
+
+  it('accepts a uid- or display-name-shaped query (one field detects all three app-side)', () => {
+    expect(LookupUserByEmailOrUidInputSchema.safeParse({ query: 'kZ8fW2uid' }).success).toBe(true);
+    expect(LookupUserByEmailOrUidInputSchema.safeParse({ query: 'SomeName' }).success).toBe(true);
+  });
+
+  it('rejects a missing/empty query', () => {
+    expect(LookupUserByEmailOrUidInputSchema.safeParse({}).success).toBe(false);
+    expect(LookupUserByEmailOrUidInputSchema.safeParse({ query: '' }).success).toBe(false);
+    expect(LookupUserByEmailOrUidInputSchema.safeParse({ query: '   ' }).success).toBe(false);
+  });
+
+  it('enforces the shared MAX_USER_SEARCH_QUERY_LENGTH bound', () => {
+    expect(
+      LookupUserByEmailOrUidInputSchema.safeParse({ query: 'a'.repeat(MAX_USER_SEARCH_QUERY_LENGTH) }).success,
+    ).toBe(true);
+    expect(
+      LookupUserByEmailOrUidInputSchema.safeParse({ query: 'a'.repeat(MAX_USER_SEARCH_QUERY_LENGTH + 1) }).success,
+    ).toBe(false);
+  });
+
+  it('rejects unknown extra fields (schema is .strict())', () => {
+    expect(LookupUserByEmailOrUidInputSchema.safeParse({ query: 'x', extra: 1 }).success).toBe(false);
   });
 });

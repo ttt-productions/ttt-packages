@@ -253,6 +253,11 @@ export type AuditEventType =
   // Passkey enrollment/assertion reuses safety.privilegedReauthPerformed (the reauth catalog entry, as
   // the TOTP step-up enroll/confirm/verify phases already do) — no distinct passkey-registration type.
   | 'safety.privilegedReauthPerformed'
+  // [P2-08] A privileged operator read of a TAKE IT DOWN request's RAW target locator (the
+  // reveal-on-demand, review-only read of the sensitive locator itself — distinct from the
+  // reveal reauth above, which is the step-up). One event per read. Mirrors the
+  // chat.moderationContextRead privileged-read convention.
+  | 'safety.privilegedRawLocatorRead'
   | 'safety.deadlineBreachRecorded'
   // [M-6] per-operator reviewer-capability grant lifecycle (privilegedReviewerCapabilityGrants/{uid}).
   // Granting/revoking a SafetyReviewerCapability is an authorization change — always audited.

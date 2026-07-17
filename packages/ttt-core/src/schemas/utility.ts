@@ -119,6 +119,9 @@ export const SubmitContentAppealResultSchema = z.object({
   /** The violation's appeal state after commit. */
   appealStatus: z.literal('pending'),
   appealedAt: z.number(),
+  /** Operation-receipt audit id — the `content.appealSubmitted` event written in the same
+   * transaction. Optional/additive; the domain id (`violationId`) is already carried above. */
+  auditEventId: z.string().min(1).optional(),
 });
 export type SubmitContentAppealResult = z.infer<typeof SubmitContentAppealResultSchema>;
 
@@ -129,6 +132,9 @@ export const AcceptViolationDecisionResultSchema = z.object({
   violationId: violationIdSchema,
   /** True when the record was already gone (idempotent accept). */
   alreadyRemoved: z.boolean(),
+  /** Operation-receipt audit id — the `content.violationAccepted` event written in the same
+   * transaction. Optional/additive; the domain id (`violationId`) is already carried above. */
+  auditEventId: z.string().min(1).optional(),
 });
 export type AcceptViolationDecisionResult = z.infer<typeof AcceptViolationDecisionResultSchema>;
 

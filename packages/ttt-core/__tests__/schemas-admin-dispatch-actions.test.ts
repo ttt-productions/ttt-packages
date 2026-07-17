@@ -3,6 +3,8 @@ import {
   UpdateAdminDispatchStatusInputSchema,
   UpdateInviteConfirmationInputSchema,
   UpdateGuildInviteStakeSharesInputSchema,
+  UpdateAdminDispatchStatusResultSchema,
+  DeleteAdminDispatchResultSchema,
 } from '../src/schemas/admin-dispatch-actions';
 
 describe('UpdateAdminDispatchStatusInputSchema', () => {
@@ -132,6 +134,25 @@ describe('UpdateGuildInviteStakeSharesInputSchema', () => {
         extra: 'bad',
       }),
     ).toThrow();
+  });
+});
+
+describe('dispatch-action result receipts carry an optional auditEventId', () => {
+  it('UpdateAdminDispatchStatusResultSchema parses WITH and WITHOUT auditEventId', () => {
+    const base = {
+      success: true as const,
+      adminDispatchId: 'msg-1',
+      newStatus: 'closed_resolved' as const,
+      closedBy: 'admin-1',
+    };
+    expect(UpdateAdminDispatchStatusResultSchema.parse(base).auditEventId).toBeUndefined();
+    expect(UpdateAdminDispatchStatusResultSchema.parse({ ...base, auditEventId: 'evt-3' }).auditEventId).toBe('evt-3');
+  });
+
+  it('DeleteAdminDispatchResultSchema parses WITH and WITHOUT auditEventId', () => {
+    const base = { success: true as const, adminDispatchId: 'msg-1', deletedMessageCount: 4 };
+    expect(DeleteAdminDispatchResultSchema.parse(base).auditEventId).toBeUndefined();
+    expect(DeleteAdminDispatchResultSchema.parse({ ...base, auditEventId: 'evt-4' }).auditEventId).toBe('evt-4');
   });
 });
 

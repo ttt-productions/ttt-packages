@@ -32,6 +32,8 @@ describe('audit type catalog', () => {
       'payment.pledgeRefundRequestResolved',
       'hallItem.moderationPlaceholderApplied',
       'ncii.evidenceMarked',
+      // [P2-08] privileged raw-locator read (distinct from safety.privilegedReauthPerformed)
+      'safety.privilegedRawLocatorRead',
     ];
     expectTypeOf(sample).toEqualTypeOf<AuditEventType[]>();
   });

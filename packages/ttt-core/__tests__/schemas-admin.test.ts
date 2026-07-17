@@ -3,6 +3,8 @@ import {
   UpdateAdminListInputSchema,
   RestoreWorkProjectInputSchema,
   RestoreWorkRealmInputSchema,
+  ReviewContentAppealResultSchema,
+  UpdateAdminListResultSchema,
 } from '../src/schemas/admin.js';
 
 describe('UpdateAdminListInputSchema', () => {
@@ -90,6 +92,39 @@ describe('Restore*InputSchema — optional cascadeId', () => {
     ).toThrow();
     expect(() =>
       RestoreWorkRealmInputSchema.parse({ workRealmId: 'wr-1', extra: 'nope' } as unknown),
+    ).toThrow();
+  });
+});
+
+describe('sensitive-action result receipts carry an optional auditEventId', () => {
+  it('ReviewContentAppealResultSchema parses WITH and WITHOUT auditEventId', () => {
+    const base = { success: true as const, violationId: 'v-1', decision: 'approved' as const, userId: 'u-1' };
+    expect(ReviewContentAppealResultSchema.parse(base).auditEventId).toBeUndefined();
+    const withId = ReviewContentAppealResultSchema.parse({ ...base, auditEventId: 'evt-9' });
+    expect(withId.auditEventId).toBe('evt-9');
+  });
+
+  it('UpdateAdminListResultSchema parses WITH and WITHOUT auditEventId', () => {
+    const base = {
+      success: true as const,
+      adminsGranted: 1,
+      adminsRevoked: 0,
+      jrAdminsGranted: 0,
+      jrAdminsRevoked: 0,
+    };
+    expect(UpdateAdminListResultSchema.parse(base).auditEventId).toBeUndefined();
+    expect(UpdateAdminListResultSchema.parse({ ...base, auditEventId: 'evt-7' }).auditEventId).toBe('evt-7');
+  });
+
+  it('rejects an empty-string auditEventId when supplied', () => {
+    expect(() =>
+      ReviewContentAppealResultSchema.parse({
+        success: true,
+        violationId: 'v-1',
+        decision: 'denied',
+        userId: 'u-1',
+        auditEventId: '',
+      }),
     ).toThrow();
   });
 });

@@ -42,6 +42,9 @@ export const UpdateAdminDispatchStatusResultSchema = z.object({
   newStatus: AdminDispatchCloseStatusSchema,
   /** Uid of the closer (the caller) — attribution for the server-composed close line. */
   closedBy: z.string().min(1),
+  /** Operation-receipt audit id — the `chat.adminThreadStatusChanged` event written in the same
+   * transaction. Optional/additive; the domain id (`adminDispatchId`) is already carried above. */
+  auditEventId: z.string().min(1).optional(),
 });
 export type UpdateAdminDispatchStatusResult = z.infer<typeof UpdateAdminDispatchStatusResultSchema>;
 
@@ -50,6 +53,9 @@ export const DeleteAdminDispatchResultSchema = z.object({
   adminDispatchId: adminDispatchIdSchema,
   /** Conversation messages removed with the thread (counted during the delete itself). */
   deletedMessageCount: z.number().int().nonnegative(),
+  /** Operation-receipt audit id — the `admin.dispatchDeleted` event written in the same
+   * transaction. Optional/additive; the domain id (`adminDispatchId`) is already carried above. */
+  auditEventId: z.string().min(1).optional(),
 });
 export type DeleteAdminDispatchResult = z.infer<typeof DeleteAdminDispatchResultSchema>;
 

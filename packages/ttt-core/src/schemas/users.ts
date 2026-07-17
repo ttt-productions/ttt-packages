@@ -130,3 +130,13 @@ export const SearchPublicUsersInputSchema = z.object({
 }).strict();
 export type SearchPublicUsersInput = z.infer<typeof SearchPublicUsersInputSchema>;
 
+// Admin exact-account lookup ("look up by email or uid" in User Management): a solo full
+// admin resolves ONE account by its exact email, uid, or display name. The app detects
+// email-vs-uid-vs-name both client- and server-side, so there is ONE query field (mirrors
+// SearchPublicUsersInput's single trimmed-query shape + bound). Only the trimmed query is
+// validated here; authz (full admin) lives in the callable.
+export const LookupUserByEmailOrUidInputSchema = z.object({
+  query: z.string().trim().min(1).max(MAX_USER_SEARCH_QUERY_LENGTH),
+}).strict();
+export type LookupUserByEmailOrUidInput = z.infer<typeof LookupUserByEmailOrUidInputSchema>;
+
