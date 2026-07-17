@@ -43,10 +43,15 @@ export interface OpsBrokenMachinery {
   stuckEdgeSyncCount: number;
   /** Uncleared failed pendingMedia (mirrors `media.failed`, surfaced in the machinery lane). */
   failedMediaCount: number;
-  /** `safetyMonitorHeartbeat/global.lastRunAt` (epoch ms) of the scheduled monitor sweep;
-   *  staleness is computed client-side against that doc's `expectedIntervalMs`. Absent if the
-   *  heartbeat has never stamped. */
+  /** `safetyMonitorHeartbeat/global.lastRunAt` (epoch ms) of the scheduled monitor sweep.
+   *  Absent if the heartbeat has never stamped. Display only — do NOT judge staleness from this
+   *  client-side: use `safetyMonitorHeartbeatStale`, which the backend derives from the SAME
+   *  threshold its dead-man checker alarms on (Rule 36: one declaration, enforcement derives). */
   safetyMonitorHeartbeatLastRunAt?: number;
+  /** True when the sweep's heartbeat is older than the backend's own dead-man threshold — i.e. the
+   *  scheduled safety monitors may not be running. Derived server-side so the operator chip and the
+   *  real alarm can never disagree. Absent when an older backend does not project it. */
+  safetyMonitorHeartbeatStale?: boolean;
 }
 
 /** The `getOpsStatus` callable's return shape (read-only ops snapshot). */
