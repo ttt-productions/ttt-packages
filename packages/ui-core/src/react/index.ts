@@ -41,6 +41,9 @@ export { Collapsible, CollapsibleTrigger, CollapsibleContent } from "./component
 export type { SearchDropdownProps } from "./components/search-dropdown.js";
 export { SearchDropdown } from "./components/search-dropdown.js";
 
+export type { ConsequenceDialogProps, ConsequenceDialogReason, ConsequenceDialogTypedConfirmation } from "./components/consequence-dialog.js";
+export { ConsequenceDialog } from "./components/consequence-dialog.js";
+
 export type { MaxWidthOption, ScreenAdaptiveViewProps } from "./components/layout/screen-adaptive-view.js";
 export { ScreenAdaptiveView } from "./components/layout/screen-adaptive-view.js";
 
