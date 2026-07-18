@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/realtime-core",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "description": "Runtime-neutral GENERIC realtime primitives: wire envelopes + protocol version + stable error codes, reconnect/resume client state machine, versioned-apply projection/outbox/command appliers, generic Durable-Object persistence interfaces, and v1 SQLite table shapes. Zero TTT specifics.",
     "repository": {
         "type": "git",
