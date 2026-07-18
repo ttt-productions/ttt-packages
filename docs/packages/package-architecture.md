@@ -195,6 +195,15 @@ install + full build, so workspace symlinks resolve and no consumer reads stale
 `dist/`. `scripts/bundle-code.sh` and `scripts/zip-ttt-packages.sh` discover
 packages dynamically by globbing `packages/*`, so they need no per-package edits.
 
+## Published sourcemaps
+
+Published JavaScript sourcemaps are self-contained: the root TypeScript config
+keeps `sourceMap` and `inlineSources` enabled so every emitted `.js.map` carries
+the original TypeScript in `sourcesContent`. Most package tarballs publish
+`dist` without `src`; a map that only points back to `src` produces missing-source
+warnings in consumers and degrades stack traces. Do not fix that by dropping
+sourcemaps or broadly adding source trees to package tarballs.
+
 ## Internal version pinning
 
 Internal `@ttt-productions/*` dependencies are authored `"*"` in source so that
@@ -241,3 +250,6 @@ the rules above so they fail loudly:
   declaration in `docs/packages/<pkg>.md`) that is not present in that package's
   `exports`. This is what catches a stale `chat-core/schemas` or removed
   `chat-core/react` reference after the concept moves.
+- `sourcemap-sources.test.ts` (check #4) — after the build, fails if any package
+  emits a JavaScript sourcemap without complete embedded `sourcesContent`, so a
+  published `dist` never points consumers at source files the tarball omits.

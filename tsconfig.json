@@ -12,6 +12,7 @@
       "declaration": true,
       "declarationMap": true,
       "sourceMap": true,
+      "inlineSources": true,
       "resolveJsonModule": true,
       "allowSyntheticDefaultImports": true,
       "noUnusedLocals": true,
