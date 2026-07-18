@@ -60,6 +60,14 @@
             "types": "./dist/constants/storage-keys.d.ts",
             "default": "./dist/constants/storage-keys.js"
         },
+        "./constants/company-mascots": {
+            "types": "./dist/constants/company-mascots.d.ts",
+            "default": "./dist/constants/company-mascots.js"
+        },
+        "./constants/center-stage-rooms": {
+            "types": "./dist/constants/center-stage-rooms.d.ts",
+            "default": "./dist/constants/center-stage-rooms.js"
+        },
         "./utils": {
             "types": "./dist/utils/index.d.ts",
             "default": "./dist/utils/index.js"

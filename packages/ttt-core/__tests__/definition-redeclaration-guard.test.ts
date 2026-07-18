@@ -123,6 +123,18 @@ const GUARDED: Record<string, { owner: string; allowed: string[] }> = {
     owner: 'ttt-core/src/constants/safety-confirmation-phrases.ts',
     allowed: [],
   },
+  // The Company mascot contract — new canonical unions. Distinctive member of
+  // CompanyBillingKind; the whole contract + registry lives in one module, so no
+  // derived usage exists elsewhere in packages.
+  foundingPlayer: {
+    owner: 'ttt-core/src/constants/company-mascots.ts',
+    allowed: [],
+  },
+  // Distinctive member of CompanyCharacterId (the Stand-In who is never selectable).
+  yorick: {
+    owner: 'ttt-core/src/constants/company-mascots.ts',
+    allowed: [],
+  },
 };
 
 function walk(dir: string, out: string[]): void {
