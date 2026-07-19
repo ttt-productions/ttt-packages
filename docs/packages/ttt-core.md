@@ -11,6 +11,9 @@ TTT Productions application-data package.
 - TTT domain-event union/schema/catalog
 - TTT atoms such as `Mention` and `MentionType`
 - TTT moderation constants
+- The Company / Green Room mascot **contract + content** (`constants/company-mascots`): the pure `CompanyCharacterId` / billing-kind / `CompanyPerformanceIntent` / selectable-companion unions, roster + selectable arrays, the rich-copy `CompanyCopySegment` / `CompanyCopyBlock` model (with semantic `CompanyNavigationTarget`s, not URLs), the `COMPANY_MASCOTS` registry, and the DJ-approved verbatim studies / click lines / footers / switch exchanges / Yorick block lines / signed-out dock lines / onboarding cameos. Pure data only — no React/JSX/Next/CSS/SVG; the app owns the render adapter, puppets, rig, and choreography. Canonical dialogue lives here, never Firestore.
+- The Center Stage revolving-room definitions (`constants/center-stage-rooms` — `CENTER_STAGE_ROOMS`); the app keeps `ROOM_EMBLEMS`, components, and layout
+- The mascot device-local storage keys + same-tab change-event names (in `constants/storage-keys`, alongside the other well-known keys) — companion / hidden / line-index keys and their change events, values byte-stable for backward compatibility
 - TTT upload-variable schemas
 - TTT mention kinds/schemas/validation rules
 - TTT admin task type union
