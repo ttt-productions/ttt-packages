@@ -28,3 +28,5 @@ export {
 
 export { startWaveformLoop, drawIdleFrame } from "./visualizer.js";
 export type { StartWaveformLoopOptions } from "./visualizer.js";
+
+export { resolveInfiniteDuration } from "./media-duration.js";

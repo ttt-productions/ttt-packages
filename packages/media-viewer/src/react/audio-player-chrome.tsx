@@ -17,6 +17,7 @@ import * as React from "react";
 import { Pause, Play, Volume2, VolumeX, ChevronDown, ChevronUp, Activity, BarChart3 } from "lucide-react";
 import { startWaveformLoop, drawIdleFrame } from "../visualizer.js";
 import type { AudioVisualizerMode } from "../visualizer.js";
+import { resolveInfiniteDuration } from "../media-duration.js";
 
 const DEFAULT_PERSIST_KEY = "mv-audio-player";
 
@@ -156,6 +157,20 @@ export function AudioPlayerChrome({
     const el = audioRef.current;
     if (!el) return;
 
+    // MediaRecorder blobs report duration Infinity until seeked (Chromium webm
+    // quirk) — without this the readout sticks at "0:01 / 0:00". Learn the real
+    // duration via the shared seek workaround; paused-only so an actively
+    // playing element is never seek-jumped, and one attempt per element so a
+    // workaround-triggered durationchange can never re-enter it.
+    let durationReconcileAttempted = false;
+    const reconcileInfiniteDuration = () => {
+      if (durationReconcileAttempted || Number.isFinite(el.duration) || !el.paused) return;
+      durationReconcileAttempted = true;
+      void resolveInfiniteDuration(el).then((real) => {
+        if (real !== null) setDuration(real);
+      });
+    };
+
     const syncFromElement = () => {
       setIsPlaying(!el.paused && !el.ended);
       setIsMuted(el.muted);
@@ -164,6 +179,7 @@ export function AudioPlayerChrome({
       setCurrentTime(el.currentTime);
     };
     syncFromElement();
+    if (el.readyState >= 1) reconcileInfiniteDuration();
 
     const onPlay = () => {
       setIsPlaying(true);
@@ -181,6 +197,7 @@ export function AudioPlayerChrome({
     const onTimeUpdate = () => setCurrentTime(el.currentTime);
     const onDurationChange = () => {
       if (Number.isFinite(el.duration)) setDuration(el.duration);
+      else reconcileInfiniteDuration();
     };
     const onVolumeChange = () => {
       setIsMuted(el.muted);

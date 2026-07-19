@@ -1,5 +1,64 @@
-import { describe, it, expect } from 'vitest';
-import { parseClaims } from '../src/claims';
+import { describe, it, expect, vi } from 'vitest';
+import { getIdTokenClaims, parseClaims } from '../src/claims';
+import type { User } from 'firebase/auth';
+
+function makeUser(opts: {
+  emailVerified: boolean;
+  cachedClaims: Record<string, unknown>;
+  freshClaims?: Record<string, unknown>;
+}) {
+  const getIdTokenResult = vi.fn(async (force?: boolean) => ({
+    claims: force ? (opts.freshClaims ?? opts.cachedClaims) : opts.cachedClaims,
+  }));
+  return { user: { emailVerified: opts.emailVerified, getIdTokenResult } as unknown as User, getIdTokenResult };
+}
+
+describe('getIdTokenClaims — stale-verification reconciliation', () => {
+  it('returns null for a null user', async () => {
+    await expect(getIdTokenClaims(null)).resolves.toBeNull();
+  });
+
+  it('returns cached claims without a forced mint when account and token agree (verified)', async () => {
+    const { user, getIdTokenResult } = makeUser({
+      emailVerified: true,
+      cachedClaims: { email_verified: true, sub: 'u1' },
+    });
+    await expect(getIdTokenClaims(user)).resolves.toEqual({ email_verified: true, sub: 'u1' });
+    expect(getIdTokenResult).toHaveBeenCalledTimes(1);
+    expect(getIdTokenResult).toHaveBeenCalledWith(false);
+  });
+
+  it('returns cached claims without a forced mint when the account is unverified', async () => {
+    const { user, getIdTokenResult } = makeUser({
+      emailVerified: false,
+      cachedClaims: { email_verified: false },
+    });
+    await expect(getIdTokenClaims(user)).resolves.toEqual({ email_verified: false });
+    expect(getIdTokenResult).toHaveBeenCalledTimes(1);
+  });
+
+  it('force-mints a fresh token when the ACCOUNT is verified but the cached token claim is not (the backend-flip / emailed-link disconnect)', async () => {
+    const { user, getIdTokenResult } = makeUser({
+      emailVerified: true,
+      cachedClaims: { email_verified: false, sub: 'u1' },
+      freshClaims: { email_verified: true, sub: 'u1' },
+    });
+    await expect(getIdTokenClaims(user)).resolves.toEqual({ email_verified: true, sub: 'u1' });
+    expect(getIdTokenResult).toHaveBeenCalledTimes(2);
+    expect(getIdTokenResult).toHaveBeenNthCalledWith(1, false);
+    expect(getIdTokenResult).toHaveBeenNthCalledWith(2, true);
+  });
+
+  it('also reconciles when the cached token has NO email_verified claim at all', async () => {
+    const { user, getIdTokenResult } = makeUser({
+      emailVerified: true,
+      cachedClaims: { sub: 'u1' },
+      freshClaims: { email_verified: true, sub: 'u1' },
+    });
+    await expect(getIdTokenClaims(user)).resolves.toEqual({ email_verified: true, sub: 'u1' });
+    expect(getIdTokenResult).toHaveBeenCalledTimes(2);
+  });
+});
 
 describe('parseClaims', () => {
   it('returns empty roles and empty raw for null input', () => {
