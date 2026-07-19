@@ -17,6 +17,10 @@ import {
   ChildSafetyAccountRoleSchema,
   ChildSafetyAccountSubjectDispositionSchema,
 } from '../doc-schemas/safety/case.js';
+import {
+  ContentMediaKindSchema,
+  MediaServingStatusSchema,
+} from '../doc-schemas/media-assets.js';
 import { MAX_MANIFEST_NCMEC_RECEIPTS } from '../doc-schemas/safety/evidence.js';
 import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
@@ -261,6 +265,61 @@ export const GetReportedContentDetailInputSchema = z.object({
   reportGroupId: z.string().min(1),
 }).strict();
 export type GetReportedContentDetailInput = z.infer<typeof GetReportedContentDetailInputSchema>;
+
+// --- getReportedContentDetail result (cross-boundary: produced by the callable in functions/,
+// consumed by the admin report work-view) ---
+
+/** One display-text field of the reported doc, labeled for the review panel. The server returns
+ *  EVERY configured non-empty text field for the item type (title, description, body, …) in
+ *  display order — never just the first non-empty one. */
+export const ReportedTextFieldSchema = z.object({
+  /** Raw doc field name (e.g. 'description', 'workingTitle'). */
+  field: z.string().min(1),
+  /** Human label the panel renders (e.g. 'Description', 'Title'). */
+  label: z.string().min(1),
+  /** Current live value, trimmed; empty fields are omitted from the array. */
+  value: z.string().min(1),
+});
+export type ReportedTextField = z.infer<typeof ReportedTextFieldSchema>;
+
+/** One media asset referenced by the reported content: id + kind + current serving state
+ *  (for click-to-reveal) + the server-derived variant key the reveal must request. */
+export const ReportedMediaAssetSchema = z.object({
+  mediaAssetId: z.string().min(1),
+  mediaKind: ContentMediaKindSchema.nullable(),
+  servingStatus: MediaServingStatusSchema.nullable(),
+  /** The variant key the reveal must request for its single display render (image origins split
+   *  between 'full' and 'main'; video/audio are always 'main'). Null when the asset doc is
+   *  missing/variant-less. */
+  displayVariantKey: z.string().nullable(),
+  /** Human label of WHAT this asset is on the reported item (e.g. 'Square cover',
+   *  'Track photo — <title>'). Null when the server cannot derive one. */
+  label: z.string().nullable(),
+});
+export type ReportedMediaAsset = z.infer<typeof ReportedMediaAssetSchema>;
+
+export const GetReportedContentDetailResultSchema = z.object({
+  itemType: z.string().min(1),
+  reportedItemId: z.string().min(1),
+  /** First non-empty display-text field (legacy single-field snapshot; textFields is the
+   *  complete labeled set). */
+  textSnapshot: z.string().nullable(),
+  textFields: z.array(ReportedTextFieldSchema),
+  mediaAssets: z.array(ReportedMediaAssetSchema),
+  /** Whether the reported doc is currently hidden (best-effort, doc-flag based). */
+  isHidden: z.boolean().nullable(),
+  /** The content owner / uploader uid, when derivable. */
+  ownerUid: z.string().nullable(),
+  /** The FROZEN report-time snapshot (captured at intake), so the operator sees what was
+   *  reported even if the author edited the live doc to evade. Null for older reports. */
+  reportTimeSnapshot: z.object({
+    capturedText: z.string().nullable(),
+    capturedMediaAssetIds: z.array(z.string()),
+    revision: z.number().nullable(),
+    capturedAt: z.number().nullable(),
+  }).nullable(),
+});
+export type GetReportedContentDetailResult = z.infer<typeof GetReportedContentDetailResultSchema>;
 
 export const HideHallSubItemInputSchema = z.object({
   hallItemId: hallItemIdSchema,
