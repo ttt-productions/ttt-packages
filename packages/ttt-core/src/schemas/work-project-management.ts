@@ -88,11 +88,13 @@ export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationM
     realmWorkingTitle: realmWorkingTitleSchema,
     realmWorkingDescription: z.string().min(1).max(MAX_WORK_REALM_DESCRIPTION_LENGTH),
   }).strict(),
+  // Standalone realms are background plumbing (DJ ruling 2026-07-19): the user enters NO
+  // realm information — the backend creates the realm shell with a synthetic unique
+  // title/description (the generated workRealmId), so nothing user-authored exists on it
+  // and no human realm name is consumed from the reservedRealmNames namespace.
   z.object({
     ...baseFields,
     realmCreationMode: z.literal('newStandaloneRealm'),
-    realmWorkingTitle: realmWorkingTitleSchema,
-    realmWorkingDescription: z.string().min(1).max(MAX_WORK_REALM_DESCRIPTION_LENGTH),
   }).strict(),
   z.object({
     ...baseFields,
