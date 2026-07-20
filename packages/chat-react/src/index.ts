@@ -66,6 +66,8 @@ export {
   InboxClient,
   useRealtimeChatMessages,
   browserSocketFactory,
+  ChatAccessDeniedError,
+  isChatAccessDeniedError,
   CHAT_SUBPROTOCOL,
   CHAT_CLOSE_CODES,
   CLIENT_FRAME,

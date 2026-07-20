@@ -29,7 +29,14 @@ export type { RealtimeSocket, SocketFactory, SocketHandlers } from './socket.js'
 export { browserSocketFactory } from './socket.js';
 
 export type { GrantProvider, TransportTimers, RealtimeStatus } from './shared.js';
-export { defaultTimers, HEARTBEAT_MS, TYPING_COALESCE_MS, HISTORY_PAGE_MAX } from './shared.js';
+export {
+  defaultTimers,
+  ChatAccessDeniedError,
+  isChatAccessDeniedError,
+  HEARTBEAT_MS,
+  TYPING_COALESCE_MS,
+  HISTORY_PAGE_MAX,
+} from './shared.js';
 
 export {
   wireRowToMessage,

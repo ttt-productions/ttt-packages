@@ -1,7 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ChannelClient } from '../../src/realtime/channel-client.js';
 import { CHAT_CLOSE_CODES, CHAT_SUBPROTOCOL, type WireMessageRow } from '../../src/realtime/wire.js';
-import { MAX_PENDING_SEND_ATTEMPTS, PENDING_SEND_MAX_AGE_MS } from '../../src/realtime/shared.js';
+import {
+  ChatAccessDeniedError,
+  MAX_PENDING_SEND_ATTEMPTS,
+  PENDING_SEND_MAX_AGE_MS,
+} from '../../src/realtime/shared.js';
 import { createMockSocketHarness, createFakeClock } from './mock-socket.js';
 
 function wireRow(seq: number, senderUid: string, text: string, clientMessageId = `srv-${seq}`): WireMessageRow {
@@ -806,5 +810,163 @@ describe('ChannelClient — connect() idempotency (C-B7)', () => {
     harness.last().serverOpen();
     await client.connect(); // no-op: already open
     expect(harness.sockets).toHaveLength(1);
+  });
+});
+
+describe('ChannelClient — hasLoadedInitialData (authoritative initial-load tracking)', () => {
+  it('is false on a new client', () => {
+    const { client } = makeClient();
+    expect(client.getState().hasLoadedInitialData).toBe(false);
+  });
+
+  it('remains false while the socket is open but no snapshot has arrived', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    harness.last().serverOpen();
+    expect(client.getState().status).toBe('open');
+    // Socket `open` alone does NOT end initial loading — an authoritative snapshot/history must land.
+    expect(client.getState().hasLoadedInitialData).toBe(false);
+  });
+
+  it('remains false after a failed first grant + reconnect (still initial loading)', async () => {
+    const grant = vi.fn().mockRejectedValueOnce(new Error('transient')).mockResolvedValue('grant-ok');
+    const { client, clock } = makeClient({ grantProvider: grant });
+    await client.connect();
+    expect(client.getState().hasLoadedInitialData).toBe(false);
+    expect(client.getState().status).toBe('reconnecting');
+    // The reconnect grant now resolves, but until a snapshot lands it stays initial-loading.
+    clock.tick(200);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(client.getState().hasLoadedInitialData).toBe(false);
+  });
+
+  it('ends initial loading on a non-resync snapshot (even an empty delta)', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    sock.serverFrame('snapshot', { lastMessageSeq: 0, readSeq: 0, resync: false, delta: [] });
+    expect(client.getState().hasLoadedInitialData).toBe(true);
+    // An empty non-resync snapshot is a real, loaded, empty chat — not inferred from length.
+    expect(client.getState().messages).toHaveLength(0);
+  });
+
+  it('a resync snapshot does NOT end initial loading until the first history page', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    // Gap beyond backlog → resync directive: re-page requested, but nothing loaded yet.
+    sock.serverFrame('snapshot', { lastMessageSeq: 900, readSeq: 0, resync: true, delta: [] });
+    expect(client.getState().hasLoadedInitialData).toBe(false);
+    // The first history page ends it.
+    sock.serverFrame('history-page', { messages: [wireRow(1, 'u-a', 'one')] });
+    expect(client.getState().hasLoadedInitialData).toBe(true);
+  });
+
+  it('an empty first history page ends initial loading (not inferred from messages.length === 0)', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    sock.serverFrame('snapshot', { lastMessageSeq: 0, readSeq: 0, resync: true });
+    sock.serverFrame('history-page', { messages: [] });
+    expect(client.getState().hasLoadedInitialData).toBe(true);
+    expect(client.getState().messages).toHaveLength(0);
+  });
+
+  it('stays true and retains messages through a later reconnect (no return to opening)', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverFrame('snapshot', {
+      lastMessageSeq: 2,
+      readSeq: 0,
+      resync: false,
+      delta: [wireRow(1, 'u-a', 'one'), wireRow(2, 'u-b', 'two')],
+    });
+    expect(client.getState().hasLoadedInitialData).toBe(true);
+    expect(client.getState().messages).toHaveLength(2);
+
+    // Transient drop → reconnect. hasLoadedInitialData must NOT flip back to false.
+    s1.serverClose(1006, 'abnormal');
+    expect(client.getState().hasLoadedInitialData).toBe(true);
+    clock.tick(200);
+    await Promise.resolve();
+    const s2 = harness.sockets[1];
+    s2.serverOpen();
+    // Still true through the reconnect open, before any new snapshot — messages stay mounted.
+    expect(client.getState().hasLoadedInitialData).toBe(true);
+    expect(client.getState().messages.map((m) => m.messageId)).toEqual(['1', '2']);
+  });
+});
+
+describe('ChannelClient — terminal access denial (ChatAccessDeniedError)', () => {
+  it('stops reconnecting, surfaces access-denied, and opens no socket', async () => {
+    const grant = vi.fn().mockRejectedValue(new ChatAccessDeniedError());
+    const { client, harness } = makeClient({ grantProvider: grant });
+    await client.connect();
+    expect(client.getState().status).toBe('closed');
+    expect(client.getState().lastErrorCode).toBe('access-denied');
+    // Denied at mint → no socket was ever built, and no reconnect is scheduled.
+    expect(harness.sockets).toHaveLength(0);
+    // The flag never flips → the shell shows its no-access surface, not an eternal loader.
+    expect(client.getState().hasLoadedInitialData).toBe(false);
+    expect(grant).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reconnect after a terminal denial even as the clock advances', async () => {
+    const grant = vi.fn().mockRejectedValue(new ChatAccessDeniedError());
+    const { client, harness, clock } = makeClient({ grantProvider: grant });
+    await client.connect();
+    clock.tick(60_000);
+    await Promise.resolve();
+    expect(harness.sockets).toHaveLength(0);
+    expect(grant).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails pending optimistic sends when a re-grant is terminally denied', async () => {
+    // First grant succeeds (socket opens, a send goes pending); the reconnect re-mint is
+    // terminally denied → the pending send flips to the visible failed state.
+    const grant = vi.fn().mockResolvedValueOnce('grant-1').mockRejectedValue(new ChatAccessDeniedError());
+    const { client, harness, clock } = makeClient({ grantProvider: grant });
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'in flight' });
+
+    s1.serverClose(1006, 'abnormal');
+    clock.tick(200);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(client.getState().status).toBe('closed');
+    // 'access-denied' wins over failPendingSend's 'send-failed'.
+    expect(client.getState().lastErrorCode).toBe('access-denied');
+    const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(row?.meta?.sendFailed).toBe(true);
+    expect(harness.sockets).toHaveLength(1);
+  });
+
+  it('recognizes a duck-typed access-denial marker (cross-realm safe)', async () => {
+    const grant = vi.fn().mockRejectedValue({ isChatAccessDenied: true });
+    const { client } = makeClient({ grantProvider: grant });
+    await client.connect();
+    expect(client.getState().status).toBe('closed');
+    expect(client.getState().lastErrorCode).toBe('access-denied');
+  });
+
+  it('a transient grant error still reconnects (not terminal)', async () => {
+    const grant = vi.fn().mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue('grant-ok');
+    const { client, clock } = makeClient({ grantProvider: grant });
+    await client.connect();
+    expect(client.getState().status).toBe('reconnecting');
+    expect(client.getState().lastErrorCode).not.toBe('access-denied');
+    clock.tick(200);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(grant).toHaveBeenCalledTimes(2);
   });
 });

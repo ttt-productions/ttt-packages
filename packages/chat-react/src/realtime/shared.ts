@@ -16,6 +16,42 @@
  */
 export type GrantProvider = () => Promise<string>;
 
+/**
+ * Package-owned, Firebase-FREE terminal access-denial signal. A grant provider
+ * throws this (from `GrantProvider`) when the authoritative authorization answer
+ * is a genuine, terminal "no" — as opposed to a transient/retryable mint failure.
+ *
+ * The transport treats it specially: instead of the normal reconnect backoff it
+ * STOPS reconnecting, closes the lifecycle, fails any pending optimistic sends,
+ * and surfaces the stable `access-denied` error code (which the React hook maps to
+ * `allowed: false` so the shell renders its no-access surface instead of an eternal
+ * loader). Every other thrown error stays transient and reconnects as before.
+ *
+ * This is deliberately generic: the consuming app translates its own backend
+ * denial (e.g. a Firebase `functions/permission-denied`) into this class at the
+ * grant-provider boundary. The package never imports or names Firebase. Consumers
+ * that cannot subclass may instead throw any error carrying `isChatAccessDenied:
+ * true` — `isChatAccessDeniedError` recognizes both (also cross-realm safe).
+ */
+export class ChatAccessDeniedError extends Error {
+  /** Duck-typed marker so detection survives module-realm / re-throw boundaries. */
+  readonly isChatAccessDenied = true;
+  constructor(message = 'Chat access denied') {
+    super(message);
+    this.name = 'ChatAccessDeniedError';
+  }
+}
+
+/** True when `err` is a terminal chat access denial (class instance or duck-typed marker). */
+export function isChatAccessDeniedError(err: unknown): err is ChatAccessDeniedError {
+  return (
+    err instanceof ChatAccessDeniedError ||
+    (typeof err === 'object' &&
+      err !== null &&
+      (err as { isChatAccessDenied?: unknown }).isChatAccessDenied === true)
+  );
+}
+
 /** Injectable timers so the transport runs deterministically under fake timers in tests. */
 export interface TransportTimers {
   setTimeout: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;

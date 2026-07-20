@@ -1,15 +1,25 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render } from "@testing-library/react";
 import type { ChatCoreConfig } from "../src/types.js";
+import type { UseRealtimeChatMessagesResult } from "../src/realtime/useRealtimeChatMessages.js";
 
-// F4.1 regression: force the realtime data hook into its initial-loading state so we
-// exercise the ChatShell `isInitialLoading` early-return. The consumer's header + the three
-// render-slots (renderAboveMessages / renderBelowMessages / renderFooter) MUST still render
-// while only the message list is skeletonized — otherwise a socket sitting in 'connecting'
-// (WS URL baked but Worker unreachable) hides critical controls (e.g. the guild-invite
-// binding-agreement Agree/Decline/stake-share controls) for the entire connect window.
+// Drive the realtime data hook's result directly so we exercise the ChatShell
+// `isInitialLoading` branch deterministically. Two contracts are under test:
+//   F4.1 — the consumer's header + the three render-slots (renderAboveMessages /
+//     renderBelowMessages / renderFooter) MUST still render while the message list
+//     region is replaced (critical guild-invite agreement controls hang off them).
+//   Initial-load — that region shows an honest "Opening chat…" indicator in a
+//     polite live region, and the reconnect banner must NOT compete with it.
+// `mock`-prefixed so vitest allows referencing it inside the hoisted factory.
+const mockRealtimeResult: { current: Partial<UseRealtimeChatMessagesResult> } = { current: {} };
 vi.mock("../src/realtime/useRealtimeChatMessages.js", () => ({
-  useRealtimeChatMessages: () => ({
+  useRealtimeChatMessages: () => mockRealtimeResult.current,
+}));
+
+import { ChatShell } from "../src/ui/ChatShell.js";
+
+function loadingResult(status: UseRealtimeChatMessagesResult["status"]): Partial<UseRealtimeChatMessagesResult> {
+  return {
     allowed: true,
     isInitialLoading: true,
     messages: [],
@@ -18,13 +28,11 @@ vi.mock("../src/realtime/useRealtimeChatMessages.js", () => ({
     isFetchingOlder: false,
     send: () => true,
     readAck: () => true,
-    status: "connecting",
+    status,
     typing: [],
     signalTyping: () => {},
-  }),
-}));
-
-import { ChatShell } from "../src/ui/ChatShell.js";
+  };
+}
 
 function realtimeConfig(): ChatCoreConfig {
   return {
@@ -41,8 +49,12 @@ function realtimeConfig(): ChatCoreConfig {
   };
 }
 
-describe("ChatShell — loading state preserves consumer slots (F4.1)", () => {
-  it("renders the header + above/below/footer slots while the realtime socket is still connecting", () => {
+beforeEach(() => {
+  mockRealtimeResult.current = loadingResult("connecting");
+});
+
+describe("ChatShell — initial-loading state", () => {
+  it("renders the header + above/below/footer slots while the realtime socket is still connecting (F4.1)", () => {
     const { getByText, getByRole } = render(
       <ChatShell
         config={realtimeConfig()}
@@ -57,5 +69,23 @@ describe("ChatShell — loading state preserves consumer slots (F4.1)", () => {
     expect(getByText("BINDING NOTICE")).toBeTruthy();
     expect(getByRole("button", { name: "Agree to Terms" })).toBeTruthy();
     expect(getByText("FINAL FOOTER")).toBeTruthy();
+    // The honest working state is shown in place of the message list.
+    expect(getByText(/Opening chat/i)).toBeTruthy();
+  });
+
+  it('shows an "Opening chat…" indicator in a polite live region and NOT a reconnect banner', () => {
+    // Even while the transport is 'reconnecting' during INITIAL loading, the opening
+    // indicator wins — the reconnect/disconnected banner must not compete with it.
+    mockRealtimeResult.current = loadingResult("reconnecting");
+    const { getByText, getByRole, queryByText } = render(<ChatShell config={realtimeConfig()} />);
+
+    const status = getByRole("status");
+    expect(status).toHaveTextContent(/Opening chat/i);
+    expect(status).toHaveAttribute("aria-live", "polite");
+    expect(getByText(/Opening chat/i)).toBeTruthy();
+
+    // The reconnect/disconnected banner copy must be absent during initial opening.
+    expect(queryByText(/Reconnecting/i)).toBeNull();
+    expect(queryByText(/Disconnected/i)).toBeNull();
   });
 });

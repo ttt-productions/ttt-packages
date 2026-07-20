@@ -100,11 +100,17 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
   const presenceUnsubscribe = React.useCallback(() => client.channel.presenceUnsubscribe(), [client]);
 
   return {
-    // On the realtime transport DATA ACCESS is enforced by the DO grant, so the
-    // hook is always "allowed" client-side (the socket simply won't open / will be
-    // closed 4403 if the grant is denied) — accessMode is presentation-only here.
-    allowed: true,
-    isInitialLoading: state.status === "connecting" || state.status === "idle",
+    // On the realtime transport DATA ACCESS is enforced by the DO grant, so the hook
+    // is "allowed" client-side UNLESS the grant provider surfaced a TERMINAL access
+    // denial (ChatAccessDeniedError → stable 'access-denied' code). That single case
+    // maps to allowed:false so ChatShell renders its no-access surface instead of an
+    // eternal loader; a transient close / 4403-revoke keeps allowed:true and rides the
+    // reconnect/disconnected banner. Otherwise accessMode is presentation-only here.
+    allowed: state.lastErrorCode !== "access-denied",
+    // Derive initial loading from authoritative-data completion, NOT connection status:
+    // a socket can be 'open' with no snapshot yet, and a post-load reconnect must not
+    // fall back into the opening state. `hasLoadedInitialData` encodes the full table.
+    isInitialLoading: !state.hasLoadedInitialData,
     messages: state.messages,
     fetchOlder,
     hasOlder: state.hasOlder,

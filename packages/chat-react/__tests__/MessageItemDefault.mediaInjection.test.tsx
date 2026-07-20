@@ -40,10 +40,14 @@ function makeMessage(attachment: ChatAttachment): ChatMessageV1 {
   };
 }
 
-function renderWithProviders(m: ChatMessageV1, mediaComponent?: React.ComponentType<MediaPreviewProps>) {
+function renderWithProviders(
+  m: ChatMessageV1,
+  mediaComponent?: React.ComponentType<MediaPreviewProps>,
+  resolveAttachmentUrl: (att: ChatAttachment) => string | null = (att) => `https://media.test/${att.mediaAssetId}`,
+) {
   const tree = (
     <ChatNameResolverProvider resolveName={() => "Me"}>
-      <ChatAttachmentUrlProvider resolveAttachmentUrl={(att) => `https://media.test/${att.mediaAssetId}`}>
+      <ChatAttachmentUrlProvider resolveAttachmentUrl={resolveAttachmentUrl}>
         {mediaComponent ? (
           <ChatAttachmentMediaProvider mediaComponent={mediaComponent}>
             <MessageItemDefault m={m} currentUserId="u-me" isAdmin={false} />
@@ -106,4 +110,66 @@ describe("MessageItemDefault — attachment media injection", () => {
       expect(queryByText("file.audio")).toBeNull();
     },
   );
+
+  it("keeps a pending attachment on the sender-only 'Sending…' state (unchanged by the ready placeholder)", () => {
+    // A pending recipient/sender attachment must still say "Sending…", NEVER "Loading…" —
+    // the ready-URL-settling placeholder is a distinct state and must not bleed into it.
+    const attachment = { ...makeAttachment("image"), status: "pending" as const };
+    const { getByText, queryByText } = renderWithProviders(makeMessage(attachment));
+    expect(getByText("Sending…")).toBeInTheDocument();
+    expect(queryByText("Loading…")).toBeNull();
+  });
+});
+
+describe("MessageItemDefault — ready attachment with a settling (null) authorized URL", () => {
+  it.each(["image", "video", "audio", "text"] as const)(
+    "renders a neutral loading placeholder for a ready %s attachment and does NOT mount the media renderer",
+    (type) => {
+      const FakeMedia = vi.fn(() => <div data-testid="injected-media" />);
+      const { getByText, queryByTestId, container } = renderWithProviders(
+        makeMessage(makeAttachment(type)), // status: 'ready'
+        FakeMedia as unknown as React.ComponentType<MediaPreviewProps>,
+        () => null, // authorized URL not settled yet
+      );
+      // Neutral loading placeholder in the existing loading visual language.
+      const label =
+        type === "image" ? "Image attachment"
+        : type === "video" ? "Video attachment"
+        : type === "audio" ? "Audio attachment"
+        : "File attachment";
+      expect(getByText(label)).toBeInTheDocument();
+      expect(getByText("Loading…")).toBeInTheDocument();
+      // "Sending…" is a DIFFERENT state and must not appear on a terminal-ready row.
+      expect(container.textContent).not.toContain("Sending…");
+      // The media/download renderer must not mount until a non-empty authorized URL exists.
+      expect(queryByTestId("injected-media")).toBeNull();
+      expect(FakeMedia).not.toHaveBeenCalled();
+      expect(container.querySelector(".chat-attachment-media")).toBeNull();
+      // text/file must not have fallen through to the download link either.
+      expect(container.querySelector(".chat-attachment-text-link")).toBeNull();
+    },
+  );
+
+  it("does not expose the attachment filename in the settling placeholder", () => {
+    const { container, queryByText } = renderWithProviders(
+      makeMessage(makeAttachment("image")),
+      undefined,
+      () => null,
+    );
+    expect(queryByText("file.image")).toBeNull();
+    expect(container.textContent).not.toContain("file.image");
+  });
+
+  it("mounts the media renderer once a non-empty authorized URL exists (placeholder gone)", () => {
+    const FakeMedia = vi.fn((props: MediaPreviewProps) => (
+      <div data-testid="injected-media" data-type={String(props.type)} />
+    ));
+    const { getByTestId, queryByText } = renderWithProviders(
+      makeMessage(makeAttachment("image")),
+      FakeMedia as unknown as React.ComponentType<MediaPreviewProps>,
+      (att) => `https://media.test/${att.mediaAssetId}`,
+    );
+    expect(getByTestId("injected-media")).toHaveAttribute("data-type", "image");
+    expect(queryByText("Loading…")).toBeNull();
+  });
 });

@@ -39,6 +39,7 @@ import {
 import type { GrantProvider, TransportTimers, RealtimeStatus } from './shared.js';
 import {
   defaultTimers,
+  isChatAccessDeniedError,
   HEARTBEAT_MS,
   TYPING_COALESCE_MS,
   HISTORY_PAGE_MAX,
@@ -75,6 +76,17 @@ export interface ChannelClientState {
   hasOlder: boolean;
   /** The last structured error code the DO sent (e.g. 'blocked-word', 'too-long', flood reason). */
   lastErrorCode: string | null;
+  /**
+   * True once the FIRST authoritative chat data has been applied — a non-resync
+   * resume snapshot, OR the first history page (INCLUDING an empty one). Drives the
+   * hook's `isInitialLoading` so the shell shows an honest "Opening chat…" state
+   * while the first data is loading, and a real empty-chat surface only after an
+   * authoritative empty result. NEVER inferred from `messages.length === 0` (an
+   * empty first history page IS a successful load). Once true it stays true — a
+   * later disconnect/reconnect keeps loaded messages mounted, not a re-loader.
+   * A grant retry / socket open before any snapshot leaves it false.
+   */
+  hasLoadedInitialData: boolean;
 }
 
 export interface ChannelClientConfig {
@@ -100,6 +112,7 @@ const INITIAL: ChannelClientState = {
   isFetchingOlder: false,
   hasOlder: true,
   lastErrorCode: null,
+  hasLoadedInitialData: false,
 };
 
 /**
@@ -199,8 +212,14 @@ export class ChannelClient {
     let grantToken: string;
     try {
       grantToken = await this.config.grantProvider();
-    } catch {
-      // Grant mint failed — treat as a closed attempt and back off.
+    } catch (err) {
+      // A TERMINAL access denial (the app's grant provider translated an
+      // authoritative policy "no" into the package-owned ChatAccessDeniedError)
+      // must NOT reconnect — the next mint would just re-deny, stranding the shell
+      // on the opening loader forever. Every other mint failure (network, transient
+      // 'unavailable'/'internal', post-login 'unauthenticated') stays retryable and
+      // backs off exactly as before.
+      if (isChatAccessDeniedError(err)) return this.denyAccessTerminally();
       return this.scheduleReconnect();
     }
     if (this.closedByUs) return;
@@ -384,6 +403,22 @@ export class ChannelClient {
     }, delay);
   }
 
+  /**
+   * Terminal access denial surfaced by the grant provider (ChatAccessDeniedError).
+   * A reconnect would just re-deny at the next mint, so stop for good — the same
+   * terminal posture as a 4403 REVOKED close: mark closed-by-us, close the reconnect
+   * controller, and flip every un-acked pending send to the visible failed state.
+   * `access-denied` is set AFTER failAllPendingSends so its 'send-failed' code does
+   * not win as the surfaced error; the React hook maps 'access-denied' to
+   * `allowed: false` so the shell renders its existing no-access surface.
+   */
+  private denyAccessTerminally(): void {
+    this.closedByUs = true;
+    this.controller.close();
+    this.failAllPendingSends();
+    this.setState({ status: 'closed', lastErrorCode: 'access-denied' });
+  }
+
   // ---- inbound frames ----
 
   private onMessage(data: string): void {
@@ -505,6 +540,10 @@ export class ChannelClient {
       const delta = Array.isArray(snap.delta) ? snap.delta : [];
       for (const row of delta) this.applyMessage(row);
       if (snap.lastMessageSeq > this.resumeSeq) this.resumeSeq = snap.lastMessageSeq;
+      // A non-resync snapshot IS the first authoritative data (even an empty delta =
+      // caught up) — end initial loading. A resync snapshot instead defers to the
+      // re-paged first history page below, so it must NOT end it here.
+      if (!this.state.hasLoadedInitialData) this.setState({ hasLoadedInitialData: true });
       return;
     }
 
@@ -599,6 +638,10 @@ export class ChannelClient {
       messages: merged,
       isFetchingOlder: false,
       hasOlder: rows.length >= HISTORY_PAGE_MAX,
+      // The first history page — INCLUDING an empty one — is a successful authoritative
+      // load, so it ends initial loading. (Older-page fetches redundantly re-set true,
+      // which is a harmless no-op since the flag never flips back to false.)
+      hasLoadedInitialData: true,
     });
   }
 

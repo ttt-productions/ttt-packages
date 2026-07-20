@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRealtimeChatMessages } from '../../src/realtime/useRealtimeChatMessages.js';
 import { createRealtimeChatClient, type RealtimeChatClient } from '../../src/realtime/transport.js';
+import { ChatAccessDeniedError } from '../../src/realtime/shared.js';
 import type { ChannelRefTuple } from '../../src/realtime/wire.js';
 import { createMockSocketHarness, createFakeClock, type MockSocketHarness, type FakeClock } from './mock-socket.js';
 
@@ -39,24 +40,81 @@ describe('useRealtimeChatMessages', () => {
       harness.last().serverOpen();
     });
     expect(result.current.status).toBe('open');
-    expect(result.current.isInitialLoading).toBe(false);
+    // Socket `open` ALONE does not end initial loading — an authoritative snapshot must land.
+    expect(result.current.isInitialLoading).toBe(true);
 
     await act(async () => {
-      harness.last().serverFrame('message', {
-        message: {
-          seq: 1,
-          senderUid: 'u-2',
-          clientMessageId: 's1',
-          text: 'hi',
-          replyTo: null,
-          attachmentState: null,
-          attachmentMeta: null,
-          createdAt: 100,
-          epoch: 1,
-        },
+      harness.last().serverFrame('snapshot', {
+        lastMessageSeq: 1,
+        readSeq: 0,
+        resync: false,
+        delta: [
+          {
+            seq: 1,
+            senderUid: 'u-2',
+            clientMessageId: 's1',
+            text: 'hi',
+            replyTo: null,
+            attachmentState: null,
+            attachmentMeta: null,
+            createdAt: 100,
+            epoch: 1,
+          },
+        ],
       });
     });
+    // The authoritative non-resync snapshot both ends initial loading and delivers the row.
+    expect(result.current.isInitialLoading).toBe(false);
     expect(result.current.messages.map((m) => m.text)).toEqual(['hi']);
+  });
+
+  it('keeps isInitialLoading until an authoritative empty snapshot, then clears it', async () => {
+    const harness = createMockSocketHarness();
+    const clock = createFakeClock();
+    const client = makeClient('u-1', harness, clock, 'g1');
+    const { result } = renderHook(() => useRealtimeChatMessages(client));
+    // A brand-new (unconnected) client is in initial loading.
+    expect(result.current.isInitialLoading).toBe(true);
+
+    await act(async () => {
+      await client.connect();
+    });
+    await act(async () => {
+      harness.last().serverOpen();
+    });
+    // Open, no snapshot → still loading.
+    expect(result.current.isInitialLoading).toBe(true);
+
+    await act(async () => {
+      harness.last().serverFrame('snapshot', { lastMessageSeq: 0, readSeq: 0, resync: false, delta: [] });
+    });
+    // A loaded, authoritative empty chat — not an eternal loader. allowed stays true.
+    expect(result.current.isInitialLoading).toBe(false);
+    expect(result.current.allowed).toBe(true);
+    expect(result.current.messages).toHaveLength(0);
+  });
+
+  it('maps a terminal grant denial to allowed:false and surfaces access-denied', async () => {
+    const harness = createMockSocketHarness();
+    const clock = createFakeClock();
+    const client = createRealtimeChatClient({
+      endpoint: 'wss://chat.example',
+      channelRef: CHANNEL_REF,
+      threadId: 'wp1:ch1',
+      currentUserId: 'u-1',
+      grantProvider: () => Promise.reject(new ChatAccessDeniedError()),
+      socketFactory: harness.factory,
+      timers: clock,
+    });
+    const { result } = renderHook(() => useRealtimeChatMessages(client));
+    await act(async () => {
+      await client.connect();
+    });
+    expect(result.current.allowed).toBe(false);
+    expect(result.current.lastErrorCode).toBe('access-denied');
+    expect(result.current.status).toBe('closed');
+    // Denied at mint → no socket ever opened.
+    expect(harness.sockets).toHaveLength(0);
   });
 
   it('send() emits an optimistic echo and reports success through the hook', async () => {

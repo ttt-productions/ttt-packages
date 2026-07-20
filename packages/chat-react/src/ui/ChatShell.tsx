@@ -9,6 +9,7 @@ import type {
 } from "../types.js";
 import { Card, CardHeader, CardContent, CardFooter, Skeleton } from "@ttt-productions/ui-core/react";
 import { KeyboardAvoidingView } from "@ttt-productions/mobile-core/react";
+import { Loader2 } from "lucide-react";
 import { useChatMessages } from "../hooks/useChatMessages.js";
 import { useRealtimeChatMessages } from "../realtime/useRealtimeChatMessages.js";
 import type { RealtimeChatClient } from "../realtime/transport.js";
@@ -239,13 +240,14 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
   }
 
   if (isInitialLoading) {
-    // Render the consumer's header + render-slots even while the message list is still
-    // loading — ONLY the MessageList region is skeletonized. Previously this early-return
-    // was an all-skeleton Card that SWALLOWED renderAboveMessages/renderBelowMessages/
-    // renderFooter, so a consumer that hangs critical controls off those slots (e.g. the
-    // guild-invite binding-agreement Agree/Decline/stake-share controls) showed nothing for
-    // the entire connect window while the realtime socket sat in 'connecting' (F4.1). The
-    // agreement flow must work whether or not realtime chat is connected.
+    // Before the first authoritative snapshot/history result, show an HONEST working
+    // state — a visible "Opening chat…" spinner in a polite live region — NOT a blank
+    // parchment/skeleton box (which read as an empty chat) and NOT the reconnect banner
+    // (which must not compete with the initial-opening message). Only the MessageList
+    // region is replaced: the consumer's header + actions + the three render-slots +
+    // footer all still render, because a consumer that hangs critical controls off those
+    // slots (e.g. the guild-invite binding-agreement Agree/Decline/stake-share controls)
+    // must work whether or not realtime chat has connected yet (F4.1).
     return (
       <Card className={cardClassName}>
         {(header || handlers) && (
@@ -256,12 +258,18 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
             </div>
           </CardHeader>
         )}
-        <ChatConnectionBanner status={status} />
         {renderAboveMessages && (
           <div className="border-b">{renderAboveMessages()}</div>
         )}
         <CardContent className={contentClassName}>
-          <Skeleton className="h-[240px] w-full" />
+          <div
+            className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-muted-foreground"
+            role="status"
+            aria-live="polite"
+          >
+            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+            <span>Opening chat…</span>
+          </div>
         </CardContent>
         {renderBelowMessages && (
           <div className="border-t">{renderBelowMessages()}</div>

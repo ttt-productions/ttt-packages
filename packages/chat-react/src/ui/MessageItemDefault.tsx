@@ -58,7 +58,23 @@ function AttachmentView({ att }: { att: ChatAttachment }) {
   }
   // ready (or legacy/absent status) — resolve the display URL from the asset ref.
   const url = resolveAttachmentUrl(att);
-  if (!url) return null;
+  if (!url) {
+    // Terminal-ready row, but the authorized URL is still SETTLING (the grant/URL
+    // resolver has nothing yet). Returning null left only the surrounding message
+    // metadata → an observed empty bubble; a broken/grant-less <img> would flash a
+    // 403. Render a neutral loading placeholder in the existing loading visual
+    // language (spinner + kind-appropriate generic label + "Loading…", never
+    // "Sending…", NO filename) and do NOT mount the media/download renderer until a
+    // non-empty authorized URL exists. Sender-only pending/processing/failed states
+    // above are unchanged — this begins only after a terminal-ready row is received.
+    return (
+      <div className="chat-attachment-pending">
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+        <span className="truncate">{getAttachmentLabel(att.type)}</span>
+        <span className="chat-attachment-status-label">Loading…</span>
+      </div>
+    );
+  }
   if (att.type === "image") {
     return <Media type="image" url={url} alt="Image attachment" className="chat-attachment-media" />;
   }

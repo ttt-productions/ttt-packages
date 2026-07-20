@@ -23,6 +23,13 @@ Chat **React UI** package — the React half of the chat split.
   `MediaViewer` — pre-injection behavior, unchanged. Text attachments always
   render a semantic download link (never the media component). Attachment
   filenames remain internal metadata/download hints and are not displayed.
+  A terminal-**ready** attachment whose injected URL resolver returns no URL (the
+  authorized URL is still settling) renders a neutral loading placeholder — spinner
+  + kind-appropriate generic label (`Image attachment`, …) + `Loading…` (never
+  `Sending…`), no filename — and does NOT mount the media/download renderer until a
+  non-empty authorized URL exists, so no grant-less URL or 403 ever flashes. Sender-
+  only visibility for `pending`/`failed` attachments is unchanged (those keep their
+  `Sending…` / rejected states).
 - The Firebase-client adapter config types (`ChatCoreConfig`,
   `ChatAttachmentConfig`, `ChatUploadAdapter`, `ChatMentionConfig`) and the
   React render types (`MessageRenderer`, `RenderableMentionProvider`,
@@ -87,6 +94,42 @@ for `createRealtimeChatClient`, inbox scope for `createInboxClient`), caches to 
 React Query `staleTime < grant exp`, and returns a FRESH token when re-invoked
 (the 4401 re-grant). Cookie + grant + Origin are validated by the Worker BEFORE
 accept; this client never sees an unauthenticated socket.
+
+**Initial-load tracking.** `ChannelClientState.hasLoadedInitialData` (boolean)
+records whether the FIRST authoritative chat data has been applied, so the UI shows
+an honest working state instead of inferring an empty chat from `messages.length`.
+Transitions (once true it stays true):
+
+| Event | `hasLoadedInitialData` |
+| --- | --- |
+| New client / grant retry / socket open before any snapshot | `false` |
+| Non-resync resume snapshot applied (even an empty delta) | `true` |
+| Resync snapshot (re-page requested) | stays `false` until the history page |
+| First history page (INCLUDING an empty page) | `true` |
+| Later disconnect/reconnect after initial load | stays `true` |
+
+`useRealtimeChatMessages.isInitialLoading` derives from `!hasLoadedInitialData`
+(NOT from `idle`/`connecting` status — a socket can be `open` with no snapshot yet,
+and a post-load reconnect must not fall back into the opening state). While it is
+true, `ChatShell` replaces only the message-list region with an accessible
+`Opening chat…` indicator (spinner, `role="status"`, polite live region) and
+suppresses the reconnect banner so it cannot compete; the header, actions,
+`renderAboveMessages`/`renderBelowMessages`, and footer slots still render. After
+initial load, messages stay mounted through reconnects under the existing
+reconnect/disconnected banner.
+
+**Terminal grant denial (Firebase-free).** A `grantProvider` distinguishes a
+transient mint failure from a terminal access denial by throwing the package-owned
+`ChatAccessDeniedError` (or any error carrying `isChatAccessDenied: true`;
+`isChatAccessDeniedError(err)` recognizes both, cross-realm safe) — the package
+never imports or names Firebase, so the app translates its own backend denial (e.g.
+`functions/permission-denied`) into this class at the grant boundary. A transient
+throw uses the normal reconnect backoff. A terminal `ChatAccessDeniedError` instead
+stops reconnecting, closes the lifecycle, fails any pending optimistic sends, and
+surfaces the stable `access-denied` error code; `useRealtimeChatMessages` maps that
+code to `allowed: false`, so `ChatShell` renders its existing no-access surface
+instead of an eternal loader. `ChatAccessDeniedError` + `isChatAccessDeniedError`
+are exported from the package root.
 
 **Testing.** `socketFactory` + `timers` are injected, so the whole transport is
 unit-tested against a MOCK socket and a fake clock with no real network/timers
