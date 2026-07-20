@@ -1,18 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("firebase-functions/v2/https", () => {
-  class HttpsError extends Error {
-    code: string;
-    constructor(code: string, message: string) {
-      super(message);
-      this.code = code;
-      this.name = "HttpsError";
-    }
-  }
-  return { HttpsError };
-});
-
+// NOTE: there is deliberately NO `vi.mock("firebase-functions/v2/https")` here.
+// assertAuth no longer constructs HttpsError — it throws AuthAssertionError and the
+// consuming app maps it (see authError.ts for why). The only remaining reference to
+// firebase-functions in assertAuth.ts is a TYPE import, which is erased at runtime.
 import { createAssertAuth } from "./assertAuth.js";
+import { AuthAssertionError } from "./authError.js";
 import type { AssertAuthConfig, UserStatus } from "./types.js";
 
 type TestUser = {
@@ -85,6 +78,41 @@ beforeEach(() => {
 });
 
 // --- tests -----------------------------------------------------------------
+
+// REGRESSION GUARD (2026-07-20). assertAuth must throw a plain, framework-free
+// AuthAssertionError — never an HttpsError built inside this package. firebase-functions
+// 7.2.5 ships two distinct HttpsError classes (ESM entry vs the CJS callable runtime), so
+// a package-built HttpsError fails the runtime's `instanceof` check and onCall converts a
+// correct 400 into a 500 INTERNAL. Since assertAuth is the first line of every callable,
+// that silently broke EVERY auth rejection in deployed environments. If someone
+// reintroduces `new HttpsError(...)` here, these assertions fail.
+describe("throws a framework-free typed error (never a package-built HttpsError)", () => {
+  it("rejects with an AuthAssertionError instance carrying the HttpsError code string", async () => {
+    const err = await assertAuth(makeUnauthRequest()).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AuthAssertionError);
+    expect((err as AuthAssertionError).name).toBe("AuthAssertionError");
+    expect((err as AuthAssertionError).code).toBe("unauthenticated");
+  });
+
+  it("does not decorate the error with HttpsError's own shape", async () => {
+    const err = (await assertAuth(makeUnauthRequest()).catch(
+      (e: unknown) => e
+    )) as AuthAssertionError & { httpErrorCode?: unknown; toJSON?: unknown };
+    // `httpErrorCode`/`toJSON` are HttpsError internals — their absence proves the
+    // package is not constructing one, which is the whole point of the fix.
+    expect(err.httpErrorCode).toBeUndefined();
+    expect(err.toJSON).toBeUndefined();
+  });
+
+  it("uses AuthAssertionError for the email-verification rejection too", async () => {
+    const err = await assertAuth(makeRequest({ emailVerified: false }), {
+      emailVerified: true,
+      allowAnyStatus: true,
+    }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AuthAssertionError);
+    expect((err as AuthAssertionError).code).toBe("failed-precondition");
+  });
+});
 
 describe("Authentication", () => {
   it("throws unauthenticated when request.auth is absent", async () => {

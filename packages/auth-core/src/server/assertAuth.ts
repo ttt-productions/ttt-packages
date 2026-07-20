@@ -9,8 +9,8 @@
 //   4. Status check (suspended / banned)
 //   5. Admin check (delegated to config.requireAdmin)
 
-import { HttpsError } from "firebase-functions/v2/https";
 import type { CallableRequest } from "firebase-functions/v2/https";
+import { AuthAssertionError } from "./authError.js";
 import type {
   AssertAuthConfig,
   AssertAuthFn,
@@ -27,7 +27,7 @@ export function createAssertAuth<TUser, TAdmin = void>(
   ): Promise<AuthContext<TUser, TAdmin>> {
     // 1. Authentication check (always first)
     if (!request.auth) {
-      throw new HttpsError("unauthenticated", "You must be authenticated");
+      throw new AuthAssertionError("unauthenticated", "You must be authenticated");
     }
 
     const uid = request.auth.uid;
@@ -39,7 +39,7 @@ export function createAssertAuth<TUser, TAdmin = void>(
       requirements.allowUnverified !== true
     ) {
       if (token.email_verified !== true) {
-        throw new HttpsError("failed-precondition", "Email must be verified");
+        throw new AuthAssertionError("failed-precondition", "Email must be verified");
       }
     }
 
@@ -55,18 +55,18 @@ export function createAssertAuth<TUser, TAdmin = void>(
     // 4. Status check (default: block suspended + banned; skipped if allowAnyStatus)
     if (requirements.allowAnyStatus !== true) {
       if (!userSnap || !userSnap.exists) {
-        throw new HttpsError("not-found", "User profile not found");
+        throw new AuthAssertionError("not-found", "User profile not found");
       }
       const userData = userSnap.data() as TUser;
       const status = config.getUserStatus(userData);
       if (status === "banned") {
-        throw new HttpsError(
+        throw new AuthAssertionError(
           "permission-denied",
           "Account is not in good standing"
         );
       }
       if (status === "suspended" && requirements.allowSuspended !== true) {
-        throw new HttpsError(
+        throw new AuthAssertionError(
           "permission-denied",
           "Account is not in good standing"
         );
