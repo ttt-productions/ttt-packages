@@ -1,19 +1,23 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { InboxClient } from '../../src/realtime/inbox-client.js';
 import { CHAT_CLOSE_CODES, type WireInboxSnapshot } from '../../src/realtime/wire.js';
+import { ChatAccessDeniedError } from '../../src/realtime/shared.js';
 import { createMockSocketHarness, createFakeClock } from './mock-socket.js';
 
-function makeInbox() {
+function makeInbox(overrides?: { grantProvider?: () => Promise<string> }) {
   const harness = createMockSocketHarness();
   const clock = createFakeClock();
   let grantSeq = 0;
+  const grantProvider =
+    overrides?.grantProvider ??
+    (() => {
+      grantSeq += 1;
+      return Promise.resolve(`inbox-grant-${grantSeq}`);
+    });
   const client = new InboxClient({
     endpoint: 'wss://chat.example',
     currentUserId: 'u-me',
-    grantProvider: () => {
-      grantSeq += 1;
-      return Promise.resolve(`inbox-grant-${grantSeq}`);
-    },
+    grantProvider,
     socketFactory: harness.factory,
     timers: clock,
     reconnect: { baseDelayMs: 100, maxDelayMs: 1000, random: () => 0 },
@@ -156,7 +160,45 @@ describe('InboxClient — auth expiry + revoke', () => {
     s1.serverOpen();
     s1.serverClose(CHAT_CLOSE_CODES.REVOKED, 'revoked');
     expect(client.getState().status).toBe('closed');
+    expect(client.getState().lastErrorCode).toBe('revoked');
     expect(harness.sockets).toHaveLength(1);
+  });
+});
+
+describe('InboxClient — terminal access denial (ChatAccessDeniedError)', () => {
+  it('stops reconnecting, surfaces access-denied, opens no socket, and never re-mints', async () => {
+    const grant = vi.fn().mockRejectedValue(new ChatAccessDeniedError());
+    const { client, harness, clock } = makeInbox({ grantProvider: grant });
+    await client.connect();
+    expect(client.getState().status).toBe('closed');
+    expect(client.getState().lastErrorCode).toBe('access-denied');
+    // Denied at mint → no socket was ever built and no reconnect is scheduled.
+    expect(harness.sockets).toHaveLength(0);
+    // No reconnect loop: the clock advancing does not trigger further mint attempts.
+    clock.tick(60_000);
+    await Promise.resolve();
+    expect(grant).toHaveBeenCalledTimes(1);
+    expect(harness.sockets).toHaveLength(0);
+  });
+
+  it('recognizes a duck-typed access-denial marker (cross-realm safe)', async () => {
+    const grant = vi.fn().mockRejectedValue({ isChatAccessDenied: true });
+    const { client } = makeInbox({ grantProvider: grant });
+    await client.connect();
+    expect(client.getState().status).toBe('closed');
+    expect(client.getState().lastErrorCode).toBe('access-denied');
+  });
+
+  it('a transient grant error still reconnects (not terminal)', async () => {
+    const grant = vi.fn().mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue('inbox-grant-ok');
+    const { client, clock } = makeInbox({ grantProvider: grant });
+    await client.connect();
+    expect(client.getState().status).toBe('reconnecting');
+    expect(client.getState().lastErrorCode).not.toBe('access-denied');
+    clock.tick(200);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(grant).toHaveBeenCalledTimes(2);
   });
 });
 

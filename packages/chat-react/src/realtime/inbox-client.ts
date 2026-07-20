@@ -20,7 +20,7 @@ import {
 } from './wire.js';
 import type { RealtimeSocket, SocketFactory } from './socket.js';
 import type { GrantProvider, TransportTimers, RealtimeStatus } from './shared.js';
-import { defaultTimers } from './shared.js';
+import { defaultTimers, isChatAccessDeniedError } from './shared.js';
 
 export interface InboxClientState {
   status: RealtimeStatus;
@@ -30,6 +30,15 @@ export interface InboxClientState {
   hasUnread: boolean;
   /** The set of channelRefs that currently carry an unread dot (per-row dots). */
   unreadChannelRefs: string[];
+  /**
+   * The last TERMINAL error code (mirrors `ChannelClientState.lastErrorCode`):
+   * `'access-denied'` when the inbox grant provider throws `ChatAccessDeniedError`
+   * (a genuine, terminal policy "no" — e.g. a banned/suspended account), and
+   * `'revoked'` on a 4403 REVOKED close. Null while healthy and across transient
+   * reconnects. The app subscribes to inbox state directly (there is no inbox React
+   * hook in this package), so this stable code is the surface — it invents no new UI.
+   */
+  lastErrorCode: string | null;
 }
 
 export interface InboxClientConfig {
@@ -43,7 +52,7 @@ export interface InboxClientConfig {
   reconnect?: { baseDelayMs?: number; maxDelayMs?: number; maxAttempts?: number | null; random?: () => number };
 }
 
-const INITIAL: InboxClientState = { status: 'idle', registry: [], hasUnread: false, unreadChannelRefs: [] };
+const INITIAL: InboxClientState = { status: 'idle', registry: [], hasUnread: false, unreadChannelRefs: [], lastErrorCode: null };
 
 export class InboxClient {
   private readonly timers: TransportTimers;
@@ -85,7 +94,13 @@ export class InboxClient {
     let grantToken: string;
     try {
       grantToken = await this.config.grantProvider();
-    } catch {
+    } catch (err) {
+      // A TERMINAL access denial (the app translated an authoritative policy "no"
+      // — e.g. Firebase `permission-denied` for a banned/suspended account — into the
+      // package-owned ChatAccessDeniedError) must NOT reconnect: the next mint would
+      // just re-deny, reconnect-looping forever and warning every cycle. Every other
+      // mint failure (network/transient) stays retryable and backs off as before.
+      if (isChatAccessDeniedError(err)) return this.denyAccessTerminally();
       return this.scheduleReconnect();
     }
     if (this.closedByUs) return;
@@ -125,10 +140,24 @@ export class InboxClient {
     if (code === CHAT_CLOSE_CODES.REVOKED) {
       this.closedByUs = true;
       this.controller.close();
-      this.setState({ status: 'closed' });
+      this.setState({ status: 'closed', lastErrorCode: 'revoked' });
       return;
     }
     this.scheduleReconnect();
+  }
+
+  /**
+   * Terminal access denial surfaced by the inbox grant provider
+   * (`ChatAccessDeniedError`). Same terminal posture as the 4403 REVOKED close: mark
+   * closed-by-us, close the reconnect controller, and surface the stable
+   * `access-denied` code. The inbox client tracks NO optimistic/pending sends
+   * (mark-read is fire-and-forget with no local pending state), so — unlike
+   * ChannelClient — there is nothing to fail here; only the lifecycle stops.
+   */
+  private denyAccessTerminally(): void {
+    this.closedByUs = true;
+    this.controller.close();
+    this.setState({ status: 'closed', lastErrorCode: 'access-denied' });
   }
 
   private scheduleReconnect(): void {

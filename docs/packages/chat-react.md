@@ -124,12 +124,25 @@ transient mint failure from a terminal access denial by throwing the package-own
 `isChatAccessDeniedError(err)` recognizes both, cross-realm safe) — the package
 never imports or names Firebase, so the app translates its own backend denial (e.g.
 `functions/permission-denied`) into this class at the grant boundary. A transient
-throw uses the normal reconnect backoff. A terminal `ChatAccessDeniedError` instead
-stops reconnecting, closes the lifecycle, fails any pending optimistic sends, and
-surfaces the stable `access-denied` error code; `useRealtimeChatMessages` maps that
-code to `allowed: false`, so `ChatShell` renders its existing no-access surface
-instead of an eternal loader. `ChatAccessDeniedError` + `isChatAccessDeniedError`
-are exported from the package root.
+throw uses the normal reconnect backoff.
+
+BOTH realtime clients honor the terminal signal in their grant-mint failure path:
+
+- **`ChannelClient`** (per-thread): a terminal `ChatAccessDeniedError` stops
+  reconnecting, closes the lifecycle, fails any pending optimistic sends, and
+  surfaces the stable `access-denied` code on `ChannelClientState.lastErrorCode`.
+  `useRealtimeChatMessages` maps that code to `allowed: false`, so `ChatShell`
+  renders its existing no-access surface instead of an eternal loader.
+- **`InboxClient`** (per-user dock socket): a terminal `ChatAccessDeniedError`
+  likewise stops reconnecting (no forever loop / per-cycle warning for a
+  banned/suspended account) and surfaces `access-denied` on
+  `InboxClientState.lastErrorCode`. The inbox client tracks no pending optimistic
+  sends, so there is nothing to fail; the app subscribes to inbox state directly
+  (there is no inbox React hook in this package), so the stable code is the surface.
+
+Both clients also set `lastErrorCode: 'revoked'` on a 4403 REVOKED close.
+`ChatAccessDeniedError` + `isChatAccessDeniedError` are exported from the package
+root.
 
 **Testing.** `socketFactory` + `timers` are injected, so the whole transport is
 unit-tested against a MOCK socket and a fake clock with no real network/timers
