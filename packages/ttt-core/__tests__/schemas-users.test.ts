@@ -3,6 +3,7 @@ import {
   BecomeArtisanCreatorInputSchema,
   MarkNonUsArtisanInterestInputSchema,
   LookupUserByEmailOrUidInputSchema,
+  UpdateSiteTourPreferenceInputSchema,
 } from '../src/schemas/users';
 import { MAX_USER_SEARCH_QUERY_LENGTH } from '../src/constants/business';
 
@@ -68,6 +69,42 @@ describe('MarkNonUsArtisanInterestInputSchema (non-U.S. artisan waitlist signup)
 
   it('rejects unknown extra fields (schema is .strict())', () => {
     expect(MarkNonUsArtisanInterestInputSchema.safeParse({ country: 'Canada', extra: 1 }).success).toBe(false);
+  });
+});
+
+describe('UpdateSiteTourPreferenceInputSchema (first-visit tour preference writer)', () => {
+  it('accepts deferToday with a valid YYYY-MM-DD local date', () => {
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'deferToday', date: '2026-07-20' }).success).toBe(true);
+  });
+
+  it('rejects deferToday with a malformed / non-YYYY-MM-DD date', () => {
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'deferToday', date: '2026-7-20' }).success).toBe(false);
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'deferToday', date: '07/20/2026' }).success).toBe(false);
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'deferToday', date: 'not-a-date' }).success).toBe(false);
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'deferToday', date: '2026-07-20T00:00:00Z' }).success).toBe(false);
+  });
+
+  it('rejects deferToday without a date (the payload is required for this branch)', () => {
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'deferToday' }).success).toBe(false);
+  });
+
+  it('accepts dismissAutomaticInvites and completeTour with no payload', () => {
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'dismissAutomaticInvites' }).success).toBe(true);
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'completeTour' }).success).toBe(true);
+  });
+
+  it('rejects a client-supplied version on completeTour (the version is server-owned, .strict())', () => {
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'completeTour', version: 1 }).success).toBe(false);
+  });
+
+  it('rejects an unknown action and a missing action', () => {
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'replayTour' }).success).toBe(false);
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('rejects a date payload on the payload-free branches (each branch is .strict())', () => {
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'dismissAutomaticInvites', date: '2026-07-20' }).success).toBe(false);
+    expect(UpdateSiteTourPreferenceInputSchema.safeParse({ action: 'completeTour', extra: 1 }).success).toBe(false);
   });
 });
 

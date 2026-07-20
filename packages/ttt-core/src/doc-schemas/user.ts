@@ -189,6 +189,37 @@ export const UserAgreementsSchema = z.object({
 export type UserAgreements = z.infer<typeof UserAgreementsSchema>;
 
 /**
+ * First-visit site-tour state (account-durable, server-written) stored on
+ * `privateData/{uid}.siteTour`. A missing `siteTour` field means the member has never
+ * handled the tour. Automatic-invitation eligibility is evaluated in this order:
+ *   1. `automaticInvitesDisabledAt` present → never invite automatically ("Don't show
+ *      this again");
+ *   2. `notTodayDate` equals the member's current LOCAL calendar date → do not invite
+ *      that day ("Not today");
+ *   3. `completedVersion` equals `SITE_TOUR_CURRENT_VERSION` → already handled;
+ *   4. otherwise → offer the tour.
+ * Written ONLY by the `updateSiteTourPreference` callable via the Admin SDK; never
+ * client-written. `notTodayDate` is a strict `YYYY-MM-DD` local-date string (same
+ * date-string convention as the age cluster's `attestedDateOfBirth`). See
+ * docs/design/landing-backstage-guide-and-first-visit-plan.md §10.
+ */
+export const UserSiteTourStateSchema = z.object({
+  // The tour version the member completed. The callable stamps SITE_TOUR_CURRENT_VERSION
+  // server-side at completion (the version is server-owned, never client-supplied);
+  // absent until a completion is recorded.
+  completedVersion: z.number().int().optional(),
+  // Epoch ms when the tour was completed.
+  completedAt: z.number().optional(),
+  // The member's LOCAL calendar date (YYYY-MM-DD) recorded by "Not today"; the automatic
+  // invitation is suppressed for exactly that date, then offered again on a later date.
+  notTodayDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), // 'YYYY-MM-DD'
+  // Epoch ms when the member chose "Don't show this again" (permanent automatic-invite
+  // dismissal). Manual replay from Help ignores this without clearing it.
+  automaticInvitesDisabledAt: z.number().optional(),
+});
+export type UserSiteTourState = z.infer<typeof UserSiteTourStateSchema>;
+
+/**
  * Owner-only account state at `userProfiles/{uid}/privateData/{uid}` (readable
  * only by the owner; never mirrored to publicUsers).
  */
@@ -220,6 +251,10 @@ export const UserPrivateDataSchema = z.object({
   // acceptHallDownloadAcknowledgement callable; gates the Hall download button.
   hallDownloadAcknowledgedAt: z.number().optional(),
   agreements: UserAgreementsSchema.optional(),
+  // First-visit site-tour state (account-durable; the SOLE authority for tour
+  // eligibility — no local-storage cache/mirror). Absent = never handled. Written only
+  // by the updateSiteTourPreference callable. See UserSiteTourStateSchema above.
+  siteTour: UserSiteTourStateSchema.optional(),
   // Moderation: human-readable reason for the current account status (set when an
   // admin suspends/bans the user). Written by the setUserStatus callable via the
   // Admin SDK; readable only by the owner (shown in their restricted view).

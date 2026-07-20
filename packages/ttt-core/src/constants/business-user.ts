@@ -53,3 +53,15 @@ export const MAX_HISTORY_ITEMS = 10;
 
 /** Maximum number of results returned by the search hook. */
 export const SEARCH_RESULT_LIMIT = 6;
+
+// --- First-visit site tour ---
+
+/**
+ * Current first-visit site-tour version. The `updateSiteTourPreference` callable stamps
+ * this onto `privateData.siteTour.completedVersion` at completion, and the landing
+ * eligibility check suppresses the automatic invitation while a member's
+ * `completedVersion` equals it. Bump when the permanent-shell-controls tour changes
+ * enough to re-invite every member. See
+ * docs/design/landing-backstage-guide-and-first-visit-plan.md §10.
+ */
+export const SITE_TOUR_CURRENT_VERSION = 1;

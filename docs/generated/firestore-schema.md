@@ -2185,6 +2185,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `squareStreetzAgreementsDate` | `number` | yes |
 | `hallDownloadAcknowledgedAt` | `number` | yes |
 | `agreements` | `{ age, nudity, meet, cookies, terms, agreedOn }` | yes |
+| `siteTour` | `{ completedVersion, completedAt, notTodayDate, automaticInvitesDisabledAt }` | yes |
 | `statusReason` | `string` | yes |
 | `statusReasonAt` | `number` | yes |
 | `safetyLocked` | `boolean` | yes |

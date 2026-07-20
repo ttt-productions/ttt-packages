@@ -33,3 +33,18 @@ export const COMPANION_CHANGE_EVENT = 'ttt-company-companion-change';
 /** Same-tab window event dispatched when the transient dock-puppet pose changes
  *  (in-memory store; never persisted). */
 export const MASCOT_POSE_CHANGE_EVENT = 'ttt-bill-pose-change';
+
+// --- Manual reduced-motion House control (device-local) ---
+// Independent of the companion visibility store above: reducing motion does not hide the
+// companion, and hiding the companion does not change motion. Effective reduced motion is
+// (the device's prefers-reduced-motion request) OR (this manual preference); the device
+// request always wins. Device-local BY DESIGN — never mirrored to Firestore or the private
+// user document (unlike the account-durable site-tour state).
+
+/** localStorage key: 'true' when the member has manually enabled TTT's app-wide
+ *  reduced-motion preference (the "Motion: Full / Reduced" House control). */
+export const REDUCED_MOTION_STORAGE_KEY = 'ttt-reduced-motion';
+
+/** Same-tab window event dispatched when REDUCED_MOTION_STORAGE_KEY changes (localStorage
+ *  'storage' events do not fire in the writing tab), mirroring COMPANION_CHANGE_EVENT. */
+export const REDUCED_MOTION_CHANGE_EVENT = 'ttt-reduced-motion-change';

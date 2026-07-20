@@ -54,6 +54,31 @@ export type BecomeArtisanCreatorInput = z.infer<typeof BecomeArtisanCreatorInput
 export const MarkWaitingForNewsApprovalInputSchema = z.object({}).strict();
 export type MarkWaitingForNewsApprovalInput = z.infer<typeof MarkWaitingForNewsApprovalInputSchema>;
 
+// First-visit site-tour preference writer (updateSiteTourPreference). This is the ONE
+// server writer for `privateData/{uid}.siteTour`; the client never writes tour state
+// directly. Discriminated on `action`:
+//  - deferToday: records the member's LOCAL calendar `date` ("Not today"); the automatic
+//    invitation is suppressed for exactly that date.
+//  - dismissAutomaticInvites: records the permanent "Don't show this again" time; no payload.
+//  - completeTour: records completion; the callable stamps SITE_TOUR_CURRENT_VERSION and
+//    completedAt server-side, so no version is accepted from the client (mirrors the
+//    acknowledgement callables that record the authoritative value server-side rather than
+//    trusting a client-supplied one). Bump SITE_TOUR_CURRENT_VERSION to re-invite everyone.
+// `date` uses the same strict YYYY-MM-DD convention as the age cluster's attestedDateOfBirth.
+export const UpdateSiteTourPreferenceInputSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('deferToday'),
+    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // 'YYYY-MM-DD' (member's LOCAL calendar date)
+  }).strict(),
+  z.object({
+    action: z.literal('dismissAutomaticInvites'),
+  }).strict(),
+  z.object({
+    action: z.literal('completeTour'),
+  }).strict(),
+]);
+export type UpdateSiteTourPreferenceInput = z.infer<typeof UpdateSiteTourPreferenceInputSchema>;
+
 // Non-U.S. artisan-interest signup (the FCFS "waitlist" fields on privateData). Mirrors
 // MarkWaitingForNewsApproval but carries the applicant's country (+ optional region) so signups
 // can be opened by jurisdiction as each region's laws clear. The callable records it ONLY for
