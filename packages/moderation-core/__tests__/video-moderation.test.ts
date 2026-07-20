@@ -17,7 +17,11 @@ vi.mock('@google-cloud/video-intelligence', () => ({
   },
 }));
 
-import { moderateVideo, __resetDefaultVideoClient } from '../src/server/video-moderation.js';
+import {
+  moderateVideo,
+  DEFAULT_VIDEO_POLL_BACKOFF,
+  __resetDefaultVideoClient,
+} from '../src/server/video-moderation.js';
 
 beforeEach(() => {
   __resetDefaultVideoClient();
@@ -77,5 +81,54 @@ describe('moderateVideo', () => {
       getClient: async () => mockClient as never,
     });
     expect(result.safe).toBe(true);
+  });
+
+  it('passes the default longrunning poll backoff to annotateVideo', async () => {
+    const mockClient = {
+      annotateVideo: vi.fn().mockResolvedValue([{
+        promise: () => Promise.resolve([{
+          annotationResults: [{ explicitAnnotation: { frames: [] } }],
+        }]),
+      }]),
+    };
+    await moderateVideo('gs://bucket/video.mp4', {
+      rejectionLikelihoods,
+      getClient: async () => mockClient as never,
+    });
+    expect(mockClient.annotateVideo).toHaveBeenCalledWith(
+      expect.objectContaining({ inputUri: 'gs://bucket/video.mp4' }),
+      {
+        longrunning: {
+          initialRetryDelayMillis: DEFAULT_VIDEO_POLL_BACKOFF.initialDelayMillis,
+          retryDelayMultiplier: DEFAULT_VIDEO_POLL_BACKOFF.delayMultiplier,
+          maxRetryDelayMillis: DEFAULT_VIDEO_POLL_BACKOFF.maxDelayMillis,
+        },
+      },
+    );
+  });
+
+  it('honors a pollBackoff override', async () => {
+    const mockClient = {
+      annotateVideo: vi.fn().mockResolvedValue([{
+        promise: () => Promise.resolve([{
+          annotationResults: [{ explicitAnnotation: { frames: [] } }],
+        }]),
+      }]),
+    };
+    await moderateVideo('gs://bucket/video.mp4', {
+      rejectionLikelihoods,
+      getClient: async () => mockClient as never,
+      pollBackoff: { initialDelayMillis: 5000, delayMultiplier: 2, maxDelayMillis: 30000 },
+    });
+    expect(mockClient.annotateVideo).toHaveBeenCalledWith(
+      expect.anything(),
+      {
+        longrunning: {
+          initialRetryDelayMillis: 5000,
+          retryDelayMultiplier: 2,
+          maxRetryDelayMillis: 30000,
+        },
+      },
+    );
   });
 });

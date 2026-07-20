@@ -11,10 +11,29 @@ import type {
 
 import type { VideoIntelligenceServiceClient } from "@google-cloud/video-intelligence";
 
+/** Poll cadence for the annotateVideo long-running operation. */
+export interface VideoPollBackoff {
+  initialDelayMillis: number;
+  delayMultiplier: number;
+  maxDelayMillis: number;
+}
+
+/**
+ * Without an explicit `longrunning` backoff, gax polls the operation starting at
+ * 100ms (×1.3), which burns ~20 'Requests per minute' of Video Intelligence quota
+ * per video. Scans take tens of seconds, so the first poll waits 10s.
+ */
+export const DEFAULT_VIDEO_POLL_BACKOFF: VideoPollBackoff = {
+  initialDelayMillis: 10_000,
+  delayMultiplier: 1.5,
+  maxDelayMillis: 60_000,
+};
+
 export interface VideoModerationOptions {
   rejectionLikelihoods: ReadonlySet<string>;
   logger?: ModerationLogger;
   getClient?: () => Promise<VideoIntelligenceServiceClient>;
+  pollBackoff?: VideoPollBackoff;
 }
 
 let _defaultClient: VideoIntelligenceServiceClient | null = null;
@@ -41,12 +60,22 @@ export async function moderateVideo(
   const { protos } = await import("@google-cloud/video-intelligence");
   const client = await getClient();
 
-  const [operation] = await client.annotateVideo({
-    inputUri: gcsUri,
-    features: [
-      protos.google.cloud.videointelligence.v1.Feature.EXPLICIT_CONTENT_DETECTION,
-    ],
-  });
+  const pollBackoff = options.pollBackoff ?? DEFAULT_VIDEO_POLL_BACKOFF;
+  const [operation] = await client.annotateVideo(
+    {
+      inputUri: gcsUri,
+      features: [
+        protos.google.cloud.videointelligence.v1.Feature.EXPLICIT_CONTENT_DETECTION,
+      ],
+    },
+    {
+      longrunning: {
+        initialRetryDelayMillis: pollBackoff.initialDelayMillis,
+        retryDelayMultiplier: pollBackoff.delayMultiplier,
+        maxRetryDelayMillis: pollBackoff.maxDelayMillis,
+      },
+    },
+  );
 
   const [result] = await operation.promise();
   const annotation = result.annotationResults?.[0];

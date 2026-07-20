@@ -6,9 +6,13 @@ export type { ImageModerationOptions } from "./image-moderation.js";
 
 export {
   moderateVideo,
+  DEFAULT_VIDEO_POLL_BACKOFF,
   __resetDefaultVideoClient,
 } from "./video-moderation.js";
-export type { VideoModerationOptions } from "./video-moderation.js";
+export type {
+  VideoModerationOptions,
+  VideoPollBackoff,
+} from "./video-moderation.js";
 
 export {
   moderateText,
