@@ -1,4 +1,5 @@
 import type { ServerFirestore, ServerReportCoreConfig, OnAuditEvent } from './types.js';
+import { ReportCoreTaskError } from './taskError.js';
 import type { ReleaseTaskRequest } from '../schemas/index.js';
 
 export interface ReleaseTaskHandlerConfig {
@@ -37,14 +38,23 @@ export function createReleaseTaskHandler({
       const taskDoc = await transaction.get(taskRef);
 
       if (!taskDoc.exists) {
-        throw new Error('Task not found.');
+        throw new ReportCoreTaskError('not-found', 'Task not found.');
       }
 
       const taskData = taskDoc.data()!;
       const checkoutDetails = taskData.checkoutDetails as Record<string, unknown> | null;
 
-      if (!checkoutDetails || checkoutDetails.userId !== userId) {
-        throw new Error('You do not have this task checked out.');
+      // Idempotent no-op: no live checkout means the caller's goal state already
+      // holds (the checkout lapsed/expired, an earlier release landed, or the task
+      // was resolved). Throwing here surfaced as a spurious 'internal' 500 to
+      // clients draining stale checkout cards whose server-side checkout had
+      // already lapsed (live: TTT hosted-dev admin drain, 2026-07-20). A checkout
+      // held by ANOTHER admin is still a real conflict and still throws.
+      if (!checkoutDetails) {
+        return { success: true };
+      }
+      if (checkoutDetails.userId !== userId) {
+        throw new ReportCoreTaskError('failed-precondition', 'You do not have this task checked out.');
       }
 
       transaction.update(taskRef, {

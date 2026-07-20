@@ -5,6 +5,7 @@ import type {
   OnAuditEvent,
   ServerDocRef,
 } from './types.js';
+import { ReportCoreTaskError } from './taskError.js';
 import type { CheckoutTaskRequest } from '../schemas/index.js';
 
 export interface CheckoutTaskHandlerConfig {
@@ -58,7 +59,7 @@ export function createCheckoutTaskHandler({
     // Fallback to hardcoded list
     if (auth.adminUserIds?.includes(uid)) return;
 
-    throw new Error('Administrator access required');
+    throw new ReportCoreTaskError('permission-denied', 'Administrator access required');
   };
 
   return async (
@@ -72,7 +73,7 @@ export function createCheckoutTaskHandler({
 
     const queueConfig = config.taskQueues[taskType];
     if (!queueConfig) {
-      throw new Error('Invalid task type specified.');
+      throw new ReportCoreTaskError('invalid-argument', 'Invalid task type specified.');
     }
 
     /**
@@ -93,7 +94,7 @@ export function createCheckoutTaskHandler({
 
         if (!taskDoc.exists) {
           if (opts.onConflict === 'skip') return null;
-          throw new Error('The requested task could not be found.');
+          throw new ReportCoreTaskError('not-found', 'The requested task could not be found.');
         }
 
         const taskData = taskDoc.data()!;
@@ -116,10 +117,10 @@ export function createCheckoutTaskHandler({
         if (status !== 'pending' && !stealableExpired) {
           if (opts.onConflict === 'skip') return null;
           if (lockActive) {
-            throw new Error('This task is already checked out by another admin.');
+            throw new ReportCoreTaskError('failed-precondition', 'This task is already checked out by another admin.');
           }
           // completed / resolved / unknown terminal — nothing to check out.
-          throw new Error('This task has already been resolved.');
+          throw new ReportCoreTaskError('failed-precondition', 'This task has already been resolved.');
         }
         if (opts.onConflict === 'skip' && lockActive) {
           // Queue candidate stolen between the query and this transaction.
@@ -225,13 +226,13 @@ export function createCheckoutTaskHandler({
       }
 
       if (!candidateRef) {
-        throw new Error('No available tasks in this queue.');
+        throw new ReportCoreTaskError('not-found', 'No available tasks in this queue.');
       }
 
       const result = await claimTask(candidateRef, { onConflict: 'skip' });
       if (result) return result;
     }
 
-    throw new Error('The task queue is busy right now — please try again.');
+    throw new ReportCoreTaskError('aborted', 'The task queue is busy right now — please try again.');
   };
 }

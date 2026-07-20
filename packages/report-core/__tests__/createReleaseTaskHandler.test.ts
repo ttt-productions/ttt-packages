@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createReleaseTaskHandler } from '../src/server/createReleaseTaskHandler';
+import { ReportCoreTaskError } from '../src/server/taskError';
 import type { ServerReportCoreConfig } from '../src/server/types';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
@@ -106,6 +107,50 @@ describe('createReleaseTaskHandler', () => {
     await expect(handler({ taskId: 'task1' }, { uid: 'admin1' })).rejects.toThrow(
       'do not have this task checked out',
     );
+  });
+
+  it('typed codes: not-found for a missing task, failed-precondition for a foreign checkout', async () => {
+    // Expected outcomes carry an HttpsError-shaped code (taskError.ts) so the
+    // consuming callable maps them 1:1 instead of surfacing a 500 'internal'.
+    const { db: emptyDb } = createMockDb(null);
+    const notFound = await createReleaseTaskHandler({ config: TEST_CONFIG, db: emptyDb })(
+      { taskId: 'task1' }, { uid: 'admin1' },
+    ).catch((e) => e);
+    expect(notFound).toBeInstanceOf(ReportCoreTaskError);
+    expect(notFound.code).toBe('not-found');
+
+    const { db: foreignDb } = createMockDb({
+      taskType: 'userReport',
+      taskId: 'group1',
+      status: 'checkedOut',
+      checkoutDetails: { userId: 'other-admin', checkedOutAt: Date.now() - 1000 },
+    });
+    const foreign = await createReleaseTaskHandler({ config: TEST_CONFIG, db: foreignDb })(
+      { taskId: 'task1' }, { uid: 'admin1' },
+    ).catch((e) => e);
+    expect(foreign).toBeInstanceOf(ReportCoreTaskError);
+    expect(foreign.code).toBe('failed-precondition');
+  });
+
+  it('IDEMPOTENT: no live checkout → success no-op (no write, no audit event)', async () => {
+    // A lapsed/expired checkout (or an earlier release/resolve) already put the
+    // task in the caller's goal state; throwing here surfaced as a spurious
+    // 'internal' 500 to clients draining stale checkout cards (live 2026-07-20).
+    const taskData = {
+      taskType: 'stakeShareAnomaly',
+      taskId: 'group1',
+      status: 'pending',
+      checkoutDetails: null,
+    };
+    const { db, updates } = createMockDb(taskData);
+    const onAuditEvent = vi.fn();
+    const handler = createReleaseTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
+
+    const result = await handler({ taskId: 'task1' }, { uid: 'admin1' });
+
+    expect(result).toEqual({ success: true });
+    expect(updates).toHaveLength(0);
+    expect(onAuditEvent).not.toHaveBeenCalled();
   });
 
   it('writes no adminActivityLog doc (auditEvents is the canonical trail)', async () => {

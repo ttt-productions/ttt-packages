@@ -4,6 +4,7 @@ import type {
   AdminAuthConfig,
   OnAuditEvent,
 } from './types.js';
+import { ReportCoreTaskError } from './taskError.js';
 
 export interface CheckoutNextImportantHandlerConfig {
   config: ServerReportCoreConfig;
@@ -44,7 +45,7 @@ export function createCheckoutNextImportantHandler({
       }
     }
     if (auth.adminUserIds?.includes(uid)) return;
-    throw new Error('Administrator access required');
+    throw new ReportCoreTaskError('permission-denied', 'Administrator access required');
   };
 
   return async (
@@ -65,7 +66,7 @@ export function createCheckoutNextImportantHandler({
         .get();
 
       if (snapshot.empty) {
-        throw new Error('No pending tasks available! All caught up! 🎉');
+        throw new ReportCoreTaskError('not-found', 'No pending tasks available! All caught up! 🎉');
       }
 
       const candidateRef = snapshot.docs[0].ref;
@@ -139,6 +140,6 @@ export function createCheckoutNextImportantHandler({
       if (result) return result;
     }
 
-    throw new Error('The task queue is busy right now — please try again.');
+    throw new ReportCoreTaskError('aborted', 'The task queue is busy right now — please try again.');
   };
 }

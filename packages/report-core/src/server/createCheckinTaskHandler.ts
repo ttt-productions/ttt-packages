@@ -1,4 +1,5 @@
 import type { ServerFirestore, ServerReportCoreConfig, OnAuditEvent } from './types.js';
+import { ReportCoreTaskError } from './taskError.js';
 import type { CheckinTaskRequest } from '../schemas/index.js';
 
 export interface CheckinTaskHandlerConfig {
@@ -52,7 +53,7 @@ export function createCheckinTaskHandler({
       const checkoutDetails = taskData.checkoutDetails as Record<string, unknown> | null;
 
       if (!checkoutDetails || checkoutDetails.userId !== userId) {
-        throw new Error('You do not have this task checked out.');
+        throw new ReportCoreTaskError('failed-precondition', 'You do not have this task checked out.');
       }
 
       const timeSpentMinutes = Math.round(

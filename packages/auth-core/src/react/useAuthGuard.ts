@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export interface AuthGuardConfig {
   /** Routes accessible without authentication */
@@ -49,8 +49,22 @@ export function useAuthGuard(config: AuthGuardConfig): void {
     isAuthenticated,
   } = config;
 
+  // The auth-route redirect below is SINGLE-SHOT per auth-route visit. That branch
+  // CONSUMES redirectKey and issues a navigation, but the navigation commits
+  // asynchronously (the router fetches the target route first), so this effect can
+  // legitimately re-run while pathname still reads the auth route (an auth-state
+  // re-render, a loading flap). A re-run then finds the key already gone and
+  // re-replaces to defaultRoute, CLOBBERING the in-flight saved-path navigation
+  // (live: TTT hosted path 13 MISC-51 — a /v share-link login landed on /landing).
+  // The latch resets whenever the pathname is off the auth-route set.
+  const authRouteRedirected = useRef(false);
+
   useEffect(() => {
     if (loading) return;
+
+    if (!authRedirectRoutes.includes(pathname)) {
+      authRouteRedirected.current = false;
+    }
 
     // Root path special handling
     if (rootRedirect && pathname === "/") {
@@ -73,6 +87,8 @@ export function useAuthGuard(config: AuthGuardConfig): void {
 
     // Authenticated user on auth-only route (login, register, etc.)
     if (isAuthenticated && isAuthRedirect) {
+      if (authRouteRedirected.current) return;
+      authRouteRedirected.current = true;
       let target = defaultRoute;
       if (typeof window !== "undefined") {
         const saved = localStorage.getItem(redirectKey);
