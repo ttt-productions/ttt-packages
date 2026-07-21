@@ -118,7 +118,14 @@ export const CHARTER_LIMITS: TttLimits = {
     // 10-15 legitimate sensitive actions; 5/h blocked the intended golden path
     // (proven live by the hosted-dev E2E, 2026-07-07). DJ ruling 2026-07-08.
     SENSITIVE_ACTION: { maxRequests: 30, window: '1 h' },
-    DISPLAY_NAME_CHECK: { maxRequests: 20, window: '1 h' },
+    // 120/h (charter): checkDisplayNameAvailable is enforceAppCheck:true, so
+    // reCAPTCHA-Enterprise attestation is the real abuse gate — this bucket is a
+    // cost/DoS ceiling, not the security boundary. It is IP-keyed (pre-registration,
+    // no uid yet) and the register form fires it debounced-LIVE as you type, so one
+    // legit registrant spends ~3-8 checks and shared NAT/CGNAT multiplies that across
+    // everyone on the IP. The old 20/h false-rejected legitimate shared-IP users and
+    // could not fit a full hosted-dev E2E suite run on one IP. DJ ruling 2026-07-21.
+    DISPLAY_NAME_CHECK: { maxRequests: 120, window: '1 h' },
     CHAT_MESSAGE: { maxRequests: 125, window: '1 h' },
     ADMIN_TASK: { maxRequests: 60, window: '1 h' },
     APPEAL_REVIEW: { maxRequests: 30, window: '1 h' },
@@ -178,7 +185,13 @@ export const FULL_LIMITS: TttLimits = {
     // DJ ruling 2026-07-08 (charter 30 / full 60, single bucket; a bucket split
     // is filed post-launch in ttt-prod docs/post-launch/).
     SENSITIVE_ACTION: { maxRequests: 60, window: '1 h' },
-    DISPLAY_NAME_CHECK: { maxRequests: 20, window: '1 h' },
+    // 300/h (full): same reasoning as the charter value above (App-Check-gated
+    // cost ceiling, IP-keyed, debounced-live). Public-launch CGNAT exposure is far
+    // larger — hundreds of concurrent legit registrants can sit behind one carrier
+    // IP — so err generous; the only cost of "too high" is trivial Firestore reads,
+    // while "too low" false-rejects real users. Raise on evidence (watch prod logs
+    // for legit 429s) rather than pre-emptively tightening. DJ ruling 2026-07-21.
+    DISPLAY_NAME_CHECK: { maxRequests: 300, window: '1 h' },
     CHAT_MESSAGE: { maxRequests: 150, window: '1 h' },
     ADMIN_TASK: { maxRequests: 60, window: '1 h' },
     APPEAL_REVIEW: { maxRequests: 30, window: '1 h' },
