@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/chat-schemas",
-    "version": "0.9.2",
+    "version": "0.9.3",
     "description": "Pure Zod schemas for chat message wire shapes: ChatAttachmentSchema, ReplyToSchema. Tier 0 — consumed by both chat-core (UI) and ttt-core (callable composition) without forcing the chat UI dep graph on backend / schema callers.",
     "repository": {
         "type": "git",
