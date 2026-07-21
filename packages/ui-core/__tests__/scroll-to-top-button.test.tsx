@@ -111,3 +111,49 @@ describe('ScrollToTopButton — rest-prop passthrough', () => {
     expect(btn.className).toContain('rounded-full');
   });
 });
+
+// ---------------------------------------------------------------------------
+// scrollBehavior prop — the JS `behavior` passed to window.scrollTo is
+// configurable. Default is "smooth" (zero behavior change for existing
+// consumers); passing "auto" lets a consumer's reduced-motion mode disable the
+// animation, which a CSS `scroll-behavior` kill-switch cannot do against an
+// explicit JS `behavior: "smooth"`. The package itself stays motion-agnostic.
+// ---------------------------------------------------------------------------
+
+describe('ScrollToTopButton — scrollBehavior', () => {
+  it('defaults to smooth scroll when scrollBehavior is not provided', () => {
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    try {
+      render(<ScrollToTopButton />);
+      const btn = screen.getByRole('button', { name: 'Scroll to top' });
+      fireEvent.click(btn);
+      expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    } finally {
+      scrollToSpy.mockRestore();
+    }
+  });
+
+  it('passes behavior "auto" through to window.scrollTo when scrollBehavior="auto"', () => {
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    try {
+      render(<ScrollToTopButton scrollBehavior="auto" />);
+      const btn = screen.getByRole('button', { name: 'Scroll to top' });
+      fireEvent.click(btn);
+      expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'auto' });
+    } finally {
+      scrollToSpy.mockRestore();
+    }
+  });
+
+  it('forwards an explicit scrollBehavior="smooth" unchanged', () => {
+    const scrollToSpy = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    try {
+      render(<ScrollToTopButton scrollBehavior="smooth" />);
+      const btn = screen.getByRole('button', { name: 'Scroll to top' });
+      fireEvent.click(btn);
+      expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    } finally {
+      scrollToSpy.mockRestore();
+    }
+  });
+});
