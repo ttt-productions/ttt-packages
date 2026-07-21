@@ -5,12 +5,27 @@ import { ChevronUp } from "lucide-react";
 import { Button, type ButtonProps } from "./button.js";
 import { cn } from "../../lib/utils.js";
 
-export interface ScrollToTopButtonProps {
+/**
+ * Standard button DOM props forwarded to the rendered element, minus the props
+ * this component owns. Owned props are excluded (not just overridden) so a
+ * consumer can never route them through the passthrough channel: `aria-label`
+ * is set via {@link ScrollToTopButtonProps.ariaLabel}, extra classes via the
+ * merge-aware {@link ScrollToTopButtonProps.className}, content via
+ * {@link ScrollToTopButtonProps.icon}, and `onClick` is fixed to scroll-to-top.
+ * This mirrors how the sibling `Button` destructures its owned `className` out
+ * of the forwarded `...props`.
+ */
+type ScrollToTopButtonPassthrough = Omit<
+  React.ComponentPropsWithoutRef<"button">,
+  "className" | "onClick" | "aria-label" | "children"
+>;
+
+export interface ScrollToTopButtonProps extends ScrollToTopButtonPassthrough {
   /** Scroll threshold (px) before the button appears. Default 400. */
   threshold?: number;
   /** Aria label. Default "Scroll to top". */
   ariaLabel?: string;
-  /** Optional extra classes for the button. */
+  /** Optional extra classes for the button. Merged with the component's own classes. */
   className?: string;
   /** Optional override for the icon. */
   icon?: React.ReactNode;
@@ -27,6 +42,7 @@ export function ScrollToTopButton({
   icon,
   variant,
   size = "icon",
+  ...rest
 }: ScrollToTopButtonProps) {
   const [isVisible, setIsVisible] = React.useState(false);
 
@@ -41,6 +57,7 @@ export function ScrollToTopButton({
 
   return (
     <Button
+      {...rest}
       variant={variant}
       size={size}
       onClick={onClick}

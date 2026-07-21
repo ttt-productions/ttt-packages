@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import { ScrollToTopButton } from '../src/react/components/scroll-to-top-button';
 
 beforeEach(() => {
@@ -60,5 +60,54 @@ describe('ScrollToTopButton', () => {
     const lgBtn = screen.getByRole('button', { name: 'Scroll to top' });
     // Button's size="lg" => h-11
     expect(lgBtn.className).toContain('h-11');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Rest-prop passthrough (…rest) — arbitrary button DOM props reach the element,
+// and the component's owned semantics (aria-label, scroll onClick, own classes)
+// survive alongside them. Owned props win: they are Omitted from the passthrough
+// type AND applied after the {...rest} spread, so nothing can clobber them.
+// ---------------------------------------------------------------------------
+
+describe('ScrollToTopButton — rest-prop passthrough', () => {
+  it('forwards an arbitrary data-* attribute through to the rendered button', () => {
+    render(<ScrollToTopButton data-tour-anchor="scroll-top" />);
+    const btn = screen.getByRole('button', { name: 'Scroll to top' });
+    expect(btn).toHaveAttribute('data-tour-anchor', 'scroll-top');
+  });
+
+  it('forwards a standard button attribute (id) alongside the component classes', () => {
+    render(<ScrollToTopButton id="to-top" />);
+    const btn = screen.getByRole('button', { name: 'Scroll to top' });
+    expect(btn).toHaveAttribute('id', 'to-top');
+    // Component's own positioning class is still applied.
+    expect(btn.className).toContain('fixed');
+  });
+
+  it("preserves the component's own aria-label and scroll onClick when passthrough props are supplied", () => {
+    const scrollToSpy = vi
+      .spyOn(window, 'scrollTo')
+      .mockImplementation(() => {});
+    try {
+      render(<ScrollToTopButton data-tour-anchor="scroll-top" />);
+      // Owned aria-label survives — still queryable by its default accessible name.
+      const btn = screen.getByRole('button', { name: 'Scroll to top' });
+      // Owned onClick survives — clicking still triggers the smooth scroll-to-top.
+      fireEvent.click(btn);
+      expect(scrollToSpy).toHaveBeenCalledWith({ top: 0, behavior: 'smooth' });
+    } finally {
+      scrollToSpy.mockRestore();
+    }
+  });
+
+  it('merges a consumer className rather than replacing the component classes', () => {
+    render(<ScrollToTopButton className="my-anchor-class" />);
+    const btn = screen.getByRole('button', { name: 'Scroll to top' });
+    // Consumer class is present...
+    expect(btn).toHaveClass('my-anchor-class');
+    // ...and the component's own classes are still there (merged, not replaced).
+    expect(btn.className).toContain('fixed');
+    expect(btn.className).toContain('rounded-full');
   });
 });
