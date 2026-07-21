@@ -58,10 +58,101 @@ export const SERVER_KINDS = {
   SNAPSHOT: 'snapshot',
   ERROR: 'error',
   REVISION: 'revision',
+  /**
+   * A CORRELATED send rejection: every valid `send` frame now receives either an
+   * `ack` (accepted/duplicate) or a `send-rejected` naming the SAME
+   * `clientMessageId`. Additive v1 frame kind — a client that predates it simply
+   * ignores an unknown server frame type (forward-compat), so no version bump is
+   * needed. The payload is {@link ChatSendRejectedPayloadSchema}. Distinct from the
+   * generic `error` frame, which stays uncorrelated (no trustworthy id).
+   */
+  SEND_REJECTED: 'send-rejected',
 } as const;
 
 /** A server→client frame `type` value. */
 export type ServerFrameKind = (typeof SERVER_KINDS)[keyof typeof SERVER_KINDS];
+
+// ---- correlated send-rejection contract (SERVER_KINDS.SEND_REJECTED payload) ----
+
+/**
+ * The canonical, closed set of reasons a `send` frame can be rejected with a
+ * correlated {@link SERVER_KINDS.SEND_REJECTED} frame. Ordered list so both the
+ * validator (`z.enum`) and the retryability table below derive from ONE source.
+ *
+ * Generic protocol errors (`bad-envelope`, `bad-send`, `unknown-type`, …) are
+ * deliberately NOT in this list: they stay uncorrelated `error` frames because no
+ * trustworthy `clientMessageId` may have been parsed yet.
+ */
+export const CHAT_SEND_REJECTION_CODES = [
+  'membership-pending',
+  'archived',
+  'deleted',
+  'wordlist-unavailable',
+  'blocked-word',
+  'flood',
+  'slow-mode',
+] as const;
+
+/** A correlated send-rejection reason code. */
+export type ChatSendRejectionCode = (typeof CHAT_SEND_REJECTION_CODES)[number];
+
+/**
+ * Canonical retryability classification per code — the single source of truth for
+ * whether re-sending the SAME message can ever succeed. The frame carries
+ * `retryable` on the wire, but it MUST agree with this table (the schema below
+ * enforces it), so a runtime cannot mis-declare a terminal code as retryable.
+ *
+ * - `membership-pending` — the DO member row has not synced; a resend after the
+ *   bootstrap/projection lands succeeds. Retryable.
+ * - `wordlist-unavailable` — fail-closed moderation dependency not yet loaded;
+ *   retryable once it loads.
+ * - `flood` / `slow-mode` — rate limited; retryable after `retryAfterMs`.
+ * - `archived` / `deleted` — the channel is not writable; an unchanged resend
+ *   cannot succeed. Terminal.
+ * - `blocked-word` — the text itself is disallowed; re-sending it verbatim cannot
+ *   succeed. Terminal.
+ */
+export const CHAT_SEND_REJECTION_RETRYABLE: Record<ChatSendRejectionCode, boolean> = {
+  'membership-pending': true,
+  'wordlist-unavailable': true,
+  'flood': true,
+  'slow-mode': true,
+  'archived': false,
+  'deleted': false,
+  'blocked-word': false,
+};
+
+/**
+ * The payload of a correlated {@link SERVER_KINDS.SEND_REJECTED} frame. The client
+ * receives untrusted JSON, so this Zod schema is the parse boundary (the Worker
+ * already validates inbound payloads with Zod; the contract owner keeps the code
+ * list, type, and validator together).
+ *
+ * - `clientMessageId` — echoes the validated id of the rejected send (non-empty,
+ *   bounded so a hostile/garbage frame can't correlate an unbounded string).
+ * - `code` — one of {@link CHAT_SEND_REJECTION_CODES}.
+ * - `retryable` — MUST equal {@link CHAT_SEND_REJECTION_RETRYABLE} for the code
+ *   (refined below), so the client can trust it without re-deriving.
+ * - `retryAfterMs` — optional server hint (flood/slow-mode preserve it); a positive
+ *   integer, bounded. Absent means "use the client's default backoff".
+ *
+ * Unknown extra keys are stripped (default object mode), NOT rejected, so a future
+ * additive field does not make an otherwise-valid rejection unparseable.
+ */
+export const ChatSendRejectedPayloadSchema = z
+  .object({
+    clientMessageId: z.string().min(1).max(200),
+    code: z.enum(CHAT_SEND_REJECTION_CODES),
+    retryable: z.boolean(),
+    retryAfterMs: z.number().int().positive().max(600_000).optional(),
+  })
+  .refine((p) => p.retryable === CHAT_SEND_REJECTION_RETRYABLE[p.code], {
+    message: 'retryable must match the canonical classification for the code',
+    path: ['retryable'],
+  });
+
+/** The correlated send-rejection payload (see {@link ChatSendRejectedPayloadSchema}). */
+export type ChatSendRejectedPayload = z.infer<typeof ChatSendRejectedPayloadSchema>;
 
 /**
  * WebSocket close codes. 4xxx are application codes; 1013 is the standard

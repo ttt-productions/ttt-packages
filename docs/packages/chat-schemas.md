@@ -14,7 +14,16 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
   This module owns:
   - `CHAT_SUBPROTOCOL` (`'ttt.chat.v1'`) and `CHAT_WIRE_VERSION` (`1`)
   - the frame-kind maps `CLIENT_KINDS` / `SERVER_KINDS` (the `type` discriminants)
-    plus the `ClientFrameKind` / `ServerFrameKind` value types
+    plus the `ClientFrameKind` / `ServerFrameKind` value types. `SERVER_KINDS`
+    includes the additive v1 `SEND_REJECTED` (`'send-rejected'`) frame — every
+    valid `send` now receives a correlated `ack` OR `send-rejected` naming the same
+    `clientMessageId`.
+  - the correlated send-rejection contract: `CHAT_SEND_REJECTION_CODES` (the closed
+    code list), `CHAT_SEND_REJECTION_RETRYABLE` (the canonical retryable/terminal
+    table), `ChatSendRejectedPayloadSchema` (the Zod parse boundary — refined so the
+    wire `retryable` must agree with the table), and the `ChatSendRejectionCode` /
+    `ChatSendRejectedPayload` types. Consumed by both the Worker (emit) and
+    `chat-react` (parse). Additive — `CHAT_WIRE_VERSION` stays `1`.
   - `CHAT_CLOSE_CODES` + the `ChatCloseCode` type
   - `ChannelRefTuple` type + `ChannelRefTupleSchema` (Zod)
   - `ChatGrantScope` type + `CHAT_GRANT_AUDIENCE` (`'ttt-chat'`)

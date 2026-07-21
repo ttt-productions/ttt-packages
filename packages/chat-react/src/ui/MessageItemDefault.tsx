@@ -24,6 +24,38 @@ function getAttachmentLabel(type: ChatAttachment["type"]): string {
   }
 }
 
+// ============================================
+// Correlated send-rejection copy + retry policy
+// ============================================
+
+// User-facing copy per correlated `send-rejected` code (stamped on meta.sendFailureCode
+// by the realtime channel client). A failed send with no code (a transport/exhausted
+// reconnect failure) falls back to the neutral "Couldn't send".
+const SEND_FAILURE_COPY: Record<string, string> = {
+  "blocked-word": "Message contains blocked language",
+  "archived": "This channel is read-only",
+  "deleted": "This channel is read-only",
+  "membership-pending": "Chat is still preparing",
+  "wordlist-unavailable": "Chat safety check is temporarily unavailable",
+  "flood": "Please wait before sending again",
+  "slow-mode": "Please wait before sending again",
+};
+
+function sendFailureCopy(code: string | null): string {
+  return (code && SEND_FAILURE_COPY[code]) || "Couldn't send";
+}
+
+// Retry policy comes from meta.sendRetryable, stamped by the channel client from
+// the wire contract's canonical retryability table (chat-schemas enforces the
+// frame's `retryable` matches the table, so this is the ONE source of truth —
+// never a second hardcoded code list here, which would have to move in lockstep
+// with the contract). `false` = terminal (an unchanged resend is guaranteed to
+// fail — no Retry action); `true` or ABSENT (a code-less transport/exhausted
+// reconnect failure) keeps Retry, reusing the ORIGINAL clientMessageId.
+function isRetryableFailure(meta: Record<string, unknown> | undefined): boolean {
+  return meta?.sendRetryable !== false;
+}
+
 function AttachmentView({ att }: { att: ChatAttachment }) {
   // Display URL is built at render time by the app-injected resolver from
   // att.mediaAssetId — attachments never store URLs (protected-gateway model).
@@ -167,6 +199,11 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
   const sendPending = m.meta?.optimistic === true && !sendFailed;
   const clientMessageId =
     typeof m.meta?.clientMessageId === "string" ? m.meta.clientMessageId : null;
+  // Correlated rejection reason (from the `send-rejected` frame), if any — drives
+  // both the failure copy and whether a Retry affordance is offered.
+  const sendFailureCode =
+    typeof m.meta?.sendFailureCode === "string" ? m.meta.sendFailureCode : null;
+  const showRetry = sendFailed && isRetryableFailure(m.meta);
 
   return (
     <div
@@ -228,8 +265,8 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
       {sendFailed && (
         <div className="chat-send-status chat-send-status--failed mt-0.5" role="alert">
           <AlertTriangle className="h-3 w-3 shrink-0" />
-          <span>Couldn&apos;t send</span>
-          {onRetrySend && clientMessageId && (
+          <span>{sendFailureCopy(sendFailureCode)}</span>
+          {showRetry && onRetrySend && clientMessageId && (
             <Button
               type="button"
               variant="ghost"

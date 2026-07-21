@@ -23,9 +23,11 @@ import {
   buildFrame,
   parseFrame,
   isInboxSnapshot,
+  ChatSendRejectedPayloadSchema,
   type WireMessageRow,
   type WireChannelSnapshot,
   type RevisionKind,
+  type ChatSendRejectionCode,
 } from './wire.js';
 import type { RealtimeSocket, SocketFactory } from './socket.js';
 import {
@@ -45,6 +47,9 @@ import {
   HISTORY_PAGE_MAX,
   MAX_PENDING_SEND_ATTEMPTS,
   PENDING_SEND_MAX_AGE_MS,
+  SERVER_RETRYABLE_MAX_AGE_MS,
+  SEND_RETRY_MIN_DELAY_MS,
+  SEND_RETRY_MAX_DELAY_MS,
 } from './shared.js';
 
 /** An un-acked send tracked for reconnect resend (clientMessageId idempotency). */
@@ -52,14 +57,30 @@ interface PendingSend {
   clientMessageId: string;
   text: string;
   replyTo: { messageSeq: number; preview: string } | null;
-  /** When the send was first attempted (for the age cap). Reset by retrySend(). */
+  /** When the send was first attempted (for the age/budget caps). Reset by retrySend(). */
   sentAt: number;
   /** How many times it has been (re)sent over a socket. Reset by retrySend(). */
   attempts: number;
-  /** True once the attempt/age cap flipped this send to the visible failed state.
-   *  A failed entry is RETAINED (not deleted) so retrySend() can re-queue it with
-   *  the SAME clientMessageId; it is skipped by the automatic reconnect resend. */
+  /** True once the attempt/age/budget cap flipped this send to the visible failed
+   *  state. A failed entry is RETAINED (not deleted) so retrySend() can re-queue it
+   *  with the SAME clientMessageId; it is skipped by the automatic reconnect resend. */
   failed: boolean;
+  /**
+   * Set true once the Worker has declared THIS send retryable — either a correlated
+   * `send-rejected` (retryable) frame or the legacy uncorrelated
+   * `error{code:'membership-pending'}`. A server-retryable send is governed by the
+   * {@link SERVER_RETRYABLE_MAX_AGE_MS} wall-clock budget and is NEVER failed by the
+   * generic {@link MAX_PENDING_SEND_ATTEMPTS} cap (that cap stays for blind reconnect
+   * resends of sends the server has said nothing about).
+   */
+  serverRetryable: boolean;
+  /** The most recent server rejection code, recorded so a budget-exhausted failure
+   *  can surface the reason (and keep a retry affordance for the transient class). */
+  lastRejectionCode?: ChatSendRejectionCode;
+  /** The single per-send resend timer for a correlated retryable rejection (never
+   *  stacks — a newer rejection clears it first; cleared on ack/echo/manual
+   *  retry/terminal/close/dispose). */
+  retryTimer: ReturnType<TransportTimers['setTimeout']> | null;
 }
 
 export interface ChannelClientState {
@@ -270,11 +291,28 @@ export class ChannelClient {
       // Already flipped to the visible failed state — only an explicit retrySend()
       // re-queues it; the automatic reconnect resend leaves it alone.
       if (pending.failed) continue;
-      const tooOld = now - pending.sentAt >= PENDING_SEND_MAX_AGE_MS;
-      const tooManyAttempts = pending.attempts >= MAX_PENDING_SEND_ATTEMPTS;
-      if (tooOld || tooManyAttempts) {
-        this.failPendingSend(pending.clientMessageId);
-        continue;
+      if (pending.serverRetryable) {
+        // The Worker declared this send retryable — give-up is the wall-clock budget
+        // ONLY (the 5-attempt cap must not fail a server-declared transient after
+        // ~10 s while the backend projection window is up to 60+ s).
+        if (now - pending.sentAt >= SERVER_RETRYABLE_MAX_AGE_MS) {
+          this.failPendingSend(pending.clientMessageId, pending.lastRejectionCode, true);
+          continue;
+        }
+        // This reconnect resend supersedes any per-send timer scheduled before the
+        // socket dropped — clear it so the send doesn't go out twice (the DO would
+        // dedup, but the duplicate frame is pure waste). A fresh rejection frame
+        // re-schedules as usual.
+        this.clearSendRetryTimer(pending);
+      } else {
+        // A blind reconnect resend of a send the server has said nothing about: the
+        // generic attempt/age caps still protect against a permanent ghost.
+        const tooOld = now - pending.sentAt >= PENDING_SEND_MAX_AGE_MS;
+        const tooManyAttempts = pending.attempts >= MAX_PENDING_SEND_ATTEMPTS;
+        if (tooOld || tooManyAttempts) {
+          this.failPendingSend(pending.clientMessageId);
+          continue;
+        }
       }
       const sent = this.sendFrame(CLIENT_FRAME.SEND, {
         clientMessageId: pending.clientMessageId,
@@ -288,20 +326,58 @@ export class ChannelClient {
   /**
    * Flip an un-acked optimistic row to a visible failed state. The pending entry is
    * RETAINED (marked `failed`) so retrySend() can re-queue it with the SAME
-   * clientMessageId; the row is marked `meta.sendFailed` so the default renderer
-   * shows a failure with a retry affordance rather than an indistinguishable
-   * "sent" bubble. A late ack/echo still reconciles + clears it.
+   * clientMessageId; the row is marked `meta.sendFailed` (plus the correlated
+   * `sendFailureCode`/`sendRetryable` when a `send-rejected` frame supplied them) so
+   * the default renderer shows the right reason + retry affordance rather than an
+   * indistinguishable "sent" bubble. A late ack/echo still reconciles + clears it.
+   *
+   * `code`/`retryable` are present for a correlated rejection (terminal) or a
+   * budget-exhausted server-retryable send; absent for a blind reconnect give-up
+   * (which keeps the neutral `send-failed` code).
    */
-  private failPendingSend(clientMessageId: string): void {
+  private failPendingSend(
+    clientMessageId: string,
+    code?: ChatSendRejectionCode,
+    retryable?: boolean,
+  ): void {
     const pending = this.pendingSends.get(clientMessageId);
     if (!pending || pending.failed) return;
     pending.failed = true;
+    // A terminal/exhausted send never retries on a timer — cancel any scheduled one.
+    this.clearSendRetryTimer(pending);
     const next = this.state.messages.map((m) =>
       m.meta?.optimistic && m.meta?.clientMessageId === clientMessageId
-        ? { ...m, meta: { ...m.meta, sendFailed: true } }
+        ? {
+            ...m,
+            meta: {
+              ...m.meta,
+              sendFailed: true,
+              ...(code ? { sendFailureCode: code } : {}),
+              ...(retryable != null ? { sendRetryable: retryable } : {}),
+            },
+          }
         : m,
     );
-    this.setState({ messages: next, lastErrorCode: 'send-failed' });
+    this.setState({ messages: next, lastErrorCode: code ?? 'send-failed' });
+  }
+
+  /** Clear a pending send's per-send retry timer (idempotent). */
+  private clearSendRetryTimer(pending: PendingSend): void {
+    if (pending.retryTimer != null) {
+      this.timers.clearTimeout(pending.retryTimer);
+      pending.retryTimer = null;
+    }
+  }
+
+  /**
+   * Stop tracking a send (acked / reconciled by an echo / history row): cancel its
+   * per-send retry timer first so a late reconcile never leaves a stray timer that
+   * would resend after the send already landed, then drop it from the map.
+   */
+  private clearPendingSend(clientMessageId: string): void {
+    const pending = this.pendingSends.get(clientMessageId);
+    if (pending) this.clearSendRetryTimer(pending);
+    this.pendingSends.delete(clientMessageId);
   }
 
   /** One timer for the membership-pending re-send window; a newer frame resets it. */
@@ -312,6 +388,116 @@ export class ChannelClient {
       if (this.closedByUs) return;
       this.resendPendingSends();
     }, delayMs);
+  }
+
+  /**
+   * Handle a CORRELATED `send-rejected` frame (the target protocol): parse the
+   * untrusted payload with the shared schema, correlate to EXACTLY ONE pending send
+   * by clientMessageId, and either fail just that bubble (terminal) or schedule a
+   * single per-send resend (retryable).
+   *
+   * A frame that fails validation is NOT simply dropped when it still names one of
+   * OUR pending sends: unlike an unknown frame type, an id-correlated rejection is
+   * the server explicitly telling us this send did not land — swallowing it would
+   * strand the bubble on "Sending…" forever (no further frame, no reconnect, no
+   * budget check ever runs). A future/unknown rejection code (version skew during a
+   * rollout) therefore fails that send CLOSED with the neutral copy + Retry. A
+   * malformed frame with no recognizable pending id is dropped (forward-compat
+   * noise), never surfaced as an error.
+   */
+  private applySendRejected(payload: Record<string, unknown>): void {
+    const parsed = ChatSendRejectedPayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      // Defensive fail-closed: if the unparseable rejection still carries a string
+      // id matching one of our un-failed pending sends, that send was rejected by a
+      // server speaking a newer/buggy dialect — fail it visibly (neutral code-less
+      // "Couldn't send" + Retry) instead of stranding it.
+      const rawId = (payload as { clientMessageId?: unknown }).clientMessageId;
+      if (typeof rawId === 'string' && rawId.length > 0 && rawId.length <= 200) {
+        const orphaned = this.pendingSends.get(rawId);
+        if (orphaned && !orphaned.failed) this.failPendingSend(rawId);
+      }
+      return;
+    }
+    const { clientMessageId, code, retryable, retryAfterMs } = parsed.data;
+    const pending = this.pendingSends.get(clientMessageId);
+    // No matching pending send — already acked/reconciled, or never ours. A late
+    // ack/echo (which may have already landed) always wins; nothing to correlate.
+    if (!pending || pending.failed) return;
+
+    if (!retryable) {
+      // Terminal: an unchanged resend cannot succeed (blocked-word / archived /
+      // deleted). Fail ONLY this bubble, recording the reason + terminal class.
+      this.failPendingSend(clientMessageId, code, false);
+      return;
+    }
+
+    // Retryable: server-declared, so switch this send onto the wall-clock budget
+    // (the 5-attempt cap no longer applies) and record the reason for a possible
+    // budget-exhausted failure.
+    pending.serverRetryable = true;
+    pending.lastRejectionCode = code;
+    // If the budget already elapsed (a long stream of retryable rejections), fail
+    // now rather than scheduling yet another doomed resend.
+    if (this.timers.now() - pending.sentAt >= SERVER_RETRYABLE_MAX_AGE_MS) {
+      this.failPendingSend(clientMessageId, code, true);
+      return;
+    }
+    this.scheduleSendRetry(clientMessageId, this.clampRetryDelay(retryAfterMs));
+  }
+
+  /**
+   * Schedule EXACTLY ONE per-send resend of a correlated retryable rejection (never
+   * stacks — a newer rejection clears the prior timer first). When it fires it
+   * re-sends the SAME clientMessageId (the DO dedups) unless the wall-clock budget
+   * has elapsed, in which case the send fails with its recorded reason.
+   */
+  private scheduleSendRetry(clientMessageId: string, delayMs: number): void {
+    const pending = this.pendingSends.get(clientMessageId);
+    if (!pending) return;
+    this.clearSendRetryTimer(pending);
+    pending.retryTimer = this.timers.setTimeout(() => {
+      pending.retryTimer = null;
+      if (this.closedByUs) return;
+      const current = this.pendingSends.get(clientMessageId);
+      if (!current || current.failed) return;
+      if (this.timers.now() - current.sentAt >= SERVER_RETRYABLE_MAX_AGE_MS) {
+        this.failPendingSend(clientMessageId, current.lastRejectionCode, true);
+        return;
+      }
+      // A server-retryable resend does NOT count toward the attempt cap (that cap is
+      // for blind reconnect resends only) — leave `attempts` untouched.
+      this.sendFrame(CLIENT_FRAME.SEND, {
+        clientMessageId: current.clientMessageId,
+        text: current.text,
+        replyTo: current.replyTo,
+      });
+      // Budget backstop: the contract says every send gets an ack or a rejection,
+      // and either one replaces/clears this timer. If the server goes silent (a
+      // contract violation), NOTHING else would ever re-check the budget on a
+      // stable socket — so arm a deadline check that fails the send at budget end.
+      // This makes SERVER_RETRYABLE_MAX_AGE_MS a hard ceiling, not a best effort.
+      const remainingMs =
+        SERVER_RETRYABLE_MAX_AGE_MS - (this.timers.now() - current.sentAt) + SEND_RETRY_MIN_DELAY_MS;
+      current.retryTimer = this.timers.setTimeout(() => {
+        current.retryTimer = null;
+        if (this.closedByUs) return;
+        const atDeadline = this.pendingSends.get(clientMessageId);
+        if (!atDeadline || atDeadline.failed) return;
+        if (this.timers.now() - atDeadline.sentAt >= SERVER_RETRYABLE_MAX_AGE_MS) {
+          this.failPendingSend(clientMessageId, atDeadline.lastRejectionCode, true);
+        }
+      }, remainingMs);
+    }, delayMs);
+  }
+
+  /** Clamp a server `retryAfterMs` hint into a sane resend delay (defaulting when absent). */
+  private clampRetryDelay(retryAfterMs: number | undefined): number {
+    const raw =
+      typeof retryAfterMs === 'number' && retryAfterMs > 0
+        ? retryAfterMs
+        : MEMBERSHIP_PENDING_DEFAULT_RETRY_MS;
+    return Math.min(Math.max(raw, SEND_RETRY_MIN_DELAY_MS), SEND_RETRY_MAX_DELAY_MS);
   }
 
   /**
@@ -337,7 +523,12 @@ export class ChannelClient {
   retrySend(clientMessageId: string): boolean {
     const pending = this.pendingSends.get(clientMessageId);
     if (!pending) return false;
+    // A manual retry supersedes any scheduled server-retryable resend and starts a
+    // fresh budget from now; the server re-declares retryability if it rejects again.
+    this.clearSendRetryTimer(pending);
     pending.failed = false;
+    pending.serverRetryable = false;
+    pending.lastRejectionCode = undefined;
     pending.sentAt = this.timers.now();
     const sent = this.sendFrame(CLIENT_FRAME.SEND, {
       clientMessageId: pending.clientMessageId,
@@ -345,11 +536,19 @@ export class ChannelClient {
       replyTo: pending.replyTo,
     });
     pending.attempts = sent ? 1 : 0;
-    const next = this.state.messages.map((m) =>
-      m.meta?.optimistic && m.meta?.clientMessageId === clientMessageId && m.meta?.sendFailed
-        ? { ...m, meta: { ...m.meta, sendFailed: false } }
-        : m,
-    );
+    const next = this.state.messages.map((m) => {
+      if (!(m.meta?.optimistic && m.meta?.clientMessageId === clientMessageId && m.meta?.sendFailed)) {
+        return m;
+      }
+      // Back to the normal pending look — drop every failure marker.
+      const {
+        sendFailed: _sendFailed,
+        sendFailureCode: _sendFailureCode,
+        sendRetryable: _sendRetryable,
+        ...restMeta
+      } = m.meta;
+      return { ...m, meta: { ...restMeta } };
+    });
     this.setState({ messages: next, lastErrorCode: null });
     return true;
   }
@@ -438,16 +637,26 @@ export class ChannelClient {
         return this.applyTyping((payload as { uid: string }).uid);
       case 'snapshot':
         return this.applyChannelSnapshot(payload as unknown as WireChannelSnapshot);
+      case 'send-rejected':
+        return this.applySendRejected(payload);
       case 'error': {
         const code = String((payload as { code?: unknown }).code ?? 'error');
-        // Retryable: membership row not yet synced to the DO. Keep the send pending
-        // (no visible error — the optimistic bubble stays "Sending…") and re-send
-        // after the server-suggested delay via the normal resend machinery, whose
-        // attempt/age caps flip it to the visible failed state if the window never
-        // closes. Everything else surfaces as before.
+        // ROLLOUT COMPATIBILITY ONLY (not the target protocol): a Worker that predates
+        // the correlated `send-rejected` frame emits an UNCORRELATED
+        // error{code:'membership-pending'} with no clientMessageId, so we cannot target
+        // one send. Keep the send(s) pending (no visible error — the bubble stays
+        // "Sending…"), mark every in-flight send server-retryable so the wall-clock
+        // budget (NOT the 5-attempt cap) governs give-up, and re-send all after the
+        // server-suggested delay. The correlated path below is the target protocol.
         if (code === MEMBERSHIP_PENDING_CODE) {
           const raw = (payload as { retryAfterMs?: unknown }).retryAfterMs;
-          const delay = typeof raw === 'number' && raw > 0 ? raw : MEMBERSHIP_PENDING_DEFAULT_RETRY_MS;
+          const delay = this.clampRetryDelay(typeof raw === 'number' ? raw : undefined);
+          for (const pending of this.pendingSends.values()) {
+            if (!pending.failed) {
+              pending.serverRetryable = true;
+              pending.lastRejectionCode = MEMBERSHIP_PENDING_CODE;
+            }
+          }
           return this.scheduleMembershipPendingRetry(delay);
         }
         return this.setState({ lastErrorCode: code });
@@ -575,8 +784,8 @@ export class ChannelClient {
   private mergeMessage(mapped: ChatMessageV1, row: WireMessageRow): void {
     // If this canonical row carries a clientMessageId we still have pending (the
     // sender's own broadcast, or a resume delta that included our send), the send
-    // landed — stop tracking it for reconnect resend.
-    if (row.clientMessageId) this.pendingSends.delete(row.clientMessageId);
+    // landed — stop tracking it for reconnect resend (and cancel any retry timer).
+    if (row.clientMessageId) this.clearPendingSend(row.clientMessageId);
     const next = this.state.messages.filter(
       (m) =>
         m.messageId !== mapped.messageId &&
@@ -596,13 +805,20 @@ export class ChannelClient {
     // ack guarantees the seq even if the broadcast is dropped/reordered.
     const seq = payload.seq;
     const cmid = payload.clientMessageId;
-    // The send is acked — stop tracking it for reconnect resend.
-    this.pendingSends.delete(cmid);
+    // The send is acked — stop tracking it for reconnect resend (and cancel any
+    // per-send retry timer so a scheduled resend never fires after it landed).
+    this.clearPendingSend(cmid);
     const next = this.state.messages.map((m) => {
       if (!m.meta?.optimistic || m.meta?.clientMessageId !== cmid) return m;
-      // Strip any failed marker — a late ack (e.g. a retry raced the cap) means the
-      // send actually landed, so the row must render as delivered, not failed.
-      const { sendFailed: _sendFailed, ...restMeta } = m.meta;
+      // Strip any failed markers — a late ack (e.g. a retry raced the cap, or a
+      // correlated rejection was superseded) means the send actually landed, so the
+      // row must render as delivered, not failed.
+      const {
+        sendFailed: _sendFailed,
+        sendFailureCode: _sendFailureCode,
+        sendRetryable: _sendRetryable,
+        ...restMeta
+      } = m.meta;
       return { ...m, messageId: seqToMessageId(seq), meta: { ...restMeta, optimistic: false, seq } };
     });
     next.sort(sortBySeq);
@@ -621,7 +837,7 @@ export class ChannelClient {
     for (const r of rows) {
       if (r.clientMessageId) {
         incomingCmids.add(r.clientMessageId);
-        this.pendingSends.delete(r.clientMessageId);
+        this.clearPendingSend(r.clientMessageId);
       }
     }
     const bySeq = new Map<string, ChatMessageV1>();
@@ -695,6 +911,8 @@ export class ChannelClient {
       sentAt: now,
       attempts: 1,
       failed: false,
+      serverRetryable: false,
+      retryTimer: null,
     });
     const echo = optimisticMessage({
       clientMessageId: args.clientMessageId,
@@ -782,6 +1000,8 @@ export class ChannelClient {
     this.typingTimers.clear();
     this.overlays.clear();
     this.originalRows.clear();
+    // Cancel every per-send retry timer before dropping the tracking map.
+    for (const pending of this.pendingSends.values()) this.clearSendRetryTimer(pending);
     this.pendingSends.clear();
     if (this.reconnectTimer != null) {
       this.timers.clearTimeout(this.reconnectTimer);

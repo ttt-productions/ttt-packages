@@ -71,3 +71,51 @@ describe("MessageItemDefault — send states", () => {
     expect(queryByRole("button", { name: "Retry" })).toBeNull();
   });
 });
+
+describe("MessageItemDefault — correlated send-rejection copy + retry policy", () => {
+  const CASES: Array<{ code: string; copy: string; retry: boolean }> = [
+    { code: "blocked-word", copy: "Message contains blocked language", retry: false },
+    { code: "archived", copy: "This channel is read-only", retry: false },
+    { code: "deleted", copy: "This channel is read-only", retry: false },
+    { code: "membership-pending", copy: "Chat is still preparing", retry: true },
+    { code: "wordlist-unavailable", copy: "Chat safety check is temporarily unavailable", retry: true },
+    { code: "flood", copy: "Please wait before sending again", retry: true },
+    { code: "slow-mode", copy: "Please wait before sending again", retry: true },
+  ];
+
+  it.each(CASES)("maps $code to its copy and %s retry affordance", ({ code, copy, retry }) => {
+    const onRetrySend = vi.fn();
+    const { getByText, queryByRole } = renderItem(
+      makeMessage({ optimistic: true, clientMessageId: "c-1", sendFailed: true, sendFailureCode: code, sendRetryable: retry }),
+      onRetrySend,
+    );
+    expect(getByText(copy)).toBeTruthy();
+    if (retry) {
+      expect(queryByRole("button", { name: "Retry" })).toBeTruthy();
+    } else {
+      // Terminal codes: an unchanged resend cannot succeed, so no Retry is offered
+      // even when onRetrySend IS wired.
+      expect(queryByRole("button", { name: "Retry" })).toBeNull();
+    }
+  });
+
+  it("keeps the rejected bubble's original text (never cleared) on a terminal failure", () => {
+    const { getByText } = renderItem(
+      makeMessage({ optimistic: true, clientMessageId: "c-1", sendFailed: true, sendFailureCode: "blocked-word", sendRetryable: false }),
+    );
+    // The user's text survives so they can copy/repurpose it — only the reason is shown.
+    expect(getByText("hello there")).toBeTruthy();
+    expect(getByText("Message contains blocked language")).toBeTruthy();
+  });
+
+  it("falls back to 'Couldn't send' for a failed send with no code (transport/exhausted) and offers Retry", () => {
+    const onRetrySend = vi.fn();
+    const { getByText, getByRole } = renderItem(
+      makeMessage({ optimistic: true, clientMessageId: "c-1", sendFailed: true }),
+      onRetrySend,
+    );
+    expect(getByText("Couldn't send")).toBeTruthy();
+    fireEvent.click(getByRole("button", { name: "Retry" }));
+    expect(onRetrySend).toHaveBeenCalledWith("c-1");
+  });
+});

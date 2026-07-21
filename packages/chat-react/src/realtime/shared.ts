@@ -84,3 +84,23 @@ export const MAX_PENDING_SEND_ATTEMPTS = 5;
  * the next resume, even if the attempt cap hasn't been hit (a long offline window).
  */
 export const PENDING_SEND_MAX_AGE_MS = 60_000;
+
+/**
+ * Wall-clock budget (ms) for a SERVER-DECLARED retryable send. Once the Worker has
+ * rejected a send as retryable — a correlated `send-rejected` frame OR the legacy
+ * uncorrelated `error{code:'membership-pending'}` — that send keeps retrying on the
+ * server's own hint until this budget elapses, and is NEVER failed by the generic
+ * {@link MAX_PENDING_SEND_ATTEMPTS} cap (which governs only blind reconnect
+ * resends). 90 s comfortably covers the backend projection/grant-bootstrap window
+ * without stranding an optimistic bubble on "Sending…" the way the old ~10 s
+ * five-attempt cap did.
+ */
+export const SERVER_RETRYABLE_MAX_AGE_MS = 90_000;
+
+/**
+ * Lower/upper clamp (ms) applied to a server `retryAfterMs` hint before scheduling a
+ * resend, so a pathological (but schema-valid) hint can neither hammer the socket
+ * nor park a send for minutes.
+ */
+export const SEND_RETRY_MIN_DELAY_MS = 250;
+export const SEND_RETRY_MAX_DELAY_MS = 30_000;

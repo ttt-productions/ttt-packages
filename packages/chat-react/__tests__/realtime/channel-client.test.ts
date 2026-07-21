@@ -5,6 +5,8 @@ import {
   ChatAccessDeniedError,
   MAX_PENDING_SEND_ATTEMPTS,
   PENDING_SEND_MAX_AGE_MS,
+  SERVER_RETRYABLE_MAX_AGE_MS,
+  SEND_RETRY_MAX_DELAY_MS,
 } from '../../src/realtime/shared.js';
 import { createMockSocketHarness, createFakeClock } from './mock-socket.js';
 
@@ -475,9 +477,12 @@ describe('ChannelClient — retrySend (explicit retry, same clientMessageId)', (
       text: 'hello?',
       replyTo: { messageSeq: 3, preview: 'orig' },
     });
-    // The bubble is back to the normal pending look (no more failed ghost).
+    // The bubble is back to the normal pending look — every failure marker stripped
+    // (sendFailed / sendFailureCode / sendRetryable), matching the ack reconcile path.
     const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
-    expect(row?.meta?.sendFailed).toBe(false);
+    expect(row?.meta?.sendFailed).toBeFalsy();
+    expect(row?.meta?.sendFailureCode).toBeUndefined();
+    expect(row?.meta?.sendRetryable).toBeUndefined();
     expect(row?.meta?.optimistic).toBe(true);
     expect(client.getState().lastErrorCode).toBeNull();
 
@@ -660,18 +665,29 @@ describe('ChannelClient — membership-pending retry (send vs. membership-sync r
     expect(acked?.meta?.sendFailed).toBeUndefined();
   });
 
-  it('repeated membership-pending frames exhaust the attempt cap into the visible failed state', async () => {
+  it('retries legacy membership-pending past the 5-attempt cap, failing only on the 90s wall-clock budget', async () => {
     const { client, harness, clock } = makeClient();
     await client.connect();
     const sock = harness.last();
     sock.serverOpen();
     client.send({ clientMessageId: 'c-1', text: 'never syncs' });
 
-    // Every resend gets another membership-pending until the attempt cap flips it.
-    for (let i = 0; i < MAX_PENDING_SEND_ATTEMPTS + 1; i++) {
+    // Many membership-pending cycles — WELL past the old 5-attempt cap — must NOT
+    // fail the bubble. The give-up is now the wall-clock budget, not the attempt cap
+    // (rollout-compat: the legacy uncorrelated frame rides the same age budget).
+    for (let i = 0; i < MAX_PENDING_SEND_ATTEMPTS + 4; i++) {
       sock.serverFrame('error', { code: 'membership-pending', retryAfterMs: 1000 });
       clock.tick(1000);
     }
+    const stillPending = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(stillPending?.meta?.sendFailed).toBeFalsy();
+    // > 5 resends went out — proof the attempt cap did not govern this path.
+    expect(sock.sent.filter((f) => f.type === 'send').length).toBeGreaterThan(MAX_PENDING_SEND_ATTEMPTS);
+
+    // Cross the 90s wall-clock budget → the next membership-pending resend fails it.
+    clock.tick(SERVER_RETRYABLE_MAX_AGE_MS);
+    sock.serverFrame('error', { code: 'membership-pending', retryAfterMs: 1000 });
+    clock.tick(1000);
     const failed = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     expect(failed?.meta?.sendFailed).toBe(true);
     // The socket was never closed — this is the retryable path end-to-end.
@@ -688,6 +704,337 @@ describe('ChannelClient — membership-pending retry (send vs. membership-sync r
     expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(1);
     clock.tick(2000); // MEMBERSHIP_PENDING_DEFAULT_RETRY_MS
     expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2);
+  });
+});
+
+describe('ChannelClient — correlated send-rejected (per-message send results)', () => {
+  it('a terminal rejection for one pending send fails ONLY that send (two-send isolation)', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'first' });
+    client.send({ clientMessageId: 'c-2', text: 'second' });
+
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: false });
+
+    const r1 = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    const r2 = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-2');
+    expect(r1?.meta?.sendFailed).toBe(true);
+    expect(r1?.meta?.sendFailureCode).toBe('blocked-word');
+    expect(r1?.meta?.sendRetryable).toBe(false);
+    // The unrelated send is untouched — still an ordinary pending optimistic bubble.
+    expect(r2?.meta?.sendFailed).toBeUndefined();
+    expect(r2?.meta?.optimistic).toBe(true);
+  });
+
+  it('a retryable rejection for one pending send reschedules ONLY that send', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'first' });
+    client.send({ clientMessageId: 'c-2', text: 'second' });
+
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 2000 });
+    clock.tick(2000);
+
+    // Exactly ONE resend went out and it was c-1 — c-2 was never touched.
+    const sends = sock.sent.filter((f) => f.type === 'send');
+    expect(sends).toHaveLength(3); // c-1, c-2, resent c-1
+    expect(sends[2].payload).toMatchObject({ clientMessageId: 'c-1', text: 'first' });
+  });
+
+  it('a terminal rejection fails the matching bubble immediately and schedules no resend', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'blocked' });
+
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'archived', retryable: false });
+    const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(row?.meta?.sendFailed).toBe(true);
+    expect(row?.meta?.sendFailureCode).toBe('archived');
+    expect(row?.meta?.sendRetryable).toBe(false);
+    expect(client.getState().lastErrorCode).toBe('archived');
+
+    // No resend is ever scheduled for a terminal rejection.
+    const before = sock.sent.filter((f) => f.type === 'send').length;
+    clock.tick(SERVER_RETRYABLE_MAX_AGE_MS + 5000);
+    expect(sock.sent.filter((f) => f.type === 'send').length).toBe(before);
+  });
+
+  it('a retryable rejection resends the SAME clientMessageId after the server hint, delivered on the late ack', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'fast first message' });
+    expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(1);
+
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 2000 });
+    // Not surfaced as an error — the bubble stays a normal pending "Sending…".
+    expect(client.getState().lastErrorCode).toBeNull();
+    const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(row?.meta?.sendFailed).toBeUndefined();
+
+    // No resend before the hint; exactly one (same id) after it.
+    expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(1);
+    clock.tick(2000);
+    const sends = sock.sent.filter((f) => f.type === 'send');
+    expect(sends).toHaveLength(2);
+    expect(sends[1].payload).toMatchObject({ clientMessageId: 'c-1', text: 'fast first message' });
+
+    sock.serverFrame('ack', { clientMessageId: 'c-1', seq: 5 });
+    const acked = client.getState().messages.find((m) => m.messageId === '5');
+    expect(acked?.meta?.optimistic).toBe(false);
+    expect(acked?.meta?.sendFailed).toBeUndefined();
+  });
+
+  it('repeated retryable rejections use the wall-clock cap, NOT the 5-attempt cap', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'never ready' });
+
+    // Feed retryable rejections far past the 5-attempt cap; each fires a resend.
+    for (let i = 0; i < MAX_PENDING_SEND_ATTEMPTS + 4; i++) {
+      sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 1000 });
+      clock.tick(1000);
+    }
+    const stillPending = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(stillPending?.meta?.sendFailed).toBeFalsy();
+    expect(sock.sent.filter((f) => f.type === 'send').length).toBeGreaterThan(MAX_PENDING_SEND_ATTEMPTS);
+
+    // Once the 90s wall-clock budget elapses, the next rejection fails it (retryable class).
+    clock.tick(SERVER_RETRYABLE_MAX_AGE_MS);
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 1000 });
+    const failed = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(failed?.meta?.sendFailed).toBe(true);
+    expect(failed?.meta?.sendRetryable).toBe(true);
+    expect(failed?.meta?.sendFailureCode).toBe('membership-pending');
+  });
+
+  it('a late ack cancels the scheduled retry timer and reconciles the row', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hello' });
+
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+    sock.serverFrame('ack', { clientMessageId: 'c-1', seq: 9 });
+    const acked = client.getState().messages.find((m) => m.messageId === '9');
+    expect(acked?.meta?.optimistic).toBe(false);
+    expect(acked?.meta?.sendFailed).toBeUndefined();
+
+    // The cancelled retry timer must not fire a resend after the ack.
+    const before = sock.sent.filter((f) => f.type === 'send').length;
+    clock.tick(10_000);
+    expect(sock.sent.filter((f) => f.type === 'send').length).toBe(before);
+  });
+
+  it('a late echo still wins over a previously failed row (reconciles to delivered)', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'mine' });
+
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: false });
+    expect(client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1')?.meta?.sendFailed).toBe(true);
+
+    // The canonical echo carrying the same clientMessageId reconciles the failed row.
+    sock.serverFrame('message', { message: wireRow(7, 'u-me', 'mine', 'c-1') });
+    const ids = client.getState().messages.map((m) => m.messageId);
+    expect(ids).toEqual(['7']);
+    const merged = client.getState().messages.find((m) => m.messageId === '7');
+    expect(merged?.meta?.optimistic).toBeUndefined();
+    expect(merged?.meta?.sendFailed).toBeUndefined();
+  });
+
+  it('an UNPARSEABLE rejection naming one of OUR pending sends fails that send CLOSED (never strands it)', async () => {
+    // Version skew: a server one deploy ahead rejects with a code this client's
+    // closed enum doesn't know. The frame still names our send — swallowing it
+    // would strand the bubble on "Sending…" forever (no further frame, no budget
+    // check). Fail closed with the neutral code-less failure (Retry available).
+    const { client, harness } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'brand-new-future-code', retryable: true });
+    const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(row?.meta?.sendFailed).toBe(true);
+    expect(row?.meta?.sendFailureCode).toBeUndefined(); // neutral — we can't trust the unknown code
+    expect(row?.meta?.sendRetryable).toBeUndefined(); // Retry affordance stays available
+    expect(client.getState().lastErrorCode).toBe('send-failed');
+  });
+
+  it('a retryability MISMATCH on a known code also fails closed (schema refine rejects the frame)', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+
+    // blocked-word declared retryable contradicts the canonical table → unparseable
+    // → the id-correlated send fails closed rather than stranding.
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: true });
+    const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(row?.meta?.sendFailed).toBe(true);
+    expect(row?.meta?.sendFailureCode).toBeUndefined();
+  });
+
+  it('a malformed rejection with NO recognizable pending id is dropped; unknown frame types ignored', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+
+    // No id at all / an id that is not ours — forward-compat noise, no state change.
+    sock.serverFrame('send-rejected', { code: 'not-a-real-code', retryable: true });
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-other', code: 'not-a-real-code', retryable: true });
+    const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(row?.meta?.sendFailed).toBeUndefined();
+    expect(row?.meta?.optimistic).toBe(true);
+    expect(client.getState().lastErrorCode).toBeNull();
+
+    // A totally unknown frame type is ignored (forward compat).
+    sock.serverFrame('brand-new-frame', { whatever: 1 });
+    expect(client.getState().status).toBe('open');
+  });
+
+  it('clamps a pathological retryAfterMs hint to the max resend delay', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+
+    // 600s hint (the schema's own max) must clamp to SEND_RETRY_MAX_DELAY_MS (30s).
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'flood', retryable: true, retryAfterMs: 600_000 });
+    clock.tick(SEND_RETRY_MAX_DELAY_MS);
+    expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2); // 1 original + 1 clamped resend
+  });
+
+  it('a terminal rejection after a scheduled retryable one CANCELS the pending retry timer', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: false });
+    const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(row?.meta?.sendFailed).toBe(true);
+    expect(row?.meta?.sendFailureCode).toBe('blocked-word');
+    // The cancelled timer never fires a doomed resend.
+    clock.tick(60_000);
+    expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(1); // the original only
+  });
+
+  it('a reconnect resend SUPERSEDES a scheduled per-send retry timer (no duplicate resend)', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+    s1.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+
+    // Socket drops before the 5s timer fires; the reconnect resume resends.
+    s1.serverClose(1006, 'abnormal');
+    clock.tick(200);
+    await Promise.resolve();
+    const s2 = harness.sockets[1];
+    s2.serverOpen();
+    expect(s2.sent.filter((f) => f.type === 'send')).toHaveLength(1); // reconnect resend
+    // The pre-drop timer was cleared by the reconnect resend — advancing past its
+    // deadline produces NO second frame.
+    clock.tick(10_000);
+    expect(s2.sent.filter((f) => f.type === 'send')).toHaveLength(1);
+  });
+
+  it('a manual retrySend cancels the scheduled per-send timer (no doubled resend)', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+
+    client.retrySend('c-1');
+    expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2); // original + manual retry
+    clock.tick(60_000);
+    expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2); // old timer never fired
+  });
+
+  it('BUDGET BACKSTOP: a server that goes silent after a retryable rejection cannot hold "Sending…" past the budget', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 2000 });
+    clock.tick(2000); // the scheduled resend fires…
+    expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2);
+    // …and the server (contract violation) never answers again. The deadline check
+    // flips the send to failed at budget end instead of stranding it.
+    clock.tick(SERVER_RETRYABLE_MAX_AGE_MS);
+    const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
+    expect(row?.meta?.sendFailed).toBe(true);
+    expect(row?.meta?.sendFailureCode).toBe('membership-pending');
+    expect(row?.meta?.sendRetryable).toBe(true);
+  });
+
+  it('a rejection for an unknown/already-reconciled clientMessageId is a no-op', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+    sock.serverFrame('ack', { clientMessageId: 'c-1', seq: 3 });
+
+    // No pending send left for c-1, and c-unknown was never ours — neither surfaces anything.
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: false });
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-unknown', code: 'archived', retryable: false });
+    const acked = client.getState().messages.find((m) => m.messageId === '3');
+    expect(acked?.meta?.sendFailed).toBeUndefined();
+    expect(client.getState().status).toBe('open');
+  });
+
+  it('a repeated retryable rejection REPLACES (never stacks) the per-send retry timer', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+    clock.tick(5000);
+    // Exactly ONE resend — the second rejection cleared the first timer, not stacked it.
+    expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2); // 1 original + 1 resend
+  });
+
+  it('clears a scheduled per-send retry timer on close() (no resend after teardown)', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: 'hi' });
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 5000 });
+
+    client.close();
+    const before = sock.sent.filter((f) => f.type === 'send').length;
+    clock.tick(60_000);
+    expect(sock.sent.filter((f) => f.type === 'send').length).toBe(before);
   });
 });
 

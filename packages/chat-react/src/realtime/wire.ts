@@ -21,11 +21,20 @@ export {
   CHAT_CLOSE_CODES,
   CLIENT_KINDS as CLIENT_FRAME,
   SERVER_KINDS as SERVER_FRAME,
+  // Correlated send-rejection contract (SERVER_FRAME.SEND_REJECTED payload).
+  ChatSendRejectedPayloadSchema,
+  CHAT_SEND_REJECTION_CODES,
+  CHAT_SEND_REJECTION_RETRYABLE,
 } from '@ttt-productions/chat-schemas';
-export type { ChatCloseCode, ChannelRefTuple } from '@ttt-productions/chat-schemas';
+export type {
+  ChatCloseCode,
+  ChannelRefTuple,
+  ChatSendRejectedPayload,
+  ChatSendRejectionCode,
+} from '@ttt-productions/chat-schemas';
 
 import { CHAT_WIRE_VERSION } from '@ttt-productions/chat-schemas';
-import type { ChannelRefTuple } from '@ttt-productions/chat-schemas';
+import type { ChannelRefTuple, ChatSendRejectedPayload } from '@ttt-productions/chat-schemas';
 
 // ---- raw wire row shapes (what the DO serializes; opaque-but-typed here) ----
 
@@ -135,6 +144,10 @@ export type ServerFrame =
   // it instead of silently dropping it (forward-compatible with a future DO push).
   | { type: 'unread'; payload: WireInboxSnapshot | { hasUnread: boolean } }
   | { type: 'error'; payload: { code: string; retryAfterMs?: number } }
+  // A CORRELATED send rejection (SERVER_FRAME.SEND_REJECTED): names the SAME
+  // clientMessageId as the rejected send + the canonical retry classification, so
+  // exactly one optimistic bubble is failed/retried. See ChatSendRejectedPayload.
+  | { type: 'send-rejected'; payload: ChatSendRejectedPayload }
   // A moderation revision was applied to one message. The Channel DO broadcasts
   // this on a NEWLY-applied revision (the worker runtime's moderation apply) so live
   // viewers hide/blank/edit/restore the message immediately with no extra fetch.
