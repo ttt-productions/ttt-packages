@@ -1,11 +1,11 @@
 // sharp resize helpers extracted from the image-processor
-import type sharp from "sharp";
+import type { Sharp, Gravity as SharpGravity } from "sharp";
 
 /** Logical crop/resize gravity, mapped to sharp positions by toSharpPosition. */
 export type Gravity = "center" | "top" | "bottom" | "left" | "right";
 
 /** Map a logical gravity to a sharp position string. Defaults to centre. */
-export function toSharpPosition(g?: Gravity): sharp.Gravity {
+export function toSharpPosition(g?: Gravity): SharpGravity {
   switch (g) {
     case "top":
       return "north";
@@ -26,11 +26,11 @@ export function toSharpPosition(g?: Gravity): sharp.Gravity {
  * the source. Used for explicit crops and required-size normalization.
  */
 export function resizeCover(
-  pipeline: sharp.Sharp,
+  pipeline: Sharp,
   width: number,
   height: number,
-  position: sharp.Gravity = "centre"
-): sharp.Sharp {
+  position: SharpGravity = "centre"
+): Sharp {
   return pipeline.resize(width, height, {
     fit: "cover",
     position,
@@ -43,10 +43,10 @@ export function resizeCover(
  * never enlarging beyond the source. Either bound may be omitted.
  */
 export function resizeInside(
-  pipeline: sharp.Sharp,
+  pipeline: Sharp,
   maxWidth?: number,
   maxHeight?: number
-): sharp.Sharp {
+): Sharp {
   return pipeline.resize(maxWidth ?? null, maxHeight ?? null, {
     fit: "inside",
     withoutEnlargement: true,

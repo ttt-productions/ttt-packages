@@ -1,5 +1,5 @@
 // shared image format / quality presets
-import type sharp from "sharp";
+import type { Sharp } from "sharp";
 
 /** Output image formats the processor can emit. */
 export type ImageOutputFormat = "jpeg" | "png" | "webp" | "avif";
@@ -41,10 +41,10 @@ export function mimeForImageFormat(fmt?: string): string | undefined {
  * otherwise sharp's per-format defaults apply.
  */
 export function applyImageFormat(
-  pipeline: sharp.Sharp,
+  pipeline: Sharp,
   format: ImageOutputFormat,
   quality?: number
-): sharp.Sharp {
+): Sharp {
   const q = typeof quality === "number" ? quality : undefined;
   switch (format) {
     case "png":

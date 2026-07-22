@@ -1,5 +1,6 @@
 import type { MediaOutput, MediaProcessingError, MediaProcessingResult, MediaProcessingSpec } from "@ttt-productions/media-schemas";
 import sharp from "sharp";
+import type { Sharp, Metadata } from "sharp";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import { safeOutputPathFor } from "../utils/safe-path.js";
@@ -59,7 +60,7 @@ async function buildBase(
   spec: MediaProcessingSpec,
   inputPath: string
 ): Promise<
-  | { ok: true; base: sharp.Sharp; inputMeta: sharp.Metadata }
+  | { ok: true; base: Sharp; inputMeta: Metadata }
   | { ok: false; error: MediaProcessingError }
 > {
   const input = sharp(inputPath, { failOn: "none" });
