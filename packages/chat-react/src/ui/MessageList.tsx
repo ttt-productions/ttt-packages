@@ -38,6 +38,9 @@ export function MessageList(props: {
   onSenderClick?: (senderId: string, displayName: string) => void;
   /** Retry a failed realtime send by clientMessageId (realtime transport only). */
   onRetrySend?: (clientMessageId: string) => void;
+  /** Re-open the attachment picker for a terminally-failed attachment. Present only
+   *  when attachment support is configured; forwarded to each MessageItemDefault. */
+  onRetryAttachment?: () => void;
 }) {
   const {
     messages,
@@ -56,6 +59,7 @@ export function MessageList(props: {
     handlers,
     onSenderClick,
     onRetrySend,
+    onRetryAttachment,
   } = props;
 
   const scrollClass = scrollClassName ?? (fillHeight ? "flex-1 min-h-0" : "h-[400px]");
@@ -191,6 +195,7 @@ export function MessageList(props: {
                     isContinuation={continuation}
                     onSenderClick={onSenderClick}
                     onRetrySend={onRetrySend}
+                    onRetryAttachment={onRetryAttachment}
                   />
                 );
 

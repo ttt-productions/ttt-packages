@@ -161,3 +161,52 @@ describe('parseArchivedPendingMedia', () => {
   });
 });
 
+describe('crash-recovery attempt/lease fields on the composed strict schema', () => {
+  it('parses a legacy doc without the new fields (both absent)', () => {
+    const parsed = parsePendingMedia({ ...base, status: 'pending' });
+    expect(parsed.processingAttemptCount).toBeUndefined();
+    expect(parsed.processingLeaseExpiresAt).toBeUndefined();
+  });
+
+  it('parses a processing doc carrying attempt count and lease', () => {
+    const parsed = PendingMediaSchema.parse({
+      ...base,
+      status: 'processing',
+      processingStartedAt: 1_700_000_001_500,
+      processingAttemptCount: 1,
+      processingLeaseExpiresAt: 1_700_000_721_500,
+    });
+    if (parsed.status !== 'processing') throw new Error('expected processing');
+    expect(parsed.processingAttemptCount).toBe(1);
+    expect(parsed.processingLeaseExpiresAt).toBe(1_700_000_721_500);
+  });
+
+  it('keeps archived shapes compatible with historical attempt/lease fields', () => {
+    const parsed = parseArchivedPendingMedia({
+      ...base,
+      status: 'failed',
+      failedAt: 1_700_000_003_000,
+      terminalAt: 1_700_000_003_000,
+      archivedAt: 1_700_000_010_000,
+      errorCategory: 'system',
+      errorMessage: 'Processing could not finish',
+      processingAttemptCount: 2,
+      processingLeaseExpiresAt: 1_700_000_002_000,
+    });
+    if (parsed.status !== 'failed') throw new Error('expected failed');
+    expect(parsed.processingAttemptCount).toBe(2);
+  });
+
+  it('still rejects unrelated unknown fields (strict branches preserved)', () => {
+    expect(() =>
+      PendingMediaSchema.parse({ ...base, status: 'pending', bogusField: 1 }),
+    ).toThrow();
+  });
+
+  it('rejects a negative attempt count', () => {
+    expect(() =>
+      PendingMediaSchema.parse({ ...base, status: 'processing', processingAttemptCount: -1 }),
+    ).toThrow();
+  });
+});
+

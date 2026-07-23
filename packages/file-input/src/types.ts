@@ -145,3 +145,22 @@ export interface MediaInputProps {
 
   onChange: (payload: MediaInputChangePayload) => void;
 }
+
+/**
+ * Imperative handle exposed by {@link MediaInput} via `ref`. Additive — existing
+ * ref-less usage is unaffected.
+ */
+export interface MediaInputHandle {
+  /**
+   * Programmatically open the canonical selection path, exactly as clicking the
+   * trigger button does:
+   * - exactly one enabled action → runs that action directly (choose file / photo
+   *   / record), honoring `onBeforeSelect`, validation, and crop;
+   * - multiple enabled actions → opens the existing choice dropdown.
+   *
+   * No-op while `disabled` or `isLoading`, or when no action is enabled. Must be
+   * called synchronously from a user gesture so the browser file dialog can open.
+   * It never bypasses the trigger gates (no hidden-input shortcut).
+   */
+  openSelection: () => void;
+}

@@ -111,12 +111,14 @@ describe("MessageItemDefault — attachment media injection", () => {
     },
   );
 
-  it("keeps a pending attachment on the sender-only 'Sending…' state (unchanged by the ready placeholder)", () => {
-    // A pending recipient/sender attachment must still say "Sending…", NEVER "Loading…" —
-    // the ready-URL-settling placeholder is a distinct state and must not bleed into it.
+  it("keeps a pending attachment on the sender-only 'Processing…' state (distinct from the ready-settling 'Loading…')", () => {
+    // The bytes are already uploaded when the placeholder is pending, so the honest
+    // copy is "Processing…" — NEVER "Sending…" (pre-upload) and NEVER "Loading…"
+    // (the ready-URL-settling placeholder is a distinct state and must not bleed in).
     const attachment = { ...makeAttachment("image"), status: "pending" as const };
     const { getByText, queryByText } = renderWithProviders(makeMessage(attachment));
-    expect(getByText("Sending…")).toBeInTheDocument();
+    expect(getByText("Processing…")).toBeInTheDocument();
+    expect(queryByText("Sending…")).toBeNull();
     expect(queryByText("Loading…")).toBeNull();
   });
 });

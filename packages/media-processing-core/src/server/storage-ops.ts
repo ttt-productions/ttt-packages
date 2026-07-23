@@ -19,6 +19,15 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { AwsClient } from "aws4fetch";
 import type { getStorage } from "firebase-admin/storage";
+import {
+  defaultR2RetrySeams,
+  fetchWithR2Retry,
+  type R2RetrySeams,
+} from "./r2-retry.js";
+
+// Re-export the exhaustion error so callers can recognize an exhausted R2
+// operation. The rest of the retry helper stays private to this module.
+export { R2StorageError } from "./r2-retry.js";
 
 /** Firebase Admin Storage Bucket — inferred to avoid @google-cloud/storage dep. */
 export type Bucket = ReturnType<ReturnType<typeof getStorage>["bucket"]>;
@@ -66,6 +75,12 @@ export interface CreateR2ObjectStoreArgs {
   endpoint?: string;
   /** Override fetch for tests. */
   fetchImpl?: typeof fetch;
+  /** Test seam: override the retry sleep (defaults to real `setTimeout`). */
+  sleepImpl?: (ms: number) => Promise<void>;
+  /** Test seam: override the backoff jitter source (defaults to `Math.random`). */
+  randomImpl?: () => number;
+  /** Test seam: override the clock used for HTTP-date `Retry-After` (defaults to `Date.now`). */
+  nowImpl?: () => number;
 }
 
 export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectStore {
@@ -78,6 +93,16 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
   });
   const doFetch = args.fetchImpl ?? fetch;
 
+  // Retry seams: production defaults are internal; tests inject deterministic
+  // sleep/random/now. putFile/copy/readToFile ride the bounded retry helper;
+  // delete stays one-shot (never routes through it — see below).
+  const defaults = defaultR2RetrySeams();
+  const seams: R2RetrySeams = {
+    sleep: args.sleepImpl ?? defaults.sleep,
+    random: args.randomImpl ?? defaults.random,
+    now: args.nowImpl ?? defaults.now,
+  };
+
   const objectUrl = (key: string) =>
     `${endpoint}/${args.bucket}/${key.split("/").map(encodeURIComponent).join("/")}`;
 
@@ -88,50 +113,86 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
 
   return {
     async putFile({ localPath, key, contentType }) {
+      // stat() once, outside the retry loop: a missing input file is a
+      // deterministic local error and must fail immediately, never retry.
       const { size } = await stat(localPath);
       const ct = contentType ?? getMimeFromExt(extractExt(localPath));
-      const res = await signedFetch(objectUrl(key), {
-        method: "PUT",
-        headers: {
-          "content-type": ct,
-          "content-length": String(size),
-          "cache-control": DEFAULT_CACHE_CONTROL,
+      return fetchWithR2Retry({
+        operation: "putFile",
+        bucket: args.bucket,
+        key,
+        seams,
+        // Fresh signed request AND a fresh read stream on every attempt — a
+        // consumed stream is never reused.
+        runAttempt: async () => {
+          const res = await signedFetch(objectUrl(key), {
+            method: "PUT",
+            headers: {
+              "content-type": ct,
+              "content-length": String(size),
+              "cache-control": DEFAULT_CACHE_CONTROL,
+            },
+            body: createReadStream(localPath) as unknown as BodyInit,
+          });
+          if (res.ok) {
+            return { kind: "success" as const, value: { key, sizeBytes: size, contentType: ct } };
+          }
+          return { kind: "response" as const, response: res };
         },
-        body: createReadStream(localPath) as unknown as BodyInit,
       });
-      if (!res.ok) {
-        throw new Error(`R2 putFile failed for ${key}: ${res.status} ${await safeText(res)}`);
-      }
-      return { key, sizeBytes: size, contentType: ct };
     },
 
     async copy({ fromKey, toKey }) {
-      const res = await signedFetch(objectUrl(toKey), {
-        method: "PUT",
-        headers: {
-          "x-amz-copy-source": `/${args.bucket}/${fromKey.split("/").map(encodeURIComponent).join("/")}`,
+      // Preserve the exact x-amz-copy-source across every re-signed attempt.
+      const copySource = `/${args.bucket}/${fromKey.split("/").map(encodeURIComponent).join("/")}`;
+      return fetchWithR2Retry({
+        operation: "copy",
+        bucket: args.bucket,
+        key: toKey,
+        seams,
+        runAttempt: async () => {
+          const res = await signedFetch(objectUrl(toKey), {
+            method: "PUT",
+            headers: { "x-amz-copy-source": copySource },
+          });
+          if (res.ok) {
+            return { kind: "success" as const, value: { key: toKey } };
+          }
+          return { kind: "response" as const, response: res };
         },
       });
-      if (!res.ok) {
-        throw new Error(`R2 copy failed ${fromKey} -> ${toKey}: ${res.status} ${await safeText(res)}`);
-      }
-      return { key: toKey };
     },
 
     async readToFile({ key, localPath }) {
-      const res = await signedFetch(objectUrl(key), { method: "GET" });
-      if (!res.ok || !res.body) {
-        throw new Error(`R2 readToFile failed for ${key}: ${res.status} ${await safeText(res)}`);
-      }
-      const contentType = res.headers.get("content-type") ?? "application/octet-stream";
-      // res.body is a web ReadableStream; stream it to disk so large media never
-      // sits fully in memory.
-      await pipeline(Readable.fromWeb(res.body as Parameters<typeof Readable.fromWeb>[0]), createWriteStream(localPath));
-      const { size } = await stat(localPath);
-      return { sizeBytes: size, contentType };
+      return fetchWithR2Retry({
+        operation: "readToFile",
+        bucket: args.bucket,
+        key,
+        seams,
+        runAttempt: async () => {
+          const res = await signedFetch(objectUrl(key), { method: "GET" });
+          if (!res.ok || !res.body) {
+            return { kind: "response" as const, response: res };
+          }
+          const contentType = res.headers.get("content-type") ?? "application/octet-stream";
+          // Pipe ONLY after a successful response, and open the destination in
+          // truncating mode ('w') on every attempt so a partial download from a
+          // prior attempt can never prefix/corrupt this one. res.body is a web
+          // ReadableStream; stream it to disk so large media never sits fully in
+          // memory. A transient body/network stream failure here throws and is
+          // retried by the helper; a deterministic local fs error is not.
+          await pipeline(
+            Readable.fromWeb(res.body as Parameters<typeof Readable.fromWeb>[0]),
+            createWriteStream(localPath, { flags: "w" }),
+          );
+          const { size } = await stat(localPath);
+          return { kind: "success" as const, value: { sizeBytes: size, contentType } };
+        },
+      });
     },
 
     async delete(key) {
+      // Intentionally one-shot: delete is never retried (see r2-retry.ts header).
       const res = await signedFetch(objectUrl(key), { method: "DELETE" });
       // S3 DELETE returns 204 even for missing keys; anything else non-ok is real.
       if (!res.ok && res.status !== 404) {

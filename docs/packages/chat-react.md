@@ -26,10 +26,20 @@ Chat **React UI** package — the React half of the chat split.
   A terminal-**ready** attachment whose injected URL resolver returns no URL (the
   authorized URL is still settling) renders a neutral loading placeholder — spinner
   + kind-appropriate generic label (`Image attachment`, …) + `Loading…` (never
-  `Sending…`), no filename — and does NOT mount the media/download renderer until a
-  non-empty authorized URL exists, so no grant-less URL or 403 ever flashes. Sender-
-  only visibility for `pending`/`failed` attachments is unchanged (those keep their
-  `Sending…` / rejected states).
+  `Processing…`/`Sending…`), no filename — and does NOT mount the media/download
+  renderer until a non-empty authorized URL exists, so no grant-less URL or 403 ever
+  flashes. `pending`/`failed` attachments stay sender-only (rule-enforced). A
+  **pending** placeholder (bytes uploaded, backend processing/moderation in flight)
+  is a parchment-safe status row — tinted surface, tokenized border, restrained
+  shimmer, spinner + kind label + `Processing…` (NOT `Sending…`) in a `role="status"`
+  `aria-live="polite"` live region, no filename. A **failed** placeholder shows a
+  fixed SAFE per-kind copy (`This image could not be processed.`, …) — the backend
+  `failureReason` is an internal diagnostic and is NEVER rendered — with alert
+  semantics but no destructive full-bubble treatment, and offers an `Attach again`
+  action to the SENDER only (and only when attachment support is configured) that
+  re-opens the canonical picker via the Composer's `openAttachmentSelector()` handle.
+  The reselected file rides the ordinary Composer → guarded-upload flow with a fresh
+  id — it never reuses a storage path or mutates the terminal pending-media row.
 - The Firebase-client adapter config types (`ChatCoreConfig`,
   `ChatAttachmentConfig`, `ChatUploadAdapter`, `ChatMentionConfig`) and the
   React render types (`MessageRenderer`, `RenderableMentionProvider`,

@@ -97,14 +97,53 @@
 }
 
 /* --- Attachment states --- */
+
+/* Pending / URL-settling placeholder. Parchment-safe: a lightly tinted surface
+   with a subtle tokenized border (NOT the old opaque muted slab, which read as a
+   dark rectangle on the parchment chat canvas). It is a small inline status row —
+   deliberately NOT a media-sized box, so it never implies the file is viewable.
+   All colors are theme tokens; a restrained shimmer conveys "in progress". */
 .chat-attachment-pending {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
-  background-color: hsl(var(--muted));
+  background-color: hsl(var(--muted) / 0.2);
+  border: 1px solid hsl(var(--border) / 0.6);
+  color: hsl(var(--muted-foreground));
   font-size: 0.75rem;
+}
+
+/* Restrained left-to-right shimmer over the tinted surface. Tokenized, low-opacity,
+   and disabled under prefers-reduced-motion. The spinner remains the primary cue. */
+.chat-attachment-pending::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--muted-foreground) / 0.06) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: chat-attachment-shimmer 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes chat-attachment-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-attachment-pending::after {
+    animation: none;
+  }
 }
 
 .chat-attachment-media {
@@ -130,15 +169,40 @@
   opacity: 0.8;
 }
 
+/* Terminal-failure placeholder. A restrained, tokenized surface — a subtle border
+   and faint muted tint, NOT a destructive-red block (the failure is localized to
+   this attachment, so it must not make the whole bubble read as an error). */
 .chat-attachment-rejected {
   display: flex;
-  align-items: center;
-  gap: 0.375rem;
+  align-items: flex-start;
+  gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
-  background-color: hsl(var(--warning, var(--muted)) / 0.15);
-  color: hsl(var(--warning-foreground, var(--muted-foreground)));
+  background-color: hsl(var(--muted) / 0.35);
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
   font-size: 0.75rem;
+}
+
+.chat-attachment-rejected-icon {
+  margin-top: 0.05rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.chat-attachment-rejected-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.chat-attachment-rejected-reason {
+  opacity: 0.85;
+}
+
+.chat-attachment-retry {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .chat-attachment-status-label {

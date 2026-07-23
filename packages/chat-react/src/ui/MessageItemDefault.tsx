@@ -24,6 +24,18 @@ function getAttachmentLabel(type: ChatAttachment["type"]): string {
   }
 }
 
+// Safe, generic terminal-failure copy per kind. The backend `failureReason` is an
+// INTERNAL diagnostic string and must never reach the UI (it could leak processing
+// internals); it is mapped to this fixed copy instead.
+function getAttachmentFailureCopy(type: ChatAttachment["type"]): string {
+  switch (type) {
+    case "image": return "This image could not be processed.";
+    case "video": return "This video could not be processed.";
+    case "audio": return "This audio could not be processed.";
+    default: return "This file could not be processed.";
+  }
+}
+
 // ============================================
 // Correlated send-rejection copy + retry policy
 // ============================================
@@ -56,7 +68,15 @@ function isRetryableFailure(meta: Record<string, unknown> | undefined): boolean 
   return meta?.sendRetryable !== false;
 }
 
-function AttachmentView({ att }: { att: ChatAttachment }) {
+function AttachmentView({
+  att,
+  mine,
+  onRetryAttachment,
+}: {
+  att: ChatAttachment;
+  mine: boolean;
+  onRetryAttachment?: () => void;
+}) {
   // Display URL is built at render time by the app-injected resolver from
   // att.mediaAssetId — attachments never store URLs (protected-gateway model).
   const resolveAttachmentUrl = useChatAttachmentUrlResolver();
@@ -64,27 +84,44 @@ function AttachmentView({ att }: { att: ChatAttachment }) {
   // app's ONE display path (recovery adapter, diagnostics, telemetry). Falls
   // back to the package's own MediaViewer when no provider is present.
   const Media = useChatAttachmentMediaComponent() ?? MediaViewer;
-  // In-flight placeholder — bytes uploaded, processing/moderation pending. No
-  // `mediaAssetId` yet. Rendered only to the sender (other participants can't
-  // read a pending doc — Firestore rules scope it until `status === 'ready'`).
+  // In-flight placeholder — bytes uploaded, backend processing/moderation pending.
+  // No `mediaAssetId` yet. Rendered only to the sender (other participants can't
+  // read a pending doc — Firestore rules scope it until `status === 'ready'`). The
+  // bytes are already uploaded, so the honest copy is "Processing…" (NOT "Sending…").
   if (att.status === "pending") {
     return (
-      <div className="chat-attachment-pending">
+      <div className="chat-attachment-pending" role="status" aria-live="polite">
         <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
         <span className="truncate">{getAttachmentLabel(att.type)}</span>
-        <span className="chat-attachment-status-label">Sending…</span>
+        <span className="chat-attachment-status-label">Processing…</span>
       </div>
     );
   }
-  // Processing/moderation rejected the attachment — sender-only.
+  // Processing/moderation rejected the attachment — sender-only. The backend
+  // `failureReason` is internal and NEVER rendered; a fixed safe per-kind copy is
+  // shown instead. The sender can pick a fresh file through the canonical picker
+  // ("Attach again"), offered only when the composer wired a retry handler.
   if (att.status === "failed") {
     return (
-      <div className="chat-attachment-rejected">
-        <AlertTriangle className="h-4 w-4 shrink-0" />
-        <span className="truncate">{getAttachmentLabel(att.type)}</span>
-        <span className="chat-attachment-status-label">
-          {att.failureReason ?? "Couldn't send this attachment"}
-        </span>
+      <div className="chat-attachment-rejected" role="alert">
+        <AlertTriangle className="h-4 w-4 shrink-0 chat-attachment-rejected-icon" />
+        <div className="chat-attachment-rejected-body">
+          <span className="truncate">{getAttachmentLabel(att.type)}</span>
+          <span className="chat-attachment-rejected-reason">
+            {getAttachmentFailureCopy(att.type)}
+          </span>
+        </div>
+        {mine && onRetryAttachment && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="chat-attachment-retry"
+            onClick={onRetryAttachment}
+          >
+            Attach again
+          </Button>
+        )}
       </div>
     );
   }
@@ -100,7 +137,7 @@ function AttachmentView({ att }: { att: ChatAttachment }) {
     // non-empty authorized URL exists. Sender-only pending/processing/failed states
     // above are unchanged — this begins only after a terminal-ready row is received.
     return (
-      <div className="chat-attachment-pending">
+      <div className="chat-attachment-pending" role="status" aria-live="polite">
         <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
         <span className="truncate">{getAttachmentLabel(att.type)}</span>
         <span className="chat-attachment-status-label">Loading…</span>
@@ -178,10 +215,16 @@ export type MessageItemDefaultProps = {
    *  retry affordance on a `meta.sendFailed` bubble. */
   onRetrySend?: (clientMessageId: string) => void;
 
+  /** Re-open the attachment picker for a terminally-failed attachment (wired by
+   *  ChatShell to the Composer's `openAttachmentSelector`; present only when
+   *  attachment support is configured). Enables the "Attach again" action on a
+   *  failed attachment bubble, shown only to the sender. */
+  onRetryAttachment?: () => void;
+
 };
 
 export function MessageItemDefault(props: MessageItemDefaultProps) {
-  const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick, onRetrySend } = props;
+  const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick, onRetrySend, onRetryAttachment } = props;
   const senderName = useResolvedSenderName(m.senderId);
 
   // System messages render differently
@@ -249,7 +292,7 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
 
         {m.attachment && (
           <div className="mt-2">
-            <AttachmentView att={m.attachment} />
+            <AttachmentView att={m.attachment} mine={mine} onRetryAttachment={onRetryAttachment} />
           </div>
         )}
       </div>

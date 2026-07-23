@@ -60,6 +60,15 @@ export function createPendingMediaSchemas<
     createdAt: z.number(),
     updatedAt: z.number(),
     processingStartedAt: z.number().optional(),
+    // Crash-recovery lifecycle fields (optional/additive on every status +
+    // archive branch via this shared base). `processingStartedAt` remains the
+    // timestamp for the current attempt; a reclaimed attempt updates it.
+    // Bounded processing attempts so far — non-negative integer. Absent on
+    // legacy/live docs written before crash-aware claiming.
+    processingAttemptCount: z.number().int().min(0).optional(),
+    // Epoch milliseconds after which the current processing claim's lease is
+    // considered expired and the row may be reclaimed. Absent ⇒ no active lease.
+    processingLeaseExpiresAt: z.number().optional(),
     terminalAt: z.number().optional(),
   } as const;
 

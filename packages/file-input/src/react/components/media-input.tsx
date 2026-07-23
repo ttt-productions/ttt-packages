@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
 import type { MediaCropSpec, MediaProcessingSpec, MediaOriginSpec, VideoOrientation } from "@ttt-productions/media-schemas";
 import { getSimplifiedMediaType } from "@ttt-productions/media-schemas";
 import { Info, Camera, Mic, Video, Upload, X, Loader2, Plus } from "lucide-react";
@@ -20,7 +20,7 @@ import {
 import { cn } from "@ttt-productions/ui-core";
 import { MediaPreview } from "@ttt-productions/media-viewer/react";
 
-import type { FileInputError, MediaInputProps, SelectedMediaMeta } from "../../types.js";
+import type { FileInputError, MediaInputHandle, MediaInputProps, SelectedMediaMeta } from "../../types.js";
 import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from "../../index.js";
 import { RecordDialog } from "./record-dialog.js";
 import { ensureFileWithContentType } from "../../lib/infer-content-type.js";
@@ -130,7 +130,7 @@ function resolveActiveSpec(entry: MediaOriginSpec, kind: "image" | "video" | "au
 
 type ActionKind = "pick" | "photo" | "recordVideo" | "recordAudio";
 
-export function MediaInput(props: MediaInputProps) {
+export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function MediaInput(props, ref) {
   const {
     spec,
     cropOverride,
@@ -170,6 +170,11 @@ export function MediaInput(props: MediaInputProps) {
 
   const [recordOpen, setRecordOpen] = useState(false);
   const [recordKind, setRecordKind] = useState<"audio" | "video">("video");
+
+  // Controlled state for the multi-action choice dropdown. Human clicks toggle it
+  // via the trigger button; the imperative `openSelection()` handle opens it when
+  // more than one action is enabled.
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Prevent memory leaks from object URLs
   const lastObjectUrlRef = useRef<string | null>(null);
@@ -522,6 +527,24 @@ export function MediaInput(props: MediaInputProps) {
     // If > 1 action, the DropdownMenuTrigger handles opening the menu.
   }, [actions, runAction]);
 
+  /**
+   * Imperative entry point: activates the SAME trigger semantics as a human click
+   * (single action → run it through `runAction`, honoring `onBeforeSelect`/validation/
+   * crop; multiple actions → open the choice dropdown). Guards on disabled/loading and
+   * no-enabled-actions exactly as the rendered trigger's `disabled` attribute would.
+   * Never touches the hidden input directly, so none of the gates are bypassed.
+   */
+  const openSelection = useCallback(() => {
+    if (disabled || isLoading || actions.length === 0) return;
+    if (actions.length === 1) {
+      void runAction(actions[0].kind);
+      return;
+    }
+    setMenuOpen(true);
+  }, [disabled, isLoading, actions, runAction]);
+
+  useImperativeHandle(ref, () => ({ openSelection }), [openSelection]);
+
   return (
     <Card className={cn("p-3", className)}>
       {/* Hidden file picker input */}
@@ -612,7 +635,7 @@ export function MediaInput(props: MediaInputProps) {
           </Button>
         ) : (
           /* Multiple actions: dropdown menu */
-          <DropdownMenu>
+          <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
               <Button variant="default" disabled={disabled || isLoading}>
                 {triggerIcon}
@@ -699,4 +722,5 @@ export function MediaInput(props: MediaInputProps) {
       />
     </Card>
   );
-}
+});
+MediaInput.displayName = "MediaInput";

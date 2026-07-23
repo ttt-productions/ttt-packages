@@ -7,7 +7,8 @@ TTT Productions application-data package.
 - TTT-specific types, schemas, constants, paths, and business rules
 - Concrete `FileOrigin` and `TTT_MEDIA_SPECS`
 - Upload wire schemas, target-info schemas, `parseTargetInfo`, and server-owned hall-library upload target-field mappings
-- Concrete TTT pending-media schemas composed from `media-schemas`
+- Concrete TTT pending-media schemas composed from `media-schemas` (the optional `processingAttemptCount`/`processingLeaseExpiresAt` crash-recovery fields ride the composed strict branches)
+- Media-processing crash-recovery policy constants (`constants/media-processing` → `constants` barrel): `MEDIA_PROCESSING_MAX_ATTEMPTS` (2 — first attempt + one retry) and `MEDIA_PROCESSING_LEASE_MS` (12 min)
 - TTT domain-event union/schema/catalog
 - TTT atoms such as `Mention` and `MentionType`
 - TTT moderation constants

@@ -5,7 +5,7 @@ import { Button, Textarea } from "@ttt-productions/ui-core/react";
 import { cn } from "@ttt-productions/ui-core";
 import { ensureFileWithContentType } from "@ttt-productions/file-input";
 import { MediaInput } from "@ttt-productions/file-input/react";
-import type { MediaInputChangePayload } from "@ttt-productions/file-input";
+import type { MediaInputChangePayload, MediaInputHandle } from "@ttt-productions/file-input";
 import type { UploadState } from "@ttt-productions/media-schemas";
 import { useGuardedUpload } from "@ttt-productions/upload-ui/react/upload";
 import { useOptionalLocalUploadGuard } from "@ttt-productions/upload-ui/react/guard";
@@ -75,7 +75,22 @@ export type ComposerProps = {
   mentionConfig?: import('../types.js').ChatMentionConfig;
 };
 
-export function Composer(props: ComposerProps) {
+/**
+ * Imperative handle exposed by {@link Composer} via `ref`. Additive — ref-less
+ * usage is unaffected. ChatShell holds this ref so a failed-attachment bubble's
+ * "Attach again" action can re-open the canonical picker.
+ */
+export type ComposerHandle = {
+  /**
+   * Open the attachment picker, delegating to the underlying MediaInput's
+   * `openSelection()`. Must be called synchronously from a user gesture. No-op
+   * when attachments are not configured (the MediaInput is not mounted) or the
+   * composer is disabled/sending (MediaInput's own gate no-ops it).
+   */
+  openAttachmentSelector: () => void;
+};
+
+export const Composer = React.forwardRef<ComposerHandle, ComposerProps>(function Composer(props, forwardedRef) {
   const {
     onSend,
     onTyping,
@@ -93,6 +108,7 @@ export function Composer(props: ComposerProps) {
   const [sendError, setSendError] = React.useState<string | null>(null);
   const ref = React.useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = React.useRef<AbortController | null>(null);
+  const mediaInputRef = React.useRef<MediaInputHandle>(null);
   const guardedUpload = useGuardedUpload();
   // Navigation guard for the in-flight send: a send that has left the composer
   // but not yet committed is killable by navigation/sign-out with zero warning
@@ -133,6 +149,16 @@ export function Composer(props: ComposerProps) {
   const handleCancelUpload = React.useCallback(() => {
     abortControllerRef.current?.abort();
   }, []);
+
+  // Additive imperative handle: re-open the canonical attachment picker. Delegates
+  // straight to MediaInput's openSelection so onBeforeSelect / disabled / validation
+  // / crop are all honored (and the disabled/sending gate is MediaInput's — it
+  // receives `disabled`/`isLoading` below). No-op when attachments aren't configured
+  // (MediaInput is unmounted → ref is null).
+  const openAttachmentSelector = React.useCallback(() => {
+    mediaInputRef.current?.openSelection();
+  }, []);
+  React.useImperativeHandle(forwardedRef, () => ({ openAttachmentSelector }), [openAttachmentSelector]);
 
   const send = async () => {
     const v = text.trim();
@@ -281,6 +307,7 @@ export function Composer(props: ComposerProps) {
       {attachEnabled && attachmentConfig && (
         <div className="mt-2">
           <MediaInput
+            ref={mediaInputRef}
             spec={attachmentConfig.attachmentSpec}
             onChange={handleFileSelected}
             selectedFile={pendingFile}
@@ -296,4 +323,4 @@ export function Composer(props: ComposerProps) {
       )}
     </div>
   );
-}
+});

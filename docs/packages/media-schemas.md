@@ -9,6 +9,7 @@ Generic media schema and helper package. This replaces the old `media-contracts`
 - Neutral media-origin spec shape (`MediaOriginSpec`)
 - Generic media constraints and processing spec types
 - Publication/serving-readiness state (`MediaPublicationStateSchema`/`MediaPublicationState`: `notStarted`/`activating`/`publishing`/`live`/`publicationFailed`), baked into the pending-media factory's base shape
+- Optional crash-recovery lifecycle fields on the pending-media factory base shape (ride every status + archive branch): `processingAttemptCount` (non-negative integer) and `processingLeaseExpiresAt` (epoch ms). Optional everywhere so legacy/archived docs still parse; the TTT retry policy that interprets them lives in `ttt-core`.
 - `createPendingMediaSchemas(...)` factory for composing app-specific pending-media schemas
 
 ## Boundary
