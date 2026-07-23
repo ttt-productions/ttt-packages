@@ -161,3 +161,14 @@ export function channelResourceKey(channelId: string): ResourceKey {
 export function accountResourceKey(uid: string): ResourceKey {
   return buildKey('account', uid, uid);
 }
+
+/**
+ * The composite doc id for a `safetyResourceCommands` row: `resourceKeyHash__commandId`.
+ * ONE canonical derivation across the whole safety runtime — both the NCII removal and the
+ * CSAM quarantine sagas write and read this collection, and a drift between two hand-written
+ * joiners would target different docs, breaking command idempotency on a safety-critical path.
+ * `PATH_BUILDERS.safetyResourceCommand(commandDocId)` consumes the result of this function.
+ */
+export function safetyResourceCommandDocId(resourceKeyHash: string, commandId: string): string {
+  return `${resourceKeyHash}__${commandId}`;
+}
