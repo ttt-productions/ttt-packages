@@ -2,7 +2,7 @@
 // attestations that gate the highest-risk operator/admin safety callables (standing in
 // for the passkey two-step until [H-17]).
 //
-// Rule 36: each phrase is ONE named declaration here, and every enforcement point DERIVES
+// ARCH-102: each phrase is ONE named declaration here, and every enforcement point DERIVES
 // from it — the ttt-core callable input schema (`z.literal(PHRASE)`), the frontend typed-
 // confirmation gate, and the frontend mutation payload all import the same const. The
 // operator must type the exact string, and the backend `z.literal` rejects anything else,

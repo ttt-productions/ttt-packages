@@ -543,7 +543,7 @@ export const PATH_BUILDERS = {
     [COLLECTIONS.NCII_REMOVAL_JOBS, jobId, NESTED_SUBCOLLECTIONS.NCII_REMOVAL_TARGETS, targetKeyHash],
 
   // ===== TRUST & SAFETY — _serverData (server-only) singletons (§A7, §A11) =====
-  // Moved from _config (public) to _serverData (Rule 32 — Cloud-Functions-only readers).
+  // Moved from _config (public) to _serverData (BACKEND-108 — Cloud-Functions-only readers).
   agePolicyConfig: (): [string, string] =>
     [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.AGE_POLICY],
 

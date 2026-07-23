@@ -2,7 +2,7 @@
 // builds them, frontend renders them), so they live HERE per the Cross-Boundary
 // Type Invariant. Consolidated 2026-07-13 from the former "intentional LOCAL DTO"
 // in functions/src/admin/getOpsStatus.ts + its structurally-matching frontend
-// re-declaration (publish-avoidance rationale — auto-reject; Rule 36 extended).
+// re-declaration (publish-avoidance rationale — auto-reject; ARCH-102 extended).
 
 import type { PledgePaymentTotals } from './payments.js';
 import type { DeadLetterCollection } from '../schemas/admin.js';
@@ -46,7 +46,7 @@ export interface OpsBrokenMachinery {
   /** `safetyMonitorHeartbeat/global.lastRunAt` (epoch ms) of the scheduled monitor sweep.
    *  Absent if the heartbeat has never stamped. Display only — do NOT judge staleness from this
    *  client-side: use `safetyMonitorHeartbeatStale`, which the backend derives from the SAME
-   *  threshold its dead-man checker alarms on (Rule 36: one declaration, enforcement derives). */
+   *  threshold its dead-man checker alarms on (ARCH-102: one declaration, enforcement derives). */
   safetyMonitorHeartbeatLastRunAt?: number;
   /** True when the sweep's heartbeat is older than the backend's own dead-man threshold — i.e. the
    *  scheduled safety monitors may not be running. Derived server-side so the operator chip and the

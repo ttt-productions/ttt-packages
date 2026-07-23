@@ -8,7 +8,7 @@
 //
 // jobId — DETERMINISTIC (collision over duplication): derived from the announcing
 // action's natural key via `buildSquareAnnouncementJobId` below — the ONE canonical
-// derivation (Rule 36); enqueue sites, the worker, and tests MUST call it, never
+// derivation (ARCH-102); enqueue sites, the worker, and tests MUST call it, never
 // hand-roll the template. The enqueue MUST use `.create()` at this id inside the
 // announcing transaction, so a replayed/retried transaction COLLIDES with the
 // already-enqueued job instead of duplicating the announcement.
@@ -22,7 +22,7 @@ import type { SquareStreetzPostType } from './social.js';
 import type { SquareStreetzPostPayload } from '../types/social.js';
 
 /**
- * The ONE canonical derivation of a Square announcement outbox job id (Rule 36 —
+ * The ONE canonical derivation of a Square announcement outbox job id (ARCH-102 —
  * every enqueue site, the outbox worker, and tests derive from HERE, never a
  * hand-rolled template): `${announcementType}_${primaryDocId}`, where
  * `primaryDocId` is the announcing action's natural-key doc id (e.g.

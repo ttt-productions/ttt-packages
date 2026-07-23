@@ -1,6 +1,6 @@
 // ============================================================================
 // HALL-PUBLISH ATTESTATION COPY — the ONE home for the consistent-format
-// attestation wording (Rule 36, extended 2026-07-13; consolidated from the
+// attestation wording (ARCH-102, extended 2026-07-13; consolidated from the
 // former component-local map in ttt-prod publish-attestations.tsx). The
 // attestation carries a Work-type-specific example using the Work's own unit
 // word; the publish flow always knows the type.

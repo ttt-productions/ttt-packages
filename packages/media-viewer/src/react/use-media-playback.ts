@@ -27,7 +27,7 @@ export type UseMediaPlaybackResult = {
  * Shared playback API for VideoViewer and AudioViewer. Owns the additive
  * playback surface (onEnded, onProgressSample, startAtSeconds, endOverlay,
  * imperative controls) so both viewers behave identically. Adds NO observer —
- * everything is derived from native media element events (Rule 22).
+ * everything is derived from native media element events (MEDIA-102).
  *
  * The element ref is supplied by the viewer (which already owns it for
  * autoplay/fullscreen). When the viewer unloads the element off-screen

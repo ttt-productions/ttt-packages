@@ -44,7 +44,7 @@ export function VideoViewer(props: VideoViewerProps) {
 
   // Additive playback API (onEnded, progress sampling, startAt/resume,
   // endOverlay, imperative controls). Derives everything from element events —
-  // adds no observer (Rule 22).
+  // adds no observer (MEDIA-102).
   const { hasEnded, handlers: playbackHandlers } = useMediaPlayback(
     videoRef,
     { onEnded, onProgressSample, startAtSeconds, endOverlay },

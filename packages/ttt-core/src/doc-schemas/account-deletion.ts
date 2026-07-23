@@ -24,7 +24,7 @@
 // erasure (revoking the epoch) before committing a hold against a leased account.
 // A revoked epoch makes every still-running destructive step a no-op. The lease
 // lives HERE — not a parallel safety-only deletion subsystem — so the one shared
-// hold/destructive contract owns the fence (architectural-preferences Rule 3).
+// hold/destructive contract owns the fence (engineering-rules ARCH-001).
 
 import { z } from 'zod';
 

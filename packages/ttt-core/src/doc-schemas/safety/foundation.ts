@@ -199,7 +199,7 @@ export type ReportDisposition = z.infer<typeof ReportDispositionSchema>;
 /** Reason codes for the privileged setReportDisposition command (§A9). The first five are the
  * not-required / exception reasons (no NCMEC report ever arose, or a triggering signal was
  * corrected); the last two are the report-required reasons (a report IS legally required). The
- * disposition↔reason pairing is enforced by the ONE cross-field rule below (Rule 36). */
+ * disposition↔reason pairing is enforced by the ONE cross-field rule below (ARCH-102). */
 export const ReportDispositionReasonCodeSchema = z.enum([
   'outOfScopeNotCsea',
   'basisInvalidatedFalseMatch',
@@ -229,7 +229,7 @@ export const NOT_REQUIRED_DISPOSITION_REASON_CODES = [
   'nonReportableSafetyConfirmed',
 ] as const satisfies readonly ReportDispositionReasonCode[];
 
-/** The ONE cross-field pairing (§A9, Rule 36): which reason codes each disposition permits.
+/** The ONE cross-field pairing (§A9, ARCH-102): which reason codes each disposition permits.
  * Declared HERE once; both the setReportDisposition input (case.ts) and the SafetyDispositionAction
  * console command (admin.ts) apply `refineReportDispositionReasonCode` derived from this map rather
  * than re-declaring the pairing. 'undetermined' is the initial state, never an operator-settable
@@ -264,7 +264,7 @@ export function refineReportDispositionReasonCode(
 /** Shared cross-field rule (§A9): disposition 'reportRequired' MUST carry at least one evidence ref —
  * a reporting obligation can only be asserted once the evidence has been revealed. Every OTHER
  * disposition ('notRequired', 'correctedNoApparentViolation', 'undetermined') MAY leave evidenceRefs
- * empty. Declared HERE once (Rule 36) and applied — alongside refineReportDispositionReasonCode — by
+ * empty. Declared HERE once (ARCH-102) and applied — alongside refineReportDispositionReasonCode — by
  * BOTH the setReportDisposition input schemas (case.ts) and the SafetyStagedAction console command
  * (admin.ts), never re-declared. Reports the failure on the `evidenceRefs` path. */
 export function refineReportDispositionEvidenceRefs(

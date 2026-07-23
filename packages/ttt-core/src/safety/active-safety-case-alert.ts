@@ -14,7 +14,7 @@
 //
 // PII-free by construction — the schema carries only {caseId, caseKind, createdAt}.
 //
-// Rule 36 / Cross-Boundary Type Invariant: this is the SINGLE canonical writer. It used
+// ARCH-102 / Cross-Boundary Type Invariant: this is the SINGLE canonical writer. It used
 // to be hand-mirrored in both TTT app TS projects (the Cloud Functions graph and the App
 // Hosting route graph) because they cannot cross-import; both now import it from ttt-core.
 //

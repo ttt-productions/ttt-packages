@@ -30,7 +30,7 @@
  * APP module space fixes the identity permanently and cannot regress when
  * firebase-functions repackages.
  *
- * This also brings auth-core in line with architectural-preferences Rule 17 (generic
+ * This also brings auth-core in line with engineering-rules QUALITY-102 (generic
  * packages stay framework-agnostic; the TTT-side adapter binds the framework) and
  * mirrors `report-core`'s `ReportCoreTaskError`, which already works this way.
  */

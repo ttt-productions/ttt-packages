@@ -37,7 +37,7 @@ import { ReportableItemTypeSchema } from '../doc-schemas/safety/foundation.js';
 
 // String shape atoms specific to notifications.
 const notificationMessageSchema = z.string().min(1).max(MAX_NOTIFICATION_MESSAGE_LENGTH);
-// The canonical reportable-item enum — never an open string (Rule 36).
+// The canonical reportable-item enum — never an open string (ARCH-102).
 const reportedItemTypeSchema = ReportableItemTypeSchema;
 const reportedItemIdSchema = z.string().min(1).max(128);
 const reportIdSchema = z.string().min(1);

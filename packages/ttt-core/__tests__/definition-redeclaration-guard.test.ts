@@ -1,5 +1,5 @@
 // ============================================================================
-// DEFINITION RE-DECLARATION GUARD — build-failing enforcement of Rule 36
+// DEFINITION RE-DECLARATION GUARD — build-failing enforcement of ARCH-102
 // (extended 2026-07-13): a canonical union's distinctive member literals may not
 // appear as QUOTED string literals in any package source file outside the
 // union's defining file and the reviewed allowlist (typed derived usages such as

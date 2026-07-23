@@ -2,7 +2,7 @@
 // builds them, the admin User Management surface renders them), so they live HERE per the
 // Cross-Boundary Type Invariant (same rationale as admin-ops.ts). The account status tier
 // reuses the ONE canonical UserAccountStatus union (doc-schemas/user.ts) — never a
-// re-declared 'active' | 'suspended' | 'banned' literal (Rule 36).
+// re-declared 'active' | 'suspended' | 'banned' literal (ARCH-102).
 
 import type { UserAccountStatus } from '../doc-schemas/user.js';
 

@@ -1,6 +1,6 @@
 // ============================================================================
 // CENTER STAGE ROOMS — the pure, durable definitions of the three revolving
-// landing/registration-tour rooms (Rule 36). Moved here VERBATIM from the app's
+// landing/registration-tour rooms (ARCH-102). Moved here VERBATIM from the app's
 // `center-stage.tsx`. Pure data only: the emblems (`ROOM_EMBLEMS`), React
 // components, engraving, and stage layout stay app-owned. Each room's `href` is
 // the app route the spotlit poster navigates to.

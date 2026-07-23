@@ -23,7 +23,7 @@ export const CraftSkillMediaTargetInfoSchema = z
   .object({
     // No craftSkillId: the backend mints the craft-skill doc id from the pendingMedia id;
     // a client-supplied id was dead input the processor ignored, so it is not accepted.
-    // The canonical display/transport media-type family — never re-declared (Rule 36).
+    // The canonical display/transport media-type family — never re-declared (ARCH-102).
     skillType: MediaTypeSchema,
     originalFileName: z.string().min(1),
   })

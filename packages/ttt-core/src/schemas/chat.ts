@@ -87,7 +87,7 @@ export const StartAdminSupportThreadResultSchema = z.object({
 export type StartAdminSupportThreadResult = z.infer<typeof StartAdminSupportThreadResultSchema>;
 
 // Member-initiated workProject → admin correspondence thread (party-generic dispatch,
-// partyKind 'workProject'). Initiating is a Work ACTION (`adminDispatch.start`, Rule 23);
+// partyKind 'workProject'). Initiating is a Work ACTION (`adminDispatch.start`, BACKEND-006);
 // the callable enforces the one-open-work-initiated-thread spam guard. `contextRef` is
 // server-validated against the workProject before it is stored.
 export const StartWorkProjectAdminSupportThreadInputSchema = z.object({

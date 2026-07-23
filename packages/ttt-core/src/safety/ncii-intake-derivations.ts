@@ -3,7 +3,7 @@
 // used by BOTH the public Next.js intake route and the Cloud Functions deadline/scan
 // workers. These used to be hand-mirrored in two app TS projects (the Cloud Functions
 // graph AND the App Hosting route graph, which cannot cross-import). This is now the ONE
-// canonical declaration (Rule 36 / Cross-Boundary Type Invariant): both module graphs
+// canonical declaration (ARCH-102 / Cross-Boundary Type Invariant): both module graphs
 // import these derivations from ttt-core so the deterministic id/key contracts can never
 // drift between the two runtimes.
 //

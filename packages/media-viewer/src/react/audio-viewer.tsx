@@ -38,7 +38,7 @@ export function AudioViewer(props: AudioViewerProps) {
   const [shouldLoad, setShouldLoad] = React.useState(priority || !lazy);
   const audioRef = React.useRef<HTMLAudioElement>(null);
 
-  // Additive playback API — derives from element events (no observer, Rule 22).
+  // Additive playback API — derives from element events (no observer, MEDIA-102).
   const { hasEnded, handlers: playbackHandlers } = useMediaPlayback(
     audioRef,
     { onEnded, onProgressSample, startAtSeconds, endOverlay },

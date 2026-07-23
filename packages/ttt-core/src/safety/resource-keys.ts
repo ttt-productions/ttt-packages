@@ -18,7 +18,7 @@
 // IDENTICALLY — that is the whole correctness story: every hold over the same bytes
 // joins the same aggregate, and every destructive guard consults the same doc.
 //
-// This is the ONE canonical declaration (Rule 36). Both TTT app TS projects (the Cloud
+// This is the ONE canonical declaration (ARCH-102). Both TTT app TS projects (the Cloud
 // Functions graph AND the App Hosting route graph) import these builders from ttt-core
 // rather than hand-mirroring the format — a re-key would otherwise drift the two runtimes
 // apart. node:crypto sha256 keeps it pure + server-safe (this module lives behind the

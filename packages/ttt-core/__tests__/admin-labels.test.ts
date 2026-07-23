@@ -1,4 +1,4 @@
-// Canonical user-facing reason picklist + label helper (Rule 36): the ONE home for the guided
+// Canonical user-facing reason picklist + label helper (ARCH-102): the ONE home for the guided
 // resolution flow's user-facing reason options, moved out of the app so every client renders the
 // same codes + labels.
 

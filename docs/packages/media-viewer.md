@@ -171,7 +171,7 @@ The shared render engine `startWaveformLoop({ analyser, getCanvas, mode })` (roo
 
 ## Playback API (VideoViewer / AudioViewer)
 
-Additive, fully optional playback surface on `VideoViewer` and `AudioViewer`, forwarded by `MediaPreview` / `MediaViewer` for `type="video"` / `type="audio"`. Every field is optional; when all are absent the viewers behave exactly as before. It derives entirely from native media-element events — it adds **no** IntersectionObserver (Rule 22). Types are exported from the package root: `MediaPlaybackProps`, `MediaPlaybackControls`.
+Additive, fully optional playback surface on `VideoViewer` and `AudioViewer`, forwarded by `MediaPreview` / `MediaViewer` for `type="video"` / `type="audio"`. Every field is optional; when all are absent the viewers behave exactly as before. It derives entirely from native media-element events — it adds **no** IntersectionObserver (MEDIA-102). Types are exported from the package root: `MediaPlaybackProps`, `MediaPlaybackControls`.
 
 ```tsx
 import type { MediaPlaybackControls } from "@ttt-productions/media-viewer";

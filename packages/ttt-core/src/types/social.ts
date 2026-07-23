@@ -17,7 +17,7 @@ import type { WorkProjectType } from './content.js';
 /**
  * Serializable subset of SquareStreetz post creation payload.
  * Frontend extends this with `mediaFile?: File` locally.
- * Every union/allowlist field derives from its ONE canonical declaration (Rule 36) —
+ * Every union/allowlist field derives from its ONE canonical declaration (ARCH-102) —
  * never an inline literal union.
  */
 export type SquareStreetzPostPayload = {

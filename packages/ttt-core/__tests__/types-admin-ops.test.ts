@@ -47,7 +47,7 @@ describe('OpsStatus additive extension (Mission Control landing)', () => {
     };
     expectTypeOf(machinery).toMatchTypeOf<OpsBrokenMachinery>();
     expectTypeOf<OpsBrokenMachinery['safetyMonitorHeartbeatLastRunAt']>().toEqualTypeOf<number | undefined>();
-    // Staleness is SERVER-derived (Rule 36) — the client must never re-declare the threshold.
+    // Staleness is SERVER-derived (ARCH-102) — the client must never re-declare the threshold.
     expectTypeOf<OpsBrokenMachinery['safetyMonitorHeartbeatStale']>().toEqualTypeOf<boolean | undefined>();
   });
 });

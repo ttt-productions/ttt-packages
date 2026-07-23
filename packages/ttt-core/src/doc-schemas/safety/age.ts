@@ -238,7 +238,7 @@ export const UserPrivateDataAgeFieldsSchema = z.object({
   // artisans — the money boundary — so collection happens there, with UI copy warning the
   // DOB must match the user's future payout identity. Server re-derives 18+ from the entered
   // DOB; an under-18 derivation rejects with a failure audit and stores nothing. PII —
-  // privateData only (Invariant #5); same no-log posture as the raw DOB (scrubber + canary).
+  // privateData only (BACKEND-105); same no-log posture as the raw DOB (scrubber + canary).
   attestedDateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), // 'YYYY-MM-DD'
   attestedDobRecordedAt: z.number().optional(), // epoch ms
   attestedDobSource: z.enum(['artisanOnboarding']).optional(),

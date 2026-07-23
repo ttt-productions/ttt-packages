@@ -401,7 +401,7 @@ export const COLLECTION_SCHEMAS = {
   '_config/privacyPolicy': LegalPageDocumentSchema,
   '_config/takeItDownPageCopy': TakeItDownPageCopySchema,
 
-  // ===== _serverData singletons (server-only — Cloud-Functions-only readers, Rule 32) =====
+  // ===== _serverData singletons (server-only — Cloud-Functions-only readers, BACKEND-108) =====
   '_serverData/agePolicy': AgePolicyConfigV1Schema,
   '_serverData/nciiPolicy': NciiPolicyConfigV1Schema,
   '_serverData/privilegedReviewerSecurity': PrivilegedReviewerSecurityProfileV1Schema,

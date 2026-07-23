@@ -29,7 +29,7 @@ import { z } from 'zod';
 import { MediaOriginLineageV1Schema } from '../media-assets.js';
 
 // ===========================================================================
-// §A4 manifest / communication array caps — the ONE named declaration (Rule 36).
+// §A4 manifest / communication array caps — the ONE named declaration (ARCH-102).
 // Every `.max(...)` bound below derives from these; the app's evidence-manifest
 // writer imports the SAME constants for its `bound(...)` checks so the schema and the
 // writer can never drift to two different numbers.

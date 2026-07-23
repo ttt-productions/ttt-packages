@@ -1,5 +1,5 @@
 // ============================================================================
-// THE COMPANY — canonical Green Room mascot contract + content (Rule 36).
+// THE COMPANY — canonical Green Room mascot contract + content (ARCH-102).
 //
 // The ONE home for the pure, server-safe Company business truths (id unions,
 // billing kinds, performance intents, selectability, roster order) AND the

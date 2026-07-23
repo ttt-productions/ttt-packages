@@ -8,7 +8,7 @@ export const DeleteCraftSkillInputSchema = z.object({
 export type DeleteCraftSkillInput = z.infer<typeof DeleteCraftSkillInputSchema>;
 
 // `tag` is constrained to the canonical option list — the wire schema is the moderation
-// boundary (Invariant 12). A free-text tag would put unmoderated public text on the profile
+// boundary (BACKEND-106). A free-text tag would put unmoderated public text on the profile
 // badge + pollute the craftSkillsByTag index with junk doc IDs (and could break path builders).
 export const UpdateCraftSkillTagsInputSchema = z.object({
   craftSkillId: craftSkillIdSchema,

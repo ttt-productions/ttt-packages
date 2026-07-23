@@ -235,7 +235,7 @@ export const UpdateTuneDetailsInputSchema = z.object({
 export type UpdateTuneDetailsInput = z.infer<typeof UpdateTuneDetailsInputSchema>;
 
 // --- Per-user Hall viewing-state doc (hall-viewing-experience Area 2, ruled 2026-07-04) ---
-// One core (`runX`) owns the single privateData doc per Rule 3; writes are CALLABLE-ONLY —
+// One core (`runX`) owns the single privateData doc per ARCH-001; writes are CALLABLE-ONLY —
 // no direct client Firestore writes anywhere in this system. Every list on the doc is capped
 // (HALL_LIBRARY_PREFS_CAPS in ../constants/business.js); cap enforcement is the backend
 // core's job, not this input-validation layer.

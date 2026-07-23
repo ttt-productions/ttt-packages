@@ -1,6 +1,6 @@
 // ============================================================================
 // ADMIN-SURFACE DISPLAY LABELS — the ONE home for business display copy keyed
-// by canonical ttt-core enums (Rule 36, extended 2026-07-13). Consolidated from
+// by canonical ttt-core enums (ARCH-102, extended 2026-07-13). Consolidated from
 // the former component-local maps in ttt-prod (admin-user-management-view,
 // admin-announcements-view, guided-resolution-flow). Any client (web, phone,
 // TV, admin app) renders the same labels by importing these.
@@ -77,7 +77,7 @@ export interface UserFacingReasonOption {
 }
 
 /** User-facing reason picklist for the guided case-resolution flow — the affected user sees the
- * label for any user-affecting action. Canonical home (Rule 36): the codes ARE this list's own
+ * label for any user-affecting action. Canonical home (ARCH-102): the codes ARE this list's own
  * enumeration, so every client (web, phone, TV, admin app) renders the same options + labels by
  * importing from here. Final user-/legal-facing wording is subject to lawyer review; these are
  * functional defaults. */

@@ -40,7 +40,7 @@ import { SafetyEvidenceExternalFactKindSchema } from '../doc-schemas/safety/evid
 /**
  * The per-account safety action the operator command applies — an ALIAS of the ONE
  * canonical `AccountActionSchema` (../doc-schemas/safety/sagas.ts), re-exported under
- * the callable-input name. Never a re-declared literal (Rule 36).
+ * the callable-input name. Never a re-declared literal (ARCH-102).
  */
 export const CommandAccountActionSchema = AccountActionSchema;
 export type CommandAccountActionValue = z.infer<typeof CommandAccountActionSchema>;

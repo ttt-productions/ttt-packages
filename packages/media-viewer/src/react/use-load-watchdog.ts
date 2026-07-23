@@ -15,7 +15,7 @@ import { LOAD_WATCHDOG_MS } from "../recovery.js";
  * period instead of failing the asset.
  *
  * `timeoutMs <= 0` disables the watchdog. No IntersectionObserver is used
- * (Rule 22) — visibility gating comes from the caller's `armed` flag, which
+ * (MEDIA-102) — visibility gating comes from the caller's `armed` flag, which
  * viewers derive from their existing single observer's `shouldLoad`.
  */
 export function useLoadWatchdog(
