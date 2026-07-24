@@ -7,8 +7,8 @@ import {
 
 // These three client-called callable input schemas were migrated out of local
 // definitions in the functions repo (callable-validation convention: all callable
-// input schemas live in ttt-core/schemas). See
-// CODE_CHANGE_local_callable_input_schemas_drift.md.
+// input schemas live in ttt-core/schemas). See ttt-prod
+// docs/design/callable-validation.md.
 
 describe('CreateMediaGrantInputSchema (media grant wire contract)', () => {
   it('accepts each scopeKind variant', () => {

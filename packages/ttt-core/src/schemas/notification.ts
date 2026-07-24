@@ -4,8 +4,14 @@
 // notification's `metadata` is `Record<string, unknown>`. All TTT notification
 // policy lives here: the canonical type catalog (category / delivery / default
 // channels), the per-type typed `metadata` discriminated union, the broadcast
-// audience selector, and the callable input schemas. `runSendNotification`
-// (ttt-prod) validates `metadata` against the per-type schema before any write.
+// audience selector, and the callable input schemas. There is NO single send
+// chokepoint: ttt-prod has two intake lanes — reliable single/shared occurrences
+// (`writeReliableOccurrenceRow` / `enqueueReliableOccurrence`) and audience fanout
+// (`notificationFanoutJobs` → `processNotificationFanoutJobs`) — which converge on
+// the `notificationDeliveries` ledger, with `materializeDeliveries` as the sole
+// materializer. The fanout lane validates `metadata` against
+// `NotificationMetadataByTypeSchema` before a job is enqueued. See ttt-prod
+// docs/design/notification-system.md.
 //
 // The two notification audit-event payload shapes live here too (the
 // `AuditEventType` union members `notification.broadcastSent` /
@@ -60,7 +66,7 @@ export const NOTIFICATION_TYPE_VALUES = [
   'hall_content_change_request_resolved',
   'admin_announcement',
   'followed_content_published',
-  // chat-edge-rebuild P7 — the two new fanout triggers (NOTIFICATIONS_REDESIGN "Triggers").
+  // The two audience-fanout triggers (see ttt-prod docs/design/notification-system.md).
   // `member_content_published`: the Hall-publish MEMBER job ("your work was published!") — same
   //   `thresholdItemId` eventId as the follower job, different type so `deliveryId` stays distinct.
   // `followed_craft_skill_published`: craft-skill publish → the artisan's followers
@@ -85,9 +91,8 @@ export const NOTIFICATION_TYPE_VALUES = [
 export const NotificationTypeSchema = z.enum(NOTIFICATION_TYPE_VALUES);
 export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 
-/** Delivery channels. Only `inApp` is implemented at launch; `email`/`push`
- * are future channel handlers dispatched from the `runSendNotification`
- * chokepoint. */
+/** Delivery channels. Only `inApp` is implemented at launch; `email`/`push` are
+ * reserved for future channel handlers. */
 export const NOTIFICATION_CHANNEL_VALUES = ['inApp', 'email', 'push'] as const;
 export const NotificationChannelSchema = z.enum(NOTIFICATION_CHANNEL_VALUES);
 export type NotificationChannel = z.infer<typeof NotificationChannelSchema>;
@@ -105,9 +110,9 @@ export interface NotificationTypeCatalogEntry {
 }
 
 /**
- * The canonical TTT notification type catalog. `runSendNotification` resolves a
- * type's category/delivery here and carries `defaultChannels` through when a
- * send omits `channels`.
+ * The canonical TTT notification type catalog — the source `TTT_NOTIFICATION_CONFIG`
+ * (../notifications) derives every type's category/delivery from. `defaultChannels`
+ * is `['inApp']` for every type at launch.
  */
 export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTypeCatalogEntry> = {
   content_report: { category: 'admin', delivery: 'realtime', defaultChannels: ['inApp'] },
@@ -356,8 +361,9 @@ export type MarkNotificationsSeenObservedInput = z.infer<typeof MarkNotification
  *   single observed generation for the whole category. (Design choice: archive-all
  *   carries no observedActivityGeneration at the top level; the server reads each
  *   card's current generation as its own precondition. This is consistent with the
- *   NOTIFICATIONS_REDESIGN "mark-all/archive-all run bounded pages with stable
- *   cursors until exhausted" protocol and the archive-history identity formula
+ *   frozen "mark-all/archive-all run bounded pages with stable cursors until
+ *   exhausted" protocol (ttt-prod docs/design/notification-system.md) and the
+ *   archive-history identity formula
  *   which keys each occurrence on requestId independently.)
  */
 export const ArchiveNotificationObservedScopeSchema = z.discriminatedUnion('kind', [

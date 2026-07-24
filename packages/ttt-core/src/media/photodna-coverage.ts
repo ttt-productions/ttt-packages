@@ -1,6 +1,8 @@
-// PhotoDNA coverage matrix (IMPLEMENTATION_PLAN.md Appendix A §A10 — Finding-M3,
-// decision-free algorithm). The CI coverage test and the runtime router are BOTH
-// derived from this module so they cannot drift from `TTT_MEDIA_SPECS`.
+// PhotoDNA coverage matrix (frozen Trust & Safety spec, Appendix A §A10 —
+// Finding-M3, decision-free algorithm; durable design owner: ttt-prod
+// docs/design/csam-detection-and-response.md). The CI coverage test and the
+// runtime router are BOTH derived from this module so they cannot drift from
+// `TTT_MEDIA_SPECS`.
 //
 // The source of truth for what a media origin accepts is
 // `TTT_MEDIA_SPECS[origin].accept.kinds`, NOT the top-level `spec.kind` (which

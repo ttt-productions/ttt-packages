@@ -1,6 +1,7 @@
 /**
- * Frozen deterministic IDs for the chat realtime + notification redesign
- * (IMPLEMENTATION_MATRIX.md "Deterministic ID + eventId formulas").
+ * Frozen deterministic ID + eventId formulas for the chat realtime + notification
+ * redesign. The durable design owners are ttt-prod
+ * docs/design/chat-realtime-system.md and docs/design/notification-system.md.
  *
  * These ids are computed INDEPENDENTLY by multiple producers/consumers
  * (Cloud Functions, the chat Worker, sometimes the client) and MUST match

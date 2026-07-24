@@ -42,7 +42,6 @@ import {
 import {
   ModerationViolationCreatedEventSchema,
   ThresholdLibraryApprovedEventSchema,
-  ThresholdLibraryRejectedEventSchema,
   ThresholdLibraryNeedsRevisionEventSchema,
   AdminDispatchSystemMarkedEventSchema,
   AdminDispatchThreadUpdatedEventSchema,
@@ -105,7 +104,6 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   CommissionProposalRemovedEventSchema,
   ThresholdLibrarySubmittedEventSchema,
   ThresholdLibraryApprovedEventSchema,
-  ThresholdLibraryRejectedEventSchema,
   ThresholdLibraryNeedsRevisionEventSchema,
   AdminDispatchSystemMarkedEventSchema,
   AdminDispatchThreadUpdatedEventSchema,

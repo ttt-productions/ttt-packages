@@ -1,9 +1,10 @@
 // Trust & Safety — the report spine (Appendix A §A1, Finding-H1).
 //
 // The canonical report-target contract produced by the server `resolveReportTarget()`
-// resolver (Phase 1 step 2) plus the protected report root + public projection. Every
-// shape here is transcribed verbatim from docs/code_changes_needed/trust-and-safety/
-// IMPLEMENTATION_PLAN.md Appendix A §A1 — no invented values, no placeholders.
+// resolver plus the protected report root + public projection. Every shape here is
+// transcribed verbatim from the frozen Trust & Safety spec (Appendix A §A1) — no
+// invented values, no placeholders; the durable design owner is ttt-prod
+// docs/design/content-moderation-and-reporting.md.
 //
 // SHARED enums + the target locator come from ./foundation.js (the single source for
 // every cross-cluster enum); they are NEVER redefined here.

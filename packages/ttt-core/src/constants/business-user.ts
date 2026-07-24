@@ -62,6 +62,6 @@ export const SEARCH_RESULT_LIMIT = 6;
  * eligibility check suppresses the automatic invitation while a member's
  * `completedVersion` equals it. Bump when the permanent-shell-controls tour changes
  * enough to re-invite every member. See
- * docs/design/landing-backstage-guide-and-first-visit-plan.md §10.
+ * ttt-prod docs/design/landing-backstage-guide-and-first-visit-plan.md §10.
  */
 export const SITE_TOUR_CURRENT_VERSION = 1;

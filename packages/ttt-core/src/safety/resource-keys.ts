@@ -1,4 +1,5 @@
-// Canonical safety-hold resource keys (Trust & Safety IMPLEMENTATION_PLAN Appendix A3).
+// Canonical safety-hold resource keys (frozen Trust & Safety spec, Appendix A §A3;
+// durable design owner: ttt-prod docs/design/csam-detection-and-response.md).
 //
 // A safety hold is keyed by the PHYSICAL resource it protects, not by the case or
 // the request that created it. The `canonicalResourceKey` is a deterministic string

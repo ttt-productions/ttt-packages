@@ -9,9 +9,10 @@
 // linkage can never close/pause/replace/delete the NCII request or its 48h
 // deadline.
 //
-// Every shape here is transcribed verbatim from docs/code_changes_needed/
-// trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A §A11 (3) + [F8] — no invented
-// values, no placeholders.
+// Every shape here is transcribed verbatim from the frozen Trust & Safety spec
+// (Appendix A §A11 (3) + [F8]) — no invented values, no placeholders; the durable
+// design owner is ttt-prod
+// docs/design/nonconsensual-intimate-imagery-and-take-it-down.md.
 //
 // SHARED enums come from ../safety/foundation.js (the single source for every
 // cross-cluster enum); they are NEVER redefined here. This cluster IMPORTS

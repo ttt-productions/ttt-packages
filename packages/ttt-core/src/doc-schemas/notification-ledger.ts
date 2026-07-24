@@ -1,5 +1,7 @@
 // Notification redesign ledger Firestore schemas (chat-edge-rebuild P1).
-// Frozen field lists from IMPLEMENTATION_MATRIX.md "Notifications". Admin-SDK-only.
+// The notification-ledger field lists are FROZEN here — this file is their single
+// source; the durable design owner is ttt-prod docs/design/notification-system.md.
+// Admin-SDK-only.
 // `expireAt` is the only Firestore `Timestamp` field (native TTL); every other
 // time field is epoch-ms `number`.
 

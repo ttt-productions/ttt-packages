@@ -10,9 +10,11 @@
 // and `requestId?` both optional). Arming or resolving one row MUST NOT read or
 // write another row (no cross-monitor coupling).
 //
-// Every shape here is transcribed verbatim from docs/code_changes_needed/
-// trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A §A8 — no invented values, no
-// placeholders.
+// Every shape here is transcribed verbatim from the frozen Trust & Safety spec
+// (Appendix A §A8) — no invented values, no placeholders; the durable design owners
+// are ttt-prod docs/design/csam-detection-and-response.md and (for the [H4]
+// request-scoped removal deadline)
+// docs/design/nonconsensual-intimate-imagery-and-take-it-down.md.
 //
 // No cross-cluster foundation enums are consumed here; the monitor enums are
 // §A8-specific value sets and live in this file.

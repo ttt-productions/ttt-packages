@@ -230,6 +230,10 @@ export const COLLECTION_SCHEMAS = {
   'guildInviteConversations/{guildInviteId}': GuildInviteConversationSchema,
 
   // ===== Square / Social =====
+  // SquareStreetzPostSchema is a refined ZodObject (superRefine for the MEDIA-101
+  // mediaAssetId↔mediaType pair invariant); the schema-doc generator and the
+  // drift-check both unwrap the effect to introspect its shape, so binding the
+  // refined schema here is correct.
   'squareStreetzFeed/activePosts/socialPosts/{postId}': SquareStreetzPostSchema,
   'squareStreetzFeed/trendingPosts': TrendingPostsSchema,
   'followEdges/{followEdgeId}': FollowEdgeSchema,

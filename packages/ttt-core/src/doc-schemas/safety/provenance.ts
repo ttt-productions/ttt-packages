@@ -6,9 +6,9 @@
 // the evidence manifest (retentionClass='casePromoted', hold-governed). A scheduled
 // deletion worker enforces the routine TTLs with a hold-aware no-delete guard.
 //
-// Every shape here is transcribed verbatim from docs/code_changes_needed/
-// trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A §A6 — no invented values, no
-// placeholders.
+// Every shape here is transcribed verbatim from the frozen Trust & Safety spec
+// (Appendix A §A6) — no invented values, no placeholders; the durable design owner
+// is ttt-prod docs/design/safety-evidence-control-profile.md.
 //
 // Collection note: this cluster introduces ONE NEW Firestore collection. Wiring
 // collections.ts / path-builders.ts / registry.ts is deferred to the app leg (the

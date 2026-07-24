@@ -12,9 +12,9 @@
 //     status) with two subcollections: …/items/{itemId} and
 //     …/disposition/{locationId}.
 //
-// Every shape here is transcribed verbatim from docs/code_changes_needed/
-// trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A §A4 — no invented values, no
-// placeholders.
+// Every shape here is transcribed verbatim from the frozen Trust & Safety spec
+// (Appendix A §A4) — no invented values, no placeholders; the durable design owner
+// is ttt-prod docs/design/safety-evidence-control-profile.md.
 //
 // SHARED media lineage comes from ../media-assets.js (the single canonical lineage
 // used by media, CSAM, and safety); it is NEVER redefined here.

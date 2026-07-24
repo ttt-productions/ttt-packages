@@ -25,7 +25,7 @@ export const GuildChatChannelSchema = z.object({
   lastMessage: z.string().optional(),
   messageCount: z.number(),
   isArchived: z.boolean(),
-  // Delete/tombstone marker (docs/design/chat-realtime-system.md "Channel lifecycle semantics").
+  // Delete/tombstone marker (ttt-prod docs/design/chat-realtime-system.md "Channel lifecycle semantics").
   // Independent of `isArchived`: archive = visible-under-a-toggle, delete = gone from every user's
   // UI with grants revoked and sends rejected DO-side; storage is RETAINED (never a physical purge).
   // Optional, absent ⇒ false, so existing/seeded channels need no backfill. Backend-only-writable.
@@ -62,7 +62,8 @@ export const GuildInviteConversationSchema = z.object({
   source: InviteSourceSchema,
   // State machine: pending → accepted (transient, trigger-consumed) → finalized (terminal
   // success), or pending → declined / cancelled (terminal failure). No 'error' state is ever
-  // written (dead state removed 2026-07-03; see CODE_CHANGE_list_invites_missing_finalized).
+  // written (dead state removed 2026-07-03). See ttt-prod
+  // docs/design/work-guild-membership-and-stake.md for the invite lifecycle.
   status: guildInviteConversationStatusSchema,
   createdAt: z.number(),
   updatedAt: z.number(),

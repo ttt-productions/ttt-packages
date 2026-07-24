@@ -13,10 +13,11 @@
 // rows for one rare incident is acceptable, and cross-linking covers the operator's
 // need to see related cases.
 //
-// Every shape here is transcribed verbatim from docs/code_changes_needed/
-// trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A §A2 — no invented values,
-// no placeholders. Deterministic IDs are documented as comments; the server
-// computes them (never this schema layer).
+// Every shape here is transcribed verbatim from the frozen Trust & Safety spec
+// (Appendix A §A2) — no invented values, no placeholders; the durable design
+// owner is ttt-prod docs/design/csam-detection-and-response.md. Deterministic
+// IDs are documented as comments; the server computes them (never this schema
+// layer).
 
 import { z } from 'zod';
 

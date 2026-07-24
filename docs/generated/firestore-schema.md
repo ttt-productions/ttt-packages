@@ -532,7 +532,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `title` | `string` |  |
 | `description` | `string` |  |
 | `videoAssetId` | `string` |  |
-| `mediaType` | `'video' \| 'image' \| 'audio' \| 'other'` | yes |
+| `mediaType` | `'video'` |  |
 | `openTill` | `number` |  |
 | `createdOn` | `number` |  |
 | `createdBy` | `{ uid }` |  |
@@ -557,7 +557,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `auditionId` | `string` |  |
 | `workProjectId` | `string` | yes |
 | `videoAssetId` | `string` |  |
-| `mediaType` | `'video' \| 'image' \| 'other'` | yes |
+| `mediaType` | `'video'` |  |
 | `createdBy` | `{ uid }` |  |
 | `createdAt` | `number` |  |
 | `votes` | `number` |  |

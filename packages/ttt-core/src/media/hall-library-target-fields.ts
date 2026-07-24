@@ -2,7 +2,7 @@ import type { FileOrigin } from './file-origin.js';
 
 // Server-side mapping from hallLibrary/sub-item fileOrigin to the doc field
 // that receives the processed media-asset reference (never a URL — see
-// docs/design/media-assets-and-protected-serving.md).
+// ttt-prod docs/design/media-assets-and-protected-serving.md).
 //
 // Owned in ttt-core because it's a contract fact about the upload
 // pipeline — same tier as TTT_MEDIA_SPECS and PATH_BUILDERS. Frontend

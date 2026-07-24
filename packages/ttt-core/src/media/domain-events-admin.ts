@@ -31,18 +31,6 @@ export const ThresholdLibraryApprovedEventSchema = z
   })
   .strict();
 
-export const ThresholdLibraryRejectedEventSchema = z
-  .object({
-    type: z.literal('thresholdLibrary.rejected'),
-    ids: z
-      .object({
-        thresholdItemId: z.string().min(1),
-        hallItemId: z.string().min(1),
-      })
-      .strict(),
-  })
-  .strict();
-
 export const ThresholdLibraryNeedsRevisionEventSchema = z
   .object({
     type: z.literal('thresholdLibrary.needsRevision'),

@@ -1,4 +1,3 @@
-import * as React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import type { ChatMessageV1, ChatAttachment } from "@ttt-productions/chat-core";
@@ -6,7 +5,7 @@ import type { MediaPreviewProps } from "@ttt-productions/media-viewer";
 import { MessageItemDefault } from "../src/ui/MessageItemDefault.js";
 import { ChatNameResolverProvider } from "../src/context/ChatNameResolverContext.js";
 import { ChatAttachmentUrlProvider } from "../src/context/ChatAttachmentUrlContext.js";
-import { ChatAttachmentMediaProvider } from "../src/context/ChatAttachmentMediaContext.js";
+import { ChatAttachmentMediaProvider, type ChatAttachmentMediaComponent } from "../src/context/ChatAttachmentMediaContext.js";
 
 // Attachment media rides the app-injected display component when a
 // ChatAttachmentMediaProvider is present (the app's one-display-path wrapper —
@@ -42,7 +41,7 @@ function makeMessage(attachment: ChatAttachment): ChatMessageV1 {
 
 function renderWithProviders(
   m: ChatMessageV1,
-  mediaComponent?: React.ComponentType<MediaPreviewProps>,
+  mediaComponent?: ChatAttachmentMediaComponent,
   resolveAttachmentUrl: (att: ChatAttachment) => string | null = (att) => `https://media.test/${att.mediaAssetId}`,
 ) {
   const tree = (
@@ -91,7 +90,7 @@ describe("MessageItemDefault — attachment media injection", () => {
     const FakeMedia = vi.fn(() => <div data-testid="injected-media" />);
     const { queryByTestId, container } = renderWithProviders(
       makeMessage(makeAttachment("text")),
-      FakeMedia as unknown as React.ComponentType<MediaPreviewProps>,
+      FakeMedia as unknown as ChatAttachmentMediaComponent,
     );
     expect(queryByTestId("injected-media")).toBeNull();
     const link = container.querySelector(".chat-attachment-text-link");
@@ -130,7 +129,7 @@ describe("MessageItemDefault — ready attachment with a settling (null) authori
       const FakeMedia = vi.fn(() => <div data-testid="injected-media" />);
       const { getByText, queryByTestId, container } = renderWithProviders(
         makeMessage(makeAttachment(type)), // status: 'ready'
-        FakeMedia as unknown as React.ComponentType<MediaPreviewProps>,
+        FakeMedia as unknown as ChatAttachmentMediaComponent,
         () => null, // authorized URL not settled yet
       );
       // Neutral loading placeholder in the existing loading visual language.
@@ -168,7 +167,7 @@ describe("MessageItemDefault — ready attachment with a settling (null) authori
     ));
     const { getByTestId, queryByText } = renderWithProviders(
       makeMessage(makeAttachment("image")),
-      FakeMedia as unknown as React.ComponentType<MediaPreviewProps>,
+      FakeMedia as unknown as ChatAttachmentMediaComponent,
       (att) => `https://media.test/${att.mediaAssetId}`,
     );
     expect(getByTestId("injected-media")).toHaveAttribute("data-type", "image");

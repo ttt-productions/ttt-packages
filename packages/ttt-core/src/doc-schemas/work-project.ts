@@ -5,7 +5,7 @@
 // document's shape and its TypeScript type cannot drift apart.
 //
 // Terminology: the current-owner field is `workStewardUid` (locked rename from the old
-// `ownerUid`; see docs/design/terminology-naming-convention.md — Steward row). The original
+// `ownerUid`; see ttt-prod docs/design/terminology-naming-convention.md — Steward row). The original
 // creator is `foundingArtisanUid` (locked rename from the old `createdByUid`; Founding Artisan).
 
 import { z } from 'zod';
@@ -134,7 +134,7 @@ export type PublicWorkProject = z.infer<typeof PublicWorkProjectSchema>;
 // A default folder (every active guildmate views/uploads) + custom folders whose
 // audience is controlled by TRADE PROFESSIONS, while file-system ADMINISTRATION is
 // controlled by guild standings (StewardOwner / WorkProjectManager / WorkAssetAdmin).
-// See docs/design/work-project-file-folders.md. Realm sharing of a file is the
+// See ttt-prod docs/design/work-project-file-folders.md. Realm sharing of a file is the
 // `realmFileCanonStatus` seam on the file's mediaAssets doc (media-assets.ts).
 // ===========================================================================
 

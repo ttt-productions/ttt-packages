@@ -1,5 +1,7 @@
-// Shared NCII / TAKE IT DOWN intake derivations (Trust & Safety IMPLEMENTATION_PLAN
-// Phase NCII-2/3/4, Appendix A §A11). Pure, deterministic id/key/summary derivations
+// Shared NCII / TAKE IT DOWN intake derivations (frozen Trust & Safety spec,
+// Appendix A §A11; durable design owner: ttt-prod
+// docs/design/nonconsensual-intimate-imagery-and-take-it-down.md).
+// Pure, deterministic id/key/summary derivations
 // used by BOTH the public Next.js intake route and the Cloud Functions deadline/scan
 // workers. These used to be hand-mirrored in two app TS projects (the Cloud Functions
 // graph AND the App Hosting route graph, which cannot cross-import). This is now the ONE

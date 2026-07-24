@@ -9,7 +9,9 @@ import { TTT_MEDIA_SPECS } from '../src/media/ttt-media-specs.js';
 import { FileOriginSchema } from '../src/media/file-origin.js';
 import type { MediaKind } from '@ttt-productions/media-schemas';
 
-// CI coverage gate for IMPLEMENTATION_PLAN.md Appendix A §A10 (Finding-M3). The
+// CI coverage gate for the frozen Trust & Safety spec, Appendix A §A10
+// (Finding-M3); durable design owner: ttt-prod
+// docs/design/csam-detection-and-response.md. The
 // matrix is DERIVED from TTT_MEDIA_SPECS[origin].accept.kinds — these tests fail
 // if any origin is missing from the matrix, or if any accepted kind on any
 // origin has no corresponding required PhotoDNA / spoof-guard branch (so a newly

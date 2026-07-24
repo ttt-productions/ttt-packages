@@ -10,7 +10,8 @@
 //   incoming  < stored            → stale   (older; no-op, return the stored state)
 //   no stored record yet          → apply
 //
-// This mirrors the chat version-comparison rule (see chat-realtime-system.md).
+// This mirrors the chat version-comparison rule (the consuming app's chat design doc
+// explains the product rationale).
 
 export type VersionedDecision = 'apply' | 'idempotent' | 'conflict' | 'stale';
 

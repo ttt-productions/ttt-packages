@@ -2,7 +2,8 @@
 // server-only companions: provider refs (Stripe IDs), the idempotency sentinel, the
 // independent integrity trail, and the paid-event quarantine queue. Types inferred via
 // z.infer. Money data lives here, never in social.ts.
-// See docs/design/donation-payment-system.md and docs/PHASE_6_STRIPE.md.
+// See ttt-prod docs/design/donation-payment-system.md (the design owner for the
+// pledge/Stripe flow).
 
 import { z } from 'zod';
 

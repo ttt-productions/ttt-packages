@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 import { CommissionProposalStatusSchema } from '../schemas/commissions.js';
+import { ContentMediaKindSchema } from './media-assets.js';
 
 const userRefSchema = z.object({ uid: z.string() });
 
@@ -11,8 +12,11 @@ export const CommissionAttachmentSchema = z.object({
   pendingMediaId: z.string().optional(),
   name: z.string(),
   mediaAssetId: z.string(),
-  // Original type is `'image' | 'video' | 'audio' | 'other' | string`, which TS widens to string.
-  type: z.string(),
+  // The stored content kind (image/video/audio). Set once by the upload pipeline
+  // (getSimplifiedMediaType) and written by the commissionListingMedia publication adapter
+  // as z.enum(['image','video','audio']); derived here from the ONE canonical stored-kind
+  // union (ARCH-102), never a widened `string`.
+  type: ContentMediaKindSchema,
   size: z.number(),
 });
 export type CommissionAttachment = z.infer<typeof CommissionAttachmentSchema>;
@@ -91,7 +95,11 @@ export const AuditionSchema = z.object({
   title: z.string(),
   description: z.string(),
   videoAssetId: z.string(),
-  mediaType: z.enum(['video', 'image', 'audio', 'other']).optional(),
+  // Auditions are VIDEO ONLY (DJ ruling). Paired with the required videoAssetId (both
+  // always present — the MEDIA-101 shape, not a required-asset/optional-kind mismatch),
+  // derived from the ONE canonical stored-kind union narrowed to video — never an inline
+  // re-declared union (ARCH-102).
+  mediaType: ContentMediaKindSchema.extract(['video']),
   openTill: z.number(),
   createdOn: z.number(),
   createdBy: userRefSchema,
@@ -135,7 +143,9 @@ export const AuditionEntrySchema = z.object({
   auditionId: z.string(),
   workProjectId: z.string().optional(),
   videoAssetId: z.string(),
-  mediaType: z.enum(['video', 'image', 'other']).optional(),
+  // Audition entries are VIDEO ONLY (DJ ruling) — same video-only pairing as the audition
+  // prompt above; derived from the canonical stored-kind union narrowed to video.
+  mediaType: ContentMediaKindSchema.extract(['video']),
   createdBy: userRefSchema,
   createdAt: z.number(),
   votes: z.number(),

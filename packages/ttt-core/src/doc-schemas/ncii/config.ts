@@ -11,9 +11,10 @@
 // uploads stay BLOCKED until `counselApproved` flips true at the pre-launch counsel
 // gate.
 //
-// Every value in the DEFAULT consts below is transcribed verbatim from
-// docs/code_changes_needed/trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A §A11
-// [H6] / [H-17] / [H-18] — no invented values, no placeholders. The schemas pin
+// Every value in the DEFAULT consts below is transcribed verbatim from the frozen
+// Trust & Safety spec (Appendix A §A11 [H6] / [H-17] / [H-18]) — no invented values,
+// no placeholders; the durable design owner is ttt-prod
+// docs/design/nonconsensual-intimate-imagery-and-take-it-down.md. The schemas pin
 // each literal-defaulted field where the spec fixes a single literal value
 // (`policyVersion`, `approvedBy`, `counselApproved`, the security-profile string
 // literals, etc.) so a config write cannot silently drift from the frozen posture.

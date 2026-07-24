@@ -136,7 +136,8 @@ export const RealmFileCanonStatusSchema = z.enum(['none', 'nonCanon', 'canon']);
 export type RealmFileCanonStatus = z.infer<typeof RealmFileCanonStatusSchema>;
 
 // ===== Serving authority (Durable Object) + publication gating =====
-// See MEDIA_AUTHORITY_DO_DESIGN.md §6–§9/§13 and media-assets-and-protected-serving.md.
+// See ttt-prod docs/design/media-assets-and-protected-serving.md (the design owner
+// for the Durable Object serving authority and publication gating).
 
 /** Whether the canonical serving record has been applied to the DO authority. */
 export const MediaAuthoritySyncStateSchema = z.enum(['pending', 'applied', 'deadLetter']);
@@ -198,7 +199,7 @@ export const MediaServingScopeSchema = z.discriminatedUnion('kind', [
 export type MediaServingScope = z.infer<typeof MediaServingScopeSchema>;
 
 /**
- * The typed owner adapter a publication goes through (§11). The activation job
+ * The typed owner adapter a publication goes through. The activation job
  * carries this kind; a server-side registry validates per-kind `publicationArgs`
  * and performs the idempotent owner write. Chat is the non-Firestore-owner
  * adapter (publishes via its durable attachmentFlip ack, not an owner txn).
@@ -225,7 +226,7 @@ export const MediaPublicationKindSchema = z.enum([
 export type MediaPublicationKind = z.infer<typeof MediaPublicationKindSchema>;
 
 /**
- * The normalized serving record (§7) — the SAME contract used to generate both
+ * The normalized serving record — the SAME contract used to generate both
  * the DO authority row and the KV cache payload (one function, so they can't
  * drift). The R2 object key stays deterministic (`mediaAssets/{assetId}/{key}`)
  * and is NOT persisted here. `payloadHash` is computed over the canonical
@@ -288,7 +289,7 @@ export const MediaAssetSchema = z.object({
   // fields (who set canon, when) are added by that feature when it ships.
   realmFileCanonStatus: RealmFileCanonStatusSchema,
 
-  // Serving authority + publication gating (§13). Additive/optional so assets
+  // Serving authority + publication gating. Additive/optional so assets
   // written before the authority build still parse: absent authorityVersion ⇒
   // 0/never-applied, absent publicationState ⇒ 'unpublished'. Every
   // serving-record mutation increments authorityVersion in an authoritative txn.

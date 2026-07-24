@@ -4,8 +4,9 @@
 // immediately and re-driven by a scheduled recovery worker. Server-only
 // (`allow read, write: if false`); NO client access.
 //
-// See MEDIA_AUTHORITY_DO_DESIGN.md §9 (job), §10 (three-stage finalize),
-// §11 (publication adapters), §17 (reconcile).
+// See ttt-prod docs/design/media-assets-and-protected-serving.md — the design owner
+// for this job, the three-stage finalize, the typed publication adapters, and the
+// reconcile pass.
 //
 // jobId = hash('media-activation', assetId, authorityVersion)  (edge-protocol-core
 // canonical hash family; collision-safe per the frozen ID rules).
@@ -43,7 +44,7 @@ export const MediaActivationJobSchema = z
     authorityPayload: MediaServingAuthorityRecordSchema,
 
     // Typed publication adapter. `publicationArgs` is forward-validated by the
-    // per-kind adapter registry (§11, built in M2) — NEVER arbitrary Firestore
+    // per-kind adapter registry — NEVER arbitrary Firestore
     // writes; the job carries typed data, not serialized writes.
     publicationKind: MediaPublicationKindSchema,
     publicationArgs: z.unknown(),

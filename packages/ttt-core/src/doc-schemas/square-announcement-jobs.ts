@@ -17,9 +17,8 @@
 // native-TTL field on this doc — `dead` jobs are retained for operator replay.
 
 import { z } from 'zod';
-import { SquareStreetzPostTypeSchema } from './social.js';
+import { SquareStreetzPostTypeSchema, SquareStreetzPostPayloadSchema } from './social.js';
 import type { SquareStreetzPostType } from './social.js';
-import type { SquareStreetzPostPayload } from '../types/social.js';
 
 /**
  * The ONE canonical derivation of a Square announcement outbox job id (ARCH-102 —
@@ -38,22 +37,20 @@ export function buildSquareAnnouncementJobId(
 }
 
 /**
- * Payload half of the announcement input — exactly what the
- * runManageSquareStreetzPost dispatcher accepts: the canonical
- * SquareStreetzPostPayload plus the two dispatcher-level extras (`projectId`,
- * and the pattern-C pre-minted `postId` for USER_POST). Validated structurally
- * (a plain object) and TYPED precisely; the dispatcher re-validates domain
- * fields when the worker delivers (same posture as chatMessageOutbox.payload).
+ * Payload half of the announcement input — exactly what the runManageSquareStreetzPost
+ * dispatcher accepts: the canonical `SquareStreetzPostPayloadSchema` plus the two
+ * dispatcher-level extras (`projectId`, and the pattern-C pre-minted `postId` for
+ * USER_POST). Derived from the ONE payload schema (ARCH-102) so the durable outbox row is
+ * field-validated, not merely checked for object-ness. NON-strict / no pairing refinement:
+ * it is parsed at ENQUEUE inside the announcing transaction, so a throw would fail the
+ * primary action over an announcement defect (ENG-009); the post core enforces the
+ * `mediaAssetId`↔`mediaType` pairing at DELIVERY, where a failure dead-letters the job.
  */
-export type SquareAnnouncementPayload = SquareStreetzPostPayload & {
-  projectId?: string;
-  postId?: string;
-};
-
-export const SquareAnnouncementPayloadSchema = z.custom<SquareAnnouncementPayload>(
-  (v) => typeof v === 'object' && v !== null,
-  { message: 'Expected a Square announcement payload object' },
-);
+export const SquareAnnouncementPayloadSchema = SquareStreetzPostPayloadSchema.extend({
+  projectId: z.string().optional(),
+  postId: z.string().optional(),
+});
+export type SquareAnnouncementPayload = z.infer<typeof SquareAnnouncementPayloadSchema>;
 
 /** The discriminated announcement input (`{ type, payload }`) the job carries. */
 export const SquareAnnouncementInputSchema = z.object({

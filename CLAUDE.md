@@ -8,7 +8,7 @@ Shared monorepo of reusable packages published under the `@ttt-productions/*` sc
 
 Engineering rules are ONE system for both repos and live in ttt-prod. Before reviewing, planning, designing, editing, or running implementation commands here:
 
-- Read `C:\DjDev\ttt-master-app\docs\engineering-rules\README.md` and `docs\engineering-rules\core-rules.md` (the ten universal `ENG-*` rules).
+- Read `C:\DjDev\ttt-master-app\docs\engineering-rules\README.md` and `C:\DjDev\ttt-master-app\docs\engineering-rules\core-rules.md` (the ten universal `ENG-*` rules).
 - Read the routed area files per that README's routing table. **`architecture/packages-and-boundaries.md` and the `quality/` rules apply to essentially every package task**; add other areas the change touches (a media package routes to `media/`, a React data hook to `frontend/`, etc.).
 - Read the package ownership/design docs below for where a concept belongs, then inspect the current code (code is the implementation truth, ENG-001).
 - Any prompt that spawns an implementation, design, or review agent names that agent's mandatory reading as explicit paths (ENG-010).

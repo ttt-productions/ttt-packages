@@ -10,10 +10,10 @@
 // constants — the flags that gate the features ARE the display data source,
 // so neither surface can drift. See ttt-prod docs/charter-season/README.md.
 
-/** Theme Studio save & share (docs/charter-season/theme-sharing.md). */
+/** Theme Studio save & share (ttt-prod docs/charter-season/theme-sharing.md). */
 export const THEME_SHARING_LIVE = false;
 
-/** Bouquet stage 1 — buy, give, see (docs/charter-season/bouquet-staging.md). */
+/** Bouquet stage 1 — buy, give, see (ttt-prod docs/charter-season/bouquet-staging.md). */
 export const BOUQUET_STAGE_1_LIVE = false;
 
 /** Bouquet stage 2 — artisan earnings views. */

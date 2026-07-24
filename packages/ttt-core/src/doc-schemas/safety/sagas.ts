@@ -7,9 +7,9 @@
 // no doc ever lies about quarantine completion. Each saga is idempotent by
 // `commandId`; the reconciler verifies external state, never a prior response.
 //
-// Every shape here is transcribed verbatim from docs/code_changes_needed/
-// trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A §A5 — no invented values, no
-// placeholders.
+// Every shape here is transcribed verbatim from the frozen Trust & Safety spec
+// (Appendix A §A5) — no invented values, no placeholders; the durable design owner
+// is ttt-prod docs/design/csam-detection-and-response.md.
 //
 // SHARED enums come from ./foundation.js (the single source for every
 // cross-cluster enum); they are NEVER redefined here. This cluster IMPORTS

@@ -8,7 +8,8 @@
  * selects rows per `materializationClass`. The app passes fully-formed
  * `DeliveryRowInput`s; this module never invents domain ids.
  *
- * Key invariants (frozen in NOTIFICATIONS_REDESIGN):
+ * Key invariants (FROZEN — this module is their single source; the consuming app's
+ * notification design doc explains the product rationale):
  *  - Enqueue = create-if-absent. `ALREADY_EXISTS` is a per-row duplicate no-op,
  *    never a failure — there is no marker-without-payload state, so the
  *    "marker created, payload lost" crash window cannot exist.

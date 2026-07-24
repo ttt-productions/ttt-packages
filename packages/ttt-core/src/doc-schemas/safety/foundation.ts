@@ -4,9 +4,11 @@
 // than one T&S cluster (report spine, case spine, holds, evidence, sagas,
 // NCMEC, NCII). Cluster document-schema files import their value sets from
 // HERE so two clusters can never define the same enum with drifting values.
-// Every value is transcribed verbatim from docs/code_changes_needed/
-// trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A (the frozen spec) — no
-// invented values, no placeholders.
+// Every value is transcribed verbatim from the frozen Trust & Safety spec
+// (Appendix A) — no invented values, no placeholders; the durable design owners
+// are ttt-prod docs/design/csam-detection-and-response.md,
+// docs/design/content-moderation-and-reporting.md, and
+// docs/design/nonconsensual-intimate-imagery-and-take-it-down.md.
 //
 // Cross-boundary: these types are consumed by both functions/src and src/ in
 // ttt-prod, so they live in ttt-core (the single source of truth for the

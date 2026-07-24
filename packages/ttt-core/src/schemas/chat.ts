@@ -28,7 +28,7 @@ export type ArchiveGuildChatChannelInput = z.infer<typeof ArchiveGuildChatChanne
 
 // Tombstone (delete) a guild chat channel — same input shape as archive. The callable marks the
 // channel `isDeleted`, bumps configVersion, revokes grants, and re-projects members to `removed`;
-// storage is retained (never a physical purge). See docs/design/chat-realtime-system.md.
+// storage is retained (never a physical purge). See ttt-prod docs/design/chat-realtime-system.md.
 export const DeleteGuildChatChannelInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   guildChatChannelId: guildChatChannelIdSchema,
@@ -46,7 +46,7 @@ export type CreateGuildChatChannelInput = z.infer<typeof CreateGuildChatChannelI
 
 // Guild channels + invite threads moved to the realtime chat (Cloudflare DOs), which
 // sends through the DO client — NOT this callable. The Firestore send path is retained
-// PERMANENTLY for admin-support threads only (docs/design/chat-realtime-system.md).
+// PERMANENTLY for admin-support threads only (ttt-prod docs/design/chat-realtime-system.md).
 export const SendGuildChatMessageInputSchema = z.object({
   threadKind: z.literal('adminSupport'),
   adminDispatchId: adminDispatchIdSchema,
@@ -130,7 +130,7 @@ export const UpdateGuildChatChannelInputSchema = z.object({
 }).strict();
 export type UpdateGuildChatChannelInput = z.infer<typeof UpdateGuildChatChannelInputSchema>;
 
-// --- Admin chat moderation callables (review-only; chat-realtime-system.md) ---
+// --- Admin chat moderation callables (review-only; ttt-prod docs/design/chat-realtime-system.md) ---
 
 // The CLIENT-facing channel-ref for the admin chat-moderation callables
 // (`adminModerateChatMessage` / `adminReadChannelContext`). This is the WIRE shape, which

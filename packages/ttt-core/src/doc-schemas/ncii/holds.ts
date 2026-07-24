@@ -12,9 +12,9 @@
 // via `safetyHoldRefId`'s ref — NEVER this row. Expiry/release goes through the
 // A3 CAS release command (no silent TTL on an `active` ref).
 //
-// Every shape here is transcribed verbatim from docs/code_changes_needed/
-// trust-and-safety/IMPLEMENTATION_PLAN.md Appendix A §A11 — no invented values,
-// no placeholders.
+// Every shape here is transcribed verbatim from the frozen Trust & Safety spec
+// (Appendix A §A11) — no invented values, no placeholders; the durable design
+// owner is ttt-prod docs/design/nonconsensual-intimate-imagery-and-take-it-down.md.
 //
 // SHARED enums + the locator come from ../safety/foundation.js (the single source
 // for every cross-cluster enum); they are NEVER redefined here. This cluster

@@ -17,9 +17,10 @@
 //     orchestrator merges into `UserPrivateDataSchema` (privateData/{uid}). This file
 //     does NOT edit user.ts.
 //
-// Every field/enum/optionality/bound is transcribed verbatim from the frozen spec
-// (docs/code_changes_needed/trust-and-safety/IMPLEMENTATION_PLAN.md, Appendix A) — no
-// invented values, no placeholders.
+// Every field/enum/optionality/bound is transcribed verbatim from the frozen Trust &
+// Safety spec (Appendix A); the durable design owners are ttt-prod
+// docs/design/age-gating-and-account-types.md and
+// docs/design/age-data-handling-profile.md — no invented values, no placeholders.
 //
 // `RegistrationCompletionOutcome` is the DOMAIN outcome that feeds the orphan-Auth
 // deletion policy; it is the SINGLE SOURCE in ./foundation.js and is IMPORTED here

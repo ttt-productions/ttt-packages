@@ -20,8 +20,8 @@ const mediaKindSchema = ContentMediaKindSchema;
 export const UserAccountStatusSchema = z.enum(['active', 'suspended', 'banned']);
 export type UserAccountStatus = z.infer<typeof UserAccountStatusSchema>;
 
-// Craft-skill kind — mandatory choice at upload, no default (see
-// CODE_CHANGE_craft_skill_kinds.md). 'original' = the artisan's own original creation;
+// Craft-skill kind — mandatory choice at upload, no default (see ttt-prod
+// docs/design/profile-and-craft-skills.md). 'original' = the artisan's own original creation;
 // 'mimicOnTtt' = a performance/recreation of work that originated in the TTT community
 // (requires a source reference); 'mimicOffTtt' = a performance/recreation of work from
 // outside TTT (covers covers + public-domain works, no source reference).
@@ -153,7 +153,7 @@ export const FullUserSchema = z.object({
   // Charter honor stamp: written once at registration by /api/register/complete as
   // byMode(true, false) — true only for accounts created during Charter Season. The
   // flip publish makes new signups false automatically; no backfill, no date math.
-  // Backend-only-writable, cosmetic, not PII (docs/charter-season/honor-roll-and-badges.md).
+  // Backend-only-writable, cosmetic, not PII (ttt-prod docs/charter-season/honor-roll-and-badges.md).
   charterSignupMember: z.boolean().optional(),
   status: UserAccountStatusSchema.optional(),
   // Chat-edge-rebuild account-access domain (Contract B / round-10 blocker 1): the

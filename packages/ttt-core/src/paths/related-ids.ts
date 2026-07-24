@@ -1,6 +1,6 @@
 // Typed prefixes for structured relationship-array IDs (e.g. SquareStreetz post `relatedIds`).
 // Structured relationship arrays that mix entity types MUST store typed IDs using these
-// underscore prefixes. See docs/design/work-realm-discovery-system.md and
+// underscore prefixes. See ttt-prod docs/design/work-realm-discovery-system.md and
 // engineering-rules BACKEND-206 (ttt-master-app/docs/engineering-rules/backend/sensitive-writes-and-audit.md).
 
 export const RELATED_ID_PREFIXES = {

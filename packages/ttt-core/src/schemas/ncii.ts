@@ -12,7 +12,7 @@ import { TAKE_IT_DOWN_VALIDITY_CONFIRMATION } from '../constants/safety-confirma
 // NCII / TAKE IT DOWN callable-input schemas. Cross-boundary contracts for the
 // `functions/src/ncii/` callables — moved here from local `functions/` definitions so the
 // callable-validation standard (parse `request.data` with a `.strict()` ttt-core schema before any
-// auth check) is met from one authoritative place. See docs/design/callable-validation.md.
+// auth check) is met from one authoritative place. See ttt-prod docs/design/callable-validation.md.
 
 // Operator sets the child-safety crossover minorAssessment on an NCII case (CSAM possible-minor
 // crossover — DECISION 2026-07-01: operator-only, no automated age signal). A routing action: it

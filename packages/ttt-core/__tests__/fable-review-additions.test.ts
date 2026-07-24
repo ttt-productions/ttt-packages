@@ -145,6 +145,7 @@ describe('curated audition assembly status', () => {
       title: 'T',
       description: 'D',
       videoAssetId: 'v1',
+      mediaType: 'video',
       openTill: 2,
       createdOn: 1,
       createdBy: { uid: 'u1' },

@@ -1,6 +1,7 @@
 // Chat realtime SYNC / projection / command Firestore schemas (chat-edge-rebuild P1).
-// Frozen field lists come from IMPLEMENTATION_MATRIX.md "Chat sync / projection /
-// commands (Firestore side)". All of these collections are Admin-SDK-only
+// The chat sync / projection / command (Firestore-side) field lists are FROZEN
+// here — this file is their single source; the durable design owner is ttt-prod
+// docs/design/chat-realtime-system.md. All of these collections are Admin-SDK-only
 // (`allow read, write: if false`). Per the TTT timestamp convention every time
 // field is epoch-ms `number`; the SINGLE exception is the native-TTL `expireAt`,
 // which is a real Firestore `Timestamp` (modeled as `unknown` so the drift-check
