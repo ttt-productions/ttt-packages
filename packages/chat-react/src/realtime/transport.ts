@@ -14,6 +14,7 @@ import { ChannelClient, type ChannelClientConfig, type ChannelClientState } from
 import { InboxClient, type InboxClientConfig, type InboxClientState } from './inbox-client.js';
 import { browserSocketFactory, type SocketFactory } from './socket.js';
 import type { GrantProvider, TransportTimers } from './shared.js';
+import type { ChatClientDiagnosticsOption } from './diagnostics.js';
 import type { ChannelRefTuple } from './wire.js';
 
 /**
@@ -30,6 +31,14 @@ export interface RealtimeTransportConfig {
   socketFactory?: SocketFactory;
   timers?: TransportTimers;
   reconnect?: ChannelClientConfig['reconnect'];
+  /**
+   * OPT-IN structured client diagnostics, forwarded to the ChannelClient. Absent
+   * or `false` (the default) changes nothing and costs one nullish check; `true`
+   * emits one single-line `console.debug` entry per client DECISION with a stable
+   * `chat_client_*` event name; a function routes those entries into the app's own
+   * logger. Content-free by construction (ids/seqs/states/counts/codes only).
+   */
+  diagnostics?: ChatClientDiagnosticsOption;
 }
 
 /**
@@ -58,6 +67,7 @@ export function createRealtimeChatClient(config: RealtimeTransportConfig): Realt
     socketFactory: config.socketFactory ?? browserSocketFactory,
     timers: config.timers,
     reconnect: config.reconnect,
+    diagnostics: config.diagnostics,
   });
 
   return {

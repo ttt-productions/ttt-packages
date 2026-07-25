@@ -57,6 +57,7 @@ export interface TttLimits {
   /** Values for the backend rate limiters. Prefixes/factory stay in functions. */
   rateLimits: {
     UPLOAD: RateLimitValue;
+    ADMIN_UPLOAD: RateLimitValue;
     VOTE: RateLimitValue;
     MODERATION: RateLimitValue;
     SENSITIVE_ACTION: RateLimitValue;
@@ -111,6 +112,12 @@ export const CHARTER_LIMITS: TttLimits = {
     // Uploads are charged ONCE per upload (in startUpload); the processor-side
     // check is a non-charging guard.
     UPLOAD: { maxRequests: 15, window: '1 h' },
+    // A separate HIGHER bucket for uploads performed through the sanctioned admin
+    // authority path — never an exemption. Bulk admin setup work (creating 3
+    // auditions is ~5 uploads) exhausts the 15/h user bucket; 60/h covers a real
+    // bulk admin session while keeping a brake on a compromised admin token and on
+    // third-party quota/cost (Vision / Video Intelligence / R2). DJ ruling 2026-07-25.
+    ADMIN_UPLOAD: { maxRequests: 60, window: '1 h' },
     VOTE: { maxRequests: 100, window: '1 h' },
     MODERATION: { maxRequests: 50, window: '1 h' },
     // 30/h: one bucket is shared by ~35 callables (register, become-artisan,
@@ -178,6 +185,11 @@ export const FULL_LIMITS: TttLimits = {
   batches: { trendingFeedProcessLimit: 1000, maxFeedbackSubmitters: 100 },
   rateLimits: {
     UPLOAD: { maxRequests: 30, window: '1 h' },
+    // 120/h (full): the same sanctioned-admin-path upload bucket as charter, scaled
+    // with UPLOAD — always HIGHER than the user bucket, never an exemption, so a
+    // compromised admin token and third-party media cost stay bounded. See the
+    // CHARTER_LIMITS note above. DJ ruling 2026-07-25.
+    ADMIN_UPLOAD: { maxRequests: 120, window: '1 h' },
     VOTE: { maxRequests: 200, window: '1 h' },
     MODERATION: { maxRequests: 50, window: '1 h' },
     // 60/h: full-mode power users managing several works do dozens of legitimate

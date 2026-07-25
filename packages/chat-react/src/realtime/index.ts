@@ -48,6 +48,13 @@ export {
 } from './map.js';
 export type { ModerationOverlay } from './map.js';
 
+export { CHAT_CLIENT_DIAGNOSTIC_EVENTS } from './diagnostics.js';
+export type {
+  ChatClientDiagnosticsOption,
+  ChatClientDiagnosticsSink,
+  ChatClientDiagnosticEventName,
+} from './diagnostics.js';
+
 export { ChannelClient } from './channel-client.js';
 export type { ChannelClientState, ChannelClientConfig } from './channel-client.js';
 export { InboxClient } from './inbox-client.js';

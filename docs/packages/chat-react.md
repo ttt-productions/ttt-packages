@@ -75,7 +75,7 @@ injects everything app-specific (the grant provider, the endpoint, the channel r
 **Pieces** (all under `src/realtime/`, re-exported from the package root):
 
 - `createRealtimeChatClient({ endpoint, channelRef, threadId, currentUserId,
-  grantProvider, socketFactory?, timers?, reconnect? })` → a `RealtimeChatClient`
+  grantProvider, socketFactory?, timers?, reconnect?, diagnostics? })` → a `RealtimeChatClient`
   (one per thread). Put it on `config.realtime.client`. Drives ONE channel socket:
   subprotocol auth, optimistic send keyed by `clientMessageId` reconciled on the
   server `seq`, explicit read acks, ≥2 s-coalesced typing, presence
@@ -154,12 +154,42 @@ Both clients also set `lastErrorCode: 'revoked'` on a 4403 REVOKED close.
 `ChatAccessDeniedError` + `isChatAccessDeniedError` are exported from the package
 root.
 
+**Opt-in client diagnostics (`diagnostics`, default OFF).** `createRealtimeChatClient`
+and `ChannelClient` accept an additive `diagnostics?: boolean | ChatClientDiagnosticsSink`.
+Absent/`false` is the production posture: no output, no behavior change, one nullish
+check per decision point (the payload object is never constructed). `true` emits ONE
+`console.debug` line per client DECISION — `chat_client_<event> {"compact":"json"}` —
+and a function routes those same entries into the app's own logger. It exists because a
+frame capture shows what ARRIVED, not what the client APPLIED, DROPPED, or MERGED.
+
+Stable event names (`CHAT_CLIENT_DIAGNOSTIC_EVENTS`, exported from the package root —
+they are a log-query contract, added/retired deliberately, never renamed): socket
+lifecycle (`connect_attempt`, `grant_failed`, `socket_open`, `socket_close`,
+`reconnect_scheduled` — each with the reconnect cause and attempt number), resume
+(`resume_request {afterSeq}`, `resume_result {lastMessageSeq, resync, deltaCount,
+cursorBefore, cursorAfter}`, `resync_dropped_tail`), per-frame decisions
+(`frame_applied` with `op: insert | replace-by-seq | optimistic-reconcile`,
+`frame_dropped` with a reason), `attachment_transition {seq, from, to, source}`,
+`revision_applied`, history (`history_request`, `history_page` with page size, seq
+range, cursor advance), and the send lifecycle (`send_optimistic`, `send_ack`,
+`send_rejected`, `send_retry`, `send_failed`, `error_frame`).
+
+Two invariants the tests pin: (1) **no user content** — ids, seqs, states, counts, and
+codes only; never message text, captions, filenames, URLs, or grant tokens; (2)
+**bounded** — one line per decision, nothing per render or per heartbeat, and an
+uninteresting resume-delta row is summarized by `resume_result` instead of emitting a
+line each (a delta row still logs when it carries an attachment state, a moderation
+kind, or reconciles an optimistic send). A sink that throws is swallowed — diagnostics
+observe, they never alter transport behavior or timing.
+
 **Testing.** `socketFactory` + `timers` are injected, so the whole transport is
 unit-tested against a MOCK socket and a fake clock with no real network/timers
 (`__tests__/realtime/`). Coverage: connect+auth handshake, optimistic send + seq
 reconcile, read-ack, typing coalescing, presence, heartbeat, history pagination,
 reconnect+resume (snapshot then delta), 4401 re-grant (once), 4403 stop, grant-mint
-failure backoff, inbox unread projection, and auth-switch teardown.
+failure backoff, inbox unread projection, auth-switch teardown, and the diagnostics
+flag (identical state + identical sent frames with it off vs. on, zero console output
+when off, and the event payloads when on).
 
 **Wire details ASSUMED / not yet confirmable against the Worker** (review these):
 - Attachment metadata: the DO `MessageRow` carries only the attachment LIFECYCLE

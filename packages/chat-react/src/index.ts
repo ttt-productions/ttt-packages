@@ -74,10 +74,14 @@ export {
   SERVER_FRAME,
   buildFrame,
   parseFrame,
+  CHAT_CLIENT_DIAGNOSTIC_EVENTS,
 } from "./realtime/index.js";
 export type {
   RealtimeChatClient,
   RealtimeTransportConfig,
+  ChatClientDiagnosticsOption,
+  ChatClientDiagnosticsSink,
+  ChatClientDiagnosticEventName,
   ChannelClientState,
   ChannelClientConfig,
   InboxClientState,

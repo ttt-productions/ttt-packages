@@ -1,5 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { ChannelClient } from '../../src/realtime/channel-client.js';
+import {
+  CHAT_CLIENT_DIAGNOSTIC_EVENTS as DIAG,
+  type ChatClientDiagnosticsOption,
+} from '../../src/realtime/diagnostics.js';
 import { CHAT_CLOSE_CODES, CHAT_SUBPROTOCOL, type WireMessageRow } from '../../src/realtime/wire.js';
 import {
   ChatAccessDeniedError,
@@ -24,7 +28,11 @@ function wireRow(seq: number, senderUid: string, text: string, clientMessageId =
   };
 }
 
-function makeClient(overrides?: { grantProvider?: () => Promise<string>; reconnect?: Record<string, unknown> }) {
+function makeClient(overrides?: {
+  grantProvider?: () => Promise<string>;
+  reconnect?: Record<string, unknown>;
+  diagnostics?: ChatClientDiagnosticsOption;
+}) {
   const harness = createMockSocketHarness();
   const clock = createFakeClock();
   const grantCalls: number[] = [];
@@ -45,6 +53,7 @@ function makeClient(overrides?: { grantProvider?: () => Promise<string>; reconne
     timers: clock,
     // Deterministic backoff: zero jitter, small base.
     reconnect: { baseDelayMs: 100, maxDelayMs: 1000, random: () => 0, ...(overrides?.reconnect ?? {}) },
+    ...(overrides?.diagnostics === undefined ? {} : { diagnostics: overrides.diagnostics }),
   });
   return { client, harness, clock, grantCalls };
 }
@@ -1315,5 +1324,255 @@ describe('ChannelClient — terminal access denial (ChatAccessDeniedError)', () 
     await Promise.resolve();
     await Promise.resolve();
     expect(grant).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// OPT-IN structured diagnostics (`diagnostics` config, default OFF).
+// The transport must be byte-for-byte identical with the flag off — same state,
+// same frames, and NOT ONE console line — and, when on, must record the client's
+// internal decisions (resume cursor, applied/dropped frames, attachment
+// transitions) WITHOUT ever logging message text or any other user content.
+// ---------------------------------------------------------------------------
+
+/** A message row carrying the attachment LIFECYCLE the DO mutates in place. */
+function attachmentRow(seq: number, state: 'pending' | 'ready' | 'failed'): WireMessageRow {
+  return {
+    ...wireRow(seq, 'u-me', 'caption-that-must-never-be-logged', `att-${seq}`),
+    attachmentState: state,
+    attachmentMeta: JSON.stringify({ attachmentKind: 'image', mediaAssetId: 'asset-1' }),
+  };
+}
+
+const SECRET_TEXT = 'super-secret-message-body';
+
+/**
+ * One representative end-to-end script: connect → resume delta → optimistic send +
+ * ack → an attachment row arriving pending then flipping to ready in place → a
+ * moderation revision → a heartbeat window → a drop/reconnect → a resync snapshot →
+ * a history re-page. Run identically with diagnostics off and on.
+ */
+async function runScenario(diagnostics?: ChatClientDiagnosticsOption) {
+  const ctx = makeClient(diagnostics === undefined ? undefined : { diagnostics });
+  const { client, harness, clock } = ctx;
+  await client.connect();
+  let sock = harness.last();
+  sock.serverOpen();
+  sock.serverFrame('snapshot', {
+    lastMessageSeq: 2,
+    readSeq: 1,
+    resync: false,
+    delta: [wireRow(1, 'u-a', 'one'), wireRow(2, 'u-b', 'two')],
+  });
+  client.send({ clientMessageId: 'c-1', text: SECRET_TEXT });
+  sock.serverFrame('ack', { clientMessageId: 'c-1', seq: 3 });
+  sock.serverFrame('message', { message: attachmentRow(4, 'pending') });
+  sock.serverFrame('message', { message: attachmentRow(4, 'ready') });
+  sock.serverFrame('revision', { messageSeq: 1, kind: 'moderate', messageRevision: 2 });
+  clock.tick(20_000); // a heartbeat window — must never produce a diagnostic line
+  sock.serverClose(1006, 'abnormal');
+  clock.tick(200);
+  await Promise.resolve();
+  sock = harness.last();
+  sock.serverOpen();
+  sock.serverFrame('snapshot', { lastMessageSeq: 4, readSeq: 3, resync: true, delta: [] });
+  sock.serverFrame('history-page', { messages: [wireRow(1, 'u-a', 'one'), attachmentRow(4, 'ready')] });
+  return ctx;
+}
+
+/** Every frame every socket sent, as a stable comparable string. */
+function allSentFrames(harness: { sockets: Array<{ sent: unknown[] }> }): string {
+  return JSON.stringify(harness.sockets.map((s) => s.sent));
+}
+
+describe('ChannelClient — diagnostics OFF (the default: zero behavior change, zero output)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('writes nothing to the console when the flag is absent', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => undefined);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    await runScenario();
+    expect(debug).not.toHaveBeenCalled();
+    expect(log).not.toHaveBeenCalled();
+    expect(info).not.toHaveBeenCalled();
+  });
+
+  it('writes nothing to the console when the flag is explicitly false', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => undefined);
+    await runScenario(false);
+    expect(debug).not.toHaveBeenCalled();
+  });
+
+  it('produces IDENTICAL state and IDENTICAL sent frames with the flag off vs. on', async () => {
+    const off = await runScenario();
+    const on = await runScenario(() => undefined);
+    expect(JSON.stringify(on.client.getState())).toBe(JSON.stringify(off.client.getState()));
+    expect(allSentFrames(on.harness)).toBe(allSentFrames(off.harness));
+  });
+
+  it('a THROWING sink never breaks the transport (diagnostics observe, never alter)', async () => {
+    const off = await runScenario();
+    const throwing = await runScenario(() => {
+      throw new Error('sink exploded');
+    });
+    expect(JSON.stringify(throwing.client.getState())).toBe(JSON.stringify(off.client.getState()));
+    expect(allSentFrames(throwing.harness)).toBe(allSentFrames(off.harness));
+  });
+});
+
+describe('ChannelClient — diagnostics ON (structured decision log)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** Run the scenario with a capturing sink. */
+  async function runCaptured() {
+    const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
+    const ctx = await runScenario((event, data) => entries.push({ event, data }));
+    const of = (event: string) => entries.filter((e) => e.event === event).map((e) => e.data);
+    return { ...ctx, entries, of };
+  }
+
+  it('records the resume cursor it SENT (chat_client_resume_request)', async () => {
+    const { of } = await runCaptured();
+    const requests = of(DIAG.RESUME_REQUEST);
+    // First connect resumes from the beginning; the reconnect resumes from the tail
+    // the client actually applied (seq 4 — the in-place attachment flip did not
+    // advance it past 4, which is the protocol fact this evidence run must capture).
+    expect(requests.map((d) => d.afterSeq)).toEqual([0, 4]);
+  });
+
+  it('records the snapshot RESULT with the delta size and cursor movement', async () => {
+    const { of } = await runCaptured();
+    const results = of(DIAG.RESUME_RESULT);
+    expect(results[0]).toMatchObject({
+      lastMessageSeq: 2,
+      resync: false,
+      deltaCount: 2,
+      cursorBefore: 0,
+      cursorAfter: 2,
+    });
+    // The reconnect's resync answer: the cursor is reset and the tail dropped.
+    expect(results[1]).toMatchObject({ lastMessageSeq: 4, resync: true, deltaCount: 0, cursorBefore: 4, cursorAfter: 0 });
+    expect(of(DIAG.RESYNC_DROPPED_TAIL)[0]).toMatchObject({ removedCount: 4, keptOptimistic: 0 });
+  });
+
+  it('records what the UI APPLIED per live frame (insert vs. replace-by-seq)', async () => {
+    const { of } = await runCaptured();
+    const applied = of(DIAG.FRAME_APPLIED);
+    const four = applied.filter((d) => d.seq === 4);
+    expect(four).toHaveLength(2);
+    expect(four[0]).toMatchObject({ kind: 'message', source: 'live', op: 'insert', attachmentState: 'pending' });
+    expect(four[1]).toMatchObject({ kind: 'message', source: 'live', op: 'replace-by-seq', attachmentState: 'ready' });
+    // Bounded: an uninteresting delta backlog row is summarized by resume_result,
+    // never one applied-line per row.
+    expect(applied.some((d) => d.source === 'delta')).toBe(false);
+  });
+
+  it('records every attachment lifecycle transition it observed (seq + old -> new)', async () => {
+    const { of } = await runCaptured();
+    expect(of(DIAG.ATTACHMENT_TRANSITION)).toEqual([
+      { seq: 4, from: null, to: 'pending', source: 'live' },
+      { seq: 4, from: 'pending', to: 'ready', source: 'live' },
+    ]);
+  });
+
+  it('records the history page size, seq range, and cursor advance', async () => {
+    const { of } = await runCaptured();
+    expect(of(DIAG.HISTORY_REQUEST).at(-1)).toMatchObject({ beforeSeq: null, limit: 50, sent: true });
+    expect(of(DIAG.HISTORY_PAGE)[0]).toMatchObject({ count: 2, minSeq: 1, maxSeq: 4, cursorBefore: 0, cursorAfter: 4 });
+  });
+
+  it('records the send lifecycle (optimistic → ack) and the moderation revision', async () => {
+    const { of } = await runCaptured();
+    expect(of(DIAG.SEND_OPTIMISTIC)[0]).toMatchObject({ clientMessageId: 'c-1', hasReplyTo: false });
+    expect(of(DIAG.SEND_ACK)[0]).toMatchObject({ clientMessageId: 'c-1', seq: 3, wasPending: true });
+    expect(of(DIAG.REVISION_APPLIED)[0]).toMatchObject({ seq: 1, kind: 'moderate', messageRevision: 2, rendered: true });
+  });
+
+  it('records the socket lifecycle with the reconnect cause and attempt number', async () => {
+    const { of } = await runCaptured();
+    expect(of(DIAG.CONNECT_ATTEMPT).map((d) => [d.attempt, d.cause])).toEqual([
+      [1, 'initial'],
+      [2, 'transient-close'],
+    ]);
+    expect(of(DIAG.SOCKET_OPEN).map((d) => d.attempt)).toEqual([1, 2]);
+    expect(of(DIAG.SOCKET_CLOSE)[0]).toMatchObject({ code: 1006, closedByUs: false, outcome: 'reconnect' });
+    // A scheduled reconnect carries the backoff delay (null would mean give-up).
+    const scheduled = of(DIAG.RECONNECT_SCHEDULED)[0];
+    expect(scheduled).toMatchObject({ cause: 'transient-close' });
+    expect(typeof scheduled.delayMs).toBe('number');
+  });
+
+  it('records a send-rejected decision and the resulting failure', async () => {
+    const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
+    const { client, harness } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-1', text: SECRET_TEXT });
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'blocked-word', retryable: false });
+    expect(entries.filter((e) => e.event === DIAG.SEND_REJECTED).map((e) => e.data)).toEqual([
+      { clientMessageId: 'c-1', code: 'blocked-word', retryable: false, outcome: 'terminal' },
+    ]);
+    expect(entries.filter((e) => e.event === DIAG.SEND_FAILED)[0].data).toMatchObject({
+      clientMessageId: 'c-1',
+      code: 'blocked-word',
+      retryable: false,
+    });
+  });
+
+  it('records a DROPPED frame with its reason (never silently ignored)', async () => {
+    const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
+    const { client, harness } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    sock.serverFrame('brand-new-frame', { whatever: 1 });
+    sock.serverFrame('revision', { messageSeq: 5 }); // malformed
+    expect(entries.filter((e) => e.event === DIAG.FRAME_DROPPED).map((e) => e.data)).toEqual([
+      { kind: 'brand-new-frame', reason: 'unknown-type' },
+      { kind: 'revision', reason: 'malformed-payload' },
+    ]);
+  });
+
+  it('emits NOTHING for heartbeats or repeated renders (bounded phase logging)', async () => {
+    const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
+    const { client, harness, clock } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    await client.connect();
+    harness.last().serverOpen();
+    const afterOpen = entries.length;
+    clock.tick(120_000); // six heartbeat windows
+    expect(harness.last().sent.filter((f) => f.type === 'heartbeat').length).toBeGreaterThanOrEqual(6);
+    expect(entries).toHaveLength(afterOpen);
+  });
+
+  it('NEVER logs message text, captions, or any other user content', async () => {
+    const { entries } = await runCaptured();
+    const serialized = JSON.stringify(entries);
+    expect(serialized).not.toContain(SECRET_TEXT);
+    expect(serialized).not.toContain('caption-that-must-never-be-logged');
+    expect(serialized).not.toContain('grant-token');
+  });
+
+  it('the `true` shorthand emits ONE parseable console.debug line per decision', async () => {
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => undefined);
+    await runScenario(true);
+    expect(debug.mock.calls.length).toBeGreaterThan(0);
+    for (const call of debug.mock.calls) {
+      expect(call).toHaveLength(1); // single-line, single argument
+      const line = String(call[0]);
+      expect(line).not.toContain('\n');
+      const [event, ...rest] = line.split(' ');
+      expect(event.startsWith('chat_client_')).toBe(true);
+      expect(() => JSON.parse(rest.join(' ')) as unknown).not.toThrow();
+    }
+    // The stable names are exactly the declared contract.
+    const names = new Set(debug.mock.calls.map((c) => String(c[0]).split(' ')[0]));
+    const declared = new Set<string>(Object.values(DIAG));
+    for (const name of names) expect(declared.has(name)).toBe(true);
   });
 });

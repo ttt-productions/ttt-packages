@@ -40,6 +40,13 @@ import {
 } from './map.js';
 import type { GrantProvider, TransportTimers, RealtimeStatus } from './shared.js';
 import {
+  createDiagnosticsEmitter,
+  safeDiagnosticLabel,
+  CHAT_CLIENT_DIAGNOSTIC_EVENTS as DIAG,
+  type ChatClientDiagnosticsEmitter,
+  type ChatClientDiagnosticsOption,
+} from './diagnostics.js';
+import {
   defaultTimers,
   isChatAccessDeniedError,
   HEARTBEAT_MS,
@@ -123,6 +130,16 @@ export interface ChannelClientConfig {
   timers?: TransportTimers;
   /** Reconnect backoff tuning (forwarded to realtime-core). */
   reconnect?: { baseDelayMs?: number; maxDelayMs?: number; maxAttempts?: number | null; random?: () => number };
+  /**
+   * OPT-IN structured client diagnostics (default OFF — absent/`false` changes
+   * nothing and costs one nullish check per decision point). `true` emits one
+   * `console.debug` line per decision with a stable `chat_client_*` event name
+   * and a compact, content-free JSON payload; a function routes those entries
+   * into the app's own logger instead. Never logs message text, captions,
+   * filenames, URLs, tokens, or previews — ids, seqs, states, counts, and codes
+   * only. See `./diagnostics.ts`.
+   */
+  diagnostics?: ChatClientDiagnosticsOption;
 }
 
 const INITIAL: ChannelClientState = {
@@ -191,10 +208,23 @@ export class ChannelClient {
    * send that exceeds the attempt/age cap is flipped to a visible failed state
    * (retry affordance) instead of staying a ghost. */
   private pendingSends = new Map<string, PendingSend>();
+  /**
+   * The structured diagnostics emitter, or null when diagnostics are off (the
+   * default). Every call site uses `this.diag?.(...)` so the off path constructs
+   * no payload at all.
+   */
+  private readonly diag: ChatClientDiagnosticsEmitter;
+  /** Monotonic socket-open attempt counter (diagnostics correlation only). */
+  private connectAttempt = 0;
+  /** Why the CURRENT connect attempt is happening (diagnostics only). */
+  private reconnectCause: 'initial' | 'auth-expired' | 'transient-close' | 'grant-error' = 'initial';
+  /** The last close code observed, carried into the next attempt's cause line. */
+  private lastCloseCode: number | null = null;
 
   constructor(private readonly config: ChannelClientConfig) {
     this.timers = config.timers ?? defaultTimers;
     this.controller = createReconnectController(config.reconnect ?? {});
+    this.diag = createDiagnosticsEmitter(config.diagnostics);
   }
 
   // ---- observable store ----
@@ -224,12 +254,21 @@ export class ChannelClient {
     // legitimate reconnect.
     if (this.state.status !== 'idle' && this.state.status !== 'closed') return;
     this.closedByUs = false;
+    this.reconnectCause = 'initial';
     this.controller.start();
     this.setState({ status: 'connecting' });
     await this.openSocket();
   }
 
   private async openSocket(): Promise<void> {
+    this.connectAttempt += 1;
+    this.diag?.(DIAG.CONNECT_ATTEMPT, {
+      attempt: this.connectAttempt,
+      cause: this.reconnectCause,
+      closeCode: this.lastCloseCode,
+      resumeSeq: this.resumeSeq,
+      pendingSends: this.pendingSends.size,
+    });
     let grantToken: string;
     try {
       grantToken = await this.config.grantProvider();
@@ -240,7 +279,10 @@ export class ChannelClient {
       // on the opening loader forever. Every other mint failure (network, transient
       // 'unavailable'/'internal', post-login 'unauthenticated') stays retryable and
       // backs off exactly as before.
-      if (isChatAccessDeniedError(err)) return this.denyAccessTerminally();
+      const terminal = isChatAccessDeniedError(err);
+      this.diag?.(DIAG.GRANT_FAILED, { attempt: this.connectAttempt, terminal });
+      if (terminal) return this.denyAccessTerminally();
+      this.reconnectCause = 'grant-error';
       return this.scheduleReconnect();
     }
     if (this.closedByUs) return;
@@ -261,10 +303,18 @@ export class ChannelClient {
     this.controller.onOpen();
     this.reauthAttempted = false;
     this.setState({ status: 'open' });
+    this.diag?.(DIAG.SOCKET_OPEN, {
+      attempt: this.connectAttempt,
+      cause: this.reconnectCause,
+      resumeSeq: this.resumeSeq,
+      pendingSends: this.pendingSends.size,
+      presenceSubscribed: this.presenceSubscribed,
+    });
     // Resume: ask the DO for the authoritative snapshot, then live deltas flow. The
     // field name MUST be `afterSeq` — the Channel DO reads `payload.afterSeq`; any other
     // name reads as cursorless and forces a full resync every reconnect.
     this.sendFrame(CLIENT_FRAME.RESUME, { afterSeq: this.resumeSeq });
+    this.diag?.(DIAG.RESUME_REQUEST, { afterSeq: this.resumeSeq, attempt: this.connectAttempt });
     // If the UI had presence open, re-subscribe after a reconnect.
     if (this.presenceSubscribed) this.sendFrame(CLIENT_FRAME.PRESENCE_SUBSCRIBE, {});
     // Re-send the last read cursor so a read-ack dropped during the disconnect window
@@ -274,7 +324,7 @@ export class ChannelClient {
     // that lost its socket before the ack is not silently dropped. The DO dedups
     // (re-acks, no re-broadcast, no flood-token) — this is the client half of the
     // Contract C send-idempotency the server side was built for.
-    this.resendPendingSends();
+    this.resendPendingSends('reconnect');
     this.startHeartbeat();
   }
 
@@ -284,7 +334,7 @@ export class ChannelClient {
    * visible failed state instead of being resent forever — the ghost becomes a
    * retryable failure the UI can surface.
    */
-  private resendPendingSends(): void {
+  private resendPendingSends(reason: 'reconnect' | 'membership-pending'): void {
     if (this.pendingSends.size === 0) return;
     const now = this.timers.now();
     for (const pending of [...this.pendingSends.values()]) {
@@ -320,6 +370,14 @@ export class ChannelClient {
         replyTo: pending.replyTo,
       });
       if (sent) pending.attempts += 1;
+      this.diag?.(DIAG.SEND_RETRY, {
+        clientMessageId: pending.clientMessageId,
+        reason,
+        attempts: pending.attempts,
+        serverRetryable: pending.serverRetryable,
+        ageMs: now - pending.sentAt,
+        sent,
+      });
     }
   }
 
@@ -345,6 +403,14 @@ export class ChannelClient {
     pending.failed = true;
     // A terminal/exhausted send never retries on a timer — cancel any scheduled one.
     this.clearSendRetryTimer(pending);
+    this.diag?.(DIAG.SEND_FAILED, {
+      clientMessageId,
+      code: code ?? 'send-failed',
+      retryable: retryable ?? null,
+      attempts: pending.attempts,
+      serverRetryable: pending.serverRetryable,
+      ageMs: this.timers.now() - pending.sentAt,
+    });
     const next = this.state.messages.map((m) =>
       m.meta?.optimistic && m.meta?.clientMessageId === clientMessageId
         ? {
@@ -386,7 +452,7 @@ export class ChannelClient {
     this.membershipRetryTimer = this.timers.setTimeout(() => {
       this.membershipRetryTimer = null;
       if (this.closedByUs) return;
-      this.resendPendingSends();
+      this.resendPendingSends('membership-pending');
     }, delayMs);
   }
 
@@ -415,19 +481,28 @@ export class ChannelClient {
       const rawId = (payload as { clientMessageId?: unknown }).clientMessageId;
       if (typeof rawId === 'string' && rawId.length > 0 && rawId.length <= 200) {
         const orphaned = this.pendingSends.get(rawId);
-        if (orphaned && !orphaned.failed) this.failPendingSend(rawId);
+        if (orphaned && !orphaned.failed) {
+          this.diag?.(DIAG.SEND_REJECTED, { clientMessageId: rawId, outcome: 'unparseable-fail-closed' });
+          this.failPendingSend(rawId);
+          return;
+        }
       }
+      this.diag?.(DIAG.SEND_REJECTED, { clientMessageId: null, outcome: 'unparseable-dropped' });
       return;
     }
     const { clientMessageId, code, retryable, retryAfterMs } = parsed.data;
     const pending = this.pendingSends.get(clientMessageId);
     // No matching pending send — already acked/reconciled, or never ours. A late
     // ack/echo (which may have already landed) always wins; nothing to correlate.
-    if (!pending || pending.failed) return;
+    if (!pending || pending.failed) {
+      this.diag?.(DIAG.SEND_REJECTED, { clientMessageId, code, retryable, outcome: 'no-pending-send' });
+      return;
+    }
 
     if (!retryable) {
       // Terminal: an unchanged resend cannot succeed (blocked-word / archived /
       // deleted). Fail ONLY this bubble, recording the reason + terminal class.
+      this.diag?.(DIAG.SEND_REJECTED, { clientMessageId, code, retryable: false, outcome: 'terminal' });
       this.failPendingSend(clientMessageId, code, false);
       return;
     }
@@ -440,10 +515,13 @@ export class ChannelClient {
     // If the budget already elapsed (a long stream of retryable rejections), fail
     // now rather than scheduling yet another doomed resend.
     if (this.timers.now() - pending.sentAt >= SERVER_RETRYABLE_MAX_AGE_MS) {
+      this.diag?.(DIAG.SEND_REJECTED, { clientMessageId, code, retryable: true, outcome: 'budget-exhausted' });
       this.failPendingSend(clientMessageId, code, true);
       return;
     }
-    this.scheduleSendRetry(clientMessageId, this.clampRetryDelay(retryAfterMs));
+    const delayMs = this.clampRetryDelay(retryAfterMs);
+    this.diag?.(DIAG.SEND_REJECTED, { clientMessageId, code, retryable: true, outcome: 'retry-scheduled', delayMs });
+    this.scheduleSendRetry(clientMessageId, delayMs);
   }
 
   /**
@@ -467,10 +545,18 @@ export class ChannelClient {
       }
       // A server-retryable resend does NOT count toward the attempt cap (that cap is
       // for blind reconnect resends only) — leave `attempts` untouched.
-      this.sendFrame(CLIENT_FRAME.SEND, {
+      const sent = this.sendFrame(CLIENT_FRAME.SEND, {
         clientMessageId: current.clientMessageId,
         text: current.text,
         replyTo: current.replyTo,
+      });
+      this.diag?.(DIAG.SEND_RETRY, {
+        clientMessageId: current.clientMessageId,
+        reason: 'scheduled',
+        attempts: current.attempts,
+        serverRetryable: current.serverRetryable,
+        ageMs: this.timers.now() - current.sentAt,
+        sent,
       });
       // Budget backstop: the contract says every send gets an ack or a rejection,
       // and either one replaces/clears this timer. If the server goes silent (a
@@ -536,6 +622,14 @@ export class ChannelClient {
       replyTo: pending.replyTo,
     });
     pending.attempts = sent ? 1 : 0;
+    this.diag?.(DIAG.SEND_RETRY, {
+      clientMessageId,
+      reason: 'manual',
+      attempts: pending.attempts,
+      serverRetryable: false,
+      ageMs: 0,
+      sent,
+    });
     const next = this.state.messages.map((m) => {
       if (!(m.meta?.optimistic && m.meta?.clientMessageId === clientMessageId && m.meta?.sendFailed)) {
         return m;
@@ -560,13 +654,17 @@ export class ChannelClient {
   private onClose(code: number, _reason: string): void {
     this.stopHeartbeat();
     this.socket = null;
+    this.lastCloseCode = code;
     if (this.closedByUs) {
+      this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: true, outcome: 'closed', resumeSeq: this.resumeSeq });
       this.setState({ status: 'closed' });
       return;
     }
     // 4401 AUTH_EXPIRED: re-mint a grant ONCE and reconnect immediately, no backoff.
     if (code === CHAT_CLOSE_CODES.AUTH_EXPIRED && !this.reauthAttempted) {
       this.reauthAttempted = true;
+      this.reconnectCause = 'auth-expired';
+      this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: false, outcome: 're-grant', resumeSeq: this.resumeSeq });
       this.setState({ status: 'reconnecting' });
       void this.openSocket();
       return;
@@ -578,15 +676,24 @@ export class ChannelClient {
     if (code === CHAT_CLOSE_CODES.REVOKED) {
       this.closedByUs = true;
       this.controller.close();
+      this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: false, outcome: 'revoked', resumeSeq: this.resumeSeq });
       this.failAllPendingSends();
       this.setState({ status: 'closed', lastErrorCode: 'revoked' });
       return;
     }
+    this.reconnectCause = 'transient-close';
+    this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: false, outcome: 'reconnect', resumeSeq: this.resumeSeq });
     this.scheduleReconnect();
   }
 
   private scheduleReconnect(): void {
     const delay = this.controller.onClose();
+    this.diag?.(DIAG.RECONNECT_SCHEDULED, {
+      delayMs: delay,
+      cause: this.reconnectCause,
+      attempt: this.connectAttempt,
+      resumeSeq: this.resumeSeq,
+    });
     if (delay == null) {
       // Reconnect give-up: terminal, same as REVOKED — pending sends must not stay
       // an eternal "Sending…"; flip them to the visible failed/retry state.
@@ -622,11 +729,14 @@ export class ChannelClient {
 
   private onMessage(data: string): void {
     const frame = parseFrame(data);
-    if (!frame || !frame.type) return;
+    if (!frame || !frame.type) {
+      this.diag?.(DIAG.FRAME_DROPPED, { kind: 'unparseable', reason: 'bad-envelope' });
+      return;
+    }
     const payload = frame.payload ?? {};
     switch (frame.type) {
       case 'message':
-        return this.applyMessage((payload as { message: WireMessageRow }).message);
+        return this.applyMessage((payload as { message: WireMessageRow }).message, 'live');
       case 'ack':
         return this.applyAck(payload as { clientMessageId?: string; seq?: number; readSeq?: number });
       case 'history-page':
@@ -651,6 +761,12 @@ export class ChannelClient {
         if (code === MEMBERSHIP_PENDING_CODE) {
           const raw = (payload as { retryAfterMs?: unknown }).retryAfterMs;
           const delay = this.clampRetryDelay(typeof raw === 'number' ? raw : undefined);
+          this.diag?.(DIAG.ERROR_FRAME, {
+            code: MEMBERSHIP_PENDING_CODE,
+            correlated: false,
+            delayMs: delay,
+            pendingSends: this.pendingSends.size,
+          });
           for (const pending of this.pendingSends.values()) {
             if (!pending.failed) {
               pending.serverRetryable = true;
@@ -659,12 +775,15 @@ export class ChannelClient {
           }
           return this.scheduleMembershipPendingRetry(delay);
         }
+        this.diag?.(DIAG.ERROR_FRAME, { code: safeDiagnosticLabel(code), correlated: false });
         return this.setState({ lastErrorCode: code });
       }
       case 'revision':
         return this.applyRevisionFrame(payload as { messageSeq?: number; kind?: RevisionKind; messageRevision?: number });
       default:
-        return; // unknown/optional types tolerated (forward compat)
+        // unknown/optional types tolerated (forward compat)
+        this.diag?.(DIAG.FRAME_DROPPED, { kind: safeDiagnosticLabel(frame.type), reason: 'unknown-type' });
+        return;
     }
   }
 
@@ -679,16 +798,36 @@ export class ChannelClient {
     const seq = payload.messageSeq;
     const kind = payload.kind;
     const messageRevision = payload.messageRevision;
-    if (typeof seq !== 'number' || kind == null || typeof messageRevision !== 'number') return;
+    if (typeof seq !== 'number' || kind == null || typeof messageRevision !== 'number') {
+      this.diag?.(DIAG.FRAME_DROPPED, { kind: 'revision', reason: 'malformed-payload' });
+      return;
+    }
     const prev = this.overlays.get(seq);
     // Max-revision merge: a higher messageRevision supersedes; an older one is dropped.
-    if (prev && prev.messageRevision >= messageRevision) return;
+    if (prev && prev.messageRevision >= messageRevision) {
+      this.diag?.(DIAG.FRAME_DROPPED, {
+        kind: 'revision',
+        reason: 'stale-revision',
+        seq,
+        messageRevision,
+        heldRevision: prev.messageRevision,
+      });
+      return;
+    }
     this.overlays.set(seq, { kind, messageRevision });
     // Re-render the matching message in place if it is already present. Re-derive
     // from the ORIGINAL row so a `restore` reverts a previously-blanked text.
     const messageId = seqToMessageId(seq);
     const original = this.originalRows.get(seq);
-    if (original && this.state.messages.some((m) => m.messageId === messageId)) {
+    const rendered = Boolean(original) && this.state.messages.some((m) => m.messageId === messageId);
+    this.diag?.(DIAG.REVISION_APPLIED, {
+      seq,
+      kind,
+      messageRevision,
+      // false = overlay retained for a row not loaded yet (re-applied when it renders).
+      rendered,
+    });
+    if (rendered && original) {
       const overlaid = applyModerationOverlay(original, this.effectiveOverlay(seq, null));
       const next = this.state.messages.map((m) => (m.messageId === messageId ? overlaid : m));
       this.setState({ messages: next });
@@ -736,19 +875,34 @@ export class ChannelClient {
    */
   private applyChannelSnapshot(snap: WireChannelSnapshot): void {
     // Guard: an inbox snapshot must never reach a channel client.
-    if (isInboxSnapshot(snap as never)) return;
-    if (typeof snap.lastMessageSeq !== 'number') return;
+    if (isInboxSnapshot(snap as never)) {
+      this.diag?.(DIAG.FRAME_DROPPED, { kind: 'snapshot', reason: 'inbox-snapshot-on-channel' });
+      return;
+    }
+    if (typeof snap.lastMessageSeq !== 'number') {
+      this.diag?.(DIAG.FRAME_DROPPED, { kind: 'snapshot', reason: 'missing-last-message-seq' });
+      return;
+    }
 
     // Absent `resync` (legacy/pre-contract DO) is treated as a resync directive.
     const resync = snap.resync !== false;
+    const cursorBefore = this.resumeSeq;
+    const delta = Array.isArray(snap.delta) ? snap.delta : [];
 
     if (!resync) {
       // Apply the contiguous delta oldest-first, exactly like live messages, then
       // advance the cursor to the authoritative tail so the NEXT resume tells the DO
       // we're caught up only after we actually applied the backlog.
-      const delta = Array.isArray(snap.delta) ? snap.delta : [];
-      for (const row of delta) this.applyMessage(row);
+      for (const row of delta) this.applyMessage(row, 'delta');
       if (snap.lastMessageSeq > this.resumeSeq) this.resumeSeq = snap.lastMessageSeq;
+      this.diag?.(DIAG.RESUME_RESULT, {
+        lastMessageSeq: snap.lastMessageSeq,
+        resync: false,
+        deltaCount: delta.length,
+        cursorBefore,
+        cursorAfter: this.resumeSeq,
+        readSeq: typeof snap.readSeq === 'number' ? snap.readSeq : null,
+      });
       // A non-resync snapshot IS the first authoritative data (even an empty delta =
       // caught up) — end initial loading. A resync snapshot instead defers to the
       // re-paged first history page below, so it must NOT end it here.
@@ -764,16 +918,97 @@ export class ChannelClient {
     this.overlays.clear();
     this.originalRows.clear();
     this.resumeSeq = 0;
+    const priorCount = this.state.messages.length;
     const keptOptimistic = this.state.messages.filter((m) => m.meta?.optimistic);
+    this.diag?.(DIAG.RESUME_RESULT, {
+      lastMessageSeq: snap.lastMessageSeq,
+      resync: true,
+      deltaCount: delta.length,
+      cursorBefore,
+      cursorAfter: 0,
+      readSeq: typeof snap.readSeq === 'number' ? snap.readSeq : null,
+    });
+    this.diag?.(DIAG.RESYNC_DROPPED_TAIL, {
+      // The client REMOVED rows from the UI here — the counterpart of an upsert.
+      removedCount: priorCount - keptOptimistic.length,
+      keptOptimistic: keptOptimistic.length,
+    });
     this.setState({ messages: keptOptimistic, hasOlder: true, isFetchingOlder: false });
     this.requestHistory(null);
   }
 
-  private applyMessage(row: WireMessageRow): void {
-    if (!row || typeof row.seq !== 'number') return;
+  /**
+   * Apply one server row (a live `message` frame or a resume-delta row) and record
+   * the decision the client made about it.
+   *
+   * Diagnostics bounding: a LIVE frame always emits one `chat_client_frame_applied`
+   * line; a DELTA row emits one only when it is materially interesting (carries an
+   * attachment state, carries a moderation kind, or reconciles one of our optimistic
+   * sends) — a 500-row backlog is otherwise summarized by `chat_client_resume_result`
+   * rather than spamming 500 lines. Attachment transitions ALWAYS emit, from either
+   * source, because an in-place attachment mutation is the exact event this
+   * instrumentation exists to prove.
+   */
+  private applyMessage(row: WireMessageRow, source: 'live' | 'delta'): void {
+    if (!row || typeof row.seq !== 'number') {
+      this.diag?.(DIAG.FRAME_DROPPED, { kind: 'message', source, reason: 'missing-seq' });
+      return;
+    }
+    // Read the pre-merge view ONLY when diagnostics are on (these are O(n) scans).
+    const prior = this.diag ? this.priorRowFacts(row) : null;
+    const cursorBefore = this.resumeSeq;
     const mapped = this.renderRow(row);
     this.mergeMessage(mapped, row);
     if (row.seq > this.resumeSeq) this.resumeSeq = row.seq;
+    if (!this.diag || !prior) return;
+
+    const attachmentState = typeof row.attachmentState === 'string' ? row.attachmentState : null;
+    // Emit a transition for a real change only: first arrival of an attachment row
+    // (null -> pending) and every later in-place mutation (pending -> ready/failed).
+    if (attachmentState !== prior.attachmentState && (attachmentState != null || prior.hadRow)) {
+      this.diag(DIAG.ATTACHMENT_TRANSITION, {
+        seq: row.seq,
+        from: prior.attachmentState,
+        to: attachmentState,
+        source,
+      });
+    }
+    const notable = attachmentState != null || row.moderationKind != null || prior.reconciledOptimistic;
+    if (source === 'delta' && !notable) return;
+    this.diag(DIAG.FRAME_APPLIED, {
+      kind: 'message',
+      source,
+      seq: row.seq,
+      hasClientMessageId: Boolean(row.clientMessageId),
+      attachmentState,
+      moderationKind: row.moderationKind ?? null,
+      op: prior.reconciledOptimistic ? 'optimistic-reconcile' : prior.hadRow ? 'replace-by-seq' : 'insert',
+      cursorBefore,
+      cursorAfter: this.resumeSeq,
+    });
+  }
+
+  /**
+   * The pre-merge view of a row's seq: whether we already hold that seq, its current
+   * attachment state, and whether this row reconciles a live optimistic send.
+   * Diagnostics-only — never called when diagnostics are off.
+   */
+  private priorRowFacts(row: WireMessageRow): {
+    hadRow: boolean;
+    attachmentState: string | null;
+    reconciledOptimistic: boolean;
+  } {
+    const messageId = seqToMessageId(row.seq);
+    const existing = this.state.messages.find((m) => m.messageId === messageId);
+    const raw = existing?.meta?.attachmentState;
+    return {
+      hadRow: existing != null,
+      attachmentState: typeof raw === 'string' ? raw : null,
+      reconciledOptimistic: Boolean(
+        row.clientMessageId &&
+          this.state.messages.some((m) => m.meta?.optimistic && m.meta?.clientMessageId === row.clientMessageId),
+      ),
+    };
   }
 
   /**
@@ -805,6 +1040,13 @@ export class ChannelClient {
     // ack guarantees the seq even if the broadcast is dropped/reordered.
     const seq = payload.seq;
     const cmid = payload.clientMessageId;
+    this.diag?.(DIAG.SEND_ACK, {
+      clientMessageId: cmid,
+      seq,
+      cursorBefore: this.resumeSeq,
+      cursorAfter: seq > this.resumeSeq ? seq : this.resumeSeq,
+      wasPending: this.pendingSends.has(cmid),
+    });
     // The send is acked — stop tracking it for reconnect resend (and cancel any
     // per-send retry timer so a scheduled resend never fires after it landed).
     this.clearPendingSend(cmid);
@@ -827,6 +1069,12 @@ export class ChannelClient {
   }
 
   private applyHistoryPage(rows: WireMessageRow[]): void {
+    const cursorBefore = this.resumeSeq;
+    // Pre-page attachment states for the seqs we already hold — a history page that
+    // carries a DIFFERENT state for a row we already rendered is an in-place mutation
+    // the client learned about by re-fetching, which is exactly the reveal path under
+    // investigation. Diagnostics-only, so only built when they are on.
+    const priorAttachment = this.diag ? this.snapshotAttachmentStates() : null;
     const mapped = rows.map((r) => this.renderRow(r));
     // Mirror mergeMessage's optimistic reconciliation: a history row carrying a
     // clientMessageId we still hold as an optimistic placeholder IS that send (the
@@ -859,6 +1107,44 @@ export class ChannelClient {
       // which is a harmless no-op since the flag never flips back to false.)
       hasLoadedInitialData: true,
     });
+    if (!this.diag) return;
+    if (priorAttachment) {
+      for (const r of rows) {
+        if (typeof r.seq !== 'number') continue;
+        const before = priorAttachment.get(r.seq);
+        if (before === undefined) continue; // a row we did not hold — not a transition
+        const after = typeof r.attachmentState === 'string' ? r.attachmentState : null;
+        if (before !== after) {
+          this.diag(DIAG.ATTACHMENT_TRANSITION, { seq: r.seq, from: before, to: after, source: 'history' });
+        }
+      }
+    }
+    const seqs = rows.map((r) => r.seq).filter((s): s is number => typeof s === 'number');
+    this.diag(DIAG.HISTORY_PAGE, {
+      count: rows.length,
+      minSeq: seqs.length > 0 ? Math.min(...seqs) : null,
+      maxSeq: seqs.length > 0 ? Math.max(...seqs) : null,
+      cursorBefore,
+      cursorAfter: this.resumeSeq,
+      reconciledOptimistic: incomingCmids.size,
+      hasOlder: rows.length >= HISTORY_PAGE_MAX,
+      total: merged.length,
+    });
+  }
+
+  /**
+   * A seq -> attachmentState map of the rows currently held (diagnostics-only, so a
+   * later in-place mutation can be reported as an explicit `old -> new` transition).
+   */
+  private snapshotAttachmentStates(): Map<number, string | null> {
+    const out = new Map<number, string | null>();
+    for (const m of this.state.messages) {
+      const seq = m.meta?.seq;
+      if (typeof seq !== 'number') continue;
+      const raw = m.meta?.attachmentState;
+      out.set(seq, typeof raw === 'string' ? raw : null);
+    }
+    return out;
   }
 
   private applyTyping(uid: string): void {
@@ -898,6 +1184,13 @@ export class ChannelClient {
       replyTo: args.replyTo ?? null,
     });
     if (!sent) {
+      this.diag?.(DIAG.SEND_FAILED, {
+        clientMessageId: args.clientMessageId,
+        code: 'send-failed',
+        retryable: null,
+        attempts: 0,
+        reason: 'socket-not-open',
+      });
       this.setState({ lastErrorCode: 'send-failed' });
       return false;
     }
@@ -924,6 +1217,12 @@ export class ChannelClient {
     });
     const next = [...this.state.messages, echo].sort(sortBySeq);
     this.setState({ messages: next, lastErrorCode: null });
+    this.diag?.(DIAG.SEND_OPTIMISTIC, {
+      clientMessageId: args.clientMessageId,
+      hasReplyTo: Boolean(args.replyTo),
+      replyToSeq: args.replyTo?.messageSeq ?? null,
+      pendingSends: this.pendingSends.size,
+    });
     return true;
   }
 
@@ -967,7 +1266,8 @@ export class ChannelClient {
   }
 
   private requestHistory(beforeSeq: number | null): void {
-    this.sendFrame(CLIENT_FRAME.HISTORY, { beforeSeq, limit: HISTORY_PAGE_MAX });
+    const sent = this.sendFrame(CLIENT_FRAME.HISTORY, { beforeSeq, limit: HISTORY_PAGE_MAX });
+    this.diag?.(DIAG.HISTORY_REQUEST, { beforeSeq, limit: HISTORY_PAGE_MAX, sent });
   }
 
   // ---- heartbeat (20s) ----
