@@ -1550,6 +1550,29 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
     expect(entries).toHaveLength(afterOpen);
   });
 
+  it('a `heartbeat-ack` is an explicit no-op: no diagnostic line, no state change', async () => {
+    const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
+    const { client, harness } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    sock.serverFrame('message', { message: wireRow(1, 'u-other', 'hello') });
+    const afterOpen = entries.length;
+    const stateBefore = JSON.stringify(client.getState());
+
+    // The DO's hibernation auto-response, once per 20s heartbeat window — forever.
+    for (let i = 0; i < 5; i++) sock.serverFrame('heartbeat-ack', {});
+
+    expect(entries).toHaveLength(afterOpen);
+    expect(JSON.stringify(client.getState())).toBe(stateBefore);
+
+    // A genuinely unknown type still drops (forward-compat tolerance is unchanged).
+    sock.serverFrame('some-future-frame', {});
+    expect(entries.slice(afterOpen).map((e) => ({ event: e.event, data: e.data }))).toEqual([
+      { event: DIAG.FRAME_DROPPED, data: { kind: 'some-future-frame', reason: 'unknown-type' } },
+    ]);
+  });
+
   it('NEVER logs message text, captions, or any other user content', async () => {
     const { entries } = await runCaptured();
     const serialized = JSON.stringify(entries);

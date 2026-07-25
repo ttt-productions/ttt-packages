@@ -90,6 +90,14 @@ export const FullWorkProjectSchema = z.object({
   workRealmId: z.string(),
   realmCanonStatus: z.enum(['canon', 'nonCanon']),
   pendingStakeShares: PendingStakeSharesSchema.optional(),
+  // Running total of chat-attachment STORED-OUTPUT bytes across all of this Work's chat
+  // channels, checked against MAX_WORK_CHAT_ATTACHMENT_STORAGE_BYTES (charter 2 GiB /
+  // full 10 GiB; DJ ruling 2026-07-25). Absent ⇒ 0 — the field is never initialized on
+  // create and needs no backfill; the first finalize writes it via an increment, so
+  // every pre-existing Work reads as 0 used. Maintained at asset finalize (+ stored
+  // bytes) and retire (− stored bytes), with a pessimistic pre-check at startUpload.
+  // Backend-only-writable.
+  chatAttachmentBytesUsed: z.number().optional(),
   // Moderation "require retitle" remedy (work/realm report path). When an admin
   // upholds a report on an abusive public title/description, they may replace the
   // text with a generic placeholder and set this flag; the steward is prompted to

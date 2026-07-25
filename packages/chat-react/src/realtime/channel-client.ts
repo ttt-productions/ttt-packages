@@ -780,6 +780,16 @@ export class ChannelClient {
       }
       case 'revision':
         return this.applyRevisionFrame(payload as { messageSeq?: number; kind?: RevisionKind; messageRevision?: number });
+      case 'heartbeat-ack':
+        // The DO runtime's hibernation AUTO-RESPONSE to our 20s `heartbeat`. Per
+        // Contract C liveness is tracked SERVER-side (the auto-response timestamp
+        // the dueWork sweep reads), so the client heartbeat is fire-and-forget: the
+        // ack needs no state change and the next tick is already scheduled. Explicit
+        // no-op — and deliberately NO diagnostic, not even frame_applied: at ~20s
+        // this is the one frame that recurs forever, so logging it would violate the
+        // bounded "one line per DECISION, never per heartbeat" contract and drown the
+        // frame_dropped signal that distinguishes "never arrived" from "dropped".
+        return;
       default:
         // unknown/optional types tolerated (forward compat)
         this.diag?.(DIAG.FRAME_DROPPED, { kind: safeDiagnosticLabel(frame.type), reason: 'unknown-type' });

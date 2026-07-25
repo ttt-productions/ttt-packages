@@ -73,6 +73,15 @@ export const GuildInviteConversationSchema = z.object({
   recipientConfirmed: z.boolean(),
   lastMessage: z.string().optional(),
   lastMessageAt: z.string().optional(),
+  // Running total of chat-attachment STORED-OUTPUT bytes in THIS invite thread, checked
+  // against MAX_INVITE_THREAD_CHAT_ATTACHMENT_STORAGE_BYTES (250 MiB in both modes; DJ
+  // ruling 2026-07-25). An invite thread has no Work behind it, so it carries its own
+  // container quota rather than charging the Work's. Absent ⇒ 0 — never initialized on
+  // create and needs no backfill; the first finalize writes it via an increment, so every
+  // pre-existing invite reads as 0 used. Maintained at asset finalize (+ stored bytes) and
+  // retire (− stored bytes), with a pessimistic pre-check at startUpload.
+  // Backend-only-writable.
+  chatAttachmentBytesUsed: z.number().optional(),
 });
 export type GuildInviteConversation = z.infer<typeof GuildInviteConversationSchema>;
 

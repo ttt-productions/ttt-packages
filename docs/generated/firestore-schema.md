@@ -333,6 +333,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `workRealmId` | `string` |  |
 | `realmCanonStatus` | `'canon' \| 'nonCanon'` |  |
 | `pendingStakeShares` | `Record<string, { amount, createdAt }>` | yes |
+| `chatAttachmentBytesUsed` | `number` | yes |
 | `moderationRetitleRequired` | `boolean` | yes |
 | `moderationRetitleReason` | `string` | yes |
 | `moderationClearedFields` | `string[]` | yes |
@@ -1065,6 +1066,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `recipientConfirmed` | `boolean` |  |
 | `lastMessage` | `string` | yes |
 | `lastMessageAt` | `string` | yes |
+| `chatAttachmentBytesUsed` | `number` | yes |
 
 ## `hallContentChangeRequests/{changeRequestId}`
 

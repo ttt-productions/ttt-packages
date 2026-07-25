@@ -39,6 +39,10 @@ export interface TttLimits {
     maxFileFolders: number;
     maxWorkFiles: number;
     maxWorkFileStorageBytes: number;
+    /** Chat-ATTACHMENT storage per Work (stored output bytes across all of the
+     *  Work's chat channels). Separate from `maxWorkFileStorageBytes` — the file
+     *  system and chat are distinct containers with distinct caps. */
+    maxChatAttachmentStorageBytes: number;
     maxWorkProjectAuditions: number;
     maxCommissionListings: number;
     maxChapters: number;
@@ -46,6 +50,11 @@ export interface TttLimits {
     maxChapterContentLength: number;
     maxTuneTracks: number;
     maxTelevisionEpisodes: number;
+  };
+  /** Guild-INVITE conversation container (a 1:1 invite thread with no Work behind it). */
+  guildInvite: {
+    /** Chat-attachment storage per invite thread (stored output bytes). */
+    maxChatAttachmentStorageBytes: number;
   };
   hall: {
     maxSubmitBatch: number;
@@ -98,6 +107,14 @@ export const CHARTER_LIMITS: TttLimits = {
     maxFileFolders: 10,
     maxWorkFiles: 100,
     maxWorkFileStorageBytes: 2_684_354_560, // 2.5 GiB
+    // Chat-attachment storage is QUOTA'D PER CONTAINER (DJ ruling 2026-07-25).
+    // Counted on STORED OUTPUT bytes (what actually sits in R2 after transcode),
+    // never on raw upload bytes. Rationale: a per-file `maxBytes` cap alone bounds
+    // one upload but nothing stops unbounded accumulation across thousands of chat
+    // messages — this is the abuse brake on that. Deliberately generous so real
+    // collaboration never hits it: 2 GiB is thousands of chat images or hours of
+    // transcoded chat audio for a single charter Work.
+    maxChatAttachmentStorageBytes: 2_147_483_648, // 2 GiB
     maxWorkProjectAuditions: 3,
     maxCommissionListings: 3,
     maxChapters: 5,
@@ -107,6 +124,12 @@ export const CHARTER_LIMITS: TttLimits = {
     maxTuneTracks: 5,
     maxTelevisionEpisodes: 3,
   },
+  // A guild-invite thread is a 1:1 negotiation with no Work behind it, so it gets a
+  // much smaller container quota than a Work — the same 250 MiB in BOTH modes,
+  // because the flip to full-live does not make an invite conversation any longer.
+  // Same stored-output accounting and the same abuse-brake rationale as the Work
+  // quota above. DJ ruling 2026-07-25.
+  guildInvite: { maxChatAttachmentStorageBytes: 262_144_000 }, // 250 MiB
   hall: { maxSubmitBatch: 10 },
   batches: { trendingFeedProcessLimit: 250, maxFeedbackSubmitters: 25 },
   rateLimits: {
@@ -178,6 +201,11 @@ export const FULL_LIMITS: TttLimits = {
     maxFileFolders: 25,
     maxWorkFiles: 1000,
     maxWorkFileStorageBytes: 26_843_545_600, // 25 GiB
+    // 10 GiB (full): the same per-container chat-attachment quota as charter, scaled
+    // for a public-launch Work with a large guild chatting for months. Still a hard
+    // ceiling on unbounded R2 accumulation. See the CHARTER_LIMITS note above.
+    // DJ ruling 2026-07-25.
+    maxChatAttachmentStorageBytes: 10_737_418_240, // 10 GiB
     maxWorkProjectAuditions: 10,
     maxCommissionListings: 10,
     maxChapters: 50,
@@ -188,6 +216,9 @@ export const FULL_LIMITS: TttLimits = {
     maxTuneTracks: 50,
     maxTelevisionEpisodes: 25,
   },
+  // Invite threads are the same 250 MiB in both modes — an invite negotiation is not
+  // longer at full-live. See the CHARTER_LIMITS note above. DJ ruling 2026-07-25.
+  guildInvite: { maxChatAttachmentStorageBytes: 262_144_000 }, // 250 MiB
   hall: { maxSubmitBatch: 50 },
   batches: { trendingFeedProcessLimit: 1000, maxFeedbackSubmitters: 100 },
   rateLimits: {

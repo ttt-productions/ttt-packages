@@ -51,7 +51,14 @@ describe('chat realtime wire contract — constants', () => {
       ERROR: 'error',
       REVISION: 'revision',
       SEND_REJECTED: 'send-rejected',
+      HEARTBEAT_ACK: 'heartbeat-ack',
     });
+  });
+
+  it('declares the heartbeat auto-response kind (client heartbeat is fire-and-forget)', () => {
+    // The DO runtime answers CLIENT_KINDS.HEARTBEAT with this frame without waking
+    // the DO; every runtime derives the literal from here rather than restating it.
+    expect(SERVER_KINDS.HEARTBEAT_ACK).toBe(`${CLIENT_KINDS.HEARTBEAT}-ack`);
   });
 
   it('exports SEND_REJECTED exactly once from the canonical server-kind map', () => {

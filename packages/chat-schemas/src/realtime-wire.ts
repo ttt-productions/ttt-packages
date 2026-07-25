@@ -67,6 +67,18 @@ export const SERVER_KINDS = {
    * generic `error` frame, which stays uncorrelated (no trustworthy id).
    */
   SEND_REJECTED: 'send-rejected',
+  /**
+   * The auto-response to a client {@link CLIENT_KINDS.HEARTBEAT}. It is answered by
+   * the DO RUNTIME's hibernation auto-response pair — the Durable Object itself is
+   * never woken — and the runtime records a per-socket auto-response timestamp that
+   * the liveness sweep reads. Client-side the heartbeat is therefore
+   * FIRE-AND-FORGET: the ack carries no payload, drives no client state, and the
+   * next heartbeat tick is already scheduled, so a client handles it as an explicit
+   * no-op (and, being the one frame that recurs forever at the heartbeat cadence,
+   * must not be logged per-arrival). Declared here so no runtime restates the
+   * literal and so it is never mistaken for an unknown frame type.
+   */
+  HEARTBEAT_ACK: 'heartbeat-ack',
 } as const;
 
 /** A server→client frame `type` value. */
