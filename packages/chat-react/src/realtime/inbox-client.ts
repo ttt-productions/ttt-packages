@@ -21,6 +21,13 @@ import {
 import type { RealtimeSocket, SocketFactory } from './socket.js';
 import type { GrantProvider, TransportTimers, RealtimeStatus } from './shared.js';
 import { defaultTimers, isChatAccessDeniedError } from './shared.js';
+import {
+  createDiagnosticsEmitter,
+  safeDiagnosticLabel,
+  CHAT_CLIENT_DIAGNOSTIC_EVENTS as DIAG,
+  type ChatClientDiagnosticsEmitter,
+  type ChatClientDiagnosticsOption,
+} from './diagnostics.js';
 
 export interface InboxClientState {
   status: RealtimeStatus;
@@ -50,6 +57,16 @@ export interface InboxClientConfig {
   socketFactory: SocketFactory;
   timers?: TransportTimers;
   reconnect?: { baseDelayMs?: number; maxDelayMs?: number; maxAttempts?: number | null; random?: () => number };
+  /**
+   * OPT-IN structured client diagnostics — the SAME option type and emitter the
+   * channel client uses (one owner, `./diagnostics.ts`). Default OFF: absent or
+   * `false` changes nothing and costs one nullish check. `true` emits one
+   * single-line `console.debug` entry per decision under the stable
+   * `chat_client_inbox_*` names; a function routes them to the app's logger.
+   * Inbox payloads are SIZES ONLY — registry/unread counts and deltas, never a
+   * `channelRef` (which names one specific conversation).
+   */
+  diagnostics?: ChatClientDiagnosticsOption;
 }
 
 const INITIAL: InboxClientState = { status: 'idle', registry: [], hasUnread: false, unreadChannelRefs: [], lastErrorCode: null };
@@ -63,10 +80,19 @@ export class InboxClient {
   private reauthAttempted = false;
   private reconnectTimer: ReturnType<TransportTimers['setTimeout']> | null = null;
   private closedByUs = false;
+  /** Structured diagnostics emitter, or null when off (the default, zero-overhead). */
+  private readonly diag: ChatClientDiagnosticsEmitter;
+  /** Monotonic socket-open attempt counter (diagnostics correlation only). */
+  private connectAttempt = 0;
+  /** Why the CURRENT connect attempt is happening (diagnostics only). */
+  private reconnectCause: 'initial' | 'auth-expired' | 'transient-close' | 'grant-error' = 'initial';
+  /** The last close code observed, carried into the next attempt's cause line. */
+  private lastCloseCode: number | null = null;
 
   constructor(private readonly config: InboxClientConfig) {
     this.timers = config.timers ?? defaultTimers;
     this.controller = createReconnectController(config.reconnect ?? {});
+    this.diag = createDiagnosticsEmitter(config.diagnostics);
   }
 
   getState(): InboxClientState {
@@ -85,12 +111,20 @@ export class InboxClient {
 
   async connect(): Promise<void> {
     this.closedByUs = false;
+    this.reconnectCause = 'initial';
     this.controller.start();
     this.setState({ status: 'connecting' });
     await this.openSocket();
   }
 
   private async openSocket(): Promise<void> {
+    this.connectAttempt += 1;
+    this.diag?.(DIAG.INBOX_CONNECT_ATTEMPT, {
+      attempt: this.connectAttempt,
+      cause: this.reconnectCause,
+      closeCode: this.lastCloseCode,
+      registryCount: this.state.registry.length,
+    });
     let grantToken: string;
     try {
       grantToken = await this.config.grantProvider();
@@ -100,7 +134,10 @@ export class InboxClient {
       // package-owned ChatAccessDeniedError) must NOT reconnect: the next mint would
       // just re-deny, reconnect-looping forever and warning every cycle. Every other
       // mint failure (network/transient) stays retryable and backs off as before.
-      if (isChatAccessDeniedError(err)) return this.denyAccessTerminally();
+      const terminal = isChatAccessDeniedError(err);
+      this.diag?.(DIAG.INBOX_GRANT_FAILED, { attempt: this.connectAttempt, terminal });
+      if (terminal) return this.denyAccessTerminally();
+      this.reconnectCause = 'grant-error';
       return this.scheduleReconnect();
     }
     if (this.closedByUs) return;
@@ -121,18 +158,31 @@ export class InboxClient {
     this.controller.onOpen();
     this.reauthAttempted = false;
     this.setState({ status: 'open' });
+    this.diag?.(DIAG.INBOX_SOCKET_OPEN, {
+      attempt: this.connectAttempt,
+      cause: this.reconnectCause,
+      registryCount: this.state.registry.length,
+      hasUnread: this.state.hasUnread,
+    });
     // The DO sends a snapshot on accept; a `resume` re-requests it after a reconnect gap.
-    this.sendFrame(CLIENT_FRAME.RESUME, {});
+    const sent = this.sendFrame(CLIENT_FRAME.RESUME, {});
+    // The inbox resume is CURSORLESS by contract (the DO always answers with a full
+    // authoritative snapshot) — there is no `afterSeq` half to record here.
+    this.diag?.(DIAG.INBOX_RESUME_REQUEST, { attempt: this.connectAttempt, cursorless: true, sent });
   }
 
   private onClose(code: number, _reason: string): void {
     this.socket = null;
+    this.lastCloseCode = code;
     if (this.closedByUs) {
+      this.diag?.(DIAG.INBOX_SOCKET_CLOSE, { code, closedByUs: true, outcome: 'closed' });
       this.setState({ status: 'closed' });
       return;
     }
     if (code === CHAT_CLOSE_CODES.AUTH_EXPIRED && !this.reauthAttempted) {
       this.reauthAttempted = true;
+      this.reconnectCause = 'auth-expired';
+      this.diag?.(DIAG.INBOX_SOCKET_CLOSE, { code, closedByUs: false, outcome: 're-grant' });
       this.setState({ status: 'reconnecting' });
       void this.openSocket();
       return;
@@ -140,9 +190,12 @@ export class InboxClient {
     if (code === CHAT_CLOSE_CODES.REVOKED) {
       this.closedByUs = true;
       this.controller.close();
+      this.diag?.(DIAG.INBOX_SOCKET_CLOSE, { code, closedByUs: false, outcome: 'revoked' });
       this.setState({ status: 'closed', lastErrorCode: 'revoked' });
       return;
     }
+    this.reconnectCause = 'transient-close';
+    this.diag?.(DIAG.INBOX_SOCKET_CLOSE, { code, closedByUs: false, outcome: 'reconnect' });
     this.scheduleReconnect();
   }
 
@@ -162,6 +215,11 @@ export class InboxClient {
 
   private scheduleReconnect(): void {
     const delay = this.controller.onClose();
+    this.diag?.(DIAG.INBOX_RECONNECT_SCHEDULED, {
+      delayMs: delay,
+      cause: this.reconnectCause,
+      attempt: this.connectAttempt,
+    });
     if (delay == null) {
       this.setState({ status: 'closed' });
       return;
@@ -176,20 +234,45 @@ export class InboxClient {
 
   private onMessage(data: string): void {
     const frame = parseFrame(data);
-    if (!frame || !frame.payload) return;
+    if (!frame || !frame.payload) {
+      this.diag?.(DIAG.INBOX_FRAME_DROPPED, { kind: 'unparseable', reason: 'bad-envelope' });
+      return;
+    }
     // The inbox DO pushes a full `snapshot`; a future lightweight `unread` push
     // carries either a full snapshot or a `{ hasUnread }` dock-dot patch. Route both
     // instead of silently dropping the `unread` type (C-M2).
-    if (frame.type !== 'snapshot' && frame.type !== 'unread') return;
+    if (frame.type !== 'snapshot' && frame.type !== 'unread') {
+      this.diag?.(DIAG.INBOX_FRAME_DROPPED, { kind: safeDiagnosticLabel(frame.type), reason: 'unknown-type' });
+      return;
+    }
     const payload = frame.payload as unknown as WireInboxSnapshot | { hasUnread: boolean };
     if (isInboxSnapshot(payload as WireInboxSnapshot)) {
-      this.applySnapshot(payload as WireInboxSnapshot);
+      this.applySnapshot(payload as WireInboxSnapshot, frame.type);
     } else if (frame.type === 'unread' && typeof (payload as { hasUnread?: unknown }).hasUnread === 'boolean') {
-      this.setState({ hasUnread: Boolean((payload as { hasUnread: boolean }).hasUnread) });
+      const hasUnread = Boolean((payload as { hasUnread: boolean }).hasUnread);
+      const before = this.state.hasUnread;
+      this.setState({ hasUnread });
+      if (before !== hasUnread) {
+        this.diag?.(DIAG.INBOX_UNREAD_UPDATED, {
+          source: 'unread-patch',
+          hasUnreadBefore: before,
+          hasUnreadAfter: hasUnread,
+          unreadCountBefore: this.state.unreadChannelRefs.length,
+          unreadCountAfter: this.state.unreadChannelRefs.length,
+          unreadCountDelta: 0,
+        });
+      }
+    } else {
+      // A stray CHANNEL snapshot ({ lastMessageSeq, readSeq }) on the inbox socket —
+      // deliberately inert, but never silently invisible under diagnostics.
+      this.diag?.(DIAG.INBOX_FRAME_DROPPED, {
+        kind: safeDiagnosticLabel(frame.type),
+        reason: 'not-an-inbox-payload',
+      });
     }
   }
 
-  private applySnapshot(snap: WireInboxSnapshot): void {
+  private applySnapshot(snap: WireInboxSnapshot, source: string): void {
     // Keep every non-tombstoned entry — including ARCHIVED rows — so the inbox view can
     // render both the active list and the Archived toggle. `archived` is a distinct
     // dimension from `tombstoned`; archived rows are still `state: 'active'`.
@@ -197,11 +280,35 @@ export class InboxClient {
     // The DO's `hasUnread` is the authoritative dock dot. Per-row dots are derived from
     // the same projection but exclude ARCHIVED rows (archive = done — an archived row
     // never shows a dot). The DO clears unread on archive, so this is belt-and-braces.
-    this.setState({
-      registry,
-      hasUnread: Boolean(snap.hasUnread),
-      unreadChannelRefs: deriveUnreadRefs(snap),
+    const unreadChannelRefs = deriveUnreadRefs(snap);
+    const hasUnread = Boolean(snap.hasUnread);
+    const before = this.state;
+    this.setState({ registry, hasUnread, unreadChannelRefs });
+    if (!this.diag) return;
+    // SIZES ONLY — a channelRef names one specific conversation and never enters a
+    // diagnostic line.
+    this.diag(DIAG.INBOX_SNAPSHOT_APPLIED, {
+      source: safeDiagnosticLabel(source),
+      received: snap.registry.length,
+      // `received - active` is the tombstoned count the client filtered out.
+      active: registry.length,
+      archived: registry.filter((e) => e.archived === true).length,
+      hasUnread,
+      unreadCount: unreadChannelRefs.length,
+      registryDelta: registry.length - before.registry.length,
     });
+    const unreadChanged =
+      before.hasUnread !== hasUnread || before.unreadChannelRefs.length !== unreadChannelRefs.length;
+    if (unreadChanged) {
+      this.diag(DIAG.INBOX_UNREAD_UPDATED, {
+        source: safeDiagnosticLabel(source),
+        hasUnreadBefore: before.hasUnread,
+        hasUnreadAfter: hasUnread,
+        unreadCountBefore: before.unreadChannelRefs.length,
+        unreadCountAfter: unreadChannelRefs.length,
+        unreadCountDelta: unreadChannelRefs.length - before.unreadChannelRefs.length,
+      });
+    }
   }
 
   private sendFrame(type: string, payload: Record<string, unknown>): boolean {
@@ -224,7 +331,11 @@ export class InboxClient {
    * Returns false when the socket is not open (the caller may surface a retry).
    */
   markRead(channelRef: string): boolean {
-    return this.sendFrame(CLIENT_FRAME.MARK_READ, { channelRef });
+    const sent = this.sendFrame(CLIENT_FRAME.MARK_READ, { channelRef });
+    // The ref itself is never logged — only that a mark-read was written and what the
+    // unread projection looked like at that moment (the DO's snapshot is what clears it).
+    this.diag?.(DIAG.INBOX_MARK_READ, { sent, unreadCount: this.state.unreadChannelRefs.length });
+    return sent;
   }
 
   /** Permanently close (auth-user switch / unmount). Idempotent. */

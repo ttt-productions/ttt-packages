@@ -82,7 +82,7 @@ injects everything app-specific (the grant provider, the endpoint, the channel r
   subscribe/unsubscribe, a 20 s heartbeat, reconnect→resume (resume cursor →
   authoritative snapshot → live deltas), epoch-aware history pagination (page ≤50),
   4401 auth-expiry re-grant ONCE, 4403 revoke = stop, teardown on `close()`.
-- `createInboxClient({ endpoint, currentUserId, grantProvider, ... })` → an
+- `createInboxClient({ endpoint, currentUserId, grantProvider, ..., diagnostics? })` → an
   `InboxClient` (one per USER, mounted once at the dock — NOT per thread). A
   SEPARATE socket scoped `inbox`; mirrors the DO's `{ registry, hasUnread }`
   snapshot (active entries only) into an observable store. Dots only, no counts.
@@ -154,8 +154,10 @@ Both clients also set `lastErrorCode: 'revoked'` on a 4403 REVOKED close.
 `ChatAccessDeniedError` + `isChatAccessDeniedError` are exported from the package
 root.
 
-**Opt-in client diagnostics (`diagnostics`, default OFF).** `createRealtimeChatClient`
-and `ChannelClient` accept an additive `diagnostics?: boolean | ChatClientDiagnosticsSink`.
+**Opt-in client diagnostics (`diagnostics`, default OFF).** `ChannelClient`,
+`InboxClient`, `createRealtimeChatClient`, and `createInboxClient` all accept an
+additive `diagnostics?: boolean | ChatClientDiagnosticsSink` — ONE implementation
+(`src/realtime/diagnostics.ts`) shared by both sockets, never a second logger.
 Absent/`false` is the production posture: no output, no behavior change, one nullish
 check per decision point (the payload object is never constructed). `true` emits ONE
 `console.debug` line per client DECISION — `chat_client_<event> {"compact":"json"}` —
@@ -163,7 +165,8 @@ and a function routes those same entries into the app's own logger. It exists be
 frame capture shows what ARRIVED, not what the client APPLIED, DROPPED, or MERGED.
 
 Stable event names (`CHAT_CLIENT_DIAGNOSTIC_EVENTS`, exported from the package root —
-they are a log-query contract, added/retired deliberately, never renamed): socket
+they are a log-query contract, added/retired deliberately, never renamed). Channel
+socket: socket
 lifecycle (`connect_attempt`, `grant_failed`, `socket_open`, `socket_close`,
 `reconnect_scheduled` — each with the reconnect cause and attempt number), resume
 (`resume_request {afterSeq}`, `resume_result {lastMessageSeq, resync, deltaCount,
@@ -174,8 +177,19 @@ cursorBefore, cursorAfter}`, `resync_dropped_tail`), per-frame decisions
 range, cursor advance), and the send lifecycle (`send_optimistic`, `send_ack`,
 `send_rejected`, `send_retry`, `send_failed`, `error_frame`).
 
+Inbox socket (`chat_client_inbox_*`): socket lifecycle with the same cause/attempt
+correlation (`inbox_connect_attempt`, `inbox_grant_failed`, `inbox_socket_open`,
+`inbox_socket_close`, `inbox_reconnect_scheduled`), the cursorless
+`inbox_resume_request`, projection application (`inbox_snapshot_applied` with
+received/active/archived/unread SIZES + `registryDelta`), `inbox_unread_updated`
+(dock-dot before/after plus per-row unread count and delta — emitted ONLY on a real
+change, so a repeated identical snapshot is silent), `inbox_frame_dropped`, and
+`inbox_mark_read`. Inbox payloads carry **no `channelRef`** — a ref names one specific
+conversation, so registry/unread evidence is counts and deltas only.
+
 Two invariants the tests pin: (1) **no user content** — ids, seqs, states, counts, and
-codes only; never message text, captions, filenames, URLs, or grant tokens; (2)
+codes only; never message text, captions, filenames, URLs, grant tokens, or channel
+refs; (2)
 **bounded** — one line per decision, nothing per render or per heartbeat, and an
 uninteresting resume-delta row is summarized by `resume_result` instead of emitting a
 line each (a delta row still logs when it carries an attachment state, a moderation

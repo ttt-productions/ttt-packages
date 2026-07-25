@@ -89,6 +89,8 @@ export function createInboxClient(config: {
   socketFactory?: SocketFactory;
   timers?: TransportTimers;
   reconnect?: InboxClientConfig['reconnect'];
+  /** OPT-IN structured diagnostics, forwarded to the InboxClient (default OFF). */
+  diagnostics?: ChatClientDiagnosticsOption;
 }): InboxClient {
   return new InboxClient({
     endpoint: config.endpoint,
@@ -97,6 +99,7 @@ export function createInboxClient(config: {
     socketFactory: config.socketFactory ?? browserSocketFactory,
     timers: config.timers,
     reconnect: config.reconnect,
+    diagnostics: config.diagnostics,
   });
 }
 

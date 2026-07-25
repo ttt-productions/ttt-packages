@@ -12,7 +12,10 @@
 //     optional-call short-circuiting means the payload object is never even
 //     constructed. The cost when off is one nullish check.
 //   - NEVER user content. Ids, seqs, states, counts, codes, booleans only —
-//     never message text, captions, filenames, URLs, tokens, or previews.
+//     never message text, captions, filenames, URLs, tokens, or previews. The
+//     INBOX events go one step further and log SIZES only: a `channelRef` names
+//     one specific conversation, so registry/unread lines carry counts and
+//     deltas, never the refs themselves.
 //   - STABLE event names (`chat_client_*`) suitable for log queries and later
 //     alert metrics; one line per DECISION, never per render or per heartbeat.
 //   - A diagnostics sink can never break the client: every emit is wrapped, so a
@@ -82,6 +85,29 @@ export const CHAT_CLIENT_DIAGNOSTIC_EVENTS = {
   SEND_FAILED: 'chat_client_send_failed',
   /** An uncorrelated server `error` frame code. */
   ERROR_FRAME: 'chat_client_error_frame',
+
+  // ---- inbox socket (one per USER, separate from the per-thread channel socket) ----
+
+  /** An inbox socket open is being attempted (per attempt, with the reconnect cause). */
+  INBOX_CONNECT_ATTEMPT: 'chat_client_inbox_connect_attempt',
+  /** The inbox grant mint failed before a socket existed (terminal vs. retryable). */
+  INBOX_GRANT_FAILED: 'chat_client_inbox_grant_failed',
+  /** The inbox socket reached OPEN (the point `resume` is sent from). */
+  INBOX_SOCKET_OPEN: 'chat_client_inbox_socket_open',
+  /** The inbox socket closed, with the code and what the client decided to do next. */
+  INBOX_SOCKET_CLOSE: 'chat_client_inbox_socket_close',
+  /** An inbox reconnect was scheduled (`delayMs`) or given up on (`delayMs: null`). */
+  INBOX_RECONNECT_SCHEDULED: 'chat_client_inbox_reconnect_scheduled',
+  /** The cursorless inbox `resume` was sent (the DO answers with a full snapshot). */
+  INBOX_RESUME_REQUEST: 'chat_client_inbox_resume_request',
+  /** An authoritative inbox snapshot was applied — registry SIZES only, never refs. */
+  INBOX_SNAPSHOT_APPLIED: 'chat_client_inbox_snapshot_applied',
+  /** The unread projection actually CHANGED (dock dot and/or per-row dot count). */
+  INBOX_UNREAD_UPDATED: 'chat_client_inbox_unread_updated',
+  /** An inbox frame was NOT applied, with the reason. */
+  INBOX_FRAME_DROPPED: 'chat_client_inbox_frame_dropped',
+  /** A mark-read was written to the socket (no optimistic local clear). */
+  INBOX_MARK_READ: 'chat_client_inbox_mark_read',
 } as const;
 
 export type ChatClientDiagnosticEventName =
