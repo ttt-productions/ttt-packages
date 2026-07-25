@@ -15,4 +15,18 @@ describe('app-mode rate-limit buckets', () => {
       expect(Number.isFinite(ADMIN_UPLOAD.maxRequests)).toBe(true);
     }
   });
+
+  it('non-upload content writes have the ruled values (30/h charter, 60/h full — DJ ruling 2026-07-25)', () => {
+    expect(CHARTER_LIMITS.rateLimits.CONTENT_WRITE).toEqual({ maxRequests: 30, window: '1 h' });
+    expect(FULL_LIMITS.rateLimits.CONTENT_WRITE).toEqual({ maxRequests: 60, window: '1 h' });
+  });
+
+  it('CONTENT_WRITE is its own bucket on the UPLOAD window — text writes never consume the upload ceiling', () => {
+    for (const limits of [CHARTER_LIMITS, FULL_LIMITS, ACTIVE_LIMITS]) {
+      const { UPLOAD, CONTENT_WRITE } = limits.rateLimits;
+      expect(CONTENT_WRITE.window).toBe(UPLOAD.window);
+      expect(Number.isFinite(CONTENT_WRITE.maxRequests)).toBe(true);
+      expect(CONTENT_WRITE.maxRequests).toBeGreaterThan(0);
+    }
+  });
 });

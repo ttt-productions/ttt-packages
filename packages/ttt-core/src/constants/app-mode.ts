@@ -58,6 +58,7 @@ export interface TttLimits {
   rateLimits: {
     UPLOAD: RateLimitValue;
     ADMIN_UPLOAD: RateLimitValue;
+    CONTENT_WRITE: RateLimitValue;
     VOTE: RateLimitValue;
     MODERATION: RateLimitValue;
     SENSITIVE_ACTION: RateLimitValue;
@@ -118,6 +119,12 @@ export const CHARTER_LIMITS: TttLimits = {
     // bulk admin session while keeping a brake on a compromised admin token and on
     // third-party quota/cost (Vision / Video Intelligence / R2). DJ ruling 2026-07-25.
     ADMIN_UPLOAD: { maxRequests: 60, window: '1 h' },
+    // General content-write throttle for the non-upload write callables (text posts,
+    // craft-skill edits, support-thread starts) that used to charge UPLOAD. Sharing
+    // the 15/h charter upload window meant heavy text posting blocked real uploads
+    // and vice versa; a separate 30/h bucket keeps each cost driver on its own
+    // ceiling. DJ ruling 2026-07-25.
+    CONTENT_WRITE: { maxRequests: 30, window: '1 h' },
     VOTE: { maxRequests: 100, window: '1 h' },
     MODERATION: { maxRequests: 50, window: '1 h' },
     // 30/h: one bucket is shared by ~35 callables (register, become-artisan,
@@ -190,6 +197,10 @@ export const FULL_LIMITS: TttLimits = {
     // compromised admin token and third-party media cost stay bounded. See the
     // CHARTER_LIMITS note above. DJ ruling 2026-07-25.
     ADMIN_UPLOAD: { maxRequests: 120, window: '1 h' },
+    // 60/h (full): the same non-upload content-write bucket as charter, scaled with
+    // UPLOAD so text writes and media uploads never consume each other's ceiling.
+    // See the CHARTER_LIMITS note above. DJ ruling 2026-07-25.
+    CONTENT_WRITE: { maxRequests: 60, window: '1 h' },
     VOTE: { maxRequests: 200, window: '1 h' },
     MODERATION: { maxRequests: 50, window: '1 h' },
     // 60/h: full-mode power users managing several works do dozens of legitimate
