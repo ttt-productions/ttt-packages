@@ -18,6 +18,7 @@ export * from './users.js';
 export * from './utility.js';
 export * from './voting.js';
 export * from './notification.js';
+export * from './conversation-files.js';
 
 // Authoritative mutation results homed in ../doc-schemas (each composes a doc schema
 // whose module already imports from ./schemas — the reverse runtime import would be a

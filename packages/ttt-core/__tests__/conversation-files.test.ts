@@ -11,6 +11,8 @@ import {
   type ConversationFileRef,
 } from '../src/media/conversation-file-ref.js';
 import { ConversationFileTargetInfoSchema, parseTargetInfo } from '../src/media/target-info.js';
+import { DeleteConversationFileInputSchema } from '../src/schemas/conversation-files.js';
+import { UploadConversationFileVariablesSchema } from '../src/upload-variables/upload-conversation-file-variables.js';
 import { FileOriginSchema } from '../src/media/file-origin.js';
 import { TTT_MEDIA_SPECS } from '../src/media/ttt-media-specs.js';
 import { PHOTODNA_COVERAGE_MATRIX } from '../src/media/photodna-coverage.js';
@@ -528,6 +530,66 @@ describe('a Conversation File is reportable and actionable in its own right', ()
     // `.strict()` — a re-introduced attachmentId is rejected outright.
     expect(
       ResolvedReportTargetV1Schema.safeParse({ ...resolved, attachmentId: 'att-1' }).success,
+    ).toBe(false);
+  });
+});
+
+describe('Conversation File wire contracts (delete input + upload variables)', () => {
+  it('DeleteConversationFileInputSchema accepts both scope kinds and only them', () => {
+    expect(
+      DeleteConversationFileInputSchema.safeParse({
+        conversation: { kind: 'guildInvite', guildInviteId: 'inv-1' },
+        conversationFileId: 'cf-1',
+      }).success,
+    ).toBe(true);
+    expect(
+      DeleteConversationFileInputSchema.safeParse({
+        conversation: { kind: 'adminSupport', adminDispatchId: 'd-1' },
+        conversationFileId: 'cf-1',
+      }).success,
+    ).toBe(true);
+    // Guild channels have no Conversation Files — unrepresentable at the wire boundary.
+    expect(
+      DeleteConversationFileInputSchema.safeParse({
+        conversation: { kind: 'guildChannel', workProjectId: 'w-1', guildChatChannelId: 'c-1' },
+        conversationFileId: 'cf-1',
+      }).success,
+    ).toBe(false);
+    expect(
+      DeleteConversationFileInputSchema.safeParse({
+        conversation: { kind: 'guildInvite', guildInviteId: 'inv-1' },
+        conversationFileId: '',
+      }).success,
+    ).toBe(false);
+    expect(
+      DeleteConversationFileInputSchema.safeParse({
+        conversation: { kind: 'guildInvite', guildInviteId: 'inv-1' },
+        conversationFileId: 'cf-1',
+        extra: 'x',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('UploadConversationFileVariablesSchema is strict and two-kind (MEDIA-005)', () => {
+    const file = new File(['x'], 'a.png', { type: 'image/png' });
+    expect(
+      UploadConversationFileVariablesSchema.safeParse({
+        conversation: { kind: 'adminSupport', adminDispatchId: 'd-1' },
+        file,
+      }).success,
+    ).toBe(true);
+    expect(
+      UploadConversationFileVariablesSchema.safeParse({
+        conversation: { kind: 'guildChannel', workProjectId: 'w-1', guildChatChannelId: 'c-1' },
+        file,
+      }).success,
+    ).toBe(false);
+    expect(
+      UploadConversationFileVariablesSchema.safeParse({
+        conversation: { kind: 'guildInvite', guildInviteId: 'inv-1' },
+        file,
+        extra: 'x',
+      }).success,
     ).toBe(false);
   });
 });

@@ -12,3 +12,4 @@ export * from './update-television-cover-photo-variables.js';
 export * from './update-episode-media-variables.js';
 export * from './update-chapter-media-variables.js';
 export * from './update-track-media-variables.js';
+export * from './upload-conversation-file-variables.js';
