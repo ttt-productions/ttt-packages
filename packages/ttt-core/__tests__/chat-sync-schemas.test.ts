@@ -61,12 +61,18 @@ describe('chat-sync doc schemas parse representative docs', () => {
   });
 
   it('ChatAdminActionCommand', () => {
-    expect(ChatAdminActionCommandSchema.safeParse({
+    const representative = {
       requestId: 'r1', actorUid: 'a', actorMode: 'adminOverride', systemRole: 'admin', channelRef: { scope: 'channel' }, messageSeq: 5,
       action: 'hide', caseId: 'case1', reason: 'r', expectedMessageRevision: 2, payloadHash: 'h', state: 'queued', attemptCount: 0,
       nextAttemptAt: 1, lastError: null, result: null, doRevisionId: null, terminalFailureGeneration: 0, createdAt: 1,
       appliedAt: null, failedAt: null, deadLetteredAt: null, reconciled: false, reconciledAt: null,
-    }).success).toBe(true);
+      safetyRepair: false, safetyRepairGeneration: 0, reconcileAttemptCount: 0,
+    };
+    expect(ChatAdminActionCommandSchema.safeParse(representative).success).toBe(true);
+    // The nonterminal stall-repair state is a declared member, not app-side drift.
+    expect(
+      ChatAdminActionCommandSchema.safeParse({ ...representative, state: 'safetyRepair', safetyRepair: true, safetyRepairGeneration: 1 }).success,
+    ).toBe(true);
   });
 });
 

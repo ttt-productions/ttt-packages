@@ -158,13 +158,15 @@ export type AdminDispatchPartyKind = z.infer<typeof AdminDispatchPartyKindSchema
 export const AdminDispatchSchema = z.object({
   adminDispatchId: z.string(),
   // Party-generic dispatch: the platform corresponds with a PARTY — a user or a
-  // workProject. Absent ⇒ 'user' (every pre-generalization thread). For 'user'
-  // threads `userId` is the thread owner (the sole member-side authority). For
-  // 'workProject' threads `workProjectId` is set, read/reply authority is ACTIVE
-  // GUILDMATE standing evaluated server-side (never a stored member list), and
-  // `userId` holds the INITIATING member's uid for attribution only — it is never
-  // a work-thread authority.
-  partyKind: AdminDispatchPartyKindSchema.optional(),
+  // workProject. REQUIRED and written explicitly at creation: the personal-threads
+  // client query filters `partyKind == 'user'` and the Firestore read rules branch
+  // on it party-aware, so an absent field is unqueryable and unauthorizable. For
+  // 'user' threads `userId` is the thread owner (the sole member-side authority).
+  // For 'workProject' threads `workProjectId` is set, read/reply authority is
+  // ACTIVE GUILDMATE standing evaluated server-side (never a stored member list),
+  // and `userId` holds the INITIATING member's uid for attribution only — it is
+  // never a work-thread authority.
+  partyKind: AdminDispatchPartyKindSchema,
   workProjectId: z.string().optional(),
   contextRef: AdminDispatchContextRefSchema.optional(),
   userId: z.string(),

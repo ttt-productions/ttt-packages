@@ -128,7 +128,10 @@ export const ChatAdminActionCommandSchema = z.object({
   reason: z.string(),
   expectedMessageRevision: z.number(),
   payloadHash: z.string(),
-  state: z.enum(['queued', 'delivering', 'applied', 'failed', 'deadLetter']),
+  // `safetyRepair` is the NONTERMINAL stall loop: a RESERVED command whose reconcile
+  // leg (PROBE → FINALIZE) failed past ADMIN_COMMAND_MAX_ATTEMPTS. Drained like
+  // `delivering`; never dead-letters.
+  state: z.enum(['queued', 'delivering', 'safetyRepair', 'applied', 'failed', 'deadLetter']),
   attemptCount: z.number(),
   nextAttemptAt: z.number(),
   lastError: z.string().nullable(),
@@ -141,6 +144,14 @@ export const ChatAdminActionCommandSchema = z.object({
   deadLetteredAt: z.number().nullable(),
   reconciled: z.boolean(),
   reconciledAt: z.number().nullable(),
+  safetyRepair: z.boolean(),
+  // Monotonic counter of distinct entries into the safety-repair loop — keys the
+  // per-entry idempotent failure audit.
+  safetyRepairGeneration: z.number(),
+  // Failed reconcile passes on an already-reserved command. Separate from
+  // `attemptCount` (delivery attempts, which dead-letter); at the cap it escalates
+  // once into `safetyRepair` instead of dead-lettering.
+  reconcileAttemptCount: z.number(),
   expireAt: expireAtField,
 });
 export type ChatAdminActionCommand = z.infer<typeof ChatAdminActionCommandSchema>;

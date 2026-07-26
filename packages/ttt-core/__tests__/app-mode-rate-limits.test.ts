@@ -115,6 +115,7 @@ describe('Conversation Files usage counters (absent ⇒ 0)', () => {
 
   const dispatch = {
     adminDispatchId: 'ad1',
+    partyKind: 'user' as const,
     userId: 'u1',
     initiatorUserId: 'u1',
     initiatedBy: 'user' as const,
@@ -159,5 +160,12 @@ describe('Conversation Files usage counters (absent ⇒ 0)', () => {
       expect(AdminDispatchSchema.safeParse({ ...dispatch, [field]: 1234 }).success).toBe(true);
       expect(AdminDispatchSchema.safeParse({ ...dispatch, [field]: 'lots' }).success).toBe(false);
     }
+  });
+
+  it('AdminDispatch partyKind is REQUIRED — the personal-threads query and party-aware rules depend on it', () => {
+    const { partyKind: _partyKind, ...withoutParty } = dispatch;
+    expect(AdminDispatchSchema.safeParse(withoutParty).success).toBe(false);
+    expect(AdminDispatchSchema.safeParse({ ...dispatch, partyKind: 'workProject', workProjectId: 'wp1' }).success).toBe(true);
+    expect(AdminDispatchSchema.safeParse({ ...dispatch, partyKind: 'guild' }).success).toBe(false);
   });
 });

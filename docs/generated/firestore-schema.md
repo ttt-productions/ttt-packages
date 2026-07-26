@@ -581,7 +581,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `reason` | `string` |  |
 | `expectedMessageRevision` | `number` |  |
 | `payloadHash` | `string` |  |
-| `state` | `'queued' \| 'delivering' \| 'applied' \| 'failed' \| 'deadLetter'` |  |
+| `state` | `'queued' \| 'delivering' \| 'safetyRepair' \| 'applied' \| 'failed' \| 'deadLetter'` |  |
 | `attemptCount` | `number` |  |
 | `nextAttemptAt` | `number` |  |
 | `lastError` | `string \| null` |  |
@@ -594,6 +594,9 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `deadLetteredAt` | `number \| null` |  |
 | `reconciled` | `boolean` |  |
 | `reconciledAt` | `number \| null` |  |
+| `safetyRepair` | `boolean` |  |
+| `safetyRepairGeneration` | `number` |  |
+| `reconcileAttemptCount` | `number` |  |
 | `expireAt` | `unknown` | yes |
 
 ## `chatChannelAuthProjections/{authPairKey}`
@@ -1519,7 +1522,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `adminDispatchId` | `string` |  |
-| `partyKind` | `'user' \| 'workProject'` | yes |
+| `partyKind` | `'user' \| 'workProject'` |  |
 | `workProjectId` | `string` | yes |
 | `contextRef` | `{ kind, thresholdItemId } \| { kind, hallItemId, subItemId } \| { kind, changeRequestId }` | yes |
 | `userId` | `string` |  |
