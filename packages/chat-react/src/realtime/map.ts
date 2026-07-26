@@ -6,7 +6,7 @@
 // display name — names resolve at render time through the ChatNameResolver
 // context, identical to the Firestore path.
 
-import type { ChatAttachment, ChatMessageV1 } from '@ttt-productions/chat-core';
+import type { ChatMessageV1 } from '@ttt-productions/chat-core';
 import { MODERATION_REDACTED_TEXT } from '@ttt-productions/chat-schemas';
 import type { RevisionKind, WireMessageRow } from './wire.js';
 
@@ -62,16 +62,6 @@ interface WireReplyTo {
   preview: string;
 }
 
-interface WireAttachmentMeta {
-  senderOnly?: boolean;
-  mediaAssetId?: string;
-  failureReason?: string;
-  /** 'image' | 'video' | 'audio' — stored by the Channel DO from the placeholder
-   *  command's validated contentType kind; inherited by the ready flip. */
-  attachmentKind?: string;
-  [k: string]: unknown;
-}
-
 function parseJson<T>(raw: string | null): T | null {
   if (raw == null) return null;
   try {
@@ -86,50 +76,13 @@ function parseJson<T>(raw: string | null): T | null {
  * thread id (the UI's thread key); the DO row carries no threadId of its own.
  * - `messageId` = the server seq (string) — stable + dedup key.
  * - `replyTo` JSON `{ messageSeq, preview }` → UI `{ messageId, senderId:'', messagePreview }`.
- * - The DO row carries only the attachment LIFECYCLE (`attachmentState` +
- *   `attachmentMeta` with `mediaAssetId`/`attachmentKind`/`failureReason`), never a
- *   full stored `ChatAttachment` — the projection below rebuilds the renderable
- *   `attachment` from that lifecycle, and the render-time URL comes from
- *   `mediaAssetId` via the attachment-URL resolver context (identity/media
- *   invariant: no URLs are ever stored). The raw lifecycle also stays on
- *   `meta.attachment*` for consumers that key on it.
+ *
+ * A DO row carries TEXT only. Files are not part of the message timeline — they
+ * live in the conversation's Conversation Files list, published through the
+ * canonical media pipeline and read from Firestore, never mapped from a chat row.
  */
 export function wireRowToMessage(row: WireMessageRow, threadId: string): ChatMessageV1 {
   const reply = parseJson<WireReplyTo>(row.replyTo);
-  const meta = parseJson<WireAttachmentMeta>(row.attachmentMeta);
-
-  // Project the DO's attachment LIFECYCLE into the renderable `attachment` object —
-  // the renderer keys on `m.attachment` (AttachmentView: pending spinner / failed
-  // bubble / ready media via the attachment-URL resolver + `mediaAssetId`). Before
-  // this projection existed, a wire-delivered attachment message (live broadcast,
-  // resume snapshot, history page) mapped to a message with NO `attachment` and
-  // rendered as an empty bubble — the recipient never saw the media at all (found
-  // live 2026-07-20, hosted path 11.3). `name`/`size`/`storagePath` are wire-absent
-  // and render-irrelevant (labels are kind-scrubbed; storagePath is never a serving
-  // contract) — placeholders keep the ChatAttachment shape without inventing data.
-  const state =
-    row.attachmentState === 'pending' || row.attachmentState === 'ready' || row.attachmentState === 'failed'
-      ? row.attachmentState
-      : null;
-  const kind =
-    meta?.attachmentKind === 'image' || meta?.attachmentKind === 'video' || meta?.attachmentKind === 'audio'
-      ? meta.attachmentKind
-      : // Rows written before the DO stored `attachmentKind` carry none — 'image' keeps
-        // them rendering through the media path (the resolver serves whatever the asset
-        // is); new rows always carry the real kind.
-        'image';
-  const attachment: ChatAttachment | null = state
-    ? {
-        id: row.clientMessageId,
-        name: '',
-        type: kind,
-        size: 0,
-        storagePath: '',
-        ...(meta?.mediaAssetId ? { mediaAssetId: meta.mediaAssetId } : {}),
-        status: state,
-        ...(meta?.failureReason ? { failureReason: meta.failureReason } : {}),
-      }
-    : null;
 
   return {
     messageId: seqToMessageId(row.seq),
@@ -137,7 +90,6 @@ export function wireRowToMessage(row: WireMessageRow, threadId: string): ChatMes
     createdAt: row.createdAt,
     senderId: row.senderUid,
     text: row.text,
-    ...(attachment ? { attachment } : {}),
     replyTo: reply
       ? { messageId: seqToMessageId(reply.messageSeq), senderId: '', messagePreview: reply.preview }
       : undefined,
@@ -145,8 +97,6 @@ export function wireRowToMessage(row: WireMessageRow, threadId: string): ChatMes
     meta: {
       seq: row.seq,
       epoch: row.epoch,
-      ...(row.attachmentState ? { attachmentState: row.attachmentState } : {}),
-      ...(meta ? { attachmentMeta: meta } : {}),
     },
   };
 }

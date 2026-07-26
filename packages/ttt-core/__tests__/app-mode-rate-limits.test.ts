@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { ACTIVE_LIMITS, CHARTER_LIMITS, FULL_LIMITS } from '../src/constants/app-mode';
 import {
-  MAX_WORK_CHAT_ATTACHMENT_STORAGE_BYTES,
-  MAX_INVITE_THREAD_CHAT_ATTACHMENT_STORAGE_BYTES,
-} from '../src/constants/chat';
+  MAX_CONVERSATION_FILES,
+  MAX_CONVERSATION_FILE_STORAGE_BYTES,
+} from '../src/constants/conversation-files';
 import { FullWorkProjectSchema } from '../src/doc-schemas/work-project';
-import { GuildInviteConversationSchema } from '../src/doc-schemas/messaging';
+import { GuildInviteConversationSchema, AdminDispatchSchema } from '../src/doc-schemas/messaging';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
 
 const GIB = 1024 * 1024 * 1024;
@@ -41,53 +41,47 @@ describe('app-mode rate-limit buckets', () => {
   });
 });
 
-describe('chat-attachment storage quota per container (DJ ruling 2026-07-25)', () => {
-  it('per-Work quota has the ruled values (2 GiB charter, 10 GiB full)', () => {
-    expect(CHARTER_LIMITS.workProject.maxChatAttachmentStorageBytes).toBe(2 * GIB);
-    expect(FULL_LIMITS.workProject.maxChatAttachmentStorageBytes).toBe(10 * GIB);
+describe('Conversation Files quota per conversation (DJ ruling 2026-07-25)', () => {
+  it('has the ruled values — charter 10 files / 500 MiB, full 20 files / 1 GiB', () => {
+    expect(CHARTER_LIMITS.conversation.maxConversationFiles).toBe(10);
+    expect(CHARTER_LIMITS.conversation.maxConversationFileStorageBytes).toBe(500 * MIB);
+    expect(FULL_LIMITS.conversation.maxConversationFiles).toBe(20);
+    expect(FULL_LIMITS.conversation.maxConversationFileStorageBytes).toBe(1 * GIB);
   });
 
-  it('per-invite-thread quota is 250 MiB in BOTH modes — an invite is not longer at full-live', () => {
-    expect(CHARTER_LIMITS.guildInvite.maxChatAttachmentStorageBytes).toBe(250 * MIB);
-    expect(FULL_LIMITS.guildInvite.maxChatAttachmentStorageBytes).toBe(250 * MIB);
-  });
-
-  it('full is never SMALLER than charter for the Work quota — the flip only ever raises a ceiling', () => {
-    expect(FULL_LIMITS.workProject.maxChatAttachmentStorageBytes).toBeGreaterThanOrEqual(
-      CHARTER_LIMITS.workProject.maxChatAttachmentStorageBytes,
+  it('full is never SMALLER than charter — the flip only ever raises a ceiling', () => {
+    expect(FULL_LIMITS.conversation.maxConversationFiles).toBeGreaterThanOrEqual(
+      CHARTER_LIMITS.conversation.maxConversationFiles,
     );
-    expect(FULL_LIMITS.guildInvite.maxChatAttachmentStorageBytes).toBeGreaterThanOrEqual(
-      CHARTER_LIMITS.guildInvite.maxChatAttachmentStorageBytes,
+    expect(FULL_LIMITS.conversation.maxConversationFileStorageBytes).toBeGreaterThanOrEqual(
+      CHARTER_LIMITS.conversation.maxConversationFileStorageBytes,
     );
-  });
-
-  it('an invite thread is capped far below a Work — it is a 1:1 negotiation, not a collaboration container', () => {
-    for (const limits of [CHARTER_LIMITS, FULL_LIMITS, ACTIVE_LIMITS]) {
-      expect(limits.guildInvite.maxChatAttachmentStorageBytes).toBeLessThan(
-        limits.workProject.maxChatAttachmentStorageBytes,
-      );
-    }
   });
 
   it('the named constants derive from ACTIVE_LIMITS — one change point (ENG-005)', () => {
-    expect(MAX_WORK_CHAT_ATTACHMENT_STORAGE_BYTES).toBe(
-      ACTIVE_LIMITS.workProject.maxChatAttachmentStorageBytes,
-    );
-    expect(MAX_INVITE_THREAD_CHAT_ATTACHMENT_STORAGE_BYTES).toBe(
-      ACTIVE_LIMITS.guildInvite.maxChatAttachmentStorageBytes,
+    expect(MAX_CONVERSATION_FILES).toBe(ACTIVE_LIMITS.conversation.maxConversationFiles);
+    expect(MAX_CONVERSATION_FILE_STORAGE_BYTES).toBe(
+      ACTIVE_LIMITS.conversation.maxConversationFileStorageBytes,
     );
   });
 
-  it('chat-attachment storage is its OWN container quota — never the work-file storage cap', () => {
+  it('is its OWN container quota — never the work-file storage cap', () => {
     for (const limits of [CHARTER_LIMITS, FULL_LIMITS]) {
-      expect(limits.workProject.maxChatAttachmentStorageBytes).not.toBe(
+      expect(limits.conversation.maxConversationFileStorageBytes).not.toBe(
         limits.workProject.maxWorkFileStorageBytes,
       );
     }
   });
+
+  it('carries NO removed chat-attachment quota keys', () => {
+    for (const limits of [CHARTER_LIMITS, FULL_LIMITS, ACTIVE_LIMITS]) {
+      expect(Object.keys(limits.workProject)).not.toContain('maxChatAttachmentStorageBytes');
+      expect(Object.keys(limits)).not.toContain('guildInvite');
+    }
+  });
 });
 
-describe('chat-attachment usage counters (absent ⇒ 0)', () => {
+describe('Conversation Files usage counters (absent ⇒ 0)', () => {
   const workProject = {
     workProjectId: 'wp1',
     createdOn: 1,
@@ -119,27 +113,51 @@ describe('chat-attachment usage counters (absent ⇒ 0)', () => {
     recipientConfirmed: false,
   };
 
-  it('FullWorkProject parses with the counter absent and with a number present', () => {
-    const parsed = FullWorkProjectSchema.safeParse(workProject);
-    expect(parsed.success).toBe(true);
-    expect(parsed.success && parsed.data.chatAttachmentBytesUsed).toBeUndefined();
-    expect(
-      FullWorkProjectSchema.safeParse({ ...workProject, chatAttachmentBytesUsed: 1234 }).success,
-    ).toBe(true);
-    expect(
-      FullWorkProjectSchema.safeParse({ ...workProject, chatAttachmentBytesUsed: 'lots' }).success,
-    ).toBe(false);
+  const dispatch = {
+    adminDispatchId: 'ad1',
+    userId: 'u1',
+    initiatorUserId: 'u1',
+    initiatedBy: 'user' as const,
+    subject: 's',
+    status: 'open' as const,
+    createdAt: 1,
+    lastUpdatedAt: 1,
+    readByAdmin: false,
+    readByUser: true,
+  };
+
+  const COUNTER_FIELDS = [
+    'conversationFileCount',
+    'conversationFileBytesUsed',
+    'conversationFileUploadCount',
+    'conversationFileBytesReserved',
+  ] as const;
+
+  it('the Work project parses and no longer carries a chat-attachment byte counter', () => {
+    expect(FullWorkProjectSchema.safeParse(workProject).success).toBe(true);
+    expect(Object.keys(FullWorkProjectSchema.shape)).not.toContain('chatAttachmentBytesUsed');
+    // Conversation Files are quota'd per CONVERSATION, never on the Work.
+    expect(Object.keys(FullWorkProjectSchema.shape)).not.toContain('conversationFileBytesUsed');
   });
 
-  it('GuildInviteConversation parses with the counter absent and with a number present', () => {
+  it('GuildInviteConversation carries all four counters — absent parses, numbers parse, strings fail', () => {
     const parsed = GuildInviteConversationSchema.safeParse(invite);
     expect(parsed.success).toBe(true);
-    expect(parsed.success && parsed.data.chatAttachmentBytesUsed).toBeUndefined();
-    expect(
-      GuildInviteConversationSchema.safeParse({ ...invite, chatAttachmentBytesUsed: 1234 }).success,
-    ).toBe(true);
-    expect(
-      GuildInviteConversationSchema.safeParse({ ...invite, chatAttachmentBytesUsed: 'lots' }).success,
-    ).toBe(false);
+    for (const field of COUNTER_FIELDS) {
+      expect(parsed.success && parsed.data[field]).toBeUndefined();
+      expect(GuildInviteConversationSchema.safeParse({ ...invite, [field]: 1234 }).success).toBe(true);
+      expect(GuildInviteConversationSchema.safeParse({ ...invite, [field]: 'lots' }).success).toBe(false);
+    }
+    expect(Object.keys(GuildInviteConversationSchema.shape)).not.toContain('chatAttachmentBytesUsed');
+  });
+
+  it('AdminDispatch carries the same four counters — one counter contract per conversation parent', () => {
+    const parsed = AdminDispatchSchema.safeParse(dispatch);
+    expect(parsed.success).toBe(true);
+    for (const field of COUNTER_FIELDS) {
+      expect(parsed.success && parsed.data[field]).toBeUndefined();
+      expect(AdminDispatchSchema.safeParse({ ...dispatch, [field]: 1234 }).success).toBe(true);
+      expect(AdminDispatchSchema.safeParse({ ...dispatch, [field]: 'lots' }).success).toBe(false);
+    }
   });
 });

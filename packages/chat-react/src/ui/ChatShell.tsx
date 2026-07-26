@@ -1,10 +1,9 @@
 "use client";
 
 import * as React from "react";
-import type { ChatMessageV1, SendAttachmentFn, ModerationHandlers } from "@ttt-productions/chat-core";
+import type { ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
 import type {
   ChatCoreConfig,
-  ChatAttachmentConfig,
   MessageRendererRegistry,
 } from "../types.js";
 import { Card, CardHeader, CardContent, CardFooter, Skeleton } from "@ttt-productions/ui-core/react";
@@ -15,7 +14,6 @@ import { useRealtimeChatMessages } from "../realtime/useRealtimeChatMessages.js"
 import type { RealtimeChatClient } from "../realtime/transport.js";
 import { MessageList } from "./MessageList.js";
 import { Composer } from "./Composer.js";
-import type { ComposerHandle } from "./Composer.js";
 import { ThreadActions } from "./menus.js";
 
 export type ChatShellProps = {
@@ -34,9 +32,6 @@ export type ChatShellProps = {
   messageRenderers?: MessageRendererRegistry;
   handlers?: ModerationHandlers;
 
-  // Composer attachment config
-  attachmentConfig?: ChatAttachmentConfig;
-  sendAttachment?: SendAttachmentFn;
   composerPlaceholder?: string;
   autoFocus?: boolean;
 
@@ -163,8 +158,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     renderMessage,
     messageRenderers,
     handlers,
-    attachmentConfig,
-    sendAttachment,
     composerPlaceholder,
     autoFocus = false,
     renderAboveMessages,
@@ -184,18 +177,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
   const [focused, setFocused] = React.useState(true);
   const lastAckedRef = React.useRef(0);
   const leaseHeldRef = React.useRef(false);
-
-  // A terminally-failed attachment bubble re-opens the canonical picker through the
-  // Composer's imperative handle. The action is offered only when attachment support
-  // is actually configured AND the default Composer is rendered (a custom renderFooter
-  // replaces it, so the picker would not exist). The new file then rides the ordinary
-  // Composer → guarded-upload flow with a fresh id — never reusing a storage path or
-  // mutating the terminal row.
-  const composerRef = React.useRef<ComposerHandle>(null);
-  const attachmentSupported = Boolean(attachmentConfig && sendAttachment && !renderFooter);
-  const handleRetryAttachment = React.useCallback(() => {
-    composerRef.current?.openAttachmentSelector();
-  }, []);
 
   // The latest authoritative seq currently rendered (optimistic rows have no seq).
   const latestSeq = React.useMemo(() => {
@@ -335,7 +316,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           handlers={handlers}
           onSenderClick={onSenderClick}
           onRetrySend={retrySend}
-          onRetryAttachment={attachmentSupported ? handleRetryAttachment : undefined}
         />
       </CardContent>
 
@@ -353,11 +333,8 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           <TypingIndicator typing={typing} />
           <KeyboardAvoidingView padding offset={8} className="w-full">
             <Composer
-              ref={composerRef}
               onSend={send}
               onTyping={signalTyping}
-              attachmentConfig={attachmentConfig}
-              sendAttachment={sendAttachment}
               disabled={composerDisabled}
               autoFocus={autoFocus}
               placeholder={composerPlaceholder}

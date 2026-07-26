@@ -55,7 +55,7 @@ export type ChatScopeDegradedCause = z.infer<typeof ChatScopeDegradedCauseSchema
 export const ChatSyncEventSchema = z.object({
   eventId: z.string(),
   targetDo: z.string(),
-  kind: z.enum(['channelAuth', 'accountAccess', 'config', 'attachmentFlip', 'serverMessage']),
+  kind: z.enum(['channelAuth', 'accountAccess', 'config', 'serverMessage']),
   version: z.number(),
   payload: z.record(z.string(), z.unknown()).nullable(),
   tombstone: z.boolean().optional(),
@@ -98,7 +98,7 @@ export type ChatSyncFanoutJob = z.infer<typeof ChatSyncFanoutJobSchema>;
 // ── chatMessageOutbox/{commandId} ───────────────────────────────────────────
 export const ChatMessageOutboxSchema = z.object({
   commandId: z.string(),
-  kind: z.enum(['userMsg', 'systemMsg', 'attachmentPlaceholder']),
+  kind: z.enum(['userMsg', 'systemMsg']),
   threadRef: z.string(),
   payload: z.record(z.string(), z.unknown()),
   payloadVersion: z.number(),
@@ -127,11 +127,6 @@ export const ChatAdminActionCommandSchema = z.object({
   caseId: z.string(),
   reason: z.string(),
   expectedMessageRevision: z.number(),
-  // Ready-attachment media asset id(s) on the moderated message (block FIRST, then
-  // DO tombstone — the attachment-redaction saga, round-10 blocker 9). Empty for a
-  // text-only message. DERIVED SERVER-SIDE inside the moderation saga from the DO/message
-  // context — NEVER client-supplied (the case-bound context read does not expose them).
-  attachmentAssetIds: z.array(z.string()).default([]),
   payloadHash: z.string(),
   state: z.enum(['queued', 'delivering', 'applied', 'failed', 'deadLetter']),
   attemptCount: z.number(),
@@ -139,8 +134,6 @@ export const ChatAdminActionCommandSchema = z.object({
   lastError: z.string().nullable(),
   result: z.record(z.string(), z.unknown()).nullable(),
   doRevisionId: z.string().nullable(),
-  // True once the redaction saga has blocked the attachment asset(s) for this command.
-  attachmentBlocked: z.boolean().default(false),
   terminalFailureGeneration: z.number(),
   createdAt: z.number(),
   appliedAt: z.number().nullable(),

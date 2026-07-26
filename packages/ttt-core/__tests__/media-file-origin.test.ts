@@ -9,7 +9,7 @@ describe('FileOriginSchema', () => {
       'admin-audition-prompt', 'hallLibrary-cover-square',
       'hallLibrary-cover-poster', 'hallLibrary-cover-cinematic',
       'chapter-photo', 'tune-track-photo', 'tune-track-audio', 'television-episode-photo',
-      'television-episode-video', 'guild-chat-message-attachment', 'work-asset',
+      'television-episode-video', 'conversation-file', 'work-asset',
     ];
     for (const o of origins) {
       expect(FileOriginSchema.parse(o)).toBe(o);
@@ -18,6 +18,10 @@ describe('FileOriginSchema', () => {
 
   it('rejects unknown origin', () => {
     expect(() => FileOriginSchema.parse('unknown')).toThrow();
+  });
+
+  it('no longer carries the removed chat-attachment origin', () => {
+    expect(() => FileOriginSchema.parse('guild-chat-message-attachment')).toThrow();
   });
 });
 

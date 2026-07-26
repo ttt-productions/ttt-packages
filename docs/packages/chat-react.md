@@ -4,9 +4,14 @@ Chat **React UI** package — the React half of the chat split.
 
 ## Owns
 
-- Chat shell, composer, message list, attachment UI, and the
-  realtime-newest-window + infinite-older hooks (`useChatMessages`,
-  `canAccessThread`)
+- Chat shell, composer, message list, and the realtime-newest-window +
+  infinite-older hooks (`useChatMessages`, `canAccessThread`). The UI is
+  **text-only**: there is no attachment control, attachment bubble, upload
+  adapter, media-injection context, or URL-resolver context. A conversation's
+  files live in the consuming app's Conversation Files surface (a Files button +
+  panel outside the message timeline), published through the canonical media
+  pipeline and read from Firestore — never inserted into the chat timeline, the
+  DO message table, resume deltas, inbox previews, or reply previews.
 - `ChatShell`/`MessageList` height modes: a default fixed-height card with an
   internal scroll region, or a `fillHeight` mode that flexes to fill a
   bounded-height page panel (scrolling inside) instead of a fixed box. The
@@ -14,34 +19,7 @@ Chat **React UI** package — the React half of the chat split.
 - The generic mention **UI**: autocomplete dropdown, keyboard behavior,
   composer insertion, and message-text rendering
 - The name-resolver context (`ChatNameResolverProvider`, …)
-- The attachment **media-component injection** context
-  (`ChatAttachmentMediaProvider` / `useChatAttachmentMediaComponent`, optional):
-  the app hands chat its own display-path wrapper (recovery adapter,
-  diagnostics, telemetry) as a `ComponentType<MediaPreviewProps>`, so chat
-  attachments ride the SAME display pipeline as every other app surface. When
-  no provider is present the default renderer uses the package's bare
-  `MediaViewer` — pre-injection behavior, unchanged. Text attachments always
-  render a semantic download link (never the media component). Attachment
-  filenames remain internal metadata/download hints and are not displayed.
-  A terminal-**ready** attachment whose injected URL resolver returns no URL (the
-  authorized URL is still settling) renders a neutral loading placeholder — spinner
-  + kind-appropriate generic label (`Image attachment`, …) + `Loading…` (never
-  `Processing…`/`Sending…`), no filename — and does NOT mount the media/download
-  renderer until a non-empty authorized URL exists, so no grant-less URL or 403 ever
-  flashes. `pending`/`failed` attachments stay sender-only (rule-enforced). A
-  **pending** placeholder (bytes uploaded, backend processing/moderation in flight)
-  is a parchment-safe status row — tinted surface, tokenized border, restrained
-  shimmer, spinner + kind label + `Processing…` (NOT `Sending…`) in a `role="status"`
-  `aria-live="polite"` live region, no filename. A **failed** placeholder shows a
-  fixed SAFE per-kind copy (`This image could not be processed.`, …) — the backend
-  `failureReason` is an internal diagnostic and is NEVER rendered — with alert
-  semantics but no destructive full-bubble treatment, and offers an `Attach again`
-  action to the SENDER only (and only when attachment support is configured) that
-  re-opens the canonical picker via the Composer's `openAttachmentSelector()` handle.
-  The reselected file rides the ordinary Composer → guarded-upload flow with a fresh
-  id — it never reuses a storage path or mutates the terminal pending-media row.
-- The Firebase-client adapter config types (`ChatCoreConfig`,
-  `ChatAttachmentConfig`, `ChatUploadAdapter`, `ChatMentionConfig`) and the
+- The adapter config types (`ChatCoreConfig`, `ChatMentionConfig`) and the
   React render types (`MessageRenderer`, `RenderableMentionProvider`,
   `MentionResultRenderer`)
 - A discriminated **transport config** (chat-edge-rebuild P1): `ChatCoreConfig`
@@ -54,7 +32,10 @@ Chat **React UI** package — the React half of the chat split.
   — the client half of the `ttt-master-app/chat-worker` wire protocol. See the
   "Realtime transport" section below. The FIRESTORE transport stays the unchanged
   default (admin-support threads stay firestore permanently).
-- Chat upload adapter integration through `upload-ui`
+- The in-flight-send navigation guard from `upload-ui`
+  (`useOptionalLocalUploadGuard`), so a send that has left the composer but not
+  yet committed is not silently killed by a navigation or sign-out. Optional —
+  a consumer without the provider degrades to the unguarded behavior.
 
 ## Realtime transport
 
@@ -172,10 +153,13 @@ lifecycle (`connect_attempt`, `grant_failed`, `socket_open`, `socket_close`,
 (`resume_request {afterSeq}`, `resume_result {lastMessageSeq, resync, deltaCount,
 cursorBefore, cursorAfter}`, `resync_dropped_tail`), per-frame decisions
 (`frame_applied` with `op: insert | replace-by-seq | optimistic-reconcile`,
-`frame_dropped` with a reason), `attachment_transition {seq, from, to, source}`,
+`frame_dropped` with a reason),
 `revision_applied`, history (`history_request`, `history_page` with page size, seq
 range, cursor advance), and the send lifecycle (`send_optimistic`, `send_ack`,
-`send_rejected`, `send_retry`, `send_failed`, `error_frame`).
+`send_rejected`, `send_retry`, `send_failed`, `error_frame`). The connection-time,
+resume, presence, and socket-timing families are the baseline-campaign metrics and
+stay; the attachment-serving instrument (`attachment_transition`) was RETIRED with
+the chat-attachment architecture — chat carries no media to observe.
 
 Inbox socket (`chat_client_inbox_*`): socket lifecycle with the same cause/attempt
 correlation (`inbox_connect_attempt`, `inbox_grant_failed`, `inbox_socket_open`,
@@ -192,8 +176,8 @@ codes only; never message text, captions, filenames, URLs, grant tokens, or chan
 refs; (2)
 **bounded** — one line per decision, nothing per render or per heartbeat, and an
 uninteresting resume-delta row is summarized by `resume_result` instead of emitting a
-line each (a delta row still logs when it carries an attachment state, a moderation
-kind, or reconciles an optimistic send). A sink that throws is swallowed — diagnostics
+line each (a delta row still logs when it carries a moderation kind or reconciles an
+optimistic send). A sink that throws is swallowed — diagnostics
 observe, they never alter transport behavior or timing.
 
 **Testing.** `socketFactory` + `timers` are injected, so the whole transport is
@@ -206,12 +190,6 @@ flag (identical state + identical sent frames with it off vs. on, zero console o
 when off, and the event payloads when on).
 
 **Wire details ASSUMED / not yet confirmable against the Worker** (review these):
-- Attachment metadata: the DO `MessageRow` carries only the attachment LIFECYCLE
-  (`attachmentState` + `attachmentMeta.mediaAssetId`), NOT the full `ChatAttachment`
-  (id/name/size/storagePath). The client surfaces the placeholder state via
-  `message.meta.attachmentState`; the full attachment-saga projection (P5/P6) will
-  populate a real `attachment`. The render-time URL always comes from
-  `mediaAssetId` via the attachment-URL resolver context (no stored URLs).
 - Per-row inbox unread dots: the current inbox DO snapshot exposes a single
   `hasUnread` boolean (the dock dot) + the active registry; it does NOT enumerate
   which entries are unread. `channelHasUnread(ref)` reads a per-entry `unread` flag
@@ -231,7 +209,9 @@ when off, and the event payloads when on).
 
 `chat-react` depends on the pure [`@ttt-productions/chat-core`](./chat-core.md)
 plus the generic [`@ttt-productions/realtime-core`](./realtime-core.md) and the UI
-tier (`ui-core`, `file-input`, `upload-ui`, `media-viewer`, `mobile-core`).
+tier (`ui-core`, `upload-ui`, `mobile-core`). The `file-input`, `media-viewer`,
+and `media-schemas` edges were dropped with the attachment UI — a text-only chat
+mounts no picker, no media renderer, and no upload spec.
 `react`, `react-dom`, `firebase`, `@tanstack/react-query`, and `lucide-react` are
 optional peers. The realtime transport uses a global `WebSocket` (overridable via
 an injected `socketFactory`).

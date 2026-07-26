@@ -6,6 +6,7 @@ export {
   type Mention,
   type MentionType,
 } from "./atoms.js";
+export * from "./conversation-file-ref.js";
 export * from "./domain-events.js";
 export {
   TTT_MEDIA_SPECS,

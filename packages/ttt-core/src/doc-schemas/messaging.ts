@@ -4,11 +4,66 @@
 // Types inferred via z.infer.
 
 import { z } from 'zod';
-import { ReplyToSchema, ChatAttachmentSchema } from '@ttt-productions/chat-schemas';
+import { ReplyToSchema } from '@ttt-productions/chat-schemas';
 import { InviteSourceSchema } from '../schemas/work-project-management.js';
 import { guildInviteConversationStatusSchema } from '../schemas/atoms.js';
+import { ContentMediaKindSchema } from './media-assets.js';
 
 const userRefSchema = z.object({ uid: z.string() });
+
+// ===========================================================================
+// CONVERSATION FILES — the flat, Firestore-owned file list on a conversation.
+// Replaces inline chat attachments: a file is associated WITH a conversation but
+// never embedded in, sequenced with, or mutated through a chat message.
+// See ttt-prod docs/design/upload-and-media-pipeline.md.
+// ===========================================================================
+
+/** Backend-owned Conversation Files counters carried by EVERY conversation parent
+ *  (guildInviteConversations/{id} and pendingAdminDispatches/{id}). All four are
+ *  optional — an absent field reads as 0, so no pre-existing conversation needs a
+ *  backfill. Clients can never write them (rules + callable-only writes). */
+const conversationFileCounterFields = {
+  /** Published ACTIVE files in this conversation. */
+  conversationFileCount: z.number().optional(),
+  /** Published STORED-OUTPUT bytes in this conversation. */
+  conversationFileBytesUsed: z.number().optional(),
+  /** Active quota RESERVATIONS (uploads in flight). */
+  conversationFileUploadCount: z.number().optional(),
+  /** Bytes reserved by active uploads. */
+  conversationFileBytesReserved: z.number().optional(),
+} as const;
+
+/**
+ * `{conversationParent}/conversationFiles/{conversationFileId}` — the conversation's
+ * lightweight ownership/list projection, analogous to `WorkFileSchema`.
+ *
+ * DELIBERATELY ABSENT (owned elsewhere, never duplicated here):
+ *  - no `status` / `ready` / `publicationState` / processing progress — `pendingMedia`
+ *    and `mediaAssets` own the lifecycle; the mere EXISTENCE of this doc means the
+ *    asset is published;
+ *  - no Firebase / R2 / gateway / signed / download URL — display URLs are built at
+ *    render time through the protected media gateway;
+ *  - no Firebase staging `storagePath`;
+ *  - no username / display name / avatar / Work name snapshot (ARCH-103) — resolve
+ *    `uploadedByUid` at render time.
+ *
+ * `conversationFileId` is deterministic: it IS the `pendingMediaId`. The publication
+ * adapter creates this doc with `transaction.create` (never `set`), so an id
+ * collision cannot overwrite and double-count an existing file.
+ */
+export const ConversationFileSchema = z.object({
+  conversationFileId: z.string(),
+  mediaAssetId: z.string(),
+  name: z.string(),
+  // The canonical stored content media kind — never a re-declared union (ARCH-102).
+  mediaKind: ContentMediaKindSchema,
+  contentType: z.string(),
+  /** Sum of the PUBLISHED variant bytes (stored output, not raw upload bytes). */
+  sizeBytes: z.number(),
+  uploadedByUid: z.string(),
+  createdAt: z.number(),
+});
+export type ConversationFile = z.infer<typeof ConversationFileSchema>;
 
 export const GuildChatChannelSchema = z.object({
   guildChatChannelId: z.string(),
@@ -73,15 +128,11 @@ export const GuildInviteConversationSchema = z.object({
   recipientConfirmed: z.boolean(),
   lastMessage: z.string().optional(),
   lastMessageAt: z.string().optional(),
-  // Running total of chat-attachment STORED-OUTPUT bytes in THIS invite thread, checked
-  // against MAX_INVITE_THREAD_CHAT_ATTACHMENT_STORAGE_BYTES (250 MiB in both modes; DJ
-  // ruling 2026-07-25). An invite thread has no Work behind it, so it carries its own
-  // container quota rather than charging the Work's. Absent ⇒ 0 — never initialized on
-  // create and needs no backfill; the first finalize writes it via an increment, so every
-  // pre-existing invite reads as 0 used. Maintained at asset finalize (+ stored bytes) and
-  // retire (− stored bytes), with a pessimistic pre-check at startUpload.
-  // Backend-only-writable.
-  chatAttachmentBytesUsed: z.number().optional(),
+  // Conversation Files quota counters for THIS invite conversation (per-conversation
+  // caps: MAX_CONVERSATION_FILES / MAX_CONVERSATION_FILE_STORAGE_BYTES). Reserved at
+  // startUpload, transferred to used at publication, released on every terminal path,
+  // decremented on delete. Backend-only-writable; absent ⇒ 0.
+  ...conversationFileCounterFields,
 });
 export type GuildInviteConversation = z.infer<typeof GuildInviteConversationSchema>;
 
@@ -126,16 +177,21 @@ export const AdminDispatchSchema = z.object({
   readByAdmin: z.boolean(),
   readByUser: z.boolean(),
   closedBy: z.string().optional(),
+  // Conversation Files quota counters for THIS admin-support thread — same
+  // per-conversation caps and same backend-only ownership as the invite conversation.
+  ...conversationFileCounterFields,
 });
 export type AdminDispatch = z.infer<typeof AdminDispatchSchema>;
 
 // Per-message body for admin-support `conversationMessages` — the ONE chat surface still
 // transported through Firestore (guild channel + invite messages are realtime-only, served
 // by the chat Worker Durable Object). Written by runSendGuildChatMessage (senderId/text/
-// createdAt + optional replyTo/attachment); the admin-dispatch INITIAL message
+// createdAt + optional replyTo); the admin-dispatch INITIAL message
 // (runStartAdminSupportThread) additionally stores `messageId`. This is the STORED shape — a relaxed
 // @ttt-productions/chat-core ChatMessageV1: `messageId` is the doc id (only sometimes persisted) and
-// `threadId` is not stored. Reuses the chat-schemas Zod shapes for attachment + replyTo.
+// `threadId` is not stored. Reuses the chat-schemas ReplyTo Zod shape.
+// A chat message carries NO file reference — files live in the conversation's
+// `conversationFiles` subcollection (ConversationFileSchema above).
 export const ChatMessageV1Schema = z.object({
   senderId: z.string(),
   text: z.string(),
@@ -148,7 +204,6 @@ export const ChatMessageV1Schema = z.object({
   // subcollection. Optional so the same body schema still fits the guildChat /
   // admin-dispatch messages that don't carry it.
   guildInviteId: z.string().optional(),
-  attachment: ChatAttachmentSchema.optional(),
   replyTo: ReplyToSchema.optional(),
   isSystemMessage: z.boolean().optional(),
   meta: z.record(z.string(), z.unknown()).optional(),

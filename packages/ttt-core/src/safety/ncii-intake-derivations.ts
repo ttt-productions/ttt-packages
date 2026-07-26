@@ -88,8 +88,20 @@ export function normalizedTargetKey(locator: TargetLocatorV1): string {
       return [k, locator.auditionId, locator.auditionEntryId].join(SEP);
     case 'guildInviteMessage':
       return [k, locator.channelId, locator.messageId].join(SEP);
-    case 'chatAttachment':
-      return [k, locator.channelId, locator.messageId, locator.attachmentId].join(SEP);
+    case 'conversationFile':
+      // The conversation scope + the deterministic file id are the file's identity;
+      // `mediaAssetId` is included because it is 1:1 with that id (the publication
+      // adapter mints both together), so two submissions about the same file still
+      // normalize identically.
+      return [
+        k,
+        locator.conversation.kind,
+        locator.conversation.kind === 'guildInvite'
+          ? locator.conversation.guildInviteId
+          : locator.conversation.adminDispatchId,
+        locator.conversationFileId,
+        locator.mediaAssetId,
+      ].join(SEP);
     case 'guildChatMessage':
       return [k, locator.channelId, locator.messageId].join(SEP);
     case 'adminWorkMessage':
@@ -195,8 +207,8 @@ export function surfaceLabelFor(locator: TargetLocatorV1): string {
       return 'Audition entry';
     case 'guildInviteMessage':
       return 'Guild invite message';
-    case 'chatAttachment':
-      return 'Chat attachment';
+    case 'conversationFile':
+      return 'Conversation file';
     case 'guildChatMessage':
       return 'Guild chat message';
     case 'adminWorkMessage':
@@ -243,7 +255,7 @@ const TTT_HOSTED_KINDS: ReadonlySet<TargetLocatorV1['kind']> = new Set([
   'audition',
   'auditionEntry',
   'guildInviteMessage',
-  'chatAttachment',
+  'conversationFile',
 ]);
 
 /** True when the locator points at a TTT-hosted surface (server-resolvable). */

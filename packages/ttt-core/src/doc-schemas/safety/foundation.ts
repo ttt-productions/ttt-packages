@@ -20,6 +20,7 @@ import {
   MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH,
   MAX_SAFETY_ADMIN_NOTE_LENGTH,
 } from '../../constants/business.js';
+import { ConversationFileRefSchema } from '../../media/conversation-file-ref.js';
 
 // ===========================================================================
 // A1 — Report reasons + reportable item types
@@ -71,6 +72,12 @@ export const ReportableItemTypeSchema = z.enum([
   // server-side; user↔admin support threads are NOT reportable (an admin is already a
   // participant in every thread — DJ ruling 2026-07-13).
   'admin-work-message',
+  // A single file in a conversation's flat Conversation Files list (guild-invite or
+  // admin-support scope). Replaces reporting a chat-message attachment: files are no
+  // longer carried by a message, so the report targets the FILE, whose `conversationFile`
+  // TargetLocatorV1 carries the conversation ref + file id + mediaAssetId. Guild CHANNELS
+  // have no Conversation Files, so no channel-scoped variant exists.
+  'conversation-file',
   'hall-library-item',
   // [EUAS-017] a single Hall sub-item (a Tale chapter / Tune track / Television episode). The
   // `hallItem` TargetLocatorV1 already carries an optional `subItemId`; the report UI passes the
@@ -110,6 +117,10 @@ export const CONTENT_ACTION_PANEL_ITEM_TYPES = [
   'craft-skill',
   // Work-party admin correspondence message — single-doc hidden flip (2026-07-13).
   'admin-work-message',
+  // Conversation File — the media-backed file record, actioned exactly like `work-asset`
+  // (the other shared-file surface): the action targets the file + its mediaAsset, never
+  // a chat message.
+  'conversation-file',
 ] as const satisfies readonly ReportableItemType[];
 export type ContentActionPanelItemType = (typeof CONTENT_ACTION_PANEL_ITEM_TYPES)[number];
 
@@ -135,10 +146,22 @@ export const TargetLocatorV1Schema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('audition'), auditionId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('auditionEntry'), auditionId: z.string().min(1), auditionEntryId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('guildInviteMessage'), channelId: z.string().min(1), messageId: z.string().min(1) }).strict(),
-  z.object({ kind: z.literal('chatAttachment'), channelId: z.string().min(1), messageId: z.string().min(1), attachmentId: z.string().min(1) }).strict(),
-  // [H-04 V1] Plain guild chat message (text-only or Worker-unresolved). Distinct from
-  // `chatAttachment` (which carries an actual attachment id) so a text-only protected chat
-  // report has a clean, unambiguous locator without misusing the attachment variant.
+  // A file in a conversation's flat Conversation Files list. Replaces the removed
+  // `chatAttachment` locator: a file is no longer embedded in, sequenced with, or
+  // mutated through a chat message, so it is located by its CONVERSATION + file id,
+  // never by a channel/message coordinate. `conversation` is the canonical
+  // `ConversationFileRef` (exactly two scopes — guildInvite / adminSupport), so a
+  // guild CHANNEL conversation file is structurally inexpressible here: guild
+  // channels have no Conversation Files. `mediaAssetId` is carried so the removal
+  // saga can hold/retire the bytes without a second resolve.
+  z.object({
+    kind: z.literal('conversationFile'),
+    conversation: ConversationFileRefSchema,
+    conversationFileId: z.string().min(1),
+    mediaAssetId: z.string().min(1),
+  }).strict(),
+  // [H-04 V1] Plain guild chat message (text-only or Worker-unresolved). Chat is
+  // text-only, so this is the ONLY guild-channel message locator.
   z.object({ kind: z.literal('guildChatMessage'), channelId: z.string().min(1), messageId: z.string().min(1) }).strict(),
   // A work-party admin correspondence message — a Firestore doc at
   // pendingAdminDispatches/{adminDispatchId}/conversationMessages/{messageId} (unlike the
@@ -166,7 +189,8 @@ export const TargetLocatorKindSchema = z.enum([
   'audition',
   'auditionEntry',
   'guildInviteMessage',
-  'chatAttachment',
+  // A Conversation File (guild-invite / admin-support scope) — replaced `chatAttachment`.
+  'conversationFile',
   // [H-04 V1] Plain guild chat message locator (text-only / Worker-unresolved protected report).
   'guildChatMessage',
   // Work-party admin correspondence message (Firestore conversationMessages doc).
@@ -503,7 +527,9 @@ export const NciiTargetSurfaceSchema = z.enum([
   'original',
   'hallCopy',
   'profileMedia',
-  'chatAttachment',
+  // A conversation's Conversation File copy — replaced the removed `chatAttachment`
+  // surface (chat messages no longer carry media).
+  'conversationFile',
   'variant',
   'cacheServing',
   'exactHashMatch',

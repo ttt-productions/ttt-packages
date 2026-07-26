@@ -2,9 +2,7 @@
 // chat-core root; they live here so the pure chat-core package stays free of
 // react / firebase/firestore / firebase/storage references.
 
-import type { FirebaseStorage } from "firebase/storage";
 import type { ReactNode } from "react";
-import type { MediaOriginSpec } from "@ttt-productions/media-schemas";
 import type {
   ChatAccessMode,
   ChatMessageV1,
@@ -39,51 +37,12 @@ export type RenderableMentionProvider<
 };
 
 // ============================================
-// CHAT UPLOAD ADAPTER (injected into ChatAttachmentConfig)
-// ============================================
-
-/**
- * Pluggable upload-path strategy for chat attachments.
- *
- * Consumers supply this to tell the composer (a) what opaque origin identifier
- * to record for the upload, (b) how to build the Firebase Storage path for the
- * temporary upload, and (c) optional extra metadata to attach to the Storage
- * object.
- *
- * `buildUploadPath` and `buildUploadMetadata` receive the userId and
- * attachmentId so consumers can interpolate them per their own conventions.
- * The composer does not interpret `originId` — it forwards it via callbacks
- * and uses it for adapter identity only.
- */
-export type ChatUploadAdapter = {
-  /** Opaque origin identifier (e.g. "chat-attachment"). Not interpreted here. */
-  originId: string;
-  /** Build the Firebase Storage path for the upload. Called once per attachment. */
-  buildUploadPath: (args: { userId: string; attachmentId: string }) => string;
-  /** Optional extra metadata merged onto the Storage object metadata (e.g. customMetadata). */
-  buildUploadMetadata?: (args: { userId: string; attachmentId: string }) => Record<string, unknown>;
-};
-
-// ============================================
-// ATTACHMENT CONFIG (passed through ChatShell → Composer)
-// ============================================
-
-export type ChatAttachmentConfig = {
-  attachmentSpec: MediaOriginSpec;
-  storage: FirebaseStorage;
-  /** The current user's auth uid. Forwarded to `uploadAdapter` callbacks. */
-  userId: string;
-  /**
-   * Pluggable upload-path strategy. Consumers wire this to their app's
-   * conventions (for example: originId "chat-attachment", path
-   * `uploads/chat-attachment/{userId}/{attachmentId}`).
-   */
-  uploadAdapter: ChatUploadAdapter;
-};
-
-// ============================================
 // MENTION SYSTEM CONFIG (passed through ChatShell → Composer)
 // ============================================
+//
+// Chat carries TEXT only. There is no upload adapter or attachment config here:
+// a conversation's files are owned by the consuming app's Conversation Files
+// surface, which runs the canonical upload pipeline outside the chat timeline.
 
 /**
  * Pluggable mention system config. When attached to ChatCoreConfig, the

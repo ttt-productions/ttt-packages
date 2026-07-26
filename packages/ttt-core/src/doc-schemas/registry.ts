@@ -73,6 +73,7 @@ import {
   GuildInviteConversationSchema,
   AdminDispatchSchema,
   ChatMessageV1Schema,
+  ConversationFileSchema,
 } from './messaging.js';
 import { AppConfigSchema, AdminListSchema, ProfanityListSchema, ReservedUsernamesSchema, BlockedFranchiseNamesSchema, AppModeMarkerSchema } from './system.js';
 import {
@@ -228,6 +229,9 @@ export const COLLECTION_SCHEMAS = {
   'publicWorkProjects/{workProjectId}': PublicWorkProjectSchema,
   'workRealms/{workRealmId}': WorkRealmSchema,
   'guildInviteConversations/{guildInviteId}': GuildInviteConversationSchema,
+  // Conversation Files — the flat per-conversation file list. Backend-only writes;
+  // client-readable only while the caller holds conversation read access.
+  'guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}': ConversationFileSchema,
 
   // ===== Square / Social =====
   // SquareStreetzPostSchema is a refined ZodObject (superRefine for the MEDIA-101
@@ -284,6 +288,7 @@ export const COLLECTION_SCHEMAS = {
   'stakeShareAuditEvents/{eventId}': StakeShareAuditEventSchema,
   'pendingAdminDispatches/{adminDispatchId}': AdminDispatchSchema,
   'pendingAdminDispatches/{adminDispatchId}/conversationMessages/{adminDispatchMessageId}': ChatMessageV1Schema,
+  'pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}': ConversationFileSchema,
 
   // ===== Media pipeline =====
   'pendingMedia/{pendingMediaId}': PendingMediaSchema,

@@ -27,7 +27,7 @@ export const fileOriginRowLabel: Record<FileOrigin, string> = {
   'television-episode-photo': 'Episode photo',
   'television-episode-video': 'Episode video',
   'work-asset': 'Work asset',
-  'guild-chat-message-attachment': 'Guild chat attachment',
+  'conversation-file': 'Conversation file',
   'ncii-evidence': 'Take-it-down evidence',
 };
 

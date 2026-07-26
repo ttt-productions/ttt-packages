@@ -3,7 +3,6 @@ import {
   DomainEventSchema,
   ProfilePictureUpdatedEventSchema,
   SquareStreetzPostCreatedEventSchema,
-  ChatAttachmentFinalizedEventSchema,
   ModerationViolationCreatedEventSchema,
 } from '../src/media/domain-events.js';
 
@@ -24,10 +23,14 @@ describe('SquareStreetzPostCreatedEventSchema', () => {
   });
 });
 
-describe('ChatAttachmentFinalizedEventSchema', () => {
-  it('parses valid event', () => {
-    const event = { type: 'chat.attachmentFinalized', ids: { guildChatMessageId: 'm_1', conversationId: 'c_1' } };
-    expect(ChatAttachmentFinalizedEventSchema.parse(event).ids.guildChatMessageId).toBe('m_1');
+describe('removed chat-attachment domain event', () => {
+  it('the DomainEvent union no longer accepts chat.attachmentFinalized', () => {
+    expect(() =>
+      DomainEventSchema.parse({
+        type: 'chat.attachmentFinalized',
+        ids: { guildChatMessageId: 'm_1', conversationId: 'c_1' },
+      }),
+    ).toThrow();
   });
 });
 

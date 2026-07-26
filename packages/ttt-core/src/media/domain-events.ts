@@ -37,7 +37,6 @@ import {
   SquareStreetzPostCreatedEventSchema,
   SquareStreetzPostLikedEventSchema,
   SquareStreetzPostUnlikedEventSchema,
-  ChatAttachmentFinalizedEventSchema,
 } from "./domain-events-social.js";
 import {
   ModerationViolationCreatedEventSchema,
@@ -82,7 +81,6 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   WorkRealmCoverUpdatedEventSchema,
   HallLibrarySubItemUpdatedEventSchema,
   ModerationViolationCreatedEventSchema,
-  ChatAttachmentFinalizedEventSchema,
   FollowCreatedEventSchema,
   FollowRemovedEventSchema,
   SquareStreetzPostLikedEventSchema,

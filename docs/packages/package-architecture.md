@@ -34,10 +34,12 @@ package may consume it.
 - **Tier 2:** `upload-ui` (→ `file-input`, `media-schemas`, `ui-core`,
   `upload-core`).
 - **Tier 3:** `chat-react` (→ `chat-core`, `chat-schemas`, `realtime-core`,
-  `media-schemas`, `ui-core`, `file-input`, `upload-ui`, `media-viewer`,
-  `mobile-core`, `firebase-helpers`). The `realtime-core` edge is the realtime
-  (Durable Object) chat transport client; `realtime-core` is Tier 1 so it already
-  builds before `chat-react`.
+  `ui-core`, `upload-ui`, `mobile-core`, `firebase-helpers`). The `realtime-core`
+  edge is the realtime (Durable Object) chat transport client; `realtime-core` is
+  Tier 1 so it already builds before `chat-react`. The `upload-ui` edge is the
+  in-flight-send navigation guard only — chat is text-only and runs no upload
+  path, which is why it has no `file-input` / `media-viewer` / `media-schemas`
+  edge.
 - **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
   `edge-protocol-core`, `media-schemas`, `notification-core`, `report-core`).
 
@@ -54,8 +56,7 @@ build order):
     ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
                               media-schemas, notification-core, report-core
     chat-react             -> chat-core, chat-schemas, realtime-core,
-                              media-schemas, ui-core, file-input, upload-ui,
-                              media-viewer, mobile-core, firebase-helpers
+                              ui-core, upload-ui, mobile-core, firebase-helpers
 
 The `file-input -> media-viewer` edge is the only intra-Tier-1 dependency
 (`file-input` renders `MediaPreview` in `MediaInput`'s selected-file preview).
@@ -149,8 +150,8 @@ or `chat-core/schemas` subpath; `chat-core` exposes only `.`.
 
 `chat-react` holds everything React: the chat shell/composer/list UI, the
 realtime + infinite-older hooks, the mention autocomplete UI, the name-resolver
-context, the Firebase-client adapter config types (`ChatCoreConfig`,
-`ChatUploadAdapter`, …), and the render-callback types (`MessageRenderer`,
+context, the adapter config types (`ChatCoreConfig`, `ChatMentionConfig`), and
+the render-callback types (`MessageRenderer`,
 `RenderableMentionProvider`, …). It depends on `chat-core` plus the UI tier and
 treats `react` / `react-dom` / `firebase` / `@tanstack/react-query` /
 `lucide-react` as optional peers. Non-React consumers install `chat-core` and
@@ -182,8 +183,7 @@ package is added, renamed, or removed:
   canonical `RELEASE_ORDER`.
 
 Key ordering constraints: `chat-schemas` before `chat-core`; `chat-core` plus
-the UI tier (`ui-core`, `file-input`, `upload-ui`, `media-viewer`,
-`mobile-core`) plus `media-schemas`/`firebase-helpers` before `chat-react`;
+`ui-core`/`upload-ui`/`mobile-core`/`firebase-helpers` before `chat-react`;
 `report-core`/`audit-core`/`notification-core`/`media-schemas`/`chat-schemas`
 before `ttt-core`;
 `firebase-helpers` before `upload-core`; `file-input`/`ui-core`/`upload-core`/

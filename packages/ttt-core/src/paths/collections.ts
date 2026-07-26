@@ -219,6 +219,14 @@ export const NESTED_SUBCOLLECTIONS = {
   // Durable Object, never Firestore); only admin-support conversationMessages persist here.
   CONVERSATION_MESSAGES: 'conversationMessages',
 
+  // Conversation Files — the flat per-conversation file list. Nested under the
+  // conversation's NATURAL Firestore parent, so the same subcollection segment serves
+  // both supported scopes:
+  //   guildInviteConversations/{guildInviteId}/conversationFiles/{conversationFileId}
+  //   pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}
+  // Guild chat channels deliberately have NO conversationFiles subcollection.
+  CONVERSATION_FILES: 'conversationFiles',
+
   // SquareStreetz & Social
   SOCIAL_POSTS: 'socialPosts',
   ACTIVE_POSTS: 'activePosts',

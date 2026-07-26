@@ -1,20 +1,12 @@
-import type { ChatAttachment, ReplyTo } from "@ttt-productions/chat-schemas";
-
-// ============================================
-// CHAT ATTACHMENT
-// ============================================
-
-// Re-exported from @ttt-productions/chat-schemas, the Tier 0 source of truth.
-// chat-schemas is server-safe and can be consumed by both chat-core (pure) and
-// backend code without forcing the chat UI dep graph on backend callers.
-// An attachment carries a lifecycle `status` (pending -> ready | failed): a
-// pending/failed placeholder is visible only to the sender (rule-enforced);
-// other participants see it once it is `ready` (or absent = ready/legacy).
-export type { ChatAttachment };
+import type { ReplyTo } from "@ttt-productions/chat-schemas";
 
 // ============================================
 // THREAD & MESSAGE
 // ============================================
+//
+// Chat is TEXT-ONLY. A message never carries a file: files belong to the
+// CONVERSATION (the Conversation Files list owned by the consuming app), not to
+// a message in its timeline. There is no attachment contract in this package.
 
 export type ChatId = string;
 
@@ -34,7 +26,6 @@ export type ChatMessageV1 = {
   senderId: string;
   text?: string;
   type?: string;               // optional for renderer registry
-  attachment?: ChatAttachment; // single, not array
   replyTo?: ReplyTo;
   isSystemMessage?: boolean;
   /** Moderation tombstone flag on the stored message (backend-written); consumers
@@ -63,35 +54,6 @@ export type ChatMessageV1 = {
  * Admins (`isAdmin: true`) bypass both modes.
  */
 export type ChatAccessMode = "firestore-rules" | "explicit-allowlist";
-
-// ============================================
-// ATTACHMENT REGISTRATION CALLBACK
-// ============================================
-
-/**
- * Called by the composer after the file has been uploaded to Storage. The
- * consumer wires this to a backend callable that writes the pendingMedia doc
- * (caption text + reply pointer) AND a placeholder chat message doc with
- * `attachment.status: 'pending'`. The media processor later flips that same
- * message doc to `ready` (sets `url`) or `failed`.
- *
- * The placeholder bubble therefore arrives through the normal Firestore
- * listener — the composer does not need a separate optimistic local state.
- * While pending/failed the doc is sender-only (rule-enforced).
- */
-export type SendAttachmentInput = {
-  text: string;
-  attachment: {
-    attachmentId: string;       // pendingMedia doc ID
-    storagePath: string;        // uploads/chat-attachment/{uid}/{attachmentId}
-    originalFileName: string;
-    type: ChatAttachment["type"];
-    size: number;
-  };
-  replyTo?: ChatMessageV1["replyTo"];
-};
-
-export type SendAttachmentFn = (input: SendAttachmentInput) => Promise<void>;
 
 // ============================================
 // MODERATION

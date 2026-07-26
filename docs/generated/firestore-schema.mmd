@@ -283,8 +283,8 @@ erDiagram
     field caseId
     field reason
     field expectedMessageRevision
-    field attachmentAssetIds
     field payloadHash
+    field state
   }
   chatChannelAuthProjections {
     field channelRefScope
@@ -454,6 +454,16 @@ erDiagram
     field scores
     field rejectedFilePath
   }
+  conversationFiles {
+    field conversationFileId
+    field mediaAssetId
+    field name
+    field mediaKind
+    field contentType
+    field sizeBytes
+    field uploadedByUid
+    field createdAt
+  }
   conversationMessages {
     field senderId
     field text
@@ -462,7 +472,6 @@ erDiagram
     field threadId
     field type
     field guildInviteId
-    field attachment
     field replyTo
     field isSystemMessage
     field meta

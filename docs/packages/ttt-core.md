@@ -46,6 +46,35 @@ TTT Productions application-data package.
     `GuildmateUser.guildAuthInputVersion` (absent ⇒ 0), plus the
     `activityGeneration`/`seenAtGeneration` opaque-token fields on the active
     notification doc.
+- **Conversation Files contract** (replaced inline chat attachments): the
+  `ConversationFileRef` union (`src/media/conversation-file-ref.ts` — EXACTLY
+  `guildInvite` | `adminSupport`; guild chat channels are excluded by design), the
+  `conversation-file` `FileOrigin` + `TTT_MEDIA_SPECS` entry and its strict
+  `ConversationFileTargetInfoSchema` (the ref and nothing else — no message text,
+  replyTo, message id, or isUserReply), the `ConversationFileSchema` owner record
+  (`doc-schemas/messaging.ts` — references/metadata only: no status, URL, storage
+  path, or identity snapshot) plus the four backend-owned quota counters on both
+  conversation parents, the `conversationFiles` collection constant with
+  `PATH_BUILDERS.{guildInvite,adminDispatch}ConversationFile` /
+  `COLLECTION_REFS.{guildInvite,adminDispatch}ConversationFiles`, the byMode
+  `ACTIVE_LIMITS.conversation` caps with the derived `MAX_CONVERSATION_FILES` /
+  `MAX_CONVERSATION_FILE_STORAGE_BYTES` (`constants/conversation-files`), the
+  `conversationFile` publication kind + asset owner type, and the
+  `messaging.fileShare` capability. Safety locates a file the same way: the
+  `conversationFile` `TargetLocatorV1` variant carries the `ConversationFileRef` +
+  `conversationFileId` + `mediaAssetId` (so a guild-CHANNEL conversation file is
+  structurally inexpressible), and the NCII removal `surface` enum names
+  `conversationFile`. Reporting targets the FILE, not a message: the
+  `conversation-file` `ReportableItemType` (label `Conversation File`, priority
+  multiplier mirroring `work-asset` — the other shared-file surface) is in
+  `CONTENT_ACTION_PANEL_ITEM_TYPES` and both admin content-action target sets, and
+  is deliberately NOT in `CHAT_REPORT_ITEM_TYPES` (it has a Firestore owner doc, so
+  it needs no signed chat-Worker context read). The removed chat-attachment surface —
+  `guild-chat-message-attachment`, `messaging.attachment`, `chatAttachment` /
+  `adminSupportAttachment` publication kinds, the `chatAttachment` target locator
+  and NCII surface, the dead `ResolvedReportTargetV1.attachmentId` mirror, the
+  `chat_derivative` media copy reason, the `guildChannel` media scope and grant
+  lane, `chatAttachmentBytesUsed`, `attachmentFlip` — is gone, not aliased.
 
 ## Entry points
 

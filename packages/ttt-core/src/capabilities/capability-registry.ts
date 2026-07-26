@@ -19,7 +19,7 @@ export type CapabilityId =
   | 'pledge.create'
   | 'messaging.guildInvite'
   | 'messaging.send'
-  | 'messaging.attachment'
+  | 'messaging.fileShare'
   | 'collaboration.commissionProposal'
   | 'collaboration.auditionEntry'
   | 'stakeShares.hold'
@@ -63,7 +63,7 @@ export const ADULT_ONLY_UPLOAD_ORIGINS = [
   'tune-track-audio',
   'television-episode-photo',
   'television-episode-video',
-  'guild-chat-message-attachment',
+  'conversation-file',
   'work-asset',
 ] as const satisfies readonly FileOrigin[];
 
@@ -110,12 +110,12 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, CapabilityDefinition> = {
     bilateral: true,
     uploadOrigins: [],
   },
-  'messaging.attachment': {
-    id: 'messaging.attachment',
-    description: 'Attach media to a chat / invite message.',
+  'messaging.fileShare': {
+    id: 'messaging.fileShare',
+    description: 'Share a Conversation File in an invite / admin-support conversation.',
     ageRequirement: 'adult18Plus',
     bilateral: true,
-    uploadOrigins: ['guild-chat-message-attachment'],
+    uploadOrigins: ['conversation-file'],
   },
   'collaboration.commissionProposal': {
     id: 'collaboration.commissionProposal',

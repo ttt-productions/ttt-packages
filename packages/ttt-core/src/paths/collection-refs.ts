@@ -65,4 +65,12 @@ export const COLLECTION_REFS = {
 
   moderationCascadeChangedDocs: (cascadeId: string): [string, string, string] =>
     [COLLECTIONS.MODERATION_CASCADE_MANIFESTS, cascadeId, NESTED_SUBCOLLECTIONS.CHANGED_DOCS],
+
+  // Conversation Files list for each supported ConversationFileRef scope (the panel
+  // subscribes to the collection; the backend writes the docs).
+  guildInviteConversationFiles: (guildInviteId: string): [string, string, string] =>
+    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, guildInviteId, NESTED_SUBCOLLECTIONS.CONVERSATION_FILES],
+
+  adminDispatchConversationFiles: (adminDispatchId: string): [string, string, string] =>
+    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_FILES],
 } as const;

@@ -2,9 +2,13 @@
 //
 // The E2E/browser harness can already capture the raw WebSocket frames; what it
 // cannot see is what the CLIENT DECIDED about them — which frame it applied,
-// which it dropped and why, what resume cursor it sent, whether an attachment
-// row mutated in place, and whether a send was reconciled or failed. This module
-// is that missing half: a bounded, structured, opt-in decision log.
+// which it dropped and why, what resume cursor it sent, and whether a send was
+// reconciled or failed. This module is that missing half: a bounded, structured,
+// opt-in decision log.
+//
+// The connection-time, resume, presence, and socket-timing instruments are the
+// baseline-campaign metric families — they stay. Only the attachment-serving
+// instruments were retired with the chat-attachment architecture.
 //
 // Rules this module exists to enforce:
 //   - OFF BY DEFAULT and zero behavior change. When the option is absent the
@@ -65,8 +69,6 @@ export const CHAT_CLIENT_DIAGNOSTIC_EVENTS = {
   FRAME_APPLIED: 'chat_client_frame_applied',
   /** A frame was NOT applied, with the reason. */
   FRAME_DROPPED: 'chat_client_frame_dropped',
-  /** An attachment lifecycle change AS SEEN BY THE CLIENT: seq, old -> new state. */
-  ATTACHMENT_TRANSITION: 'chat_client_attachment_transition',
   /** A moderation revision overlay was recorded (and whether a loaded row re-rendered). */
   REVISION_APPLIED: 'chat_client_revision_applied',
   /** A history page was requested (cursor + limit). */

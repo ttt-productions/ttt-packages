@@ -4,10 +4,7 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
 
 ## Owns
 
-- `ChatAttachmentSchema`
-- `ReplyToSchema`
-- Inferred `ChatAttachment` and `ReplyTo` types
-- Server-safe chat contract constants such as `CHAT_ATTACHMENT_STALE_AGE_MS`
+- `ReplyToSchema` and the inferred `ReplyTo` type
 - **The chat realtime wire contract** (`src/realtime-wire.ts`) — the single owner
   of the chat socket protocol shared by the chat React client, the chat Cloudflare
   Worker, and Cloud Functions. The socket frame envelope is `{ v, type, payload }`.
@@ -43,5 +40,9 @@ This package is intentionally tiny and has no internal `@ttt-productions/*` depe
 - Chat UI
 - Composer behavior
 - Upload logic
+- **Any attachment/file contract.** Chat is text-only: a file belongs to the
+  CONVERSATION (`ttt-core`'s `ConversationFileSchema` / `ConversationFileRef`),
+  never to a message. A chat message schema that accepts an `attachment` field is
+  a regression — the package contract test asserts against it.
 - TTT-specific callable schemas
 - TTT-specific mention providers

@@ -5,8 +5,10 @@ Pure chat contracts and logic package. **No React, no Firebase.**
 ## Owns
 
 - Message/thread contract types that are not React-shaped (`ChatMessageV1`,
-  `ChatThreadV1`, `ChatId`, `ChatAccessMode`, `SendAttachmentInput`,
-  `ModerationHandlers`, `ChatNameResolver`, …)
+  `ChatThreadV1`, `ChatId`, `ChatAccessMode`, `ModerationHandlers`,
+  `ChatNameResolver`, …). `ChatMessageV1` is TEXT-only — there is no attachment
+  field or attachment-send contract; a conversation's files are owned by the
+  consuming app's Conversation Files surface.
 - Mention wire-format contracts (`MentionRef`, `ParsedSegment`,
   `MentionProvider`, `RecentMentionsAdapter`, `MentionAnchor`)
 - The mention parser/serializer (`parseMentionTokens`, `formatMentionToken`)
@@ -16,7 +18,7 @@ Pure chat contracts and logic package. **No React, no Firebase.**
 ## Boundary
 
 `chat-core` depends only on [`@ttt-productions/chat-schemas`](./chat-schemas.md)
-(for `ChatAttachment` / `ReplyTo`). It pulls in no React, Firebase, or UI
+(for `ReplyTo`). It pulls in no React, Firebase, or UI
 packages, so a Cloud Function, script, or future native/TV client can consume
 the parser and contracts without dragging in the frontend tree.
 

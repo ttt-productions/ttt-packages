@@ -14,7 +14,7 @@ import {
   ChapterPhotoTargetInfoSchema,
   TuneTrackPhotoTargetInfoSchema,
   TelevisionEpisodePhotoTargetInfoSchema,
-  ChatAttachmentTargetInfoSchema,
+  ConversationFileTargetInfoSchema,
 } from '../src/media/target-info.js';
 import { HALL_LIBRARY_TARGET_FIELDS } from '../src/media/hall-library-target-fields.js';
 import {
@@ -276,26 +276,49 @@ describe('ChapterPhotoTargetInfoSchema (typed IDs)', () => {
   });
 });
 
-describe('ChatAttachmentTargetInfoSchema', () => {
-  it('accepts guildChatChannel with required fields', () => {
-    expect(() => ChatAttachmentTargetInfoSchema.parse({
-      threadKind: 'guildChatChannel', workProjectId: 'p_1', guildChatChannelId: 'c_1',
-    })).not.toThrow();
+describe('ConversationFileTargetInfoSchema (strict — the ConversationFileRef and nothing else)', () => {
+  it('accepts the guildInvite scope', () => {
+    expect(ConversationFileTargetInfoSchema.parse({ kind: 'guildInvite', guildInviteId: 'inv_1' }))
+      .toEqual({ kind: 'guildInvite', guildInviteId: 'inv_1' });
   });
-  it('accepts guildInvite', () => {
-    expect(() => ChatAttachmentTargetInfoSchema.parse({
-      threadKind: 'guildInvite', guildInviteId: 'inv_1',
-    })).not.toThrow();
+  it('accepts the adminSupport scope', () => {
+    expect(ConversationFileTargetInfoSchema.parse({ kind: 'adminSupport', adminDispatchId: 'ad_1' }))
+      .toEqual({ kind: 'adminSupport', adminDispatchId: 'ad_1' });
   });
-  it('accepts adminSupport', () => {
-    expect(() => ChatAttachmentTargetInfoSchema.parse({
-      threadKind: 'adminSupport', adminDispatchId: 'msg_1', isUserReply: true,
-    })).not.toThrow();
-  });
-  it('rejects unknown threadKind', () => {
-    expect(() => ChatAttachmentTargetInfoSchema.parse({
-      threadKind: 'unknown', workProjectId: 'p_1',
+  it('rejects guildChannel — guild chat channels have NO Conversation Files', () => {
+    expect(() => ConversationFileTargetInfoSchema.parse({
+      kind: 'guildChannel', workProjectId: 'p_1', guildChatChannelId: 'c_1',
     })).toThrow();
+  });
+  it('rejects MIXED scope identifiers', () => {
+    expect(() => ConversationFileTargetInfoSchema.parse({
+      kind: 'guildInvite', guildInviteId: 'inv_1', adminDispatchId: 'ad_1',
+    })).toThrow();
+    expect(() => ConversationFileTargetInfoSchema.parse({
+      kind: 'adminSupport', adminDispatchId: 'ad_1', guildInviteId: 'inv_1',
+    })).toThrow();
+  });
+  it('rejects the removed chat-attachment payload fields (text, replyTo, messageId, isUserReply)', () => {
+    expect(() => ConversationFileTargetInfoSchema.parse({
+      kind: 'adminSupport', adminDispatchId: 'ad_1', isUserReply: true,
+    })).toThrow();
+    expect(() => ConversationFileTargetInfoSchema.parse({
+      kind: 'guildInvite',
+      guildInviteId: 'inv_1',
+      replyTo: { messageId: 'm_1', senderId: 'u_1', messagePreview: 'hi' },
+    })).toThrow();
+    expect(() => ConversationFileTargetInfoSchema.parse({
+      kind: 'guildInvite', guildInviteId: 'inv_1', messageId: 'm_1',
+    })).toThrow();
+  });
+  it('rejects the legacy threadKind discriminant', () => {
+    expect(() => ConversationFileTargetInfoSchema.parse({
+      threadKind: 'guildInvite', guildInviteId: 'inv_1',
+    })).toThrow();
+  });
+  it('rejects a missing scope id', () => {
+    expect(() => ConversationFileTargetInfoSchema.parse({ kind: 'guildInvite' })).toThrow();
+    expect(() => ConversationFileTargetInfoSchema.parse({ kind: 'adminSupport' })).toThrow();
   });
 });
 
@@ -358,9 +381,16 @@ describe('parseTargetInfo dispatch', () => {
     const result = parseTargetInfo('craft-skill-media', { skillType: 'image', originalFileName: 'a.jpg' });
     expect(result).toMatchObject({ skillType: 'image', originalFileName: 'a.jpg' });
   });
-  it('dispatches to guild-chat-message-attachment schema', () => {
-    const result = parseTargetInfo('guild-chat-message-attachment', { threadKind: 'guildChatChannel', workProjectId: 'p_1', guildChatChannelId: 'c_1' });
-    expect(result).toMatchObject({ threadKind: 'guildChatChannel', workProjectId: 'p_1', guildChatChannelId: 'c_1' });
+  it('dispatches to conversation-file schema', () => {
+    expect(parseTargetInfo('conversation-file', { kind: 'guildInvite', guildInviteId: 'inv_1' }))
+      .toMatchObject({ kind: 'guildInvite', guildInviteId: 'inv_1' });
+    expect(parseTargetInfo('conversation-file', { kind: 'adminSupport', adminDispatchId: 'ad_1' }))
+      .toMatchObject({ kind: 'adminSupport', adminDispatchId: 'ad_1' });
+  });
+  it('conversation-file dispatch rejects a guildChannel scope', () => {
+    expect(() => parseTargetInfo('conversation-file', {
+      kind: 'guildChannel', workProjectId: 'p_1', guildChatChannelId: 'c_1',
+    })).toThrow();
   });
   it('throws on schema mismatch', () => {
     expect(() => parseTargetInfo('craft-skill-media', { wrongShape: true })).toThrow();

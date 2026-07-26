@@ -207,6 +207,3 @@ export const MAX_GUILD_INVITE_MESSAGE_LENGTH = 500;
 
 /** Maximum length for a pledgePayment message. */
 export const MAX_PLEDGE_PAYMENT_MESSAGE_LENGTH = 500;
-
-/** Maximum length for a chat reply-to preview snippet stored on an attachment. */
-export const MAX_CHAT_REPLY_PREVIEW_LENGTH = 280;

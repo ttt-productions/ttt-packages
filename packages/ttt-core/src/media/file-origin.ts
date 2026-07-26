@@ -21,7 +21,12 @@ export const FileOriginSchema = z.enum([
   'tune-track-audio',
   'television-episode-photo',
   'television-episode-video',
-  'guild-chat-message-attachment',
+  // Conversation Files — the flat, Firestore-owned file list on a guild-INVITE
+  // conversation or an admin-SUPPORT dispatch thread. Replaces the removed
+  // `guild-chat-message-attachment` origin: files are no longer embedded in,
+  // sequenced with, or mutated through a chat message. Guild chat channels are
+  // deliberately EXCLUDED (guildmates share files through Work Files).
+  'conversation-file',
   'work-asset',
   // NCII / TAKE IT DOWN evidence upload (App-Check, no login). Preserved byte-exact,
   // never transcoded, never served — lands in the admin-only nciiEvidence bucket.

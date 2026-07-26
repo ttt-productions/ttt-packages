@@ -28,8 +28,8 @@ export interface EdgeServingRecord {
   accessTier: MediaAccessTier;
   ownerType: string;
   ownerId: string;
-  /** Work-project scoped media (work files, pre-publish content). A chat asset
-   * never sets this — its workProjectId lives ONLY inside the typed `scope`. */
+  /** Work-project scoped media (work files, pre-publish content). A conversation-file
+   * asset never sets this — a conversation scope carries no workProjectId. */
   workProjectId?: string;
   /** Typed scope for scoped-tier assets; absent/null for everything else. The
    * serving path EXACT-matches a grant against it. */
@@ -83,13 +83,11 @@ export interface GrantTokenPayload {
     /** Work-project FILE FOLDER scope — the SAME ids the asset's typed `scope`
      * carries; EXACT-matched (a {w} Work grant never reaches a folder file). */
     wf?: { w: string; f: string };
-    /** Guild-CHANNEL chat attachment scope — the SAME ids the asset's typed
-     * `scope` carries; EXACT-matched (never a {w} Work grant cross-match). */
-    gc?: { w: string; c: string };
-    /** Guild-INVITE chat attachment scope (guildInviteId). */
+    /** Guild-INVITE conversation scope (guildInviteId) — a Conversation File in that
+     * conversation; EXACT-matched (never a {w} Work grant cross-match). */
     gi?: string;
-    /** Admin-SUPPORT thread attachment scope (adminDispatchId) — the SAME id the
-     * asset's typed `scope` carries; EXACT-matched (one grant covers the thread). */
+    /** Admin-SUPPORT thread scope (adminDispatchId) — the SAME id the asset's typed
+     * `scope` carries; EXACT-matched (one grant covers the thread's files). */
     as?: { d: string };
     /** Admin-REVIEW reveal scope — bound to exactly ONE mediaAssetId (minted only for
      * a full/jr admin against a report group's server-derived target). EXACT-matched

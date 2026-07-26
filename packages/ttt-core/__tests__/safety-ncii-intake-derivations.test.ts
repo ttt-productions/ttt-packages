@@ -181,7 +181,14 @@ describe('surfaceLabelFor / targetLocatorSummary', () => {
 describe('isTttHostedLocator', () => {
   it('is true for server-resolvable TTT-hosted kinds', () => {
     expect(isTttHostedLocator({ kind: 'mediaAsset', mediaAssetId: 'x' })).toBe(true);
-    expect(isTttHostedLocator({ kind: 'chatAttachment', channelId: 'c', messageId: 'm', attachmentId: 'a' })).toBe(true);
+    expect(
+      isTttHostedLocator({
+        kind: 'conversationFile',
+        conversation: { kind: 'guildInvite', guildInviteId: 'inv-1' },
+        conversationFileId: 'cf-1',
+        mediaAssetId: 'asset-1',
+      }),
+    ).toBe(true);
   });
 
   it('is false for external / unresolvable locators (url, additionalText)', () => {

@@ -83,14 +83,11 @@ export function accountAccessEventId(uid: string, accountAccessVersion: number, 
 export function configEventId(channelKeyHash: string, configVersion: number): Promise<string> {
   return hash('config', channelKeyHash, configVersion);
 }
-export function attachmentFlipEventId(pendingMediaId: string, terminalState: string): Promise<string> {
-  return hash('attachment-flip', pendingMediaId, terminalState);
-}
 export function serverMessageEventId(threadRef: string, sourceDocId: string): Promise<string> {
   return hash('server-msg', threadRef, sourceDocId);
 }
 
-/** `chatMessageOutbox` commandId for invite/system messages (= attachment uses the pendingMediaId directly). */
+/** `chatMessageOutbox` commandId for invite/system messages. */
 export function serverMessageCommandId(threadRef: string, sourceDocId: string): Promise<string> {
   return hash('server-msg', threadRef, sourceDocId);
 }

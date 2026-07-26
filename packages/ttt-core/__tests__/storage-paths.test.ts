@@ -25,9 +25,9 @@ describe('buildTempUploadPath', () => {
     );
   });
 
-  it('builds path for guild-chat-message-attachment', () => {
-    expect(buildTempUploadPath('guild-chat-message-attachment', 'user_123', 'file_3')).toBe(
-      'uploads/guild-chat-message-attachment/user_123/file_3'
+  it('builds path for conversation-file', () => {
+    expect(buildTempUploadPath('conversation-file', 'user_123', 'file_3')).toBe(
+      'uploads/conversation-file/user_123/file_3'
     );
   });
 });
@@ -36,7 +36,7 @@ describe('isTempUploadPath', () => {
   it('returns true for valid temp paths', () => {
     expect(isTempUploadPath('uploads/profile-picture/user_abc/file_1')).toBe(true);
     expect(isTempUploadPath('uploads/squareStreetz/user_xyz/file_2')).toBe(true);
-    expect(isTempUploadPath('uploads/guild-chat-message-attachment/user_123/some-uuid')).toBe(true);
+    expect(isTempUploadPath('uploads/conversation-file/user_123/some-uuid')).toBe(true);
   });
 
   it('returns false for finalized storage paths', () => {

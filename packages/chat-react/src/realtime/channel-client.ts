@@ -952,12 +952,10 @@ export class ChannelClient {
    * the decision the client made about it.
    *
    * Diagnostics bounding: a LIVE frame always emits one `chat_client_frame_applied`
-   * line; a DELTA row emits one only when it is materially interesting (carries an
-   * attachment state, carries a moderation kind, or reconciles one of our optimistic
-   * sends) — a 500-row backlog is otherwise summarized by `chat_client_resume_result`
-   * rather than spamming 500 lines. Attachment transitions ALWAYS emit, from either
-   * source, because an in-place attachment mutation is the exact event this
-   * instrumentation exists to prove.
+   * line; a DELTA row emits one only when it is materially interesting (carries a
+   * moderation kind, or reconciles one of our optimistic sends) — a 500-row backlog
+   * is otherwise summarized by `chat_client_resume_result` rather than spamming 500
+   * lines.
    */
   private applyMessage(row: WireMessageRow, source: 'live' | 'delta'): void {
     if (!row || typeof row.seq !== 'number') {
@@ -972,25 +970,13 @@ export class ChannelClient {
     if (row.seq > this.resumeSeq) this.resumeSeq = row.seq;
     if (!this.diag || !prior) return;
 
-    const attachmentState = typeof row.attachmentState === 'string' ? row.attachmentState : null;
-    // Emit a transition for a real change only: first arrival of an attachment row
-    // (null -> pending) and every later in-place mutation (pending -> ready/failed).
-    if (attachmentState !== prior.attachmentState && (attachmentState != null || prior.hadRow)) {
-      this.diag(DIAG.ATTACHMENT_TRANSITION, {
-        seq: row.seq,
-        from: prior.attachmentState,
-        to: attachmentState,
-        source,
-      });
-    }
-    const notable = attachmentState != null || row.moderationKind != null || prior.reconciledOptimistic;
+    const notable = row.moderationKind != null || prior.reconciledOptimistic;
     if (source === 'delta' && !notable) return;
     this.diag(DIAG.FRAME_APPLIED, {
       kind: 'message',
       source,
       seq: row.seq,
       hasClientMessageId: Boolean(row.clientMessageId),
-      attachmentState,
       moderationKind: row.moderationKind ?? null,
       op: prior.reconciledOptimistic ? 'optimistic-reconcile' : prior.hadRow ? 'replace-by-seq' : 'insert',
       cursorBefore,
@@ -999,21 +985,18 @@ export class ChannelClient {
   }
 
   /**
-   * The pre-merge view of a row's seq: whether we already hold that seq, its current
-   * attachment state, and whether this row reconciles a live optimistic send.
+   * The pre-merge view of a row's seq: whether we already hold that seq, and whether
+   * this row reconciles a live optimistic send.
    * Diagnostics-only — never called when diagnostics are off.
    */
   private priorRowFacts(row: WireMessageRow): {
     hadRow: boolean;
-    attachmentState: string | null;
     reconciledOptimistic: boolean;
   } {
     const messageId = seqToMessageId(row.seq);
     const existing = this.state.messages.find((m) => m.messageId === messageId);
-    const raw = existing?.meta?.attachmentState;
     return {
       hadRow: existing != null,
-      attachmentState: typeof raw === 'string' ? raw : null,
       reconciledOptimistic: Boolean(
         row.clientMessageId &&
           this.state.messages.some((m) => m.meta?.optimistic && m.meta?.clientMessageId === row.clientMessageId),
@@ -1080,11 +1063,6 @@ export class ChannelClient {
 
   private applyHistoryPage(rows: WireMessageRow[]): void {
     const cursorBefore = this.resumeSeq;
-    // Pre-page attachment states for the seqs we already hold — a history page that
-    // carries a DIFFERENT state for a row we already rendered is an in-place mutation
-    // the client learned about by re-fetching, which is exactly the reveal path under
-    // investigation. Diagnostics-only, so only built when they are on.
-    const priorAttachment = this.diag ? this.snapshotAttachmentStates() : null;
     const mapped = rows.map((r) => this.renderRow(r));
     // Mirror mergeMessage's optimistic reconciliation: a history row carrying a
     // clientMessageId we still hold as an optimistic placeholder IS that send (the
@@ -1118,17 +1096,6 @@ export class ChannelClient {
       hasLoadedInitialData: true,
     });
     if (!this.diag) return;
-    if (priorAttachment) {
-      for (const r of rows) {
-        if (typeof r.seq !== 'number') continue;
-        const before = priorAttachment.get(r.seq);
-        if (before === undefined) continue; // a row we did not hold — not a transition
-        const after = typeof r.attachmentState === 'string' ? r.attachmentState : null;
-        if (before !== after) {
-          this.diag(DIAG.ATTACHMENT_TRANSITION, { seq: r.seq, from: before, to: after, source: 'history' });
-        }
-      }
-    }
     const seqs = rows.map((r) => r.seq).filter((s): s is number => typeof s === 'number');
     this.diag(DIAG.HISTORY_PAGE, {
       count: rows.length,
@@ -1140,21 +1107,6 @@ export class ChannelClient {
       hasOlder: rows.length >= HISTORY_PAGE_MAX,
       total: merged.length,
     });
-  }
-
-  /**
-   * A seq -> attachmentState map of the rows currently held (diagnostics-only, so a
-   * later in-place mutation can be reported as an explicit `old -> new` transition).
-   */
-  private snapshotAttachmentStates(): Map<number, string | null> {
-    const out = new Map<number, string | null>();
-    for (const m of this.state.messages) {
-      const seq = m.meta?.seq;
-      if (typeof seq !== 'number') continue;
-      const raw = m.meta?.attachmentState;
-      out.set(seq, typeof raw === 'string' ? raw : null);
-    }
-    return out;
   }
 
   private applyTyping(uid: string): void {

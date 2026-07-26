@@ -66,7 +66,8 @@ export const ResolvedReportTargetV1Schema = z.object({
   mediaAssetId: z.string().optional(), // typed per surface
   channelId: z.string().optional(),
   messageId: z.string().optional(),
-  attachmentId: z.string().optional(),
+  // (There is no `attachmentId` mirror: chat carries no media, and a Conversation File is
+  // identified by its `conversationFile` locator + the `mediaAssetId` field above.)
   locator: TargetLocatorV1Schema, // the §A11 discriminated locator for downstream hold/removal
   resolvedAt: z.number(),
 }).strict();

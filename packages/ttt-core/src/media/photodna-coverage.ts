@@ -7,7 +7,7 @@
 // The source of truth for what a media origin accepts is
 // `TTT_MEDIA_SPECS[origin].accept.kinds`, NOT the top-level `spec.kind` (which
 // mislabels `craft-skill-media`/`squareStreetz` as 'image' and
-// `guild-chat-message-attachment`/`work-asset` as 'generic', although all four
+// `conversation-file`/`work-asset` as 'generic', although all four
 // accept image+video+audio). Nothing here is hard-coded per-origin — every entry
 // is computed from the registry, so a new accepted kind on any origin fails CI
 // (via photodna-coverage.test.ts) until a branch covers it.

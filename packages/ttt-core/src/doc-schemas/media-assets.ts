@@ -32,7 +32,10 @@ export const MediaAssetOwnerTypeSchema = z.enum([
   'commissionProposal',
   'audition',
   'auditionEntry',
-  'guildChatAttachment',
+  // A file in a conversation's flat Conversation Files list (guild-invite or
+  // admin-support). Replaces the removed `guildChatAttachment` owner type — chat
+  // messages no longer own media.
+  'conversationFile',
   'realmFile', // reserved seam — realm shared files are post-launch
   'safetyEvidence', // inert system sentinel — synthetic NCII-evidence assets (never an account surface)
 ]);
@@ -58,13 +61,17 @@ export const MEDIA_VARIANT_KEYS = ['full', 'medium', 'small', 'main'] as const;
 export const MediaVariantKeySchema = z.enum(MEDIA_VARIANT_KEYS);
 export type MediaVariantKey = z.infer<typeof MediaVariantKeySchema>;
 
-/** Why this asset was created from its source (A0). */
+/** Why this asset was created from its source (A0).
+ *
+ * `chat_derivative` was REMOVED with the chat-attachment architecture: chat is
+ * text-only and owns no media, so no copy can be made "for a chat message". A
+ * Conversation File is an ORIGINAL (`original`), never a chat derivative; nothing
+ * ever set the retired value. */
 export const MediaCopyReasonSchema = z.enum([
   'original',
   'variant',
   'hall_publish',
   'profile_derivative',
-  'chat_derivative',
   'moderation_copy',
   'evidence_copy',
   'other',
@@ -151,9 +158,8 @@ export type MediaAssetPublicationState = z.infer<typeof MediaAssetPublicationSta
 /**
  * Typed immutable serving scope for scoped-tier assets. The gateway Worker matches
  * a grant against the scope by `kind` — so a whole-Work `{w}` grant matches ONLY a
- * `workProject` scope, NEVER a `guildChannel` scope (even though both carry a
- * `workProjectId`): a restricted channel's attachment is not reachable by a plain
- * Work grant, and a chat grant is not reachable by a Work asset.
+ * `workProject` scope, never a conversation scope, and a conversation grant is never
+ * reachable by a Work asset.
  *
  * - `workProject` — pre-publish content media (hall covers / sub-item media during
  *   authoring), scoped to project read membership. Carries the matchable
@@ -166,9 +172,10 @@ export type MediaAssetPublicationState = z.infer<typeof MediaAssetPublicationSta
  *   the per-folder view check and the Worker EXACT-matches `{workProjectId,
  *   workFileFolderId}` — a plain Work `{w}` grant NEVER matches a folder file, and a
  *   folder grant NEVER matches a `workProject`-scoped content asset.
- * - `guildChannel` / `guildInvite` — guild-chat attachments; an EXACT channel/
- *   invite scope (Contract E "Chat attachment authorization"). A guildChannel's
- *   `workProjectId` lives ONLY inside this scope, never as a bare matchable field.
+ * - `guildInvite` / `adminSupport` — the two Conversation Files scopes; an EXACT
+ *   conversation scope, matching the `ConversationFileRef` that owns the file. There is
+ *   NO guildChannel scope: guild chat channels have no Conversation Files (guildmates
+ *   share files through Work Files, which keeps its own workFileFolder scope).
  *
  * `null` scope = no scope match required beyond the access tier (e.g. broad).
  */
@@ -181,11 +188,6 @@ export const MediaServingScopeSchema = z.discriminatedUnion('kind', [
     kind: z.literal('workFileFolder'),
     workProjectId: z.string().min(1),
     workFileFolderId: z.string().min(1),
-  }).strict(),
-  z.object({
-    kind: z.literal('guildChannel'),
-    workProjectId: z.string().min(1),
-    guildChatChannelId: z.string().min(1),
   }).strict(),
   z.object({
     kind: z.literal('guildInvite'),
@@ -201,8 +203,7 @@ export type MediaServingScope = z.infer<typeof MediaServingScopeSchema>;
 /**
  * The typed owner adapter a publication goes through. The activation job
  * carries this kind; a server-side registry validates per-kind `publicationArgs`
- * and performs the idempotent owner write. Chat is the non-Firestore-owner
- * adapter (publishes via its durable attachmentFlip ack, not an owner txn).
+ * and performs the idempotent owner write. Every kind is a Firestore-owner adapter.
  */
 export const MediaPublicationKindSchema = z.enum([
   'profilePicture',
@@ -217,11 +218,13 @@ export const MediaPublicationKindSchema = z.enum([
   'commissionListingMedia',
   'commissionProposalMedia',
   'craftSkillMedia',
-  'chatAttachment',
-  // Admin-support thread attachment: Firestore-transported (no Durable Object), so its
-  // publication adapter does a Firestore owner write (flips the dispatch message placeholder),
-  // unlike DO-ack'd `chatAttachment`. Carries the typed `adminSupport` MediaServingScope.
-  'adminSupportAttachment',
+  // Conversation File: the ONE adapter that creates a visible Conversation File owner
+  // record ({conversationParent}/conversationFiles/{conversationFileId}) and transfers
+  // the quota reservation to published counters in the same transaction. Replaces the
+  // removed `chatAttachment` (Channel-DO flip) and `adminSupportAttachment` (message
+  // placeholder flip) kinds. Carries the typed `guildInvite` / `adminSupport`
+  // MediaServingScope of the owning conversation.
+  'conversationFile',
 ]);
 export type MediaPublicationKind = z.infer<typeof MediaPublicationKindSchema>;
 

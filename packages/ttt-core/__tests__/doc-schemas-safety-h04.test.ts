@@ -58,14 +58,15 @@ describe('TargetLocatorV1 — guildChatMessage (H-04 V1)', () => {
     expect(result.success).toBe(true);
   });
 
-  it('existing chatAttachment locator still parses (no regression)', () => {
+  it('the removed chatAttachment locator no longer parses (chat carries no media)', () => {
     const result = TargetLocatorV1Schema.safeParse({
       kind: 'chatAttachment',
       channelId: 'wp-1/chan-abc',
       messageId: 'msg-123',
       attachmentId: 'att-456',
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
+    expect(TargetLocatorKindSchema.safeParse('chatAttachment').success).toBe(false);
   });
 
   it('existing guildInviteMessage locator still parses (no regression)', () => {
@@ -173,14 +174,13 @@ describe('ChildSafetyCaseV1 — chatMessageLocator + contextResolutionPending (H
     }
   });
 
-  it('parses with chatAttachment chatMessageLocator (media-resolved case with locator)', () => {
+  it('parses with a guildInviteMessage chatMessageLocator (the other chat surface)', () => {
     const result = ChildSafetyCaseV1Schema.safeParse({
       ...BASE_CASE_ROOT_DOC,
       chatMessageLocator: {
-        kind: 'chatAttachment',
-        channelId: 'wp-1/chan-abc',
+        kind: 'guildInviteMessage',
+        channelId: 'invite-chan',
         messageId: 'msg-123',
-        attachmentId: 'att-456',
       },
       contextResolutionPending: false,
     });

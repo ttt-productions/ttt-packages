@@ -41,9 +41,13 @@ export const MESSAGING_SURFACES: readonly MessagingSurface[] = [
     checksRecipientAtSend: false,
   },
   {
-    id: 'guildChat.attachment',
-    callable: 'mintChatGrant',
-    capability: 'messaging.attachment',
+    // Conversation Files (guild-invite + admin-support conversations only — guild
+    // chat CHANNELS have no Conversation Files). The bilateral 18+ check runs at the
+    // origin gate inside `startUpload`, which authorizes the conversation before it
+    // reserves quota; there is no per-message send path to re-check.
+    id: 'conversationFile.share',
+    callable: 'startUpload',
+    capability: 'messaging.fileShare',
     checksRecipientAtGrant: true,
     checksRecipientAtSend: false,
   },

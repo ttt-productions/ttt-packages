@@ -99,10 +99,10 @@ describe('PendingMediaRejectedSchema', () => {
 });
 
 describe('PendingMediaSchema (discriminated union)', () => {
-  it('selects the correct branch for guild-chat-message-attachment', () => {
+  it('selects the correct branch for conversation-file', () => {
     const doc = {
       ...base,
-      fileOrigin: 'guild-chat-message-attachment',
+      fileOrigin: 'conversation-file',
       status: 'processing',
       processingStartedAt: 1_700_000_001_500,
     };

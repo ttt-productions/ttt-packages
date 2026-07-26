@@ -15,8 +15,6 @@ function wireRow(
     clientMessageId: `srv-${seq}`,
     text,
     replyTo: null,
-    attachmentState: null,
-    attachmentMeta: null,
     createdAt: 1000 + seq,
     epoch: 1,
     ...(overlay

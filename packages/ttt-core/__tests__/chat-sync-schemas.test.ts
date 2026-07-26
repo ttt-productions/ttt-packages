@@ -48,9 +48,16 @@ describe('chat-sync doc schemas parse representative docs', () => {
 
   it('ChatMessageOutbox', () => {
     expect(ChatMessageOutboxSchema.safeParse({
-      commandId: 'pm1', kind: 'attachmentPlaceholder', threadRef: 'tr', payload: {}, payloadVersion: 1,
+      commandId: 'pm1', kind: 'systemMsg', threadRef: 'tr', payload: {}, payloadVersion: 1,
       status: 'pending', attemptCount: 0, nextAttemptAt: 1, lastError: null, createdAt: 1, appliedAt: null, deadLetteredAt: null,
     }).success).toBe(true);
+  });
+
+  it('rejects the removed attachment command/event kinds', () => {
+    expect(ChatMessageOutboxSchema.safeParse({
+      commandId: 'pm1', kind: 'attachmentPlaceholder', threadRef: 'tr', payload: {}, payloadVersion: 1,
+      status: 'pending', attemptCount: 0, nextAttemptAt: 1, lastError: null, createdAt: 1, appliedAt: null, deadLetteredAt: null,
+    }).success).toBe(false);
   });
 
   it('ChatAdminActionCommand', () => {

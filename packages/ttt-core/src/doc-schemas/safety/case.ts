@@ -247,7 +247,7 @@ export const ChildSafetyCaseListV1Schema = z.object({
   // colliding case never `tx.create`-throws (see childSafetyOwningAliases intake). Additive/optional.
   relatedCaseIds: z.array(z.string().min(1)).optional(),
   // [H-04 V1] Set to true when a protected-reason chat report's Worker context could not be
-  // resolved at intake (text-only / Worker-down / attachment-not-ready). The case is still a
+  // resolved at intake (text-only / Worker-down). The case is still a
   // fully-valid protected case; context resolution is retried async. Absent = false (no pending
   // context). Cleared once context is attached. Surfaced in the safety console so the reviewer
   // knows to trigger a manual re-fetch if the async retry hasn't landed yet.
@@ -276,8 +276,9 @@ export const ChildSafetyCaseV1Schema = z.object({
   // the best-effort async re-fetch (and the operator's manual re-fetch) use to retrieve the
   // message text/sender. NEVER updated after creation — if context resolves, the resolved
   // context is ATTACHED to the case; this field stays unchanged as the permanent intake record.
-  // Uses TargetLocatorV1 (a `guildChatMessage` or `chatAttachment` kind); absent on media-resolved
-  // cases that went through the normal protected path with a ready attachment.
+  // Uses TargetLocatorV1 (a `guildChatMessage` / `guildInviteMessage` kind); absent on
+  // media-resolved cases that went through the normal protected path with a published
+  // Conversation File.
   chatMessageLocator: TargetLocatorV1Schema.optional(),
   // [H-04 V1] Mirror of the list-doc field — kept in sync so the restricted root can be
   // independently queried/checked without a join against childSafetyCaseList.

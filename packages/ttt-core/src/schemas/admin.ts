@@ -428,6 +428,9 @@ const MODERATE_REPORTED_CONTENT_TARGET_TYPES = [
   'hall-library-item',
   'craft-skill',
   'admin-work-message',
+  // Conversation File — the hide/restore/remove action targets the file owner record +
+  // its mediaAsset (the `work-asset` shape), never a chat message.
+  'conversation-file',
 ] as const satisfies readonly ReportableItemType[];
 
 export const ModerateReportedContentInputSchema = z.object({
@@ -469,6 +472,8 @@ const CONTENT_ACTION_TARGET_TYPES = [
   // Work-party admin correspondence message — single-doc `hidden` flip via
   // `runModerateReportedContent` (tombstone rendering in the thread views).
   'admin-work-message',
+  // Conversation File — same content action as `work-asset`, routed at the file record.
+  'conversation-file',
 ] as const satisfies readonly ReportableItemType[];
 
 const ContentActionSchema = z

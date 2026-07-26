@@ -19,14 +19,18 @@ describe('CreateMediaGrantInputSchema (media grant wire contract)', () => {
     expect(
       CreateMediaGrantInputSchema.parse({ scopeKind: 'commissionProposal', commissionListingId: 'c1', commissionProposalId: 'p1' }).scopeKind,
     ).toBe('commissionProposal');
-    expect(
-      CreateMediaGrantInputSchema.parse({ scopeKind: 'guildChannel', workProjectId: 'wp1', guildChatChannelId: 'ch1' }).scopeKind,
-    ).toBe('guildChannel');
     expect(CreateMediaGrantInputSchema.parse({ scopeKind: 'guildInvite', guildInviteId: 'gi1' }).scopeKind).toBe('guildInvite');
+    expect(CreateMediaGrantInputSchema.parse({ scopeKind: 'adminSupport', adminDispatchId: 'ad1' }).scopeKind).toBe('adminSupport');
   });
 
   it('rejects an unknown scopeKind', () => {
     expect(() => CreateMediaGrantInputSchema.parse({ scopeKind: 'wholeWork', workProjectId: 'wp1' })).toThrow();
+  });
+
+  it('rejects the removed guildChannel scope — guild channels have no Conversation Files', () => {
+    expect(() =>
+      CreateMediaGrantInputSchema.parse({ scopeKind: 'guildChannel', workProjectId: 'wp1', guildChatChannelId: 'ch1' }),
+    ).toThrow();
   });
 
   it('is strict — a workFileFolder scope must not omit the folder id or carry extra keys', () => {

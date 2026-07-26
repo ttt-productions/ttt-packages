@@ -174,7 +174,9 @@ export type AuditEventType =
   | 'chat.guildChatChannelDeleted'
   | 'chat.adminThreadStarted'
   | 'chat.adminThreadStatusChanged'
-  | 'chat.attachmentTimedOut'
+  // conversation files — every successful delete is audited with UID references and
+  // canonical resource ids (the conversation ref, conversationFileId, mediaAssetId).
+  | 'conversationFile.deleted'
   // chat moderation (DO-owned hide/delete via chatAdminActionCommands) — append-only,
   // deterministic ids hash('chat-moderation-{requested,applied,failed}', requestId, …).
   | 'chat.moderationActionRequested'

@@ -27,6 +27,7 @@ export const REPORTABLE_ITEM_LABELS: Record<ReportableItemType, string> = {
   'guild-invite-message': 'Guild Invite Message',
   'guild-chat-message': 'Guild Chat Message',
   'admin-work-message': 'Work Correspondence Message',
+  'conversation-file': 'Conversation File',
   'hall-library-item': 'Hall Item',
   'hall-library-sub-item': 'Hall Sub-Item',
   'audition': 'Audition',
@@ -57,7 +58,9 @@ export const REPORT_REASON_SCORES: Record<ReportReason, number> = {
 
 /** Multiplier for each canonical reportable item type. High-reach public surfaces
  * carry a higher multiplier; chat-message surfaces (admin-visible or low-reach) sit
- * below 1. */
+ * below 1. `conversation-file` mirrors `work-asset` (1.0) — the other shared-FILE
+ * surface — rather than the 0.8 chat-message weight: the report is about stored
+ * media, not a line of conversation text. */
 export const REPORT_ITEM_TYPE_MULTIPLIERS: Record<ReportableItemType, number> = {
   'square-streetz-post': 1.5,
   'hall-library-item': 1.3,
@@ -72,6 +75,7 @@ export const REPORT_ITEM_TYPE_MULTIPLIERS: Record<ReportableItemType, number> = 
   'craft-skill': 1.0,
   'profile-picture': 1.0,
   'work-asset': 1.0,
+  'conversation-file': 1.0,
   'guild-chat-message': 0.8,
   'guild-invite-message': 0.8,
   'admin-work-message': 0.8,

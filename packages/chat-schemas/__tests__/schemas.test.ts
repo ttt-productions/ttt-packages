@@ -1,49 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { ChatAttachmentSchema, ReplyToSchema } from '../src/index.js';
+import * as chatSchemas from '../src/index.js';
+import { ReplyToSchema } from '../src/index.js';
 
-describe('ChatAttachmentSchema', () => {
-  const valid = {
-    id: 'att_1',
-    name: 'photo.jpg',
-    type: 'image' as const,
-    size: 12345,
-    mediaAssetId: 'asset_1',
-    storagePath: 'uploads/att_1/photo.jpg',
-  };
-
-  it('rejects a stored url field (URLs are built at render time, never stored)', () => {
-    expect(() => ChatAttachmentSchema.parse({ ...valid, url: 'https://example.com/x.jpg' })).toThrow();
+describe('chat message schemas are text-only (Conversation Files replaced attachments)', () => {
+  it('exports no chat-attachment schema, type helper, or constant', () => {
+    // Chat carries text; files belong to the conversation's Conversation Files
+    // list (ttt-core), never to a message. A re-introduced attachment export is
+    // the regression this asserts against.
+    const exported = Object.keys(chatSchemas);
+    expect(exported).not.toContain('ChatAttachmentSchema');
+    expect(exported).not.toContain('CHAT_ATTACHMENT_STALE_AGE_MS');
+    expect(exported.filter((name) => /attachment/i.test(name))).toEqual([]);
   });
 
-  it('accepts a valid image attachment', () => {
-    expect(() => ChatAttachmentSchema.parse(valid)).not.toThrow();
-  });
-
-  it('accepts video, audio, text types', () => {
-    for (const type of ['video', 'audio', 'text'] as const) {
-      expect(() => ChatAttachmentSchema.parse({ ...valid, type })).not.toThrow();
-    }
-  });
-
-  it('rejects unknown type enum', () => {
-    expect(() => ChatAttachmentSchema.parse({ ...valid, type: 'pdf' })).toThrow();
-  });
-
-  it('rejects empty id', () => {
-    expect(() => ChatAttachmentSchema.parse({ ...valid, id: '' })).toThrow();
-  });
-
-  it('rejects empty storagePath', () => {
-    expect(() => ChatAttachmentSchema.parse({ ...valid, storagePath: '' })).toThrow();
-  });
-
-  it('rejects extra unknown fields', () => {
-    expect(() => ChatAttachmentSchema.parse({ ...valid, extra: 'x' })).toThrow();
-  });
-
-  it('rejects missing size', () => {
-    const { size: _size, ...rest } = valid;
-    expect(() => ChatAttachmentSchema.parse(rest)).toThrow();
+  it('ReplyToSchema rejects an attachment field (a reply pointer is text metadata only)', () => {
+    expect(() =>
+      ReplyToSchema.parse({
+        messageId: 'msg_1',
+        senderId: 'user_1',
+        messagePreview: 'Hello there',
+        attachment: { id: 'att_1' },
+      }),
+    ).toThrow();
   });
 });
 
@@ -72,5 +50,15 @@ describe('ReplyToSchema', () => {
 
   it('rejects extra unknown fields', () => {
     expect(() => ReplyToSchema.parse({ ...valid, extra: 'x' })).toThrow();
+  });
+
+  it('bounds messagePreview at MAX_CHAT_REPLY_PREVIEW_LENGTH', () => {
+    const max = chatSchemas.MAX_CHAT_REPLY_PREVIEW_LENGTH;
+    expect(() =>
+      ReplyToSchema.parse({ ...valid, messagePreview: 'a'.repeat(max) }),
+    ).not.toThrow();
+    expect(() =>
+      ReplyToSchema.parse({ ...valid, messagePreview: 'a'.repeat(max + 1) }),
+    ).toThrow();
   });
 });

@@ -18,7 +18,7 @@ const MB = 1024 * 1024;
 const IMAGE_RAW_BYTES = 25 * MB; // 48MP phone HEIC/JPEG fits comfortably
 const VIDEO_RAW_BYTES = byMode(500 * MB, 1024 * MB);
 const AUDIO_RAW_BYTES = byMode(100 * MB, 250 * MB);
-const CHAT_RAW_BYTES = byMode(250 * MB, 500 * MB);
+const CONVERSATION_FILE_RAW_BYTES = byMode(250 * MB, 500 * MB);
 // [H-01/R10] NCII take-it-down evidence: 100MB. The scan trigger downloads the whole object into a
 // ~512MiB Function before scanning, so an allowed file must fit in memory. No mode variation (the
 // evidence is preserveOriginal — never transcoded). Mirrored by storage.rules `uploadMaxBytes` (caps
@@ -30,7 +30,7 @@ const SHORT_VIDEO_DURATION_SEC = byMode(60, 180);
 const ADMIN_PROMPT_DURATION_SEC = byMode(120, 600);
 const TELEVISION_DURATION_SEC = byMode(300, 1800);
 const LONG_AUDIO_DURATION_SEC = byMode(600, 900);
-const CHAT_AUDIO_DURATION_SEC = byMode(60, 180);
+const CONVERSATION_FILE_AUDIO_DURATION_SEC = byMode(60, 180);
 
 // --- Output size caps (post-transcode) ---
 const SHORT_VIDEO_OUTPUT_BYTES = byMode(60 * MB, 300 * MB);
@@ -618,10 +618,13 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
     },
   },
 
-  'guild-chat-message-attachment': {
+  // Conversation Files (guild-invite + admin-support conversations). Same
+  // image/video/audio processing recipe the removed chat-attachment origin used —
+  // the replacement changed the OWNER of the published asset, not the pipeline.
+  'conversation-file': {
     kind: 'generic',
     accept: ACCEPT_MEDIA_ALL,
-    maxBytes: CHAT_RAW_BYTES,
+    maxBytes: CONVERSATION_FILE_RAW_BYTES,
     maxDurationSec: SHORT_VIDEO_DURATION_SEC,
     client: {
       allowPick: true,
@@ -650,7 +653,7 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
       audio: {
         kind: 'audio',
         maxOutputBytes: AUDIO_OUTPUT_BYTES,
-        audio: { maxDurationSec: CHAT_AUDIO_DURATION_SEC },
+        audio: { maxDurationSec: CONVERSATION_FILE_AUDIO_DURATION_SEC },
       },
     },
   },

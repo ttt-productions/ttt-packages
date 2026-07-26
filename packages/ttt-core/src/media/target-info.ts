@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { FileOrigin } from "./file-origin.js";
+import { ConversationFileRefSchema } from "./conversation-file-ref.js";
 import { MentionSchema, rejectDuplicateMentionPlaceholders } from "./atoms.js";
 import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from "../constants/options.js";
 import { MediaTypeSchema } from "../doc-schemas/social.js";
@@ -12,7 +13,6 @@ import {
   MAX_AUDITION_DESCRIPTION_LENGTH,
   MAX_WORK_PROJECT_STAKE_SHARES,
   MAX_SPONSORED_AUDITION_AMOUNT_USD,
-  MAX_CHAT_REPLY_PREVIEW_LENGTH,
   MIN_CURATED_AUDITION_OPTIONS,
   MAX_CURATED_AUDITION_OPTIONS,
 } from "../constants/business.js";
@@ -199,40 +199,12 @@ const TelevisionEpisodeMediaTargetInfoSchema = z
 export const TelevisionEpisodePhotoTargetInfoSchema = TelevisionEpisodeMediaTargetInfoSchema;
 export const TelevisionEpisodeVideoTargetInfoSchema = TelevisionEpisodeMediaTargetInfoSchema;
 
-// guild-chat-message-attachment: discriminated by threadKind.
-const ChatReplyToSchema = z
-  .object({
-    messageId: z.string().min(1),
-    senderId: z.string().min(1),
-    messagePreview: z.string().max(MAX_CHAT_REPLY_PREVIEW_LENGTH),
-  })
-  .strict();
-
-export const ChatAttachmentTargetInfoSchema = z.discriminatedUnion('threadKind', [
-  z
-    .object({
-      threadKind: z.literal('guildChatChannel'),
-      workProjectId: z.string().min(1),
-      guildChatChannelId: z.string().min(1),
-      replyTo: ChatReplyToSchema.optional(),
-    })
-    .strict(),
-  z
-    .object({
-      threadKind: z.literal('guildInvite'),
-      guildInviteId: z.string().min(1),
-      replyTo: ChatReplyToSchema.optional(),
-    })
-    .strict(),
-  z
-    .object({
-      threadKind: z.literal('adminSupport'),
-      adminDispatchId: z.string().min(1),
-      isUserReply: z.boolean(),
-      replyTo: ChatReplyToSchema.optional(),
-    })
-    .strict(),
-]);
+// conversation-file: STRICT — carries the ConversationFileRef and NOTHING else.
+// No message text, no replyTo, no message id, no isUserReply: a Conversation File
+// is never embedded in, sequenced with, or mutated through a chat message. Extra
+// or mixed scope identifiers (e.g. a guildInviteId alongside an adminDispatchId,
+// or a guildChatChannelId) fail the parse.
+export const ConversationFileTargetInfoSchema = ConversationFileRefSchema;
 
 export const WorkAssetTargetInfoSchema = z
   .object({
@@ -262,7 +234,7 @@ export type TuneTrackPhotoTargetInfo = z.infer<typeof TuneTrackPhotoTargetInfoSc
 export type TuneTrackAudioTargetInfo = z.infer<typeof TuneTrackAudioTargetInfoSchema>;
 export type TelevisionEpisodePhotoTargetInfo = z.infer<typeof TelevisionEpisodePhotoTargetInfoSchema>;
 export type TelevisionEpisodeVideoTargetInfo = z.infer<typeof TelevisionEpisodeVideoTargetInfoSchema>;
-export type ChatAttachmentTargetInfo = z.infer<typeof ChatAttachmentTargetInfoSchema>;
+export type ConversationFileTargetInfo = z.infer<typeof ConversationFileTargetInfoSchema>;
 export type WorkAssetTargetInfo = z.infer<typeof WorkAssetTargetInfoSchema>;
 
 // ncii-evidence: ties the uploaded evidence to a take-it-down request by its
@@ -293,7 +265,7 @@ export type TargetInfoFor<O extends FileOrigin> =
   : O extends 'tune-track-audio' ? TuneTrackAudioTargetInfo
   : O extends 'television-episode-photo' ? TelevisionEpisodePhotoTargetInfo
   : O extends 'television-episode-video' ? TelevisionEpisodeVideoTargetInfo
-  : O extends 'guild-chat-message-attachment' ? ChatAttachmentTargetInfo
+  : O extends 'conversation-file' ? ConversationFileTargetInfo
   : O extends 'work-asset' ? WorkAssetTargetInfo
   : O extends 'ncii-evidence' ? NciiEvidenceTargetInfo
   : never;
@@ -324,7 +296,7 @@ export function parseTargetInfo<O extends FileOrigin>(
     case 'tune-track-audio': return TuneTrackAudioTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'television-episode-photo': return TelevisionEpisodePhotoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'television-episode-video': return TelevisionEpisodeVideoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
-    case 'guild-chat-message-attachment': return ChatAttachmentTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'conversation-file': return ConversationFileTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'work-asset': return WorkAssetTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'ncii-evidence': return NciiEvidenceTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     default: return assertNever(fileOrigin);

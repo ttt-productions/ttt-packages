@@ -143,9 +143,9 @@ export const AdminChatModerationChannelSchema = z.discriminatedUnion('kind', [
 ]);
 export type AdminChatModerationChannel = z.infer<typeof AdminChatModerationChannelSchema>;
 
-// `adminModerateChatMessage` — queue a DO-owned hide/delete command. The moderated message's
-// attachment asset id(s) are NEVER client-supplied (the drain derives them server-side), so
-// `.strict()` rejects any such field.
+// `adminModerateChatMessage` — queue a DO-owned hide/delete command. A chat message carries
+// no media (files live in the conversation's Conversation Files list), so this is a text-only
+// hide/delete; `.strict()` rejects any asset-id field.
 export const AdminModerateChatMessageInputSchema = z.object({
   requestId: z.string().min(1).max(200),
   action: z.enum(['hide', 'delete']),

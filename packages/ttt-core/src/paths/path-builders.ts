@@ -174,6 +174,15 @@ export const PATH_BUILDERS = {
   guildInvite: (guildInviteId: string): [string, string] =>
     [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, guildInviteId],
 
+  // ===== CONVERSATION FILES (the two supported ConversationFileRef scopes) =====
+  // Application and backend code must NOT assemble these paths independently.
+  // `conversationFileId` is deterministic — it IS the pendingMedia id.
+  guildInviteConversationFile: (guildInviteId: string, conversationFileId: string): [string, string, string, string] =>
+    [COLLECTIONS.GUILD_INVITE_CONVERSATIONS, guildInviteId, NESTED_SUBCOLLECTIONS.CONVERSATION_FILES, conversationFileId],
+
+  adminDispatchConversationFile: (adminDispatchId: string, conversationFileId: string): [string, string, string, string] =>
+    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_FILES, conversationFileId],
+
   contentReport: (reportId: string): [string, string] =>
     [COLLECTIONS.CONTENT_REPORTS, reportId],
 

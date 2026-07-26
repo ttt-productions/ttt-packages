@@ -21,8 +21,6 @@ function wireRow(seq: number, senderUid: string, text: string, clientMessageId =
     clientMessageId,
     text,
     replyTo: null,
-    attachmentState: null,
-    attachmentMeta: null,
     createdAt: 1000 + seq,
     epoch: 1,
   };
@@ -1331,26 +1329,24 @@ describe('ChannelClient — terminal access denial (ChatAccessDeniedError)', () 
 // OPT-IN structured diagnostics (`diagnostics` config, default OFF).
 // The transport must be byte-for-byte identical with the flag off — same state,
 // same frames, and NOT ONE console line — and, when on, must record the client's
-// internal decisions (resume cursor, applied/dropped frames, attachment
-// transitions) WITHOUT ever logging message text or any other user content.
+// internal decisions (resume cursor, applied/dropped frames, moderation
+// overlays) WITHOUT ever logging message text or any other user content.
 // ---------------------------------------------------------------------------
 
-/** A message row carrying the attachment LIFECYCLE the DO mutates in place. */
-function attachmentRow(seq: number, state: 'pending' | 'ready' | 'failed'): WireMessageRow {
-  return {
-    ...wireRow(seq, 'u-me', 'caption-that-must-never-be-logged', `att-${seq}`),
-    attachmentState: state,
-    attachmentMeta: JSON.stringify({ attachmentKind: 'image', mediaAssetId: 'asset-1' }),
-  };
+/** The same seq re-broadcast by the DO — first plain, then carrying a moderation
+ *  overlay. Proves the client REPLACES a row by seq instead of inserting twice. */
+function reBroadcastRow(seq: number, moderated: boolean): WireMessageRow {
+  const base = wireRow(seq, 'u-me', 'body-that-must-never-be-logged', `rb-${seq}`);
+  return moderated ? { ...base, moderationKind: 'moderate', messageRevision: 2 } : base;
 }
 
 const SECRET_TEXT = 'super-secret-message-body';
 
 /**
  * One representative end-to-end script: connect → resume delta → optimistic send +
- * ack → an attachment row arriving pending then flipping to ready in place → a
- * moderation revision → a heartbeat window → a drop/reconnect → a resync snapshot →
- * a history re-page. Run identically with diagnostics off and on.
+ * ack → a row arriving then being re-broadcast for the same seq with a moderation
+ * overlay → a moderation revision → a heartbeat window → a drop/reconnect → a
+ * resync snapshot → a history re-page. Run identically with diagnostics off and on.
  */
 async function runScenario(diagnostics?: ChatClientDiagnosticsOption) {
   const ctx = makeClient(diagnostics === undefined ? undefined : { diagnostics });
@@ -1366,8 +1362,8 @@ async function runScenario(diagnostics?: ChatClientDiagnosticsOption) {
   });
   client.send({ clientMessageId: 'c-1', text: SECRET_TEXT });
   sock.serverFrame('ack', { clientMessageId: 'c-1', seq: 3 });
-  sock.serverFrame('message', { message: attachmentRow(4, 'pending') });
-  sock.serverFrame('message', { message: attachmentRow(4, 'ready') });
+  sock.serverFrame('message', { message: reBroadcastRow(4, false) });
+  sock.serverFrame('message', { message: reBroadcastRow(4, true) });
   sock.serverFrame('revision', { messageSeq: 1, kind: 'moderate', messageRevision: 2 });
   clock.tick(20_000); // a heartbeat window — must never produce a diagnostic line
   sock.serverClose(1006, 'abnormal');
@@ -1376,7 +1372,7 @@ async function runScenario(diagnostics?: ChatClientDiagnosticsOption) {
   sock = harness.last();
   sock.serverOpen();
   sock.serverFrame('snapshot', { lastMessageSeq: 4, readSeq: 3, resync: true, delta: [] });
-  sock.serverFrame('history-page', { messages: [wireRow(1, 'u-a', 'one'), attachmentRow(4, 'ready')] });
+  sock.serverFrame('history-page', { messages: [wireRow(1, 'u-a', 'one'), reBroadcastRow(4, true)] });
   return ctx;
 }
 
@@ -1440,8 +1436,8 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
     const { of } = await runCaptured();
     const requests = of(DIAG.RESUME_REQUEST);
     // First connect resumes from the beginning; the reconnect resumes from the tail
-    // the client actually applied (seq 4 — the in-place attachment flip did not
-    // advance it past 4, which is the protocol fact this evidence run must capture).
+    // the client actually applied (seq 4 — a re-broadcast of an already-held seq did
+    // not advance it past 4, which is the protocol fact this evidence run captures).
     expect(requests.map((d) => d.afterSeq)).toEqual([0, 4]);
   });
 
@@ -1465,19 +1461,17 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
     const applied = of(DIAG.FRAME_APPLIED);
     const four = applied.filter((d) => d.seq === 4);
     expect(four).toHaveLength(2);
-    expect(four[0]).toMatchObject({ kind: 'message', source: 'live', op: 'insert', attachmentState: 'pending' });
-    expect(four[1]).toMatchObject({ kind: 'message', source: 'live', op: 'replace-by-seq', attachmentState: 'ready' });
+    expect(four[0]).toMatchObject({ kind: 'message', source: 'live', op: 'insert', moderationKind: null });
+    expect(four[1]).toMatchObject({ kind: 'message', source: 'live', op: 'replace-by-seq', moderationKind: 'moderate' });
     // Bounded: an uninteresting delta backlog row is summarized by resume_result,
     // never one applied-line per row.
     expect(applied.some((d) => d.source === 'delta')).toBe(false);
   });
 
-  it('records every attachment lifecycle transition it observed (seq + old -> new)', async () => {
-    const { of } = await runCaptured();
-    expect(of(DIAG.ATTACHMENT_TRANSITION)).toEqual([
-      { seq: 4, from: null, to: 'pending', source: 'live' },
-      { seq: 4, from: 'pending', to: 'ready', source: 'live' },
-    ]);
+  it('carries no attachment instrument (chat is text-only — Conversation Files replaced attachments)', async () => {
+    const { entries } = await runCaptured();
+    expect(Object.keys(DIAG).filter((k) => /ATTACHMENT/.test(k))).toEqual([]);
+    expect(JSON.stringify(entries)).not.toContain('attachment');
   });
 
   it('records the history page size, seq range, and cursor advance', async () => {
@@ -1577,7 +1571,7 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
     const { entries } = await runCaptured();
     const serialized = JSON.stringify(entries);
     expect(serialized).not.toContain(SECRET_TEXT);
-    expect(serialized).not.toContain('caption-that-must-never-be-logged');
+    expect(serialized).not.toContain('body-that-must-never-be-logged');
     expect(serialized).not.toContain('grant-token');
   });
 

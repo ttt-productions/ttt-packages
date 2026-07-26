@@ -51,7 +51,6 @@ function mapMsg(
     senderId: d.senderId,
     text: d.text ?? "",
     type: d.type,
-    attachment: d.attachment ?? undefined,
     replyTo,
     isSystemMessage: d.isSystemMessage ?? undefined,
     // Moderation tombstone flag (backend-written) — carried through so renderers
