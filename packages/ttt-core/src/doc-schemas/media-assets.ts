@@ -123,6 +123,25 @@ export const MediaAssetVariantSchema = z.object({
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
   durationSec: z.number().positive().optional(),
+  /**
+   * Server-owned filename the gateway puts in `Content-Disposition` for a
+   * `?download=1` request. VARIANT-specific on purpose: the downloadable bytes are
+   * a PROCESSED variant, so the extension must match THIS variant's actual
+   * `contentType` — a transcoded JPEG/WebP/MP4 is never labelled with the original
+   * upload's incompatible extension.
+   *
+   * Written ONLY by backend publishers, and ONLY for surfaces that intentionally
+   * offer a Download action — Work Files (including the same asset shared to a
+   * Realm), Conversation Files, and downloadable Hall media. Profiles, posts,
+   * covers, and every other surface leave it ABSENT so no private original filename
+   * is ever exposed; an absent value serves the safe bare `attachment` disposition.
+   *
+   * Always produced by `normalizeDownloadFilename` (media/download-filename.ts) —
+   * that helper owns the sanitization rules and the UTF-8 byte cap, so no bound is
+   * restated here. A client query parameter is NEVER the filename authority.
+   * Filenames are user content: never log this value.
+   */
+  downloadFilename: z.string().min(1).optional(),
 }).strict();
 export type MediaAssetVariant = z.infer<typeof MediaAssetVariantSchema>;
 

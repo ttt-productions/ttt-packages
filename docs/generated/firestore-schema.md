@@ -1213,7 +1213,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `createdByUid` | `string` |  |
 | `accessTier` | `'broad' \| 'scoped' \| 'artisan' \| 'adminOnly'` |  |
 | `servingStatus` | `'servable' \| 'hidden' \| 'quarantined' \| 'deleted'` |  |
-| `variants` | `Record<string, { contentType, sizeBytes, width, height, durationSec }>` |  |
+| `variants` | `Record<string, { contentType, sizeBytes, width, height, durationSec, downloadFilename }>` |  |
 | `moderationStatus` | `'approved' \| 'quarantined'` |  |
 | `retentionPolicy` | `'standard' \| 'preserveForTrustAndSafety' \| 'legalHold'` |  |
 | `legalHold` | `boolean` |  |

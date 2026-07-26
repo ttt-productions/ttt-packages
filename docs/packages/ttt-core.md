@@ -16,6 +16,19 @@ TTT Productions application-data package.
 - The Center Stage revolving-room definitions (`constants/center-stage-rooms` — `CENTER_STAGE_ROOMS`); the app keeps `ROOM_EMBLEMS`, components, and layout
 - The mascot device-local storage keys + same-tab change-event names (in `constants/storage-keys`, alongside the other well-known keys) — companion / hidden / line-index keys and their change events, values byte-stable for backward compatibility. The **manual reduced-motion House control** lives here too (`REDUCED_MOTION_STORAGE_KEY` = `'ttt-reduced-motion'`, `REDUCED_MOTION_CHANGE_EVENT` = `'ttt-reduced-motion-change'`): device-local by design, independent of the companion store (reducing motion never hides the companion), and never mirrored to Firestore.
 - The **first-visit site-tour contract** (account-durable, server-written): the `siteTour` optional structured field on `UserPrivateDataSchema` (`doc-schemas/user.ts` — `UserSiteTourStateSchema` = `{ completedVersion?, completedAt?, notTodayDate? (strict YYYY-MM-DD), automaticInvitesDisabledAt? }`); the single server-writer callable input `UpdateSiteTourPreferenceInputSchema` (`schemas/users.ts` — a `.strict()` discriminated union on `action`: `deferToday` carries a `YYYY-MM-DD` `date`, `dismissAutomaticInvites` and `completeTour` are payload-free); and the `SITE_TOUR_CURRENT_VERSION` constant (`constants/business-user.ts`, currently `1`). The tour version is server-owned — the callable stamps `SITE_TOUR_CURRENT_VERSION` at completion; the client never supplies a version. `privateData/{uid}` is the sole authority for tour eligibility (no local-storage cache/mirror).
+- **Gateway download filenames**: the optional `downloadFilename` on the canonical
+  `MediaAssetVariantSchema` (variant-specific — the downloadable bytes are a processed
+  variant, so the extension must match THAT variant's `contentType`), carried unchanged
+  through `MediaAssetSchema.variants`, `MediaServingAuthorityRecordSchema.variants`, and
+  the `EdgeServingRecord`'s `EdgeServingVariant` projection; plus the ONE pure normalizer
+  + RFC escaping owner in `src/media/download-filename.ts`
+  (`normalizeDownloadFilename`, `buildContentDispositionFilenameForms`,
+  `extensionForContentType`) and its policy constants in `constants/media-download`
+  (`MAX_DOWNLOAD_FILENAME_BYTES`, `DOWNLOAD_FILENAME_FALLBACK_STEM`). Backend publishers
+  normalize before writing; the media Worker re-normalizes defensively and assembles the
+  header itself. Set only for surfaces that intentionally offer a Download action
+  (Work Files, Conversation Files, downloadable Hall media) — absent everywhere else,
+  which serves the safe bare `attachment` disposition.
 - TTT upload-variable schemas
 - TTT mention kinds/schemas/validation rules
 - TTT admin task type union

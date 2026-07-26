@@ -12,6 +12,7 @@
 
 import type {
   MediaAccessTier,
+  MediaAssetVariant,
   MediaServingStatus,
   MediaServingScope,
 } from '../doc-schemas/media-assets.js';
@@ -19,6 +20,18 @@ import type {
 /** The signed internal apply route — one declaration; the functions client posts to
  * it and the worker routes on it. */
 export const MEDIA_AUTHORITY_APPLY_PATH = '/internal/media-authority/apply';
+
+/**
+ * The serving-relevant projection of a variant carried on the edge record. DERIVED
+ * from the canonical `MediaAssetVariant` (ARCH-102) — the edge needs the served
+ * contentType, the recorded size for the range pre-gate, and the server-owned
+ * `downloadFilename` the Worker builds `Content-Disposition` from. Pixel dimensions
+ * and duration are deliberately NOT projected; the edge has no use for them.
+ */
+export type EdgeServingVariant = Pick<
+  MediaAssetVariant,
+  'contentType' | 'sizeBytes' | 'downloadFilename'
+>;
 
 /** The derived edge serving record (built by functions edge-sync
  * `buildEdgeServingRecord`, stored in the shard DO + KV cache, read by the worker's
@@ -34,7 +47,7 @@ export interface EdgeServingRecord {
   /** Typed scope for scoped-tier assets; absent/null for everything else. The
    * serving path EXACT-matches a grant against it. */
   scope?: MediaServingScope | null;
-  variants: Record<string, { contentType: string; sizeBytes: number }>;
+  variants: Record<string, EdgeServingVariant>;
 }
 
 /** The apply endpoint's authoritative ack (the worker's MediaAuthorityApplyResult;

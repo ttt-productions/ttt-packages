@@ -13,6 +13,7 @@ export * from './pagination.js';
 export * from './release-flags.js';
 export * from './retention.js';
 export * from './scheduled-jobs.js';
+export * from './media-download.js';
 export * from './media-processing.js';
 export * from './storage-keys.js';
 export * from './company-mascots.js';
