@@ -73,6 +73,22 @@ describe("ChatShell — initial-loading state", () => {
     expect(getByText(/Opening chat/i)).toBeTruthy();
   });
 
+  it("paints NO above-messages wrapper (no bordered strip) when the slot renders null", () => {
+    // A collapsed conversation-files section returns null from the slot; the
+    // wrapper's border must not paint an empty 1px strip under the header.
+    const { container, rerender } = render(
+      <ChatShell config={realtimeConfig()} renderAboveMessages={() => null} />,
+    );
+    expect(container.querySelector(".border-b")).toBeNull();
+    // The wrapper appears the moment the slot produces content.
+    rerender(
+      <ChatShell config={realtimeConfig()} renderAboveMessages={() => <div>FILES SECTION</div>} />,
+    );
+    const wrapper = container.querySelector(".border-b");
+    expect(wrapper).not.toBeNull();
+    expect(wrapper).toHaveTextContent("FILES SECTION");
+  });
+
   it('shows an "Opening chat…" indicator in a polite live region and NOT a reconnect banner', () => {
     // Even while the transport is 'reconnecting' during INITIAL loading, the opening
     // indicator wins — the reconnect/disconnected banner must not compete with it.

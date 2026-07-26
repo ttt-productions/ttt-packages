@@ -252,9 +252,15 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
             </div>
           </CardHeader>
         )}
-        {renderAboveMessages && (
-          <div className="border-b">{renderAboveMessages()}</div>
-        )}
+        {(() => {
+          // The wrapper (and its border) renders only when the slot actually
+          // produced content — a slot returning null (e.g. a collapsed
+          // conversation-files section) must not paint an empty bordered strip.
+          const aboveMessages = renderAboveMessages?.() ?? null;
+          return aboveMessages != null && aboveMessages !== false ? (
+            <div className="border-b">{aboveMessages}</div>
+          ) : null;
+        })()}
         <CardContent className={contentClassName}>
           <div
             className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-muted-foreground"
