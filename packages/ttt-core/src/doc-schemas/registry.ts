@@ -106,7 +106,7 @@ import {
   ChatHistoryAnonymizationAffectedChunkSchema,
 } from './chat-sync.js';
 import { SquareAnnouncementJobSchema } from './square-announcement-jobs.js';
-import { PendingMediaSchema, ArchivedPendingMediaSchema } from '../media/pending-media.js';
+import { PendingMediaSchema, ArchivedPendingMediaDocSchema } from '../media/pending-media.js';
 import { MediaAssetSchema } from './media-assets.js';
 import { MediaActivationJobSchema } from './media-activation-jobs.js';
 import {
@@ -292,7 +292,7 @@ export const COLLECTION_SCHEMAS = {
 
   // ===== Media pipeline =====
   'pendingMedia/{pendingMediaId}': PendingMediaSchema,
-  'pendingMediaArchive/{pendingMediaId}': ArchivedPendingMediaSchema,
+  'pendingMediaArchive/{pendingMediaId}': ArchivedPendingMediaDocSchema,
   'mediaAssets/{mediaAssetId}': MediaAssetSchema,
   'mediaActivationJobs/{jobId}': MediaActivationJobSchema,
 

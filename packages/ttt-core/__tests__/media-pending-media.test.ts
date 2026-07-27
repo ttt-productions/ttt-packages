@@ -6,6 +6,8 @@ import {
   PendingMediaFailedSchema,
   PendingMediaRejectedSchema,
   ArchivedPendingMediaSchema,
+  ArchivedPendingMediaQuarantinedSchema,
+  ArchivedPendingMediaDocSchema,
   parsePendingMedia,
   parseArchivedPendingMedia,
 } from '../src/media/pending-media.js';
@@ -206,6 +208,41 @@ describe('crash-recovery attempt/lease fields on the composed strict schema', ()
   it('rejects a negative attempt count', () => {
     expect(() =>
       PendingMediaSchema.parse({ ...base, status: 'processing', processingAttemptCount: -1 }),
+    ).toThrow();
+  });
+});
+
+describe('ArchivedPendingMediaQuarantinedSchema / ArchivedPendingMediaDocSchema', () => {
+  // A legacy doc the live schema cannot parse (the F13 shape: retired fileOrigin,
+  // missing result), preserved verbatim under `raw`.
+  const quarantined = {
+    parseFailed: true as const,
+    archivedAt: 1_700_000_020_000,
+    raw: { ...base, fileOrigin: 'guild-chat-message-attachment', status: 'completed' },
+  };
+
+  it('parses a quarantined archive row', () => {
+    const parsed = ArchivedPendingMediaQuarantinedSchema.parse(quarantined);
+    expect(parsed.parseFailed).toBe(true);
+    expect(parsed.raw.fileOrigin).toBe('guild-chat-message-attachment');
+  });
+
+  it('DocSchema accepts a quarantined row AND a validly archived row', () => {
+    expect(ArchivedPendingMediaDocSchema.parse(quarantined)).toBeDefined();
+    const validArchived = {
+      ...base,
+      status: 'completed',
+      completedAt: 1_700_000_002_000,
+      terminalAt: 1_700_000_002_000,
+      result: { events: [] },
+      archivedAt: 1_700_000_010_000,
+    };
+    expect(ArchivedPendingMediaDocSchema.parse(validArchived)).toBeDefined();
+  });
+
+  it('DocSchema rejects a raw unparseable doc not wrapped in the quarantine shape', () => {
+    expect(() =>
+      ArchivedPendingMediaDocSchema.parse({ ...base, fileOrigin: 'guild-chat-message-attachment', status: 'completed' }),
     ).toThrow();
   });
 });

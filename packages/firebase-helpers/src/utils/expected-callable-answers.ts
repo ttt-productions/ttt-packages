@@ -17,6 +17,10 @@ export const EXPECTED_CALLABLE_ANSWER_CODES = [
   'invalid-argument',
   'resource-exhausted',
   'out-of-range',
+  // Optimistic-concurrency conflict: "this changed since you loaded it — reload and
+  // retry" is the server answering the user, not failing (added 2026-07-27; the
+  // consuming app's safety-case close/reopen callables throw it by design).
+  'aborted',
 ] as const;
 
 export type ExpectedCallableAnswerCode = (typeof EXPECTED_CALLABLE_ANSWER_CODES)[number];

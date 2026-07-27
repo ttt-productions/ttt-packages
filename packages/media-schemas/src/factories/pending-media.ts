@@ -189,6 +189,26 @@ export function createPendingMediaSchemas<
     ArchivedPendingMediaRejectedSchema,
   ]);
 
+  // Quarantined archive row for a source doc the live PendingMediaSchema could NOT
+  // parse at archive time (schema drift or legacy data). The archive sweep moves the
+  // raw doc here AS-IS so the scheduled pass converges — one report at move time —
+  // instead of re-parsing and re-reporting the same doc on every tick forever. The
+  // original fields are preserved verbatim under `raw` for inspection/repair.
+  const ArchivedPendingMediaQuarantinedSchema = z
+    .object({
+      parseFailed: z.literal(true),
+      archivedAt: z.number(),
+      raw: z.record(z.string(), z.unknown()),
+    })
+    .strict();
+
+  // Every shape a pendingMediaArchive doc can hold: a validly-archived terminal row,
+  // or a quarantined unparseable one. Readers of the archive collection parse with this.
+  const ArchivedPendingMediaDocSchema = z.union([
+    ArchivedPendingMediaSchema,
+    ArchivedPendingMediaQuarantinedSchema,
+  ]);
+
   return {
     PendingMediaErrorCategorySchema,
     PendingMediaResultSchema,
@@ -202,6 +222,8 @@ export function createPendingMediaSchemas<
     ArchivedPendingMediaFailedSchema,
     ArchivedPendingMediaRejectedSchema,
     ArchivedPendingMediaSchema,
+    ArchivedPendingMediaQuarantinedSchema,
+    ArchivedPendingMediaDocSchema,
   };
 }
 

@@ -21,6 +21,8 @@ export const ArchivedPendingMediaCompletedSchema = schemas.ArchivedPendingMediaC
 export const ArchivedPendingMediaFailedSchema = schemas.ArchivedPendingMediaFailedSchema;
 export const ArchivedPendingMediaRejectedSchema = schemas.ArchivedPendingMediaRejectedSchema;
 export const ArchivedPendingMediaSchema = schemas.ArchivedPendingMediaSchema;
+export const ArchivedPendingMediaQuarantinedSchema = schemas.ArchivedPendingMediaQuarantinedSchema;
+export const ArchivedPendingMediaDocSchema = schemas.ArchivedPendingMediaDocSchema;
 
 export type PendingMediaErrorCategory = z.infer<typeof PendingMediaErrorCategorySchema>;
 export type PendingMediaResult = z.infer<typeof PendingMediaResultSchema>;
@@ -31,6 +33,8 @@ export type PendingMediaFailed = z.infer<typeof PendingMediaFailedSchema>;
 export type PendingMediaRejected = z.infer<typeof PendingMediaRejectedSchema>;
 export type PendingMedia = z.infer<typeof PendingMediaSchema>;
 export type ArchivedPendingMedia = z.infer<typeof ArchivedPendingMediaSchema>;
+export type ArchivedPendingMediaQuarantined = z.infer<typeof ArchivedPendingMediaQuarantinedSchema>;
+export type ArchivedPendingMediaDoc = z.infer<typeof ArchivedPendingMediaDocSchema>;
 
 export function parsePendingMedia(input: unknown): PendingMedia {
   return PendingMediaSchema.parse(input);

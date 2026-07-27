@@ -225,4 +225,60 @@ describe('createPendingMediaSchemas', () => {
       ).toThrow();
     });
   });
+
+  describe('quarantined archive rows', () => {
+    const quarantined = {
+      parseFailed: true,
+      archivedAt: 2000,
+      raw: { fileOrigin: 'retired-origin', status: 'completed', anything: { nested: true } },
+    };
+
+    it('parses a quarantined row', () => {
+      const parsed = schemas.ArchivedPendingMediaQuarantinedSchema.parse(quarantined);
+      expect(parsed.parseFailed).toBe(true);
+      expect(parsed.raw.fileOrigin).toBe('retired-origin');
+    });
+
+    it('rejects parseFailed !== true and missing raw', () => {
+      expect(() =>
+        schemas.ArchivedPendingMediaQuarantinedSchema.parse({ ...quarantined, parseFailed: false }),
+      ).toThrow();
+      expect(() =>
+        schemas.ArchivedPendingMediaQuarantinedSchema.parse({ parseFailed: true, archivedAt: 2000 }),
+      ).toThrow();
+    });
+
+    it('rejects unknown fields outside raw (strict)', () => {
+      expect(() =>
+        schemas.ArchivedPendingMediaQuarantinedSchema.parse({ ...quarantined, extra: 1 }),
+      ).toThrow();
+    });
+
+    it('ArchivedPendingMediaDocSchema accepts both a valid archive row and a quarantined row', () => {
+      expect(schemas.ArchivedPendingMediaDocSchema.parse(quarantined)).toBeDefined();
+      const validArchived = {
+        id: 'm1',
+        userId: 'u1',
+        fileOrigin: 'origin-a',
+        originalFileName: 'file.jpg',
+        pendingStoragePath: 'uploads/origin-a/u1/m1',
+        clientContext: { surface: 'test' },
+        createdAt: 1,
+        updatedAt: 1,
+        status: 'completed',
+        completedAt: 2,
+        terminalAt: 2,
+        result: { events: [] },
+        archivedAt: 3,
+      };
+      const parsed = schemas.ArchivedPendingMediaDocSchema.parse(validArchived);
+      expect(parsed).toBeDefined();
+    });
+
+    it('ArchivedPendingMediaDocSchema rejects a raw unparseable doc NOT wrapped in the quarantine shape', () => {
+      expect(() =>
+        schemas.ArchivedPendingMediaDocSchema.parse({ fileOrigin: 'retired-origin', status: 'completed' }),
+      ).toThrow();
+    });
+  });
 });
