@@ -14,10 +14,21 @@ export const UpdateAdminDispatchStatusInputSchema = z.object({
 }).strict();
 export type UpdateAdminDispatchStatusInput = z.infer<typeof UpdateAdminDispatchStatusInputSchema>;
 
-export const UpdateInviteConfirmationInputSchema = z.object({
-  guildInviteId: guildInviteIdSchema,
-  action: z.enum(['agree', 'decline', 'cancel', 'retract']),
-}).strict();
+// The invite conversation is the binding agreement, so consent is pinned to specific terms:
+// an `agree` must carry the stake-share offer the member was shown, and the backend rejects
+// the action inside its transaction when the doc's current offer differs (the member re-agrees
+// against the fresh value). The other actions don't assert terms and carry no pin.
+export const UpdateInviteConfirmationInputSchema = z.discriminatedUnion('action', [
+  z.object({
+    guildInviteId: guildInviteIdSchema,
+    action: z.literal('agree'),
+    expectedStakeShares: z.number().int().min(1),
+  }).strict(),
+  z.object({
+    guildInviteId: guildInviteIdSchema,
+    action: z.enum(['decline', 'cancel', 'retract']),
+  }).strict(),
+]);
 export type UpdateInviteConfirmationInput = z.infer<typeof UpdateInviteConfirmationInputSchema>;
 
 export const UpdateGuildInviteStakeSharesInputSchema = z.object({

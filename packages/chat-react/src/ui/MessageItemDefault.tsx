@@ -62,10 +62,15 @@ function ReplyQuote({ replyTo }: { replyTo: NonNullable<ChatMessageV1["replyTo"]
 // System message
 // ============================================
 
+// System lines are the conversation's action record (agreed / retracted / offer updated /
+// finalized…), so each carries its time — same hour:minute format as the message bubbles.
 function SystemMessage({ m }: { m: ChatMessageV1 }) {
   return (
     <div className="chat-system-message">
       {m.text && <span>{m.text}</span>}
+      <span className="chat-system-message-time">
+        {new Date(m.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+      </span>
     </div>
   );
 }

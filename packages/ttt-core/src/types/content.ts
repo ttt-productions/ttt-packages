@@ -49,8 +49,11 @@ export type HallLibrarySortOption =
   | 'oldest'
   | 'most_followed';
 
+// V1 Hall browse filters on the big categories only (medium coins × wing coins). The genre
+// FILTER was removed for launch (DJ, 2026-07-27) — works still TAG per-medium genres at
+// creation and display them, so a browse genre filter can return post-launch once real
+// content data exists (options recorded in ttt-prod docs/post-launch).
 export type HallLibraryFilters = {
-  workGenre?: string;
   hallWingType: HallWingTypeFilter;
   workProjectType: WorkProjectTypeFilter;
   sortBy: HallLibrarySortOption;

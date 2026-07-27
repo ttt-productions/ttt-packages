@@ -119,3 +119,25 @@ describe("MessageItemDefault — correlated send-rejection copy + retry policy",
     expect(onRetrySend).toHaveBeenCalledWith("c-1");
   });
 });
+
+describe("MessageItemDefault — system messages", () => {
+  it("renders a system line with its text AND the action time (the conversation is an action record)", () => {
+    const m: ChatMessageV1 = {
+      messageId: "s1",
+      threadId: "t1",
+      createdAt: 1720000000000,
+      senderId: "system",
+      text: "Offer updated to 2 stake shares.",
+      isSystemMessage: true,
+    };
+    const { container, getByText } = renderItem(m);
+    expect(getByText("Offer updated to 2 stake shares.")).toBeTruthy();
+    const time = container.querySelector(".chat-system-message-time");
+    expect(time).toBeTruthy();
+    // Same hour:minute format the regular bubbles use — locale-dependent, so assert
+    // against the same formatter rather than a hardcoded string.
+    expect(time!.textContent).toBe(
+      new Date(1720000000000).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+    );
+  });
+});

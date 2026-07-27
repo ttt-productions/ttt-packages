@@ -55,11 +55,47 @@ describe('UpdateAdminDispatchStatusInputSchema', () => {
 });
 
 describe('UpdateInviteConfirmationInputSchema', () => {
-  it('accepts each valid action', () => {
-    for (const action of ['agree', 'decline', 'cancel', 'retract'] as const) {
+  it('accepts each non-agree action without a consent pin', () => {
+    for (const action of ['decline', 'cancel', 'retract'] as const) {
       const input = { guildInviteId: 'invite-1', action };
       expect(UpdateInviteConfirmationInputSchema.parse(input)).toEqual(input);
     }
+  });
+
+  it('accepts agree WITH the consent pin (expectedStakeShares)', () => {
+    const input = { guildInviteId: 'invite-1', action: 'agree', expectedStakeShares: 3 };
+    expect(UpdateInviteConfirmationInputSchema.parse(input)).toEqual(input);
+  });
+
+  it('rejects agree WITHOUT expectedStakeShares (consent must be pinned to terms)', () => {
+    expect(() =>
+      UpdateInviteConfirmationInputSchema.parse({
+        guildInviteId: 'invite-1',
+        action: 'agree',
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a non-positive or non-integer expectedStakeShares on agree', () => {
+    for (const expectedStakeShares of [0, -2, 1.5]) {
+      expect(() =>
+        UpdateInviteConfirmationInputSchema.parse({
+          guildInviteId: 'invite-1',
+          action: 'agree',
+          expectedStakeShares,
+        }),
+      ).toThrow();
+    }
+  });
+
+  it('rejects expectedStakeShares on a non-agree action (.strict)', () => {
+    expect(() =>
+      UpdateInviteConfirmationInputSchema.parse({
+        guildInviteId: 'invite-1',
+        action: 'retract',
+        expectedStakeShares: 3,
+      }),
+    ).toThrow();
   });
 
   it('rejects an unknown action value', () => {
@@ -76,6 +112,7 @@ describe('UpdateInviteConfirmationInputSchema', () => {
       UpdateInviteConfirmationInputSchema.parse({
         guildInviteId: '',
         action: 'agree',
+        expectedStakeShares: 1,
       }),
     ).toThrow();
   });
@@ -85,6 +122,7 @@ describe('UpdateInviteConfirmationInputSchema', () => {
       UpdateInviteConfirmationInputSchema.parse({
         guildInviteId: 'invite-1',
         action: 'agree',
+        expectedStakeShares: 1,
         extra: 'bad',
       }),
     ).toThrow();
