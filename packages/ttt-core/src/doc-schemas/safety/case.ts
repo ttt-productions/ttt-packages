@@ -252,6 +252,16 @@ export const ChildSafetyCaseListV1Schema = z.object({
   // context). Cleared once context is attached. Surfaced in the safety console so the reviewer
   // knows to trigger a manual re-fetch if the async retry hasn't landed yet.
   contextResolutionPending: z.boolean().optional(),
+  // Test-list drill lane (DJ ruling 2026-07-28): true ⇔ every validated PhotoDNA match on this
+  // case matched ONLY Microsoft's published TEST hash list (the detector echoes listId "Test"),
+  // never a production list. A drill case is reviewable and closeable through the normal guided
+  // flow but carries NO reporting obligation: the converge path sets no actualKnowledgeAt, no
+  // reportRequired, enqueues no NCMEC submission, and arms no report-clock monitors — and the
+  // `notRequired` disposition invariant exempts it (a test-image match is definitionally not
+  // CSAM; auto-filing a CyberTipline report over it would be wrong). CLEARED (deleted) the
+  // moment a real-list match joins the case — real evidence instantly restores the full
+  // obligation machinery. Absent = real case.
+  testListDrill: z.literal(true).optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 }).strict();

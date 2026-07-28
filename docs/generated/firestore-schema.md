@@ -755,6 +755,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `openHoldCount` | `number` |  |
 | `relatedCaseIds` | `string[]` | yes |
 | `contextResolutionPending` | `boolean` | yes |
+| `testListDrill` | `true` | yes |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
 

@@ -214,3 +214,36 @@ describe('ChildSafetyCaseV1 — chatMessageLocator + contextResolutionPending (H
     expect(result.success).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// ChildSafetyCaseListV1 — testListDrill (test-list drill lane, DJ 2026-07-28)
+// ---------------------------------------------------------------------------
+
+describe('ChildSafetyCaseListV1 — testListDrill', () => {
+  it('parses without testListDrill (absent = real case)', () => {
+    const result = ChildSafetyCaseListV1Schema.safeParse(BASE_CASE_LIST_DOC);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.testListDrill).toBeUndefined();
+    }
+  });
+
+  it('parses with testListDrill: true (drill case)', () => {
+    const result = ChildSafetyCaseListV1Schema.safeParse({
+      ...BASE_CASE_LIST_DOC,
+      testListDrill: true,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.testListDrill).toBe(true);
+    }
+  });
+
+  it('rejects testListDrill: false — the flag is present-and-true or absent, never false', () => {
+    const result = ChildSafetyCaseListV1Schema.safeParse({
+      ...BASE_CASE_LIST_DOC,
+      testListDrill: false,
+    });
+    expect(result.success).toBe(false);
+  });
+});
