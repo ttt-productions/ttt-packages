@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/chat-schemas",
-    "version": "0.10.0",
+    "version": "0.10.1",
     "description": "The chat realtime wire contract (subprotocol, frame kinds, close codes, channel-ref tuple, grant scope, client-agreed limits) in pure Zod/TS. Tier 0 — consumed by the chat React client, the chat Cloudflare Worker, and Cloud Functions without forcing the chat UI dep graph on backend callers.",
     "repository": {
         "type": "git",
