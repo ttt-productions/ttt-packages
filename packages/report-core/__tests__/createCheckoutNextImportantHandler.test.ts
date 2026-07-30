@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createCheckoutNextImportantHandler } from '../src/server/createCheckoutNextImportantHandler';
+import { ReportCoreTaskError } from '../src/server/taskError';
 import type { ServerReportCoreConfig } from '../src/server/types';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
@@ -196,7 +197,11 @@ describe('createCheckoutNextImportantHandler', () => {
     ).rejects.toThrow('Administrator access required');
   });
 
-  it('throws "No pending tasks available!" when queue empty', async () => {
+  it('throws a TYPED not-found ReportCoreTaskError when the queue is empty', async () => {
+    // An empty queue is a routine ANSWER, not a fault: it must carry the 'not-found'
+    // code (taskError.ts) so the consuming callable maps it to HttpsError('not-found')
+    // instead of surfacing a 500 'internal' + a misleading generic toast. A message-only
+    // assertion would still pass if this were downgraded to a plain Error.
     const { db } = createMockDb();
     const handler = createCheckoutNextImportantHandler({
       config: TEST_CONFIG,
@@ -204,9 +209,10 @@ describe('createCheckoutNextImportantHandler', () => {
       auth: { adminUserIds: ['admin1'] },
     });
 
-    await expect(handler({}, { uid: 'admin1', token: null })).rejects.toThrow(
-      'No pending tasks available',
-    );
+    const error = await handler({}, { uid: 'admin1', token: null }).catch((e) => e);
+    expect(error).toBeInstanceOf(ReportCoreTaskError);
+    expect(error.code).toBe('not-found');
+    expect(error.message).toContain('No pending tasks available');
   });
 
   it('returns task data on success', async () => {

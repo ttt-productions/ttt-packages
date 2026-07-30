@@ -516,6 +516,55 @@ const WorkObjectActionSchema = z
   })
   .strict();
 
+// --- The in-flow clear-content disposition (staged counterpart of the page-level clear-text
+// callables) ---
+
+/** The three targets the in-flow text clear can neutralize — the Work/Realm shells plus a single
+ *  published hall sub-item. Compile-linked subset of the canonical reportable-item enum. */
+const CLEAR_CONTENT_TEXT_TARGET_TYPES = [
+  'work-project',
+  'work-realm',
+  'hall-library-sub-item',
+] as const satisfies readonly ReportableItemType[];
+export type ClearContentTextTargetType = (typeof CLEAR_CONTENT_TEXT_TARGET_TYPES)[number];
+
+/** Every field name the staged clear can carry across those three targets — the union of the two
+ *  canonical clearable owners (`MODERATION_CLEARABLE_TEXT_FIELDS` for the shells,
+ *  `HALL_CLEARABLE_TEXT_FIELD_NAMES` for the hall family), i.e. the same two sources
+ *  `ClearWorkProjectTextInputSchema` / `ClearHallContentTextInputSchema` derive from. No field
+ *  literal is restated here. */
+const CLEAR_CONTENT_TEXT_FIELDS = [
+  ...MODERATION_CLEARABLE_TEXT_FIELDS.workProject,
+  ...HALL_CLEARABLE_TEXT_FIELD_NAMES,
+] as const;
+const ClearContentTextFieldSchema = z.enum(CLEAR_CONTENT_TEXT_FIELDS);
+export type ClearContentTextField = z.infer<typeof ClearContentTextFieldSchema>;
+
+/** Which fields each target legally accepts — projected from those same owners, so a
+ *  target/field mismatch is refused at the wire instead of reaching a clear runner that would
+ *  drop it. Enforced by the cross-field refinement on `StagedActionSchema` below. */
+const CLEAR_CONTENT_TEXT_FIELDS_BY_TARGET = {
+  'work-project': MODERATION_CLEARABLE_TEXT_FIELDS.workProject,
+  'work-realm': MODERATION_CLEARABLE_TEXT_FIELDS.workRealm,
+  'hall-library-sub-item': HALL_CLEARABLE_TEXT_FIELD_NAMES,
+} as const satisfies Record<ClearContentTextTargetType, readonly ClearContentTextField[]>;
+
+/** Per-field text clear — the guided close-out's staged counterpart of the page-level
+ *  `clearWorkProjectText` / `clearWorkRealmText` / `clearHallContentText` callables (the
+ *  per-field extension of `forceRetitle`). `reportedItemId` is the workProjectId / workRealmId /
+ *  sub-item id; `parentItemId` is the parent hall item id, required only for the sub-item target.
+ *  `workProjectType` is deliberately NOT on the wire — the server re-reads it from the doc (the
+ *  hall hide-branch precedent). */
+const ClearContentTextActionSchema = z
+  .object({
+    button: z.literal('clearContentText'),
+    targetType: z.enum(CLEAR_CONTENT_TEXT_TARGET_TYPES),
+    reportedItemId: z.string().min(1),
+    parentItemId: z.string().min(1).optional(),
+    fields: z.array(ClearContentTextFieldSchema).min(1),
+  })
+  .strict();
+
 /** Chat message tombstone — channel + seq from the report, revision from the live thread-read. */
 const TombstoneChatSchema = z
   .object({
@@ -529,15 +578,41 @@ const TombstoneChatSchema = z
   })
   .strict();
 
-export const StagedActionSchema = z.discriminatedUnion('button', [
-  ContentActionSchema,
-  WarnUserSchema,
-  SuspendOrBanSchema,
-  ReinstateUserSchema,
-  ForceUsernameResetSchema,
-  WorkObjectActionSchema,
-  TombstoneChatSchema,
-]);
+export const StagedActionSchema = z
+  .discriminatedUnion('button', [
+    ContentActionSchema,
+    WarnUserSchema,
+    SuspendOrBanSchema,
+    ReinstateUserSchema,
+    ForceUsernameResetSchema,
+    WorkObjectActionSchema,
+    ClearContentTextActionSchema,
+    TombstoneChatSchema,
+  ])
+  // The clearContentText arm's two cross-field rules, applied at the union (the
+  // SafetyStagedActionSchema pattern below) because no other arm carries these fields:
+  // every chosen field must belong to the chosen target's canonical clearable set, and the
+  // hall sub-item target must name its parent hall item.
+  .superRefine((value, ctx) => {
+    if (value.button !== 'clearContentText') return;
+    const clearable: readonly string[] = CLEAR_CONTENT_TEXT_FIELDS_BY_TARGET[value.targetType];
+    value.fields.forEach((field, index) => {
+      if (!clearable.includes(field)) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `Field '${field}' is not clearable on a '${value.targetType}' target.`,
+          path: ['fields', index],
+        });
+      }
+    });
+    if (value.targetType === 'hall-library-sub-item' && !value.parentItemId) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'parentItemId (the parent hall item id) is required for a hall sub-item target.',
+        path: ['parentItemId'],
+      });
+    }
+  });
 export type StagedAction = z.infer<typeof StagedActionSchema>;
 
 export const NormalReportInputSchema = z

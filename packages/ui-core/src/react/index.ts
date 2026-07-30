@@ -71,4 +71,4 @@ export { usePagedList } from "./hooks/use-paged-list.js";
 export type { ListPaginationState, PagedList, UsePagedListOptions } from "./hooks/use-paged-list.js";
 
 export { useCursorPage } from "./hooks/use-cursor-page.js";
-export type { CursorPage, UseCursorPageOptions } from "./hooks/use-cursor-page.js";
+export type { CursorPage, CursorPager, UseCursorPageOptions } from "./hooks/use-cursor-page.js";

@@ -7,8 +7,9 @@ import type { ListPaginationState } from "../hooks/use-paged-list.js";
 
 export interface ListPaginationProps {
   /**
-   * Page state from `usePagedList` (known total), `useCursorPage` (unknown
-   * total), or any caller-owned state of the same shape.
+   * Page state from `usePagedList` (known total),
+   * `useCursorPage().paginationFor(hasMore)` (unknown total), or any
+   * caller-owned state of the same shape.
    */
   pagination: ListPaginationState;
   /**
@@ -25,8 +26,9 @@ export interface ListPaginationProps {
  * The ONE Previous / counter / Next control for paginated lists, in both
  * flavors. Pair it with the hook that owns the page state (`usePagedList` for a
  * client-side slice, `useCursorPage` — or the caller's own query state — for a
- * cursor feed); this component owns only the controls, so every paginated list
- * reads and behaves the same (ENG-002, FRONTEND-001).
+ * cursor feed; a cursor feed passes `pager.paginationFor(hasMore)`, which binds
+ * the query's answer to these controls); this component owns only the controls,
+ * so every paginated list reads and behaves the same (ENG-002, FRONTEND-001).
  *
  * The counter follows the flavor: a known `totalPages` reads "2 of 5", an
  * omitted one reads "Page 2". Everything else is identical in both flavors —

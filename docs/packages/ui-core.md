@@ -27,9 +27,27 @@ Feature-specific app components stay in the consuming app. Keep main entry serve
 Two page-state hooks produce the control's `pagination` prop, and a surface whose data hook already owns its page number can supply the same shape directly:
 
 - `usePagedList(items, pageSize, { onPageChange })` — client-side slice pagination over an ALREADY-FETCHED list. Owns the page math, clamps onto the last real page when the list shrinks under the open page, and returns `pageItems` plus a known `totalPages`. Ordering and filtering stay with the caller.
-- `useCursorPage(hasMore, { onPageChange })` — page number only, for a server/cursor feed. The caller feeds `hasMore` from its query and passes `currentPage` back into it; `reset()` returns to page 1 when the query inputs change.
+- `useCursorPage({ onPageChange, resetKey })` — the page number for a server/cursor feed, returning `{ currentPage, reset, paginationFor }`. It takes no data.
 
 Both hooks guard their step functions, so `onPageChange` fires only on a page change that actually happened.
+
+### `hasMore` binds late, and that is the contract
+
+A cursor query takes the page number as its INPUT, so its `hasMore` does not exist until after that query has run. `hasMore` therefore binds at render time, through `paginationFor(hasMore)` — never as an argument to the hook that produces the page number, which would be circular and unsatisfiable at every real call site:
+
+```tsx
+const pager = useCursorPage({ resetKey: tag });
+const { data, isFetching } = useThingsByTag(tag, pager.currentPage);
+…
+<ListPagination pagination={pager.paginationFor(data?.hasMore ?? false)} busy={isFetching} />
+```
+
+Durable behavior contract:
+
+- **The guards are in the hook, not the button.** `paginationFor(hasMore)` closes over that render's `hasMore`, so a next-step that cannot move changes nothing and does not fire `onPageChange` — even from an undisabled trigger.
+- **Two ways to return to page 1, one page-state owner.** Use `reset()` when your own event handler already owns the input change (a select's `onValueChange`); use the `resetKey` option when the change arrives as a prop and there is no handler of yours to hang it on. `resetKey` returns to page 1 in the SAME render, so the query is never asked for a page of the new inputs the user never navigated to, and it retires the old page rather than reviving it if the earlier inputs come back. `reset()` is a no-op on page 1, so it never fires `onPageChange` for nothing.
+- **`resetKey` is a primitive** (`string | number | boolean | null`) — deliberately narrowed so a fresh object literal cannot pin a list to page 1 forever. Compose several inputs into one signature string.
+- **Referential stability.** `reset` and `paginationFor` are memoized on the page state, so a consumer may hold them in a dep array; they change when the page actually changes.
 
 ## DatePicker
 

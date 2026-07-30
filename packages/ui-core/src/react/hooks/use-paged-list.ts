@@ -12,8 +12,8 @@ import { useCallback, useMemo, useState } from "react";
  *
  * - **Known total** (client-side slice pagination — {@link usePagedList}):
  *   `totalPages` is a number and the counter reads `"2 of 5"`.
- * - **Unknown total** (server/cursor pagination — `useCursorPage`, or a
- *   caller's own query hook): `totalPages` is omitted and the counter reads
+ * - **Unknown total** (server/cursor pagination — `useCursorPage().paginationFor(hasMore)`,
+ *   or a caller's own query hook): `totalPages` is omitted and the counter reads
  *   `"Page 2"`.
  *
  * Both flavors share one visibility rule, one disabled-edge rule, one live
