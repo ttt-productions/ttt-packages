@@ -73,6 +73,12 @@ describe('WORK_PROJECT_ACTIONS', () => {
     expect(isWorkProjectActionId('not.an.action')).toBe(false);
   });
 
+  it('carries no commission-delete action (a commission is closed, never deleted)', () => {
+    expect(isWorkProjectActionId('commission.delete')).toBe(false);
+    expect(WORK_PROJECT_ACTION_IDS).not.toContain('commission.delete' as never);
+    expect(isWorkProjectActionId('commission.close')).toBe(true);
+  });
+
   it('workProject.read is granted to every guild standing identifier', () => {
     expect([...WORK_PROJECT_ACTIONS['workProject.read'].grantedTo].sort()).toEqual(
       [...GUILD_STANDING_IDS].sort(),

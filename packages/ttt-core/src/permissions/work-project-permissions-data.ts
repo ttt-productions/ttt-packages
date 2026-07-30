@@ -29,7 +29,7 @@ export const GUILD_STANDINGS = {
   },
   CommissionManager: {
     label: 'Commission Manager',
-    description: 'Can open, close, and delete workProject commissions and manage proposals without starting invite conversations.',
+    description: 'Can open and close workProject commissions and manage proposals without starting invite conversations.',
   },
   AuditionManager: {
     label: 'Audition Manager',
@@ -163,11 +163,6 @@ export const WORK_PROJECT_ACTIONS = {
   'commission.close': {
     label: 'Close commissions',
     description: 'Close workProject commission postings.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'CommissionManager'],
-  },
-  'commission.delete': {
-    label: 'Delete commissions',
-    description: 'Delete workProject commission postings.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'CommissionManager'],
   },
   'commission.commissionProposal.save': {

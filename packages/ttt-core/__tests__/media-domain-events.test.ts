@@ -34,6 +34,25 @@ describe('removed chat-attachment domain event', () => {
   });
 });
 
+describe('commission.closed (renamed from the commission.deleted misnomer)', () => {
+  it('accepts a valid event through the union', () => {
+    const result = DomainEventSchema.parse({
+      type: 'commission.closed',
+      ids: { commissionListingId: 'cl_1', workProjectId: 'wp_1' },
+    });
+    expect(result.type).toBe('commission.closed');
+  });
+
+  it('the DomainEvent union no longer accepts commission.deleted (commission deletion does not exist)', () => {
+    expect(() =>
+      DomainEventSchema.parse({
+        type: 'commission.deleted',
+        ids: { commissionListingId: 'cl_1', workProjectId: 'wp_1' },
+      }),
+    ).toThrow();
+  });
+});
+
 describe('ModerationViolationCreatedEventSchema', () => {
   it('parses valid event with TTT fileOrigin', () => {
     const event = {

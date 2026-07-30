@@ -75,7 +75,6 @@ export type AuditEventType =
   | 'workProject.commissionListingCreated'
   | 'workProject.commissionProposalCreated'
   | 'workProject.commissionClosed'
-  | 'workProject.commissionDeleted'
   | 'workProject.commissionProposalSaveToggled'
   | 'workProject.commissionProposalRejected'
   | 'workProject.stakeSharesChanged'

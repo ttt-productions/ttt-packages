@@ -15,11 +15,6 @@ export const CloseCommissionInputSchema = z.object({
 }).strict();
 export type CloseCommissionInput = z.infer<typeof CloseCommissionInputSchema>;
 
-export const DeleteCommissionInputSchema = z.object({
-  commissionListingId: commissionListingIdSchema,
-}).strict();
-export type DeleteCommissionInput = z.infer<typeof DeleteCommissionInputSchema>;
-
 export const RejectCommissionProposalInputSchema = z.object({
   commissionListingId: commissionListingIdSchema,
   commissionProposalId: commissionProposalIdSchema,

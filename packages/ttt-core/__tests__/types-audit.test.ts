@@ -40,6 +40,15 @@ describe('audit type catalog', () => {
     expectTypeOf(sample).toEqualTypeOf<AuditEventType[]>();
   });
 
+  it('AuditEventType has no commission-deletion member (closing is the only terminal transition)', () => {
+    // @ts-expect-error — 'workProject.commissionDeleted' was removed with the delete lane.
+    const removed: AuditEventType = 'workProject.commissionDeleted';
+    void removed;
+
+    const kept: AuditEventType = 'workProject.commissionClosed';
+    void kept;
+  });
+
   it('TTTAuditActorBase carries the shared fields', () => {
     expectTypeOf<TTTAuditActorBase>().toEqualTypeOf<{
       uid: string | null;

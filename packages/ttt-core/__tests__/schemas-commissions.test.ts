@@ -1,8 +1,21 @@
 import { describe, it, expect } from 'vitest';
+import * as commissionSchemas from '../src/schemas/commissions.js';
 import {
+  CloseCommissionInputSchema,
   RejectCommissionProposalInputSchema,
   SetCommissionProposalSavedInputSchema,
 } from '../src/schemas/commissions.js';
+
+describe('Commission lifecycle input schemas', () => {
+  it('accepts CloseCommissionInput with only the listing id', () => {
+    const input = { commissionListingId: 'commission-1' };
+    expect(CloseCommissionInputSchema.parse(input)).toEqual(input);
+  });
+
+  it('exposes no delete-commission input schema (commission deletion does not exist)', () => {
+    expect(commissionSchemas).not.toHaveProperty('DeleteCommissionInputSchema');
+  });
+});
 
 describe('Commission proposal input schemas', () => {
   it('accepts RejectCommissionProposalInput with commissionProposalId', () => {

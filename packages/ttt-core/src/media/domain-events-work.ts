@@ -178,9 +178,12 @@ export const CommissionProposalSubmittedEventSchema = z
   })
   .strict();
 
-export const CommissionDeletedEventSchema = z
+// Commission closed — the closeCommission callable's terminal transition. A
+// commission listing is never deleted; closing is the only way it leaves the
+// board, so the event name says closed.
+export const CommissionClosedEventSchema = z
   .object({
-    type: z.literal('commission.deleted'),
+    type: z.literal('commission.closed'),
     ids: z
       .object({
         commissionListingId: z.string().min(1),
