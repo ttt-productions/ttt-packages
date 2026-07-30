@@ -1,6 +1,7 @@
 // UI option lists shared between frontend and backend admin tooling.
 
 import type { HallWingType, WorkProjectType } from '../types/content.js';
+import type { AuditionType } from '../types/commissions.js';
 
 // --- WorkProject Guild Standings ---
 // WorkProject guild-standing IDs, labels, and assignment policy live in ../permissions/.
@@ -221,6 +222,34 @@ export const WORK_PROJECT_TYPES: Record<WorkProjectType, { label: string; descri
   },
 };
 
+// --- Audition Type Display + Board Filter ---
+
+/** Audition type display info. Used on the audition board's type chips/filters and on
+ * audition headers. Record-keyed by the canonical AuditionType union, so adding an
+ * audition type fails the build here until its label + description exist. */
+export const AUDITION_TYPES: Record<AuditionType, { label: string; description: string }> = {
+  platformAudition: {
+    label: 'Platform',
+    description: 'Run by TTT admins to gather community feedback.',
+  },
+  sponsoredAudition: {
+    label: 'Sponsored',
+    description: 'Backed by funding — votes decide where the money goes.',
+  },
+  workAudition: {
+    label: 'Work',
+    description: "Created by a Work's Guildmates seeking feedback.",
+  },
+};
+
+/** The audition board's "every type" filter sentinel — the ONE declaration (it was
+ * previously hand-rolled app-locally). It doubles as the chip's own display label. */
+export const AUDITION_TYPE_FILTER_ALL = 'All';
+
+/** Audition-board type-filter state: one canonical audition type, or the ALL sentinel.
+ * Filter state derives this instead of being typed `string`. */
+export type AuditionTypeFilter = AuditionType | typeof AUDITION_TYPE_FILTER_ALL;
+
 // --- Sort Options ---
 
 /** Sort options shown on the audition feeds, keyed by feed type. */
@@ -246,6 +275,15 @@ export const AUDITION_SORT_OPTIONS = {
     lowestStakeShares: { label: 'Lowest Stakes', field: 'stakeSharesOffered', direction: 'asc' },
   },
 } as const;
+
+/** Every sort key any audition feed offers, DERIVED from AUDITION_SORT_OPTIONS above — a new
+ * sort option widens the union automatically, so sort state is never typed `string`. */
+export type AuditionSortKey = {
+  [F in keyof typeof AUDITION_SORT_OPTIONS]: keyof (typeof AUDITION_SORT_OPTIONS)[F];
+}[keyof typeof AUDITION_SORT_OPTIONS];
+
+/** The audition board's initial sort selection. Every feed type offers this key. */
+export const DEFAULT_AUDITION_SORT: AuditionSortKey = 'newest';
 
 /** Sort options shown on the hallLibrary feed. */
 export const HALL_LIBRARY_SORT_OPTIONS: Record<

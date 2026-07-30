@@ -15,7 +15,10 @@ export const fileOriginRowLabel: Record<FileOrigin, string> = {
   'commission-posting': 'Commission posting',
   'commission-proposal': 'Commission proposal',
   'audition-prompt': 'Audition',
-  'admin-audition-prompt': 'Sponsored audition',
+  // Neutral on purpose: this origin creates BOTH Platform and Sponsored auditions
+  // (AdminAuditionPromptTargetInfoSchema.type), so it cannot borrow either settled
+  // AUDITION_TYPES label without lying about half its uploads.
+  'admin-audition-prompt': 'Admin audition',
   'audition-entry': 'Audition entry',
   'hallLibrary-cover-square': 'Work cover',
   'hallLibrary-cover-poster': 'Work cover',

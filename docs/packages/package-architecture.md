@@ -21,11 +21,11 @@ application-data package: it may consume generic packages, but no generic
 package may consume it.
 
 - **Tier 0 — generic foundations (zero internal runtime deps):**
-  `firebase-helpers`, `chat-schemas`, `media-schemas`, `mobile-core`,
+  `firebase-helpers`, `chat-schemas`, `chat-core`, `media-schemas`, `mobile-core`,
   `monitoring-core`, `query-core`, `theme-core`, `ui-core`, `rate-limit-core`,
   `audit-core`, `moderation-core`, `auth-core`, `edge-protocol-core`
   (runtime-neutral signed-edge-call primitives; WebCrypto + zod only).
-- **Tier 1 — depend on Tier 0 only:** `chat-core` (→ `chat-schemas`),
+- **Tier 1 — depend on Tier 0 only:**
   `file-input` (→ `ui-core`, `media-schemas`, `media-viewer`), `media-viewer`
   (→ `media-schemas`, `ui-core`), `media-processing-core` (→ `media-schemas`),
   `upload-core` (→ `firebase-helpers`), `realtime-core` (→ `edge-protocol-core`;
@@ -40,20 +40,19 @@ package may consume it.
   in-flight-send navigation guard only — chat is text-only and runs no upload
   path, which is why it has no `file-input` / `media-viewer` / `media-schemas`
   edge.
-- **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
+- **Application data:** `ttt-core` (→ `audit-core`,
   `edge-protocol-core`, `media-schemas`, `notification-core`, `report-core`).
 
 The internal runtime-dependency edges (peers/dev excluded — they do not affect
 build order):
 
-    chat-core              -> chat-schemas
     realtime-core          -> edge-protocol-core
     file-input             -> ui-core, media-schemas, media-viewer
     media-viewer           -> media-schemas, ui-core
     media-processing-core  -> media-schemas
     upload-core            -> firebase-helpers
     upload-ui              -> file-input, media-schemas, ui-core, upload-core
-    ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
+    ttt-core               -> audit-core, edge-protocol-core,
                               media-schemas, notification-core, report-core
     chat-react             -> chat-core, chat-schemas, realtime-core,
                               ui-core, upload-ui, mobile-core, firebase-helpers
@@ -141,21 +140,32 @@ describes:
 
 ## chat-core vs chat-react
 
-`chat-core` is the **pure** package: chat contracts, the mention
-parser/serializer, grouping helpers, and the generic mention-provider contract.
-Its only dependency is `chat-schemas` — no React, no Firebase, no UI. A Cloud
-Function, script, or future native/TV client can consume the parser and
-contracts without dragging in the frontend tree. There is no `chat-core/react`
-or `chat-core/schemas` subpath; `chat-core` exposes only `.`.
+`chat-core` is the **pure** package: chat contracts and grouping helpers. It has
+**zero internal runtime dependencies** — no `@ttt-productions/*` edge, no React,
+no Firebase, no UI. A Cloud Function, script, or future native/TV client can
+consume the contracts without dragging in the frontend tree. There is no
+`chat-core/react` or `chat-core/schemas` subpath; `chat-core` exposes only `.`.
 
 `chat-react` holds everything React: the chat shell/composer/list UI, the
-realtime + infinite-older hooks, the mention autocomplete UI, the name-resolver
-context, the adapter config types (`ChatCoreConfig`, `ChatMentionConfig`), and
-the render-callback types (`MessageRenderer`,
-`RenderableMentionProvider`, …). It depends on `chat-core` plus the UI tier and
-treats `react` / `react-dom` / `firebase` / `@tanstack/react-query` /
-`lucide-react` as optional peers. Non-React consumers install `chat-core` and
-never inherit the frontend tree.
+realtime + infinite-older hooks, the name-resolver context, the adapter config
+types (`ChatCoreConfig`), and the render-callback types (`MessageRenderer`, …).
+It depends on `chat-core` plus the UI tier and treats `react` / `react-dom` /
+`firebase` / `@tanstack/react-query` / `lucide-react` as optional peers.
+Non-React consumers install `chat-core` and never inherit the frontend tree.
+
+Neither package carries mention machinery. Chat message text is PLAIN text —
+stored and rendered verbatim, with no token grammar, parser, serializer,
+autocomplete UI, or mention-provider contract on either side of the split.
+Mentions are a Square-posts concept: the `Mention` / `MentionType` atoms live in
+`ttt-core` and the surface that uses them is the app's own.
+
+Neither package carries **reply-to** machinery either. No chat surface has an
+authoring affordance for replying to a specific message — `MessageActions`
+renders only Report/Delete and the composer's `onSend` takes text alone — so
+`ChatMessageV1` has no `replyTo` field, there is no reply-quote renderer or
+stylesheet, and no send path (Firestore callable or DO socket frame) carries a
+reply pointer (DJ ruling 2026-07-29). A DO row that still stores a legacy
+`replyTo` column is ignored by the mapper.
 
 ## auth-core generics
 
@@ -182,9 +192,9 @@ package is added, renamed, or removed:
 - `scripts/release-multiple.sh` — releases a selected subset by walking the same
   canonical `RELEASE_ORDER`.
 
-Key ordering constraints: `chat-schemas` before `chat-core`; `chat-core` plus
-`ui-core`/`upload-ui`/`mobile-core`/`firebase-helpers` before `chat-react`;
-`report-core`/`audit-core`/`notification-core`/`media-schemas`/`chat-schemas`
+Key ordering constraints: `chat-core` plus
+`chat-schemas`/`ui-core`/`upload-ui`/`mobile-core`/`firebase-helpers` before `chat-react`;
+`report-core`/`audit-core`/`notification-core`/`media-schemas`
 before `ttt-core`;
 `firebase-helpers` before `upload-core`; `file-input`/`ui-core`/`upload-core`/
 `media-schemas` before `upload-ui`.

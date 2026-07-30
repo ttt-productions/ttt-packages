@@ -1,10 +1,10 @@
 // Pure chat-core barrel. No React, no Firebase (client or admin) reachable from
 // here — safe for Cloud Functions, scripts, and future native/TV clients that
-// only need the parser, contracts, and grouping logic.
+// only need the contracts and grouping logic. Zero @ttt-productions/* deps.
 //
 // The chat React UI, hooks, Firestore-client adapter config, and render types
-// live in @ttt-productions/chat-react. Pure chat schemas live in
-// @ttt-productions/chat-schemas.
+// live in @ttt-productions/chat-react. The realtime wire contract and the pure
+// chat Zod schemas live in @ttt-productions/chat-schemas.
 
 export { MAX_CHAT_MESSAGE_LENGTH } from "./constants.js";
 
@@ -19,12 +19,3 @@ export type {
     ChatNameResolver,
     ChatPrewarmSenders,
 } from "./types.js";
-
-export type {
-    MentionRef,
-    ParsedSegment,
-    MentionProvider,
-    RecentMentionsAdapter,
-    MentionAnchor,
-} from "./mentions/types.js";
-export { parseMentionTokens, formatMentionToken } from "./mentions/parser.js";

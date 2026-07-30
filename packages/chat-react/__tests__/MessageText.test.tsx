@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { MessageText } from '../src/mentions/MessageText.js';
+import { MessageText } from '../src/ui/MessageText.js';
 
 describe('MessageText', () => {
   it('renders plain text unchanged', () => {
@@ -8,31 +8,13 @@ describe('MessageText', () => {
     expect(container.textContent).toBe('hello world');
   });
 
-  it('renders default chip for a mention with @ prefix and displayText', () => {
+  it('renders token-looking text verbatim — there is no inline token grammar', () => {
     const { container } = render(<MessageText text="hi @[user:u1|Alice]!" />);
-    expect(container.textContent).toBe('hi @Alice!');
-    const chip = container.querySelector('.chat-mention-chip');
-    expect(chip).toBeTruthy();
-    expect(chip?.getAttribute('data-mention-kind')).toBe('user');
-    expect(chip?.getAttribute('data-mention-id')).toBe('u1');
-  });
-
-  it('uses custom renderMention when supplied', () => {
-    const { container } = render(
-      <MessageText
-        text="hi @[user:u1|Alice]"
-        renderMention={(ref) => <a data-testid="custom" href={`/users/${ref.id}`}>@{ref.displayText}</a>}
-      />,
-    );
-    const custom = container.querySelector('[data-testid="custom"]');
-    expect(custom).toBeTruthy();
-    expect(custom?.getAttribute('href')).toBe('/users/u1');
-    expect(custom?.textContent).toBe('@Alice');
-  });
-
-  it('renders multiple mentions interleaved with text', () => {
-    const { container } = render(<MessageText text="@[user:a|A] then @[entity:e|E] end" />);
-    expect(container.textContent).toBe('@A then @E end');
+    expect(container.textContent).toBe('hi @[user:u1|Alice]!');
+    // One wrapper span holding a single text node: nothing is parsed out into chips.
+    const outer = container.firstElementChild as HTMLElement;
+    expect(outer.tagName).toBe('SPAN');
+    expect(outer.children.length).toBe(0);
   });
 
   it('applies className to the outer span', () => {

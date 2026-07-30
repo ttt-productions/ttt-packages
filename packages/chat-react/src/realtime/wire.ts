@@ -49,18 +49,19 @@ export type RevisionKind = 'delete' | 'moderate' | 'edit' | 'restore';
 
 /**
  * A message row as the Channel DO stores + broadcasts it (the worker runtime's
- * message row). `replyTo` arrives as a JSON STRING (or null) — the DO stores it
- * stringified and does not re-parse before broadcast. The adapter mapping in
- * `map.ts` parses it into the UI `ChatMessageV1` shape.
+ * message row), declared as the fields the client actually CONSUMES. The adapter
+ * mapping in `map.ts` turns it into the UI `ChatMessageV1` shape.
  *
- * The row is TEXT-only: there is no attachment lifecycle on a chat message.
+ * The row is TEXT-only: there is no attachment lifecycle on a chat message, and
+ * no reply pointer — chat has no reply-authoring affordance, so the client
+ * neither sends nor reads one (DJ ruling 2026-07-29). A DO that still broadcasts
+ * a legacy stringified `replyTo` key is simply ignored here.
  */
 export interface WireMessageRow {
   seq: number;
   senderUid: string;
   clientMessageId: string;
   text: string;
-  replyTo: string | null;
   createdAt: number;
   epoch: number;
   /**

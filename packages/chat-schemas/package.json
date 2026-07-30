@@ -1,7 +1,7 @@
 {
     "name": "@ttt-productions/chat-schemas",
     "version": "0.10.0",
-    "description": "Pure Zod schemas for chat message wire shapes: ReplyToSchema plus the realtime wire contract. Tier 0 — consumed by both chat-core (UI) and ttt-core (callable composition) without forcing the chat UI dep graph on backend / schema callers.",
+    "description": "The chat realtime wire contract (subprotocol, frame kinds, close codes, channel-ref tuple, grant scope, client-agreed limits) in pure Zod/TS. Tier 0 — consumed by the chat React client, the chat Cloudflare Worker, and Cloud Functions without forcing the chat UI dep graph on backend callers.",
     "repository": {
         "type": "git",
         "url": "git+https://github.com/ttt-productions/ttt-packages.git",

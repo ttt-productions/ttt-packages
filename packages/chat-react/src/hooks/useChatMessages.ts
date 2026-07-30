@@ -34,16 +34,9 @@ function mapMsg(
     console.error('[useChatMessages] Message missing valid createdAt:', data.id, d.createdAt);
   }
 
-  // replyTo: the new shape uses senderId, not senderUsername. Tolerate older
-  // docs that still have senderUsername — drop the name and keep what we can.
-  const replyTo = d.replyTo
-    ? {
-        messageId: d.replyTo.messageId,
-        senderId: d.replyTo.senderId ?? "",
-        messagePreview: d.replyTo.messagePreview,
-      }
-    : undefined;
-
+  // A stored `replyTo` (if any legacy doc still carries one) is deliberately NOT
+  // mapped: chat has no reply-authoring affordance, so the UI has no reply
+  // renderer to feed (DJ ruling 2026-07-29).
   return {
     messageId: data.id,
     threadId,
@@ -51,7 +44,6 @@ function mapMsg(
     senderId: d.senderId,
     text: d.text ?? "",
     type: d.type,
-    replyTo,
     isSystemMessage: d.isSystemMessage ?? undefined,
     // Moderation tombstone flag (backend-written) — carried through so renderers
     // can tombstone the content.
@@ -121,14 +113,13 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
 
   const messages = React.useMemo(() => (allowed ? items : []), [allowed, items]);
 
-  // Pre-warm name cache for all visible senders (and reply-to senders).
+  // Pre-warm name cache for all visible senders.
   // Optional resolver: silent no-op if no provider is wrapped.
   const resolverCtx = useOptionalChatNameResolver();
   const senderIds = React.useMemo(() => {
     const set = new Set<string>();
     for (const m of messages) {
       set.add(m.senderId);
-      if (m.replyTo?.senderId) set.add(m.replyTo.senderId);
     }
     return Array.from(set);
   }, [messages]);

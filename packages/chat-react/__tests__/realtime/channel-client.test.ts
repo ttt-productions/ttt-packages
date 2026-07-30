@@ -20,7 +20,6 @@ function wireRow(seq: number, senderUid: string, text: string, clientMessageId =
     senderUid,
     clientMessageId,
     text,
-    replyTo: null,
     createdAt: 1000 + seq,
     epoch: 1,
   };
@@ -462,7 +461,7 @@ describe('ChannelClient — retrySend (explicit retry, same clientMessageId)', (
     await ctx.client.connect();
     let sock = ctx.harness.last();
     sock.serverOpen();
-    ctx.client.send({ clientMessageId: 'c-1', text: 'hello?', replyTo: { messageSeq: 3, preview: 'orig' } });
+    ctx.client.send({ clientMessageId: 'c-1', text: 'hello?' });
     sock.serverClose(1006, 'abnormal');
     ctx.clock.tick(PENDING_SEND_MAX_AGE_MS + 1000);
     await Promise.resolve();
@@ -482,8 +481,10 @@ describe('ChannelClient — retrySend (explicit retry, same clientMessageId)', (
     expect(resent?.payload).toMatchObject({
       clientMessageId: 'c-1',
       text: 'hello?',
-      replyTo: { messageSeq: 3, preview: 'orig' },
     });
+    // The send payload is clientMessageId + text ONLY — chat has no reply-authoring
+    // affordance, so no send frame ever names another message (DJ ruling 2026-07-29).
+    expect(resent?.payload).not.toHaveProperty('replyTo');
     // The bubble is back to the normal pending look — every failure marker stripped
     // (sendFailed / sendFailureCode / sendRetryable), matching the ack reconcile path.
     const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
@@ -1482,7 +1483,7 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
 
   it('records the send lifecycle (optimistic → ack) and the moderation revision', async () => {
     const { of } = await runCaptured();
-    expect(of(DIAG.SEND_OPTIMISTIC)[0]).toMatchObject({ clientMessageId: 'c-1', hasReplyTo: false });
+    expect(of(DIAG.SEND_OPTIMISTIC)[0]).toMatchObject({ clientMessageId: 'c-1' });
     expect(of(DIAG.SEND_ACK)[0]).toMatchObject({ clientMessageId: 'c-1', seq: 3, wasPending: true });
     expect(of(DIAG.REVISION_APPLIED)[0]).toMatchObject({ seq: 1, kind: 'moderate', messageRevision: 2, rendered: true });
   });

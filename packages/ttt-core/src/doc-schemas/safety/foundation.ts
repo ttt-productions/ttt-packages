@@ -66,12 +66,10 @@ export const ReportableItemTypeSchema = z.enum([
   'profile-picture',
   'guild-invite-message',
   'guild-chat-message',
-  // A single message in a WORK-PARTY admin correspondence thread (pendingAdminDispatches
-  // partyKind 'workProject' — the one multi-member chat surface transported through
-  // Firestore `conversationMessages`). The resolver enforces the work-party kind
-  // server-side; user↔admin support threads are NOT reportable (an admin is already a
-  // participant in every thread — DJ ruling 2026-07-13).
-  'admin-work-message',
+  // NOTE: admin correspondence messages are NOT reportable at all — an admin is already a
+  // participant in every admin conversation, work-party threads included (DJ ruling
+  // 2026-07-29, superseding the 2026-07-13 work-party carve-out). The former
+  // admin-work-message item type and its adminWorkMessage locator were removed.
   // A single file in a conversation's flat Conversation Files list (guild-invite or
   // admin-support scope). Replaces reporting a chat-message attachment: files are no
   // longer carried by a message, so the report targets the FILE, whose `conversationFile`
@@ -95,8 +93,8 @@ export type ReportableItemType = z.infer<typeof ReportableItemTypeSchema>;
 
 /** The DO-transported chat report types — no Firestore message doc / owner exists to
  * hold at intake (H-04 V1); the resolver goes through the signed chat-Worker context
- * read. `admin-work-message` is NOT here: its messages are Firestore docs. Derived
- * subset — compile-linked to the canonical enum, never a re-declared string set. */
+ * read. These are the ONLY reportable message surfaces. Derived subset — compile-linked
+ * to the canonical enum, never a re-declared string set. */
 export const CHAT_REPORT_ITEM_TYPES = [
   'guild-chat-message',
   'guild-invite-message',
@@ -115,8 +113,6 @@ export const CONTENT_ACTION_PANEL_ITEM_TYPES = [
   'hall-library-item',
   'hall-library-sub-item',
   'craft-skill',
-  // Work-party admin correspondence message — single-doc hidden flip (2026-07-13).
-  'admin-work-message',
   // Conversation File — the media-backed file record, actioned exactly like `work-asset`
   // (the other shared-file surface): the action targets the file + its mediaAsset, never
   // a chat message.
@@ -163,11 +159,6 @@ export const TargetLocatorV1Schema = z.discriminatedUnion('kind', [
   // [H-04 V1] Plain guild chat message (text-only or Worker-unresolved). Chat is
   // text-only, so this is the ONLY guild-channel message locator.
   z.object({ kind: z.literal('guildChatMessage'), channelId: z.string().min(1), messageId: z.string().min(1) }).strict(),
-  // A work-party admin correspondence message — a Firestore doc at
-  // pendingAdminDispatches/{adminDispatchId}/conversationMessages/{messageId} (unlike the
-  // DO-addressed guildChatMessage/guildInviteMessage locators, messageId here is a doc id,
-  // not a numeric seq).
-  z.object({ kind: z.literal('adminWorkMessage'), adminDispatchId: z.string().min(1), messageId: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('url'), url: z.string().min(1) }).strict(),
   z.object({ kind: z.literal('additionalText'), textRef: z.string().min(1) }).strict(),
 ]);
@@ -193,8 +184,6 @@ export const TargetLocatorKindSchema = z.enum([
   'conversationFile',
   // [H-04 V1] Plain guild chat message locator (text-only / Worker-unresolved protected report).
   'guildChatMessage',
-  // Work-party admin correspondence message (Firestore conversationMessages doc).
-  'adminWorkMessage',
   'url',
   'additionalText',
 ]);

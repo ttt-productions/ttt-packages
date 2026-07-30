@@ -26,7 +26,6 @@ export const REPORTABLE_ITEM_LABELS: Record<ReportableItemType, string> = {
   'profile-picture': 'Profile Picture',
   'guild-invite-message': 'Guild Invite Message',
   'guild-chat-message': 'Guild Chat Message',
-  'admin-work-message': 'Work Correspondence Message',
   'conversation-file': 'Conversation File',
   'hall-library-item': 'Hall Item',
   'hall-library-sub-item': 'Hall Sub-Item',
@@ -78,7 +77,6 @@ export const REPORT_ITEM_TYPE_MULTIPLIERS: Record<ReportableItemType, number> = 
   'conversation-file': 1.0,
   'guild-chat-message': 0.8,
   'guild-invite-message': 0.8,
-  'admin-work-message': 0.8,
 };
 
 /** Priority bonuses/fallbacks shared by client + server priority scoring. */

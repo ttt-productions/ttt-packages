@@ -1,16 +1,18 @@
 "use client";
 
 import type { ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
-import { MessageText } from "../mentions/MessageText.js";
+import { MessageText } from "./MessageText.js";
 import { cn } from "@ttt-productions/ui-core";
 import { Button } from "@ttt-productions/ui-core/react";
 import { Loader2, AlertTriangle } from "lucide-react";
 import { MessageActions } from "./menus.js";
 import { useResolvedSenderName } from "../context/ChatNameResolverContext.js";
 
-// A chat message renders TEXT (plus its reply quote and send-state rows). Files
-// live in the conversation's Conversation Files surface, never in the timeline —
-// there is no attachment body here.
+// A chat message renders TEXT (plus its send-state rows). Files live in the
+// conversation's Conversation Files surface, never in the timeline — there is no
+// attachment body here. There is no reply-quote body either: no chat surface has
+// an authoring affordance for replying to a specific message, so a quote
+// renderer would be unreachable machinery (DJ ruling 2026-07-29).
 
 // ============================================
 // Correlated send-rejection copy + retry policy
@@ -42,20 +44,6 @@ function sendFailureCopy(code: string | null): string {
 // reconnect failure) keeps Retry, reusing the ORIGINAL clientMessageId.
 function isRetryableFailure(meta: Record<string, unknown> | undefined): boolean {
   return meta?.sendRetryable !== false;
-}
-
-// ============================================
-// Reply-to quote
-// ============================================
-
-function ReplyQuote({ replyTo }: { replyTo: NonNullable<ChatMessageV1["replyTo"]> }) {
-  const replyName = useResolvedSenderName(replyTo.senderId);
-  return (
-    <div className="chat-reply-quote">
-      <span className="chat-reply-quote-sender">{replyName}</span>
-      <span className="chat-reply-quote-preview"><MessageText text={replyTo.messagePreview} /></span>
-    </div>
-  );
 }
 
 // ============================================
@@ -155,8 +143,6 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
             <span>{new Date(m.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
           </div>
         )}
-
-        {m.replyTo && <ReplyQuote replyTo={m.replyTo} />}
 
         {m.text && (
           <p className="text-sm whitespace-pre-wrap">

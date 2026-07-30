@@ -61,3 +61,14 @@ export type { ScrollToTopButtonProps } from "./components/scroll-to-top-button.j
 
 export { ChunkErrorRecovery } from "./components/chunk-error-recovery.js";
 export type { ChunkErrorRecoveryProps } from "./components/chunk-error-recovery.js";
+
+// List pagination — the one Previous / counter / Next control plus the page-state
+// hooks for its two flavors (known total, and cursor/`hasMore`).
+export { ListPagination } from "./components/list-pagination.js";
+export type { ListPaginationProps } from "./components/list-pagination.js";
+
+export { usePagedList } from "./hooks/use-paged-list.js";
+export type { ListPaginationState, PagedList, UsePagedListOptions } from "./hooks/use-paged-list.js";
+
+export { useCursorPage } from "./hooks/use-cursor-page.js";
+export type { CursorPage, UseCursorPageOptions } from "./hooks/use-cursor-page.js";

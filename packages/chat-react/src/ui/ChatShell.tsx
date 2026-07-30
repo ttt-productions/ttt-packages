@@ -25,7 +25,7 @@ export type ChatShellProps = {
   // Send handler — text-only. On the realtime transport this is OPTIONAL: the
   // shell sends through the DO socket. If provided, it is still called (so a
   // consumer can mirror to analytics), but the socket send is authoritative.
-  onSend?: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
+  onSend?: (text: string) => Promise<void>;
 
   // Message rendering
   renderMessage?: (m: any) => React.ReactNode;
@@ -66,7 +66,7 @@ type ResolvedChat = {
   hasOlder: boolean;
   isFetchingOlder: boolean;
   /** The send handler the Composer calls (socket send on realtime, prop on firestore). */
-  send: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
+  send: (text: string) => Promise<void>;
   /** Retry a failed realtime send by its original clientMessageId (realtime only;
    *  absent on firestore). Wired to MessageItemDefault's failed-bubble retry. */
   retrySend?: (clientMessageId: string) => void;
@@ -98,8 +98,8 @@ function FirestoreChatShell(props: ChatShellProps) {
   const { config, onSend } = props;
   const r = useChatMessages(config);
   const send = React.useCallback(
-    async (text: string, replyTo?: ChatMessageV1["replyTo"]) => {
-      if (onSend) await onSend(text, replyTo);
+    async (text: string) => {
+      if (onSend) await onSend(text);
     },
     [onSend],
   );
@@ -116,17 +116,12 @@ function RealtimeChatShell(props: ChatShellProps) {
   }
   const r = useRealtimeChatMessages(client);
   const send = React.useCallback(
-    async (text: string, replyTo?: ChatMessageV1["replyTo"]) => {
-      // Map the UI replyTo (messageId-based) to the wire replyTo (seq + preview).
-      const wireReply =
-        replyTo && replyTo.messageId
-          ? { messageSeq: Number(replyTo.messageId), preview: replyTo.messagePreview ?? "" }
-          : null;
-      const ok = r.send(text, Number.isFinite(wireReply?.messageSeq) ? wireReply : null);
+    async (text: string) => {
+      const ok = r.send(text);
       // C-B8: surface a closed-socket failure so the Composer keeps the user's text
       // instead of clearing it on a no-op send.
       if (!ok) throw new Error("chat-send-failed");
-      if (onSend) await onSend(text, replyTo); // optional mirror
+      if (onSend) await onSend(text); // optional mirror
     },
     [r, onSend],
   );
@@ -344,7 +339,6 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
               disabled={composerDisabled}
               autoFocus={autoFocus}
               placeholder={composerPlaceholder}
-              mentionConfig={config.mentionConfig}
             />
           </KeyboardAvoidingView>
         </CardFooter>

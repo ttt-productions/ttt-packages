@@ -32,9 +32,9 @@ export function ChatNameResolverProvider(props: ChatNameResolverProviderProps) {
 }
 
 /**
- * Strict hook — throws if no provider is wrapped. Used inside chat-core's
- * own renderers (MessageItemDefault, ReplyQuote) so a missing setup surfaces
- * immediately on first render rather than silently rendering "User".
+ * Strict hook — throws if no provider is wrapped. Used inside this package's
+ * own renderers (MessageItemDefault) so a missing setup surfaces immediately on
+ * first render rather than silently rendering "User".
  */
 export function useChatNameResolver(): ChatNameResolverContextValue {
   const ctx = React.useContext(ChatNameResolverContext);

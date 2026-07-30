@@ -22,6 +22,7 @@ import { PATH_BUILDERS } from '../src/paths/path-builders.js';
 import { COLLECTION_REFS } from '../src/paths/collection-refs.js';
 import { toPath } from '../src/paths/utils.js';
 import { ConversationFileSchema, ChatMessageV1Schema } from '../src/doc-schemas/messaging.js';
+import { SendGuildChatMessageInputSchema } from '../src/schemas/chat.js';
 import {
   MediaPublicationKindSchema,
   MediaServingScopeSchema,
@@ -230,9 +231,54 @@ describe('the stored chat-message schema carries no file reference', () => {
     expect(parsed).toEqual(message);
   });
 
-  it('still carries its text-only reply pointer', () => {
-    const replyTo = { messageId: 'm_1', senderId: 'u_2', messagePreview: 'earlier' };
-    expect(ChatMessageV1Schema.parse({ ...message, replyTo }).replyTo).toEqual(replyTo);
+  // Reply-to was removed end to end (DJ ruling 2026-07-29): no chat surface has an
+  // authoring affordance for replying to a specific message, so nothing could ever
+  // populate the field. Same rationale and same-day precedent as the `hidden` flag.
+  it('declares no reply pointer', () => {
+    const keys = Object.keys(ChatMessageV1Schema.shape);
+    expect(keys.filter((k) => /reply/i.test(k))).toEqual([]);
+    expect(keys).not.toContain('replyTo');
+  });
+
+  it('drops a legacy stored replyTo instead of persisting it forward', () => {
+    // The schema is deliberately non-strict, so an existing stored doc that still
+    // carries the key parses fine and the value is stripped — no migration needed.
+    const parsed = ChatMessageV1Schema.parse({
+      ...message,
+      replyTo: { messageId: 'm_1', senderId: 'u_2', messagePreview: 'earlier' },
+    });
+    expect(parsed).not.toHaveProperty('replyTo');
+    expect(parsed).toEqual(message);
+  });
+});
+
+describe('the sendGuildChatMessage input schema accepts no reply pointer', () => {
+  const valid = {
+    threadKind: 'adminSupport' as const,
+    adminDispatchId: 'ad_1',
+    isUserReply: true,
+    text: 'hello',
+  };
+
+  it('accepts a text-only send', () => {
+    expect(SendGuildChatMessageInputSchema.parse(valid)).toEqual(valid);
+  });
+
+  it('REJECTS a client-sent replyTo (the input schema is strict)', () => {
+    // Unlike the stored doc schema (non-strict, so legacy keys are stripped), the
+    // wire input is `.strict()` — a client that hand-rolls a reply pointer is
+    // rejected outright rather than silently ignored (DJ ruling 2026-07-29).
+    expect(
+      SendGuildChatMessageInputSchema.safeParse({
+        ...valid,
+        replyTo: { messageId: 'm_1', senderId: 'u_2', messagePreview: 'earlier' },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('declares no reply-shaped field', () => {
+    const keys = Object.keys(SendGuildChatMessageInputSchema.shape);
+    expect(keys.filter((k) => /^reply/i.test(k))).toEqual([]);
   });
 });
 

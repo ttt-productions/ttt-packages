@@ -415,8 +415,7 @@ export type GetLatestHideCascadeInput = z.infer<typeof GetLatestHideCascadeInput
 // --- moderateReportedContent — hide / restore / soft perma-remove an individual reported item ---
 
 // The single-item content-action target set (SUBSET of ReportableItemType — excludes the
-// close-out-only hall-library-sub-item). `admin-work-message` is allowlisted for this file in
-// the definition-redeclaration guard.
+// close-out-only hall-library-sub-item).
 const MODERATE_REPORTED_CONTENT_TARGET_TYPES = [
   'square-streetz-post',
   'audition',
@@ -427,7 +426,6 @@ const MODERATE_REPORTED_CONTENT_TARGET_TYPES = [
   'profile-picture',
   'hall-library-item',
   'craft-skill',
-  'admin-work-message',
   // Conversation File — the hide/restore/remove action targets the file owner record +
   // its mediaAsset (the `work-asset` shape), never a chat message.
   'conversation-file',
@@ -469,9 +467,6 @@ const CONTENT_ACTION_TARGET_TYPES = [
   'hall-library-item',
   'craft-skill',
   'hall-library-sub-item',
-  // Work-party admin correspondence message — single-doc `hidden` flip via
-  // `runModerateReportedContent` (tombstone rendering in the thread views).
-  'admin-work-message',
   // Conversation File — same content action as `work-asset`, routed at the file record.
   'conversation-file',
 ] as const satisfies readonly ReportableItemType[];

@@ -2,9 +2,28 @@ import { describe, it, expect } from 'vitest';
 import {
   formatUploadTimestamp,
   getFileTypeLabel,
+  fileOriginRowLabel,
   DEFAULT_RELATIVE_TIME_CUTOFF_MS,
 } from '../src/media/upload-tray-display.js';
 import { formatFileSize } from '../src/utils/format.js';
+import { FileOriginSchema } from '../src/media/file-origin.js';
+import { AdminAuditionPromptTargetInfoSchema } from '../src/media/target-info.js';
+
+describe('fileOriginRowLabel', () => {
+  it('gives every canonical fileOrigin a non-empty label', () => {
+    for (const origin of FileOriginSchema.options) {
+      expect(fileOriginRowLabel[origin].length).toBeGreaterThan(0);
+    }
+  });
+
+  it('labels the admin audition origin neutrally — it creates BOTH audition types', () => {
+    // The origin's own target-info accepts platformAudition AND sponsoredAudition, so a
+    // type-specific label (it used to say "Sponsored audition") is wrong half the time.
+    const accepted = AdminAuditionPromptTargetInfoSchema.shape.type.options;
+    expect([...accepted].sort()).toEqual(['platformAudition', 'sponsoredAudition']);
+    expect(fileOriginRowLabel['admin-audition-prompt']).toBe('Admin audition');
+  });
+});
 
 describe('formatUploadTimestamp', () => {
   it('returns "just now" for differences under 1 minute', () => {

@@ -57,42 +57,25 @@ export function seqToMessageId(seq: number): string {
   return String(seq);
 }
 
-interface WireReplyTo {
-  messageSeq: number;
-  preview: string;
-}
-
-function parseJson<T>(raw: string | null): T | null {
-  if (raw == null) return null;
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Convert a DO message row to the UI message. `threadId` is the caller's logical
  * thread id (the UI's thread key); the DO row carries no threadId of its own.
  * - `messageId` = the server seq (string) — stable + dedup key.
- * - `replyTo` JSON `{ messageSeq, preview }` → UI `{ messageId, senderId:'', messagePreview }`.
  *
  * A DO row carries TEXT only. Files are not part of the message timeline — they
  * live in the conversation's Conversation Files list, published through the
  * canonical media pipeline and read from Firestore, never mapped from a chat row.
+ * A legacy row's stored reply pointer is likewise NOT mapped: chat has no
+ * reply-authoring affordance, so the UI has no reply renderer to feed
+ * (DJ ruling 2026-07-29).
  */
 export function wireRowToMessage(row: WireMessageRow, threadId: string): ChatMessageV1 {
-  const reply = parseJson<WireReplyTo>(row.replyTo);
-
   return {
     messageId: seqToMessageId(row.seq),
     threadId,
     createdAt: row.createdAt,
     senderId: row.senderUid,
     text: row.text,
-    replyTo: reply
-      ? { messageId: seqToMessageId(reply.messageSeq), senderId: '', messagePreview: reply.preview }
-      : undefined,
     isSystemMessage: row.senderUid === 'system' || undefined,
     meta: {
       seq: row.seq,
@@ -108,7 +91,6 @@ export function optimisticMessage(args: {
   senderId: string;
   text: string;
   createdAt: number;
-  replyTo?: { messageId: string; messagePreview?: string } | null;
 }): ChatMessageV1 {
   return {
     messageId: `optimistic:${args.clientMessageId}`,
@@ -116,9 +98,6 @@ export function optimisticMessage(args: {
     createdAt: args.createdAt,
     senderId: args.senderId,
     text: args.text,
-    replyTo: args.replyTo
-      ? { messageId: args.replyTo.messageId, senderId: '', messagePreview: args.replyTo.messagePreview ?? '' }
-      : undefined,
     meta: { clientMessageId: args.clientMessageId, optimistic: true },
   };
 }

@@ -33,22 +33,10 @@ const GUARDED: Record<string, { owner: string; allowed: string[] }> = {
     owner: 'ttt-core/src/doc-schemas/user.ts',
     allowed: ['ttt-core/src/constants/craft-skill-statements.ts'],
   },
-  adminWorkMessage: {
-    owner: 'ttt-core/src/doc-schemas/safety/foundation.ts',
-    // The NCII intake derivations switch exhaustively over TargetLocatorV1['kind'] in
-    // normalizedTargetKey / surfaceLabelFor — a missing/typo'd case fails the exhaustive
-    // return, so the literals are compiler-checked derived usages.
-    allowed: ['ttt-core/src/safety/ncii-intake-derivations.ts'],
-  },
-  'admin-work-message': {
-    owner: 'ttt-core/src/doc-schemas/safety/foundation.ts',
-    // Label/multiplier maps are Record<ReportableItemType, …> and the content-action
-    // target tuple carries `satisfies readonly ReportableItemType[]` — compiler-checked.
-    allowed: [
-      'ttt-core/src/report/report-config-values.ts',
-      'ttt-core/src/schemas/admin.ts',
-    ],
-  },
+  // (The adminWorkMessage / admin-work-message entries were removed with the report type
+  // itself — admin correspondence is not reportable, DJ ruling 2026-07-29. Their absence
+  // from every canonical union is guarded by
+  // report-admin-conversations-not-reportable.test.ts.)
   possibleMinor: {
     owner: 'ttt-core/src/doc-schemas/safety/foundation.ts',
     allowed: [],

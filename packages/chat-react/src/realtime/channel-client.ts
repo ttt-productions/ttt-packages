@@ -63,7 +63,6 @@ import {
 interface PendingSend {
   clientMessageId: string;
   text: string;
-  replyTo: { messageSeq: number; preview: string } | null;
   /** When the send was first attempted (for the age/budget caps). Reset by retrySend(). */
   sentAt: number;
   /** How many times it has been (re)sent over a socket. Reset by retrySend(). */
@@ -367,7 +366,6 @@ export class ChannelClient {
       const sent = this.sendFrame(CLIENT_FRAME.SEND, {
         clientMessageId: pending.clientMessageId,
         text: pending.text,
-        replyTo: pending.replyTo,
       });
       if (sent) pending.attempts += 1;
       this.diag?.(DIAG.SEND_RETRY, {
@@ -548,7 +546,6 @@ export class ChannelClient {
       const sent = this.sendFrame(CLIENT_FRAME.SEND, {
         clientMessageId: current.clientMessageId,
         text: current.text,
-        replyTo: current.replyTo,
       });
       this.diag?.(DIAG.SEND_RETRY, {
         clientMessageId: current.clientMessageId,
@@ -619,7 +616,6 @@ export class ChannelClient {
     const sent = this.sendFrame(CLIENT_FRAME.SEND, {
       clientMessageId: pending.clientMessageId,
       text: pending.text,
-      replyTo: pending.replyTo,
     });
     pending.attempts = sent ? 1 : 0;
     this.diag?.(DIAG.SEND_RETRY, {
@@ -1135,7 +1131,7 @@ export class ChannelClient {
    * Optimistic send: render the echo immediately keyed by clientMessageId, then
    * emit the `send` frame. The server `ack`/`message` reconciles on the seq.
    */
-  send(args: { clientMessageId: string; text: string; replyTo?: { messageSeq: number; preview: string } | null }): boolean {
+  send(args: { clientMessageId: string; text: string }): boolean {
     // C-B8: write the frame FIRST and render the optimistic echo ONLY if it was
     // actually sent over an open socket. A closed socket returns false — no phantom
     // "sent" bubble, and the caller keeps the composer text — so a disconnect between
@@ -1143,7 +1139,6 @@ export class ChannelClient {
     const sent = this.sendFrame(CLIENT_FRAME.SEND, {
       clientMessageId: args.clientMessageId,
       text: args.text,
-      replyTo: args.replyTo ?? null,
     });
     if (!sent) {
       this.diag?.(DIAG.SEND_FAILED, {
@@ -1162,7 +1157,6 @@ export class ChannelClient {
     this.pendingSends.set(args.clientMessageId, {
       clientMessageId: args.clientMessageId,
       text: args.text,
-      replyTo: args.replyTo ?? null,
       sentAt: now,
       attempts: 1,
       failed: false,
@@ -1175,14 +1169,11 @@ export class ChannelClient {
       senderId: this.config.currentUserId,
       text: args.text,
       createdAt: now,
-      replyTo: args.replyTo ? { messageId: seqToMessageId(args.replyTo.messageSeq), messagePreview: args.replyTo.preview } : null,
     });
     const next = [...this.state.messages, echo].sort(sortBySeq);
     this.setState({ messages: next, lastErrorCode: null });
     this.diag?.(DIAG.SEND_OPTIMISTIC, {
       clientMessageId: args.clientMessageId,
-      hasReplyTo: Boolean(args.replyTo),
-      replyToSeq: args.replyTo?.messageSeq ?? null,
       pendingSends: this.pendingSends.size,
     });
     return true;

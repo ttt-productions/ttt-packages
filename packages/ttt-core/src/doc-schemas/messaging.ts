@@ -4,7 +4,6 @@
 // Types inferred via z.infer.
 
 import { z } from 'zod';
-import { ReplyToSchema } from '@ttt-productions/chat-schemas';
 import { InviteSourceSchema } from '../schemas/work-project-management.js';
 import { guildInviteConversationStatusSchema } from '../schemas/atoms.js';
 import { ContentMediaKindSchema } from './media-assets.js';
@@ -188,10 +187,10 @@ export type AdminDispatch = z.infer<typeof AdminDispatchSchema>;
 // Per-message body for admin-support `conversationMessages` — the ONE chat surface still
 // transported through Firestore (guild channel + invite messages are realtime-only, served
 // by the chat Worker Durable Object). Written by runSendGuildChatMessage (senderId/text/
-// createdAt + optional replyTo); the admin-dispatch INITIAL message
+// createdAt); the admin-dispatch INITIAL message
 // (runStartAdminSupportThread) additionally stores `messageId`. This is the STORED shape — a relaxed
 // @ttt-productions/chat-core ChatMessageV1: `messageId` is the doc id (only sometimes persisted) and
-// `threadId` is not stored. Reuses the chat-schemas ReplyTo Zod shape.
+// `threadId` is not stored.
 // A chat message carries NO file reference — files live in the conversation's
 // `conversationFiles` subcollection (ConversationFileSchema above).
 export const ChatMessageV1Schema = z.object({
@@ -206,13 +205,17 @@ export const ChatMessageV1Schema = z.object({
   // subcollection. Optional so the same body schema still fits the guildChat /
   // admin-dispatch messages that don't carry it.
   guildInviteId: z.string().optional(),
-  replyTo: ReplyToSchema.optional(),
   isSystemMessage: z.boolean().optional(),
   meta: z.record(z.string(), z.unknown()).optional(),
-  // Moderation tombstone flag — the single-doc `hidden` flip written by the admin
-  // moderateReportedContent pipeline (the admin-work-message itemType). Backend-only
-  // writable (conversationMessages is callable-only in rules); absent ⇒ visible.
-  // Thread views render a hidden message as a moderation tombstone.
-  hidden: z.boolean().optional(),
+  // NO moderation tombstone flag: the `hidden` field existed solely for the removed
+  // admin-work-message report type's single-doc flip, and admin correspondence is not
+  // reportable or moderatable at all (DJ ruling 2026-07-29). Nothing can write it, so
+  // the field is gone rather than left as unreachable schema surface.
+  // NO reply pointer, for the same reason: no chat surface has an authoring affordance
+  // for replying to a specific message (chat-react's MessageActions renders only
+  // Report/Delete; the composer's onSend takes text alone), so nothing could ever
+  // populate a `replyTo` (DJ ruling 2026-07-29). This object is deliberately NOT
+  // `.strict()`, so a legacy stored doc that still carries the key parses fine — the
+  // value is stripped, never persisted forward, and no migration is required.
 });
 export type ChatMessageV1Doc = z.infer<typeof ChatMessageV1Schema>;

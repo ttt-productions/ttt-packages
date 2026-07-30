@@ -8,23 +8,37 @@ Pure chat contracts and logic package. **No React, no Firebase.**
   `ChatThreadV1`, `ChatId`, `ChatAccessMode`, `ModerationHandlers`,
   `ChatNameResolver`, …). `ChatMessageV1` is TEXT-only — there is no attachment
   field or attachment-send contract; a conversation's files are owned by the
-  consuming app's Conversation Files surface.
-- Mention wire-format contracts (`MentionRef`, `ParsedSegment`,
-  `MentionProvider`, `RecentMentionsAdapter`, `MentionAnchor`)
-- The mention parser/serializer (`parseMentionTokens`, `formatMentionToken`)
+  consuming app's Conversation Files surface. It carries no `replyTo` field
+  either (see "Not owned" below).
 - Message grouping helper (`isContinuation`) and package constants
   (`MAX_CHAT_MESSAGE_LENGTH`, `GROUP_GAP_SEC`)
 
 ## Boundary
 
-`chat-core` depends only on [`@ttt-productions/chat-schemas`](./chat-schemas.md)
-(for `ReplyTo`). It pulls in no React, Firebase, or UI
+`chat-core` has **zero internal runtime dependencies** — no
+`@ttt-productions/*` edge at all — and pulls in no React, Firebase, or UI
 packages, so a Cloud Function, script, or future native/TV client can consume
-the parser and contracts without dragging in the frontend tree.
+the contracts without dragging in the frontend tree.
 
-`chat-core` does not import `ttt-core`. TTT mention kinds, permissions, provider
-lists, routing, and search live in TTT code; the package only owns the generic
-mention mechanism.
+`chat-core` does not import `ttt-core`.
+
+## Not owned — chat message text is PLAIN text
+
+There is no mention/token grammar in chat: no parser, no serializer, no
+`@`-token wire format, and no mention provider or autocomplete contract. Chat
+message text is stored and rendered verbatim. Mentions are a **Square posts**
+concept owned by the consuming app (`ttt-core`'s `Mention` / `MentionType`
+atoms and the app's own implementation) — chat never had a product reason for
+them, so the machinery is gone rather than dormant.
+
+## Not owned — no reply-to pointer
+
+`ChatMessageV1` has no `replyTo` field and this package declares no reply
+contract. The product has no authoring affordance for replying to a specific
+message on any chat surface — `chat-react`'s `MessageActions` renders only
+Report/Delete, and the composer's `onSend` takes text alone — so a reply pointer
+could never be populated by a user action. It was removed rather than left
+dormant (DJ ruling 2026-07-29).
 
 ## Related packages
 
@@ -35,4 +49,4 @@ mention mechanism.
 
 ## Entry points
 
-- `.` — pure contracts, mention parser, grouping helpers, constants
+- `.` — pure contracts, grouping helpers, constants

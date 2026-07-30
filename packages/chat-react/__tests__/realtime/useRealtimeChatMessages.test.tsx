@@ -54,7 +54,6 @@ describe('useRealtimeChatMessages', () => {
             senderUid: 'u-2',
             clientMessageId: 's1',
             text: 'hi',
-            replyTo: null,
             createdAt: 100,
             epoch: 1,
           },

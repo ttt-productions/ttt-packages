@@ -4,9 +4,14 @@
 // the former component-local maps in ttt-prod (admin-user-management-view,
 // admin-announcements-view, guided-resolution-flow). Any client (web, phone,
 // TV, admin app) renders the same labels by importing these.
+//
+// A few entries here are copy for ADMIN-MANAGED content that a PUBLIC surface also
+// renders (the rules-page group titles at the bottom of this file). The organizing
+// principle is one declaration, not one consumer.
 // ============================================================================
 
 import type { UserAccountStatus } from '../doc-schemas/user.js';
+import type { FeedbackType } from './business-admin.js';
 import type { ReportDisposition } from '../doc-schemas/safety/foundation.js';
 import type { BroadcastAudienceSelector } from '../schemas/notification.js';
 import type { DeadLetterCollection } from '../schemas/admin.js';
@@ -25,6 +30,19 @@ export const BROADCAST_AUDIENCE_KIND_LABELS: Record<BroadcastAudienceSelector['k
   explicitUids: 'Specific users (paste uids)',
   workMembers: "A Work's guild members",
   realmMembers: "A Realm's members",
+};
+
+/** Human labels for the canonical feedback types — the admin feedback-suggestions views and
+ * the user-facing feedback-submission surface render these instead of restating copy. Keyed
+ * by FeedbackType, so a new FEEDBACK_TYPES member fails the build until its label exists.
+ * UI copy uses the SHORT settled terms (Trade → "Trades", Craft → "Craft Tags", Genre →
+ * "<Kind> Genres"), never the compound code identifiers (ARCH-107). */
+export const FEEDBACK_TYPE_LABELS: Record<FeedbackType, string> = {
+  tradeProfessionSuggestions: 'Trades',
+  craftSkillTagSuggestions: 'Craft Tags',
+  talesWorkGenreSuggestions: 'Tales Genres',
+  tunesWorkGenreSuggestions: 'Tunes Genres',
+  televisionWorkGenreSuggestions: 'Television Genres',
 };
 
 /** Human labels for the dead-letter replay ledgers (Ops Repairs dead-letter table). */
@@ -98,3 +116,13 @@ export const USER_FACING_REASON_OPTIONS: readonly UserFacingReasonOption[] = [
 export function userFacingReasonLabel(code: string | undefined): string | undefined {
   return USER_FACING_REASON_OPTIONS.find((o) => o.code === code)?.label;
 }
+
+// --- Rules-surface group titles ---
+// The two rule-GROUP headings for the platform rules content (`Rule.group`
+// 'workProjectType' / 'hallWingType' — see schemas/admin.ts). BOTH the admin rules editor
+// and the public rules page render these, so they are declared once here instead of being
+// restated as literals on each surface (ENG-002). Copy uses the short settled terms Work /
+// Hall / Wing (ARCH-107).
+
+export const WORK_PROJECT_TYPE_RULE_GROUP_TITLE = 'Work Type Rules';
+export const HALL_WING_TYPE_RULE_GROUP_TITLE = 'Hall Wing Rules';

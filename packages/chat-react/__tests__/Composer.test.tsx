@@ -1,20 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, act, screen, fireEvent } from '@testing-library/react';
-
-vi.mock('../src/mentions/use-mention-autocomplete.js', () => ({
-  useMentionAutocomplete: () => ({
-    state: { open: false },
-    getValueWithTokens: () => '',
-    close: vi.fn(),
-    insertMention: vi.fn(),
-    handleKeyDown: () => false,
-  }),
-}));
-
-vi.mock('../src/mentions/MentionAutocomplete.js', () => ({
-  MentionAutocomplete: () => null,
-}));
-
 import { Composer } from '../src/ui/Composer.js';
 
 describe('Composer is text-only (Conversation Files replaced chat attachments)', () => {
@@ -29,6 +14,27 @@ describe('Composer is text-only (Conversation Files replaced chat attachments)',
   it('keeps Send disabled with no text (there is no file to send instead)', () => {
     render(<Composer onSend={vi.fn().mockResolvedValue(undefined)} />);
     expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+  });
+
+  it('sends the typed text verbatim — no token grammar, no autocomplete transform', async () => {
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    render(<Composer onSend={onSend} />);
+
+    const typed = 'hey @Alice see @[user:u1|Bob]';
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: typed } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    await act(async () => {});
+
+    expect(onSend).toHaveBeenCalledWith(typed);
+  });
+
+  it('does not open an autocomplete popup on the mention trigger character', async () => {
+    render(<Composer onSend={vi.fn().mockResolvedValue(undefined)} />);
+    const textarea = screen.getByRole('textbox');
+    fireEvent.change(textarea, { target: { value: '@' } });
+    await act(async () => {});
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(screen.getAllByRole('button').map((b) => b.textContent)).toEqual(['Send']);
   });
 });
 

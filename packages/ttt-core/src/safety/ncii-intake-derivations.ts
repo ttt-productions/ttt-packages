@@ -104,8 +104,6 @@ export function normalizedTargetKey(locator: TargetLocatorV1): string {
       ].join(SEP);
     case 'guildChatMessage':
       return [k, locator.channelId, locator.messageId].join(SEP);
-    case 'adminWorkMessage':
-      return [k, locator.adminDispatchId, locator.messageId].join(SEP);
     case 'commissionProposal':
       return [k, locator.commissionListingId, locator.commissionProposalId].join(SEP);
     case 'workProject':
@@ -211,8 +209,6 @@ export function surfaceLabelFor(locator: TargetLocatorV1): string {
       return 'Conversation file';
     case 'guildChatMessage':
       return 'Guild chat message';
-    case 'adminWorkMessage':
-      return 'Work correspondence message';
     case 'commissionProposal':
       return 'Commission proposal';
     case 'workProject':

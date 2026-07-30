@@ -5,9 +5,6 @@ import { Button, Textarea } from "@ttt-productions/ui-core/react";
 import { cn } from "@ttt-productions/ui-core";
 import { useOptionalLocalUploadGuard } from "@ttt-productions/upload-ui/react/guard";
 import { Loader2 } from "lucide-react";
-import type { ChatMessageV1 } from "@ttt-productions/chat-core";
-import { useMentionAutocomplete } from "../mentions/use-mention-autocomplete.js";
-import { MentionAutocomplete } from "../mentions/MentionAutocomplete.js";
 
 function genId(): string {
   return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -15,11 +12,14 @@ function genId(): string {
 
 export type ComposerProps = {
   /**
-   * Text send. The composer is TEXT-ONLY — files are shared through the
-   * conversation's Conversation Files surface, never through the message
-   * timeline, so there is no attachment path here.
+   * Text send — the composer's ONE argument. The composer is PLAIN-TEXT-ONLY:
+   * files are shared through the conversation's Conversation Files surface,
+   * never through the message timeline, so there is no attachment path here;
+   * message text carries no inline token grammar, so what the user typed is what
+   * is sent; and there is no reply-target picker, so a send never names another
+   * message (DJ ruling 2026-07-29).
    */
-  onSend: (text: string, replyTo?: ChatMessageV1["replyTo"]) => Promise<void>;
+  onSend: (text: string) => Promise<void>;
 
   /**
    * Signal the local user is typing (R14). Called as the user edits the textarea; the
@@ -31,7 +31,6 @@ export type ComposerProps = {
   disabled?: boolean;
   autoFocus?: boolean;
   placeholder?: string;
-  mentionConfig?: import('../types.js').ChatMentionConfig;
 };
 
 export function Composer(props: ComposerProps) {
@@ -55,18 +54,6 @@ export function Composer(props: ComposerProps) {
   // Optional accessor — consumers without the provider degrade to old behavior.
   const navigationGuard = useOptionalLocalUploadGuard();
 
-  const mentionApi = useMentionAutocomplete({
-    textareaRef: ref as React.RefObject<HTMLTextAreaElement>,
-    value: text,
-    onChange: setText,
-    providers: props.mentionConfig?.providers ?? [],
-    context: props.mentionConfig?.context,
-    recent: props.mentionConfig?.recent,
-    trigger: props.mentionConfig?.trigger,
-    minQueryLength: props.mentionConfig?.minQueryLength,
-    searchDebounceMs: props.mentionConfig?.searchDebounceMs,
-  });
-
   // focus stability: never steal focus unless explicitly enabled
   React.useEffect(() => {
     if (!autoFocus) return;
@@ -83,9 +70,8 @@ export function Composer(props: ComposerProps) {
     navigationGuard?.registerUpload(sendGuardId);
 
     try {
-      await onSend(mentionApi.getValueWithTokens());
+      await onSend(text);
       setText("");
-      mentionApi.close();
     } catch (err) {
       // C-B8: a failed send (e.g. the realtime socket was closed) must NOT clear the
       // user's text — `setText("")` only runs on the success path above — and must NOT
@@ -103,17 +89,6 @@ export function Composer(props: ComposerProps) {
 
   return (
     <div className="chat-composer">
-      {props.mentionConfig && mentionApi.state.open && (
-        <div className="relative">
-          <div className="absolute bottom-full left-0 mb-1 z-10">
-            <MentionAutocomplete
-              state={mentionApi.state}
-              onSelect={(ref) => mentionApi.insertMention(ref)}
-            />
-          </div>
-        </div>
-      )}
-
       {sendError && (
         <div className="px-1 pb-1 text-sm text-destructive" role="alert">
           {sendError}
@@ -135,7 +110,6 @@ export function Composer(props: ComposerProps) {
           rows={1}
           className={cn("min-h-[40px] resize-none")}
           onKeyDown={(e) => {
-            if (mentionApi.handleKeyDown(e)) return;
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               send();

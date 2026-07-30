@@ -11,17 +11,19 @@ Chat **React UI** package — the React half of the chat split.
   files live in the consuming app's Conversation Files surface (a Files button +
   panel outside the message timeline), published through the canonical media
   pipeline and read from Firestore — never inserted into the chat timeline, the
-  DO message table, resume deltas, inbox previews, or reply previews.
+  DO message table, resume deltas, or inbox previews.
 - `ChatShell`/`MessageList` height modes: a default fixed-height card with an
   internal scroll region, or a `fillHeight` mode that flexes to fill a
   bounded-height page panel (scrolling inside) instead of a fixed box. The
   consumer gives `ChatShell` a bounded-height parent.
-- The generic mention **UI**: autocomplete dropdown, keyboard behavior,
-  composer insertion, and message-text rendering
+- Message-text rendering (`MessageText`) — the ONE place every chat text surface
+  (message bubbles) renders through. It renders the text
+  **verbatim**: there is no mention/token grammar, no autocomplete dropdown, no
+  composer token insertion, and no chip renderer. Mentions are a Square-posts
+  concept owned by the consuming app, never a chat concept.
 - The name-resolver context (`ChatNameResolverProvider`, …)
-- The adapter config types (`ChatCoreConfig`, `ChatMentionConfig`) and the
-  React render types (`MessageRenderer`, `RenderableMentionProvider`,
-  `MentionResultRenderer`)
+- The adapter config types (`ChatCoreConfig`) and the React render types
+  (`MessageRenderer`, `MessageRendererRegistry`)
 - A discriminated **transport config** (chat-edge-rebuild P1): `ChatCoreConfig`
   carries an optional `transport: ChatTransportMode` (`'firestore' | 'realtime'`,
   default `'firestore'` so existing call sites are unchanged) plus an optional
@@ -217,9 +219,19 @@ optional peers. The realtime transport uses a global `WebSocket` (overridable vi
 an injected `socketFactory`).
 
 `chat-react` does not import `ttt-core`, does not hardcode TTT origins, and does
-not build TTT storage paths. Consumers pass a chat upload adapter with opaque
-origin id, upload path builder, and optional metadata builder. TTT mention
-kinds, permissions, provider lists, routing, and search live in TTT code.
+not build TTT storage paths — it runs no upload path at all, so there is no chat
+upload adapter to pass. It also owns no mention machinery: mentions belong to the
+app's Square-posts surface, not to chat.
+
+It owns no **reply-to** machinery either. There is no reply-quote renderer, no
+reply stylesheet, and no reply argument anywhere on the send path:
+`ChatShellProps.onSend`, `ComposerProps.onSend`, and the realtime
+`send`/`ChannelClient.send` all take text alone, and no `send` frame carries a
+reply pointer. The product has no affordance for replying to a specific message
+(`MessageActions` renders only Report/Delete), so the machinery was removed
+rather than left dormant (DJ ruling 2026-07-29). The realtime mapper ignores a
+legacy `replyTo` column a pre-removal Channel DO may still broadcast — guarded by
+`__tests__/realtime/wire-contract.test.ts`.
 
 ## Entry points
 

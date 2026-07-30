@@ -15,9 +15,6 @@ import {
   MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH,
   MAX_CHAT_MODERATION_REASON_LENGTH,
 } from '../constants/business.js';
-import {
-  ReplyToSchema,
-} from '@ttt-productions/chat-schemas';
 import { AdminDispatchContextRefSchema } from '../doc-schemas/messaging.js';
 
 export const ArchiveGuildChatChannelInputSchema = z.object({
@@ -52,7 +49,9 @@ export const SendGuildChatMessageInputSchema = z.object({
   adminDispatchId: adminDispatchIdSchema,
   isUserReply: z.boolean(),
   text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
-  replyTo: ReplyToSchema.optional(),
+  // No reply pointer: chat has no reply-authoring affordance, so a client could never
+  // legitimately send one. `.strict()` therefore REJECTS a client-sent `replyTo`
+  // (DJ ruling 2026-07-29).
 }).strict();
 export type SendGuildChatMessageInput = z.infer<typeof SendGuildChatMessageInputSchema>;
 

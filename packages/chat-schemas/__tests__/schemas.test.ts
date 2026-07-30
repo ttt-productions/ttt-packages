@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import * as chatSchemas from '../src/index.js';
-import { ReplyToSchema } from '../src/index.js';
 
 describe('chat message schemas are text-only (Conversation Files replaced attachments)', () => {
   it('exports no chat-attachment schema, type helper, or constant', () => {
@@ -13,52 +12,16 @@ describe('chat message schemas are text-only (Conversation Files replaced attach
     expect(exported.filter((name) => /attachment/i.test(name))).toEqual([]);
   });
 
-  it('ReplyToSchema rejects an attachment field (a reply pointer is text metadata only)', () => {
-    expect(() =>
-      ReplyToSchema.parse({
-        messageId: 'msg_1',
-        senderId: 'user_1',
-        messagePreview: 'Hello there',
-        attachment: { id: 'att_1' },
-      }),
-    ).toThrow();
-  });
-});
-
-describe('ReplyToSchema', () => {
-  const valid = {
-    messageId: 'msg_1',
-    senderId: 'user_1',
-    messagePreview: 'Hello there',
-  };
-
-  it('accepts a valid reply', () => {
-    expect(() => ReplyToSchema.parse(valid)).not.toThrow();
-  });
-
-  it('accepts empty messagePreview', () => {
-    expect(() => ReplyToSchema.parse({ ...valid, messagePreview: '' })).not.toThrow();
-  });
-
-  it('rejects empty messageId', () => {
-    expect(() => ReplyToSchema.parse({ ...valid, messageId: '' })).toThrow();
-  });
-
-  it('rejects empty senderId', () => {
-    expect(() => ReplyToSchema.parse({ ...valid, senderId: '' })).toThrow();
-  });
-
-  it('rejects extra unknown fields', () => {
-    expect(() => ReplyToSchema.parse({ ...valid, extra: 'x' })).toThrow();
-  });
-
-  it('bounds messagePreview at MAX_CHAT_REPLY_PREVIEW_LENGTH', () => {
-    const max = chatSchemas.MAX_CHAT_REPLY_PREVIEW_LENGTH;
-    expect(() =>
-      ReplyToSchema.parse({ ...valid, messagePreview: 'a'.repeat(max) }),
-    ).not.toThrow();
-    expect(() =>
-      ReplyToSchema.parse({ ...valid, messagePreview: 'a'.repeat(max + 1) }),
-    ).toThrow();
+  it('exports no reply-to schema, type helper, or constant', () => {
+    // No chat surface has an authoring affordance for replying to a specific
+    // message (chat-react's MessageActions renders only Report/Delete; the
+    // composer's onSend takes text alone), so a reply pointer could never be
+    // populated by a user action. The machinery was removed rather than left
+    // dormant (DJ ruling 2026-07-29) — a re-introduced reply export is the
+    // regression this asserts against.
+    const exported = Object.keys(chatSchemas);
+    expect(exported).not.toContain('ReplyToSchema');
+    expect(exported).not.toContain('MAX_CHAT_REPLY_PREVIEW_LENGTH');
+    expect(exported.filter((name) => /reply/i.test(name))).toEqual([]);
   });
 });

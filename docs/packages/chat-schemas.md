@@ -4,7 +4,6 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
 
 ## Owns
 
-- `ReplyToSchema` and the inferred `ReplyTo` type
 - **The chat realtime wire contract** (`src/realtime-wire.ts`) — the single owner
   of the chat socket protocol shared by the chat React client, the chat Cloudflare
   Worker, and Cloud Functions. The socket frame envelope is `{ v, type, payload }`.
@@ -45,4 +44,11 @@ This package is intentionally tiny and has no internal `@ttt-productions/*` depe
   never to a message. A chat message schema that accepts an `attachment` field is
   a regression — the package contract test asserts against it.
 - TTT-specific callable schemas
-- TTT-specific mention providers
+- **Any mention/token contract.** Chat message text is plain text; mentions are a
+  Square-posts concept owned by `ttt-core` and the app, never a chat one.
+- **Any reply-to contract.** There is no `ReplyToSchema`, `ReplyTo` type, or
+  preview-length bound. No chat surface has an authoring affordance for replying
+  to a specific message (`chat-react`'s `MessageActions` renders only
+  Report/Delete; the composer's `onSend` takes text alone), so a reply pointer
+  could never be populated — the machinery was removed rather than left dormant
+  (DJ ruling 2026-07-29). The package contract test asserts against its return.

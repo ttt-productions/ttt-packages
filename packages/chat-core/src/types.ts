@@ -1,5 +1,3 @@
-import type { ReplyTo } from "@ttt-productions/chat-schemas";
-
 // ============================================
 // THREAD & MESSAGE
 // ============================================
@@ -7,6 +5,10 @@ import type { ReplyTo } from "@ttt-productions/chat-schemas";
 // Chat is TEXT-ONLY. A message never carries a file: files belong to the
 // CONVERSATION (the Conversation Files list owned by the consuming app), not to
 // a message in its timeline. There is no attachment contract in this package.
+//
+// A message also carries NO reply pointer: no chat surface has an authoring
+// affordance for replying to a specific message, so a `replyTo` contract here
+// would be unreachable machinery (DJ ruling 2026-07-29).
 
 export type ChatId = string;
 
@@ -26,7 +28,6 @@ export type ChatMessageV1 = {
   senderId: string;
   text?: string;
   type?: string;               // optional for renderer registry
-  replyTo?: ReplyTo;
   isSystemMessage?: boolean;
   /** Moderation tombstone flag on the stored message (backend-written); consumers
    * render a tombstone instead of the content when true. */

@@ -7,11 +7,29 @@ Generic UI primitive package.
 - shadcn-style primitives and shared UI helpers
 - `cn`
 - Generic app-agnostic components such as relative time, end-of-list indicator, scroll-to-top button, and chunk error recovery
+- The list-pagination BUTTONS control and its page-state hooks (see below)
 - Generic formatting helpers such as `formatLargeNumber`
 
 ## Boundary
 
 Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`.
+
+## List pagination
+
+`ListPagination` is the ONE Previous / counter / Next button row for paginated lists — both flavors, one component, so the layout, the disabled edges, the touch targets, and the live region cannot drift apart. Durable behavior contract:
+
+- **The counter is the only difference between the flavors.** `pagination.totalPages` is the discriminant: a number renders `"2 of 5"`, an omitted value renders `"Page 2"`. Everything else is identical.
+- **One visibility rule.** The row renders nothing when neither direction is available (`!canPreviousPage && !canNextPage`) — for a known total that is exactly `totalPages > 1`, and for a cursor feed it is `page > 1 || hasMore`. No call site repeats the guard.
+- **Edges are real `disabled`.** Announced and unclickable, never a click that silently does nothing. `busy` disables BOTH controls while a page is in flight and deliberately does NOT hide the row, so the controls grey out in place instead of vanishing mid-fetch.
+- **Accessibility.** The counter is a `status` live region, so a page change is announced; both buttons keep a 44px touch target.
+- **Generic + semantic only.** Semantic theme classes and tokens, `outline` button variant, no business identifiers, no page-size constants — the caller supplies its own page size.
+
+Two page-state hooks produce the control's `pagination` prop, and a surface whose data hook already owns its page number can supply the same shape directly:
+
+- `usePagedList(items, pageSize, { onPageChange })` — client-side slice pagination over an ALREADY-FETCHED list. Owns the page math, clamps onto the last real page when the list shrinks under the open page, and returns `pageItems` plus a known `totalPages`. Ordering and filtering stay with the caller.
+- `useCursorPage(hasMore, { onPageChange })` — page number only, for a server/cursor feed. The caller feeds `hasMore` from its query and passes `currentPage` back into it; `reset()` returns to page 1 when the query inputs change.
+
+Both hooks guard their step functions, so `onPageChange` fires only on a page change that actually happened.
 
 ## DatePicker
 

@@ -31,7 +31,7 @@ export type UseRealtimeChatMessagesResult = {
   typing: string[];
   presence: string[];
   /** Returns false when the socket was closed and nothing was sent (C-B8) — the caller keeps the composer text. */
-  send: (text: string, replyTo?: { messageSeq: number; preview: string } | null) => boolean;
+  send: (text: string) => boolean;
   /** Retry a failed/un-acked send by its ORIGINAL clientMessageId (read from the
    *  failed row's `meta.clientMessageId`) — the transport re-queues the tracked
    *  pending send with the SAME id so the DO's send-idempotency dedups any copy
@@ -66,7 +66,6 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
     const set = new Set<string>();
     for (const m of state.messages) {
       set.add(m.senderId);
-      if (m.replyTo?.senderId) set.add(m.replyTo.senderId);
     }
     return Array.from(set);
   }, [state.messages]);
@@ -80,8 +79,8 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
   }, [client]);
 
   const send = React.useCallback(
-    (text: string, replyTo?: { messageSeq: number; preview: string } | null): boolean =>
-      client.channel.send({ clientMessageId: makeClientMessageId(), text, replyTo: replyTo ?? null }),
+    (text: string): boolean =>
+      client.channel.send({ clientMessageId: makeClientMessageId(), text }),
     [client],
   );
 
