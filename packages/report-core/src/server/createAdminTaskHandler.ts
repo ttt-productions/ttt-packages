@@ -1,5 +1,5 @@
 import type { ServerFirestore, ServerReportCoreConfig } from './types.js';
-import { USER_REPORT_TASK_TYPE } from '../config.js';
+import { buildUserReportAdminTaskDoc } from './buildUserReportAdminTaskDoc.js';
 
 export interface AdminTaskHandlerConfig {
   config: ServerReportCoreConfig;
@@ -12,6 +12,9 @@ export interface AdminTaskHandlerConfig {
  * Creates an adminTasks entry with a calculated priority score.
  *
  * The app registers this as an onDocumentCreated trigger on the reportGroups collection.
+ * The task's id convention, stored shape, priority formula, and summary copy are owned by
+ * `buildUserReportAdminTaskDoc` — this handler is the standalone-write adapter over it; a
+ * caller that must write the task inside its own transaction uses the builder directly.
  *
  * @returns An async handler: (groupData, groupId) => Promise<void>
  */
@@ -23,48 +26,15 @@ export function createAdminTaskHandler({
   return async (groupData: Record<string, unknown>, groupId: string): Promise<void> => {
     if (!groupData) return;
 
-    const now = Date.now();
-    const itemType = groupData.reportedItemType as string;
-    const totalReports = (groupData.totalReports as number) ?? 1;
-    const highestReasonScore = (groupData.highestReasonScore as number) ?? config.priorityConfig.defaultReasonScore;
-
-    // Find the reason that matches this score (for the formula)
-    // Since we store highestReasonScore, we reverse-lookup or just use the score directly
-    const reasonScore = highestReasonScore;
-    const itemMultiplier =
-      config.priorityConfig.itemTypeMultipliers[itemType] ??
-      config.priorityConfig.defaultItemTypeMultiplier;
-    const bonus = Math.max(0, totalReports - 1) * config.priorityConfig.additionalReportBonus;
-    const priority = reasonScore * itemMultiplier + bonus;
-
-    const count = totalReports;
-    const itemDesc = itemType;
-
-    const adminTaskId = `userReport-${groupId}`;
-    const adminTaskRef = db.collection(config.collections.adminTasks).doc(adminTaskId);
-
-    await adminTaskRef.set({
-      taskType: USER_REPORT_TASK_TYPE,
-      taskId: groupId,
-      originalPath: `${config.collections.reportGroups}/${groupId}`,
-      status: 'pending',
-      checkoutDetails: null,
-      summary: `${count} report${count > 1 ? 's' : ''} for ${itemDesc}`,
-      priority,
-      // Report identity — persisted on the task so admin task surfaces can filter/scope by
-      // the reported user and item WITHOUT re-reading the group (a reported-user filter on an
-      // admin report queue queries `reportedUserId` on the task doc). The caller passes these
-      // in groupData; coalesce to null since the Admin SDK rejects `undefined` and an
-      // unresolved owner (e.g. a chat report whose sender isn't resolved yet) legitimately has
-      // no reportedUserId.
-      reportedUserId: (groupData.reportedUserId as string | undefined) ?? null,
-      reportedItemType: itemType ?? null,
-      reportedItemId: (groupData.reportedItemId as string | undefined) ?? null,
-      parentItemId: (groupData.parentItemId as string | undefined) ?? null,
-      createdAt: now,
-      lastUpdatedAt: now,
+    const { adminTaskId, doc } = buildUserReportAdminTaskDoc({
+      config,
+      groupData,
+      groupId,
+      now: Date.now(),
     });
+    const adminTaskRef = db.collection(config.collections.adminTasks).doc(adminTaskId);
+    await adminTaskRef.set(doc);
 
-    logger.info(`Created adminTask ${adminTaskId} for report group ${groupId} with priority ${priority}`);
+    logger.info(`Created adminTask ${adminTaskId} for report group ${groupId} with priority ${doc.priority}`);
   };
 }

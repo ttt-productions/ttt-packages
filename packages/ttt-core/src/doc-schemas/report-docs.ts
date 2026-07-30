@@ -38,6 +38,20 @@ export const CheckoutDetailsSchema = z.object({
   workLaterUntil: z.number().nullable(),
 });
 
+/**
+ * One prior closure of a userReport task, appended to `closureHistory` when a new distinct
+ * report resurfaces a previously-closed report group. ONE shape for BOTH reopen paths:
+ * the in-place reopen of a task still sitting there `completed` (its own `completedAt`), and
+ * the recreate of a task the guided close-out deleted (the group's `resolvedAt` — the same
+ * close-out batch wrote both, so they are the same fact from two survivors). `completedAt`
+ * is null when neither survivor recorded the closure instant.
+ */
+export const AdminTaskClosureHistoryEntrySchema = z.object({
+  completedAt: z.number().nullable(),
+  reopenedAt: z.number(),
+});
+export type AdminTaskClosureHistoryEntry = z.infer<typeof AdminTaskClosureHistoryEntrySchema>;
+
 export const AdminTaskSchema = z.object({
   id: z.string(),
   taskType: AdminTaskTypeSchema,
@@ -49,6 +63,9 @@ export const AdminTaskSchema = z.object({
   priority: z.number(),
   createdAt: z.number(),
   lastUpdatedAt: z.number(),
+  // Absent on a task that is not completed. A REOPEN deletes the field (FieldValue.delete()),
+  // never writes null — a reopened task is shape-identical to a pending one, so "not
+  // completed" has exactly one representation.
   completedAt: z.number().optional(),
   itemData: z.unknown().optional(),
 });
@@ -63,7 +80,10 @@ export const AdminTaskSchema = z.object({
 //   thresholdLibraryReview → runSubmitForThresholdLibraryReview.ts (foundingArtisanUid)
 //   stakeShareAnomaly      → runWorkProjectGuildmateUserStakeShareAudit.ts (metadata)
 //   adminDispatch          → runStartAdminSupportThread.ts (no extras)
-// (userReport tasks read from activeReportGroups — no adminTasks doc is written for them.)
+//   userReport             → report-core's createAdminTaskHandler + the app's
+//                            runOnReportCreated (report identity: reportedUserId /
+//                            reportedItemType / reportedItemId / parentItemId; reopen:
+//                            closureHistory)
 export const AdminTaskDocSchema = AdminTaskSchema.extend({
   id: z.string().optional(),
   violationId: z.string().optional(),
@@ -79,5 +99,17 @@ export const AdminTaskDocSchema = AdminTaskSchema.extend({
   partyKind: z.enum(['user', 'workProject']).optional(),
   workProjectId: z.string().optional(),
   hallItemId: z.string().optional(),
+  // userReport tasks — report identity, denormalized by report-core's task creator so admin
+  // task surfaces can filter/scope without re-reading the group. Null (not absent) when the
+  // writer had no value: an unresolved chat sender has no reportedUserId, a parentless item
+  // no parentItemId — the Admin SDK rejects `undefined`, so writers coalesce to null.
+  reportedUserId: z.string().nullable().optional(),
+  reportedItemType: z.string().nullable().optional(),
+  reportedItemId: z.string().nullable().optional(),
+  parentItemId: z.string().nullable().optional(),
+  // userReport tasks — prior closures, appended (arrayUnion) when a new distinct report
+  // resurfaces a closed report group. Cross-boundary: Functions writes it, the admin queue
+  // UI reads it.
+  closureHistory: z.array(AdminTaskClosureHistoryEntrySchema).optional(),
 });
 export type AdminTaskDoc = z.infer<typeof AdminTaskDocSchema>;

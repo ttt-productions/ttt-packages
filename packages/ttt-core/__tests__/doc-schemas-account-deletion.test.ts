@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   AccountDeletionRequestStatusSchema,
+  AccountDeletionRequestV1Schema,
   ACTIVE_DELETION_REQUEST_STATUSES,
   isActiveDeletionRequest,
 } from '../src/doc-schemas/account-deletion';
@@ -67,5 +68,37 @@ describe('isActiveDeletionRequest truth table', () => {
     for (const value of [undefined, null, '', 'PENDING', 'pending ', 'unknownStatus', 0, 1, {}, [], true]) {
       expect(isActiveDeletionRequest(value)).toBe(false);
     }
+  });
+});
+
+describe('AccountDeletionRequestV1Schema — the durable token-revocation obligation', () => {
+  const baseRequest = () => ({
+    schemaVersion: 1,
+    uid: 'u1',
+    status: 'pending',
+    requestedAt: 1_700_000_000_000,
+    scheduledScrubAt: 1_702_592_000_000,
+    graceDays: 30,
+    createdAt: 1_700_000_000_000,
+    updatedAt: 1_700_000_000_000,
+  });
+
+  it('parses a request with the revocation obligation still PENDING (tokensRevokedAt absent)', () => {
+    const parsed = AccountDeletionRequestV1Schema.parse(baseRequest());
+    expect(parsed.tokensRevokedAt).toBeUndefined();
+  });
+
+  it('parses a request whose tokens were revoked (tokensRevokedAt stamped)', () => {
+    const parsed = AccountDeletionRequestV1Schema.parse({
+      ...baseRequest(),
+      tokensRevokedAt: 1_700_000_000_500,
+    });
+    expect(parsed.tokensRevokedAt).toBe(1_700_000_000_500);
+  });
+
+  it('rejects a non-number tokensRevokedAt (absent is the only "not yet" representation)', () => {
+    expect(
+      AccountDeletionRequestV1Schema.safeParse({ ...baseRequest(), tokensRevokedAt: null }).success,
+    ).toBe(false);
   });
 });

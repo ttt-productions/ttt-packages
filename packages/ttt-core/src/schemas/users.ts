@@ -165,3 +165,22 @@ export const LookupUserByEmailOrUidInputSchema = z.object({
 }).strict();
 export type LookupUserByEmailOrUidInput = z.infer<typeof LookupUserByEmailOrUidInputSchema>;
 
+// N3 account deletion — wire result contracts for the two user-facing callables (both take
+// no input). Previously declared independently in functions/src and src/hooks — one drifting
+// pair per callable. Non-strict (server → client result posture).
+export const RequestAccountDeletionResultSchema = z.object({
+  success: z.literal(true),
+  /** When the scheduled scrub will run (requestedAt + the grace window), epoch ms. */
+  scheduledScrubAt: z.number(),
+  /** True when an ACTIVE request already existed and its schedule was re-returned. */
+  alreadyPending: z.boolean(),
+});
+export type RequestAccountDeletionResult = z.infer<typeof RequestAccountDeletionResultSchema>;
+
+export const CancelAccountDeletionResultSchema = z.object({
+  success: z.literal(true),
+  /** False when there was no active request to cancel (idempotent no-op). */
+  cancelled: z.boolean(),
+});
+export type CancelAccountDeletionResult = z.infer<typeof CancelAccountDeletionResultSchema>;
+

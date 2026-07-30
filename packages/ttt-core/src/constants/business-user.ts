@@ -20,6 +20,15 @@ export const USERNAME_REGEX = /^[a-zA-Z0-9]+$/;
  */
 export const FORMER_MEMBER_DISPLAY_NAME = 'Former member';
 
+/**
+ * N3 account deletion / GDPR erasure — the grace window (days) between the deletion
+ * request and the destructive scrub. Logging back in during the window is the one cancel.
+ * Persisted on each request as `graceDays` (compliance trail) and stated as product policy
+ * in the user-facing data-deletion documents — ONE declaration; the callable and the copy
+ * both derive from it.
+ */
+export const ACCOUNT_DELETION_GRACE_DAYS = 30;
+
 import { ACTIVE_LIMITS } from './app-mode.js';
 
 // --- User Profile Craft Skills ---

@@ -134,6 +134,13 @@ export const AccountDeletionRequestV1Schema = z
     scheduledScrubAt: z.number(),
     graceDays: z.number(), // recorded for the audit/compliance trail (30 at launch)
     cancelledAt: z.number().optional(),
+    // When the user's refresh tokens were revoked for THIS request ("account deletion signs
+    // the user out of every session everywhere"). ABSENT = the obligation is still pending:
+    // the request doc IS the durable state (BACKEND-302/QUALITY-104) — the callable's
+    // immediate revoke is only the accelerator, and the scheduled scrub-worker drain
+    // re-revokes + stamps any ACTIVE request missing this field until it succeeds.
+    // Revocation is idempotent, so a lost stamp merely causes one redundant re-revoke.
+    tokensRevokedAt: z.number().optional(),
     scrubStartedAt: z.number().optional(),
     // Why a scrub is parked (e.g. 'blocking safety hold over user data') — kept for
     // the GDPR compliance record so a deferred erasure is explainable.

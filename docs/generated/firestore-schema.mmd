@@ -22,11 +22,11 @@ erDiagram
     field scheduledScrubAt
     field graceDays
     field cancelledAt
+    field tokensRevokedAt
     field scrubStartedAt
     field parkedReason
     field parkedAt
     field lastHoldCheckAt
-    field completedAt
   }
   accounts {
     field role
@@ -1579,6 +1579,7 @@ erDiagram
   userProfiles ||--o{ activeAdminNotifications : "targetUserId"
   userProfiles ||--o{ activeUserNotifications : "targetUserId"
   userProfiles ||--o{ adminTasks : "foundingArtisanUid"
+  userProfiles ||--o{ adminTasks : "reportedUserId"
   userProfiles ||--o{ adminTasks : "userId"
   userProfiles ||--o{ chatAdminActionCommands : "actorUid"
   userProfiles ||--o{ chatChannelAuthProjections : "uid"

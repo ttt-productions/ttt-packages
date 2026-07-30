@@ -5,6 +5,8 @@
 // admin-task QUEUE machinery below.
 export { createAdminTaskHandler } from './createAdminTaskHandler.js';
 export type { AdminTaskHandlerConfig } from './createAdminTaskHandler.js';
+export { buildUserReportAdminTaskDoc } from './buildUserReportAdminTaskDoc.js';
+export type { BuildUserReportAdminTaskDocArgs, BuiltUserReportAdminTask } from './buildUserReportAdminTaskDoc.js';
 
 export { createCheckoutTaskHandler } from './createCheckoutTaskHandler.js';
 export type { CheckoutTaskHandlerConfig } from './createCheckoutTaskHandler.js';

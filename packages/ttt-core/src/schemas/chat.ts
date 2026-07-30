@@ -51,6 +51,18 @@ export const CreateGuildChatChannelInputSchema = z.object({
 }).strict();
 export type CreateGuildChatChannelInput = z.infer<typeof CreateGuildChatChannelInputSchema>;
 
+// ONE wire result contract for ALL FIVE channel-lifecycle callables (create / archive /
+// unarchive / update / delete): each answers with the id of the channel it acted on.
+// One named shape, not five aliases — the lanes deliberately share a result contract, and a
+// future divergence should be a visible schema split, not a silent drift between app-local
+// copies (the frontend once typed unarchive's result as `{ channelId }` against a backend
+// returning `guildChatChannelId`; both compiled). Non-strict (server → client result posture).
+export const GuildChatChannelLifecycleResultSchema = z.object({
+  success: z.literal(true),
+  guildChatChannelId: guildChatChannelIdSchema,
+});
+export type GuildChatChannelLifecycleResult = z.infer<typeof GuildChatChannelLifecycleResultSchema>;
+
 // Guild channels + invite threads moved to the realtime chat (Cloudflare DOs), which
 // sends through the DO client — NOT this callable. The Firestore send path is retained
 // PERMANENTLY for admin-support threads only (ttt-prod docs/design/chat-realtime-system.md).

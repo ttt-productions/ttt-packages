@@ -181,6 +181,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `scheduledScrubAt` | `number` |  |
 | `graceDays` | `number` |  |
 | `cancelledAt` | `number` | yes |
+| `tokensRevokedAt` | `number` | yes |
 | `scrubStartedAt` | `number` | yes |
 | `parkedReason` | `string` | yes |
 | `parkedAt` | `number` | yes |
@@ -299,6 +300,11 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `partyKind` | `'user' \| 'workProject'` | yes |
 | `workProjectId` | `string` | yes |
 | `hallItemId` | `string` | yes |
+| `reportedUserId` | `string \| null` | yes |
+| `reportedItemType` | `string \| null` | yes |
+| `reportedItemId` | `string \| null` | yes |
+| `parentItemId` | `string \| null` | yes |
+| `closureHistory` | `{ completedAt, reopenedAt }[]` | yes |
 
 ## `ageAttestationNonces/{nonceHash}`
 

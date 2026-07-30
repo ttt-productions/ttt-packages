@@ -250,6 +250,15 @@ export const MAX_AUDITION_DESCRIPTION_LENGTH = 1000;
  */
 export const MAX_SPONSORED_AUDITION_AMOUNT_USD = 500_000;
 
+/**
+ * The one user-facing rejection sentence when a Work's own active guildmate tries to enter
+ * that Work's open audition (entries exist to recruit OUTSIDERS; a member can't be
+ * recruited). Shared by both backend enforcement points (upload-accept and publish) — it is
+ * the `failed-precondition` answer text the entry UI renders verbatim.
+ */
+export const GUILDMATE_AUDITION_ENTRY_REJECTION =
+  'You are already a guildmate of this Work — its audition is for recruiting new collaborators.';
+
 // --- SquareStreetz (Social Feed) ---
 
 /** Maximum length for a SquareStreetz post. */
