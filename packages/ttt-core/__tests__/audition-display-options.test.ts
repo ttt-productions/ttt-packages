@@ -75,6 +75,55 @@ describe('audition sort keys', () => {
     }
   });
 
+  it('shares ONE declaration of the newest/endingSoon pair across every feed', () => {
+    // The pair used to be restated verbatim in all four feed entries; it is now spread from a
+    // single base declaration. This pins VALUE equality, so a future edit that reintroduces a
+    // per-feed copy of either option (and drifts its label/field/direction) fails here.
+    const base = AUDITION_SORT_OPTIONS.default;
+    for (const [feed, options] of Object.entries(AUDITION_SORT_OPTIONS)) {
+      expect(options.newest, `${feed}.newest drifted from the shared base pair`).toEqual(base.newest);
+      expect(options.endingSoon, `${feed}.endingSoon drifted from the shared base pair`).toEqual(
+        base.endingSoon,
+      );
+    }
+  });
+
+  it('pins the shared pair to the settled labels + sort fields', () => {
+    expect(AUDITION_SORT_OPTIONS.default.newest).toEqual({
+      label: 'Newest First',
+      field: 'createdOn',
+      direction: 'desc',
+    });
+    expect(AUDITION_SORT_OPTIONS.default.endingSoon).toEqual({
+      label: 'Ending Soon',
+      field: 'openTill',
+      direction: 'asc',
+    });
+  });
+
+  it('platformAudition stays an exact copy of the default set (the by-type lookup must be total)', () => {
+    // `AUDITION_SORT_OPTIONS[filter]` is indexed by the canonical AuditionType, so platform
+    // auditions need an entry even though they offer nothing beyond the shared pair.
+    expect(AUDITION_SORT_OPTIONS.platformAudition).toEqual(AUDITION_SORT_OPTIONS.default);
+  });
+
+  it('AuditionSortKey derives exactly the six declared sort keys', () => {
+    const declared = new Set(
+      Object.values(AUDITION_SORT_OPTIONS).flatMap((feed) => Object.keys(feed)),
+    );
+    expect([...declared].sort()).toEqual([
+      'endingSoon',
+      'highestPrice',
+      'highestStakeShares',
+      'lowestPrice',
+      'lowestStakeShares',
+      'newest',
+    ]);
+    // Compile-checked: the shared pair's keys are still members of the derived union.
+    const sharedPairKeys: AuditionSortKey[] = ['newest', 'endingSoon'];
+    for (const key of sharedPairKeys) expect(declared.has(key)).toBe(true);
+  });
+
   it('AuditionSortKey spans every feed, not just the default one', () => {
     // The failure this guards: deriving the union from AUDITION_SORT_OPTIONS.default only,
     // which silently rejects the type-specific keys. These two are declared on exactly one

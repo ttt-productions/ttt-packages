@@ -23,9 +23,13 @@ import { WorkRealmSchema } from '../src/doc-schemas/work-project';
 import {
   HALL_CONTENT_TEXT_FIELDS,
   HALL_CONTENT_TEXT_FIELD_MAX,
+  HALL_CONTENT_SURFACES_BY_WORK_TYPE,
+  MODERATION_CLEARABLE_TEXT_FIELDS,
   REAL_PEOPLE_DISCLAIMER_HEADER,
   REAL_PEOPLE_DISCLAIMER_MESSAGE,
 } from '../src/constants/business-content';
+import { CLEARABLE_TEXT_FIELD_LABELS } from '../src/constants/admin-labels';
+import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
 import {
   MAX_WORK_REALM_TITLE_LENGTH,
   MAX_WORK_REALM_DESCRIPTION_LENGTH,
@@ -134,6 +138,63 @@ describe('realm grain surface + allowlist', () => {
     for (const fieldNames of Object.values(HALL_CONTENT_TEXT_FIELDS)) {
       for (const field of fieldNames) {
         expect(HALL_CONTENT_TEXT_FIELD_MAX[field as keyof typeof HALL_CONTENT_TEXT_FIELD_MAX]).toBeTypeOf('number');
+      }
+    }
+  });
+});
+
+describe('HALL_CONTENT_SURFACES_BY_WORK_TYPE', () => {
+  it('routes every canonical work-project type (completeness)', () => {
+    expect(Object.keys(HALL_CONTENT_SURFACES_BY_WORK_TYPE).sort()).toEqual(
+      [...WORK_PROJECT_TYPE_KEYS].sort(),
+    );
+  });
+
+  it('routes each type to its settled detail + sub-item surface identities', () => {
+    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tales.detailSurface).toBe('tale');
+    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tales.subItemSurface).toBe('chapter');
+    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tunes.detailSurface).toBe('tune');
+    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tunes.subItemSurface).toBe('tuneTrack');
+    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Television.detailSurface).toBe('television');
+    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Television.subItemSurface).toBe('televisionEpisode');
+  });
+
+  it('every routed surface is a canonical text surface AND a clearable surface', () => {
+    for (const routing of Object.values(HALL_CONTENT_SURFACES_BY_WORK_TYPE)) {
+      for (const surface of [routing.detailSurface, routing.subItemSurface]) {
+        expect(HallContentTextSurfaceSchema.safeParse(surface).success).toBe(true);
+        expect(MODERATION_CLEARABLE_TEXT_FIELDS).toHaveProperty(surface);
+      }
+    }
+  });
+
+  it('composes its field tuples from the canonical clearable-field map (no restated literals)', () => {
+    for (const routing of Object.values(HALL_CONTENT_SURFACES_BY_WORK_TYPE)) {
+      const owner = MODERATION_CLEARABLE_TEXT_FIELDS as Record<string, readonly string[]>;
+      expect(routing.detailFields).toBe(owner[routing.detailSurface]);
+      expect(routing.subItemFields).toBe(owner[routing.subItemSurface]);
+    }
+  });
+
+  it('distinguishes the Tale chapter tuple from the track/episode tuple', () => {
+    // The failure this guards: the admin picker's old `type === 'Tales' ? chapter : tuneTrack`
+    // ternary handed Television the tuneTrack tuple — correct only while the two happen to match.
+    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tales.subItemFields).toEqual(['title', 'content']);
+    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tunes.subItemFields).toEqual(['title', 'description']);
+    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Television.subItemFields).toEqual([
+      'title',
+      'description',
+    ]);
+    expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE.Television.subItemFields).not.toBe(
+      HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tunes.subItemFields,
+    );
+  });
+
+  it('every routed field has a cap and a display label', () => {
+    for (const routing of Object.values(HALL_CONTENT_SURFACES_BY_WORK_TYPE)) {
+      for (const field of [...routing.detailFields, ...routing.subItemFields]) {
+        expect(HALL_CONTENT_TEXT_FIELD_MAX[field]).toBeTypeOf('number');
+        expect(CLEARABLE_TEXT_FIELD_LABELS[field].length).toBeGreaterThan(0);
       }
     }
   });

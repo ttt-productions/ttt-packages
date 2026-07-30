@@ -12,6 +12,7 @@
 
 import type { UserAccountStatus } from '../doc-schemas/user.js';
 import type { FeedbackType } from './business-admin.js';
+import type { ClearableTextFieldName } from './business-content.js';
 import type { ReportDisposition } from '../doc-schemas/safety/foundation.js';
 import type { BroadcastAudienceSelector } from '../schemas/notification.js';
 import type { DeadLetterCollection } from '../schemas/admin.js';
@@ -44,6 +45,35 @@ export const FEEDBACK_TYPE_LABELS: Record<FeedbackType, string> = {
   tunesWorkGenreSuggestions: 'Tunes Genres',
   televisionWorkGenreSuggestions: 'Television Genres',
 };
+
+/**
+ * Human labels for the raw clearable/changeable TEXT-FIELD names the moderation text-clear
+ * remedy and the published "Update details" change-request flow work in. The backend stores and
+ * validates the raw doc field names (`workingTitle`, `description`, `content`); these are the
+ * only display strings for them — rendered by the member-facing "text removed by moderation"
+ * banners, every admin clear-text field picker, the change-request dialog, and the admin
+ * change-request work view. Keyed by the derived ClearableTextFieldName union, so a new
+ * clearable field fails the build here until it has a label (ARCH-102).
+ *
+ * The `working*` pair belongs to the Work shell and the Realm doc; the labels stay the plain
+ * short terms (ARCH-107 — the code identifier carries `working`, the UI never shows it).
+ */
+export const CLEARABLE_TEXT_FIELD_LABELS: Record<ClearableTextFieldName, string> = {
+  workingTitle: 'Title',
+  workingDescription: 'Description',
+  title: 'Title',
+  description: 'Description',
+  content: 'Content',
+};
+
+/**
+ * The display label for one raw clearable text-field name, falling back to the raw name.
+ * Tolerates a plain `string` because the callers read field names off stored documents
+ * (`moderationClearedFields`) and off callable payloads, not off the typed union.
+ */
+export function clearableTextFieldLabel(field: string): string {
+  return (CLEARABLE_TEXT_FIELD_LABELS as Record<string, string>)[field] ?? field;
+}
 
 /** Human labels for the dead-letter replay ledgers (Ops Repairs dead-letter table). */
 export const DEAD_LETTER_COLLECTION_LABELS: Record<DeadLetterCollection, string> = {

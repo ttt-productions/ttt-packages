@@ -252,25 +252,29 @@ export type AuditionTypeFilter = AuditionType | typeof AUDITION_TYPE_FILTER_ALL;
 
 // --- Sort Options ---
 
-/** Sort options shown on the audition feeds, keyed by feed type. */
+/**
+ * The two sort options EVERY audition feed offers — declared ONCE and spread into each feed's
+ * option set below (ENG-002). They used to be restated verbatim in all four feed entries, so
+ * a label or field change had to be made four times to avoid drift.
+ */
+const AUDITION_SORT_OPTIONS_BASE = {
+  newest: { label: 'Newest First', field: 'createdOn', direction: 'desc' },
+  endingSoon: { label: 'Ending Soon', field: 'openTill', direction: 'asc' },
+} as const;
+
+/** Sort options shown on the audition feeds, keyed by feed type. `default` serves the board's
+ * ALL filter; `platformAudition` is the base pair on purpose — the by-type lookup must be total
+ * over AuditionType (see the `AUDITION_SORT_OPTIONS[filter]` call sites). */
 export const AUDITION_SORT_OPTIONS = {
-  default: {
-    newest: { label: 'Newest First', field: 'createdOn', direction: 'desc' },
-    endingSoon: { label: 'Ending Soon', field: 'openTill', direction: 'asc' },
-  },
-  platformAudition: {
-    newest: { label: 'Newest First', field: 'createdOn', direction: 'desc' },
-    endingSoon: { label: 'Ending Soon', field: 'openTill', direction: 'asc' },
-  },
+  default: { ...AUDITION_SORT_OPTIONS_BASE },
+  platformAudition: { ...AUDITION_SORT_OPTIONS_BASE },
   sponsoredAudition: {
-    newest: { label: 'Newest First', field: 'createdOn', direction: 'desc' },
-    endingSoon: { label: 'Ending Soon', field: 'openTill', direction: 'asc' },
+    ...AUDITION_SORT_OPTIONS_BASE,
     highestPrice: { label: 'Highest Price', field: 'sponsoredAuditionAmountUSD', direction: 'desc' },
     lowestPrice: { label: 'Lowest Price', field: 'sponsoredAuditionAmountUSD', direction: 'asc' },
   },
   workAudition: {
-    newest: { label: 'Newest First', field: 'createdOn', direction: 'desc' },
-    endingSoon: { label: 'Ending Soon', field: 'openTill', direction: 'asc' },
+    ...AUDITION_SORT_OPTIONS_BASE,
     highestStakeShares: { label: 'Highest Stakes', field: 'stakeSharesOffered', direction: 'desc' },
     lowestStakeShares: { label: 'Lowest Stakes', field: 'stakeSharesOffered', direction: 'asc' },
   },

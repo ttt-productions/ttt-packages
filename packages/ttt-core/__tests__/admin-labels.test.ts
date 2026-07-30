@@ -9,8 +9,11 @@ import {
   FEEDBACK_TYPE_LABELS,
   WORK_PROJECT_TYPE_RULE_GROUP_TITLE,
   HALL_WING_TYPE_RULE_GROUP_TITLE,
+  CLEARABLE_TEXT_FIELD_LABELS,
+  clearableTextFieldLabel,
 } from '../src/constants/admin-labels';
 import { FEEDBACK_TYPES } from '../src/constants/business-admin';
+import { MODERATION_CLEARABLE_TEXT_FIELDS } from '../src/constants/business-content';
 
 describe('USER_FACING_REASON_OPTIONS', () => {
   it('carries the full canonical code set', () => {
@@ -71,6 +74,45 @@ describe('FEEDBACK_TYPE_LABELS', () => {
         expect(label.toLowerCase(), `'${word}' appears in '${label}'`).not.toContain(word);
       }
     }
+  });
+});
+
+describe('CLEARABLE_TEXT_FIELD_LABELS', () => {
+  it('is Record-complete over every clearable field name the canonical map declares', () => {
+    const declared = new Set(
+      Object.values(MODERATION_CLEARABLE_TEXT_FIELDS).flatMap((fields) => [...fields]),
+    );
+    expect(Object.keys(CLEARABLE_TEXT_FIELD_LABELS).sort()).toEqual([...declared].sort());
+  });
+
+  it('carries the settled short display terms for every field name', () => {
+    expect(CLEARABLE_TEXT_FIELD_LABELS.title).toBe('Title');
+    expect(CLEARABLE_TEXT_FIELD_LABELS.description).toBe('Description');
+    expect(CLEARABLE_TEXT_FIELD_LABELS.content).toBe('Content');
+    // The Work-shell / Realm pair: the `working` prefix is a CODE identifier only (ARCH-107).
+    expect(CLEARABLE_TEXT_FIELD_LABELS.workingTitle).toBe('Title');
+    expect(CLEARABLE_TEXT_FIELD_LABELS.workingDescription).toBe('Description');
+  });
+
+  it('never leaks a raw doc field name into a rendered label', () => {
+    for (const [field, label] of Object.entries(CLEARABLE_TEXT_FIELD_LABELS)) {
+      expect(label.length, `${field} has no label`).toBeGreaterThan(0);
+      expect(label.toLowerCase(), `'${field}' leaks its code identifier`).not.toContain('working');
+    }
+  });
+});
+
+describe('clearableTextFieldLabel', () => {
+  it('returns the label for every known field name', () => {
+    for (const [field, label] of Object.entries(CLEARABLE_TEXT_FIELD_LABELS)) {
+      expect(clearableTextFieldLabel(field)).toBe(label);
+    }
+  });
+
+  it('falls back to the raw name for an unknown field', () => {
+    // Callers pass field names read off stored docs (`moderationClearedFields`), so an
+    // unrecognized legacy name must render as itself rather than blank.
+    expect(clearableTextFieldLabel('someLegacyField')).toBe('someLegacyField');
   });
 });
 

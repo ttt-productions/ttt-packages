@@ -8,6 +8,7 @@ import {
   MAX_WORK_REALM_DESCRIPTION_LENGTH,
 } from "./business-work-project.js";
 import { ACTIVE_LIMITS } from './app-mode.js';
+import type { WorkProjectType } from '../types/content.js';
 
 /** The maximum character length for a SquareStreetz post created on behalf of a workProject. */
 export const MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH = 150;
@@ -72,6 +73,15 @@ export const MODERATION_CLEARABLE_TEXT_FIELDS = {
 export type ModerationClearableSurface = keyof typeof MODERATION_CLEARABLE_TEXT_FIELDS;
 
 /**
+ * Every DISTINCT clearable/changeable text-field NAME, DERIVED from the canonical
+ * MODERATION_CLEARABLE_TEXT_FIELDS map (the union of every surface's tuple). Label maps and
+ * per-field cap maps key on this instead of `string`, so adding a field to a surface is a
+ * compile error until its label and cap exist.
+ */
+export type ClearableTextFieldName =
+  (typeof MODERATION_CLEARABLE_TEXT_FIELDS)[ModerationClearableSurface][number];
+
+/**
  * The DISTINCT clearable text-field NAMES across the whole hall content family (tale/tune/
  * television detail → title/description; chapter → title/content; track/episode →
  * title/description). DERIVED from the canonical MODERATION_CLEARABLE_TEXT_FIELDS map — the
@@ -109,14 +119,65 @@ export const HALL_CONTENT_TEXT_FIELDS = {
 /** Per-field max lengths for proposed hall-content text. DERIVED from the owning
  *  constants — never independent numbers — so the change-request pipeline can never
  *  drift from the authoring limits again (the pre-2026-07-13 copy carried its own
- *  200/5000/100000 set while authoring enforced 150/300/2500). */
+ *  200/5000/100000 set while authoring enforced 150/300/2500). Keyed on the derived
+ *  ClearableTextFieldName union, so a new clearable field fails the build here until
+ *  it has a cap. */
 export const HALL_CONTENT_TEXT_FIELD_MAX = {
   title: MAX_WORK_PROJECT_TITLE_LENGTH,
   description: MAX_WORK_PROJECT_DESCRIPTION_LENGTH,
   content: MAX_CHAPTER_CONTENT_LENGTH,
   workingTitle: MAX_WORK_REALM_TITLE_LENGTH,
   workingDescription: MAX_WORK_REALM_DESCRIPTION_LENGTH,
-} as const satisfies Record<string, number>;
+} as const satisfies Record<ClearableTextFieldName, number>;
+
+/** One work-project type's two hall text surfaces — the published DETAIL on the hall parent
+ *  and its chapter/track/episode SUB-ITEM — each with the clearable/changeable field tuple
+ *  that surface exposes. */
+export interface HallContentSurfaceRouting {
+  /** Surface identity of the hall parent DETAIL (tale / tune / television). */
+  detailSurface: ModerationClearableSurface;
+  /** The DETAIL surface's clearable text fields. */
+  detailFields: readonly ClearableTextFieldName[];
+  /** Surface identity of the SUB-ITEM (chapter / tuneTrack / televisionEpisode). */
+  subItemSurface: ModerationClearableSurface;
+  /** The SUB-ITEM surface's clearable text fields — a Tale chapter carries title/content, a
+   *  Tune track and a Television episode title/description. */
+  subItemFields: readonly ClearableTextFieldName[];
+}
+
+/**
+ * CANONICAL WorkProjectType → hall text-surface routing. The ONE owner of "a Tale's sub-item is
+ * a chapter, a Tune's is a tuneTrack, a Television's is a televisionEpisode" and of which fields
+ * each of those surfaces exposes. Cross-boundary: the backend text-clear and change-request
+ * runners resolve `surface` from (workProjectType, is-sub-item?) through this map, and the admin
+ * field pickers project their checkbox options from the same entry — three sites that each
+ * hand-rolled the routing before (a ternary that fell through to the tuneTrack tuple for
+ * Television, silently correct only because the two tuples happen to match today).
+ *
+ * Every field tuple is PROJECTED from MODERATION_CLEARABLE_TEXT_FIELDS above — no field literal
+ * is restated here — and the `satisfies Record<WorkProjectType, …>` makes adding a work-project
+ * type a compile error until its surfaces are routed.
+ */
+export const HALL_CONTENT_SURFACES_BY_WORK_TYPE = {
+  Tales: {
+    detailSurface: 'tale',
+    detailFields: MODERATION_CLEARABLE_TEXT_FIELDS.tale,
+    subItemSurface: 'chapter',
+    subItemFields: MODERATION_CLEARABLE_TEXT_FIELDS.chapter,
+  },
+  Tunes: {
+    detailSurface: 'tune',
+    detailFields: MODERATION_CLEARABLE_TEXT_FIELDS.tune,
+    subItemSurface: 'tuneTrack',
+    subItemFields: MODERATION_CLEARABLE_TEXT_FIELDS.tuneTrack,
+  },
+  Television: {
+    detailSurface: 'television',
+    detailFields: MODERATION_CLEARABLE_TEXT_FIELDS.television,
+    subItemSurface: 'televisionEpisode',
+    subItemFields: MODERATION_CLEARABLE_TEXT_FIELDS.televisionEpisode,
+  },
+} as const satisfies Record<WorkProjectType, HallContentSurfaceRouting>;
 
 /** Admin decision reason on a published change request (required on a deny; shown to
  *  the member). One owner for the review callable schema AND the admin work-view input. */
