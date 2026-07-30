@@ -6,10 +6,12 @@ import {
   ReviewContentAppealResultSchema,
   UpdateAdminListResultSchema,
   StagedActionSchema,
+  GetReportedContentDetailResultSchema,
 } from '../src/schemas/admin.js';
 import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   HALL_CLEARABLE_TEXT_FIELD_NAMES,
+  HALL_CONTENT_SURFACES_BY_WORK_TYPE,
 } from '../src/constants/business-content.js';
 
 describe('UpdateAdminListInputSchema', () => {
@@ -289,5 +291,78 @@ describe('sensitive-action result receipts carry an optional auditEventId', () =
         auditEventId: '',
       }),
     ).toThrow();
+  });
+});
+
+describe('GetReportedContentDetailResultSchema — resolved clearableSurface', () => {
+  const base = {
+    itemType: 'hall-library-sub-item',
+    reportedItemId: 'chapter-1',
+    textSnapshot: null,
+    textFields: [],
+    mediaAssets: [],
+    isHidden: null,
+    ownerUid: null,
+    reportTimeSnapshot: null,
+  };
+
+  it('carries a resolved hall sub-item surface', () => {
+    const parsed = GetReportedContentDetailResultSchema.parse({
+      ...base,
+      clearableSurface: HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tales.subItemSurface,
+    });
+    expect(parsed.clearableSurface).toBe('chapter');
+  });
+
+  it('is additive — a payload produced before the field existed still parses', () => {
+    expect(GetReportedContentDetailResultSchema.parse(base).clearableSurface).toBeUndefined();
+  });
+
+  it('accepts null for a reported item that is not a clearable text surface', () => {
+    const parsed = GetReportedContentDetailResultSchema.parse({
+      ...base,
+      itemType: 'square-streetz-post',
+      clearableSurface: null,
+    });
+    expect(parsed.clearableSurface).toBeNull();
+  });
+
+  it('rejects a value that is not a canonical clearable surface', () => {
+    for (const bad of ['Tales', 'hall-library-sub-item', 'title', 'squarePost', '']) {
+      expect(GetReportedContentDetailResultSchema.safeParse({ ...base, clearableSurface: bad }).success).toBe(false);
+    }
+  });
+
+  it('closes the hole: each hall sub-item surface offers FEWER fields than the hall-family union', () => {
+    // The bug this field exists to fix — the picker offered title/description/content to every
+    // sub-item, so `description` on a Tale chapter (title/content) and `content` on a Tune track
+    // (title/description) passed the wire and were then silently dropped by the clear runner.
+    for (const routing of Object.values(HALL_CONTENT_SURFACES_BY_WORK_TYPE)) {
+      const surfaceFields = MODERATION_CLEARABLE_TEXT_FIELDS[routing.subItemSurface];
+      expect(surfaceFields.length).toBeLessThan(HALL_CLEARABLE_TEXT_FIELD_NAMES.length);
+      // Every offered field is a real member of the union (no picker can invent one).
+      for (const field of surfaceFields) {
+        expect(HALL_CLEARABLE_TEXT_FIELD_NAMES).toContain(field);
+      }
+      // At least one union member is NOT valid for this surface — i.e. the union genuinely
+      // over-offers and resolving the surface is what narrows it.
+      expect(
+        HALL_CLEARABLE_TEXT_FIELD_NAMES.some((field) => !(surfaceFields as readonly string[]).includes(field)),
+      ).toBe(true);
+    }
+  });
+
+  it('a resolved surface indexes the exact field set the picker must offer', () => {
+    expect(MODERATION_CLEARABLE_TEXT_FIELDS[HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tales.subItemSurface]).toEqual([
+      'title',
+      'content',
+    ]);
+    expect(MODERATION_CLEARABLE_TEXT_FIELDS[HALL_CONTENT_SURFACES_BY_WORK_TYPE.Tunes.subItemSurface]).toEqual([
+      'title',
+      'description',
+    ]);
+    expect(
+      MODERATION_CLEARABLE_TEXT_FIELDS[HALL_CONTENT_SURFACES_BY_WORK_TYPE.Television.subItemSurface],
+    ).toEqual(['title', 'description']);
   });
 });

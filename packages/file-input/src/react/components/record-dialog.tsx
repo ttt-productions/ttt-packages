@@ -77,6 +77,36 @@ function recordingFileName(mime: string, kind: "audio" | "video"): string {
   return `recording.${ext}`;
 }
 
+// A MediaRecorder blob is always a little LONGER than the wall-clock window
+// between start() and stop(). Three effects stack, all in the same direction:
+//   1. stop() flushes whatever the encoder/muxer still had buffered, so the
+//      last written packet extends past the stop() call (Chromium's webm muxer
+//      and Firefox's are both in the tens-to-low-hundreds of ms here; typical
+//      observed flush is well under 500ms).
+//   2. The container duration is the END of the final frame/packet, not the
+//      moment capture stopped — one video frame is ~33ms at 30fps and one Opus
+//      packet is 20ms, and both readers round that way (the client gate's
+//      seek-to-end duration and ffprobe on the server agree with the container).
+//   3. setTimeout fires LATE, never early — a busy main thread encoding video
+//      routinely adds tens of ms, more under load or in a hidden tab.
+//
+// Both duration gates are exact — the client upload gate (validateMediaDuration:
+// `duration <= maxDurationSec`) and the server processor
+// (media-processing-core validateDuration: `durationSec <= maxDurationSec`) —
+// with no tolerance. So stopping the recorder exactly AT the cap produced blobs
+// the product then rejected as its own "Media too long. Max N seconds." error.
+// Stopping early by 750ms clears all three effects above with headroom for
+// timer jitter, and costs 1.25% of the smallest real cap (60s).
+const AUTO_STOP_SAFETY_MARGIN_MS = 750;
+
+// The auto-stop delay for a cap. The clamp keeps the margin from swallowing a
+// very short cap (a 1s cap would otherwise stop at 250ms); real caps are >= 60s,
+// where the clamp never applies.
+export function autoStopDelayMs(maxRecordDurationSec: number): number {
+  const capMs = Math.floor(maxRecordDurationSec * 1000);
+  return Math.max(capMs - AUTO_STOP_SAFETY_MARGIN_MS, Math.ceil(capMs / 2));
+}
+
 interface RecordDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -381,6 +411,8 @@ export function RecordDialog({
       setRecorderState("recording");
       startElapsedTimer();
 
+      // Hard cap. Stops with deliberate headroom (autoStopDelayMs) so the blob
+      // this produces lands legally UNDER maxRecordDurationSec at both gates.
       if (maxRecordDurationSec && maxRecordDurationSec > 0) {
         autoStopTimeoutRef.current = setTimeout(() => {
           try {
@@ -388,7 +420,7 @@ export function RecordDialog({
               mediaRecorderRef.current.stop();
             }
           } catch {}
-        }, Math.floor(maxRecordDurationSec * 1000));
+        }, autoStopDelayMs(maxRecordDurationSec));
       }
     },
     [
@@ -480,6 +512,8 @@ export function RecordDialog({
   const isPreview = recorderState === "preview";
   const isIdle = recorderState === "idle";
 
+  // The label shows the REAL cap ("0:42 / 1:00"), not the earlier auto-stop
+  // point — the promise to the user is the cap; the margin is internal.
   const elapsedLabel = maxRecordDurationSec
     ? `${formatDuration(elapsedMs)} / ${formatDuration(maxRecordDurationSec * 1000)}`
     : formatDuration(elapsedMs);

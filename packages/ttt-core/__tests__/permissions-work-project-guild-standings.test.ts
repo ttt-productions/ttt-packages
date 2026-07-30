@@ -96,6 +96,27 @@ describe('WORK_PROJECT_ACTIONS', () => {
     );
   });
 
+  it('guildChatChannel.unarchive has the same standing bundle as guildChatChannel.archive', () => {
+    // Lifecycle symmetry: restoring a channel from the archive is exactly as privileged as
+    // archiving it, so the inverse lane must never be reachable by a standing that cannot archive.
+    expect([...WORK_PROJECT_ACTIONS['guildChatChannel.unarchive'].grantedTo].sort()).toEqual(
+      [...WORK_PROJECT_ACTIONS['guildChatChannel.archive'].grantedTo].sort(),
+    );
+    expect(WORK_PROJECT_ACTIONS['guildChatChannel.unarchive'].grantedTo).toEqual(
+      expect.arrayContaining(['StewardOwner', 'WorkProjectManager', 'GuildChatChannelManager']),
+    );
+  });
+
+  it('every guildChatChannel lifecycle action is a distinct, labelled, described action id', () => {
+    const lifecycle = ['guildChatChannel.archive', 'guildChatChannel.unarchive', 'guildChatChannel.delete'] as const;
+    for (const actionId of lifecycle) {
+      expect(WORK_PROJECT_ACTION_IDS).toContain(actionId);
+      expect(WORK_PROJECT_ACTIONS[actionId].label.length).toBeGreaterThan(0);
+      expect(WORK_PROJECT_ACTIONS[actionId].description.length).toBeGreaterThan(0);
+    }
+    expect(new Set(lifecycle.map((id) => WORK_PROJECT_ACTIONS[id].label)).size).toBe(lifecycle.length);
+  });
+
   it('getActionsForGuildStanding returns only valid action IDs', () => {
     const knownActionIds = new Set<string>(WORK_PROJECT_ACTION_IDS);
     for (const guildStandingId of GUILD_STANDING_IDS) {

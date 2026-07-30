@@ -23,6 +23,16 @@ export const ArchiveGuildChatChannelInputSchema = z.object({
 }).strict();
 export type ArchiveGuildChatChannelInput = z.infer<typeof ArchiveGuildChatChannelInputSchema>;
 
+// Restore an archived guild chat channel — same input shape as archive. The callable clears
+// `isArchived` and bumps configVersion; it is the inverse of archive, never a path to a deleted
+// (tombstoned) channel. Declared as its OWN named schema per the delete precedent below: one
+// named schema per callable, so a lane's input can diverge without touching its siblings.
+export const UnarchiveGuildChatChannelInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
+  guildChatChannelId: guildChatChannelIdSchema,
+}).strict();
+export type UnarchiveGuildChatChannelInput = z.infer<typeof UnarchiveGuildChatChannelInputSchema>;
+
 // Tombstone (delete) a guild chat channel — same input shape as archive. The callable marks the
 // channel `isDeleted`, bumps configVersion, revokes grants, and re-projects members to `removed`;
 // storage is retained (never a physical purge). See ttt-prod docs/design/chat-realtime-system.md.

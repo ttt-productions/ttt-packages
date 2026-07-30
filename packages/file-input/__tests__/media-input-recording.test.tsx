@@ -1,10 +1,10 @@
 import React from 'react';
-import { render, screen, act, cleanup } from '@testing-library/react';
+import { render, screen, act, cleanup, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
 import { MediaInput } from '../src/react/components/media-input';
-import { RecordDialog } from '../src/react/components/record-dialog';
+import { RecordDialog, autoStopDelayMs } from '../src/react/components/record-dialog';
 
 vi.mock('@ttt-productions/media-viewer/react', async () =>
   import('../../media-viewer/src/react/index.js'),
@@ -337,6 +337,113 @@ describe('RecordDialog', () => {
     const file = onRecorded.mock.calls[0][0];
     expect(file.type).toBe('video/mp4');
     expect(file.name).toBe('recording.mp4');
+  });
+
+  // --- Auto-stop headroom (regression: the recorder used to stop at exactly
+  // maxRecordDurationSec * 1000, and the MediaRecorder flush/frame-rounding
+  // overshoot pushed the blob a few hundred ms OVER the cap — which the client
+  // upload gate and the server processor both enforce exactly, so a user who
+  // recorded to the cap got "Media too long. Max 60 seconds." on their own
+  // recording). ---
+
+  // Fake only the timers the recorder uses (leaves the stubbed rAF the
+  // waveform loop relies on alone); Date drives the elapsed label.
+  function useRecorderFakeTimers() {
+    vi.useFakeTimers({
+      toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'],
+    });
+  }
+
+  it('autoStopDelayMs leaves headroom under the cap, and never eats a short cap', () => {
+    // A real 60s cap stops early, but only just — the user still records
+    // essentially the full minute.
+    expect(autoStopDelayMs(60)).toBeLessThan(60_000);
+    expect(autoStopDelayMs(60)).toBeGreaterThan(59_000);
+    // Degenerate tiny caps keep at least half the cap rather than being
+    // swallowed by the margin.
+    expect(autoStopDelayMs(1)).toBeGreaterThanOrEqual(500);
+    expect(autoStopDelayMs(1)).toBeLessThan(1_000);
+  });
+
+  it('auto-stops before the cap boundary, not at it', async () => {
+    useRecorderFakeTimers();
+    try {
+      const { instances } = installMediaRecorderMock();
+      renderDialog();
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^start$/i }));
+      });
+      const mr = instances[0];
+      expect(mr.state).toBe('recording');
+
+      const delay = autoStopDelayMs(60);
+      await act(async () => {
+        vi.advanceTimersByTime(delay - 1);
+      });
+      expect(mr.stop).not.toHaveBeenCalled();
+
+      await act(async () => {
+        vi.advanceTimersByTime(1);
+      });
+      expect(mr.stop).toHaveBeenCalledTimes(1);
+      // Stopped strictly before the cap boundary, and still in preview (not
+      // re-stopped) once the cap instant passes.
+      expect(delay).toBeLessThan(60_000);
+      await act(async () => {
+        vi.advanceTimersByTime(60_000);
+      });
+      expect(mr.stop).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows the full cap in the elapsed label, not the earlier auto-stop point', async () => {
+    useRecorderFakeTimers();
+    try {
+      installMediaRecorderMock();
+      renderDialog();
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^start$/i }));
+      });
+      expect(screen.getByText('0:00 / 1:00')).toBeInTheDocument();
+      // Right before the auto-stop the label still promises the real cap.
+      await act(async () => {
+        vi.advanceTimersByTime(autoStopDelayMs(60) - 1);
+      });
+      expect(screen.getByText(/\/ 1:00$/)).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('manual Stop still stops immediately and cancels the auto-stop timer', async () => {
+    useRecorderFakeTimers();
+    try {
+      const { instances } = installMediaRecorderMock();
+      renderDialog();
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^start$/i }));
+      });
+      await act(async () => {
+        vi.advanceTimersByTime(2_000);
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /^stop$/i }));
+      });
+      const mr = instances[0];
+      expect(mr.stop).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: /^save$/i })).toBeInTheDocument();
+      // Passing the auto-stop point afterwards must not fire a second stop.
+      await act(async () => {
+        vi.advanceTimersByTime(120_000);
+      });
+      expect(mr.stop).toHaveBeenCalledTimes(1);
+      expect(onRecorded).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('the saved recorded-audio File reads "Audio selected" in MediaInput', async () => {

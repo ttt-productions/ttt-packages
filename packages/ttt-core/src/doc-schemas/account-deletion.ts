@@ -43,6 +43,51 @@ export const AccountDeletionRequestStatusSchema = z.enum([
 export type AccountDeletionRequestStatus = z.infer<typeof AccountDeletionRequestStatusSchema>;
 
 /**
+ * ACTIVE = the request is still OPEN and still cancellable. This is the one predicate the
+ * lifecycle's enforcement points share — `requestAccountDeletion`'s idempotent re-return of the
+ * existing schedule, `cancelAccountDeletion`'s cancel gate, the scrub worker's due-request query,
+ * and the client's live own-request read — each of which previously restated
+ * `status === 'pending' || status === 'parkedOnHold'` locally (ARCH-102).
+ *
+ * Declared as an EXHAUSTIVE Record over the status union, not as a subset array: a subset array
+ * only catches a REMOVED member, whereas adding a lifecycle status must be a compile error here
+ * until that status is classified. A new status silently defaulting to "not active" is exactly the
+ * drift this classification exists to prevent.
+ *
+ * `scrubbing` / `leased` are deliberately NOT active — the destructive erasure has already begun,
+ * so there is no schedule left to re-offer and nothing left to cancel. `cancelled` / `completed` /
+ * `superseded` are terminal.
+ */
+const DELETION_REQUEST_STATUS_IS_ACTIVE = {
+  pending: true,
+  cancelled: false,
+  scrubbing: false,
+  leased: false,
+  parkedOnHold: true,
+  completed: false,
+  superseded: false,
+} as const satisfies Record<AccountDeletionRequestStatus, boolean>;
+
+/** The statuses classified ACTIVE above, as a literal union — derived, never restated. */
+export type ActiveDeletionRequestStatus = {
+  [K in AccountDeletionRequestStatus]: (typeof DELETION_REQUEST_STATUS_IS_ACTIVE)[K] extends true ? K : never;
+}[AccountDeletionRequestStatus];
+
+/** The ACTIVE (open, still-cancellable) deletion-request statuses, projected from the
+ *  classification above in union-declaration order — so it can also feed a Firestore
+ *  `where('status', 'in', ACTIVE_DELETION_REQUEST_STATUSES)` query directly. */
+export const ACTIVE_DELETION_REQUEST_STATUSES: readonly ActiveDeletionRequestStatus[] = (
+  Object.keys(DELETION_REQUEST_STATUS_IS_ACTIVE) as AccountDeletionRequestStatus[]
+).filter((status): status is ActiveDeletionRequestStatus => DELETION_REQUEST_STATUS_IS_ACTIVE[status]);
+
+/** True for an ACTIVE (open, still-cancellable) deletion request. Takes `unknown` because every
+ *  caller reads the status off an unvalidated Firestore doc: anything outside the canonical active
+ *  set — a terminal/mid-scrub status, an unrecognized value, a missing field — is false. */
+export function isActiveDeletionRequest(status: unknown): status is ActiveDeletionRequestStatus {
+  return typeof status === 'string' && (ACTIVE_DELETION_REQUEST_STATUSES as readonly string[]).includes(status);
+}
+
+/**
  * [C-02] The erasure LEASE / epoch token — the race fence between the destructive
  * scrub and a mid-scrub safety hold.
  *

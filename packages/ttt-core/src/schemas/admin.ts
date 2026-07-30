@@ -5,6 +5,7 @@ import {
   workProjectIdSchema,
   hallItemIdSchema,
   workProjectTypeSchema,
+  moderationClearableSurfaceSchema,
 } from './atoms.js';
 import {
   ReportDispositionSchema,
@@ -310,6 +311,30 @@ export const GetReportedContentDetailResultSchema = z.object({
   isHidden: z.boolean().nullable(),
   /** The content owner / uploader uid, when derivable. */
   ownerUid: z.string().nullable(),
+  /**
+   * The canonical moderation-clearable SURFACE this reported doc actually IS, resolved
+   * SERVER-side: `chapter` / `tuneTrack` / `televisionEpisode` for a hall sub-item (through
+   * `HALL_CONTENT_SURFACES_BY_WORK_TYPE`, from the parent hall doc the callable already reads),
+   * `workProject` / `workRealm` for the shells.
+   *
+   * Why the resolved surface and not the `workProjectType` it was resolved from: the surface is
+   * what a consumer needs — `MODERATION_CLEARABLE_TEXT_FIELDS[clearableSurface]` is the exact
+   * clearable field set, one canonical index with no re-derivation. Shipping the work-project type
+   * instead would make every consumer redo the routing AND the detail-vs-sub-item branch, which is
+   * precisely the hand-rolled duplication that map was created to end.
+   *
+   * What it fixes: the in-flow clear's field picker offered the hall-family UNION
+   * (title/description/content) because the projection never said which surface the sub-item was —
+   * so an operator could tick `description` on a Tale chapter (title/content) or `content` on a
+   * Tune track (title/description), pass the wire refinement, and have the clear runner silently
+   * drop it. The picker now offers only this surface's fields, and the resolve path re-checks
+   * caller-supplied fields against the same set.
+   *
+   * `.nullish()`: absent on payloads produced before this field existed, and null when the
+   * reported item is not a clearable text surface at all (a square post, a chat message, a
+   * profile picture).
+   */
+  clearableSurface: moderationClearableSurfaceSchema.nullish(),
   /** The FROZEN report-time snapshot (captured at intake), so the operator sees what was
    *  reported even if the author edited the live doc to evade. Null for older reports. */
   reportTimeSnapshot: z.object({

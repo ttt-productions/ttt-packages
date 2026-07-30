@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../constants/business.js';
 import { WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
+import {
+  MODERATION_CLEARABLE_TEXT_FIELDS,
+  type ModerationClearableSurface,
+} from '../constants/business-content.js';
 
 // ID atoms — every callable input that includes an ID field uses one of these.
 // Kept as separate constants (not aliases of a generic `idSchema`) so consumers
@@ -37,6 +41,21 @@ export const addRemoveActionSchema = z.enum(['add', 'remove']);
 // Derives from the ONE canonical WORK_PROJECT_TYPE_KEYS (types/content.ts) — never re-declared.
 export const workProjectTypeSchema = z.enum(WORK_PROJECT_TYPE_KEYS);
 export const hallWingTypeSchema = z.enum(['entertainment', 'educational', 'newsPolitical']);
+
+// The moderation-clearable SURFACE atom (`workProject` | `workRealm` | `tale` | `tune` |
+// `television` | `chapter` | `tuneTrack` | `televisionEpisode`). Derived from the KEYS of the
+// canonical MODERATION_CLEARABLE_TEXT_FIELDS map (constants/business-content.ts) rather than
+// restating them, so a surface added to that map is on the wire automatically and the enum can
+// never drift from the field map a consumer indexes with the parsed value. The cast only supplies
+// zod's non-empty-tuple shape — the runtime values ARE the map's keys, and `z.infer` is exactly
+// `ModerationClearableSurface`. Lives here (a leaf module) because the constants layer is
+// deliberately zod-free, mirroring `workProjectTypeSchema` above.
+export const moderationClearableSurfaceSchema = z.enum(
+  Object.keys(MODERATION_CLEARABLE_TEXT_FIELDS) as [
+    ModerationClearableSurface,
+    ...ModerationClearableSurface[],
+  ],
+);
 
 // The ONE canonical guild-invite conversation status set (state machine: pending →
 // accepted (transient, trigger-consumed) → finalized, or pending → declined/cancelled).

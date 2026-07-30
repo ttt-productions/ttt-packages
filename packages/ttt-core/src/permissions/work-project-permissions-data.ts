@@ -290,6 +290,11 @@ export const WORK_PROJECT_ACTIONS = {
     description: 'Archive workProject chat channels.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildChatChannelManager'],
   },
+  'guildChatChannel.unarchive': {
+    label: 'Restore archived chat channels',
+    description: 'Restore workProject chat channels out of the archive.',
+    grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildChatChannelManager'],
+  },
   'guildChatChannel.delete': {
     label: 'Delete chat channels',
     description: 'Delete (tombstone) workProject chat channels; storage is retained.',

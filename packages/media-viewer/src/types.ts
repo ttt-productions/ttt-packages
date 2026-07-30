@@ -46,6 +46,10 @@ export type MediaPlaybackProps = {
 
   /**
    * Initial playback position (seconds), applied once the element has metadata.
+   * May arrive late (e.g. from an async prefs read that resolves after the
+   * viewer mounted): a value that appears while playback has not yet begun is
+   * adopted and applied to the already-loaded element. Once real playback has
+   * begun a later value is ignored — it never yanks playing media.
    * Survives the `unloadOnExit` unload/remount cycle: once playback has started
    * the viewer tracks the live position internally and resumes from the LAST
    * KNOWN position on remount — it does not re-apply this prop and does not

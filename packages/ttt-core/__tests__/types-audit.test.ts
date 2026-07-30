@@ -25,6 +25,8 @@ describe('audit type catalog', () => {
       'workProject.fileFolderAccessChanged',
       // fable-review campaign additions
       'chat.guildChatChannelDeleted',
+      // channel lifecycle symmetry — the archive lane's inverse
+      'chat.guildChatChannelUnarchived',
       'payment.pledgePaymentRefunded',
       'payment.pledgePaymentDisputeOpened',
       'payment.pledgePaymentDisputeClosed',

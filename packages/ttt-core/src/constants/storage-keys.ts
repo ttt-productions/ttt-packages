@@ -48,3 +48,16 @@ export const REDUCED_MOTION_STORAGE_KEY = 'ttt-reduced-motion';
 /** Same-tab window event dispatched when REDUCED_MOTION_STORAGE_KEY changes (localStorage
  *  'storage' events do not fire in the writing tab), mirroring COMPANION_CHANGE_EVENT. */
 export const REDUCED_MOTION_CHANGE_EVENT = 'ttt-reduced-motion-change';
+
+// --- Large-text House control (device-local) ---
+// The root font-size scale behind the House "Text size" control. Same device-local
+// useSyncExternalStore shape as the reduced-motion control above — never mirrored to Firestore
+// or the private user document. The <html> CSS hook it applies stays app-side next to the rule
+// that defines it (as the reduced-motion store's root attribute does).
+
+/** localStorage key holding the member's text-size preference ('standard' | 'large'). */
+export const TEXT_SIZE_STORAGE_KEY = 'ttt-text-size';
+
+/** Same-tab window event dispatched when TEXT_SIZE_STORAGE_KEY changes (localStorage
+ *  'storage' events do not fire in the writing tab), mirroring REDUCED_MOTION_CHANGE_EVENT. */
+export const TEXT_SIZE_CHANGE_EVENT = 'ttt-text-size-change';

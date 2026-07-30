@@ -87,11 +87,22 @@ describe('createReleaseTaskHandler', () => {
     expect(updates[0].data.checkoutDetails).toBeNull();
   });
 
-  it('throws when task not found', async () => {
-    const { db } = createMockDb(null);
-    const handler = createReleaseTaskHandler({ config: TEST_CONFIG, db });
+  it('IDEMPOTENT: missing task doc → success no-op (no write, no audit event)', async () => {
+    // A task can be legitimately GONE rather than never-held: an auto-resolving
+    // writer deletes the adminTasks doc inside its own resolving transaction
+    // (BACKEND-207), so an admin on a stale work view releases a task that was
+    // correctly deleted. That is a designed terminal state — nothing is held, so
+    // the caller's goal state already holds.
+    const { db, updates, sets } = createMockDb(null);
+    const onAuditEvent = vi.fn();
+    const handler = createReleaseTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
 
-    await expect(handler({ taskId: 'task1' }, { uid: 'admin1' })).rejects.toThrow('Task not found');
+    const result = await handler({ taskId: 'task1' }, { uid: 'admin1' });
+
+    expect(result).toEqual({ success: true, alreadyResolved: true });
+    expect(updates).toHaveLength(0);
+    expect(sets).toHaveLength(0);
+    expect(onAuditEvent).not.toHaveBeenCalled();
   });
 
   it('throws when user does not own checkout', async () => {
@@ -109,16 +120,10 @@ describe('createReleaseTaskHandler', () => {
     );
   });
 
-  it('typed codes: not-found for a missing task, failed-precondition for a foreign checkout', async () => {
+  it('typed codes: failed-precondition for a foreign checkout (a missing task is NOT an error)', async () => {
     // Expected outcomes carry an HttpsError-shaped code (taskError.ts) so the
     // consuming callable maps them 1:1 instead of surfacing a 500 'internal'.
-    const { db: emptyDb } = createMockDb(null);
-    const notFound = await createReleaseTaskHandler({ config: TEST_CONFIG, db: emptyDb })(
-      { taskId: 'task1' }, { uid: 'admin1' },
-    ).catch((e) => e);
-    expect(notFound).toBeInstanceOf(ReportCoreTaskError);
-    expect(notFound.code).toBe('not-found');
-
+    // A checkout held by ANOTHER admin stays a real conflict.
     const { db: foreignDb } = createMockDb({
       taskType: 'userReport',
       taskId: 'group1',
@@ -130,6 +135,27 @@ describe('createReleaseTaskHandler', () => {
     ).catch((e) => e);
     expect(foreign).toBeInstanceOf(ReportCoreTaskError);
     expect(foreign.code).toBe('failed-precondition');
+
+    // The vanished-task branch answers success instead of the old 'not-found'.
+    const { db: emptyDb } = createMockDb(null);
+    const gone = await createReleaseTaskHandler({ config: TEST_CONFIG, db: emptyDb })(
+      { taskId: 'task1' }, { uid: 'admin1' },
+    ).catch((e) => e);
+    expect(gone).not.toBeInstanceOf(ReportCoreTaskError);
+    expect(gone).toEqual({ success: true, alreadyResolved: true });
+  });
+
+  it('the admin gate still rejects before any read, missing task or not', async () => {
+    // The consumer-supplied requireAdmin runs before the transaction; the
+    // idempotent branches never soften it.
+    const { db, transaction } = createMockDb(null);
+    const requireAdmin = vi.fn().mockRejectedValue(new Error('Administrator access required'));
+    const handler = createReleaseTaskHandler({ config: TEST_CONFIG, db, auth: { requireAdmin } });
+
+    await expect(handler({ taskId: 'task1' }, { uid: 'not-an-admin' })).rejects.toThrow(
+      'Administrator access required',
+    );
+    expect(transaction.get).not.toHaveBeenCalled();
   });
 
   it('IDEMPOTENT: no live checkout → success no-op (no write, no audit event)', async () => {

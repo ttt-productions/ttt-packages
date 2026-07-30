@@ -171,6 +171,7 @@ export type AuditEventType =
   | 'chat.guildChatChannelCreated'
   | 'chat.guildChatChannelUpdated'
   | 'chat.guildChatChannelArchived'
+  | 'chat.guildChatChannelUnarchived'
   | 'chat.guildChatChannelDeleted'
   | 'chat.adminThreadStarted'
   | 'chat.adminThreadStatusChanged'

@@ -4,9 +4,11 @@ import {
   userIdSchema,
   addRemoveActionSchema,
   workProjectTypeSchema,
+  moderationClearableSurfaceSchema,
   titleSchema,
 } from '../src/schemas/atoms';
 import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../src/constants/business';
+import { MODERATION_CLEARABLE_TEXT_FIELDS } from '../src/constants/business-content';
 
 describe('atom schemas', () => {
   describe('workProjectIdSchema', () => {
@@ -54,6 +56,35 @@ describe('atom schemas', () => {
     it('rejects lowercase or other values', () => {
       expect(() => workProjectTypeSchema.parse('tales')).toThrow();
       expect(() => workProjectTypeSchema.parse('Music')).toThrow();
+    });
+  });
+
+  describe('moderationClearableSurfaceSchema', () => {
+    const surfaces = Object.keys(MODERATION_CLEARABLE_TEXT_FIELDS);
+
+    it('accepts every key of the canonical clearable-fields map', () => {
+      for (const surface of surfaces) {
+        expect(moderationClearableSurfaceSchema.parse(surface)).toBe(surface);
+      }
+    });
+
+    it('enumerates EXACTLY the canonical map keys — derived, never a hand-listed copy', () => {
+      expect([...moderationClearableSurfaceSchema.options].sort()).toEqual([...surfaces].sort());
+    });
+
+    it('every accepted surface indexes a non-empty clearable field tuple', () => {
+      // The whole point of the atom: a consumer can index the field map with a parsed value.
+      for (const surface of moderationClearableSurfaceSchema.options) {
+        expect(MODERATION_CLEARABLE_TEXT_FIELDS[surface].length).toBeGreaterThan(0);
+      }
+    });
+
+    it('rejects a non-surface, a work-project type, and a bare field name', () => {
+      expect(() => moderationClearableSurfaceSchema.parse('squarePost')).toThrow();
+      expect(() => moderationClearableSurfaceSchema.parse('Tales')).toThrow();
+      expect(() => moderationClearableSurfaceSchema.parse('title')).toThrow();
+      expect(() => moderationClearableSurfaceSchema.parse('')).toThrow();
+      expect(() => moderationClearableSurfaceSchema.parse(null)).toThrow();
     });
   });
 

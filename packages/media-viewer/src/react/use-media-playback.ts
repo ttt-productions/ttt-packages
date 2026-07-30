@@ -60,13 +60,16 @@ export function useMediaPlayback(
   onEndedRef.current = onEnded;
   onProgressSampleRef.current = onProgressSample;
 
-  const seedPosition = () =>
+  // The resume position implied by the CURRENT props: a positive
+  // startAtSeconds, or null when the caller supplies none. One declaration —
+  // the mount seed, the mediaKey reset, and the late-arrival effect all read it.
+  const seedFromProps =
     typeof startAtSeconds === "number" && startAtSeconds > 0 ? startAtSeconds : null;
 
   // Last known playback position. Seeded from startAtSeconds, then updated once
   // playback has actually started. Survives the unloadOnExit unload/remount
   // cycle because it lives on the (still-mounted) component instance.
-  const lastPositionRef = React.useRef<number | null>(seedPosition());
+  const lastPositionRef = React.useRef<number | null>(seedFromProps);
   // True once we have observed real playback progress — after this we resume
   // from lastPositionRef, never re-apply the original startAtSeconds prop.
   const hasStartedRef = React.useRef(false);
@@ -83,7 +86,7 @@ export function useMediaPlayback(
   const prevMediaKeyRef = React.useRef<string | undefined>(mediaKey);
   if (prevMediaKeyRef.current !== mediaKey) {
     prevMediaKeyRef.current = mediaKey;
-    lastPositionRef.current = seedPosition();
+    lastPositionRef.current = seedFromProps;
     hasStartedRef.current = false;
     lastSampleAtRef.current = 0;
     if (hasEnded) setHasEnded(false);
@@ -118,6 +121,27 @@ export function useMediaPlayback(
       /* setting currentTime before ready can throw in some engines; ignore */
     }
   }, []);
+
+  // Late-arriving resume position. `startAtSeconds` usually comes from an async
+  // app source (a user-prefs query); when that resolves AFTER this hook mounted,
+  // the mount-time seed above saw `undefined` and the element would silently
+  // start at 0. Adopt the value when it finally arrives — but ONLY while nothing
+  // has been seeded, no real playback has begun, and the element is still at the
+  // start, so a late value can never yank media the user is already watching and
+  // can never overwrite a truthful tracked position. A `mediaKey` change resets
+  // both refs in the render-phase block above, which re-arms this for the new
+  // source; the seek itself is applied here because the element may already have
+  // fired `loadedmetadata` (that is exactly this defect) and will not fire it
+  // again — when metadata has not landed yet, `onLoadedMetadata` applies it.
+  React.useEffect(() => {
+    if (seedFromProps === null) return;
+    if (hasStartedRef.current) return;
+    if (lastPositionRef.current !== null) return;
+    const el = elementRef.current;
+    if (el && el.currentTime > 0.01) return;
+    lastPositionRef.current = seedFromProps;
+    if (el) applyInitialSeek(el);
+  }, [seedFromProps, applyInitialSeek, elementRef]);
 
   const onLoadedMetadata = React.useCallback(
     (e: React.SyntheticEvent<HTMLMediaElement>) => {

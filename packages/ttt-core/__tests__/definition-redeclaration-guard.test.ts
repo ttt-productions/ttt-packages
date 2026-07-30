@@ -123,6 +123,13 @@ const GUARDED: Record<string, { owner: string; allowed: string[] }> = {
     owner: 'ttt-core/src/constants/company-mascots.ts',
     allowed: [],
   },
+  // Distinctive member of AccountDeletionRequestStatus. The "active request" predicate is now
+  // owned by ACTIVE_DELETION_REQUEST_STATUSES / isActiveDeletionRequest in the defining file,
+  // so no other package source should name this status literally.
+  parkedOnHold: {
+    owner: 'ttt-core/src/doc-schemas/account-deletion.ts',
+    allowed: [],
+  },
 };
 
 function walk(dir: string, out: string[]): void {

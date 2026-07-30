@@ -323,6 +323,128 @@ describe('media playback API', () => {
     });
   });
 
+  // ---- late-arriving startAtSeconds (async prefs resolve after mount) -----
+  describe('startAtSeconds arriving after mount', () => {
+    it('adopts a late startAtSeconds and seeks the already-loaded element', () => {
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 100 });
+
+      // Metadata lands BEFORE the app's resume position is known -> no seek.
+      fireEvent.loadedMetadata(video);
+      expect(state.currentTime).toBe(0);
+
+      // The prefs query resolves; startAtSeconds goes undefined -> 42. No further
+      // loadedmetadata event will fire, so the hook must seek the live element.
+      rerender(<VideoViewer url="https://example.com/v.mp4" priority startAtSeconds={42} />);
+      expect(state.currentTime).toBe(42);
+    });
+
+    it('adopts a late startAtSeconds for audio too', () => {
+      const { container, rerender } = render(
+        <AudioViewer url="https://example.com/a.mp3" priority />,
+      );
+      const audio = container.querySelector('audio')!;
+      const state = installMediaState(audio, { currentTime: 0, duration: 50 });
+      fireEvent.loadedMetadata(audio);
+      expect(state.currentTime).toBe(0);
+
+      rerender(<AudioViewer url="https://example.com/a.mp3" priority startAtSeconds={20} />);
+      expect(state.currentTime).toBe(20);
+    });
+
+    it('clamps a late startAtSeconds to the known duration', () => {
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 60 });
+      fireEvent.loadedMetadata(video);
+
+      rerender(<VideoViewer url="https://example.com/v.mp4" priority startAtSeconds={9999} />);
+      expect(state.currentTime).toBe(60);
+    });
+
+    it('IGNORES a late startAtSeconds once real playback has begun', () => {
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 100, paused: false });
+      fireEvent.loadedMetadata(video);
+
+      // The user is already watching: playback advanced to 5s (marks "started").
+      state.setTime(5);
+      fireEvent.timeUpdate(video);
+
+      // A late resume position must NOT yank the playing element back/forward.
+      rerender(<VideoViewer url="https://example.com/v.mp4" priority startAtSeconds={42} />);
+      expect(state.currentTime).toBe(5);
+    });
+
+    it('keeps the tracked position truthful after an ignored late startAtSeconds', () => {
+      mockInView = true;
+      const { container, rerender } = render(<VideoViewer url="https://example.com/v.mp4" />);
+      const video1 = container.querySelector('video')!;
+      const s1 = installMediaState(video1, { currentTime: 0, duration: 100, paused: false });
+      fireEvent.loadedMetadata(video1);
+      s1.setTime(55);
+      fireEvent.timeUpdate(video1);
+
+      // Late value arrives while playing -> ignored (must not become the tracked
+      // position either).
+      rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={42} />);
+      expect(s1.currentTime).toBe(55);
+
+      // Unload off-screen and return: resume from the REAL last position (55).
+      mockInView = false;
+      rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={42} />);
+      expect(container.querySelector('video')).toBeNull();
+      mockInView = true;
+      rerender(<VideoViewer url="https://example.com/v.mp4" startAtSeconds={42} />);
+      const video2 = container.querySelector('video')!;
+      const s2 = installMediaState(video2, { currentTime: 0, duration: 100 });
+      fireEvent.loadedMetadata(video2);
+      expect(s2.currentTime).toBe(55);
+    });
+
+    it('does not seek when startAtSeconds stays undefined across rerenders', () => {
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 100 });
+      fireEvent.loadedMetadata(video);
+      rerender(<VideoViewer url="https://example.com/v.mp4" priority />);
+      rerender(<VideoViewer url="https://example.com/v.mp4" priority startAtSeconds={undefined} />);
+      fireEvent.loadedMetadata(video);
+      expect(state.currentTime).toBe(0);
+    });
+
+    it('re-arms after a media-key change: a late startAtSeconds for the NEW source applies', () => {
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/a.mp4" priority />,
+      );
+      const video = container.querySelector('video')!;
+      const s1 = installMediaState(video, { currentTime: 0, duration: 100, paused: false });
+      fireEvent.loadedMetadata(video);
+      s1.setTime(80);
+      fireEvent.timeUpdate(video);
+
+      // Advance to media B (element reused, fresh at 0) with no resume yet.
+      rerender(<VideoViewer url="https://example.com/b.mp4" priority />);
+      const s2 = installMediaState(video, { currentTime: 0, duration: 100 });
+      fireEvent.loadedMetadata(video);
+      expect(s2.currentTime).toBe(0);
+
+      // B's resume position resolves late -> applied to the loaded element.
+      rerender(<VideoViewer url="https://example.com/b.mp4" priority startAtSeconds={25} />);
+      expect(s2.currentTime).toBe(25);
+    });
+  });
+
   // ---- endOverlay show/hide ----------------------------------------------
   describe('endOverlay', () => {
     it('shows the overlay when the media ends and hides on replay', () => {
