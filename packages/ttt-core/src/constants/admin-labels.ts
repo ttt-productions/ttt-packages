@@ -13,6 +13,10 @@
 import type { UserAccountStatus } from '../doc-schemas/user.js';
 import type { FeedbackType } from './business-admin.js';
 import type { ClearableTextFieldName } from './business-content.js';
+// Value import: the per-surface override type below indexes this map to restrict each surface's
+// override keys to the fields that surface actually exposes.
+import { HALL_CONTENT_TEXT_FIELDS } from './business-content.js';
+import type { HallContentTextSurface } from '../doc-schemas/content.js';
 import type { ReportDisposition } from '../doc-schemas/safety/foundation.js';
 import type { BroadcastAudienceSelector } from '../schemas/notification.js';
 import type { DeadLetterCollection } from '../schemas/admin.js';
@@ -67,12 +71,50 @@ export const CLEARABLE_TEXT_FIELD_LABELS: Record<ClearableTextFieldName, string>
 };
 
 /**
- * The display label for one raw clearable text-field name, falling back to the raw name.
- * Tolerates a plain `string` because the callers read field names off stored documents
- * (`moderationClearedFields`) and off callable payloads, not off the typed union.
+ * Per-surface label overrides for the field labels above: `[surface][field] → label`. Only a
+ * surface that genuinely names a field differently appears here; everything else resolves to the
+ * base map. Each surface's override keys are restricted to the fields THAT surface exposes
+ * (indexed off `HALL_CONTENT_TEXT_FIELDS`), so an override for a field the surface does not have
+ * is a compile error — as is an override for a surface outside `HallContentTextSurface`.
  */
-export function clearableTextFieldLabel(field: string): string {
-  return (CLEARABLE_TEXT_FIELD_LABELS as Record<string, string>)[field] ?? field;
+export type ClearableTextFieldLabelOverrides = {
+  [S in HallContentTextSurface]?: {
+    [F in (typeof HALL_CONTENT_TEXT_FIELDS)[S][number]]?: string;
+  };
+};
+
+/**
+ * A Realm's identity field is called **Name** on every Realm surface (DJ ruling 2026-07-29,
+ * settling a four-surface Name/Title conflict: the creation flow said "Realm Name", the inline
+ * edit form "Working Title", the moderation-cleared banner "Title", and the request-update
+ * dialog "Name"). The `workingTitle` doc field is shared with the Work shell, where it IS a
+ * Title — so the difference is per-surface, not per-field, and lives here rather than flattening
+ * one of the two settled terms.
+ */
+export const CLEARABLE_TEXT_FIELD_LABEL_OVERRIDES = {
+  workRealm: { workingTitle: 'Name' },
+} as const satisfies ClearableTextFieldLabelOverrides;
+
+/**
+ * The display label for one raw clearable text-field name: the surface's override when it has
+ * one, otherwise the base label, otherwise the raw name. This is the ONE accessor every surface
+ * calls — pass the surface whenever the caller knows it (a Realm surface must, or it renders
+ * "Title" for a Name); omit it only for a genuinely surface-agnostic caller.
+ *
+ * Both parameters tolerate a plain `string` because callers read field names off stored documents
+ * (`moderationClearedFields`) and callable payloads, and the surface may be the `workProject`
+ * shell — which is a clearable surface but not a `HallContentTextSurface`, so it simply has no
+ * overrides and falls through to the base map.
+ */
+export function clearableTextFieldLabel(field: string, surface?: string): string {
+  const overrides = surface
+    ? (CLEARABLE_TEXT_FIELD_LABEL_OVERRIDES as Record<string, Record<string, string> | undefined>)[
+        surface
+      ]
+    : undefined;
+  return (
+    overrides?.[field] ?? (CLEARABLE_TEXT_FIELD_LABELS as Record<string, string>)[field] ?? field
+  );
 }
 
 /** Human labels for the dead-letter replay ledgers (Ops Repairs dead-letter table). */
