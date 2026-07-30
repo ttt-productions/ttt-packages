@@ -181,6 +181,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `scheduledScrubAt` | `number` |  |
 | `graceDays` | `number` |  |
 | `cancelledAt` | `number` | yes |
+| `tokenRevocationNextAttemptAt` | `number` | yes |
 | `tokensRevokedAt` | `number` | yes |
 | `scrubStartedAt` | `number` | yes |
 | `parkedReason` | `string` | yes |

@@ -101,4 +101,31 @@ describe('AccountDeletionRequestV1Schema — the durable token-revocation obliga
       AccountDeletionRequestV1Schema.safeParse({ ...baseRequest(), tokensRevokedAt: null }).success,
     ).toBe(false);
   });
+
+  it('parses a request with the drain key set (revocation OWED, retry scheduled)', () => {
+    const parsed = AccountDeletionRequestV1Schema.parse({
+      ...baseRequest(),
+      tokenRevocationNextAttemptAt: 1_700_000_060_000,
+    });
+    expect(parsed.tokenRevocationNextAttemptAt).toBe(1_700_000_060_000);
+    expect(parsed.tokensRevokedAt).toBeUndefined();
+  });
+
+  it('parses the satisfied shape: drain key DELETED, tokensRevokedAt stamped', () => {
+    const parsed = AccountDeletionRequestV1Schema.parse({
+      ...baseRequest(),
+      tokensRevokedAt: 1_700_000_000_500,
+    });
+    expect(parsed.tokenRevocationNextAttemptAt).toBeUndefined();
+    expect(parsed.tokensRevokedAt).toBe(1_700_000_000_500);
+  });
+
+  it('rejects a non-number tokenRevocationNextAttemptAt (absent is the only "not owed" representation)', () => {
+    expect(
+      AccountDeletionRequestV1Schema.safeParse({
+        ...baseRequest(),
+        tokenRevocationNextAttemptAt: null,
+      }).success,
+    ).toBe(false);
+  });
 });
