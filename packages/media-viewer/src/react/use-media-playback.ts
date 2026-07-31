@@ -9,6 +9,16 @@ import type { MediaPlaybackControls, MediaPlaybackProps } from "../types.js";
  */
 export const PROGRESS_SAMPLE_INTERVAL_MS = 5000;
 
+/**
+ * How far an element may have played from the start and still ADOPT a
+ * late-arriving `startAtSeconds`. Autoplay can begin playback before the app's
+ * async resume position resolves (firefox reliably loses that race); a couple
+ * of autoplayed seconds are not user intent, so the saved position still wins
+ * inside this window. Beyond it, a late value is ignored — the user is
+ * genuinely watching from where they are.
+ */
+export const LATE_RESUME_ADOPT_WINDOW_SEC = 3;
+
 export type UseMediaPlaybackResult = {
   /** Whether the media has ended (drives the end overlay). */
   hasEnded: boolean;
@@ -73,6 +83,11 @@ export function useMediaPlayback(
   // True once we have observed real playback progress — after this we resume
   // from lastPositionRef, never re-apply the original startAtSeconds prop.
   const hasStartedRef = React.useRef(false);
+  // True once a startAtSeconds seed has been ADOPTED (at mount or late-arrival).
+  // Owns the adopt-exactly-once rule for the late-arrival effect below — playback
+  // state is deliberately NOT that gate, because autoplay can start playback
+  // before an async resume position arrives (see LATE_RESUME_ADOPT_WINDOW_SEC).
+  const seededRef = React.useRef(seedFromProps !== null);
 
   // Throttle bookkeeping for periodic samples (wall-clock, active playback only).
   const lastSampleAtRef = React.useRef(0);
@@ -88,6 +103,7 @@ export function useMediaPlayback(
     prevMediaKeyRef.current = mediaKey;
     lastPositionRef.current = seedFromProps;
     hasStartedRef.current = false;
+    seededRef.current = seedFromProps !== null;
     lastSampleAtRef.current = 0;
     if (hasEnded) setHasEnded(false);
   }
@@ -105,14 +121,16 @@ export function useMediaPlayback(
     }
   }, []);
 
-  const applyInitialSeek = React.useCallback((el: HTMLMediaElement) => {
+  const applyInitialSeek = React.useCallback((el: HTMLMediaElement, adoptWindowSec = 0.01) => {
     const target = lastPositionRef.current;
     if (typeof target !== "number" || target <= 0) return;
-    // Only seek a freshly-loaded element sitting at the start. This makes the
-    // handler idempotent (a metadata event on an already-positioned element is
-    // a no-op) and, crucially, re-applies the LAST KNOWN position to the new
+    // Only seek an element still near the start. The DEFAULT window keeps the
+    // metadata handler idempotent (a metadata event on an already-positioned
+    // element is a no-op) and re-applies the LAST KNOWN position to the new
     // element created by an unloadOnExit remount — resuming, never restarting.
-    if (el.currentTime > 0.01) return;
+    // The late-arrival effect widens the window (LATE_RESUME_ADOPT_WINDOW_SEC)
+    // because autoplay may have advanced a little before the seed arrived.
+    if (el.currentTime > adoptWindowSec) return;
     const dur = el.duration;
     const clamped = Number.isFinite(dur) && dur > 0 ? Math.min(target, dur) : target;
     try {
@@ -125,22 +143,29 @@ export function useMediaPlayback(
   // Late-arriving resume position. `startAtSeconds` usually comes from an async
   // app source (a user-prefs query); when that resolves AFTER this hook mounted,
   // the mount-time seed above saw `undefined` and the element would silently
-  // start at 0. Adopt the value when it finally arrives — but ONLY while nothing
-  // has been seeded, no real playback has begun, and the element is still at the
-  // start, so a late value can never yank media the user is already watching and
-  // can never overwrite a truthful tracked position. A `mediaKey` change resets
-  // both refs in the render-phase block above, which re-arms this for the new
-  // source; the seek itself is applied here because the element may already have
-  // fired `loadedmetadata` (that is exactly this defect) and will not fire it
-  // again — when metadata has not landed yet, `onLoadedMetadata` applies it.
+  // start at 0. Adopt the value when it finally arrives — exactly ONCE
+  // (`seededRef`), and only while the element is within the small adoption
+  // window of the start, so a late value can never yank media the user is
+  // genuinely watching. Playback state is deliberately NOT the gate: under
+  // AUTOPLAY the element starts playing from 0 on its own, and by the time the
+  // prefs query resolves it has drifted a fraction of a second — firefox loses
+  // that race on every deep-link resume (live 2026-07-31, hosted path 14.4:
+  // expected ~224s, read 0.2s). A few autoplayed seconds are not user intent;
+  // jumping to the user's saved position IS the requested behavior. Beyond the
+  // window (a user genuinely re-watching from the top) the late value is
+  // ignored, same as before. A `mediaKey` change resets the refs in the
+  // render-phase block above, re-arming this for the new source; the seek is
+  // applied here because the element may already have fired `loadedmetadata`
+  // and will not fire it again — when metadata has not landed yet,
+  // `onLoadedMetadata` applies it.
   React.useEffect(() => {
     if (seedFromProps === null) return;
-    if (hasStartedRef.current) return;
-    if (lastPositionRef.current !== null) return;
+    if (seededRef.current) return; // adopt exactly once; never override an applied seed
     const el = elementRef.current;
-    if (el && el.currentTime > 0.01) return;
+    if (el && el.currentTime > LATE_RESUME_ADOPT_WINDOW_SEC) return;
+    seededRef.current = true;
     lastPositionRef.current = seedFromProps;
-    if (el) applyInitialSeek(el);
+    if (el) applyInitialSeek(el, LATE_RESUME_ADOPT_WINDOW_SEC);
   }, [seedFromProps, applyInitialSeek, elementRef]);
 
   const onLoadedMetadata = React.useCallback(

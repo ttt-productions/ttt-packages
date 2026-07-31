@@ -367,7 +367,7 @@ describe('media playback API', () => {
       expect(state.currentTime).toBe(60);
     });
 
-    it('IGNORES a late startAtSeconds once real playback has begun', () => {
+    it('IGNORES a late startAtSeconds once real playback has begun (beyond the adoption window)', () => {
       const { container, rerender } = render(
         <VideoViewer url="https://example.com/v.mp4" priority />,
       );
@@ -375,13 +375,56 @@ describe('media playback API', () => {
       const state = installMediaState(video, { currentTime: 0, duration: 100, paused: false });
       fireEvent.loadedMetadata(video);
 
-      // The user is already watching: playback advanced to 5s (marks "started").
+      // The user is genuinely watching: playback advanced PAST the adoption window.
       state.setTime(5);
       fireEvent.timeUpdate(video);
 
       // A late resume position must NOT yank the playing element back/forward.
       rerender(<VideoViewer url="https://example.com/v.mp4" priority startAtSeconds={42} />);
       expect(state.currentTime).toBe(5);
+    });
+
+    // THE AUTOPLAY RACE (live 2026-07-31, hosted firefox path 14.4): an autoplaying element
+    // starts from 0 on its own; by the time the async prefs query resolves, playback has
+    // drifted a fraction of a second. That drift is NOT user intent — the saved position
+    // must still win inside LATE_RESUME_ADOPT_WINDOW_SEC. Chrome usually wins this race by
+    // luck; firefox reliably loses it (expected ~224s, read 0.2s).
+    it('ADOPTS a late startAtSeconds while autoplay has only drifted within the adoption window', () => {
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
+      fireEvent.loadedMetadata(video);
+
+      // Autoplay begins and drifts 0.2s before the prefs resolve (playback HAS started).
+      state.setTime(0.2);
+      fireEvent.timeUpdate(video);
+
+      // The late resume position still wins: the user asked to resume, not to restart.
+      rerender(<VideoViewer url="https://example.com/v.mp4" priority autoPlay startAtSeconds={224} />);
+      expect(state.currentTime).toBe(224);
+    });
+
+    it('adopts a late value EXACTLY once — a second late change never re-yanks', () => {
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
+      fireEvent.loadedMetadata(video);
+      state.setTime(0.2);
+      fireEvent.timeUpdate(video);
+
+      rerender(<VideoViewer url="https://example.com/v.mp4" priority autoPlay startAtSeconds={224} />);
+      expect(state.currentTime).toBe(224);
+
+      // The viewer keeps watching from 224; a prop wobble back through another value
+      // must not seek again (adopt-exactly-once).
+      state.setTime(230);
+      fireEvent.timeUpdate(video);
+      rerender(<VideoViewer url="https://example.com/v.mp4" priority autoPlay startAtSeconds={50} />);
+      expect(state.currentTime).toBe(230);
     });
 
     it('keeps the tracked position truthful after an ignored late startAtSeconds', () => {
