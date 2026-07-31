@@ -21,6 +21,14 @@ export interface GuardedUploadArgs {
      * mutation's onError and swallowing toasts/error UI for that case.
      */
     signal?: AbortSignal;
+    /**
+     * EXPLICIT opt-in for the NEUTRAL `application/octet-stream` content type
+     * (canonical-upload-content-classification): only for advisory picker files
+     * with unknown browser metadata, so the server byte inspector sees unknown
+     * as unknown. Threaded verbatim to `uploadFileResumable`, whose media-only
+     * default stays intact for every consumer that omits it.
+     */
+    allowNeutralContentType?: boolean;
 }
 
 /**
@@ -40,7 +48,7 @@ export function useGuardedUpload() {
     const { registerUpload, unregisterUpload } = useLocalUploadGuard();
 
     return useCallback(async (args: GuardedUploadArgs): Promise<void> => {
-        const { uploadId, onProgress, storage, path, file, metadata, signal } = args;
+        const { uploadId, onProgress, storage, path, file, metadata, signal, allowNeutralContentType } = args;
 
         onProgress?.({ phase: 'preparing', percent: null });
         registerUpload(uploadId);
@@ -51,6 +59,7 @@ export function useGuardedUpload() {
                 file,
                 metadata,
                 signal,
+                ...(allowNeutralContentType === true ? { allowNeutralContentType: true } : {}),
                 onProgress: ({ percent }) => onProgress?.({ phase: 'uploading', percent }),
             });
         } finally {

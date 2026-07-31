@@ -23,7 +23,9 @@ import { MediaPreview } from "@ttt-productions/media-viewer/react";
 import type { FileInputError, MediaInputHandle, MediaInputProps, SelectedMediaMeta } from "../../types.js";
 import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from "../../index.js";
 import { RecordDialog } from "./record-dialog.js";
-import { ensureFileWithContentType } from "../../lib/infer-content-type.js";
+import { ensureFileWithContentType, NEUTRAL_CONTENT_TYPE } from "../../lib/infer-content-type.js";
+import { projectAcceptTokens } from "@ttt-productions/media-schemas";
+import type { ClientMediaClaim } from "@ttt-productions/media-schemas";
 import { ImageCropperModal } from "./image-cropper-modal.js";
 import { MediaConstraintsHint } from "./media-constraints-hint.js";
 import { PhotoCaptureModal } from "./photo-capture-modal.js";
@@ -74,6 +76,13 @@ function accepts(spec: MediaOriginSpec, file: File): boolean {
   const accept = spec.accept;
   if (!accept) return true;
 
+  // FAIL-OPEN on unknown browser metadata (canonical-upload-content-
+  // classification): an empty or neutral type is not evidence of anything —
+  // rejecting it here used to force MIME fabrication upstream. The file passes
+  // through and the SERVER's byte inspector decides. Only a DEFINITIVELY known
+  // wrong kind still rejects fast (better UX than a round trip).
+  if (!file.type || file.type === NEUTRAL_CONTENT_TYPE) return true;
+
   const kinds = accept.kinds?.filter(Boolean) ?? [];
   const mimes = accept.mimes?.filter(Boolean) ?? [];
 
@@ -84,11 +93,8 @@ function accepts(spec: MediaOriginSpec, file: File): boolean {
   const kindOk = kinds.length === 0 ? true : kinds.includes(kind);
   if (!kindOk) return false;
 
-  // If mimes list is empty, accept anything (including unknown file.type)
+  // If mimes list is empty, accept anything
   if (mimes.length === 0) return true;
-
-  // If mimes list exists but browser doesn't know type, reject
-  if (!file.type) return false;
 
   return mimes.some((a) => matchMime(a, file.type));
 }
@@ -165,6 +171,9 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
   const [cropOpen, setCropOpen] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
   const [pendingCropFile, setPendingCropFile] = useState<File | null>(null);
+  // The claim captured when the crop flow started — cropping/normalization
+  // preserves the ORIGINAL action claim (a captured photo stays camera-capture).
+  const [pendingCropClaim, setPendingCropClaim] = useState<ClientMediaClaim | null>(null);
 
   const [photoOpen, setPhotoOpen] = useState(false);
 
@@ -204,6 +213,16 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
   }, [revokeLastObjectUrl]);
 
   const acceptAttr = useMemo(() => {
+    // Explicit enabled-format registry projection FIRST (canonical-upload-
+    // content-classification): when the origin selects formats, the picker
+    // advertises exactly those (MIME aliases + extensions, kind-narrowed for
+    // shared A/V containers) instead of wildcards. Discoverability only — the
+    // server inspector remains the authority.
+    const formats = spec.accept?.formats?.filter(Boolean) ?? [];
+    if (formats.length) {
+      const tokens = projectAcceptTokens(formats, spec.accept?.kinds ?? undefined);
+      if (tokens.length) return tokens.join(", ");
+    }
     const m = spec.accept?.mimes?.filter(Boolean) ?? [];
     const k = spec.accept?.kinds?.filter(Boolean) ?? [];
     if (m.length) return m.join(", ");
@@ -233,6 +252,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
       file?: File;
       previewUrl?: string;
       meta?: SelectedMediaMeta;
+      claim?: ClientMediaClaim;
       autoFormat?: boolean;
       croppedBlob?: Blob;
       error?: FileInputError;
@@ -256,12 +276,20 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
   );
 
   const handleSelected = useCallback(
-    async (file: File, previewUrl?: string) => {
+    async (file: File, previewUrl?: string, action: ClientMediaClaim | undefined = undefined) => {
       setLocalError(null);
 
-      // Defense-in-depth: ensure a valid media MIME before any downstream handling.
-      // Pickers sometimes return File with empty .type; this wraps if needed.
-      const safeFile = ensureFileWithContentType(file);
+      // Defense-in-depth: normalize the content type before any downstream
+      // handling. Recorder/capture files carry their declared kind; a picker
+      // file with unknown metadata passes through NEUTRALLY (never fabricated —
+      // the server inspector owns classification).
+      const declaredKind =
+        action?.source === "media-recorder" || action?.source === "camera-capture"
+          ? action.kind === "image" || action.kind === "video" || action.kind === "audio"
+            ? action.kind
+            : undefined
+          : undefined;
+      const safeFile = ensureFileWithContentType(file, declaredKind);
 
       if (!accepts(spec, safeFile)) {
         fail(err("invalid_type", "Invalid file type for this upload."));
@@ -269,6 +297,17 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
       }
 
       const meta = await readMediaMeta(safeFile);
+
+      // The CLIENT CLAIM: what the user actually did. Recorder/capture claims
+      // are strong (the app requested that capture kind); a picker claim is an
+      // advisory browser-metadata inference — `file` when nothing narrower is
+      // known. Never derived from the (already-normalized) MIME for strong
+      // sources; for the picker the meta kind IS the inference.
+      const claim: ClientMediaClaim =
+        action ?? {
+          source: "file-picker",
+          kind: meta.kind === "image" || meta.kind === "video" || meta.kind === "audio" ? meta.kind : "file",
+        };
 
       // bytes
       if (spec.maxBytes && safeFile.size > spec.maxBytes) {
@@ -299,6 +338,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
         const reader = new FileReader();
         reader.onload = () => {
           setPendingCropFile(safeFile);
+          setPendingCropClaim(claim);
           setCropSrc(reader.result as string);
           setCropOpen(true);
         };
@@ -327,7 +367,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
           if (allowAutoFormat) {
             // Auto-format is always silent — no confirmation prompt. The file is
             // emitted with autoFormat:true and reformatted after upload.
-            emit({ file: safeFile, previewUrl, meta, autoFormat: true });
+            emit({ file: safeFile, previewUrl, meta, claim, autoFormat: true });
             return;
           }
 
@@ -363,7 +403,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
         }
       }
 
-      emit({ file: safeFile, previewUrl, meta });
+      emit({ file: safeFile, previewUrl, meta, claim });
     },
     [spec, cropSpec, emit, fail]
   );
@@ -386,7 +426,9 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
       setCropOpen(false);
 
       const original = pendingCropFile;
+      const preservedClaim = pendingCropClaim;
       setPendingCropFile(null);
+      setPendingCropClaim(null);
 
       if (!blob || !original) {
         fail(err("crop_failed", "Cropping failed."));
@@ -408,18 +450,20 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
 
       const url = makeObjectUrl(croppedFile);
 
-      readMediaMeta(croppedFile).then((meta) => emit({ file: croppedFile, previewUrl: url, meta, croppedBlob: blob }));
+      readMediaMeta(croppedFile).then((meta) =>
+        emit({ file: croppedFile, previewUrl: url, meta, claim: preservedClaim ?? undefined, croppedBlob: blob }),
+      );
 
       setCropSrc(null);
     },
-    [emit, fail, pendingCropFile, makeObjectUrl]
+    [emit, fail, pendingCropFile, pendingCropClaim, makeObjectUrl]
   );
 
   const onPhotoCapture = useCallback(
     async (file: File) => {
       setPhotoOpen(false);
       const url = makeObjectUrl(file);
-      await handleSelected(file, url);
+      await handleSelected(file, url, { kind: "image", source: "camera-capture" });
     },
     [handleSelected, makeObjectUrl]
   );
@@ -715,8 +759,8 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
         maxRecordDurationSec={spec.client?.maxRecordDurationSec}
         disabled={disabled}
         isLoading={isLoading}
-        onRecorded={async (file, url) => {
-          await handleSelected(file, url);
+        onRecorded={async (file, url, recordedKind) => {
+          await handleSelected(file, url, { kind: recordedKind, source: "media-recorder" });
         }}
         onRequestPhoto={() => setPhotoOpen(true)}
       />

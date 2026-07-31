@@ -4,6 +4,13 @@ export interface RunCmdResult {
   code: number;
   stdout: string;
   stderr: string;
+  /** True when the process was killed by the wall-clock timeout (see runCmd
+   *  opts.timeoutMs). Callers must treat a timed-out result as INVALID —
+   *  never parse its partial output as an answer. */
+  timedOut?: boolean;
+  /** True when a captured stream hit the 1 MiB cap — the output is truncated
+   *  and must not be parsed as complete (e.g. incomplete probe JSON). */
+  truncated?: boolean;
 }
 
 export type FfmpegProgressPhase = "transcode" | "poster";
@@ -23,22 +30,70 @@ const MAX_CAPTURE_BYTES = 1024 * 1024; // 1MB per stream
 let ffmpegChecked: boolean | null = null;
 let ffmpegVersion: string | null = null;
 
-export function runCmd(cmd: string, args: string[], opts?: { cwd?: string }): Promise<RunCmdResult> {
+export function runCmd(
+  cmd: string,
+  args: string[],
+  opts?: {
+    cwd?: string;
+    /** Hard wall-clock ceiling; on expiry the child is SIGKILLed and the
+     *  result resolves with `timedOut: true`. A malformed/adversarial input
+     *  must never be able to wedge a warm instance (canonical-upload-content-
+     *  classification hardening, 2026-07-31). */
+    timeoutMs?: number;
+    /** Abort kills the child immediately (same SIGKILL path as the timeout). */
+    signal?: AbortSignal;
+  }
+): Promise<RunCmdResult> {
   return new Promise((resolve, reject) => {
     const p = spawn(cmd, args, { cwd: opts?.cwd, stdio: ["ignore", "pipe", "pipe"] });
 
     let stdout = "";
     let stderr = "";
+    let timedOut = false;
+    let truncated = false;
+
+    const kill = () => {
+      try {
+        p.kill("SIGKILL");
+      } catch {
+        /* already dead */
+      }
+    };
+    const timer =
+      opts?.timeoutMs && opts.timeoutMs > 0
+        ? setTimeout(() => {
+            timedOut = true;
+            kill();
+          }, opts.timeoutMs)
+        : null;
+    const onAbort = () => {
+      timedOut = true; // treated identically: the result is invalid
+      kill();
+    };
+    if (opts?.signal) {
+      if (opts.signal.aborted) onAbort();
+      else opts.signal.addEventListener("abort", onAbort, { once: true });
+    }
 
     p.stdout.on("data", (d) => {
       if (stdout.length < MAX_CAPTURE_BYTES) stdout += String(d);
+      else truncated = true;
     });
     p.stderr.on("data", (d) => {
       if (stderr.length < MAX_CAPTURE_BYTES) stderr += String(d);
+      else truncated = true;
     });
 
-    p.on("error", reject);
-    p.on("close", (code) => resolve({ code: code ?? 0, stdout, stderr }));
+    p.on("error", (e) => {
+      if (timer) clearTimeout(timer);
+      if (opts?.signal) opts.signal.removeEventListener("abort", onAbort);
+      reject(e);
+    });
+    p.on("close", (code) => {
+      if (timer) clearTimeout(timer);
+      if (opts?.signal) opts.signal.removeEventListener("abort", onAbort);
+      resolve({ code: code ?? 0, stdout, stderr, ...(timedOut ? { timedOut } : {}), ...(truncated ? { truncated } : {}) });
+    });
   });
 }
 

@@ -13,6 +13,8 @@ export * from "./audio/audio-processor.js";
 export * from "./io/types.js";
 export * from "./run-pipeline.js";
 
+export * from "./inspection/inspect-media.js";
+
 export * from "./io/fs.js";
 
 export * from "./moderation/types.js";

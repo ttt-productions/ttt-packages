@@ -152,3 +152,11 @@ The old nested public Work projection contract must stay removed: do not keep `W
 Keep the detailed contract shape in source types, schemas, constants, and tests rather than in this doc. The package-level ownership rule covers Realm and public Work projection types, create/edit schemas, Mention/Square related-id contracts, PublicUser search/display requirements, hidden flags on published Hall projections, and the non-person founding-Work stake-holder contract for Works built into an existing public Realm.
 
 Realm docs store no child Work arrays, no counts, no Realm image fields, and no denormalized owner display fields. Display identity remains uid-only across package boundaries; consuming apps resolve names/avatars from their own public identity source.
+
+## Upload claim + origin format policy (2026-07-31)
+
+`StartUploadRequestSchema.clientMediaClaim` (optional — rolling compatibility; absence means
+inspect-only, never MIME fallback) and the same optional field on the pendingMedia base.
+`TTT_MEDIA_SPECS` accept blocks now carry the explicit enabled-format selection
+(`accept.formats`); the launch policy (svg/heic/avif disabled, shared containers enabled with
+inspection-derived kind) is pinned by `__tests__/media-format-policy.test.ts`.

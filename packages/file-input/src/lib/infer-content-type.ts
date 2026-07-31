@@ -1,15 +1,21 @@
-// Defense-in-depth: guarantee every File we emit has a valid, parameter-less
-// media MIME (image/*, video/*, or audio/*). If file.type is missing or
-// unusable, infer from the extension; if the extension is unknown, fall back
-// to a kind-appropriate default.
+// Defense-in-depth: guarantee every File we emit has a NORMALIZED, honest
+// content type. If file.type is missing or unusable, infer from the extension;
+// with a caller-declared kind (recorder/capture — the caller KNOWS what it
+// produced) fall back to that kind's default container.
 //
 // MediaRecorder (and some pickers) report parameterized types such as
 // "audio/webm;codecs=opus". Downstream storage rules validate a
-// parameter-less image|video|audio regex, so we always emit the base type
-// ("audio/webm"), never the parameterized form.
+// parameter-less base type, so we always emit the base ("audio/webm"),
+// never the parameterized form.
 //
-// Consumers of @ttt-productions/file-input should never see a File whose
-// .type is "" or "application/octet-stream". upload-core will refuse them.
+// UNKNOWN PICKER METADATA IS NOT FABRICATED (canonical-upload-content-
+// classification, 2026-07-31): when there is no declared kind, no usable MIME,
+// and no known extension, the file passes through as the NEUTRAL
+// `application/octet-stream` so the server's canonical byte inspector — the
+// only classification authority — sees "unknown" as unknown. The previous
+// behavior defaulted such files to `image/jpeg`, which invented a false media
+// fact the whole pipeline then trusted. upload-core accepts the neutral type
+// only via its explicit opt-in (`allowNeutralContentType`).
 
 export type InferKind = "image" | "video" | "audio";
 
@@ -56,6 +62,9 @@ const KIND_DEFAULT: Record<InferKind, string> = {
 
 const BASE_MEDIA_MIME_RE = /^(image|video|audio)\/[a-z0-9.+-]+$/;
 
+/** The neutral pass-through type for unknown picker metadata. */
+export const NEUTRAL_CONTENT_TYPE = "application/octet-stream";
+
 /**
  * Extracts the parameter-less base MIME ("audio/webm" from
  * "audio/webm;codecs=opus"), lowercased, when it is a usable media type.
@@ -92,7 +101,8 @@ function extOf(name: string): string | null {
  * 2. Extension lookup. For ambiguous containers (webm/ogg exist as both audio
  *    and video) a supplied `fallbackKind` picks the matching side; unambiguous
  *    extensions keep their single mapping.
- * 3. The kind default for `fallbackKind`, then image/jpeg as last resort.
+ * 3. The kind default for `fallbackKind`; without one, the NEUTRAL type — an
+ *    unknown picker file is never rewritten into a false media fact.
  */
 export function inferContentType(file: File, fallbackKind?: InferKind): string {
   const base = parseBaseMime(file.type);
@@ -107,9 +117,9 @@ export function inferContentType(file: File, fallbackKind?: InferKind): string {
 
   if (fallbackKind) return KIND_DEFAULT[fallbackKind];
 
-  // Last resort — must still be a valid media MIME. Default to image/jpeg
-  // since it's the most common upload type; upload-core will accept it.
-  return "image/jpeg";
+  // No declared kind, no usable MIME, no known extension: NEUTRAL, never a
+  // fabricated media type. The server inspector owns classification.
+  return NEUTRAL_CONTENT_TYPE;
 }
 
 /**

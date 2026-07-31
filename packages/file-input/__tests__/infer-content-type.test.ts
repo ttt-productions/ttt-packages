@@ -43,8 +43,13 @@ describe('inferContentType', () => {
     expect(inferContentType(makeFile('noext', ''), 'audio')).toBe('audio/webm');
   });
 
-  it('falls back to image/jpeg when no fallbackKind and no extension', () => {
-    expect(inferContentType(makeFile('noext', ''))).toBe('image/jpeg');
+  it('NEVER fabricates a media type for an unknown picker file — neutral pass-through (2026-07-31)', () => {
+    // The old behavior defaulted this to image/jpeg, inventing a false media
+    // fact the whole pipeline then trusted. Unknown stays unknown; the server
+    // byte inspector is the classification authority.
+    expect(inferContentType(makeFile('noext', ''))).toBe('application/octet-stream');
+    expect(inferContentType(makeFile('data.xyz', ''))).toBe('application/octet-stream');
+    expect(inferContentType(makeFile('report.pdf', 'application/pdf'))).toBe('application/octet-stream');
   });
 
   it('handles files with no extension at all', () => {

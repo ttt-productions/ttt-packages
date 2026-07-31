@@ -46,11 +46,30 @@ const ENTRY_VIDEO_HEIGHT = byMode(640, 1280);
 // --- Client recording caps ---
 const RECORD_DURATION_SEC = SHORT_VIDEO_DURATION_SEC;
 
-const ACCEPT_IMAGE_ONLY = { kinds: ['image' as const] };
-const ACCEPT_VIDEO_ONLY = { kinds: ['video' as const] };
-const ACCEPT_AUDIO_ONLY = { kinds: ['audio' as const] };
-const ACCEPT_MEDIA_ALL = { kinds: ['image' as const, 'video' as const, 'audio' as const] };
-const ACCEPT_IMAGE_VIDEO = { kinds: ['image' as const, 'video' as const] };
+// --- Enabled-format policy (canonical-upload-content-classification launch
+// policy, DJ 2026-07-31): the picker advertises EXACTLY these and the server
+// accepts only an INSPECTED formatId in the origin's list. Kind for the shared
+// A/V containers (isobmff/webm/ogg) comes from stream inspection, never the
+// entry. DELIBERATELY ABSENT at launch: svg (scriptable — needs a
+// sanitize/rasterize design), heic/heif (no proven decode+PhotoDNA path in the
+// deployed runtime), avif (present-capability unproven — enable only with a
+// deployed-runtime decode+scan proof). Enabling any of them later is a policy
+// edit HERE plus that format's processing/safety proof — never a MIME tweak.
+const IMAGE_FORMATS = ['jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff'] as const;
+const AUDIO_FORMATS = ['mp3', 'wav', 'flac', 'isobmff', 'webm', 'ogg'] as const;
+const VIDEO_FORMATS = ['isobmff', 'webm'] as const;
+
+const ACCEPT_IMAGE_ONLY = { kinds: ['image' as const], formats: [...IMAGE_FORMATS] };
+const ACCEPT_VIDEO_ONLY = { kinds: ['video' as const], formats: [...VIDEO_FORMATS] };
+const ACCEPT_AUDIO_ONLY = { kinds: ['audio' as const], formats: [...AUDIO_FORMATS] };
+const ACCEPT_MEDIA_ALL = {
+  kinds: ['image' as const, 'video' as const, 'audio' as const],
+  formats: [...new Set([...IMAGE_FORMATS, ...VIDEO_FORMATS, ...AUDIO_FORMATS])],
+};
+const ACCEPT_IMAGE_VIDEO = {
+  kinds: ['image' as const, 'video' as const],
+  formats: [...new Set([...IMAGE_FORMATS, ...VIDEO_FORMATS])],
+};
 
 // Variant `key` values below are USAGES of the ONE canonical variant-key set
 // (`MEDIA_VARIANT_KEYS`, doc-schemas/media-assets.ts). The generic MediaOriginSpec

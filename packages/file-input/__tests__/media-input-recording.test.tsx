@@ -89,7 +89,7 @@ function installObjectUrlMock() {
 }
 
 describe('RecordDialog', () => {
-  let onRecorded: Mock<(file: File, previewUrl: string) => void | Promise<void>>;
+  let onRecorded: Mock<(file: File, previewUrl: string, recordedKind: 'audio' | 'video') => void | Promise<void>>;
   let onOpenChange: Mock<(open: boolean) => void>;
   let gumMock: ReturnType<typeof installGetUserMediaMock>;
   let urlMock: ReturnType<typeof installObjectUrlMock>;
@@ -287,6 +287,17 @@ describe('RecordDialog', () => {
     installMediaRecorderMock({ mimeType: 'video/webm' });
     const file = await recordStopSave();
     expect(file.type).toBe('audio/webm');
+  });
+
+  it('passes the RECORDED KIND as the third onRecorded argument regardless of the recorder-reported MIME (the strong media-recorder claim source)', async () => {
+    // The claim contract (canonical-upload-content-classification): the
+    // media-recorder claim comes from the dialog's OWN recording kind — the
+    // requested MediaStream — never from the blob's reported container. A
+    // Safari-style recorder reporting video/mp4 for an audio-only session must
+    // still yield recordedKind 'audio'.
+    installMediaRecorderMock({ mimeType: 'video/mp4' });
+    await recordStopSave();
+    expect(onRecorded.mock.calls[0][2]).toBe('audio');
   });
 
   it('a recorder that reports video/mp4 for a chosen-audio recording emits audio/mp4 named recording.m4a', async () => {

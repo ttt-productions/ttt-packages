@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ClientContextSchema, MediaPublicationStateSchema } from "../schemas.js";
+import { ClientContextSchema, ClientMediaClaimSchema, MediaPublicationStateSchema } from "../schemas.js";
 
 export function createPendingMediaSchemas<
   TFileOriginSchema extends z.ZodTypeAny,
@@ -47,6 +47,10 @@ export function createPendingMediaSchemas<
     targetInfo: z.unknown().optional(),
     textContent: z.string().optional(),
     clientContext: ClientContextSchema,
+    // The untrusted client action claim carried from startUpload (optional —
+    // pre-existing/archive docs never carried it; canonical-upload-content-
+    // classification). Diagnostics + mismatch-policy input, never authority.
+    clientMediaClaim: ClientMediaClaimSchema.optional(),
     // Publication/serving readiness — orthogonal to `status` (the processing
     // outcome). Optional/additive: absent ⇒ treat as `notStarted`. Rides on
     // every status branch + the archive branches via this shared base.

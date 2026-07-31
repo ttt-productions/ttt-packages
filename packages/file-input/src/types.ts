@@ -1,4 +1,5 @@
 import type {
+  ClientMediaClaim,
   FileCategory as ContractsFileCategory,
   MediaKind,
   MediaProcessingSpec,
@@ -89,6 +90,17 @@ export interface MediaInputChangePayload {
   file?: File;
   previewUrl?: string;
   meta?: SelectedMediaMeta;
+
+  /**
+   * What the user actually DID (canonical-upload-content-classification):
+   * `media-recorder` / `camera-capture` are STRONG claims (the component itself
+   * requested that capture kind — an audio recording asked for `video:false`);
+   * `file-picker` is an ADVISORY inference from browser metadata (`kind:'file'`
+   * when nothing narrower is known). Crop/normalization preserves the original
+   * claim. Untrusted context for the server — never classification authority.
+   * Present on every successful selection; absent only on the error payload.
+   */
+  claim?: ClientMediaClaim;
 
   autoFormat?: boolean;
   croppedBlob?: Blob;

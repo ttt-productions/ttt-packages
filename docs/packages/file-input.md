@@ -16,3 +16,13 @@ The package consumes generic media shapes from `media-schemas`; it does not know
 `MediaInput` and the recording preview render through `@ttt-productions/media-viewer` (`MediaPreview`) — the package's one intra-Tier-1 dependency, so picked and recorded files use the same canonical viewer. Selected-file UI uses semantic labels such as `Audio selected`; original filenames remain upload metadata and are never displayed by this package.
 
 `MediaInput` exposes an additive imperative handle (`MediaInputHandle`) via `ref`: `openSelection()` activates the SAME trigger semantics as a human click — one enabled action runs directly through the canonical selection path (honoring `onBeforeSelect`, validation, and crop), multiple actions open the choice dropdown — and no-ops while `disabled`/`isLoading`. It never touches the hidden input directly, so none of the trigger gates are bypassed. Consumers use it to re-open the picker from an external control (e.g. a chat "Attach again" action).
+
+## Client claim + neutral pass-through (2026-07-31)
+
+`MediaInputChangePayload.claim` carries the action-derived `ClientMediaClaim` (picker →
+advisory inference; camera/recorder → strong, from the dialog's own recorded kind — never the
+blob MIME; crop preserves the original claim). Unknown picker metadata is no longer fabricated
+into `image/jpeg`: it passes through as `application/octet-stream` (`NEUTRAL_CONTENT_TYPE`)
+with a `kind:'file'` claim, and `accepts()` fails OPEN on unknown types (the server byte
+inspector is the authority). `acceptAttr` projects `spec.accept.formats` through the
+media-schemas registry when present.

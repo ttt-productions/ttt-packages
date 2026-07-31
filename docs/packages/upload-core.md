@@ -14,3 +14,10 @@ Low-level browser upload runtime package.
 Feature code must not call the low-level upload primitive directly. Upload-capable UI goes through `@ttt-productions/upload-ui/react/upload` and its `useGuardedUpload` helper; navigation protection lives in `/react/guard`, and upload activity/tray state lives in `/react/tray`.
 
 The historical `./react` subpath was removed. Do not reintroduce unguarded upload hooks.
+
+## Neutral content-type opt-in (2026-07-31)
+
+`uploadFileResumable` accepts `allowNeutralContentType: true` to permit EXACTLY
+`application/octet-stream` (unknown picker metadata reaching the server uninvented). The
+media-only default is unchanged for every caller that omits it; arbitrary declared types still
+reject.

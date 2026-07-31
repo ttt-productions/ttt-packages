@@ -118,7 +118,11 @@ interface RecordDialogProps {
   maxRecordDurationSec?: number;
   disabled?: boolean;
   isLoading?: boolean;
-  onRecorded: (file: File, previewUrl: string) => void | Promise<void>;
+  /** `recordedKind` is the kind of the ACTUAL recording session (the dialog's
+   *  own state at Save time, which tracks the requested MediaStream — audio
+   *  requests `video:false`). It feeds the STRONG `media-recorder` client
+   *  claim, so it must never be re-derived from the blob's reported MIME. */
+  onRecorded: (file: File, previewUrl: string, recordedKind: "audio" | "video") => void | Promise<void>;
   onRequestPhoto?: () => void;
 }
 
@@ -471,9 +475,9 @@ export function RecordDialog({
 
   const handleSave = useCallback(async () => {
     if (!recordedFile || !recordPreviewUrl) return;
-    await onRecorded(recordedFile, recordPreviewUrl);
+    await onRecorded(recordedFile, recordPreviewUrl, recordKind);
     onOpenChange(false);
-  }, [recordedFile, recordPreviewUrl, onRecorded, onOpenChange]);
+  }, [recordedFile, recordPreviewUrl, recordKind, onRecorded, onOpenChange]);
 
   // Close the dialog for real (no confirmation). Used for idle/recording
   // states and as the "Discard" action in the confirm AlertDialog.

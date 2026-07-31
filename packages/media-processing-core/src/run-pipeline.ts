@@ -2,16 +2,19 @@ import type {
     MediaProcessingResult,
     MediaProcessingSpec,
     MediaModerationResult,
+    MediaInspectionResult,
+    MediaProcessingError,
   } from "@ttt-productions/media-schemas";
 import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
   import { createTempWorkspace } from "./workspace/temp.js";
   import { processMedia } from "./process-media.js";
+  import { inspectMedia, type InspectMediaDeps } from "./inspection/inspect-media.js";
   import type { MediaIO } from "./io/types.js";
   import type { ModerationAdapter } from "./moderation/types.js";
   import { mergeModeration } from "./moderation/merge.js";
   import path from "node:path";
   import { stat } from "node:fs/promises";
-  
+
   export interface RunPipelineArgs {
     spec: MediaProcessingSpec;
     io: MediaIO;
@@ -19,6 +22,27 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
     moderation?: ModerationAdapter;
   signal?: AbortSignal;
   onProgress?: (p: import("./types.js").MediaPipelineProgress) => void;
+  /**
+   * CANONICAL INSPECTION SEAM (canonical-upload-content-classification).
+   * When present, the pipeline runs `inspectMedia` on the just-downloaded temp
+   * input — BEFORE moderation and processing — and calls this policy hook with
+   * the bounded result. The hook either:
+   *   - returns `{ spec }` — the caller's policy adapter selected the
+   *     processing spec FROM the inspection (the byte-derived kind, never the
+   *     client MIME); the pipeline continues with that spec; or
+   *   - returns `{ reject }` — a typed terminal (`kind_mismatch`,
+   *     `unsupported_format`, `unsupported_codec`, …); the pipeline stops
+   *     before any transcode/moderation work.
+   * The inspection result rides the returned `MediaProcessingResult.inspection`
+   * either way, so the finalizer hands the SAME object to the safety gate —
+   * one authority, no re-detection. Callers that omit the hook get the
+   * pre-existing behavior unchanged.
+   */
+  resolveAfterInspection?: (
+    inspection: MediaInspectionResult,
+  ) => Promise<{ spec: MediaProcessingSpec } | { reject: MediaProcessingError }> | ({ spec: MediaProcessingSpec } | { reject: MediaProcessingError });
+  /** Inspection tool overrides (tests). */
+  inspectionDeps?: InspectMediaDeps;
   }
   
   function mediaTypeFromSpecKind(kind: MediaProcessingSpec["kind"]): "image" | "video" | "audio" | "other" {
@@ -38,7 +62,12 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
   
   export async function runMediaPipeline(args: RunPipelineArgs): Promise<MediaProcessingResult> {
     let { spec } = args;
-    const { io, outputBaseName = "media", moderation, signal, onProgress } = args;
+    const { io, outputBaseName = "media", moderation, signal, onProgress, resolveAfterInspection } = args;
+    // Carried onto every return path once produced — the finalizer must hand the
+    // SAME inspection object to the safety gate (one classification authority).
+    let inspection: MediaInspectionResult | undefined;
+    const withInspection = (r: MediaProcessingResult): MediaProcessingResult =>
+      inspection ? { ...r, inspection } : r;
 
     if (signal?.aborted) {
       return {
@@ -75,7 +104,39 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
       onProgress?.({ phase: "read_input", percent: 0 });
       await io.input.readToFile(inputPath);
       onProgress?.({ phase: "read_input", percent: 1 });
-  
+
+      // CANONICAL INSPECTION (before moderation and processing): classify the
+      // just-downloaded bytes structurally and let the caller's policy adapter
+      // pick the spec from the result. See RunPipelineArgs.resolveAfterInspection.
+      if (resolveAfterInspection) {
+        inspection = await inspectMedia({
+          localPath: inputPath,
+          ...(signal ? { signal } : {}),
+          ...(args.inspectionDeps ? { deps: args.inspectionDeps } : {}),
+        });
+        const resolution = await resolveAfterInspection(inspection);
+        if ("reject" in resolution) {
+          return withInspection({
+            ok: false,
+            mediaType: mediaTypeFromSpecKind(spec.kind),
+            error: resolution.reject,
+          });
+        }
+        try {
+          spec = parseMediaProcessingSpec(resolution.spec);
+        } catch (e: any) {
+          return withInspection({
+            ok: false,
+            mediaType: mediaTypeFromSpecKind(spec.kind),
+            error: {
+              code: "invalid_spec",
+              message: "Invalid MediaProcessingSpec from resolveAfterInspection.",
+              details: { issues: e?.issues ?? e?.message ?? String(e) },
+            },
+          });
+        }
+      }
+
       // PRE moderation (original)
       let mIn: MediaModerationResult | null | undefined;
       if (moderation?.moderateInput) {
@@ -100,7 +161,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
         // "error") on the result — callers route that to their retryable
         // moderation lane and land the row failed rather than publishing it.
         if (mIn?.status === "rejected" || mIn?.status === "error") {
-          return {
+          return withInspection({
             ok: false,
             mediaType: mediaTypeFromSpecKind(spec.kind),
             moderation: mIn,
@@ -116,7 +177,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
                     message: "Rejected by moderation.",
                     details: { provider: mIn.provider, reasons: mIn.reasons, findings: mIn.findings },
                   },
-          };
+          });
         }
       }
   
@@ -139,7 +200,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
           total += size;
           if (!o.sizeBytes) o.sizeBytes = size;
           if (size > perFileLimit) {
-            return {
+            return withInspection({
               ok: false,
               mediaType: mediaTypeFromSpecKind(spec.kind),
               error: {
@@ -147,10 +208,10 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
                 message: "Processed output exceeds allowed size.",
                 details: { key: o.key, sizeBytes: size, limitBytes: perFileLimit },
               },
-            };
+            });
           }
           if (total > totalLimit) {
-            return {
+            return withInspection({
               ok: false,
               mediaType: mediaTypeFromSpecKind(spec.kind),
               error: {
@@ -158,7 +219,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
                 message: "Total processed outputs exceed allowed size.",
                 details: { totalBytes: total, limitBytes: totalLimit },
               },
-            };
+            });
           }
         }
       }
@@ -166,7 +227,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
       if (!result.ok || !result.outputs?.length) {
         if (mIn) result.moderation = mIn;
         onProgress?.({ phase: "done", percent: result.ok ? 1 : 0 });
-        return result;
+        return withInspection(result);
       }
   
       // POST moderation (processed outputs) — runs on the LOCAL output paths
@@ -193,7 +254,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
         // publish unscanned output. Ordering is load-bearing — see the
         // consuming app's media-serving design docs.
         if (mOut?.status === "rejected" || mOut?.status === "error") {
-          return {
+          return withInspection({
             ok: false,
             mediaType: result.mediaType,
             moderation: mOut,
@@ -209,7 +270,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
                     message: "Rejected by moderation.",
                     details: { provider: mOut.provider, reasons: mOut.reasons, findings: mOut.findings },
                   },
-          };
+          });
         }
       }
 
@@ -219,7 +280,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
       let outIdx = 0;
       for (const out of result.outputs) {
         if (signal?.aborted) {
-          return { ok: false, mediaType: result.mediaType, error: { code: "processing_canceled", message: "Processing canceled." } };
+          return withInspection({ ok: false, mediaType: result.mediaType, error: { code: "processing_canceled", message: "Processing canceled." } });
         }
         onProgress?.({ phase: "persist_outputs", percent: totalOut ? outIdx / totalOut : 0, detail: { key: out.key } });
         if (!out.path) continue;
@@ -235,7 +296,7 @@ import { parseMediaProcessingSpec } from "@ttt-productions/media-schemas";
 
       onProgress?.({ phase: "done", percent: 1 });
   
-      return result;
+      return withInspection(result);
     } finally {
       await ws.cleanup();
     }
