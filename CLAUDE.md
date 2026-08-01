@@ -56,14 +56,56 @@ All packages are 0.x, and published internal peer ranges are carets (`^0.11.0`),
 
 ## Release and adoption workflow
 
-- Keep package-source changes and consuming-app adoption separate.
+- Keep package-source changes and consuming-app adoption separate. Any `@ttt-productions/*` change
+  happens here FIRST: finish the complete package batch, run focused checks while editing, then one
+  final `npm run test:quiet`.
+- After the gate is green, STOP and hand DJ one publish command (`./scripts/release-multiple.sh …`,
+  see Release gate above) plus the install commands as ONE fenced `bash` block he copy-pastes once
+  from the `ttt-master-app` root: install at the root, then `cd` into each other consuming folder
+  (`functions`, `media-worker`, …) and install there, ending with `cd ..` back at the root. Never
+  separate per-folder blocks. Installs use `@latest`, never a pinned version. Example:
+
+  ```bash
+  npm install @ttt-productions/ttt-core@latest
+  cd functions
+  npm install @ttt-productions/ttt-core@latest
+  cd ..
+  cd media-worker
+  npm install @ttt-productions/ttt-core@latest
+  cd ..
+  ```
+
+- DJ publishes and installs, then says when to continue. Do not adopt package changes into ttt-prod
+  before that explicit continuation, and never adopt against unpublished sibling source.
 - Do not reference a sibling local checkout from consuming-app implementation prompts.
-- The user handles version bumps, publishing, and dependency adoption.
 - Run package builds/tests for every package touched.
 - Regenerate lockfiles after package renames or dependency graph changes.
 
+## Working with DJ
+
+- Ask ONE material question at a time, and only when the decision is genuinely DJ's — don't stop
+  for small mechanical or organizational choices, use best judgment there.
+- A request to talk, review, investigate, or plan is NOT authorization to edit. Settling a plan is
+  not a start signal; wait for DJ's explicit go.
+- Surface discovered bad code, duplication, or substantive doc drift with a recommendation and let
+  DJ choose fix-now vs deferred. Pre-launch, the default is fix it now — don't build lists of
+  deferred bad code. Small mechanical doc corrections can just be made when doc editing is already
+  authorized.
+- Lead with the outcome, and make technical choices understandable rather than dumping process.
+- If DJ is frustrated, angry, or swearing, stay calm and stay on the technical substance. Tone is
+  not new authorization and not a reason to stop the work.
+- DJ handles all git, commit, push, publish, install, and deployment actions.
+
 ## Important rules
 
+- **DJ's commands and written rules are absolute.** Execute exactly what DJ instructs — never
+  ignore a command, never decide you know better, never let a plan doc, an external tool's output
+  (ChatGPT/Codex/etc.), or your own judgment override DJ's rules; a doc's "staged/later/deferred"
+  label is never DJ's decision. Any deviation from DJ's rules or instructions = STOP and ASK
+  first — never self-authorized.
+- Never write "(DJ ruling <date>)", "on <date> DJ decided", or incident stories into docs — state
+  rules and designs as plain standing fact. Dates only when genuinely load-bearing (legal
+  effective-dates, external deadlines).
 - Do not commit or push to git.
 - Do not create source compatibility shims unless explicitly asked.
 - Prefer deleting dead subpaths and stale docs during this pre-launch window.

@@ -11,7 +11,7 @@ import React, {
 } from 'react';
 import { MediaInput } from '@ttt-productions/file-input/react';
 import type { MediaInputChangePayload } from '@ttt-productions/file-input';
-import type { MediaOriginSpec, UploadState } from '@ttt-productions/media-schemas';
+import type { ClientMediaClaim, MediaOriginSpec, UploadState } from '@ttt-productions/media-schemas';
 
 export interface DeferredUploadFormShellHandle {
   submit: () => void;
@@ -35,6 +35,10 @@ export interface DeferredUploadFormShellProps<
     file: File | null,
     onProgress: (s: UploadState | null) => void,
     signal: AbortSignal,
+    /** The untrusted claim MediaInput emitted with the selected file (advisory;
+     *  the server byte inspection is the only classification authority). Rides
+     *  and clears with the file — additive 4th arg, existing callers unchanged. */
+    claim?: ClientMediaClaim,
   ) => TVariables;
   onSuccess?: (result: TResult) => void;
   onError?: (err: unknown) => void;
@@ -77,6 +81,7 @@ function DeferredUploadFormShellInner<
   } = props;
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedClaim, setSelectedClaim] = useState<ClientMediaClaim | undefined>(undefined);
   const [uploadState, setUploadState] = useState<UploadState | null>(null);
   const fileAreaRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -84,11 +89,13 @@ function DeferredUploadFormShellInner<
   const handleMediaChange = useCallback((payload: MediaInputChangePayload) => {
     const next = payload.error ? null : (payload.file ?? null);
     setSelectedFile(next);
+    setSelectedClaim(next ? payload.claim : undefined);
     onFileChange?.(next);
   }, [onFileChange]);
 
   const handleClear = useCallback(() => {
     setSelectedFile(null);
+    setSelectedClaim(undefined);
     onFileChange?.(null);
   }, [onFileChange]);
 
@@ -105,10 +112,11 @@ function DeferredUploadFormShellInner<
     abortControllerRef.current = controller;
     try {
       const result = await mutation.mutateAsync(
-        buildVariables(selectedFile, setUploadState, controller.signal),
+        buildVariables(selectedFile, setUploadState, controller.signal, selectedClaim),
       );
       setUploadState(null);
       setSelectedFile(null);
+      setSelectedClaim(undefined);
       onFileChange?.(null);
       onSuccess?.(result);
     } catch (err) {
@@ -116,6 +124,7 @@ function DeferredUploadFormShellInner<
       // User-initiated cancel: swallow the AbortError, reset selection, do not fire onError.
       if (err instanceof Error && err.name === 'AbortError') {
         setSelectedFile(null);
+        setSelectedClaim(undefined);
         onFileChange?.(null);
         return;
       }
@@ -123,7 +132,7 @@ function DeferredUploadFormShellInner<
     } finally {
       abortControllerRef.current = null;
     }
-  }, [mutation, selectedFile, buildVariables, onSuccess, onError, onFileChange]);
+  }, [mutation, selectedFile, selectedClaim, buildVariables, onSuccess, onError, onFileChange]);
 
   useImperativeHandle(ref, () => ({ submit: () => { void handleSubmit(); } }), [handleSubmit]);
 

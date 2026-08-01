@@ -37,3 +37,10 @@ There is no catch-all `./react` subpath; import the specific concern.
 
 `GuardedUploadArgs.allowNeutralContentType` threads the upload-core opt-in through the one
 guarded upload path (no TTT policy here — the app's policy adapter decides when to set it).
+
+## Deferred-shell claim threading
+
+`DeferredUploadFormShell` captures `MediaInputChangePayload.claim` beside the selected file,
+passes it to `buildVariables` as an additive optional 4th argument, and clears it whenever the
+file clears (user clear, post-success reset, abort reset) — a stale claim can never ride a new
+submission.

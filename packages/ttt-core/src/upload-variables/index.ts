@@ -13,3 +13,4 @@ export * from './update-episode-media-variables.js';
 export * from './update-chapter-media-variables.js';
 export * from './update-track-media-variables.js';
 export * from './upload-conversation-file-variables.js';
+export * from './update-work-realm-cover-variables.js';

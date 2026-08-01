@@ -17,7 +17,10 @@ vi.mock('@ttt-productions/file-input/react', () => ({
           type: 'button',
           'data-testid': 'select-file-btn',
           onClick: () =>
-            onChange({ file: new File(['x'], 'test.jpg', { type: 'image/jpeg' }) }),
+            onChange({
+              file: new File(['x'], 'test.jpg', { type: 'image/jpeg' }),
+              claim: { kind: 'image', source: 'file-picker' },
+            }),
         },
         'Select File',
       ),
@@ -110,6 +113,27 @@ describe('DeferredUploadFormShell', () => {
     expect(vars.file).toBeInstanceOf(File);
     expect(typeof vars.onProgress).toBe('function');
     expect(vars.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('threads the MediaInput claim into buildVariables (4th arg) and clears it with the file', async () => {
+    const user = userEvent.setup();
+    const mutateAsync = vi.fn().mockResolvedValue({ ok: true });
+    const mutation = makeMutation({ mutateAsync });
+    const buildVariables = vi.fn((file, onProgress, signal, claim) => ({ file, onProgress, signal, claim }));
+    const { ref } = renderShellWithRef({ mutation, buildVariables });
+
+    await user.click(screen.getByTestId('select-file-btn'));
+    ref.current?.submit();
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledOnce());
+    expect(buildVariables.mock.calls[0][3]).toEqual({ kind: 'image', source: 'file-picker' });
+
+    // Post-success internal reset: a second submit with no reselected file
+    // must not resurrect the old claim.
+    ref.current?.submit();
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(2));
+    expect(buildVariables.mock.calls[1][0]).toBeNull();
+    expect(buildVariables.mock.calls[1][3]).toBeUndefined();
   });
 
   it('imperative submit with no file selected still calls mutateAsync', async () => {
