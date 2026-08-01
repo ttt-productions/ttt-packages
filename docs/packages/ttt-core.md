@@ -153,10 +153,14 @@ Keep the detailed contract shape in source types, schemas, constants, and tests 
 
 Realm docs store no child Work arrays, no counts, no Realm image fields, and no denormalized owner display fields. Display identity remains uid-only across package boundaries; consuming apps resolve names/avatars from their own public identity source.
 
-## Upload claim + origin format policy (2026-07-31)
+## Upload claim + origin format policy
 
 `StartUploadRequestSchema.clientMediaClaim` (optional — rolling compatibility; absence means
 inspect-only, never MIME fallback) and the same optional field on the pendingMedia base.
 `TTT_MEDIA_SPECS` accept blocks now carry the explicit enabled-format selection
 (`accept.formats`); the launch policy (svg/heic/avif disabled, shared containers enabled with
 inspection-derived kind) is pinned by `__tests__/media-format-policy.test.ts`.
+Every file-bearing `upload-variables` schema carries an optional `claim`
+(`ClientMediaClaim` from media-schemas) so hooks thread MediaInput's action
+context (picker/camera/recorder) to `startUpload`; `upload-variables-claim.test.ts`
+structurally asserts no file-bearing schema ships without it.

@@ -15,7 +15,7 @@ Feature code must not call the low-level upload primitive directly. Upload-capab
 
 The historical `./react` subpath was removed. Do not reintroduce unguarded upload hooks.
 
-## Neutral content-type opt-in (2026-07-31)
+## Neutral content-type opt-in
 
 `uploadFileResumable` accepts `allowNeutralContentType: true` to permit EXACTLY
 `application/octet-stream` (unknown picker metadata reaching the server uninvented). The

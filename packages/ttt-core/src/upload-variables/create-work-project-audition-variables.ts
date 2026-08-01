@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import {
   MAX_AUDITION_TITLE_LENGTH,
@@ -13,6 +14,12 @@ export const CreateWorkProjectAuditionVariablesSchema = z.object({
   title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
   description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
   videoFile: z.instanceof(File).or(z.instanceof(Blob)),
+
+  // Untrusted client claim of what the user's action implies (advisory; the
+
+  // server byte inspection is the only classification authority).
+
+  claim: ClientMediaClaimSchema.optional(),
   openTill: z.string().min(1),
   workProjectId: z.string().min(1),
   stakeSharesOffered: z.number().int().min(0).max(MAX_WORK_PROJECT_STAKE_SHARES).optional(),

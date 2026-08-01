@@ -16,6 +16,7 @@ export * from "./run-pipeline.js";
 export * from "./inspection/inspect-media.js";
 
 export * from "./io/fs.js";
+export * from "./io/local-input.js";
 
 export * from "./moderation/types.js";
 export * from "./moderation/merge.js";

@@ -27,6 +27,16 @@ export interface ValidateUploadFileOptions {
     fileSize: number;
     fileType: string;
   }) => void;
+  /**
+   * FAIL-OPEN for indeterminate picker metadata: when the file's kind cannot
+   * be determined from browser MIME/extension, pass it through with the
+   * NEUTRAL `application/octet-stream` type (never a fabricated media type)
+   * instead of throwing, so the server's canonical byte inspector — the only
+   * classification authority — decides. The kind-mismatch check still throws
+   * when the client metadata IS determinate. Requires the upload path to opt
+   * into `allowNeutralContentType`.
+   */
+  allowIndeterminate?: boolean;
 }
 
 function describeExpected(expected: ExpectedKind): string {
@@ -44,7 +54,8 @@ function matchesExpected(detected: SingleKind, expected: ExpectedKind): boolean 
 /**
  * Validates and normalizes a file for upload.
  *
- * - Throws a user-friendly Error if the file's kind cannot be determined.
+ * - Throws a user-friendly Error if the file's kind cannot be determined
+ *   (unless `allowIndeterminate` fails open to the neutral content type).
  * - Throws a user-friendly Error if `expectedKind` is not 'any' and doesn't
  *   match the detected kind.
  * - Otherwise returns a File with a guaranteed valid media contentType.
@@ -64,6 +75,11 @@ export function validateAndNormalizeUploadFile(
   const detected = getSimplifiedMediaType(file);
 
   if (detected === 'other') {
+    if (options?.allowIndeterminate === true) {
+      // No fallback kind: inferContentType resolves an unknown file to the
+      // NEUTRAL type, never a fabricated media fact.
+      return ensureFileWithContentType(file);
+    }
     options?.onError?.('upload_kind_indeterminate', {
       fileOrigin,
       expectedKind: describeExpected(expectedKind),

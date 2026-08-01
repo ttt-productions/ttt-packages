@@ -15,7 +15,7 @@ The package consumes generic media shapes from `media-schemas` and keeps Firebas
 
 The root entry (`.`) is one of only two intentional exceptions to the monorepo's root-purity rule (see `package-architecture.md`) — it is Node-only (spawns `ffmpeg` via `node:child_process`, uses `node:fs`/`node:os`), not a universal/server-safe surface like every other package's root.
 
-## Canonical inspector + pipeline seam (2026-07-31)
+## Canonical inspector + pipeline seam
 
 `inspectMedia` (src/inspection/) is THE server classification authority: bounded 64KiB
 signature routing, hardened `ffprobe` stream tables (timeout/kill/output-cap/strict schema)
@@ -27,3 +27,10 @@ audio). `runCmd` gained `timeoutMs`/`signal` (SIGKILL) + `timedOut`/`truncated` 
 temp input BEFORE moderation/processing, let the caller's policy adapter pick the spec (or
 reject typed), and carry the SAME inspection object on every result path so the finalizer
 hands it to the safety gate — one authority, no re-detection.
+## Bounded-memory local-input primitives
+
+`src/io/local-input.ts`: `streamToTempFile` (hard byte cap, private temp dir,
+cleanup-on-failure, `ByteLimitExceededError`), `hashFileSha256` (streamed),
+`readFileHeader` (bounded signature window, `FILE_HEADER_BYTES`). Safety
+scanning/hashing consumers use these so a media source is never held fully in
+JS memory; callers own generation pinning and `cleanup()` in `finally`.

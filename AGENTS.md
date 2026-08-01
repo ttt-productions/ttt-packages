@@ -2,6 +2,10 @@
 
 Read this repository's `CLAUDE.md` before reviewing, planning, editing, or running commands. The workspace-level `C:\DjDev\AGENTS.md` also applies.
 
+## Absolute obedience
+
+DJ's commands and written rules are absolute. The agent executes exactly what DJ instructs — never ignore a command; never substitute the agent's own judgment, a plan document's staging, or another tool's output (ChatGPT/Codex/etc.) for DJ's written rules or in-chat instructions; a doc's "staged/later/deferred" label is never DJ's decision. Any deviation from DJ's rules or instructions means STOP and ASK first — never self-authorized. Never write "(DJ ruling <date>)" or dated decision attributions into DJ's docs — rules and designs are stated as plain standing fact.
+
 ## Mandatory reading protocol
 
 - Engineering rules are ONE system for both repos and live in ttt-prod. Before reviewing, planning, designing, editing, or running implementation commands, read `C:\DjDev\ttt-master-app\docs\engineering-rules\README.md` and `docs\engineering-rules\core-rules.md` (the ten universal `ENG-*` rules), plus the routed area files per that README's routing table — `architecture/packages-and-boundaries.md` and the `quality/` rules apply to essentially every package task; add other areas the change touches.

@@ -62,4 +62,23 @@ describe('validateAndNormalizeUploadFile', () => {
     const f = makeFile('a.jpg', 'image/jpeg');
     expect(() => validateAndNormalizeUploadFile(f, 'test-origin', 'image')).not.toThrow();
   });
+
+  it('allowIndeterminate: an undetectable file FAILS OPEN to the neutral content type (no throw, no onError)', () => {
+    const f = makeFile('a.bin', '');
+    const onError = vi.fn();
+    const result = validateAndNormalizeUploadFile(f, 'test-origin', 'image', {
+      onError,
+      allowIndeterminate: true,
+    });
+    expect(result.type).toBe('application/octet-stream');
+    expect(result.name).toBe('a.bin');
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it('allowIndeterminate does NOT weaken the mismatch check for determinate metadata', () => {
+    const f = makeFile('a.mp4', 'video/mp4');
+    expect(() =>
+      validateAndNormalizeUploadFile(f, 'test-origin', 'image', { allowIndeterminate: true })
+    ).toThrow(/This slot only accepts image files/);
+  });
 });

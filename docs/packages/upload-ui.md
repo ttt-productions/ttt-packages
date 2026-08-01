@@ -33,7 +33,7 @@ The package main entry (`@ttt-productions/upload-ui`) is intentionally server-sa
 
 There is no catch-all `./react` subpath; import the specific concern.
 
-## Neutral content-type threading (2026-07-31)
+## Neutral content-type threading
 
 `GuardedUploadArgs.allowNeutralContentType` threads the upload-core opt-in through the one
 guarded upload path (no TTT policy here — the app's policy adapter decides when to set it).

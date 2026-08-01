@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import { ConversationFileRefSchema } from '../media/conversation-file-ref.js';
 
@@ -8,6 +9,9 @@ import { ConversationFileRefSchema } from '../media/conversation-file-ref.js';
 export const UploadConversationFileVariablesSchema = z.object({
   conversation: ConversationFileRefSchema,
   file: z.instanceof(File),
+  // Untrusted client claim of what the user's action implies (advisory; the
+  // server byte inspection is the only classification authority).
+  claim: ClientMediaClaimSchema.optional(),
   onProgress: onProgressSchema,
   signal: z.instanceof(AbortSignal).optional(),
 }).strict();

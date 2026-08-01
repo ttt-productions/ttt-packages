@@ -17,7 +17,7 @@ The package consumes generic media shapes from `media-schemas`; it does not know
 
 `MediaInput` exposes an additive imperative handle (`MediaInputHandle`) via `ref`: `openSelection()` activates the SAME trigger semantics as a human click — one enabled action runs directly through the canonical selection path (honoring `onBeforeSelect`, validation, and crop), multiple actions open the choice dropdown — and no-ops while `disabled`/`isLoading`. It never touches the hidden input directly, so none of the trigger gates are bypassed. Consumers use it to re-open the picker from an external control (e.g. a chat "Attach again" action).
 
-## Client claim + neutral pass-through (2026-07-31)
+## Client claim + neutral pass-through
 
 `MediaInputChangePayload.claim` carries the action-derived `ClientMediaClaim` (picker →
 advisory inference; camera/recorder → strong, from the dialog's own recorded kind — never the
@@ -26,3 +26,7 @@ into `image/jpeg`: it passes through as `application/octet-stream` (`NEUTRAL_CON
 with a `kind:'file'` claim, and `accepts()` fails OPEN on unknown types (the server byte
 inspector is the authority). `acceptAttr` projects `spec.accept.formats` through the
 media-schemas registry when present.
+`validateAndNormalizeUploadFile` accepts `allowIndeterminate`: an unknown-kind
+picker file fails OPEN to the neutral content type (server inspection decides)
+instead of throwing; the kind-mismatch check still throws for determinate
+metadata.
