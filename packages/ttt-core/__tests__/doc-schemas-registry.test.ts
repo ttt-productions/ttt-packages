@@ -3,6 +3,7 @@ import {
   COLLECTIONS,
   USER_SUBCOLLECTIONS,
   WORK_PROJECT_SUBCOLLECTIONS,
+  WORK_REALM_SUBCOLLECTIONS,
   HALL_ITEM_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
 } from '../src/paths/collections';
@@ -16,6 +17,7 @@ const allCollectionNames = [
   ...Object.values(COLLECTIONS),
   ...Object.values(USER_SUBCOLLECTIONS),
   ...Object.values(WORK_PROJECT_SUBCOLLECTIONS),
+  ...Object.values(WORK_REALM_SUBCOLLECTIONS),
   ...Object.values(HALL_ITEM_SUBCOLLECTIONS),
   ...Object.values(NESTED_SUBCOLLECTIONS),
   ...RULES_ONLY_COLLECTIONS,

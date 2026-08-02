@@ -1059,6 +1059,15 @@ erDiagram
     field leaseExpiresAt
     field lastError
   }
+  realmFileFolders {
+    field realmFileFolderId
+    field workRealmId
+    field name
+    field name_lowercase
+    field createdBy
+    field createdAt
+    field updatedAt
+  }
   relatedAssets {
     field rootIngestId
     field addedAt
@@ -1632,4 +1641,5 @@ erDiagram
   workRealms ||--o{ allWorkProjects : "workRealmId"
   workRealms ||--o{ hallContentChangeRequests : "workRealmId"
   workRealms ||--o{ publicWorkProjects : "workRealmId"
+  workRealms ||--o{ realmFileFolders : "workRealmId"
   workRealms ||--o{ reservedRealmNames : "workRealmId"
