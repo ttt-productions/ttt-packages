@@ -31,6 +31,9 @@ import {
   notificationFanoutJobIdSchema,
   titleSchema,
   reportGroupIdSchema,
+  mediaAssetIdSchema,
+  workRealmIdSchema,
+  realmFileShareRequestIdSchema,
 } from './atoms.js';
 import {
   MAX_THRESHOLD_REVIEW_NOTES_LENGTH,
@@ -48,7 +51,6 @@ const reportedItemTypeSchema = ReportableItemTypeSchema;
 const reportedItemIdSchema = z.string().min(1).max(128);
 const reportIdSchema = z.string().min(1);
 const appealIdSchema = z.string().min(1);
-const workRealmIdSchema = z.string().min(1);
 
 // ============================================================================
 // TYPE + CHANNEL CATALOG
@@ -86,6 +88,18 @@ export const NOTIFICATION_TYPE_VALUES = [
   // there is no privacy ceiling: the card states the outcome plainly and
   // targets My Uploads, where the resulting upload state lives.
   'content_appeal_reviewed',
+  // Realm shared-file promotion approval gate. TWO canonical types, one per direction of the
+  // decision — never one type with a recipient discriminator, because they are different
+  // cards on different trays with different dedup lifetimes:
+  //  - `realm_file_share_requested`: a Work file admin asked to share a file into a Realm →
+  //    the REALM STEWARD, who decides.
+  //  - `realm_file_share_resolved`: the pending request is no longer pending → the party who
+  //    did NOT act. `metadata.resolution` distinguishes `approved` | `declined` (to the
+  //    recorded REQUESTER) from `withdrawn` (to the STEWARD, whose queue card is now stale).
+  // OCCURRENCE IDENTITY for both is the request id, so a re-request after a decline is a new
+  // card rather than a relight of the resolved one.
+  'realm_file_share_requested',
+  'realm_file_share_resolved',
 ] as const;
 
 export const NotificationTypeSchema = z.enum(NOTIFICATION_TYPE_VALUES);
@@ -127,6 +141,8 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
   followed_craft_skill_published: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   report_action_taken: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   content_appeal_reviewed: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
+  realm_file_share_requested: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
+  realm_file_share_resolved: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
 };
 
 // ============================================================================
@@ -240,6 +256,32 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     type: z.literal('content_appeal_reviewed'),
     appealId: appealIdSchema,
     decision: z.enum(['approved', 'denied']),
+  }).strict(),
+  // Realm shared-file promotion REQUEST → the Realm steward. Ids only: the Realm name, the
+  // Work name, the file name, and the requester's display name all resolve at render from
+  // these ids (Display Identity Invariant) — a snapshot here would go stale the moment any
+  // of them is renamed or moderated.
+  z.object({
+    type: z.literal('realm_file_share_requested'),
+    workRealmId: workRealmIdSchema,
+    workProjectId: workProjectIdSchema,
+    mediaAssetId: mediaAssetIdSchema,
+    workFileId: z.string().min(1),
+    // The occurrence/dedup identity — one card per request, forever.
+    requestId: realmFileShareRequestIdSchema,
+    requestedByUid: userIdSchema,
+  }).strict(),
+  // Realm shared-file promotion RESOLUTION. `resolution` both drives the card copy AND
+  // identifies the audience: `approved`/`declined` go to the recorded requester,
+  // `withdrawn` goes to the steward whose pending card is now stale.
+  z.object({
+    type: z.literal('realm_file_share_resolved'),
+    workRealmId: workRealmIdSchema,
+    workProjectId: workProjectIdSchema,
+    mediaAssetId: mediaAssetIdSchema,
+    workFileId: z.string().min(1),
+    requestId: realmFileShareRequestIdSchema,
+    resolution: z.enum(['approved', 'declined', 'withdrawn']),
   }).strict(),
 ]);
 export type NotificationMetadataByType = z.infer<typeof NotificationMetadataByTypeSchema>;

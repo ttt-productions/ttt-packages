@@ -22,6 +22,7 @@ import {
   WorkFileFolderSchema,
   WorkFileSchema,
   WorkRealmSchema,
+  RealmFileFolderSchema,
   GuildmateUserSchema,
   PublicGuildmateUserSchema,
 } from './work-project.js';
@@ -228,6 +229,9 @@ export const COLLECTION_SCHEMAS = {
   // Guild channel + invite messages are REALTIME-ONLY (chat Worker DO) — no Firestore schema.
   'publicWorkProjects/{workProjectId}': PublicWorkProjectSchema,
   'workRealms/{workRealmId}': WorkRealmSchema,
+  // Realm shared-file folders — steward-owned containers; callable-written, client-read denied
+  // (the gallery projection returns them alongside the files).
+  'workRealms/{workRealmId}/realmFileFolders/{realmFileFolderId}': RealmFileFolderSchema,
   'guildInviteConversations/{guildInviteId}': GuildInviteConversationSchema,
   // Conversation Files — the flat per-conversation file list. Backend-only writes;
   // client-readable only while the caller holds conversation read access.

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { userIdSchema } from './atoms.js';
+import { userIdSchema, calendarDateSchema } from './atoms.js';
 import {
   USERNAME_MIN_LENGTH,
   USERNAME_MAX_LENGTH,
@@ -68,7 +68,7 @@ export type MarkWaitingForNewsApprovalInput = z.infer<typeof MarkWaitingForNewsA
 export const UpdateSiteTourPreferenceInputSchema = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('deferToday'),
-    date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), // 'YYYY-MM-DD' (member's LOCAL calendar date)
+    date: calendarDateSchema, // 'YYYY-MM-DD' (member's LOCAL calendar date)
   }).strict(),
   z.object({
     action: z.literal('dismissAutomaticInvites'),
@@ -78,6 +78,59 @@ export const UpdateSiteTourPreferenceInputSchema = z.discriminatedUnion('action'
   }).strict(),
 ]);
 export type UpdateSiteTourPreferenceInput = z.infer<typeof UpdateSiteTourPreferenceInputSchema>;
+
+// The device-local shape behind the ONE sanctioned optimistic-hide exception: a site-tour choice
+// the member has already made, persisted at `siteTourPendingStorageKey(uid)`
+// (constants/storage-keys.ts) while its `updateSiteTourPreference` write is unconfirmed. It exists
+// so the overlay can close on the click instead of after a callable round-trip, and so a failed
+// write is replayed on the next boot rather than silently lost.
+//
+// It is NOT a cache, mirror, or second authority: `privateData/{uid}.siteTour` remains the sole
+// source of tour eligibility, and this entry only OVERLAYS it (suppressing an invitation the member
+// has already dismissed) until the server state converges.
+//
+// Every field is load-bearing against a specific failure:
+//  - `schemaVersion` lets a future shape change be recognized instead of silently mis-parsed.
+//  - `id` is the compare-and-remove token: on callable success the owner removes the entry ONLY if
+//    the stored id still matches the one it sent, so a slow response in tab A can never erase a
+//    newer choice made in tab B.
+//  - `uid` must equal the authenticated key owner before the entry may affect eligibility or be
+//    replayed — defence in depth behind the uid-scoped key itself.
+//  - `createdAt` is epoch ms, for ordering/diagnostics only; it is never an expiry.
+//  - `completeTour` carries the `tourVersion` the member actually completed. On reconciliation an
+//    entry whose version differs from SITE_TOUR_CURRENT_VERSION is STALE and is discarded, so an
+//    old pending completion can never complete a newer tour. The callable payload stays
+//    version-free (the server stamps the authoritative version) — this is a replay guard, not
+//    server authority.
+//
+// STRICT and fully validated on read: malformed or unknown persisted data is removed and
+// eligibility falls back to the server. Invalid storage must never hide the tour forever.
+export const SiteTourPendingPreferenceSchema = z.discriminatedUnion('action', [
+  z.object({
+    schemaVersion: z.literal(1),
+    id: z.string().min(1),
+    uid: userIdSchema,
+    createdAt: z.number(),
+    action: z.literal('deferToday'),
+    date: calendarDateSchema, // 'YYYY-MM-DD' (member's LOCAL calendar date)
+  }).strict(),
+  z.object({
+    schemaVersion: z.literal(1),
+    id: z.string().min(1),
+    uid: userIdSchema,
+    createdAt: z.number(),
+    action: z.literal('dismissAutomaticInvites'),
+  }).strict(),
+  z.object({
+    schemaVersion: z.literal(1),
+    id: z.string().min(1),
+    uid: userIdSchema,
+    createdAt: z.number(),
+    action: z.literal('completeTour'),
+    tourVersion: z.number().int().positive(),
+  }).strict(),
+]);
+export type SiteTourPendingPreference = z.infer<typeof SiteTourPendingPreferenceSchema>;
 
 // Non-U.S. artisan-interest signup (the FCFS "waitlist" fields on privateData). Mirrors
 // MarkWaitingForNewsApproval but carries the applicant's country (+ optional region) so signups

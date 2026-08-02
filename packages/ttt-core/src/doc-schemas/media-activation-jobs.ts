@@ -54,6 +54,28 @@ export const MediaActivationJobSchema = z
     nextAttemptAt: FirestoreTimestampSchema,
     lastError: StructuredErrorSchema.optional(),
 
+    // ===== Parent-publication dependency (the curated-audition absent-parent lane) =====
+    // Some publications legitimately arrive before the parent document they attach to
+    // exists. The canonical case is an auditionMedia CURATED-lane ENTRY job: the creator
+    // uploads the prompt and its option videos in one batch, and the audition document is
+    // written by the PROMPT's publish — so an option's publish can run first. That is an
+    // expected race, not a fault, and it must not burn the job's normal retry budget.
+    //
+    // `parentKey` is the id of the publication that must exist first — for the curated
+    // audition lane, the `auditionId`. It is set at job-build time ONLY for jobs minted on
+    // an absent-parent identity lane; a prompt job never carries it, and neither does an
+    // ordinary open-mode entry (its upload surface requires the audition page to already
+    // exist, so a missing parent there IS a real failure). The runner may treat a
+    // parent-absent publication as a park (rather than a failure) only when this durable key
+    // is present, and the prompt's publish uses it to wake its parked siblings.
+    //
+    // `parentWaitStartedAt` stamps the FIRST parent-absent occurrence and never moves
+    // forward, so the bounded wait window is measured from one durable start.
+    //
+    // BOTH are optional: rows written before this field pair existed still parse unchanged.
+    parentKey: z.string().min(1).optional(),
+    parentWaitStartedAt: FirestoreTimestampSchema.optional(),
+
     createdAt: FirestoreTimestampSchema,
     authorityAppliedAt: FirestoreTimestampSchema.optional(),
     completedAt: FirestoreTimestampSchema.optional(),

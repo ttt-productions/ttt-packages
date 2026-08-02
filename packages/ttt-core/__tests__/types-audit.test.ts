@@ -40,6 +40,34 @@ describe('audit type catalog', () => {
     expectTypeOf(sample).toEqualTypeOf<AuditEventType[]>();
   });
 
+  it('AuditEventType covers every realm-file promotion transition and folder mutation', () => {
+    // The approval gate is only auditable if EACH transition has its own type: a request and
+    // its resolution must be a traceable pair, and a folder rename must be distinguishable
+    // from a create or a delete.
+    const realmFileEvents: AuditEventType[] = [
+      'workFile.realmShareRequested',
+      'workFile.realmShareRequestWithdrawn',
+      'workFile.realmSharePromotionApproved',
+      'workFile.realmSharePromotionDeclined',
+      'workFile.realmFileFolderAssignmentChanged',
+      'workFile.realmCanonChanged',
+      'workFile.unsharedFromRealm',
+      'workRealm.fileFolderCreated',
+      'workRealm.fileFolderUpdated',
+      'workRealm.fileFolderDeleted',
+    ];
+    expectTypeOf(realmFileEvents).toEqualTypeOf<AuditEventType[]>();
+  });
+
+  it('rejects plausible-but-wrong realm-file event names (the union stays exhaustive)', () => {
+    // @ts-expect-error — the approval-gate events are namespaced workFile.realmShare*, not this.
+    const wrongNamespace: AuditEventType = 'realmFile.shareRequested';
+    // @ts-expect-error — realm folders are workRealm.fileFolder*, mirroring workProject.fileFolder*.
+    const wrongFolderName: AuditEventType = 'workRealm.realmFileFolderCreated';
+    void wrongNamespace;
+    void wrongFolderName;
+  });
+
   it('AuditEventType has no commission-deletion member (closing is the only terminal transition)', () => {
     // @ts-expect-error — 'workProject.commissionDeleted' was removed with the delete lane.
     const removed: AuditEventType = 'workProject.commissionDeleted';

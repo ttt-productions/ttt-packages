@@ -61,3 +61,27 @@ export const TEXT_SIZE_STORAGE_KEY = 'ttt-text-size';
 /** Same-tab window event dispatched when TEXT_SIZE_STORAGE_KEY changes (localStorage
  *  'storage' events do not fire in the writing tab), mirroring REDUCED_MOTION_CHANGE_EVENT. */
 export const TEXT_SIZE_CHANGE_EVENT = 'ttt-text-size-change';
+
+// --- First-visit site-tour pending preference (the ONE sanctioned optimistic-hide slot) ---
+// Unlike the House controls above, site-tour state is ACCOUNT-DURABLE: `privateData/{uid}.siteTour`
+// stays the sole authority and the `updateSiteTourPreference` callable stays its sole writer. This
+// key holds a SINGLE uid-scoped entry recording a choice the member has already made but whose
+// server write has not been confirmed yet, so the overlay can close instantly and the write can be
+// replayed on the next boot. It is a one-entry durable retry SLOT, never a cache, mirror, or second
+// source of eligibility — a member with no pending entry is evaluated purely from the server state.
+//
+// UID-SCOPED BY CONSTRUCTION: a browser-global key would let user A's choice suppress (or replay
+// into) the tour for user B after a sign-out/sign-in on the same device. The stored entry ALSO
+// carries its own `uid` (SiteTourPendingPreferenceSchema, schemas/users.ts) and must match the key
+// owner before it may affect eligibility or be replayed.
+
+/** localStorage key holding the caller's single unconfirmed site-tour choice. Scoped by the
+ *  AUTHENTICATED uid — never a browser-global key. */
+export function siteTourPendingStorageKey(uid: string): string {
+  return `ttt-site-tour-pending:${uid}`;
+}
+
+/** Same-tab window event dispatched when a `siteTourPendingStorageKey(uid)` entry is written or
+ *  removed (localStorage 'storage' events do not fire in the writing tab), mirroring
+ *  TEXT_SIZE_CHANGE_EVENT. Cross-tab propagation still rides the native 'storage' event. */
+export const SITE_TOUR_PENDING_CHANGE_EVENT = 'ttt-site-tour-pending-change';

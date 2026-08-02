@@ -10,6 +10,7 @@ import { MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business.js';
 import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
 import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 import { ContentMediaKindSchema } from './media-assets.js';
+import { calendarDateSchema } from '../schemas/atoms.js';
 
 // The canonical stored media kind — declared once in doc-schemas/media-assets.ts.
 const mediaKindSchema = ContentMediaKindSchema;
@@ -212,7 +213,7 @@ export const UserSiteTourStateSchema = z.object({
   completedAt: z.number().optional(),
   // The member's LOCAL calendar date (YYYY-MM-DD) recorded by "Not today"; the automatic
   // invitation is suppressed for exactly that date, then offered again on a later date.
-  notTodayDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(), // 'YYYY-MM-DD'
+  notTodayDate: calendarDateSchema.optional(), // 'YYYY-MM-DD'
   // Epoch ms when the member chose "Don't show this again" (permanent automatic-invite
   // dismissal). Manual replay from Help ignores this without clearing it.
   automaticInvitesDisabledAt: z.number().optional(),

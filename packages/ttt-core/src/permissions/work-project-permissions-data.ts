@@ -150,9 +150,11 @@ export const WORK_PROJECT_ACTIONS = {
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
   },
   'workFile.promoteToRealm': {
-    label: 'Share file to realm',
-    description: 'Instantly share a work file into its realm shared-file pool (as non-canon). ' +
-      'Canon promotion is a separate realm-steward power, evaluated at the realm level, not here.',
+    label: 'Request file sharing to realm',
+    description: 'Submit a request to share a work file into its realm shared-file pool. ' +
+      'The realm steward approves the request and chooses the folder, or declines it; ' +
+      'nothing is shared to the realm until then. Canon promotion is a separate ' +
+      'realm-steward power, evaluated at the realm level, not here.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
   },
   'commission.open': {

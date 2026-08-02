@@ -42,6 +42,24 @@ export const MAX_WORK_FILES = ACTIVE_LIMITS.workProject.maxWorkFiles;
 /** Maximum total file-storage bytes per workProject. Mode-varied. */
 export const MAX_WORK_FILE_STORAGE_BYTES = ACTIVE_LIMITS.workProject.maxWorkFileStorageBytes;
 
+/**
+ * Maximum number of shared-file folders a Realm steward may create
+ * (`workRealms/{workRealmId}/realmFileFolders`).
+ *
+ * Bounded on purpose: the folder collection is read WHOLE by the gallery projection, by the
+ * folder-cap check, and by the case-insensitive name-uniqueness check, so an unbounded
+ * collection would turn each of those into an unbounded read. 30 is generous for organizing
+ * one Realm's shared pool (Realm folders have no access lists — they are purely
+ * organizational) while keeping every one of those reads a single bounded page.
+ *
+ * NOT mode-varied: unlike the Work-side caps this is an organizational bound on steward
+ * housekeeping, not a charter-vs-full consumption allowance.
+ *
+ * Realm folder NAMES reuse MAX_FILE_FOLDER_NAME_LENGTH above — one folder-name rule
+ * platform-wide; there is deliberately no second realm-specific length.
+ */
+export const MAX_REALM_FILE_FOLDERS = 30;
+
 /** Allowed characters in titles: letters, numbers, spaces. */
 export const TITLE_PATTERN = /^[a-zA-Z0-9 ]+$/;
 

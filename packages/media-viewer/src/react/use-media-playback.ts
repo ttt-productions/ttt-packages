@@ -1,7 +1,11 @@
 "use client";
 
 import * as React from "react";
-import type { MediaPlaybackControls, MediaPlaybackProps } from "../types.js";
+import type {
+  MediaPlaybackControls,
+  MediaPlaybackProps,
+  MediaProgressSampleReason,
+} from "../types.js";
 
 /**
  * Throttle interval for periodic progress samples. A sample fires at most once
@@ -108,12 +112,15 @@ export function useMediaPlayback(
     if (hasEnded) setHasEnded(false);
   }
 
-  const emitSample = React.useCallback((el: HTMLMediaElement) => {
-    const cb = onProgressSampleRef.current;
-    if (!cb) return;
-    const duration = Number.isFinite(el.duration) ? el.duration : 0;
-    cb(el.currentTime, duration);
-  }, []);
+  const emitSample = React.useCallback(
+    (el: HTMLMediaElement, reason: MediaProgressSampleReason) => {
+      const cb = onProgressSampleRef.current;
+      if (!cb) return;
+      const duration = Number.isFinite(el.duration) ? el.duration : 0;
+      cb(el.currentTime, duration, reason);
+    },
+    [],
+  );
 
   const trackPosition = React.useCallback((el: HTMLMediaElement) => {
     if (hasStartedRef.current) {
@@ -185,10 +192,20 @@ export function useMediaPlayback(
       }
       trackPosition(el);
       if (el.paused) return; // no periodic samples while paused
+      // Pre-seed suppression: until a resume position has been adopted, an
+      // element still near the start may be autoplaying from 0 while the app's
+      // async saved position is in flight. A periodic ~0 sample here would be
+      // written to durable state and CLOBBER that saved position before the
+      // seek lands. Stay silent for the adoption window; the seek's `seeked`
+      // flush reports the resumed position, and with no saved position at all
+      // periodic sampling simply begins a few seconds in (harmless). Deliberate
+      // pause/seeked/ended flushes are never suppressed — a user pausing at
+      // 0.5 s is genuine intent.
+      if (!seededRef.current && el.currentTime <= LATE_RESUME_ADOPT_WINDOW_SEC) return;
       const now = Date.now();
       if (now - lastSampleAtRef.current >= PROGRESS_SAMPLE_INTERVAL_MS) {
         lastSampleAtRef.current = now;
-        emitSample(el);
+        emitSample(el, "periodic");
       }
     },
     [emitSample, trackPosition],
@@ -205,7 +222,7 @@ export function useMediaPlayback(
       trackPosition(el);
       // Flush a sample immediately on pause (final position for this segment).
       lastSampleAtRef.current = Date.now();
-      emitSample(el);
+      emitSample(el, "pause");
     },
     [emitSample, trackPosition],
   );
@@ -215,8 +232,10 @@ export function useMediaPlayback(
       const el = e.currentTarget;
       trackPosition(el);
       // Flush a sample on seek completion so the app sees the new position.
+      // This is also how the programmatic initial-resume seek reports the
+      // adopted position — the element fires `seeked` after applyInitialSeek.
       lastSampleAtRef.current = Date.now();
-      emitSample(el);
+      emitSample(el, "seeked");
     },
     [emitSample, trackPosition],
   );
@@ -229,7 +248,7 @@ export function useMediaPlayback(
       lastPositionRef.current = el.currentTime;
       // Flush a final sample with the ended position.
       lastSampleAtRef.current = Date.now();
-      emitSample(el);
+      emitSample(el, "ended");
       setHasEnded(true);
       onEndedRef.current?.();
     },

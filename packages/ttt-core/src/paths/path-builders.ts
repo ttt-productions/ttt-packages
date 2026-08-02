@@ -7,6 +7,7 @@ import {
   COLLECTIONS,
   USER_SUBCOLLECTIONS,
   WORK_PROJECT_SUBCOLLECTIONS,
+  WORK_REALM_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
   SPECIAL_DOCS,
   type HallItemSubcollection,
@@ -163,6 +164,11 @@ export const PATH_BUILDERS = {
   // ===== REALM PATHS =====
   workRealm: (workRealmId: string): [string, string] =>
     [COLLECTIONS.WORK_REALMS, workRealmId],
+
+  // Realm shared-file FOLDER (a container only — shared files stay workFiles under their
+  // owning Work and carry `realmFileFolderId` on their mediaAssets doc).
+  realmFileFolder: (workRealmId: string, realmFileFolderId: string): [string, string, string, string] =>
+    [COLLECTIONS.WORK_REALMS, workRealmId, WORK_REALM_SUBCOLLECTIONS.REALM_FILE_FOLDERS, realmFileFolderId],
 
   // ===== ADMIN & SYSTEM PATHS =====
   adminDispatch: (adminDispatchId: string): [string, string] =>

@@ -38,6 +38,21 @@ export const VIOLATIONS_PER_PAGE = 5;
 /** Page size for the craft-skills list hook. */
 export const CRAFT_SKILL_MEDIA_PER_PAGE = 12;
 
+/**
+ * Hard page limit for the Realm shared-files gallery projection (`getRealmSharedFiles`).
+ * The query was previously unbounded; this is the named cap the input schema derives its
+ * `limit` bound from and the server clamps to, so one Realm's pool can never be read (or
+ * requested) in a single unbounded page. Matches the card-grid rhythm of the gallery.
+ */
+export const REALM_SHARED_FILES_PAGE_LIMIT = 24;
+
+/**
+ * Hard page limit for the steward/admin realm-file promotion queue
+ * (`getRealmFilePromotionQueue`). Smaller than the gallery page: the queue is a decision
+ * surface a steward works through, not a browse grid.
+ */
+export const REALM_FILE_PROMOTION_QUEUE_PAGE_LIMIT = 20;
+
 /** Maximum number of recent posts the trending-feed scheduled commission processes per run. Mode-varied. */
 export const TRENDING_FEED_PROCESS_LIMIT = ACTIVE_LIMITS.batches.trendingFeedProcessLimit;
 

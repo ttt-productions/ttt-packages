@@ -3,7 +3,10 @@ import * as React from 'react';
 import { render, fireEvent, act } from '@testing-library/react';
 import { VideoViewer } from '../src/react/video-viewer';
 import { AudioViewer } from '../src/react/audio-viewer';
-import { PROGRESS_SAMPLE_INTERVAL_MS } from '../src/react/use-media-playback';
+import {
+  PROGRESS_SAMPLE_INTERVAL_MS,
+  LATE_RESUME_ADOPT_WINDOW_SEC,
+} from '../src/react/use-media-playback';
 import type { MediaPlaybackControls } from '../src/types';
 
 // The video-viewer's autoplay/unload logic reads useInView. Keep the element
@@ -127,14 +130,14 @@ describe('media playback API', () => {
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: false, duration: 100 });
 
-      // First timeupdate while playing -> sample fires immediately (0 elapsed).
-      state.setTime(1);
+      // First timeupdate PAST the pre-seed suppression window -> fires immediately.
+      state.setTime(LATE_RESUME_ADOPT_WINDOW_SEC + 1);
       fireEvent.timeUpdate(video);
       expect(onSample).toHaveBeenCalledTimes(1);
-      expect(onSample).toHaveBeenLastCalledWith(1, 100);
+      expect(onSample).toHaveBeenLastCalledWith(LATE_RESUME_ADOPT_WINDOW_SEC + 1, 100, 'periodic');
 
       // A second timeupdate a moment later (< interval) must NOT sample again.
-      state.setTime(2);
+      state.setTime(LATE_RESUME_ADOPT_WINDOW_SEC + 2);
       fireEvent.timeUpdate(video);
       expect(onSample).toHaveBeenCalledTimes(1);
 
@@ -144,7 +147,7 @@ describe('media playback API', () => {
       state.setTime(8);
       fireEvent.timeUpdate(video);
       expect(onSample).toHaveBeenCalledTimes(2);
-      expect(onSample).toHaveBeenLastCalledWith(8, 100);
+      expect(onSample).toHaveBeenLastCalledWith(8, 100, 'periodic');
       nowSpy.mockRestore();
     });
 
@@ -170,7 +173,27 @@ describe('media playback API', () => {
       state.setTime(12);
       fireEvent.pause(video);
       expect(onSample).toHaveBeenCalledTimes(1);
-      expect(onSample).toHaveBeenLastCalledWith(12, 100);
+      expect(onSample).toHaveBeenLastCalledWith(12, 100, 'pause');
+    });
+
+    it('flushes a pause sample inside the suppression window (a pause at 0.5s is user intent)', () => {
+      const onSample = vi.fn();
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay onProgressSample={onSample} />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { paused: false, duration: 100 });
+
+      // Playing at 0.5s: periodic is suppressed (no seed adopted yet)...
+      state.setTime(0.5);
+      fireEvent.timeUpdate(video);
+      expect(onSample).not.toHaveBeenCalled();
+
+      // ...but a deliberate pause at the same position still commits.
+      state.setPaused(true);
+      fireEvent.pause(video);
+      expect(onSample).toHaveBeenCalledTimes(1);
+      expect(onSample).toHaveBeenLastCalledWith(0.5, 100, 'pause');
     });
 
     it('flushes a sample on seek completion', () => {
@@ -183,7 +206,7 @@ describe('media playback API', () => {
       state.setTime(42);
       fireEvent.seeked(video);
       expect(onSample).toHaveBeenCalledTimes(1);
-      expect(onSample).toHaveBeenLastCalledWith(42, 100);
+      expect(onSample).toHaveBeenLastCalledWith(42, 100, 'seeked');
     });
 
     it('flushes a final sample on ended with the final position', () => {
@@ -195,7 +218,7 @@ describe('media playback API', () => {
       installMediaState(video, { currentTime: 100, duration: 100, ended: true });
       fireEvent.ended(video);
       expect(onSample).toHaveBeenCalledTimes(1);
-      expect(onSample).toHaveBeenLastCalledWith(100, 100);
+      expect(onSample).toHaveBeenLastCalledWith(100, 100, 'ended');
     });
 
     it('reports duration 0 until known', () => {
@@ -205,9 +228,126 @@ describe('media playback API', () => {
       );
       const video = container.querySelector('video')!;
       const state = installMediaState(video, { paused: false, duration: NaN });
-      state.setTime(3);
+      state.setTime(10);
       fireEvent.timeUpdate(video);
-      expect(onSample).toHaveBeenLastCalledWith(3, 0);
+      expect(onSample).toHaveBeenLastCalledWith(10, 0, 'periodic');
+    });
+
+    it('resets the periodic throttle clock on a media-key (source) change', () => {
+      const onSample = vi.fn();
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/a.mp4" priority onProgressSample={onSample} />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { paused: false, duration: 100 });
+
+      // Media A samples once, arming the throttle window.
+      state.setTime(20);
+      fireEvent.timeUpdate(video);
+      expect(onSample).toHaveBeenCalledTimes(1);
+      expect(onSample).toHaveBeenLastCalledWith(20, 100, 'periodic');
+
+      // Swap the source. Throttle bookkeeping resets with the rest of the
+      // per-source tracking, so the new media samples immediately (no waiting
+      // out media A's interval) once it is past the suppression window.
+      rerender(
+        <VideoViewer url="https://example.com/b.mp4" priority onProgressSample={onSample} />,
+      );
+      state.setTime(LATE_RESUME_ADOPT_WINDOW_SEC + 1);
+      fireEvent.timeUpdate(video);
+      expect(onSample).toHaveBeenCalledTimes(2);
+      expect(onSample).toHaveBeenLastCalledWith(LATE_RESUME_ADOPT_WINDOW_SEC + 1, 100, 'periodic');
+    });
+  });
+
+  // ---- pre-seed periodic suppression (the resume-clobber fix) -------------
+  //
+  // Under autoPlay the element starts at 0 on its own while the app's saved
+  // position is still in flight. A periodic ~0 sample there is written to
+  // durable state and CLOBBERS the saved position. Periodic samples therefore
+  // stay silent until the resume decision is settled.
+  describe('pre-seed periodic suppression', () => {
+    it('emits no periodic sample inside the adoption window while autoplaying from 0', () => {
+      const onSample = vi.fn();
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay onProgressSample={onSample} />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
+      fireEvent.loadedMetadata(video);
+
+      for (const t of [0.2, 1, 2.5, LATE_RESUME_ADOPT_WINDOW_SEC]) {
+        state.setTime(t);
+        fireEvent.timeUpdate(video);
+      }
+      expect(onSample).not.toHaveBeenCalled();
+    });
+
+    it('starts periodic sampling after the window when no resume position ever arrives', () => {
+      const onSample = vi.fn();
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay onProgressSample={onSample} />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
+      fireEvent.loadedMetadata(video);
+
+      state.setTime(LATE_RESUME_ADOPT_WINDOW_SEC);
+      fireEvent.timeUpdate(video);
+      expect(onSample).not.toHaveBeenCalled();
+
+      state.setTime(LATE_RESUME_ADOPT_WINDOW_SEC + 0.5);
+      fireEvent.timeUpdate(video);
+      expect(onSample).toHaveBeenCalledTimes(1);
+      expect(onSample).toHaveBeenLastCalledWith(LATE_RESUME_ADOPT_WINDOW_SEC + 0.5, 300, 'periodic');
+    });
+
+    // The reason argument is ADDITIVE: a consumer written against the original
+    // two-argument callback still type-checks and still receives its samples.
+    it('stays source-compatible with a two-argument consumer', () => {
+      const seen: Array<[number, number]> = [];
+      const twoArg = (t: number, d: number) => {
+        seen.push([t, d]);
+      };
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={twoArg} />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { duration: 100, paused: true });
+      state.setTime(12);
+      fireEvent.pause(video);
+      expect(seen).toEqual([[12, 100]]);
+    });
+
+    it('reports the RESUMED position as the first sample when a late seed lands (reason seeked)', () => {
+      const onSample = vi.fn();
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay onProgressSample={onSample} />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
+      fireEvent.loadedMetadata(video);
+
+      // Autoplay drifts a fraction of a second before the prefs query resolves.
+      state.setTime(0.2);
+      fireEvent.timeUpdate(video);
+      expect(onSample).not.toHaveBeenCalled();
+
+      // The saved position arrives and is applied to the live element. The
+      // element's own `seeked` event carries the resumed position out.
+      rerender(
+        <VideoViewer
+          url="https://example.com/v.mp4"
+          priority
+          autoPlay
+          startAtSeconds={224}
+          onProgressSample={onSample}
+        />,
+      );
+      expect(state.currentTime).toBe(224);
+      fireEvent.seeked(video);
+      expect(onSample).toHaveBeenCalledTimes(1);
+      expect(onSample).toHaveBeenLastCalledWith(224, 300, 'seeked');
     });
   });
 

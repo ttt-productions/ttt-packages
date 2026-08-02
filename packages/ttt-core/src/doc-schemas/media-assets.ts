@@ -36,7 +36,12 @@ export const MediaAssetOwnerTypeSchema = z.enum([
   // admin-support). Replaces the removed `guildChatAttachment` owner type — chat
   // messages no longer own media.
   'conversationFile',
-  'realmFile', // reserved seam — realm shared files are post-launch
+  // Realm shared files are the deliberate MUTATE-IN-PLACE exception: a promoted work file
+  // keeps its ONE `workFile`-owned asset doc and flips tier in place, so no asset is ever
+  // owned by `realmFile` today. The owner type stays declared for a future realm-owned
+  // media surface; it is NOT the seam realm sharing rides (that is `realmFileCanonStatus`
+  // + `realmId` + `realmFileFolderId` on the work file's own asset).
+  'realmFile',
   'safetyEvidence', // inert system sentinel — synthetic NCII-evidence assets (never an account surface)
 ]);
 export type MediaAssetOwnerType = z.infer<typeof MediaAssetOwnerTypeSchema>;
@@ -152,14 +157,39 @@ export const MediaRetentionPolicySchema = z.enum([
 ]);
 export type MediaRetentionPolicy = z.infer<typeof MediaRetentionPolicySchema>;
 
-// Realm shared-files: a work file's standing in its realm's shared pool.
-//   none     — not shared to the realm (default)
-//   nonCanon — shared to the realm's pool, non-canon
-//   canon    — shared and marked canon (realm steward/owner toggles canon ↔ nonCanon)
+// Realm shared-files: a work file's standing in its realm's shared pool. ONE seam — the
+// approval gate is a value in this union, never a parallel status field.
+//   none            — not shared to the realm (default)
+//   pendingApproval — a Work file admin has REQUESTED promotion; the Realm steward has not
+//                     decided yet. The file is NOT served to the Realm (tier stays `scoped`)
+//                     and is invisible to the member gallery, whose query selects only
+//                     nonCanon|canon — so pending rows are excluded structurally, not by a
+//                     filter someone can forget.
+//   nonCanon        — approved into the realm's pool (in a steward-chosen folder), non-canon
+//   canon           — approved and marked canon (realm steward toggles canon ↔ nonCanon)
 // Moderation/takedown is NOT a value here — a hidden file is hidden via the shared
 // media path (`servingStatus: 'hidden'`), so the gallery filters on servingStatus.
-export const RealmFileCanonStatusSchema = z.enum(['none', 'nonCanon', 'canon']);
+export const REALM_FILE_CANON_STATUS_VALUES = [
+  'none',
+  'pendingApproval',
+  'nonCanon',
+  'canon',
+] as const;
+export const RealmFileCanonStatusSchema = z.enum(REALM_FILE_CANON_STATUS_VALUES);
 export type RealmFileCanonStatus = z.infer<typeof RealmFileCanonStatusSchema>;
+
+/** The two APPROVED (steward-accepted, realm-served) standings. The member gallery query
+ *  and its projection accept exactly these — never the full status union, so a pending or
+ *  unshared row can never be typed into an approved-files response. Derived from the one
+ *  union above; consumers import this instead of re-quoting the members (ARCH-102). */
+export const REALM_FILE_APPROVED_STATUS_VALUES = ['nonCanon', 'canon'] as const;
+export const RealmFileApprovedStatusSchema = z.enum(REALM_FILE_APPROVED_STATUS_VALUES);
+export type RealmFileApprovedStatus = z.infer<typeof RealmFileApprovedStatusSchema>;
+
+/** The single AWAITING-DECISION standing. The steward promotion-queue projection accepts
+ *  only this, so an approved or unshared row can never be typed into the queue. */
+export const RealmFilePendingApprovalStatusSchema = z.literal('pendingApproval');
+export type RealmFilePendingApprovalStatus = z.infer<typeof RealmFilePendingApprovalStatusSchema>;
 
 // ===== Serving authority (Durable Object) + publication gating =====
 // See ttt-prod docs/design/media-assets-and-protected-serving.md (the design owner
@@ -306,10 +336,31 @@ export const MediaAssetSchema = z.object({
   // ingest, inherited unchanged by every copy/variant. Never client-supplied.
   originLineage: MediaOriginLineageV1Schema.optional(),
 
-  // Realm shared-files seam. A file's standing in its realm's shared pool; set at
-  // creation to 'none' and moved by the realm shared-files callables. Attribution
-  // fields (who set canon, when) are added by that feature when it ships.
+  // ===== Realm shared-files seam (request → steward approval → foldered pool) =====
+  // A file's standing in its realm's shared pool; set at creation to 'none' and moved
+  // ONLY by the realm shared-files callables. The legal combinations of this field with
+  // `realmId`, `realmFileFolderId`, and the three request fields are ENFORCED by the
+  // refinement below — the fields are not independently optional.
   realmFileCanonStatus: RealmFileCanonStatusSchema,
+
+  // The steward-chosen folder under `workRealms/{realmId}/realmFileFolders/{id}`. There is
+  // no default folder: approval IS the folder assignment, so every approved file is in a
+  // folder by construction. Cleared on decline, withdrawal, and admin un-share — but
+  // PRESERVED through moderation hide/restore (hide is reversible and changes serving state
+  // only; clearing it would restore an approved file with no folder and lose the steward's
+  // organization).
+  realmFileFolderId: z.string().min(1).optional(),
+
+  // Pending-request metadata, present ONLY while `realmFileCanonStatus === 'pendingApproval'`.
+  // `realmFileShareRequestId` is the CLIENT-GENERATED stable request id carried by the
+  // request input; approval, decline, and withdrawal all compare against it, so a stale tab
+  // can never decide a newer re-request. `realmFileShareRequestedByUid` is the recorded
+  // requester — the resolution notification is addressed from THIS field, never guessed from
+  // `createdByUid` (the uploader and the promoting file admin are frequently different
+  // people). `realmFileShareRequestedAt` is epoch ms (ARCH-105).
+  realmFileShareRequestId: z.string().min(1).optional(),
+  realmFileShareRequestedByUid: z.string().min(1).optional(),
+  realmFileShareRequestedAt: z.number().optional(),
 
   // Serving authority + publication gating. Additive/optional so assets
   // written before the authority build still parse: absent authorityVersion ⇒
@@ -331,5 +382,61 @@ export const MediaAssetSchema = z.object({
 
   createdAt: z.number(),
   updatedAt: z.number(),
-}).strict();
+}).strict().superRefine((val, ctx) => {
+  // ===== Realm-file legal-combination invariant =====
+  // The realm-file field GROUP is one state machine, not five independently-optional
+  // fields. Declared HERE, on the canonical doc schema (ARCH-102), so every writer inherits
+  // it from one parse instead of each transition re-deciding — and so no reader ever has to
+  // defend against a half-written state (an approved file with no folder, a pending file
+  // already flipped into the realm, a decline that left request metadata behind).
+  //
+  //   none            → no realmId, no folder, no request fields
+  //   pendingApproval → realmId + ALL THREE request fields; NO folder (approval assigns it)
+  //   nonCanon|canon  → realmId + folder; NO request fields (the request is resolved)
+  //
+  // DELIBERATELY NOT CONSTRAINED HERE: `accessTier`. Tier is origin-dependent across the
+  // whole asset universe (this one schema covers every media origin, not just work files),
+  // so binding tier to a realm-file status would misjudge assets that have nothing to do
+  // with realms. Tier correctness on these transitions (`scoped` while pending, `artisan`
+  // once approved) is enforced by the callable transactions and their tests.
+  // `servingStatus` stays orthogonal too — moderation hide/quarantine is independent of a
+  // file's realm standing.
+  const requestFields = [
+    ['realmFileShareRequestId', val.realmFileShareRequestId],
+    ['realmFileShareRequestedByUid', val.realmFileShareRequestedByUid],
+    ['realmFileShareRequestedAt', val.realmFileShareRequestedAt],
+  ] as const;
+
+  const forbid = (path: string, value: unknown, message: string) => {
+    if (value !== undefined) ctx.addIssue({ code: 'custom', path: [path], message });
+  };
+  const require_ = (path: string, value: unknown, message: string) => {
+    if (value === undefined) ctx.addIssue({ code: 'custom', path: [path], message });
+  };
+
+  if (val.realmFileCanonStatus === 'none') {
+    forbid('realmId', val.realmId, 'realmId is only set on a realm-shared or pending asset (realmFileCanonStatus is "none")');
+    forbid('realmFileFolderId', val.realmFileFolderId, 'realmFileFolderId is only set on an APPROVED realm-shared asset (realmFileCanonStatus is "none")');
+    for (const [path, value] of requestFields) {
+      forbid(path, value, `${path} is only set while a promotion request is pending (realmFileCanonStatus is "none")`);
+    }
+    return;
+  }
+
+  require_('realmId', val.realmId, `realmId is required whenever realmFileCanonStatus is "${val.realmFileCanonStatus}"`);
+
+  if (val.realmFileCanonStatus === 'pendingApproval') {
+    forbid('realmFileFolderId', val.realmFileFolderId, 'a pending request has no folder yet — the steward assigns the folder AT approval');
+    for (const [path, value] of requestFields) {
+      require_(path, value, `${path} is required while realmFileCanonStatus is "pendingApproval"`);
+    }
+    return;
+  }
+
+  // 'nonCanon' | 'canon' — approved into the pool.
+  require_('realmFileFolderId', val.realmFileFolderId, `realmFileFolderId is required on an approved realm file (realmFileCanonStatus is "${val.realmFileCanonStatus}")`);
+  for (const [path, value] of requestFields) {
+    forbid(path, value, `${path} must be cleared once the request is resolved (realmFileCanonStatus is "${val.realmFileCanonStatus}")`);
+  }
+});
 export type MediaAsset = z.infer<typeof MediaAssetSchema>;

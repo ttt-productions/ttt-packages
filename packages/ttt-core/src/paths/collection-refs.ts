@@ -7,6 +7,7 @@ import {
   COLLECTIONS,
   USER_SUBCOLLECTIONS,
   WORK_PROJECT_SUBCOLLECTIONS,
+  WORK_REALM_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
 } from './collections.js';
 
@@ -41,6 +42,12 @@ export const COLLECTION_REFS = {
 
   guildChatChannels: (workProjectId: string): [string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.GUILD_CHAT_CHANNELS],
+
+  // WorkRealm subcollections — the steward's realm shared-file folders. The projection owner
+  // lists this collection (bounded by MAX_REALM_FILE_FOLDERS) and the folder-cap /
+  // name-uniqueness checks query it; clients never read it directly.
+  realmFileFolders: (workRealmId: string): [string, string, string] =>
+    [COLLECTIONS.WORK_REALMS, workRealmId, WORK_REALM_SUBCOLLECTIONS.REALM_FILE_FOLDERS],
 
   // SquareStreetz collections
   activePosts: (): [string, string, string] =>

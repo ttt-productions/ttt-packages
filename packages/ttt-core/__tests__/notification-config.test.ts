@@ -64,6 +64,74 @@ describe('TTT_NOTIFICATION_CONFIG', () => {
     expect(fn({ workProjectId: 'wp1' })).toBe('/work-projects/wp1');
   });
 
+  it('realm-file share cards route by side: the request to the Realm, the resolution by outcome', () => {
+    const requestTarget = TTT_NOTIFICATION_CONFIG.types.realm_file_share_requested
+      .defaultTargetPath as (meta: Record<string, unknown>) => string;
+    expect(requestTarget({ workRealmId: 'realm1', workProjectId: 'wp1' })).toBe(
+      '/work-realms/realm1',
+    );
+
+    const resolvedTarget = TTT_NOTIFICATION_CONFIG.types.realm_file_share_resolved
+      .defaultTargetPath as (meta: Record<string, unknown>) => string;
+    // approved/declined reach the REQUESTER → the Work, where the file and its state live.
+    expect(resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'approved' })).toBe(
+      '/work-projects/wp1',
+    );
+    expect(resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'declined' })).toBe(
+      '/work-projects/wp1',
+    );
+    // withdrawn reaches the STEWARD → the Realm, where the now-stale queue card was.
+    expect(resolvedTarget({ workRealmId: 'realm1', workProjectId: 'wp1', resolution: 'withdrawn' })).toBe(
+      '/work-realms/realm1',
+    );
+  });
+
+  it('realm-file share copy carries no name/title snapshot (identities resolve at render)', () => {
+    for (const type of ['realm_file_share_requested', 'realm_file_share_resolved'] as const) {
+      const entry = TTT_NOTIFICATION_CONFIG.types[type];
+      const meta = {
+        workRealmId: 'realm1',
+        workProjectId: 'wp1',
+        mediaAssetId: 'asset1',
+        workFileId: 'file1',
+        requestId: 'req1',
+        requestedByUid: 'admin1',
+        resolution: 'approved' as const,
+      };
+      const title = entry.titlePattern(meta);
+      const message = entry.messagePattern(meta, 1);
+      for (const text of [title, message]) {
+        for (const id of ['realm1', 'wp1', 'asset1', 'file1', 'req1', 'admin1']) {
+          expect(text, `${type}: copy must not embed ${id}`).not.toContain(id);
+        }
+      }
+    }
+  });
+
+  it('each realm-file resolution outcome produces its own distinct message', () => {
+    const entry = TTT_NOTIFICATION_CONFIG.types.realm_file_share_resolved;
+    const messages = (['approved', 'declined', 'withdrawn'] as const).map((resolution) =>
+      entry.messagePattern({ requestId: 'req1', resolution }, 1),
+    );
+    expect(new Set(messages).size).toBe(3);
+  });
+
+  it('realm-file cards dedup on the REQUEST id, in separate type-scoped namespaces', () => {
+    const requested = TTT_NOTIFICATION_CONFIG.types.realm_file_share_requested;
+    const resolved = TTT_NOTIFICATION_CONFIG.types.realm_file_share_resolved;
+    const requestedKey = requested.dedupKeyPattern({ requestId: 'req1' });
+    const resolvedKey = resolved.dedupKeyPattern({ requestId: 'req1' });
+    expect(requestedKey).toContain('req1');
+    expect(resolvedKey).toContain('req1');
+    // Same occurrence identity, different cards — they must never collapse into one.
+    expect(requestedKey).not.toBe(resolvedKey);
+    // A re-request after a decline is a NEW card, not a relight of the resolved one.
+    expect(requested.dedupKeyPattern({ requestId: 'req2' })).not.toBe(requestedKey);
+    // One occurrence per request, forever.
+    expect(requested.countCap).toBe(1);
+    expect(resolved.countCap).toBe(1);
+  });
+
   it('category collection paths come from COLLECTIONS', () => {
     expect(TTT_NOTIFICATION_CONFIG.categories.user.activePath).toBe(
       COLLECTIONS.ACTIVE_USER_NOTIFICATIONS,

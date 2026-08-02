@@ -179,6 +179,17 @@ export const WORK_PROJECT_SUBCOLLECTIONS = {
 } as const;
 
 /**
+ * WORKREALM SUBCOLLECTIONS
+ * Nested under workRealms/{workRealmId}/
+ */
+export const WORK_REALM_SUBCOLLECTIONS = {
+  // The Realm steward's folders for the realm shared-file pool. The FILES themselves are
+  // never docs here — a shared file stays a `workFile` under its owning Work and carries
+  // `realmFileFolderId` on its mediaAssets doc.
+  REALM_FILE_FOLDERS: 'realmFileFolders',
+} as const;
+
+/**
  * HALL ITEM SUBCOLLECTIONS
  * Nested under hallItems/{hallItemId}/ — the PUBLISHED sub-item projections
  * (chapters/tracks/episodes copied out of the Work at publish time by

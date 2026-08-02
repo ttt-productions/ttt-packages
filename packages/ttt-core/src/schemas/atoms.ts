@@ -19,6 +19,14 @@ export const commissionProposalIdSchema = z.string().min(1);
 export const auditionEntryIdSchema = z.string().min(1);
 export const guildChatChannelIdSchema = z.string().min(1);
 export const workFileFolderIdSchema = z.string().min(1);
+export const workRealmIdSchema = z.string().min(1);
+/** A folder in a Realm's shared-file pool (`workRealms/{id}/realmFileFolders/{id}`) —
+ *  distinct from `workFileFolderIdSchema`, which addresses a WORK's private file folder. */
+export const realmFileFolderIdSchema = z.string().min(1);
+/** The CLIENT-generated stable id of one realm-file promotion request. Approval, decline,
+ *  and withdrawal all carry it and compare it against the pending request recorded on the
+ *  asset, so a stale tab can never decide a newer re-request. */
+export const realmFileShareRequestIdSchema = z.string().min(1);
 export const notificationFanoutJobIdSchema = z.string().min(1);
 export const taleIdSchema = z.string().min(1);
 export const tuneIdSchema = z.string().min(1);
@@ -70,6 +78,16 @@ export const guildInviteConversationStatusSchema = z.enum([
   'finalized',
 ]);
 export type GuildInviteConversationStatus = z.infer<typeof guildInviteConversationStatusSchema>;
+
+/**
+ * A strict `YYYY-MM-DD` LOCAL calendar date. Declared once here (a leaf module) because both
+ * the site-tour callable input (./users.ts) and the persisted site-tour state
+ * (../doc-schemas/user.ts `notTodayDate`) must accept exactly the same shape — a looser
+ * reader would let a value the writer rejects sit undetected in the document.
+ * Deliberately NOT a full calendar validity check: it is a wire/shape bound, and the
+ * semantic "is this the member's today" decision belongs to the reader.
+ */
+export const calendarDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
 // String shape atoms. Length derives from the owning constant — every title alias
 // (tale/tune/tv/chapter/track/episode/commission) resolves to the same value, so the

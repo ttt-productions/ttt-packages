@@ -21,6 +21,14 @@ export type MediaPlaybackControls = {
 };
 
 /**
+ * Why a progress sample was emitted. `periodic` is a throttled position report
+ * during playback and is safe for a consumer to coalesce or drop; the other
+ * three mark an exact moment the user's position changed and should be
+ * committed as-is.
+ */
+export type MediaProgressSampleReason = "periodic" | "pause" | "seeked" | "ended";
+
+/**
  * Additive, fully optional playback API shared by `VideoViewer` and
  * `AudioViewer`. Every field is optional; when all are absent the viewers
  * behave exactly as before.
@@ -34,15 +42,26 @@ export type MediaPlaybackProps = {
   onEnded?: () => void;
 
   /**
-   * Periodic playback-position reporting. Contract:
-   * - While playing, fires at most once every ~5 seconds of playback
-   *   (throttled off `timeupdate`).
-   * - Fires once immediately on pause, on seek completion (`seeked`), and on
-   *   ended — each carrying the exact position at that moment.
-   * - Never fires while paused (aside from the single pause-flush above).
+   * Playback-position reporting. Every sample carries the `reason` it was
+   * emitted for ({@link MediaProgressSampleReason}) as an additive third
+   * argument, so a consumer can throttle `periodic` reports while committing
+   * the exact-moment ones. Contract:
+   * - `periodic` — while playing, fires at most once every ~5 seconds of
+   *   playback (throttled off `timeupdate`). Never fires while paused, and is
+   *   SUPPRESSED near the start until the resume decision is settled: while no
+   *   `startAtSeconds` seed has been adopted and the element is still within
+   *   the late-resume adoption window, an autoplaying element reports nothing,
+   *   so a position of ~0 can never overwrite a saved one.
+   * - `pause` / `seeked` / `ended` — fires once immediately on that event with
+   *   the exact position, never suppressed. The programmatic resume seek that
+   *   applies `startAtSeconds` reports as `seeked` with the resumed position.
    * `durationSeconds` is `0` until the element's duration is known.
    */
-  onProgressSample?: (currentTimeSeconds: number, durationSeconds: number) => void;
+  onProgressSample?: (
+    currentTimeSeconds: number,
+    durationSeconds: number,
+    reason: MediaProgressSampleReason,
+  ) => void;
 
   /**
    * Initial playback position (seconds), applied once the element has metadata.

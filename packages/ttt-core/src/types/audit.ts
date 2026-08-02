@@ -81,10 +81,27 @@ export type AuditEventType =
   | 'workProject.stakeShares.created'
   | 'workProject.stakeShares.increased'
   | 'workProject.stakeShares.anomaly'
-  // realm shared files — a work file promoted into its realm's shared pool + canon toggles + un-share
-  | 'workFile.sharedToRealm'
+  // realm shared files — the promotion approval gate. A Work file admin REQUESTS promotion;
+  // the Realm steward approves (assigning the folder) or declines; the requester may withdraw
+  // while the request is still pending. Every one of these carries the request id, so a
+  // request and its resolution are one traceable pair.
+  | 'workFile.realmShareRequested'
+  | 'workFile.realmShareRequestWithdrawn'
+  | 'workFile.realmSharePromotionApproved'
+  | 'workFile.realmSharePromotionDeclined'
+  // The steward moves an already-approved shared file between realm folders.
+  | 'workFile.realmFileFolderAssignmentChanged'
+  // Canon toggle on an approved file + the ADMIN-only un-share (sharing is permanent for
+  // members once approved; the only way out is an admin acting on a support thread).
   | 'workFile.realmCanonChanged'
   | 'workFile.unsharedFromRealm'
+  // RETIRED-ON-ADOPTION: the pre-approval-gate instant-share event. Its one emitter
+  // (runUpdateWorkFileRealmShare) becomes a REQUEST and emits
+  // `workFile.realmShareRequested`; the moment a file actually enters the pool is
+  // `workFile.realmSharePromotionApproved`. Kept in the union only so the approval-gate
+  // package release stays additive (a removal is a breaking contract change); delete it in
+  // the follow-up release once no emitter remains.
+  | 'workFile.sharedToRealm'
   // craft-skills
   | 'craftSkill.userCraftSkillDeleted'
   | 'craftSkill.hidden'
@@ -203,6 +220,12 @@ export type AuditEventType =
   | 'workRealm.restored'
   | 'workRealm.moderationPlaceholderApplied'
   | 'workRealm.moderationRetitleCleared'
+  // Realm shared-file FOLDER management (steward-curated, Realm-wide-visible names —
+  // mirrors the workProject.fileFolder* family). The Realm folder has no access lists, so
+  // there is no `AccessChanged` sibling: a rename is the only in-place edit.
+  | 'workRealm.fileFolderCreated'
+  | 'workRealm.fileFolderUpdated'
+  | 'workRealm.fileFolderDeleted'
   // hall-content moderation text-clear remedy (extends the workProject/workRealm placeholder
   // family across Tale/Tune/Television details + their chapter/track/episode sub-items and the
   // published Hall projections). Same past-tense placeholder-applied shape as the pair above.

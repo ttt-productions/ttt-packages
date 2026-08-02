@@ -215,3 +215,42 @@ export const WorkRealmSchema = z.object({
   moderatedAt: z.number().optional(),
 });
 export type WorkRealm = z.infer<typeof WorkRealmSchema>;
+
+// ===========================================================================
+// Realm FILE FOLDERS — the steward's organization of the realm's shared-file pool.
+// `workRealms/{workRealmId}/realmFileFolders/{realmFileFolderId}`.
+//
+// A shared file is NOT a document under the Realm: it stays a `workFile` under its owning
+// Work, and "shared" is the `realmFileCanonStatus` + `realmId` + `realmFileFolderId` seam on
+// the file's ONE `mediaAssets` doc (media-assets.ts). These folder docs are pure containers.
+//
+// Deliberately ABSENT, and each absence is load-bearing:
+//  - no `isDefault` — there is no default realm folder. Approval IS folder assignment, so
+//    every approved file is in a steward-chosen folder by construction.
+//  - no access lists — Realm-level visibility is the whole access model at launch (contrast
+//    the Work-side folder, whose trade-profession lists gate a private workspace). Folder
+//    management becomes standing-gated when Realm standings exist; that is a capability-check
+//    swap, not a field on this doc.
+//  - no stored counts — file counts are derived from the gallery projection, so a count can
+//    never disagree with the files actually served.
+//
+// Client reads are DENIED: `mediaAssets` is client-unreadable and the artisan/admin/hidden-
+// Realm access decision lives in ONE backend projection owner, so folders are returned
+// through that same projection rather than opened to direct client reads.
+// See ttt-prod docs/design/work-project-file-folders.md (Realm promotion).
+// ===========================================================================
+
+/** `workRealms/{workRealmId}/realmFileFolders/{realmFileFolderId}`. Callable-written only. */
+export const RealmFileFolderSchema = z.object({
+  realmFileFolderId: z.string(),
+  workRealmId: z.string(),
+  name: z.string(),
+  /** SERVER-DERIVED normalized name, following the Realm `*_lowercase` convention
+   *  (`WorkRealmSchema.workingTitle_lowercase`). Backs case-insensitive uniqueness within
+   *  the bounded folder collection; never client-supplied. */
+  name_lowercase: z.string(),
+  createdBy: userRefSchema,
+  createdAt: z.number(),
+  updatedAt: z.number(),
+});
+export type RealmFileFolder = z.infer<typeof RealmFileFolderSchema>;

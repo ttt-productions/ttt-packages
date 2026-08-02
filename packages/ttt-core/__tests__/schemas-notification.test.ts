@@ -39,6 +39,19 @@ describe('NotificationType + catalog', () => {
     }
   });
 
+  it('carries the two realm-file promotion types — one per direction of the decision', () => {
+    expect(NOTIFICATION_TYPE_VALUES).toContain('realm_file_share_requested');
+    expect(NOTIFICATION_TYPE_VALUES).toContain('realm_file_share_resolved');
+    expect(NOTIFICATION_TYPE_CATALOG.realm_file_share_requested).toMatchObject({
+      category: 'user',
+      delivery: 'queued',
+    });
+    expect(NOTIFICATION_TYPE_CATALOG.realm_file_share_resolved).toMatchObject({
+      category: 'user',
+      delivery: 'queued',
+    });
+  });
+
   it('maps category + delivery per the design table', () => {
     expect(NOTIFICATION_TYPE_CATALOG.content_report).toMatchObject({ category: 'admin', delivery: 'realtime' });
     expect(NOTIFICATION_TYPE_CATALOG.guild_invite).toMatchObject({ category: 'user', delivery: 'queued' });
@@ -192,6 +205,62 @@ describe('NotificationMetadataByType', () => {
       type: 'report_action_taken',
       reportId: 'r1',
       reportedItemId: 'nope',
+    }).success).toBe(false);
+  });
+
+  it('validates the realm-file promotion payloads', () => {
+    const requestBase = {
+      workRealmId: 'wr1',
+      workProjectId: 'wp1',
+      mediaAssetId: 'asset1',
+      workFileId: 'file1',
+      requestId: 'req1',
+    };
+
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'realm_file_share_requested',
+      ...requestBase,
+      requestedByUid: 'admin1',
+    }).success).toBe(true);
+
+    // The recorded requester is required — a resolution addressed by guesswork (e.g. the
+    // uploader instead of the promoting file admin) would reach the wrong person.
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'realm_file_share_requested',
+      ...requestBase,
+    }).success).toBe(false);
+
+    for (const resolution of ['approved', 'declined', 'withdrawn']) {
+      expect(NotificationMetadataByTypeSchema.safeParse({
+        type: 'realm_file_share_resolved',
+        ...requestBase,
+        resolution,
+      }).success, resolution).toBe(true);
+    }
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'realm_file_share_resolved',
+      ...requestBase,
+      resolution: 'pending',
+    }).success).toBe(false);
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'realm_file_share_resolved',
+      ...requestBase,
+    }).success).toBe(false);
+
+    // The request id is the occurrence identity — without it there is no dedup key.
+    const { requestId: _omitted, ...noRequestId } = requestBase;
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'realm_file_share_resolved',
+      ...noRequestId,
+      resolution: 'approved',
+    }).success).toBe(false);
+
+    // Display-identity snapshots are structurally inexpressible (strict).
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'realm_file_share_requested',
+      ...requestBase,
+      requestedByUid: 'admin1',
+      realmTitle: 'My Realm',
     }).success).toBe(false);
   });
 

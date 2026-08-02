@@ -10,6 +10,7 @@ export type {
   MediaViewerProps,
   MediaPlaybackProps,
   MediaPlaybackControls,
+  MediaProgressSampleReason,
   MediaDiagnosticAdapter,
   AssetStatusHint,
   DiagnosisResult,

@@ -228,6 +228,48 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       actorCap: 5,
       icon: '🎉',
     },
+    // Realm shared-file promotion REQUEST → the Realm steward's tray. Dedup keyed on the
+    // request id (the occurrence identity), so a request produces exactly one card and a
+    // re-request after a decline is a NEW card rather than a relight of the old one — hence
+    // countCap 1. Copy carries NO Realm/Work/file/requester names: every identity resolves at
+    // render from the metadata ids (Display Identity Invariant), so a rename or a moderation
+    // text-clear can never leave a stale name sitting in a notification.
+    realm_file_share_requested: {
+      ...catalogEntry('realm_file_share_requested'),
+      dedupKeyPattern: (meta) => `realmFileShareRequested_${meta.requestId}`,
+      titlePattern: () => 'Realm file request',
+      messagePattern: () => 'A work file admin asked to share a file into your Realm.',
+      defaultTargetPath: (meta) => `/work-realms/${meta.workRealmId}`,
+      countCap: 1,
+      actorCap: 1,
+      icon: '🗂️',
+    },
+    // Realm shared-file promotion RESOLUTION. `resolution` selects both the copy and the
+    // audience: approved/declined reach the recorded REQUESTER (routed to the Work, where the
+    // file and its request state live), withdrawn reaches the STEWARD (routed to the Realm,
+    // where the now-stale queue card was). Same request-id occurrence identity as the request
+    // card, in its own type-scoped dedup namespace.
+    realm_file_share_resolved: {
+      ...catalogEntry('realm_file_share_resolved'),
+      dedupKeyPattern: (meta) => `realmFileShareResolved_${meta.requestId}`,
+      titlePattern: () => 'Realm file request update',
+      messagePattern: (meta) => {
+        if (meta.resolution === 'approved') {
+          return 'Your file was approved and added to the Realm shared files.';
+        }
+        if (meta.resolution === 'declined') {
+          return 'Your request to share a file to the Realm was declined.';
+        }
+        return 'A file-share request to your Realm was withdrawn.';
+      },
+      defaultTargetPath: (meta) =>
+        meta.resolution === 'withdrawn'
+          ? `/work-realms/${meta.workRealmId}`
+          : `/work-projects/${meta.workProjectId}`,
+      countCap: 1,
+      actorCap: 1,
+      icon: '🗃️',
+    },
     // P7 craft-skill publish → the artisan's followers. `staticRelight` (the
     // engine's strategyForType sets it): count stays 1, copy is static, no count
     // shown. Aggregation is per-artisan (`craftskill_<uid>`), reused across skill

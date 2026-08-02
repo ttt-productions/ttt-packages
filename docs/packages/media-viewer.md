@@ -193,12 +193,36 @@ const controls = React.useRef<MediaPlaybackControls>(null);
 | Prop | Contract |
 |---|---|
 | `onEnded?: () => void` | Fires on the native `ended` event (cursor at duration). With `loop` set, the browser restarts natively and emits **no** `ended` event, so `onEnded` never fires in loop mode. |
-| `onProgressSample?: (currentTimeSeconds, durationSeconds) => void` | Periodic position reporting. While playing, fires at most once per `PROGRESS_SAMPLE_INTERVAL_MS` (~5 s) of playback (throttled off `timeupdate`). Also fires once immediately on **pause**, on **seek completion** (`seeked`), and on **ended** — each with the exact position. Never fires while paused (aside from the single pause-flush). `durationSeconds` is `0` until duration is known. |
+| `onProgressSample?: (currentTimeSeconds, durationSeconds, reason) => void` | Position reporting; every sample carries the `MediaProgressSampleReason` it was emitted for. See the sample protocol below. `durationSeconds` is `0` until duration is known. |
 | `startAtSeconds?: number` | Initial position, applied once the element has metadata (clamped to duration). **May arrive late:** apps commonly source it from an async prefs read that resolves after the viewer mounted, so a value that appears while playback has not yet begun is adopted and applied to the already-loaded element. Once real playback has begun (or a position is already tracked) a later value is ignored — a late prefs value never yanks playing media. **Survives the `unloadOnExit` unload/remount cycle:** once playback has started the viewer tracks the live position internally and resumes the remounted element from the LAST KNOWN position — it does not re-apply `startAtSeconds` and does not restart at 0. |
 | `endOverlay?: React.ReactNode` | Rendered as an overlay covering the media area when the media has ended; removed when playback restarts (native replay or imperative `restart()`). Only mounted (and only intercepts pointer events) while shown, and layered above the element (`z-index: 2`). It is part of normal document flow, so on native-fullscreen **exit** it reappears over the inline element (it is not injected into the browser's fullscreen layer). |
 | `playbackControlsRef?: React.Ref<MediaPlaybackControls>` | Imperative handle: `restart()` seeks to 0, clears the overlay, and plays; `seekTo(seconds)` seeks (clamped to `[0, duration]`). |
 
-The `PROGRESS_SAMPLE_INTERVAL_MS` constant and a low-level `useMediaPlayback` hook (for custom video/audio rendering) are exported from `@ttt-productions/media-viewer/react`.
+The `PROGRESS_SAMPLE_INTERVAL_MS` and `LATE_RESUME_ADOPT_WINDOW_SEC` constants and a low-level `useMediaPlayback` hook (for custom video/audio rendering) are exported from `@ttt-productions/media-viewer/react`. Consumers reasoning about the resume window import the constant rather than restating `3`.
+
+### Progress-sample protocol (reason-aware)
+
+`MediaProgressSampleReason = 'periodic' | 'pause' | 'seeked' | 'ended'` (root export) is the third
+argument of every `onProgressSample` call. The reason is what tells a consumer whether a sample may
+be coalesced or must be committed:
+
+| Reason | Emitted by | Consumer contract |
+|---|---|---|
+| `periodic` | throttled `timeupdate` while playing | A rolling position report — safe to throttle, coalesce, or drop. |
+| `pause` | native `pause` | Exact moment; commit it. |
+| `seeked` | native `seeked` — user seeks AND the programmatic initial-resume seek | Exact moment; commit it. |
+| `ended` | native `ended` | Final position; commit it. |
+
+**Pre-seed periodic suppression.** While no `startAtSeconds` seed has been adopted and the element
+is still within `LATE_RESUME_ADOPT_WINDOW_SEC` of the start, `periodic` samples are not emitted at
+all. Autoplay begins at 0 before an app's async saved position resolves, and a `periodic` ~0 sample
+written to durable state clobbers that saved position before the resume seek can land. With a saved
+position, the seek applies and its `seeked` sample reports the resumed position as the first thing
+the app ever sees; with no saved position, periodic reporting simply begins a few seconds in, which
+is harmless. `pause`, `seeked`, and `ended` are **never** suppressed — a user pausing at 0.5 s is
+genuine intent.
+
+The third argument is additive: an existing two-argument callback stays source-compatible.
 
 ### Recovery UI classes
 
