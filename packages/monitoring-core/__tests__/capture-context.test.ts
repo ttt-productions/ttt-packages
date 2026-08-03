@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { applyCaptureContext, asFlatStringTagMap } from '../src/capture-context';
+import { applyCaptureContext, asFlatStringTagMap, asMonitoringLevel } from '../src/capture-context';
 
 function makeScope() {
     return {
@@ -7,6 +7,7 @@ function makeScope() {
         setUser: vi.fn(),
         setExtra: vi.fn(),
         setContext: vi.fn(),
+        setLevel: vi.fn(),
     };
 }
 
@@ -34,13 +35,28 @@ describe('asFlatStringTagMap', () => {
     });
 });
 
+describe('asMonitoringLevel', () => {
+    it('accepts every severity name', () => {
+        for (const level of ['fatal', 'error', 'warning', 'info', 'debug']) {
+            expect(asMonitoringLevel(level)).toBe(level);
+        }
+    });
+
+    it('rejects anything else', () => {
+        expect(asMonitoringLevel('critical')).toBeNull();
+        expect(asMonitoringLevel('ERROR')).toBeNull();
+        expect(asMonitoringLevel(3)).toBeNull();
+        expect(asMonitoringLevel(undefined)).toBeNull();
+    });
+});
+
 describe('applyCaptureContext', () => {
-    it('routes a flat string `tags` map to setTag and everything else to setExtra', () => {
+    it('routes a flat string `tags` map to setTag, `level` to setLevel, everything else to setExtra', () => {
         const scope = makeScope();
 
         applyCaptureContext(scope, {
             tags: { operation: 'runPublishApprovedHallLibraryItem.audit', action: 'approve' },
-            level: 'error',
+            level: 'warning',
             extra: { itemId: 'item-1' },
         });
 
@@ -48,10 +64,21 @@ describe('applyCaptureContext', () => {
             ['operation', 'runPublishApprovedHallLibraryItem.audit'],
             ['action', 'approve'],
         ]);
-        expect(scope.setExtra.mock.calls).toEqual([
-            ['level', 'error'],
-            ['extra', { itemId: 'item-1' }],
-        ]);
+        expect(scope.setLevel.mock.calls).toEqual([['warning']]);
+        expect(scope.setExtra.mock.calls).toEqual([['extra', { itemId: 'item-1' }]]);
+    });
+
+    it('leaves an unrecognized `level` as an extra so nothing is dropped', () => {
+        const scope = makeScope();
+        applyCaptureContext(scope, { level: 'critical' });
+        expect(scope.setLevel).not.toHaveBeenCalled();
+        expect(scope.setExtra.mock.calls).toEqual([['level', 'critical']]);
+    });
+
+    it('falls back to an extra when the scope cannot set a level', () => {
+        const scope = { setTag: vi.fn(), setExtra: vi.fn() };
+        applyCaptureContext(scope, { level: 'warning' });
+        expect(scope.setExtra.mock.calls).toEqual([['level', 'warning']]);
     });
 
     it('falls back to an extra when `tags` is not a flat string map', () => {

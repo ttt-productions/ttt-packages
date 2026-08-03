@@ -12,10 +12,13 @@ Generic monitoring adapter package.
 
 ## Capture context
 
-`captureException(error, context)` applies the context to the capture's scope: a `tags` key holding a
-flat string map becomes REAL Sentry tags (`scope.setTag`, so the values are searchable, filterable,
-and alert-routable); every other key — including a `tags` value that is not a flat string map —
-becomes an extra. One helper (`src/capture-context.ts`) owns that decision for both Sentry adapters.
+`captureException(error, context)` applies the context to the capture's scope. Two keys are treated
+as the first-class Sentry fields call sites mean them as: a `tags` key holding a flat string map
+becomes REAL tags (`scope.setTag`, so the values are searchable, filterable, and alert-routable), and
+a `level` key holding a severity name becomes the capture's REAL severity (`scope.setLevel`). Every
+other key — and a `tags`/`level` value that does not fit the shape, or a scope that cannot honour it —
+becomes an extra, so nothing is ever dropped. One helper (`src/capture-context.ts`) owns that
+decision for both Sentry adapters.
 
 ## Boundary
 

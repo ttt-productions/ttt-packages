@@ -22,9 +22,15 @@ export type MonitoringUser = {
   ip_address?: string;
 };
 
+/** The severity names every provider in this package understands. */
+export type MonitoringLevel = "fatal" | "error" | "warning" | "info" | "debug";
+
 export type ScopeLike = {
   setTag: (key: string, value: string) => void;
   setUser: (user: MonitoringUser | null) => void;
   setExtra: (key: string, value: unknown) => void;
   setContext: (key: string, context: Record<string, unknown>) => void;
+  /** Optional: real Sentry scopes have it, the noop/minimal scopes may not. A capture
+   *  context's `level` is applied through this when present (see capture-context.ts). */
+  setLevel?: (level: MonitoringLevel) => void;
 };

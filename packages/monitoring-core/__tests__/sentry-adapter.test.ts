@@ -5,6 +5,7 @@ const scopeMock = {
     setUser: vi.fn(),
     setExtra: vi.fn(),
     setContext: vi.fn(),
+    setLevel: vi.fn(),
 };
 
 const sentryMock = {
@@ -44,7 +45,7 @@ describe('SentryAdapter (browser) captureException context → tags vs extras', 
         expect(scopeMock.setExtra).not.toHaveBeenCalled();
     });
 
-    it('keeps every non-tags context key as an extra', async () => {
+    it('routes level to setLevel and keeps every other non-tags key as an extra', async () => {
         const adapter = await loadInitializedAdapter();
 
         adapter.captureException(new Error('boom'), {
@@ -55,8 +56,8 @@ describe('SentryAdapter (browser) captureException context → tags vs extras', 
 
         expect(scopeMock.setTag).toHaveBeenCalledTimes(1);
         expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'uploadValidation');
-        expect(scopeMock.setExtra).toHaveBeenCalledTimes(2);
-        expect(scopeMock.setExtra).toHaveBeenCalledWith('level', 'warning');
+        expect(scopeMock.setLevel).toHaveBeenCalledWith('warning');
+        expect(scopeMock.setExtra).toHaveBeenCalledTimes(1);
         expect(scopeMock.setExtra).toHaveBeenCalledWith('fileId', 'file-1');
     });
 

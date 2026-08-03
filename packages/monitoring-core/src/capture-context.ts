@@ -2,14 +2,23 @@
  * Capture-context application — the one place that decides how a capture's
  * context argument lands on a Sentry scope.
  *
- * Context keys become EXTRAS, with one exception: a key named `tags` whose
- * value is a flat string map is applied as REAL Sentry tags (`scope.setTag`),
- * so those values are searchable, filterable, and alert-routable. A `tags`
- * value that is not a flat string map (nested objects, arrays, non-string
- * values) is left as an ordinary extra — nothing is dropped.
+ * Context keys become EXTRAS, with two exceptions — the keys call sites pass
+ * meaning a FIRST-CLASS Sentry field rather than a free-form attachment:
+ *
+ *   - `tags`, a flat string map, is applied as REAL Sentry tags
+ *     (`scope.setTag`), so those values are searchable, filterable, and
+ *     alert-routable;
+ *   - `level`, one of the severity names, is applied as the capture's REAL
+ *     severity (`scope.setLevel`), so a call site asking for `warning` is not
+ *     reported as an error.
+ *
+ * Both are all-or-nothing: a value that does not fit the shape (a `tags` map
+ * with a non-string value, an unrecognized `level`) stays an ordinary extra, so
+ * nothing is ever dropped. A scope that cannot honour the field (no `setLevel`)
+ * also falls back to the extra.
  */
 
-import type { ScopeLike } from "./types.js";
+import type { MonitoringLevel, ScopeLike } from "./types.js";
 
 /**
  * Narrow an arbitrary value to a flat `Record<string, string>`, or `null` when
@@ -27,9 +36,17 @@ export function asFlatStringTagMap(value: unknown): Record<string, string> | nul
   return out;
 }
 
+const MONITORING_LEVELS: readonly string[] = ["fatal", "error", "warning", "info", "debug"];
+
+/** Narrow a value to a monitoring severity name, or `null` when it is not one. */
+export function asMonitoringLevel(value: unknown): MonitoringLevel | null {
+  return typeof value === "string" && MONITORING_LEVELS.includes(value) ? (value as MonitoringLevel) : null;
+}
+
 /**
  * Apply a capture context to a scope: real tags for a flat-string-map `tags`
- * entry, extras for everything else. Tolerates a scope missing either method.
+ * entry, the real severity for a recognized `level`, extras for everything else.
+ * Tolerates a scope missing any of the methods.
  */
 export function applyCaptureContext(scope: unknown, context: Record<string, unknown>): void {
   const target = scope as Partial<ScopeLike> | null | undefined;
@@ -43,6 +60,14 @@ export function applyCaptureContext(scope: unknown, context: Record<string, unkn
             target.setTag(tagKey, tagValue);
           }
         }
+        continue;
+      }
+    }
+
+    if (key === "level") {
+      const level = asMonitoringLevel(value);
+      if (level && typeof target?.setLevel === "function") {
+        target.setLevel(level);
         continue;
       }
     }

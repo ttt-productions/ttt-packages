@@ -51,6 +51,16 @@ export const TTT_FORBIDDEN_TELEMETRY_PATTERNS: (RegExp | string)[] = [
   /\bnciiAuthorityEvidence\/[^\s"']+/gi,
   /\bevidence\/[a-zA-Z0-9._-]+\/[a-f0-9]{16,}[^\s"']*/gi,
 
+  // --- Restricted SAFETY DOCUMENT paths carrying a statutory request id. ---
+  // A take-it-down request id and its request-scoped removal-deadline monitor id are
+  // restricted identifiers: Cloud Logging keeps them (the operator-only triage surface),
+  // Sentry never does. The app's own emit points are minimized by construction, but a
+  // THIRD-PARTY error message routinely embeds the document path it failed on — a Firestore
+  // NOT_FOUND names `safetySlaMonitors/{requestId}__nciiRemovalDeadline` verbatim — and that
+  // is precisely what this defense-in-depth layer exists to catch.
+  /\bsafetySlaMonitors\/[^\s"']+/gi,
+  /\btakeItDownRequests\/[^\s"']+/gi,
+
   // --- PhotoDNA detector-hash shape: a 64-hex string (sha256 / detector hash). ---
   /\b[a-f0-9]{64}\b/gi,
 
