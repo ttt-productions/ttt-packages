@@ -10,6 +10,13 @@ describe('NoopAdapter', () => {
         expect(ctx).toEqual({ userId: '123' });
     });
 
+    it('captureException with a `tags` context stays inert and leaves the context untouched', () => {
+        const ctx = { tags: { operation: 'nciiDeadlineMonitor' }, level: 'error' };
+        const snapshot = JSON.stringify(ctx);
+        expect(NoopAdapter.captureException(new Error('test'), ctx)).toBeUndefined();
+        expect(JSON.stringify(ctx)).toBe(snapshot);
+    });
+
     it('captureMessage accepts every supported level', () => {
         const levels = ['fatal', 'error', 'warning', 'info', 'debug'] as const;
         for (const level of levels) {

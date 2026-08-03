@@ -1,5 +1,6 @@
 import type { MonitoringAdapter } from "../adapter.js";
 import type { MonitoringInitOptions, MonitoringUser, ScopeLike } from "../types.js";
+import { applyCaptureContext } from "../capture-context.js";
 
 type SentryLike = {
   init: (opts: any) => void;
@@ -44,9 +45,7 @@ export const SentryAdapter: MonitoringAdapter = {
     if (sentryInstance) {
       if (context && sentryInstance.withScope) {
         sentryInstance.withScope((scope) => {
-          for (const [k, v] of Object.entries(context)) {
-            if (typeof scope?.setExtra === "function") scope.setExtra(k, v);
-          }
+          applyCaptureContext(scope, context);
           sentryInstance!.captureException(error);
         });
         return;
@@ -60,9 +59,7 @@ export const SentryAdapter: MonitoringAdapter = {
 
       if (context && S.withScope) {
         S.withScope((scope) => {
-          for (const [k, v] of Object.entries(context)) {
-            if (typeof scope?.setExtra === "function") scope.setExtra(k, v);
-          }
+          applyCaptureContext(scope, context);
           S.captureException(error);
         });
         return;
