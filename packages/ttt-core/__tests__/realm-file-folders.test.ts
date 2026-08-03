@@ -18,6 +18,7 @@ import { COLLECTIONS, WORK_REALM_SUBCOLLECTIONS } from '../src/paths/collections
 import {
   MAX_REALM_FILE_FOLDERS,
   MAX_FILE_FOLDER_NAME_LENGTH,
+  MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH,
 } from '../src/constants/business-work-project';
 import {
   REALM_SHARED_FILES_PAGE_LIMIT,
@@ -40,6 +41,9 @@ import {
   UpdateRealmFileFolderInputSchema,
   DeleteRealmFileFolderInputSchema,
   UpdateRealmFileFolderAssignmentInputSchema,
+  WorkFileRealmShareStateSchema,
+  GetWorkFileRealmShareStatesInputSchema,
+  GetWorkFileRealmShareStatesResponseSchema,
 } from '../src/schemas/work-project-management';
 import { WORK_PROJECT_ACTIONS } from '../src/permissions/work-project-permissions-data';
 
@@ -438,7 +442,7 @@ describe('gallery projection (APPROVED files only)', () => {
   });
 
   it('keeps { files } and adds folders + nextCursor additively', () => {
-    const folder = { realmFileFolderId: 'folder-1', name: 'Concept Art' };
+    const folder = { realmFileFolderId: 'folder-1', name: 'Concept Art', fileCount: 3 };
     expect(RealmFileFolderProjectionSchema.parse(folder)).toEqual(folder);
     expect(
       GetRealmSharedFilesResponseSchema.safeParse({ files: [file], folders: [folder] }).success,
@@ -456,6 +460,31 @@ describe('gallery projection (APPROVED files only)', () => {
     ).toBe(true);
     // An empty Realm still returns both arrays, so "no folders yet" is representable.
     expect(GetRealmSharedFilesResponseSchema.safeParse({ files: [] }).success).toBe(false);
+  });
+});
+
+describe('folder projection fileCount', () => {
+  const folder = { realmFileFolderId: 'folder-1', name: 'Concept Art', fileCount: 3 };
+
+  it('is REQUIRED — the steward UI must never derive a count from loaded pages', () => {
+    expect(RealmFileFolderProjectionSchema.parse(folder)).toEqual(folder);
+    const { fileCount: _omitted, ...noCount } = folder;
+    expect(RealmFileFolderProjectionSchema.safeParse(noCount).success).toBe(false);
+  });
+
+  it('accepts zero (an empty folder is a real, deletable state)', () => {
+    expect(RealmFileFolderProjectionSchema.safeParse({ ...folder, fileCount: 0 }).success).toBe(true);
+  });
+
+  it('rejects a negative or fractional count', () => {
+    for (const fileCount of [-1, 1.5, '3', null]) {
+      expect(RealmFileFolderProjectionSchema.safeParse({ ...folder, fileCount }).success).toBe(false);
+    }
+  });
+
+  it('is a projection-only field — the folder DOCUMENT still stores no counts', () => {
+    expect(Object.keys(RealmFileFolderProjectionSchema.shape)).toContain('fileCount');
+    expect(Object.keys(RealmFileFolderSchema.shape)).not.toContain('fileCount');
   });
 });
 
@@ -514,13 +543,159 @@ describe('promotion-queue projection (PENDING rows only)', () => {
     expect(
       GetRealmFilePromotionQueueResponseSchema.safeParse({
         requests: [row],
-        folders: [{ realmFileFolderId: 'folder-1', name: 'Concept Art' }],
+        folders: [{ realmFileFolderId: 'folder-1', name: 'Concept Art', fileCount: 0 }],
       }).success,
     ).toBe(true);
     // "No folders yet" is explicitly representable so the UI can disable approval and say why.
     expect(
       GetRealmFilePromotionQueueResponseSchema.safeParse({ requests: [row], folders: [] }).success,
     ).toBe(true);
+  });
+});
+
+describe('work-side share-state projection', () => {
+  const pendingRow = {
+    workFileId: 'file-1',
+    realmFileCanonStatus: 'pendingApproval' as const,
+    realmFileShareRequestId: 'req-1',
+  };
+  const approvedRow = { workFileId: 'file-2', realmFileCanonStatus: 'canon' as const };
+
+  it('takes only the Work id, using the same atom as its siblings', () => {
+    expect(
+      GetWorkFileRealmShareStatesInputSchema.safeParse({ workProjectId: 'work-1' }).success,
+    ).toBe(true);
+    expect(GetWorkFileRealmShareStatesInputSchema.safeParse({ workProjectId: '' }).success).toBe(false);
+    expect(GetWorkFileRealmShareStatesInputSchema.safeParse({}).success).toBe(false);
+    expect(Object.keys(GetWorkFileRealmShareStatesInputSchema.shape)).toEqual(['workProjectId']);
+  });
+
+  it('accepts a pending row carrying its request id, and an approved row without one', () => {
+    expect(WorkFileRealmShareStateSchema.parse(pendingRow)).toEqual(pendingRow);
+    expect(WorkFileRealmShareStateSchema.parse(approvedRow)).toEqual(approvedRow);
+    expect(
+      WorkFileRealmShareStateSchema.safeParse({ ...approvedRow, realmFileCanonStatus: 'nonCanon' })
+        .success,
+    ).toBe(true);
+  });
+
+  it("REJECTS 'none' — an unshared file has no row at all", () => {
+    expect(
+      WorkFileRealmShareStateSchema.safeParse({ workFileId: 'file-3', realmFileCanonStatus: 'none' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('requires the request id while pending — otherwise there is nothing to withdraw', () => {
+    const { realmFileShareRequestId: _omitted, ...noRequestId } = pendingRow;
+    const result = WorkFileRealmShareStateSchema.safeParse(noRequestId);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.map((i) => i.path.join('.'))).toContain('realmFileShareRequestId');
+    }
+  });
+
+  it('forbids a request id once resolved — a stale id must not be sendable from an approved row', () => {
+    for (const status of ['nonCanon', 'canon']) {
+      const result = WorkFileRealmShareStateSchema.safeParse({
+        workFileId: 'file-2',
+        realmFileCanonStatus: status,
+        realmFileShareRequestId: 'req-1',
+      });
+      expect(result.success, status).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.map((i) => i.path.join('.'))).toContain('realmFileShareRequestId');
+      }
+    }
+  });
+
+  it('is strict and enforces the shared request-id cap', () => {
+    expect(WorkFileRealmShareStateSchema.safeParse({ ...pendingRow, sneaky: true }).success).toBe(false);
+    expect(
+      WorkFileRealmShareStateSchema.safeParse({
+        ...pendingRow,
+        realmFileShareRequestId: 'x'.repeat(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH + 1),
+      }).success,
+    ).toBe(false);
+  });
+
+  it('wraps the rows in a { states } response that can be empty', () => {
+    expect(
+      GetWorkFileRealmShareStatesResponseSchema.safeParse({ states: [pendingRow, approvedRow] })
+        .success,
+    ).toBe(true);
+    // No shared or requested files at all — the honest empty case.
+    expect(GetWorkFileRealmShareStatesResponseSchema.safeParse({ states: [] }).success).toBe(true);
+    expect(GetWorkFileRealmShareStatesResponseSchema.safeParse({}).success).toBe(false);
+    expect(
+      GetWorkFileRealmShareStatesResponseSchema.safeParse({ states: [], nextCursor: 'x' }).success,
+    ).toBe(false);
+  });
+});
+
+describe('realm-file requestId is bounded at the atom', () => {
+  const uuid = '123e4567-e89b-42d3-a456-426614174000'; // crypto.randomUUID() shape, 36 chars
+
+  it('caps the id with a named constant that fits a generated UUID', () => {
+    expect(uuid).toHaveLength(36);
+    expect(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH).toBeGreaterThanOrEqual(uuid.length);
+    expect(Number.isInteger(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH)).toBe(true);
+  });
+
+  it('accepts the uuid the client actually mints and rejects an over-cap string', () => {
+    const share = (requestId: string) =>
+      UpdateWorkFileRealmShareInputSchema.safeParse({
+        workProjectId: 'work-1',
+        workFileId: 'file-1',
+        requestId,
+      }).success;
+    expect(share(uuid)).toBe(true);
+    expect(share('x'.repeat(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH))).toBe(true);
+    // The write-amplification case: a client-chosen id that lands on the asset doc, the audit
+    // payload, the notification metadata, and the aggregation key.
+    expect(share('x'.repeat(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH + 1))).toBe(false);
+    expect(share('x'.repeat(100_000))).toBe(false);
+    expect(share('')).toBe(false);
+  });
+
+  it('applies the SAME cap everywhere the id travels (one atom, no restated bound)', () => {
+    const overCap = 'x'.repeat(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH + 1);
+    expect(
+      WithdrawRealmFilePromotionRequestInputSchema.safeParse({
+        workProjectId: 'work-1',
+        workFileId: 'file-1',
+        requestId: overCap,
+      }).success,
+    ).toBe(false);
+    expect(
+      ApproveRealmFilePromotionInputSchema.safeParse({
+        workRealmId: 'realm-1',
+        mediaAssetId: 'asset-1',
+        realmFileFolderId: 'folder-1',
+        requestId: overCap,
+      }).success,
+    ).toBe(false);
+    expect(
+      DeclineRealmFilePromotionInputSchema.safeParse({
+        workRealmId: 'realm-1',
+        mediaAssetId: 'asset-1',
+        requestId: overCap,
+      }).success,
+    ).toBe(false);
+    expect(
+      RealmFilePromotionQueueRowSchema.safeParse({
+        mediaAssetId: 'asset-1',
+        mediaKind: 'video',
+        realmFileCanonStatus: 'pendingApproval',
+        name: 'trailer.mp4',
+        creatorUid: 'creator-1',
+        workProjectId: 'work-1',
+        workFileId: 'file-1',
+        realmFileShareRequestId: overCap,
+        realmFileShareRequestedByUid: 'file-admin-1',
+        realmFileShareRequestedAt: 1,
+      }).success,
+    ).toBe(false);
   });
 });
 

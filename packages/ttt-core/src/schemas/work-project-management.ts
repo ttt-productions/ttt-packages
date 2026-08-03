@@ -34,6 +34,8 @@ import {
 import {
   RealmFileApprovedStatusSchema,
   RealmFilePendingApprovalStatusSchema,
+  RealmFileActiveStatusSchema,
+  REALM_FILE_PENDING_APPROVAL_STATUS,
   ContentMediaKindSchema,
 } from '../doc-schemas/media-assets.js';
 
@@ -73,12 +75,18 @@ export const RealmSharedFileProjectionSchema = z.object({
 }).strict();
 export type RealmSharedFileProjection = z.infer<typeof RealmSharedFileProjectionSchema>;
 
-/** A Realm shared-file folder as the gallery sees it. Pure container — no access lists, no
- *  stored counts (counts derive from the files in the same response, so a count can never
- *  disagree with the files actually served). */
+/** A Realm shared-file folder as the gallery sees it. The FOLDER DOCUMENT stores no counts;
+ *  `fileCount` here is SERVER-COMPUTED per response, so it can never drift the way a stored
+ *  counter would. */
 export const RealmFileFolderProjectionSchema = z.object({
   realmFileFolderId: realmFileFolderIdSchema,
   name: z.string(),
+  /** Number of files currently ASSIGNED to this folder — counting every assigned file
+   *  regardless of canon state and regardless of serving state (a hidden or quarantined file
+   *  still occupies its folder, and is still why a delete-folder attempt will refuse).
+   *  Server-computed so the steward UI stops deriving counts from whichever gallery pages
+   *  happen to be loaded — a paged client can only ever see part of a folder. */
+  fileCount: z.number().int().min(0),
 }).strict();
 export type RealmFileFolderProjection = z.infer<typeof RealmFileFolderProjectionSchema>;
 
@@ -145,6 +153,64 @@ export const GetRealmFilePromotionQueueResponseSchema = z.object({
   nextCursor: z.string().min(1).nullable().optional(),
 }).strict();
 export type GetRealmFilePromotionQueueResponse = z.infer<typeof GetRealmFilePromotionQueueResponseSchema>;
+
+// ---- WORK-side share-state projection --------------------------------------------------
+// The mirror image of the two Realm-side projections above, for the WORK's own files surface:
+// a file admin looking at their folder listing needs to know which files are already shared
+// or awaiting a steward decision, so the row can show "Requested" / "Shared" and offer
+// withdraw where it applies.
+//
+// It is a SERVER projection for the same reason the gallery is: `mediaAssets` is
+// client-unreadable, so share state cannot be read from the file document. File-admin
+// authorization is asserted in the callable; this shape carries no authority hint.
+
+/** One work file's realm-share state.
+ *
+ *  The `requestId` is present EXACTLY while the file is awaiting a decision — it is what the
+ *  withdraw call must carry, and it is meaningless once the request is resolved. Enforced
+ *  rather than merely optional, mirroring the asset's own legal-combination invariant, so the
+ *  UI can never be handed a pending row with nothing to withdraw (or an approved row carrying
+ *  a stale request id it might send).
+ *
+ *  `workFileId` uses plain `z.string()` like the sibling projection rows in this file
+ *  (inputs use `.min(1)`; projection rows describe server-produced data). */
+export const WorkFileRealmShareStateSchema = z.object({
+  workFileId: z.string(),
+  // Never `none`: an unshared file simply has no row (see the response below).
+  realmFileCanonStatus: RealmFileActiveStatusSchema,
+  realmFileShareRequestId: realmFileShareRequestIdSchema.optional(),
+}).strict().superRefine((val, ctx) => {
+  const isPending = val.realmFileCanonStatus === REALM_FILE_PENDING_APPROVAL_STATUS;
+  if (isPending && val.realmFileShareRequestId === undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['realmFileShareRequestId'],
+      message: 'a pending row must carry its request id — it is what the withdraw call compares against',
+    });
+  }
+  if (!isPending && val.realmFileShareRequestId !== undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['realmFileShareRequestId'],
+      message: 'a resolved row must not carry a request id — the request is no longer pending',
+    });
+  }
+});
+export type WorkFileRealmShareState = z.infer<typeof WorkFileRealmShareStateSchema>;
+
+export const GetWorkFileRealmShareStatesInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
+}).strict();
+export type GetWorkFileRealmShareStatesInput = z.infer<typeof GetWorkFileRealmShareStatesInputSchema>;
+
+/** Rows exist ONLY for files whose standing is not `none`. An ABSENT row therefore means the
+ *  file has never been requested or shared — that is the encoding, so the client must treat a
+ *  missing entry as "not shared" rather than "unknown". Bounded implicitly by the Work's own
+ *  file cap (MAX_WORK_FILES), so this response needs no page cursor of its own. */
+export const GetWorkFileRealmShareStatesResponseSchema = z.object({
+  states: z.array(WorkFileRealmShareStateSchema),
+}).strict();
+export type GetWorkFileRealmShareStatesResponse = z.infer<typeof GetWorkFileRealmShareStatesResponseSchema>;
 
 const baseFields = {
   workingTitle: z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH),

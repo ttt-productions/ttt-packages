@@ -14,8 +14,11 @@ import {
   RealmFileCanonStatusSchema,
   RealmFileApprovedStatusSchema,
   RealmFilePendingApprovalStatusSchema,
+  RealmFileActiveStatusSchema,
   REALM_FILE_CANON_STATUS_VALUES,
   REALM_FILE_APPROVED_STATUS_VALUES,
+  REALM_FILE_ACTIVE_STATUS_VALUES,
+  REALM_FILE_PENDING_APPROVAL_STATUS,
 } from '../src/doc-schemas/media-assets';
 
 /** A work file's asset, unshared. The realm fields are layered on per-case. */
@@ -81,6 +84,25 @@ describe('RealmFileCanonStatus — the one seam, now carrying the approval gate'
     for (const value of ['none', 'nonCanon', 'canon']) {
       expect(RealmFilePendingApprovalStatusSchema.safeParse(value).success).toBe(false);
     }
+    // Exported as a VALUE too, so a consumer can branch on it without re-quoting the member
+    // (the redeclaration guard pins this literal to the owner file).
+    expect(REALM_FILE_PENDING_APPROVAL_STATUS).toBe('pendingApproval');
+  });
+
+  it('exposes an ACTIVE subset (everything but "none") derived from the two subsets', () => {
+    expect([...REALM_FILE_ACTIVE_STATUS_VALUES]).toEqual([
+      REALM_FILE_PENDING_APPROVAL_STATUS,
+      ...REALM_FILE_APPROVED_STATUS_VALUES,
+    ]);
+    // It is exactly the full union minus the unshared standing — so a future standing added
+    // to either subset reaches this set automatically.
+    expect([...REALM_FILE_ACTIVE_STATUS_VALUES].sort()).toEqual(
+      REALM_FILE_CANON_STATUS_VALUES.filter((v) => v !== 'none').sort(),
+    );
+    for (const value of REALM_FILE_ACTIVE_STATUS_VALUES) {
+      expect(RealmFileActiveStatusSchema.safeParse(value).success).toBe(true);
+    }
+    expect(RealmFileActiveStatusSchema.safeParse('none').success).toBe(false);
   });
 });
 

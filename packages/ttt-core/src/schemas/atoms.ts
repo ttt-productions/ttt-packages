@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../constants/business.js';
+import {
+  MAX_WORK_PROJECT_TITLE_LENGTH,
+  MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH,
+} from '../constants/business.js';
 import { WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
@@ -25,8 +28,16 @@ export const workRealmIdSchema = z.string().min(1);
 export const realmFileFolderIdSchema = z.string().min(1);
 /** The CLIENT-generated stable id of one realm-file promotion request. Approval, decline,
  *  and withdrawal all carry it and compare it against the pending request recorded on the
- *  asset, so a stale tab can never decide a newer re-request. */
-export const realmFileShareRequestIdSchema = z.string().min(1);
+ *  asset, so a stale tab can never decide a newer re-request.
+ *
+ *  BOUNDED at the atom: this id is client-chosen AND durably persisted (asset doc, audit
+ *  payload, notification metadata, aggregation key), so an unbounded string is a write
+ *  amplification an attacker can send without the UI. Every consumer inherits the cap by
+ *  using this atom rather than restating a bound. */
+export const realmFileShareRequestIdSchema = z
+  .string()
+  .min(1)
+  .max(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH);
 export const notificationFanoutJobIdSchema = z.string().min(1);
 export const taleIdSchema = z.string().min(1);
 export const tuneIdSchema = z.string().min(1);

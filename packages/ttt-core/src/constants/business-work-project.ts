@@ -60,6 +60,23 @@ export const MAX_WORK_FILE_STORAGE_BYTES = ACTIVE_LIMITS.workProject.maxWorkFile
  */
 export const MAX_REALM_FILE_FOLDERS = 30;
 
+/**
+ * Maximum length of a realm-file promotion `requestId`.
+ *
+ * This is the FIRST client-minted, client-CHOSEN id in the set that is durably PERSISTED:
+ * it lands on the `mediaAssets` doc, in the audit payload, in notification metadata, and in
+ * the notification aggregation key. Every one of those is an attacker-reachable write
+ * amplification if the id is unbounded, so the bound belongs on the atom, not on each
+ * call site.
+ *
+ * 64 is the smallest bound that comfortably fits what the client actually mints — a
+ * `crypto.randomUUID()` is 36 characters — while leaving room for a prefixed variant. It is
+ * deliberately TIGHTER than the 200-character opaque-id cap the admin chat-moderation
+ * requestIds use (`schemas/chat.ts`): those carry composite operator-supplied ids, whereas
+ * this one is always a generated UUID.
+ */
+export const MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH = 64;
+
 /** Allowed characters in titles: letters, numbers, spaces. */
 export const TITLE_PATTERN = /^[a-zA-Z0-9 ]+$/;
 

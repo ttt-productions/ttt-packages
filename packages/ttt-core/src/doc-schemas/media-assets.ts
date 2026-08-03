@@ -186,10 +186,25 @@ export const REALM_FILE_APPROVED_STATUS_VALUES = ['nonCanon', 'canon'] as const;
 export const RealmFileApprovedStatusSchema = z.enum(REALM_FILE_APPROVED_STATUS_VALUES);
 export type RealmFileApprovedStatus = z.infer<typeof RealmFileApprovedStatusSchema>;
 
-/** The single AWAITING-DECISION standing. The steward promotion-queue projection accepts
- *  only this, so an approved or unshared row can never be typed into the queue. */
-export const RealmFilePendingApprovalStatusSchema = z.literal('pendingApproval');
+/** The single AWAITING-DECISION standing. Exported as a VALUE as well as a schema so a
+ *  consumer can branch on it (`status === REALM_FILE_PENDING_APPROVAL_STATUS`) without
+ *  re-quoting the member — the redeclaration guard pins this literal to this file. */
+export const REALM_FILE_PENDING_APPROVAL_STATUS = 'pendingApproval' as const;
+/** The steward promotion-queue projection accepts only this, so an approved or unshared row
+ *  can never be typed into the queue. */
+export const RealmFilePendingApprovalStatusSchema = z.literal(REALM_FILE_PENDING_APPROVAL_STATUS);
 export type RealmFilePendingApprovalStatus = z.infer<typeof RealmFilePendingApprovalStatusSchema>;
+
+/** Every standing EXCEPT `none` — a file that has entered the request/approval lifecycle at
+ *  all. Derived from the two subsets above, so adding a future standing to one of them
+ *  reaches this set automatically. Used by the Work-side share-state projection, whose rows
+ *  exist only for files that are actually requested or shared. */
+export const REALM_FILE_ACTIVE_STATUS_VALUES = [
+  REALM_FILE_PENDING_APPROVAL_STATUS,
+  ...REALM_FILE_APPROVED_STATUS_VALUES,
+] as const;
+export const RealmFileActiveStatusSchema = z.enum(REALM_FILE_ACTIVE_STATUS_VALUES);
+export type RealmFileActiveStatus = z.infer<typeof RealmFileActiveStatusSchema>;
 
 // ===== Serving authority (Durable Object) + publication gating =====
 // See ttt-prod docs/design/media-assets-and-protected-serving.md (the design owner
