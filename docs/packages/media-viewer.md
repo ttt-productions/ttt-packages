@@ -169,6 +169,13 @@ Mechanics: the Web Audio graph (`createMediaElementSource` → `AnalyserNode` �
 
 The shared render engine `startWaveformLoop({ analyser, getCanvas, mode })` (root export, no React) is the ONE waveform implementation — file-input's record dialog consumes it for the live-mic waveform. Chrome styling uses `.mv-player*` semantic classes (see styles) with token fallbacks.
 
+## Image zoom pass-through
+
+`ImageViewer` owns a click-to-zoom toggle that defaults ON. `MediaPreview` / `MediaViewer`
+forward the optional `enableZoom` prop to it for `type="image"` (ignored for every other
+type), so a consumer can render plain, non-zooming image surfaces app-wide from one wrapper
+(`enableZoom={false}`). Omitted = the ImageViewer default (ON) — fully back-compatible.
+
 ## Playback API (VideoViewer / AudioViewer)
 
 Additive, fully optional playback surface on `VideoViewer` and `AudioViewer`, forwarded by `MediaPreview` / `MediaViewer` for `type="video"` / `type="audio"`. Every field is optional; when all are absent the viewers behave exactly as before. It derives entirely from native media-element events — it adds **no** IntersectionObserver (MEDIA-102). Types are exported from the package root: `MediaPlaybackProps`, `MediaPlaybackControls`.

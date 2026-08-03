@@ -66,6 +66,20 @@ describe('MediaViewer', () => {
       expect(container.querySelector('video')).toBeInTheDocument();
     });
 
+    it('forwards enableZoom={false} to the image viewer — no zoom affordance renders', () => {
+      const { container } = render(
+        <MediaViewer url="https://example.com/x" type="image" enableZoom={false} />,
+      );
+      expect(container.querySelector('img')).toBeInTheDocument();
+      expect(container.querySelector('[role="button"]')).not.toBeInTheDocument();
+      expect(container.querySelector('[aria-label="Zoom in image"]')).not.toBeInTheDocument();
+    });
+
+    it('keeps the ImageViewer zoom default (ON) when enableZoom is not passed — back-compat', () => {
+      const { container } = render(<MediaViewer url="https://example.com/x" type="image" />);
+      expect(container.querySelector('[aria-label="Zoom in image"]')).toBeInTheDocument();
+    });
+
     it('renders the canonical audio player when type="audio"', () => {
       const { container } = render(<MediaViewer url="https://example.com/x" type="audio" />);
       expect(container.querySelector('audio')).toBeInTheDocument();

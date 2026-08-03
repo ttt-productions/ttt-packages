@@ -152,6 +152,10 @@ export type MediaPreviewProps = {
   className?: string;
   unloadOnExit?: boolean;
   isCircular?: boolean;
+  /** Image type only — forwarded to ImageViewer's click-to-zoom toggle (which
+   *  defaults ON). Pass `false` to render a plain, non-zooming image surface.
+   *  Ignored for video/audio/other types. */
+  enableZoom?: ImageViewerProps["enableZoom"];
   priority?: boolean;
   skeleton?: boolean;
   lazy?: boolean;

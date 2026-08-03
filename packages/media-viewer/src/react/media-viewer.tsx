@@ -119,6 +119,7 @@ export function MediaViewer(props: MediaPreviewProps) {
     className,
     unloadOnExit,
     isCircular = false,
+    enableZoom,
     priority,
     skeleton,
     lazy,
@@ -270,6 +271,7 @@ export function MediaViewer(props: MediaPreviewProps) {
           skeleton={skeleton}
           unloadOnExit={unloadOnExit}
           isCircular={isCircular}
+          enableZoom={enableZoom}
           loadTimeoutMs={loadTimeoutMs}
           onLoad={handleLoad}
           onError={handleError}
