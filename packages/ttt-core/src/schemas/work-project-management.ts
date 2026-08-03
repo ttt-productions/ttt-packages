@@ -425,6 +425,22 @@ export const DeclineRealmFilePromotionInputSchema = z.object({
 }).strict();
 export type DeclineRealmFilePromotionInput = z.infer<typeof DeclineRealmFilePromotionInputSchema>;
 
+// ADMIN un-share of an ALREADY-APPROVED realm file (`adminUpdateWorkFileRealmUnshare`).
+// Once a steward approves, sharing is PERMANENT for members — the only way out is an admin
+// acting on a support thread. This is its own input rather than a reuse of the share/request
+// shape: an approved file has NO pending request, so `requestId` is meaningless here and
+// requiring one would make the callable unusable against exactly the state it exists to
+// unwind. It carries the ORIGINAL two-field Work-coordinate shape the share input had before
+// the approval gate; the core resolves the file by collection-group query on
+// (`workProjectId`, `workFileId`). Admin authority is asserted at the callable's admin gate
+// and re-asserted in the core (which rejects any non-`adminOverride` actor) — never inferred
+// from anything in this payload.
+export const AdminUpdateWorkFileRealmUnshareInputSchema = z.object({
+  workProjectId: workProjectIdSchema,
+  workFileId: z.string().min(1),
+}).strict();
+export type AdminUpdateWorkFileRealmUnshareInput = z.infer<typeof AdminUpdateWorkFileRealmUnshareInputSchema>;
+
 // ---- realm shared-file folders (steward-managed) ---------------------------------------
 // Mirrors the Work-side folder CRUD shapes, minus the trade-profession access lists: Realm
 // folders are organizational only (Realm-level visibility is the whole access model at

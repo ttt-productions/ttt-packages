@@ -33,6 +33,7 @@ import {
   GetRealmFilePromotionQueueResponseSchema,
   UpdateWorkFileRealmShareInputSchema,
   WithdrawRealmFilePromotionRequestInputSchema,
+  AdminUpdateWorkFileRealmUnshareInputSchema,
   ApproveRealmFilePromotionInputSchema,
   DeclineRealmFilePromotionInputSchema,
   CreateRealmFileFolderInputSchema,
@@ -229,6 +230,67 @@ describe('promotion approval-gate callable inputs', () => {
     ).toBe(false);
   });
 
+  it('ADMIN un-share takes the two Work coordinates and NO requestId', () => {
+    expect(
+      AdminUpdateWorkFileRealmUnshareInputSchema.safeParse({
+        workProjectId: 'work-1',
+        workFileId: 'file-1',
+      }).success,
+    ).toBe(true);
+    // The whole point of the separate schema: an APPROVED file has no pending request, so a
+    // required requestId would make the callable unusable against the state it exists to
+    // unwind. Passing one is a caller error, not a tolerated extra.
+    expect(
+      AdminUpdateWorkFileRealmUnshareInputSchema.safeParse({
+        workProjectId: 'work-1',
+        workFileId: 'file-1',
+        requestId: 'req-1',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('ADMIN un-share requires both coordinates and rejects empty ids', () => {
+    for (const invalid of [
+      { workProjectId: 'work-1' },
+      { workFileId: 'file-1' },
+      {},
+      { workProjectId: '', workFileId: 'file-1' },
+      { workProjectId: 'work-1', workFileId: '' },
+    ]) {
+      expect(AdminUpdateWorkFileRealmUnshareInputSchema.safeParse(invalid).success).toBe(false);
+    }
+  });
+
+  it('ADMIN un-share carries no authority hint — admin authority is asserted server-side', () => {
+    for (const hint of [
+      { adminOverride: true },
+      { actorMode: 'adminOverride' },
+      { reason: 'support ticket' },
+    ]) {
+      expect(
+        AdminUpdateWorkFileRealmUnshareInputSchema.safeParse({
+          workProjectId: 'work-1',
+          workFileId: 'file-1',
+          ...hint,
+        }).success,
+      ).toBe(false);
+    }
+  });
+
+  it('ADMIN un-share uses the SAME Work-coordinate atoms as the share request', () => {
+    // Same two fields, same bounds — only the requestId differs between the request lane and
+    // the post-approval admin lane.
+    const coords = { workProjectId: 'work-1', workFileId: 'file-1' };
+    expect(AdminUpdateWorkFileRealmUnshareInputSchema.safeParse(coords).success).toBe(true);
+    expect(
+      UpdateWorkFileRealmShareInputSchema.safeParse({ ...coords, requestId: 'req-1' }).success,
+    ).toBe(true);
+    expect(Object.keys(AdminUpdateWorkFileRealmUnshareInputSchema.shape)).toEqual([
+      'workProjectId',
+      'workFileId',
+    ]);
+  });
+
   it('folder CRUD inputs carry no access lists (Realm folders are organizational only)', () => {
     expect(
       CreateRealmFileFolderInputSchema.safeParse({
@@ -290,6 +352,7 @@ describe('promotion approval-gate callable inputs', () => {
       ['withdraw', WithdrawRealmFilePromotionRequestInputSchema, { workProjectId: 'w', workFileId: 'f', requestId: 'r' }],
       ['approve', ApproveRealmFilePromotionInputSchema, { workRealmId: 'r1', mediaAssetId: 'a', realmFileFolderId: 'f', requestId: 'r' }],
       ['decline', DeclineRealmFilePromotionInputSchema, { workRealmId: 'r1', mediaAssetId: 'a', requestId: 'r' }],
+      ['admin un-share', AdminUpdateWorkFileRealmUnshareInputSchema, { workProjectId: 'w', workFileId: 'f' }],
       ['create folder', CreateRealmFileFolderInputSchema, { workRealmId: 'r1', name: 'n' }],
       ['update folder', UpdateRealmFileFolderInputSchema, { workRealmId: 'r1', realmFileFolderId: 'f', name: 'n' }],
       ['delete folder', DeleteRealmFileFolderInputSchema, { workRealmId: 'r1', realmFileFolderId: 'f' }],
