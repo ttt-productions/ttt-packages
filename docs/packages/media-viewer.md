@@ -207,6 +207,30 @@ const controls = React.useRef<MediaPlaybackControls>(null);
 
 The `PROGRESS_SAMPLE_INTERVAL_MS` and `LATE_RESUME_ADOPT_WINDOW_SEC` constants and a low-level `useMediaPlayback` hook (for custom video/audio rendering) are exported from `@ttt-productions/media-viewer/react`. Consumers reasoning about the resume window import the constant rather than restating `3`.
 
+### Active-element retirement (teardown resets never report)
+
+`useMediaPlayback` owns the lifecycle of the active media-element generation. Tearing an element
+down — the `unloadOnExit` off-screen unload, unmount, or an in-place source replacement — makes
+browsers snap the cursor to 0 and can fire `pause`/`seeked`/`timeupdate` during the teardown.
+Those events are indistinguishable from user playback events by value (a genuine seek to 0 is
+legal), so the viewers retire the element **before** any destructive media operation:
+
+- the still-live cursor is committed once as a final `pause` sample — skipped when the last
+  commit-class sample already reported that exact position (an `ended`/pause/scrub is never
+  duplicated), when playback never started, or while still inside the pre-seed suppression
+  window (autoplay drift must not overwrite a saved position);
+- every event a retired element emits afterwards is ignored, so a teardown reset can never
+  reach `onProgressSample`; and
+- after an in-place URL switch on a retained element, commit-class events are ignored until the
+  new source proves itself live (`loadedmetadata`, `play`, or a playing `timeupdate`), so an old
+  URL cannot emit into the callback for the new URL.
+
+An active user seek or restart to exactly 0 still reports normally — the boundary is
+active-vs-retired element, never a position heuristic. Custom consumers of `useMediaPlayback`
+opt in by attaching the element through the returned `attachElement` (composed into the element
+`ref`) and calling `retireElement` before their own destructive media operations; a consumer
+that never attaches keeps the previous ungated behavior.
+
 ### Progress-sample protocol (reason-aware)
 
 `MediaProgressSampleReason = 'periodic' | 'pause' | 'seeked' | 'ended'` (root export) is the third

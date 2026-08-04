@@ -737,6 +737,211 @@ describe('media playback API', () => {
     });
   });
 
+  // ---- active-element retirement (teardown resets never report) -----------
+  //
+  // Tearing an element down (unloadOnExit off-screen unload, unmount, source
+  // replacement) makes browsers snap the cursor to 0 and can fire
+  // pause/seeked/timeupdate DURING the teardown. Those events are
+  // indistinguishable from user playback events by value — a genuine seek to 0
+  // is legal — so the viewer retires the element generation FIRST: the
+  // still-live cursor is committed once, and everything the retired element
+  // says afterwards is ignored.
+  describe('active-element retirement', () => {
+    /** Make pause()/load() emit the teardown burst a real engine can produce. */
+    function installTeardownBurst(state: ReturnType<typeof installMediaState>) {
+      vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(function (
+        this: HTMLMediaElement,
+      ) {
+        state.setPaused(true);
+        this.dispatchEvent(new Event('pause'));
+      });
+      vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(function (
+        this: HTMLMediaElement,
+      ) {
+        state.setTime(0);
+        this.dispatchEvent(new Event('timeupdate'));
+        this.dispatchEvent(new Event('seeked'));
+        this.dispatchEvent(new Event('pause'));
+      });
+    }
+
+    it('ignores the unload teardown burst after a scrub — only the scrubbed position is ever emitted', () => {
+      mockInView = true;
+      const onSample = vi.fn();
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
+      fireEvent.loadedMetadata(video);
+
+      // Playback runs, then the user scrubs to 224 — committed via `seeked`.
+      state.setTime(50);
+      fireEvent.timeUpdate(video);
+      state.setTime(224);
+      fireEvent.seeked(video);
+      expect(onSample).toHaveBeenLastCalledWith(224, 300, 'seeked');
+      const callsAfterScrub = onSample.mock.calls.length;
+
+      // Close: the unload path pauses, drops src, and load()-resets to 0 — the
+      // burst fires pause/seeked/timeupdate at ~0 on the retiring element.
+      installTeardownBurst(state);
+      mockInView = false;
+      rerender(<VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />);
+      expect(container.querySelector('video')).toBeNull();
+
+      // The scrub was already committed, so retirement emits nothing new and
+      // the teardown burst emits nothing at all — no 0 ever reaches the app.
+      expect(onSample.mock.calls.length).toBe(callsAfterScrub);
+      expect(onSample.mock.calls.some(([t]) => t === 0)).toBe(false);
+    });
+
+    it('retires BEFORE its explicit source reset — commits the live cursor once and remounts there', () => {
+      mockInView = true;
+      const onSample = vi.fn();
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />,
+      );
+      const video1 = container.querySelector('video')!;
+      const s1 = installMediaState(video1, { currentTime: 0, duration: 100, paused: false });
+      fireEvent.loadedMetadata(video1);
+
+      // Playing at 55 — position tracked, nothing committed yet (periodic only).
+      s1.setTime(55);
+      fireEvent.timeUpdate(video1);
+
+      // Scroll off-screen. Retirement commits the live 55 as one final pause;
+      // the teardown burst at 0 is ignored.
+      installTeardownBurst(s1);
+      mockInView = false;
+      rerender(<VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />);
+      expect(onSample).toHaveBeenLastCalledWith(55, 100, 'pause');
+      expect(onSample.mock.calls.some(([t]) => t === 0)).toBe(false);
+
+      // Return on-screen: the fresh element resumes from 55, not 0.
+      vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
+      vi.spyOn(HTMLMediaElement.prototype, 'load').mockImplementation(() => {});
+      mockInView = true;
+      rerender(<VideoViewer url="https://example.com/v.mp4" onProgressSample={onSample} />);
+      const video2 = container.querySelector('video')!;
+      expect(video2).not.toBe(video1);
+      const s2 = installMediaState(video2, { currentTime: 0, duration: 100 });
+      fireEvent.loadedMetadata(video2);
+      expect(s2.currentTime).toBe(55);
+    });
+
+    it('ignores old-source teardown events after a URL switch; the new source reports after it settles', () => {
+      const onSample = vi.fn();
+      const { container, rerender } = render(
+        <VideoViewer url="https://example.com/a.mp4" priority onProgressSample={onSample} />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 100, paused: false });
+      fireEvent.loadedMetadata(video);
+      state.setTime(55);
+      fireEvent.timeUpdate(video);
+      const callsOnA = onSample.mock.calls.length;
+
+      // Swap the SAME element to media B. The outgoing source's teardown can
+      // still fire pause/seeked at the reset cursor — before B has metadata,
+      // those cannot be user events on B and must not be emitted.
+      rerender(
+        <VideoViewer url="https://example.com/b.mp4" priority onProgressSample={onSample} />,
+      );
+      state.setTime(0);
+      state.setPaused(true);
+      fireEvent.pause(video);
+      fireEvent.seeked(video);
+      expect(onSample.mock.calls.length).toBe(callsOnA);
+
+      // B settles (metadata) — a genuine user seek on B reports normally.
+      fireEvent.loadedMetadata(video);
+      state.setTime(42);
+      fireEvent.seeked(video);
+      expect(onSample).toHaveBeenLastCalledWith(42, 100, 'seeked');
+    });
+
+    it('ended followed by detach stays ONE final sample', () => {
+      const onSample = vi.fn();
+      const { container, unmount } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
+      );
+      const video = container.querySelector('video')!;
+      installMediaState(video, { currentTime: 100, duration: 100, ended: true, paused: true });
+      fireEvent.ended(video);
+      expect(onSample).toHaveBeenCalledTimes(1);
+      expect(onSample).toHaveBeenLastCalledWith(100, 100, 'ended');
+
+      // Unmount detaches (retires) the element — the ended position was already
+      // committed, so retirement must not duplicate it.
+      unmount();
+      expect(onSample).toHaveBeenCalledTimes(1);
+    });
+
+    it('still reports an ACTIVE user seek/restart to exactly 0', () => {
+      const onSample = vi.fn();
+      const { container } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 100, paused: true });
+      fireEvent.loadedMetadata(video);
+      state.setTime(20);
+      fireEvent.seeked(video);
+      expect(onSample).toHaveBeenLastCalledWith(20, 100, 'seeked');
+
+      // A deliberate restart-to-0 on the live element is genuine intent.
+      state.setTime(0);
+      fireEvent.seeked(video);
+      expect(onSample).toHaveBeenLastCalledWith(0, 100, 'seeked');
+    });
+
+    it('commits the live cursor when a playing AUDIO element detaches (same retirement as video)', () => {
+      const onSample = vi.fn();
+      const { container, unmount } = render(
+        <AudioViewer url="https://example.com/a.mp3" priority onProgressSample={onSample} />,
+      );
+      const audio = container.querySelector('audio')!;
+      const state = installMediaState(audio, { currentTime: 0, duration: 60, paused: false });
+      fireEvent.loadedMetadata(audio);
+      state.setTime(30);
+      fireEvent.timeUpdate(audio);
+
+      unmount();
+      expect(onSample).toHaveBeenLastCalledWith(30, 60, 'pause');
+    });
+
+    it('emits nothing on detach when playback never started', () => {
+      const onSample = vi.fn();
+      const { container, unmount } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority onProgressSample={onSample} />,
+      );
+      const video = container.querySelector('video')!;
+      installMediaState(video, { currentTime: 0, duration: 100, paused: true });
+      fireEvent.loadedMetadata(video);
+      unmount();
+      expect(onSample).not.toHaveBeenCalled();
+    });
+
+    it('emits nothing on detach inside the pre-seed window (autoplay drift must not clobber a saved position)', () => {
+      const onSample = vi.fn();
+      const { container, unmount } = render(
+        <VideoViewer url="https://example.com/v.mp4" priority autoPlay onProgressSample={onSample} />,
+      );
+      const video = container.querySelector('video')!;
+      const state = installMediaState(video, { currentTime: 0, duration: 300, paused: false });
+      fireEvent.loadedMetadata(video);
+
+      // Autoplay drifts 0.7s while the app's saved position is still in flight,
+      // then the pane closes. Committing 0.7 here would overwrite the saved
+      // position the user asked to resume from.
+      state.setTime(0.7);
+      fireEvent.timeUpdate(video);
+      unmount();
+      expect(onSample).not.toHaveBeenCalled();
+    });
+  });
+
   // ---- no-regression when new props absent --------------------------------
   describe('no-regression (new props absent)', () => {
     it('renders and behaves normally with no playback props (video)', () => {

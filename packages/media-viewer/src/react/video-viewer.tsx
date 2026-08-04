@@ -45,11 +45,21 @@ export function VideoViewer(props: VideoViewerProps) {
   // Additive playback API (onEnded, progress sampling, startAt/resume,
   // endOverlay, imperative controls). Derives everything from element events —
   // adds no observer (MEDIA-102).
-  const { hasEnded, handlers: playbackHandlers } = useMediaPlayback(
+  const { hasEnded, handlers: playbackHandlers, attachElement, retireElement } = useMediaPlayback(
     videoRef,
     { onEnded, onProgressSample, startAtSeconds, endOverlay },
     playbackControlsRef,
     url,
+  );
+
+  // The element attaches through the playback lifecycle so the hook knows the
+  // active generation; detach (unmount) retires it.
+  const setVideoRef = React.useCallback(
+    (el: HTMLVideoElement | null) => {
+      videoRef.current = el;
+      attachElement(el);
+    },
+    [attachElement],
   );
 
   // Single observer for both lazy-load gating AND autoplay-on-visible.
@@ -71,6 +81,9 @@ export function VideoViewer(props: VideoViewerProps) {
     if (!inView && unloadOnExit && shouldLoad && !priority && lazy) {
       const video = videoRef.current;
       if (video) {
+        // Retire FIRST: snapshot/commit the still-live cursor, then ignore the
+        // pause/seek/reset events the teardown below makes the element emit.
+        retireElement();
         video.pause();
         video.removeAttribute("src");
         video.load();
@@ -79,7 +92,7 @@ export function VideoViewer(props: VideoViewerProps) {
       setHasMetadata(false);
       setShouldLoad(false);
     }
-  }, [inView, shouldLoad, unloadOnExit, priority, lazy]);
+  }, [inView, shouldLoad, unloadOnExit, priority, lazy, retireElement]);
 
   React.useEffect(() => {
     setHasError(false);
@@ -184,7 +197,7 @@ export function VideoViewer(props: VideoViewerProps) {
       )}
       {shouldLoad && (
         <video
-          ref={videoRef}
+          ref={setVideoRef}
           src={url}
           className={mediaClassName}
           controls={controls}

@@ -39,11 +39,21 @@ export function AudioViewer(props: AudioViewerProps) {
   const audioRef = React.useRef<HTMLAudioElement>(null);
 
   // Additive playback API — derives from element events (no observer, MEDIA-102).
-  const { hasEnded, handlers: playbackHandlers } = useMediaPlayback(
+  const { hasEnded, handlers: playbackHandlers, attachElement } = useMediaPlayback(
     audioRef,
     { onEnded, onProgressSample, startAtSeconds, endOverlay },
     playbackControlsRef,
     url,
+  );
+
+  // The element attaches through the playback lifecycle so the hook knows the
+  // active generation; detach (unmount) retires it.
+  const setAudioRef = React.useCallback(
+    (el: HTMLAudioElement | null) => {
+      audioRef.current = el;
+      attachElement(el);
+    },
+    [attachElement],
   );
 
   const { ref: inViewRef, inView } = useInView({
@@ -134,7 +144,7 @@ export function AudioViewer(props: AudioViewerProps) {
             <Skeleton style={{ position: "absolute", inset: 0, height: "3.5rem", width: "100%" }} />
           )}
           <audio
-            ref={audioRef}
+            ref={setAudioRef}
             src={url}
             className={mediaClassName}
             controls={false}

@@ -56,6 +56,16 @@ export type MediaPlaybackProps = {
    *   the exact position, never suppressed. The programmatic resume seek that
    *   applies `startAtSeconds` reports as `seeked` with the resumed position.
    * `durationSeconds` is `0` until the element's duration is known.
+   *
+   * Active-element retirement: samples come only from the ACTIVE media-element
+   * generation. When the viewer tears an element down (unload off-screen,
+   * unmount, source replacement), it retires the element first — the still-live
+   * cursor is committed once as a final `pause` sample (skipped when the last
+   * commit already reported that exact position, when playback never started,
+   * or while still inside the pre-seed suppression window) — and the reset
+   * events the teardown itself produces (browsers snap the cursor to 0 and can
+   * fire pause/seeked/timeupdate) are ignored. A genuine user seek or restart
+   * to exactly 0 on the active element still reports normally.
    */
   onProgressSample?: (
     currentTimeSeconds: number,
