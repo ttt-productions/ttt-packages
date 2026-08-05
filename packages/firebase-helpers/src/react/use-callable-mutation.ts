@@ -2,12 +2,16 @@
 
 import { useState, useCallback, useRef } from "react";
 import { type Functions } from "firebase/functions";
-import { callCallable, type CallCallableCallbacks } from "../client/call-callable.js";
+import {
+  callCallable,
+  type CallCallableCallbacks,
+  type CallCallableTransport,
+} from "../client/call-callable.js";
 
 /** Alias of the shared callback contract — kept for existing consumers' imports. */
 export type CallableMutationCallbacks = CallCallableCallbacks;
 
-export interface UseCallableMutationOptions extends CallableMutationCallbacks {
+export interface UseCallableMutationOptions extends CallableMutationCallbacks, CallCallableTransport {
   /**
    * Returns the Functions instance. Lazy so SSR-safe.
    * Required.
@@ -31,7 +35,7 @@ export interface UseCallableMutationResult {
 export function useCallableMutation(
   options: UseCallableMutationOptions,
 ): UseCallableMutationResult {
-  const { getFunctions, onError, captureException } = options;
+  const { getFunctions, onError, captureException, timeoutMs } = options;
   const [isLoading, setIsLoading] = useState(false);
   const onErrorRef = useRef(onError);
   const captureRef = useRef(captureException);
@@ -54,16 +58,23 @@ export function useCallableMutation(
       setIsLoading(true);
       try {
         // Delegate to the ONE shared invocation primitive (owns the
-        // undefined-strip + error-callback contract — see client/call-callable.ts).
-        return await callCallable<TRequest, TResponse>(functions, functionName, data, {
-          onError: (error, ctx) => onErrorRef.current?.(error, ctx),
-          captureException: (error, ctx) => captureRef.current?.(error, ctx),
-        });
+        // undefined-strip + error-callback contract + total-invocation
+        // deadline — see client/call-callable.ts).
+        return await callCallable<TRequest, TResponse>(
+          functions,
+          functionName,
+          data,
+          {
+            onError: (error, ctx) => onErrorRef.current?.(error, ctx),
+            captureException: (error, ctx) => captureRef.current?.(error, ctx),
+          },
+          { timeoutMs },
+        );
       } finally {
         setIsLoading(false);
       }
     },
-    [getFunctions],
+    [getFunctions, timeoutMs],
   );
 
   return { callFunction, isLoading };
@@ -71,11 +82,12 @@ export function useCallableMutation(
 
 /**
  * Convenience factory: pre-binds a `getFunctions` provider for callers
- * that don't want to thread it through every hook call.
+ * that don't want to thread it through every hook call. Overrides accept the
+ * full option surface minus the bound provider (callbacks + transport).
  */
 export function createCallableClient(getFunctions: () => Functions | null | undefined) {
   return {
-    useCallableMutation: (overrides?: CallableMutationCallbacks) =>
+    useCallableMutation: (overrides?: Omit<UseCallableMutationOptions, "getFunctions">) =>
       useCallableMutation({ getFunctions, ...overrides }),
   };
 }

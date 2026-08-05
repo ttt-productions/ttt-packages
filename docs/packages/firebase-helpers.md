@@ -16,6 +16,25 @@ Generic Firebase helper package.
 
 TTT config, Firebase project values, toast behavior, monitoring behavior, and callable names live in app wrappers. `firebase-helpers/react` exposes generic primitives; the consuming app decides how errors are surfaced.
 
+## Callable invocation contract
+
+`callCallable` is the ONE invocation primitive (`useCallableMutation` delegates to it). It owns:
+
+- **The undefined-strip** — `undefined`-valued keys are dropped deep before the wire (the SDK
+  encodes them as `null`, which strict optional-not-nullable zod inputs reject).
+- **The error-callback split** — `onError` receives `{ functionName, requestData }` for
+  caller-local handling; `captureException` (the telemetry channel) receives BOUNDED metadata
+  only (`{ functionName, timeoutMs }`) and never the request payload.
+- **The optional total-invocation deadline** — `CallCallableTransport.timeoutMs` starts an outer
+  timer BEFORE the SDK is invoked (the SDK's own `timeout` starts only after its auth/App Check
+  header phase, so a stalled token mint is otherwise unbounded) and also forwards the value to the
+  SDK's `timeout` option. Expiry rejects with a Firebase-shaped error, `code:
+  "functions/deadline-exceeded"`. Expiry cannot cancel started work — the server may still
+  commit, so callers treat the outcome as UNKNOWN, never as a definite failure, and never
+  auto-retry a mutation on it. The package ships NO default; the consuming app owns the policy
+  value and threads it via `useCallableMutation({ timeoutMs })` / `createCallableClient`
+  overrides / the `callCallable` transport argument.
+
 Backend code should prefer `@ttt-productions/firebase-helpers/server` when it needs Admin SDK handles.
 
 ## Entry points

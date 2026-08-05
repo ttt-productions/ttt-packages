@@ -110,4 +110,55 @@ describe('useCallableMutation', () => {
       );
     });
   });
+
+  it('threads timeoutMs through to the SDK timeout option', async () => {
+    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), { stream: vi.fn() });
+    vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
+
+    const { result } = renderHook(() =>
+      useCallableMutation({ getFunctions, timeoutMs: 45_000 }),
+    );
+
+    await act(async () => {
+      await result.current.callFunction('myFn', { x: 1 });
+    });
+
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(mockFunctions, 'myFn', { timeout: 45_000 });
+  });
+
+  it('deadline expiry rejects with functions/deadline-exceeded and clears isLoading', async () => {
+    vi.useFakeTimers();
+    try {
+      // Never-settling call models the SDK stuck anywhere, including the
+      // pre-transport auth/App Check phase its own timer does not cover.
+      const mockCallable = Object.assign(
+        vi.fn(() => new Promise(() => {})),
+        { stream: vi.fn() },
+      );
+      vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
+
+      const { result } = renderHook(() =>
+        useCallableMutation({ getFunctions, timeoutMs: 1_000 }),
+      );
+
+      let call!: Promise<unknown>;
+      act(() => {
+        call = result.current.callFunction('hangs');
+      });
+      expect(result.current.isLoading).toBe(true);
+
+      await act(async () => {
+        const assertion = expect(call).rejects.toMatchObject({
+          name: 'FirebaseError',
+          code: 'functions/deadline-exceeded',
+        });
+        await vi.advanceTimersByTimeAsync(1_000);
+        await assertion;
+      });
+
+      expect(result.current.isLoading).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

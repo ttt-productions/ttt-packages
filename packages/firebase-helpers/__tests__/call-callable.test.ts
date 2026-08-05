@@ -4,7 +4,7 @@
 // zod schemas (`field: z.string().optional()` — optional, NOT nullable) reject it.
 // callCallable is the ONE invocation primitive and must drop undefined keys deep.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const invokeSpy = vi.fn();
 vi.mock("firebase/functions", () => ({
@@ -12,7 +12,7 @@ vi.mock("firebase/functions", () => ({
 }));
 
 import { callCallable, stripUndefinedDeep } from "../src/client/call-callable.js";
-import type { Functions } from "firebase/functions";
+import { httpsCallable, type Functions } from "firebase/functions";
 
 const fakeFunctions = {} as Functions;
 
@@ -73,7 +73,7 @@ describe("callCallable", () => {
     expect(captureException).not.toHaveBeenCalled();
   });
 
-  it("fires captureException + onError with context and re-throws on failure", async () => {
+  it("fires captureException (payload-free) + onError (with payload) and re-throws on failure", async () => {
     const boom = new Error("nope");
     invokeSpy.mockRejectedValueOnce(boom);
     const onError = vi.fn();
@@ -81,7 +81,106 @@ describe("callCallable", () => {
     await expect(
       callCallable(fakeFunctions, "fn", { a: 1 }, { onError, captureException }),
     ).rejects.toThrow("nope");
-    expect(captureException).toHaveBeenCalledWith(boom, { functionName: "fn", requestData: { a: 1 } });
+    // Telemetry channel gets bounded metadata ONLY — the request payload must
+    // never reach captureException (it can forward straight to Sentry).
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException).toHaveBeenCalledWith(boom, { functionName: "fn", timeoutMs: undefined });
+    expect("requestData" in (captureException.mock.calls[0][1] as Record<string, unknown>)).toBe(false);
+    // Caller-local channel keeps the payload (existing contract).
+    expect(onError).toHaveBeenCalledTimes(1);
     expect(onError).toHaveBeenCalledWith(boom, { functionName: "fn", requestData: { a: 1 } });
+  });
+});
+
+// The total-invocation deadline (CallCallableTransport.timeoutMs): starts BEFORE
+// the SDK is invoked, so it also bounds the SDK's pre-transport auth/App Check
+// phase (the SDK's own timer starts only after that phase — a stalled token mint
+// otherwise waits unbounded). Expiry is a giving-up signal, not cancellation.
+describe("callCallable deadline", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("forwards the timeout to the SDK when supplied, and omits options when not", async () => {
+    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { timeoutMs: 45_000 });
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", { timeout: 45_000 });
+    await callCallable(fakeFunctions, "fn", { a: 1 });
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", undefined);
+  });
+
+  it.each([0, -5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "rejects invalid timeoutMs %s with a TypeError before invoking anything",
+    async (bad) => {
+      invokeSpy.mockClear();
+      await expect(
+        callCallable(fakeFunctions, "fn", {}, undefined, { timeoutMs: bad }),
+      ).rejects.toThrow(TypeError);
+      expect(invokeSpy).not.toHaveBeenCalled();
+    },
+  );
+
+  it("settles a never-settling invocation at the deadline with a Firebase-shaped error", async () => {
+    // A promise that never settles models the SDK stuck ANYWHERE — including
+    // the pre-transport auth/App Check phase its own timer does not cover.
+    invokeSpy.mockReturnValueOnce(new Promise(() => {}));
+    const call = callCallable(fakeFunctions, "hangs", { a: 1 }, undefined, { timeoutMs: 1_000 });
+    const assertion = expect(call).rejects.toMatchObject({
+      name: "FirebaseError",
+      code: "functions/deadline-exceeded",
+    });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await assertion;
+  });
+
+  it("deadline expiry fires captureException once (payload-free) and onError once (with payload)", async () => {
+    invokeSpy.mockReturnValueOnce(new Promise(() => {}));
+    const onError = vi.fn();
+    const captureException = vi.fn();
+    const call = callCallable(fakeFunctions, "hangs", { secret: "x" }, { onError, captureException }, { timeoutMs: 1_000 });
+    const assertion = expect(call).rejects.toMatchObject({ code: "functions/deadline-exceeded" });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await assertion;
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException).toHaveBeenCalledWith(expect.objectContaining({ code: "functions/deadline-exceeded" }), {
+      functionName: "hangs",
+      timeoutMs: 1_000,
+    });
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ code: "functions/deadline-exceeded" }), {
+      functionName: "hangs",
+      requestData: { secret: "x" },
+    });
+  });
+
+  it("clears the timer on success and on SDK failure (no timer survives settlement)", async () => {
+    invokeSpy.mockResolvedValueOnce({ data: { ok: true } });
+    await callCallable(fakeFunctions, "fn", {}, undefined, { timeoutMs: 60_000 });
+    expect(vi.getTimerCount()).toBe(0);
+
+    invokeSpy.mockRejectedValueOnce(new Error("sdk failed"));
+    await expect(
+      callCallable(fakeFunctions, "fn", {}, undefined, { timeoutMs: 60_000 }),
+    ).rejects.toThrow("sdk failed");
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("a post-deadline SDK settlement never becomes an unhandled rejection", async () => {
+    // The SDK's own (later-started) timer can reject AFTER the outer deadline
+    // already won the race — that late rejection must have a consumer.
+    invokeSpy.mockReturnValueOnce(
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("late SDK rejection")), 3_000);
+      }),
+    );
+    const call = callCallable(fakeFunctions, "hangs", {}, undefined, { timeoutMs: 1_000 });
+    const assertion = expect(call).rejects.toMatchObject({ code: "functions/deadline-exceeded" });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await assertion;
+    // Fire the late rejection inside this test — vitest fails the test if it
+    // surfaces as unhandled.
+    await vi.advanceTimersByTimeAsync(3_000);
   });
 });
