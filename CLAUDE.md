@@ -54,7 +54,11 @@ All packages are 0.x, and published internal peer ranges are carets (`^0.11.0`),
 - **`minor` is ONLY for a deliberate breaking contract change.** On 0.x it escapes every dependent's caret peer range, so the consuming app's `npm install` ERESOLVE-fails until every package that **directly declares** the bumped package (grep `packages/*/package.json` for its name) is republished in the same release, deps-first. Never hand off a `minor` publish without that dependent list in the same command.
 - "It adds new capability" is NOT a reason for `minor` — additive = `patch` here, always.
 
-## Release and adoption workflow
+## Release and adoption workflow — the packages half of the Normal TTT Dev Flow
+
+This section is the ttt-packages half of the named **Normal TTT Dev Flow** (canonical definition:
+`C:\DjDev\ttt-master-app\CLAUDE.md` § The Normal TTT Flows — packages first → this gate → one
+publish/install handoff → STOP for DJ's continue → app work → the Normal TTT Test Flow).
 
 - Keep package-source changes and consuming-app adoption separate. Any `@ttt-productions/*` change
   happens here FIRST: finish the complete package batch, run focused checks while editing, then one

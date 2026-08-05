@@ -385,6 +385,10 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
   const seenTerminalIdsRef = useRef<Set<string>>(new Set());
   const statusByIdRef = useRef<Map<string, InFlightUploadStatus>>(new Map());
   const hasProcessedInitialSnapshotRef = useRef(false);
+  /** The identity the dedup/tracking refs belong to — they outlive resubscribes
+   *  for the SAME user (auth-settling flaps) and reset only on a real identity
+   *  change. See the reset block in the subscription effect. */
+  const trackedUserIdRef = useRef<string | null>(null);
 
   // Stable refs for adapter callbacks — read from latest adapter inside effect.
   const adapterRef = useRef(adapter);
@@ -395,14 +399,23 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
   const userId = adapter.getCurrentUserId();
 
   useEffect(() => {
-    // Reset all in-memory state for the new identity. Runs on every userId
-    // change — including UID-A → UID-B with no intermediate null user.
-    // Do not rely on an intermediate sign-out to clear refs between two
-    // authenticated UIDs.
+    // The uploads map and source state rebuild from every subscription's initial
+    // snapshot, so they reset on every effect run. The terminal-dedup and
+    // status-tracking refs are IDENTITY-scoped, not subscription-scoped: an
+    // auth-settling flap (uid → null → same uid re-subscribes) must neither
+    // re-fire terminals the previous subscription already fired (seen set
+    // persists) nor lose the observed non-terminal statuses that let the new
+    // subscription's initial listing detect a transition that completed during
+    // the gap. A real identity change — including UID-A → UID-B with no
+    // intermediate null user — starts clean; never rely on an intermediate
+    // sign-out to clear refs between two authenticated UIDs.
     setUploads(new Map());
     setSourceState('connecting');
-    seenTerminalIdsRef.current = new Set();
-    statusByIdRef.current = new Map();
+    if (userId !== null && userId !== trackedUserIdRef.current) {
+      seenTerminalIdsRef.current = new Set();
+      statusByIdRef.current = new Map();
+      trackedUserIdRef.current = userId;
+    }
     hasProcessedInitialSnapshotRef.current = false;
 
     if (!userId) {
@@ -451,22 +464,26 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
           previousStatus === 'pending' || previousStatus === 'processing';
 
         if (isInitialSnapshot) {
-          // First snapshot after mount: mark already-terminal docs as seen,
-          // but DO NOT fire callbacks. Prevents duplicate toasts on refresh.
+          // A subscription's first snapshot is a (re-)listing of current state,
+          // not a live event: already-terminal docs stay suppressed so a page
+          // refresh never re-toasts. ONE exception — this provider instance
+          // tracked the doc as non-terminal before (same-identity resubscribe
+          // gap; the tracking refs survive those), so the terminal listing IS
+          // the transition, observed across the gap, and must fire.
           if (currentIsTerminal) {
+            if (previousWasNonTerminal && !seenTerminalIdsRef.current.has(parsed.id)) {
+              newlyTerminal.push(parsed);
+            }
             seenTerminalIdsRef.current.add(parsed.id);
           }
-        } else if (
-          currentIsTerminal &&
-          previousWasNonTerminal &&
-          !seenTerminalIdsRef.current.has(parsed.id)
-        ) {
+        } else if (currentIsTerminal && !seenTerminalIdsRef.current.has(parsed.id)) {
+          // Any unseen terminal in a LIVE snapshot fires — including a doc whose
+          // FIRST client-visible state is already terminal. A fast backend
+          // outcome (moderation rejection in ~2s) can coalesce created→terminal
+          // into one delivery, and the uploader is actively waiting on exactly
+          // this callback; swallowing it silently loses a rejection dialog.
           seenTerminalIdsRef.current.add(parsed.id);
           newlyTerminal.push(parsed);
-        } else if (currentIsTerminal) {
-          // Terminal doc appeared without an observed non-terminal predecessor
-          // (race in a non-initial snapshot). Mark as seen, no callback fire.
-          seenTerminalIdsRef.current.add(parsed.id);
         }
 
         statusByIdRef.current.set(parsed.id, currentStatus);

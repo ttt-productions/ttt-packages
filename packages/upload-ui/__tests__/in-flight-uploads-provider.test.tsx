@@ -459,3 +459,82 @@ describe('bounded resubscribe on listener error', () => {
     }
   });
 });
+
+describe('terminal events without an observed non-terminal predecessor', () => {
+  const doc = (id: string, status: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    userId: 'user1',
+    fileOrigin: 'sample-origin',
+    status,
+    createdAt: 100,
+    surface: '/x',
+    ...extra,
+  });
+
+  it('fires onUploadRejected when a doc FIRST appears already-rejected in a live snapshot', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+
+    act(() => drive(makeSnapshot([]))); // initial: empty
+    // Fast backend outcome coalesced into one delivery: first sight is terminal.
+    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'rejected', { rejectedAt: 200, rejectionType: 'media', errorMessage: 'no' }) }])));
+    expect(adapter.onUploadRejected).toHaveBeenCalledTimes(1);
+
+    // A re-delivery of the same terminal doc never double-fires.
+    act(() => drive(makeSnapshot([{ type: 'modified', id: 'd1', data: doc('d1', 'rejected', { rejectedAt: 200, rejectionType: 'media', errorMessage: 'no' }) }])));
+    expect(adapter.onUploadRejected).toHaveBeenCalledTimes(1);
+  });
+
+  it('fires a transition that completed during a same-identity resubscribe gap', () => {
+    let currentUserId: string | null = 'user1';
+    const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
+    const { subscribe, drive } = makeDriver();
+    const { rerender } = renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+
+    act(() => drive(makeSnapshot([]))); // initial: empty
+    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'pending') }]))); // tracked non-terminal
+
+    // Auth-settling flap: sign-out then the SAME user re-subscribes.
+    currentUserId = null;
+    rerender();
+    currentUserId = 'user1';
+    rerender();
+
+    // The new subscription's INITIAL listing already shows the doc terminal — the
+    // transition happened in the gap and must still fire exactly once.
+    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'rejected', { rejectedAt: 300, rejectionType: 'media', errorMessage: 'no' }) }])));
+    expect(adapter.onUploadRejected).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not re-fire a terminal already fired before a same-identity resubscribe', () => {
+    let currentUserId: string | null = 'user1';
+    const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
+    const { subscribe, drive } = makeDriver();
+    const { rerender } = renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+
+    act(() => drive(makeSnapshot([]))); // initial: empty
+    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'pending') }])));
+    act(() => drive(makeSnapshot([{ type: 'modified', id: 'd1', data: doc('d1', 'completed', { completedAt: 200 }) }])));
+    expect(adapter.onUploadCompleted).toHaveBeenCalledTimes(1);
+
+    currentUserId = null;
+    rerender();
+    currentUserId = 'user1';
+    rerender();
+
+    // Re-listed in the new subscription's initial snapshot: already fired, stays fired-once.
+    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'completed', { completedAt: 200 }) }])));
+    expect(adapter.onUploadCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it('a fresh mount still suppresses already-terminal docs in its initial snapshot', () => {
+    const adapter = makeAdapter();
+    const { subscribe, drive } = makeDriver();
+    renderHook(() => useInFlightUploadsState(), { wrapper: wrap(adapter, subscribe) });
+
+    // Refresh dedup unchanged: no tracking history, initial listing, no fire.
+    act(() => drive(makeSnapshot([{ type: 'added', id: 'd1', data: doc('d1', 'rejected', { rejectedAt: 200, rejectionType: 'media', errorMessage: 'no' }) }])));
+    expect(adapter.onUploadRejected).not.toHaveBeenCalled();
+  });
+});
