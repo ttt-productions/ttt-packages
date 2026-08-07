@@ -69,15 +69,14 @@ export const COLLECTIONS = {
 
   // Feedback & Metadata
   FEEDBACK_SUBMISSIONS: 'feedbackSubmissions',
-  FEEDBACK_ALIASES: 'feedbackAliases',
-  FEEDBACK_DENYLIST: 'feedbackDenylist',
   CRAFT_SKILLS_BY_TAG: 'craftSkillsByTag',
   SYSTEM_DATA: '_systemData',
-  APP_CONFIG: '_config',
+  APP_CONFIG: '_appConfig',
   // Server-only singleton bucket (BACKEND-108 — least-privileged reader). Docs whose ONLY
-  // readers are Cloud Functions (Admin SDK) live here, never in the public `_config`
+  // readers are Cloud Functions (Admin SDK) live here, never in the public `_appConfig`
   // bucket. Firestore rules deny all client reads/writes on `_serverData`.
-  // Docs: agePolicy, nciiPolicy, privilegedReviewerSecurity.
+  // Docs: agePolicy, nciiPolicy, privilegedReviewerSecurity, and the feedbackLists
+  // container whose feedbackAliases / feedbackDenylist subcollections back submitFeedback.
   SERVER_DATA: '_serverData',
 
   // Payments & pledge ledger
@@ -148,6 +147,15 @@ export const COLLECTIONS = {
   // change committed to Firestore but the follow-on Auth effect (custom-claim / disable) failed,
   // a queue entry keyed by uid drives a retry loop toward the target status. Admin-SDK-only.
   STATUS_RECONCILE_QUEUE: 'statusReconcileQueue',
+
+  // Trust & Safety — [H-08] per-operator TOTP step-up state (secret + active grant window),
+  // keyed by uid. Cloud-Functions-only: the secret is returned to the client exactly once by
+  // the enroll callable and is NEVER readable through Firestore.
+  OPERATOR_STEP_UP: 'operatorStepUp',
+
+  // Trust & Safety — one persisted pagination-cursor doc per reconciler needs-work backstop
+  // sweep (quarantine enqueue, NCMEC enqueue), keyed by the sweep's cursor key. Admin-SDK-only.
+  SAFETY_RECONCILER_CURSORS: 'safetyReconcilerCursors',
 } as const;
 
 /**
@@ -159,7 +167,6 @@ export const USER_SUBCOLLECTIONS = {
   PRIVATE_DATA: 'privateData',
   USER_METADATA: 'userMetadata',
   USER_LIKES: 'userLikes',
-  CHECKED_OUT_ITEMS: 'checkedOutItems',
   MENTION_HISTORY: 'mentionHistory',
   AUDITION_VOTES: 'auditionVotes',
 } as const;
@@ -193,14 +200,18 @@ export const WORK_REALM_SUBCOLLECTIONS = {
  * HALL ITEM SUBCOLLECTIONS
  * Nested under hallItems/{hallItemId}/ — the PUBLISHED sub-item projections
  * (chapters/tracks/episodes copied out of the Work at publish time by
- * runPublishApprovedHallLibraryItem). The segment is the lowercased
- * WorkProjectType; use HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE to derive it —
- * never `workProjectType.toLowerCase()`.
+ * runPublishApprovedHallLibraryItem).
+ *
+ * The segment is an INDEPENDENT compound-camelCase collection name (ARCH-104) — it is
+ * NOT any transformation of `WorkProjectType`. Map a work type to its segment through
+ * HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE; `workProjectType.toLowerCase()` is not merely
+ * discouraged, it produces a segment that DOES NOT EXIST ('tales', 'tunes',
+ * 'television'), so the resulting path silently reads/writes an empty collection.
  */
 export const HALL_ITEM_SUBCOLLECTIONS = {
-  TALES: 'tales',
-  TUNES: 'tunes',
-  TELEVISION: 'television',
+  TALES: 'hallItemTales',
+  TUNES: 'hallItemTunes',
+  TELEVISION: 'hallItemTelevision',
 } as const;
 
 export type HallItemSubcollection =
@@ -262,43 +273,57 @@ export const NESTED_SUBCOLLECTIONS = {
   // is a deterministic child of the protected report root
   // (contentReports/{reportId}/publicProjection/{reportId}).
   REPORT_PUBLIC_PROJECTION: 'publicProjection',
-  // Restricted reporter/requester PII subcollection ('private'), shared by the report
-  // spine (contentReports/{reportId}/private/{snapshot,narrative}) and TAKE IT DOWN
-  // (takeItDownRequests/{requestId}/private/requester). Admin-read-only / server-only.
-  PRIVATE: 'private',
+  // Restricted reporter/requester PII subcollection, shared by the report spine
+  // (contentReports/{reportId}/privateDetails/{snapshot,narrative}) and TAKE IT DOWN
+  // (takeItDownRequests/{requestId}/privateDetails/requester). ONE shared compound value
+  // serves both parents — never split per parent. Admin-read-only / server-only.
+  PRIVATE: 'privateDetails',
 
-  // Chat degraded-scope causes (chatScopeDegraded/{scopeKey}/causes/{causeId}).
-  CHAT_SCOPE_DEGRADED_CAUSES: 'causes',
+  // Chat degraded-scope causes
+  // (chatScopeDegraded/{scopeKey}/chatScopeDegradedCauses/{causeId}).
+  CHAT_SCOPE_DEGRADED_CAUSES: 'chatScopeDegradedCauses',
   // Anonymization affected-chunk set (chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal}).
   CHAT_ANONYMIZATION_AFFECTED_CHUNKS: 'affectedChunks',
 
   // Trust & Safety — child-safety case append-only detail (NEVER arrays).
   CHILD_SAFETY_SOURCE_SIGNALS: 'sourceSignals',
-  CHILD_SAFETY_DECISIONS: 'decisions',
-  CHILD_SAFETY_DECISION_VIEWS: 'views',
-  CHILD_SAFETY_CASE_ACCOUNTS: 'accounts',
-  CHILD_SAFETY_CASE_ACCOUNT_HISTORY: 'history',
+  CHILD_SAFETY_DECISIONS: 'childSafetyDecisions',
+  CHILD_SAFETY_DECISION_VIEWS: 'childSafetyDecisionViews',
+  CHILD_SAFETY_CASE_ACCOUNTS: 'childSafetyCaseAccounts',
+  CHILD_SAFETY_CASE_ACCOUNT_HISTORY: 'childSafetyCaseAccountHistory',
   CHILD_SAFETY_NCMEC_SUBMISSIONS: 'ncmecSubmissions',
-  CHILD_SAFETY_NCMEC_SUBMISSION_FILES: 'files',
+  CHILD_SAFETY_NCMEC_SUBMISSION_FILES: 'ncmecSubmissionFiles',
+  // Per-submission NCMEC transmission attempts
+  // (childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecSubmissionAttempts/{attemptId}).
+  // Rules-only until now — registered here so the segment has a single owner.
+  NCMEC_SUBMISSION_ATTEMPTS: 'ncmecSubmissionAttempts',
   CHILD_SAFETY_LEGAL_PROCESS: 'legalProcess',
+  // Immutable portal-filed NCMEC artifacts recorded on the case by the two step-up-gated
+  // operator callables — the receipt artifact that gates `markNcmecPortalComplete`
+  // (childSafetyCases/{caseId}/portalReceiptArtifacts/{artifactId}) and the correction record
+  // that gates the corrected-no-apparent-violation disposition
+  // (childSafetyCases/{caseId}/ncmecPortalCorrections/{correctionId}). Admin-SDK-only; both
+  // segments were app-local literals until now.
+  NCMEC_PORTAL_RECEIPT_ARTIFACTS: 'portalReceiptArtifacts',
+  NCMEC_PORTAL_CORRECTIONS: 'ncmecPortalCorrections',
 
   // Trust & Safety — resource-command subcollections (§A3).
   SAFETY_RESOURCE_COMMAND_AUTHORIZED_REQUESTS: 'authorizedRequests',
   SAFETY_RESOURCE_COMMAND_BYPASS_REFS: 'bypassRefs',
 
   // Trust & Safety — evidence-job subcollections (§A4).
-  SAFETY_EVIDENCE_JOB_ITEMS: 'items',
-  SAFETY_EVIDENCE_JOB_DISPOSITION: 'disposition',
+  SAFETY_EVIDENCE_JOB_ITEMS: 'safetyEvidenceJobItems',
+  SAFETY_EVIDENCE_JOB_DISPOSITION: 'safetyEvidenceJobDisposition',
 
   // Trust & Safety — quarantine-saga subcollection (§A5).
   QUARANTINE_SAGA_RELATED_ASSETS: 'relatedAssets',
 
-  // Trust & Safety — TAKE IT DOWN request subcollections (§A11). The 'private'
-  // subcollection uses the shared generic `PRIVATE` constant above.
-  TAKE_IT_DOWN_SUBMISSIONS: 'submissions',
+  // Trust & Safety — TAKE IT DOWN request subcollections (§A11). The restricted
+  // requester-PII subcollection uses the shared `PRIVATE` constant above.
+  TAKE_IT_DOWN_SUBMISSIONS: 'takeItDownSubmissions',
   TAKE_IT_DOWN_VALIDITY_DECISIONS: 'validityDecisions',
-  TAKE_IT_DOWN_ACTIONS: 'actions',
-  TAKE_IT_DOWN_EVIDENCE: 'evidence',
+  TAKE_IT_DOWN_ACTIONS: 'takeItDownActions',
+  TAKE_IT_DOWN_EVIDENCE: 'takeItDownEvidence',
 
   // Trust & Safety — NCII case subcollections (§A11).
   NCII_CASE_ALLEGATION_LINKS: 'allegationLinks',
@@ -309,7 +334,14 @@ export const NESTED_SUBCOLLECTIONS = {
   NCII_CASE_CLOSURE_EVENTS: 'closureEvents',
 
   // Trust & Safety — NCII removal-job targets (§A11).
-  NCII_REMOVAL_TARGETS: 'targets',
+  NCII_REMOVAL_TARGETS: 'nciiRemovalTargets',
+
+  // Feedback lists under the server-only `_serverData/feedbackLists` container doc
+  // (BACKEND-108): the alias map and the denylist submitFeedback consults via the Admin
+  // SDK. Moved out of the top-level `feedbackAliases` / `feedbackDenylist` collections,
+  // which were anonymously readable with no client reader.
+  FEEDBACK_ALIASES: 'feedbackAliases',
+  FEEDBACK_DENYLIST: 'feedbackDenylist',
 } as const;
 
 /**
@@ -330,7 +362,10 @@ export const SPECIAL_DOCS = {
   RESERVED_USERNAMES: 'reservedUsernames',
   BLOCKED_FRANCHISE_NAMES: 'blockedFranchiseNames',
   RULES_AND_AGREEMENTS: 'rulesAndAgreements',
-  // Editable content-page singletons under _config (content-pages Firestore
+  // _systemData/hallMediaReaperCursor — the reapOrphanedHallMediaCopies scan cursor
+  // (highest `createdAt` the reaper has positively cleared). Backend-only.
+  HALL_MEDIA_REAPER_CURSOR: 'hallMediaReaperCursor',
+  // Editable content-page singletons under _appConfig (content-pages Firestore
   // migration, DJ ruling 2026-07-06): the ONLY source for /terms, /privacy, and
   // the /take-it-down page copy — no hardcoded fallbacks anywhere.
   TERMS_PAGE: 'termsOfService',
@@ -343,10 +378,15 @@ export const SPECIAL_DOCS = {
   SAFETY_MONITOR_HEARTBEAT_GLOBAL: 'global',
 
   // Trust & Safety — _serverData (server-only) singletons (§A7, §A11). Moved out of the
-  // public _config bucket: their only readers are Cloud Functions (BACKEND-108).
+  // public _appConfig bucket: their only readers are Cloud Functions (BACKEND-108).
   AGE_POLICY: 'agePolicy',
   NCII_POLICY: 'nciiPolicy',
   PRIVILEGED_REVIEWER_SECURITY: 'privilegedReviewerSecurity',
+
+  // _serverData container doc for the two submitFeedback lists. It holds no fields — it
+  // exists only as the parent of the feedbackAliases / feedbackDenylist subcollections,
+  // which moved out of the anonymously-readable top-level collections (BACKEND-108).
+  FEEDBACK_LISTS: 'feedbackLists',
 
   // Trust & Safety — fixed-id TAKE IT DOWN request subdocs (§A11).
   TAKE_IT_DOWN_REQUESTER: 'requester', // takeItDownRequests/{requestId}/private/requester

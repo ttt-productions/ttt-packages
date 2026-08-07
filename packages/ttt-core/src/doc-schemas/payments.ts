@@ -24,18 +24,18 @@ export const PledgePaymentSchema = z.object({
   status: z.literal('completed'),
   refundState: z.enum(['none', 'partial', 'full']), // LAUNCH always 'none'
   disputeState: z.enum(['none', 'underReview', 'won', 'lost']), // LAUNCH always 'none'
-  // Server timestamp (ms) of the checkout's 18+/public-disclosure attestation, stamped at session
-  // creation and carried through Stripe metadata. A paid session missing it is quarantined.
-  ageAttestedAt: z.number(),
+  // NO ageAttestedAt here: age-attestation evidence is server-only and lives on
+  // PledgePaymentProviderRefSchema. This doc is auth-readable by every signed-in member.
   createdAt: z.number(),
   updatedAt: z.number(),
 });
 export type PledgePayment = z.infer<typeof PledgePaymentSchema>;
 
 // pledgePaymentProviderRefs/{pledgePaymentId} — server-only Stripe references for reconciliation
-// and (post-launch) refund/dispute lookup. Rule is permanently `if false` (Admin SDK only) so no
-// Stripe IDs ever sit on an auth-readable doc. One doc per pledge (singular). refundIds/disputeId
-// are refund-ready, defaulted ([] / null) at launch — zero migration when handlers ship.
+// and (post-launch) refund/dispute lookup, PLUS the age-attestation consent evidence. Rule is
+// permanently `if false` (Admin SDK only) so no Stripe IDs ever sit on an auth-readable doc. One
+// doc per pledge (singular). refundIds/disputeId are refund-ready, defaulted ([] / null) at
+// launch — zero migration when handlers ship.
 // (functions/src/payments/runProcessStripePledgeEvent.ts)
 export const PledgePaymentProviderRefSchema = z.object({
   pledgePaymentId: z.string(),
@@ -45,6 +45,11 @@ export const PledgePaymentProviderRefSchema = z.object({
   latestChargeId: z.string().nullable(), // resolved when known; null at launch if not fetched
   refundIds: z.array(z.string()), // post-launch; LAUNCH default []
   disputeId: z.string().nullable(), // post-launch; LAUNCH default null
+  // Server timestamp (ms) of the checkout's 18+/public-disclosure attestation, stamped at session
+  // creation and carried through Stripe metadata. A paid session missing it is quarantined. It is
+  // fraud-evidence plumbing, not transparency data, so it rides THIS server-only doc and never the
+  // member-readable pledgePayments ledger (docs/design/donation-payment-system.md § Data model).
+  ageAttestedAt: z.number(),
   createdAt: z.number(),
   updatedAt: z.number(),
 });

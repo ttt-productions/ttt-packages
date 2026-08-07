@@ -51,6 +51,14 @@ export const GUILD_STANDINGS = {
 
 export type GuildStandingId = keyof typeof GUILD_STANDINGS;
 export const GUILD_STANDING_IDS = Object.keys(GUILD_STANDINGS) as GuildStandingId[];
+
+/**
+ * The work steward's standing id — the one standing that is never assignable and that
+ * `GuildmateUser.guildStandings` carries (that array stores IDs, not display values;
+ * this id's display value is 'Steward', so the two are not interchangeable).
+ * Consumers branch on this rather than re-quoting the member.
+ */
+export const STEWARD_OWNER_GUILD_STANDING_ID = 'StewardOwner' as const satisfies GuildStandingId;
 export const GUILD_STANDING_VALUE_BY_ID = {
   StewardOwner: 'Steward',
   WorkProjectManager: 'WorkProjectManager',

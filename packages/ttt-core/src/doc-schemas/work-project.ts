@@ -18,6 +18,13 @@ const userRefSchema = z.object({ uid: z.string() });
 export const GuildmateStatusSchema = z.enum(['active', 'departed']);
 export type GuildmateStatus = z.infer<typeof GuildmateStatusSchema>;
 
+/**
+ * The realm founding-Work stake holder — a non-person ledger entry keyed by the founding
+ * workProjectId, never a user uid. It must never reach the public collaborator roster.
+ * Consumers branch on this rather than re-quoting the member.
+ */
+export const FOUNDING_WORK_HOLDER_TYPE = 'foundingWork' as const;
+
 export const GuildmateUserSchema = z.object({
   uid: z.string(),
   guildStandings: z.array(guildStandingIdSchema),
@@ -30,7 +37,7 @@ export const GuildmateUserSchema = z.object({
    * `'foundingWork'` = the realm founding-Work holder (keyed by the founding
    * workProjectId, NOT a user uid).
    */
-  holderType: z.enum(['user', 'foundingWork']).optional(),
+  holderType: z.enum(['user', FOUNDING_WORK_HOLDER_TYPE]).optional(),
   /**
    * Per-(user, workProject) monotonic INPUT-trigger version for the chat
    * channel-auth projection (chat-edge-rebuild Contract B / P3). Absent ⇒ 0.

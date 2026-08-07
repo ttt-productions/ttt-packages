@@ -294,15 +294,15 @@ export type AuditEventType =
  * orthogonal to the event name — the same event type can be produced by
  * different actor modes (e.g. a normal member vs. an admin override).
  *
- * - 'user'          — authenticated action not tied to project membership
- * - 'projectMember' — acting through normal Work/project (guild standing) permissions
- * - 'adminReview'   — admin queue/support work on admin surfaces (no project-permission concept)
- * - 'adminOverride' — system-admin authority superseding normal user/project permission
+ * - 'user'          — authenticated action not tied to Work guild membership
+ * - 'guildmateUser' — acting through normal Work guild (guild standing) permissions
+ * - 'adminReview'   — admin queue/support work on admin surfaces (no guild-permission concept)
+ * - 'adminOverride' — system-admin authority superseding normal user/guild permission
  * - 'system'        — backend automation: trigger, scheduled job, migration, media pipeline
  */
 export type TTTAuditActorMode =
   | 'user'
-  | 'projectMember'
+  | 'guildmateUser'
   | 'adminReview'
   | 'adminOverride'
   | 'system';
@@ -317,12 +317,12 @@ export type TTTAuditActorBase = {
 
 /** TTT actor shape, discriminated on `actorMode`. The admin system role is
  * REQUIRED on admin modes (adminReview / adminOverride) and FORBIDDEN on
- * non-admin modes (user / projectMember / system) — so an admin action can
+ * non-admin modes (user / guildmateUser / system) — so an admin action can
  * never be audited without recording full-vs-jr, and a non-admin action can
  * never carry a spurious role. */
 export type TTTAuditActor =
   | (TTTAuditActorBase & {
-      actorMode: 'user' | 'projectMember' | 'system';
+      actorMode: 'user' | 'guildmateUser' | 'system';
       systemRole?: never;
     })
   | (TTTAuditActorBase & {

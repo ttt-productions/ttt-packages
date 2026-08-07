@@ -50,5 +50,5 @@ This package is intentionally tiny and has no internal `@ttt-productions/*` depe
   preview-length bound. No chat surface has an authoring affordance for replying
   to a specific message (`chat-react`'s `MessageActions` renders only
   Report/Delete; the composer's `onSend` takes text alone), so a reply pointer
-  could never be populated — the machinery was removed rather than left dormant
-  (DJ ruling 2026-07-29). The package contract test asserts against its return.
+  could never be populated — the machinery was removed rather than left dormant.
+  The package contract test asserts against its return.

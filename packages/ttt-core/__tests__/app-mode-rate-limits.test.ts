@@ -41,6 +41,54 @@ describe('app-mode rate-limit buckets', () => {
   });
 });
 
+// BACKEND-013 — every named surface carries a DELIBERATE rate-limit decision, in a bucket that
+// names its own surface. These three were the gaps: createMediaGrant borrowed MENTION_HISTORY,
+// mintChatGrant had no limiter at all, and the operator step-up TOTP was unthrottled.
+describe('grant-minting and operator step-up buckets (BACKEND-013)', () => {
+  it('grant minting has its OWN buckets — never MENTION_HISTORY, never absent', () => {
+    for (const limits of [CHARTER_LIMITS, FULL_LIMITS, ACTIVE_LIMITS]) {
+      const { MEDIA_GRANT, CHAT_GRANT } = limits.rateLimits;
+      for (const bucket of [MEDIA_GRANT, CHAT_GRANT]) {
+        expect(Number.isFinite(bucket.maxRequests)).toBe(true);
+        expect(bucket.maxRequests).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('the two grant surfaces are paced alike, so neither starves the other', () => {
+    for (const limits of [CHARTER_LIMITS, FULL_LIMITS, ACTIVE_LIMITS]) {
+      expect(limits.rateLimits.CHAT_GRANT).toEqual(limits.rateLimits.MEDIA_GRANT);
+    }
+  });
+
+  it('grant buckets scale at the full-mode flip and never tighten', () => {
+    expect(CHARTER_LIMITS.rateLimits.MEDIA_GRANT).toEqual({ maxRequests: 120, window: '1 h' });
+    expect(FULL_LIMITS.rateLimits.MEDIA_GRANT).toEqual({ maxRequests: 240, window: '1 h' });
+    expect(FULL_LIMITS.rateLimits.CHAT_GRANT.maxRequests).toBeGreaterThanOrEqual(
+      CHARTER_LIMITS.rateLimits.CHAT_GRANT.maxRequests,
+    );
+  });
+
+  it('OPERATOR_STEP_UP is tighter than every admin bucket it guards — a brute-force brake', () => {
+    // The second factor protecting the safety console must be harder to hammer than any of the
+    // admin actions it unlocks, and tighter than the general sensitive-action budget the finding
+    // proposed reusing (SENSITIVE_ACTION would have allowed 30-60 guesses an hour).
+    for (const limits of [CHARTER_LIMITS, FULL_LIMITS, ACTIVE_LIMITS]) {
+      const { OPERATOR_STEP_UP, SENSITIVE_ACTION, ADMIN_TASK, MODERATION, BAN_ACTION, APPEAL_REVIEW } =
+        limits.rateLimits;
+      expect(OPERATOR_STEP_UP).toEqual({ maxRequests: 10, window: '1 h' });
+      for (const guarded of [SENSITIVE_ACTION, ADMIN_TASK, MODERATION, BAN_ACTION, APPEAL_REVIEW]) {
+        expect(guarded.window).toBe(OPERATOR_STEP_UP.window);
+        expect(OPERATOR_STEP_UP.maxRequests).toBeLessThan(guarded.maxRequests);
+      }
+    }
+  });
+
+  it('OPERATOR_STEP_UP is mode-INVARIANT — a security control never loosens at the flip', () => {
+    expect(FULL_LIMITS.rateLimits.OPERATOR_STEP_UP).toEqual(CHARTER_LIMITS.rateLimits.OPERATOR_STEP_UP);
+  });
+});
+
 describe('Conversation Files quota per conversation (DJ ruling 2026-07-25)', () => {
   it('has the ruled values — charter 10 files / 500 MiB, full 20 files / 1 GiB', () => {
     expect(CHARTER_LIMITS.conversation.maxConversationFiles).toBe(10);

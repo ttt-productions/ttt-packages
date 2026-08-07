@@ -276,7 +276,7 @@ reply stylesheet, and no reply argument anywhere on the send path:
 `send`/`ChannelClient.send` all take text alone, and no `send` frame carries a
 reply pointer. The product has no affordance for replying to a specific message
 (`MessageActions` renders only Report/Delete), so the machinery was removed
-rather than left dormant (DJ ruling 2026-07-29). The realtime mapper ignores a
+rather than left dormant. The realtime mapper ignores a
 legacy `replyTo` column a pre-removal Channel DO may still broadcast — guarded by
 `__tests__/realtime/wire-contract.test.ts`.
 

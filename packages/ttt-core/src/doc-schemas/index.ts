@@ -48,4 +48,7 @@ export * from './ncii/holds.js';
 export * from './ncii/removal.js';
 export * from './ncii/config.js';
 
+// ===== Backend-only cursor / operational state =====
+export * from './backend-state.js';
+
 export * from './registry.js';

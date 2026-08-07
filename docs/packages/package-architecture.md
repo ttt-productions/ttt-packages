@@ -24,7 +24,8 @@ package may consume it.
   `firebase-helpers`, `chat-schemas`, `chat-core`, `media-schemas`, `mobile-core`,
   `monitoring-core`, `query-core`, `theme-core`, `ui-core`, `rate-limit-core`,
   `audit-core`, `moderation-core`, `auth-core`, `edge-protocol-core`
-  (runtime-neutral signed-edge-call primitives; WebCrypto + zod only).
+  (runtime-neutral signed-edge-call primitives plus the edge→origin provenance
+  header contract; WebCrypto + zod only).
 - **Tier 1 — depend on Tier 0 only:**
   `file-input` (→ `ui-core`, `media-schemas`, `media-viewer`), `media-viewer`
   (→ `media-schemas`, `ui-core`), `media-processing-core` (→ `media-schemas`),
@@ -107,6 +108,24 @@ safety:
 - No dependency cycles.
 - Backend chat schema/contract imports use `chat-schemas`, not `chat-core`.
 
+**Sanctioned exceptions** — a small number of generic packages carry a
+`ttt`-branded string. Each is a **wire-protocol token**, not business policy or
+app config: it is the literal value on the network that two independently
+deployed runtimes must agree on, so it belongs with the protocol it defines, and
+renaming it is a protocol break rather than a refactor. Each is single-declared
+in its owning package and imported everywhere else, so ENG-002 holds. No further
+action is expected on either entry; do not "fix" them by relocating the value to
+`ttt-core`.
+
+- `chat-schemas` → `CHAT_SUBPROTOCOL` (`ttt.chat.v1`), the pinned WebSocket
+  subprotocol tag, and `CHAT_GRANT_AUDIENCE` (`ttt-chat`), the grant token's
+  `aud` claim. Both are offered/verified across the browser client, the chat
+  Worker, and the Cloud Function that mints grants.
+- `edge-protocol-core` → the `x-ttt-*` edge→origin provenance header names
+  (`provenance-headers.ts`), shared by the Worker front door that mints them and
+  the origin that validates them. ARCH-005 requires exactly one definition here;
+  a per-tree copy is the drift the rule exists to prevent.
+
 ## Firestore access goes through query-core
 
 React packages read and write Firestore through `@ttt-productions/query-core`'s
@@ -164,7 +183,7 @@ authoring affordance for replying to a specific message — `MessageActions`
 renders only Report/Delete and the composer's `onSend` takes text alone — so
 `ChatMessageV1` has no `replyTo` field, there is no reply-quote renderer or
 stylesheet, and no send path (Firestore callable or DO socket frame) carries a
-reply pointer (DJ ruling 2026-07-29). A DO row that still stores a legacy
+reply pointer. A DO row that still stores a legacy
 `replyTo` column is ignored by the mapper.
 
 ## auth-core generics

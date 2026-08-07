@@ -2,11 +2,26 @@ import { z } from "zod";
 import type { FileOrigin } from "./file-origin.js";
 import { ConversationFileRefSchema } from "./conversation-file-ref.js";
 import { MentionSchema, rejectDuplicateMentionPlaceholders } from "./atoms.js";
-import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from "../constants/options.js";
+import {
+  TRADE_PROFESSION_OPTIONS,
+  TRADE_PROFESSION_VALUES,
+  CRAFT_SKILL_TAG_VALUES,
+} from "../constants/options.js";
 import { MediaTypeSchema } from "../doc-schemas/social.js";
+import {
+  CraftSkillKindSchema,
+  CraftSkillAttestationSchema,
+  CraftSkillSourceReferenceSchema,
+  CRAFT_SKILL_KIND_REQUIRING_SOURCE,
+  type CraftSkillKind,
+  type CraftSkillAttestation,
+  type CraftSkillSourceReference,
+} from "../doc-schemas/user.js";
+import { CRAFT_SKILL_STATEMENT_VERSION } from "../constants/craft-skill-statements.js";
 import {
   MAX_MENTIONS,
   MAX_POST_LENGTH,
+  MAX_CRAFT_SKILL_TAGS,
   MAX_COMMISSION_TITLE_LENGTH,
   MAX_COMMISSION_DESCRIPTION_LENGTH,
   MAX_AUDITION_TITLE_LENGTH,
@@ -19,6 +34,85 @@ import {
 
 export const ProfilePictureTargetInfoSchema = z.object({}).strict();
 
+/**
+ * The three-kind craft-skill upload attestation — `kind` + the agreed `attestation` + the
+ * TTT-mimic-only `source` + the creation `tags`. It crosses the backend↔frontend boundary
+ * (the client collects it in the add-a-craft dialog; `startUpload` and `processCraftSkill`
+ * re-validate it), so it is declared ONCE here (ARCH-101/ARCH-102) — never app-locally on
+ * either side.
+ *
+ * `source` is REQUIRED for the TTT-mimic kind (CRAFT_SKILL_KIND_REQUIRING_SOURCE) and FORBIDDEN
+ * otherwise, and `attestation.statementKind` must match `kind` — enforced by the shared
+ * refinement below, so a client-sent payload is fully re-validated server-side.
+ * `attestation.agreedAt` is shape-validated here; the SERVER re-stamps it at `startUpload`
+ * (MEDIA-004 — never trust a client timestamp on a rights-consent record).
+ *
+ * See ttt-prod docs/design/profile-and-craft-skills.md § "The three-kind system".
+ */
+const craftSkillUploadAttestationShape = {
+  kind: CraftSkillKindSchema,
+  attestation: CraftSkillAttestationSchema,
+  source: CraftSkillSourceReferenceSchema.optional(),
+  // At least 1 tag is required at creation (three-kind flow) and the floor of 1 can never drop
+  // (updateCraftSkillTags refuses the last remove). Deduped, allowlisted, capped at the max.
+  tags: z
+    .array(z.enum(CRAFT_SKILL_TAG_VALUES))
+    .min(1, "Select at least one tag for your craft.")
+    .max(MAX_CRAFT_SKILL_TAGS)
+    .refine((t) => new Set(t).size === t.length, "Duplicate tags are not allowed."),
+};
+
+function refineCraftSkillUploadAttestation(
+  val: {
+    kind: CraftSkillKind;
+    attestation: CraftSkillAttestation;
+    source?: CraftSkillSourceReference;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  if (val.attestation.statementKind !== val.kind) {
+    ctx.addIssue({
+      code: "custom",
+      message: "attestation.statementKind must match kind",
+      path: ["attestation", "statementKind"],
+    });
+  }
+  if (val.attestation.statementVersion !== CRAFT_SKILL_STATEMENT_VERSION) {
+    ctx.addIssue({
+      code: "custom",
+      message: `attestation.statementVersion must be ${CRAFT_SKILL_STATEMENT_VERSION}`,
+      path: ["attestation", "statementVersion"],
+    });
+  }
+  const needsSource = val.kind === CRAFT_SKILL_KIND_REQUIRING_SOURCE;
+  if (needsSource && !val.source) {
+    ctx.addIssue({
+      code: "custom",
+      message: "A source link (user or work project) is required for a TTT mimic",
+      path: ["source"],
+    });
+  }
+  if (!needsSource && val.source) {
+    ctx.addIssue({
+      code: "custom",
+      message: "A source link is only allowed for a TTT mimic",
+      path: ["source"],
+    });
+  }
+}
+
+/** The attestation triple + tags on their own — for a caller that already holds the base
+ *  targetInfo fields separately, or that re-validates the consent record in isolation. */
+export const CraftSkillUploadAttestationSchema = z
+  .object(craftSkillUploadAttestationShape)
+  .strict()
+  .superRefine(refineCraftSkillUploadAttestation);
+export type CraftSkillUploadAttestation = z.infer<typeof CraftSkillUploadAttestationSchema>;
+
+// craft-skill-media: the WHOLE craft-skill upload targetInfo — the base media fields plus the
+// three-kind attestation above. One declaration, so `parseTargetInfo('craft-skill-media', …)`
+// validates the complete payload the client actually sends; there is no split-and-revalidate
+// dance and no app-local copy of the attestation shape on either layer.
 export const CraftSkillMediaTargetInfoSchema = z
   .object({
     // No craftSkillId: the backend mints the craft-skill doc id from the pendingMedia id;
@@ -26,8 +120,10 @@ export const CraftSkillMediaTargetInfoSchema = z
     // The canonical display/transport media-type family — never re-declared (ARCH-102).
     skillType: MediaTypeSchema,
     originalFileName: z.string().min(1),
+    ...craftSkillUploadAttestationShape,
   })
-  .strict();
+  .strict()
+  .superRefine(refineCraftSkillUploadAttestation);
 
 // squareStreetz: mentions array of structured Mention objects. Capped at
 // MAX_MENTIONS with unique placeholders (duplicate placeholders collide at render

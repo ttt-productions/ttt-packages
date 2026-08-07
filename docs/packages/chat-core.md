@@ -38,7 +38,7 @@ contract. The product has no authoring affordance for replying to a specific
 message on any chat surface — `chat-react`'s `MessageActions` renders only
 Report/Delete, and the composer's `onSend` takes text alone — so a reply pointer
 could never be populated by a user action. It was removed rather than left
-dormant (DJ ruling 2026-07-29).
+dormant.
 
 ## Related packages
 

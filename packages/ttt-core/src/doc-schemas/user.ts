@@ -29,6 +29,11 @@ export type UserAccountStatus = z.infer<typeof UserAccountStatusSchema>;
 export const CraftSkillKindSchema = z.enum(['original', 'mimicOnTtt', 'mimicOffTtt']);
 export type CraftSkillKind = z.infer<typeof CraftSkillKindSchema>;
 
+/** The ONE craft-skill kind that carries a `source` reference. The discriminated
+ *  CraftSkillSchema arm below and every upload-time validator derive from this named
+ *  declaration rather than re-quoting the member (ENG-005 / ARCH-102). */
+export const CRAFT_SKILL_KIND_REQUIRING_SOURCE: CraftSkillKind = 'mimicOnTtt';
+
 // Source reference for a 'mimicOnTtt' skill — the original artisan OR the original work,
 // linked mention-style (id only, no name snapshots, resolved at render per the Display
 // Identity Invariant). 'workProject' is the safe framing today; linking a specific hall

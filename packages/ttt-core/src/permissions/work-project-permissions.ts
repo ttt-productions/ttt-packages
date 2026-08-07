@@ -2,6 +2,7 @@ import {
   GUILD_STANDINGS,
   GUILD_STANDING_IDS,
   GUILD_STANDING_VALUE_BY_ID,
+  STEWARD_OWNER_GUILD_STANDING_ID,
   WORK_PROJECT_ACTIONS,
   WORK_PROJECT_ACTION_IDS,
   type GuildStandingId,
@@ -19,6 +20,15 @@ const GUILD_STANDING_ID_BY_VALUE = Object.fromEntries(
 
 export function isGuildStandingId(value: unknown): value is GuildStandingId {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(GUILD_STANDINGS, value);
+}
+
+/**
+ * True when a `GuildmateUser.guildStandings` array (standing IDs) carries the steward
+ * standing. The one predicate for "is this member the work steward" — callers must not
+ * re-quote the member, and must not test it against a standing VALUE ('Steward').
+ */
+export function hasStewardOwnerStanding(guildStandings: readonly string[] | null | undefined): boolean {
+  return guildStandings?.includes(STEWARD_OWNER_GUILD_STANDING_ID) === true;
 }
 
 export function isGuildStandingValue(value: unknown): value is GuildStandingValue {

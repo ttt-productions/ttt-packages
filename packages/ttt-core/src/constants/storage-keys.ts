@@ -62,6 +62,19 @@ export const TEXT_SIZE_STORAGE_KEY = 'ttt-text-size';
  *  'storage' events do not fire in the writing tab), mirroring REDUCED_MOTION_CHANGE_EVENT. */
 export const TEXT_SIZE_CHANGE_EVENT = 'ttt-text-size-change';
 
+// --- GDPR cookie / analytics consent (device-local) ---
+// Device-local like the House controls above — consent is a per-device choice, never mirrored
+// to Firestore or the private user document. The app persists the same value in BOTH
+// localStorage (under this key) and a first-party cookie of the SAME name, so SSR/middleware can
+// read it; both derive from this one declaration. Values are the ConsentState strings
+// ('granted' | 'denied'); ABSENT means un-chosen (opt-in default, analytics OFF).
+
+/** localStorage key — and the matching first-party cookie name — holding the visitor's
+ *  cookie/analytics consent choice. The underscore spelling is byte-stable for backward
+ *  compatibility with already-stored values and MUST NOT be re-styled to match the
+ *  hyphenated House-control keys above. */
+export const COOKIE_CONSENT_STORAGE_KEY = 'ttt_cookie_consent';
+
 // --- First-visit site-tour pending preference (the ONE sanctioned optimistic-hide slot) ---
 // Unlike the House controls above, site-tour state is ACCOUNT-DURABLE: `privateData/{uid}.siteTour`
 // stays the sole authority and the `updateSiteTourPreference` callable stays its sole writer. This

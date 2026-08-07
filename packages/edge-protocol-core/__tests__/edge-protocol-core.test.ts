@@ -11,6 +11,15 @@ import {
   StructuredErrorSchema,
   EDGE_PROTOCOL_VERSION,
   isProtocolSupported,
+  ORIGIN_MARKER_HEADER,
+  ORIGIN_MARKER_VALUE,
+  EDGE_MARKER_HEADER,
+  EDGE_MARKER_VALUE,
+  EDGE_SECRET_HEADER,
+  EDGE_CANONICAL_HOST_HEADER,
+  EDGE_CLIENT_IP_HEADER,
+  VERIFIED_CLIENT_IP_HEADER,
+  EDGE_INTERNAL_HEADERS,
   type InternalRequestFields,
 } from '../src/index.js';
 
@@ -185,5 +194,87 @@ describe('envelopes', () => {
     expect(isProtocolSupported(EDGE_PROTOCOL_VERSION + 1)).toBe(true);
     expect(isProtocolSupported(EDGE_PROTOCOL_VERSION + 2)).toBe(false);
     expect(isProtocolSupported(0)).toBe(false);
+  });
+});
+
+describe('provenance-headers', () => {
+  // These are WIRE strings shared by trees that cannot import each other's
+  // source. Asserting them verbatim is the point: a rename here fails the gate
+  // instead of failing silently at runtime as "provenance missing".
+  it('pins every header name and marker value to its exact wire string', () => {
+    expect(ORIGIN_MARKER_HEADER).toBe('x-ttt-app-origin');
+    expect(ORIGIN_MARKER_VALUE).toBe('next');
+    expect(EDGE_MARKER_HEADER).toBe('x-ttt-app-edge');
+    expect(EDGE_MARKER_VALUE).toBe('v1');
+    expect(EDGE_SECRET_HEADER).toBe('x-ttt-edge-secret');
+    expect(EDGE_CANONICAL_HOST_HEADER).toBe('x-ttt-canonical-host');
+    expect(EDGE_CLIENT_IP_HEADER).toBe('x-ttt-client-ip');
+    expect(VERIFIED_CLIENT_IP_HEADER).toBe('x-ttt-verified-client-ip');
+  });
+
+  it('keeps the contract distinct: no two headers share a name', () => {
+    const all = [
+      ORIGIN_MARKER_HEADER,
+      EDGE_MARKER_HEADER,
+      EDGE_SECRET_HEADER,
+      EDGE_CANONICAL_HOST_HEADER,
+      EDGE_CLIENT_IP_HEADER,
+      VERIFIED_CLIENT_IP_HEADER,
+    ];
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it('names are lowercase so object-literal header keys match a normalized lookup', () => {
+    for (const name of [
+      ORIGIN_MARKER_HEADER,
+      EDGE_MARKER_HEADER,
+      EDGE_SECRET_HEADER,
+      EDGE_CANONICAL_HOST_HEADER,
+      EDGE_CLIENT_IP_HEADER,
+      VERIFIED_CLIENT_IP_HEADER,
+    ]) {
+      expect(name).toBe(name.toLowerCase());
+      expect(name).toMatch(/^[a-z0-9-]+$/);
+    }
+  });
+
+  it('the origin-minted client IP is a DIFFERENT header from the front-door one', () => {
+    // Collapsing these two would make the origin trust the inbound value it is
+    // supposed to be replacing.
+    expect(VERIFIED_CLIENT_IP_HEADER).not.toBe(EDGE_CLIENT_IP_HEADER);
+  });
+
+  it('EDGE_INTERNAL_HEADERS is exactly the client-forgeable set', () => {
+    expect([...EDGE_INTERNAL_HEADERS].sort()).toEqual(
+      [
+        EDGE_SECRET_HEADER,
+        EDGE_CANONICAL_HOST_HEADER,
+        EDGE_CLIENT_IP_HEADER,
+        VERIFIED_CLIENT_IP_HEADER,
+        ORIGIN_MARKER_HEADER,
+      ].sort(),
+    );
+  });
+
+  it('strips the origin-minted client IP inbound — its presence must be proof, not input', () => {
+    expect(EDGE_INTERNAL_HEADERS).toContain(VERIFIED_CLIENT_IP_HEADER);
+    expect(EDGE_INTERNAL_HEADERS).toContain(ORIGIN_MARKER_HEADER);
+  });
+
+  it('excludes the public liveness marker — it is a response header, never read inbound', () => {
+    expect(EDGE_INTERNAL_HEADERS).not.toContain(EDGE_MARKER_HEADER);
+  });
+
+  it('deleting every internal header clears a fully forged inbound request', () => {
+    const forged = new Headers({
+      [EDGE_SECRET_HEADER]: 'guessed-secret',
+      [EDGE_CANONICAL_HOST_HEADER]: 'attacker.example',
+      [EDGE_CLIENT_IP_HEADER]: '10.0.0.1',
+      [VERIFIED_CLIENT_IP_HEADER]: '10.0.0.2',
+      [ORIGIN_MARKER_HEADER]: ORIGIN_MARKER_VALUE,
+      'user-agent': 'kept',
+    });
+    for (const name of EDGE_INTERNAL_HEADERS) forged.delete(name);
+    expect([...forged.keys()]).toEqual(['user-agent']);
   });
 });

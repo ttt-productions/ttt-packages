@@ -10,7 +10,7 @@ import {
   UpdatePrivacyPageInputSchema,
   UpdateTakeItDownPageCopyInputSchema,
 } from '../src/schemas/admin';
-import { PATH_BUILDERS, SPECIAL_DOCS } from '../src/paths';
+import { COLLECTIONS, PATH_BUILDERS, SPECIAL_DOCS } from '../src/paths';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
 
 const section = { id: 's1', heading: 'Part 1', level: 1, body: 'First paragraph.\n\nSecond paragraph.', order: 0 };
@@ -58,16 +58,16 @@ describe('content-page doc schemas (content-pages migration)', () => {
     }).success).toBe(true);
   });
 
-  it('registers the three _config singletons in COLLECTION_SCHEMAS', () => {
-    expect(COLLECTION_SCHEMAS['_config/termsOfService']).toBe(LegalPageDocumentSchema);
-    expect(COLLECTION_SCHEMAS['_config/privacyPolicy']).toBe(LegalPageDocumentSchema);
-    expect(COLLECTION_SCHEMAS['_config/takeItDownPageCopy']).toBe(TakeItDownPageCopySchema);
+  it('registers the three _appConfig singletons in COLLECTION_SCHEMAS', () => {
+    expect(COLLECTION_SCHEMAS['_appConfig/termsOfService']).toBe(LegalPageDocumentSchema);
+    expect(COLLECTION_SCHEMAS['_appConfig/privacyPolicy']).toBe(LegalPageDocumentSchema);
+    expect(COLLECTION_SCHEMAS['_appConfig/takeItDownPageCopy']).toBe(TakeItDownPageCopySchema);
   });
 
-  it('builds the _config paths', () => {
-    expect(PATH_BUILDERS.termsPage()).toEqual(['_config', SPECIAL_DOCS.TERMS_PAGE]);
-    expect(PATH_BUILDERS.privacyPage()).toEqual(['_config', SPECIAL_DOCS.PRIVACY_PAGE]);
-    expect(PATH_BUILDERS.takeItDownPageCopy()).toEqual(['_config', SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY]);
+  it('builds the _appConfig paths', () => {
+    expect(PATH_BUILDERS.termsPage()).toEqual([COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.TERMS_PAGE]);
+    expect(PATH_BUILDERS.privacyPage()).toEqual([COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.PRIVACY_PAGE]);
+    expect(PATH_BUILDERS.takeItDownPageCopy()).toEqual([COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY]);
   });
 });
 

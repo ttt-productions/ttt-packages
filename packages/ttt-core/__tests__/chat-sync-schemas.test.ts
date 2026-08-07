@@ -109,7 +109,7 @@ describe('registry + paths wiring', () => {
       'notificationFanoutJobs/{jobId}',
       'chatChannelAuthProjections/{authPairKey}',
       'chatScopeDegraded/{scopeKey}',
-      'chatScopeDegraded/{scopeKey}/causes/{causeId}',
+      'chatScopeDegraded/{scopeKey}/chatScopeDegradedCauses/{causeId}',
       'chatSyncEvents/{eventId}',
       'chatSyncFanoutJobs/{jobId}',
       'chatMessageOutbox/{commandId}',

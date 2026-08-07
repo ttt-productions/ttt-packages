@@ -169,10 +169,6 @@ import {
   SafetyMonitorHeartbeatV1Schema,
 } from './safety/monitors.js';
 import { AgeAttestationNonceV1Schema, AgePolicyConfigV1Schema } from './safety/age.js';
-import {
-  PrivilegedReviewerPasskeyProfileV1Schema,
-  PrivilegedReviewerCapabilityGrantV1Schema,
-} from './safety/reviewer-security.js';
 // ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
 import { NciiAllegationV1Schema } from './ncii/allegations.js';
 import {
@@ -200,6 +196,13 @@ import {
   NciiPolicyConfigV1Schema,
   PrivilegedReviewerSecurityProfileV1Schema,
 } from './ncii/config.js';
+import {
+  HallMediaReaperCursorSchema,
+  NcmecPortalCorrectionRecordV1Schema,
+  NcmecPortalReceiptArtifactV1Schema,
+  OperatorStepUpSchema,
+  SafetyReconcilerCursorSchema,
+} from './backend-state.js';
 
 export const COLLECTION_SCHEMAS = {
   // ===== Users =====
@@ -263,10 +266,11 @@ export const COLLECTION_SCHEMAS = {
   'hallItems/{hallItemId}': PublishedHallItemSchema,
   // Published hall sub-item projections — the chapter/track/episode docs copied out of
   // the Work at publish time (runPublishApprovedHallLibraryItem). Segment names are the
-  // HALL_ITEM_SUBCOLLECTIONS constants (the lowercased WorkProjectType).
-  'hallItems/{hallItemId}/tales/{itemId}': PublishedChapterSchema,
-  'hallItems/{hallItemId}/tunes/{itemId}': PublishedTuneTrackSchema,
-  'hallItems/{hallItemId}/television/{itemId}': PublishedTelevisionEpisodeSchema,
+  // HALL_ITEM_SUBCOLLECTIONS constants — fixed compound names, NOT derived from
+  // WorkProjectType.
+  'hallItems/{hallItemId}/hallItemTales/{itemId}': PublishedChapterSchema,
+  'hallItems/{hallItemId}/hallItemTunes/{itemId}': PublishedTuneTrackSchema,
+  'hallItems/{hallItemId}/hallItemTelevision/{itemId}': PublishedTelevisionEpisodeSchema,
   'hallContentChangeRequests/{changeRequestId}': HallContentChangeRequestSchema,
 
   // ===== Commission / Audition =====
@@ -281,8 +285,8 @@ export const COLLECTION_SCHEMAS = {
   // callable; the group is maintained by an app-side trigger.
   'contentReports/{reportId}': ProtectedReportRootV1Schema,
   'contentReports/{reportId}/publicProjection/{reportId}': ReportPublicProjectionV1Schema,
-  'contentReports/{reportId}/private/snapshot': ReportTargetSnapshotV1Schema,
-  'contentReports/{reportId}/private/narrative': NarrativeRecordV1Schema,
+  'contentReports/{reportId}/privateDetails/snapshot': ReportTargetSnapshotV1Schema,
+  'contentReports/{reportId}/privateDetails/narrative': NarrativeRecordV1Schema,
   'activeReportGroups/{groupKey}': ReportGroupV1Schema,
   'adminTasks/{taskId}': AdminTaskDocSchema,
   'contentViolations/{violationId}': ContentViolationSchema,
@@ -313,7 +317,7 @@ export const COLLECTION_SCHEMAS = {
   // ===== Chat realtime sync / projection / commands =====
   'chatChannelAuthProjections/{authPairKey}': ChatChannelAuthProjectionSchema,
   'chatScopeDegraded/{scopeKey}': ChatScopeDegradedSchema,
-  'chatScopeDegraded/{scopeKey}/causes/{causeId}': ChatScopeDegradedCauseSchema,
+  'chatScopeDegraded/{scopeKey}/chatScopeDegradedCauses/{causeId}': ChatScopeDegradedCauseSchema,
   'chatSyncEvents/{eventId}': ChatSyncEventSchema,
   'chatSyncFanoutJobs/{jobId}': ChatSyncFanoutJobSchema,
   'chatMessageOutbox/{commandId}': ChatMessageOutboxSchema,
@@ -329,7 +333,6 @@ export const COLLECTION_SCHEMAS = {
   'reservedRealmNames/{workingTitleUppercase}': ReservedRealmNameSchema,
   'accountDeletionRequests/{uid}': AccountDeletionRequestV1Schema,
   'shortLinks/{shortId}': ShortLinkSchema,
-  'feedbackAliases/{aliasId}': FeedbackAliasSchema,
   'feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId}': UserSuggestionSchema,
   'statusReconcileQueue/{uid}': StatusReconcileQueueEntrySchema,
 
@@ -338,13 +341,17 @@ export const COLLECTION_SCHEMAS = {
   'activeSafetyCaseAlerts/{caseId}': SafetyCaseAlertV1Schema,
   'childSafetyCases/{caseId}': ChildSafetyCaseV1Schema,
   'childSafetyCases/{caseId}/sourceSignals/{signalId}': ChildSafetySourceSignalV1Schema,
-  'childSafetyCases/{caseId}/decisions/{decisionId}': ChildSafetyDecisionV1Schema,
-  'childSafetyCases/{caseId}/decisions/{decisionId}/views/{viewId}': ChildSafetyDecisionViewV1Schema,
-  'childSafetyCases/{caseId}/accounts/{uid}': ChildSafetyCaseAccountV1Schema,
-  'childSafetyCases/{caseId}/accounts/{uid}/history/{historyId}': ChildSafetyCaseAccountHistoryV1Schema,
+  'childSafetyCases/{caseId}/childSafetyDecisions/{decisionId}': ChildSafetyDecisionV1Schema,
+  'childSafetyCases/{caseId}/childSafetyDecisions/{decisionId}/childSafetyDecisionViews/{viewId}': ChildSafetyDecisionViewV1Schema,
+  'childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}': ChildSafetyCaseAccountV1Schema,
+  'childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}/childSafetyCaseAccountHistory/{historyId}': ChildSafetyCaseAccountHistoryV1Schema,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}': ChildSafetyNcmecSubmissionV1Schema,
-  'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/files/{fileId}': ChildSafetyNcmecSubmissionFileV1Schema,
+  'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecSubmissionFiles/{fileId}': ChildSafetyNcmecSubmissionFileV1Schema,
   'childSafetyCases/{caseId}/legalProcess/{eventId}': ChildSafetyLegalProcessEventV1Schema,
+  // Portal-filed NCMEC artifacts recorded by the two step-up-gated operator callables. Both
+  // are backend-only (no client reader), so their shapes live in doc-schemas/backend-state.ts.
+  'childSafetyCases/{caseId}/portalReceiptArtifacts/{artifactId}': NcmecPortalReceiptArtifactV1Schema,
+  'childSafetyCases/{caseId}/ncmecPortalCorrections/{correctionId}': NcmecPortalCorrectionRecordV1Schema,
   'childSafetyOwningAliases/{aliasId}': ChildSafetyOwningAliasV1Schema,
 
   // ===== Trust & Safety — holds + resource commands (§A3) =====
@@ -360,8 +367,8 @@ export const COLLECTION_SCHEMAS = {
   // its shape, so binding the refined schema here is correct.
   'safetyEvidenceManifests/{manifestId}': SafetyEvidenceManifestV1Schema,
   'safetyEvidenceJobs/{jobId}': SafetyEvidenceJobV1Schema,
-  'safetyEvidenceJobs/{jobId}/items/{itemId}': SafetyEvidenceJobItemV1Schema,
-  'safetyEvidenceJobs/{jobId}/disposition/{locationId}': SafetyEvidenceDispositionV1Schema,
+  'safetyEvidenceJobs/{jobId}/safetyEvidenceJobItems/{itemId}': SafetyEvidenceJobItemV1Schema,
+  'safetyEvidenceJobs/{jobId}/safetyEvidenceJobDisposition/{locationId}': SafetyEvidenceDispositionV1Schema,
   'eventProvenance/{eventId}': EventProvenanceV1Schema,
 
   // ===== Trust & Safety — sagas + closure (§A5) =====
@@ -377,19 +384,19 @@ export const COLLECTION_SCHEMAS = {
   // ===== Trust & Safety — age attestation nonces (§A7) =====
   'ageAttestationNonces/{nonceHash}': AgeAttestationNonceV1Schema,
 
-  // ===== Trust & Safety — per-operator privileged-reviewer security (§A11 [M-6] / [H-17]) =====
-  // Backend-only (Cloud-Functions-only readers/writers; client access denied in firestore.rules).
-  'privilegedReviewerPasskeyProfiles/{uid}': PrivilegedReviewerPasskeyProfileV1Schema,
-  'privilegedReviewerCapabilityGrants/{uid}': PrivilegedReviewerCapabilityGrantV1Schema,
+  // ===== Trust & Safety — operator step-up + reconciler cursors (backend-only) =====
+  // Cloud-Functions-only readers/writers; client access denied in firestore.rules.
+  'operatorStepUp/{uid}': OperatorStepUpSchema,
+  'safetyReconcilerCursors/{cursorKey}': SafetyReconcilerCursorSchema,
 
   // ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
   'nciiAllegations/{allegationId}': NciiAllegationV1Schema,
   'takeItDownRequests/{requestId}': TakeItDownRequestRootV1Schema,
-  'takeItDownRequests/{requestId}/private/requester': TakeItDownRequesterPrivateV1Schema,
-  'takeItDownRequests/{requestId}/submissions/{submissionId}': TakeItDownSubmissionV1Schema,
+  'takeItDownRequests/{requestId}/privateDetails/requester': TakeItDownRequesterPrivateV1Schema,
+  'takeItDownRequests/{requestId}/takeItDownSubmissions/{submissionId}': TakeItDownSubmissionV1Schema,
   'takeItDownRequests/{requestId}/validityDecisions/{decisionId}': TakeItDownValidityDecisionV1Schema,
-  'takeItDownRequests/{requestId}/actions/{actionId}': TakeItDownRequestActionV1Schema,
-  'takeItDownRequests/{requestId}/evidence/{evidenceId}': TakeItDownEvidenceV1Schema,
+  'takeItDownRequests/{requestId}/takeItDownActions/{actionId}': TakeItDownRequestActionV1Schema,
+  'takeItDownRequests/{requestId}/takeItDownEvidence/{evidenceId}': TakeItDownEvidenceV1Schema,
   'nciiCases/{caseId}': NciiCaseV1Schema,
   'nciiCases/{caseId}/allegationLinks/{allegationId}': NciiCaseAllegationLinkV1Schema,
   'nciiCases/{caseId}/requestLinks/{requestId}': NciiCaseRequestLinkV1Schema,
@@ -401,23 +408,28 @@ export const COLLECTION_SCHEMAS = {
   'nciiInventoryDeadLetter/{inventoryId}': NciiRetainedEvidenceInventoryV1Schema,
   'nciiTemporaryHolds/{holdId}': NciiTemporaryHoldV1Schema,
   'nciiRemovalJobs/{jobId}': NciiRemovalJobV1Schema,
-  'nciiRemovalJobs/{jobId}/targets/{targetKeyHash}': NciiRemovalTargetV1Schema,
+  'nciiRemovalJobs/{jobId}/nciiRemovalTargets/{targetKeyHash}': NciiRemovalTargetV1Schema,
 
-  // ===== _config singletons (public) =====
-  '_config/app': AppConfigSchema,
-  '_config/futurePlans': FuturePlansDocumentSchema,
-  '_config/rulesAndAgreements': RulesAndAgreementsSchema,
+  // ===== _appConfig singletons (public) =====
+  '_appConfig/app': AppConfigSchema,
+  '_appConfig/futurePlans': FuturePlansDocumentSchema,
+  '_appConfig/rulesAndAgreements': RulesAndAgreementsSchema,
   // Content-pages migration (DJ ruling 2026-07-06): /terms, /privacy, and the
   // /take-it-down page copy render exclusively from these (all public pages —
   // take-it-down is a NO-LOGIN page, so its copy doc must be publicly readable).
-  '_config/termsOfService': LegalPageDocumentSchema,
-  '_config/privacyPolicy': LegalPageDocumentSchema,
-  '_config/takeItDownPageCopy': TakeItDownPageCopySchema,
+  '_appConfig/termsOfService': LegalPageDocumentSchema,
+  '_appConfig/privacyPolicy': LegalPageDocumentSchema,
+  '_appConfig/takeItDownPageCopy': TakeItDownPageCopySchema,
 
   // ===== _serverData singletons (server-only — Cloud-Functions-only readers, BACKEND-108) =====
   '_serverData/agePolicy': AgePolicyConfigV1Schema,
   '_serverData/nciiPolicy': NciiPolicyConfigV1Schema,
   '_serverData/privilegedReviewerSecurity': PrivilegedReviewerSecurityProfileV1Schema,
+  // The submitFeedback alias map — moved off the anonymously-readable top-level
+  // `feedbackAliases` collection into the server-only bucket (BACKEND-108). The sibling
+  // `feedbackDenylist` subcollection has no field contract (`.exists`-only) — see
+  // PENDING_COLLECTIONS.
+  '_serverData/feedbackLists/feedbackAliases/{aliasId}': FeedbackAliasSchema,
 
   // ===== _systemData singletons =====
   '_systemData/adminList': AdminListSchema,
@@ -425,6 +437,7 @@ export const COLLECTION_SCHEMAS = {
   '_systemData/reservedUsernames': ReservedUsernamesSchema,
   '_systemData/blockedFranchiseNames': BlockedFranchiseNamesSchema,
   '_systemData/appMode': AppModeMarkerSchema,
+  '_systemData/hallMediaReaperCursor': HallMediaReaperCursorSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;
 
 export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;
@@ -449,9 +462,9 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'allWorkProjects/{workProjectId}/guildChatChannels/{guildChatChannelId}': 'guildChatChannelId',
   // Published hall sub-items: the doc id IS the live sub-item's id; `uid` is injected at
   // read (the publish writer spreads the live doc's stored body, which has no `uid`).
-  'hallItems/{hallItemId}/tales/{itemId}': 'uid',
-  'hallItems/{hallItemId}/tunes/{itemId}': 'uid',
-  'hallItems/{hallItemId}/television/{itemId}': 'uid',
+  'hallItems/{hallItemId}/hallItemTales/{itemId}': 'uid',
+  'hallItems/{hallItemId}/hallItemTunes/{itemId}': 'uid',
+  'hallItems/{hallItemId}/hallItemTelevision/{itemId}': 'uid',
   'activeUserNotifications/{notificationId}': 'id',
   'activeAdminNotifications/{notificationId}': 'id',
   'adminNotificationHistory/{notificationId}': 'archiveOccurrenceId',
@@ -464,23 +477,30 @@ export const COLLECTION_DOC_ID_FIELDS = {
  * Collections that exist (in COLLECTIONS / *_SUBCOLLECTIONS or firestore.rules) but are
  * intentionally NOT bound to a schema, each with a reason. Listed EXPLICITLY so completeness is
  * enforced and nothing is silently uncovered; the registry test fails if a NEW unlisted collection
- * appears. These three are the only remaining gaps after the schema-registry binding pass:
+ * appears. These are the only remaining gaps after the schema-registry binding pass:
  *
  *  - userMetadata: `userProfiles/{uid}/userMetadata/notificationSettings` — a firestore.rules
  *    match and `PATH_BUILDERS.userMetadata` exist, but there is no live reader/writer and no
  *    notification-settings type anywhere yet. Bind once that shape is implemented.
- *  - checkedOutItems: a `userProfiles/{uid}/checkedOutItems` subcollection constant with no writer,
- *    reader, rule, or path-builder (the admin "checked out items" UI reads adminTasks by
- *    `checkoutDetails.userId`, not this subcollection). Vestigial — remove once confirmed safe.
- *  - feedbackDenylist: `feedbackDenylist/{deniedWord}` — Console-managed (firestore.rules §3F: no
- *    callable writes it) and submitFeedback reads it via `.exists` only, so there is no field
+ *  - feedbackDenylist: `_serverData/feedbackLists/feedbackDenylist/{deniedWord}` — Console-managed
+ *    (no callable writes it) and submitFeedback reads it via `.exists` only, so there is no field
  *    contract to author a schema from. The doc id is the denied word; the body is unused.
+ *  - ncmecSubmissionAttempts / privilegedReviewer*: see the inline reasons below.
  */
 export const PENDING_COLLECTIONS: readonly string[] = [
   'userMetadata',
-  'checkedOutItems',
   'feedbackDenylist',
   // Append-only NCII case closure/reopen event rows — the doc shape is owned app-side
   // (NciiCaseV1 closure events), not modeled in ttt-core doc-schemas.
   'closureEvents',
+  // Per-submission NCMEC transmission attempts. The segment exists only in firestore.rules
+  // today and has no writer or reader yet; the constant is registered so the name has one
+  // owner. Bind once the attempt-record shape is implemented.
+  'ncmecSubmissionAttempts',
+  // The privileged-reviewer passkey / capability-grant feature is NOT V1: zero writer and zero
+  // reader anywhere in functions/src or src, and no firestore.rules block. Their forward-declared
+  // schemas (doc-schemas/safety/reviewer-security.ts) stay authored but are UNBOUND, so the
+  // registry remains an inventory of live collections. Bind when the feature is built.
+  'privilegedReviewerPasskeyProfiles',
+  'privilegedReviewerCapabilityGrants',
 ] as const;

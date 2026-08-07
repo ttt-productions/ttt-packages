@@ -20,6 +20,15 @@ and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
   backward/forward compatibility for rolling Worker/DO deploys).
 - **Signed opaque tokens** — `signToken` / `verifyToken`: the `v1.{payload}.{sig}`
   signed-token format used for short-lived, verifiable capability tokens.
+- **Edge→origin provenance headers** — `ORIGIN_MARKER_HEADER` / `_VALUE`,
+  `EDGE_MARKER_HEADER` / `_VALUE`, `EDGE_SECRET_HEADER`,
+  `EDGE_CANONICAL_HOST_HEADER`, `EDGE_CLIENT_IP_HEADER`,
+  `VERIFIED_CLIENT_IP_HEADER`, plus `EDGE_INTERNAL_HEADERS` (the
+  client-forgeable set every front door deletes inbound) and its
+  `EdgeInternalHeader` type. The single definition ARCH-005 requires for a
+  cross-tree trust contract: the Worker front door that mints the headers and
+  the origin that validates the secret+host pair and mints the verified client
+  IP import the SAME strings. Names only — each tree keeps its own trust logic.
 
 ## Boundary
 
@@ -30,6 +39,10 @@ audience `ttt-media-authority:{env}`). The media serving authority and the chat
 realtime layer (chat-sync writer, chat-grant minting, chat-worker auth) both
 consume it today. Concrete domain schemas and collection names live in
 `ttt-core`, never here.
+
+The provenance header names are the one `ttt`-branded surface: they are literal
+wire strings two independently deployed runtimes must agree on, which is a
+sanctioned exception recorded in `package-architecture.md` § Direction rules.
 
 ## Entry points
 

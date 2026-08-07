@@ -13,6 +13,7 @@ import {
   REDUCED_MOTION_CHANGE_EVENT,
   TEXT_SIZE_STORAGE_KEY,
   TEXT_SIZE_CHANGE_EVENT,
+  COOKIE_CONSENT_STORAGE_KEY,
 } from '../src/constants/storage-keys';
 
 describe('Company dock storage keys + events are byte-stable', () => {
@@ -53,5 +54,25 @@ describe('Large-text House control storage key + event (device-local)', () => {
     // The key and its change event are distinct strings (a shared value would make the
     // same-tab broadcast collide with the storage key).
     expect(TEXT_SIZE_CHANGE_EVENT).not.toBe(TEXT_SIZE_STORAGE_KEY);
+  });
+});
+
+describe('Cookie/analytics consent storage key (device-local)', () => {
+  it('holds the exact literal the app store already persists', () => {
+    // Byte-identical to the pre-canonicalization app literal in src/hooks/use-consent.tsx
+    // (STORAGE_KEY *and* COOKIE_NAME) — changing it would silently re-prompt every visitor
+    // who has already made a GDPR consent choice.
+    expect(COOKIE_CONSENT_STORAGE_KEY).toBe('ttt_cookie_consent');
+  });
+
+  it('is an independent device preference — shares no key with a House control', () => {
+    const keys = [
+      COOKIE_CONSENT_STORAGE_KEY,
+      TEXT_SIZE_STORAGE_KEY,
+      REDUCED_MOTION_STORAGE_KEY,
+      MASCOT_HIDDEN_STORAGE_KEY,
+      COMPANION_STORAGE_KEY,
+    ];
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });

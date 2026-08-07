@@ -220,8 +220,19 @@ describe('PATH_BUILDERS', () => {
       expect(result).toHaveLength(4);
       expect(result[0]).toBe(COLLECTIONS.HALL_ITEMS);
       expect(result[1]).toBe('lib1');
-      expect(result[2]).toBe('tales');
+      expect(result[2]).toBe('hallItemTales');
       expect(result[3]).toBe('item1');
+    });
+
+    it('hall sub-item segments are independent compound names, NOT a lowercased WorkProjectType', () => {
+      // ARCH-104: the segment carries its parent context. A `.toLowerCase()` derivation
+      // would produce 'tales'/'tunes'/'television' — collections that do not exist.
+      expect(HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales).toBe('hallItemTales');
+      expect(HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes).toBe('hallItemTunes');
+      expect(HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Television).toBe('hallItemTelevision');
+      for (const workType of ['Tales', 'Tunes', 'Television'] as const) {
+        expect(HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE[workType]).not.toBe(workType.toLowerCase());
+      }
     });
   });
 
@@ -457,18 +468,24 @@ describe('PATH_BUILDERS', () => {
       expect(result[3]).toBe('sug1');
     });
 
-    it('feedbackAlias returns 2-segment tuple', () => {
+    it('feedbackAlias lives under the server-only _serverData/feedbackLists container', () => {
       const result = PATH_BUILDERS.feedbackAlias('alias1');
-      expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.FEEDBACK_ALIASES);
-      expect(result[1]).toBe('alias1');
+      expect(result).toEqual([
+        COLLECTIONS.SERVER_DATA,
+        SPECIAL_DOCS.FEEDBACK_LISTS,
+        NESTED_SUBCOLLECTIONS.FEEDBACK_ALIASES,
+        'alias1',
+      ]);
     });
 
-    it('feedbackDenylist returns 2-segment tuple', () => {
+    it('feedbackDenylist lives under the server-only _serverData/feedbackLists container', () => {
       const result = PATH_BUILDERS.feedbackDenylist('badword');
-      expect(result).toHaveLength(2);
-      expect(result[0]).toBe(COLLECTIONS.FEEDBACK_DENYLIST);
-      expect(result[1]).toBe('badword');
+      expect(result).toEqual([
+        COLLECTIONS.SERVER_DATA,
+        SPECIAL_DOCS.FEEDBACK_LISTS,
+        NESTED_SUBCOLLECTIONS.FEEDBACK_DENYLIST,
+        'badword',
+      ]);
     });
 
     it('taggedCraftSkill returns 4-segment tuple', () => {
@@ -510,6 +527,71 @@ describe('PATH_BUILDERS', () => {
       expect(result[0]).toBe(COLLECTIONS.APP_CONFIG);
       expect(result[1]).toBe(SPECIAL_DOCS.RULES_AND_AGREEMENTS);
     });
+
+    it('the public app-config bucket is the compound `_appConfig`, never the old `_config`', () => {
+      expect(COLLECTIONS.APP_CONFIG).toBe('_appConfig');
+      expect(PATH_BUILDERS.appConfig()).toEqual(['_appConfig', SPECIAL_DOCS.APP_CONFIG]);
+    });
+
+    it('hallMediaReaperCursor returns the _systemData singleton tuple', () => {
+      expect(PATH_BUILDERS.hallMediaReaperCursor()).toEqual([
+        COLLECTIONS.SYSTEM_DATA,
+        SPECIAL_DOCS.HALL_MEDIA_REAPER_CURSOR,
+      ]);
+    });
+  });
+
+  // ===== BACKEND-ONLY OPERATOR / RECONCILER PATHS =====
+  describe('Backend-only operator + reconciler paths', () => {
+    it('operatorStepUp returns 2-segment tuple keyed by uid', () => {
+      expect(PATH_BUILDERS.operatorStepUp('op-1')).toEqual([COLLECTIONS.OPERATOR_STEP_UP, 'op-1']);
+    });
+
+    it('safetyReconcilerCursor returns 2-segment tuple keyed by the sweep cursor key', () => {
+      expect(PATH_BUILDERS.safetyReconcilerCursor('quarantineEnqueue')).toEqual([
+        COLLECTIONS.SAFETY_RECONCILER_CURSORS,
+        'quarantineEnqueue',
+      ]);
+    });
+
+    it('childSafetyNcmecSubmissionAttempt returns the 6-segment attempt tuple', () => {
+      expect(PATH_BUILDERS.childSafetyNcmecSubmissionAttempt('c1', 's1', 'a1')).toEqual([
+        COLLECTIONS.CHILD_SAFETY_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS,
+        's1',
+        NESTED_SUBCOLLECTIONS.NCMEC_SUBMISSION_ATTEMPTS,
+        'a1',
+      ]);
+    });
+
+    it('childSafetyPortalReceiptArtifact returns the 4-segment artifact tuple, with its collection parent', () => {
+      expect(PATH_BUILDERS.childSafetyPortalReceiptArtifact('c1', 'art1')).toEqual([
+        COLLECTIONS.CHILD_SAFETY_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_RECEIPT_ARTIFACTS,
+        'art1',
+      ]);
+      expect(PATH_BUILDERS.childSafetyPortalReceiptArtifacts('c1')).toEqual([
+        COLLECTIONS.CHILD_SAFETY_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_RECEIPT_ARTIFACTS,
+      ]);
+    });
+
+    it('childSafetyNcmecPortalCorrection returns the 4-segment correction tuple, with its collection parent', () => {
+      expect(PATH_BUILDERS.childSafetyNcmecPortalCorrection('c1', 'corr1')).toEqual([
+        COLLECTIONS.CHILD_SAFETY_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_CORRECTIONS,
+        'corr1',
+      ]);
+      expect(PATH_BUILDERS.childSafetyNcmecPortalCorrections('c1')).toEqual([
+        COLLECTIONS.CHILD_SAFETY_CASES,
+        'c1',
+        NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_CORRECTIONS,
+      ]);
+    });
   });
 
   // ===== ADOPTION-GAP BUILDERS (added for hand-assembled call sites) =====
@@ -545,7 +627,7 @@ describe('PATH_BUILDERS', () => {
 
     it('hallItemSubItems returns 3-segment collection tuple with the canonical subcollection segment', () => {
       const result = PATH_BUILDERS.hallItemSubItems('hall1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes);
-      expect(result).toEqual([COLLECTIONS.HALL_ITEMS, 'hall1', 'tunes']);
+      expect(result).toEqual([COLLECTIONS.HALL_ITEMS, 'hall1', 'hallItemTunes']);
     });
 
     it('childSafetySourceSignals / childSafetyDecisions / childSafetyCaseAccounts return 3-segment collection tuples', () => {

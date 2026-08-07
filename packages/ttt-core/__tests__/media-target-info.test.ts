@@ -3,6 +3,7 @@ import {
   parseTargetInfo,
   ProfilePictureTargetInfoSchema,
   CraftSkillMediaTargetInfoSchema,
+  CraftSkillUploadAttestationSchema,
   SquareStreetzTargetInfoSchema,
   SquareStreetzCaptionSchema,
   CommissionPostingTargetInfoSchema,
@@ -24,7 +25,10 @@ import {
   MAX_SPONSORED_AUDITION_AMOUNT_USD,
   MAX_MENTIONS,
   MAX_POST_LENGTH,
+  MAX_CRAFT_SKILL_TAGS,
 } from '../src/constants/business.js';
+import { CRAFT_SKILL_STATEMENT_VERSION } from '../src/constants/craft-skill-statements.js';
+import { CRAFT_SKILL_TAG_OPTIONS } from '../src/constants/options.js';
 
 describe('ProfilePictureTargetInfoSchema', () => {
   it('accepts empty object', () => {
@@ -36,7 +40,19 @@ describe('ProfilePictureTargetInfoSchema', () => {
 });
 
 describe('CraftSkillMediaTargetInfoSchema', () => {
-  const valid = { skillType: 'image' as const, originalFileName: 'a.jpg' };
+  const tag = CRAFT_SKILL_TAG_OPTIONS[0];
+  const attestation = {
+    statementKind: 'original' as const,
+    statementVersion: CRAFT_SKILL_STATEMENT_VERSION,
+    agreedAt: 1,
+  };
+  const valid = {
+    skillType: 'image' as const,
+    originalFileName: 'a.jpg',
+    kind: 'original' as const,
+    attestation,
+    tags: [tag],
+  };
   it('accepts valid', () => { expect(() => CraftSkillMediaTargetInfoSchema.parse(valid)).not.toThrow(); });
   it('rejects unknown skillType', () => {
     expect(() => CraftSkillMediaTargetInfoSchema.parse({ ...valid, skillType: 'pdf' })).toThrow();
@@ -46,6 +62,89 @@ describe('CraftSkillMediaTargetInfoSchema', () => {
   });
   it('rejects unknown fields', () => {
     expect(() => CraftSkillMediaTargetInfoSchema.parse({ ...valid, extra: 1 })).toThrow();
+  });
+
+  // The three-kind attestation is part of THIS schema (ARCH-101) — it is not split off and
+  // validated by an app-local copy on either layer.
+  it('requires the three-kind attestation triple alongside the base fields', () => {
+    for (const field of ['kind', 'attestation', 'tags'] as const) {
+      const { [field]: _dropped, ...missing } = valid;
+      expect(CraftSkillMediaTargetInfoSchema.safeParse(missing).success).toBe(false);
+    }
+  });
+
+  it('routes through parseTargetInfo as ONE payload — no split-and-revalidate', () => {
+    expect(() => parseTargetInfo('craft-skill-media', valid)).not.toThrow();
+  });
+
+  it('requires a source for mimicOnTtt and forbids one otherwise', () => {
+    const source = { type: 'user' as const, id: 'u1' };
+    const mimic = {
+      ...valid,
+      kind: 'mimicOnTtt' as const,
+      attestation: { ...attestation, statementKind: 'mimicOnTtt' as const },
+    };
+    expect(CraftSkillMediaTargetInfoSchema.safeParse(mimic).success).toBe(false);
+    expect(CraftSkillMediaTargetInfoSchema.safeParse({ ...mimic, source }).success).toBe(true);
+    expect(CraftSkillMediaTargetInfoSchema.safeParse({ ...valid, source }).success).toBe(false);
+  });
+
+  it('requires attestation.statementKind to match kind and pin the current version', () => {
+    expect(
+      CraftSkillMediaTargetInfoSchema.safeParse({
+        ...valid,
+        attestation: { ...attestation, statementKind: 'mimicOffTtt' },
+      }).success,
+    ).toBe(false);
+    expect(
+      CraftSkillMediaTargetInfoSchema.safeParse({
+        ...valid,
+        attestation: { ...attestation, statementVersion: CRAFT_SKILL_STATEMENT_VERSION + 1 },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('enforces the tag floor of 1, the allowlist, the cap, and dedupe', () => {
+    expect(CraftSkillMediaTargetInfoSchema.safeParse({ ...valid, tags: [] }).success).toBe(false);
+    expect(CraftSkillMediaTargetInfoSchema.safeParse({ ...valid, tags: ['not-a-real-tag'] }).success).toBe(false);
+    expect(CraftSkillMediaTargetInfoSchema.safeParse({ ...valid, tags: [tag, tag] }).success).toBe(false);
+    expect(
+      CraftSkillMediaTargetInfoSchema.safeParse({
+        ...valid,
+        tags: CRAFT_SKILL_TAG_OPTIONS.slice(0, MAX_CRAFT_SKILL_TAGS + 1),
+      }).success,
+    ).toBe(false);
+  });
+});
+
+describe('CraftSkillUploadAttestationSchema (the triple on its own)', () => {
+  const triple = {
+    kind: 'original' as const,
+    attestation: {
+      statementKind: 'original' as const,
+      statementVersion: CRAFT_SKILL_STATEMENT_VERSION,
+      agreedAt: 1,
+    },
+    tags: [CRAFT_SKILL_TAG_OPTIONS[0]],
+  };
+
+  it('accepts the triple the processor hands the publication adapter', () => {
+    expect(CraftSkillUploadAttestationSchema.safeParse(triple).success).toBe(true);
+  });
+
+  it('shares ONE refinement with the targetInfo schema (source rule holds on both)', () => {
+    expect(
+      CraftSkillUploadAttestationSchema.safeParse({
+        ...triple,
+        source: { type: 'user', id: 'u1' },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects the base media fields — it is the attestation view, not the whole targetInfo', () => {
+    expect(
+      CraftSkillUploadAttestationSchema.safeParse({ ...triple, skillType: 'image' }).success,
+    ).toBe(false);
   });
 });
 
@@ -378,8 +477,18 @@ describe('parseTargetInfo dispatch', () => {
     expect(parseTargetInfo('profile-picture', {})).toEqual({});
   });
   it('dispatches to craft-skill-media schema', () => {
-    const result = parseTargetInfo('craft-skill-media', { skillType: 'image', originalFileName: 'a.jpg' });
-    expect(result).toMatchObject({ skillType: 'image', originalFileName: 'a.jpg' });
+    const result = parseTargetInfo('craft-skill-media', {
+      skillType: 'image',
+      originalFileName: 'a.jpg',
+      kind: 'original',
+      attestation: {
+        statementKind: 'original',
+        statementVersion: CRAFT_SKILL_STATEMENT_VERSION,
+        agreedAt: 1,
+      },
+      tags: [CRAFT_SKILL_TAG_OPTIONS[0]],
+    });
+    expect(result).toMatchObject({ skillType: 'image', originalFileName: 'a.jpg', kind: 'original' });
   });
   it('dispatches to conversation-file schema', () => {
     expect(parseTargetInfo('conversation-file', { kind: 'guildInvite', guildInviteId: 'inv_1' }))

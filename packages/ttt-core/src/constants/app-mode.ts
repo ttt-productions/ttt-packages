@@ -81,6 +81,9 @@ export interface TttLimits {
     SHORT_LINK_CLICK: RateLimitValue;
     FOLLOW: RateLimitValue;
     MENTION_HISTORY: RateLimitValue;
+    MEDIA_GRANT: RateLimitValue;
+    CHAT_GRANT: RateLimitValue;
+    OPERATOR_STEP_UP: RateLimitValue;
     ADMIN_MESSAGE_READ: RateLimitValue;
     USER_LOOKUP: RateLimitValue;
     NOTIFICATION_BROADCAST: RateLimitValue;
@@ -168,6 +171,34 @@ export const CHARTER_LIMITS: TttLimits = {
     SHORT_LINK_CLICK: { maxRequests: 60, window: '1 h' },
     FOLLOW: { maxRequests: 20, window: '1 m' },
     MENTION_HISTORY: { maxRequests: 120, window: '1 h' },
+    // Scoped-media grant minting (createMediaGrant). Its OWN bucket — it used to charge
+    // MENTION_HISTORY, an unrelated surface, so neither limit meant what its name said and the
+    // two shared a budget sized for neither (BACKEND-013). Refresh-driven, not user-initiated:
+    // a grant is short-TTL (60 min work media, 15 min chat/folder scopes) and the client re-mints
+    // under expiry, so a browsing session naturally spends several per hour PER SCOPE (each work,
+    // each private file folder, each conversation). Cheap to serve (a Firestore permission read
+    // plus an HMAC sign — no third-party cost), and a false 429 breaks media rendering outright,
+    // so the ceiling is generous: it exists to stop a scripted grant-farming sweep, not to pace a
+    // real reader. 120/h charter.
+    MEDIA_GRANT: { maxRequests: 120, window: '1 h' },
+    // Realtime chat grant minting (mintChatGrant) — previously NO limiter at all (BACKEND-013),
+    // despite minting signed grants at concurrency: 20. Same refresh-driven shape as MEDIA_GRANT:
+    // a 15-minute grant TTL means ~4 mints/hour for the inbox plus ~4 per open channel, doubled
+    // again by socket reconnects on a flaky mobile network. It stays behind the per-channel
+    // authorizeChannelScope gate, so this bucket is a cost/DoS ceiling rather than the
+    // authorization boundary — sized to match MEDIA_GRANT so the two grant surfaces are paced
+    // alike and neither can be starved by the other (separate Redis prefixes).
+    CHAT_GRANT: { maxRequests: 120, window: '1 h' },
+    // Operator step-up TOTP verification (confirmOperatorStepUp / verifyOperatorStepUp) —
+    // previously unthrottled, so an attacker holding a stolen full-admin session could
+    // brute-force the 6-digit second factor guarding the safety console (BACKEND-013).
+    // DELIBERATELY THE TIGHTEST BUCKET IN THE SET: a real operator enrolls once and verifies
+    // roughly twice an hour (the grant window is 30 minutes), so 10/h absorbs every legitimate
+    // mistype while capping guessing at 10 attempts per hour against a code that rotates every
+    // 30 seconds. Mode-INVARIANT — this is an admin security control, not a cost driver, so it
+    // never loosens at the full-mode flip (same posture as MODERATION / BAN_ACTION / USER_LOOKUP).
+    // The lockout-after-N-failures behaviour is a separate app-side concern; this is the throttle.
+    OPERATOR_STEP_UP: { maxRequests: 10, window: '1 h' },
     ADMIN_MESSAGE_READ: { maxRequests: 60, window: '1 h' },
     // Admin exact-account lookup (searchPublicUsers / lookupUserByEmailOrUid) — a read, so a
     // generous per-minute bucket that still backstops a scripted enumeration sweep. Admin-only
@@ -250,6 +281,15 @@ export const FULL_LIMITS: TttLimits = {
     SHORT_LINK_CLICK: { maxRequests: 60, window: '1 h' },
     FOLLOW: { maxRequests: 60, window: '1 m' },
     MENTION_HISTORY: { maxRequests: 120, window: '1 h' },
+    // 240/h (full): the same grant-minting buckets as charter, doubled with the surrounding
+    // content limits. Full mode raises the ceilings a grant is minted PER (250-guildmate guilds,
+    // 25 file folders, 1000 work files, 10 auditions), so one session legitimately touches more
+    // scopes and re-mints more often. See the CHARTER_LIMITS notes above.
+    MEDIA_GRANT: { maxRequests: 240, window: '1 h' },
+    CHAT_GRANT: { maxRequests: 240, window: '1 h' },
+    // Operator step-up stays at 10/h in BOTH modes — an admin second-factor throttle is a
+    // security control, not a cost lever, so it never loosens at the flip. See CHARTER_LIMITS.
+    OPERATOR_STEP_UP: { maxRequests: 10, window: '1 h' },
     ADMIN_MESSAGE_READ: { maxRequests: 60, window: '1 h' },
     // Admin exact-account lookup — same read bucket in both modes (see CHARTER_LIMITS note).
     USER_LOOKUP: { maxRequests: 30, window: '1 m' },

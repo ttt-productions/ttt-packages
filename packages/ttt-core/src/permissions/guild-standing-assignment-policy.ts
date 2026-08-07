@@ -1,12 +1,13 @@
 import type { GuildStandingId } from './work-project-permissions.js';
 import {
+  STEWARD_OWNER_GUILD_STANDING_ID,
   getGuildStandingIdFromValue,
   isGuildStandingValue,
 } from './work-project-permissions.js';
 
 export type GuildStandingAssignmentAction = 'add' | 'remove';
 
-export const NON_ASSIGNABLE_GUILD_STANDINGS = ['StewardOwner'] as const satisfies readonly GuildStandingId[];
+export const NON_ASSIGNABLE_GUILD_STANDINGS = [STEWARD_OWNER_GUILD_STANDING_ID] as const satisfies readonly GuildStandingId[];
 export const STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS = [
   'WorkProjectManager',
   'GuildStandingManager',
@@ -42,7 +43,7 @@ export function canAssignGuildStanding({
   }
   const targetGuildStandingId = getGuildStandingIdFromValue(targetGuildStanding);
 
-  if (targetGuildStandingId === 'StewardOwner') {
+  if (targetGuildStandingId === STEWARD_OWNER_GUILD_STANDING_ID) {
     return { allowed: false, reason: 'Steward is not an assignable workProject guild standing.' };
   }
 

@@ -51,7 +51,7 @@ export const MediaActivationJobSchema = z
 
     status: MediaActivationJobStatusSchema,
     attemptCount: z.number().int().nonnegative(),
-    nextAttemptAt: FirestoreTimestampSchema,
+    nextAttemptAt: z.number().int().nonnegative(),
     lastError: StructuredErrorSchema.optional(),
 
     // ===== Parent-publication dependency (the curated-audition absent-parent lane) =====
@@ -74,14 +74,16 @@ export const MediaActivationJobSchema = z
     //
     // BOTH are optional: rows written before this field pair existed still parse unchanged.
     parentKey: z.string().min(1).optional(),
-    parentWaitStartedAt: FirestoreTimestampSchema.optional(),
+    parentWaitStartedAt: z.number().int().nonnegative().optional(),
 
-    createdAt: FirestoreTimestampSchema,
-    authorityAppliedAt: FirestoreTimestampSchema.optional(),
-    completedAt: FirestoreTimestampSchema.optional(),
-    deadLetteredAt: FirestoreTimestampSchema.optional(),
-    // TTL set ONLY at `complete`; NEVER on pending/authorityApplied/deadLetter.
-    // Replay clears terminal/TTL fields (frozen matrix rule).
+    createdAt: z.number().int().nonnegative(),
+    authorityAppliedAt: z.number().int().nonnegative().optional(),
+    completedAt: z.number().int().nonnegative().optional(),
+    deadLetteredAt: z.number().int().nonnegative().optional(),
+    // The ONE Timestamp on this collection (ARCH-105): native TTL only honors a
+    // Timestamp-typed field. Set ONLY at `complete`; NEVER on
+    // pending/authorityApplied/deadLetter. Replay clears terminal/TTL fields
+    // (frozen matrix rule). Every other time field above is epoch-millis.
     expireAt: FirestoreTimestampSchema.optional(),
   })
   .strict();

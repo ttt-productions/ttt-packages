@@ -44,6 +44,7 @@ import {
   MAX_CONTENT_PAGE_BODY_LENGTH,
   MAX_TAKE_IT_DOWN_COPY_LENGTH,
   MAX_MAINTENANCE_MESSAGE_LENGTH,
+  MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
   MAX_APPEAL_REVIEW_NOTES_LENGTH,
   MAX_REQUIRE_RETITLE_REASON_LENGTH,
   MAX_USER_FACING_REASON_DETAIL_LENGTH,
@@ -192,6 +193,8 @@ export const UpdateAppConfigInputSchema = z.object({
     maintenanceMode: z.boolean().optional(),
     maintenanceMessage: z.string().max(MAX_MAINTENANCE_MESSAGE_LENGTH).optional(),
     registrationEnabled: z.boolean().optional(),
+    // Announcement banner copy; '' clears the banner (empty = nothing renders).
+    announcementMessage: z.string().max(MAX_ANNOUNCEMENT_MESSAGE_LENGTH).optional(),
     // Runtime abuse throttle: 0 < m <= 1 (tighten-only; 1 = no throttle).
     rateLimitMultiplier: z.number().gt(0).max(1).optional(),
   }).strict().refine(

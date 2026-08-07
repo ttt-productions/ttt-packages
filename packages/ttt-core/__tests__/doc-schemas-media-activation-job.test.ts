@@ -51,8 +51,8 @@ const legacyJob = {
   publicationArgs: { auditionId: 'aud-1' },
   status: 'pending' as const,
   attemptCount: 0,
-  nextAttemptAt: ts(1_700_000_000_000),
-  createdAt: ts(1_700_000_000_000),
+  nextAttemptAt: 1_700_000_000_000,
+  createdAt: 1_700_000_000_000,
 };
 
 describe('MediaActivationJobSchema — parent-publication dependency fields', () => {
@@ -68,25 +68,23 @@ describe('MediaActivationJobSchema — parent-publication dependency fields', ()
     expect(parsed.parentWaitStartedAt).toBeUndefined();
   });
 
-  it('parses a parked job carrying both fields and preserves the Timestamp instance', () => {
-    const startedAt = ts(1_700_000_123_000);
+  it('parses a parked job carrying both fields', () => {
     const parsed = MediaActivationJobSchema.parse({
       ...legacyJob,
       parentKey: 'aud-1',
-      parentWaitStartedAt: startedAt,
+      parentWaitStartedAt: 1_700_000_123_000,
     });
     expect(parsed.parentKey).toBe('aud-1');
-    // Validated structurally, NOT transformed — the Timestamp keeps its methods.
-    expect(parsed.parentWaitStartedAt?.toMillis()).toBe(1_700_000_123_000);
+    expect(parsed.parentWaitStartedAt).toBe(1_700_000_123_000);
   });
 
   it('rejects an empty parentKey (a blank key would park a job against nothing)', () => {
     expect(MediaActivationJobSchema.safeParse({ ...legacyJob, parentKey: '' }).success).toBe(false);
   });
 
-  it('rejects an epoch-millis number for parentWaitStartedAt — the job time fields are Timestamps', () => {
+  it('rejects a Firestore Timestamp for parentWaitStartedAt — only the TTL field is one (ARCH-105)', () => {
     expect(
-      MediaActivationJobSchema.safeParse({ ...legacyJob, parentWaitStartedAt: 1_700_000_123_000 })
+      MediaActivationJobSchema.safeParse({ ...legacyJob, parentWaitStartedAt: ts(1_700_000_123_000) })
         .success,
     ).toBe(false);
   });

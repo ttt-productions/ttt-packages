@@ -2,12 +2,18 @@
 // Type inferred via z.infer. (Field docs live in ../types/system.ts.)
 
 import { z } from 'zod';
+import { MAX_ANNOUNCEMENT_MESSAGE_LENGTH } from '../constants/business-admin.js';
 
 export const AppConfigSchema = z.object({
   appVersion: z.string(),
   maintenanceMode: z.boolean(),
   maintenanceMessage: z.string().optional(),
   registrationEnabled: z.boolean(),
+  // Announcement banner (the third operational lever, alongside maintenanceMode and
+  // registrationEnabled). OPTIONAL, and EMPTY means no banner — there is no separate
+  // on/off boolean, so clearing the text IS turning the banner off. Non-empty renders a
+  // banner on the landing page and login screen. Set via updateAppConfig (audited).
+  announcementMessage: z.string().max(MAX_ANNOUNCEMENT_MESSAGE_LENGTH).optional(),
   // Runtime abuse throttle (incident lever — NOT the charter/full mode, which is
   // a ttt-core code constant). Scales every rate limiter's maxRequests DOWN:
   // 0 < m <= 1, tighten-only. Absent = 1 (no throttle). Set via updateAppConfig

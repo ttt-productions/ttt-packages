@@ -128,6 +128,11 @@ export const MAX_CONTENT_PAGE_BODY_LENGTH = 20000;
 export const MAX_TAKE_IT_DOWN_COPY_LENGTH = 8000;
 export const MAX_MAINTENANCE_MESSAGE_LENGTH = 2000;
 
+/** Announcement-banner copy on `_config/app.announcementMessage`. Deliberately far
+ *  shorter than the maintenance message: the announcement renders as a one-line banner
+ *  on the landing page and login screen, not a full-page takeover. */
+export const MAX_ANNOUNCEMENT_MESSAGE_LENGTH = 300;
+
 /** Admin notes on a content-appeal review (reviewContentAppeal). */
 export const MAX_APPEAL_REVIEW_NOTES_LENGTH = 2000;
 

@@ -132,15 +132,20 @@ export const PATH_BUILDERS = {
   hallItem: (hallItemId: string): [string, string] =>
     [COLLECTIONS.HALL_ITEMS, hallItemId],
 
-  // Published hall sub-item projection (chapter/track/episode). The subcollection
-  // segment is constrained to the canonical HALL_ITEM_SUBCOLLECTIONS values — derive
-  // it from HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE, never `workProjectType.toLowerCase()`.
+  // Published hall sub-item projection (chapter/track/episode). The subcollection segment
+  // is constrained to the canonical HALL_ITEM_SUBCOLLECTIONS values (hallItemTales /
+  // hallItemTunes / hallItemTelevision) — derive it from
+  // HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE. `workProjectType.toLowerCase()` is NOT a valid
+  // derivation: it yields a segment that does not exist, silently addressing an empty
+  // collection instead of failing.
   hallItemType: (hallItemId: string, subcollection: HallItemSubcollection, itemId: string): [string, string, string, string] =>
     [COLLECTIONS.HALL_ITEMS, hallItemId, subcollection, itemId],
 
   // Collection of published hall sub-items for one type (parent of hallItemType). The
   // subcollection segment is the canonical HallItemSubcollection — derive it from
-  // HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE, never `workProjectType.toLowerCase()`.
+  // HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE. `workProjectType.toLowerCase()` is NOT a valid
+  // derivation: it yields a segment that does not exist, silently addressing an empty
+  // collection instead of failing.
   hallItemSubItems: (hallItemId: string, subcollection: HallItemSubcollection): [string, string, string] =>
     [COLLECTIONS.HALL_ITEMS, hallItemId, subcollection],
 
@@ -317,11 +322,14 @@ export const PATH_BUILDERS = {
   userSuggestion: (feedbackType: string, suggestionId: string): [string, string, string, string] =>
     [COLLECTIONS.FEEDBACK_SUBMISSIONS, feedbackType, NESTED_SUBCOLLECTIONS.USER_SUGGESTIONS, suggestionId],
 
-  feedbackAlias: (aliasId: string): [string, string] =>
-    [COLLECTIONS.FEEDBACK_ALIASES, aliasId],
+  // The two submitFeedback lists live under the server-only `_serverData/feedbackLists`
+  // container doc (BACKEND-108) — Cloud Functions read them via the Admin SDK and no
+  // client reads either one. Doc ids are the normalized suggestion text.
+  feedbackAlias: (aliasId: string): [string, string, string, string] =>
+    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.FEEDBACK_LISTS, NESTED_SUBCOLLECTIONS.FEEDBACK_ALIASES, aliasId],
 
-  feedbackDenylist: (deniedWord: string): [string, string] =>
-    [COLLECTIONS.FEEDBACK_DENYLIST, deniedWord],
+  feedbackDenylist: (deniedWord: string): [string, string, string, string] =>
+    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.FEEDBACK_LISTS, NESTED_SUBCOLLECTIONS.FEEDBACK_DENYLIST, deniedWord],
 
   taggedCraftSkill: (tag: string, compositeId: string): [string, string, string, string] =>
     [COLLECTIONS.CRAFT_SKILLS_BY_TAG, tag, NESTED_SUBCOLLECTIONS.TAGGED_CRAFT_SKILLS, compositeId],
@@ -359,6 +367,12 @@ export const PATH_BUILDERS = {
 
   appModeMarker: (): [string, string] =>
     [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.APP_MODE],
+
+  // Singleton scan cursor for the scheduled Hall media orphan reaper
+  // (reapOrphanedHallMediaCopies). Backend-only; persists the highest `createdAt` the
+  // reaper has positively cleared so each pass resumes instead of re-reading the oldest page.
+  hallMediaReaperCursor: (): [string, string] =>
+    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.HALL_MEDIA_REAPER_CURSOR],
 
   // Backend-only post-commit auth-effect reconcile queue entry, keyed by the affected uid.
   statusReconcileQueueEntry: (uid: string): [string, string] =>
@@ -404,8 +418,33 @@ export const PATH_BUILDERS = {
   childSafetyNcmecSubmissionFile: (caseId: string, submissionId: string, fileId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSION_FILES, fileId],
 
+  // Per-submission NCMEC transmission attempt. Previously a `firestore.rules`-only segment
+  // with no ttt-core constant; the segment now has a single owner (NCMEC_SUBMISSION_ATTEMPTS).
+  childSafetyNcmecSubmissionAttempt: (caseId: string, submissionId: string, attemptId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.NCMEC_SUBMISSION_ATTEMPTS, attemptId],
+
   childSafetyLegalProcessEvent: (caseId: string, eventId: string): [string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_LEGAL_PROCESS, eventId],
+
+  // Immutable portal-receipt artifact record bound to a case + NCMEC submission — the proof
+  // `markNcmecPortalComplete` requires. Written create-only by recordNcmecPortalReceiptArtifact.
+  childSafetyPortalReceiptArtifact: (caseId: string, artifactId: string): [string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_RECEIPT_ARTIFACTS, artifactId],
+
+  // Collection of portal-receipt artifact rows for a case (parent of the builder above) — the
+  // auto-id mint site.
+  childSafetyPortalReceiptArtifacts: (caseId: string): [string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_RECEIPT_ARTIFACTS],
+
+  // Immutable record that the operator filed a CORRECTION on the NCMEC manual portal. Its
+  // existence is what unlocks the corrected-no-apparent-violation disposition.
+  childSafetyNcmecPortalCorrection: (caseId: string, correctionId: string): [string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_CORRECTIONS, correctionId],
+
+  // Collection of portal-correction rows for a case (parent of the builder above) — the auto-id
+  // mint site and the existence query behind the disposition gate.
+  childSafetyNcmecPortalCorrections: (caseId: string): [string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.NCMEC_PORTAL_CORRECTIONS],
 
   childSafetyOwningAlias: (aliasId: string): [string, string] =>
     [COLLECTIONS.CHILD_SAFETY_OWNING_ALIASES, aliasId],
@@ -471,6 +510,15 @@ export const PATH_BUILDERS = {
   // ===== TRUST & SAFETY — age attestation nonces (§A7) =====
   ageAttestationNonce: (nonceHash: string): [string, string] =>
     [COLLECTIONS.AGE_ATTESTATION_NONCES, nonceHash],
+
+  // ===== TRUST & SAFETY — operator step-up + reconciler cursors (backend-only) =====
+  // [H-08] per-operator TOTP step-up state, keyed by uid. Cloud-Functions-only.
+  operatorStepUp: (uid: string): [string, string] =>
+    [COLLECTIONS.OPERATOR_STEP_UP, uid],
+
+  // Persisted pagination cursor for one reconciler needs-work backstop sweep.
+  safetyReconcilerCursor: (cursorKey: string): [string, string] =>
+    [COLLECTIONS.SAFETY_RECONCILER_CURSORS, cursorKey],
 
   // ===== TRUST & SAFETY — per-operator privileged-reviewer security (§A11 [M-6] / [H-17]) =====
   // Backend-only per-operator docs keyed by uid (mirrors operatorStepUp/{uid}).
@@ -558,7 +606,7 @@ export const PATH_BUILDERS = {
     [COLLECTIONS.NCII_REMOVAL_JOBS, jobId, NESTED_SUBCOLLECTIONS.NCII_REMOVAL_TARGETS, targetKeyHash],
 
   // ===== TRUST & SAFETY — _serverData (server-only) singletons (§A7, §A11) =====
-  // Moved from _config (public) to _serverData (BACKEND-108 — Cloud-Functions-only readers).
+  // Moved from _appConfig (public) to _serverData (BACKEND-108 — Cloud-Functions-only readers).
   agePolicyConfig: (): [string, string] =>
     [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.AGE_POLICY],
 

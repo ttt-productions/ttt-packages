@@ -7,12 +7,62 @@ import {
   UpdateAdminListResultSchema,
   StagedActionSchema,
   GetReportedContentDetailResultSchema,
+  UpdateAppConfigInputSchema,
 } from '../src/schemas/admin.js';
+import { AppConfigSchema } from '../src/doc-schemas/system.js';
 import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   HALL_CLEARABLE_TEXT_FIELD_NAMES,
   HALL_CONTENT_SURFACES_BY_WORK_TYPE,
 } from '../src/constants/business-content.js';
+import { MAX_ANNOUNCEMENT_MESSAGE_LENGTH } from '../src/constants/business-admin.js';
+
+describe('announcementMessage — the third operational lever on _config/app', () => {
+  const baseConfig = {
+    appVersion: '1.0.0',
+    maintenanceMode: false,
+    registrationEnabled: true,
+  };
+
+  it('is OPTIONAL on the doc schema — an existing config doc still parses', () => {
+    expect(AppConfigSchema.safeParse(baseConfig).success).toBe(true);
+  });
+
+  it('accepts announcement copy, and EMPTY (no banner) is a valid stored value', () => {
+    expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: 'Back at 9pm ET.' }).success).toBe(true);
+    // Empty = no banner. There is no separate on/off boolean, so clearing the text IS the off state.
+    expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: '' }).success).toBe(true);
+  });
+
+  it('caps the banner copy at the canonical length on BOTH the doc and the callable input', () => {
+    const tooLong = 'a'.repeat(MAX_ANNOUNCEMENT_MESSAGE_LENGTH + 1);
+    const atCap = 'a'.repeat(MAX_ANNOUNCEMENT_MESSAGE_LENGTH);
+    expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: atCap }).success).toBe(true);
+    expect(AppConfigSchema.safeParse({ ...baseConfig, announcementMessage: tooLong }).success).toBe(false);
+    expect(
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementMessage: atCap } }).success,
+    ).toBe(true);
+    expect(
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementMessage: tooLong } }).success,
+    ).toBe(false);
+  });
+
+  it('is writable on its own through updateAppConfig — the lever is independent of the others', () => {
+    const parsed = UpdateAppConfigInputSchema.parse({ docId: 'app', data: { announcementMessage: '' } });
+    expect(parsed.data.announcementMessage).toBe('');
+    expect(parsed.data.maintenanceMode).toBeUndefined();
+    expect(parsed.data.registrationEnabled).toBeUndefined();
+  });
+
+  it('rejects a non-string announcement (the input stays .strict())', () => {
+    expect(
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementMessage: true } }).success,
+    ).toBe(false);
+    expect(
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementBanner: 'x' } }).success,
+    ).toBe(false);
+  });
+});
 
 describe('UpdateAdminListInputSchema', () => {
   it('accepts a single addAdmins entry', () => {

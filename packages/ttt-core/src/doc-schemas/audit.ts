@@ -10,7 +10,7 @@ const TTTAuditActorSchema = z.discriminatedUnion('actorMode', [
   z.object({
     uid: z.string().nullable(),
     isAdmin: z.boolean(),
-    actorMode: z.enum(['user', 'projectMember', 'system']),
+    actorMode: z.enum(['user', 'guildmateUser', 'system']),
   }),
   z.object({
     uid: z.string().nullable(),

@@ -1,11 +1,13 @@
-import { describe, it, expectTypeOf } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 import type {
   AuditEventType,
   TTTAuditActor,
   TTTAuditActorBase,
+  TTTAuditActorMode,
   TTTAuditTarget,
   TTTAuditEvent,
 } from '../src/types/audit';
+import { TTTAuditEventSchema } from '../src/doc-schemas/audit';
 
 describe('audit type catalog', () => {
   it('AuditEventType includes representative members from each domain', () => {
@@ -82,6 +84,53 @@ describe('audit type catalog', () => {
       uid: string | null;
       isAdmin: boolean;
     }>();
+  });
+
+  it('the Work-membership actor mode is guildmateUser — projectMember is the retired name', () => {
+    // ARCH-107 / terminology-naming-convention.md: the bare `member` / `projectMember` noun
+    // renames to `guildmateUser` everywhere a code identifier is involved.
+    const guildmate: TTTAuditActorMode = 'guildmateUser';
+    void guildmate;
+
+    // @ts-expect-error — 'projectMember' is the retired identifier; it is not a member of the union.
+    const retired: TTTAuditActorMode = 'projectMember';
+    void retired;
+
+    const actor: TTTAuditActor = { uid: 'u1', isAdmin: false, actorMode: 'guildmateUser' };
+    expectTypeOf(actor).toMatchTypeOf<TTTAuditActor>();
+
+    // @ts-expect-error — a guildmateUser actor must not carry a systemRole (non-admin mode).
+    const spurious: TTTAuditActor = { uid: 'u1', isAdmin: false, actorMode: 'guildmateUser', systemRole: 'admin' };
+    void spurious;
+  });
+
+  it('the registry schema enum agrees with the type union (guildmateUser in, projectMember out)', () => {
+    const event = {
+      id: 'evt-1',
+      type: 'workProject.created',
+      schemaVersion: 1,
+      target: null,
+      timestamp: 0,
+      ip: null,
+      userAgent: null,
+      region: null,
+      metadata: {},
+      result: 'success',
+      failureReason: null,
+      correlationId: null,
+    };
+    expect(
+      TTTAuditEventSchema.safeParse({
+        ...event,
+        actor: { uid: 'u1', isAdmin: false, actorMode: 'guildmateUser' },
+      }).success,
+    ).toBe(true);
+    expect(
+      TTTAuditEventSchema.safeParse({
+        ...event,
+        actor: { uid: 'u1', isAdmin: false, actorMode: 'projectMember' },
+      }).success,
+    ).toBe(false);
   });
 
   it('TTTAuditActor requires systemRole on admin modes and forbids it otherwise', () => {
