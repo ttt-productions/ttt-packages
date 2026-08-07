@@ -308,3 +308,24 @@ export const FULL_LIMITS: TttLimits = {
 /** The resolved limit set for the deployed mode. Import THIS (or the alias
  * constants that re-export from it), never CHARTER_/FULL_ directly. */
 export const ACTIVE_LIMITS: TttLimits = byMode(CHARTER_LIMITS, FULL_LIMITS);
+
+/**
+ * User-facing copy for a reached count cap — the ONE owner of the cap-message
+ * shape, beside the limits it describes. Every callable refusing on a
+ * mode-varied count cap formats through this. In charter mode the message
+ * names Charter Season so the cap reads as the season's limit rather than the
+ * platform's permanent shape; full mode stays neutral. `hint` is an optional
+ * trailing sentence (e.g. "Delete a file to add another.").
+ */
+export const countCapReachedMessage = (
+  subject: string,
+  limit: number,
+  noun: string,
+  hint?: string,
+): string => {
+  const base = byMode(
+    `${subject} already has the Charter Season maximum of ${limit} ${noun} — caps expand when Charter Season ends.`,
+    `${subject} already has the maximum of ${limit} ${noun}.`,
+  );
+  return hint ? `${base} ${hint}` : base;
+};

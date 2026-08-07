@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { ACTIVE_LIMITS, CHARTER_LIMITS, FULL_LIMITS } from '../src/constants/app-mode';
+import {
+  ACTIVE_LIMITS,
+  APP_MODE,
+  CHARTER_LIMITS,
+  FULL_LIMITS,
+  countCapReachedMessage,
+} from '../src/constants/app-mode';
 import {
   MAX_CONVERSATION_FILES,
   MAX_CONVERSATION_FILE_STORAGE_BYTES,
@@ -86,6 +92,28 @@ describe('grant-minting and operator step-up buckets (BACKEND-013)', () => {
 
   it('OPERATOR_STEP_UP is mode-INVARIANT — a security control never loosens at the flip', () => {
     expect(FULL_LIMITS.rateLimits.OPERATOR_STEP_UP).toEqual(CHARTER_LIMITS.rateLimits.OPERATOR_STEP_UP);
+  });
+});
+
+describe('countCapReachedMessage — the one owner of cap copy', () => {
+  it('charter mode names Charter Season and says caps expand later', () => {
+    // APP_MODE is compile-time 'charter' today; this asserts the deployed copy.
+    expect(APP_MODE).toBe('charter');
+    expect(countCapReachedMessage('This project', 3, 'open auditions')).toBe(
+      'This project already has the Charter Season maximum of 3 open auditions — caps expand when Charter Season ends.',
+    );
+  });
+
+  it('appends the optional action hint as a trailing sentence', () => {
+    expect(countCapReachedMessage('This conversation', 10, 'files', 'Delete a file to add another.')).toMatch(
+      / files — caps expand when Charter Season ends\. Delete a file to add another\.$/,
+    );
+  });
+
+  it('interpolates subject, limit, and noun without restating any canonical value', () => {
+    const msg = countCapReachedMessage('This tale', 5, 'chapters');
+    expect(msg).toContain('This tale');
+    expect(msg).toContain('5 chapters');
   });
 });
 
