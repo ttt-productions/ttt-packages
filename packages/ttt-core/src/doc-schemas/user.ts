@@ -191,6 +191,18 @@ export const UserAgreementsSchema = z.object({
   cookies: z.boolean().optional(),
   terms: z.boolean().optional(),
   agreedOn: z.number().optional(),
+  /**
+   * The legal-document versions this account actually accepted, read server-side from the live
+   * terms/privacy docs at acceptance time — never client-supplied, never a hardcoded constant.
+   *
+   * `0` is the sentinel for "registered while no legal document was published" (a fresh
+   * environment's first account). Published versions start at 1, so 0 can never equal a live
+   * version — which is deliberate: it keeps the record from claiming consent that never
+   * happened, and leaves the version-bump re-acceptance path free to catch the account once
+   * real legal content ships.
+   */
+  termsVersion: z.number().int().nonnegative().optional(),
+  privacyVersion: z.number().int().nonnegative().optional(),
 });
 export type UserAgreements = z.infer<typeof UserAgreementsSchema>;
 
