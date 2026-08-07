@@ -2260,7 +2260,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `nonUsArtisanInterest` | `{ country, region, requestedAt }` | yes |
 | `squareStreetzAgreementsDate` | `number` | yes |
 | `hallDownloadAcknowledgedAt` | `number` | yes |
-| `agreements` | `{ age, nudity, meet, cookies, terms, agreedOn }` | yes |
+| `agreements` | `{ age, nudity, meet, cookies, terms, agreedOn, termsVersion, privacyVersion }` | yes |
 | `siteTour` | `{ completedVersion, completedAt, notTodayDate, automaticInvitesDisabledAt }` | yes |
 | `statusReason` | `string` | yes |
 | `statusReasonAt` | `number` | yes |
