@@ -91,3 +91,93 @@ describe('SentryAdapter (browser) captureException context → tags vs extras', 
         expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'early');
     });
 });
+
+describe('SentryAdapter (browser) captureMessage context → tags vs extras', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.resetModules();
+    });
+
+    it('reports message + level unchanged when no context is passed', async () => {
+        const adapter = await loadInitializedAdapter();
+
+        adapter.captureMessage('plain', 'info');
+
+        expect(sentryMock.withScope).not.toHaveBeenCalled();
+        expect(sentryMock.captureMessage).toHaveBeenCalledTimes(1);
+        expect(sentryMock.captureMessage).toHaveBeenCalledWith('plain', 'info');
+    });
+
+    it('applies a flat string `tags` map as REAL tags, not an extra', async () => {
+        const adapter = await loadInitializedAdapter();
+
+        adapter.captureMessage('degraded', 'warning', {
+            tags: { operation: 'rateLimiterUnavailable', surface: 'browser' },
+        });
+
+        expect(scopeMock.setTag).toHaveBeenCalledTimes(2);
+        expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'rateLimiterUnavailable');
+        expect(scopeMock.setTag).toHaveBeenCalledWith('surface', 'browser');
+        expect(scopeMock.setExtra).not.toHaveBeenCalled();
+    });
+
+    it('routes a context `level` to setLevel and keeps every other non-tags key as an extra', async () => {
+        const adapter = await loadInitializedAdapter();
+
+        adapter.captureMessage('degraded', 'warning', {
+            level: 'warning',
+            tags: { operation: 'rateLimiterUnavailable' },
+            requestId: 'req-1',
+        });
+
+        expect(scopeMock.setTag).toHaveBeenCalledTimes(1);
+        expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'rateLimiterUnavailable');
+        expect(scopeMock.setLevel).toHaveBeenCalledWith('warning');
+        expect(scopeMock.setExtra).toHaveBeenCalledTimes(1);
+        expect(scopeMock.setExtra).toHaveBeenCalledWith('requestId', 'req-1');
+    });
+
+    it('leaves a non-flat-string `tags` value as an extra so nothing is dropped', async () => {
+        const adapter = await loadInitializedAdapter();
+
+        const tags = { operation: 'x', attempt: 3 };
+        adapter.captureMessage('note', 'info', { tags });
+
+        expect(scopeMock.setTag).not.toHaveBeenCalled();
+        expect(scopeMock.setExtra).toHaveBeenCalledTimes(1);
+        expect(scopeMock.setExtra).toHaveBeenCalledWith('tags', tags);
+    });
+
+    it('leaves an unrecognized `level` value as an extra', async () => {
+        const adapter = await loadInitializedAdapter();
+
+        adapter.captureMessage('note', 'info', { level: 'catastrophe' });
+
+        expect(scopeMock.setLevel).not.toHaveBeenCalled();
+        expect(scopeMock.setExtra).toHaveBeenCalledWith('level', 'catastrophe');
+    });
+
+    it('reports exactly once with the context applied, keeping the explicit level argument', async () => {
+        const adapter = await loadInitializedAdapter();
+
+        adapter.captureMessage('degraded', 'warning', { tags: { operation: 'x' } });
+
+        expect(sentryMock.withScope).toHaveBeenCalledTimes(1);
+        expect(sentryMock.captureMessage).toHaveBeenCalledTimes(1);
+        expect(sentryMock.captureMessage).toHaveBeenCalledWith('degraded', 'warning');
+    });
+
+    it('applies context on the no-instance path and still reports exactly once', async () => {
+        const { SentryAdapter } = await import('../src/adapters/sentry');
+
+        SentryAdapter.captureMessage('early', 'warning', { tags: { operation: 'early' }, requestId: 'req-1' });
+        await vi.waitFor(() => expect(sentryMock.captureMessage).toHaveBeenCalledTimes(1));
+
+        expect(scopeMock.setTag).toHaveBeenCalledWith('operation', 'early');
+        expect(scopeMock.setExtra).toHaveBeenCalledWith('requestId', 'req-1');
+        expect(sentryMock.withScope).toHaveBeenCalledTimes(1);
+        // No double-report: the pre-load branch is the ONLY reporting path taken.
+        expect(sentryMock.captureMessage).toHaveBeenCalledTimes(1);
+        expect(sentryMock.captureMessage).toHaveBeenCalledWith('early', 'warning');
+    });
+});

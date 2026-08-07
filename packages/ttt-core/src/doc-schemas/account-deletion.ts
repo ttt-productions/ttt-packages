@@ -80,6 +80,38 @@ export const ACTIVE_DELETION_REQUEST_STATUSES: readonly ActiveDeletionRequestSta
   Object.keys(DELETION_REQUEST_STATUS_IS_ACTIVE) as AccountDeletionRequestStatus[]
 ).filter((status): status is ActiveDeletionRequestStatus => DELETION_REQUEST_STATUS_IS_ACTIVE[status]);
 
+/**
+ * MID-SCRUB = the destructive erasure has STARTED and has not finished. These statuses are
+ * neither active (nothing left to cancel or re-offer) nor terminal, so the scrub drain's
+ * due-request query never sees them again — which is exactly why a request stranded here needs
+ * its own recovery query (the stranded-erasure sweep over an expired `erasureLease`).
+ *
+ * Declared as an EXHAUSTIVE Record over the status union for the same reason the ACTIVE
+ * classification is: adding a lifecycle status must be a compile error here until that status is
+ * classified, rather than silently defaulting to "not mid-scrub" and dropping out of recovery.
+ */
+const DELETION_REQUEST_STATUS_IS_MID_SCRUB = {
+  pending: false,
+  cancelled: false,
+  scrubbing: true,
+  leased: true,
+  parkedOnHold: false,
+  completed: false,
+  superseded: false,
+} as const satisfies Record<AccountDeletionRequestStatus, boolean>;
+
+/** The statuses classified MID-SCRUB above, as a literal union — derived, never restated. */
+export type MidScrubDeletionRequestStatus = {
+  [K in AccountDeletionRequestStatus]: (typeof DELETION_REQUEST_STATUS_IS_MID_SCRUB)[K] extends true ? K : never;
+}[AccountDeletionRequestStatus];
+
+/** The MID-SCRUB (erasure started, not finished) deletion-request statuses, projected from the
+ *  classification above in union-declaration order — so it can feed the stranded-erasure recovery
+ *  `where('status', 'in', MID_SCRUB_DELETION_REQUEST_STATUSES)` query directly. */
+export const MID_SCRUB_DELETION_REQUEST_STATUSES: readonly MidScrubDeletionRequestStatus[] = (
+  Object.keys(DELETION_REQUEST_STATUS_IS_MID_SCRUB) as AccountDeletionRequestStatus[]
+).filter((status): status is MidScrubDeletionRequestStatus => DELETION_REQUEST_STATUS_IS_MID_SCRUB[status]);
+
 /** True for an ACTIVE (open, still-cancellable) deletion request. Takes `unknown` because every
  *  caller reads the status off an unvalidated Firestore doc: anything outside the canonical active
  *  set — a terminal/mid-scrub status, an unrecognized value, a missing field — is false. */

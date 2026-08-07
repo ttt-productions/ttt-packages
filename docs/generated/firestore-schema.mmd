@@ -1096,6 +1096,17 @@ erDiagram
     field createdAt
     field updatedAt
   }
+  record {
+    field caseId
+    field submissionId
+    field channel
+    field proofType
+    field portalReceiptArtifactId
+    field proofText
+    field ncmecReportId
+    field recordedByUid
+    field recordedAt
+  }
   relatedAssets {
     field rootIngestId
     field addedAt
@@ -1329,6 +1340,12 @@ erDiagram
     field grossRaised
     field totalRefunded
     field pledgeCount
+    field updatedAt
+  }
+  sweepState {
+    field reaperLastRunAt
+    field reaperCursorPath
+    field fullScanLastRunAt
     field updatedAt
   }
   taggedCraftSkills {

@@ -5,6 +5,10 @@
 // the drift-check read. Types are inferred via z.infer.
 
 import { z } from 'zod';
+import {
+  ChildSafetyNcmecCompletionChannelSchema,
+  ChildSafetyNcmecCompletionProofTypeSchema,
+} from './safety/case.js';
 
 // _systemData/hallMediaReaperCursor — the scheduled Hall-media orphan reaper's scan cursor.
 // `createdAtCursor` is the highest mediaAssets `createdAt` the reaper has POSITIVELY cleared
@@ -44,6 +48,50 @@ export const SafetyReconcilerCursorSchema = z.object({
   updatedAt: z.number(),
 });
 export type SafetyReconcilerCursor = z.infer<typeof SafetyReconcilerCursorSchema>;
+
+// sweepState/{sweepName} — durable cadence + cursor state for one scheduled user sweep. One doc
+// per sweep name; the fields a given sweep uses are the ones it declares, so every field except
+// `updatedAt` is optional. `orphanRegistrationCleanup` carries all three (the ~daily privateData
+// reaper's last completed pass + its rolling page cursor, and the ~weekly `listUsers()` scan);
+// `reconcileAccountStatus` carries only `fullScanLastRunAt`. The stamps are wall-clock so a
+// container recycle cannot reset the cadence.
+// (functions/src/users/orphanRegistrationCleanup.ts, functions/src/users/reconcileAccountStatus.ts)
+export const SweepStateSchema = z.object({
+  /** Wall-clock ms the last COMPLETED privateData-reaper pass finished (absent = never). */
+  reaperLastRunAt: z.number().optional(),
+  /** Full document path of the last `privateData` doc the reaper examined. Empty/absent means no
+   *  pass is in flight; a non-empty value means one is mid-scan and must continue. */
+  reaperCursorPath: z.string().optional(),
+  /** Wall-clock ms the last full `listUsers()` scan ran (absent = never). */
+  fullScanLastRunAt: z.number().optional(),
+  updatedAt: z.number(),
+});
+export type SweepState = z.infer<typeof SweepStateSchema>;
+
+// childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecCompletionProof/record —
+// [H-05] the IMMUTABLE record of a verified manual-portal completion. Written create-if-absent in
+// the SAME transaction as the submission's `completed` transition, so a submission can never reach
+// `completed` without a bound proof record; a re-completion keeps the original. The submission's
+// `completionProofRef` stores this doc's path, never an operator free-text string.
+// [Q13/H-06] `portalReceiptArtifactId` binds the proof to a verified NcmecPortalReceiptArtifactV1
+// on the same (caseId, submissionId) — an arbitrary operator string is never accepted.
+// (functions/src/safety/ncmecReporting.ts)
+export const NcmecCompletionProofRecordV1Schema = z.object({
+  caseId: z.string(),
+  submissionId: z.string(),
+  channel: ChildSafetyNcmecCompletionChannelSchema,
+  proofType: ChildSafetyNcmecCompletionProofTypeSchema,
+  /** Id of the verified portal-receipt artifact this completion is bound to. */
+  portalReceiptArtifactId: z.string(),
+  /** Optional operator free-text note about the confirmation. */
+  proofText: z.string().optional(),
+  /** The NCMEC-assigned report id — REQUIRED. The number IS the proof; there is no
+   *  "filed, number pending" grace. */
+  ncmecReportId: z.string(),
+  recordedByUid: z.string(),
+  recordedAt: z.number(),
+});
+export type NcmecCompletionProofRecordV1 = z.infer<typeof NcmecCompletionProofRecordV1Schema>;
 
 // childSafetyCases/{caseId}/portalReceiptArtifacts/{artifactId} — [Q13/H-06] the immutable
 // record of a PDF/screenshot of the completed NCMEC CyberTipline submission, stored in the

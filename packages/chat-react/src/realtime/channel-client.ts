@@ -119,7 +119,7 @@ export interface ChannelClientState {
 }
 
 export interface ChannelClientConfig {
-  /** WebSocket endpoint base, e.g. `wss://chat.ttt.productions`. The client appends `/channel`. */
+  /** WebSocket endpoint base, e.g. `wss://chat.example.com`. The client appends `/channel`. */
   endpoint: string;
   /** The logical thread id the UI keys on (used as ChatMessageV1.threadId). */
   threadId: string;

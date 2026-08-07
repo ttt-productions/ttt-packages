@@ -122,13 +122,6 @@ export const COLLECTIONS = {
   // Trust & Safety — age attestation nonces (§A7)
   AGE_ATTESTATION_NONCES: 'ageAttestationNonces',
 
-  // Trust & Safety — per-operator privileged-reviewer security (§A11 [M-6] / [H-17]). BACKEND-ONLY,
-  // keyed by uid (mirrors the operatorStepUp per-operator pattern). Distinct from the global
-  // _serverData/privilegedReviewerSecurity POLICY singleton: these hold each operator's enrolled
-  // WebAuthn passkeys + reauth grant window, and each operator's granted reviewer capabilities.
-  PRIVILEGED_REVIEWER_PASSKEY_PROFILES: 'privilegedReviewerPasskeyProfiles',
-  PRIVILEGED_REVIEWER_CAPABILITY_GRANTS: 'privilegedReviewerCapabilityGrants',
-
   // Trust & Safety — NCII / TAKE IT DOWN (§A11)
   NCII_ALLEGATIONS: 'nciiAllegations',
   TAKE_IT_DOWN_REQUESTS: 'takeItDownRequests',
@@ -156,6 +149,12 @@ export const COLLECTIONS = {
   // Trust & Safety — one persisted pagination-cursor doc per reconciler needs-work backstop
   // sweep (quarantine enqueue, NCMEC enqueue), keyed by the sweep's cursor key. Admin-SDK-only.
   SAFETY_RECONCILER_CURSORS: 'safetyReconcilerCursors',
+
+  // Durable per-sweep cadence/cursor state for the scheduled user sweeps, keyed by the sweep
+  // name (orphanRegistrationCleanup, reconcileAccountStatus). Wall-clock stamps that survive a
+  // container recycle, so a "~once/day" or "~once/week" pass fires on real elapsed time instead
+  // of an in-memory counter. Admin-SDK-only.
+  SWEEP_STATE: 'sweepState',
 } as const;
 
 /**
@@ -306,6 +305,11 @@ export const NESTED_SUBCOLLECTIONS = {
   // segments were app-local literals until now.
   NCMEC_PORTAL_RECEIPT_ARTIFACTS: 'portalReceiptArtifacts',
   NCMEC_PORTAL_CORRECTIONS: 'ncmecPortalCorrections',
+  // The single immutable completion-proof record bound to one NCMEC submission
+  // (childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecCompletionProof/record).
+  // A submission can never reach `completed` without this record existing — it is written
+  // create-if-absent in the SAME transaction as the state transition.
+  NCMEC_COMPLETION_PROOF: 'ncmecCompletionProof',
 
   // Trust & Safety — resource-command subcollections (§A3).
   SAFETY_RESOURCE_COMMAND_AUTHORIZED_REQUESTS: 'authorizedRequests',
@@ -390,6 +394,10 @@ export const SPECIAL_DOCS = {
 
   // Trust & Safety — fixed-id TAKE IT DOWN request subdocs (§A11).
   TAKE_IT_DOWN_REQUESTER: 'requester', // takeItDownRequests/{requestId}/private/requester
+
+  // Trust & Safety — the singleton completion-proof record under an NCMEC submission
+  // (…/ncmecCompletionProof/record). One proof per submission, so the doc id is fixed.
+  NCMEC_COMPLETION_PROOF_RECORD: 'record',
 
   // Trust & Safety — fixed-id report-spine private subdocs (§A1).
   REPORT_SNAPSHOT: 'snapshot', // contentReports/{reportId}/private/snapshot

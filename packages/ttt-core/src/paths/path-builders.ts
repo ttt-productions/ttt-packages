@@ -423,6 +423,12 @@ export const PATH_BUILDERS = {
   childSafetyNcmecSubmissionAttempt: (caseId: string, submissionId: string, attemptId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.NCMEC_SUBMISSION_ATTEMPTS, attemptId],
 
+  // The submission's single immutable completion-proof record. Fixed doc id — one proof per
+  // submission, written create-if-absent in the same transaction that marks the submission
+  // `completed`, so `completed` and its bound proof can never diverge.
+  childSafetyNcmecCompletionProof: (caseId: string, submissionId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.NCMEC_COMPLETION_PROOF, SPECIAL_DOCS.NCMEC_COMPLETION_PROOF_RECORD],
+
   childSafetyLegalProcessEvent: (caseId: string, eventId: string): [string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_LEGAL_PROCESS, eventId],
 
@@ -520,13 +526,10 @@ export const PATH_BUILDERS = {
   safetyReconcilerCursor: (cursorKey: string): [string, string] =>
     [COLLECTIONS.SAFETY_RECONCILER_CURSORS, cursorKey],
 
-  // ===== TRUST & SAFETY — per-operator privileged-reviewer security (§A11 [M-6] / [H-17]) =====
-  // Backend-only per-operator docs keyed by uid (mirrors operatorStepUp/{uid}).
-  privilegedReviewerPasskeyProfile: (uid: string): [string, string] =>
-    [COLLECTIONS.PRIVILEGED_REVIEWER_PASSKEY_PROFILES, uid],
-
-  privilegedReviewerCapabilityGrant: (uid: string): [string, string] =>
-    [COLLECTIONS.PRIVILEGED_REVIEWER_CAPABILITY_GRANTS, uid],
+  // Durable cadence/cursor state for one scheduled user sweep, keyed by the sweep name
+  // (orphanRegistrationCleanup, reconcileAccountStatus). Backend-only.
+  sweepState: (sweepName: string): [string, string] =>
+    [COLLECTIONS.SWEEP_STATE, sweepName],
 
   // ===== TRUST & SAFETY — NCII / TAKE IT DOWN (§A11) =====
   nciiAllegation: (allegationId: string): [string, string] =>

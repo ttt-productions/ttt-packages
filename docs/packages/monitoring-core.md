@@ -21,6 +21,15 @@ other key — and a `tags`/`level` value that does not fit the shape, or a scope
 becomes an extra, so nothing is ever dropped. One helper (`src/capture-context.ts`) owns that
 decision for both Sentry adapters.
 
+`captureMessage(message, level?, context?)` honours the SAME context contract through the same
+helper, so a message-shaped diagnostic keeps its payload instead of having to reach for the raw SDK.
+The explicit `level` argument stays the message's severity and is passed through to the provider;
+a `level` inside `context` is applied to the scope. Omitting `context` leaves the call on the plain
+provider path — no scope is opened. `withScope` is NOT a substitute for this parameter: when no
+provider instance is loaded yet, `withScope` runs its callback against a minimal no-op scope AND
+replays it asynchronously against the real scope, so a capture issued inside it reports twice. Both
+capture entry points instead open the scope internally on exactly one branch.
+
 ## Telemetry scrubber
 
 `createTelemetryScrubber` builds a Sentry `beforeSend` hook (and `redactEvent` exposes the same pass

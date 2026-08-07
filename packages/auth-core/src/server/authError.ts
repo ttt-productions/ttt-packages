@@ -11,8 +11,8 @@
  *     throw err;
  *   }
  *
- * WHY THE PACKAGE MUST NOT BUILD THE HttpsError ITSELF (2026-07-20, live on hosted
- * dev): firebase-functions 7.2.5 ships TWO distinct `HttpsError` classes — the one
+ * WHY THE PACKAGE MUST NOT BUILD THE HttpsError ITSELF: firebase-functions 7.2.5
+ * ships TWO distinct `HttpsError` classes — the one
  * exported from the ESM entry `firebase-functions/v2/https`, and the one the CJS
  * callable runtime closes over and `instanceof`-checks at
  * `lib/common/providers/https.js`. An `HttpsError` constructed by this package's
@@ -25,13 +25,13 @@
  *
  * Because `assertAuth` is the first line of every callable, that turned EVERY auth
  * rejection — unauthenticated, unverified email, suspended, banned — into a generic
- * 500: users saw "An Error Occurred" instead of the verify-email dialog, and Sentry
+ * 500: users saw a generic error instead of the verify-email dialog, and monitoring
  * filled with 500s that were really expected answers. Constructing the HttpsError in
  * APP module space fixes the identity permanently and cannot regress when
  * firebase-functions repackages.
  *
  * This also brings auth-core in line with engineering-rules QUALITY-102 (generic
- * packages stay framework-agnostic; the TTT-side adapter binds the framework) and
+ * packages stay framework-agnostic; the consuming app's adapter binds the framework) and
  * mirrors `report-core`'s `ReportCoreTaskError`, which already works this way.
  */
 export type AuthAssertionErrorCode =

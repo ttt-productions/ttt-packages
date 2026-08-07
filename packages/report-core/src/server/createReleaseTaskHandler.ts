@@ -78,8 +78,8 @@ export function createReleaseTaskHandler({
       // holds (the checkout lapsed/expired, an earlier release landed, or the task
       // was resolved). Throwing here surfaced as a spurious 'internal' 500 to
       // clients draining stale checkout cards whose server-side checkout had
-      // already lapsed (live: TTT hosted-dev admin drain, 2026-07-20). A checkout
-      // held by ANOTHER admin is still a real conflict and still throws.
+      // already lapsed. A checkout held by ANOTHER admin is still a real conflict
+      // and still throws.
       if (!checkoutDetails) {
         return { success: true };
       }

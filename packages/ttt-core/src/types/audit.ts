@@ -284,8 +284,8 @@ export type AuditEventType =
   // chat.moderationContextRead privileged-read convention.
   | 'safety.privilegedRawLocatorRead'
   | 'safety.deadlineBreachRecorded'
-  // [M-6] per-operator reviewer-capability grant lifecycle (privilegedReviewerCapabilityGrants/{uid}).
-  // Granting/revoking a SafetyReviewerCapability is an authorization change — always audited.
+  // [M-6] per-operator reviewer-capability grant lifecycle. Granting/revoking a
+  // SafetyReviewerCapability is an authorization change — always audited.
   | 'safety.reviewerCapabilityGranted'
   | 'safety.reviewerCapabilityRevoked';
 

@@ -31,6 +31,53 @@ describe('useAuthGuard', () => {
     expect(replace).toHaveBeenCalledWith('/login');
   });
 
+  describe('publicRoutes is the SOLE source of public routes (no built-in literals)', () => {
+    it('a configured prefix makes every path beneath it public while signed out', () => {
+      // Prefix semantics: one '/v/' entry covers every '/v/:id' share link, which is
+      // exactly what a previously hardcoded '/v/' literal did inside the hook.
+      const replace = vi.fn();
+      renderHook(() =>
+        useAuthGuard(
+          makeConfig({
+            publicRoutes: ['/login', '/register', '/terms', '/v/'],
+            pathname: '/v/abc123',
+            replace,
+          }),
+        ),
+      );
+      expect(replace).not.toHaveBeenCalled();
+      expect(localStorage.getItem(KEY)).toBeNull();
+    });
+
+    it('NO hidden default: the same path is protected when its prefix is NOT configured', () => {
+      // Regression guard for the removed in-hook '/v/' literal. If any implicit
+      // public route creeps back in, this redirect stops happening.
+      const replace = vi.fn();
+      renderHook(() => useAuthGuard(makeConfig({ pathname: '/v/abc123', replace })));
+      expect(localStorage.getItem(KEY)).toBe('/v/abc123');
+      expect(replace).toHaveBeenCalledWith('/login');
+    });
+
+    it('an empty publicRoutes list leaves every non-root path protected', () => {
+      const replace = vi.fn();
+      renderHook(() =>
+        useAuthGuard(makeConfig({ publicRoutes: [], pathname: '/terms', replace })),
+      );
+      expect(replace).toHaveBeenCalledWith('/login');
+    });
+
+    it('the prefix rule is app-agnostic — any configured prefix behaves the same way', () => {
+      const replace = vi.fn();
+      renderHook(() =>
+        useAuthGuard(
+          makeConfig({ publicRoutes: ['/share/'], pathname: '/share/xyz/detail', replace }),
+        ),
+      );
+      expect(replace).not.toHaveBeenCalled();
+      expect(localStorage.getItem(KEY)).toBeNull();
+    });
+  });
+
   it('authenticated on an auth route consumes the saved path', () => {
     localStorage.setItem(KEY, '/v/abc123');
     const replace = vi.fn();
@@ -49,7 +96,7 @@ describe('useAuthGuard', () => {
     // The consuming redirect navigates asynchronously, so the effect can re-run
     // (loading flap / auth re-render) while pathname still reads the auth route —
     // with the key already consumed, a second replace(defaultRoute) would clobber
-    // the in-flight saved-path navigation (live: TTT hosted path 13, MISC-51).
+    // the in-flight saved-path navigation.
     localStorage.setItem(KEY, '/v/abc123');
     const replace = vi.fn();
     const { rerender } = renderHook((props: { loading: boolean }) =>

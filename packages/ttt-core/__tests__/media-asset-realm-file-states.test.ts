@@ -19,6 +19,9 @@ import {
   REALM_FILE_APPROVED_STATUS_VALUES,
   REALM_FILE_ACTIVE_STATUS_VALUES,
   REALM_FILE_PENDING_APPROVAL_STATUS,
+  REALM_FILE_NONE_STATUS,
+  REALM_FILE_NON_CANON_STATUS,
+  REALM_FILE_CANON_STATUS,
 } from '../src/doc-schemas/media-assets';
 
 /** A work file's asset, unshared. The realm fields are layered on per-case. */
@@ -68,6 +71,38 @@ describe('RealmFileCanonStatus — the one seam, now carrying the approval gate'
     }
     expect(RealmFileCanonStatusSchema.safeParse('pending').success).toBe(false);
     expect(RealmFileCanonStatusSchema.safeParse('approved').success).toBe(false);
+  });
+
+  it('names every member once and assembles the sets from those names', () => {
+    // Each standing has a named constant, so no consumer has to re-quote a member.
+    expect(REALM_FILE_NONE_STATUS).toBe('none');
+    expect(REALM_FILE_PENDING_APPROVAL_STATUS).toBe('pendingApproval');
+    expect(REALM_FILE_NON_CANON_STATUS).toBe('nonCanon');
+    expect(REALM_FILE_CANON_STATUS).toBe('canon');
+
+    // Member and set are ONE declaration — the sets are literally built from the constants, so a
+    // renamed member cannot leave a stale value behind in a set.
+    expect([...REALM_FILE_CANON_STATUS_VALUES]).toEqual([
+      REALM_FILE_NONE_STATUS,
+      REALM_FILE_PENDING_APPROVAL_STATUS,
+      REALM_FILE_NON_CANON_STATUS,
+      REALM_FILE_CANON_STATUS,
+    ]);
+    expect([...REALM_FILE_APPROVED_STATUS_VALUES]).toEqual([
+      REALM_FILE_NON_CANON_STATUS,
+      REALM_FILE_CANON_STATUS,
+    ]);
+
+    // Every named member is a real union member, and the four together are the whole union.
+    for (const member of [
+      REALM_FILE_NONE_STATUS,
+      REALM_FILE_PENDING_APPROVAL_STATUS,
+      REALM_FILE_NON_CANON_STATUS,
+      REALM_FILE_CANON_STATUS,
+    ]) {
+      expect(RealmFileCanonStatusSchema.safeParse(member).success).toBe(true);
+    }
+    expect(REALM_FILE_CANON_STATUS_VALUES).toHaveLength(4);
   });
 
   it('exposes an APPROVED subset that excludes the unshared and pending standings', () => {

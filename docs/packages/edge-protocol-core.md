@@ -41,8 +41,12 @@ consume it today. Concrete domain schemas and collection names live in
 `ttt-core`, never here.
 
 The provenance header names are the one `ttt`-branded surface: they are literal
-wire strings two independently deployed runtimes must agree on, which is a
-sanctioned exception recorded in `package-architecture.md` § Direction rules.
+wire strings two independently deployed runtimes must agree on, which is a named
+ARCH-201 exception recorded in `package-architecture.md` § Direction rules and in
+a comment block at the top of `src/provenance-headers.ts`. The exception is scoped
+to a single adopting product — if a second product adopts this package, the
+constants must be relocated (app-supplied header-name configuration, or a
+per-product contract package) or the exception revisited.
 
 ## Entry points
 

@@ -12,7 +12,7 @@ export const NoopAdapter: MonitoringAdapter = {
   init: (_options: MonitoringInitOptions) => {},
 
   captureException: (_error: unknown, _context?: Record<string, unknown>) => {},
-  captureMessage: (_message: string, _level?: any) => {},
+  captureMessage: (_message: string, _level?: any, _context?: Record<string, unknown>) => {},
 
   setUser: (_user: MonitoringUser | null) => {},
   setTag: (_key: string, _value: string) => {},

@@ -38,7 +38,6 @@ export * from './safety/provenance.js';
 export * from './safety/sagas.js';
 export * from './safety/monitors.js';
 export * from './safety/age.js';
-export * from './safety/reviewer-security.js';
 
 // ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
 export * from './ncii/allegations.js';

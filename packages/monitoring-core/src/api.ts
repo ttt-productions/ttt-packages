@@ -7,9 +7,10 @@ export function captureException(error: unknown, context?: Record<string, unknow
 
 export function captureMessage(
   message: string,
-  level?: "fatal" | "error" | "warning" | "info" | "debug"
+  level?: "fatal" | "error" | "warning" | "info" | "debug",
+  context?: Record<string, unknown>
 ) {
-  return getMonitoringAdapter().captureMessage(message, level);
+  return getMonitoringAdapter().captureMessage(message, level, context);
 }
 
 export function setUser(user: MonitoringUser | null) {

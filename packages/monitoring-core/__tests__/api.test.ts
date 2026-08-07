@@ -73,12 +73,25 @@ describe('monitoring-core api forwarding', () => {
         it('forwards the message and level', () => {
             captureMessage('hello world', 'info');
             expect(fake.captureMessage).toHaveBeenCalledTimes(1);
-            expect(fake.captureMessage).toHaveBeenCalledWith('hello world', 'info');
+            expect(fake.captureMessage).toHaveBeenCalledWith('hello world', 'info', undefined);
         });
 
         it('omits the level when not provided', () => {
             captureMessage('plain message');
-            expect(fake.captureMessage).toHaveBeenCalledWith('plain message', undefined);
+            expect(fake.captureMessage).toHaveBeenCalledWith('plain message', undefined, undefined);
+        });
+
+        it('forwards the context when provided', () => {
+            const ctx = { tags: { operation: 'rateLimiterUnavailable' }, attempt: 2 };
+            captureMessage('degraded', 'warning', ctx);
+            expect(fake.captureMessage).toHaveBeenCalledTimes(1);
+            expect(fake.captureMessage).toHaveBeenCalledWith('degraded', 'warning', ctx);
+        });
+
+        it('forwards a context without a level (the diagnostic payload still routes)', () => {
+            const ctx = { requestId: 'req-1' };
+            captureMessage('note', undefined, ctx);
+            expect(fake.captureMessage).toHaveBeenCalledWith('note', undefined, ctx);
         });
     });
 

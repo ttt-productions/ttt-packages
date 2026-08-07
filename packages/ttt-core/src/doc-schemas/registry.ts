@@ -198,10 +198,12 @@ import {
 } from './ncii/config.js';
 import {
   HallMediaReaperCursorSchema,
+  NcmecCompletionProofRecordV1Schema,
   NcmecPortalCorrectionRecordV1Schema,
   NcmecPortalReceiptArtifactV1Schema,
   OperatorStepUpSchema,
   SafetyReconcilerCursorSchema,
+  SweepStateSchema,
 } from './backend-state.js';
 
 export const COLLECTION_SCHEMAS = {
@@ -347,6 +349,9 @@ export const COLLECTION_SCHEMAS = {
   'childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}/childSafetyCaseAccountHistory/{historyId}': ChildSafetyCaseAccountHistoryV1Schema,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}': ChildSafetyNcmecSubmissionV1Schema,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecSubmissionFiles/{fileId}': ChildSafetyNcmecSubmissionFileV1Schema,
+  // [H-05] the submission's single immutable completion-proof record (fixed doc id). Backend-only,
+  // so its shape lives in doc-schemas/backend-state.ts alongside the portal artifacts.
+  'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecCompletionProof/record': NcmecCompletionProofRecordV1Schema,
   'childSafetyCases/{caseId}/legalProcess/{eventId}': ChildSafetyLegalProcessEventV1Schema,
   // Portal-filed NCMEC artifacts recorded by the two step-up-gated operator callables. Both
   // are backend-only (no client reader), so their shapes live in doc-schemas/backend-state.ts.
@@ -388,6 +393,9 @@ export const COLLECTION_SCHEMAS = {
   // Cloud-Functions-only readers/writers; client access denied in firestore.rules.
   'operatorStepUp/{uid}': OperatorStepUpSchema,
   'safetyReconcilerCursors/{cursorKey}': SafetyReconcilerCursorSchema,
+
+  // ===== Scheduled user sweeps — durable cadence/cursor state (backend-only) =====
+  'sweepState/{sweepName}': SweepStateSchema,
 
   // ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
   'nciiAllegations/{allegationId}': NciiAllegationV1Schema,
@@ -485,7 +493,7 @@ export const COLLECTION_DOC_ID_FIELDS = {
  *  - feedbackDenylist: `_serverData/feedbackLists/feedbackDenylist/{deniedWord}` — Console-managed
  *    (no callable writes it) and submitFeedback reads it via `.exists` only, so there is no field
  *    contract to author a schema from. The doc id is the denied word; the body is unused.
- *  - ncmecSubmissionAttempts / privilegedReviewer*: see the inline reasons below.
+ *  - ncmecSubmissionAttempts: see the inline reason below.
  */
 export const PENDING_COLLECTIONS: readonly string[] = [
   'userMetadata',
@@ -497,10 +505,4 @@ export const PENDING_COLLECTIONS: readonly string[] = [
   // today and has no writer or reader yet; the constant is registered so the name has one
   // owner. Bind once the attempt-record shape is implemented.
   'ncmecSubmissionAttempts',
-  // The privileged-reviewer passkey / capability-grant feature is NOT V1: zero writer and zero
-  // reader anywhere in functions/src or src, and no firestore.rules block. Their forward-declared
-  // schemas (doc-schemas/safety/reviewer-security.ts) stay authored but are UNBOUND, so the
-  // registry remains an inventory of live collections. Bind when the feature is built.
-  'privilegedReviewerPasskeyProfiles',
-  'privilegedReviewerCapabilityGrants',
 ] as const;

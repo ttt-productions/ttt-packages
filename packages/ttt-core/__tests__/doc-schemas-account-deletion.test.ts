@@ -9,6 +9,7 @@ import {
   AccountDeletionRequestStatusSchema,
   AccountDeletionRequestV1Schema,
   ACTIVE_DELETION_REQUEST_STATUSES,
+  MID_SCRUB_DELETION_REQUEST_STATUSES,
   isActiveDeletionRequest,
 } from '../src/doc-schemas/account-deletion';
 
@@ -37,6 +38,35 @@ describe('ACTIVE_DELETION_REQUEST_STATUSES completeness against the status union
   it('agrees with the helper across every union member', () => {
     expect(ALL_STATUSES.filter((s) => isActiveDeletionRequest(s))).toEqual(
       ACTIVE_DELETION_REQUEST_STATUSES,
+    );
+  });
+});
+
+describe('MID_SCRUB_DELETION_REQUEST_STATUSES completeness against the status union', () => {
+  it('contains only members of the canonical status union', () => {
+    for (const status of MID_SCRUB_DELETION_REQUEST_STATUSES) {
+      expect(ALL_STATUSES).toContain(status);
+    }
+  });
+
+  it('is exactly the erasure-started-but-unfinished statuses, in union-declaration order', () => {
+    expect(MID_SCRUB_DELETION_REQUEST_STATUSES).toEqual(['scrubbing', 'leased']);
+  });
+
+  it('is disjoint from the ACTIVE set — a mid-scrub request is neither cancellable nor re-offered', () => {
+    for (const status of MID_SCRUB_DELETION_REQUEST_STATUSES) {
+      expect(ACTIVE_DELETION_REQUEST_STATUSES).not.toContain(status);
+      expect(isActiveDeletionRequest(status)).toBe(false);
+    }
+  });
+
+  it('leaves only the terminal statuses unclassified by either set', () => {
+    const classified = new Set<string>([
+      ...ACTIVE_DELETION_REQUEST_STATUSES,
+      ...MID_SCRUB_DELETION_REQUEST_STATUSES,
+    ]);
+    expect(ALL_STATUSES.filter((s) => !classified.has(s)).sort()).toEqual(
+      ['cancelled', 'completed', 'superseded'].sort(),
     );
   });
 });

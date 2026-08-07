@@ -69,13 +69,30 @@ export const SentryAdapter: MonitoringAdapter = {
     })();
   },
 
-  captureMessage(message: string, level?: any) {
+  captureMessage(message: string, level?: any, context?: Record<string, unknown>) {
     if (sentryInstance) {
+      if (context && sentryInstance.withScope) {
+        sentryInstance.withScope((scope) => {
+          applyCaptureContext(scope, context);
+          sentryInstance!.captureMessage(message, level);
+        });
+        return;
+      }
       sentryInstance.captureMessage(message, level);
       return;
     }
+
     void (async () => {
       const S = await getSentry();
+
+      if (context && S.withScope) {
+        S.withScope((scope) => {
+          applyCaptureContext(scope, context);
+          S.captureMessage(message, level);
+        });
+        return;
+      }
+
       S.captureMessage(message, level);
     })();
   },

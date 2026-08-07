@@ -169,11 +169,26 @@ export type MediaRetentionPolicy = z.infer<typeof MediaRetentionPolicySchema>;
 //   canon           — approved and marked canon (realm steward toggles canon ↔ nonCanon)
 // Moderation/takedown is NOT a value here — a hidden file is hidden via the shared
 // media path (`servingStatus: 'hidden'`), so the gallery filters on servingStatus.
+//
+// Each member is declared ONCE as a named constant below and every set is assembled from
+// those names, so a member constant and the sets that contain it cannot drift apart.
+
+/** Not shared to the realm — the default standing for every work file. */
+export const REALM_FILE_NONE_STATUS = 'none' as const;
+/** The single AWAITING-DECISION standing. Exported as a VALUE as well as a schema so a
+ *  consumer can branch on it (`status === REALM_FILE_PENDING_APPROVAL_STATUS`) without
+ *  re-quoting the member — the redeclaration guard pins this literal to this file. */
+export const REALM_FILE_PENDING_APPROVAL_STATUS = 'pendingApproval' as const;
+/** Approved into the realm's shared pool, not marked canon. */
+export const REALM_FILE_NON_CANON_STATUS = 'nonCanon' as const;
+/** Approved into the realm's shared pool AND marked canon by the Realm steward. */
+export const REALM_FILE_CANON_STATUS = 'canon' as const;
+
 export const REALM_FILE_CANON_STATUS_VALUES = [
-  'none',
-  'pendingApproval',
-  'nonCanon',
-  'canon',
+  REALM_FILE_NONE_STATUS,
+  REALM_FILE_PENDING_APPROVAL_STATUS,
+  REALM_FILE_NON_CANON_STATUS,
+  REALM_FILE_CANON_STATUS,
 ] as const;
 export const RealmFileCanonStatusSchema = z.enum(REALM_FILE_CANON_STATUS_VALUES);
 export type RealmFileCanonStatus = z.infer<typeof RealmFileCanonStatusSchema>;
@@ -182,14 +197,13 @@ export type RealmFileCanonStatus = z.infer<typeof RealmFileCanonStatusSchema>;
  *  and its projection accept exactly these — never the full status union, so a pending or
  *  unshared row can never be typed into an approved-files response. Derived from the one
  *  union above; consumers import this instead of re-quoting the members (ARCH-102). */
-export const REALM_FILE_APPROVED_STATUS_VALUES = ['nonCanon', 'canon'] as const;
+export const REALM_FILE_APPROVED_STATUS_VALUES = [
+  REALM_FILE_NON_CANON_STATUS,
+  REALM_FILE_CANON_STATUS,
+] as const;
 export const RealmFileApprovedStatusSchema = z.enum(REALM_FILE_APPROVED_STATUS_VALUES);
 export type RealmFileApprovedStatus = z.infer<typeof RealmFileApprovedStatusSchema>;
 
-/** The single AWAITING-DECISION standing. Exported as a VALUE as well as a schema so a
- *  consumer can branch on it (`status === REALM_FILE_PENDING_APPROVAL_STATUS`) without
- *  re-quoting the member — the redeclaration guard pins this literal to this file. */
-export const REALM_FILE_PENDING_APPROVAL_STATUS = 'pendingApproval' as const;
 /** The steward promotion-queue projection accepts only this, so an approved or unshared row
  *  can never be typed into the queue. */
 export const RealmFilePendingApprovalStatusSchema = z.literal(REALM_FILE_PENDING_APPROVAL_STATUS);

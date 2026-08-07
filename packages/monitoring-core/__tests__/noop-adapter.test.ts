@@ -25,6 +25,15 @@ describe('NoopAdapter', () => {
         }
     });
 
+    it('captureMessage with a context stays inert and leaves the context untouched', () => {
+        // The no-DSN / emulator path: initMonitoring forces this adapter, so a call site
+        // passing a diagnostic payload must be a silent no-op that reports nothing.
+        const ctx = { tags: { operation: 'takeItDownRateLimit' }, level: 'warning', docId: 'doc-1' };
+        const snapshot = JSON.stringify(ctx);
+        expect(NoopAdapter.captureMessage('m', 'warning', ctx)).toBeUndefined();
+        expect(JSON.stringify(ctx)).toBe(snapshot);
+    });
+
     it('setUser accepts a populated user and null', () => {
         expect(NoopAdapter.setUser({ id: 'uid-123' })).toBeUndefined();
         expect(NoopAdapter.setUser(null)).toBeUndefined();

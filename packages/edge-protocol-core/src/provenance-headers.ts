@@ -13,6 +13,22 @@
 //
 // Runtime-neutral: plain string constants, no dependency on any runtime's
 // Headers implementation.
+//
+// ARCH-201 NAMED EXCEPTION — the `x-ttt-*` names below are TTT-branded values in
+// a generic package, which ARCH-201 otherwise prohibits. They are kept here as a
+// reviewed exception because this package OWNS the edge↔origin wire contract:
+// these are the literal bytes two independently deployed runtimes must agree on,
+// not business policy, app config, or copy. Renaming one is a protocol break, and
+// ARCH-005 requires exactly one definition for a cross-tree trust contract — a
+// per-tree copy is the drift that rule exists to prevent. The same treatment
+// covers `chat-schemas`' `CHAT_SUBPROTOCOL` / `CHAT_GRANT_AUDIENCE`; the full list
+// lives in docs/packages/package-architecture.md § Direction rules.
+//
+// The exception is scoped to a single adopting product. If a second product ever
+// adopts edge-protocol-core, these constants must be relocated (an app-supplied
+// header-name configuration, or a per-product contract package) or the exception
+// revisited — a second consumer is exactly the reuse ARCH-201 protects, and a
+// branded name would then be wrong for one of them.
 
 /** Response marker proving the origin produced the response. The front door
  * keys its retry classifier on this header's ABSENCE (a synthetic upstream-edge
