@@ -20,7 +20,12 @@ import {
 } from './wire.js';
 import type { RealtimeSocket, SocketFactory } from './socket.js';
 import type { GrantProvider, TransportTimers, RealtimeStatus } from './shared.js';
-import { defaultTimers, isChatAccessDeniedError } from './shared.js';
+import {
+  defaultTimers,
+  isChatAccessDeniedError,
+  isTerminalErrorCode,
+  TERMINAL_ERROR_CODE,
+} from './shared.js';
 import {
   createDiagnosticsEmitter,
   safeDiagnosticLabel,
@@ -110,6 +115,25 @@ export class InboxClient {
   }
 
   async connect(): Promise<void> {
+    // Idempotency guard (mirrors ChannelClient): connect() only starts a lifecycle
+    // from a fresh (idle) or fully torn-down (closed) state. A second connect()
+    // while one is already connecting / open / reconnecting is a no-op, so a
+    // double-mounted dock cannot open a SECOND inbox socket against the per-uid
+    // cap. The reconnect path uses openSocket() / scheduleReconnect() directly
+    // (never connect()), so this never blocks a legitimate reconnect.
+    if (this.state.status !== 'idle' && this.state.status !== 'closed') return;
+    // REVIVE the controller. `controller.close()` is PERMANENT: while it is in
+    // state `closed`, `start()` and `onOpen()` no-op and every later `onClose()`
+    // returns null — so without this reset a close() → connect() client opens a
+    // socket and works normally until its FIRST transient close, then parks
+    // terminally in `closed` with reconnect disabled and no surfaced error code.
+    this.controller.reset();
+    // A terminal verdict (4403 REVOKED / ChatAccessDeniedError) is terminal WITHIN
+    // its lifecycle; an explicit connect() is a fresh attempt the authority may
+    // legitimately re-deny, so the previous lifecycle's code must not persist.
+    // The registry/unread projection is deliberately KEPT — the DO's next snapshot
+    // is authoritative, and blanking the dock on every restart is pure UI churn.
+    if (isTerminalErrorCode(this.state.lastErrorCode)) this.setState({ lastErrorCode: null });
     this.closedByUs = false;
     this.reconnectCause = 'initial';
     this.controller.start();
@@ -191,7 +215,7 @@ export class InboxClient {
       this.closedByUs = true;
       this.controller.close();
       this.diag?.(DIAG.INBOX_SOCKET_CLOSE, { code, closedByUs: false, outcome: 'revoked' });
-      this.setState({ status: 'closed', lastErrorCode: 'revoked' });
+      this.setState({ status: 'closed', lastErrorCode: TERMINAL_ERROR_CODE.REVOKED });
       return;
     }
     this.reconnectCause = 'transient-close';
@@ -210,7 +234,7 @@ export class InboxClient {
   private denyAccessTerminally(): void {
     this.closedByUs = true;
     this.controller.close();
-    this.setState({ status: 'closed', lastErrorCode: 'access-denied' });
+    this.setState({ status: 'closed', lastErrorCode: TERMINAL_ERROR_CODE.ACCESS_DENIED });
   }
 
   private scheduleReconnect(): void {
@@ -355,11 +379,11 @@ export class InboxClient {
 }
 
 /**
- * Derive the per-channel unread set from a snapshot. The current inbox DO snapshot
- * exposes a single `hasUnread` boolean (dock dot) + the active registry; it does
- * NOT yet enumerate which entries are unread. We surface a per-entry `unread`
- * field when the DO provides it (forward-compatible), else fall back to empty
- * per-row dots (the dock dot still lights). See the ASSUMPTIONS note in the docs.
+ * Derive the per-channel unread set from a snapshot. The inbox DO's snapshot
+ * carries a per-entry `unread` boolean on every active registry entry alongside
+ * the global `hasUnread` roll-up that drives the dock dot. An entry without the
+ * field (a legacy/pre-per-entry row) simply carries no per-row dot — the dock dot
+ * still lights off `hasUnread`.
  *
  * ARCHIVED rows are excluded from the unread roll-up (archive = done — the DO clears
  * unread on archive; the client also never counts them).

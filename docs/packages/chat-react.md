@@ -137,6 +137,45 @@ Both clients also set `lastErrorCode: 'revoked'` on a 4403 REVOKED close.
 `ChatAccessDeniedError` + `isChatAccessDeniedError` are exported from the package
 root.
 
+**Connection lifecycle: `connect()` after `close()` (both clients).** `connect()`
+starts a lifecycle ONLY from `idle` or a fully torn-down `closed` — a second
+`connect()` while one is connecting/open/reconnecting is a no-op, so a
+double-mounted owner can never open a second socket (the reconnect path uses the
+internal open/schedule helpers, never `connect()`, so a real reconnect is never
+blocked). From a `closed` state `connect()` REVIVES the lifecycle: the
+realtime-core reconnect controller is `reset()` before it is started, because
+`controller.close()` is permanent — while it sits in state `closed`, `start()`
+and `onOpen()` no-op and every later `onClose()` returns null, so a revived
+client without the reset would work until its first transient close and then park
+terminally in `closed` with reconnect disabled and no surfaced error code. The
+same `connect()` clears a stale TERMINAL `lastErrorCode` (`revoked` /
+`access-denied`): a terminal verdict is terminal WITHIN its lifecycle, while a
+later explicit `connect()` is a fresh attempt the authority may legitimately
+re-deny. Loaded messages, `hasLoadedInitialData`, and the inbox registry/unread
+projection are deliberately KEPT across a restart — a lifecycle restart must not
+churn the UI back to an empty opening state.
+
+**Channel liveness — the dead-socket watchdog (CHANNEL ONLY).** The channel DO
+answers every 20 s client `heartbeat` through the hibernation auto-response API,
+so a healthy channel socket is never inbound-silent for a full heartbeat window.
+`ChannelClient` therefore tracks `lastInboundAt` — set when the socket opens,
+refreshed by every successfully PARSED inbound frame (the `heartbeat-ack`
+included, and a forward-compat type this build does not handle, since a newer
+DO's traffic is still liveness proof; an UNPARSEABLE frame refreshes nothing) —
+and on the existing heartbeat tick closes a socket that has been silent past a
+private client-policy threshold (50 s; not a wire constant, so it is neither in
+`chat-schemas` nor exported). The close is LOCAL and deliberately not marked
+closed-by-us, so the ordinary `onClose` transient path owns reconnect, backoff,
+and resume; the watchdog owns detection only. Because the check rides the 20 s
+cadence, detection lands on the next tick past the deadline rather than at
+exactly 50 s. Watchdog state is cleared on socket replacement, on close, and on
+teardown — the heartbeat timer IS its timer, so a torn-down client has neither.
+This exists for the half-open socket whose `onclose` never fires, which would
+otherwise strand the UI on a socket that will never deliver another frame.
+`InboxClient` deliberately has NO watchdog: the inbox DO has no heartbeat
+auto-response and a healthy idle inbox is legitimately silent indefinitely, so the
+same rule there would endlessly reconnect healthy sockets.
+
 **Opt-in client diagnostics (`diagnostics`, default OFF).** `ChannelClient`,
 `InboxClient`, `createRealtimeChatClient`, and `createInboxClient` all accept an
 additive `diagnostics?: boolean | ChatClientDiagnosticsSink` — ONE implementation
@@ -151,7 +190,9 @@ Stable event names (`CHAT_CLIENT_DIAGNOSTIC_EVENTS`, exported from the package r
 they are a log-query contract, added/retired deliberately, never renamed). Channel
 socket: socket
 lifecycle (`connect_attempt`, `grant_failed`, `socket_open`, `socket_close`,
-`reconnect_scheduled` — each with the reconnect cause and attempt number), resume
+`reconnect_scheduled` — each with the reconnect cause and attempt number,
+plus `socket_liveness_timeout`, ONE line per watchdog detection carrying the
+silence and threshold in ms), resume
 (`resume_request {afterSeq}`, `resume_result {lastMessageSeq, resync, deltaCount,
 cursorBefore, cursorAfter}`, `resync_dropped_tail`), per-frame decisions
 (`frame_applied` with `op: insert | replace-by-seq | optimistic-reconcile`,
@@ -187,25 +228,31 @@ unit-tested against a MOCK socket and a fake clock with no real network/timers
 (`__tests__/realtime/`). Coverage: connect+auth handshake, optimistic send + seq
 reconcile, read-ack, typing coalescing, presence, heartbeat, history pagination,
 reconnect+resume (snapshot then delta), 4401 re-grant (once), 4403 stop, grant-mint
-failure backoff, inbox unread projection, auth-switch teardown, and the diagnostics
-flag (identical state + identical sent frames with it off vs. on, zero console output
-when off, and the event payloads when on).
+failure backoff, connect-after-close revival (both clients — including that a
+transient close after a revived lifecycle still reconnects, that a fresh
+`connect()` clears a terminal code, and that inbox double-`connect()` opens no
+second socket), the channel dead-socket watchdog (heartbeat-acks keep a socket
+alive indefinitely; total silence closes it once and reconnects; any valid frame
+refreshes the deadline; teardown disarms it), inbox unread projection,
+auth-switch teardown, and the diagnostics flag (identical state + identical sent
+frames with it off vs. on, zero console output when off, and the event payloads
+when on). Any test holding a channel socket open across a long window must model
+the DO's heartbeat auto-response (`tickAlive`) — a bare clock advance is inbound
+silence, which the watchdog correctly treats as a dead socket.
 
-**Wire details ASSUMED / not yet confirmable against the Worker** (review these):
-- Per-row inbox unread dots: the current inbox DO snapshot exposes a single
-  `hasUnread` boolean (the dock dot) + the active registry; it does NOT enumerate
-  which entries are unread. `channelHasUnread(ref)` reads a per-entry `unread` flag
-  IF the snapshot carries one (forward-compatible) and otherwise returns false —
-  the dock dot still lights. If per-row dots are required at launch, the inbox DO
-  snapshot must add a per-entry `unread` field.
+**Wire details, each confirmed against the Worker:**
+- Per-row inbox unread dots: the inbox DO snapshot carries a per-entry `unread`
+  boolean on every active registry entry alongside the global `hasUnread` roll-up
+  that drives the dock badge (`inbox-do.ts` `snapshot()` → `listRegistryWithUnread()`).
+  `channelHasUnread(ref)` reads that per-entry flag; archived rows always report
+  `unread: false` (archive = done) on BOTH sides. Booleans only — never counts.
 - The channel `resume` frame sends `{ afterSeq }` (the client's resume cursor). The
   DO's `resume` handler honors it via `resumeSince()` and returns
   `{ lastMessageSeq, readSeq, resync, delta }` — a real delta when the gap is
   within the resume backlog (≤500 messages); a gap beyond that is treated as a
-  tail-behind and the client pulls a history page instead. Confirmed against
-  `channel-do.ts`.
+  tail-behind and the client pulls a history page instead (`channel-do.ts`).
 - Read-ack focus: the client sends `{ readSeq, focused }`; the DO reads
-  `payload.focused`. Confirmed against `channel-do.ts`.
+  `payload.focused` (`channel-do.ts`).
 
 ## Boundary
 

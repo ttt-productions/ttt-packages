@@ -15,6 +15,8 @@ export interface MockSocket extends RealtimeSocket {
   serverOpen(): void;
   /** Simulate the DO sending a `{ v, type, payload }` frame. */
   serverFrame(type: string, payload: Record<string, unknown>): void;
+  /** Simulate arbitrary/garbage bytes arriving (an UNPARSEABLE inbound frame). */
+  serverRaw(data: string): void;
   /** Simulate the socket closing (server or transport). */
   serverClose(code: number, reason?: string): void;
   /** True after close() / serverClose(). */
@@ -73,6 +75,9 @@ function makeMockSocket(url: string, grantToken: string, handlers: SocketHandler
     },
     serverFrame(type: string, payload: Record<string, unknown>) {
       handlers.onMessage(JSON.stringify({ v: 1, type, payload }));
+    },
+    serverRaw(data: string) {
+      handlers.onMessage(data);
     },
     serverClose(code: number, reason = '') {
       if (closed) return;

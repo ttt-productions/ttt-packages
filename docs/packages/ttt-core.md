@@ -9,6 +9,7 @@ TTT Productions application-data package.
 - Upload wire schemas, target-info schemas, `parseTargetInfo`, and server-owned hall-library upload target-field mappings
 - Concrete TTT pending-media schemas composed from `media-schemas` (the optional `processingAttemptCount`/`processingLeaseExpiresAt` crash-recovery fields ride the composed strict branches)
 - Media-processing crash-recovery policy constants (`constants/media-processing` → `constants` barrel): `MEDIA_PROCESSING_MAX_ATTEMPTS` (2 — first attempt + one retry) and `MEDIA_PROCESSING_LEASE_MS` (12 min)
+- The TTT account-password contract: `PASSWORD_MIN_LENGTH` (7) / `PASSWORD_MAX_LENGTH` (64) in `constants/business-user`, plus the single `validateTttPassword` owner in `utils/password`. Length only — no composition rules — counted in UTF-16 code units to match HTML inputs and the Firebase SDK, never trimming or normalizing, and confirmation matching stays the caller's job. Deliberately NOT named `validatePassword`: Firebase's SDK owns that name and reads mutable hosted project policy, while this is the stable product contract every TTT password surface (registration, reset) and the hosted Firebase policy derive from.
 - TTT domain-event union/schema/catalog
 - TTT atoms such as `Mention` and `MentionType`
 - TTT moderation constants

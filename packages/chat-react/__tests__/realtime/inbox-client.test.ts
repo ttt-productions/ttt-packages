@@ -222,6 +222,108 @@ describe('InboxClient — teardown', () => {
   });
 });
 
+describe('InboxClient — connect() idempotency + lifecycle revival', () => {
+  it('a second connect() while already connecting/open opens NO second socket', async () => {
+    const { client, harness } = makeInbox();
+    await client.connect();
+    await client.connect(); // no-op: already connecting
+    expect(harness.sockets).toHaveLength(1);
+    harness.last().serverOpen();
+    await client.connect(); // no-op: already open
+    expect(harness.sockets).toHaveLength(1);
+  });
+
+  it('a transient close reports reconnecting and schedules a retry that opens a new socket', async () => {
+    const { client, harness, clock } = makeInbox();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+
+    s1.serverClose(1006, 'abnormal');
+    expect(client.getState().status).toBe('reconnecting');
+    expect(harness.sockets).toHaveLength(1);
+    clock.tick(200);
+    await Promise.resolve();
+    expect(harness.sockets).toHaveLength(2);
+  });
+
+  it('close() → connect() → open → transient close still RECONNECTS (never parks in closed)', async () => {
+    const { client, harness, clock } = makeInbox();
+    await client.connect();
+    harness.last().serverOpen();
+    client.close();
+    expect(client.getState().status).toBe('closed');
+
+    await client.connect();
+    expect(harness.sockets).toHaveLength(2);
+    const s2 = harness.last();
+    s2.serverOpen();
+    expect(client.getState().status).toBe('open');
+
+    s2.serverClose(1006, 'abnormal');
+    expect(client.getState().status).toBe('reconnecting');
+    clock.tick(200);
+    await Promise.resolve();
+    expect(harness.sockets).toHaveLength(3);
+  });
+
+  it('a fresh connect() clears the previous TERMINAL lastErrorCode', async () => {
+    const { client, harness } = makeInbox();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverClose(CHAT_CLOSE_CODES.REVOKED, 'revoked');
+    expect(client.getState().lastErrorCode).toBe('revoked');
+
+    await client.connect();
+    expect(client.getState().lastErrorCode).toBeNull();
+    expect(client.getState().status).toBe('connecting');
+  });
+
+  it('a fresh connect() clears a terminal access-denied and re-attempts the mint', async () => {
+    const grant = vi
+      .fn()
+      .mockRejectedValueOnce(new ChatAccessDeniedError())
+      .mockResolvedValue('inbox-grant-after-reinstate');
+    const { client, harness } = makeInbox({ grantProvider: grant });
+    await client.connect();
+    expect(client.getState().lastErrorCode).toBe('access-denied');
+    expect(harness.sockets).toHaveLength(0);
+
+    await client.connect();
+    expect(client.getState().lastErrorCode).toBeNull();
+    expect(grant).toHaveBeenCalledTimes(2);
+    expect(harness.sockets).toHaveLength(1);
+  });
+
+  it('preserves the registry projection across a lifecycle restart', async () => {
+    const { client, harness } = makeInbox();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverFrame('snapshot', snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1 }], true));
+    expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['c1']);
+
+    client.close();
+    await client.connect();
+    // A lifecycle restart must not blank the dock — the DO's next snapshot is authoritative.
+    expect(client.getState().registry.map((e) => e.channelRef)).toEqual(['c1']);
+    expect(client.getState().hasUnread).toBe(true);
+  });
+
+  it('4403 REVOKED stays terminal WITHIN the lifecycle (only an explicit connect() revives it)', async () => {
+    const { client, harness, clock } = makeInbox();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverClose(CHAT_CLOSE_CODES.REVOKED, 'revoked');
+    expect(client.getState().status).toBe('closed');
+    clock.tick(60_000);
+    await Promise.resolve();
+    expect(harness.sockets).toHaveLength(1);
+  });
+});
+
 describe('InboxClient — markRead (tray clear without opening the chat)', () => {
   it('sends a mark-read frame with the channelRef and does NOT optimistically clear local state', async () => {
     const { client, harness } = makeInbox();

@@ -57,6 +57,13 @@ export const CHAT_CLIENT_DIAGNOSTIC_EVENTS = {
   SOCKET_OPEN: 'chat_client_socket_open',
   /** The socket closed, with the code and what the client decided to do next. */
   SOCKET_CLOSE: 'chat_client_socket_close',
+  /**
+   * CHANNEL ONLY. The dead-socket watchdog closed a socket that had gone silent
+   * past the client's inbound-silence threshold (the channel DO auto-acks every
+   * heartbeat, so silence there is provable death). One line per detection —
+   * never per heartbeat — followed by the ordinary socket_close/reconnect lines.
+   */
+  SOCKET_LIVENESS_TIMEOUT: 'chat_client_socket_liveness_timeout',
   /** A reconnect was scheduled (`delayMs`) or given up on (`delayMs: null`). */
   RECONNECT_SCHEDULED: 'chat_client_reconnect_scheduled',
   /** The resume cursor sent to the DO. */

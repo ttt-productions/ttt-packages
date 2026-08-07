@@ -7,12 +7,37 @@ import {
 import { CHAT_CLOSE_CODES, CHAT_SUBPROTOCOL, type WireMessageRow } from '../../src/realtime/wire.js';
 import {
   ChatAccessDeniedError,
+  HEARTBEAT_MS,
   MAX_PENDING_SEND_ATTEMPTS,
   PENDING_SEND_MAX_AGE_MS,
   SERVER_RETRYABLE_MAX_AGE_MS,
   SEND_RETRY_MAX_DELAY_MS,
 } from '../../src/realtime/shared.js';
-import { createMockSocketHarness, createFakeClock } from './mock-socket.js';
+import {
+  createMockSocketHarness,
+  createFakeClock,
+  type FakeClock,
+  type MockSocket,
+} from './mock-socket.js';
+
+/**
+ * Advance the clock with the DO behaving NORMALLY. The channel DO answers every
+ * 20 s client heartbeat through its hibernation auto-response, so a healthy
+ * channel socket is never inbound-silent for a full heartbeat window. Any test
+ * that holds a socket open across a long window must model that — otherwise the
+ * dead-socket watchdog correctly reads the silence as a half-open socket and
+ * closes it. Use a bare `clock.tick()` only when the socket is meant to be
+ * closed, torn down, or genuinely dead.
+ */
+function tickAlive(clock: FakeClock, sock: MockSocket, ms: number): void {
+  let remaining = ms;
+  while (remaining > 0) {
+    const step = Math.min(remaining, HEARTBEAT_MS);
+    clock.tick(step);
+    remaining -= step;
+    if (sock.isOpen) sock.serverFrame('heartbeat-ack', {});
+  }
+}
 
 function wireRow(seq: number, senderUid: string, text: string, clientMessageId = `srv-${seq}`): WireMessageRow {
   return {
@@ -693,7 +718,7 @@ describe('ChannelClient — membership-pending retry (send vs. membership-sync r
     expect(sock.sent.filter((f) => f.type === 'send').length).toBeGreaterThan(MAX_PENDING_SEND_ATTEMPTS);
 
     // Cross the 90s wall-clock budget → the next membership-pending resend fails it.
-    clock.tick(SERVER_RETRYABLE_MAX_AGE_MS);
+    tickAlive(clock, sock, SERVER_RETRYABLE_MAX_AGE_MS);
     sock.serverFrame('error', { code: 'membership-pending', retryAfterMs: 1000 });
     clock.tick(1000);
     const failed = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
@@ -769,7 +794,7 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
 
     // No resend is ever scheduled for a terminal rejection.
     const before = sock.sent.filter((f) => f.type === 'send').length;
-    clock.tick(SERVER_RETRYABLE_MAX_AGE_MS + 5000);
+    tickAlive(clock, sock, SERVER_RETRYABLE_MAX_AGE_MS + 5000);
     expect(sock.sent.filter((f) => f.type === 'send').length).toBe(before);
   });
 
@@ -817,7 +842,7 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     expect(sock.sent.filter((f) => f.type === 'send').length).toBeGreaterThan(MAX_PENDING_SEND_ATTEMPTS);
 
     // Once the 90s wall-clock budget elapses, the next rejection fails it (retryable class).
-    clock.tick(SERVER_RETRYABLE_MAX_AGE_MS);
+    tickAlive(clock, sock, SERVER_RETRYABLE_MAX_AGE_MS);
     sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 1000 });
     const failed = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     expect(failed?.meta?.sendFailed).toBe(true);
@@ -943,7 +968,7 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     expect(row?.meta?.sendFailed).toBe(true);
     expect(row?.meta?.sendFailureCode).toBe('blocked-word');
     // The cancelled timer never fires a doomed resend.
-    clock.tick(60_000);
+    tickAlive(clock, sock, 60_000);
     expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(1); // the original only
   });
 
@@ -978,7 +1003,7 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
 
     client.retrySend('c-1');
     expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2); // original + manual retry
-    clock.tick(60_000);
+    tickAlive(clock, sock, 60_000);
     expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2); // old timer never fired
   });
 
@@ -992,9 +1017,11 @@ describe('ChannelClient — correlated send-rejected (per-message send results)'
     sock.serverFrame('send-rejected', { clientMessageId: 'c-1', code: 'membership-pending', retryable: true, retryAfterMs: 2000 });
     clock.tick(2000); // the scheduled resend fires…
     expect(sock.sent.filter((f) => f.type === 'send')).toHaveLength(2);
-    // …and the server (contract violation) never answers again. The deadline check
-    // flips the send to failed at budget end instead of stranding it.
-    clock.tick(SERVER_RETRYABLE_MAX_AGE_MS);
+    // …and the server (contract violation) never answers the SEND again — while the
+    // socket itself stays demonstrably alive (heartbeat-acks keep flowing, so the
+    // dead-socket watchdog is not what ends this). The deadline check flips the send
+    // to failed at budget end instead of stranding it.
+    tickAlive(clock, sock, SERVER_RETRYABLE_MAX_AGE_MS);
     const row = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-1');
     expect(row?.meta?.sendFailed).toBe(true);
     expect(row?.meta?.sendFailureCode).toBe('membership-pending');
@@ -1165,6 +1192,237 @@ describe('ChannelClient — connect() idempotency (C-B7)', () => {
     harness.last().serverOpen();
     await client.connect(); // no-op: already open
     expect(harness.sockets).toHaveLength(1);
+  });
+});
+
+describe('ChannelClient — connect() revives a closed lifecycle', () => {
+  it('a transient close reports reconnecting and schedules a retry that opens a new socket', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+
+    s1.serverClose(1006, 'abnormal');
+    expect(client.getState().status).toBe('reconnecting');
+    expect(harness.sockets).toHaveLength(1); // the retry is SCHEDULED, not immediate
+    clock.tick(200);
+    await Promise.resolve();
+    expect(harness.sockets).toHaveLength(2);
+  });
+
+  it('close() → connect() → open → transient close still RECONNECTS (never parks in closed)', async () => {
+    // `controller.close()` is permanent: without a reset on connect() the revived
+    // client works until its FIRST transient close, at which point onClose() returns
+    // null and it parks terminally in `closed` with reconnect disabled.
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    harness.last().serverOpen();
+    client.close();
+    expect(client.getState().status).toBe('closed');
+
+    await client.connect();
+    expect(harness.sockets).toHaveLength(2);
+    const s2 = harness.last();
+    s2.serverOpen();
+    expect(client.getState().status).toBe('open');
+
+    s2.serverClose(1006, 'abnormal');
+    expect(client.getState().status).toBe('reconnecting');
+    clock.tick(200);
+    await Promise.resolve();
+    expect(harness.sockets).toHaveLength(3);
+  });
+
+  it('a fresh connect() clears the previous TERMINAL lastErrorCode', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverClose(CHAT_CLOSE_CODES.REVOKED, 'revoked');
+    expect(client.getState().lastErrorCode).toBe('revoked');
+
+    // A later explicit connect() is a FRESH attempt the authority may legitimately
+    // re-deny — it must not open holding the previous lifecycle's terminal verdict.
+    await client.connect();
+    expect(client.getState().lastErrorCode).toBeNull();
+    expect(client.getState().status).toBe('connecting');
+  });
+
+  it('a fresh connect() clears a terminal access-denied and re-attempts the mint', async () => {
+    const grant = vi
+      .fn()
+      .mockRejectedValueOnce(new ChatAccessDeniedError())
+      .mockResolvedValue('grant-after-reinstate');
+    const { client, harness } = makeClient({ grantProvider: grant });
+    await client.connect();
+    expect(client.getState().lastErrorCode).toBe('access-denied');
+    expect(harness.sockets).toHaveLength(0);
+
+    await client.connect();
+    expect(client.getState().lastErrorCode).toBeNull();
+    expect(grant).toHaveBeenCalledTimes(2);
+    expect(harness.sockets).toHaveLength(1);
+  });
+
+  it('preserves loaded messages + hasLoadedInitialData across a lifecycle restart', async () => {
+    const { client, harness } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverFrame('snapshot', { lastMessageSeq: 3, readSeq: 0, resync: false, delta: [wireRow(3, 'u-a', 'three')] });
+    expect(client.getState().messages.map((m) => m.messageId)).toEqual(['3']);
+
+    client.close();
+    await client.connect();
+    // A reconnect must not churn the UI back to the opening loader / an empty list.
+    expect(client.getState().messages.map((m) => m.messageId)).toEqual(['3']);
+    expect(client.getState().hasLoadedInitialData).toBe(true);
+  });
+
+  it('4403 REVOKED stays terminal WITHIN the lifecycle (only an explicit connect() revives it)', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverClose(CHAT_CLOSE_CODES.REVOKED, 'revoked');
+    expect(client.getState().status).toBe('closed');
+    clock.tick(60_000);
+    await Promise.resolve();
+    expect(harness.sockets).toHaveLength(1); // no self-revival
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Dead-socket watchdog (CHANNEL ONLY). The channel DO auto-responds to every 20s
+// heartbeat, so inbound silence past the client's threshold is provable death —
+// a half-open socket whose `onclose` never fires and which would otherwise strand
+// the UI forever. The watchdog closes it LOCALLY and hands the outcome to the
+// existing transient-close path (reconnect + backoff + resume).
+// ---------------------------------------------------------------------------
+
+describe('ChannelClient — dead-socket watchdog', () => {
+  it('repeated heartbeat-acks keep the socket open across several stale windows', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+
+    // Five minutes of a HEALTHY but conversation-idle channel: no messages at all,
+    // only the DO's heartbeat auto-response. The socket must never be closed.
+    tickAlive(clock, sock, 300_000);
+
+    expect(client.getState().status).toBe('open');
+    expect(sock.closed).toBe(false);
+    expect(harness.sockets).toHaveLength(1);
+    expect(sock.sent.filter((f) => f.type === 'heartbeat').length).toBeGreaterThanOrEqual(15);
+  });
+
+  it('total inbound silence closes the socket exactly ONCE and reconnects', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const s1 = harness.last();
+    s1.serverOpen();
+    s1.serverFrame('message', { message: wireRow(4, 'u-a', 'last thing we ever heard') });
+
+    // The DO stops answering entirely (half-open socket: no `onclose` ever fires).
+    // Detection rides the 20s heartbeat cadence, so it lands on the first tick past
+    // the 50s deadline — the 60s one.
+    clock.tick(40_000);
+    expect(client.getState().status).toBe('open');
+    expect(s1.closed).toBe(false);
+
+    clock.tick(20_000);
+    expect(s1.closed).toBe(true);
+    expect(client.getState().status).toBe('reconnecting');
+
+    // Exactly one local close — the heartbeat does not reschedule after it fires,
+    // so nothing re-detects and no second socket has been built yet.
+    expect(harness.sockets).toHaveLength(1);
+
+    // …and the ordinary transient path brings a NEW socket up, resuming from the
+    // last applied seq (nothing about reconnect policy is duplicated in the watchdog).
+    clock.tick(200);
+    await Promise.resolve();
+    const s2 = harness.sockets[1];
+    expect(s2).toBeTruthy();
+    s2.serverOpen();
+    expect(client.getState().status).toBe('open');
+    expect(s2.sent.find((f) => f.type === 'resume')?.payload).toEqual({ afterSeq: 4 });
+  });
+
+  it('ANY valid inbound frame refreshes the deadline (not just heartbeat-acks)', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+
+    // Silence almost to the deadline, then a real message resets it.
+    clock.tick(40_000);
+    sock.serverFrame('message', { message: wireRow(1, 'u-a', 'still here') });
+    clock.tick(40_000);
+    expect(sock.closed).toBe(false);
+    expect(client.getState().status).toBe('open');
+
+    // A forward-compat frame this build does not handle is still liveness proof —
+    // a newer DO's traffic must never be read as a dead socket.
+    sock.serverFrame('brand-new-frame', {});
+    clock.tick(40_000);
+    expect(sock.closed).toBe(false);
+    expect(client.getState().status).toBe('open');
+  });
+
+  it('an UNPARSEABLE frame does NOT refresh the deadline', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+
+    clock.tick(40_000);
+    // Garbage on the wire proves nothing about a DO speaking this protocol.
+    sock.serverRaw('not json at all');
+    clock.tick(20_000);
+    expect(sock.closed).toBe(true);
+    expect(client.getState().status).toBe('reconnecting');
+  });
+
+  it('teardown clears the watchdog: no close, no diagnostic, no reconnect afterwards', async () => {
+    const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
+    const { client, harness, clock } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+
+    client.close();
+    const afterClose = entries.length;
+    clock.tick(300_000);
+    await Promise.resolve();
+
+    expect(entries).toHaveLength(afterClose); // the watchdog timer is gone with the heartbeat
+    expect(harness.sockets).toHaveLength(1); // and nothing reconnects
+    expect(client.getState().status).toBe('closed');
+  });
+
+  it('emits exactly ONE bounded liveness diagnostic per detection (content-free)', async () => {
+    const entries: Array<{ event: string; data: Record<string, unknown> }> = [];
+    const { client, harness, clock } = makeClient({ diagnostics: (event, data) => entries.push({ event, data }) });
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+
+    clock.tick(60_000);
+    const liveness = entries.filter((e) => e.event === DIAG.SOCKET_LIVENESS_TIMEOUT);
+    expect(liveness).toHaveLength(1);
+    expect(liveness[0].data).toMatchObject({ thresholdMs: 50_000, attempt: 1, resumeSeq: 0, pendingSends: 0 });
+    expect(liveness[0].data.silentMs).toBeGreaterThanOrEqual(50_000);
+    // It is followed by the ordinary transient close/reconnect lines — the watchdog
+    // owns detection only, never reconnect policy.
+    expect(entries.some((e) => e.event === DIAG.SOCKET_CLOSE)).toBe(true);
+    expect(entries.some((e) => e.event === DIAG.RECONNECT_SCHEDULED)).toBe(true);
+    // Still one line per DECISION: a further 5 minutes of a dead client adds no more.
+    const after = entries.filter((e) => e.event === DIAG.SOCKET_LIVENESS_TIMEOUT).length;
+    clock.tick(300_000);
+    expect(entries.filter((e) => e.event === DIAG.SOCKET_LIVENESS_TIMEOUT)).toHaveLength(after);
+    expect(client.getState().status).not.toBe('open');
   });
 });
 
@@ -1540,7 +1798,9 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
     await client.connect();
     harness.last().serverOpen();
     const afterOpen = entries.length;
-    clock.tick(120_000); // six heartbeat windows
+    // Six heartbeat windows with the DO auto-responding, exactly as it does live:
+    // neither the heartbeats nor their acks may produce a single diagnostic line.
+    tickAlive(clock, harness.last(), 120_000);
     expect(harness.last().sent.filter((f) => f.type === 'heartbeat').length).toBeGreaterThanOrEqual(6);
     expect(entries).toHaveLength(afterOpen);
   });

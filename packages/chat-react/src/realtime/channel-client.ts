@@ -49,6 +49,8 @@ import {
 import {
   defaultTimers,
   isChatAccessDeniedError,
+  isTerminalErrorCode,
+  TERMINAL_ERROR_CODE,
   HEARTBEAT_MS,
   TYPING_COALESCE_MS,
   HISTORY_PAGE_MAX,
@@ -163,6 +165,39 @@ const MEMBERSHIP_PENDING_CODE = 'membership-pending';
 /** Fallback retry delay when the frame omits/breaks `retryAfterMs`. */
 const MEMBERSHIP_PENDING_DEFAULT_RETRY_MS = 2000;
 
+/**
+ * Dead-socket watchdog: how long inbound silence may last before this client
+ * treats the socket as dead and closes it locally.
+ *
+ * CHANNEL-ONLY, and this is why it is sound here: the channel DO answers every
+ * 20 s client `heartbeat` through the hibernation AUTO-RESPONSE API, so a healthy
+ * channel socket is NEVER silent for a full heartbeat window. Inbound silence past
+ * this threshold is therefore provable death (a half-open TCP connection whose
+ * `onclose` never fires), not idleness. The INBOX socket has no such auto-response
+ * and a healthy idle inbox is legitimately silent for hours — applying this rule
+ * there would endlessly reconnect healthy sockets, so it is deliberately absent
+ * from `inbox-client.ts`.
+ *
+ * PRIVATE CLIENT POLICY, not a wire constant: nothing on the worker side agrees to
+ * it, so it does not belong in `@ttt-productions/chat-schemas` or in this package's
+ * exported surface. The check rides the existing 20 s heartbeat tick (no second
+ * timer), so detection lands on the NEXT tick after the deadline rather than at
+ * exactly 50 s — intended: 2.5 missed windows is unambiguous, and it costs no
+ * extra timer.
+ */
+const INBOUND_SILENCE_LIMIT_MS = 50_000;
+
+/**
+ * Close code used for the watchdog's LOCAL close. A browser `WebSocket.close()`
+ * accepts only 1000 or 3000–4999, and the private 4xxx range is the chat wire's
+ * (`CHAT_CLOSE_CODES`) — a client-invented code there could collide with a future
+ * server code. 1000 keeps the close frame valid and, being neither 4401 nor 4403,
+ * routes through `onClose`'s ordinary transient path, which owns reconnect,
+ * backoff, and resume. The reason string + the liveness diagnostic are what
+ * identify it.
+ */
+const WATCHDOG_CLOSE_CODE = 1000;
+
 export class ChannelClient {
   private readonly timers: TransportTimers;
   private readonly controller: ReconnectController;
@@ -179,6 +214,13 @@ export class ChannelClient {
   private reauthAttempted = false;
   private presenceSubscribed = false;
   private heartbeatTimer: ReturnType<TransportTimers['setTimeout']> | null = null;
+  /**
+   * When the CURRENT socket last proved it was alive: set on open, refreshed by
+   * every successfully parsed inbound frame (`heartbeat-ack` included — that IS
+   * the DO's liveness answer). Null whenever no socket is live, so the watchdog
+   * can never judge a socket that does not exist. See {@link INBOUND_SILENCE_LIMIT_MS}.
+   */
+  private lastInboundAt: number | null = null;
   private typingTimers = new Map<string, ReturnType<TransportTimers['setTimeout']>>();
   private lastTypingSentAt = Number.NEGATIVE_INFINITY;
   private reconnectTimer: ReturnType<TransportTimers['setTimeout']> | null = null;
@@ -252,6 +294,22 @@ export class ChannelClient {
     // scheduleReconnect() directly (never connect()), so this never blocks a
     // legitimate reconnect.
     if (this.state.status !== 'idle' && this.state.status !== 'closed') return;
+    // REVIVE the controller. `controller.close()` is PERMANENT: while it is in
+    // state `closed`, `start()` and `onOpen()` no-op and every later `onClose()`
+    // returns null. So without this reset a close() → connect() client opens a
+    // socket and works normally until its FIRST transient close, at which point
+    // `scheduleReconnect()` gets null and parks it terminally in `closed` with
+    // reconnect disabled and no surfaced error code. The idempotency guard above
+    // is what keeps this from disturbing a live lifecycle: only an `idle` or
+    // fully torn-down (`closed`) client ever reaches here.
+    this.controller.reset();
+    // A terminal verdict (4403 REVOKED / ChatAccessDeniedError) is terminal WITHIN
+    // its lifecycle; an explicit connect() is a fresh attempt the authority may
+    // legitimately re-deny, so the previous lifecycle's code must not persist into
+    // this one (the hook maps `access-denied` to `allowed: false`). Loaded
+    // messages and the initial-load flag are deliberately KEPT — a lifecycle
+    // restart must not churn the UI back to an empty opening state.
+    if (isTerminalErrorCode(this.state.lastErrorCode)) this.setState({ lastErrorCode: null });
     this.closedByUs = false;
     this.reconnectCause = 'initial';
     this.controller.start();
@@ -285,6 +343,9 @@ export class ChannelClient {
       return this.scheduleReconnect();
     }
     if (this.closedByUs) return;
+    // Socket REPLACEMENT: the previous socket's liveness record dies with it, so
+    // the watchdog never judges a new socket against an old deadline.
+    this.lastInboundAt = null;
     const url = `${this.config.endpoint.replace(/\/$/, '')}/channel`;
     this.socket = this.config.socketFactory({
       url,
@@ -301,6 +362,9 @@ export class ChannelClient {
   private onOpen(): void {
     this.controller.onOpen();
     this.reauthAttempted = false;
+    // Start the liveness clock at open — the first heartbeat window is measured
+    // from here, not from a stale previous socket.
+    this.lastInboundAt = this.timers.now();
     this.setState({ status: 'open' });
     this.diag?.(DIAG.SOCKET_OPEN, {
       attempt: this.connectAttempt,
@@ -650,6 +714,7 @@ export class ChannelClient {
   private onClose(code: number, _reason: string): void {
     this.stopHeartbeat();
     this.socket = null;
+    this.lastInboundAt = null;
     this.lastCloseCode = code;
     if (this.closedByUs) {
       this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: true, outcome: 'closed', resumeSeq: this.resumeSeq });
@@ -674,7 +739,7 @@ export class ChannelClient {
       this.controller.close();
       this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: false, outcome: 'revoked', resumeSeq: this.resumeSeq });
       this.failAllPendingSends();
-      this.setState({ status: 'closed', lastErrorCode: 'revoked' });
+      this.setState({ status: 'closed', lastErrorCode: TERMINAL_ERROR_CODE.REVOKED });
       return;
     }
     this.reconnectCause = 'transient-close';
@@ -718,7 +783,7 @@ export class ChannelClient {
     this.closedByUs = true;
     this.controller.close();
     this.failAllPendingSends();
-    this.setState({ status: 'closed', lastErrorCode: 'access-denied' });
+    this.setState({ status: 'closed', lastErrorCode: TERMINAL_ERROR_CODE.ACCESS_DENIED });
   }
 
   // ---- inbound frames ----
@@ -726,9 +791,15 @@ export class ChannelClient {
   private onMessage(data: string): void {
     const frame = parseFrame(data);
     if (!frame || !frame.type) {
+      // Unparseable: bytes arrived, but nothing proves they came from a DO
+      // speaking this protocol, so this must NOT refresh the liveness deadline.
       this.diag?.(DIAG.FRAME_DROPPED, { kind: 'unparseable', reason: 'bad-envelope' });
       return;
     }
+    // A well-formed envelope IS the liveness proof — including the `heartbeat-ack`
+    // the DO auto-responds with, and a forward-compat type this build does not
+    // handle yet (a newer DO's frames must never be read as a dead socket).
+    this.lastInboundAt = this.timers.now();
     const payload = frame.payload ?? {};
     switch (frame.type) {
       case 'message':
@@ -1223,12 +1294,16 @@ export class ChannelClient {
     this.diag?.(DIAG.HISTORY_REQUEST, { beforeSeq, limit: HISTORY_PAGE_MAX, sent });
   }
 
-  // ---- heartbeat (20s) ----
+  // ---- heartbeat (20s) + dead-socket watchdog ----
 
   private startHeartbeat(): void {
     this.stopHeartbeat();
     const tick = () => {
       if (!this.socket || !this.socket.isOpen) return;
+      // Liveness is checked BEFORE the write: a socket already proven dead must
+      // not be handed another frame. Closing here does not reschedule — onClose
+      // stops the heartbeat and owns what happens next.
+      if (this.isInboundSilent()) return this.closeDeadSocket();
       this.sendFrame(CLIENT_FRAME.HEARTBEAT, {});
       this.heartbeatTimer = this.timers.setTimeout(tick, HEARTBEAT_MS);
     };
@@ -1242,6 +1317,36 @@ export class ChannelClient {
     }
   }
 
+  /** True when the live socket has produced no parseable frame for too long. */
+  private isInboundSilent(): boolean {
+    if (this.lastInboundAt == null) return false;
+    return this.timers.now() - this.lastInboundAt >= INBOUND_SILENCE_LIMIT_MS;
+  }
+
+  /**
+   * The channel DO auto-acks every heartbeat, so silence past
+   * {@link INBOUND_SILENCE_LIMIT_MS} means this socket is dead even though no
+   * `onclose` ever fired (the half-open-connection case that otherwise strands
+   * the UI on a socket that will never deliver another message).
+   *
+   * Close it LOCALLY and deliberately WITHOUT setting `closedByUs`, so the close
+   * lands on `onClose`'s ordinary transient path — which already owns the
+   * reconnect scheduling, the backoff, and the resume-cursor recovery. Nothing
+   * about reconnect policy is duplicated here.
+   */
+  private closeDeadSocket(): void {
+    const socket = this.socket;
+    this.diag?.(DIAG.SOCKET_LIVENESS_TIMEOUT, {
+      silentMs: this.lastInboundAt == null ? null : this.timers.now() - this.lastInboundAt,
+      thresholdMs: INBOUND_SILENCE_LIMIT_MS,
+      attempt: this.connectAttempt,
+      resumeSeq: this.resumeSeq,
+      pendingSends: this.pendingSends.size,
+    });
+    this.lastInboundAt = null;
+    socket?.close(WATCHDOG_CLOSE_CODE, 'client liveness timeout');
+  }
+
   // ---- teardown ----
 
   /** Permanently close this client (auth-user switch / unmount). Idempotent. */
@@ -1249,6 +1354,9 @@ export class ChannelClient {
     this.closedByUs = true;
     this.controller.close();
     this.stopHeartbeat();
+    // The heartbeat timer IS the watchdog's timer — stopping it above ends both.
+    // Clearing the record too means a later connect() starts from a clean deadline.
+    this.lastInboundAt = null;
     for (const t of this.typingTimers.values()) this.timers.clearTimeout(t);
     this.typingTimers.clear();
     this.overlays.clear();

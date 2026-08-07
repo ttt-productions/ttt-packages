@@ -62,6 +62,7 @@ describe('normalizeAuthError', () => {
     it('maps auth/weak-password', () => {
       const result = normalizeAuthError({ code: 'auth/weak-password' });
       expect(result.code).toBe('AUTH_WEAK_PASSWORD');
+      expect(result.message).toBe('Password is too weak.');
     });
 
     it('maps auth/requires-recent-login', () => {
@@ -87,6 +88,39 @@ describe('normalizeAuthError', () => {
     it('maps auth/credential-already-in-use', () => {
       const result = normalizeAuthError({ code: 'auth/credential-already-in-use' });
       expect(result.code).toBe('AUTH_CREDENTIAL_ALREADY_IN_USE');
+    });
+
+    it('maps auth/expired-action-code', () => {
+      const result = normalizeAuthError({ code: 'auth/expired-action-code' });
+      expect(result.code).toBe('AUTH_EXPIRED_ACTION_CODE');
+      expect(result.firebaseCode).toBe('auth/expired-action-code');
+      expect(result.message).toBe(
+        'This email action link has expired. Request a new link and try again.'
+      );
+    });
+
+    it('maps auth/invalid-action-code', () => {
+      const result = normalizeAuthError({ code: 'auth/invalid-action-code' });
+      expect(result.code).toBe('AUTH_INVALID_ACTION_CODE');
+      expect(result.firebaseCode).toBe('auth/invalid-action-code');
+      expect(result.message).toBe(
+        'This email action link is invalid or has already been used. Request a new link and try again.'
+      );
+    });
+
+    it('keeps the two action-code outcomes distinguishable', () => {
+      const expired = normalizeAuthError({ code: 'auth/expired-action-code' });
+      const invalid = normalizeAuthError({ code: 'auth/invalid-action-code' });
+      expect(expired.code).not.toBe(invalid.code);
+      expect(expired.message).not.toBe(invalid.message);
+    });
+
+    it('action-code copy reveals nothing about the target account', () => {
+      for (const code of ['auth/expired-action-code', 'auth/invalid-action-code']) {
+        const message = getErrorMessage({ code });
+        expect(message).not.toMatch(/account|email address|user/i);
+        expect(message).toContain('Request a new link');
+      }
     });
   });
 
@@ -183,6 +217,18 @@ describe('getErrorMessage', () => {
   it('returns default message for unknown error', () => {
     const msg = getErrorMessage({});
     expect(msg).toBe('Authentication error. Please try again.');
+  });
+
+  it('returns the safe copy for an expired email action link', () => {
+    expect(getErrorMessage({ code: 'auth/expired-action-code' })).toBe(
+      'This email action link has expired. Request a new link and try again.'
+    );
+  });
+
+  it('returns the safe copy for an invalid or used email action link', () => {
+    expect(getErrorMessage({ code: 'auth/invalid-action-code' })).toBe(
+      'This email action link is invalid or has already been used. Request a new link and try again.'
+    );
   });
 
   it('returns Error.message for unmapped errors', () => {

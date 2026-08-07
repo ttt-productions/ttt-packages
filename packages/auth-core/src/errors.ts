@@ -15,7 +15,9 @@ export type AuthErrorCode =
   | "AUTH_INVALID_CREDENTIAL"
   | "AUTH_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL"
   | "AUTH_PROVIDER_ALREADY_LINKED"
-  | "AUTH_CREDENTIAL_ALREADY_IN_USE";
+  | "AUTH_CREDENTIAL_ALREADY_IN_USE"
+  | "AUTH_EXPIRED_ACTION_CODE"
+  | "AUTH_INVALID_ACTION_CODE";
 
 export type NormalizedAuthError = {
   code: AuthErrorCode;
@@ -95,6 +97,18 @@ const MAP: Record<string, { code: AuthErrorCode; message: string }> = {
   "auth/credential-already-in-use": {
     code: "AUTH_CREDENTIAL_ALREADY_IN_USE",
     message: "Those credentials are already associated with another account."
+  },
+  // Email-action (oobCode) links — password reset, email verification, email recovery.
+  // The copy is deliberately generic: it never reveals whether an account exists, and it
+  // always points at the one recovery affordance (request a fresh link).
+  "auth/expired-action-code": {
+    code: "AUTH_EXPIRED_ACTION_CODE",
+    message: "This email action link has expired. Request a new link and try again."
+  },
+  "auth/invalid-action-code": {
+    code: "AUTH_INVALID_ACTION_CODE",
+    message:
+      "This email action link is invalid or has already been used. Request a new link and try again."
   }
 };
 

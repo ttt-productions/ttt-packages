@@ -68,6 +68,32 @@ export const defaultTimers: TransportTimers = {
 /** Connection status surfaced to the UI. */
 export type RealtimeStatus = 'idle' | 'connecting' | 'open' | 'reconnecting' | 'closed';
 
+/**
+ * The TERMINAL lifecycle verdicts both realtime clients surface on
+ * `lastErrorCode` — the two codes that mean "this lifecycle stopped on an
+ * authoritative NO", as opposed to a transient/protocol code (`send-failed`,
+ * `blocked-word`, …) that leaves the socket running.
+ *
+ * ONE declaration for both clients: each sets and clears the same two strings,
+ * and `useRealtimeChatMessages` maps `access-denied` to `allowed: false`.
+ * A terminal verdict is terminal WITHIN its lifecycle; a later explicit
+ * `connect()` is a fresh attempt the authority may legitimately re-deny, so the
+ * stale code is cleared there (never carried into the new lifecycle's state).
+ */
+export const TERMINAL_ERROR_CODE = {
+  /** A 4403 REVOKED close: access was pulled while the socket was open. */
+  REVOKED: 'revoked',
+  /** The grant provider threw `ChatAccessDeniedError` — a terminal policy "no". */
+  ACCESS_DENIED: 'access-denied',
+} as const;
+
+export type TerminalErrorCode = (typeof TERMINAL_ERROR_CODE)[keyof typeof TERMINAL_ERROR_CODE];
+
+/** True when `code` is one of the terminal lifecycle verdicts above. */
+export function isTerminalErrorCode(code: string | null | undefined): code is TerminalErrorCode {
+  return code === TERMINAL_ERROR_CODE.REVOKED || code === TERMINAL_ERROR_CODE.ACCESS_DENIED;
+}
+
 // The client-agreed limits live in the wire contract; re-export to keep this
 // module's public surface stable.
 export { HEARTBEAT_MS, TYPING_COALESCE_MS, HISTORY_PAGE_MAX } from '@ttt-productions/chat-schemas';

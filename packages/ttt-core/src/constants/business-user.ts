@@ -29,6 +29,23 @@ export const FORMER_MEMBER_DISPLAY_NAME = 'Former member';
  */
 export const ACCOUNT_DELETION_GRACE_DAYS = 30;
 
+// --- Account Passwords ---
+
+/**
+ * Minimum length (inclusive) for a TTT account password. Counted in JavaScript
+ * string length units (UTF-16 code units), consistent with HTML input length
+ * behavior and the Firebase Auth SDK. Above Firebase's hard floor of 6 and within
+ * the supported hosted password-policy range, which is set from this declaration.
+ */
+export const PASSWORD_MIN_LENGTH = 7;
+
+/**
+ * Maximum length (inclusive) for a TTT account password, in the same UTF-16
+ * code-unit units as the minimum. Long enough for passphrases and
+ * password-manager output while keeping the product input finite.
+ */
+export const PASSWORD_MAX_LENGTH = 64;
+
 import { ACTIVE_LIMITS } from './app-mode.js';
 
 // --- User Profile Craft Skills ---
