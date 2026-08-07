@@ -172,6 +172,194 @@ describe('createTelemetryScrubber — CANARY test', () => {
   });
 });
 
+// --- Firebase email-action one-time code (oobCode) ---------------------------
+// A live bearer credential: whoever reads it can complete a password reset.
+// Shape is Firebase's base64url output ([A-Za-z0-9_-], unpadded).
+const FAKE_OOB = 'Xk9_aB-cD3efGHijkLMnop2qRsTuv';
+const ACTION_ORIGIN = 'https://ttt.productions/auth/action';
+
+describe('oobCode redaction (Firebase email-action one-time code)', () => {
+  it('redacts oobCode while leaving origin, path, and mode readable', () => {
+    const out = redactString(`${ACTION_ORIGIN}?mode=resetPassword&oobCode=${FAKE_OOB}`);
+    expect(out).not.toContain(FAKE_OOB);
+    expect(out).toContain(REDACTION_PLACEHOLDER);
+    // The diagnostic value of the event must survive the redaction.
+    expect(out).toContain('https://ttt.productions/auth/action');
+    expect(out).toContain('mode=resetPassword');
+  });
+
+  it('terminates at & so following query params survive (oobCode first)', () => {
+    const out = redactString(`${ACTION_ORIGIN}?oobCode=${FAKE_OOB}&mode=resetPassword&lang=en`);
+    expect(out).not.toContain(FAKE_OOB);
+    expect(out).toContain('mode=resetPassword');
+    expect(out).toContain('lang=en');
+  });
+
+  it('redacts oobCode at end-of-string and in the &oobCode= position', () => {
+    const out = redactString(`${ACTION_ORIGIN}?mode=verifyEmail&oobCode=${FAKE_OOB}`);
+    expect(out).not.toContain(FAKE_OOB);
+    expect(out).toContain('mode=verifyEmail');
+  });
+
+  it('is case-insensitive (oobcode, OOBCODE, oob_code)', () => {
+    for (const key of ['oobcode', 'OOBCODE', 'oobCode', 'oob_code', 'oob-code']) {
+      const out = redactString(`${ACTION_ORIGIN}?mode=signIn&${key}=${FAKE_OOB}&lang=en`);
+      expect(out, `key: ${key}`).not.toContain(FAKE_OOB);
+      expect(out, `key: ${key}`).toContain('lang=en');
+    }
+  });
+
+  it('strips oobCode from request.url, breadcrumb navigation data, and contexts', () => {
+    const url = `${ACTION_ORIGIN}?mode=resetPassword&oobCode=${FAKE_OOB}`;
+    const event: ScrubbableEvent = {
+      request: { url, headers: { referer: url } },
+      breadcrumbs: [
+        { category: 'navigation', data: { from: '/login', to: url } },
+        { category: 'navigation', data: { from: url, to: '/account' } },
+      ],
+      contexts: { page: { fullUrl: url } },
+      extra: { replayUrl: url },
+    };
+
+    const out = createTelemetryScrubber({ patterns: TTT_PATTERNS })(event);
+
+    const serialized = JSON.stringify(out);
+    expect(serialized).not.toContain(FAKE_OOB);
+    expect(serialized).toContain(REDACTION_PLACEHOLDER);
+    // Route diagnostics survive.
+    expect(serialized).toContain('/auth/action');
+    expect(serialized).toContain('mode=resetPassword');
+    expect(serialized).toContain('/account');
+  });
+
+  it('leaves an ordinary word containing "oob" untouched', () => {
+    const ok = 'oobleck=fine and doobcode=notakey';
+    expect(redactString(ok)).toBe(ok);
+  });
+
+  it('rides in the generic defaults, not the app-injected set', () => {
+    const url = `${ACTION_ORIGIN}?mode=resetPassword&oobCode=${FAKE_OOB}`;
+
+    // Defaults on (the app's real config) → redacted even alongside app patterns.
+    const withDefaults: ScrubbableEvent = { message: url };
+    redactEvent(withDefaults, { patterns: TTT_PATTERNS });
+    expect(withDefaults.message).not.toContain(FAKE_OOB);
+
+    // Defaults off → the app's own patterns do not cover it, proving ownership.
+    const withoutDefaults: ScrubbableEvent = { message: url };
+    redactEvent(withoutDefaults, { patterns: TTT_PATTERNS, includeDefaults: false });
+    expect(withoutDefaults.message).toContain(FAKE_OOB);
+  });
+});
+
+// --- OIDC / Firebase ID token carried as a URL parameter ---------------------
+// Same defect class as oobCode: a credential-bearing query parameter the shared
+// credential alternation cannot reach, because `\btoken\b` needs a word boundary
+// that `idToken` (preceded by `d`) and `id_token` (preceded by `_`) both deny.
+const FAKE_JWT = 'eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJ1aWQtMTIzIn0.Xk9_aB-cD3efGH';
+
+describe('id_token redaction (OIDC / Firebase ID token in a URL)', () => {
+  it('redacts every spelling while leaving following params readable', () => {
+    for (const key of ['id_token', 'idToken', 'id-token', 'ID_TOKEN']) {
+      const out = redactString(`https://ttt.productions/cb?${key}=${FAKE_JWT}&state=abc`);
+      expect(out, `key: ${key}`).not.toContain(FAKE_JWT);
+      expect(out, `key: ${key}`).toContain(REDACTION_PLACEHOLDER);
+      // The & terminator must hold for the hyphen spelling too — the shared
+      // alternation reaches `id-token` and would swallow the rest of the query.
+      expect(out, `key: ${key}`).toContain('state=abc');
+    }
+  });
+
+  it('consumes a whole JWT (dots, hyphens, underscores) and stops at &', () => {
+    const out = redactString(`https://ttt.productions/cb?id_token=${FAKE_JWT}&next=/account`);
+    expect(out).toBe(`https://ttt.productions/cb?${REDACTION_PLACEHOLDER}&next=/account`);
+  });
+
+  it('redacts an id_token at end-of-string', () => {
+    const out = redactString(`https://ttt.productions/cb?state=abc&id_token=${FAKE_JWT}`);
+    expect(out).not.toContain(FAKE_JWT);
+    expect(out).toContain('state=abc');
+  });
+
+  it('strips id_token from request.url and navigation breadcrumbs', () => {
+    const url = `https://ttt.productions/cb?id_token=${FAKE_JWT}&state=abc`;
+    const event: ScrubbableEvent = {
+      request: { url },
+      breadcrumbs: [{ category: 'navigation', data: { from: '/login', to: url } }],
+    };
+    const serialized = JSON.stringify(createTelemetryScrubber({ patterns: TTT_PATTERNS })(event));
+    expect(serialized).not.toContain(FAKE_JWT);
+    expect(serialized).toContain('state=abc');
+  });
+
+  it('leaves a plural/compound word containing "token" untouched', () => {
+    const ok = 'counts: valid_tokens=12 invalid_tokens=3 tokenizer=lexer';
+    expect(redactString(ok)).toBe(ok);
+  });
+});
+
+// --- The compound-token class ------------------------------------------------
+// `\btoken\b` in the shared alternation cannot reach ANY compound spelling —
+// `authToken` (preceded by `d`/`h`) and `auth_token` (preceded by `_`) both deny
+// the word boundary. Enumerating `access_token` / `refresh_token` / `id_token`
+// one at a time is instance-patching; the dedicated pattern kills the class.
+describe('compound token parameters (class kill)', () => {
+  const COMPOUND_KEYS = [
+    'authToken',
+    'auth_token',
+    'sessionToken',
+    'session_token',
+    'csrf_token',
+    'xsrf_token',
+    'userToken',
+    'resetToken',
+    'inviteToken',
+    'verifyToken',
+    'oauth_token',
+  ];
+
+  it('redacts every <prefix>token spelling while leaving following params readable', () => {
+    for (const key of COMPOUND_KEYS) {
+      const out = redactString(`https://ttt.productions/cb?${key}=${FAKE_JWT}&state=abc`);
+      expect(out, `key: ${key}`).not.toContain(FAKE_JWT);
+      expect(out, `key: ${key}`).toContain(REDACTION_PLACEHOLDER);
+      expect(out, `key: ${key}`).toContain('state=abc');
+    }
+  });
+
+  it('strips a compound token from request.url and navigation breadcrumbs', () => {
+    const url = `https://ttt.productions/cb?sessionToken=${FAKE_JWT}&state=abc`;
+    const event: ScrubbableEvent = {
+      request: { url },
+      breadcrumbs: [{ category: 'navigation', data: { from: '/login', to: url } }],
+    };
+    const serialized = JSON.stringify(createTelemetryScrubber({ patterns: TTT_PATTERNS })(event));
+    expect(serialized).not.toContain(FAKE_JWT);
+    expect(serialized).toContain('state=abc');
+  });
+
+  it('leaves plural, verb, and agent-noun forms of "token" untouched', () => {
+    for (const ok of [
+      'counts: valid_tokens=12 invalid_tokens=3',
+      'tokenizer=lexerstage',
+      'tokenize=truthy',
+      'betokens=oldword',
+    ]) {
+      expect(redactString(ok), `control: ${ok}`).toBe(ok);
+    }
+  });
+
+  // Pins WHY the shared alternation keeps its own token branches: the dedicated
+  // pattern needs 4+ non-`&` chars, so a token whose value carries an early `&`
+  // falls through to the greedy shared entry. Removing those entries as
+  // "redundant" would silently reopen this hole.
+  it('falls back to the greedy shared pattern when a token value contains an early &', () => {
+    for (const probe of ['token=ab&cdef', 'access_token=xy&zzzz', 'refresh_token=a&bcdefgh']) {
+      expect(redactString(probe), `probe: ${probe}`).toBe(REDACTION_PLACEHOLDER);
+    }
+  });
+});
+
 describe('redactEvent — direct backend use', () => {
   it('scrubs an event object for the withScope / manual-capture path', () => {
     const event: ScrubbableEvent = {

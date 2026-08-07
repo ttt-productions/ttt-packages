@@ -8,7 +8,8 @@
  *
  * This package is GENERIC — it ships only obvious, domain-neutral defaults
  * (full IPv4/IPv6 addresses, bearer/authorization tokens, generic credential
- * assignments). Product-specific patterns (evidence-bucket URL prefixes,
+ * assignments, URL-borne credential parameters such as `oobCode` / `id_token`).
+ * Product-specific patterns (evidence-bucket URL prefixes,
  * detector-hash shapes, NCMEC credential markers) are INJECTED by the consuming
  * app via {@link createTelemetryScrubber}'s `patterns` option. No app-data-package
  * import, no app-specific literals.
@@ -45,6 +46,35 @@ export const DEFAULT_FORBIDDEN_PATTERNS: RegExp[] = [
   /\b(?:[0-9a-fA-F]{1,4}:){1,7}:(?:[0-9a-fA-F]{1,4}:?){0,6}(?:[0-9a-fA-F]{1,4})?\b|::(?:[0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}\b/g,
   // Authorization / bearer token: "Bearer xyz", "Authorization: Basic xyz".
   /\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/-]{8,}={0,2}/gi,
+  // URL-borne credential PARAMETERS — bearer credentials that ride in a query
+  // string, where the browser SDK records the landing URL into `request.url`,
+  // navigation breadcrumbs, and session replay:
+  //   - `oobCode` — the Firebase email-action one-time code
+  //     (?mode=resetPassword&oobCode=…). Whoever reads it can complete the
+  //     password reset, i.e. take the account over.
+  //   - ANY `<prefix>token` spelling — `id_token`, `idToken`, `authToken`,
+  //     `session_token`, `csrf_token`, … The generic assignment below cannot
+  //     reach these: its `\btoken\b` needs a word boundary that both camelCase
+  //     (`d` before `Token`) and snake_case (`_` before `token`) deny, which is
+  //     why it had to enumerate `access[_-]?token` and `refresh[_-]?token` by
+  //     hand. `[a-z]*[_-]?token\b` covers the whole class instead — the trailing
+  //     `\b` is what keeps `valid_tokens`, `tokenizer`, and `tokenize` out.
+  //     (Measured: no backtracking cost — the literal `token` anchor makes a
+  //     non-matching alpha run fail fast, sub-ms on 40k chars.)
+  //
+  // This entry runs BEFORE the generic assignment ON PURPOSE, and its value
+  // class is the generic one MINUS `&`: these live in a query string, so
+  // stopping at the next parameter keeps `mode=`, `state=`, `lang=`, and
+  // `continueUrl=` readable instead of swallowing the rest of the URL. Order is
+  // load-bearing for any spelling the greedy pattern CAN reach — `id-token`,
+  // `X-Auth-Token` (`-` IS a word boundary) — which it would otherwise consume
+  // to end-of-string. The class stays negated rather than shaped to
+  // base64url/JWT so an unexpected value over-redacts instead of leaking a tail.
+  //
+  // This does NOT subsume the generic pattern's own token branches, so those
+  // stay: a value carrying an early `&` (`token=ab&cdef`) has fewer than 4
+  // non-`&` chars here and falls through to the greedy entry by design.
+  /\b(?:oob[_-]?code|[a-z]*[_-]?token)\b\s*[:=]\s*["']?[^\s"',}{&]{4,}/gi,
   // Generic credential assignment: password=..., api_key: "...", secret=...,
   // token=..., apiKey=..., access_token=... (value up to whitespace/quote).
   /\b(?:password|passwd|pwd|secret|api[_-]?key|apikey|access[_-]?token|refresh[_-]?token|token|client[_-]?secret|authorization)\b\s*[:=]\s*["']?[^\s"',}{]{4,}/gi,
