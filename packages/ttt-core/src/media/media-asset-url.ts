@@ -6,9 +6,14 @@
 // every render builds the URL from assetId + variant.
 // See ttt-prod docs/design/media-assets-and-protected-serving.md.
 
+/** Key prefix owning every variant of one asset: mediaAssets/{assetId}. */
+export function buildMediaAssetKeyPrefix(mediaAssetId: string): string {
+  return `mediaAssets/${mediaAssetId}`;
+}
+
 /** Object key shared by R2 and the Storage emulator: mediaAssets/{assetId}/{variantKey}. */
 export function buildMediaAssetKey(mediaAssetId: string, variantKey: string): string {
-  return `mediaAssets/${mediaAssetId}/${variantKey}`;
+  return `${buildMediaAssetKeyPrefix(mediaAssetId)}/${variantKey}`;
 }
 
 /**
