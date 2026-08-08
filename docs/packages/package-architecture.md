@@ -121,10 +121,15 @@ action is expected on either entry; do not "fix" them by relocating the value to
   subprotocol tag, and `CHAT_GRANT_AUDIENCE` (`ttt-chat`), the grant token's
   `aud` claim. Both are offered/verified across the browser client, the chat
   Worker, and the Cloud Function that mints grants.
-- `edge-protocol-core` → the `x-ttt-*` edge→origin provenance header names
-  (`provenance-headers.ts`), shared by the Worker front door that mints them and
-  the origin that validates them. ARCH-005 requires exactly one definition here;
-  a per-tree copy is the drift the rule exists to prevent.
+- `edge-protocol-core` → the `x-ttt-*` wire header names: the edge→origin
+  provenance names (`provenance-headers.ts`), shared by the Worker front door that
+  mints them and the origin that validates them, and the internal-auth transport
+  names (`internal-auth-headers.ts`), shared by the Cloud Functions tree that signs
+  an internal request and the Worker/DO tree that verifies it. ARCH-005 requires
+  exactly one definition here; a per-tree copy is the drift the rule exists to
+  prevent. ONE named-exception block, at the top of `provenance-headers.ts`, is
+  scoped to every `x-ttt-*` wire name the package owns — do not duplicate it per
+  file, and do not extend it to a branded string that is not a wire name.
 
 ## Firestore access goes through query-core
 

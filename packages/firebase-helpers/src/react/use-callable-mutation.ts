@@ -35,7 +35,7 @@ export interface UseCallableMutationResult {
 export function useCallableMutation(
   options: UseCallableMutationOptions,
 ): UseCallableMutationResult {
-  const { getFunctions, onError, captureException, timeoutMs } = options;
+  const { getFunctions, onError, captureException, timeoutMs, limitedUseAppCheck } = options;
   const [isLoading, setIsLoading] = useState(false);
   const onErrorRef = useRef(onError);
   const captureRef = useRef(captureException);
@@ -59,7 +59,8 @@ export function useCallableMutation(
       try {
         // Delegate to the ONE shared invocation primitive (owns the
         // undefined-strip + error-callback contract + total-invocation
-        // deadline — see client/call-callable.ts).
+        // deadline + the limited-use App Check opt-in — see
+        // client/call-callable.ts).
         return await callCallable<TRequest, TResponse>(
           functions,
           functionName,
@@ -68,13 +69,13 @@ export function useCallableMutation(
             onError: (error, ctx) => onErrorRef.current?.(error, ctx),
             captureException: (error, ctx) => captureRef.current?.(error, ctx),
           },
-          { timeoutMs },
+          { timeoutMs, limitedUseAppCheck },
         );
       } finally {
         setIsLoading(false);
       }
     },
-    [getFunctions, timeoutMs],
+    [getFunctions, timeoutMs, limitedUseAppCheck],
   );
 
   return { callFunction, isLoading };

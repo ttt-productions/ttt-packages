@@ -184,3 +184,46 @@ describe("callCallable deadline", () => {
     await vi.advanceTimersByTimeAsync(3_000);
   });
 });
+
+// The limited-use App Check opt-in (CallCallableTransport.limitedUseAppCheck):
+// OPTIONAL and default-false. It maps to the SDK's `limitedUseAppCheckTokens`,
+// which mints a single-use token per call so a backend running
+// `consumeAppCheckToken` can REFUSE a replay instead of only recording one.
+// Absent unless explicitly enabled — existing callers must be unaffected.
+describe("callCallable limited-use App Check", () => {
+  it("sets limitedUseAppCheckTokens on the SDK options when enabled", async () => {
+    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: true });
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", {
+      limitedUseAppCheckTokens: true,
+    });
+  });
+
+  it("omits the flag entirely when unset, false, or the transport is absent", async () => {
+    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: false });
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", undefined);
+
+    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, {});
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", undefined);
+
+    await callCallable(fakeFunctions, "fn", { a: 1 });
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", undefined);
+  });
+
+  it("combines with the deadline without either option dropping the other", async () => {
+    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, {
+      timeoutMs: 30_000,
+      limitedUseAppCheck: true,
+    });
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", {
+      timeout: 30_000,
+      limitedUseAppCheckTokens: true,
+    });
+  });
+
+  it("timeout alone still carries no App Check flag", async () => {
+    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { timeoutMs: 30_000 });
+    const opts = vi.mocked(httpsCallable).mock.lastCall?.[2] as Record<string, unknown>;
+    expect(opts).toEqual({ timeout: 30_000 });
+    expect("limitedUseAppCheckTokens" in opts).toBe(false);
+  });
+});

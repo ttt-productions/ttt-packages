@@ -16,13 +16,21 @@
 //
 // ARCH-201 NAMED EXCEPTION — the `x-ttt-*` names below are TTT-branded values in
 // a generic package, which ARCH-201 otherwise prohibits. They are kept here as a
-// reviewed exception because this package OWNS the edge↔origin wire contract:
+// reviewed exception because this package OWNS the cross-tree wire contracts:
 // these are the literal bytes two independently deployed runtimes must agree on,
 // not business policy, app config, or copy. Renaming one is a protocol break, and
 // ARCH-005 requires exactly one definition for a cross-tree trust contract — a
-// per-tree copy is the drift that rule exists to prevent. The same treatment
-// covers `chat-schemas`' `CHAT_SUBPROTOCOL` / `CHAT_GRANT_AUDIENCE`; the full list
-// lives in docs/packages/package-architecture.md § Direction rules.
+// per-tree copy is the drift that rule exists to prevent.
+//
+// SCOPE — this one exception covers EVERY `x-ttt-*` wire name this package owns,
+// not just the provenance names in this file: the internal-auth transport headers
+// in `internal-auth-headers.ts` (the signature/timestamp/version/operation-id
+// names a backend tree mints and a Worker/DO tree verifies) are the same kind of
+// value under the same rationale, and are not to carry a duplicate block. A new
+// `x-ttt-*` wire name added to this package joins this scope; a branded string
+// that is NOT a wire name does not, and does not belong here at all. The same
+// treatment covers `chat-schemas`' `CHAT_SUBPROTOCOL` / `CHAT_GRANT_AUDIENCE`;
+// the full list lives in docs/packages/package-architecture.md § Direction rules.
 //
 // The exception is scoped to a single adopting product. If a second product ever
 // adopts edge-protocol-core, these constants must be relocated (an app-supplied

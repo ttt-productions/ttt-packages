@@ -197,7 +197,7 @@ export const PATH_BUILDERS = {
   contentReport: (reportId: string): [string, string] =>
     [COLLECTIONS.CONTENT_REPORTS, reportId],
 
-  // Fixed-id restricted report-PII subdocs (contentReports/{reportId}/private/{snapshot,narrative}).
+  // Fixed-id restricted report-PII subdocs (contentReports/{reportId}/privateDetails/{snapshot,narrative}).
   reportPrivateSnapshot: (reportId: string): [string, string, string, string] =>
     [COLLECTIONS.CONTENT_REPORTS, reportId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.REPORT_SNAPSHOT],
 
@@ -538,7 +538,7 @@ export const PATH_BUILDERS = {
   takeItDownRequest: (requestId: string): [string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId],
 
-  // Fixed-id requester PII subdoc (takeItDownRequests/{requestId}/private/requester).
+  // Fixed-id requester PII subdoc (takeItDownRequests/{requestId}/privateDetails/requester).
   takeItDownRequesterPrivate: (requestId: string): [string, string, string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.TAKE_IT_DOWN_REQUESTER],
 

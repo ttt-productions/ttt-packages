@@ -1,4 +1,9 @@
-import { httpsCallable, type Functions, type HttpsCallable } from "firebase/functions";
+import {
+  httpsCallable,
+  type Functions,
+  type HttpsCallable,
+  type HttpsCallableOptions,
+} from "firebase/functions";
 
 export interface CallCallableCallbacks {
   /**
@@ -36,6 +41,25 @@ export interface CallCallableTransport {
    * policy value.
    */
   timeoutMs?: number;
+  /**
+   * Mint a LIMITED-USE App Check token for this invocation instead of the
+   * standard cached one (SDK option `limitedUseAppCheckTokens`). A limited-use
+   * token is single-use, so a backend that sets `consumeAppCheckToken` can
+   * actually REFUSE a replay rather than merely record one.
+   *
+   * COST: enabling this makes EVERY call on this path mint a fresh token — an
+   * attestation round trip per call, not per session — so it is intended for
+   * sensitive callable groups only, never as a blanket default.
+   *
+   * ROLLOUT ORDER: turning on handler-side `alreadyConsumed` refusal before the
+   * consumers of that callable have adopted this option would reject legitimate
+   * traffic, because a cached (non-limited-use) token presents as already
+   * consumed. Adopt on the client first, verify, and only then refuse.
+   *
+   * Defaults to false (absent): the SDK option is omitted entirely unless this
+   * is `true`, so existing callers are byte-for-byte unaffected.
+   */
+  limitedUseAppCheck?: boolean;
 }
 
 /**
@@ -101,6 +125,16 @@ export async function callCallable<TRequest = unknown, TResponse = unknown>(
       `callCallable: timeoutMs must be a finite positive number of milliseconds (got ${String(timeoutMs)})`,
     );
   }
+  // Built only from the options actually supplied, and left `undefined` when
+  // none are — an absent key must stay absent on the SDK call, so nothing
+  // changes for a caller that opts into neither.
+  const sdkOptions: HttpsCallableOptions | undefined =
+    timeoutMs === undefined && transport?.limitedUseAppCheck !== true
+      ? undefined
+      : {
+          ...(timeoutMs === undefined ? {} : { timeout: timeoutMs }),
+          ...(transport?.limitedUseAppCheck === true ? { limitedUseAppCheckTokens: true } : {}),
+        };
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     // The outer deadline starts BEFORE the SDK is invoked so it bounds the
@@ -115,7 +149,7 @@ export async function callCallable<TRequest = unknown, TResponse = unknown>(
     const fn: HttpsCallable<TRequest, TResponse> = httpsCallable(
       functions,
       functionName,
-      timeoutMs === undefined ? undefined : { timeout: timeoutMs },
+      sdkOptions,
     );
     const invocation = fn(stripUndefinedDeep(data) as TRequest);
     if (deadline !== undefined) {

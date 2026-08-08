@@ -89,7 +89,7 @@ export const TakeItDownRequestRootV1Schema = z.object({
 export type TakeItDownRequestRootV1 = z.infer<typeof TakeItDownRequestRootV1Schema>;
 
 // ===========================================================================
-// §A11 (2) [H1] / [F7] — RESTRICTED takeItDownRequests/{requestId}/private/requester
+// §A11 (2) [H1] / [F7] — RESTRICTED takeItDownRequests/{requestId}/privateDetails/requester
 // = TakeItDownRequesterPrivateV1 (nciiRequestReviewer / nciiEvidenceReviewer only).
 // Holds signature, full contact, narrative, certifications.
 // ===========================================================================
@@ -148,7 +148,7 @@ export const TakeItDownAuthorizedRepresentativeV1Schema = z.object({
 }).strict();
 export type TakeItDownAuthorizedRepresentativeV1 = z.infer<typeof TakeItDownAuthorizedRepresentativeV1Schema>;
 
-/** `takeItDownRequests/{requestId}/private/requester` = TakeItDownRequesterPrivateV1.
+/** `takeItDownRequests/{requestId}/privateDetails/requester` = TakeItDownRequesterPrivateV1.
  * RESTRICTED — nciiRequestReviewer / nciiEvidenceReviewer only. Fixed doc id
  * `requester`. */
 export const TakeItDownRequesterPrivateV1Schema = z.object({

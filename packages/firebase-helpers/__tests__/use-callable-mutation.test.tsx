@@ -126,6 +126,43 @@ describe('useCallableMutation', () => {
     expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(mockFunctions, 'myFn', { timeout: 45_000 });
   });
 
+  // The hook constructs the transport object, so an option the primitive owns is
+  // only reachable from React if this layer threads it. Default-false: an ordinary
+  // hook call must produce no SDK options object at all.
+  it('threads limitedUseAppCheck through to the SDK limitedUseAppCheckTokens option', async () => {
+    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), { stream: vi.fn() });
+    vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
+
+    const { result } = renderHook(() =>
+      useCallableMutation({ getFunctions, limitedUseAppCheck: true }),
+    );
+
+    await act(async () => {
+      await result.current.callFunction('sensitiveFn', { x: 1 });
+    });
+
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(mockFunctions, 'sensitiveFn', {
+      limitedUseAppCheckTokens: true,
+    });
+  });
+
+  it('omits limitedUseAppCheckTokens when the option is not enabled', async () => {
+    const mockCallable = Object.assign(vi.fn().mockResolvedValue({ data: { ok: true } }), { stream: vi.fn() });
+    vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
+
+    const { result } = renderHook(() => useCallableMutation({ getFunctions }));
+    await act(async () => {
+      await result.current.callFunction('myFn', { x: 1 });
+    });
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(mockFunctions, 'myFn', undefined);
+
+    const withTimeout = renderHook(() => useCallableMutation({ getFunctions, timeoutMs: 45_000 }));
+    await act(async () => {
+      await withTimeout.result.current.callFunction('myFn', { x: 1 });
+    });
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(mockFunctions, 'myFn', { timeout: 45_000 });
+  });
+
   it('deadline expiry rejects with functions/deadline-exceeded and clears isLoading', async () => {
     vi.useFakeTimers();
     try {

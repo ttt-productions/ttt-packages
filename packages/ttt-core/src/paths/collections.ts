@@ -393,13 +393,13 @@ export const SPECIAL_DOCS = {
   FEEDBACK_LISTS: 'feedbackLists',
 
   // Trust & Safety — fixed-id TAKE IT DOWN request subdocs (§A11).
-  TAKE_IT_DOWN_REQUESTER: 'requester', // takeItDownRequests/{requestId}/private/requester
+  TAKE_IT_DOWN_REQUESTER: 'requester', // takeItDownRequests/{requestId}/privateDetails/requester
 
   // Trust & Safety — the singleton completion-proof record under an NCMEC submission
   // (…/ncmecCompletionProof/record). One proof per submission, so the doc id is fixed.
   NCMEC_COMPLETION_PROOF_RECORD: 'record',
 
   // Trust & Safety — fixed-id report-spine private subdocs (§A1).
-  REPORT_SNAPSHOT: 'snapshot', // contentReports/{reportId}/private/snapshot
-  REPORT_NARRATIVE: 'narrative', // contentReports/{reportId}/private/narrative
+  REPORT_SNAPSHOT: 'snapshot', // contentReports/{reportId}/privateDetails/snapshot
+  REPORT_NARRATIVE: 'narrative', // contentReports/{reportId}/privateDetails/narrative
 } as const;

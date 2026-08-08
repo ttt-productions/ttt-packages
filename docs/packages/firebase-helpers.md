@@ -34,6 +34,15 @@ TTT config, Firebase project values, toast behavior, monitoring behavior, and ca
   auto-retry a mutation on it. The package ships NO default; the consuming app owns the policy
   value and threads it via `useCallableMutation({ timeoutMs })` / `createCallableClient`
   overrides / the `callCallable` transport argument.
+- **The optional limited-use App Check opt-in** — `CallCallableTransport.limitedUseAppCheck`
+  (default false, threaded by `useCallableMutation` too) sets the SDK's
+  `limitedUseAppCheckTokens`, so the call mints a SINGLE-USE App Check token and a backend
+  running `consumeAppCheckToken` can actually REFUSE a replay instead of only recording one.
+  It costs an attestation round trip PER CALL, so it is for sensitive callable groups only —
+  never a blanket default. Rollout order is load-bearing: handler-side `alreadyConsumed`
+  refusal must stay off until the consumers of that callable have adopted the option, because
+  a cached (non-limited-use) token presents as already consumed. Absent unless explicitly
+  enabled — the SDK options object is omitted entirely when no transport option is set.
 
 Backend code should prefer `@ttt-productions/firebase-helpers/server` when it needs Admin SDK handles.
 

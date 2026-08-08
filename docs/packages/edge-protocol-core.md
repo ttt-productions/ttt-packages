@@ -9,6 +9,19 @@ and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
 - **Internal request auth** — `signInternalRequest` / `verifyInternalRequest`:
   HMAC-SHA256 over protocol marker + audience + method + exact path + timestamp +
   body hash + deterministic `operationId`, with a narrow replay window. Fails closed.
+- **Internal-auth transport headers** (`internal-auth-headers.ts`) — the wire names
+  that carry a signature from the Cloud Functions tree that MINTS it to the
+  Worker/DO tree that VERIFIES it, in the two deployed profiles: the **compact**
+  profile (`INTERNAL_AUTH_SIGNATURE_HEADER` / `_TIMESTAMP_HEADER` /
+  `_VERSION_HEADER`), where the verifying side recomputes the signed
+  `operationId` from the body, and the **operation-id** profile
+  (`INTERNAL_AUTH_OPERATION_ID_HEADER` / `_OPERATION_TIMESTAMP_HEADER` /
+  `_OPERATION_VERSION_HEADER` / `_OPERATION_SIGNATURE_HEADER`), where the
+  operation id rides the wire under its own name. The two profiles use different
+  strings and are deliberately not unified — both are already deployed on both
+  sides of independent trust boundaries, so collapsing them is a protocol break.
+  Names only, same as the provenance headers; ARCH-005's one definition for a
+  cross-tree trust contract.
 - **Canonical payload hashing** — `canonicalize` (sorted-key deterministic JSON),
   `sha256Hex`, `hashPayload`: the `payloadHash` used by the versioned-apply rule
   and the activation contract (hash computed EXCLUDING the hash field itself).
@@ -40,11 +53,15 @@ realtime layer (chat-sync writer, chat-grant minting, chat-worker auth) both
 consume it today. Concrete domain schemas and collection names live in
 `ttt-core`, never here.
 
-The provenance header names are the one `ttt`-branded surface: they are literal
+The `x-ttt-*` header names are the one `ttt`-branded surface: they are literal
 wire strings two independently deployed runtimes must agree on, which is a named
 ARCH-201 exception recorded in `package-architecture.md` § Direction rules and in
-a comment block at the top of `src/provenance-headers.ts`. The exception is scoped
-to a single adopting product — if a second product adopts this package, the
+a comment block at the top of `src/provenance-headers.ts`. That ONE block's scope
+covers every `x-ttt-*` wire name the package owns — the provenance names and the
+internal-auth transport names in `src/internal-auth-headers.ts` alike; neither
+file carries a duplicate rationale. The constant NAMES stay domain-neutral (the
+profiles are named for the mechanism, never for the consumer). The exception is
+scoped to a single adopting product — if a second product adopts this package, the
 constants must be relocated (app-supplied header-name configuration, or a
 per-product contract package) or the exception revisited.
 

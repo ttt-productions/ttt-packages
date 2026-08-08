@@ -20,6 +20,13 @@ import {
   EDGE_CLIENT_IP_HEADER,
   VERIFIED_CLIENT_IP_HEADER,
   EDGE_INTERNAL_HEADERS,
+  INTERNAL_AUTH_SIGNATURE_HEADER,
+  INTERNAL_AUTH_TIMESTAMP_HEADER,
+  INTERNAL_AUTH_VERSION_HEADER,
+  INTERNAL_AUTH_OPERATION_ID_HEADER,
+  INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER,
+  INTERNAL_AUTH_OPERATION_VERSION_HEADER,
+  INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER,
   type InternalRequestFields,
 } from '../src/index.js';
 
@@ -276,5 +283,151 @@ describe('provenance-headers', () => {
     });
     for (const name of EDGE_INTERNAL_HEADERS) forged.delete(name);
     expect([...forged.keys()]).toEqual(['user-agent']);
+  });
+});
+
+describe('internal-auth-headers', () => {
+  // WIRE strings shared by a minting tree (Cloud Functions) and a verifying tree
+  // (Cloudflare Worker/DO) that cannot import each other's source. Asserting them
+  // verbatim is the point: a one-sided rename fails no build, it fails at runtime
+  // as bad-version / bad-signature, which reads as an outage instead of a break.
+  it('pins the compact profile to its exact wire strings', () => {
+    expect(INTERNAL_AUTH_SIGNATURE_HEADER).toBe('x-ttt-sig');
+    expect(INTERNAL_AUTH_TIMESTAMP_HEADER).toBe('x-ttt-sig-ts');
+    expect(INTERNAL_AUTH_VERSION_HEADER).toBe('x-ttt-sig-v');
+  });
+
+  it('pins the operation-id profile to its exact wire strings', () => {
+    expect(INTERNAL_AUTH_OPERATION_ID_HEADER).toBe('x-ttt-operation');
+    expect(INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER).toBe('x-ttt-timestamp');
+    expect(INTERNAL_AUTH_OPERATION_VERSION_HEADER).toBe('x-ttt-sig-version');
+    expect(INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER).toBe('x-ttt-signature');
+  });
+
+  it('keeps all seven names distinct — no header carries two meanings', () => {
+    const names = [
+      INTERNAL_AUTH_SIGNATURE_HEADER,
+      INTERNAL_AUTH_TIMESTAMP_HEADER,
+      INTERNAL_AUTH_VERSION_HEADER,
+      INTERNAL_AUTH_OPERATION_ID_HEADER,
+      INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER,
+      INTERNAL_AUTH_OPERATION_VERSION_HEADER,
+      INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER,
+    ];
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it('is disjoint from the provenance set — an internal-auth name is never stripped as forgeable', () => {
+    for (const name of [
+      INTERNAL_AUTH_SIGNATURE_HEADER,
+      INTERNAL_AUTH_TIMESTAMP_HEADER,
+      INTERNAL_AUTH_VERSION_HEADER,
+      INTERNAL_AUTH_OPERATION_ID_HEADER,
+      INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER,
+      INTERNAL_AUTH_OPERATION_VERSION_HEADER,
+      INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER,
+    ]) {
+      expect(EDGE_INTERNAL_HEADERS).not.toContain(name);
+    }
+  });
+
+  // The PAIR proof ARCH-005 asks for: what a minting side writes under these
+  // names is exactly what a verifying side reads back out of them.
+  it('compact profile round-trips a real signature mint → verify through the headers', async () => {
+    const secret = 'internal-secret';
+    const fields: InternalRequestFields = {
+      audience: 'ttt-chat:dev',
+      method: 'POST',
+      path: '/internal/sync/apply',
+      bodyHash: await sha256Hex('{"eventId":"e1"}'),
+      operationId: 'e1',
+      timestampSec: 1_800_000_000,
+    };
+    const sig = await signInternalRequest(fields, secret);
+
+    // Minting side.
+    const headers = new Headers({
+      [INTERNAL_AUTH_SIGNATURE_HEADER]: sig.signature,
+      [INTERNAL_AUTH_TIMESTAMP_HEADER]: String(sig.timestampSec),
+      [INTERNAL_AUTH_VERSION_HEADER]: sig.version,
+    });
+
+    // Verifying side — operationId recomputed from the body, never a header.
+    const verified = await verifyInternalRequest(
+      {
+        ...fields,
+        signature: headers.get(INTERNAL_AUTH_SIGNATURE_HEADER) ?? '',
+        timestampSec: Number(headers.get(INTERNAL_AUTH_TIMESTAMP_HEADER)),
+        version: headers.get(INTERNAL_AUTH_VERSION_HEADER) ?? '',
+        nowSec: fields.timestampSec + 5,
+        replayWindowSec: 300,
+      },
+      secret,
+    );
+    expect(verified).toEqual({ ok: true });
+  });
+
+  it('operation-id profile round-trips, carrying the signed operationId on the wire', async () => {
+    const secret = 'authority-secret';
+    const fields: InternalRequestFields = {
+      audience: 'ttt-media-authority:dev',
+      method: 'POST',
+      path: '/internal/media-authority/apply',
+      bodyHash: await sha256Hex('{"assetId":"a1"}'),
+      operationId: 'op-xyz',
+      timestampSec: 1_800_000_000,
+    };
+    const sig = await signInternalRequest(fields, secret);
+
+    const headers = new Headers({
+      [INTERNAL_AUTH_OPERATION_ID_HEADER]: fields.operationId,
+      [INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER]: String(sig.timestampSec),
+      [INTERNAL_AUTH_OPERATION_VERSION_HEADER]: sig.version,
+      [INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER]: sig.signature,
+    });
+
+    const verified = await verifyInternalRequest(
+      {
+        audience: fields.audience,
+        method: fields.method,
+        path: fields.path,
+        bodyHash: fields.bodyHash,
+        operationId: headers.get(INTERNAL_AUTH_OPERATION_ID_HEADER) ?? '',
+        timestampSec: Number(headers.get(INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER) ?? 'NaN'),
+        version: headers.get(INTERNAL_AUTH_OPERATION_VERSION_HEADER) ?? '',
+        signature: headers.get(INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER) ?? '',
+        nowSec: fields.timestampSec + 5,
+        replayWindowSec: 300,
+      },
+      secret,
+    );
+    expect(verified).toEqual({ ok: true });
+  });
+
+  it('a verifying side reading the WRONG profile name fails closed', async () => {
+    const secret = 's';
+    const fields: InternalRequestFields = {
+      audience: 'a',
+      method: 'POST',
+      path: '/p',
+      bodyHash: await sha256Hex(''),
+      operationId: 'o',
+      timestampSec: 1_800_000_000,
+    };
+    const sig = await signInternalRequest(fields, secret);
+    // Minted under the compact profile, read under the operation-id profile:
+    // the header is absent, so verification must refuse rather than pass.
+    const headers = new Headers({ [INTERNAL_AUTH_SIGNATURE_HEADER]: sig.signature });
+    const verified = await verifyInternalRequest(
+      {
+        ...fields,
+        signature: headers.get(INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER) ?? '',
+        version: 'v1',
+        nowSec: fields.timestampSec,
+        replayWindowSec: 300,
+      },
+      secret,
+    );
+    expect(verified).toEqual({ ok: false, reason: 'bad-signature' });
   });
 });

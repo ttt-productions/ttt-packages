@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   workProjectIdSchema,
+  userIdSchema,
   guildChatChannelIdSchema,
   guildInviteIdSchema,
   adminDispatchIdSchema,
@@ -128,6 +129,17 @@ export const CreateAdminDispatchToWorkProjectInputSchema = z.object({
   contextRef: AdminDispatchContextRefSchema.optional(),
 }).strict();
 export type CreateAdminDispatchToWorkProjectInput = z.infer<typeof CreateAdminDispatchToWorkProjectInputSchema>;
+
+// Admin-initiated dispatch to a USER party (partyKind 'user' — the thread owner is the target
+// `userId`). Sibling of the workProject dispatch above and the same admin-initiated contract:
+// lands unread in the target user's Messages tray, creates NO admin task. No `contextRef` —
+// that field is validated against a workProject, which a user-party thread has none of.
+export const CreateAdminDispatchToUserInputSchema = z.object({
+  userId: userIdSchema,
+  subject: z.string().trim().min(1).max(MAX_ADMIN_DISPATCH_SUBJECT_LENGTH),
+  message: z.string().trim().min(1).max(MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH),
+}).strict();
+export type CreateAdminDispatchToUserInput = z.infer<typeof CreateAdminDispatchToUserInputSchema>;
 
 // CLIENT-CALLED wire contract for the `mintChatGrant` callable (Contract A; P3).
 // Crosses the backend↔frontend boundary — the web client (and any future mobile/TV
