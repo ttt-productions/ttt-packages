@@ -390,6 +390,9 @@ export const SPECIAL_DOCS = {
   // _systemData/hallMediaReaperCursor — the reapOrphanedHallMediaCopies scan cursor
   // (highest `createdAt` the reaper has positively cleared). Backend-only.
   HALL_MEDIA_REAPER_CURSOR: 'hallMediaReaperCursor',
+  // _systemData/publicUsersReconcilerCursor — the reconcilePublicUsers sweep cursor (last
+  // userProfiles document id positively cleared; '' = start). Backend-only.
+  PUBLIC_USERS_RECONCILER_CURSOR: 'publicUsersReconcilerCursor',
   // Editable content-page singletons under _appConfig (content-pages Firestore
   // migration, DJ ruling 2026-07-06): the ONLY source for /terms, /privacy, and
   // the /take-it-down page copy — no hardcoded fallbacks anywhere.
@@ -427,4 +430,8 @@ export const SPECIAL_DOCS = {
   // Trust & Safety — fixed-id report-spine private subdocs (§A1).
   REPORT_SNAPSHOT: 'snapshot', // contentReports/{reportId}/privateDetails/snapshot
   REPORT_NARRATIVE: 'narrative', // contentReports/{reportId}/privateDetails/narrative
+  // contentReports/{reportId}/privateDetails/narrativeEscalation — the NEW narrative typed
+  // when an EXISTING ordinary report is escalated into a protected case (the original
+  // narrative doc already exists, so a re-create would collide).
+  REPORT_NARRATIVE_ESCALATION: 'narrativeEscalation',
 } as const;

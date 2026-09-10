@@ -210,12 +210,23 @@ export const PATH_BUILDERS = {
   contentReport: (reportId: string): [string, string] =>
     [COLLECTIONS.CONTENT_REPORTS, reportId],
 
+  // The report's public, reporter-identity-free projection. The projection doc id IS the
+  // report id (contentReports/{reportId}/publicProjection/{reportId}).
+  reportPublicProjection: (reportId: string): [string, string, string, string] =>
+    [COLLECTIONS.CONTENT_REPORTS, reportId, NESTED_SUBCOLLECTIONS.REPORT_PUBLIC_PROJECTION, reportId],
+
   // Fixed-id restricted report-PII subdocs (contentReports/{reportId}/privateDetails/{snapshot,narrative}).
   reportPrivateSnapshot: (reportId: string): [string, string, string, string] =>
     [COLLECTIONS.CONTENT_REPORTS, reportId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.REPORT_SNAPSHOT],
 
   reportPrivateNarrative: (reportId: string): [string, string, string, string] =>
     [COLLECTIONS.CONTENT_REPORTS, reportId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.REPORT_NARRATIVE],
+
+  // The SECOND narrative doc, typed when an existing ordinary report is escalated into a
+  // protected case — a sibling of `privateDetails/narrative` in the same restricted
+  // subcollection, so the original narrative is never overwritten and the read gate is identical.
+  reportPrivateEscalationNarrative: (reportId: string): [string, string, string, string] =>
+    [COLLECTIONS.CONTENT_REPORTS, reportId, NESTED_SUBCOLLECTIONS.PRIVATE, SPECIAL_DOCS.REPORT_NARRATIVE_ESCALATION],
 
   activeReportGroup: (groupKey: string): [string, string] =>
     [COLLECTIONS.ACTIVE_REPORT_GROUPS, groupKey],
@@ -391,6 +402,12 @@ export const PATH_BUILDERS = {
   hallMediaReaperCursor: (): [string, string] =>
     [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.HALL_MEDIA_REAPER_CURSOR],
 
+  // Singleton sweep cursor for the scheduled publicUsers reconciler (reconcilePublicUsers).
+  // Backend-only; persists the last userProfiles document id the sweep positively cleared so
+  // each pass resumes instead of re-reading the same oldest page ('' = start from the beginning).
+  publicUsersReconcilerCursor: (): [string, string] =>
+    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.PUBLIC_USERS_RECONCILER_CURSOR],
+
   // Backend-only post-commit auth-effect reconcile queue entry, keyed by the affected uid.
   statusReconcileQueueEntry: (uid: string): [string, string] =>
     [COLLECTIONS.STATUS_RECONCILE_QUEUE, uid],
@@ -565,6 +582,10 @@ export const PATH_BUILDERS = {
   // Collection of submissions under a request (parent of takeItDownSubmission).
   takeItDownSubmissions: (requestId: string): [string, string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS],
+
+  // Collection of validity decisions under a request (parent of takeItDownValidityDecision).
+  takeItDownValidityDecisions: (requestId: string): [string, string, string] =>
+    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS],
 
   takeItDownValidityDecision: (requestId: string, decisionId: string): [string, string, string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS, decisionId],

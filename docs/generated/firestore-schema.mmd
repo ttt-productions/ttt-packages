@@ -696,6 +696,13 @@ erDiagram
     field text
     field createdAt
   }
+  narrativeEscalation {
+    field schemaVersion
+    field reportId
+    field reporterUid
+    field text
+    field createdAt
+  }
   nciiAllegations {
     field schemaVersion
     field allegationId
@@ -1072,6 +1079,10 @@ erDiagram
     field artisanCreator
     field disabled
     field anonymizedAt
+  }
+  publicUsersReconcilerCursor {
+    field profileIdCursor
+    field updatedAt
   }
   publicWorkProjects {
     field workProjectId

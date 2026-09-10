@@ -3,6 +3,7 @@ import {
   NcmecCompletionProofRecordV1Schema,
   NcmecPortalCorrectionRecordV1Schema,
   NcmecPortalReceiptArtifactV1Schema,
+  PublicUsersReconcilerCursorSchema,
   SweepStateSchema,
 } from '../src/doc-schemas/backend-state';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
@@ -196,6 +197,42 @@ describe('SweepStateSchema', () => {
     ]);
     expect(PATH_BUILDERS.sweepState('reconcileAccountStatus').join('/')).toBe(
       `${COLLECTIONS.SWEEP_STATE}/reconcileAccountStatus`,
+    );
+  });
+});
+
+describe('PublicUsersReconcilerCursorSchema', () => {
+  it('accepts the first-write cursor, where the empty string means start from the beginning', () => {
+    expect(
+      PublicUsersReconcilerCursorSchema.safeParse({ profileIdCursor: '', updatedAt: 1 }).success,
+    ).toBe(true);
+  });
+
+  it('accepts a mid-sweep cursor naming the last cleared userProfiles document id', () => {
+    expect(
+      PublicUsersReconcilerCursorSchema.safeParse({
+        profileIdCursor: 'user-abc',
+        updatedAt: 1_700_000_000_000,
+      }).success,
+    ).toBe(true);
+  });
+
+  it('requires updatedAt — a cursor doc with no stamp cannot evidence a pass', () => {
+    expect(PublicUsersReconcilerCursorSchema.safeParse({ profileIdCursor: 'user-abc' }).success).toBe(
+      false,
+    );
+  });
+
+  it('binds the registry path and the path builder to the same location', () => {
+    expect(COLLECTION_SCHEMAS['_systemData/publicUsersReconcilerCursor']).toBe(
+      PublicUsersReconcilerCursorSchema,
+    );
+    expect(PATH_BUILDERS.publicUsersReconcilerCursor()).toEqual([
+      COLLECTIONS.SYSTEM_DATA,
+      SPECIAL_DOCS.PUBLIC_USERS_RECONCILER_CURSOR,
+    ]);
+    expect(PATH_BUILDERS.publicUsersReconcilerCursor().join('/')).toBe(
+      '_systemData/publicUsersReconcilerCursor',
     );
   });
 });

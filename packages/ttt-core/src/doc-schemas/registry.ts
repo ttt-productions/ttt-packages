@@ -206,6 +206,7 @@ import {
   NcmecPortalCorrectionRecordV1Schema,
   NcmecPortalReceiptArtifactV1Schema,
   OperatorStepUpSchema,
+  PublicUsersReconcilerCursorSchema,
   SafetyReconcilerCursorSchema,
   SweepStateSchema,
 } from './backend-state.js';
@@ -294,6 +295,9 @@ export const COLLECTION_SCHEMAS = {
   'contentReports/{reportId}/publicProjection/{reportId}': ReportPublicProjectionV1Schema,
   'contentReports/{reportId}/privateDetails/snapshot': ReportTargetSnapshotV1Schema,
   'contentReports/{reportId}/privateDetails/narrative': NarrativeRecordV1Schema,
+  // The escalation narrative is byte-identical to the original — ONE shape, ONE definition
+  // (ENG-002): the same NarrativeRecordV1Schema binds both docs, never a duplicate schema.
+  'contentReports/{reportId}/privateDetails/narrativeEscalation': NarrativeRecordV1Schema,
   'activeReportGroups/{groupKey}': ReportGroupV1Schema,
   'activeReportGroups/{groupKey}/reportGroupCountedReports/{reportId}': ReportGroupCountedReportSchema,
   'adminTasks/{taskId}': AdminTaskDocSchema,
@@ -454,6 +458,7 @@ export const COLLECTION_SCHEMAS = {
   '_systemData/blockedFranchiseNames': BlockedFranchiseNamesSchema,
   '_systemData/appMode': AppModeMarkerSchema,
   '_systemData/hallMediaReaperCursor': HallMediaReaperCursorSchema,
+  '_systemData/publicUsersReconcilerCursor': PublicUsersReconcilerCursorSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;
 
 export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;

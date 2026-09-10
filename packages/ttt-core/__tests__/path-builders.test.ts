@@ -334,6 +334,28 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('rep1');
     });
 
+    it('reportPublicProjection returns 4-segment tuple whose doc id IS the report id', () => {
+      expect(PATH_BUILDERS.reportPublicProjection('rep1')).toEqual([
+        COLLECTIONS.CONTENT_REPORTS,
+        'rep1',
+        NESTED_SUBCOLLECTIONS.REPORT_PUBLIC_PROJECTION,
+        'rep1',
+      ]);
+    });
+
+    it('reportPrivateEscalationNarrative returns the sibling narrative tuple, not the original', () => {
+      expect(PATH_BUILDERS.reportPrivateEscalationNarrative('rep1')).toEqual([
+        COLLECTIONS.CONTENT_REPORTS,
+        'rep1',
+        NESTED_SUBCOLLECTIONS.PRIVATE,
+        SPECIAL_DOCS.REPORT_NARRATIVE_ESCALATION,
+      ]);
+      // Same restricted subcollection, different doc id — a re-create can never collide.
+      expect(PATH_BUILDERS.reportPrivateEscalationNarrative('rep1')).not.toEqual(
+        PATH_BUILDERS.reportPrivateNarrative('rep1'),
+      );
+    });
+
     it('activeReportGroup returns 2-segment tuple', () => {
       const result = PATH_BUILDERS.activeReportGroup('groupKey1');
       expect(result).toHaveLength(2);
@@ -539,6 +561,13 @@ describe('PATH_BUILDERS', () => {
         SPECIAL_DOCS.HALL_MEDIA_REAPER_CURSOR,
       ]);
     });
+
+    it('publicUsersReconcilerCursor returns the _systemData singleton tuple', () => {
+      expect(PATH_BUILDERS.publicUsersReconcilerCursor()).toEqual([
+        COLLECTIONS.SYSTEM_DATA,
+        SPECIAL_DOCS.PUBLIC_USERS_RECONCILER_CURSOR,
+      ]);
+    });
   });
 
   // ===== BACKEND-ONLY OPERATOR / RECONCILER PATHS =====
@@ -638,6 +667,18 @@ describe('PATH_BUILDERS', () => {
 
     it('takeItDownSubmissions returns 3-segment collection tuple', () => {
       expect(PATH_BUILDERS.takeItDownSubmissions('req1')).toEqual([COLLECTIONS.TAKE_IT_DOWN_REQUESTS, 'req1', NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_SUBMISSIONS]);
+    });
+
+    it('takeItDownValidityDecisions returns the 3-segment parent of takeItDownValidityDecision', () => {
+      expect(PATH_BUILDERS.takeItDownValidityDecisions('req1')).toEqual([
+        COLLECTIONS.TAKE_IT_DOWN_REQUESTS,
+        'req1',
+        NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS,
+      ]);
+      expect(PATH_BUILDERS.takeItDownValidityDecision('req1', 'dec1')).toEqual([
+        ...PATH_BUILDERS.takeItDownValidityDecisions('req1'),
+        'dec1',
+      ]);
     });
 
     it('nciiCase collection + closure-event builders', () => {

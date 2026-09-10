@@ -21,6 +21,17 @@ export const HallMediaReaperCursorSchema = z.object({
 });
 export type HallMediaReaperCursor = z.infer<typeof HallMediaReaperCursorSchema>;
 
+// _systemData/publicUsersReconcilerCursor — the scheduled publicUsers reconciler's sweep cursor.
+// `profileIdCursor` is the last `userProfiles` document id the sweep has POSITIVELY cleared, so
+// each pass resumes after it instead of re-reading the same oldest page forever. An EMPTY STRING
+// means start from the beginning — both the first-ever pass and the wrap after the sweep exhausts
+// the collection. (functions/src/users/reconcilePublicUsers.ts)
+export const PublicUsersReconcilerCursorSchema = z.object({
+  profileIdCursor: z.string(),
+  updatedAt: z.number(),
+});
+export type PublicUsersReconcilerCursor = z.infer<typeof PublicUsersReconcilerCursorSchema>;
+
 // operatorStepUp/{uid} — [H-08] per-operator TOTP step-up state: the authenticator secret
 // plus the currently open grant window. The secret is returned to the client EXACTLY ONCE by
 // enrollOperatorStepUp and is never readable through Firestore afterwards; `status` goes
