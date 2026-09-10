@@ -41,6 +41,9 @@ export const COLLECTIONS = {
   GUILD_INVITE_CONVERSATIONS: 'guildInviteConversations',
   STAKE_SHARE_AUDIT_EVENTS: 'stakeShareAuditEvents',
   MODERATION_CASCADE_MANIFESTS: 'moderationCascadeManifests',
+  // Backend-only append-only audit ledger (audit-core shape; auditEvents/{eventId}). Was a
+  // rules-only name written through a literal until the constant landed here.
+  AUDIT_EVENTS: 'auditEvents',
 
   // Notification system
   ACTIVE_USER_NOTIFICATIONS: 'activeUserNotifications',
@@ -51,6 +54,9 @@ export const COLLECTIONS = {
   // Notification redesign — delivery ledger + unified fanout engine (Admin-SDK-only).
   NOTIFICATION_DELIVERIES: 'notificationDeliveries',
   NOTIFICATION_FANOUT_JOBS: 'notificationFanoutJobs',
+  // Server-owned "archive all" jobs (one per user+category+requestId; CF-only, never
+  // client-readable — the client learns state through getArchiveAllStatus).
+  NOTIFICATION_ARCHIVE_ALL_JOBS: 'notificationArchiveAllJobs',
 
   // Chat realtime sync / projection / command collections (Admin-SDK-only).
   CHAT_CHANNEL_AUTH_PROJECTIONS: 'chatChannelAuthProjections',
@@ -168,6 +174,8 @@ export const USER_SUBCOLLECTIONS = {
   USER_LIKES: 'userLikes',
   MENTION_HISTORY: 'mentionHistory',
   AUDITION_VOTES: 'auditionVotes',
+  // Archived personal notification history (userProfiles/{uid}/notificationHistory/{id}).
+  NOTIFICATION_HISTORY: 'notificationHistory',
 } as const;
 
 /**
@@ -182,6 +190,10 @@ export const WORK_PROJECT_SUBCOLLECTIONS = {
   PUBLIC_GUILDMATE_USERS: 'publicGuildmateUsers',
   WORK_FILE_FOLDERS: 'workFileFolders',
   GUILD_CHAT_CHANNELS: 'guildChatChannels',
+  // The Work's single hall-entry reservation (allWorkProjects/{id}/hallSubmissionReservation/
+  // reservation): claimed create-only inside the first threshold submit's transaction so a
+  // project can only ever own ONE hall item.
+  HALL_SUBMISSION_RESERVATION: 'hallSubmissionReservation',
 } as const;
 
 /**
@@ -272,6 +284,11 @@ export const NESTED_SUBCOLLECTIONS = {
   // is a deterministic child of the protected report root
   // (contentReports/{reportId}/publicProjection/{reportId}).
   REPORT_PUBLIC_PROJECTION: 'publicProjection',
+  // Per-report idempotency markers under a report group
+  // (activeReportGroups/{groupKey}/reportGroupCountedReports/{reportId}): the group's
+  // totalReports increment is gated on the marker's ABSENCE, so a redelivered create event
+  // never double-counts. Backend-only.
+  REPORT_GROUP_COUNTED_REPORTS: 'reportGroupCountedReports',
   // Restricted reporter/requester PII subcollection, shared by the report spine
   // (contentReports/{reportId}/privateDetails/{snapshot,narrative}) and TAKE IT DOWN
   // (takeItDownRequests/{requestId}/privateDetails/requester). ONE shared compound value
@@ -328,6 +345,10 @@ export const NESTED_SUBCOLLECTIONS = {
   TAKE_IT_DOWN_VALIDITY_DECISIONS: 'validityDecisions',
   TAKE_IT_DOWN_ACTIONS: 'takeItDownActions',
   TAKE_IT_DOWN_EVIDENCE: 'takeItDownEvidence',
+  // The RESTRICTED operator rationale row bound to one validity decision
+  // (…/validityDecisions/{decisionId}/takeItDownValidityRationale/record) — the row the
+  // decision's rationaleRef and the action's detailRef point at. Backend-only.
+  TAKE_IT_DOWN_VALIDITY_RATIONALE: 'takeItDownValidityRationale',
 
   // Trust & Safety — NCII case subcollections (§A11).
   NCII_CASE_ALLEGATION_LINKS: 'allegationLinks',
@@ -395,9 +416,13 @@ export const SPECIAL_DOCS = {
   // Trust & Safety — fixed-id TAKE IT DOWN request subdocs (§A11).
   TAKE_IT_DOWN_REQUESTER: 'requester', // takeItDownRequests/{requestId}/privateDetails/requester
 
-  // Trust & Safety — the singleton completion-proof record under an NCMEC submission
-  // (…/ncmecCompletionProof/record). One proof per submission, so the doc id is fixed.
-  NCMEC_COMPLETION_PROOF_RECORD: 'record',
+  // The fixed doc id of a one-per-parent singleton row: the NCMEC completion proof
+  // (…/ncmecCompletionProof/record) and the TAKE IT DOWN validity rationale
+  // (…/takeItDownValidityRationale/record). ONE shared value serves both — never split.
+  RECORD: 'record',
+
+  // The Work's single hall-entry reservation doc (…/hallSubmissionReservation/reservation).
+  HALL_SUBMISSION_RESERVATION: 'reservation',
 
   // Trust & Safety — fixed-id report-spine private subdocs (§A1).
   REPORT_SNAPSHOT: 'snapshot', // contentReports/{reportId}/privateDetails/snapshot

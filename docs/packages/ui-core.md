@@ -31,6 +31,27 @@ Two page-state hooks produce the control's `pagination` prop, and a surface whos
 
 Both hooks guard their step functions, so `onPageChange` fires only on a page change that actually happened.
 
+## Return scroll — `useReturnScroll`
+
+Restores a list's window scroll offset when the user comes back to it after a REAL route change (a
+detail page with its own URL), which a same-page view swap never needs. One instance per list
+surface, mounted at the list level — never inside a per-card hook. Contract:
+
+- `useReturnScroll({ key, eligible, ready })` → `{ save }`. `key` is the caller's CANONICAL list
+  URL (the caller owns canonicalization — equivalent list states must give the same key).
+- `save()` records `window.scrollY` for `key` in `sessionStorage` — call it immediately before the
+  navigation away actually happens (inside any guarded-navigation callback, so a cancelled leave
+  never writes an entry).
+- `eligible` is decided by the CALLER once at mount (typically: the list's data was already cached
+  on first render). A not-eligible return discards the entry for that key permanently — a fetch that
+  completes later can never restore against a shorter page.
+- `ready` means the list is displayed at its real height (data present, no error surface). The
+  restore fires once, the first time `ready` is true while eligible, in a `requestAnimationFrame`,
+  with `behavior: 'instant'`; the entry is consumed. The frame is cancelled on unmount or key change,
+  and React Strict Mode's double-invoke still scrolls exactly once.
+- `clearReturnScroll(key)` drops an entry (e.g. the detail page removed an item from the list, so
+  the saved offset is stale). Blocked or malformed storage is a silent no-op — no throw, no restore.
+
 ### `hasMore` binds late, and that is the contract
 
 A cursor query takes the page number as its INPUT, so its `hasMore` does not exist until after that query has run. `hasMore` therefore binds at render time, through `paginationFor(hasMore)` — never as an argument to the hook that produces the page number, which would be circular and unsatisfiable at every real call site:

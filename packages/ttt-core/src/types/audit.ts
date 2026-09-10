@@ -8,6 +8,7 @@
 // catalog from here.
 
 import type { AuditEvent } from '@ttt-productions/audit-core';
+import type { SystemRole } from '../schemas/atoms.js';
 
 export type AuditEventType =
   // user status
@@ -327,7 +328,7 @@ export type TTTAuditActor =
     })
   | (TTTAuditActorBase & {
       actorMode: 'adminReview' | 'adminOverride';
-      systemRole: 'admin' | 'jrAdmin';
+      systemRole: SystemRole;
     });
 
 /**

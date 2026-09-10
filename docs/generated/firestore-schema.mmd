@@ -842,6 +842,20 @@ erDiagram
     field reportId
     field responseCode
   }
+  notificationArchiveAllJobs {
+    field schemaVersion
+    field jobId
+    field userId
+    field category
+    field actorSystemRole
+    field state
+    field revision
+    field archived
+    field error
+    field attemptCount
+    field nextAttemptAt
+    field deadLettered
+  }
   notificationDeliveries {
     field deliveryId
     field state
@@ -1120,6 +1134,10 @@ erDiagram
     field method
     field result
   }
+  reportGroupCountedReports {
+    field reportId
+    field countedAt
+  }
   requestLinks {
     field requestId
     field linkedAt
@@ -1137,6 +1155,10 @@ erDiagram
     field goodFaithCertification
     field accuracyCertification
     field targetLocator
+    field createdAt
+  }
+  reservation {
+    field hallItemId
     field createdAt
   }
   reservedDisplayNames {
@@ -1616,6 +1638,7 @@ erDiagram
   guildInviteConversations ||--o{ conversationMessages : "guildInviteId"
   hallItems ||--o{ adminTasks : "hallItemId"
   hallItems ||--o{ hallContentChangeRequests : "hallItemId"
+  hallItems ||--o{ reservation : "hallItemId"
   hallItems ||--o{ thresholdItems : "hallItemId"
   pledgePayments ||--o{ paymentWebhookQuarantine : "pledgePaymentId"
   pledgePayments ||--o{ pledgePaymentLedgerEvents : "pledgePaymentId"
@@ -1644,6 +1667,7 @@ erDiagram
   userProfiles ||--o{ hallLibraryPreferences : "userId"
   userProfiles ||--o{ mentionHistory : "userId"
   userProfiles ||--o{ moderationCascadeManifests : "actorUid"
+  userProfiles ||--o{ notificationArchiveAllJobs : "userId"
   userProfiles ||--o{ paymentWebhookQuarantine : "resolvedBy"
   userProfiles ||--o{ paymentWebhookQuarantine : "userId"
   userProfiles ||--o{ pendingAdminDispatches : "closedBy"

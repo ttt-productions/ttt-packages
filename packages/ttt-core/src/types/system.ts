@@ -1,5 +1,5 @@
 /**
- * Shape of the `_config/app` Firestore doc.
+ * Shape of the `_appConfig/app` Firestore doc.
  *
  * Single source of truth for app-wide runtime configuration. The doc is
  * subscribed to once by `AppConfigProvider` (in ttt-prod) and exposed to the

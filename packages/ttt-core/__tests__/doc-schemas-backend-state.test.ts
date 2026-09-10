@@ -144,13 +144,13 @@ describe('NcmecCompletionProofRecordV1Schema', () => {
     ).toBe(NcmecCompletionProofRecordV1Schema);
     expect(PATH_BUILDERS.childSafetyNcmecCompletionProof('c1', 's1').join('/')).toBe(
       `${COLLECTIONS.CHILD_SAFETY_CASES}/c1/${NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS}/s1/` +
-        `${NESTED_SUBCOLLECTIONS.NCMEC_COMPLETION_PROOF}/${SPECIAL_DOCS.NCMEC_COMPLETION_PROOF_RECORD}`,
+        `${NESTED_SUBCOLLECTIONS.NCMEC_COMPLETION_PROOF}/${SPECIAL_DOCS.RECORD}`,
     );
   });
 
   it('uses the ARCH-104 compound subcollection name and a fixed singleton doc id', () => {
     expect(NESTED_SUBCOLLECTIONS.NCMEC_COMPLETION_PROOF).toBe('ncmecCompletionProof');
-    expect(SPECIAL_DOCS.NCMEC_COMPLETION_PROOF_RECORD).toBe('record');
+    expect(SPECIAL_DOCS.RECORD).toBe('record');
     // One proof per submission — the builder takes no doc id.
     expect(PATH_BUILDERS.childSafetyNcmecCompletionProof('c1', 's1')).toHaveLength(6);
   });

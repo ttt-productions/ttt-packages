@@ -72,3 +72,9 @@ export type { ListPaginationState, PagedList, UsePagedListOptions } from "./hook
 
 export { useCursorPage } from "./hooks/use-cursor-page.js";
 export type { CursorPage, CursorPager, UseCursorPageOptions } from "./hooks/use-cursor-page.js";
+
+// Return-scroll: restore a list's window offset when the user comes back to it after a
+// route change (save on leave, restore once on an eligible + ready return, keyed by the
+// caller's canonical list URL).
+export { useReturnScroll, saveReturnScroll, clearReturnScroll, readReturnScroll } from "./hooks/use-return-scroll.js";
+export type { ReturnScrollEntry, UseReturnScrollOptions, UseReturnScrollResult } from "./hooks/use-return-scroll.js";

@@ -1,8 +1,8 @@
 // Trust & Safety — NCII config singletons (Appendix A §A11 [H6] / [H-17] / [H-18]).
 //
 // Two `_config` singleton documents:
-//   - `_config/nciiPolicy`              → NciiPolicyConfigV1
-//   - `_config/privilegedReviewerSecurity` → PrivilegedReviewerSecurityProfileV1
+//   - `_serverData/nciiPolicy`              → NciiPolicyConfigV1
+//   - `_serverData/privilegedReviewerSecurity` → PrivilegedReviewerSecurityProfileV1
 //
 // These are VERSIONED launch defaults. Qualified counsel must approve them before
 // uploads open and may increase, decrease, or otherwise modify them. Any change
@@ -26,14 +26,14 @@ import { z } from 'zod';
 
 // ===========================================================================
 // §A11 [H6] — NciiPolicyConfigV1 + DEFAULT_NCII_POLICY_CONFIG_V1
-// `_config/nciiPolicy`
+// `_serverData/nciiPolicy`
 // ===========================================================================
 
 /** Blocked-hash retention policy — indefinite until an appeal reverses it. */
 export const NciiBlockedHashRetentionPolicySchema = z.literal('indefiniteUntilReversed');
 export type NciiBlockedHashRetentionPolicy = z.infer<typeof NciiBlockedHashRetentionPolicySchema>;
 
-/** `_config/nciiPolicy` = `NciiPolicyConfigV1` — the DJ-approved launch defaults.
+/** `_serverData/nciiPolicy` = `NciiPolicyConfigV1` — the DJ-approved launch defaults.
  * Counsel ratifies (`counselApproved`) at the pre-launch gate; uploads stay
  * blocked until then. Any value missing/placeholder → the launch audit FAILS
  * CLOSED. */
@@ -78,7 +78,7 @@ export const NciiPolicyConfigV1Schema = z.object({
 }).strict();
 export type NciiPolicyConfigV1 = z.infer<typeof NciiPolicyConfigV1Schema>;
 
-/** The frozen launch default for `_config/nciiPolicy`. */
+/** The frozen launch default for `_serverData/nciiPolicy`. */
 export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
   policyVersion: 'ncii.2026-06-23.v1',
   requesterPiiRetentionDays: 90,
@@ -117,7 +117,7 @@ export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
 // ===========================================================================
 // §A11 [H-17] — PrivilegedReviewerSecurityProfileV1 +
 // DEFAULT_PRIVILEGED_REVIEWER_SECURITY_PROFILE_V1
-// `_config/privilegedReviewerSecurity`
+// `_serverData/privilegedReviewerSecurity`
 //
 // "fresh reauth" / "two-step reauth" for ANY privileged-reviewer capability means
 // a reauth that satisfies THIS profile — NEVER a bare password re-prompt. Enforced
@@ -141,7 +141,7 @@ export const PrivilegedTwoStepReauthCapabilitySchema = z.enum([
 ]);
 export type PrivilegedTwoStepReauthCapability = z.infer<typeof PrivilegedTwoStepReauthCapabilitySchema>;
 
-/** `_config/privilegedReviewerSecurity` = `PrivilegedReviewerSecurityProfileV1` —
+/** `_serverData/privilegedReviewerSecurity` = `PrivilegedReviewerSecurityProfileV1` —
  * what "fresh reauth" actually means for any privileged-reviewer capability. */
 export const PrivilegedReviewerSecurityProfileV1Schema = z.object({
   // phishing-resistant; password-only, SMS, and TOTP are NEVER sufficient for a privileged capability
@@ -163,7 +163,7 @@ export const PrivilegedReviewerSecurityProfileV1Schema = z.object({
 }).strict();
 export type PrivilegedReviewerSecurityProfileV1 = z.infer<typeof PrivilegedReviewerSecurityProfileV1Schema>;
 
-/** The frozen launch default for `_config/privilegedReviewerSecurity`. */
+/** The frozen launch default for `_serverData/privilegedReviewerSecurity`. */
 export const DEFAULT_PRIVILEGED_REVIEWER_SECURITY_PROFILE_V1: PrivilegedReviewerSecurityProfileV1 = {
   requiredSecondFactor: 'passkeyWebAuthn',
   privilegedReauthTtlSeconds: 300,

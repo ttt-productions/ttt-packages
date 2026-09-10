@@ -8,6 +8,7 @@
 // does not false-flag a Timestamp object against `z.number()`).
 
 import { z } from 'zod';
+import { systemRoleSchema } from '../schemas/atoms.js';
 
 /** Native-TTL field — a real Firestore Timestamp (NOT epoch-ms). Absent until the terminal that sets TTL. */
 const expireAtField = z.unknown().optional();
@@ -120,7 +121,7 @@ export const ChatAdminActionCommandSchema = z.object({
   requestId: z.string(),
   actorUid: z.string(),
   actorMode: z.enum(['adminReview', 'adminOverride']),
-  systemRole: z.enum(['admin', 'jrAdmin']),
+  systemRole: systemRoleSchema,
   channelRef: z.record(z.string(), z.unknown()),
   messageSeq: z.number(),
   action: z.enum(['hide', 'delete']),

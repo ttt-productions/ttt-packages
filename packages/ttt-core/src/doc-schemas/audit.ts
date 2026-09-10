@@ -5,6 +5,7 @@
 // ~80-value AuditEventType union remains the source of truth in ../types/audit.ts.
 
 import { z } from 'zod';
+import { systemRoleSchema } from '../schemas/atoms.js';
 
 const TTTAuditActorSchema = z.discriminatedUnion('actorMode', [
   z.object({
@@ -16,7 +17,7 @@ const TTTAuditActorSchema = z.discriminatedUnion('actorMode', [
     uid: z.string().nullable(),
     isAdmin: z.boolean(),
     actorMode: z.enum(['adminReview', 'adminOverride']),
-    systemRole: z.enum(['admin', 'jrAdmin']),
+    systemRole: systemRoleSchema,
   }),
 ]);
 

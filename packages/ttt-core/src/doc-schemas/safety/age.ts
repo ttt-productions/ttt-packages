@@ -10,7 +10,7 @@
 //     claims of the compact JWS (JWT, RFC 7519, alg=HS256) issued at /api/age/attest
 //     and verified at /api/register/complete.
 //   - The `__Secure-ttt_age_session` cookie spec [F13] (an exported const, NOT a doc).
-//   - `AgePolicyConfigV1` (the `_config/agePolicy` singleton) + its pinned literal
+//   - `AgePolicyConfigV1` (the `_serverData/agePolicy` singleton) + its pinned literal
 //     default const (§A11 [H6]).
 //   - The teen→adult `ageUpgradeAttestation` token shape.
 //   - `UserPrivateDataAgeFieldsSchema` — the STANDALONE age-fields shape that the
@@ -136,7 +136,7 @@ export const AGE_SESSION_COOKIE_SPEC = {
 } as const;
 
 // ===========================================================================
-// A7 / A11 [H6] — AgePolicyConfigV1 (the `_config/agePolicy` singleton)
+// A7 / A11 [H6] — AgePolicyConfigV1 (the `_serverData/agePolicy` singleton)
 //
 // The generic gRPC retryable/terminal code lists are REMOVED — deletion is driven
 // ONLY by the RegistrationCompletionOutcome domain enum (§A7). No raw gRPC code ever
@@ -156,7 +156,7 @@ export const AgePolicyConfigV1Schema = z.object({
 }).strict();
 export type AgePolicyConfigV1 = z.infer<typeof AgePolicyConfigV1Schema>;
 
-/** The pinned literal default for `_config/agePolicy` (§A11 [H6] concrete config
+/** The pinned literal default for `_serverData/agePolicy` (§A11 [H6] concrete config
  * values). Build defaults — transcribed verbatim from the frozen spec. */
 export const DEFAULT_AGE_POLICY_CONFIG_V1: AgePolicyConfigV1 = {
   agePolicyVersion: '2026-06-19.general-audience.v1',

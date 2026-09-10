@@ -34,6 +34,7 @@ import {
   FullTelevisionSchema,
   FullTelevisionEpisodeSchema,
   ThresholdItemSchema,
+  HallSubmissionReservationSchema,
   PublishedHallItemSchema,
   PublishedChapterSchema,
   PublishedTuneTrackSchema,
@@ -95,6 +96,7 @@ import {
   NotificationDeliverySchema,
   NotificationFanoutJobSchema,
 } from './notification-ledger.js';
+import { NotificationArchiveAllJobSchema } from './notification-archive-all-jobs.js';
 import {
   ChatChannelAuthProjectionSchema,
   ChatScopeDegradedSchema,
@@ -124,6 +126,7 @@ import {
   ProtectedReportRootV1Schema,
   ReportPublicProjectionV1Schema,
   ReportGroupV1Schema,
+  ReportGroupCountedReportSchema,
   ReportTargetSnapshotV1Schema,
   NarrativeRecordV1Schema,
 } from './safety/report.js';
@@ -176,6 +179,7 @@ import {
   TakeItDownRequesterPrivateV1Schema,
   TakeItDownSubmissionV1Schema,
   TakeItDownValidityDecisionV1Schema,
+  TakeItDownValidityRationaleV1Schema,
   TakeItDownRequestActionV1Schema,
   TakeItDownEvidenceV1Schema,
   NciiRetainedEvidenceInventoryV1Schema,
@@ -224,6 +228,7 @@ export const COLLECTION_SCHEMAS = {
   'allWorkProjects/{workProjectId}/publicGuildmateUsers/{uid}': PublicGuildmateUserSchema,
   'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}': WorkFileFolderSchema,
   'allWorkProjects/{workProjectId}/workFileFolders/{workFileFolderId}/workFiles/{workFileId}': WorkFileSchema,
+  'allWorkProjects/{workProjectId}/hallSubmissionReservation/reservation': HallSubmissionReservationSchema,
   'allWorkProjects/{workProjectId}/workProjectTales/{taleId}': FullTaleSchema,
   'allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}': FullChapterSchema,
   'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}': FullTuneSchema,
@@ -290,6 +295,7 @@ export const COLLECTION_SCHEMAS = {
   'contentReports/{reportId}/privateDetails/snapshot': ReportTargetSnapshotV1Schema,
   'contentReports/{reportId}/privateDetails/narrative': NarrativeRecordV1Schema,
   'activeReportGroups/{groupKey}': ReportGroupV1Schema,
+  'activeReportGroups/{groupKey}/reportGroupCountedReports/{reportId}': ReportGroupCountedReportSchema,
   'adminTasks/{taskId}': AdminTaskDocSchema,
   'contentViolations/{violationId}': ContentViolationSchema,
   'moderationCascadeManifests/{cascadeId}': ModerationCascadeManifestSchema,
@@ -315,6 +321,7 @@ export const COLLECTION_SCHEMAS = {
   // ===== Notification redesign — delivery ledger + fanout engine =====
   'notificationDeliveries/{deliveryId}': NotificationDeliverySchema,
   'notificationFanoutJobs/{jobId}': NotificationFanoutJobSchema,
+  'notificationArchiveAllJobs/{jobId}': NotificationArchiveAllJobSchema,
 
   // ===== Chat realtime sync / projection / commands =====
   'chatChannelAuthProjections/{authPairKey}': ChatChannelAuthProjectionSchema,
@@ -403,6 +410,7 @@ export const COLLECTION_SCHEMAS = {
   'takeItDownRequests/{requestId}/privateDetails/requester': TakeItDownRequesterPrivateV1Schema,
   'takeItDownRequests/{requestId}/takeItDownSubmissions/{submissionId}': TakeItDownSubmissionV1Schema,
   'takeItDownRequests/{requestId}/validityDecisions/{decisionId}': TakeItDownValidityDecisionV1Schema,
+  'takeItDownRequests/{requestId}/validityDecisions/{decisionId}/takeItDownValidityRationale/record': TakeItDownValidityRationaleV1Schema,
   'takeItDownRequests/{requestId}/takeItDownActions/{actionId}': TakeItDownRequestActionV1Schema,
   'takeItDownRequests/{requestId}/takeItDownEvidence/{evidenceId}': TakeItDownEvidenceV1Schema,
   'nciiCases/{caseId}': NciiCaseV1Schema,

@@ -62,12 +62,25 @@ export const PATH_BUILDERS = {
   userAuditionVote: (userId: string, auditionId: string): [string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.AUDITION_VOTES, auditionId],
 
+  // Archived personal notification history (userProfiles/{uid}/notificationHistory/{id}).
+  userNotificationHistoryEntry: (userId: string, notificationId: string): [string, string, string, string] =>
+    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.NOTIFICATION_HISTORY, notificationId],
+
+  // Collection of archived personal notifications (parent of userNotificationHistoryEntry).
+  userNotificationHistory: (userId: string): [string, string, string] =>
+    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.NOTIFICATION_HISTORY],
+
   // ===== WORK PATHS =====
   workProject: (workProjectId: string): [string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId],
 
   publicWorkProject: (workProjectId: string): [string, string] =>
     [COLLECTIONS.PUBLIC_WORK_PROJECTS, workProjectId],
+
+  // The Work's single hall-entry reservation (fixed doc id — one reservation per Work),
+  // claimed create-only inside the first threshold submit's transaction.
+  hallSubmissionReservation: (workProjectId: string): [string, string, string, string] =>
+    [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.HALL_SUBMISSION_RESERVATION, SPECIAL_DOCS.HALL_SUBMISSION_RESERVATION],
 
   workProjectTale: (workProjectId: string, taleId: string): [string, string, string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId, WORK_PROJECT_SUBCOLLECTIONS.WORK_PROJECT_TALES, taleId],
@@ -206,6 +219,10 @@ export const PATH_BUILDERS = {
 
   activeReportGroup: (groupKey: string): [string, string] =>
     [COLLECTIONS.ACTIVE_REPORT_GROUPS, groupKey],
+
+  // Per-report idempotency marker under a group (its ABSENCE gates the totalReports increment).
+  reportGroupCountedReport: (groupKey: string, reportId: string): [string, string, string, string] =>
+    [COLLECTIONS.ACTIVE_REPORT_GROUPS, groupKey, NESTED_SUBCOLLECTIONS.REPORT_GROUP_COUNTED_REPORTS, reportId],
 
   // Time-sensitive admin-tray "case needs work" pin (activeSafetyCaseAlerts/{caseId}).
   safetyCaseAlert: (caseId: string): [string, string] =>
@@ -427,7 +444,7 @@ export const PATH_BUILDERS = {
   // submission, written create-if-absent in the same transaction that marks the submission
   // `completed`, so `completed` and its bound proof can never diverge.
   childSafetyNcmecCompletionProof: (caseId: string, submissionId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.NCMEC_COMPLETION_PROOF, SPECIAL_DOCS.NCMEC_COMPLETION_PROOF_RECORD],
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.NCMEC_COMPLETION_PROOF, SPECIAL_DOCS.RECORD],
 
   childSafetyLegalProcessEvent: (caseId: string, eventId: string): [string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_LEGAL_PROCESS, eventId],
@@ -552,6 +569,11 @@ export const PATH_BUILDERS = {
   takeItDownValidityDecision: (requestId: string, decisionId: string): [string, string, string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS, decisionId],
 
+  // The decision's RESTRICTED rationale row (fixed doc id — one rationale per decision), written
+  // create-only in the same transaction as the decision; rationaleRef / detailRef point here.
+  takeItDownValidityRationale: (requestId: string, decisionId: string): [string, string, string, string, string, string] =>
+    [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_DECISIONS, decisionId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_VALIDITY_RATIONALE, SPECIAL_DOCS.RECORD],
+
   takeItDownRequestAction: (requestId: string, actionId: string): [string, string, string, string] =>
     [COLLECTIONS.TAKE_IT_DOWN_REQUESTS, requestId, NESTED_SUBCOLLECTIONS.TAKE_IT_DOWN_ACTIONS, actionId],
 
@@ -607,6 +629,19 @@ export const PATH_BUILDERS = {
 
   nciiRemovalTarget: (jobId: string, targetKeyHash: string): [string, string, string, string] =>
     [COLLECTIONS.NCII_REMOVAL_JOBS, jobId, NESTED_SUBCOLLECTIONS.NCII_REMOVAL_TARGETS, targetKeyHash],
+
+  // ===== BACKEND-ONLY LEDGERS =====
+  // Append-only audit ledger row (auditEvents/{eventId}).
+  auditEvent: (eventId: string): [string, string] =>
+    [COLLECTIONS.AUDIT_EVENTS, eventId],
+
+  // The audit ledger collection (parent of auditEvent — the writer mints ids against it).
+  auditEvents: (): [string] =>
+    [COLLECTIONS.AUDIT_EVENTS],
+
+  // Server-owned "archive all" job (notificationArchiveAllJobs/{jobId}; CF-only).
+  notificationArchiveAllJob: (jobId: string): [string, string] =>
+    [COLLECTIONS.NOTIFICATION_ARCHIVE_ALL_JOBS, jobId],
 
   // ===== TRUST & SAFETY — _serverData (server-only) singletons (§A7, §A11) =====
   // Moved from _appConfig (public) to _serverData (BACKEND-108 — Cloud-Functions-only readers).

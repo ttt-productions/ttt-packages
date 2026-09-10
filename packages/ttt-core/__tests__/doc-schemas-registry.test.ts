@@ -9,10 +9,6 @@ import {
 } from '../src/paths/collections';
 import { COLLECTION_SCHEMAS, PENDING_COLLECTIONS, COLLECTION_DOC_ID_FIELDS } from '../src/doc-schemas/registry';
 
-// Collection names that exist only in firestore.rules (no COLLECTIONS constant) — see the
-// schema-registry recon (§3). They must still be accounted for: bound or explicitly pending.
-const RULES_ONLY_COLLECTIONS = ['auditEvents', 'notificationHistory'];
-
 const allCollectionNames = [
   ...Object.values(COLLECTIONS),
   ...Object.values(USER_SUBCOLLECTIONS),
@@ -20,7 +16,6 @@ const allCollectionNames = [
   ...Object.values(WORK_REALM_SUBCOLLECTIONS),
   ...Object.values(HALL_ITEM_SUBCOLLECTIONS),
   ...Object.values(NESTED_SUBCOLLECTIONS),
-  ...RULES_ONLY_COLLECTIONS,
 ];
 
 const boundSegments = new Set<string>();
@@ -40,7 +35,7 @@ describe('Firestore collection schema registry', () => {
   });
 
   it('has no stale PENDING entries (each names a real collection)', () => {
-    const known = new Set(allCollectionNames);
+    const known = new Set<string>(allCollectionNames);
     const stale = [...PENDING_COLLECTIONS].filter((name) => !known.has(name));
     expect(stale).toEqual([]);
   });

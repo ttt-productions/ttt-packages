@@ -57,6 +57,12 @@ export const changeRequestIdSchema = z.string().min(1);
 
 // Action / enum atoms.
 export const addRemoveActionSchema = z.enum(['add', 'remove']);
+// The admin system roles an acting operator can hold. ONE declaration (ARCH-102): every
+// doc schema, type, actor context, and claims sync derives from it — never restate
+// 'admin' | 'jrAdmin'. (jrAdmin is neutered for the solo launch; the union stays canonical.)
+export const SYSTEM_ROLES = ['admin', 'jrAdmin'] as const;
+export const systemRoleSchema = z.enum(SYSTEM_ROLES);
+export type SystemRole = (typeof SYSTEM_ROLES)[number];
 // Derives from the ONE canonical WORK_PROJECT_TYPE_KEYS (types/content.ts) — never re-declared.
 export const workProjectTypeSchema = z.enum(WORK_PROJECT_TYPE_KEYS);
 export const hallWingTypeSchema = z.enum(['entertainment', 'educational', 'newsPolitical']);

@@ -139,6 +139,12 @@ const GUARDED: Record<string, { owner: string; allowed: string[] }> = {
     owner: 'ttt-core/src/doc-schemas/media-assets.ts',
     allowed: [],
   },
+  // Distinctive member of SystemRole (the admin roles an operator can hold). Was restated
+  // inline in three doc schemas and the audit type; every consumer now derives from the atom.
+  jrAdmin: {
+    owner: 'ttt-core/src/schemas/atoms.ts',
+    allowed: [],
+  },
 };
 
 function walk(dir: string, out: string[]): void {

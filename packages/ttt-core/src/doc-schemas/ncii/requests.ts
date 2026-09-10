@@ -38,6 +38,7 @@
 
 import { z } from 'zod';
 import { MAX_NCII_ACTION_SUMMARY_LENGTH } from '../../constants/business.js';
+import { MAX_NCII_RATIONALE_LENGTH } from '../../constants/business-admin.js';
 import {
   TakeItDownRequesterRoleSchema,
   TargetLocatorV1Schema,
@@ -229,6 +230,22 @@ export const TakeItDownValidityDecisionV1Schema = z.object({
   decidedAt: z.number(),
 }).strict();
 export type TakeItDownValidityDecisionV1 = z.infer<typeof TakeItDownValidityDecisionV1Schema>;
+
+/** `takeItDownRequests/{requestId}/validityDecisions/{decisionId}/takeItDownValidityRationale/record`
+ * = TakeItDownValidityRationaleV1 — the RESTRICTED, IMMUTABLE operator narrative the decision's
+ * `rationaleRef` and the action row's `detailRef` point at. Bound to (requestId, decisionId);
+ * written create-only in the same transaction as the decision, so a decision can never exist
+ * without its rationale. Backend-only; never inline on the decision. */
+export const TakeItDownValidityRationaleV1Schema = z.object({
+  requestId: z.string().min(1),
+  decisionId: z.string().min(1),
+  result: TakeItDownValidityDecisionResultSchema,
+  reasonCode: TakeItDownInvalidReasonCodeSchema.optional(),
+  text: z.string().min(1).max(MAX_NCII_RATIONALE_LENGTH),
+  authoredByUid: z.string().min(1),
+  authoredAt: z.number(),
+}).strict();
+export type TakeItDownValidityRationaleV1 = z.infer<typeof TakeItDownValidityRationaleV1Schema>;
 
 // ===========================================================================
 // §A11 (2) [L1] — takeItDownRequests/{requestId}/actions/{actionId} = the request

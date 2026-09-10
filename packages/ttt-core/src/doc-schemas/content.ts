@@ -107,6 +107,15 @@ export type FullTelevisionEpisode = z.infer<typeof FullTelevisionEpisodeSchema>;
 
 // --- Threshold + Hall library items ---
 
+/** `allWorkProjects/{workProjectId}/hallSubmissionReservation/reservation` — the Work's ONE
+ * hall-entry reservation, created (never updated) inside the first threshold submit's
+ * transaction; every later submit converges on its `hallItemId`. Backend-only. */
+export const HallSubmissionReservationSchema = z.object({
+  hallItemId: z.string().min(1),
+  createdAt: z.number(),
+}).strict();
+export type HallSubmissionReservation = z.infer<typeof HallSubmissionReservationSchema>;
+
 export const ThresholdItemSchema = z.object({
   thresholdItemId: z.string(),
   hallItemId: z.string(),
@@ -411,7 +420,7 @@ export const ContentPageSectionSchema = z.object({
 });
 export type ContentPageSection = z.infer<typeof ContentPageSectionSchema>;
 
-/** Long-form legal page doc — the shape of BOTH `_config/termsOfService` and `_config/privacyPolicy`. */
+/** Long-form legal page doc — the shape of BOTH `_appConfig/termsOfService` and `_appConfig/privacyPolicy`. */
 export const LegalPageDocumentSchema = z.object({
   version: z.number(),
   lastUpdated: z.number(),
@@ -420,7 +429,7 @@ export const LegalPageDocumentSchema = z.object({
 export type LegalPageDocument = z.infer<typeof LegalPageDocumentSchema>;
 
 /**
- * `_config/takeItDownPageCopy` — the /take-it-down page's user-facing language as
+ * `_appConfig/takeItDownPageCopy` — the /take-it-down page's user-facing language as
  * a keyed strings map (the page is a functional form, so its copy is discrete
  * labeled strings, not long-form sections). Keys are stable identifiers defined
  * by the page (e.g. `pageTitle`, `introBody`); the admin editor renders one

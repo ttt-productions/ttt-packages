@@ -23,6 +23,7 @@ export * from './report-docs.js';
 export * from './audit.js';
 export * from './notifications.js';
 export * from './notification-ledger.js';
+export * from './notification-archive-all-jobs.js';
 export * from './chat-sync.js';
 export * from './operational.js';
 

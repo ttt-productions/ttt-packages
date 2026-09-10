@@ -189,6 +189,15 @@ export const ReportGroupV1Schema = z.object({
 }).strict();
 export type ReportGroupV1 = z.infer<typeof ReportGroupV1Schema>;
 
+/** `activeReportGroups/{groupKey}/reportGroupCountedReports/{reportId}` — the per-report
+ * idempotency marker stamped in the SAME transaction as the group's totalReports increment;
+ * its existence is what makes a redelivered create event a no-op. Backend-only. */
+export const ReportGroupCountedReportSchema = z.object({
+  reportId: z.string().min(1),
+  countedAt: z.number(),
+}).strict();
+export type ReportGroupCountedReport = z.infer<typeof ReportGroupCountedReportSchema>;
+
 // ===========================================================================
 // Canonical keys (DEFINED — not inline prose). Computed server-side by the
 // resolver/writer; documented here, NOT computed in this schema layer. The

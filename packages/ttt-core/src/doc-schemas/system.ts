@@ -1,4 +1,4 @@
-// System Firestore document SCHEMAS — the `_config/app` runtime-config singleton.
+// System Firestore document SCHEMAS — the `_appConfig/app` runtime-config singleton.
 // Type inferred via z.infer. (Field docs live in ../types/system.ts.)
 
 import { z } from 'zod';
