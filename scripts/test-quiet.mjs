@@ -40,6 +40,7 @@ const RESET = '\x1b[0m';
 //   node test-quiet.mjs --help                # print usage and exit
 //
 // Stage keys accepted by --only:
+//   audit      -> npm audit --omit=dev --audit-level=high (the publish CI security gate, verbatim)
 //   lint       -> npm run lint            (eslint, all workspaces)
 //   typecheck  -> npm run typecheck       (per-workspace tsc --noEmit; skips __tests__)
 //   tscb       -> npx tsc -b --noEmit     (project refs; the ONLY step that type-checks __tests__)
@@ -72,9 +73,10 @@ Quiet pre-commit / pre-publish gate. Runs the test:all stages, then a final sche
 
 Options:
   --only <stages>   Comma-separated list of stages to run.
-                    Stages: lint, typecheck, tscb, build, test, schema
+                    Stages: audit, lint, typecheck, tscb, build, test, schema
   --test            Shortcut for --only test
   --build           Shortcut for --only build
+  --audit           Shortcut for --only audit (mirrors the publish CI security gate)
   --lint            Shortcut for --only lint
   --typecheck       Shortcut for --only typecheck
   --tscb            Shortcut for --only tscb
@@ -94,6 +96,7 @@ let onlyRaw = flagValue('--only');
 if (!onlyRaw) {
     // Short aliases — mutually inclusive (you can pass --build --test)
     const aliases = [];
+    if (hasFlag('--audit')) aliases.push('audit');
     if (hasFlag('--lint')) aliases.push('lint');
     if (hasFlag('--typecheck')) aliases.push('typecheck');
     if (hasFlag('--tscb')) aliases.push('tscb');
@@ -103,7 +106,7 @@ if (!onlyRaw) {
     if (aliases.length > 0) onlyRaw = aliases.join(',');
 }
 
-const KNOWN_STAGES = new Set(['lint', 'typecheck', 'tscb', 'build', 'test', 'schema']);
+const KNOWN_STAGES = new Set(['audit', 'lint', 'typecheck', 'tscb', 'build', 'test', 'schema']);
 const only = onlyRaw
     ? new Set(
         onlyRaw
@@ -368,8 +371,17 @@ async function stageSchema(name, root) {
         : `${BOLD}Running quiet test suite${RESET}\n\n`;
     process.stdout.write(header);
 
-    // Stop-on-fail chain — strict mirror of `test:all` (lint && typecheck && tsc -b && build && test),
-    // with a final schema gate that only runs if everything above (tests included) passed.
+    // Stop-on-fail chain — strict mirror of `test:all` (audit && lint && build && typecheck && tsc -b
+    // && test), with a final schema gate that only runs if everything above (tests included) passed.
+    //
+    // 0. Security audit FIRST — mirrors the publish workflow's "Security audit (production deps)"
+    // step EXACTLY (`npm audit --omit=dev --audit-level=high`, .github/workflows). The gate once ran
+    // green while that CI step failed a publish on a high advisory in a shipped dependency, because
+    // this stage did not exist: nothing local ever ran the audit. It runs first because it is the
+    // cheapest stage and a red here means "fix the lockfile", not "fix the code".
+    if (shouldRun('audit')) {
+        if (!(await stagePlain('audit (prod deps, high)', 'npm', ['audit', '--omit=dev', '--audit-level=high'], root))) return finish(overallStart);
+    }
     if (shouldRun('lint')) {
         if (!(await stagePlain('lint', 'npm', ['run', 'lint'], root))) return finish(overallStart);
     }
