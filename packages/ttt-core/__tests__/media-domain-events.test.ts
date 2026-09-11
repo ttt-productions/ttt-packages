@@ -236,3 +236,31 @@ describe('hallContentChangeRequest.approved (approval only — a denial writes n
     ).toThrow();
   });
 });
+
+
+describe('workProject.published carries the released Realm when publication touched it', () => {
+  it('accepts the work grain: workProjectId + userId', () => {
+    const result = DomainEventSchema.parse({
+      type: 'workProject.published',
+      ids: { workProjectId: 'wp_1', userId: 'u_1' },
+    });
+    expect(result.ids).toEqual({ workProjectId: 'wp_1', userId: 'u_1' });
+  });
+
+  it('accepts the optional workRealmId', () => {
+    const result = DomainEventSchema.parse({
+      type: 'workProject.published',
+      ids: { workProjectId: 'wp_1', userId: 'u_1', workRealmId: 'realm_1' },
+    });
+    expect(result.ids).toEqual({ workProjectId: 'wp_1', userId: 'u_1', workRealmId: 'realm_1' });
+  });
+
+  it('rejects an empty workRealmId', () => {
+    expect(() =>
+      DomainEventSchema.parse({
+        type: 'workProject.published',
+        ids: { workProjectId: 'wp_1', userId: 'u_1', workRealmId: '' },
+      }),
+    ).toThrow();
+  });
+});

@@ -30,6 +30,7 @@ export const WorkProjectPublishedEventSchema = z
       .object({
         workProjectId: z.string().min(1),
         userId: z.string().min(1),
+        workRealmId: z.string().min(1).optional(),
       })
       .strict(),
   })
