@@ -116,3 +116,123 @@ describe('workRealm.coverUpdated (realm cover publication)', () => {
     ).toThrow();
   });
 });
+
+describe('profile.displayNameChanged (self-service display-name set)', () => {
+  it('accepts a valid event through the union', () => {
+    const result = DomainEventSchema.parse({
+      type: 'profile.displayNameChanged',
+      ids: { userId: 'u_1' },
+    });
+    expect(result.type).toBe('profile.displayNameChanged');
+  });
+
+  it('rejects a missing userId', () => {
+    expect(() => DomainEventSchema.parse({ type: 'profile.displayNameChanged', ids: {} })).toThrow();
+  });
+
+  it('rejects unknown id fields (strict)', () => {
+    expect(() =>
+      DomainEventSchema.parse({
+        type: 'profile.displayNameChanged',
+        ids: { userId: 'u_1', displayName: 'Stored Name' },
+      }),
+    ).toThrow();
+  });
+});
+
+describe('admin.displayNameResetForced (admin-forced display-name reset)', () => {
+  it('accepts a valid event through the union', () => {
+    const result = DomainEventSchema.parse({
+      type: 'admin.displayNameResetForced',
+      ids: { userId: 'u_1' },
+    });
+    expect(result.type).toBe('admin.displayNameResetForced');
+  });
+
+  it('rejects a missing userId', () => {
+    expect(() =>
+      DomainEventSchema.parse({ type: 'admin.displayNameResetForced', ids: {} }),
+    ).toThrow();
+  });
+
+  it('is a distinct variant from the self-service change', () => {
+    const admin = DomainEventSchema.parse({
+      type: 'admin.displayNameResetForced',
+      ids: { userId: 'u_1' },
+    });
+    const self = DomainEventSchema.parse({
+      type: 'profile.displayNameChanged',
+      ids: { userId: 'u_1' },
+    });
+    expect(admin.type).not.toBe(self.type);
+  });
+});
+
+describe('workRealm.detailsUpdated (realm details edit)', () => {
+  it('accepts a valid event through the union', () => {
+    const result = DomainEventSchema.parse({
+      type: 'workRealm.detailsUpdated',
+      ids: { workRealmId: 'realm_1' },
+    });
+    expect(result.type).toBe('workRealm.detailsUpdated');
+  });
+
+  it('rejects a missing workRealmId', () => {
+    expect(() => DomainEventSchema.parse({ type: 'workRealm.detailsUpdated', ids: {} })).toThrow();
+  });
+
+  it('rejects unknown id fields (strict)', () => {
+    expect(() =>
+      DomainEventSchema.parse({
+        type: 'workRealm.detailsUpdated',
+        ids: { workRealmId: 'realm_1', workProjectId: 'wp_1' },
+      }),
+    ).toThrow();
+  });
+});
+
+describe('hallContentChangeRequest.approved (approval only — a denial writes nothing)', () => {
+  it('accepts the hall grain: workProjectId alone', () => {
+    const result = DomainEventSchema.parse({
+      type: 'hallContentChangeRequest.approved',
+      ids: { workProjectId: 'wp_1' },
+    });
+    expect(result.type).toBe('hallContentChangeRequest.approved');
+    expect(result.ids).toEqual({ workProjectId: 'wp_1' });
+  });
+
+  it('accepts the realm grain: workProjectId + optional workRealmId', () => {
+    const result = DomainEventSchema.parse({
+      type: 'hallContentChangeRequest.approved',
+      ids: { workProjectId: 'wp_1', workRealmId: 'realm_1' },
+    });
+    expect(result.ids).toEqual({ workProjectId: 'wp_1', workRealmId: 'realm_1' });
+  });
+
+  it('rejects a missing workProjectId — every grain carries the owning work', () => {
+    expect(() =>
+      DomainEventSchema.parse({
+        type: 'hallContentChangeRequest.approved',
+        ids: { workRealmId: 'realm_1' },
+      }),
+    ).toThrow();
+  });
+
+  it('rejects an empty workRealmId', () => {
+    expect(() =>
+      DomainEventSchema.parse({
+        type: 'hallContentChangeRequest.approved',
+        ids: { workProjectId: 'wp_1', workRealmId: '' },
+      }),
+    ).toThrow();
+  });
+
+  it('has no denial twin — the union carries approval only', () => {
+    expect(() =>
+      DomainEventSchema.parse({
+        type: 'hallContentChangeRequest.denied',
+        ids: { workProjectId: 'wp_1' },
+      }),
+    ).toThrow();
+  });
+});

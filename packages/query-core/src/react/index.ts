@@ -38,7 +38,9 @@ export {
 export type {
   BatchFirestoreDocsOptions,
   BatchFirestoreDocsResult,
+  BatchFirestoreDocsTransport,
 } from './firestore/useBatchFirestoreDocs.js';
+export { ABSENT_RETRY_DELAYS_MS } from './firestore/absence-scheduler.js';
 
 // Search Hook
 export { useFirestoreSearch } from './search/use-firestore-search.js';

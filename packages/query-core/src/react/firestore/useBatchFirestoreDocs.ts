@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
-import { collection, getDocs, query, where, documentId, type Firestore } from 'firebase/firestore';
-import { subscribeDoc } from './doc-subscription-registry.js';
+import type { Firestore } from 'firebase/firestore';
+import { isListenerOwned, subscribeDoc } from './doc-subscription-registry.js';
+import { getDocLoader } from './batch-doc-loader.js';
+import { ABSENT_RETRY_DELAYS_MS, trackAbsentDoc } from './absence-scheduler.js';
 
-const FIRESTORE_IN_LIMIT = 30;
+/** Transport used to resolve an id in one-shot mode. */
+export type BatchFirestoreDocsTransport = 'batch' | 'get';
 
 export type BatchFirestoreDocsOptions = {
   /**
@@ -25,13 +28,14 @@ export type BatchFirestoreDocsOptions = {
 
   /**
    * Query key prefix for individual document cache entries
-   * Each document will be cached as [queryKeyPrefix, docId]
+   * Each document is cached as [queryKeyPrefix, docId]
    * @example 'publicUser' -> ['publicUser', 'user123']
    */
   queryKeyPrefix: string;
 
   /**
-   * Time in milliseconds to consider data fresh (default: 30 minutes)
+   * Time in milliseconds a PRESENT document stays fresh (default: 30 minutes).
+   * An absent document uses `absentStaleTime` instead.
    */
   staleTime?: number;
 
@@ -47,52 +51,103 @@ export type BatchFirestoreDocsOptions = {
 
   /**
    * Real-time mode (default: false). When true, each id is resolved via a shared,
-   * reference-counted `onSnapshot` listener instead of a one-shot `getDocs` batch:
+   * reference-counted `onSnapshot` listener instead of a one-shot read:
    * - a missing doc caches `null` (negative caching) and resolves the instant it appears,
    * - identity edits propagate live, and every browser tab stays consistent,
-   * - `staleTime` is irrelevant (listeners keep the cache fresh).
-   * Initial read cost matches the batch path; listeners then stay open while mounted.
-   * Use for small, frequently-rendered, change-sensitive identity docs (e.g. publicUsers).
+   * - `staleTime` is irrelevant (listeners keep the cache fresh) and `refetch()` is a no-op.
+   * Initial read cost matches the one-shot path; listeners then stay open while mounted.
+   * Use for small, frequently-rendered, change-sensitive docs owned by the signed-in user.
    */
   subscribe?: boolean;
+
+  /**
+   * One-shot transport (default: `'batch'`).
+   *
+   * - `'batch'` — ids enqueued in the same microtask are coalesced into
+   *   `where(documentId(), 'in', …)` queries of at most 30 ids each. Fewest round-trips.
+   * - `'get'` — one `getDoc` per id, run concurrently. Required for a collection whose
+   *   Firestore rules gate reads on `resource.data`: an unconstrained id-list query is
+   *   denied WHOLESALE there, while per-document gets are evaluated per document, so one
+   *   unreadable id errors alone instead of failing every id with it. On such a collection
+   *   a get against a nonexistent doc is also denied, so "absent" and "hidden" are the same
+   *   client-visible signal — the id surfaces as that query's error, never as a null.
+   */
+  transport?: BatchFirestoreDocsTransport;
+
+  /**
+   * Time in milliseconds an ABSENT (`null`) result stays fresh (default: 30 seconds).
+   * Deliberately much shorter than `staleTime`: a missing doc is usually a doc that has
+   * not been mirrored/created YET, and holding "missing" as fresh for the full staleTime
+   * is what leaves a row blank long after the doc appears.
+   */
+  absentStaleTime?: number;
+
+  /**
+   * Backoff ladder (ms) for re-reading an id that resolved absent, one re-read per rung
+   * per absence episode (default: {@link ABSENT_RETRY_DELAYS_MS}). Pass `[]` to ask for no
+   * re-reads.
+   *
+   * The timer is per cache key, so many consumers of the same absent id still cost one
+   * re-read per rung — and consumers that disagree combine by UNION, never by mount order:
+   * the key polls if ANY mounted consumer wants polling, on the LONGEST ladder among them.
+   * `[]` therefore only silences re-reads that no other mounted consumer asked for. The
+   * effective ladder is recomputed on every mount and unmount; an episode already in
+   * progress continues on the new ladder's remaining rungs, or stops if it is now empty.
+   */
+  absentRetryDelaysMs?: readonly number[];
 };
 
 export type BatchFirestoreDocsResult<T> = {
   /**
-   * Map of docId -> document data
-   * Only includes documents that exist in Firestore
+   * Map of docId -> document data.
+   * Only includes documents that exist AND are currently readable: an id whose query is in
+   * an error state is excluded, so a previously cached doc is never presented as readable
+   * after access to it fails.
    */
   data: Record<string, T>;
 
   /**
-   * True if any batch queries are still loading
+   * True while any requested id has not resolved yet
    */
   isLoading: boolean;
 
   /**
-   * True if any batch queries have errored
+   * True if any requested id is in an error state
    */
   isError: boolean;
 
   /**
-   * First error from batch queries, if any
+   * First error across the requested ids, if any
    */
   error: Error | null;
 
   /**
-   * Refetch all documents (even cached ones)
+   * Refetch every requested id, cached ones included. A no-op in subscribe mode.
    */
   refetch: () => Promise<void>;
 };
 
+function shallowRecordEqual<T>(a: Record<string, T>, b: Record<string, T>): boolean {
+  const aKeys = Object.keys(a);
+  if (aKeys.length !== Object.keys(b).length) return false;
+  for (const key of aKeys) {
+    if (!Object.prototype.hasOwnProperty.call(b, key) || a[key] !== b[key]) return false;
+  }
+  return true;
+}
+
 /**
- * Efficiently batch fetch Firestore documents with individual caching
+ * Resolve many document ids into individually observed, individually cached React Query
+ * entries at `[queryKeyPrefix, id]`.
  *
- * Features:
- * - Each document is cached individually for maximum reuse
- * - Only fetches documents that are missing or stale
- * - Respects Firestore's 30-item limit for 'in' queries
- * - Returns combined result as Record<docId, data>
+ * There is exactly ONE data cache: the per-id entries. Each id owns a real query with a
+ * real `queryFn`, so exact-key invalidation, `refetchQueries({ type: 'active' })`, and
+ * `refetchOnMount` all work on a single id the way they work on any other query — and the
+ * returned `data` is derived reactively from those query results, never read imperatively.
+ *
+ * A nonexistent document resolves to `null` (negative caching) and is excluded from `data`;
+ * an absent id is then re-read on a bounded ladder (see `absentRetryDelaysMs`) so a doc
+ * that appears shortly afterwards shows up without an invalidation.
  *
  * @example
  * ```typescript
@@ -101,7 +156,7 @@ export type BatchFirestoreDocsResult<T> = {
  *   collectionPath: 'publicUsers',
  *   ids: ['user1', 'user2', 'user3'],
  *   queryKeyPrefix: 'publicUser',
- *   staleTime: 30 * 60 * 1000, // 30 minutes
+ *   staleTime: 30 * 60 * 1000,
  * });
  * // users = { user1: {...}, user2: {...}, user3: {...} }
  * ```
@@ -115,6 +170,9 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   gcTime = 60 * 60 * 1000,
   enabled = true,
   subscribe = false,
+  transport = 'batch',
+  absentStaleTime = 30 * 1000,
+  absentRetryDelaysMs = ABSENT_RETRY_DELAYS_MS,
 }: BatchFirestoreDocsOptions): BatchFirestoreDocsResult<T> {
   const queryClient = useQueryClient();
 
@@ -128,9 +186,42 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   }, [idsKey]);
 
   // ── Real-time subscribe mode ──────────────────────────────────────────────
-  // Re-render trigger; bumped whenever a subscribed doc's snapshot lands.
-  const [snapshotVersion, setSnapshotVersion] = useState(0);
+  // Listener errors cannot surface through the per-id queries (they are disabled while
+  // subscribed), so they are tracked here and merged into the returned result.
   const [subscribeError, setSubscribeError] = useState<Error | null>(null);
+  // Snapshot re-render trigger. The per-id query observers do notify on the listener's
+  // cache write, but only on React Query's batched microtask; bumping state in the
+  // snapshot callback keeps a landed snapshot visible in the SAME tick it arrives.
+  const [, setSnapshotVersion] = useState(0);
+
+  const results = useQueries({
+    queries: uniqueIds.map((id) => ({
+      queryKey: [queryKeyPrefix, id],
+      queryFn: async ({ signal }: { signal: AbortSignal }): Promise<T | null> => {
+        const loader = getDocLoader(queryClient, db, collectionPath);
+        const loaded =
+          transport === 'get' ? await loader.loadOne(id, signal) : await loader.loadBatched(id, signal);
+        // If a shared listener took ownership of this key while the read was in flight, the
+        // listener's value is the newer truth — `onSnapshot` will not re-emit until the doc
+        // changes, so returning the read result here would leave a stale value stuck.
+        if (isListenerOwned(queryClient, queryKeyPrefix, id)) {
+          const owned = queryClient.getQueryData([queryKeyPrefix, id]);
+          if (owned !== undefined) return owned as T | null;
+        }
+        return loaded as T | null;
+      },
+      enabled: enabled && !subscribe,
+      // The consuming app's global default is `refetchOnMount: false`; these lookups opt
+      // back in so a remount re-reads a STALE id (refetch-on-mount never fires on a fresh
+      // one, so an all-cache-hit mount still costs nothing).
+      refetchOnMount: !subscribe,
+      staleTime: subscribe
+        ? Infinity
+        : (query: { state: { data: unknown } }) =>
+            query.state.data === null ? absentStaleTime : staleTime,
+      gcTime,
+    })),
+  });
 
   useEffect(() => {
     if (!subscribe || !enabled || uniqueIds.length === 0) return;
@@ -142,140 +233,84 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
         collectionPath,
         queryKeyPrefix,
         id,
-        onUpdate: () => setSnapshotVersion((v) => v + 1),
+        onUpdate: () => setSnapshotVersion((version) => version + 1),
         onError: (error) => setSubscribeError(error),
       }),
     );
     return () => {
       for (const unsubscribe of unsubscribers) unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- idsKey stands in for uniqueIds
-  }, [idsKey, subscribe, enabled, collectionPath, queryKeyPrefix, queryClient, db]);
+  }, [uniqueIds, subscribe, enabled, collectionPath, queryKeyPrefix, queryClient, db]);
 
-  // Separate IDs into cached/fresh vs needs-fetch (one-shot path only)
-  const { fetchIds } = useMemo(() => {
-    if (!enabled || subscribe) {
-      return { fetchIds: [] };
-    }
+  // Bounded re-read ladder for ids that resolved absent. Registration is per cache key, so
+  // overlapping consumers share one episode budget. The ladder is rebuilt from its own
+  // serialized form so an inline array literal cannot re-register (and reset it) every render.
+  const absentDelaysKey = absentRetryDelaysMs.join(',');
+  const absentDelays = useMemo(
+    () => absentDelaysKey.split(',').filter(Boolean).map(Number),
+    [absentDelaysKey],
+  );
 
-    const needsFetch: string[] = [];
-
-    for (const id of uniqueIds) {
-      const queryKey = [queryKeyPrefix, id];
-      const state = queryClient.getQueryState(queryKey);
-
-      // Check if data exists and is still fresh. `null` counts as data — it marks a
-      // known-absent doc (negative caching) and must not be re-fetched while fresh.
-      const hasResolvedData = state !== undefined && state.data !== undefined;
-      if (!(hasResolvedData && state.dataUpdatedAt && Date.now() - state.dataUpdatedAt < staleTime)) {
-        needsFetch.push(id);
-      }
-    }
-
-    return { fetchIds: needsFetch };
-  }, [uniqueIds, queryKeyPrefix, queryClient, staleTime, enabled, subscribe]);
-
-  // Batch the fetchIds into groups of 30
-  const batches = useMemo(() => {
-    const result: string[][] = [];
-    for (let i = 0; i < fetchIds.length; i += FIRESTORE_IN_LIMIT) {
-      result.push(fetchIds.slice(i, i + FIRESTORE_IN_LIMIT));
-    }
-    return result;
-  }, [fetchIds]);
-
-  // Fetch each batch and populate individual cache entries
-  const batchQueries = useQueries({
-    queries: batches.map((batch, batchIndex) => ({
-      queryKey: [queryKeyPrefix, 'batch', batchIndex, ...[...batch].sort()],
-      queryFn: async (): Promise<T[]> => {
-        if (batch.length === 0) return [];
-
-        const q = query(
-          collection(db, collectionPath),
-          where(documentId(), 'in', batch)
-        );
-
-        const snapshot = await getDocs(q);
-        const docs: T[] = [];
-        const returnedIds = new Set<string>();
-
-        // Process each document and update individual cache entries
-        snapshot.forEach((doc) => {
-          const data = { id: doc.id, ...doc.data() } as unknown as T;
-          docs.push(data);
-          returnedIds.add(doc.id);
-
-          // Populate individual cache entry
-          queryClient.setQueryData(
-            [queryKeyPrefix, doc.id],
-            data,
-            { updatedAt: Date.now() }
-          );
-        });
-
-        // Negative-cache requested ids that came back missing so they aren't
-        // re-fetched on every render while fresh (mirrors the subscribe path).
-        for (const id of batch) {
-          if (!returnedIds.has(id)) {
-            queryClient.setQueryData([queryKeyPrefix, id], null, { updatedAt: Date.now() });
-          }
-        }
-
-        return docs;
-      },
-      staleTime,
-      gcTime,
-      enabled: enabled && batch.length > 0,
-    })),
-  });
-
-  // Combine results (one-shot batch path)
-  const batchIsLoading = batchQueries.some(q => q.isLoading);
-  const batchIsError = batchQueries.some(q => q.isError);
-  const batchError = (batchQueries.find(q => q.error)?.error as Error | null) || null;
-
-  // Trigger re-derivation when batch fetches complete
-  const batchSettledCount = batchQueries.filter(q => q.isSuccess || q.isError).length;
-  const batchUpdateTimestamp = batchQueries.reduce((sum, q) => sum + (q.dataUpdatedAt ?? 0), 0);
-
-  const data = useMemo(() => {
-    const combined: Record<string, T> = {};
-
-    // Always read all IDs from individual cache entries. Both paths populate these via
-    // setQueryData (batch queryFn, or the subscribe listener); we never read batch results
-    // directly, so IDs can't fall through the cached/fetched split. A `null` entry means a
-    // doc is known-absent (negative caching, both paths) and is correctly excluded here.
-    for (const id of uniqueIds) {
-      const cached = queryClient.getQueryData<T>([queryKeyPrefix, id]);
-      if (cached) {
-        combined[id] = cached;
-      }
-    }
-
-    return combined;
-    // batchSettledCount/batchUpdateTimestamp/snapshotVersion are intentional re-derivation triggers:
-    // the cache is read imperatively via getQueryData (non-reactive), so these counters force a
-    // recompute when a batch fetch settles or a subscribed doc updates.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uniqueIds, queryKeyPrefix, queryClient, batchSettledCount, batchUpdateTimestamp, snapshotVersion]);
-
-  // In subscribe mode the batch queries are inert; "loading" means a subscribed id has not
-  // received its first snapshot yet (no cache entry — `null` counts as resolved-missing).
-  const subscribeIsLoading =
-    subscribe && enabled && uniqueIds.some(
-      (id) => queryClient.getQueryData([queryKeyPrefix, id]) === undefined,
+  useEffect(() => {
+    if (uniqueIds.length === 0) return;
+    const releases = uniqueIds.map((id) =>
+      trackAbsentDoc({ queryClient, queryKey: [queryKeyPrefix, id], delays: absentDelays }),
     );
+    return () => {
+      for (const release of releases) release();
+    };
+  }, [uniqueIds, queryKeyPrefix, queryClient, absentDelays]);
 
-  const refetch = async () => {
-    await Promise.all(batchQueries.map(q => q.refetch()));
-  };
+  const nextData: Record<string, T> = {};
+  let anyError: Error | null = null;
+  let oneShotLoading = false;
+  let anyUnresolved = false;
+
+  for (let index = 0; index < uniqueIds.length; index += 1) {
+    const result = results[index];
+    if (!result) continue;
+    if (result.isError) {
+      anyError ??= (result.error as Error | null) ?? null;
+      continue;
+    }
+    if (result.isLoading) oneShotLoading = true;
+    const value = result.data as T | null | undefined;
+    if (value === undefined) anyUnresolved = true;
+    else if (value) nextData[uniqueIds[index]] = value;
+  }
+
+  // The map is rebuilt every render; keep the last COMMITTED object while it is unchanged so
+  // consumers can safely depend on `data`'s identity. Only the effect writes the ref, so a
+  // concurrent render React discards can never leave it pointing at an uncommitted map.
+  const committedDataRef = useRef<Record<string, T>>(nextData);
+  const data = shallowRecordEqual(committedDataRef.current, nextData)
+    ? committedDataRef.current
+    : nextData;
+
+  useEffect(() => {
+    committedDataRef.current = data;
+  }, [data]);
+
+  const refetch = useCallback(async () => {
+    // Subscribe mode owns its freshness through the shared listeners — refetching would
+    // issue reads against disabled queries and race the listener's value.
+    if (subscribe || !enabled) return;
+    await Promise.all(
+      uniqueIds.map((id) =>
+        queryClient.refetchQueries({ queryKey: [queryKeyPrefix, id], exact: true }),
+      ),
+    );
+  }, [uniqueIds, subscribe, enabled, queryClient, queryKeyPrefix]);
+
+  // In subscribe mode "loading" means a subscribed id has no cache entry yet (`null`
+  // counts as resolved-missing).
+  const isLoading = subscribe ? enabled && anyUnresolved : oneShotLoading;
 
   return {
     data,
-    isLoading: batchIsLoading || subscribeIsLoading,
-    isError: batchIsError || subscribeError !== null,
-    error: batchError ?? subscribeError,
+    isLoading,
+    isError: anyError !== null || subscribeError !== null,
+    error: anyError ?? subscribeError,
     refetch,
   };
 }

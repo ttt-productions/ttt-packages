@@ -84,6 +84,36 @@ export const AdminDispatchReviewedEventSchema = z
   })
   .strict();
 
+// An admin forced a display-name reset on a member. The target's displayName is
+// a publicUsers-mirrored field; the actor is an admin, never the member, which
+// is why this is separate from profile.displayNameChanged.
+export const AdminDisplayNameResetForcedEventSchema = z
+  .object({
+    type: z.literal('admin.displayNameResetForced'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+// A hall content change request was APPROVED — the only decision that writes
+// anything. An approval updates the public Work shell and, on the realm grain,
+// the Realm doc, so both ids ride the event; `workRealmId` is absent on the hall
+// grains. A denial changes no content and emits nothing.
+export const HallContentChangeRequestApprovedEventSchema = z
+  .object({
+    type: z.literal('hallContentChangeRequest.approved'),
+    ids: z
+      .object({
+        workProjectId: z.string().min(1),
+        workRealmId: z.string().min(1).optional(),
+      })
+      .strict(),
+  })
+  .strict();
+
 export const ViolationAppealSubmittedEventSchema = z
   .object({
     type: z.literal('violation.appealSubmitted'),

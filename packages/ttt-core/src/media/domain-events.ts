@@ -9,6 +9,7 @@ import {
   FollowRemovedEventSchema,
   MentionReadEventSchema,
   AuthStatusChangedEventSchema,
+  ProfileDisplayNameChangedEventSchema,
 } from "./domain-events-user.js";
 import {
   WorkProjectCreatedEventSchema,
@@ -30,6 +31,7 @@ import {
   CommissionProposalRemovedEventSchema,
   HallLibraryCoverUpdatedEventSchema,
   WorkRealmCoverUpdatedEventSchema,
+  WorkRealmDetailsUpdatedEventSchema,
   HallLibrarySubItemUpdatedEventSchema,
   ThresholdLibrarySubmittedEventSchema,
 } from "./domain-events-work.js";
@@ -47,6 +49,8 @@ import {
   AdminAppealReviewedEventSchema,
   AdminDispatchReviewedEventSchema,
   ViolationAppealSubmittedEventSchema,
+  AdminDisplayNameResetForcedEventSchema,
+  HallContentChangeRequestApprovedEventSchema,
 } from "./domain-events-admin.js";
 
 export * from "./domain-events-user.js";
@@ -110,6 +114,10 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   MentionReadEventSchema,
   AuthStatusChangedEventSchema,
   ViolationAppealSubmittedEventSchema,
+  ProfileDisplayNameChangedEventSchema,
+  AdminDisplayNameResetForcedEventSchema,
+  WorkRealmDetailsUpdatedEventSchema,
+  HallContentChangeRequestApprovedEventSchema,
 ]);
 
 export type DomainEvent = z.infer<typeof DomainEventSchema>;

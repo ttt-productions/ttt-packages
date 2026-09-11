@@ -1,4 +1,4 @@
-import type { Query, QueryClient, QueryKey } from "@tanstack/react-query";
+import type { Query, QueryClient, QueryFilters, QueryKey } from "@tanstack/react-query";
 
 export type RefetchType = "active" | "all" | "none";
 
@@ -33,6 +33,58 @@ export function serializeInvalidation(inv: CacheInvalidation): string {
   return `${inv.kind}:${JSON.stringify(inv.queryKey)}`;
 }
 
+/** The cache filter that selects exactly the queries one invalidation targets. */
+function invalidationFilters(inv: CacheInvalidation): QueryFilters {
+  if (inv.kind === "exact") return { queryKey: inv.queryKey, exact: true };
+  if (inv.kind === "prefix") return { queryKey: inv.queryKey, exact: false };
+  return { predicate: inv.match };
+}
+
+/**
+ * Cancel every query matched by `filters` that is in a PENDING INITIAL READ —
+ * currently fetching with no data yet.
+ *
+ * TanStack's `Query.fetch` only cancels a running request on refetch when the
+ * query already holds data; an initial fetch in flight is REUSED instead, so
+ * the invalidation's refetch resolves with the value the server returned BEFORE
+ * the mutation committed and then marks the query fresh. Cancelling first makes
+ * the invalidation's refetch a genuinely new request: the retryer is rejected
+ * synchronously (its `onCancel` reverts state to idle in the same tick), so the
+ * `invalidateQueries` call that follows starts a fresh fetch, and the abandoned
+ * promise's late, stale resolution is discarded.
+ *
+ * Cancellation is always scoped to one concrete query key — never a bare
+ * `cancelQueries()`.
+ */
+function cancelPendingInitialReads(queryClient: QueryClient, filters: QueryFilters): void {
+  for (const query of queryClient.getQueryCache().findAll(filters)) {
+    if (query.state.fetchStatus !== "fetching") continue;
+    if (query.state.data !== undefined) continue;
+    void queryClient.cancelQueries({ queryKey: query.queryKey, exact: true });
+  }
+}
+
+/**
+ * Dispatch a deduplicated list of cache invalidations.
+ *
+ * Synchronous by contract: the underlying `invalidateQueries` / `cancelQueries`
+ * promises are fire-and-forget, so a mutation success path never awaits its own
+ * cache refresh.
+ *
+ * Before each invalidation, any query it matches that is mid-PENDING-INITIAL-READ
+ * is cancelled (see `cancelPendingInitialReads`) so a read that started before
+ * the write committed can never land as the query's first — and freshly-marked —
+ * value.
+ *
+ * `refetchType` governs whether that cancellation happens:
+ * - `'active'` (the default) and `'all'` cancel-then-invalidate every matched
+ *   pending initial read — including one TanStack's refetch pass will not
+ *   restart, since a stale first value would otherwise land and mark the query
+ *   fresh, while a cancelled one simply refetches for its next observer.
+ * - `'none'` invalidates WITHOUT cancelling: the caller has asked for no
+ *   refetch at all, so cancelling would abandon the only in-flight read the
+ *   consumer has and leave it with no data and no pending request.
+ */
 export function applyInvalidations(
   queryClient: QueryClient,
   invalidations: ReadonlyArray<CacheInvalidation>,
@@ -44,24 +96,12 @@ export function applyInvalidations(
     seen.add(sig);
 
     const refetchType: RefetchType = inv.refetchType ?? "active";
+    const filters = invalidationFilters(inv);
 
-    if (inv.kind === "exact") {
-      void queryClient.invalidateQueries({
-        queryKey: inv.queryKey,
-        exact: true,
-        refetchType,
-      });
-    } else if (inv.kind === "prefix") {
-      void queryClient.invalidateQueries({
-        queryKey: inv.queryKey,
-        exact: false,
-        refetchType,
-      });
-    } else {
-      void queryClient.invalidateQueries({
-        predicate: inv.match,
-        refetchType,
-      });
+    if (refetchType !== "none") {
+      cancelPendingInitialReads(queryClient, filters);
     }
+
+    void queryClient.invalidateQueries({ ...filters, refetchType });
   }
 }

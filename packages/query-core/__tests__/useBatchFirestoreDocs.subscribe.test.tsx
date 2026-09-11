@@ -1,28 +1,77 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 
 // Controllable firebase/firestore mock: capture per-id snapshot callbacks so tests can
 // emit snapshots, and provide inert stubs for the one-shot path's imports.
-const { caps, onSnapshotMock } = vi.hoisted(() => {
-  const caps = new Map<string, { next: (snap: unknown) => void; error?: (e: Error) => void; unsub: () => void }>();
-  const onSnapshotMock = vi.fn((ref: { __id: string }, next: (s: unknown) => void, error: (e: Error) => void) => {
-    const unsub = vi.fn();
-    caps.set(ref.__id, { next, error, unsub });
-    return unsub;
+const { caps, onSnapshotMock, oneShotDocs, batchCalls, getDocsMock, getDocMock, setAutoResolve } =
+  vi.hoisted(() => {
+    const caps = new Map<
+      string,
+      { next: (snap: unknown) => void; error?: (e: Error) => void; unsub: () => void }
+    >();
+    const onSnapshotMock = vi.fn(
+      (ref: { __id: string }, next: (s: unknown) => void, error: (e: Error) => void) => {
+        const unsub = vi.fn();
+        caps.set(ref.__id, { next, error, unsub });
+        return unsub;
+      },
+    );
+
+    // One-shot leg, so the mode-switch tests can drive a real read.
+    const oneShotDocs = new Map<string, Record<string, unknown>>();
+    const batchCalls: { ids: string[]; release: () => void }[] = [];
+    let autoResolve = true;
+
+    const snapshotFor = (ids: string[]) => ({
+      forEach: (cb: (d: { id: string; data: () => Record<string, unknown> }) => void) => {
+        for (const id of ids) {
+          const data = oneShotDocs.get(id);
+          if (data !== undefined) cb({ id, data: () => data });
+        }
+      },
+    });
+
+    const getDocsMock = vi.fn((q: { __ids: string[] }) => {
+      const call = { ids: q.__ids, release: () => {} };
+      batchCalls.push(call);
+      if (autoResolve) return Promise.resolve(snapshotFor(q.__ids));
+      return new Promise((resolve) => {
+        call.release = () => resolve(snapshotFor(q.__ids));
+      });
+    });
+
+    const getDocMock = vi.fn(async () => ({ exists: () => false }));
+
+    const setAutoResolve = (value: boolean) => {
+      autoResolve = value;
+    };
+
+    return {
+      caps,
+      onSnapshotMock,
+      oneShotDocs,
+      batchCalls,
+      getDocsMock,
+      getDocMock,
+      setAutoResolve,
+    };
   });
-  return { caps, onSnapshotMock };
-});
 
 vi.mock('firebase/firestore', () => ({
   doc: (_db: unknown, _path: unknown, id: string) => ({ __id: id }),
   onSnapshot: onSnapshotMock,
-  collection: () => ({}),
-  query: () => ({}),
-  where: () => ({}),
+  collection: (db: unknown, path: string) => ({ __db: db, __path: path }),
+  query: (source: { __db: unknown; __path: string }, constraint: { __ids: string[] }) => ({
+    __db: source.__db,
+    __path: source.__path,
+    __ids: constraint.__ids,
+  }),
+  where: (_field: unknown, _op: unknown, ids: string[]) => ({ __ids: ids }),
   documentId: () => '__name__',
-  getDocs: async () => ({ forEach: () => {} }),
+  getDocs: getDocsMock,
+  getDoc: getDocMock,
 }));
 
 import { useBatchFirestoreDocs } from '../src/react/firestore/useBatchFirestoreDocs.js';
@@ -43,6 +92,11 @@ function emitError(id: string, error: Error) {
 beforeEach(() => {
   caps.clear();
   onSnapshotMock.mockClear();
+  oneShotDocs.clear();
+  batchCalls.length = 0;
+  getDocsMock.mockClear();
+  getDocMock.mockClear();
+  setAutoResolve(true);
 });
 
 function makeWrapper() {
@@ -169,5 +223,142 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
 
     emit('u1', { displayName: 'Alice' });
     expect(result.current.data.u1).toMatchObject({ displayName: 'Alice' });
+  });
+
+  it('refetch() is a no-op — it never issues reads against the disabled queries', async () => {
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }), {
+      wrapper: Wrapper,
+    });
+
+    emit('u1', { displayName: 'Alice' });
+    emit('u2', null);
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    expect(getDocsMock).not.toHaveBeenCalled();
+    expect(getDocMock).not.toHaveBeenCalled();
+    expect(result.current.data).toEqual({ u1: { id: 'u1', displayName: 'Alice' } });
+  });
+
+  it('switches one-shot → subscribe → one-shot without losing the entry', async () => {
+    oneShotDocs.set('u1', { displayName: 'FromRead' });
+
+    const { Wrapper } = makeWrapper();
+    const { result, rerender } = renderHook(
+      ({ subscribe }: { subscribe: boolean }) =>
+        useBatchFirestoreDocs({
+          ...baseOpts,
+          subscribe,
+          ids: ['u1'],
+          staleTime: 30 * 60 * 1000,
+          absentRetryDelaysMs: [] as readonly number[],
+        }),
+      { wrapper: Wrapper, initialProps: { subscribe: false } },
+    );
+
+    await waitFor(() => expect(result.current.data.u1).toMatchObject({ displayName: 'FromRead' }));
+    expect(onSnapshotMock).not.toHaveBeenCalled();
+    expect(getDocsMock).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      rerender({ subscribe: true });
+    });
+    expect(onSnapshotMock).toHaveBeenCalledTimes(1);
+
+    emit('u1', { displayName: 'FromListener' });
+    expect(result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
+
+    act(() => {
+      rerender({ subscribe: false });
+    });
+    expect(caps.get('u1')!.unsub).toHaveBeenCalledTimes(1);
+    // The listener's value is fresh, so returning to one-shot reads nothing new.
+    await waitFor(() =>
+      expect(result.current.data.u1).toMatchObject({ displayName: 'FromListener' }),
+    );
+    expect(getDocsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('a one-shot read still in flight cannot clobber the listener value', async () => {
+    setAutoResolve(false);
+    oneShotDocs.set('u1', { displayName: 'InFlight' });
+
+    const { Wrapper, queryClient } = makeWrapper();
+    const { result, rerender } = renderHook(
+      ({ subscribe }: { subscribe: boolean }) =>
+        useBatchFirestoreDocs({
+          ...baseOpts,
+          subscribe,
+          ids: ['u1'],
+          absentRetryDelaysMs: [] as readonly number[],
+        }),
+      { wrapper: Wrapper, initialProps: { subscribe: false } },
+    );
+
+    await waitFor(() => expect(batchCalls).toHaveLength(1));
+
+    act(() => {
+      rerender({ subscribe: true });
+    });
+    emit('u1', { displayName: 'FromListener' });
+    expect(result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
+
+    // The abandoned read lands late with the value it captured before the switch.
+    oneShotDocs.set('u1', { displayName: 'Stale' });
+    await act(async () => {
+      batchCalls[0].release();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(queryClient.getQueryData(['publicUser', 'u1'])).toMatchObject({
+      displayName: 'FromListener',
+    });
+    expect(result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
+  });
+
+  it("a sibling consumer's in-flight one-shot read resolves without clobbering the listener", async () => {
+    setAutoResolve(false);
+    oneShotDocs.set('u1', { displayName: 'InFlight' });
+
+    const { Wrapper, queryClient } = makeWrapper();
+    // A stays in one-shot mode throughout, so its ENABLED observer keeps the read alive —
+    // the guard has to be value-based, not a cancel.
+    const oneShot = renderHook(
+      () =>
+        useBatchFirestoreDocs({
+          ...baseOpts,
+          subscribe: false,
+          ids: ['u1'],
+          absentRetryDelaysMs: [] as readonly number[],
+        }),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(batchCalls).toHaveLength(1));
+
+    const subscribed = renderHook(
+      () => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }),
+      { wrapper: Wrapper },
+    );
+    emit('u1', { displayName: 'FromListener' });
+
+    oneShotDocs.set('u1', { displayName: 'FromRead' });
+    await act(async () => {
+      batchCalls[0].release();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(queryClient.getQueryData(['publicUser', 'u1'])).toMatchObject({
+      displayName: 'FromListener',
+    });
+    // The sibling's read still settled — it was never cancelled — and it sees the listener's
+    // value rather than its own stale one.
+    await waitFor(() => expect(oneShot.result.current.isLoading).toBe(false));
+    expect(oneShot.result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
+    expect(subscribed.result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
   });
 });

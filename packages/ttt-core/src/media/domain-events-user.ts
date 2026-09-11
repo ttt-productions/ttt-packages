@@ -22,6 +22,19 @@ export const ProfilePreferencesUpdatedEventSchema = z
   })
   .strict();
 
+// Self-service display-name change. `displayName` is a publicUsers-mirrored
+// field, so this is distinct from profile.preferencesUpdated (profile doc only).
+export const ProfileDisplayNameChangedEventSchema = z
+  .object({
+    type: z.literal('profile.displayNameChanged'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
 export const CraftSkillCreatedEventSchema = z
   .object({
     type: z.literal('craftSkill.created'),

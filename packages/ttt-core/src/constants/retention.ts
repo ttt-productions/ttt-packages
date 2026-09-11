@@ -50,3 +50,8 @@ export const PUBLIC_USERS_STALE_TIME_MS = 30 * 60 * 1000;
 /** GC time for the publicUsers query cache (1 hour). */
 export const PUBLIC_USERS_GC_TIME_MS = 60 * 60 * 1000;
 
+// --- Public-entity lookup negative cache ---
+
+/** Stale time for an ABSENT public-lookup document (20 seconds) — short, so a
+ *  just-created or just-published entity stops reading as missing almost at once. */
+export const PUBLIC_LOOKUP_ABSENT_STALE_TIME_MS = 20 * 1000;

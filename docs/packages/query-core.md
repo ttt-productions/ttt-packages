@@ -36,9 +36,27 @@ Generic TanStack Query package.
 - `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, and the `createQueryClient` factory.
 - `./types` — Firestore option/type surface, including `FirestoreCountOptions` and `FirestoreLiveInfiniteOptions` (these two are not re-exported from root, unlike the other Firestore option types).
 
-`useBatchFirestoreDocs` (in `./react`) resolves many document ids into individual cache entries, with an optional `subscribe` mode for small, change-sensitive identity docs — a shared reference-counted listener per id plus negative caching, so a missing doc resolves the moment it appears instead of staying blank until `staleTime`. The canonical consumer is TTT `publicUsers`; detailed behavior lives in source.
-
 Client peers (`react`, `react-dom`, `@tanstack/react-query`) are optional; they are needed only when importing `./react`.
+
+## `useBatchFirestoreDocs` — id-list lookups
+
+The hook (in `./react`) resolves a list of document ids. There is exactly ONE data cache: a real, observed React Query query per id at `[queryKeyPrefix, id]`, each with its own `queryFn`. Because every id is an ordinary observed query, exact-key invalidation, `refetchQueries({ type: 'active' })`, and `refetchOnMount` act on a single id the way they act on any other query, and the returned `data` map is derived from those query results rather than read imperatively out of the cache. A hook that resolves ids into cache entries nothing observes cannot be invalidated — that is the failure this shape exists to prevent.
+
+**Transports (one-shot mode).** `transport: 'batch'` (default) coalesces the ids enqueued in one microtask into `where(documentId(), 'in', …)` queries of at most 30 ids each, with bounded concurrency. `transport: 'get'` issues one concurrent `getDoc` per id. `'get'` is the correct choice for a collection whose Firestore rules gate reads on `resource.data`: an unconstrained id-list query is denied WHOLESALE there, while per-document gets are evaluated per document, so one unreadable id errors alone. On such a collection a get against a nonexistent document is also denied, so absence and hidden are the same client-visible signal.
+
+The batch loader is scoped per `(QueryClient, Firestore instance, collectionPath)` and **resolves promises only — it never writes the cache**, so TanStack's per-query fetch identity remains the single guard against a late response overwriting a newer per-id result. A dispatched batch is closed: a later enqueue of the same id always joins a new batch. Cancelling one id detaches only that waiter; the shared request still completes for its batch-mates, and an id nobody is waiting on any more is dropped before the request goes out. A consequence of per-id fetch identity: a prefix or predicate invalidation that lands while a batch is in flight cancels the already-populated ids in it and re-reads them in a fresh batch, so that page costs a second round trip — by design, since the alternative is serving the invalidated values.
+
+The one-shot `queryFn` also yields to the shared listener: if a key became listener-owned while the read was in flight (a consumer entered subscribe mode), the queryFn returns the listener's cached value instead of its own result. `onSnapshot` does not re-emit until the document changes, so without that the stale read would stick.
+
+**Freshness.** The lookup queries set `refetchOnMount: true` explicitly, because a consuming app's global default is commonly `false` and refetch-on-mount only fires when stale (a fresh remount therefore still costs nothing). `staleTime` is a function of the query: `absentStaleTime` (short — a missing doc is usually one that has not been created or mirrored YET) when the data is `null`, the caller's `staleTime` otherwise.
+
+**Absence ladder.** A nonexistent document resolves to `null` (negative caching) and is excluded from `data`. A scheduler then re-reads that key on a bounded backoff ladder (`ABSENT_RETRY_DELAYS_MS`, overridable per call) so a document that appears shortly afterwards shows up without an invalidation — the recovery the realtime path was originally introduced to provide. One timer per cache key and one budget per absence episode: repeated `null` results and additional consumers never buy another rung, a `present → null` transition opens a new episode, and cache removal discards the bookkeeping. Eligibility is `query.isActive()`, so disabled and subscribe-mode observers never keep a ladder alive, and losing the last enabled observer pauses it with the remaining budget intact. An error state is never polled — a denial is not an absence.
+
+Consumers of one key that ask for different ladders combine by **union**, never by mount order: the key polls if ANY mounted consumer wants polling, on the LONGEST ladder among them, recomputed on every mount and unmount. A consumer passing `[]` therefore silences only re-reads nobody else asked for; when the last consumer that wanted polling unmounts, an episode already in progress continues on the new effective ladder's remaining rungs, or stops if that ladder is now empty.
+
+**Errors.** An id in an error state is excluded from `data` while `isError`/`error` stay truthful, so a previously cached document is never presented as currently readable after access to it fails. A denial is never converted into a null or missing result.
+
+**Optional `subscribe` mode.** Each id is instead resolved through a shared, reference-counted `onSnapshot` listener (registry in source) that writes the same per-id keys; the per-id queries are disabled with `staleTime: Infinity`, `isLoading` means "a subscribed id has no cache entry yet", and `refetch()` is a no-op. Use it for small, change-sensitive documents where live propagation is genuinely required — not as the default for public display lookups.
 
 ## Boundary
 

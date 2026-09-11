@@ -245,6 +245,19 @@ export const WorkRealmCoverUpdatedEventSchema = z
   })
   .strict();
 
+// Realm details edited — the realm doc's own text/detail fields, as opposed to
+// workRealm.coverUpdated's `realmCoverAssetId`.
+export const WorkRealmDetailsUpdatedEventSchema = z
+  .object({
+    type: z.literal('workRealm.detailsUpdated'),
+    ids: z
+      .object({
+        workRealmId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
 export const HallLibrarySubItemUpdatedEventSchema = z
   .object({
     type: z.literal('hallLibrary.subItemUpdated'),
