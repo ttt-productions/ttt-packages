@@ -189,6 +189,21 @@ describe('NotificationMetadataByType', () => {
       hallSubItemType: 'track',
     }).success).toBe(true);
 
+    // Hall publication may release the Work's Realm; both publish types carry the released
+    // Realm id optionally so the client can refresh the Realm lookup on arrival.
+    for (const type of ['followed_content_published', 'member_content_published'] as const) {
+      const base = {
+        type,
+        workProjectId: 'wp1',
+        workTitle: 'My Work',
+        hallItemId: 'hi1',
+        hallItemTitle: 'My Hall Item',
+        hallSubItemType: 'chapter',
+      };
+      expect(NotificationMetadataByTypeSchema.safeParse({ ...base, workRealmId: 'wr1' }).success).toBe(true);
+      expect(NotificationMetadataByTypeSchema.safeParse({ ...base, workRealmId: '' }).success).toBe(false);
+    }
+
     expect(NotificationMetadataByTypeSchema.safeParse({
       type: 'followed_craft_skill_published',
       artisanUid: 'u1',

@@ -217,6 +217,7 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('followed_content_published'),
     workProjectId: workProjectIdSchema,
+    workRealmId: workRealmIdSchema.optional(),
     workTitle: titleSchema,
     hallItemId: hallItemIdSchema,
     hallItemTitle: titleSchema,
@@ -228,6 +229,7 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('member_content_published'),
     workProjectId: workProjectIdSchema,
+    workRealmId: workRealmIdSchema.optional(),
     workTitle: titleSchema,
     hallItemId: hallItemIdSchema,
     hallItemTitle: titleSchema,
