@@ -157,7 +157,7 @@ import {
 import {
   SafetyEvidenceManifestV1Schema,
   SafetyEvidenceJobV1Schema,
-  SafetyEvidenceJobItemV1Schema,
+  SafetyEvidenceJobItemDocV1Schema,
   SafetyEvidenceDispositionV1Schema,
 } from './safety/evidence.js';
 import { EventProvenanceV1Schema } from './safety/provenance.js';
@@ -383,7 +383,7 @@ export const COLLECTION_SCHEMAS = {
   // its shape, so binding the refined schema here is correct.
   'safetyEvidenceManifests/{manifestId}': SafetyEvidenceManifestV1Schema,
   'safetyEvidenceJobs/{jobId}': SafetyEvidenceJobV1Schema,
-  'safetyEvidenceJobs/{jobId}/safetyEvidenceJobItems/{itemId}': SafetyEvidenceJobItemV1Schema,
+  'safetyEvidenceJobs/{jobId}/safetyEvidenceJobItems/{itemId}': SafetyEvidenceJobItemDocV1Schema,
   'safetyEvidenceJobs/{jobId}/safetyEvidenceJobDisposition/{locationId}': SafetyEvidenceDispositionV1Schema,
   'eventProvenance/{eventId}': EventProvenanceV1Schema,
 
@@ -416,6 +416,9 @@ export const COLLECTION_SCHEMAS = {
   'takeItDownRequests/{requestId}/validityDecisions/{decisionId}': TakeItDownValidityDecisionV1Schema,
   'takeItDownRequests/{requestId}/validityDecisions/{decisionId}/takeItDownValidityRationale/record': TakeItDownValidityRationaleV1Schema,
   'takeItDownRequests/{requestId}/takeItDownActions/{actionId}': TakeItDownRequestActionV1Schema,
+  // Deletion-verification record per evidence object — see SafetyEvidenceDispositionV1Schema for what
+  // `result: 'gone'` means in THIS bucket (absent from the live bucket, not permanent destruction).
+  'takeItDownRequests/{requestId}/takeItDownEvidenceDisposition/{evidenceId}': SafetyEvidenceDispositionV1Schema,
   'takeItDownRequests/{requestId}/takeItDownEvidence/{evidenceId}': TakeItDownEvidenceV1Schema,
   'nciiCases/{caseId}': NciiCaseV1Schema,
   'nciiCases/{caseId}/allegationLinks/{allegationId}': NciiCaseAllegationLinkV1Schema,

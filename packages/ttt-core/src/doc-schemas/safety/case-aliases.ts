@@ -55,5 +55,9 @@ export const ChildSafetyOwningAliasV1Schema = z.object({
   aliasType: ChildSafetyOwningAliasTypeSchema,
   canonicalValueHash: z.string(),
   createdAt: z.number(),
+  // Set only when the alias is RE-POINTED at a newer case generation: the generation it now
+  // resolves to and when the repoint happened. A never-repointed alias carries neither.
+  generation: z.number().optional(),
+  updatedAt: z.number().optional(),
 }).strict();
 export type ChildSafetyOwningAliasV1 = z.infer<typeof ChildSafetyOwningAliasV1Schema>;

@@ -138,6 +138,20 @@ export const ThresholdItemSchema = z.object({
   // published items is the ONE standard platform message
   // (REAL_PEOPLE_DISCLAIMER_MESSAGE) — there is no free-text disclaimer anywhere.
   hasRealPeople: z.boolean(),
+  // Submission attestations — REQUIRED. The submit core refuses a submission unless the artisan
+  // ticks all four, then stores each as the literal `true` with the moment they were given. A
+  // threshold item without them is not a valid submission.
+  attestConsistentFormat: z.literal(true),
+  attestNoCredits: z.literal(true),
+  attestNoBegging: z.literal(true),
+  attestHumanMadeOriginal: z.literal(true),
+  attestedAt: z.number(),
+  // Reviewer confirmations — stamped `true` together by the APPROVAL write and never otherwise,
+  // so their presence means the item was approved with all four checks confirmed.
+  confirmedNoBegging: z.literal(true).optional(),
+  confirmedNoCredits: z.literal(true).optional(),
+  confirmedConsistentFormat: z.literal(true).optional(),
+  confirmedRealPeopleAttestation: z.literal(true).optional(),
 });
 export type ThresholdItem = z.infer<typeof ThresholdItemSchema>;
 

@@ -26,6 +26,9 @@ export const ChatChannelAuthProjectionSchema = z.object({
   channelAuthVersion: z.number(),
   inputFingerprint: z.string(),
   updatedAt: z.number(),
+  // Reconcile cursor — advanced on every reconciler visit, including a no-op one, so a stuck
+  // window rotates. Absent until the reconciler first reaches the projection.
+  lastReconciledAt: z.number().optional(),
 });
 export type ChatChannelAuthProjection = z.infer<typeof ChatChannelAuthProjectionSchema>;
 

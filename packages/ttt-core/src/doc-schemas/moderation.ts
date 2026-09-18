@@ -3,7 +3,7 @@
 // Types inferred via z.infer.
 
 import { z } from 'zod';
-import { PendingMediaPendingSchema } from '../media/pending-media.js';
+import { PendingMediaProcessingSchema } from '../media/pending-media.js';
 import { AdminTaskSchema } from './report-docs.js';
 
 export const ContentViolationSchema = z.object({
@@ -29,7 +29,11 @@ export const ContentViolationSchema = z.object({
   // Internal GCS path of the preserved rejected file — never a serving contract.
   // Appeal viewing is owner/admin-gated (rules-gated SDK read or signed URL).
   rejectedFilePath: z.string().optional(),
-  pendingFile: PendingMediaPendingSchema.partial().optional(),
+  // The pendingMedia row AS CLAIMED by the processor: logContentViolation snapshots the in-memory
+  // claimed row before the row is finalized `rejected`, so the stored status is `processing` —
+  // never `pending` and never `rejected`. An approved appeal re-queues a FRESH `pending` row built
+  // from these fields; it does not reuse this snapshot as a document.
+  pendingFile: PendingMediaProcessingSchema.partial().optional(),
   // Appeal lifecycle (submitContentAppeal / reviewContentAppeal).
   appealMessage: z.string().optional(),
   appealedAt: z.number().optional(),

@@ -162,6 +162,10 @@ export const FullUserSchema = z.object({
   // Backend-only-writable, cosmetic, not PII (ttt-prod docs/charter-season/honor-roll-and-badges.md).
   charterSignupMember: z.boolean().optional(),
   status: UserAccountStatusSchema.optional(),
+  // Stamped by the one status writer on every status change: when, and the acting admin/operator
+  // uid (a system actor writes its own id). Absent on an account whose status never changed.
+  statusUpdatedAt: z.number().optional(),
+  statusUpdatedBy: z.string().optional(),
   // Chat-edge-rebuild account-access domain (Contract B / round-10 blocker 1): the
   // single ban/unban ordering version + state the chat `accountAccess` sync events key
   // on. Backend-only-writable. Deliberate defaults when ABSENT: a never-touched account
@@ -264,6 +268,9 @@ export const UserPrivateDataSchema = z.object({
     })
     .optional(),
   squareStreetzAgreementsDate: z.number().optional(),
+  // The rules-and-agreements `version` in force when the user accepted; 0 when no versioned
+  // rules doc existed yet, so a later real version 1 still re-prompts.
+  squareStreetzAgreementsVersion: z.number().optional(),
   // Epoch ms when the user accepted the one-time Hall download acknowledgement
   // (personal offline use only, no redistribution). Written server-side by the
   // acceptHallDownloadAcknowledgement callable; gates the Hall download button.

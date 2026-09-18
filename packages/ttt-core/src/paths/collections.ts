@@ -345,6 +345,10 @@ export const NESTED_SUBCOLLECTIONS = {
   TAKE_IT_DOWN_VALIDITY_DECISIONS: 'validityDecisions',
   TAKE_IT_DOWN_ACTIONS: 'takeItDownActions',
   TAKE_IT_DOWN_EVIDENCE: 'takeItDownEvidence',
+  // The deletion-verification record the retention sweep keeps for each evidence object it removes
+  // (…/takeItDownEvidenceDisposition/{evidenceId}). Its own subcollection, mirroring
+  // `safetyEvidenceJobDisposition`, so `takeItDownActions` holds action rows only. Backend-only.
+  TAKE_IT_DOWN_EVIDENCE_DISPOSITION: 'takeItDownEvidenceDisposition',
   // The RESTRICTED operator rationale row bound to one validity decision
   // (…/validityDecisions/{decisionId}/takeItDownValidityRationale/record) — the row the
   // decision's rationaleRef and the action's detailRef point at. Backend-only.

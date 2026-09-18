@@ -84,6 +84,10 @@ export const TakeItDownRequestRootV1Schema = z.object({
   removalCompletionAt: z.number().optional(), // [M-01] set when removal verified-completes
   finalClosedAt: z.number().optional(), // [H-08] = requestClosedAt (no appeal window); arms for EVERY terminal disposition. The request's retention clocks (PII / evidence / status-token) count from here.
   removalCompletionOutcome: NciiRemovalCompletionOutcomeSchema.optional(), // [H4] honest derived completion — NEVER 'completed' for a partial technical failure
+  // Retention-sweep terminal marker. Seeded as an EXPLICIT null when the request closes — the sweep
+  // selects unfinished rows with `where('retentionCompletedAt', '==', null)`, which an absent field
+  // never matches — and set to the completion time once every retention obligation is discharged.
+  retentionCompletedAt: z.number().nullable().optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 }).strict();

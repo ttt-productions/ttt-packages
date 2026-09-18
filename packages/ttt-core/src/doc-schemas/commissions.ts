@@ -40,6 +40,7 @@ export const FullCommissionListingSchema = z.object({
     type: z.string(),
   }),
   status: z.enum(['open', 'closed']),
+  closedAt: z.number().optional(), // set by the close write, together with status 'closed'
   savedProposalArtisans: z.array(z.string()),
   shortId: z.string().optional(),
   shortUrl: z.string().optional(),
@@ -129,6 +130,7 @@ export const AuditionSchema = z.object({
   sponsoredAuditionAmountUSD: z.number().optional(),
   stakeSharesOffered: z.number().optional(),
   status: z.enum(['open', 'closed', 'pendingReview']),
+  closedAt: z.number().optional(), // set by the close write, together with status 'closed'
   auditionEntryCount: z.number().optional(),
   shortId: z.string().optional(),
   shortUrl: z.string().optional(),

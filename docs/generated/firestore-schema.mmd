@@ -51,6 +51,10 @@ erDiagram
     field lastReportAt
     field latestReason
     field status
+    field reportedItemId
+    field parentItemId
+    field reportedUserId
+    field moderationState
   }
   activeSafetyCaseAlerts {
     field schemaVersion
@@ -273,6 +277,7 @@ erDiagram
     field channelAuthVersion
     field inputFingerprint
     field updatedAt
+    field lastReconciledAt
   }
   chatHistoryAnonymizationJobs {
     field jobId
@@ -410,6 +415,8 @@ erDiagram
     field aliasType
     field canonicalValueHash
     field createdAt
+    field generation
+    field updatedAt
   }
   commissionListings {
     field commissionListingId
@@ -422,8 +429,8 @@ erDiagram
     field createdBy
     field workProjectAssociatedWith
     field status
+    field closedAt
     field savedProposalArtisans
-    field shortId
   }
   commissionProposals {
     field commissionProposalId
@@ -1025,13 +1032,13 @@ erDiagram
     field usPersonAttestedAt
     field nonUsArtisanInterest
     field squareStreetzAgreementsDate
+    field squareStreetzAgreementsVersion
     field hallDownloadAcknowledgedAt
     field agreements
     field siteTour
     field statusReason
     field statusReasonAt
     field safetyLocked
-    field accountType
   }
   privilegedReviewerSecurity {
     field requiredSecondFactor
@@ -1200,14 +1207,6 @@ erDiagram
     field leftoverDetail
   }
   safetyEvidenceJobItems {
-    field role
-    field bucket
-    field key
-    field generation
-    field sizeBytes
-    field sha256
-    field md5
-    field verifyResult
   }
   safetyEvidenceJobs {
     field schemaVersion
@@ -1419,6 +1418,15 @@ erDiagram
     field sha256
     field md5
   }
+  takeItDownEvidenceDisposition {
+    field bucket
+    field key
+    field generation
+    field method
+    field verifiedAt
+    field result
+    field leftoverDetail
+  }
   takeItDownPageCopy {
     field version
     field lastUpdated
@@ -1521,10 +1529,10 @@ erDiagram
     field hasPledged
     field charterSignupMember
     field status
+    field statusUpdatedAt
+    field statusUpdatedBy
     field accountAccessVersion
     field accountAccessState
-    field displayNameResetRequired
-    field ownedWorkProjects
   }
   userSuggestions {
     field suggestionText
@@ -1658,6 +1666,8 @@ erDiagram
   pledgePayments ||--o{ processedStripeEvents : "pledgePaymentId"
   userProfiles ||--o{ accountDeletionRequests : "uid"
   userProfiles ||--o{ activeAdminNotifications : "targetUserId"
+  userProfiles ||--o{ activeReportGroups : "reportedUserId"
+  userProfiles ||--o{ activeReportGroups : "resolvedBy"
   userProfiles ||--o{ activeUserNotifications : "targetUserId"
   userProfiles ||--o{ adminTasks : "foundingArtisanUid"
   userProfiles ||--o{ adminTasks : "reportedUserId"

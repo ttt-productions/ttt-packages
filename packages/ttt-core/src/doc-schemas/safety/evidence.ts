@@ -294,6 +294,70 @@ export const SafetyEvidenceJobItemV1Schema = z.object({
 }).strict();
 export type SafetyEvidenceJobItemV1 = z.infer<typeof SafetyEvidenceJobItemV1Schema>;
 
+// The items subcollection ALSO carries one CONTROL document per job, at a deterministic id derived
+// from the job id. It is not an object row: it carries the job's instructions, because the
+// source/destination rows can only be written once the bytes are known.
+
+/** What an evidence capture job is asked to capture — stored whole on the capture control row. */
+export const SafetyEvidenceCaptureRequestV1Schema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('media'),
+    sourceBucket: z.string().min(1),
+    sourceKey: z.string().min(1),
+    lineage: MediaOriginLineageV1Schema,
+    variants: z.array(SafetyEvidenceVariantV1Schema).max(MAX_MANIFEST_VARIANTS).optional(),
+    detector: SafetyEvidenceDetectorV1Schema.optional(),
+    contentDocSnapshotRef: z.string().min(1).optional(),
+    contentDocRevision: z.number().optional(),
+  }).strict(),
+  z.object({
+    kind: z.literal('communication'),
+    communication: SafetyEvidenceCommunicationV1Schema,
+    contentDocSnapshotRef: z.string().min(1).optional(),
+    contentDocRevision: z.number().optional(),
+  }).strict(),
+  z.object({
+    kind: z.literal('externalFact'),
+    externalFact: SafetyEvidenceExternalFactV1Schema,
+    contentDocSnapshotRef: z.string().min(1).optional(),
+    contentDocRevision: z.number().optional(),
+  }).strict(),
+]);
+export type SafetyEvidenceCaptureRequestV1 = z.infer<typeof SafetyEvidenceCaptureRequestV1Schema>;
+
+/** The kinds a capture request can take — what the verify control row records about its source. */
+export const SafetyEvidenceCaptureRequestKindSchema = z.enum(['media', 'communication', 'externalFact']);
+export type SafetyEvidenceCaptureRequestKind = z.infer<typeof SafetyEvidenceCaptureRequestKindSchema>;
+
+/** Control row of a CAPTURE-phase job: the request itself, plus the promoted eventProvenance ids
+ * the resulting manifest will carry. */
+export const SafetyEvidenceJobCaptureControlV1Schema = z.object({
+  role: z.literal('control'),
+  sourceDiscriminator: z.string().min(1),
+  request: SafetyEvidenceCaptureRequestV1Schema,
+  provenanceRefs: z.array(z.string().min(1)).max(MAX_MANIFEST_PROVENANCE_REFS),
+}).strict();
+export type SafetyEvidenceJobCaptureControlV1 = z.infer<typeof SafetyEvidenceJobCaptureControlV1Schema>;
+
+/** Control row of a VERIFY-phase job: which capture job produced the object to re-check, and the
+ * kind of request it captured (a reference-only capture has no bytes to verify). */
+export const SafetyEvidenceJobVerifyControlV1Schema = z.object({
+  role: z.literal('control'),
+  sourceDiscriminator: z.string().min(1),
+  captureJobId: z.string().min(1),
+  requestKind: SafetyEvidenceCaptureRequestKindSchema,
+}).strict();
+export type SafetyEvidenceJobVerifyControlV1 = z.infer<typeof SafetyEvidenceJobVerifyControlV1Schema>;
+
+/** Every document `safetyEvidenceJobs/{jobId}/safetyEvidenceJobItems/{itemId}` can hold: an object
+ * row, or one of the two control rows. This — not the object row alone — is the stored shape. */
+export const SafetyEvidenceJobItemDocV1Schema = z.union([
+  SafetyEvidenceJobItemV1Schema,
+  SafetyEvidenceJobCaptureControlV1Schema,
+  SafetyEvidenceJobVerifyControlV1Schema,
+]);
+export type SafetyEvidenceJobItemDocV1 = z.infer<typeof SafetyEvidenceJobItemDocV1Schema>;
+
 /** §A4 disposition method (per evidence location). */
 export const SafetyEvidenceDispositionMethodSchema = z.enum(['delete', 'cryptoErase']);
 export type SafetyEvidenceDispositionMethod = z.infer<typeof SafetyEvidenceDispositionMethodSchema>;
@@ -312,6 +376,14 @@ export type SafetyEvidenceDispositionResult = z.infer<typeof SafetyEvidenceDispo
  * soft-delete/lifecycle tombstone to model — no `softDeletedAt`/`hardDeleteTime`). `generation`
  * pins the exact object generation that was destroyed, so a later object re-created at the same
  * bucket/key (a new generation) is never falsely attested as this destruction. */
+// What `result: 'gone'` ATTESTS depends on the bucket the object lived in, and the two homes of this
+// record differ. Under `safetyEvidenceJobDisposition` the object lived in the isolated evidence
+// vault, where soft-delete is disabled, so `gone` is a verified hard deletion. Under
+// `takeItDownRequests/{requestId}/takeItDownEvidenceDisposition` it lived in the default app bucket,
+// which deliberately KEEPS a soft-delete recovery window: there `gone` means ABSENT FROM THE LIVE
+// BUCKET — recoverable until that window purges — and is never a permanent-destruction attestation.
+// In both homes the record is the CURRENT status: a `leftover` is overwritten by the next verified
+// attempt, and `verifiedAt` is the time of the check that produced this result.
 export const SafetyEvidenceDispositionV1Schema = z.object({
   bucket: z.string().min(1),
   key: z.string().min(1),
