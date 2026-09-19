@@ -27,6 +27,7 @@ import {
   MAX_REPORT_SNAPSHOT_TEXT_LENGTH,
 } from '../../constants/business.js';
 import { MediaAssetOwnerTypeSchema } from '../media-assets.js';
+import { ModerationEdgeSyncOpSchema, ModerationEdgeSyncStateSchema } from '../moderation.js';
 
 // ===========================================================================
 // Canonical-key version token. The key formulas are DEFINED below as comments
@@ -142,6 +143,9 @@ export const ProtectedReportRootV1Schema = z.object({
   canonicalTargetKey: z.string(), // see formula below
   narrativeRef: z.string().optional(),
   protectedFork: ProtectedForkSchema.optional(), // set ONLY by the protected branch (Phase 1 step 2a)
+  // Set when this ordinary report was escalated into its authoritative protected
+  // safety case. The root remains a durable reporter record, not a second case.
+  escalatedToCase: z.string().min(1).optional(),
   status: ProtectedReportRootStatusSchema,
   createdAt: z.number(),
   updatedAt: z.number(),
@@ -175,16 +179,6 @@ export const ReportGroupModerationStateSchema = z.enum([
   'resolved_removed',
 ]);
 export type ReportGroupModerationState = z.infer<typeof ReportGroupModerationStateSchema>;
-
-/** The edge (media gateway) obligation a content action opens: block the owner's/assets' media
- * on hide or remove, clear the block on restore. */
-export const ReportGroupEdgeSyncOpSchema = z.enum(['block', 'blockClear']);
-export type ReportGroupEdgeSyncOp = z.infer<typeof ReportGroupEdgeSyncOpSchema>;
-
-/** `processing` while the edge call is in flight (a stale one is replayable past its age guard),
- * `failed` when it did not land. A settled obligation is stored as `null`. */
-export const ReportGroupEdgeSyncStateSchema = z.enum(['processing', 'failed']);
-export type ReportGroupEdgeSyncState = z.infer<typeof ReportGroupEdgeSyncStateSchema>;
 
 /** founded = the report was substantiated; unfounded = no violation on review. */
 export const ReportGroupResolutionOutcomeSchema = z.enum(['founded', 'unfounded']);
@@ -234,9 +228,9 @@ export const ReportGroupV1Schema = z.object({
   // with the content action so edge state is never silently lost. Owner-keyed types persist
   // ownerType + ownerId; asset-level types persist only the asset ids. The params are deleted
   // once the obligation settles and `edgeSyncState` is set to null.
-  edgeSyncState: ReportGroupEdgeSyncStateSchema.nullable().optional(),
+  edgeSyncState: ModerationEdgeSyncStateSchema.nullable().optional(),
   edgeSyncProcessingAt: z.number().optional(),
-  edgeSyncOp: ReportGroupEdgeSyncOpSchema.optional(),
+  edgeSyncOp: ModerationEdgeSyncOpSchema.optional(),
   edgeSyncOwnerType: MediaAssetOwnerTypeSchema.optional(),
   edgeSyncOwnerId: z.string().min(1).optional(),
   edgeSyncAssetIds: z.array(z.string().min(1)).optional(),

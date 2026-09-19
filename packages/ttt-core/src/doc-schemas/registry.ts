@@ -190,6 +190,7 @@ import {
   NciiCaseRequestLinkV1Schema,
   NciiCaseRemovalActionV1Schema,
   NciiBlockedHashV1Schema,
+  NciiCaseClosureEventV1Schema,
 } from './ncii/cases.js';
 import { NciiTemporaryHoldV1Schema } from './ncii/holds.js';
 import {
@@ -425,6 +426,7 @@ export const COLLECTION_SCHEMAS = {
   'nciiCases/{caseId}/requestLinks/{requestId}': NciiCaseRequestLinkV1Schema,
   'nciiCases/{caseId}/removalActions/{actionId}': NciiCaseRemovalActionV1Schema,
   'nciiCases/{caseId}/blockedHashes/{hashId}': NciiBlockedHashV1Schema,
+  'nciiCases/{caseId}/closureEvents/{eventId}': NciiCaseClosureEventV1Schema,
   'nciiRetainedEvidenceInventory/{inventoryId}': NciiRetainedEvidenceInventoryV1Schema,
   // [H-01] dead-letter sink for inventory rows that could not be written to the primary
   // nciiRetainedEvidenceInventory collection. Stores the same document shape.
@@ -514,9 +516,6 @@ export const COLLECTION_DOC_ID_FIELDS = {
 export const PENDING_COLLECTIONS: readonly string[] = [
   'userMetadata',
   'feedbackDenylist',
-  // Append-only NCII case closure/reopen event rows — the doc shape is owned app-side
-  // (NciiCaseV1 closure events), not modeled in ttt-core doc-schemas.
-  'closureEvents',
   // Per-submission NCMEC transmission attempts. The segment exists only in firestore.rules
   // today and has no writer or reader yet; the constant is registered so the name has one
   // owner. Bind once the attempt-record shape is implemented.

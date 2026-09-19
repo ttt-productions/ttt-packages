@@ -79,6 +79,28 @@ export const NciiCaseV1Schema = z.object({
 }).strict();
 export type NciiCaseV1 = z.infer<typeof NciiCaseV1Schema>;
 
+/**
+ * Immutable lifecycle history at `nciiCases/{caseId}/closureEvents/{eventId}`.
+ * A close captures the structured closure record; a later reopen is a distinct
+ * revision-bound event, so neither operation can overwrite the other.
+ */
+export const NciiCaseClosureEventV1Schema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('caseClosed'),
+    revision: z.number(),
+    closure: SafetyCaseClosureV1Schema,
+    at: z.number(),
+  }).strict(),
+  z.object({
+    kind: z.literal('caseReopened'),
+    revision: z.number(),
+    reasonInternal: z.string().min(1),
+    actorId: z.string().min(1),
+    at: z.number(),
+  }).strict(),
+]);
+export type NciiCaseClosureEventV1 = z.infer<typeof NciiCaseClosureEventV1Schema>;
+
 // ===========================================================================
 // §A11 (3) — child-link rows (bounded; NEVER root arrays)
 // ===========================================================================

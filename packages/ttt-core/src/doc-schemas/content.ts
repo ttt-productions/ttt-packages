@@ -6,6 +6,7 @@
 
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
+import { ModerationEdgeSyncOpSchema, ModerationEdgeSyncStateSchema } from './moderation.js';
 
 const contentStatusSchema = z.enum(['unpublished', 'pending_approval', 'published']);
 
@@ -35,6 +36,7 @@ export const FullTaleSchema = z.object({
   coverCinematicAssetId: z.string().optional(),
   workGenres: z.array(z.string()).optional(),
   ...moderationClearedFieldsShape,
+  moderatedAt: z.number().optional(),
 });
 export type FullTale = z.infer<typeof FullTaleSchema>;
 
@@ -48,6 +50,7 @@ export const FullChapterSchema = z.object({
   status: contentStatusSchema,
   createdOn: z.number(),
   ...moderationClearedFieldsShape,
+  moderatedAt: z.number().optional(),
 });
 export type FullChapter = z.infer<typeof FullChapterSchema>;
 
@@ -61,6 +64,7 @@ export const FullTuneSchema = z.object({
   workGenres: z.array(z.string()),
   createdOn: z.number(),
   ...moderationClearedFieldsShape,
+  moderatedAt: z.number().optional(),
 });
 export type FullTune = z.infer<typeof FullTuneSchema>;
 
@@ -75,6 +79,7 @@ export const FullTuneTrackSchema = z.object({
   status: contentStatusSchema,
   createdOn: z.number(),
   ...moderationClearedFieldsShape,
+  moderatedAt: z.number().optional(),
 });
 export type FullTuneTrack = z.infer<typeof FullTuneTrackSchema>;
 
@@ -88,6 +93,7 @@ export const FullTelevisionSchema = z.object({
   coverCinematicAssetId: z.string().optional(),
   workGenres: z.array(z.string()),
   ...moderationClearedFieldsShape,
+  moderatedAt: z.number().optional(),
 });
 export type FullTelevision = z.infer<typeof FullTelevisionSchema>;
 
@@ -102,6 +108,7 @@ export const FullTelevisionEpisodeSchema = z.object({
   status: contentStatusSchema,
   createdOn: z.number(),
   ...moderationClearedFieldsShape,
+  moderatedAt: z.number().optional(),
 });
 export type FullTelevisionEpisode = z.infer<typeof FullTelevisionEpisodeSchema>;
 
@@ -250,6 +257,7 @@ export const PublishedHallItemSchema = z.object({
   // is the operator's reason (shown on the steward's edit surface). Backend-only-writable.
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
+  moderatedAt: z.number().optional(),
   // Parody / real-people flag (carried from the approved ThresholdItem's AUTHOR
   // attestation — R3, 2026-07-12). When true, display surfaces render the ONE
   // standard platform message (REAL_PEOPLE_DISCLAIMER_MESSAGE) prominently on the
@@ -272,6 +280,13 @@ export const PublishedTuneTrackSchema = z.object({
   // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
+  moderatedAt: z.number().optional(),
+  edgeSyncState: ModerationEdgeSyncStateSchema.nullable().optional(),
+  edgeSyncProcessingAt: z.number().optional(),
+  edgeSyncOp: ModerationEdgeSyncOpSchema.optional(),
+  edgeSyncAssetIds: z.array(z.string().min(1)).optional(),
+  edgeSyncError: z.string().optional(),
+  edgeSyncFailedAt: z.number().optional(),
 });
 export type PublishedTuneTrack = z.infer<typeof PublishedTuneTrackSchema>;
 
@@ -289,6 +304,13 @@ export const PublishedChapterSchema = z.object({
   // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
+  moderatedAt: z.number().optional(),
+  edgeSyncState: ModerationEdgeSyncStateSchema.nullable().optional(),
+  edgeSyncProcessingAt: z.number().optional(),
+  edgeSyncOp: ModerationEdgeSyncOpSchema.optional(),
+  edgeSyncAssetIds: z.array(z.string().min(1)).optional(),
+  edgeSyncError: z.string().optional(),
+  edgeSyncFailedAt: z.number().optional(),
 });
 export type PublishedChapter = z.infer<typeof PublishedChapterSchema>;
 
@@ -306,6 +328,13 @@ export const PublishedTelevisionEpisodeSchema = z.object({
   // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
   moderationClearedFields: z.array(z.string()).optional(),
   moderationClearedReason: z.string().optional(),
+  moderatedAt: z.number().optional(),
+  edgeSyncState: ModerationEdgeSyncStateSchema.nullable().optional(),
+  edgeSyncProcessingAt: z.number().optional(),
+  edgeSyncOp: ModerationEdgeSyncOpSchema.optional(),
+  edgeSyncAssetIds: z.array(z.string().min(1)).optional(),
+  edgeSyncError: z.string().optional(),
+  edgeSyncFailedAt: z.number().optional(),
 });
 export type PublishedTelevisionEpisode = z.infer<typeof PublishedTelevisionEpisodeSchema>;
 

@@ -6,6 +6,14 @@ import { z } from 'zod';
 import { PendingMediaProcessingSchema } from '../media/pending-media.js';
 import { AdminTaskSchema } from './report-docs.js';
 
+/** The durable edge-serving obligation opened by a moderation hide or restore. */
+export const ModerationEdgeSyncOpSchema = z.enum(['block', 'blockClear']);
+export type ModerationEdgeSyncOp = z.infer<typeof ModerationEdgeSyncOpSchema>;
+
+/** An unsettled moderation edge-serving obligation; null records a settled one. */
+export const ModerationEdgeSyncStateSchema = z.enum(['processing', 'failed']);
+export type ModerationEdgeSyncState = z.infer<typeof ModerationEdgeSyncStateSchema>;
+
 export const ContentViolationSchema = z.object({
   id: z.string(),
   userId: z.string(),
@@ -98,5 +106,8 @@ export const ModerationCascadeChangedDocSchema = z.object({
   newValue: z.boolean(),
   restored: z.boolean(),
   restoredAt: z.number().optional(),
+  // A direct hide landed after this cascade hid the doc, so cascade restore
+  // correctly leaves the later independent moderation action intact.
+  restoreSkipped: z.literal('directHidden').optional(),
 });
 export type ModerationCascadeChangedDoc = z.infer<typeof ModerationCascadeChangedDocSchema>;

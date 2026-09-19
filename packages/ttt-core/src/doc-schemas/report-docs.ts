@@ -111,5 +111,8 @@ export const AdminTaskDocSchema = AdminTaskSchema.extend({
   // resurfaces a closed report group. Cross-boundary: Functions writes it, the admin queue
   // UI reads it.
   closureHistory: z.array(AdminTaskClosureHistoryEntrySchema).optional(),
+  // A user-report task completed because its report group was superseded by a
+  // protected safety case, rather than through the ordinary report close-out.
+  supersededByCaseId: z.string().min(1).optional(),
 });
 export type AdminTaskDoc = z.infer<typeof AdminTaskDocSchema>;

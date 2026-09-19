@@ -82,6 +82,15 @@ export type ClearableTextFieldName =
   (typeof MODERATION_CLEARABLE_TEXT_FIELDS)[ModerationClearableSurface][number];
 
 /**
+ * The bounded computed-field portion of a moderation text-clear write. Writers
+ * may only set one of the canonical clearable field names, never an arbitrary
+ * document key. Sentinel-bearing moderation metadata stays runtime-specific.
+ */
+export type ModerationClearTextFieldPatch = {
+  [Field in ClearableTextFieldName]?: string;
+};
+
+/**
  * The DISTINCT clearable text-field NAMES across the whole hall content family (tale/tune/
  * television detail → title/description; chapter → title/content; track/episode →
  * title/description). DERIVED from the canonical MODERATION_CLEARABLE_TEXT_FIELDS map — the

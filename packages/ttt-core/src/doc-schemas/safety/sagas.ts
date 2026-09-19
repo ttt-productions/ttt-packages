@@ -165,6 +165,9 @@ export const AccountActionCommandV1Schema = z.object({
   leaseOwner: z.string().min(1).optional(),
   leaseExpiresAt: z.number().optional(),
   lastError: z.string().optional(),
+  // Set when the bounded retry budget is exhausted and the command is parked for
+  // an explicit operator replay.
+  deadLetterAt: z.number().optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
   completedAt: z.number().optional(),

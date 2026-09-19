@@ -51,7 +51,7 @@ export const NotificationFanoutPhaseSchema = z.object({
   done: z.boolean(),
 });
 
-export const NotificationFanoutJobSchema = z.object({
+const NotificationFanoutJobBaseSchema = z.object({
   jobId: z.string(),
   schemaVersion: z.number(),
   notificationType: z.string(),
@@ -70,5 +70,31 @@ export const NotificationFanoutJobSchema = z.object({
   completedAt: z.number().nullable(),
   deadLetteredAt: z.number().nullable(),
   expireAt: expireAtField,
+  // Admin-broadcast replay provenance. These are absent for every other fanout
+  // source; together they distinguish an exact retry from request-id reuse.
+  requestId: z.string().min(1).optional(),
+  actorUid: z.string().min(1).optional(),
+  payloadHash: z.string().min(1).optional(),
+});
+
+/**
+ * The three admin-broadcast replay fields form one provenance unit: a job has
+ * all of them, or none. Partial state could not distinguish a safe retry from
+ * request-id reuse and is therefore invalid.
+ */
+export const NotificationFanoutJobSchema = NotificationFanoutJobBaseSchema.superRefine((job, ctx) => {
+  const fields = ['requestId', 'actorUid', 'payloadHash'] as const;
+  const present = fields.filter((field) => job[field] !== undefined);
+  if (present.length !== 0 && present.length !== fields.length) {
+    for (const field of fields) {
+      if (job[field] === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: 'Admin-broadcast replay provenance requires requestId, actorUid, and payloadHash together.',
+        });
+      }
+    }
+  }
 });
 export type NotificationFanoutJob = z.infer<typeof NotificationFanoutJobSchema>;

@@ -251,6 +251,7 @@ erDiagram
     field newValue
     field restored
     field restoredAt
+    field restoreSkipped
   }
   chatAdminActionCommands {
     field requestId
@@ -418,6 +419,8 @@ erDiagram
     field generation
     field updatedAt
   }
+  closureEvents {
+  }
   commissionListings {
     field commissionListingId
     field title
@@ -456,9 +459,9 @@ erDiagram
     field canonicalTargetKey
     field narrativeRef
     field protectedFork
+    field escalatedToCase
     field status
     field createdAt
-    field updatedAt
   }
   contentViolations {
     field id
@@ -594,6 +597,8 @@ erDiagram
     field hiddenBy
     field moderationClearedFields
     field moderationClearedReason
+    field moderatedAt
+    field edgeSyncState
   }
   hallItemTelevision {
     field uid
@@ -606,6 +611,8 @@ erDiagram
     field hiddenBy
     field moderationClearedFields
     field moderationClearedReason
+    field moderatedAt
+    field edgeSyncState
   }
   hallItemTunes {
     field uid
@@ -618,6 +625,8 @@ erDiagram
     field hiddenBy
     field moderationClearedFields
     field moderationClearedReason
+    field moderatedAt
+    field edgeSyncState
   }
   hallItems {
     field hallItemId
@@ -1470,6 +1479,7 @@ erDiagram
     field createdOn
     field moderationClearedFields
     field moderationClearedReason
+    field moderatedAt
   }
   televisionEpisodes {
     field uid
@@ -1483,6 +1493,7 @@ erDiagram
     field createdOn
     field moderationClearedFields
     field moderationClearedReason
+    field moderatedAt
   }
   termsOfService {
     field version
@@ -1519,6 +1530,7 @@ erDiagram
     field createdOn
     field moderationClearedFields
     field moderationClearedReason
+    field moderatedAt
   }
   userProfiles {
     field uid
@@ -1589,6 +1601,7 @@ erDiagram
     field workGenres
     field moderationClearedFields
     field moderationClearedReason
+    field moderatedAt
   }
   workProjectTelevision {
     field uid
@@ -1601,6 +1614,7 @@ erDiagram
     field workGenres
     field moderationClearedFields
     field moderationClearedReason
+    field moderatedAt
   }
   workProjectTunes {
     field uid
@@ -1613,6 +1627,7 @@ erDiagram
     field createdOn
     field moderationClearedFields
     field moderationClearedReason
+    field moderatedAt
   }
   workRealms {
     field workRealmId
@@ -1689,6 +1704,7 @@ erDiagram
   userProfiles ||--o{ mentionHistory : "userId"
   userProfiles ||--o{ moderationCascadeManifests : "actorUid"
   userProfiles ||--o{ notificationArchiveAllJobs : "userId"
+  userProfiles ||--o{ notificationFanoutJobs : "actorUid"
   userProfiles ||--o{ paymentWebhookQuarantine : "resolvedBy"
   userProfiles ||--o{ paymentWebhookQuarantine : "userId"
   userProfiles ||--o{ pendingAdminDispatches : "closedBy"

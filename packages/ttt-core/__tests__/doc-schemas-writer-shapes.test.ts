@@ -13,12 +13,20 @@ import { describe, it, expect } from 'vitest';
 import {
   ReportGroupV1Schema,
   ReportGroupModerationStateSchema,
-  ReportGroupEdgeSyncOpSchema,
-  ReportGroupEdgeSyncStateSchema,
   ReportGroupResolutionOutcomeSchema,
 } from '../src/doc-schemas/safety/report';
-import { ContentViolationSchema } from '../src/doc-schemas/moderation';
-import { ThresholdItemSchema } from '../src/doc-schemas/content';
+import {
+  ContentViolationSchema,
+  ModerationEdgeSyncOpSchema,
+  ModerationEdgeSyncStateSchema,
+} from '../src/doc-schemas/moderation';
+import {
+  ThresholdItemSchema,
+  PublishedChapterSchema,
+  PublishedTuneTrackSchema,
+  PublishedTelevisionEpisodeSchema,
+  PublishedHallItemSchema,
+} from '../src/doc-schemas/content';
 import {
   SafetyEvidenceJobItemDocV1Schema,
   SafetyEvidenceJobItemV1Schema,
@@ -27,6 +35,12 @@ import {
 import { ChildSafetyOwningAliasV1Schema } from '../src/doc-schemas/safety/case-aliases';
 import { TakeItDownRequestRootV1Schema, TakeItDownRequestActionV1Schema } from '../src/doc-schemas/ncii/requests';
 import { SafetyEvidenceDispositionV1Schema } from '../src/doc-schemas/safety/evidence';
+import { NciiCaseClosureEventV1Schema } from '../src/doc-schemas/ncii/cases';
+import { AccountActionCommandV1Schema } from '../src/doc-schemas/safety/sagas';
+import { ProtectedReportRootV1Schema } from '../src/doc-schemas/safety/report';
+import { AdminTaskDocSchema } from '../src/doc-schemas/report-docs';
+import { ModerationCascadeChangedDocSchema } from '../src/doc-schemas/moderation';
+import { NotificationFanoutJobSchema } from '../src/doc-schemas/notification-ledger';
 import { PATH_BUILDERS } from '../src/paths/path-builders';
 import { ChatChannelAuthProjectionSchema } from '../src/doc-schemas/chat-sync';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
@@ -80,8 +94,8 @@ describe('activeReportGroups — the whole stored document', () => {
     expect(ReportGroupV1Schema.safeParse({ ...group, moderationState: 'hidden' }).success).toBe(false);
     expect(ReportGroupV1Schema.safeParse({ ...group, edgeSyncOwnerType: 'notAnOwnerType' }).success).toBe(false);
     expect(ReportGroupModerationStateSchema.options).toEqual(['admin_hidden', 'resolved_restored', 'resolved_removed']);
-    expect(ReportGroupEdgeSyncOpSchema.options).toEqual(['block', 'blockClear']);
-    expect(ReportGroupEdgeSyncStateSchema.options).toEqual(['processing', 'failed']);
+    expect(ModerationEdgeSyncOpSchema.options).toEqual(['block', 'blockClear']);
+    expect(ModerationEdgeSyncStateSchema.options).toEqual(['processing', 'failed']);
     expect(ReportGroupResolutionOutcomeSchema.options).toEqual(['founded', 'unfounded']);
   });
 });
@@ -166,15 +180,165 @@ describe('single-field completions', () => {
     expect(shape.safeParse('done').success).toBe(false);
   });
 
+  it('takeItDownRequests — removal completion is explicitly nullable while the backstop is pending', () => {
+    const shape = TakeItDownRequestRootV1Schema.shape.removalCompletionOutcome;
+    expect(shape.safeParse(null).success).toBe(true);
+    expect(shape.safeParse(undefined).success).toBe(true);
+    expect(shape.safeParse('completed').success).toBe(true);
+    expect(shape.safeParse('not-a-real-outcome').success).toBe(false);
+  });
+
   it('declares the remaining fields the writers store', () => {
     expect(Object.keys(ChatChannelAuthProjectionSchema.shape)).toContain('lastReconciledAt');
     const has = (template: keyof typeof COLLECTION_SCHEMAS, key: string) =>
       Object.keys((COLLECTION_SCHEMAS[template] as unknown as { shape: Record<string, unknown> }).shape).includes(key);
     expect(has('userProfiles/{userId}', 'statusUpdatedAt')).toBe(true);
     expect(has('userProfiles/{userId}', 'statusUpdatedBy')).toBe(true);
+    const statusUpdatedBy = (COLLECTION_SCHEMAS['userProfiles/{userId}'] as unknown as { shape: Record<string, { safeParse(value: unknown): { success: boolean } }> }).shape.statusUpdatedBy;
+    expect(statusUpdatedBy.safeParse('system:autoHashLock').success).toBe(true);
+    expect(statusUpdatedBy.safeParse('admin-uid').success).toBe(true);
+    expect(statusUpdatedBy.safeParse('').success).toBe(false);
+    expect(statusUpdatedBy.safeParse(null).success).toBe(false);
     expect(has('userProfiles/{userId}/privateData/{userId}', 'squareStreetzAgreementsVersion')).toBe(true);
     expect(has('auditionBoard/{auditionId}', 'closedAt')).toBe(true);
     expect(has('commissionListings/{commissionListingId}', 'closedAt')).toBe(true);
+  });
+});
+
+describe('second registry completion batch', () => {
+  const closure = {
+    outcome: 'founded' as const,
+    resolutionSummary: 'Verified removal obligation.',
+    closedByUid: 'admin-1',
+    closedAt: 10,
+  };
+
+  it('binds strict NCII closure and reopen events at the exact canonical path', () => {
+    const path = 'nciiCases/{caseId}/closureEvents/{eventId}' as const;
+    expect(COLLECTION_SCHEMAS[path]).toBe(NciiCaseClosureEventV1Schema);
+    expect(PATH_BUILDERS.nciiCaseClosureEvent('case-1', 'closure-r3')).toEqual([
+      'nciiCases', 'case-1', 'closureEvents', 'closure-r3',
+    ]);
+    expect(NciiCaseClosureEventV1Schema.safeParse({ kind: 'caseClosed', revision: 3, closure, at: 10 }).success).toBe(true);
+    expect(NciiCaseClosureEventV1Schema.safeParse({ kind: 'caseReopened', revision: 4, reasonInternal: 'New evidence arrived.', actorId: 'admin-2', at: 11 }).success).toBe(true);
+    expect(NciiCaseClosureEventV1Schema.safeParse({ kind: 'caseClosed', revision: 3, closure, at: 10, actorId: 'extra' }).success).toBe(false);
+    expect(NciiCaseClosureEventV1Schema.safeParse({ kind: 'caseReopened', revision: 4, reasonInternal: '', actorId: 'admin-2', at: 11 }).success).toBe(false);
+  });
+
+  it('accepts the new report, task, account-command, cascade, and fanout writer fields', () => {
+    const report = {
+      schemaVersion: 1,
+      reportId: 'report-1',
+      reporterUid: 'reporter-1',
+      reason: 'Spam' as const,
+      resolvedTarget: {
+        schemaVersion: 1,
+        itemType: 'square-streetz-post' as const,
+        canonicalParentPath: 'squareStreetzFeed/activePosts',
+        canonicalItemId: 'post-1',
+        revision: 1,
+        ownerUid: 'owner-1',
+        ownerBlockKey: 'user:owner-1',
+        locator: { kind: 'squarePost', postId: 'post-1' },
+        resolvedAt: 1,
+      },
+      snapshotRef: 'snapshot-1',
+      canonicalTargetKey: 'target-1',
+      status: 'actioned' as const,
+      createdAt: 1,
+      updatedAt: 2,
+      escalatedToCase: 'case-1',
+    };
+    expect(ProtectedReportRootV1Schema.safeParse(report).success).toBe(true);
+    expect(ProtectedReportRootV1Schema.safeParse({ ...report, escalatedToCase: '' }).success).toBe(false);
+
+    expect(AdminTaskDocSchema.safeParse({
+      taskType: 'userReport', taskId: 'group-1', originalPath: 'activeReportGroups/group-1', status: 'completed',
+      checkoutDetails: null, summary: 'done', priority: 1, createdAt: 1, lastUpdatedAt: 2, supersededByCaseId: 'case-1',
+    }).success).toBe(true);
+    expect(AdminTaskDocSchema.safeParse({
+      taskType: 'userReport', taskId: 'group-1', originalPath: 'activeReportGroups/group-1', status: 'completed',
+      checkoutDetails: null, summary: 'done', priority: 1, createdAt: 1, lastUpdatedAt: 2, supersededByCaseId: '',
+    }).success).toBe(false);
+
+    expect(AccountActionCommandV1Schema.safeParse({
+      schemaVersion: 1, caseId: 'case-1', targetUid: 'user-1', action: 'ban', source: 'autoHash', status: 'deadLetter',
+      commandId: 'command-1', attemptCount: 8, nextAttemptAt: 9, deadLetterAt: 10, createdAt: 1, updatedAt: 10,
+    }).success).toBe(true);
+    expect(AccountActionCommandV1Schema.safeParse({
+      schemaVersion: 1, caseId: 'case-1', targetUid: 'user-1', action: 'ban', source: 'autoHash', status: 'deadLetter',
+      commandId: 'command-1', attemptCount: 8, nextAttemptAt: 9, deadLetterAt: 'later', createdAt: 1, updatedAt: 10,
+    }).success).toBe(false);
+
+    expect(ModerationCascadeChangedDocSchema.safeParse({
+      docPath: 'hallItems/h1', entityType: 'hallItem', fieldPath: 'hidden', previousValue: false, newValue: true,
+      restored: false, restoreSkipped: 'directHidden',
+    }).success).toBe(true);
+    expect(ModerationCascadeChangedDocSchema.safeParse({
+      docPath: 'hallItems/h1', entityType: 'hallItem', fieldPath: 'hidden', previousValue: false, newValue: true,
+      restored: false, restoreSkipped: 'other',
+    }).success).toBe(false);
+
+    const fanout = {
+      jobId: 'event-1:admin_announcement', schemaVersion: 1, notificationType: 'admin_announcement', eventId: 'event-1',
+      priority: 1 as const, payload: {}, phases: [{ selector: {}, cursor: null, done: false }], phaseIndex: 0,
+      revision: 0, status: 'pending' as const, attemptCount: 0, nextAttemptAt: 1, lastError: null,
+      createdAt: 1, updatedAt: 1, completedAt: null, deadLetteredAt: null,
+      requestId: 'request-1', actorUid: 'admin-1', payloadHash: 'hash-1',
+    };
+    expect(NotificationFanoutJobSchema.safeParse(fanout).success).toBe(true);
+    const { requestId: _requestId, actorUid: _actorUid, payloadHash: _payloadHash, ...withoutProvenance } = fanout;
+    expect(NotificationFanoutJobSchema.safeParse(withoutProvenance).success).toBe(true);
+    expect(NotificationFanoutJobSchema.safeParse({ ...withoutProvenance, requestId: 'request-1' }).success).toBe(false);
+    expect(NotificationFanoutJobSchema.safeParse({ ...withoutProvenance, actorUid: 'admin-1' }).success).toBe(false);
+    expect(NotificationFanoutJobSchema.safeParse({ ...withoutProvenance, payloadHash: 'hash-1' }).success).toBe(false);
+    expect(NotificationFanoutJobSchema.safeParse({ ...withoutProvenance, requestId: 'request-1', actorUid: 'admin-1' }).success).toBe(false);
+    expect(NotificationFanoutJobSchema.safeParse({ ...withoutProvenance, requestId: 'request-1', payloadHash: 'hash-1' }).success).toBe(false);
+    expect(NotificationFanoutJobSchema.safeParse({ ...withoutProvenance, actorUid: 'admin-1', payloadHash: 'hash-1' }).success).toBe(false);
+    expect(NotificationFanoutJobSchema.safeParse({ ...fanout, payloadHash: '' }).success).toBe(false);
+  });
+
+  it('declares Hall moderation and edge-sync fields on every writer target', () => {
+    const edge = {
+      moderatedAt: 2, edgeSyncState: 'processing' as const, edgeSyncProcessingAt: 2,
+      edgeSyncOp: 'block' as const, edgeSyncAssetIds: ['asset-1'], edgeSyncError: 'retrying', edgeSyncFailedAt: 3,
+    };
+    expect(PublishedHallItemSchema.safeParse({
+      hallItemId: 'h1', workProjectId: 'w1', workProjectType: 'Tales', status: 'published', createdOn: 1,
+      hallWingType: 'entertainment', hidden: false, moderatedAt: 2,
+    }).success).toBe(true);
+    expect(PublishedChapterSchema.safeParse({ uid: 'c1', title: 'Chapter', order: 1, description: 'd', content: 'c', hidden: false, ...edge }).success).toBe(true);
+    expect(PublishedTuneTrackSchema.safeParse({ uid: 't1', title: 'Track', order: 1, audioAssetId: 'asset-1', hidden: false, ...edge }).success).toBe(true);
+    expect(PublishedTelevisionEpisodeSchema.safeParse({ uid: 'e1', title: 'Episode', order: 1, videoAssetId: 'asset-1', hidden: false, ...edge }).success).toBe(true);
+    expect(PublishedChapterSchema.safeParse({ uid: 'c1', title: 'Chapter', order: 1, description: 'd', content: 'c', hidden: false, edgeSyncState: 'settled' }).success).toBe(false);
+    for (const schema of [
+      PublishedHallItemSchema,
+      PublishedChapterSchema,
+      PublishedTuneTrackSchema,
+      PublishedTelevisionEpisodeSchema,
+    ]) {
+      expect(Object.keys(schema.shape)).toContain('moderatedAt');
+    }
+    for (const schema of [PublishedChapterSchema, PublishedTuneTrackSchema, PublishedTelevisionEpisodeSchema]) {
+      for (const key of ['edgeSyncState', 'edgeSyncProcessingAt', 'edgeSyncOp', 'edgeSyncAssetIds', 'edgeSyncError', 'edgeSyncFailedAt']) {
+        expect(Object.keys(schema.shape)).toContain(key);
+      }
+    }
+    for (const key of ['edgeSyncState', 'edgeSyncProcessingAt', 'edgeSyncOp', 'edgeSyncAssetIds', 'edgeSyncError', 'edgeSyncFailedAt']) {
+      expect(Object.keys(PublishedHallItemSchema.shape)).not.toContain(key);
+    }
+    // The clear runner writes moderatedAt to these six live source shapes as well.
+    for (const template of [
+      'allWorkProjects/{workProjectId}/workProjectTales/{taleId}',
+      'allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}',
+      'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}',
+      'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}/tuneTracks/{trackId}',
+      'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}',
+      'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}',
+    ] as const) {
+      const schema = COLLECTION_SCHEMAS[template] as unknown as { shape: Record<string, unknown> };
+      expect(Object.keys(schema.shape)).toContain('moderatedAt');
+    }
   });
 });
 

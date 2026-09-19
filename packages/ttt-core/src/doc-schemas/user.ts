@@ -165,7 +165,9 @@ export const FullUserSchema = z.object({
   // Stamped by the one status writer on every status change: when, and the acting admin/operator
   // uid (a system actor writes its own id). Absent on an account whose status never changed.
   statusUpdatedAt: z.number().optional(),
-  statusUpdatedBy: z.string().optional(),
+  // Either the authenticated actor's uid or a stable namespaced system actor
+  // identifier (for example `system:autoHashLock`); never null.
+  statusUpdatedBy: z.string().min(1).optional(),
   // Chat-edge-rebuild account-access domain (Contract B / round-10 blocker 1): the
   // single ban/unban ordering version + state the chat `accountAccess` sync events key
   // on. Backend-only-writable. Deliberate defaults when ABSENT: a never-touched account
