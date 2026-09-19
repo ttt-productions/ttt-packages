@@ -85,4 +85,11 @@ export const COLLECTION_REFS = {
 
   adminDispatchConversationFiles: (adminDispatchId: string): [string, string, string] =>
     [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_FILES],
+
+  // The admin-support thread's message subcollection. Backend writers mint a new message
+  // document with `db.collection(toPath(...)).doc()` so the id is a Firestore auto-id; the
+  // admin-dispatch panel subscribes to the same collection. The per-document counterpart is
+  // PATH_BUILDERS.adminConversationMessage.
+  adminDispatchConversationMessages: (adminDispatchId: string): [string, string, string] =>
+    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES],
 } as const;

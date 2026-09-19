@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { COLLECTION_REFS } from '../src/paths/collection-refs';
+import { PATH_BUILDERS } from '../src/paths/path-builders';
+import { toPath } from '../src/paths/utils';
 import { COLLECTIONS, USER_SUBCOLLECTIONS, WORK_PROJECT_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections';
 
 describe('COLLECTION_REFS', () => {
@@ -137,6 +139,33 @@ describe('COLLECTION_REFS', () => {
       expect(result[0]).toBe(COLLECTIONS.AUDITION_BOARD);
       expect(result[1]).toBe('opp1');
       expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.AUDITION_ENTRIES);
+    });
+  });
+
+  describe('Conversation collection refs', () => {
+    it('adminDispatchConversationMessages returns 3-segment tuple', () => {
+      const result = COLLECTION_REFS.adminDispatchConversationMessages('ad1');
+      expect(result).toHaveLength(3);
+      expect(result[0]).toBe(COLLECTIONS.PENDING_ADMIN_DISPATCHES);
+      expect(result[1]).toBe('ad1');
+      expect(result[2]).toBe(NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES);
+    });
+
+    it('adminDispatchConversationMessages is the parent collection of adminConversationMessage', () => {
+      // The auto-id mint (`collection(...).doc()`) and the per-document builder must address
+      // the same collection — a divergence would write messages a thread never reads.
+      expect(toPath(COLLECTION_REFS.adminDispatchConversationMessages('ad1'))).toBe(
+        'pendingAdminDispatches/ad1/conversationMessages',
+      );
+      expect(toPath(PATH_BUILDERS.adminConversationMessage('ad1', 'msg1'))).toBe(
+        `${toPath(COLLECTION_REFS.adminDispatchConversationMessages('ad1'))}/msg1`,
+      );
+    });
+
+    it('adminDispatchConversationFiles stays the files collection, not the messages one', () => {
+      expect(toPath(COLLECTION_REFS.adminDispatchConversationFiles('ad1'))).toBe(
+        'pendingAdminDispatches/ad1/conversationFiles',
+      );
     });
   });
 });
