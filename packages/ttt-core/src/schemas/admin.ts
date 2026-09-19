@@ -795,8 +795,8 @@ export type AdminReplayDeadLetterInput = z.infer<typeof AdminReplayDeadLetterInp
 
 export const GetDeadLettersInputSchema = z
   .object({
-    /** Restrict to one ledger; absent = all supported ledgers. */
-    collection: DeadLetterCollectionSchema.optional(),
+    /** Restrict to one listable flat ledger; absent = all listable flat ledgers. */
+    collection: FlatDeadLetterCollectionSchema.optional(),
     /** Per-ledger row cap (the callable's own ceiling applies regardless). */
     limit: z.number().int().min(1).max(200).optional(),
   })

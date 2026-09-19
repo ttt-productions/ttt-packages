@@ -9,6 +9,7 @@ import {
   GetReportedContentDetailResultSchema,
   UpdateAppConfigInputSchema,
   AdminReplayDeadLetterInputSchema,
+  GetDeadLettersInputSchema,
 } from '../src/schemas/admin.js';
 import { AppConfigSchema } from '../src/doc-schemas/system.js';
 import {
@@ -49,6 +50,13 @@ describe('AdminReplayDeadLetterInputSchema', () => {
       collection: 'hallSubItemEdgeSync',
       docId: 'hallItems/hall-1/hallItemTunes/track-1',
     }).success).toBe(false);
+  });
+});
+
+describe('GetDeadLettersInputSchema', () => {
+  it('lists only flat dead-letter lanes; Hall edge-sync remains replay-only with a structured target', () => {
+    expect(GetDeadLettersInputSchema.safeParse({ collection: 'chatSyncFanoutJobs' }).success).toBe(true);
+    expect(GetDeadLettersInputSchema.safeParse({ collection: 'hallSubItemEdgeSync' }).success).toBe(false);
   });
 });
 

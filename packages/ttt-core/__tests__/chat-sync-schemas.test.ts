@@ -46,6 +46,24 @@ describe('chat-sync doc schemas parse representative docs', () => {
     }).success).toBe(true);
   });
 
+  it('ChatSyncFanoutJob registers the strict invite-participant re-drive selector', () => {
+    const base = {
+      jobId: 'invite-job', selectorKind: 'inviteParticipants',
+      selectorArgs: { guildInviteId: 'invite-1', participantUids: ['sender', 'recipient'] }, causeVersion: 0,
+      cursor: { pageIndex: 0, lastDocId: null }, revision: 0, status: 'pending', attemptCount: 0, nextAttemptAt: 1, lastError: null,
+      createdAt: 1, completedAt: null, deadLetteredAt: null,
+    } as const;
+    expect(ChatSyncFanoutJobSchema.safeParse(base).success).toBe(true);
+    expect(ChatSyncFanoutJobSchema.safeParse({
+      ...base,
+      selectorArgs: { guildInviteId: 'invite-1', participantUids: ['sender'] },
+    }).success).toBe(false);
+    expect(ChatSyncFanoutJobSchema.safeParse({
+      ...base,
+      selectorArgs: { guildInviteId: 'invite-1', participantUids: ['sender', 'sender'] },
+    }).success).toBe(false);
+  });
+
   it('ChatMessageOutbox', () => {
     expect(ChatMessageOutboxSchema.safeParse({
       commandId: 'pm1', kind: 'systemMsg', threadRef: 'tr', payload: {}, payloadVersion: 1,

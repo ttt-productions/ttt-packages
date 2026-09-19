@@ -36,13 +36,13 @@ import {
 } from '../src/constants/business-work-project';
 
 describe('SubmitHallContentChangeRequestInputSchema grains', () => {
-  const fields = { title: 'New title' };
+  const talePatch = { surface: 'tale' as const, fields: { title: 'New title' } };
 
   it('accepts the hall detail grain (hallItemId + workProjectType)', () => {
     const r = SubmitHallContentChangeRequestInputSchema.safeParse({
       hallItemId: 'hall-1',
       workProjectType: 'Tales',
-      proposedFields: fields,
+      proposedFields: talePatch,
     });
     expect(r.success).toBe(true);
   });
@@ -52,7 +52,7 @@ describe('SubmitHallContentChangeRequestInputSchema grains', () => {
       hallItemId: 'hall-1',
       workProjectType: 'Tales',
       subItemId: 'sub-1',
-      proposedFields: fields,
+      proposedFields: { surface: 'chapter', fields: { title: 'New chapter title' } },
     });
     expect(r.success).toBe(true);
   });
@@ -60,7 +60,7 @@ describe('SubmitHallContentChangeRequestInputSchema grains', () => {
   it('accepts the realm grain (workRealmId only)', () => {
     const r = SubmitHallContentChangeRequestInputSchema.safeParse({
       workRealmId: 'realm-1',
-      proposedFields: { workingTitle: 'New realm name' },
+      proposedFields: { surface: 'workRealm', fields: { workingTitle: 'New realm name' } },
     });
     expect(r.success).toBe(true);
   });
@@ -70,14 +70,14 @@ describe('SubmitHallContentChangeRequestInputSchema grains', () => {
       hallItemId: 'hall-1',
       workProjectType: 'Tales',
       workRealmId: 'realm-1',
-      proposedFields: fields,
+      proposedFields: talePatch,
     });
     expect(r.success).toBe(false);
   });
 
   it('rejects neither grain', () => {
     const r = SubmitHallContentChangeRequestInputSchema.safeParse({
-      proposedFields: fields,
+      proposedFields: talePatch,
     });
     expect(r.success).toBe(false);
   });
@@ -85,7 +85,7 @@ describe('SubmitHallContentChangeRequestInputSchema grains', () => {
   it('rejects the hall grain without workProjectType', () => {
     const r = SubmitHallContentChangeRequestInputSchema.safeParse({
       hallItemId: 'hall-1',
-      proposedFields: fields,
+      proposedFields: talePatch,
     });
     expect(r.success).toBe(false);
   });
@@ -94,7 +94,7 @@ describe('SubmitHallContentChangeRequestInputSchema grains', () => {
     const r = SubmitHallContentChangeRequestInputSchema.safeParse({
       workRealmId: 'realm-1',
       workProjectType: 'Tales',
-      proposedFields: fields,
+      proposedFields: talePatch,
     });
     expect(r.success).toBe(false);
   });
@@ -103,7 +103,7 @@ describe('SubmitHallContentChangeRequestInputSchema grains', () => {
     const r = SubmitHallContentChangeRequestInputSchema.safeParse({
       workRealmId: 'realm-1',
       subItemId: 'sub-1',
-      proposedFields: fields,
+      proposedFields: talePatch,
     });
     expect(r.success).toBe(false);
   });
@@ -114,9 +114,22 @@ describe('SubmitHallContentChangeRequestInputSchema grains', () => {
       workProjectType: 'Tales',
       workRealmId: null,
       subItemId: null,
-      proposedFields: fields,
+      proposedFields: talePatch,
     });
     expect(r.success).toBe(true);
+  });
+
+  it('rejects a patch whose surface or field set does not match the target grain', () => {
+    expect(SubmitHallContentChangeRequestInputSchema.safeParse({
+      hallItemId: 'hall-1',
+      workProjectType: 'Tales',
+      proposedFields: { surface: 'tune', fields: { title: 'Wrong surface' } },
+    }).success).toBe(false);
+    expect(SubmitHallContentChangeRequestInputSchema.safeParse({
+      hallItemId: 'hall-1',
+      workProjectType: 'Tales',
+      proposedFields: { surface: 'tale', fields: { content: 'Not a detail field' } },
+    }).success).toBe(false);
   });
 });
 
@@ -223,6 +236,37 @@ describe('HallContentChangeRequest doc grains', () => {
       subItemId: null,
     });
     expect(r.success).toBe(true);
+  });
+
+  it('parses the canonical closed patch and rejects a mismatched target surface', () => {
+    const canonical = {
+      ...base,
+      targetKey: 'hall-1_detail',
+      hallItemId: 'hall-1',
+      workProjectType: 'Tales',
+      surface: 'tale',
+      workRealmId: null,
+      subItemId: null,
+      proposedFields: { surface: 'tale', fields: { title: 'x' } },
+    };
+    expect(HallContentChangeRequestSchema.safeParse(canonical).success).toBe(true);
+    expect(HallContentChangeRequestSchema.safeParse({
+      ...canonical,
+      proposedFields: { surface: 'tune', fields: { title: 'x' } },
+    }).success).toBe(false);
+  });
+
+  it('normalizes an existing valid legacy map into the canonical patch on read', () => {
+    const parsed = HallContentChangeRequestSchema.parse({
+      ...base,
+      targetKey: 'hall-1_detail',
+      hallItemId: 'hall-1',
+      workProjectType: 'Tales',
+      surface: 'tale',
+      workRealmId: null,
+      subItemId: null,
+    });
+    expect(parsed.proposedFields).toEqual({ surface: 'tale', fields: { title: 'x' } });
   });
 
   it('parses a realm-grain doc', () => {

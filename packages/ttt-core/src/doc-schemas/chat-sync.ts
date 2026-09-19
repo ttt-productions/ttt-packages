@@ -77,14 +77,11 @@ export const ChatSyncEventSchema = z.object({
 export type ChatSyncEvent = z.infer<typeof ChatSyncEventSchema>;
 
 // ── chatSyncFanoutJobs/{jobId} ──────────────────────────────────────────────
-export const ChatSyncFanoutJobSchema = z.object({
+// The selector is a closed discriminated contract. The worker has different expansion
+// semantics for a Work-channel page, a member-in-Work page, and the fixed two-person
+// invite re-drive; a loose optional bag lets malformed persisted jobs silently wedge.
+const ChatSyncFanoutJobBaseShape = {
   jobId: z.string(),
-  selectorKind: z.enum(['channelMembers', 'workChannelsForUser', 'policyEditAffectedUsers']),
-  selectorArgs: z.object({
-    workProjectId: z.string().optional(),
-    channelKey: z.string().optional(),
-    uid: z.string().optional(),
-  }),
   causeVersion: z.number(),
   cursor: z.object({ pageIndex: z.number(), lastDocId: z.string().nullable() }),
   revision: z.number(),
@@ -96,7 +93,47 @@ export const ChatSyncFanoutJobSchema = z.object({
   completedAt: z.number().nullable(),
   deadLetteredAt: z.number().nullable(),
   expireAt: expireAtField,
-});
+};
+
+const channelFanoutSelectorArgs = z.object({
+  workProjectId: z.string().min(1),
+  guildChatChannelId: z.string().min(1),
+  channelKey: z.string().min(1),
+}).strict();
+
+const inviteParticipantsSelectorArgs = z.object({
+  guildInviteId: z.string().min(1),
+  participantUids: z.array(z.string().min(1)).length(2).refine(
+    (uids) => new Set(uids).size === uids.length,
+    { message: 'Invite participant uids must be distinct.' },
+  ),
+}).strict();
+
+export const ChatSyncFanoutJobSchema = z.discriminatedUnion('selectorKind', [
+  z.object({
+    ...ChatSyncFanoutJobBaseShape,
+    selectorKind: z.literal('channelMembers'),
+    selectorArgs: channelFanoutSelectorArgs,
+  }).strict(),
+  z.object({
+    ...ChatSyncFanoutJobBaseShape,
+    selectorKind: z.literal('policyEditAffectedUsers'),
+    selectorArgs: channelFanoutSelectorArgs,
+  }).strict(),
+  z.object({
+    ...ChatSyncFanoutJobBaseShape,
+    selectorKind: z.literal('workChannelsForUser'),
+    selectorArgs: z.object({
+      uid: z.string().min(1),
+      workProjectId: z.string().min(1),
+    }).strict(),
+  }).strict(),
+  z.object({
+    ...ChatSyncFanoutJobBaseShape,
+    selectorKind: z.literal('inviteParticipants'),
+    selectorArgs: inviteParticipantsSelectorArgs,
+  }).strict(),
+]);
 export type ChatSyncFanoutJob = z.infer<typeof ChatSyncFanoutJobSchema>;
 
 // ── chatMessageOutbox/{commandId} ───────────────────────────────────────────

@@ -26,6 +26,11 @@ import {
   MAX_THRESHOLD_REVIEW_NOTES_LENGTH,
   MAX_HALL_CHANGE_REQUEST_REASON_LENGTH,
 } from '../constants/business.js';
+import {
+  HALL_CONTENT_SURFACES_BY_WORK_TYPE,
+  HALL_CONTENT_TEXT_FIELD_MAX,
+  HALL_CONTENT_TEXT_FIELDS,
+} from '../constants/business-content.js';
 import { WORK_PROJECT_SPECIFIC_GENRES } from '../constants/options.js';
 
 // Canonical per-type genre enums. `WORK_PROJECT_SPECIFIC_GENRES.<type>` is a readonly
@@ -100,17 +105,53 @@ export type WithdrawFromThresholdLibraryReviewInput = z.infer<typeof WithdrawFro
 //    `subItemId` is absent, else the chapter/track/episode sub-item.
 //  - realm grain: `workRealmId` set; targets the `workRealms/{id}` doc once the realm
 //    counts as published. `workProjectType`/`subItemId` do not apply.
-// Exactly one of `hallItemId` / `workRealmId` must be set. Field names are validated by
-// the runner against the per-surface HALL_CONTENT_TEXT_FIELDS allowlist +
-// HALL_CONTENT_TEXT_FIELD_MAX caps; the schema-level cap is the largest field cap
-// anywhere (chapter content), derived from the same owning constant.
+/**
+ * A closed, surface-specific proposal patch. The fields and their caps are projected
+ * from the canonical Hall text-field maps, so the member callable and the persisted
+ * request cannot accept a field that its target surface does not own.
+ */
+export type HallContentTextPatch = {
+  [S in keyof typeof HALL_CONTENT_TEXT_FIELDS]: {
+    surface: S;
+    fields: Partial<Record<(typeof HALL_CONTENT_TEXT_FIELDS)[S][number], string>>;
+  };
+}[keyof typeof HALL_CONTENT_TEXT_FIELDS];
+
+function hallContentTextPatchForSurface<S extends keyof typeof HALL_CONTENT_TEXT_FIELDS>(surface: S) {
+  const fields = Object.fromEntries(
+    HALL_CONTENT_TEXT_FIELDS[surface].map((field) => [
+      field,
+      z.string().trim().min(1).max(HALL_CONTENT_TEXT_FIELD_MAX[field]).optional(),
+    ]),
+  ) as Record<string, z.ZodOptional<z.ZodString>>;
+
+  return z.object({
+    surface: z.literal(surface),
+    fields: z.object(fields).strict().refine((value) => Object.keys(value).length > 0, {
+      message: 'Propose at least one field change.',
+    }),
+  }).strict();
+}
+
+const HALL_CONTENT_TEXT_PATCH_VARIANTS = (Object.keys(HALL_CONTENT_TEXT_FIELDS) as Array<keyof typeof HALL_CONTENT_TEXT_FIELDS>)
+  .map((surface) => hallContentTextPatchForSurface(surface));
+
+export const HallContentTextPatchSchema = z.union(
+  HALL_CONTENT_TEXT_PATCH_VARIANTS as unknown as [
+    z.ZodType<HallContentTextPatch>,
+    z.ZodType<HallContentTextPatch>,
+    ...z.ZodType<HallContentTextPatch>[],
+  ],
+);
+
+// Exactly one of `hallItemId` / `workRealmId` must be set. The patch's discriminant
+// ties its closed field set to the canonical detail/sub-item/realm grain.
 export const SubmitHallContentChangeRequestInputSchema = z.object({
   hallItemId: hallItemIdSchema.nullish(),
   workProjectType: workProjectTypeSchema.nullish(),
   workRealmId: z.string().min(1).nullish(),
   subItemId: z.string().min(1).nullish(),
-  proposedFields: z.record(z.string().min(1).max(64), z.string().trim().min(1).max(MAX_CHAPTER_CONTENT_LENGTH))
-    .refine((fields) => Object.keys(fields).length > 0, { message: 'Propose at least one field change.' }),
+  proposedFields: HallContentTextPatchSchema,
 }).strict().superRefine((val, ctx) => {
   const hasHallItem = typeof val.hallItemId === 'string' && val.hallItemId.length > 0;
   const hasRealm = typeof val.workRealmId === 'string' && val.workRealmId.length > 0;
@@ -142,6 +183,24 @@ export const SubmitHallContentChangeRequestInputSchema = z.object({
       message: 'subItemId does not apply to a realm change request.',
       path: ['subItemId'],
     });
+  }
+  if (hasRealm && val.proposedFields.surface !== 'workRealm') {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'A realm change request must use the workRealm text patch.',
+      path: ['proposedFields', 'surface'],
+    });
+  }
+  if (hasHallItem && val.workProjectType) {
+    const routing = HALL_CONTENT_SURFACES_BY_WORK_TYPE[val.workProjectType];
+    const expectedSurface = val.subItemId ? routing.subItemSurface : routing.detailSurface;
+    if (val.proposedFields.surface !== expectedSurface) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `This target requires the ${expectedSurface} text patch.`,
+        path: ['proposedFields', 'surface'],
+      });
+    }
   }
 });
 export type SubmitHallContentChangeRequestInput = z.infer<typeof SubmitHallContentChangeRequestInputSchema>;

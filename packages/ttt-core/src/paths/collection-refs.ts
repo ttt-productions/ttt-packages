@@ -23,6 +23,11 @@ export const COLLECTION_REFS = {
   followEdges: (): [string] => [COLLECTIONS.FOLLOW_EDGES],
   followCounters: (): [string] => [COLLECTIONS.FOLLOW_COUNTERS],
 
+  // Active notification lanes. Both collections are top-level and are selected by
+  // notification category; callers never hand-roll their collection names.
+  activeUserNotifications: (): [string] => [COLLECTIONS.ACTIVE_USER_NOTIFICATIONS],
+  activeAdminNotifications: (): [string] => [COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS],
+
   // User subcollections
   userCraftSkills: (userId: string): [string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS],

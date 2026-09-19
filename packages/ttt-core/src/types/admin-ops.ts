@@ -5,7 +5,7 @@
 // re-declaration (publish-avoidance rationale — auto-reject; ARCH-102 extended).
 
 import type { PledgePaymentTotals } from './payments.js';
-import type { DeadLetterCollection } from '../schemas/admin.js';
+import type { FlatDeadLetterCollection } from '../schemas/admin.js';
 
 /** Trust & Safety SLA-clock + active-case snapshot for the Mission Control landing (§A8).
  * Counts are point-in-time; the per-lane earliest-deadline epochs (ms) are handed over raw so
@@ -93,8 +93,9 @@ export interface OpsStatus {
  * over the heterogeneous ledger shapes (the callable maps each ledger's own
  * status/error/timestamp fields onto this). */
 export interface DeadLetterRow {
-  collection: DeadLetterCollection;
-  /** Flat doc id, or the full nested document path for hallSubItemEdgeSync rows. */
+  /** `getDeadLetters` lists flat ledgers only; nested Hall edge-sync rows use their structured replay target. */
+  collection: FlatDeadLetterCollection;
+  /** Flat document id within `collection`. */
   docId: string;
   deadLetteredAt: number | null;
   lastError: string | null;

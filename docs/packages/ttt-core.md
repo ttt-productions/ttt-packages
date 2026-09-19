@@ -42,6 +42,7 @@ TTT Productions application-data package.
 - The whole-app Firestore document-schema registry (`./doc-schemas` — `COLLECTION_SCHEMAS`, CI-enforced for completeness): user, work-project, content, social, payments, commissions, messaging, moderation, safety/NCII, notifications, chat-sync, and more
 - User-status provenance: `FullUserSchema.statusUpdatedBy` is optional until a status first changes, then is always either the authenticated actor's uid or a stable namespaced system actor identifier (for example `system:autoHashLock`), never `null`.
 - The notification type catalog and broadcast/archive schemas (`./schemas/notification` — `NotificationType`, `NOTIFICATION_TYPE_CATALOG`, broadcast/archive input schemas)
+- The published Hall text-change contract: `HallContentTextPatchSchema` is a closed, surface-discriminated patch derived from `HALL_CONTENT_TEXT_FIELDS` and its owning caps; outstanding legacy request maps normalize on read, while new callable and Firestore writers persist the canonical patch. `HallContentChangeRequestSchema` correlates that surface with the Hall detail/sub-item or Realm target grain.
 - `AuditEventType` catalog, `TTTAuditActor`, `TTTAuditTarget`, and `TTTAuditEvent` specialization of the `@ttt-productions/audit-core` generic
 - **Chat-edge-rebuild concrete contracts (P1):**
   - The frozen deterministic ID/`hash()` helpers in `src/ids/chat-ids.ts`
@@ -58,6 +59,7 @@ TTT Productions application-data package.
     `chatAdminActionCommands` — all wired into `COLLECTIONS`, `PATH_BUILDERS`, and
     the CI-enforced `COLLECTION_SCHEMAS` registry.
   - The `chat.moderationAction{Requested,Applied,Failed}` audit types.
+  - Strict `chatSyncFanoutJobs` selector arms, including the two-participant invite projection re-drive, and canonical active user/admin notification collection and document path builders.
   - Version-init fields (backend-only, with frozen ABSENT defaults): user
     `accountAccessVersion`/`accountAccessState` (absent ⇒ `{0, 'active'}`) and
     `GuildmateUser.guildAuthInputVersion` (absent ⇒ 0), plus the

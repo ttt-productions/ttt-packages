@@ -798,20 +798,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `jobId` | `string` |  |
-| `selectorKind` | `'channelMembers' \| 'workChannelsForUser' \| 'policyEditAffectedUsers'` |  |
-| `selectorArgs` | `{ workProjectId, channelKey, uid }` |  |
-| `causeVersion` | `number` |  |
-| `cursor` | `{ pageIndex, lastDocId }` |  |
-| `revision` | `number` |  |
-| `status` | `'pending' \| 'complete' \| 'deadLetter'` |  |
-| `attemptCount` | `number` |  |
-| `nextAttemptAt` | `number` |  |
-| `lastError` | `string \| null` |  |
-| `createdAt` | `number` |  |
-| `completedAt` | `number \| null` |  |
-| `deadLetteredAt` | `number \| null` |  |
-| `expireAt` | `unknown` | yes |
+| _(document)_ | `{ jobId, causeVersion, cursor, revision, status, attemptCount, nextAttemptAt, lastError, createdAt, completedAt, deadLetteredAt, expireAt, selectorKind, selectorArgs } \| { jobId, causeVersion, cursor, revision, status, attemptCount, nextAttemptAt, lastError, createdAt, completedAt, deadLetteredAt, expireAt, selectorKind, selectorArgs } \| { jobId, causeVersion, cursor, revision, status, attemptCount, nextAttemptAt, lastError, createdAt, completedAt, deadLetteredAt, expireAt, selectorKind, selectorArgs } \| { jobId, causeVersion, cursor, revision, status, attemptCount, nextAttemptAt, lastError, createdAt, completedAt, deadLetteredAt, expireAt, selectorKind, selectorArgs }` |  |
 
 ## `childSafetyCaseList/{caseId}`
 
@@ -1219,23 +1206,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `changeRequestId` | `string` |  |
-| `requestKind` | `"text"` |  |
-| `targetKey` | `string` |  |
-| `hallItemId` | `string \| null` |  |
-| `workProjectId` | `string` |  |
-| `workProjectType` | `'Tales' \| 'Tunes' \| 'Television' \| null` |  |
-| `surface` | `'tale' \| 'tune' \| 'television' \| 'chapter' \| 'tuneTrack' \| 'televisionEpisode' \| 'workRealm'` |  |
-| `workRealmId` | `string \| null` |  |
-| `subItemId` | `string \| null` |  |
-| `proposerUid` | `string` |  |
-| `proposedFields` | `Record<string, string>` |  |
-| `status` | `'requested' \| 'approved' \| 'denied'` |  |
-| `createdAt` | `number` |  |
-| `lastUpdatedAt` | `number` |  |
-| `resolvedAt` | `number` | yes |
-| `resolvedBy` | `string` | yes |
-| `resolutionReason` | `string` | yes |
+| _(document)_ | `transform` |  |
 
 ## `hallItems/{hallItemId}`
 

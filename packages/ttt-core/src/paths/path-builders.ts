@@ -72,6 +72,14 @@ export const PATH_BUILDERS = {
   userNotificationHistory: (userId: string): [string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.NOTIFICATION_HISTORY],
 
+  // Active notification cards. Category chooses the lane; these builders keep the
+  // category config, direct-card writers, and archive flow on the same collection names.
+  activeUserNotification: (notificationId: string): [string, string] =>
+    [COLLECTIONS.ACTIVE_USER_NOTIFICATIONS, notificationId],
+
+  activeAdminNotification: (notificationId: string): [string, string] =>
+    [COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS, notificationId],
+
   // ===== WORK PATHS =====
   workProject: (workProjectId: string): [string, string] =>
     [COLLECTIONS.ALL_WORK_PROJECTS, workProjectId],

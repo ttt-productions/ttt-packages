@@ -40,6 +40,11 @@ describe('COLLECTION_REFS', () => {
       expect(result[0]).toBe(COLLECTIONS.HALL_ITEMS);
     });
 
+    it('active notification lanes return the canonical category collections', () => {
+      expect(COLLECTION_REFS.activeUserNotifications()).toEqual([COLLECTIONS.ACTIVE_USER_NOTIFICATIONS]);
+      expect(COLLECTION_REFS.activeAdminNotifications()).toEqual([COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS]);
+    });
+
     it('commissionListings returns single-element tuple', () => {
       const result = COLLECTION_REFS.commissionListings();
       expect(result).toHaveLength(1);

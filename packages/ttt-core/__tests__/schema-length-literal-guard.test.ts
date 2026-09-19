@@ -47,7 +47,7 @@ const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
   // 200s = admin chat-moderation requestId/caseId opaque-id caps; 50s = the ≤50 before/after
   // context-window pagination bound (adminModerateChatMessage / adminReadChannelContext).
   'src/schemas/chat.ts': [20, 20, 50, 50, 64, 64, 128, 128, 200, 200, 200, 500, 500],
-  'src/schemas/hall-library.ts': [64],
+  'src/schemas/hall-library.ts': [],
   'src/schemas/ncii.ts': [64, 256, 256, 256, 256, 256, 320],
   // 64 died with reportedItemTypeSchema tightening to the canonical enum; 2000 became
   // MAX_BROADCAST_EXPLICIT_UIDS (2026-07-13 consolidation sweep).

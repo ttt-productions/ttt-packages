@@ -224,6 +224,17 @@ describe('PATH_BUILDERS', () => {
       expect(result[3]).toBe('item1');
     });
 
+    it('active notification builders use the canonical category collections', () => {
+      expect(PATH_BUILDERS.activeUserNotification('notification-1')).toEqual([
+        COLLECTIONS.ACTIVE_USER_NOTIFICATIONS,
+        'notification-1',
+      ]);
+      expect(PATH_BUILDERS.activeAdminNotification('notification-1')).toEqual([
+        COLLECTIONS.ACTIVE_ADMIN_NOTIFICATIONS,
+        'notification-1',
+      ]);
+    });
+
     it('hallItemSubItem derives every nested sub-item collection from the canonical work type', () => {
       expect(PATH_BUILDERS.hallItemSubItem('hall-1', 'Tales', 'item-1')).toEqual([
         COLLECTIONS.HALL_ITEMS, 'hall-1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales, 'item-1',

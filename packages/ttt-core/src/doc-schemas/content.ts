@@ -7,6 +7,8 @@
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import { ModerationEdgeSyncOpSchema, ModerationEdgeSyncStateSchema } from './moderation.js';
+import { HallContentTextPatchSchema } from '../schemas/hall-library.js';
+import { HALL_CONTENT_SURFACES_BY_WORK_TYPE } from '../constants/business-content.js';
 
 const contentStatusSchema = z.enum(['unpublished', 'pending_approval', 'published']);
 
@@ -198,7 +200,7 @@ export type PublishedHallItemStatus = z.infer<typeof PublishedHallItemStatusSche
 // item + its live in-Work source doc; deny = nothing changes, `resolutionReason` shown
 // to the member. Writes are callable-only; reads are the owning work's active guildmates
 // + admins. `requestKind` future-proofs a media variant (new kind, no schema break).
-export const HallContentChangeRequestSchema = z.object({
+const HallContentChangeRequestCanonicalSchema = z.object({
   changeRequestId: z.string(),
   requestKind: z.literal('text'),
   // One-open-per-target enforcement/query key. Hall grains:
@@ -219,9 +221,9 @@ export const HallContentChangeRequestSchema = z.object({
   // chapter/track/episode sub-item.
   subItemId: z.string().nullable(),
   proposerUid: z.string(),
-  // Raw doc field name → proposed new text. Allowlist + per-field caps enforced by the
-  // submit runner against HALL_CONTENT_TEXT_FIELDS / HALL_CONTENT_TEXT_FIELD_MAX.
-  proposedFields: z.record(z.string(), z.string()),
+  // Closed, surface-discriminated text patch. The persisted surface and patch surface must
+  // agree, and the patch contains only fields that surface owns.
+  proposedFields: HallContentTextPatchSchema,
   status: z.enum(['requested', 'approved', 'denied']),
   createdAt: z.number(),
   lastUpdatedAt: z.number(),
@@ -229,7 +231,71 @@ export const HallContentChangeRequestSchema = z.object({
   resolvedBy: z.string().optional(),
   // Admin's reason, surfaced to the member (required on a deny).
   resolutionReason: z.string().optional(),
+}).superRefine((value, ctx) => {
+  const patchSurface = value.proposedFields.surface;
+  if (patchSurface !== value.surface) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'The proposed text patch surface must match the request surface.',
+      path: ['proposedFields', 'surface'],
+    });
+  }
+
+  if (value.surface === 'workRealm') {
+    if (value.hallItemId !== null || value.workProjectType !== null || value.workRealmId === null || value.subItemId !== null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'A workRealm request must carry only the realm target grain.',
+        path: ['surface'],
+      });
+    }
+    return;
+  }
+
+  if (value.hallItemId === null || value.workProjectType === null || value.workRealmId !== null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'A Hall request must carry a hall item and work-project type, not a realm.',
+      path: ['surface'],
+    });
+    return;
+  }
+
+  const routing = HALL_CONTENT_SURFACES_BY_WORK_TYPE[value.workProjectType];
+  const expectedSurface = value.subItemId === null ? routing.detailSurface : routing.subItemSurface;
+  if (value.surface !== expectedSurface) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `The target grain requires the ${expectedSurface} surface.`,
+      path: ['surface'],
+    });
+  }
 });
+
+/**
+ * Older valid rows stored the same closed fields directly as a map and already carry
+ * the authoritative request-level surface. Normalize that legacy representation while
+ * reading so deployment does not strand outstanding requests; all new writers use the
+ * closed discriminated patch above.
+ */
+export const HallContentChangeRequestSchema = z.preprocess((raw) => {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return raw;
+  const value = raw as Record<string, unknown>;
+  const proposedFields = value.proposedFields;
+  if (
+    typeof proposedFields === 'object'
+    && proposedFields !== null
+    && !Array.isArray(proposedFields)
+    && !Object.prototype.hasOwnProperty.call(proposedFields, 'surface')
+    && typeof value.surface === 'string'
+  ) {
+    return {
+      ...value,
+      proposedFields: { surface: value.surface, fields: proposedFields },
+    };
+  }
+  return raw;
+}, HallContentChangeRequestCanonicalSchema);
 export type HallContentChangeRequest = z.infer<typeof HallContentChangeRequestSchema>;
 
 export const PublishedHallItemSchema = z.object({
