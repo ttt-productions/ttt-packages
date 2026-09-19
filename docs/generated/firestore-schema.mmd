@@ -561,6 +561,18 @@ erDiagram
     field departedAt
   }
   hallContentChangeRequests {
+    field changeRequestId
+    field requestKind
+    field targetKey
+    field hallItemId
+    field workProjectId
+    field workProjectType
+    field surface
+    field workRealmId
+    field subItemId
+    field proposerUid
+    field proposedFields
+    field status
   }
   hallItemTales {
     field uid
@@ -1629,6 +1641,7 @@ erDiagram
   allWorkProjects ||--o{ commissionProposals : "workProjectId"
   allWorkProjects ||--o{ guildChatChannels : "workProjectId"
   allWorkProjects ||--o{ guildInviteConversations : "workProjectId"
+  allWorkProjects ||--o{ hallContentChangeRequests : "workProjectId"
   allWorkProjects ||--o{ hallItems : "workProjectId"
   allWorkProjects ||--o{ mediaAssets : "workProjectId"
   allWorkProjects ||--o{ pendingAdminDispatches : "workProjectId"
@@ -1648,6 +1661,7 @@ erDiagram
   guildInviteConversations ||--o{ commissionProposals : "guildInviteId"
   guildInviteConversations ||--o{ conversationMessages : "guildInviteId"
   hallItems ||--o{ adminTasks : "hallItemId"
+  hallItems ||--o{ hallContentChangeRequests : "hallItemId"
   hallItems ||--o{ reservation : "hallItemId"
   hallItems ||--o{ thresholdItems : "hallItemId"
   pledgePayments ||--o{ paymentWebhookQuarantine : "pledgePaymentId"
@@ -1672,6 +1686,7 @@ erDiagram
   userProfiles ||--o{ conversationMessages : "senderId"
   userProfiles ||--o{ followEdges : "followerUid"
   userProfiles ||--o{ guildmateUsers : "uid"
+  userProfiles ||--o{ hallContentChangeRequests : "resolvedBy"
   userProfiles ||--o{ hallItemTales : "uid"
   userProfiles ||--o{ hallItemTelevision : "uid"
   userProfiles ||--o{ hallItemTunes : "uid"
@@ -1712,6 +1727,7 @@ erDiagram
   userProfiles ||--o{ workRealms : "foundingArtisanUid"
   userProfiles ||--o{ workRealms : "workStewardUid"
   workRealms ||--o{ allWorkProjects : "workRealmId"
+  workRealms ||--o{ hallContentChangeRequests : "workRealmId"
   workRealms ||--o{ publicWorkProjects : "workRealmId"
   workRealms ||--o{ realmFileFolders : "workRealmId"
   workRealms ||--o{ reservedRealmNames : "workRealmId"

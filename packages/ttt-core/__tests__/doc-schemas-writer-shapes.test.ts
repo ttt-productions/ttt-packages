@@ -306,11 +306,12 @@ describe('second registry completion batch', () => {
     expect(PublishedHallItemSchema.safeParse({
       hallItemId: 'h1', workProjectId: 'w1', workProjectType: 'Tales', status: 'published', createdOn: 1,
       hallWingType: 'entertainment', hidden: false, moderatedAt: 2,
+      coverSquareAssetId: 'a1', coverPosterAssetId: 'a2', coverCinematicAssetId: 'a3',
     }).success).toBe(true);
-    expect(PublishedChapterSchema.safeParse({ uid: 'c1', title: 'Chapter', order: 1, description: 'd', content: 'c', hidden: false, ...edge }).success).toBe(true);
-    expect(PublishedTuneTrackSchema.safeParse({ uid: 't1', title: 'Track', order: 1, audioAssetId: 'asset-1', hidden: false, ...edge }).success).toBe(true);
-    expect(PublishedTelevisionEpisodeSchema.safeParse({ uid: 'e1', title: 'Episode', order: 1, videoAssetId: 'asset-1', hidden: false, ...edge }).success).toBe(true);
-    expect(PublishedChapterSchema.safeParse({ uid: 'c1', title: 'Chapter', order: 1, description: 'd', content: 'c', hidden: false, edgeSyncState: 'settled' }).success).toBe(false);
+    expect(PublishedChapterSchema.safeParse({ uid: 'c1', title: 'Chapter', order: 1, description: 'd', content: 'c', photoAssetId: 'asset-0', hidden: false, ...edge }).success).toBe(true);
+    expect(PublishedTuneTrackSchema.safeParse({ uid: 't1', title: 'Track', order: 1, audioAssetId: 'asset-1', photoAssetId: 'asset-0', hidden: false, ...edge }).success).toBe(true);
+    expect(PublishedTelevisionEpisodeSchema.safeParse({ uid: 'e1', title: 'Episode', order: 1, videoAssetId: 'asset-1', photoAssetId: 'asset-0', hidden: false, ...edge }).success).toBe(true);
+    expect(PublishedChapterSchema.safeParse({ uid: 'c1', title: 'Chapter', order: 1, description: 'd', content: 'c', photoAssetId: 'asset-0', hidden: false, edgeSyncState: 'settled' }).success).toBe(false);
     for (const schema of [
       PublishedHallItemSchema,
       PublishedChapterSchema,

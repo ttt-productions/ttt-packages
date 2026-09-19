@@ -28,6 +28,7 @@ import {
   REAL_PEOPLE_DISCLAIMER_HEADER,
   REAL_PEOPLE_DISCLAIMER_MESSAGE,
 } from '../src/constants/business-content';
+import { validateHallContentTextFields } from '../src/utils/hall-content';
 import { CLEARABLE_TEXT_FIELD_LABELS } from '../src/constants/admin-labels';
 import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
 import {
@@ -36,7 +37,7 @@ import {
 } from '../src/constants/business-work-project';
 
 describe('SubmitHallContentChangeRequestInputSchema grains', () => {
-  const talePatch = { surface: 'tale' as const, fields: { title: 'New title' } };
+  const talePatch = { title: 'New title' };
 
   it('accepts the hall detail grain (hallItemId + workProjectType)', () => {
     const r = SubmitHallContentChangeRequestInputSchema.safeParse({
@@ -52,7 +53,7 @@ describe('SubmitHallContentChangeRequestInputSchema grains', () => {
       hallItemId: 'hall-1',
       workProjectType: 'Tales',
       subItemId: 'sub-1',
-      proposedFields: { surface: 'chapter', fields: { title: 'New chapter title' } },
+      proposedFields: { title: 'New chapter title' },
     });
     expect(r.success).toBe(true);
   });
@@ -60,7 +61,7 @@ describe('SubmitHallContentChangeRequestInputSchema grains', () => {
   it('accepts the realm grain (workRealmId only)', () => {
     const r = SubmitHallContentChangeRequestInputSchema.safeParse({
       workRealmId: 'realm-1',
-      proposedFields: { surface: 'workRealm', fields: { workingTitle: 'New realm name' } },
+      proposedFields: { workingTitle: 'New realm name' },
     });
     expect(r.success).toBe(true);
   });
@@ -119,17 +120,60 @@ describe('SubmitHallContentChangeRequestInputSchema grains', () => {
     expect(r.success).toBe(true);
   });
 
-  it('rejects a patch whose surface or field set does not match the target grain', () => {
+  it('requires at least one proposed field', () => {
     expect(SubmitHallContentChangeRequestInputSchema.safeParse({
       hallItemId: 'hall-1',
       workProjectType: 'Tales',
-      proposedFields: { surface: 'tune', fields: { title: 'Wrong surface' } },
+      proposedFields: {},
     }).success).toBe(false);
-    expect(SubmitHallContentChangeRequestInputSchema.safeParse({
+  });
+
+  it('carries a FLAT field map — the request surface is the one discriminator', () => {
+    const parsed = SubmitHallContentChangeRequestInputSchema.parse({
       hallItemId: 'hall-1',
       workProjectType: 'Tales',
-      proposedFields: { surface: 'tale', fields: { content: 'Not a detail field' } },
-    }).success).toBe(false);
+      proposedFields: { title: 'New title' },
+    });
+    expect(parsed.proposedFields).toEqual({ title: 'New title' });
+  });
+});
+
+describe('validateHallContentTextFields (the per-surface boundary check)', () => {
+  it('accepts a field the surface owns and returns it trimmed', () => {
+    const result = validateHallContentTextFields('tale', { title: '  New title  ' });
+    expect(result).toEqual({ ok: true, fields: { title: 'New title' } });
+  });
+
+  it('rejects a field the surface does not own, naming it', () => {
+    const result = validateHallContentTextFields('tale', { content: 'Not a detail field' });
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.reason).toContain('content');
+  });
+
+  it('rejects an empty value and an over-cap value', () => {
+    expect(validateHallContentTextFields('tale', { title: '   ' }).ok).toBe(false);
+    expect(validateHallContentTextFields('chapter', {
+      title: 'x'.repeat(HALL_CONTENT_TEXT_FIELD_MAX.title + 1),
+    }).ok).toBe(false);
+  });
+
+  it('rejects an empty proposal', () => {
+    expect(validateHallContentTextFields('workRealm', {}).ok).toBe(false);
+  });
+
+  it('enforces every surface against the ONE canonical allowlist', () => {
+    for (const [surface, fields] of Object.entries(HALL_CONTENT_TEXT_FIELDS)) {
+      const key = surface as keyof typeof HALL_CONTENT_TEXT_FIELDS;
+      for (const field of fields) {
+        expect(validateHallContentTextFields(key, { [field]: 'ok' }).ok).toBe(true);
+      }
+      expect(validateHallContentTextFields(key, { notAField: 'ok' }).ok).toBe(false);
+    }
+  });
+
+  it('covers exactly the canonical text surfaces', () => {
+    expect(Object.keys(HALL_CONTENT_TEXT_FIELDS).sort())
+      .toEqual([...HallContentTextSurfaceSchema.options].sort());
   });
 });
 
@@ -238,25 +282,15 @@ describe('HallContentChangeRequest doc grains', () => {
     expect(r.success).toBe(true);
   });
 
-  it('parses the canonical closed patch and rejects a mismatched target surface', () => {
-    const canonical = {
-      ...base,
-      targetKey: 'hall-1_detail',
-      hallItemId: 'hall-1',
-      workProjectType: 'Tales',
-      surface: 'tale',
-      workRealmId: null,
-      subItemId: null,
-      proposedFields: { surface: 'tale', fields: { title: 'x' } },
-    };
-    expect(HallContentChangeRequestSchema.safeParse(canonical).success).toBe(true);
-    expect(HallContentChangeRequestSchema.safeParse({
-      ...canonical,
-      proposedFields: { surface: 'tune', fields: { title: 'x' } },
-    }).success).toBe(false);
+  it('stays a plain top-level-diffable object schema (the write guard reads its keys)', () => {
+    // A ZodPreprocess / ZodEffects at the top level has no readable `shape`, so a writer's
+    // payload gets checked against nothing and every undeclared field passes silently.
+    expect(HallContentChangeRequestSchema.shape).toBeDefined();
+    expect(Object.keys(HallContentChangeRequestSchema.shape)).toContain('proposedFields');
+    expect(Object.keys(HallContentChangeRequestSchema.shape)).toContain('surface');
   });
 
-  it('normalizes an existing valid legacy map into the canonical patch on read', () => {
+  it('stores proposedFields as a FLAT field map with no nested surface', () => {
     const parsed = HallContentChangeRequestSchema.parse({
       ...base,
       targetKey: 'hall-1_detail',
@@ -266,7 +300,7 @@ describe('HallContentChangeRequest doc grains', () => {
       workRealmId: null,
       subItemId: null,
     });
-    expect(parsed.proposedFields).toEqual({ surface: 'tale', fields: { title: 'x' } });
+    expect(parsed.proposedFields).toEqual({ title: 'x' });
   });
 
   it('parses a realm-grain doc', () => {

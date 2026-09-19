@@ -69,6 +69,11 @@ export const MAX_APPEAL_MESSAGE_LENGTH = 1000;
  *  the review callable schema AND the admin work-view input. */
 export const MAX_THRESHOLD_REVIEW_NOTES_LENGTH = 2000;
 
+/** Operator-facing reason stamped on a threshold item whose publish parked terminally
+ *  (`publishParkedReason`). Server-authored text, bounded so a long copy-failure message
+ *  cannot grow the doc without limit. */
+export const MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH = 2000;
+
 // --- Moderation / safety operator text caps ---
 // Each is declared ONCE here and derived by every input schema AND persisted doc schema
 // that carries the field — the numbers must never be re-hardcoded at an enforcement point.

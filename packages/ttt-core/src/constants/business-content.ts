@@ -8,6 +8,7 @@ import {
   MAX_WORK_REALM_DESCRIPTION_LENGTH,
 } from "./business-work-project.js";
 import { ACTIVE_LIMITS } from './app-mode.js';
+import { HALL_LIBRARY_TARGET_FIELDS } from '../media/hall-library-target-fields.js';
 import type { WorkProjectType } from '../types/content.js';
 
 /** The maximum character length for a SquareStreetz post created on behalf of a workProject. */
@@ -187,6 +188,73 @@ export const HALL_CONTENT_SURFACES_BY_WORK_TYPE = {
     subItemFields: MODERATION_CLEARABLE_TEXT_FIELDS.televisionEpisode,
   },
 } as const satisfies Record<WorkProjectType, HallContentSurfaceRouting>;
+
+/**
+ * Work-shell text field → the field it appears as on the PUBLISHED hall parent
+ * (`PublishedHallItem`): a Work's `workingTitle` is the hall item's `title`, its
+ * `workingDescription` the hall item's `description`. The moderation placeholder writers
+ * dual-write the shell and its published projection through a COMPUTED key, so the mapping
+ * has to be a closed const map whose values are declared `PublishedHallItem` keys rather than
+ * an inline ternary over two string literals. Both sides are projected from the canonical
+ * clearable-field map, so neither name is restated here.
+ */
+export const WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD = {
+  [MODERATION_CLEARABLE_TEXT_FIELDS.workProject[0]]: MODERATION_CLEARABLE_TEXT_FIELDS.tale[0], // workingTitle → title
+  [MODERATION_CLEARABLE_TEXT_FIELDS.workProject[1]]: MODERATION_CLEARABLE_TEXT_FIELDS.tale[1], // workingDescription → description
+} as const satisfies Record<
+  (typeof MODERATION_CLEARABLE_TEXT_FIELDS)['workProject'][number],
+  (typeof MODERATION_CLEARABLE_TEXT_FIELDS)['tale'][number]
+>;
+
+// --- Hall sub-item publish requirements ---
+
+/**
+ * CANONICAL per-work-type rule for what a Tale chapter / Tune track / Television episode must
+ * carry before it may be submitted, approved, or published. ONE owner for the member-side
+ * eligibility filter, the submit core, the approve core, and the publish core — each of which
+ * otherwise restates the same three-way branch (ENG-002 / ENG-005).
+ *
+ * Every type requires a non-empty `title` and `photoAssetId`; a Tale chapter additionally
+ * requires its `content`, a Tune track its audio, a Television episode its video. The media
+ * field names are PROJECTED from the canonical upload target-field map and the text field names
+ * from the clearable-field map, so no field literal is restated. These are exactly the fields
+ * the published sub-item schemas (`PublishedChapter` / `PublishedTuneTrack` /
+ * `PublishedTelevisionEpisode`) declare as REQUIRED.
+ */
+export const HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE = {
+  Tales: [
+    MODERATION_CLEARABLE_TEXT_FIELDS.chapter[0], // title
+    HALL_LIBRARY_TARGET_FIELDS['chapter-photo'], // photoAssetId
+    MODERATION_CLEARABLE_TEXT_FIELDS.chapter[1], // content
+  ],
+  Tunes: [
+    MODERATION_CLEARABLE_TEXT_FIELDS.tuneTrack[0], // title
+    HALL_LIBRARY_TARGET_FIELDS['tune-track-photo'], // photoAssetId
+    HALL_LIBRARY_TARGET_FIELDS['tune-track-audio'], // audioAssetId
+  ],
+  Television: [
+    MODERATION_CLEARABLE_TEXT_FIELDS.televisionEpisode[0], // title
+    HALL_LIBRARY_TARGET_FIELDS['television-episode-photo'], // photoAssetId
+    HALL_LIBRARY_TARGET_FIELDS['television-episode-video'], // videoAssetId
+  ],
+} as const satisfies Record<WorkProjectType, readonly string[]>;
+
+/** A field name some work type requires on a publishable hall sub-item. */
+export type HallSubItemRequiredField =
+  (typeof HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE)[WorkProjectType][number];
+
+/**
+ * User-facing wording for each required sub-item field, used when a surface has to say what is
+ * still missing. Keyed on the derived union, so a new requirement fails the build until it has
+ * wording.
+ */
+export const HALL_SUB_ITEM_REQUIREMENT_LABELS = {
+  title: 'a title',
+  content: 'chapter text',
+  photoAssetId: 'a picture',
+  audioAssetId: 'an audio file',
+  videoAssetId: 'a video file',
+} as const satisfies Record<HallSubItemRequiredField, string>;
 
 /** Admin decision reason on a published change request (required on a deny; shown to
  *  the member). One owner for the review callable schema AND the admin work-view input. */

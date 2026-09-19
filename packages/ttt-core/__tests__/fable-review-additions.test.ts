@@ -23,15 +23,15 @@ describe('hiddenBy marker on published projections', () => {
   const bases = {
     PublishedTuneTrack: {
       schema: PublishedTuneTrackSchema,
-      valid: { uid: 't1', title: 'T', order: 0, audioAssetId: 'a1', hidden: true },
+      valid: { uid: 't1', title: 'T', order: 0, audioAssetId: 'a1', photoAssetId: 'p1', hidden: true },
     },
     PublishedChapter: {
       schema: PublishedChapterSchema,
-      valid: { uid: 'c1', title: 'C', order: 0, content: 'body', hidden: true },
+      valid: { uid: 'c1', title: 'C', order: 0, content: 'body', photoAssetId: 'p1', hidden: true },
     },
     PublishedTelevisionEpisode: {
       schema: PublishedTelevisionEpisodeSchema,
-      valid: { uid: 'e1', title: 'E', order: 0, videoAssetId: 'v1', hidden: true },
+      valid: { uid: 'e1', title: 'E', order: 0, videoAssetId: 'v1', photoAssetId: 'p1', hidden: true },
     },
   };
 
@@ -53,6 +53,9 @@ describe('hiddenBy marker on published projections', () => {
       createdOn: 1,
       hallWingType: 'entertainment',
       hidden: true,
+      coverSquareAssetId: 'a1',
+      coverPosterAssetId: 'a2',
+      coverCinematicAssetId: 'a3',
     };
     expect(
       PublishedHallItemSchema.safeParse({

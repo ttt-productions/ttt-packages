@@ -7,8 +7,7 @@
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import { ModerationEdgeSyncOpSchema, ModerationEdgeSyncStateSchema } from './moderation.js';
-import { HallContentTextPatchSchema } from '../schemas/hall-library.js';
-import { HALL_CONTENT_SURFACES_BY_WORK_TYPE } from '../constants/business-content.js';
+import { MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH } from '../constants/business-admin.js';
 
 const contentStatusSchema = z.enum(['unpublished', 'pending_approval', 'published']);
 
@@ -161,6 +160,14 @@ export const ThresholdItemSchema = z.object({
   confirmedNoCredits: z.literal(true).optional(),
   confirmedConsistentFormat: z.literal(true).optional(),
   confirmedRealPeopleAttestation: z.literal(true).optional(),
+  // Terminal publish PARK. An approved item whose publish stops without publishing (source media
+  // ineligible, a blocking safety hold, a moderation hide landing after approval, an invalid work
+  // type) leaves the threshold doc + admin task in place for operator intervention. The reason was
+  // only ever visible in Sentry and the `system.manualIntervention` audit event; stamping it here
+  // is what lets the admin review work view say WHY the item is sitting there. Optional because
+  // only a park stamps it, and `reviewStatus` keeps its meaning — a park is not a new status.
+  publishParkedReason: z.string().max(MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH).optional(),
+  publishParkedAt: z.number().optional(),
 });
 export type ThresholdItem = z.infer<typeof ThresholdItemSchema>;
 
@@ -200,7 +207,7 @@ export type PublishedHallItemStatus = z.infer<typeof PublishedHallItemStatusSche
 // item + its live in-Work source doc; deny = nothing changes, `resolutionReason` shown
 // to the member. Writes are callable-only; reads are the owning work's active guildmates
 // + admins. `requestKind` future-proofs a media variant (new kind, no schema break).
-const HallContentChangeRequestCanonicalSchema = z.object({
+export const HallContentChangeRequestSchema = z.object({
   changeRequestId: z.string(),
   requestKind: z.literal('text'),
   // One-open-per-target enforcement/query key. Hall grains:
@@ -221,9 +228,11 @@ const HallContentChangeRequestCanonicalSchema = z.object({
   // chapter/track/episode sub-item.
   subItemId: z.string().nullable(),
   proposerUid: z.string(),
-  // Closed, surface-discriminated text patch. The persisted surface and patch surface must
-  // agree, and the patch contains only fields that surface owns.
-  proposedFields: HallContentTextPatchSchema,
+  // Raw doc field name → proposed new text. The top-level `surface` is the single
+  // authoritative discriminator; allowlist + per-field caps are enforced at the backend
+  // boundary by `validateHallContentTextFields` against HALL_CONTENT_TEXT_FIELDS /
+  // HALL_CONTENT_TEXT_FIELD_MAX.
+  proposedFields: z.record(z.string(), z.string()),
   status: z.enum(['requested', 'approved', 'denied']),
   createdAt: z.number(),
   lastUpdatedAt: z.number(),
@@ -231,71 +240,7 @@ const HallContentChangeRequestCanonicalSchema = z.object({
   resolvedBy: z.string().optional(),
   // Admin's reason, surfaced to the member (required on a deny).
   resolutionReason: z.string().optional(),
-}).superRefine((value, ctx) => {
-  const patchSurface = value.proposedFields.surface;
-  if (patchSurface !== value.surface) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'The proposed text patch surface must match the request surface.',
-      path: ['proposedFields', 'surface'],
-    });
-  }
-
-  if (value.surface === 'workRealm') {
-    if (value.hallItemId !== null || value.workProjectType !== null || value.workRealmId === null || value.subItemId !== null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'A workRealm request must carry only the realm target grain.',
-        path: ['surface'],
-      });
-    }
-    return;
-  }
-
-  if (value.hallItemId === null || value.workProjectType === null || value.workRealmId !== null) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'A Hall request must carry a hall item and work-project type, not a realm.',
-      path: ['surface'],
-    });
-    return;
-  }
-
-  const routing = HALL_CONTENT_SURFACES_BY_WORK_TYPE[value.workProjectType];
-  const expectedSurface = value.subItemId === null ? routing.detailSurface : routing.subItemSurface;
-  if (value.surface !== expectedSurface) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: `The target grain requires the ${expectedSurface} surface.`,
-      path: ['surface'],
-    });
-  }
 });
-
-/**
- * Older valid rows stored the same closed fields directly as a map and already carry
- * the authoritative request-level surface. Normalize that legacy representation while
- * reading so deployment does not strand outstanding requests; all new writers use the
- * closed discriminated patch above.
- */
-export const HallContentChangeRequestSchema = z.preprocess((raw) => {
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return raw;
-  const value = raw as Record<string, unknown>;
-  const proposedFields = value.proposedFields;
-  if (
-    typeof proposedFields === 'object'
-    && proposedFields !== null
-    && !Array.isArray(proposedFields)
-    && !Object.prototype.hasOwnProperty.call(proposedFields, 'surface')
-    && typeof value.surface === 'string'
-  ) {
-    return {
-      ...value,
-      proposedFields: { surface: value.surface, fields: proposedFields },
-    };
-  }
-  return raw;
-}, HallContentChangeRequestCanonicalSchema);
 export type HallContentChangeRequest = z.infer<typeof HallContentChangeRequestSchema>;
 
 export const PublishedHallItemSchema = z.object({
@@ -308,9 +253,12 @@ export const PublishedHallItemSchema = z.object({
   hallWingType: z.enum(HALL_WING_TYPE_KEYS),
   title: z.string().optional(),
   description: z.string().optional(),
-  coverSquareAssetId: z.string().optional(),
-  coverPosterAssetId: z.string().optional(),
-  coverCinematicAssetId: z.string().optional(),
+  // REQUIRED on the published hall parent: all three covers are a publish-readiness rule, so a
+  // published entry always carries every one. The working/draft section docs (FullTale / FullTune /
+  // FullTelevision) keep them optional — that is where covers are uploaded one at a time.
+  coverSquareAssetId: z.string().min(1),
+  coverPosterAssetId: z.string().min(1),
+  coverCinematicAssetId: z.string().min(1),
   workGenres: z.array(z.string()).optional(),
   followerCount: z.number().optional(),
   hidden: z.boolean(),
@@ -337,8 +285,11 @@ export const PublishedTuneTrackSchema = z.object({
   title: z.string(),
   order: z.number(),
   description: z.string().optional(),
-  audioAssetId: z.string(),
-  photoAssetId: z.string().optional(),
+  // REQUIRED on a published sub-item (HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Tunes): a track
+  // reaches the Hall only with its audio and its picture. The working `FullTuneTrack` keeps both
+  // optional — that shape has to be able to represent incomplete content.
+  audioAssetId: z.string().min(1),
+  photoAssetId: z.string().min(1),
   hidden: z.boolean(),
   // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
   hiddenBy: z.enum(['direct', 'cascade']).optional(),
@@ -362,7 +313,9 @@ export const PublishedChapterSchema = z.object({
   order: z.number(),
   description: z.string().optional(),
   content: z.string(),
-  photoAssetId: z.string().optional(),
+  // REQUIRED on a published sub-item (HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Tales); the
+  // working `FullChapter` keeps it optional.
+  photoAssetId: z.string().min(1),
   hidden: z.boolean(),
   // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
   hiddenBy: z.enum(['direct', 'cascade']).optional(),
@@ -385,8 +338,11 @@ export const PublishedTelevisionEpisodeSchema = z.object({
   title: z.string(),
   order: z.number(),
   description: z.string().optional(),
-  videoAssetId: z.string(),
-  photoAssetId: z.string().optional(),
+  // REQUIRED on a published sub-item (HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE.Television): an
+  // episode reaches the Hall only with its video and its picture. The working
+  // `FullTelevisionEpisode` keeps the picture optional.
+  videoAssetId: z.string().min(1),
+  photoAssetId: z.string().min(1),
   hidden: z.boolean(),
   // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
   hiddenBy: z.enum(['direct', 'cascade']).optional(),

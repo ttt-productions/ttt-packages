@@ -1206,7 +1206,23 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| _(document)_ | `transform` |  |
+| `changeRequestId` | `string` |  |
+| `requestKind` | `"text"` |  |
+| `targetKey` | `string` |  |
+| `hallItemId` | `string \| null` |  |
+| `workProjectId` | `string` |  |
+| `workProjectType` | `'Tales' \| 'Tunes' \| 'Television' \| null` |  |
+| `surface` | `'tale' \| 'tune' \| 'television' \| 'chapter' \| 'tuneTrack' \| 'televisionEpisode' \| 'workRealm'` |  |
+| `workRealmId` | `string \| null` |  |
+| `subItemId` | `string \| null` |  |
+| `proposerUid` | `string` |  |
+| `proposedFields` | `Record<string, string>` |  |
+| `status` | `'requested' \| 'approved' \| 'denied'` |  |
+| `createdAt` | `number` |  |
+| `lastUpdatedAt` | `number` |  |
+| `resolvedAt` | `number` | yes |
+| `resolvedBy` | `string` | yes |
+| `resolutionReason` | `string` | yes |
 
 ## `hallItems/{hallItemId}`
 
@@ -1221,9 +1237,9 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `hallWingType` | `'entertainment' \| 'educational' \| 'newsPolitical'` |  |
 | `title` | `string` | yes |
 | `description` | `string` | yes |
-| `coverSquareAssetId` | `string` | yes |
-| `coverPosterAssetId` | `string` | yes |
-| `coverCinematicAssetId` | `string` | yes |
+| `coverSquareAssetId` | `string` |  |
+| `coverPosterAssetId` | `string` |  |
+| `coverCinematicAssetId` | `string` |  |
 | `workGenres` | `string[]` | yes |
 | `followerCount` | `number` | yes |
 | `hidden` | `boolean` |  |
@@ -1242,7 +1258,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `order` | `number` |  |
 | `description` | `string` | yes |
 | `content` | `string` |  |
-| `photoAssetId` | `string` | yes |
+| `photoAssetId` | `string` |  |
 | `hidden` | `boolean` |  |
 | `hiddenBy` | `'direct' \| 'cascade'` | yes |
 | `moderationClearedFields` | `string[]` | yes |
@@ -1264,7 +1280,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `order` | `number` |  |
 | `description` | `string` | yes |
 | `videoAssetId` | `string` |  |
-| `photoAssetId` | `string` | yes |
+| `photoAssetId` | `string` |  |
 | `hidden` | `boolean` |  |
 | `hiddenBy` | `'direct' \| 'cascade'` | yes |
 | `moderationClearedFields` | `string[]` | yes |
@@ -1286,7 +1302,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `order` | `number` |  |
 | `description` | `string` | yes |
 | `audioAssetId` | `string` |  |
-| `photoAssetId` | `string` | yes |
+| `photoAssetId` | `string` |  |
 | `hidden` | `boolean` |  |
 | `hiddenBy` | `'direct' \| 'cascade'` | yes |
 | `moderationClearedFields` | `string[]` | yes |
@@ -2336,6 +2352,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `confirmedNoCredits` | `true` | yes |
 | `confirmedConsistentFormat` | `true` | yes |
 | `confirmedRealPeopleAttestation` | `true` | yes |
+| `publishParkedReason` | `string` | yes |
+| `publishParkedAt` | `number` | yes |
 
 ## `userProfiles/{userId}`
 
