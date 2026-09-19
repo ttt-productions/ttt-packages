@@ -36,7 +36,9 @@ export type PublicUsersReconcilerCursor = z.infer<typeof PublicUsersReconcilerCu
 // plus the currently open grant window. The secret is returned to the client EXACTLY ONCE by
 // enrollOperatorStepUp and is never readable through Firestore afterwards; `status` goes
 // 'pending' → 'active' on confirm, and each successful verify pushes `grantExpiresAt` out by
-// the step-up window. (functions/src/safety/operatorStepUp.ts)
+// the step-up window. `failedAttempts` and `lockedUntil` make the server-side TOTP brute-force
+// lockout durable; omitted fields are the compatible no-lockout state for rows written before
+// that protection shipped. (functions/src/safety/operatorStepUp.ts)
 export const OperatorStepUpSchema = z.object({
   secret: z.string(),
   status: z.enum(['pending', 'active']),
@@ -46,6 +48,10 @@ export const OperatorStepUpSchema = z.object({
   updatedAt: z.number(),
   /** Set when enrollment is confirmed (status flips to 'active'). */
   confirmedAt: z.number().optional(),
+  /** Consecutive failed TOTP checks since the most recent success or lockout. */
+  failedAttempts: z.number().int().nonnegative().optional(),
+  /** Epoch ms until which TOTP verification is refused; absent or 0 means not locked. */
+  lockedUntil: z.number().nonnegative().optional(),
 });
 export type OperatorStepUp = z.infer<typeof OperatorStepUpSchema>;
 

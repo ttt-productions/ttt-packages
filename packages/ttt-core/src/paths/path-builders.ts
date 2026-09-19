@@ -10,9 +10,11 @@ import {
   WORK_REALM_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
   SPECIAL_DOCS,
+  HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE,
   type HallItemSubcollection,
 } from './collections.js';
 import type { FollowableTargetType } from '../schemas/social.js';
+import type { WorkProjectType } from '../types/content.js';
 
 export const PATH_BUILDERS = {
   // ===== USER PATHS =====
@@ -153,6 +155,12 @@ export const PATH_BUILDERS = {
   // collection instead of failing.
   hallItemType: (hallItemId: string, subcollection: HallItemSubcollection, itemId: string): [string, string, string, string] =>
     [COLLECTIONS.HALL_ITEMS, hallItemId, subcollection, itemId],
+
+  // A published Hall sub-item's path is determined by its canonical identity, never a
+  // caller-provided collection segment. This is the path used by typed administrative replay
+  // targets as well as ordinary Hall moderation operations.
+  hallItemSubItem: (hallItemId: string, workProjectType: WorkProjectType, itemId: string): [string, string, string, string] =>
+    [COLLECTIONS.HALL_ITEMS, hallItemId, HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE[workProjectType], itemId],
 
   // Collection of published hall sub-items for one type (parent of hallItemType). The
   // subcollection segment is the canonical HallItemSubcollection — derive it from

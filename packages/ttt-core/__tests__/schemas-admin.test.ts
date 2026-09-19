@@ -8,6 +8,7 @@ import {
   StagedActionSchema,
   GetReportedContentDetailResultSchema,
   UpdateAppConfigInputSchema,
+  AdminReplayDeadLetterInputSchema,
 } from '../src/schemas/admin.js';
 import { AppConfigSchema } from '../src/doc-schemas/system.js';
 import {
@@ -16,6 +17,56 @@ import {
   HALL_CONTENT_SURFACES_BY_WORK_TYPE,
 } from '../src/constants/business-content.js';
 import { MAX_ANNOUNCEMENT_MESSAGE_LENGTH } from '../src/constants/business-admin.js';
+import { OperatorStepUpSchema } from '../src/doc-schemas/backend-state.js';
+
+describe('AdminReplayDeadLetterInputSchema', () => {
+  const common = { reason: 'The upstream edge service recovered.' };
+
+  it('keeps ordinary dead-letter targets as a flat collection/doc id pair', () => {
+    expect(AdminReplayDeadLetterInputSchema.safeParse({
+      ...common,
+      collection: 'chatSyncEvents',
+      docId: 'event-1',
+    }).success).toBe(true);
+  });
+
+  it('requires canonical Hall identity fields instead of accepting a free-form nested path', () => {
+    const parsed = AdminReplayDeadLetterInputSchema.parse({
+      ...common,
+      collection: 'hallSubItemEdgeSync',
+      hallItemId: 'hall-1',
+      workProjectType: 'Tunes',
+      subItemId: 'track-1',
+    });
+    expect(parsed).toMatchObject({
+      collection: 'hallSubItemEdgeSync',
+      hallItemId: 'hall-1',
+      workProjectType: 'Tunes',
+      subItemId: 'track-1',
+    });
+    expect(AdminReplayDeadLetterInputSchema.safeParse({
+      ...common,
+      collection: 'hallSubItemEdgeSync',
+      docId: 'hallItems/hall-1/hallItemTunes/track-1',
+    }).success).toBe(false);
+  });
+});
+
+describe('OperatorStepUpSchema', () => {
+  const base = {
+    secret: 'server-only-secret',
+    status: 'active' as const,
+    createdAt: 1,
+    updatedAt: 2,
+  };
+
+  it('accepts durable brute-force lockout fields while preserving rows written before them', () => {
+    expect(OperatorStepUpSchema.safeParse(base).success).toBe(true);
+    expect(OperatorStepUpSchema.safeParse({ ...base, failedAttempts: 2, lockedUntil: 10 }).success).toBe(true);
+    expect(OperatorStepUpSchema.safeParse({ ...base, failedAttempts: -1 }).success).toBe(false);
+    expect(OperatorStepUpSchema.safeParse({ ...base, lockedUntil: -1 }).success).toBe(false);
+  });
+});
 
 describe('announcementMessage — the third operational lever on _config/app', () => {
   const baseConfig = {

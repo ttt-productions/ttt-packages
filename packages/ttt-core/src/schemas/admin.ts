@@ -742,9 +742,7 @@ export type ReopenSafetyCaseInput = z.infer<typeof ReopenSafetyCaseInputSchema>;
 // Dead-letter operations — adminReplayDeadLetter + getDeadLetters (Ops Repairs).
 // ---------------------------------------------------------------------------
 
-/** Every ledger the dead-letter replay callable supports. `hallSubItemEdgeSync`
- * rows live at a 4-segment nested path, so their docId IS the full document path
- * (the callable splits it); every other lane is the flat [collection, docId] tuple. */
+/** Every ledger the dead-letter replay callable supports. */
 export const DeadLetterCollectionSchema = z.enum([
   'chatSyncEvents',
   'chatAdminActionCommands',
@@ -762,15 +760,37 @@ export const DeadLetterCollectionSchema = z.enum([
 ]);
 export type DeadLetterCollection = z.infer<typeof DeadLetterCollectionSchema>;
 
+/** Every replay lane whose target is a flat top-level document. */
+export const FlatDeadLetterCollectionSchema = DeadLetterCollectionSchema.exclude(['hallSubItemEdgeSync']);
+export type FlatDeadLetterCollection = z.infer<typeof FlatDeadLetterCollectionSchema>;
+
+/**
+ * Canonical identity for a published Hall sub-item edge-sync replay target. The work type derives
+ * the only valid nested collection through PATH_BUILDERS.hallItemSubItem; callers never submit a
+ * Firestore path or collection segment.
+ */
+export const HallSubItemEdgeSyncReplayTargetSchema = z.object({
+  hallItemId: hallItemIdSchema,
+  workProjectType: workProjectTypeSchema,
+  subItemId: z.string().min(1),
+}).strict();
+export type HallSubItemEdgeSyncReplayTarget = z.infer<typeof HallSubItemEdgeSyncReplayTargetSchema>;
+
 export const AdminReplayDeadLetterInputSchema = z
-  .object({
-    collection: DeadLetterCollectionSchema,
-    // Structural id bound (hallSubItemEdgeSync docIds are full nested paths).
-    docId: z.string().min(1).max(200),
-    reason: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
-    dryRun: z.boolean().optional(),
-  })
-  .strict();
+  .discriminatedUnion('collection', [
+    z.object({
+      collection: FlatDeadLetterCollectionSchema,
+      docId: z.string().min(1).max(200),
+      reason: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
+      dryRun: z.boolean().optional(),
+    }).strict(),
+    z.object({
+      collection: z.literal('hallSubItemEdgeSync'),
+      ...HallSubItemEdgeSyncReplayTargetSchema.shape,
+      reason: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
+      dryRun: z.boolean().optional(),
+    }).strict(),
+  ]);
 export type AdminReplayDeadLetterInput = z.infer<typeof AdminReplayDeadLetterInputSchema>;
 
 export const GetDeadLettersInputSchema = z

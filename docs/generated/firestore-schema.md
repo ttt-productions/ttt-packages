@@ -1696,6 +1696,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
 | `confirmedAt` | `number` | yes |
+| `failedAttempts` | `number` | yes |
+| `lockedUntil` | `number` | yes |
 
 ## `paymentWebhookQuarantine/{stripeEventId}`
 

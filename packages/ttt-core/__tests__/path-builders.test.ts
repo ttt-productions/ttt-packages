@@ -224,6 +224,18 @@ describe('PATH_BUILDERS', () => {
       expect(result[3]).toBe('item1');
     });
 
+    it('hallItemSubItem derives every nested sub-item collection from the canonical work type', () => {
+      expect(PATH_BUILDERS.hallItemSubItem('hall-1', 'Tales', 'item-1')).toEqual([
+        COLLECTIONS.HALL_ITEMS, 'hall-1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales, 'item-1',
+      ]);
+      expect(PATH_BUILDERS.hallItemSubItem('hall-1', 'Tunes', 'item-1')).toEqual([
+        COLLECTIONS.HALL_ITEMS, 'hall-1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes, 'item-1',
+      ]);
+      expect(PATH_BUILDERS.hallItemSubItem('hall-1', 'Television', 'item-1')).toEqual([
+        COLLECTIONS.HALL_ITEMS, 'hall-1', HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Television, 'item-1',
+      ]);
+    });
+
     it('hall sub-item segments are independent compound names, NOT a lowercased WorkProjectType', () => {
       // ARCH-104: the segment carries its parent context. A `.toLowerCase()` derivation
       // would produce 'tales'/'tunes'/'television' — collections that do not exist.
