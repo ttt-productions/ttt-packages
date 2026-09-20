@@ -1,4 +1,5 @@
 import type { FileOrigin } from './file-origin.js';
+import type { HallContentTextSurface } from '../doc-schemas/content.js';
 
 // Server-side mapping from hallLibrary/sub-item fileOrigin to the doc field
 // that receives the processed media-asset reference (never a URL — see
@@ -56,6 +57,33 @@ export type HallLibraryCoverTargetField =
   typeof HALL_LIBRARY_COVER_TARGET_FIELDS[HallLibraryCoverFileOrigin];
 export type HallLibrarySubItemTargetField =
   typeof HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS[HallLibrarySubItemFileOrigin];
+
+/** The working sub-item surface addressed by a Hall-library sub-item upload. */
+export type HallLibrarySubItemSurface = Extract<
+  HallContentTextSurface,
+  'chapter' | 'tuneTrack' | 'televisionEpisode'
+>;
+
+/**
+ * Canonical upload-origin → working-sub-item routing. The processor uses this to derive
+ * publicationArgs, and the publication adapter uses the same declaration to reject a
+ * malformed persisted job before it can attach a media field to the wrong document shape.
+ */
+export const HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN = {
+  'chapter-photo': 'chapter',
+  'tune-track-photo': 'tuneTrack',
+  'tune-track-audio': 'tuneTrack',
+  'television-episode-photo': 'televisionEpisode',
+  'television-episode-video': 'televisionEpisode',
+} as const satisfies Record<HallLibrarySubItemFileOrigin, HallLibrarySubItemSurface>;
+
+/** True when this origin is valid for the addressed working sub-item surface. */
+export function isHallLibrarySubItemOriginForSurface(
+  origin: HallLibrarySubItemFileOrigin,
+  surface: HallLibrarySubItemSurface,
+): boolean {
+  return HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN[origin] === surface;
+}
 
 /** True when the origin writes a cover field on the hall parent / Work section doc. */
 export function isHallLibraryCoverFileOrigin(

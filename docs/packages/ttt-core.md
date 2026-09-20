@@ -146,7 +146,7 @@ The launch-era steward model is guild-standing-based: `StewardOwner` is the firs
 
 ## Upload target authority
 
-Hall-library cover and sub-item upload `targetInfo` schemas carry typed ids only. They must not accept client-provided Firestore paths or field maps. The consuming backend derives final document paths through `PATH_BUILDERS` and derives media URL fields through `HALL_LIBRARY_TARGET_FIELDS` from `src/media/hall-library-target-fields.ts`.
+Hall-library cover and sub-item upload `targetInfo` schemas carry typed ids only. They must not accept client-provided Firestore paths or field maps. The consuming backend derives final document paths through `PATH_BUILDERS`, derives media asset fields through `HALL_LIBRARY_TARGET_FIELDS`, and validates a persisted sub-item job's origin/surface pair through `HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN` from `src/media/hall-library-target-fields.ts`.
 
 When adding a new media origin that writes back to Firestore, add the target-info schema and any target-field mapping here first, then publish and consume it in `ttt-prod`. Do not let application code reconstruct the old `{ docPath, fields }` pattern locally.
 

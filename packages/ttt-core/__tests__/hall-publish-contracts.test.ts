@@ -40,7 +40,9 @@ import {
   HALL_LIBRARY_TARGET_FIELDS,
   HALL_LIBRARY_COVER_TARGET_FIELDS,
   HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS,
+  HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN,
   isHallLibraryCoverFileOrigin,
+  isHallLibrarySubItemOriginForSurface,
   isHallLibrarySubItemFileOrigin,
 } from '../src/media/hall-library-target-fields';
 import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
@@ -303,6 +305,22 @@ describe('the hall-library target-field map splits by write level', () => {
       expect({ origin, field })
         .toEqual({ origin, field: HALL_LIBRARY_TARGET_FIELDS[origin as keyof typeof HALL_LIBRARY_TARGET_FIELDS] });
     }
+  });
+
+  it('routes every sub-item origin to exactly its compatible working surface', () => {
+    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN).toEqual({
+      'chapter-photo': 'chapter',
+      'tune-track-photo': 'tuneTrack',
+      'tune-track-audio': 'tuneTrack',
+      'television-episode-photo': 'televisionEpisode',
+      'television-episode-video': 'televisionEpisode',
+    });
+    expect(Object.keys(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN).sort())
+      .toEqual(Object.keys(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS).sort());
+    expect(isHallLibrarySubItemOriginForSurface('chapter-photo', 'chapter')).toBe(true);
+    expect(isHallLibrarySubItemOriginForSurface('chapter-photo', 'tuneTrack')).toBe(false);
+    expect(isHallLibrarySubItemOriginForSurface('tune-track-audio', 'tuneTrack')).toBe(true);
+    expect(isHallLibrarySubItemOriginForSurface('television-episode-video', 'televisionEpisode')).toBe(true);
   });
 
   it('the type guards answer for exactly their own subset', () => {
