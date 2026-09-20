@@ -168,6 +168,31 @@ describe('COLLECTION_REFS', () => {
       );
     });
   });
+
+  describe('Media pipeline collection refs', () => {
+    it('pendingMedia returns single-element tuple', () => {
+      const result = COLLECTION_REFS.pendingMedia();
+      expect(result).toHaveLength(1);
+      expect(result[0]).toBe(COLLECTIONS.PENDING_MEDIA);
+    });
+
+    it('pendingMediaArchive returns single-element tuple', () => {
+      const result = COLLECTION_REFS.pendingMediaArchive();
+      expect(result).toHaveLength(1);
+      expect(result[0]).toBe(COLLECTIONS.PENDING_MEDIA_ARCHIVE);
+    });
+
+    it('both are the parent collections of their per-document builders', () => {
+      // The sweep reads and writes these as collections while the processors address single
+      // rows — a divergence would archive into a collection nothing reads.
+      expect(toPath(PATH_BUILDERS.pendingMedia('pm1'))).toBe(
+        `${toPath(COLLECTION_REFS.pendingMedia())}/pm1`,
+      );
+      expect(toPath(PATH_BUILDERS.pendingMediaArchive('pm1'))).toBe(
+        `${toPath(COLLECTION_REFS.pendingMediaArchive())}/pm1`,
+      );
+    });
+  });
 });
 
 

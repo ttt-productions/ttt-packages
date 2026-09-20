@@ -92,4 +92,12 @@ export const COLLECTION_REFS = {
   // PATH_BUILDERS.adminConversationMessage.
   adminDispatchConversationMessages: (adminDispatchId: string): [string, string, string] =>
     [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES],
+
+  // The upload pipeline's pending-row collection and the archive it sweeps terminal rows
+  // into. The sweep addresses both as COLLECTIONS (query the live one, write a row per
+  // archived doc); the per-document counterparts are PATH_BUILDERS.pendingMedia /
+  // PATH_BUILDERS.pendingMediaArchive.
+  pendingMedia: (): [string] => [COLLECTIONS.PENDING_MEDIA],
+
+  pendingMediaArchive: (): [string] => [COLLECTIONS.PENDING_MEDIA_ARCHIVE],
 } as const;

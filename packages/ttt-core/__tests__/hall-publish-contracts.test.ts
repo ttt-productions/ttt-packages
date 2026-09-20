@@ -36,7 +36,13 @@ import {
   WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD,
 } from '../src/constants/business-content';
 import { MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH } from '../src/constants/business-admin';
-import { HALL_LIBRARY_TARGET_FIELDS } from '../src/media/hall-library-target-fields';
+import {
+  HALL_LIBRARY_TARGET_FIELDS,
+  HALL_LIBRARY_COVER_TARGET_FIELDS,
+  HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS,
+  isHallLibraryCoverFileOrigin,
+  isHallLibrarySubItemFileOrigin,
+} from '../src/media/hall-library-target-fields';
 import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
 import {
   unmetHallSubItemRequirements,
@@ -245,25 +251,27 @@ describe('threshold item parked-publication state', () => {
 
 // --- Declared-key conformance for the closed maps writers index with a COMPUTED key ---
 
-describe('HALL_LIBRARY_TARGET_FIELDS values are declared keys on the docs they target', () => {
-  const TARGETS: Record<string, AnySchema[]> = {
-    'hallLibrary-cover-square': WORKING_SECTION_SCHEMAS as AnySchema[],
-    'hallLibrary-cover-poster': WORKING_SECTION_SCHEMAS as AnySchema[],
-    'hallLibrary-cover-cinematic': WORKING_SECTION_SCHEMAS as AnySchema[],
-    'chapter-photo': [FullChapterSchema as AnySchema, PublishedChapterSchema as AnySchema],
-    'tune-track-photo': [FullTuneTrackSchema as AnySchema, PublishedTuneTrackSchema as AnySchema],
-    'tune-track-audio': [FullTuneTrackSchema as AnySchema, PublishedTuneTrackSchema as AnySchema],
-    'television-episode-photo': [FullTelevisionEpisodeSchema as AnySchema, PublishedTelevisionEpisodeSchema as AnySchema],
-    'television-episode-video': [FullTelevisionEpisodeSchema as AnySchema, PublishedTelevisionEpisodeSchema as AnySchema],
-  };
+/** Which document schemas each hall-library upload origin's field is written onto. */
+const HALL_LIBRARY_ORIGIN_TARGETS: Record<string, AnySchema[]> = {
+  'hallLibrary-cover-square': WORKING_SECTION_SCHEMAS as AnySchema[],
+  'hallLibrary-cover-poster': WORKING_SECTION_SCHEMAS as AnySchema[],
+  'hallLibrary-cover-cinematic': WORKING_SECTION_SCHEMAS as AnySchema[],
+  'chapter-photo': [FullChapterSchema as AnySchema, PublishedChapterSchema as AnySchema],
+  'tune-track-photo': [FullTuneTrackSchema as AnySchema, PublishedTuneTrackSchema as AnySchema],
+  'tune-track-audio': [FullTuneTrackSchema as AnySchema, PublishedTuneTrackSchema as AnySchema],
+  'television-episode-photo': [FullTelevisionEpisodeSchema as AnySchema, PublishedTelevisionEpisodeSchema as AnySchema],
+  'television-episode-video': [FullTelevisionEpisodeSchema as AnySchema, PublishedTelevisionEpisodeSchema as AnySchema],
+};
 
+describe('HALL_LIBRARY_TARGET_FIELDS values are declared keys on the docs they target', () => {
   it('binds every origin in the map to the schemas it writes', () => {
-    expect(Object.keys(TARGETS).sort()).toEqual(Object.keys(HALL_LIBRARY_TARGET_FIELDS).sort());
+    expect(Object.keys(HALL_LIBRARY_ORIGIN_TARGETS).sort())
+      .toEqual(Object.keys(HALL_LIBRARY_TARGET_FIELDS).sort());
   });
 
   it('every mapped field is declared on each target schema', () => {
     for (const [origin, field] of Object.entries(HALL_LIBRARY_TARGET_FIELDS)) {
-      for (const schema of TARGETS[origin]) {
+      for (const schema of HALL_LIBRARY_ORIGIN_TARGETS[origin]) {
         expect({ origin, field, declared: declares(schema, field) })
           .toEqual({ origin, field, declared: true });
       }
@@ -273,6 +281,73 @@ describe('HALL_LIBRARY_TARGET_FIELDS values are declared keys on the docs they t
   it('the published covers are the same three fields the section docs receive', () => {
     for (const field of COVER_FIELDS) {
       expect(declares(PublishedHallItemSchema as AnySchema, field)).toBe(true);
+    }
+  });
+});
+
+describe('the hall-library target-field map splits by write level', () => {
+  it('the cover and sub-item subsets partition the parent map exactly', () => {
+    const coverOrigins = Object.keys(HALL_LIBRARY_COVER_TARGET_FIELDS);
+    const subItemOrigins = Object.keys(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS);
+
+    expect([...coverOrigins, ...subItemOrigins].sort())
+      .toEqual(Object.keys(HALL_LIBRARY_TARGET_FIELDS).sort());
+    expect(coverOrigins.filter((origin) => subItemOrigins.includes(origin))).toEqual([]);
+  });
+
+  it('each subset carries the parent map field for every origin it keeps', () => {
+    for (const [origin, field] of [
+      ...Object.entries(HALL_LIBRARY_COVER_TARGET_FIELDS),
+      ...Object.entries(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS),
+    ]) {
+      expect({ origin, field })
+        .toEqual({ origin, field: HALL_LIBRARY_TARGET_FIELDS[origin as keyof typeof HALL_LIBRARY_TARGET_FIELDS] });
+    }
+  });
+
+  it('the type guards answer for exactly their own subset', () => {
+    for (const origin of Object.keys(HALL_LIBRARY_TARGET_FIELDS)) {
+      expect(isHallLibraryCoverFileOrigin(origin)).toBe(origin in HALL_LIBRARY_COVER_TARGET_FIELDS);
+      expect(isHallLibrarySubItemFileOrigin(origin)).toBe(origin in HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS);
+    }
+    expect(isHallLibraryCoverFileOrigin('profile-picture')).toBe(false);
+    expect(isHallLibrarySubItemFileOrigin('profile-picture')).toBe(false);
+  });
+
+  it('every cover field is declared on the hall parent the cover writer targets', () => {
+    for (const [origin, field] of Object.entries(HALL_LIBRARY_COVER_TARGET_FIELDS)) {
+      for (const schema of HALL_LIBRARY_ORIGIN_TARGETS[origin]) {
+        expect({ origin, field, declared: declares(schema, field) })
+          .toEqual({ origin, field, declared: true });
+      }
+      expect(declares(PublishedHallItemSchema as AnySchema, field)).toBe(true);
+    }
+  });
+
+  it('every sub-item field is declared on the chapter / track / episode doc it targets', () => {
+    for (const [origin, field] of Object.entries(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS)) {
+      for (const schema of HALL_LIBRARY_ORIGIN_TARGETS[origin]) {
+        expect({ origin, field, declared: declares(schema, field) })
+          .toEqual({ origin, field, declared: true });
+      }
+    }
+  });
+
+  it('neither level can write the other level\'s fields', () => {
+    const coverFields = Object.values(HALL_LIBRARY_COVER_TARGET_FIELDS) as string[];
+    const subItemFields = Object.values(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS) as string[];
+
+    for (const field of coverFields) {
+      expect(subItemFields).not.toContain(field);
+      for (const schema of Object.values(WORKING_SUB_ITEM_SCHEMA)) {
+        expect(declares(schema as AnySchema, field)).toBe(false);
+      }
+    }
+    for (const field of subItemFields) {
+      expect(coverFields).not.toContain(field);
+      for (const schema of WORKING_SECTION_SCHEMAS) {
+        expect(declares(schema as AnySchema, field)).toBe(false);
+      }
     }
   });
 });
