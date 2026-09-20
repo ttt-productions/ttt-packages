@@ -26,9 +26,18 @@ helper, so a message-shaped diagnostic keeps its payload instead of having to re
 The explicit `level` argument stays the message's severity and is passed through to the provider;
 a `level` inside `context` is applied to the scope. Omitting `context` leaves the call on the plain
 provider path — no scope is opened. `withScope` is NOT a substitute for this parameter: when no
-provider instance is loaded yet, `withScope` runs its callback against a minimal no-op scope AND
-replays it asynchronously against the real scope, so a capture issued inside it reports twice. Both
-capture entry points instead open the scope internally on exactly one branch.
+provider instance is loaded yet, `withScope` runs its callback against a minimal no-op scope, so a
+capture issued inside it carries none of that scope's data. Both capture entry points instead open
+the scope internally on exactly one branch.
+
+## withScope invokes its callback exactly once
+
+`withScope(fn)` calls `fn` once on every path and returns its result. Once the SDK instance is
+loaded it runs through the real Sentry scope; during the narrow window before the dynamic import
+resolves it runs against a minimal no-op scope and that window's scope data is not attached. The
+callback is never replayed against the real scope afterwards — call sites wrap whole request
+handlers in `fn`, so a replay would re-execute their business logic. Losing pre-load scope data is
+the correct tradeoff against running the caller twice.
 
 ## Telemetry scrubber
 

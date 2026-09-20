@@ -128,19 +128,15 @@ export const SentryAdapter: MonitoringAdapter = {
       return result!;
     }
 
-    // Sentry not loaded yet — run with no-op scope, then replay async
+    // Sentry not loaded yet — run `fn` exactly once against a no-op scope. Its
+    // scope data is not attached, and it is never replayed against the real
+    // scope: `fn` is caller business logic and must not run twice.
     const minimalScope: ScopeLike = {
       setTag: () => {},
       setUser: () => {},
       setExtra: () => {},
       setContext: () => {},
     };
-
-    void (async () => {
-      const S = await getSentry();
-      if (!S.withScope) return;
-      S.withScope((scope) => fn(scope as any));
-    })();
 
     return fn(minimalScope);
   },

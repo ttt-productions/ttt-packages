@@ -119,14 +119,16 @@ export const SentryNodeAdapter: MonitoringAdapter = {
     })();
   },
 
-  // NOTE: withScope calls `fn` exactly once. When Sentry is already loaded
-  // (the expected steady state — `init()` awaits the dynamic import, and
-  // callers must await `initMonitoring()` before serving traffic), it runs
-  // synchronously through the real Sentry scope. Only during the narrow
-  // pre-load race window (a call that races the very first `getSentryNode()`
-  // resolution) does it fall back to a synchronous no-op-scope call plus an
-  // async replay against the real scope — mirroring the browser adapter's
-  // same accepted tradeoff for that same race window.
+  // NOTE: withScope calls `fn` exactly once, on every path. When Sentry is
+  // already loaded (the expected steady state — `init()` awaits the dynamic
+  // import, and callers must await `initMonitoring()` before serving traffic),
+  // it runs synchronously through the real Sentry scope. During the narrow
+  // pre-load window (a call that races the very first `getSentryNode()`
+  // resolution) it runs against a minimal no-op scope instead, so scope data
+  // set in that window is not attached to later events. Callers wrap whole
+  // request handlers in `fn`, so re-running it against the real scope once the
+  // SDK resolves would re-execute their business logic — losing that window's
+  // scope data is the correct tradeoff.
   withScope<T>(fn: (scope: ScopeLike) => T): T {
     if (sentryNodeInstance) {
       let result: T;
@@ -142,11 +144,6 @@ export const SentryNodeAdapter: MonitoringAdapter = {
       setExtra: () => {},
       setContext: () => {},
     };
-
-    void (async () => {
-      const S = await getSentryNode();
-      S.withScope((scope) => fn(scope as any));
-    })();
 
     return fn(minimalScope);
   },

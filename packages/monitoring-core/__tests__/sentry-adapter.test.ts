@@ -26,6 +26,73 @@ async function loadInitializedAdapter() {
     return SentryAdapter;
 }
 
+/** Let every pending microtask and timer-0 continuation run, so a replay would have fired. */
+async function flushPendingWork() {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+describe('SentryAdapter (browser) withScope', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.resetModules();
+    });
+
+    it('runs fn once through the real Sentry scope once loaded, returning its value', async () => {
+        const adapter = await loadInitializedAdapter();
+
+        const fn = vi.fn(() => 'result');
+        const result = adapter.withScope!(fn);
+
+        expect(fn).toHaveBeenCalledTimes(1);
+        expect(result).toBe('result');
+        expect(sentryMock.withScope).toHaveBeenCalledTimes(1);
+    });
+
+    it('invokes fn exactly once against the no-op scope pre-load and never replays it after the SDK loads', async () => {
+        const { SentryAdapter } = await import('../src/adapters/sentry');
+
+        const fn = vi.fn(() => 'early-result');
+        const result = SentryAdapter.withScope!(fn);
+
+        expect(fn).toHaveBeenCalledTimes(1);
+        expect(result).toBe('early-result');
+
+        await SentryAdapter.init({ provider: 'sentry', dsn: 'https://test@example.com/1', enabled: true });
+        await flushPendingWork();
+
+        expect(fn).toHaveBeenCalledTimes(1);
+        expect(sentryMock.withScope).not.toHaveBeenCalled();
+    });
+
+    it('returns an async fn\'s promise pre-load and resolves it once', async () => {
+        const { SentryAdapter } = await import('../src/adapters/sentry');
+
+        const fn = vi.fn(async () => 'async-result');
+        await expect(SentryAdapter.withScope!(fn)).resolves.toBe('async-result');
+
+        await SentryAdapter.init({ provider: 'sentry', dsn: 'https://test@example.com/1', enabled: true });
+        await flushPendingWork();
+
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects the returned promise once when an async fn throws pre-load, with no second un-awaited run', async () => {
+        const { SentryAdapter } = await import('../src/adapters/sentry');
+
+        const boom = new Error('boom');
+        const fn = vi.fn(async () => {
+            throw boom;
+        });
+        await expect(SentryAdapter.withScope!(fn)).rejects.toBe(boom);
+
+        await SentryAdapter.init({ provider: 'sentry', dsn: 'https://test@example.com/1', enabled: true });
+        await flushPendingWork();
+
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+});
+
 describe('SentryAdapter (browser) captureException context → tags vs extras', () => {
     beforeEach(() => {
         vi.clearAllMocks();

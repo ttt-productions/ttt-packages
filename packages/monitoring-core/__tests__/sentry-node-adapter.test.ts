@@ -26,6 +26,12 @@ async function loadInitializedAdapter() {
     return SentryNodeAdapter;
 }
 
+/** Let every pending microtask and timer-0 continuation run, so a replay would have fired. */
+async function flushPendingWork() {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 describe('SentryNodeAdapter', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -55,6 +61,51 @@ describe('SentryNodeAdapter', () => {
             })
         ).toThrow(boom);
         expect(sentryMock.withScope).toHaveBeenCalledTimes(1);
+    });
+
+    describe('withScope before the SDK import resolves', () => {
+        it('invokes fn exactly once against the no-op scope and never replays it after the SDK loads', async () => {
+            const { SentryNodeAdapter } = await import('../src/adapters/sentry-node');
+
+            const fn = vi.fn(() => 'early-result');
+            const result = SentryNodeAdapter.withScope!(fn);
+
+            expect(fn).toHaveBeenCalledTimes(1);
+            expect(result).toBe('early-result');
+
+            await SentryNodeAdapter.init({ provider: 'sentry-node', dsn: 'https://test@example.com/1', enabled: true });
+            await flushPendingWork();
+
+            expect(fn).toHaveBeenCalledTimes(1);
+            expect(sentryMock.withScope).not.toHaveBeenCalled();
+        });
+
+        it('returns an async fn\'s promise and resolves it once', async () => {
+            const { SentryNodeAdapter } = await import('../src/adapters/sentry-node');
+
+            const fn = vi.fn(async () => 'async-result');
+            await expect(SentryNodeAdapter.withScope!(fn)).resolves.toBe('async-result');
+
+            await SentryNodeAdapter.init({ provider: 'sentry-node', dsn: 'https://test@example.com/1', enabled: true });
+            await flushPendingWork();
+
+            expect(fn).toHaveBeenCalledTimes(1);
+        });
+
+        it('rejects the returned promise once when an async fn throws, with no second un-awaited run', async () => {
+            const { SentryNodeAdapter } = await import('../src/adapters/sentry-node');
+
+            const boom = new Error('boom');
+            const fn = vi.fn(async () => {
+                throw boom;
+            });
+            await expect(SentryNodeAdapter.withScope!(fn)).rejects.toBe(boom);
+
+            await SentryNodeAdapter.init({ provider: 'sentry-node', dsn: 'https://test@example.com/1', enabled: true });
+            await flushPendingWork();
+
+            expect(fn).toHaveBeenCalledTimes(1);
+        });
     });
 
     it('captureException forwards exactly once once Sentry is loaded (no duplicate report)', async () => {
