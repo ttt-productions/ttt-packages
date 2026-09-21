@@ -210,8 +210,8 @@ export const WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD = {
   [MODERATION_CLEARABLE_TEXT_FIELDS.workProject[0]]: MODERATION_CLEARABLE_TEXT_FIELDS.tale[0], // workingTitle → title
   [MODERATION_CLEARABLE_TEXT_FIELDS.workProject[1]]: MODERATION_CLEARABLE_TEXT_FIELDS.tale[1], // workingDescription → description
 } as const satisfies Record<
-  (typeof MODERATION_CLEARABLE_TEXT_FIELDS)['workProject'][number],
-  (typeof MODERATION_CLEARABLE_TEXT_FIELDS)['tale'][number]
+  (typeof MODERATION_CLEARABLE_TEXT_FIELDS.workProject)[number],
+  (typeof MODERATION_CLEARABLE_TEXT_FIELDS.tale)[number]
 >;
 
 // --- Hall sub-item publish requirements ---
