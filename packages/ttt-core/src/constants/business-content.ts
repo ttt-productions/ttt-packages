@@ -10,6 +10,12 @@ import {
 import { ACTIVE_LIMITS } from './app-mode.js';
 import { HALL_LIBRARY_TARGET_FIELDS } from '../media/hall-library-target-fields.js';
 import type { WorkProjectType } from '../types/content.js';
+import { HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE } from './hall-content-routing.js';
+export {
+  HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE,
+  type HallContentDetailSurface,
+  type HallContentSubItemSurface,
+} from './hall-content-routing.js';
 
 /** The maximum character length for a SquareStreetz post created on behalf of a workProject. */
 export const MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH = 150;
@@ -156,35 +162,35 @@ export interface HallContentSurfaceRouting {
 }
 
 /**
- * CANONICAL WorkProjectType → hall text-surface routing. The ONE owner of "a Tale's sub-item is
- * a chapter, a Tune's is a tuneTrack, a Television's is a televisionEpisode" and of which fields
- * each of those surfaces exposes. Cross-boundary: the backend text-clear and change-request
+ * WorkProjectType → hall text-surface routing. Surface identities project from the lower-level
+ * `HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE` owner; this map adds the clearable field tuples each
+ * surface exposes. Cross-boundary: the backend text-clear and change-request
  * runners resolve `surface` from (workProjectType, is-sub-item?) through this map, and the admin
  * field pickers project their checkbox options from the same entry — three sites that each
  * hand-rolled the routing before (a ternary that fell through to the tuneTrack tuple for
  * Television, silently correct only because the two tuples happen to match today).
  *
- * Every field tuple is PROJECTED from MODERATION_CLEARABLE_TEXT_FIELDS above — no field literal
- * is restated here — and the `satisfies Record<WorkProjectType, …>` makes adding a work-project
- * type a compile error until its surfaces are routed.
+ * Every identity and field tuple is PROJECTED from its canonical owner — no surface or field
+ * literal is restated here — and the `satisfies Record<WorkProjectType, …>` makes adding a
+ * work-project type a compile error until its surfaces are routed.
  */
 export const HALL_CONTENT_SURFACES_BY_WORK_TYPE = {
   Tales: {
-    detailSurface: 'tale',
+    detailSurface: HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tales.detailSurface,
     detailFields: MODERATION_CLEARABLE_TEXT_FIELDS.tale,
-    subItemSurface: 'chapter',
+    subItemSurface: HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tales.subItemSurface,
     subItemFields: MODERATION_CLEARABLE_TEXT_FIELDS.chapter,
   },
   Tunes: {
-    detailSurface: 'tune',
+    detailSurface: HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.detailSurface,
     detailFields: MODERATION_CLEARABLE_TEXT_FIELDS.tune,
-    subItemSurface: 'tuneTrack',
+    subItemSurface: HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.subItemSurface,
     subItemFields: MODERATION_CLEARABLE_TEXT_FIELDS.tuneTrack,
   },
   Television: {
-    detailSurface: 'television',
+    detailSurface: HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Television.detailSurface,
     detailFields: MODERATION_CLEARABLE_TEXT_FIELDS.television,
-    subItemSurface: 'televisionEpisode',
+    subItemSurface: HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Television.subItemSurface,
     subItemFields: MODERATION_CLEARABLE_TEXT_FIELDS.televisionEpisode,
   },
 } as const satisfies Record<WorkProjectType, HallContentSurfaceRouting>;

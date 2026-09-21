@@ -32,6 +32,8 @@ import {
 import {
   HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE,
   HALL_SUB_ITEM_REQUIREMENT_LABELS,
+  HALL_CONTENT_SURFACES_BY_WORK_TYPE,
+  HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE,
   MODERATION_CLEARABLE_TEXT_FIELDS,
   WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD,
 } from '../src/constants/business-content';
@@ -317,10 +319,35 @@ describe('the hall-library target-field map splits by write level', () => {
     });
     expect(Object.keys(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN).sort())
       .toEqual(Object.keys(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS).sort());
-    expect(isHallLibrarySubItemOriginForSurface('chapter-photo', 'chapter')).toBe(true);
-    expect(isHallLibrarySubItemOriginForSurface('chapter-photo', 'tuneTrack')).toBe(false);
-    expect(isHallLibrarySubItemOriginForSurface('tune-track-audio', 'tuneTrack')).toBe(true);
-    expect(isHallLibrarySubItemOriginForSurface('television-episode-video', 'televisionEpisode')).toBe(true);
+    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['chapter-photo'])
+      .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tales.subItemSurface);
+    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['tune-track-photo'])
+      .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.subItemSurface);
+    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['tune-track-audio'])
+      .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.subItemSurface);
+    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['television-episode-photo'])
+      .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Television.subItemSurface);
+    expect(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN['television-episode-video'])
+      .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Television.subItemSurface);
+    for (const workType of WORK_PROJECT_TYPE_KEYS) {
+      expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE[workType].detailSurface)
+        .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[workType].detailSurface);
+      expect(HALL_CONTENT_SURFACES_BY_WORK_TYPE[workType].subItemSurface)
+        .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[workType].subItemSurface);
+    }
+
+    const surfaces = Object.values(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE).map(
+      (routing) => routing.subItemSurface,
+    );
+    for (const origin of Object.keys(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN) as Array<
+      keyof typeof HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN
+    >) {
+      for (const surface of surfaces) {
+        expect(isHallLibrarySubItemOriginForSurface(origin, surface)).toBe(
+          HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN[origin] === surface,
+        );
+      }
+    }
   });
 
   it('the type guards answer for exactly their own subset', () => {

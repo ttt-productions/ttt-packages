@@ -1,5 +1,8 @@
 import type { FileOrigin } from './file-origin.js';
-import type { HallContentTextSurface } from '../doc-schemas/content.js';
+import {
+  HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE,
+  type HallContentSubItemSurface,
+} from '../constants/hall-content-routing.js';
 
 // Server-side mapping from hallLibrary/sub-item fileOrigin to the doc field
 // that receives the processed media-asset reference (never a URL — see
@@ -59,10 +62,7 @@ export type HallLibrarySubItemTargetField =
   typeof HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS[HallLibrarySubItemFileOrigin];
 
 /** The working sub-item surface addressed by a Hall-library sub-item upload. */
-export type HallLibrarySubItemSurface = Extract<
-  HallContentTextSurface,
-  'chapter' | 'tuneTrack' | 'televisionEpisode'
->;
+export type HallLibrarySubItemSurface = HallContentSubItemSurface;
 
 /**
  * Canonical upload-origin → working-sub-item routing. The processor uses this to derive
@@ -70,11 +70,11 @@ export type HallLibrarySubItemSurface = Extract<
  * malformed persisted job before it can attach a media field to the wrong document shape.
  */
 export const HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN = {
-  'chapter-photo': 'chapter',
-  'tune-track-photo': 'tuneTrack',
-  'tune-track-audio': 'tuneTrack',
-  'television-episode-photo': 'televisionEpisode',
-  'television-episode-video': 'televisionEpisode',
+  'chapter-photo': HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tales.subItemSurface,
+  'tune-track-photo': HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.subItemSurface,
+  'tune-track-audio': HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.subItemSurface,
+  'television-episode-photo': HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Television.subItemSurface,
+  'television-episode-video': HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Television.subItemSurface,
 } as const satisfies Record<HallLibrarySubItemFileOrigin, HallLibrarySubItemSurface>;
 
 /** True when this origin is valid for the addressed working sub-item surface. */
