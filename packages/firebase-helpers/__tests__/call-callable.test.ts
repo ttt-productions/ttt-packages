@@ -227,3 +227,172 @@ describe("callCallable limited-use App Check", () => {
     expect("limitedUseAppCheckTokens" in opts).toBe(false);
   });
 });
+
+// The limited-use App Check THROTTLE FALLBACK. The SDK's limited-use path calls
+// the App Check provider's getToken() with no catch, so one failed exchange puts
+// the provider into its backoff window and every later limited-use invocation
+// rejects (`appCheck/initial-throttle`, then `appCheck/throttled`) BEFORE
+// reaching the wire. callCallable retries exactly once on the standard cached
+// token — safe against double submission precisely because nothing was sent.
+describe("callCallable limited-use App Check throttle fallback", () => {
+  const throttleError = (code: string) => Object.assign(new Error(code), { code });
+
+  it.each(["appCheck/throttled", "appCheck/initial-throttle"])(
+    "retries once WITHOUT the limited-use option after %s and returns the retry's data",
+    async (code) => {
+      vi.mocked(httpsCallable).mockClear();
+      invokeSpy.mockRejectedValueOnce(throttleError(code));
+      invokeSpy.mockResolvedValueOnce({ data: { ok: "fallback" } });
+
+      const out = await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, {
+        limitedUseAppCheck: true,
+      });
+
+      expect(out).toEqual({ ok: "fallback" });
+      expect(invokeSpy).toHaveBeenCalledTimes(2);
+      const calls = vi.mocked(httpsCallable).mock.calls;
+      expect(calls).toHaveLength(2);
+      expect(calls[0][2]).toEqual({ limitedUseAppCheckTokens: true });
+      // The retry takes the standard cached-token path: the option is ABSENT.
+      expect(calls[1][2]).toBeUndefined();
+    },
+  );
+
+  it("reports the fallback through captureException with the flag and no payload", async () => {
+    const thrown = throttleError("appCheck/throttled");
+    invokeSpy.mockRejectedValueOnce(thrown);
+    invokeSpy.mockResolvedValueOnce({ data: { ok: true } });
+    const onError = vi.fn();
+    const captureException = vi.fn();
+
+    await callCallable(
+      fakeFunctions,
+      "fn",
+      { secret: "x" },
+      { onError, captureException },
+      { limitedUseAppCheck: true, timeoutMs: 30_000 },
+    );
+
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException).toHaveBeenCalledWith(thrown, {
+      functionName: "fn",
+      timeoutMs: 30_000,
+      limitedUseAppCheckFallback: true,
+    });
+    const ctx = captureException.mock.calls[0][1] as Record<string, unknown>;
+    expect("requestData" in ctx).toBe(false);
+    expect(JSON.stringify(ctx)).not.toContain("secret");
+    // A recovered call is not a caller-visible failure.
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("sends the same stripped payload on the retry", async () => {
+    invokeSpy.mockRejectedValueOnce(throttleError("appCheck/throttled"));
+    invokeSpy.mockResolvedValueOnce({ data: { ok: true } });
+    await callCallable(
+      fakeFunctions,
+      "fn",
+      { userId: "u1", reason: undefined },
+      undefined,
+      { limitedUseAppCheck: true },
+    );
+    expect(invokeSpy.mock.calls[1][0]).toEqual({ userId: "u1" });
+  });
+
+  it("never falls back when limited-use was not requested", async () => {
+    invokeSpy.mockRejectedValueOnce(throttleError("appCheck/throttled"));
+    const captureException = vi.fn();
+    await expect(
+      callCallable(fakeFunctions, "fn", { a: 1 }, { captureException }),
+    ).rejects.toMatchObject({ code: "appCheck/throttled" });
+    expect(invokeSpy).toHaveBeenCalledTimes(1);
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException.mock.calls[0][1]).toEqual({ functionName: "fn", timeoutMs: undefined });
+  });
+
+  it("never falls back for any other error class", async () => {
+    for (const code of ["functions/internal", "functions/failed-precondition", "appCheck/fetch-status-error"]) {
+      invokeSpy.mockReset();
+      invokeSpy.mockRejectedValueOnce(throttleError(code));
+      await expect(
+        callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: true }),
+      ).rejects.toMatchObject({ code });
+      expect(invokeSpy).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it("retries at most once — a second throttle from the fallback surfaces as-is", async () => {
+    invokeSpy.mockRejectedValueOnce(throttleError("appCheck/initial-throttle"));
+    invokeSpy.mockRejectedValueOnce(throttleError("appCheck/throttled"));
+    await expect(
+      callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: true }),
+    ).rejects.toMatchObject({ code: "appCheck/throttled" });
+    expect(invokeSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("surfaces the RETRY's error with the failure callbacks fired once for it", async () => {
+    const retryFailure = Object.assign(new Error("retry blew up"), { code: "functions/internal" });
+    invokeSpy.mockRejectedValueOnce(throttleError("appCheck/throttled"));
+    invokeSpy.mockRejectedValueOnce(retryFailure);
+    const onError = vi.fn();
+    const captureException = vi.fn();
+
+    await expect(
+      callCallable(fakeFunctions, "fn", { a: 1 }, { onError, captureException }, { limitedUseAppCheck: true }),
+    ).rejects.toThrow("retry blew up");
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(retryFailure, { functionName: "fn", requestData: { a: 1 } });
+    // Exactly one FAILURE report for the retry's error, alongside the single
+    // informational fallback report — no duplicate capture of the final failure.
+    const failureReports = captureException.mock.calls.filter(
+      ([, ctx]) => (ctx as Record<string, unknown>).limitedUseAppCheckFallback !== true,
+    );
+    expect(failureReports).toHaveLength(1);
+    expect(failureReports[0][0]).toBe(retryFailure);
+    expect(failureReports[0][1]).toEqual({ functionName: "fn", timeoutMs: undefined });
+  });
+
+  it("bounds BOTH attempts with the one deadline — the timer is never restarted", async () => {
+    vi.useFakeTimers();
+    try {
+      invokeSpy.mockReset();
+      // First attempt throttles immediately; the retry hangs forever. The
+      // deadline must still expire on the ORIGINAL schedule.
+      invokeSpy.mockRejectedValueOnce(throttleError("appCheck/throttled"));
+      invokeSpy.mockReturnValueOnce(new Promise(() => {}));
+      const call = callCallable(fakeFunctions, "hangs", { a: 1 }, undefined, {
+        limitedUseAppCheck: true,
+        timeoutMs: 1_000,
+      });
+      const assertion = expect(call).rejects.toMatchObject({
+        name: "FirebaseError",
+        code: "functions/deadline-exceeded",
+      });
+      await vi.advanceTimersByTimeAsync(1_000);
+      await assertion;
+      expect(invokeSpy).toHaveBeenCalledTimes(2);
+      expect(vi.getTimerCount()).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("a deadline expiry on the first attempt is never treated as a throttle", async () => {
+    vi.useFakeTimers();
+    try {
+      invokeSpy.mockReset();
+      invokeSpy.mockReturnValueOnce(new Promise(() => {}));
+      const call = callCallable(fakeFunctions, "hangs", { a: 1 }, undefined, {
+        limitedUseAppCheck: true,
+        timeoutMs: 1_000,
+      });
+      const assertion = expect(call).rejects.toMatchObject({ code: "functions/deadline-exceeded" });
+      await vi.advanceTimersByTimeAsync(1_000);
+      await assertion;
+      expect(invokeSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});

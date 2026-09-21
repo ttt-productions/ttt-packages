@@ -3,7 +3,10 @@ import {
   type Functions,
   type HttpsCallable,
   type HttpsCallableOptions,
+  type HttpsCallableResult,
 } from "firebase/functions";
+
+import { isAppCheckThrottleError } from "../utils/app-check-throttle.js";
 
 export interface CallCallableCallbacks {
   /**
@@ -15,9 +18,10 @@ export interface CallCallableCallbacks {
   onError?: (error: unknown, ctx: { functionName: string; requestData: unknown }) => void;
   /**
    * Optional structured error reporter (Sentry, etc.). Generic — no toast
-   * semantics. Receives BOUNDED SAFE METADATA ONLY ({ functionName, timeoutMs })
-   * — never the request payload, so callable arguments cannot leak into
-   * telemetry systems.
+   * semantics. Receives BOUNDED SAFE METADATA ONLY ({ functionName, timeoutMs }
+   * — plus `limitedUseAppCheckFallback: true` on the one informational report
+   * described in `limitedUseAppCheck`) — never the request payload, so callable
+   * arguments cannot leak into telemetry systems.
    */
   captureException?: (error: unknown, ctx: Record<string, unknown>) => void;
 }
@@ -55,6 +59,21 @@ export interface CallCallableTransport {
    * consumers of that callable have adopted this option would reject legitimate
    * traffic, because a cached (non-limited-use) token presents as already
    * consumed. Adopt on the client first, verify, and only then refuse.
+   *
+   * THROTTLE FALLBACK: the limited-use path has no soft-failure of its own —
+   * the SDK asks the App Check provider for a fresh token with no catch, so one
+   * failed exchange puts the provider into its backoff window and every later
+   * limited-use invocation rejects with `appCheck/throttled` before reaching
+   * the wire. When that happens, callCallable retries the invocation EXACTLY
+   * ONCE with this option omitted, which takes the standard cached-token path
+   * (that path returns a valid cached token without touching the provider).
+   * The retry is reported through `captureException` and stays inside the same
+   * `timeoutMs` deadline.
+   *
+   * ROLLOUT CAVEAT for that fallback: it works only while server-side token
+   * consumption is RECORD-ONLY. Once a handler arms `alreadyConsumed` refusal,
+   * a reused standard token would be refused, so the fallback must be revisited
+   * at that point.
    *
    * Defaults to false (absent): the SDK option is omitted entirely unless this
    * is `true`, so existing callers are byte-for-byte unaffected.
@@ -109,7 +128,8 @@ function deadlineExceededError(functionName: string, timeoutMs: number): Error {
  * `useCallableMutation` (./react) delegates here; non-hook contexts (pre-auth
  * flows, plain modules) call it directly. Owns the undefined-strip (see
  * stripUndefinedDeep), the generic error-callback contract, and the optional
- * total-invocation deadline (see CallCallableTransport); consumers own
+ * total-invocation deadline, and the limited-use App Check opt-in plus its
+ * one-shot throttle fallback (see CallCallableTransport); consumers own
  * toast/UX semantics.
  */
 export async function callCallable<TRequest = unknown, TResponse = unknown>(
@@ -125,41 +145,72 @@ export async function callCallable<TRequest = unknown, TResponse = unknown>(
       `callCallable: timeoutMs must be a finite positive number of milliseconds (got ${String(timeoutMs)})`,
     );
   }
+  const limitedUseRequested = transport?.limitedUseAppCheck === true;
   // Built only from the options actually supplied, and left `undefined` when
   // none are — an absent key must stay absent on the SDK call, so nothing
   // changes for a caller that opts into neither.
-  const sdkOptions: HttpsCallableOptions | undefined =
-    timeoutMs === undefined && transport?.limitedUseAppCheck !== true
+  const buildSdkOptions = (limitedUse: boolean): HttpsCallableOptions | undefined =>
+    timeoutMs === undefined && !limitedUse
       ? undefined
       : {
           ...(timeoutMs === undefined ? {} : { timeout: timeoutMs }),
-          ...(transport?.limitedUseAppCheck === true ? { limitedUseAppCheckTokens: true } : {}),
+          ...(limitedUse ? { limitedUseAppCheckTokens: true } : {}),
         };
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     // The outer deadline starts BEFORE the SDK is invoked so it bounds the
     // whole invocation, including the SDK's pre-transport auth/App Check
     // token acquisition (the SDK's own timer starts only after that phase).
+    // ONE timer for the whole call: a throttle fallback retry races the SAME
+    // deadline promise, so both attempts together stay inside timeoutMs.
     const deadline =
       timeoutMs === undefined
         ? undefined
         : new Promise<never>((_, reject) => {
             timer = setTimeout(() => reject(deadlineExceededError(functionName, timeoutMs)), timeoutMs);
           });
-    const fn: HttpsCallable<TRequest, TResponse> = httpsCallable(
-      functions,
-      functionName,
-      sdkOptions,
-    );
-    const invocation = fn(stripUndefinedDeep(data) as TRequest);
-    if (deadline !== undefined) {
-      // If the deadline wins the race, the SDK invocation is still pending and
-      // may reject later (e.g. its own transport timer). Give it a consumer so
-      // a post-deadline settlement can never surface as an unhandled rejection.
-      void invocation.catch(() => {});
+    const payload = stripUndefinedDeep(data) as TRequest;
+    const attempt = (limitedUse: boolean): Promise<HttpsCallableResult<TResponse>> => {
+      const fn: HttpsCallable<TRequest, TResponse> = httpsCallable(
+        functions,
+        functionName,
+        buildSdkOptions(limitedUse),
+      );
+      const invocation = fn(payload);
+      if (deadline !== undefined) {
+        // If the deadline wins the race, the SDK invocation is still pending and
+        // may reject later (e.g. its own transport timer). Give it a consumer so
+        // a post-deadline settlement can never surface as an unhandled rejection.
+        void invocation.catch(() => {});
+      }
+      return deadline === undefined
+        ? invocation
+        : (Promise.race([invocation, deadline]) as Promise<HttpsCallableResult<TResponse>>);
+    };
+    let result: HttpsCallableResult<TResponse>;
+    try {
+      result = await attempt(limitedUseRequested);
+    } catch (error) {
+      // The limited-use token path has NO soft failure: the SDK asks the App
+      // Check provider for a fresh token with no catch, so one failed exchange
+      // opens the provider's backoff window and every later limited-use call
+      // rejects from it. Fall back ONCE to the standard cached-token path,
+      // which returns a valid cached token without touching the provider.
+      //
+      // Safe against double submission: both throttle codes are thrown in the
+      // SDK's pre-transport token phase, so the first attempt never reached the
+      // wire and the backend saw nothing. Every other error class — including a
+      // deadline expiry, whose outcome is UNKNOWN — falls straight through.
+      if (!limitedUseRequested || !isAppCheckThrottleError(error)) throw error;
+      // Informational report: bounded safe metadata only, same channel and same
+      // no-payload contract as the failure report below.
+      callbacks?.captureException?.(error, {
+        functionName,
+        timeoutMs,
+        limitedUseAppCheckFallback: true,
+      });
+      result = await attempt(false);
     }
-    const result =
-      deadline === undefined ? await invocation : await Promise.race([invocation, deadline]);
     return result.data as TResponse;
   } catch (error) {
     // Telemetry gets bounded metadata only — never the request payload.

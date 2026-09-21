@@ -43,6 +43,29 @@ TTT config, Firebase project values, toast behavior, monitoring behavior, and ca
   refusal must stay off until the consumers of that callable have adopted the option, because
   a cached (non-limited-use) token presents as already consumed. Absent unless explicitly
   enabled — the SDK options object is omitted entirely when no transport option is set.
+- **The limited-use throttle fallback** — the limited-use path has no soft failure of its own:
+  the SDK asks the App Check provider for a fresh token with no catch, so one failed exchange
+  opens the provider's in-memory backoff window and every later limited-use invocation rejects
+  (`appCheck/initial-throttle`, then `appCheck/throttled`) before reaching the wire. When a
+  limited-use invocation rejects with either code, `callCallable` retries EXACTLY ONCE with the
+  option omitted, taking the standard cached-token path. Retrying is safe against double
+  submission because both codes are thrown in the SDK's pre-transport token phase — the first
+  attempt never reached the backend. The retry races the SAME deadline (the timer is never
+  restarted, so both attempts together stay inside `timeoutMs`), and a retry failure flows
+  through the normal `captureException` + `onError` + rethrow tail exactly once. No other error
+  class retries, and a call that did not request limited-use never does.
+
+  The fallback itself is reported through `captureException` with
+  `{ functionName, timeoutMs, limitedUseAppCheckFallback: true }` — bounded safe metadata, never
+  the payload.
+
+  **ROLLOUT CAVEAT.** The fallback is effective only while server-side token consumption is
+  record-only. Once a handler arms `alreadyConsumed` refusal, a reused standard token would be
+  refused, so the fallback must be revisited at that point.
+- **The App Check throttle predicate** — `isAppCheckThrottleError(error)` is exported from the
+  server-safe root beside `isExpectedCallableAnswerCode`, as the ONE definition of that error
+  class (`APP_CHECK_THROTTLE_CODES`); `callCallable` classifies with it rather than restating
+  the codes.
 
 Backend code should prefer `@ttt-productions/firebase-helpers/server` when it needs Admin SDK handles.
 
