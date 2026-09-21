@@ -13,6 +13,8 @@ import type { WorkProjectType } from '../types/content.js';
 import { HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE } from './hall-content-routing.js';
 export {
   HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE,
+  HALL_CONTENT_DETAIL_SURFACES,
+  HALL_CONTENT_SUB_ITEM_SURFACES,
   type HallContentDetailSurface,
   type HallContentSubItemSurface,
 } from './hall-content-routing.js';

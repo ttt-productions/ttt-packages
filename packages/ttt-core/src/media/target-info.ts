@@ -18,6 +18,7 @@ import {
   type CraftSkillSourceReference,
 } from "../doc-schemas/user.js";
 import { CRAFT_SKILL_STATEMENT_VERSION } from "../constants/craft-skill-statements.js";
+import { HALL_CONTENT_DETAIL_SURFACES } from "../constants/hall-content-routing.js";
 import {
   MAX_MENTIONS,
   MAX_POST_LENGTH,
@@ -238,7 +239,7 @@ export const AuditionEntryTargetInfoSchema = z
 const HallLibraryCoverTargetInfoSchema = z
   .object({
     workProjectId: z.string().min(1),
-    itemType: z.enum(['tale', 'tune', 'television']),
+    itemType: z.enum(HALL_CONTENT_DETAIL_SURFACES),
     itemId: z.string().min(1),
   })
   .strict();

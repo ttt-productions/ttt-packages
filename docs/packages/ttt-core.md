@@ -11,6 +11,13 @@ TTT Productions application-data package.
 - Media-processing crash-recovery policy constants (`constants/media-processing` → `constants` barrel): `MEDIA_PROCESSING_MAX_ATTEMPTS` (2 — first attempt + one retry) and `MEDIA_PROCESSING_LEASE_MS` (12 min)
 - The TTT account-password contract: `PASSWORD_MIN_LENGTH` (7) / `PASSWORD_MAX_LENGTH` (64) in `constants/business-user`, plus the single `validateTttPassword` owner in `utils/password`. Length only — no composition rules — counted in UTF-16 code units to match HTML inputs and the Firebase SDK, never trimming or normalizing, and confirmation matching stays the caller's job. Deliberately NOT named `validatePassword`: Firebase's SDK owns that name and reads mutable hosted project policy, while this is the stable product contract every TTT password surface (registration, reset) and the hosted Firebase policy derive from.
 - TTT domain-event union/schema/catalog
+- The Hall content SURFACE vocabulary: `HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE`
+  (`constants/hall-content-routing`) is the one declaration of the per-work-type detail and
+  sub-item surface identities, and ships the `HALL_CONTENT_DETAIL_SURFACES` /
+  `HALL_CONTENT_SUB_ITEM_SURFACES` tuples projected from it. Every enum-shaped consumer —
+  the `hallLibrary.coverUpdated` / `hallLibrary.subItemUpdated` domain events, the hall-library
+  cover `targetInfo`, and `HallContentTextSurfaceSchema` — derives from those tuples, so a new
+  `WorkProjectType` cannot leave one behind.
 - TTT atoms such as `Mention` and `MentionType`
 - TTT moderation constants
 - The Company / Green Room mascot **contract + content** (`constants/company-mascots`): the pure `CompanyCharacterId` / billing-kind / `CompanyPerformanceIntent` / selectable-companion unions, roster + selectable arrays, the rich-copy `CompanyCopySegment` / `CompanyCopyBlock` model (with semantic `CompanyNavigationTarget`s, not URLs), the `COMPANY_MASCOTS` registry, and the DJ-approved verbatim studies / click lines / footers / switch exchanges / Yorick block lines / signed-out dock lines / onboarding cameos. Pure data only — no React/JSX/Next/CSS/SVG; the app owns the render adapter, puppets, rig, and choreography. Canonical dialogue lives here, never Firestore.
@@ -159,6 +166,12 @@ Target-info schemas may carry user-authored domain payload, but they must not ma
 The old nested public Work projection contract must stay removed: do not keep `WORK_PROJECT_SUBCOLLECTIONS.PUBLIC_DATA` or `PATH_BUILDERS.workProjectPublicData(...)` as launch-era APIs. `publicWorkProjects/{workProjectId}` is the only Work shell/search projection.
 
 Keep the detailed contract shape in source types, schemas, constants, and tests rather than in this doc. The package-level ownership rule covers Realm and public Work projection types, create/edit schemas, Mention/Square related-id contracts, PublicUser search/display requirements, hidden flags on published Hall projections, and the non-person founding-Work stake-holder contract for Works built into an existing public Realm.
+
+A Work's standing inside its Realm is `RealmCanonStatusSchema` / `RealmCanonStatus`
+(`doc-schemas/work-project`) — one declaration for both the Work shell and its public
+projection, and what a consuming query filter or hook parameter types itself with instead of
+re-quoting the members. It is a different concept from the realm FILE approval gate
+(`RealmFileCanonStatusSchema` below), which adds the `none` / `pendingApproval` states.
 
 Realm docs store no child Work arrays, no counts, no Realm image fields, and no denormalized owner display fields. Display identity remains uid-only across package boundaries; consuming apps resolve names/avatars from their own public identity source.
 

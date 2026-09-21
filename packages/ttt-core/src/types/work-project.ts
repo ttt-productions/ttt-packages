@@ -4,6 +4,7 @@ import type { GuildmateUser, PublicGuildmateUser } from '../doc-schemas/work-pro
 
 export type {
   GuildmateStatus,
+  RealmCanonStatus,
   GuildmateUser,
   PublicGuildmateUser,
   WorkFileFolder,

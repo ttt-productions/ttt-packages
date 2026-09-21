@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  HALL_CONTENT_DETAIL_SURFACES,
+  HALL_CONTENT_SUB_ITEM_SURFACES,
+} from '../constants/hall-content-routing.js';
 
 // DomainEvent schemas for the work-project domain — work projects, guild
 // invites, auditions, commissions, hall library, and threshold-library
@@ -226,7 +230,7 @@ export const HallLibraryCoverUpdatedEventSchema = z
     ids: z
       .object({
         workProjectId: z.string().min(1),
-        itemType: z.enum(['tale', 'tune', 'television']),
+        itemType: z.enum(HALL_CONTENT_DETAIL_SURFACES),
         itemId: z.string().min(1),
       })
       .strict(),
@@ -265,7 +269,7 @@ export const HallLibrarySubItemUpdatedEventSchema = z
     ids: z
       .object({
         workProjectId: z.string().min(1),
-        itemType: z.enum(['chapter', 'tuneTrack', 'televisionEpisode']),
+        itemType: z.enum(HALL_CONTENT_SUB_ITEM_SURFACES),
         parentId: z.string().min(1),
         itemId: z.string().min(1),
       })

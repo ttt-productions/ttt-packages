@@ -5,6 +5,17 @@ import {
   SquareStreetzPostCreatedEventSchema,
   ModerationViolationCreatedEventSchema,
 } from '../src/media/domain-events.js';
+import {
+  HallLibraryCoverUpdatedEventSchema,
+  HallLibrarySubItemUpdatedEventSchema,
+} from '../src/media/domain-events-work.js';
+import {
+  HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE,
+  HALL_CONTENT_DETAIL_SURFACES,
+  HALL_CONTENT_SUB_ITEM_SURFACES,
+} from '../src/constants/hall-content-routing.js';
+import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content.js';
+import { HallContentTextSurfaceSchema } from '../src/doc-schemas/content.js';
 
 describe('ProfilePictureUpdatedEventSchema', () => {
   it('parses valid event', () => {
@@ -262,5 +273,73 @@ describe('workProject.published carries the released Realm when publication touc
         ids: { workProjectId: 'wp_1', userId: 'u_1', workRealmId: '' },
       }),
     ).toThrow();
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// ENG-005 / ARCH-102 — the hall-library event surface enums DERIVE from the
+// canonical HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE owner, so a new
+// WorkProjectType cannot leave a domain event carrying a stale vocabulary.
+// ---------------------------------------------------------------------------
+
+describe('hallLibrary event itemType enums equal the canonical surface projections', () => {
+  const detailProjection = WORK_PROJECT_TYPE_KEYS.map(
+    (type) => HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[type].detailSurface,
+  );
+  const subItemProjection = WORK_PROJECT_TYPE_KEYS.map(
+    (type) => HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[type].subItemSurface,
+  );
+
+  it('the projected tuples cover every work type exactly once', () => {
+    expect([...HALL_CONTENT_DETAIL_SURFACES].sort()).toEqual([...detailProjection].sort());
+    expect([...HALL_CONTENT_SUB_ITEM_SURFACES].sort()).toEqual([...subItemProjection].sort());
+  });
+
+  it('hallLibrary.coverUpdated accepts exactly the detail surfaces', () => {
+    const options = HallLibraryCoverUpdatedEventSchema.shape.ids.shape.itemType.options;
+    expect([...options].sort()).toEqual([...detailProjection].sort());
+  });
+
+  it('hallLibrary.subItemUpdated accepts exactly the sub-item surfaces', () => {
+    const options = HallLibrarySubItemUpdatedEventSchema.shape.ids.shape.itemType.options;
+    expect([...options].sort()).toEqual([...subItemProjection].sort());
+  });
+
+  it('parses a canonical detail surface and rejects a sub-item one', () => {
+    const ids = {
+      workProjectId: 'wp_1',
+      itemType: HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tales.detailSurface,
+      itemId: 'tale_1',
+    };
+    expect(DomainEventSchema.parse({ type: 'hallLibrary.coverUpdated', ids }).ids).toEqual(ids);
+    expect(() =>
+      DomainEventSchema.parse({
+        type: 'hallLibrary.coverUpdated',
+        ids: { ...ids, itemType: HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tales.subItemSurface },
+      }),
+    ).toThrow();
+  });
+
+  it('parses a canonical sub-item surface and rejects a detail one', () => {
+    const ids = {
+      workProjectId: 'wp_1',
+      itemType: HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.subItemSurface,
+      parentId: 'tune_1',
+      itemId: 'track_1',
+    };
+    expect(DomainEventSchema.parse({ type: 'hallLibrary.subItemUpdated', ids }).ids).toEqual(ids);
+    expect(() =>
+      DomainEventSchema.parse({
+        type: 'hallLibrary.subItemUpdated',
+        ids: { ...ids, itemType: HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Tunes.detailSurface },
+      }),
+    ).toThrow();
+  });
+
+  it('the hall text-surface schema still carries every canonical surface plus the realm grain', () => {
+    expect([...HallContentTextSurfaceSchema.options].sort()).toEqual(
+      [...detailProjection, ...subItemProjection, 'workRealm'].sort(),
+    );
   });
 });

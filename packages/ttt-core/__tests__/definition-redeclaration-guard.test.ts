@@ -132,9 +132,10 @@ const GUARDED: Record<string, { owner: string; allowed: string[] }> = {
   },
   // Distinctive member of RealmFileCanonStatus (the steward approval gate). The other three
   // members are NOT guardable: 'none'/'canon'/'nonCanon' collide with the unrelated
-  // Work-in-realm `realmCanonStatus` union and with ordinary prose. Consumers that need the
-  // approved or pending subsets import RealmFileApprovedStatusSchema /
-  // RealmFilePendingApprovalStatusSchema from the owner rather than re-quoting a member.
+  // Work-in-realm canon union (RealmCanonStatusSchema, doc-schemas/work-project.ts) and with
+  // ordinary prose. Consumers of either union import its schema — RealmFileApprovedStatusSchema
+  // / RealmFilePendingApprovalStatusSchema here, RealmCanonStatusSchema there — rather than
+  // re-quoting a member.
   pendingApproval: {
     owner: 'ttt-core/src/doc-schemas/media-assets.ts',
     allowed: [],

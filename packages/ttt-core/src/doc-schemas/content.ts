@@ -8,6 +8,10 @@ import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import { ModerationEdgeSyncOpSchema, ModerationEdgeSyncStateSchema } from './moderation.js';
 import { MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH } from '../constants/business-admin.js';
+import {
+  HALL_CONTENT_DETAIL_SURFACES,
+  HALL_CONTENT_SUB_ITEM_SURFACES,
+} from '../constants/hall-content-routing.js';
 
 const contentStatusSchema = z.enum(['unpublished', 'pending_approval', 'published']);
 
@@ -179,12 +183,8 @@ export type ThresholdItem = z.infer<typeof ThresholdItemSchema>;
  *  surface targets the single `workRealms/{id}` doc (the realm grain of the one
  *  text-change pipeline — R1, 2026-07-12). */
 export const HallContentTextSurfaceSchema = z.enum([
-  'tale',
-  'tune',
-  'television',
-  'chapter',
-  'tuneTrack',
-  'televisionEpisode',
+  ...HALL_CONTENT_DETAIL_SURFACES,
+  ...HALL_CONTENT_SUB_ITEM_SURFACES,
   'workRealm',
 ]);
 export type HallContentTextSurface = z.infer<typeof HallContentTextSurfaceSchema>;

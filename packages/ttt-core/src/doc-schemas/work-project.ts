@@ -19,6 +19,16 @@ export const GuildmateStatusSchema = z.enum(['active', 'departed']);
 export type GuildmateStatus = z.infer<typeof GuildmateStatusSchema>;
 
 /**
+ * The ONE canonical standing of a Work INSIDE its Realm — whether the Work counts as part of
+ * the Realm's canon. Carried on the Work shell and its public projection, and used as a query
+ * filter by the Realm page. Distinct from `RealmFileCanonStatus` (media-assets.ts), which is the
+ * approval gate of a FILE shared into a Realm and carries two further unshared/awaiting states.
+ * Consumers derive from this instead of re-quoting the members.
+ */
+export const RealmCanonStatusSchema = z.enum(['canon', 'nonCanon']);
+export type RealmCanonStatus = z.infer<typeof RealmCanonStatusSchema>;
+
+/**
  * The realm founding-Work stake holder — a non-person ledger entry keyed by the founding
  * workProjectId, never a user uid. It must never reach the public collaborator roster.
  * Consumers branch on this rather than re-quoting the member.
@@ -95,7 +105,7 @@ export const FullWorkProjectSchema = z.object({
   guildmateUserIds: z.record(z.string(), z.boolean()).optional(),
   invitedUserIds: z.record(z.string(), z.boolean()).optional(),
   workRealmId: z.string(),
-  realmCanonStatus: z.enum(['canon', 'nonCanon']),
+  realmCanonStatus: RealmCanonStatusSchema,
   pendingStakeShares: PendingStakeSharesSchema.optional(),
   // Moderation "require retitle" remedy (work/realm report path). When an admin
   // upholds a report on an abusive public title/description, they may replace the
@@ -122,7 +132,7 @@ export const PublicWorkProjectSchema = z.object({
   publicWorkStatus: z.enum(['draft', 'released']),
   publicWorkHidden: z.boolean(),
   workRealmId: z.string(),
-  realmCanonStatus: z.enum(['canon', 'nonCanon']),
+  realmCanonStatus: RealmCanonStatusSchema,
   type: z.enum(WORK_PROJECT_TYPE_KEYS),
   hallWingType: z.enum(HALL_WING_TYPE_KEYS),
   workingTitle: z.string(),
