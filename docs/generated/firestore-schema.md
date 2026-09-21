@@ -327,7 +327,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `observedActivityGeneration` | `string` |  |
 | `category` | `string` |  |
 | `audienceScope` | `string` |  |
-| `archivedSnapshot` | `{ id, type, dedupKey, category, targetUserId, title, message, count, latestActorIds, targetPath, metadata, seenAt, activityGeneration, seenAtGeneration, createdAt, updatedAt }` |  |
+| `archivedSnapshot` | `{ type, dedupKey, category, targetUserId, title, message, count, latestActorIds, targetPath, metadata, seenAt, activityGeneration, seenAtGeneration, createdAt, updatedAt }` |  |
 | `archivedAt` | `number` |  |
 | `expireAt` | `custom` |  |
 | `handledBy` | `string` | yes |
@@ -2403,7 +2403,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `observedActivityGeneration` | `string` |  |
 | `category` | `string` |  |
 | `audienceScope` | `string` |  |
-| `archivedSnapshot` | `{ id, type, dedupKey, category, targetUserId, title, message, count, latestActorIds, targetPath, metadata, seenAt, activityGeneration, seenAtGeneration, createdAt, updatedAt }` |  |
+| `archivedSnapshot` | `{ type, dedupKey, category, targetUserId, title, message, count, latestActorIds, targetPath, metadata, seenAt, activityGeneration, seenAtGeneration, createdAt, updatedAt }` |  |
 | `archivedAt` | `number` |  |
 | `expireAt` | `custom` |  |
 | `handledBy` | `string` | yes |

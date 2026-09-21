@@ -41,6 +41,12 @@ import { ProtectedReportRootV1Schema } from '../src/doc-schemas/safety/report';
 import { AdminTaskDocSchema } from '../src/doc-schemas/report-docs';
 import { ModerationCascadeChangedDocSchema } from '../src/doc-schemas/moderation';
 import { NotificationFanoutJobSchema } from '../src/doc-schemas/notification-ledger';
+import {
+  NotificationDocSchema,
+  NotificationHistoryDocSchema,
+  StoredNotificationCardSchema,
+} from '../src/doc-schemas/notifications';
+import { COLLECTION_DOC_ID_FIELDS } from '../src/doc-schemas/registry';
 import { PATH_BUILDERS } from '../src/paths/path-builders';
 import { ChatChannelAuthProjectionSchema } from '../src/doc-schemas/chat-sync';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
@@ -339,6 +345,80 @@ describe('second registry completion batch', () => {
     ] as const) {
       const schema = COLLECTION_SCHEMAS[template] as unknown as { shape: Record<string, unknown> };
       expect(Object.keys(schema.shape)).toContain('moderatedAt');
+    }
+  });
+});
+
+describe('notification history — the archived snapshot is the STORED card', () => {
+  // What both materializers write: the delivery ledger and processBatchHelper build the
+  // active card WITHOUT `id` (it is the deterministic document id).
+  const storedCard = {
+    type: 'guild_invite',
+    dedupKey: 'guildInvite_inv-1',
+    category: 'user',
+    targetUserId: 'user-1',
+    title: 'Guild invite',
+    message: 'You were invited.',
+    count: 1,
+    latestActorIds: ['actor-1'],
+    targetPath: '/profile/invites',
+    metadata: { inviteId: 'inv-1' },
+    seenAt: 0,
+    activityGeneration: 'gen-1',
+    createdAt: 1,
+    updatedAt: 1,
+  };
+  const expireAt = { seconds: 2, nanoseconds: 0, toMillis: () => 2000, toDate: () => new Date(2000) };
+  const history = {
+    archiveOccurrenceId: 'occ-1',
+    requestId: 'request-1',
+    payloadHash: 'hash-1',
+    activeId: 'active-1',
+    observedActivityGeneration: 'gen-1',
+    category: 'user',
+    audienceScope: 'user:user-1',
+    archivedSnapshot: storedCard,
+    archivedAt: 5,
+    expireAt,
+  };
+
+  it('parses a real history document for BOTH lanes — snapshot without id, activeId at the top level', () => {
+    for (const template of [
+      'adminNotificationHistory/{notificationId}',
+      'userProfiles/{userId}/notificationHistory/{notificationId}',
+    ] as const) {
+      expect(COLLECTION_SCHEMAS[template]).toBe(NotificationHistoryDocSchema);
+      expect(COLLECTION_SCHEMAS[template].safeParse(history).success).toBe(true);
+    }
+    // Shared-admin archives stamp the archiver.
+    expect(NotificationHistoryDocSchema.safeParse({
+      ...history,
+      category: 'admin',
+      audienceScope: 'shared',
+      archivedSnapshot: { ...storedCard, targetUserId: null },
+      handledBy: 'admin-1',
+    }).success).toBe(true);
+    expect(NotificationHistoryDocSchema.safeParse({ ...history, archivedAt: 'later' }).success).toBe(false);
+  });
+
+  it('keeps ONE definition of the card — the snapshot is the card minus its document id', () => {
+    expect(Object.keys(StoredNotificationCardSchema.shape)).not.toContain('id');
+    expect(Object.keys(StoredNotificationCardSchema.shape).sort()).toEqual(
+      Object.keys(NotificationDocSchema.shape).filter((k) => k !== 'id').sort(),
+    );
+    expect(NotificationHistoryDocSchema.shape.archivedSnapshot).toBe(StoredNotificationCardSchema);
+  });
+
+  it('leaves the active-card bindings unchanged — id stays required and doc-id-injected', () => {
+    for (const template of [
+      'activeUserNotifications/{notificationId}',
+      'activeAdminNotifications/{notificationId}',
+    ] as const) {
+      expect(COLLECTION_SCHEMAS[template]).toBe(NotificationDocSchema);
+      expect(COLLECTION_DOC_ID_FIELDS[template]).toBe('id');
+      // The drift check injects `{ id: doc.id, ...data }` before validating.
+      expect(COLLECTION_SCHEMAS[template].safeParse(storedCard).success).toBe(false);
+      expect(COLLECTION_SCHEMAS[template].safeParse({ id: 'active-1', ...storedCard }).success).toBe(true);
     }
   });
 });
