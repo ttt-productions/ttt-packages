@@ -32,6 +32,19 @@ export async function readStagedUploadMetadata(bucket: Bucket, storagePath: stri
   }
 }
 
+/**
+ * The staged object's generation from metadata the caller already fetched, as a string
+ * (GCS generations exceed 2^53) — the one normalization `readStagedObjectGeneration`
+ * applies, for a processor that already holds the object's metadata and must not read
+ * it again. `undefined` when the metadata carries no generation (the emulator may not).
+ */
+export function stagedObjectGenerationFromMetadata(metadata: {
+  generation?: string | number | null;
+}): string | undefined {
+  const { generation } = metadata;
+  return generation === undefined || generation === null ? undefined : String(generation);
+}
+
 export interface ReadStagedObjectGenerationOptions {
   /** Called when the generation cannot be read (the caller logs it); reads then stay unpinned. */
   onReadFailure?: (error: unknown) => void;
@@ -56,8 +69,7 @@ export async function readStagedObjectGeneration(
   if (!storagePath) return undefined;
   try {
     const [metadata] = await bucket.file(storagePath).getMetadata();
-    const generation = metadata.generation;
-    return generation === undefined || generation === null ? undefined : String(generation);
+    return stagedObjectGenerationFromMetadata(metadata);
   } catch (e) {
     options.onReadFailure?.(e);
     return undefined;

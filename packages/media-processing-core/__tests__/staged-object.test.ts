@@ -1,6 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
-import { pinnedGcsUri, readStagedObjectGeneration, readStagedUploadMetadata } from '../src/server/staged-object.js';
-import type { Bucket } from '../src/server/storage-ops.js';
+import {
+  pinnedGcsUri,
+  readStagedObjectGeneration,
+  readStagedUploadMetadata,
+  stagedObjectGenerationFromMetadata,
+  type Bucket,
+} from '../src/server/index.js';
+
+/** The metadata an Admin SDK `File` carries — what a processor holds as `sourceFile.metadata` after `file.get()`. */
+type AdminFileMetadata = ReturnType<Bucket['file']>['metadata'];
 
 function bucketWith(getMetadata: () => Promise<unknown>) {
   const file = vi.fn(() => ({ getMetadata }));
@@ -66,6 +74,45 @@ describe('readStagedObjectGeneration', () => {
     expect(await readStagedObjectGeneration(bucket, 'p', { onReadFailure })).toBeUndefined();
     expect(onReadFailure).toHaveBeenCalledWith(failure);
   });
+});
+
+describe('stagedObjectGenerationFromMetadata', () => {
+  it('keeps a string generation as-is (generations exceed 2^53)', () => {
+    expect(stagedObjectGenerationFromMetadata({ generation: '1712345678901234567' })).toBe('1712345678901234567');
+  });
+
+  it('stringifies a numeric generation', () => {
+    expect(stagedObjectGenerationFromMetadata({ generation: 42 })).toBe('42');
+  });
+
+  it('stringifies a numeric zero — only an absent generation is undefined', () => {
+    expect(stagedObjectGenerationFromMetadata({ generation: 0 })).toBe('0');
+  });
+
+  it('is undefined when the metadata has no generation field', () => {
+    expect(stagedObjectGenerationFromMetadata({})).toBeUndefined();
+  });
+
+  it('is undefined for an explicit undefined generation', () => {
+    expect(stagedObjectGenerationFromMetadata({ generation: undefined })).toBeUndefined();
+  });
+
+  it('is undefined for a null generation', () => {
+    expect(stagedObjectGenerationFromMetadata({ generation: null })).toBeUndefined();
+  });
+
+  it('takes the Admin SDK metadata a processor already holds, unchanged', () => {
+    const metadata: AdminFileMetadata = { name: 'uploads/a/u/1', contentType: 'video/mp4', size: '9', generation: '17' };
+    expect(stagedObjectGenerationFromMetadata(metadata)).toBe('17');
+  });
+
+  it.each([['1712345678901234567'], [42], [0], [undefined], [null]])(
+    'is the normalization readStagedObjectGeneration applies (generation %s)',
+    async (generation) => {
+      const { bucket } = bucketWith(async () => [{ generation }]);
+      expect(await readStagedObjectGeneration(bucket, 'p')).toBe(stagedObjectGenerationFromMetadata({ generation }));
+    },
+  );
 });
 
 describe('pinnedGcsUri', () => {
