@@ -121,11 +121,43 @@ button .spinner-xl {
   padding-bottom: 1rem;
 }
 
+/* Every shadow here also sets --tw-shadow to the same token: a Tailwind ring utility (a
+   focus ring) writes the whole box-shadow as a composite ending in var(--tw-shadow), so
+   the elevation survives under the ring instead of vanishing while focused. */
+
+/* ui-core Card's hook class. Card carries no Tailwind shadow utility: a utility
+   out-ranks every layered recipe, so its shadow lives here, where .page-card below
+   and an app's own card rules (imported after this sheet) can take over. */
+.card-border {
+  --tw-shadow: var(--card-shadow-subtle);
+  box-shadow: var(--card-shadow-subtle);
+}
+
+/* ui-core's other elevation hooks, for the same reason: popover-family surfaces
+   (menus, select lists, tooltips) and raised surfaces (dialogs, sheets, toasts,
+   sub-menus, search results, floating buttons, the switch thumb). */
+.elevation-popover {
+  --tw-shadow: var(--popover-shadow);
+  box-shadow: var(--popover-shadow);
+}
+
+.elevation-raised {
+  --tw-shadow: var(--raised-shadow);
+  box-shadow: var(--raised-shadow);
+}
+
+/* ui-core TabsTrigger: only the selected tab is raised. */
+.tabs-trigger[data-state="active"] {
+  --tw-shadow: var(--control-shadow);
+  box-shadow: var(--control-shadow);
+}
+
 .page-card {
   width: 100%;
   background-color: hsl(var(--card));
   color: hsl(var(--card-foreground));
-  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --tw-shadow: var(--card-shadow);
+  box-shadow: var(--card-shadow);
   border-radius: 0.5rem;
   border-width: 2px;
   border-color: hsl(var(--border));
@@ -754,22 +786,12 @@ button .spinner-xl {
   height: 2.75rem;
   padding-left: 1rem;
   padding-right: 1rem;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --tw-shadow: var(--control-shadow);
+  box-shadow: var(--control-shadow);
   border-width: 2px;
   background-color: hsl(var(--background));
   border-color: hsl(var(--border)) !important;
   color: hsl(var(--foreground));
-}
-
-/* =========================================================
-    SAFE AREA UTILITIES
-    ========================================================= */
-.fixed-header {
-  padding-top: max(1rem, var(--sat));
-}
-
-.fixed-footer {
-  padding-bottom: max(1rem, var(--sab));
 }
 
 /* =========================================================
@@ -820,7 +842,8 @@ button .spinner-xl {
   display: flex;
   align-items: center;
   height: 60px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --tw-shadow: var(--app-header-shadow);
+  box-shadow: var(--app-header-shadow);
   background-color: hsl(var(--secondary));
   border-bottom: 2px solid hsl(var(--border));
 }
@@ -900,9 +923,10 @@ button .spinner-xl {
   color: hsl(var(--muted-foreground)) !important;
 }
 
+/* Asked for more contrast: full-strength text instead of muted, in every theme. */
 @media (prefers-contrast: more) {
   .help-dialog-body {
-    color: #ffffff !important;
+    color: hsl(var(--foreground)) !important;
   }
 }
 
@@ -917,7 +941,8 @@ button .spinner-xl {
   padding-left: 1rem;
   padding-right: 1rem;
   font-weight: 700;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --tw-shadow: var(--control-shadow);
+  box-shadow: var(--control-shadow);
   border-width: 2px;
   background-color: hsl(var(--primary));
   border-color: hsl(var(--border));
@@ -979,7 +1004,8 @@ button .spinner-xl {
   padding: 0.25rem;
   border-radius: 0.75rem;
   border-width: 2px;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --tw-shadow: var(--control-shadow);
+  box-shadow: var(--control-shadow);
   background-color: hsl(var(--muted));
   border-color: hsl(var(--border));
 }

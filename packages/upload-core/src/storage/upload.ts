@@ -2,6 +2,7 @@ import type { UploadFileResumableResult } from "../types.js";
 import type { UploadFileResumableArgs, UploadController } from "../browser/types.js";
 import { getFileSize } from "../utils/file-size.js";
 import { upsertUploadSession } from "../utils/upload-store.js";
+import { NEUTRAL_CONTENT_TYPE } from "@ttt-productions/media-schemas";
 import { UploadError, isValidMediaContentType } from "./upload-error.js";
 
 import {
@@ -210,7 +211,7 @@ export async function uploadFileResumable(
     );
   }
   const neutralAllowed =
-    args.allowNeutralContentType === true && ct.toLowerCase().trim() === 'application/octet-stream';
+    args.allowNeutralContentType === true && ct.toLowerCase().trim() === NEUTRAL_CONTENT_TYPE;
   if (!neutralAllowed && !isValidMediaContentType(ct)) {
     throw new UploadError(
       'invalid_content_type',

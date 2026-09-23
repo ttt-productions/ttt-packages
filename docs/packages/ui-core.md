@@ -12,7 +12,16 @@ Generic UI primitive package.
 
 ## Boundary
 
-Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`.
+Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`. `lucide-react` is an optional peer: the app supplies the one copy every package renders icons from.
+
+## Styling contract — theme tokens only
+
+Every colour and shadow a ui-core component renders comes from a theme-core token (theme-core's `token-contract.test.ts` enforces it), so an app re-themes ui-core entirely from its token layer:
+
+- **No raw colour.** No Tailwind palette utility (`bg-green-500`, `bg-white`, …) and no colour literal. Semantic utilities (`bg-card`, `border-input`) and `var()` reads map to theme-core tokens.
+- **No shadow utility.** A Tailwind utility out-ranks every layered stylesheet, so shadows live on theme-core elevation hook classes the components carry, each reading a shadow token — the hook classes and what each covers are listed once, in [theme-core.md](theme-core.md#recipes-and-components-read-tokens-not-literals). `.page-card` and an app's own card rules therefore reach `<Card>`.
+- **One form-control edge.** `Input`, `Textarea`, and `Select` draw their edge from `--input` (`border-input`), and the unchecked `Switch` track fills with it (`bg-input`), so one token styles every form control in a form.
+- **Button edges follow their family.** `default` reads `--brand-primary-deep`, `destructive` reads `--destructive-border`, `success` reads `--status-success-border`, `inverted` reads the `--inverted-*` trio.
 
 ## In-progress feedback — `Spinner`, `pending`, `useAsyncAction`
 
@@ -20,7 +29,7 @@ Every in-progress indicator renders through ONE owner, so the spinner's look, si
 
 - **`Spinner`** is the only place the `Loader2` icon is used (the `canonical-spinner` boundary guard enforces it). `size` (`xs`–`xl`) maps onto the theme-core `spinner-*` classes, which own size, animation, and color — including `button .spinner-*`, which makes an in-button spinner inherit the button's text color. `label` turns it into a `status` live region; omit it inside a control that already carries `aria-busy`.
 - **Button `pending` + `icon`.** `pending` disables the button — so neither a repeat click nor an implicit form resubmit can fire — sets `aria-busy` and `data-pending`, and shows the spinner: an icon button (`size="icon"`) swaps its icon for it; any other button shows it in place of its leading `icon`. The leading slot is spaced by the button's built-in gap. With `asChild`, the leading slot renders inside the child element.
-- **Control pending.** `Switch` (spinner in the thumb), `SelectTrigger` (spinner replaces the chevron), and `DropdownMenuItem` (`pending` + leading `icon`) follow the same contract. Switch and Select keep showing the COMMITTED value — the caller flips it only once the write lands. Keeping a menu open while its item is pending is the caller's `onSelect` (`event.preventDefault()`, close on settle).
+- **Control pending.** `Switch` (spinner in the thumb), `SelectTrigger` (spinner replaces the chevron), and `DropdownMenuItem` (`pending` + leading `icon`) follow the same contract. Switch and Select keep showing the COMMITTED value — the caller flips it only once the write lands. Keeping a menu open while its item is pending is the caller's `onSelect` (`event.preventDefault()`, close on settle). `DropdownMenuItem` supports `asChild` (e.g. a link item): the child element becomes the menu item, and the icon / spinner is slotted inside it, before its content.
 - **`ConsequenceDialog`** renders its confirm with `pending`; it stays open while the promise `onConfirm` returns is pending and after it rejects. `onConfirm` stays typed `void | Promise<void>` — a caller that wants the pending state returns the promise.
 - **`useAsyncAction(action, { onError })`** returns `{ run, pending }` for async work that is not a React Query mutation (a local media step, a sign-out, an awaited navigation). A repeat `run` while pending is ignored — the guard is a ref, so two clicks in one frame cannot both start — and `run` never rejects: errors go to the required `onError`. Server writes stay mutations.
 

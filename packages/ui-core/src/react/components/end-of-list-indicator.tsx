@@ -20,7 +20,7 @@ export function EndOfListIndicator({
         className,
       )}
     >
-      {icon ?? <CheckCircle2 className="h-6 w-6 text-emerald-500" />}
+      {icon ?? <CheckCircle2 className="h-6 w-6 text-[color:var(--success-icon)]" />}
       <p className="text-sm">{message}</p>
     </div>
   );

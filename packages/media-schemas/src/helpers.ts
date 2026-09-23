@@ -1,5 +1,12 @@
 import type { SimplifiedMediaType } from "./types.js";
 
+/**
+ * The content type a client sends when the picker could not tell what a file is — the
+ * ONE declaration of it. It carries no claim, so only byte inspection at processing can
+ * accept or reject such a file (see `verifyStagedUploadMetadata`).
+ */
+export const NEUTRAL_CONTENT_TYPE = "application/octet-stream";
+
 export type FileLike = {
   type?: string; // mime
   name?: string; // filename
@@ -20,7 +27,7 @@ function simplifiedFromMime(mime: string): SimplifiedMediaType {
   const m = normalizeMime(mime);
 
   // common vendor/edge cases
-  if (m === "application/octet-stream") return "other";
+  if (m === NEUTRAL_CONTENT_TYPE) return "other";
 
   if (m.startsWith("image/")) return "image";
   if (m.startsWith("video/")) return "video";

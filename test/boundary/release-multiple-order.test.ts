@@ -22,6 +22,7 @@ describe('boundary: release-multiple dependency order', () => {
     before('report-core', 'ttt-core');
     before('audit-core', 'ttt-core');
     before('notification-core', 'ttt-core');
+    before('media-schemas', 'upload-core');
     before('media-viewer', 'file-input');
     before('file-input', 'upload-ui');
     before('upload-ui', 'chat-react');

@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { ClientContextSchema, ClientMediaClaimSchema, MediaPublicationStateSchema } from "../schemas.js";
 
+/**
+ * The pending-media lifecycle statuses, `pending → processing → completed | failed |
+ * rejected` — the ONE declaration. The status branches below, the lifecycle decisions
+ * (`pending-media-lifecycle.ts`), and upload-ui's tray all derive from it.
+ */
+export const PendingMediaStatusSchema = z.enum(["pending", "processing", "completed", "failed", "rejected"]);
+const STATUS = PendingMediaStatusSchema.enum;
+
 export function createPendingMediaSchemas<
   TFileOriginSchema extends z.ZodTypeAny,
   TDomainEventSchema extends z.ZodTypeAny,
@@ -77,17 +85,17 @@ export function createPendingMediaSchemas<
   } as const;
 
   const PendingMediaPendingSchema = z
-    .object({ ...PendingMediaBaseShape, status: z.literal('pending') })
+    .object({ ...PendingMediaBaseShape, status: z.literal(STATUS.pending) })
     .strict();
 
   const PendingMediaProcessingSchema = z
-    .object({ ...PendingMediaBaseShape, status: z.literal('processing') })
+    .object({ ...PendingMediaBaseShape, status: z.literal(STATUS.processing) })
     .strict();
 
   const PendingMediaCompletedSchema = z
     .object({
       ...PendingMediaBaseShape,
-      status: z.literal('completed'),
+      status: z.literal(STATUS.completed),
       completedAt: z.number(),
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),
@@ -101,7 +109,7 @@ export function createPendingMediaSchemas<
   const PendingMediaFailedSchema = z
     .object({
       ...PendingMediaBaseShape,
-      status: z.literal('failed'),
+      status: z.literal(STATUS.failed),
       failedAt: z.number(),
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),
@@ -116,7 +124,7 @@ export function createPendingMediaSchemas<
   const PendingMediaRejectedSchema = z
     .object({
       ...PendingMediaBaseShape,
-      status: z.literal('rejected'),
+      status: z.literal(STATUS.rejected),
       rejectedAt: z.number(),
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),
@@ -141,7 +149,7 @@ export function createPendingMediaSchemas<
   const ArchivedPendingMediaCompletedSchema = z
     .object({
       ...PendingMediaBaseShape,
-      status: z.literal('completed'),
+      status: z.literal(STATUS.completed),
       completedAt: z.number(),
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),
@@ -156,7 +164,7 @@ export function createPendingMediaSchemas<
   const ArchivedPendingMediaFailedSchema = z
     .object({
       ...PendingMediaBaseShape,
-      status: z.literal('failed'),
+      status: z.literal(STATUS.failed),
       failedAt: z.number(),
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),
@@ -172,7 +180,7 @@ export function createPendingMediaSchemas<
   const ArchivedPendingMediaRejectedSchema = z
     .object({
       ...PendingMediaBaseShape,
-      status: z.literal('rejected'),
+      status: z.literal(STATUS.rejected),
       rejectedAt: z.number(),
       terminalAt: z.number(),
       uploadTrayClearedAt: z.number().optional(),

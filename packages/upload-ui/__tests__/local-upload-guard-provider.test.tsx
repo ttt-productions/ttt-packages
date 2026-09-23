@@ -148,3 +148,75 @@ describe('LocalUploadGuardProvider', () => {
     confirmSpy.mockRestore();
   });
 });
+
+describe('confirmNavigation({ fullPageNavigation }) — one-shot beforeunload bypass', () => {
+  /** Runs the currently installed beforeunload handler against a fake event. */
+  function fireBeforeUnload() {
+    const calls = addSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
+    const handler = calls[calls.length - 1]![1] as (e: BeforeUnloadEvent) => void;
+    const preventDefault = vi.fn();
+    const event = { preventDefault, returnValue: '' } as unknown as BeforeUnloadEvent;
+    handler(event);
+    return { prevented: preventDefault.mock.calls.length > 0, returnValue: event.returnValue };
+  }
+
+  function renderWithActiveUpload() {
+    const hook = renderHook(() => useLocalUploadGuard(), { wrapper });
+    act(() => hook.result.current.registerUpload('u1'));
+    return hook;
+  }
+
+  let confirmSpy: MockInstance<typeof window.confirm>;
+  beforeEach(() => {
+    confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  });
+  afterEach(() => {
+    confirmSpy.mockRestore();
+  });
+
+  it('a confirmed full-page navigation lets exactly the next beforeunload through', () => {
+    const { result } = renderWithActiveUpload();
+
+    expect(result.current.confirmNavigation({ fullPageNavigation: true })).toBe(true);
+
+    expect(fireBeforeUnload()).toEqual({ prevented: false, returnValue: '' });
+    expect(fireBeforeUnload().prevented).toBe(true);
+  });
+
+  it('a declined confirm never arms the bypass', () => {
+    confirmSpy.mockReturnValue(false);
+    const { result } = renderWithActiveUpload();
+
+    expect(result.current.confirmNavigation({ fullPageNavigation: true })).toBe(false);
+
+    expect(fireBeforeUnload().prevented).toBe(true);
+  });
+
+  it('a confirm without the option (a soft navigation) never arms the bypass', () => {
+    const { result } = renderWithActiveUpload();
+
+    expect(result.current.confirmNavigation()).toBe(true);
+
+    expect(fireBeforeUnload().prevented).toBe(true);
+  });
+
+  it('pageshow (a back/forward-cache return) clears an armed bypass', () => {
+    const { result } = renderWithActiveUpload();
+    result.current.confirmNavigation({ fullPageNavigation: true });
+
+    act(() => {
+      window.dispatchEvent(new Event('pageshow'));
+    });
+
+    expect(fireBeforeUnload().prevented).toBe(true);
+  });
+
+  it('an upload registered after the confirmation clears the bypass', () => {
+    const { result } = renderWithActiveUpload();
+    result.current.confirmNavigation({ fullPageNavigation: true });
+
+    act(() => result.current.registerUpload('u2'));
+
+    expect(fireBeforeUnload().prevented).toBe(true);
+  });
+});

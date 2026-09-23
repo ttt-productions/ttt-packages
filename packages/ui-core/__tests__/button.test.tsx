@@ -19,9 +19,10 @@ describe('buttonVariants — variant class contract', () => {
         variant: NonNullable<Parameters<typeof buttonVariants>[0]>['variant'];
         signatureClasses: string[];
     }> = [
-        { variant: 'default', signatureClasses: ['bg-primary', 'text-primary-foreground'] },
-        { variant: 'destructive', signatureClasses: ['bg-destructive', 'text-destructive-foreground'] },
-        { variant: 'success', signatureClasses: ['bg-green-500', 'text-primary-foreground'] },
+        { variant: 'default', signatureClasses: ['bg-primary', 'text-primary-foreground', 'border-[hsl(var(--brand-primary-deep))]'] },
+        // The destructive edge follows the destructive family, never the brand.
+        { variant: 'destructive', signatureClasses: ['bg-destructive', 'text-destructive-foreground', 'border-[hsl(var(--destructive-border))]'] },
+        { variant: 'success', signatureClasses: ['bg-[color:var(--button-success)]', 'text-primary-foreground', 'border-[hsl(var(--status-success-border))]'] },
         { variant: 'outline', signatureClasses: ['border-2', 'border-border', 'bg-background'] },
         { variant: 'secondary', signatureClasses: ['bg-secondary', 'text-secondary-foreground'] },
         { variant: 'ghost', signatureClasses: ['hover:bg-accent', 'hover:text-accent-foreground'] },

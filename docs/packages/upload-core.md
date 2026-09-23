@@ -18,6 +18,6 @@ The historical `./react` subpath was removed. Do not reintroduce unguarded uploa
 ## Neutral content-type opt-in
 
 `uploadFileResumable` accepts `allowNeutralContentType: true` to permit EXACTLY
-`application/octet-stream` (unknown picker metadata reaching the server uninvented). The
+media-schemas' `NEUTRAL_CONTENT_TYPE` (`application/octet-stream`: unknown picker metadata reaching the server uninvented). The
 media-only default is unchanged for every caller that omits it; arbitrary declared types still
 reject.

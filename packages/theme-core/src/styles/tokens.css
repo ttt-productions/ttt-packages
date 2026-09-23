@@ -24,6 +24,8 @@
 
   --destructive: var(--status-error);
   --destructive-foreground: var(--neutral-white);
+  /* ui-core destructive Button edge: tracks the destructive family, not the brand */
+  --destructive-border: var(--destructive);
 
   /* Extra semantic status colors (used by pills/toasts/etc.) */
   --success: var(--status-success);
@@ -36,9 +38,49 @@
   --info-foreground: var(--neutral-white);
 
   --border: 240 5% 88%;
+  /* Form-control edge (ui-core `border-input` / `bg-input`); follows --border unless the app sets it */
+  --input: var(--border);
   --ring: var(--brand-primary);
 
+  /* Inverted surface (ui-core Button `inverted`): foreground and background swapped.
+     var()-derived, so it re-resolves in every theme block below. */
+  --inverted-background: var(--foreground);
+  --inverted-foreground: var(--background);
+  --inverted-border: var(--inverted-background);
+
   --radius: 1rem;
+
+  /* Elevation. Recipes read these, never a literal shadow. The light defaults are
+     black drop shadows; .dark and .high-contrast redeclare every one of them. */
+  --card-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); /* .page-card */
+  --card-shadow-subtle: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* ui-core Card (.card-border) */
+  --control-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); /* select triggers, view toggle, active tab */
+  --app-header-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  /* menus, popovers, tooltips, select lists (.elevation-popover) */
+  --popover-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  /* dialogs, sheets, toasts, sub-menus, search results, floating buttons, switch thumb (.elevation-raised) */
+  --raised-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Component colours ui-core renders. These are COMPLETE CSS colours, not HSL
+     triplets: ui-core reads them as var(--x), so set them to any colour (including
+     hsl(var(--success)) to join a status family). The light defaults reproduce,
+     exactly, the Tailwind palette colours they replaced (wide-gamut oklch, which
+     an HSL triplet cannot express). They hold in every theme unless redeclared. */
+  --scrim: hsl(var(--neutral-black) / 0.8); /* modal overlay behind dialogs and sheets */
+  --avatar-fallback: hsl(var(--neutral-white));
+  --table-row-hover: hsl(var(--muted) / 0.5);
+  --button-success: oklch(72.3% 0.219 149.579);
+  --success-icon: oklch(69.6% 0.17 162.48);
+  --toast-destructive: oklch(57.7% 0.245 27.325);
+  --toast-destructive-foreground: hsl(var(--neutral-white));
+  --toast-destructive-border: oklch(50.5% 0.213 27.518);
+  --toast-success: oklch(59.6% 0.145 163.225);
+  --toast-success-foreground: hsl(var(--neutral-white));
+  --toast-success-border: oklch(50.8% 0.118 165.612);
+  --toast-warning: oklch(76.9% 0.188 70.08);
+  --toast-warning-foreground: hsl(var(--neutral-black));
+  --toast-warning-border: oklch(66.6% 0.179 58.318);
+  --recording-indicator: oklch(63.7% 0.237 25.331); /* file-input's live-recording dot */
 }
 
 .dark {
@@ -59,7 +101,18 @@
   --accent-foreground: 0 0% 100%;
 
   --border: 240 5% 22%;
+  --input: var(--border);
   --ring: 0 0% 100%;
+
+  /* A dark drop shadow vanishes on a dark canvas: elevate with a soft light aura instead */
+  --card-shadow: 0 0 1rem hsl(var(--foreground) / 0.14);
+  --card-shadow-subtle: 0 0 0.5rem hsl(var(--foreground) / 0.08);
+  --control-shadow: 0 0 0.25rem hsl(var(--foreground) / 0.12);
+  --app-header-shadow: 0 0 0.75rem hsl(var(--foreground) / 0.12);
+  --popover-shadow: 0 0 0.75rem hsl(var(--foreground) / 0.12);
+  --raised-shadow: 0 0 1rem hsl(var(--foreground) / 0.14);
+
+  --table-row-hover: hsl(var(--neutral-white) / 0.1);
 
   /* status foregrounds still reasonable in dark */
   --success-foreground: 0 0% 0%;
@@ -103,5 +156,13 @@
   --info-foreground: 0 0% 0%;
 
   --border: 0 0% 100%;
+  --input: var(--border);
   --ring: 0 0% 100%;
+
+  --card-shadow: 0 0 1rem hsl(var(--foreground) / 0.24);
+  --card-shadow-subtle: 0 0 0.5rem hsl(var(--foreground) / 0.16);
+  --control-shadow: 0 0 0.25rem hsl(var(--foreground) / 0.24);
+  --app-header-shadow: 0 0 0.75rem hsl(var(--foreground) / 0.24);
+  --popover-shadow: 0 0 0.75rem hsl(var(--foreground) / 0.24);
+  --raised-shadow: 0 0 1rem hsl(var(--foreground) / 0.24);
 }

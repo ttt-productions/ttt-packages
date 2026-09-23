@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { render, fireEvent, act, renderHook } from '@testing-library/react';
 import React from 'react';
 import { LocalUploadGuardProvider, useLocalUploadGuard } from '../src/react/local-upload-guard-provider.js';
@@ -113,5 +113,60 @@ describe('useGuardedNavigation', () => {
     expect(confirmSpy).toHaveBeenCalled();
     expect(nav).not.toHaveBeenCalled();
     confirmSpy.mockRestore();
+  });
+});
+
+describe('useGuardedNavigation — full-page navigation', () => {
+  let addSpy: MockInstance<typeof window.addEventListener>;
+  let confirmSpy: MockInstance<typeof window.confirm>;
+  beforeEach(() => {
+    addSpy = vi.spyOn(window, 'addEventListener');
+    confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  });
+  afterEach(() => {
+    addSpy.mockRestore();
+    confirmSpy.mockRestore();
+  });
+
+  function renderWithActiveUpload() {
+    const hook = renderHook(() => ({ guard: useLocalUploadGuard(), guardedNav: useGuardedNavigation() }), {
+      wrapper: Wrapper,
+    });
+    act(() => hook.result.current.guard.registerUpload('u1'));
+    return hook;
+  }
+
+  /** Runs the installed beforeunload handler; true when it warned (prevented the unload). */
+  function nextUnloadWarns(): boolean {
+    const calls = addSpy.mock.calls.filter((c) => c[0] === 'beforeunload');
+    const handler = calls[calls.length - 1]![1] as (e: BeforeUnloadEvent) => void;
+    const preventDefault = vi.fn();
+    handler({ preventDefault, returnValue: '' } as unknown as BeforeUnloadEvent);
+    return preventDefault.mock.calls.length > 0;
+  }
+
+  it('a confirmed full-page navigation runs and its unload is not prompted a second time', () => {
+    const { result } = renderWithActiveUpload();
+    const nav = vi.fn();
+    act(() => result.current.guardedNav(nav, { fullPageNavigation: true }));
+    expect(nav).toHaveBeenCalledTimes(1);
+    expect(nextUnloadWarns()).toBe(false);
+  });
+
+  it('a soft navigation (no option) never arms the bypass', () => {
+    const { result } = renderWithActiveUpload();
+    const nav = vi.fn();
+    act(() => result.current.guardedNav(nav));
+    expect(nav).toHaveBeenCalledTimes(1);
+    expect(nextUnloadWarns()).toBe(true);
+  });
+
+  it('a declined full-page navigation neither runs nor arms the bypass', () => {
+    confirmSpy.mockReturnValue(false);
+    const { result } = renderWithActiveUpload();
+    const nav = vi.fn();
+    act(() => result.current.guardedNav(nav, { fullPageNavigation: true }));
+    expect(nav).not.toHaveBeenCalled();
+    expect(nextUnloadWarns()).toBe(true);
   });
 });

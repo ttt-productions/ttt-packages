@@ -21,7 +21,7 @@ Generic reporting and admin-task queue package.
 - `./react` — admin/report React UI.
 - `./server` — server helpers.
 - `./schemas` — wire-format Zod schemas.
-- `./styles` — admin/report CSS.
+- `./styles` — admin/report CSS. It reads theme-core's semantic tokens (`hsl(var(--card))`, `--destructive`, `--warning`, …) and carries no raw colour; its keyframes are namespaced (`rc-pulse`).
 
 ## Boundary
 

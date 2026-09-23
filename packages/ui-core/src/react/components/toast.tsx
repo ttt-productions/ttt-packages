@@ -25,7 +25,7 @@ function ToastKeyframes() {
 const toastVariants = cva(
   cn(
     // base
-    "pointer-events-auto relative flex w-full items-start justify-between gap-2 overflow-hidden rounded-md border bg-background p-4 text-foreground shadow-lg transition-all",
+    "pointer-events-auto relative flex w-full items-start justify-between gap-2 overflow-hidden rounded-md border bg-background p-4 text-foreground elevation-raised transition-all",
     // radix state/animation
     "data-[state=open]:animate-in data-[state=closed]:animate-out",
     "data-[state=closed]:fade-out-80 data-[state=open]:fade-in-80",
@@ -38,10 +38,10 @@ const toastVariants = cva(
     variants: {
       variant: {
         default: "",
-        destructive: "border-red-700 bg-red-600 text-white",
-        success: "border-emerald-700 bg-emerald-600 text-white",
-        warning: "border-amber-600 bg-amber-500 text-black",
-        error: "border-red-700 bg-red-600 text-white",
+        destructive: "border-[color:var(--toast-destructive-border)] bg-[color:var(--toast-destructive)] text-[color:var(--toast-destructive-foreground)]",
+        success: "border-[color:var(--toast-success-border)] bg-[color:var(--toast-success)] text-[color:var(--toast-success-foreground)]",
+        warning: "border-[color:var(--toast-warning-border)] bg-[color:var(--toast-warning)] text-[color:var(--toast-warning-foreground)]",
+        error: "border-[color:var(--toast-destructive-border)] bg-[color:var(--toast-destructive)] text-[color:var(--toast-destructive-foreground)]",
       },
     },
     defaultVariants: {

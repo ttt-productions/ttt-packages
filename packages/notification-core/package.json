@@ -45,7 +45,6 @@
         "@ttt-productions/query-core": "*",
         "@ttt-productions/ui-core": "*",
         "firebase": ">=12.0.0",
-        "lucide-react": ">=0.0.0",
         "react": ">=19.0.0",
         "react-dom": ">=19.0.0"
     },
@@ -62,9 +61,6 @@
         "firebase": {
             "optional": true
         },
-        "lucide-react": {
-            "optional": true
-        },
         "react": {
             "optional": true
         },
@@ -79,7 +75,6 @@
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
         "firebase": "^11.0.0",
-        "lucide-react": "^0.475.0",
         "react": "^19.2.0",
         "react-dom": "^19.2.0",
         "typescript": "^5.8.3"

@@ -29,7 +29,7 @@ package may consume it.
 - **Tier 1 — depend on Tier 0 only:**
   `file-input` (→ `ui-core`, `media-schemas`, `media-viewer`), `media-viewer`
   (→ `media-schemas`, `ui-core`), `media-processing-core` (→ `media-schemas`),
-  `upload-core` (→ `firebase-helpers`), `realtime-core` (→ `edge-protocol-core`;
+  `upload-core` (→ `firebase-helpers`, `media-schemas`), `realtime-core` (→ `edge-protocol-core`;
   generic runtime-neutral realtime primitives), `report-core` and
   `notification-core` (no internal runtime deps; their UI/query needs are optional peers).
 - **Tier 2:** `upload-ui` (→ `file-input`, `media-schemas`, `ui-core`,
@@ -51,7 +51,7 @@ build order):
     file-input             -> ui-core, media-schemas, media-viewer
     media-viewer           -> media-schemas, ui-core
     media-processing-core  -> media-schemas
-    upload-core            -> firebase-helpers
+    upload-core            -> firebase-helpers, media-schemas
     upload-ui              -> file-input, media-schemas, ui-core, upload-core
     ttt-core               -> audit-core, edge-protocol-core,
                               media-schemas, notification-core, report-core
@@ -220,7 +220,7 @@ Key ordering constraints: `chat-core` plus
 `chat-schemas`/`ui-core`/`upload-ui`/`mobile-core`/`firebase-helpers` before `chat-react`;
 `report-core`/`audit-core`/`notification-core`/`media-schemas`
 before `ttt-core`;
-`firebase-helpers` before `upload-core`; `file-input`/`ui-core`/`upload-core`/
+`firebase-helpers`/`media-schemas` before `upload-core`; `file-input`/`ui-core`/`upload-core`/
 `media-schemas` before `upload-ui`.
 
 `scripts/preflight.sh` (and `release-all.sh`, which preflights once) nukes stale
@@ -289,6 +289,14 @@ the rules above so they fail loudly:
 - `canonical-spinner.test.ts` — fails if the `Loader2` icon is imported anywhere
   but ui-core's `Spinner`, or if the `animate-spin` utility appears in package
   source (theme-core's `spinner-*` classes own the animation).
+- `lucide-peer.test.ts` — fails if any package takes `lucide-react` as a hard
+  dependency, if a package that imports it does not declare it as an optional peer
+  (with a devDependency to build and test alone), if a package whose source never
+  imports it declares it at all, or if the workspace's lucide ranges diverge — the
+  consuming app supplies the ONE lucide every package renders from.
+- `neutral-content-type.test.ts` — fails if the neutral content type
+  (`application/octet-stream`) is re-typed as a string literal anywhere in package
+  source outside its one declaration, media-schemas' `NEUTRAL_CONTENT_TYPE`.
 - `sourcemap-sources.test.ts` (check #4) — after the build, fails if any package
   emits a JavaScript sourcemap without complete embedded `sourcesContent`, so a
   published `dist` never points consumers at source files the tarball omits.

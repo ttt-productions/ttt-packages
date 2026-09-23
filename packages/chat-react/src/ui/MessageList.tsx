@@ -222,7 +222,7 @@ export function MessageList(props: {
           variant="outline"
           size="sm"
           aria-label={unseenCount > 0 ? `${unseenCount} new messages, scroll to latest` : "Scroll to latest"}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full shadow-sm gap-1"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full elevation-raised gap-1"
           onClick={() => {
             scrollToBottom();
             onScrollToBottom?.();

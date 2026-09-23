@@ -17,6 +17,8 @@
 // fact the whole pipeline then trusted. upload-core accepts the neutral type
 // only via its explicit opt-in (`allowNeutralContentType`).
 
+import { NEUTRAL_CONTENT_TYPE } from "@ttt-productions/media-schemas";
+
 export type InferKind = "image" | "video" | "audio";
 
 const EXT_TO_MIME: Record<string, string> = {
@@ -62,9 +64,6 @@ const KIND_DEFAULT: Record<InferKind, string> = {
 
 const BASE_MEDIA_MIME_RE = /^(image|video|audio)\/[a-z0-9.+-]+$/;
 
-/** The neutral pass-through type for unknown picker metadata. */
-export const NEUTRAL_CONTENT_TYPE = "application/octet-stream";
-
 /**
  * Extracts the parameter-less base MIME ("audio/webm" from
  * "audio/webm;codecs=opus"), lowercased, when it is a usable media type.
@@ -74,7 +73,7 @@ export const NEUTRAL_CONTENT_TYPE = "application/octet-stream";
 function parseBaseMime(mime: string | undefined | null): string | null {
   if (!mime) return null;
   const base = mime.split(";")[0].trim().toLowerCase();
-  if (base === "application/octet-stream") return null;
+  if (base === NEUTRAL_CONTENT_TYPE) return null;
   return BASE_MEDIA_MIME_RE.test(base) ? base : null;
 }
 

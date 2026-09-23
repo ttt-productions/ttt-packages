@@ -74,7 +74,7 @@ export function ScrollToTopButton({
       onClick={onClick}
       aria-label={ariaLabel}
       className={cn(
-        "fixed bottom-24 left-1/2 -translate-x-1/2 z-50 rounded-full shadow-lg transition-opacity duration-300",
+        "fixed bottom-24 left-1/2 -translate-x-1/2 z-50 rounded-full elevation-raised transition-opacity duration-300",
         isVisible ? "opacity-100" : "opacity-0 pointer-events-none",
         className,
       )}

@@ -31,7 +31,7 @@ Every async step shows pending for its whole window and ignores a repeat, so no 
 `MediaInputChangePayload.claim` carries the action-derived `ClientMediaClaim` (picker →
 advisory inference; camera/recorder → strong, from the dialog's own recorded kind — never the
 blob MIME; crop preserves the original claim). Unknown picker metadata is no longer fabricated
-into `image/jpeg`: it passes through as `application/octet-stream` (`NEUTRAL_CONTENT_TYPE`)
+into `image/jpeg`: it passes through as `application/octet-stream` (media-schemas' `NEUTRAL_CONTENT_TYPE`)
 with a `kind:'file'` claim, and `accepts()` fails OPEN on unknown types (the server byte
 inspector is the authority). `acceptAttr` projects `spec.accept.formats` through the
 media-schemas registry when present.

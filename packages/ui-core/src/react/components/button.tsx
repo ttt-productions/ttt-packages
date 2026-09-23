@@ -15,9 +15,9 @@ const buttonVariants = cva(
         default:
           "button-default bg-primary text-primary-foreground hover:bg-primary/90 border-2 border-[hsl(var(--brand-primary-deep))]",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 border-2 border-[hsl(var(--brand-primary-deep))]",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 border-2 border-[hsl(var(--destructive-border))]",
         success:
-          "bg-green-500 text-primary-foreground hover:bg-green-500/90 border-2 border-[hsl(var(--status-success-border))]",
+          "bg-[color:var(--button-success)] text-primary-foreground hover:bg-[color:var(--button-success)]/90 border-2 border-[hsl(var(--status-success-border))]",
         outline:
           "border-2 border-border bg-background hover:bg-accent hover:text-accent-foreground text-foreground",
         secondary:

@@ -13,7 +13,11 @@
  */
 
 import { useEffect, useRef } from 'react';
+import { isPendingMediaNonTerminalStatus, PendingMediaStatusSchema } from '@ttt-productions/media-schemas';
 import { useInFlightUpload, type InFlightUpload } from './in-flight-uploads-provider.js';
+
+// Pending-media status values derive from media-schemas' one declaration.
+const STATUS = PendingMediaStatusSchema.enum;
 
 export interface UploadProcessingState {
   status: 'idle' | 'pending' | 'processing' | 'success' | 'failed' | 'rejected-text' | 'rejected-media';
@@ -60,7 +64,7 @@ function buildState<TFileOrigin extends string>(
       isRejected: false,
     };
   }
-  if (upload.status === 'pending' || upload.status === 'processing') {
+  if (isPendingMediaNonTerminalStatus(upload.status)) {
     return {
       status: upload.status,
       message: processingMessage,
@@ -70,7 +74,7 @@ function buildState<TFileOrigin extends string>(
       isRejected: false,
     };
   }
-  if (upload.status === 'completed') {
+  if (upload.status === STATUS.completed) {
     return {
       status: 'success',
       message: successMessage,
@@ -80,7 +84,7 @@ function buildState<TFileOrigin extends string>(
       isRejected: false,
     };
   }
-  if (upload.status === 'failed') {
+  if (upload.status === STATUS.failed) {
     return {
       status: 'failed',
       message: failedMessage,
@@ -91,7 +95,7 @@ function buildState<TFileOrigin extends string>(
       isRejected: false,
     };
   }
-  if (upload.status === 'rejected') {
+  if (upload.status === STATUS.rejected) {
     return {
       status: upload.rejectionType === 'text' ? 'rejected-text' : 'rejected-media',
       message: rejectedMessage,

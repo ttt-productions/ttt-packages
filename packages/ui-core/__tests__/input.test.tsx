@@ -38,4 +38,13 @@ describe('Input', () => {
     render(<Input ref={ref} />);
     expect(ref.current).toBeInstanceOf(HTMLInputElement);
   });
+
+  // Every form control reads the one form-control edge token (--input), like Select.
+  it('draws its edge from the form-control token, not the generic border', () => {
+    const { container } = render(<Input />);
+    const el = container.querySelector('input')!;
+    expect(el).toHaveClass('border-input');
+    expect(el).not.toHaveClass('border-border');
+  });
 });
+

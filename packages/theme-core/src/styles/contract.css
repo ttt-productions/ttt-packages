@@ -11,6 +11,11 @@
   --status-error: 0 84% 60%;
   --status-info: 221 83% 53%;
 
+  /* Deep shades: OPTIONAL. ui-core's primary/destructive/tab and success edges read
+     these; by default each tracks its base token (re-resolved in every theme). */
+  --brand-primary-deep: var(--brand-primary);
+  --status-success-border: var(--status-success);
+
   /* Neutrals */
   --neutral-white: 0 0% 100%;
   --neutral-black: 0 0% 0%;

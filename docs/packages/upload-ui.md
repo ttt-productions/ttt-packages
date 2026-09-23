@@ -43,6 +43,10 @@ app-chosen key; the pendingMediaId is the mutation variables, so a consumer read
 pending with `useMutationState` — pending that survives the clearing row unmounting. The key
 itself is app policy and is never defined here. Omitted, the mutation is unkeyed.
 
+## Navigation guard — confirmation and the one-shot unload bypass
+
+While a local upload is active the guard warns on every way out: `beforeunload` for tab close / reload / full-page navigation, and `confirmNavigation()` (behind `GuardedLink` / `useGuardedNavigation`) for in-app navigation. A caller that leaves through a FULL-PAGE navigation (`location.assign` / `location.replace`) calls `confirmNavigation({ fullPageNavigation: true })`, or passes the same option through `useGuardedNavigation`: `guardedNav(() => location.assign(url), { fullPageNavigation: true })`. When that returns true (confirmed, or no upload active) the provider arms a one-shot bypass, so the unload that follows does not raise the browser's native "Leave site?" as a second prompt. A declined confirm never arms it. An armed bypass is cleared when the next `beforeunload` consumes it, when a new upload registers (the confirmation did not cover it), and on `pageshow` (a back/forward-cache return). A bypass armed for a navigation that never unloads the page (a hash change, an external-protocol link) therefore stays armed while an upload is active, until one of those clears it — so callers pass `fullPageNavigation` only for a real page unload. Soft (router) navigations never pass the option: they fire no `beforeunload`. Without options `confirmNavigation()` behaves exactly as before.
+
 ## Neutral content-type threading
 
 `GuardedUploadArgs.allowNeutralContentType` threads the upload-core opt-in through the one

@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   createR2ObjectStore,
   createFirebaseEmulatorObjectStore,
+  createFirebaseStorageObjectStore,
   getMimeFromExt,
   R2StorageError,
   type Bucket,
@@ -95,6 +96,144 @@ describe('createR2ObjectStore', () => {
   });
 });
 
+/**
+ * Firebase Admin bucket double. `file(key)` returns a per-key handle, and every
+ * call lands in one ordered `events` log tagged with the key it acted on, so a
+ * test can prove WHICH object a metadata write hit and in what order.
+ */
+function makeFirebaseBucketMock(
+  opts: {
+    storedContentType?: string;
+    deleteError?: Error;
+    setMetadataError?: Error;
+    /** Metageneration the rewrite response reports; `null` = the response carries none. */
+    rewriteMetageneration?: string | null;
+  } = {},
+) {
+  const events: Array<{ op: string; key: string; arg?: any; options?: any }> = [];
+  const upload = vi.fn(async (_localPath: string, uploadOpts: any) => {
+    events.push({ op: 'upload', key: uploadOpts.destination, arg: uploadOpts });
+  });
+  const file = vi.fn((key: string) => ({
+    name: key,
+    copy: vi.fn(async (dest: { name: string }) => {
+      events.push({ op: 'copy', key, arg: dest.name });
+      const metageneration = opts.rewriteMetageneration === undefined ? '1' : opts.rewriteMetageneration;
+      return [dest, { done: true, resource: metageneration === null ? { name: dest.name } : { name: dest.name, metageneration } }];
+    }),
+    setMetadata: vi.fn(async (meta: unknown, options: unknown) => {
+      if (opts.setMetadataError) throw opts.setMetadataError;
+      events.push({ op: 'setMetadata', key, arg: meta, options });
+    }),
+    download: vi.fn(async ({ destination }: { destination: string }) => {
+      await writeFile(destination, 'stored-bytes');
+      events.push({ op: 'download', key, arg: destination });
+    }),
+    getMetadata: vi.fn(async () => [{ contentType: opts.storedContentType }]),
+    delete: vi.fn(async () => {
+      if (opts.deleteError) throw opts.deleteError;
+      events.push({ op: 'delete', key });
+    }),
+  }));
+  return { bucket: { upload, file } as unknown as Bucket, upload, events };
+}
+
+describe('createFirebaseStorageObjectStore (deployed, token-free)', () => {
+  it('putFile uploads with content type + immutable cache-control and NO download token', async () => {
+    const localPath = await makeLocalFile('badge.webp', 'webp!');
+    const { bucket, upload } = makeFirebaseBucketMock();
+    const store = createFirebaseStorageObjectStore({ bucket });
+
+    const result = await store.putFile({ localPath, key: 'processed/award1/md' });
+
+    expect(result).toEqual({ key: 'processed/award1/md', sizeBytes: 5, contentType: 'image/webp' });
+    const [uploadedPath, opts] = upload.mock.calls[0];
+    expect(uploadedPath).toBe(localPath);
+    expect(opts.destination).toBe('processed/award1/md');
+    expect(opts.metadata).toEqual({
+      contentType: 'image/webp',
+      cacheControl: 'public, max-age=31536000, immutable',
+    });
+    expect(JSON.stringify(opts)).not.toMatch(/firebaseStorageDownloadTokens/);
+  });
+
+  it('putFile honors an explicit content type over the extension', async () => {
+    const localPath = await makeLocalFile('main');
+    const { bucket, upload } = makeFirebaseBucketMock();
+    const store = createFirebaseStorageObjectStore({ bucket });
+
+    const result = await store.putFile({ localPath, key: 'k', contentType: 'image/png' });
+
+    expect(result.contentType).toBe('image/png');
+    expect(upload.mock.calls[0][1].metadata.contentType).toBe('image/png');
+  });
+
+  it('copy is server-side and then strips any download token the source carried, pinned to the rewrite', async () => {
+    const { bucket, events } = makeFirebaseBucketMock({ rewriteMetageneration: '1' });
+    const store = createFirebaseStorageObjectStore({ bucket });
+
+    const result = await store.copy({ fromKey: 'legacy/award1.png', toKey: 'processed/award1/md' });
+
+    expect(result).toEqual({ key: 'processed/award1/md' });
+    expect(events).toEqual([
+      { op: 'copy', key: 'legacy/award1.png', arg: 'processed/award1/md' },
+      {
+        op: 'setMetadata',
+        key: 'processed/award1/md',
+        arg: { metadata: { firebaseStorageDownloadTokens: null } },
+        // The metageneration precondition is what makes the library retry the strip.
+        options: { ifMetagenerationMatch: '1' },
+      },
+    ]);
+  });
+
+  it('copy still strips the token when the rewrite response reports no metageneration', async () => {
+    const { bucket, events } = makeFirebaseBucketMock({ rewriteMetageneration: null });
+    await createFirebaseStorageObjectStore({ bucket }).copy({ fromKey: 'a', toKey: 'b' });
+    expect(events[1]).toEqual({
+      op: 'setMetadata',
+      key: 'b',
+      arg: { metadata: { firebaseStorageDownloadTokens: null } },
+      options: {},
+    });
+  });
+
+  it('a failed token strip deletes the destination and rethrows, never leaving it live with the token', async () => {
+    const stripFailure = new Error('503 Service Unavailable');
+    const { bucket, events } = makeFirebaseBucketMock({ setMetadataError: stripFailure });
+    const store = createFirebaseStorageObjectStore({ bucket });
+
+    await expect(store.copy({ fromKey: 'legacy/award1.png', toKey: 'processed/award1/md' })).rejects.toBe(stripFailure);
+    expect(events).toEqual([
+      { op: 'copy', key: 'legacy/award1.png', arg: 'processed/award1/md' },
+      { op: 'delete', key: 'processed/award1/md' },
+    ]);
+  });
+
+  it('a failed token strip whose destination is already gone still rethrows the strip failure', async () => {
+    const stripFailure = new Error('503 Service Unavailable');
+    const { bucket } = makeFirebaseBucketMock({
+      setMetadataError: stripFailure,
+      deleteError: Object.assign(new Error('No such object'), { code: 404 }),
+    });
+    await expect(createFirebaseStorageObjectStore({ bucket }).copy({ fromKey: 'a', toKey: 'b' })).rejects.toBe(stripFailure);
+  });
+
+  it('a failed token strip whose cleanup also fails reports both failures', async () => {
+    const stripFailure = new Error('503 Service Unavailable');
+    const cleanupFailure = Object.assign(new Error('Permission denied'), { code: 403 });
+    const { bucket } = makeFirebaseBucketMock({ setMetadataError: stripFailure, deleteError: cleanupFailure });
+
+    const error = await createFirebaseStorageObjectStore({ bucket })
+      .copy({ fromKey: 'a', toKey: 'processed/b' })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(AggregateError);
+    expect((error as AggregateError).errors).toEqual([stripFailure, cleanupFailure]);
+    expect((error as AggregateError).message).toMatch(/processed\/b/);
+  });
+});
+
 describe('createFirebaseEmulatorObjectStore', () => {
   function makeBucketMock() {
     const setMetadata = vi.fn(async () => undefined);
@@ -104,6 +243,23 @@ describe('createFirebaseEmulatorObjectStore', () => {
     const file = vi.fn(() => ({ copy, setMetadata, delete: del }));
     return { bucket: { upload, file } as unknown as Bucket, upload, file, copy, setMetadata, del };
   }
+
+  it('copy stamps the FIXED download token on the destination', async () => {
+    const { bucket, events } = makeFirebaseBucketMock();
+    const store = createFirebaseEmulatorObjectStore({ bucket, downloadToken: 'ttt-emulator-media-token' });
+
+    await store.copy({ fromKey: 'mediaAssets/a/main', toKey: 'mediaAssets/b/main' });
+
+    expect(events).toEqual([
+      { op: 'copy', key: 'mediaAssets/a/main', arg: 'mediaAssets/b/main' },
+      {
+        op: 'setMetadata',
+        key: 'mediaAssets/b/main',
+        arg: { metadata: { firebaseStorageDownloadTokens: 'ttt-emulator-media-token' } },
+        options: { ifMetagenerationMatch: '1' },
+      },
+    ]);
+  });
 
   it('putFile uploads with the FIXED download token attached', async () => {
     const localPath = await makeLocalFile('pic.jpg');
@@ -122,6 +278,52 @@ describe('createFirebaseEmulatorObjectStore', () => {
     del.mockRejectedValueOnce(Object.assign(new Error('No such object'), { code: 404 }));
     const store = createFirebaseEmulatorObjectStore({ bucket, downloadToken: 't' });
     await expect(store.delete('missing')).resolves.toBeUndefined();
+  });
+});
+
+// The deployed and emulator Firebase stores are one implementation that differs
+// only in token policy; read and delete behave identically in both.
+describe.each([
+  ['createFirebaseStorageObjectStore', (bucket: Bucket) => createFirebaseStorageObjectStore({ bucket })],
+  ['createFirebaseEmulatorObjectStore', (bucket: Bucket) => createFirebaseEmulatorObjectStore({ bucket, downloadToken: 't' })],
+] as const)('%s — shared Firebase Storage behavior', (_name, makeStore) => {
+  it('readToFile downloads to the local path and reports size + stored content type', async () => {
+    const { bucket, events } = makeFirebaseBucketMock({ storedContentType: 'image/webp' });
+    const localPath = path.join(await mkdtemp(path.join(tmpdir(), 'storage-ops-')), 'out');
+
+    const result = await makeStore(bucket).readToFile({ key: 'processed/a/md', localPath });
+
+    expect(result).toEqual({ sizeBytes: 'stored-bytes'.length, contentType: 'image/webp' });
+    expect(await readFile(localPath, 'utf8')).toBe('stored-bytes');
+    expect(events).toEqual([{ op: 'download', key: 'processed/a/md', arg: localPath }]);
+  });
+
+  it('readToFile falls back to application/octet-stream when the object has no content type', async () => {
+    const { bucket } = makeFirebaseBucketMock();
+    const localPath = path.join(await mkdtemp(path.join(tmpdir(), 'storage-ops-')), 'out');
+    const result = await makeStore(bucket).readToFile({ key: 'k', localPath });
+    expect(result.contentType).toBe('application/octet-stream');
+  });
+
+  it('delete removes the object', async () => {
+    const { bucket, events } = makeFirebaseBucketMock();
+    await makeStore(bucket).delete('processed/a/md');
+    expect(events).toEqual([{ op: 'delete', key: 'processed/a/md' }]);
+  });
+
+  it.each([
+    ['a 404 code', Object.assign(new Error('Not Found'), { code: 404 })],
+    ['a "No such object" message', new Error('No such object: bucket/processed/a/md')],
+  ])('delete of a missing object is a no-op (%s)', async (_label, err) => {
+    const { bucket } = makeFirebaseBucketMock({ deleteError: err });
+    await expect(makeStore(bucket).delete('processed/a/md')).resolves.toBeUndefined();
+  });
+
+  it('delete rethrows a real failure', async () => {
+    const { bucket } = makeFirebaseBucketMock({
+      deleteError: Object.assign(new Error('Permission denied'), { code: 403 }),
+    });
+    await expect(makeStore(bucket).delete('k')).rejects.toThrow(/Permission denied/);
   });
 });
 

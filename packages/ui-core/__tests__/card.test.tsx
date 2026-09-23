@@ -24,6 +24,16 @@ describe('Card', () => {
     const { container } = render(<Card>Test</Card>);
     expect(container.firstChild).toHaveClass('rounded-lg');
   });
+
+  // Apps layer package CSS below Tailwind utilities, so a shadow utility on Card
+  // would out-rank theme-core's `.card-border` / `.page-card` recipes and every
+  // app card rule. The shadow belongs to the hook class and its token.
+  it('owns its shadow through the card-border hook class, never a Tailwind shadow utility', () => {
+    const { container } = render(<Card>Test</Card>);
+    const card = container.firstChild as HTMLElement;
+    expect(card).toHaveClass('card-border');
+    expect([...card.classList].filter((c) => /(^|:)shadow(-|$)/.test(c))).toEqual([]);
+  });
 });
 
 describe('CardHeader', () => {

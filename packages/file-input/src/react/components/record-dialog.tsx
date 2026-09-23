@@ -605,7 +605,7 @@ export function RecordDialog({
 
           {/* Live video preview — rendered in idle+recording states for video kind */}
           {recordKind === "video" && !isPreview && (
-            <div className="relative mt-2 rounded-md overflow-hidden bg-black aspect-video">
+            <div className="relative mt-2 rounded-md overflow-hidden bg-[hsl(var(--neutral-black))] aspect-video">
               <video
                 ref={livePreviewRef}
                 className="w-full h-full object-contain"
@@ -648,7 +648,7 @@ export function RecordDialog({
           {isRecording && (
             <div className="flex items-center gap-2 text-sm" aria-live="polite">
               <span
-                className="inline-block h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse"
+                className="inline-block h-2.5 w-2.5 rounded-full bg-[color:var(--recording-indicator)] animate-pulse"
                 aria-label="Recording"
               />
               <span className="tabular-nums">{elapsedLabel}</span>

@@ -1,46 +1,48 @@
 /* ============================================
  * report-core default styles
- * Uses theme-core CSS custom properties (tokens)
+ * Reads theme-core's semantic tokens (hsl(var(--x))) and carries no raw colour.
  * Import in your app: import "@ttt-productions/report-core/styles";
  * ============================================ */
 
 /* --- Report Dialog --- */
 .rc-dialog {
-  background-color: var(--color-card);
-  color: var(--color-card-foreground);
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
 }
 
 /* --- Priority Badges --- */
 .rc-priority-critical {
-  background-color: var(--color-destructive);
-  color: var(--color-destructive-foreground);
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background-color: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+  animation: rc-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   font-weight: 700;
 }
 
 .rc-priority-high {
-  background-color: var(--color-warning, #f59e0b);
-  color: var(--color-warning-foreground, #000);
+  background-color: hsl(var(--warning));
+  color: hsl(var(--warning-foreground));
   font-weight: 600;
 }
 
 .rc-priority-normal {
-  background-color: var(--color-primary);
-  color: var(--color-primary-foreground);
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .rc-priority-low {
-  background-color: var(--color-muted);
-  color: var(--color-muted-foreground);
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
 }
 
 .rc-priority-unknown {
-  background-color: var(--color-muted);
-  color: var(--color-muted-foreground);
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
 }
 
-/* --- Pulse animation for critical badges --- */
-@keyframes pulse {
+/* --- Pulse animation for critical badges ---
+ * Namespaced: a bare `pulse` would share one global keyframes name with Tailwind's
+ * `animate-pulse`, and whichever loaded last would drive both. */
+@keyframes rc-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
 }

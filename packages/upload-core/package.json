@@ -31,7 +31,8 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
-        "@ttt-productions/firebase-helpers": "*"
+        "@ttt-productions/firebase-helpers": "*",
+        "@ttt-productions/media-schemas": "*"
     },
     "peerDependencies": {
         "firebase": ">=12.0.0"

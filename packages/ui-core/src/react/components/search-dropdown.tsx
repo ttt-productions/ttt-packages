@@ -189,7 +189,7 @@ export function SearchDropdown<T>({
       </div>
 
       {showDropdown && (
-        <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md elevation-raised max-h-60 overflow-auto">
           {error ? (
             <div className="px-3 py-2 text-sm text-destructive">
               {error}

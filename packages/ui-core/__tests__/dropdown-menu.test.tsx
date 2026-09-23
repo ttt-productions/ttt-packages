@@ -40,3 +40,44 @@ describe('DropdownMenuItem', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 });
+
+describe('DropdownMenuItem asChild (a link item)', () => {
+  it('slots onto its child: the anchor itself is the menuitem and keeps its href', () => {
+    renderOpenMenu(
+      <DropdownMenuItem asChild>
+        <a href="/x">Link</a>
+      </DropdownMenuItem>,
+    );
+    const item = screen.getByRole('menuitem', { name: 'Link' });
+    expect(item.tagName).toBe('A');
+    expect(item).toHaveAttribute('href', '/x');
+  });
+
+  it('renders the leading icon inside the anchor, before the link text', () => {
+    renderOpenMenu(
+      <DropdownMenuItem asChild icon={<svg data-testid="item-icon" />}>
+        <a href="/x">Link</a>
+      </DropdownMenuItem>,
+    );
+    const item = screen.getByRole('menuitem', { name: 'Link' });
+    expect(item.tagName).toBe('A');
+    expect(item.firstChild).toBe(screen.getByTestId('item-icon'));
+    expect(item.lastChild?.textContent).toBe('Link');
+  });
+
+  it('pending: the spinner replaces the icon inside the anchor, and the item is busy and disabled', () => {
+    renderOpenMenu(
+      <DropdownMenuItem asChild pending icon={<svg data-testid="item-icon" />}>
+        <a href="/x">Link</a>
+      </DropdownMenuItem>,
+    );
+    const item = screen.getByRole('menuitem', { name: 'Link' });
+    expect(item.tagName).toBe('A');
+    expect(screen.queryByTestId('item-icon')).toBeNull();
+    expect(item.firstElementChild).toHaveClass('spinner-xs');
+    expect(item).toHaveAttribute('aria-busy', 'true');
+    expect(item).toHaveAttribute('data-pending');
+    expect(item).toHaveAttribute('data-disabled');
+    expect(item).toHaveAttribute('aria-disabled', 'true');
+  });
+});

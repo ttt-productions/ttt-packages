@@ -1,3 +1,5 @@
+import { NEUTRAL_CONTENT_TYPE } from "@ttt-productions/media-schemas";
+
 export type UploadErrorCode =
   | 'missing_content_type'
   | 'invalid_content_type';
@@ -27,6 +29,6 @@ export class UploadError extends Error {
 export function isValidMediaContentType(contentType: string | undefined | null): boolean {
   if (!contentType) return false;
   const ct = contentType.toLowerCase().trim();
-  if (ct === 'application/octet-stream') return false;
+  if (ct === NEUTRAL_CONTENT_TYPE) return false;
   return /^(image|video|audio)\/[a-z0-9.+-]+$/.test(ct);
 }

@@ -3,12 +3,17 @@
 // FINAL media are forbidden outside this module. (Upload STAGING stays plain
 // Firebase Storage and is not this module's concern.)
 //
-// There are two implementations:
-//  - R2 (S3-compatible) for deployed environments — the only place final user
-//    media lives in prod/dev; bytes are served exclusively by the gateway Worker.
-//  - Firebase Storage emulator for local dev/tests — objects get a FIXED
-//    caller-supplied download token so deterministic emulator URLs work with
-//    zero Cloudflare involvement. Production NEVER mints download tokens.
+// Implementations (the consuming app picks one per environment):
+//  - R2 (S3-compatible) for deployed environments whose final media lives in
+//    R2 and is served by an edge gateway.
+//  - Firebase Storage for deployed environments whose final media lives in
+//    Firebase Storage. Token-free: it writes and copies no download token, so
+//    its objects are readable only through the app's own access path (Storage
+//    rules). Firebase can still mint a token later (a client getDownloadURL, the
+//    console); the app's read path must never do so.
+//  - Firebase Storage emulator for local dev/tests — the Firebase Storage store
+//    plus a FIXED caller-supplied download token on every object, so
+//    deterministic emulator URLs work. Production NEVER mints download tokens.
 //
 // Writes return `{ key }` — never URLs. Display URLs are built at render time
 // from asset refs (see the consuming app's media-asset-url helper).
@@ -19,6 +24,8 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { AwsClient } from "aws4fetch";
 import type { getStorage } from "firebase-admin/storage";
+import { NEUTRAL_CONTENT_TYPE } from "@ttt-productions/media-schemas";
+import { isObjectNotFoundError } from "./gcs-errors.js";
 import {
   defaultR2RetrySeams,
   fetchWithR2Retry,
@@ -44,16 +51,22 @@ export interface ObjectReadResult {
 }
 
 export interface MediaObjectStore {
-  /** Upload a local file to the store at `key`. */
+  /**
+   * Upload a local file to the store at `key`. Objects are written with a
+   * one-year `immutable` cache-control, so keys are write-once: a replacement is
+   * written under a NEW key and the app repoints its reference to it. Overwriting
+   * an existing key would keep serving the old bytes from caches for up to a year.
+   */
   putFile(args: { localPath: string; key: string; contentType?: string }): Promise<ObjectWriteResult>;
   /** Server-side copy within the store. */
   copy(args: { fromKey: string; toKey: string }): Promise<{ key: string }>;
   /**
    * Download an object's bytes from the store to a local file (streamed, so a
    * large video never sits fully in memory). Used by safety evidence capture to
-   * pull prod media — which in deployed envs lives in R2 — before writing it into
-   * the separate (GCS) evidence vault: capture is inherently read-here-then-write,
-   * NOT a server-side copy, because source and vault are different backends.
+   * pull final media — which may live in a different backend (R2) — before
+   * writing it into the separate (GCS) evidence vault: capture is inherently
+   * read-here-then-write, NOT a server-side copy, because source and vault can
+   * be different backends.
    */
   readToFile(args: { key: string; localPath: string }): Promise<ObjectReadResult>;
   /** Delete an object. Missing objects are a no-op, not an error. */
@@ -174,7 +187,7 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
           if (!res.ok || !res.body) {
             return { kind: "response" as const, response: res };
           }
-          const contentType = res.headers.get("content-type") ?? "application/octet-stream";
+          const contentType = res.headers.get("content-type") ?? NEUTRAL_CONTENT_TYPE;
           // Pipe ONLY after a successful response, and open the destination in
           // truncating mode ('w') on every attempt so a partial download from a
           // prior attempt can never prefix/corrupt this one. res.body is a web
@@ -211,38 +224,88 @@ async function safeText(res: Response): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
-// Firebase Storage emulator store — local dev / tests only
+// Firebase Storage stores — deployed (token-free) and emulator (fixed token)
 // ---------------------------------------------------------------------------
 
-export interface CreateEmulatorObjectStoreArgs {
+/** Custom-metadata key Firebase Storage reads download tokens from. */
+const DOWNLOAD_TOKENS_METADATA_KEY = "firebaseStorageDownloadTokens";
+
+export interface CreateFirebaseStorageObjectStoreArgs {
   bucket: Bucket;
+}
+
+/** Firebase Storage store for deployed environments. Token-free (see header). */
+export function createFirebaseStorageObjectStore(args: CreateFirebaseStorageObjectStoreArgs): MediaObjectStore {
+  return createFirebaseStore(args.bucket, null);
+}
+
+export interface CreateEmulatorObjectStoreArgs extends CreateFirebaseStorageObjectStoreArgs {
   /** Fixed token attached to every object so deterministic emulator URLs work
    * (token URLs bypass rules in the emulator). Pass the app's constant. */
   downloadToken: string;
 }
 
+/** Local dev / tests only: the Firebase Storage store plus a fixed download token. */
 export function createFirebaseEmulatorObjectStore(args: CreateEmulatorObjectStoreArgs): MediaObjectStore {
-  const { bucket, downloadToken } = args;
+  return createFirebaseStore(args.bucket, args.downloadToken);
+}
+
+/** `downloadToken` is the store's token policy: `null` = token-free, a string = that token on every object. */
+function createFirebaseStore(bucket: Bucket, downloadToken: string | null): MediaObjectStore {
+  async function deleteObject(key: string): Promise<void> {
+    try {
+      await bucket.file(key).delete();
+    } catch (e) {
+      if (isObjectNotFoundError(e)) return;
+      throw e;
+    }
+  }
+
   return {
     async putFile({ localPath, key, contentType }) {
       const { size } = await stat(localPath);
       const ct = contentType ?? getMimeFromExt(extractExt(localPath));
+      // An upload replaces the object and all of its metadata, so a token-free
+      // put carries no custom metadata at all.
       await bucket.upload(localPath, {
         destination: key,
         metadata: {
           contentType: ct,
           cacheControl: DEFAULT_CACHE_CONTROL,
-          metadata: { firebaseStorageDownloadTokens: downloadToken },
+          ...(downloadToken === null ? {} : { metadata: { [DOWNLOAD_TOKENS_METADATA_KEY]: downloadToken } }),
         },
       });
       return { key, sizeBytes: size, contentType: ct };
     },
 
     async copy({ fromKey, toKey }) {
-      await bucket.file(fromKey).copy(bucket.file(toKey));
-      await bucket.file(toKey).setMetadata({
-        metadata: { firebaseStorageDownloadTokens: downloadToken },
-      });
+      const [, rewrite] = await bucket.file(fromKey).copy(bucket.file(toKey));
+      // A copy carries the source's custom metadata, token included. Stamp the
+      // destination with this store's policy: the fixed token, or `null`, which
+      // deletes any token the source carried. Pinning the stamp to the rewritten
+      // object's metageneration makes it conditionally idempotent, so the
+      // library retries transient failures instead of giving up after one try.
+      const metageneration = (rewrite as { resource?: { metageneration?: string | number } } | undefined)
+        ?.resource?.metageneration;
+      try {
+        await bucket.file(toKey).setMetadata(
+          { metadata: { [DOWNLOAD_TOKENS_METADATA_KEY]: downloadToken } },
+          metageneration === undefined ? {} : { ifMetagenerationMatch: metageneration },
+        );
+      } catch (stampError) {
+        // Never leave the destination live under the wrong token policy: remove
+        // it and fail the copy, so the caller retries the whole copy.
+        try {
+          await deleteObject(toKey);
+        } catch (cleanupError) {
+          throw new AggregateError(
+            [stampError, cleanupError],
+            `Copy to ${toKey}: stamping download-token metadata failed and the destination could not be removed`,
+            { cause: cleanupError },
+          );
+        }
+        throw stampError;
+      }
       return { key: toKey };
     },
 
@@ -251,18 +314,11 @@ export function createFirebaseEmulatorObjectStore(args: CreateEmulatorObjectStor
       await file.download({ destination: localPath });
       const [meta] = await file.getMetadata();
       const { size } = await stat(localPath);
-      const contentType = (meta.contentType as string | undefined) ?? "application/octet-stream";
+      const contentType = (meta.contentType as string | undefined) ?? NEUTRAL_CONTENT_TYPE;
       return { sizeBytes: size, contentType };
     },
 
-    async delete(key) {
-      try {
-        await bucket.file(key).delete();
-      } catch (e: any) {
-        if (e?.code === 404 || /No such object/i.test(String(e?.message))) return;
-        throw e;
-      }
-    },
+    delete: deleteObject,
   };
 }
 
@@ -292,6 +348,6 @@ export function getMimeFromExt(ext: string): string {
     case "mp3":
       return "audio/mpeg";
     default:
-      return "application/octet-stream";
+      return NEUTRAL_CONTENT_TYPE;
   }
 }

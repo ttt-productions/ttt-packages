@@ -61,21 +61,23 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import {
+  isPendingMediaNonTerminalStatus,
+  isPendingMediaTerminalStatus,
+  PendingMediaStatusSchema,
+  type PendingMediaNonTerminalStatus,
+  type PendingMediaStatus,
+} from '@ttt-productions/media-schemas';
+
+// Status values derive from media-schemas' one declaration.
+const STATUS = PendingMediaStatusSchema.enum;
 
 // =============================================================================
 // Generic shape of the data the provider tracks
 // =============================================================================
 
-/**
- * Generic pending-media status. Defined here so upload-ui has no dependency
- * on any app-specific package.
- */
-export type InFlightUploadStatus =
-  | 'pending'
-  | 'processing'
-  | 'completed'
-  | 'failed'
-  | 'rejected';
+/** Generic pending-media status — media-schemas' one declaration. */
+export type InFlightUploadStatus = PendingMediaStatus;
 
 /**
  * Generic in-flight upload record. The provider keeps a Map<id, InFlightUpload>
@@ -97,12 +99,12 @@ export type InFlightUploadBase<TFileOrigin extends string = string> = {
 
 export type InFlightUploadActive<TFileOrigin extends string = string> =
   InFlightUploadBase<TFileOrigin> & {
-    status: 'pending' | 'processing';
+    status: PendingMediaNonTerminalStatus;
   };
 
 export type InFlightUploadCompleted<TFileOrigin extends string = string> =
   InFlightUploadBase<TFileOrigin> & {
-    status: 'completed';
+    status: typeof PendingMediaStatusSchema.enum.completed;
     completedAt: number;
     uploadTrayClearedAt?: number;
     uploadTrayClearedBy?: string;
@@ -112,7 +114,7 @@ export type InFlightUploadCompleted<TFileOrigin extends string = string> =
 
 export type InFlightUploadFailed<TFileOrigin extends string = string> =
   InFlightUploadBase<TFileOrigin> & {
-    status: 'failed';
+    status: typeof PendingMediaStatusSchema.enum.failed;
     failedAt: number;
     errorCategory: string;
     errorMessage: string;
@@ -124,7 +126,7 @@ export type InFlightUploadFailed<TFileOrigin extends string = string> =
 
 export type InFlightUploadRejected<TFileOrigin extends string = string> =
   InFlightUploadBase<TFileOrigin> & {
-    status: 'rejected';
+    status: typeof PendingMediaStatusSchema.enum.rejected;
     rejectedAt: number;
     rejectionType: 'text' | 'media';
     errorMessage: string;
@@ -329,13 +331,13 @@ function fromParsed<TFileOrigin extends string>(
     originalContentType: parsed.originalContentType,
     originalSize: parsed.originalSize,
   };
-  if (parsed.status === 'pending' || parsed.status === 'processing') {
+  if (isPendingMediaNonTerminalStatus(parsed.status)) {
     return { ...base, status: parsed.status };
   }
-  if (parsed.status === 'completed') {
+  if (parsed.status === STATUS.completed) {
     return {
       ...base,
-      status: 'completed',
+      status: STATUS.completed,
       completedAt: parsed.completedAt ?? parsed.createdAt,
       uploadTrayClearedAt: parsed.uploadTrayClearedAt,
       uploadTrayClearedBy: parsed.uploadTrayClearedBy,
@@ -343,10 +345,10 @@ function fromParsed<TFileOrigin extends string>(
       uploadTraySeenBy: parsed.uploadTraySeenBy,
     };
   }
-  if (parsed.status === 'failed') {
+  if (parsed.status === STATUS.failed) {
     return {
       ...base,
-      status: 'failed',
+      status: STATUS.failed,
       failedAt: parsed.failedAt ?? parsed.createdAt,
       errorCategory: parsed.errorCategory ?? 'system',
       errorMessage: parsed.errorMessage ?? '',
@@ -359,7 +361,7 @@ function fromParsed<TFileOrigin extends string>(
   // rejected
   return {
     ...base,
-    status: 'rejected',
+    status: STATUS.rejected,
     rejectedAt: parsed.rejectedAt ?? parsed.createdAt,
     rejectionType: parsed.rejectionType ?? 'media',
     errorMessage: parsed.errorMessage ?? '',
@@ -456,12 +458,8 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
 
         const previousStatus = statusByIdRef.current.get(parsed.id);
         const currentStatus = parsed.status;
-        const currentIsTerminal =
-          currentStatus === 'completed' ||
-          currentStatus === 'failed' ||
-          currentStatus === 'rejected';
-        const previousWasNonTerminal =
-          previousStatus === 'pending' || previousStatus === 'processing';
+        const currentIsTerminal = isPendingMediaTerminalStatus(currentStatus);
+        const previousWasNonTerminal = isPendingMediaNonTerminalStatus(previousStatus);
 
         if (isInitialSnapshot) {
           // A subscription's first snapshot is a (re-)listing of current state,
@@ -526,11 +524,11 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
         },
       });
 
-      if (parsed.status === 'completed') {
+      if (parsed.status === STATUS.completed) {
         adapterRef.current.onUploadCompleted(parsed);
-      } else if (parsed.status === 'failed') {
+      } else if (parsed.status === STATUS.failed) {
         adapterRef.current.onUploadFailed(parsed);
-      } else if (parsed.status === 'rejected') {
+      } else if (parsed.status === STATUS.rejected) {
         adapterRef.current.onUploadRejected(parsed);
       }
     }
@@ -649,12 +647,8 @@ export function useUploadsSourceState(): UploadsSourceState {
  */
 export function isTerminalUpload<TFileOrigin extends string = string>(
   item: InFlightUpload<TFileOrigin>,
-): item is Exclude<InFlightUpload<TFileOrigin>, { status: 'pending' | 'processing' }> {
-  return (
-    item.status === 'completed' ||
-    item.status === 'failed' ||
-    item.status === 'rejected'
-  );
+): item is Exclude<InFlightUpload<TFileOrigin>, { status: PendingMediaNonTerminalStatus }> {
+  return isPendingMediaTerminalStatus(item.status);
 }
 
 /**

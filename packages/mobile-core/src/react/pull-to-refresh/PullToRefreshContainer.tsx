@@ -105,7 +105,7 @@ export function PullToRefreshContainer({ onRefresh, disabled, className, childre
             transition: pullDistance > 0 && !isRefreshing ? "none" : "transform 0.3s ease-out, opacity 0.3s ease-out",
             pointerEvents: "none",
             zIndex: 10,
-            color: "var(--foreground, currentColor)",
+            color: "hsl(var(--foreground))",
           }}
         >
           {isRefreshing && refreshingIndicator ? (
