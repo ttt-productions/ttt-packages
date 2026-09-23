@@ -74,3 +74,70 @@ describe('createDomainEventInvalidator', () => {
     expect(typeof invalidator.registry['entity.published']).toBe('function');
   });
 });
+
+describe('createDomainEventInvalidator — awaitable refresh', () => {
+  function deferredVoid() {
+    let resolve!: () => void;
+    const promise = new Promise<void>((res) => {
+      resolve = res;
+    });
+    return { promise, resolve };
+  }
+
+  function flush(): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+  }
+
+  it('notify returns a promise that settles only after every invalidateQueries settles', async () => {
+    const client = makeClient();
+    const first = deferredVoid();
+    const second = deferredVoid();
+    const pending = [first, second];
+    const spy = vi
+      .spyOn(client, 'invalidateQueries')
+      .mockImplementation(() => pending.shift()!.promise);
+
+    let settled = false;
+    const result = invalidator.notify(client, { type: 'user.followed', ids: { userId: 'u1' } });
+    void result.then(() => {
+      settled = true;
+    });
+    expect(spy).toHaveBeenCalledTimes(2);
+
+    first.resolve();
+    await flush();
+    expect(settled).toBe(false);
+
+    second.resolve();
+    await expect(result).resolves.toBeUndefined();
+    expect(settled).toBe(true);
+  });
+
+  it('notifyAll returns a promise that settles only after every deduplicated invalidation settles', async () => {
+    const client = makeClient();
+    const gates = [deferredVoid(), deferredVoid(), deferredVoid()];
+    const queue = [...gates];
+    const spy = vi
+      .spyOn(client, 'invalidateQueries')
+      .mockImplementation(() => queue.shift()!.promise);
+
+    let settled = false;
+    const result = invalidator.notifyAll(client, [
+      { type: 'user.followed', ids: { userId: 'u1' } },
+      { type: 'user.followed', ids: { userId: 'u2' } },
+    ]);
+    void result.then(() => {
+      settled = true;
+    });
+    // users/u1, users/u2, and the shared feed prefix (deduped) = 3 dispatches.
+    expect(spy).toHaveBeenCalledTimes(3);
+
+    gates[0].resolve();
+    gates[1].resolve();
+    await flush();
+    expect(settled).toBe(false);
+
+    gates[2].resolve();
+    await expect(result).resolves.toBeUndefined();
+  });
+});

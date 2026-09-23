@@ -67,9 +67,17 @@ function cancelPendingInitialReads(queryClient: QueryClient, filters: QueryFilte
 /**
  * Dispatch a deduplicated list of cache invalidations.
  *
- * Synchronous by contract: the underlying `invalidateQueries` / `cancelQueries`
- * promises are fire-and-forget, so a mutation success path never awaits its own
- * cache refresh.
+ * Returns a promise that resolves once every `invalidateQueries` call it issued
+ * has settled — i.e. once the refetches those invalidations triggered have
+ * landed. The dispatch itself stays synchronous (every cancellation and
+ * invalidation is issued before this function returns), so a fire-and-forget
+ * caller keeps the prior behavior exactly, while a mutation `onSuccess` that
+ * RETURNS or awaits the promise stays pending until the refreshed data is in
+ * the cache. The promise never rejects: `invalidateQueries` refetches without
+ * `throwOnError`, so a failed refetch surfaces on its own query, never as a
+ * failure of the committed action that triggered it. The scoped
+ * `cancelQueries` calls stay fire-and-forget — cancellation takes effect
+ * synchronously and is not part of the refresh being awaited.
  *
  * Before each invalidation, any query it matches that is mid-PENDING-INITIAL-READ
  * is cancelled (see `cancelPendingInitialReads`) so a read that started before
@@ -88,8 +96,9 @@ function cancelPendingInitialReads(queryClient: QueryClient, filters: QueryFilte
 export function applyInvalidations(
   queryClient: QueryClient,
   invalidations: ReadonlyArray<CacheInvalidation>,
-): void {
+): Promise<void> {
   const seen = new Set<string>();
+  const refreshes: Promise<void>[] = [];
   for (const inv of invalidations) {
     const sig = serializeInvalidation(inv);
     if (seen.has(sig)) continue;
@@ -102,6 +111,7 @@ export function applyInvalidations(
       cancelPendingInitialReads(queryClient, filters);
     }
 
-    void queryClient.invalidateQueries({ ...filters, refetchType });
+    refreshes.push(queryClient.invalidateQueries({ ...filters, refetchType }));
   }
+  return Promise.all(refreshes).then(() => undefined);
 }

@@ -46,13 +46,13 @@ Orientation only (read the docs above before designing): generic Tier 0 foundati
 
 The user-facing entrypoint for a selected package set is ALWAYS `./scripts/release-multiple.sh <folder> [<folder> ...] <patch|minor|major>` with short folder names. Never hand the user `release-package.sh` directly; it is only the internal per-package engine invoked by the batch script. The batch runs `scripts/preflight.sh` once, and the preflight runs `npm run test:quiet` — so a release shows concise per-stage output. Root `package.json` is `"type": "module"`; the internal release engine's `node -p "require(...)"` usage still works under Node 22 — do not remove it to "fix" a release issue.
 
-## Version bump selection (get this right — a wrong bump breaks the consuming install)
+## Version bump selection — patch only, pre-launch
 
-All packages are 0.x, and published internal peer ranges are carets (`^0.11.0`), which on 0.x **lock the minor**. Therefore:
+**Pre-launch, every release is a `patch` bump** — additive exports, fixes, AND breaking changes (a removed export, a changed signature) alike. Never hand off `minor` or `major`.
 
-- **`patch` is the default for every non-breaking change** — additive exports, new schemas/constants/modules, fixes. Dependents' existing `^0.x.y` peer ranges accept it; nothing else needs republishing.
-- **`minor` is ONLY for a deliberate breaking contract change.** On 0.x it escapes every dependent's caret peer range, so the consuming app's `npm install` ERESOLVE-fails until every package that **directly declares** the bumped package (grep `packages/*/package.json` for its name) is republished in the same release, deps-first. Never hand off a `minor` publish without that dependent list in the same command.
-- "It adds new capability" is NOT a reason for `minor` — additive = `patch` here, always.
+Why: all packages are 0.x, and published internal ranges are carets (`^0.11.0`), which on 0.x **lock the minor**. A `minor` bump escapes every dependent's caret range, so the consuming app's `npm install` ERESOLVE-fails (or nests duplicate copies) until every package that declares the bumped one is republished in lockstep. A `patch` flows through every caret untouched. A breaking change still requires confirming that no consumer relies on what it removes or alters before it ships as a patch.
+
+At the v1 launch the packages take a major release; from then on conventional semver applies (breaking → major, additive → minor, fix → patch), and this section is rewritten for it.
 
 ## Release and adoption workflow — the packages half of the Normal TTT Dev Flow
 

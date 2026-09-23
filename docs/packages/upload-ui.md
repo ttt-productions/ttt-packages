@@ -34,6 +34,15 @@ The package main entry (`@ttt-productions/upload-ui`) is intentionally server-sa
 
 There is no catch-all `./react` subpath; import the specific concern.
 
+## Clear-activity mutation joins the shared pending layer
+
+`useClearUploadActivity({ clearFn, onError, mutationKey })` returns the standard `useMutation`
+result (`mutate`, `mutateAsync`, `isPending`, …). The optional `mutationKey` is passed straight
+to that mutation, registering it in React Query's shared `MutationCache` under a stable,
+app-chosen key; the pendingMediaId is the mutation variables, so a consumer reads per-item
+pending with `useMutationState` — pending that survives the clearing row unmounting. The key
+itself is app policy and is never defined here. Omitted, the mutation is unkeyed.
+
 ## Neutral content-type threading
 
 `GuardedUploadArgs.allowNeutralContentType` threads the upload-core opt-in through the one

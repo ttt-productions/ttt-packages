@@ -29,6 +29,19 @@ Generic TanStack Query package.
 - Generic search hook/types
 - Domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`, `predicate`, `applyInvalidations`, `serializeInvalidation`)
 
+## Domain-event invalidation is awaitable
+
+`applyInvalidations` — and the invalidator's `notify` / `notifyAll`, which delegate to it —
+dispatch synchronously (every deduplicated cancel + `invalidateQueries` is issued before the
+call returns) and return a `Promise<void>` that resolves once every `invalidateQueries` it
+issued has settled, i.e. once the refetches those invalidations triggered have landed. A
+fire-and-forget caller ignores the promise and behaves as before. A mutation whose success is
+only visible after a refetch RETURNS (or awaits) it from `onSuccess`, so the mutation stays
+pending until the refreshed data is in the cache. The promise never rejects —
+`invalidateQueries` refetches without `throwOnError`, so a failed refetch surfaces on its own
+query, never as a failure of the committed action. `refetchType: 'none'` issues no refetch,
+so it contributes nothing to wait on.
+
 ## Entry points
 
 - `.` — server-safe root: cache helpers, Firestore types and `docWithId`, infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.

@@ -399,3 +399,148 @@ describe('applyInvalidations — pending initial read (stale-response protection
     unsubscribeUnmatched();
   });
 });
+
+// ============================================================================
+// Awaitable refresh: the returned promise settles only once every refetch the
+// invalidations triggered has settled, so a mutation onSuccess that returns it
+// stays pending until the refreshed data is in the cache.
+// ============================================================================
+
+/** Track whether a promise has settled without awaiting it. */
+function track(promise: Promise<void>): { settled: () => boolean } {
+  let done = false;
+  void promise.then(() => {
+    done = true;
+  });
+  return { settled: () => done };
+}
+
+describe('applyInvalidations — awaitable refresh', () => {
+  it('resolves only after the triggered refetch settles', async () => {
+    const client = makeClient();
+    const key = ['publicUser', 'await-1'];
+    const firstRead = deferred<string>();
+    const refetch = deferred<string>();
+    const queryFn = sequencedQueryFn([firstRead, refetch]);
+
+    const unsubscribe = observe(client, key, queryFn);
+    firstRead.resolve('before');
+    await flush();
+
+    const result = applyInvalidations(client, [exact(key)]);
+    expect(result).toBeInstanceOf(Promise);
+    const tracker = track(result);
+    expect(queryFn).toHaveBeenCalledTimes(2);
+
+    await flush();
+    expect(tracker.settled()).toBe(false);
+    expect(client.getQueryData(key)).toBe('before');
+
+    refetch.resolve('after');
+    await result;
+    expect(client.getQueryData(key)).toBe('after');
+
+    unsubscribe();
+  });
+
+  it('waits for EVERY distinct invalidation, not just the first', async () => {
+    const client = makeClient();
+    const keyA = ['publicUser', 'await-a'];
+    const keyB = ['entities', 'await-b'];
+    const firstA = deferred<string>();
+    const refetchA = deferred<string>();
+    const firstB = deferred<string>();
+    const refetchB = deferred<string>();
+    const queryFnA = sequencedQueryFn([firstA, refetchA]);
+    const queryFnB = sequencedQueryFn([firstB, refetchB]);
+
+    const unsubscribeA = observe(client, keyA, queryFnA);
+    const unsubscribeB = observe(client, keyB, queryFnB);
+    firstA.resolve('a0');
+    firstB.resolve('b0');
+    await flush();
+
+    const result = applyInvalidations(client, [exact(keyA), prefix(['entities'])]);
+    const tracker = track(result);
+
+    refetchA.resolve('a1');
+    await flush();
+    expect(tracker.settled()).toBe(false);
+
+    refetchB.resolve('b1');
+    await result;
+    expect(client.getQueryData(keyA)).toBe('a1');
+    expect(client.getQueryData(keyB)).toBe('b1');
+
+    unsubscribeA();
+    unsubscribeB();
+  });
+
+  it('waits for the fresh re-read of a cancelled pending initial read', async () => {
+    const client = makeClient();
+    const key = ['publicUser', 'await-initial'];
+    const staleRead = deferred<string>();
+    const freshRead = deferred<string>();
+    const queryFn = sequencedQueryFn([staleRead, freshRead]);
+
+    const unsubscribe = observe(client, key, queryFn);
+    const result = applyInvalidations(client, [exact(key)]);
+    const tracker = track(result);
+
+    staleRead.resolve('stale');
+    await flush();
+    expect(tracker.settled()).toBe(false);
+
+    freshRead.resolve('fresh');
+    await result;
+    expect(client.getQueryData(key)).toBe('fresh');
+
+    unsubscribe();
+  });
+
+  it('resolves (never rejects) when the triggered refetch fails', async () => {
+    const client = makeClient();
+    const key = ['publicUser', 'await-error'];
+    const firstRead = deferred<string>();
+    let call = 0;
+    const queryFn = vi.fn(() => {
+      call += 1;
+      if (call === 1) return firstRead.promise;
+      return Promise.reject(new Error('refetch failed'));
+    });
+
+    const unsubscribe = observe(client, key, queryFn);
+    firstRead.resolve('committed');
+    await flush();
+
+    await expect(applyInvalidations(client, [exact(key)])).resolves.toBeUndefined();
+    expect(client.getQueryState(key)?.error).toBeInstanceOf(Error);
+    expect(client.getQueryData(key)).toBe('committed');
+
+    unsubscribe();
+  });
+
+  it("resolves without waiting on a read when refetchType is 'none'", async () => {
+    const client = makeClient();
+    const key = ['publicUser', 'await-none'];
+    const firstRead = deferred<string>();
+    const queryFn = sequencedQueryFn([firstRead]);
+
+    const unsubscribe = observe(client, key, queryFn);
+    firstRead.resolve('value');
+    await flush();
+
+    await expect(
+      applyInvalidations(client, [exact(key, { refetchType: 'none' })]),
+    ).resolves.toBeUndefined();
+    expect(queryFn).toHaveBeenCalledTimes(1);
+    expect(client.getQueryState(key)?.isInvalidated).toBe(true);
+
+    unsubscribe();
+  });
+
+  it('resolves immediately for an empty invalidation list', async () => {
+    const client = makeClient();
+    await expect(applyInvalidations(client, [])).resolves.toBeUndefined();
+  });
+});

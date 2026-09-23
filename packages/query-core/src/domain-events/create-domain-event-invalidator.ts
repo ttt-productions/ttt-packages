@@ -18,8 +18,15 @@ export type DomainEventInvalidationRegistry<TEvent extends { type: string; ids: 
 };
 
 export interface DomainEventInvalidator<TEvent extends { type: string; ids: unknown }> {
-  notify(queryClient: QueryClient, event: TEvent): void;
-  notifyAll(queryClient: QueryClient, events: ReadonlyArray<TEvent>): void;
+  /**
+   * Dispatch the event's invalidations. The returned promise resolves once
+   * every refetch they triggered has settled, and never rejects — return or
+   * await it from a mutation's `onSuccess` to keep the mutation pending until
+   * the refreshed data lands; ignore it for fire-and-forget dispatch.
+   */
+  notify(queryClient: QueryClient, event: TEvent): Promise<void>;
+  /** `notify` for several events, deduplicating their invalidations as one batch. */
+  notifyAll(queryClient: QueryClient, events: ReadonlyArray<TEvent>): Promise<void>;
   /** Test/debug helpers. */
   readonly helpers: {
     exact: typeof exact;
@@ -44,19 +51,19 @@ export function createDomainEventInvalidator<TEvent extends { type: string; ids:
     ) => ReadonlyArray<CacheInvalidation>;
   }
 
-  function notify(queryClient: QueryClient, event: TEvent): void {
+  function notify(queryClient: QueryClient, event: TEvent): Promise<void> {
     const fn = lookup(event.type as TEvent["type"]);
     const invalidations = fn(event.ids as Extract<TEvent, { type: TEvent["type"] }>["ids"]);
-    applyInvalidations(queryClient, invalidations);
+    return applyInvalidations(queryClient, invalidations);
   }
 
-  function notifyAll(queryClient: QueryClient, events: ReadonlyArray<TEvent>): void {
+  function notifyAll(queryClient: QueryClient, events: ReadonlyArray<TEvent>): Promise<void> {
     const all: CacheInvalidation[] = [];
     for (const event of events) {
       const fn = lookup(event.type as TEvent["type"]);
       all.push(...fn(event.ids as Extract<TEvent, { type: TEvent["type"] }>["ids"]));
     }
-    applyInvalidations(queryClient, all);
+    return applyInvalidations(queryClient, all);
   }
 
   return {
