@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "./button.js";
 import { cn } from "../../lib/utils.js";
@@ -43,6 +44,17 @@ export function ListPagination({ pagination, busy = false, className }: ListPagi
   const { currentPage, totalPages, canPreviousPage, canNextPage, goToPreviousPage, goToNextPage } =
     pagination;
 
+  // The control that started the in-flight page shows the spinner. Cleared when `busy`
+  // ends — a render-phase adjustment, so there is no effect and no stale frame.
+  const [clicked, setClicked] = useState<"previous" | "next" | null>(null);
+  const [wasBusy, setWasBusy] = useState(busy);
+  if (busy !== wasBusy) {
+    setWasBusy(busy);
+    if (!busy) setClicked(null);
+  }
+  const previousPending = busy && clicked === "previous";
+  const nextPending = busy && clicked === "next";
+
   // One visibility rule for both flavors. For a known total this is exactly
   // `totalPages > 1`: page state is clamped into `1..totalPages`, so a
   // single-page list has no reachable neighbour in either direction, and a
@@ -56,11 +68,15 @@ export function ListPagination({ pagination, busy = false, className }: ListPagi
       <Button
         variant="outline"
         size="sm"
-        onClick={goToPreviousPage}
+        onClick={() => {
+          setClicked("previous");
+          goToPreviousPage();
+        }}
         disabled={busy || !canPreviousPage}
+        pending={previousPending}
+        icon={<ChevronLeft className="icon-xs" />}
         className="h-11 min-w-11"
       >
-        <ChevronLeft className="icon-xs mr-1" />
         Previous
       </Button>
       <span className="text-counter" role="status">
@@ -69,12 +85,16 @@ export function ListPagination({ pagination, busy = false, className }: ListPagi
       <Button
         variant="outline"
         size="sm"
-        onClick={goToNextPage}
+        onClick={() => {
+          setClicked("next");
+          goToNextPage();
+        }}
         disabled={busy || !canNextPage}
+        pending={nextPending}
         className="h-11 min-w-11"
       >
         Next
-        <ChevronRight className="icon-xs ml-1" />
+        {nextPending ? null : <ChevronRight className="icon-xs" />}
       </Button>
     </div>
   );

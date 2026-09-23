@@ -17,6 +17,15 @@ The package consumes generic media shapes from `media-schemas`; it does not know
 
 `MediaInput` exposes an additive imperative handle (`MediaInputHandle`) via `ref`: `openSelection()` activates the SAME trigger semantics as a human click — one enabled action runs directly through the canonical selection path (honoring `onBeforeSelect`, validation, and crop), multiple actions open the choice dropdown — and no-ops while `disabled`/`isLoading`. It never touches the hidden input directly, so none of the trigger gates are bypassed. Consumers use it to re-open the picker from an external control (e.g. a chat "Attach again" action).
 
+## In-progress feedback
+
+Every async step shows pending for its whole window and ignores a repeat, so no double click can emit — and upload — twice:
+
+- The trigger is `pending` while a picked, captured, or recorded file is validated (type, meta, duration, dimensions, crop), and the hidden picker cannot reopen meanwhile.
+- Crop Confirm, Capture, Flip, and record Start/Save run through `useAsyncAction`; their dialogs cannot be dismissed mid-step.
+- Camera/microphone acquisition shows a labeled spinner over the preview; Start and the kind toggles stay disabled until it settles. A device that finishes starting after a teardown (close, kind switch, re-record) is stopped, never attached.
+- The upload percent bar judges the size of the file the input emitted, so it works when the consumer passes `selectedFile={null}` after hand-off.
+
 ## Client claim + neutral pass-through
 
 `MediaInputChangePayload.claim` carries the action-derived `ClientMediaClaim` (picker →

@@ -6,9 +6,8 @@ import type {
   ChatCoreConfig,
   MessageRendererRegistry,
 } from "../types.js";
-import { Card, CardHeader, CardContent, CardFooter, Skeleton } from "@ttt-productions/ui-core/react";
+import { Card, CardHeader, CardContent, CardFooter, Skeleton, Spinner } from "@ttt-productions/ui-core/react";
 import { KeyboardAvoidingView } from "@ttt-productions/mobile-core/react";
-import { Loader2 } from "lucide-react";
 import { useChatMessages } from "../hooks/useChatMessages.js";
 import { useRealtimeChatMessages } from "../realtime/useRealtimeChatMessages.js";
 import type { RealtimeChatClient } from "../realtime/transport.js";
@@ -262,7 +261,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
             role="status"
             aria-live="polite"
           >
-            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+            <Spinner size="sm" />
             <span>Opening chat…</span>
           </div>
         </CardContent>

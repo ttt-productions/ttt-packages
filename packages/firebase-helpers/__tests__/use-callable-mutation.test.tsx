@@ -64,6 +64,40 @@ describe('useCallableMutation', () => {
     expect(result.current.isLoading).toBe(false);
   });
 
+  it('stays loading until the LAST overlapping call settles', async () => {
+    const resolvers: Array<(v: { data: unknown }) => void> = [];
+    const mockCallable = Object.assign(
+      vi.fn(() => new Promise<{ data: unknown }>((res) => { resolvers.push(res); })),
+      { stream: vi.fn() },
+    );
+    vi.mocked(httpsCallable).mockReturnValue(mockCallable as ReturnType<typeof httpsCallable>);
+
+    const { result } = renderHook(() =>
+      useCallableMutation({ getFunctions }),
+    );
+
+    let first!: Promise<unknown>;
+    let second!: Promise<unknown>;
+    act(() => {
+      first = result.current.callFunction('fnA');
+      second = result.current.callFunction('fnB');
+    });
+    expect(result.current.isLoading).toBe(true);
+
+    // The first call settling must NOT clear the flag while the second is in flight.
+    await act(async () => {
+      resolvers[0]({ data: null });
+      await first;
+    });
+    expect(result.current.isLoading).toBe(true);
+
+    await act(async () => {
+      resolvers[1]({ data: null });
+      await second;
+    });
+    expect(result.current.isLoading).toBe(false);
+  });
+
   it('calls onError and re-throws on failure', async () => {
     const error = new Error('call failed');
     const mockCallable = Object.assign(vi.fn().mockRejectedValue(error), { stream: vi.fn() });

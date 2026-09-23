@@ -21,6 +21,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  Spinner,
+  useAsyncAction,
 } from "@ttt-productions/ui-core/react";
 
 type RecorderState = "idle" | "recording" | "preview";
@@ -154,6 +156,7 @@ export function RecordDialog({
   const [elapsedMs, setElapsedMs] = useState(0);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [acquiring, setAcquiring] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordStreamRef = useRef<MediaStream | null>(null);
@@ -162,6 +165,10 @@ export function RecordDialog({
   const lastRecordUrlRef = useRef<string | null>(null);
   const livePreviewRef = useRef<HTMLVideoElement | null>(null);
   const autoStopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Bumped by every teardown. An acquisition that resolves after a teardown (dialog
+  // closed, kind switched, re-record) belongs to nobody and must not be attached.
+  const acquireGenRef = useRef(0);
+  const previewReqRef = useRef(0);
 
   const startedAtRef = useRef<number>(0);
   const elapsedIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -270,6 +277,7 @@ export function RecordDialog({
   // Teardown MediaRecorder / MediaStream / auto-stop timeout / timer / waveform.
   // Leaves recorderState alone — callers decide the next state.
   const teardownCapture = useCallback(() => {
+    acquireGenRef.current += 1;
     if (autoStopTimeoutRef.current) {
       clearTimeout(autoStopTimeoutRef.current);
       autoStopTimeoutRef.current = null;
@@ -297,10 +305,15 @@ export function RecordDialog({
     async (kind: "audio" | "video") => {
       const wantVideo = kind === "video";
       const facingMode = cameraFacingMode ?? "user";
+      const gen = acquireGenRef.current;
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
         video: wantVideo ? { facingMode } : false,
       });
+      if (gen !== acquireGenRef.current) {
+        stream.getTracks().forEach((t) => t.stop());
+        return null;
+      }
       recordStreamRef.current = stream;
       liveStreamKindRef.current = kind;
       setError(null);
@@ -323,10 +336,14 @@ export function RecordDialog({
   const startLivePreview = useCallback(
     async (kind: "audio" | "video") => {
       teardownCapture();
+      const req = ++previewReqRef.current;
+      setAcquiring(true);
       try {
         await acquireStream(kind);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Camera/microphone access denied.");
+      } finally {
+        if (req === previewReqRef.current) setAcquiring(false);
       }
     },
     [teardownCapture, acquireStream]
@@ -473,11 +490,24 @@ export function RecordDialog({
     [startLivePreview]
   );
 
-  const handleSave = useCallback(async () => {
-    if (!recordedFile || !recordPreviewUrl) return;
-    await onRecorded(recordedFile, recordPreviewUrl, recordKind);
-    onOpenChange(false);
-  }, [recordedFile, recordPreviewUrl, recordKind, onRecorded, onOpenChange]);
+  const reportError = useCallback((e: unknown) => {
+    setError(e instanceof Error ? e.message : "Something went wrong with the recording.");
+  }, []);
+
+  // Start may need to acquire a device first; pending covers that and a repeat click
+  // is ignored, so two clicks can never start two recorders.
+  const start = useAsyncAction((kind: "audio" | "video") => startRecording(kind), { onError: reportError });
+
+  // Save hands the recording off (the consumer validates and emits it). Pending covers
+  // the hand-off and a repeat click is ignored, so a double click can never emit twice.
+  const save = useAsyncAction(
+    async () => {
+      if (!recordedFile || !recordPreviewUrl) return;
+      await onRecorded(recordedFile, recordPreviewUrl, recordKind);
+      onOpenChange(false);
+    },
+    { onError: reportError },
+  );
 
   // Close the dialog for real (no confirmation). Used for idle/recording
   // states and as the "Discard" action in the confirm AlertDialog.
@@ -503,13 +533,14 @@ export function RecordDialog({
   const handleDialogOpenChange = useCallback(
     (v: boolean) => {
       if (v) return; // opening is parent-driven via the `open` prop
+      if (save.pending) return; // never drop a recording mid-hand-off
       if (recorderState === "preview") {
         setDiscardConfirmOpen(true);
         return;
       }
       closeDialogImmediately();
     },
-    [recorderState, closeDialogImmediately]
+    [recorderState, save.pending, closeDialogImmediately]
   );
 
   const isRecording = recorderState === "recording";
@@ -541,9 +572,9 @@ export function RecordDialog({
               <Button
                 variant={recordKind === "video" ? "default" : "secondary"}
                 onClick={() => handleSelectKind("video")}
-                disabled={!isIdle}
+                disabled={!isIdle || acquiring}
+                icon={<Video className="icon-xs" />}
               >
-                <Video className="mr-2 icon-xs" />
                 Video
               </Button>
             )}
@@ -551,9 +582,9 @@ export function RecordDialog({
               <Button
                 variant={recordKind === "audio" ? "default" : "secondary"}
                 onClick={() => handleSelectKind("audio")}
-                disabled={!isIdle}
+                disabled={!isIdle || acquiring}
+                icon={<Mic className="icon-xs" />}
               >
-                <Mic className="mr-2 icon-xs" />
                 Audio
               </Button>
             )}
@@ -565,8 +596,8 @@ export function RecordDialog({
                   onOpenChange(false);
                 }}
                 disabled={!isIdle}
+                icon={<Camera className="icon-xs" />}
               >
-                <Camera className="mr-2 icon-xs" />
                 Photo
               </Button>
             )}
@@ -574,19 +605,24 @@ export function RecordDialog({
 
           {/* Live video preview — rendered in idle+recording states for video kind */}
           {recordKind === "video" && !isPreview && (
-            <div className="mt-2 rounded-md overflow-hidden bg-black aspect-video">
+            <div className="relative mt-2 rounded-md overflow-hidden bg-black aspect-video">
               <video
                 ref={livePreviewRef}
                 className="w-full h-full object-contain"
                 playsInline
                 muted
               />
+              {acquiring && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Spinner size="lg" label="Starting camera" />
+                </div>
+              )}
             </div>
           )}
 
           {/* Audio waveform — live mic level (idle = ready indicator, recording = active) */}
           {recordKind === "audio" && !isPreview && (
-            <div className="mt-2 rounded-md bg-muted p-2 text-primary">
+            <div className="relative mt-2 rounded-md bg-muted p-2 text-primary">
               <canvas
                 ref={waveformCanvasRef}
                 width={480}
@@ -594,6 +630,11 @@ export function RecordDialog({
                 className="w-full h-20"
                 aria-label="Audio waveform"
               />
+              {acquiring && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Spinner size="lg" label="Starting microphone" />
+                </div>
+              )}
             </div>
           )}
 
@@ -631,18 +672,20 @@ export function RecordDialog({
             <Button
               variant="destructive"
               onClick={() => handleDialogOpenChange(false)}
+              disabled={save.pending}
+              icon={<X className="icon-xs" />}
             >
-              <X className="mr-2 icon-xs" />
               Close
             </Button>
 
             {isIdle && (
               <Button
                 variant="default"
-                onClick={() => startRecording(recordKind)}
-                disabled={disabled || isLoading}
+                onClick={() => void start.run(recordKind)}
+                disabled={disabled || isLoading || acquiring}
+                pending={start.pending}
+                icon={recordKind === "video" ? <Video className="icon-xs" /> : <Mic className="icon-xs" />}
               >
-                {recordKind === "video" ? <Video className="mr-2 icon-xs" /> : <Mic className="mr-2 icon-xs" />}
                 Start
               </Button>
             )}
@@ -655,12 +698,16 @@ export function RecordDialog({
 
             {isPreview && (
               <div className="flex gap-2">
-                <Button variant="secondary" onClick={handleReRecord}>
-                  <RotateCcw className="mr-2 icon-xs" />
+                <Button variant="secondary" onClick={handleReRecord} disabled={save.pending} icon={<RotateCcw className="icon-xs" />}>
                   Re-record
                 </Button>
-                <Button variant="default" onClick={handleSave} disabled={disabled || isLoading}>
-                  <Check className="mr-2 icon-xs" />
+                <Button
+                  variant="default"
+                  onClick={() => void save.run()}
+                  disabled={disabled || isLoading}
+                  pending={save.pending}
+                  icon={<Check className="icon-xs" />}
+                >
                   Save
                 </Button>
               </div>

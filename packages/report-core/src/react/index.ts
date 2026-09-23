@@ -31,7 +31,5 @@ export { useCheckoutNextImportantTask } from '../hooks/useCheckoutNextImportantT
 // ============================================
 export { ReportButton, useReportButton } from '../components/ReportButton.js';
 export { ReportDialog } from '../components/ReportDialog.js';
-export { CheckedOutTaskList } from '../components/CheckedOutTaskList.js';
 export { CountdownTimer } from '../components/CountdownTimer.js';
 export { PriorityBadge } from '../components/PriorityBadge.js';
-export { TaskActionBar } from '../components/TaskActionBar.js';

@@ -102,6 +102,21 @@ describe("AudioViewer canonical player", () => {
     void container;
   });
 
+  it("spins the play button while playback waits on data, and clears it when playing resumes", () => {
+    const { container, getByLabelText } = renderPlayer();
+    fireEvent.click(getByLabelText("Play"));
+    const audio = container.querySelector("audio")!;
+
+    fireEvent(audio, new Event("waiting"));
+    const pause = getByLabelText("Pause");
+    expect(pause).toHaveAttribute("aria-busy", "true");
+    expect(pause.querySelector(".spinner-xs")).toBeInTheDocument();
+
+    fireEvent(audio, new Event("playing"));
+    expect(getByLabelText("Pause")).not.toHaveAttribute("aria-busy");
+    expect(getByLabelText("Pause").querySelector(".spinner-xs")).toBeNull();
+  });
+
   it("builds the Web Audio graph on first play: element source → analyser → destination", () => {
     const { getByLabelText } = renderPlayer();
     expect(audioCtxMock.ctor).not.toHaveBeenCalled();

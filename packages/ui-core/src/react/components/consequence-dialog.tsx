@@ -14,7 +14,7 @@ import { Button } from './button.js';
 import { Textarea } from './textarea.js';
 import { Input } from './input.js';
 import { Label } from './label.js';
-import { Loader2, Zap, Clock, RotateCcw } from 'lucide-react';
+import { Zap, Clock, RotateCcw } from 'lucide-react';
 
 /**
  * The inline required-reason config. The caller OWNS the reason value/onChange (draft state lives at
@@ -71,7 +71,7 @@ export interface ConsequenceDialogProps {
 
   /**
    * Runs on confirm. May be async — while it is pending the dialog STAYS OPEN, both buttons disable,
-   * and a `Loader2` spins in the confirm button. Closes on resolve. If it rejects the dialog
+   * and the confirm button shows its pending spinner. Closes on resolve. If it rejects the dialog
    * stays open so the caller's own surface (error toast, TOTP step-up) can show and the operator can
    * retry or cancel. This component takes no Sentry/monitoring dependency — every error path
    * belongs to the caller's `onConfirm`.
@@ -184,7 +184,6 @@ export function ConsequenceDialog({
           (reason.maxLength === undefined || reason.value.length <= reason.maxLength);
 
   const typedOk = !typedConfirmation ? true : typedValue === typedConfirmation.phrase;
-  const confirmDisabled = pending || !reasonOk || !typedOk;
 
   return (
     <AlertDialog open={actualOpen} onOpenChange={handleOpenChange}>
@@ -263,10 +262,9 @@ export function ConsequenceDialog({
           <Button
             variant={destructive ? 'destructive' : 'default'}
             onClick={handleConfirm}
-            disabled={confirmDisabled}
-            aria-busy={pending}
+            disabled={!reasonOk || !typedOk}
+            pending={pending}
           >
-            {pending ? <Loader2 className="mr-2 spinner-xs" aria-hidden="true" /> : null}
             {confirmLabel}
           </Button>
         </AlertDialogFooter>

@@ -83,6 +83,42 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     getArchiveAllStatusFn: vi.fn(),
   };
 
+  it('while loading, renders an announced spinner — never the empty state', () => {
+    mocks.useActiveNotifications.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      hasNextPage: false,
+      nextPage: vi.fn(),
+    });
+    const { container } = render(<NotificationList {...baseProps} emptyText="No notifications" />);
+    expect(screen.getByRole('status')).toHaveTextContent('Loading notifications');
+    expect(container.querySelector('.ntf-loading .spinner-md')).toBeInTheDocument();
+    expect(screen.queryByText('No notifications')).toBeNull();
+  });
+
+  it('pages with the canonical Previous / Next row — Next replaces the list, so there is no "Load more"', () => {
+    const prevPage = vi.fn();
+    const nextPage = vi.fn();
+    mocks.useActiveNotifications.mockReturnValue({
+      data: [makeNotification({ id: 'n1' })],
+      isLoading: false,
+      isFetching: false,
+      page: 2,
+      hasNextPage: true,
+      hasPrevPage: true,
+      nextPage,
+      prevPage,
+    });
+    render(<NotificationList {...baseProps} />);
+
+    expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
+    expect(screen.getByText('Page 2')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }));
+    expect(prevPage).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(nextPage).toHaveBeenCalledTimes(1);
+  });
+
   it('renders a plain row with no action slot when renderRowAction is absent', () => {
     const { container } = render(<NotificationList {...baseProps} />);
     expect(container.querySelectorAll('.ntf-item')).toHaveLength(2);

@@ -18,7 +18,7 @@ TTT config, Firebase project values, toast behavior, monitoring behavior, and ca
 
 ## Callable invocation contract
 
-`callCallable` is the ONE invocation primitive (`useCallableMutation` delegates to it). It owns:
+`callCallable` is the ONE invocation primitive (`useCallableMutation` delegates to it). `useCallableMutation().isLoading` is true while ANY call from that hook instance is in flight — overlapping calls keep it true until the last one settles. It is instance-wide, not per action: a control that needs its own in-progress state takes it from its own action. The primitive owns:
 
 - **The undefined-strip** — `undefined`-valued keys are dropped deep before the wire (the SDK
   encodes them as `null`, which strict optional-not-nullable zod inputs reject).

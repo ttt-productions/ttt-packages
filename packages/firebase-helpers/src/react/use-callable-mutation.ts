@@ -24,6 +24,11 @@ export interface UseCallableMutationResult {
     functionName: string,
     data?: TRequest,
   ) => Promise<TResponse>;
+  /**
+   * True while ANY call from this hook instance is in flight — overlapping calls keep it
+   * true until the last one settles. It is instance-wide, not per action: a control
+   * that needs its own in-progress state takes it from its own action.
+   */
   isLoading: boolean;
 }
 
@@ -36,7 +41,7 @@ export function useCallableMutation(
   options: UseCallableMutationOptions,
 ): UseCallableMutationResult {
   const { getFunctions, onError, captureException, timeoutMs, limitedUseAppCheck } = options;
-  const [isLoading, setIsLoading] = useState(false);
+  const [inFlight, setInFlight] = useState(0);
   const onErrorRef = useRef(onError);
   const captureRef = useRef(captureException);
   onErrorRef.current = onError;
@@ -55,7 +60,7 @@ export function useCallableMutation(
         captureRef.current?.(err, { functionName });
         throw err;
       }
-      setIsLoading(true);
+      setInFlight((n) => n + 1);
       try {
         // Delegate to the ONE shared invocation primitive (owns the
         // undefined-strip + error-callback contract + total-invocation
@@ -72,13 +77,13 @@ export function useCallableMutation(
           { timeoutMs, limitedUseAppCheck },
         );
       } finally {
-        setIsLoading(false);
+        setInFlight((n) => n - 1);
       }
     },
     [getFunctions, timeoutMs, limitedUseAppCheck],
   );
 
-  return { callFunction, isLoading };
+  return { callFunction, isLoading: inFlight > 0 };
 }
 
 /**

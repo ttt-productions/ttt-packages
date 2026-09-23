@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Input } from './input.js';
 import { Label } from './label.js';
-import { Loader2, X, Search } from 'lucide-react';
+import { X, Search } from 'lucide-react';
+import { Spinner } from './spinner.js';
 import { cn } from "../../lib/utils.js";
 
 export interface SearchDropdownProps<T> {
@@ -173,7 +174,7 @@ export function SearchDropdown<T>({
 
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <Spinner size="xs" className="text-muted-foreground" />
           ) : value ? (
             <button
               type="button"
@@ -195,7 +196,7 @@ export function SearchDropdown<T>({
             </div>
           ) : isLoading ? (
             <div className="px-3 py-2 text-sm text-muted-foreground flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner size="xs" />
               Searching...
             </div>
           ) : results.length === 0 ? (

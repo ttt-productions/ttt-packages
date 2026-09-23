@@ -182,6 +182,60 @@ describe('RecordDialog', () => {
     expect(url).toBe('blob:mock-url');
   });
 
+  it('Start stays disabled while the device is still starting, so a click cannot acquire it twice', async () => {
+    let resolveGum!: (s: MediaStream) => void;
+    gumMock.gum.mockImplementation(() => new Promise<MediaStream>((res) => { resolveGum = res; }));
+    renderDialog();
+
+    const start = screen.getByRole('button', { name: /^start$/i });
+    expect(start).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent(/starting microphone/i);
+    fireEvent.click(start);
+    expect(gumMock.gum).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveGum(gumMock.stream);
+    });
+    expect(screen.getByRole('button', { name: /^start$/i })).toBeEnabled();
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(gumMock.gum).toHaveBeenCalledTimes(1);
+  });
+
+  it('a device that finishes starting AFTER the dialog closed is stopped, never attached', async () => {
+    let resolveGum!: (s: MediaStream) => void;
+    gumMock.gum.mockImplementation(() => new Promise<MediaStream>((res) => { resolveGum = res; }));
+    const { unmount } = renderDialog();
+    unmount();
+
+    const lateTracks = [{ stop: vi.fn() }, { stop: vi.fn() }];
+    const lateStream = { getTracks: () => lateTracks } as unknown as MediaStream;
+    await act(async () => {
+      resolveGum(lateStream);
+    });
+    lateTracks.forEach((t) => expect(t.stop).toHaveBeenCalled());
+  });
+
+  it('Save shows pending and ignores a second click, so the recording is handed off once', async () => {
+    const user = userEvent.setup();
+    let finishHandOff!: () => void;
+    onRecorded.mockImplementation(() => new Promise<void>((res) => { finishHandOff = res; }));
+    renderDialog();
+    await user.click(screen.getByRole('button', { name: /^start$/i }));
+    await user.click(screen.getByRole('button', { name: /^stop$/i }));
+
+    const save = screen.getByRole('button', { name: /^save$/i });
+    await user.click(save);
+    expect(save).toHaveAttribute('aria-busy', 'true');
+    expect(save).toBeDisabled();
+    fireEvent.click(save);
+    expect(onRecorded).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      finishHandOff();
+    });
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
   it('revokes preview URL and returns to idle on Re-record', async () => {
     const user = userEvent.setup();
     renderDialog();
@@ -381,6 +435,8 @@ describe('RecordDialog', () => {
     try {
       const { instances } = installMediaRecorderMock();
       renderDialog();
+      // Let the live-preview device acquisition settle: Start is disabled until it does.
+      await act(async () => {});
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /^start$/i }));
       });
@@ -415,6 +471,8 @@ describe('RecordDialog', () => {
     try {
       installMediaRecorderMock();
       renderDialog();
+      // Let the live-preview device acquisition settle: Start is disabled until it does.
+      await act(async () => {});
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /^start$/i }));
       });
@@ -434,6 +492,8 @@ describe('RecordDialog', () => {
     try {
       const { instances } = installMediaRecorderMock();
       renderDialog();
+      // Let the live-preview device acquisition settle: Start is disabled until it does.
+      await act(async () => {});
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /^start$/i }));
       });

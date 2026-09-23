@@ -538,3 +538,37 @@ describe('ListPagination — shared control surface', () => {
     expect(next().className).toContain('min-w-11');
   });
 });
+
+describe('ListPagination — the clicked control spins while its page loads', () => {
+  const state = {
+    currentPage: 2,
+    totalPages: 5,
+    canPreviousPage: true,
+    canNextPage: true,
+    goToPreviousPage: () => {},
+    goToNextPage: () => {},
+  };
+
+  it('spins only the control that started the in-flight page, and clears when busy ends', async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<ListPagination pagination={state} />);
+    await user.click(next());
+
+    rerender(<ListPagination pagination={state} busy />);
+    expect(next()).toHaveAttribute('aria-busy', 'true');
+    expect(previous()).not.toHaveAttribute('aria-busy');
+    expect(previous()).toBeDisabled();
+
+    rerender(<ListPagination pagination={state} />);
+    expect(next()).not.toHaveAttribute('aria-busy');
+    expect(next()).toBeEnabled();
+  });
+
+  it('a busy list with no click behind it (a refetch) disables both controls but spins neither', () => {
+    render(<ListPagination pagination={state} busy />);
+    expect(previous()).toBeDisabled();
+    expect(next()).toBeDisabled();
+    expect(previous()).not.toHaveAttribute('aria-busy');
+    expect(next()).not.toHaveAttribute('aria-busy');
+  });
+});

@@ -13,8 +13,6 @@ export type {
   ReportableItemConfig,
   PriorityConfig,
   ReportButtonProps,
-  CheckedOutTaskListProps,
-  TaskActionBarProps,
   CountdownTimerProps,
   PriorityBadgeProps,
 } from './types.js';

@@ -40,6 +40,17 @@
   background: hsl(var(--muted, 220 14% 96%));
 }
 
+/* Pending state: the URL is still being prepared. Same seat as the empty state,
+   but the spinner keeps its own size and color. */
+.mv-pending-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: hsl(var(--muted, 220 14% 96%));
+}
+
 .mv-empty-fallback svg {
   width: 50%;
   height: 50%;

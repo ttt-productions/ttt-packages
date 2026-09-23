@@ -284,6 +284,11 @@ the rules above so they fail loudly:
   declaration in `docs/packages/<pkg>.md`) that is not present in that package's
   `exports`. This is what catches a stale `chat-core/schemas` or removed
   `chat-core/react` reference after the concept moves.
+- `canonical-audio-renderer.test.ts` — fails if a raw `<audio>` element appears in
+  package source outside media-viewer's `AudioViewer` (one audio renderer).
+- `canonical-spinner.test.ts` — fails if the `Loader2` icon is imported anywhere
+  but ui-core's `Spinner`, or if the `animate-spin` utility appears in package
+  source (theme-core's `spinner-*` classes own the animation).
 - `sourcemap-sources.test.ts` (check #4) — after the build, fails if any package
   emits a JavaScript sourcemap without complete embedded `sourcesContent`, so a
   published `dist` never points consumers at source files the tarball omits.

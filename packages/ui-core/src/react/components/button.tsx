@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Slot } from "@radix-ui/react-slot"
+import { Slot, Slottable } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "../../lib/utils.js"
+import { Spinner } from "./spinner.js"
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-bold ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
@@ -44,19 +45,54 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
+  /**
+   * Async work this button started is in flight. The button disables itself — so
+   * neither a repeat click nor an implicit form resubmit can fire — sets
+   * `aria-busy`, and shows the canonical spinner: an icon button (`size="icon"`)
+   * swaps its icon for it; any other button shows it in place of its `icon`.
+   */
+  pending?: boolean
+  /** Leading icon, rendered before the label. While `pending`, the spinner takes its place. */
+  icon?: React.ReactNode
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, children, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+  ({ className, variant, size, asChild = false, pending = false, icon, disabled, children, ...props }, ref) => {
+    const shared = {
+      ...props,
+      ...(pending ? { "aria-busy": true, "data-pending": "" } : {}),
+      disabled: disabled || pending || undefined,
+      className: cn(buttonVariants({ variant, size, className })),
+    }
+    const spinner = <Spinner size={size === "lg" ? "sm" : "xs"} />
+    const leading = pending ? spinner : icon
+
+    if (asChild) {
+      // Slot finds the Slottable among its DIRECT children, so the leading slot and the
+      // Slottable must be siblings here — never wrapped in a fragment.
+      return leading ? (
+        <Slot ref={ref} {...shared}>
+          {leading}
+          <Slottable>{children}</Slottable>
+        </Slot>
+      ) : (
+        <Slot ref={ref} {...shared}>
+          {children}
+        </Slot>
+      )
+    }
+
     return (
-      <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
-        ref={ref}
-        {...props}
-      >
-        {children}
-      </Comp>
+      <button ref={ref} {...shared}>
+        {size === "icon" ? (
+          pending ? spinner : children
+        ) : (
+          <>
+            {leading}
+            {children}
+          </>
+        )}
+      </button>
     )
   }
 )

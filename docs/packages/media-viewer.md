@@ -6,6 +6,7 @@ Generic media display package.
 
 - Image, video, and audio viewer components
 - Fallback display behavior for unsupported or missing media
+- Loading states: `urlPending` renders a labeled pending state (`PendingFallback`) instead of the empty fallback while a URL is still being prepared, so "not yet" never reads as "nothing here"; the audio player's play button shows the spinner while playback waits on data (`waiting` / `seeking`)
 - Media-kind routing using generic media types from `media-schemas`
 - Bounded media-recovery state machine (loading → retry → fallback)
 

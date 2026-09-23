@@ -34,6 +34,10 @@ Chat **React UI** package — the React half of the chat split.
   — the client half of the `ttt-master-app/chat-worker` wire protocol. See the
   "Realtime transport" section below. The FIRESTORE transport stays the unchanged
   default (admin-support threads stay firestore permanently).
+- Moderation actions (`MessageActions` / `ThreadActions`): a promise-returning
+  handler runs as a pending action — the button spins and ignores repeats until
+  it settles; a rejection is re-raised on the global error channel, never
+  swallowed. Every chat loader renders ui-core's `Spinner`.
 - The in-flight-send navigation guard from `upload-ui`
   (`useOptionalLocalUploadGuard`), so a send that has left the composer but not
   yet committed is not silently killed by a navigation or sign-out. Optional —

@@ -25,4 +25,20 @@ describe('Switch', () => {
     const button = container.querySelector('button');
     expect(button?.disabled).toBe(true);
   });
+
+  it('pending: disables, marks busy, spins inside the thumb, and keeps the committed state', () => {
+    const { container } = render(<Switch checked pending />);
+    const root = container.querySelector('button') as HTMLButtonElement;
+    expect(root.disabled).toBe(true);
+    expect(root).toHaveAttribute('aria-busy', 'true');
+    expect(root).toHaveAttribute('data-state', 'checked');
+    expect(root.querySelector('.spinner-xs')).toBeInTheDocument();
+  });
+
+  it('not pending: no spinner and no busy attribute', () => {
+    const { container } = render(<Switch />);
+    const root = container.querySelector('button') as HTMLButtonElement;
+    expect(root).not.toHaveAttribute('aria-busy');
+    expect(root.querySelector('.spinner-xs')).toBeNull();
+  });
 });

@@ -8,6 +8,12 @@ type Props = {
   className?: string;
   children: React.ReactNode;
   cssPrefix?: string;
+  /**
+   * Rendered in place of the progress ring while the refresh itself runs; the ring
+   * still tracks the pull. Supply the app's canonical spinner so a refresh reads like
+   * every other loading state. Omitted, the ring spins for the refresh as well.
+   */
+  refreshingIndicator?: React.ReactNode;
 };
 
 const INDICATOR_SIZE = 32;
@@ -64,7 +70,7 @@ function SpinnerIndicator({ progress, isRefreshing, prefix }: { progress: number
  * </PullToRefreshContainer>
  * ```
  */
-export function PullToRefreshContainer({ onRefresh, disabled, className, children, cssPrefix }: Props) {
+export function PullToRefreshContainer({ onRefresh, disabled, className, children, cssPrefix, refreshingIndicator }: Props) {
   const prefix = resolvePrefix({ cssPrefix });
   const { isRefreshing, pullProgress, pullDistance, handlers, style } = usePullToRefresh({
     onRefresh,
@@ -102,7 +108,11 @@ export function PullToRefreshContainer({ onRefresh, disabled, className, childre
             color: "var(--foreground, currentColor)",
           }}
         >
-          <SpinnerIndicator progress={pullProgress} isRefreshing={isRefreshing} prefix={prefix} />
+          {isRefreshing && refreshingIndicator ? (
+            refreshingIndicator
+          ) : (
+            <SpinnerIndicator progress={pullProgress} isRefreshing={isRefreshing} prefix={prefix} />
+          )}
         </div>
 
         {/* Content shifts down during pull */}

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Loader2 } from "lucide-react";
+import { Spinner } from "./spinner.js";
 
 export interface ChunkErrorRecoveryProps {
   children: React.ReactNode;
@@ -48,7 +48,7 @@ export function ChunkErrorRecovery({
   if (hasError) {
     return (
       <div className="flex flex-col h-screen w-screen items-center justify-center gap-4 bg-background">
-        <Loader2 className="h-10 w-10 animate-spin" />
+        <Spinner size="xl" />
         <p className="text-muted-foreground">{loadingMessage}</p>
       </div>
     );

@@ -9,7 +9,7 @@ Generic mobile/browser behavior package.
 - Keyboard/focused-input helpers
 - Safe-area and scroll-lock helpers
 - React setup components such as `IOSSetup` and `ViewportHeightSetter`
-- Pull-to-refresh gesture handling (`usePullToRefresh`, `PullToRefreshContainer`)
+- Pull-to-refresh gesture handling (`usePullToRefresh`, `PullToRefreshContainer`). The progress ring tracks the pull; `refreshingIndicator` replaces it for the refresh phase, so the app supplies its canonical spinner without this package taking a UI dependency
 
 ## Boundary
 

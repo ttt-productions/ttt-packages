@@ -1,3 +1,4 @@
+import { Spinner } from "@ttt-productions/ui-core/react";
 import type { FallbackMode } from "../types.js";
 
 export function MediaFallbackLink(props: {
@@ -39,6 +40,16 @@ export function EmptyFallback(props: { isCircular?: boolean; className?: string 
         <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
         <path d="M14 2v4a2 2 0 0 0 2 2h4" />
       </svg>
+    </div>
+  );
+}
+
+/** Loading state: the URL is still being prepared (see `urlPending`). */
+export function PendingFallback(props: { isCircular?: boolean; className?: string }) {
+  const { isCircular, className } = props;
+  return (
+    <div className={className ?? (isCircular ? "mv-avatar-fallback" : "mv-pending-fallback")}>
+      <Spinner size={isCircular ? "xs" : "md"} label="Loading media" />
     </div>
   );
 }

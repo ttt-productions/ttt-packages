@@ -15,6 +15,7 @@
 
 import * as React from "react";
 import { Pause, Play, Volume2, VolumeX, ChevronDown, ChevronUp, Activity, BarChart3 } from "lucide-react";
+import { Spinner } from "@ttt-productions/ui-core/react";
 import { startWaveformLoop, drawIdleFrame } from "../visualizer.js";
 import type { AudioVisualizerMode } from "../visualizer.js";
 import { resolveInfiniteDuration } from "../media-duration.js";
@@ -64,6 +65,8 @@ export function AudioPlayerChrome({
   extraActions,
 }: AudioPlayerChromeProps) {
   const [isPlaying, setIsPlaying] = React.useState(false);
+  // Playback is waiting on data (initial buffer, a stall, or a seek landing).
+  const [buffering, setBuffering] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
   const [isMuted, setIsMuted] = React.useState(false);
@@ -203,6 +206,8 @@ export function AudioPlayerChrome({
       setIsMuted(el.muted);
       setVolume(el.volume);
     };
+    const onWaiting = () => setBuffering(true);
+    const onReady = () => setBuffering(false);
 
     el.addEventListener("play", onPlay);
     el.addEventListener("pause", onPause);
@@ -211,6 +216,14 @@ export function AudioPlayerChrome({
     el.addEventListener("durationchange", onDurationChange);
     el.addEventListener("loadedmetadata", onDurationChange);
     el.addEventListener("volumechange", onVolumeChange);
+    el.addEventListener("waiting", onWaiting);
+    el.addEventListener("seeking", onWaiting);
+    el.addEventListener("playing", onReady);
+    el.addEventListener("seeked", onReady);
+    el.addEventListener("canplay", onReady);
+    el.addEventListener("pause", onReady);
+    el.addEventListener("ended", onReady);
+    el.addEventListener("error", onReady);
     return () => {
       el.removeEventListener("play", onPlay);
       el.removeEventListener("pause", onPause);
@@ -219,6 +232,14 @@ export function AudioPlayerChrome({
       el.removeEventListener("durationchange", onDurationChange);
       el.removeEventListener("loadedmetadata", onDurationChange);
       el.removeEventListener("volumechange", onVolumeChange);
+      el.removeEventListener("waiting", onWaiting);
+      el.removeEventListener("seeking", onWaiting);
+      el.removeEventListener("playing", onReady);
+      el.removeEventListener("seeked", onReady);
+      el.removeEventListener("canplay", onReady);
+      el.removeEventListener("pause", onReady);
+      el.removeEventListener("ended", onReady);
+      el.removeEventListener("error", onReady);
     };
   }, [audioRef, ensureGraph, startLoop, stopLoop]);
 
@@ -307,8 +328,9 @@ export function AudioPlayerChrome({
           className="mv-player-btn mv-player-play-btn"
           onClick={togglePlay}
           aria-label={isPlaying ? "Pause" : "Play"}
+          aria-busy={isPlaying && buffering ? true : undefined}
         >
-          {isPlaying ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
+          {isPlaying && buffering ? <Spinner size="xs" /> : isPlaying ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
         </button>
         <span className="mv-player-time" aria-hidden="true">
           {formatTime(shownTime)}

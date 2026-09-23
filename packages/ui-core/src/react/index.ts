@@ -2,6 +2,8 @@
 
 export type { ButtonProps } from "./components/button.js";
 export { Button, buttonVariants } from "./components/button.js";
+export type { SpinnerProps, SpinnerSize } from "./components/spinner.js";
+export { Spinner } from "./components/spinner.js";
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from "./components/card.js";
 export { Label } from "./components/label.js";
 export { Textarea } from "./components/textarea.js";
@@ -48,6 +50,9 @@ export type { MaxWidthOption, ScreenAdaptiveViewProps } from "./components/layou
 export { ScreenAdaptiveView } from "./components/layout/screen-adaptive-view.js";
 
 export { useMediaQuery } from "./hooks/use-media-query.js";
+
+export { useAsyncAction } from "./hooks/use-async-action.js";
+export type { AsyncAction, UseAsyncActionOptions } from "./hooks/use-async-action.js";
 
 // Shared building blocks
 export { RelativeTime } from "./components/relative-time.js";

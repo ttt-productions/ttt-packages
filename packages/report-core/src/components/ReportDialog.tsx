@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ttt-productions/ui-core/react';
-import { Loader2 } from 'lucide-react';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import { useReportSubmit } from '../hooks/useReportSubmit.js';
 
@@ -191,11 +190,9 @@ export function ReportDialog({
             type="submit"
             onClick={handleSubmit}
             disabled={!canSubmit}
+            pending={submitMutation.isPending || actionPending}
             className="touch-target h-11"
           >
-            {(submitMutation.isPending || actionPending) && (
-              <Loader2 className="mr-2 spinner-xs" />
-            )}
             {selectedAction ? selectedAction.label : 'Submit Report'}
           </Button>
         </DialogFooter>

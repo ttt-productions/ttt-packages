@@ -14,13 +14,23 @@ Generic UI primitive package.
 
 Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`.
 
+## In-progress feedback — `Spinner`, `pending`, `useAsyncAction`
+
+Every in-progress indicator renders through ONE owner, so the spinner's look, size scale, and in-button color rule change in one place (FRONTEND-201). Durable contract:
+
+- **`Spinner`** is the only place the `Loader2` icon is used (the `canonical-spinner` boundary guard enforces it). `size` (`xs`–`xl`) maps onto the theme-core `spinner-*` classes, which own size, animation, and color — including `button .spinner-*`, which makes an in-button spinner inherit the button's text color. `label` turns it into a `status` live region; omit it inside a control that already carries `aria-busy`.
+- **Button `pending` + `icon`.** `pending` disables the button — so neither a repeat click nor an implicit form resubmit can fire — sets `aria-busy` and `data-pending`, and shows the spinner: an icon button (`size="icon"`) swaps its icon for it; any other button shows it in place of its leading `icon`. The leading slot is spaced by the button's built-in gap. With `asChild`, the leading slot renders inside the child element.
+- **Control pending.** `Switch` (spinner in the thumb), `SelectTrigger` (spinner replaces the chevron), and `DropdownMenuItem` (`pending` + leading `icon`) follow the same contract. Switch and Select keep showing the COMMITTED value — the caller flips it only once the write lands. Keeping a menu open while its item is pending is the caller's `onSelect` (`event.preventDefault()`, close on settle).
+- **`ConsequenceDialog`** renders its confirm with `pending`; it stays open while the promise `onConfirm` returns is pending and after it rejects. `onConfirm` stays typed `void | Promise<void>` — a caller that wants the pending state returns the promise.
+- **`useAsyncAction(action, { onError })`** returns `{ run, pending }` for async work that is not a React Query mutation (a local media step, a sign-out, an awaited navigation). A repeat `run` while pending is ignored — the guard is a ref, so two clicks in one frame cannot both start — and `run` never rejects: errors go to the required `onError`. Server writes stay mutations.
+
 ## List pagination
 
 `ListPagination` is the ONE Previous / counter / Next button row for paginated lists — both flavors, one component, so the layout, the disabled edges, the touch targets, and the live region cannot drift apart. Durable behavior contract:
 
 - **The counter is the only difference between the flavors.** `pagination.totalPages` is the discriminant: a number renders `"2 of 5"`, an omitted value renders `"Page 2"`. Everything else is identical.
 - **One visibility rule.** The row renders nothing when neither direction is available (`!canPreviousPage && !canNextPage`) — for a known total that is exactly `totalPages > 1`, and for a cursor feed it is `page > 1 || hasMore`. No call site repeats the guard.
-- **Edges are real `disabled`.** Announced and unclickable, never a click that silently does nothing. `busy` disables BOTH controls while a page is in flight and deliberately does NOT hide the row, so the controls grey out in place instead of vanishing mid-fetch.
+- **Edges are real `disabled`.** Announced and unclickable, never a click that silently does nothing. `busy` disables BOTH controls while a page is in flight and deliberately does NOT hide the row, so the controls grey out in place instead of vanishing mid-fetch. The control that started the in-flight page shows the spinner (`pending`); a busy row with no click behind it (a refetch) spins neither.
 - **Accessibility.** The counter is a `status` live region, so a page change is announced; both buttons keep a 44px touch target.
 - **Generic + semantic only.** Semantic theme classes and tokens, `outline` button variant, no business identifiers, no page-size constants — the caller supplies its own page size.
 

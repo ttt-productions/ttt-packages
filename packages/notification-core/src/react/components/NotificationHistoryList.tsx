@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import { Badge, Button, Separator } from '@ttt-productions/ui-core/react';
+import { Badge, ListPagination, Separator, Spinner } from '@ttt-productions/ui-core/react';
 import { useNotificationHistory } from '../hooks/useNotificationHistory.js';
 import { NotificationEmptyState } from './NotificationEmptyState.js';
 import { formatRelativeTime } from './relative-time.js';
@@ -26,8 +26,12 @@ export function NotificationHistoryList({
   const {
     data: notifications,
     isLoading,
+    isFetching,
+    page,
     hasNextPage,
+    hasPrevPage,
     nextPage,
+    prevPage,
   } = useNotificationHistory({
     config,
     userId,
@@ -53,7 +57,9 @@ export function NotificationHistoryList({
       )}
       <div className="ntf-list-body">
         {isLoading ? (
-          <div className="ntf-loading">Loading...</div>
+          <div className="ntf-loading">
+            <Spinner size="md" label="Loading notifications" />
+          </div>
         ) : !notifications || notifications.length === 0 ? (
           <NotificationEmptyState text={emptyText} />
         ) : (
@@ -85,13 +91,17 @@ export function NotificationHistoryList({
                 </div>
               );
             })}
-            {hasNextPage && (
-              <div className="ntf-list-footer">
-                <Button variant="ghost" size="sm" onClick={nextPage}>
-                  Load more
-                </Button>
-              </div>
-            )}
+            <ListPagination
+              pagination={{
+                currentPage: page,
+                canPreviousPage: hasPrevPage,
+                canNextPage: hasNextPage,
+                goToPreviousPage: prevPage,
+                goToNextPage: nextPage,
+              }}
+              busy={isFetching}
+              className="ntf-list-footer mt-0"
+            />
           </>
         )}
       </div>

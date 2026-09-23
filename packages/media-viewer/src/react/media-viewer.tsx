@@ -3,7 +3,7 @@ import { getSimplifiedMediaType } from "@ttt-productions/media-schemas";
 import type { SimplifiedMediaType } from "@ttt-productions/media-schemas";
 
 import type { MediaPreviewProps, MediaViewerType, FallbackMode } from "../types.js";
-import { MediaFallbackLink, shouldShowFallback, EmptyFallback, ErrorFallback } from "./fallback.js";
+import { MediaFallbackLink, shouldShowFallback, EmptyFallback, ErrorFallback, PendingFallback } from "./fallback.js";
 import { ImageViewer } from "./image-viewer.js";
 import { VideoViewer } from "./video-viewer.js";
 import { AudioViewer } from "./audio-viewer.js";
@@ -118,6 +118,7 @@ export function MediaViewer(props: MediaPreviewProps) {
     type,
     className,
     unloadOnExit,
+    urlPending = false,
     isCircular = false,
     enableZoom,
     priority,
@@ -230,7 +231,7 @@ export function MediaViewer(props: MediaPreviewProps) {
   if (!sourceUrl) {
     return (
       <div className={className} style={wrapperStyle}>
-        <EmptyFallback isCircular={isCircular} />
+        {urlPending ? <PendingFallback isCircular={isCircular} /> : <EmptyFallback isCircular={isCircular} />}
       </div>
     );
   }

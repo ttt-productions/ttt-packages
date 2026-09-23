@@ -5,6 +5,7 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { Check, ChevronRight, Circle } from "lucide-react"
 
 import { cn } from "../../lib/utils.js"
+import { Spinner } from "./spinner.js"
 
 const DropdownMenu = DropdownMenuPrimitive.Root
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger
@@ -71,8 +72,16 @@ const DropdownMenuItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
     inset?: boolean
+    /**
+     * The action this item started is in flight: the item disables itself, sets
+     * `aria-busy`, and shows the spinner in place of its `icon`. Keeping the menu open
+     * meanwhile is the caller's `onSelect` (`event.preventDefault()`, close on settle).
+     */
+    pending?: boolean
+    /** Leading icon. While `pending`, the spinner takes its place. */
+    icon?: React.ReactNode
   }
->(({ className, inset, ...props }, ref) => (
+>(({ className, inset, pending = false, icon, disabled, children, ...props }, ref) => (
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
@@ -81,7 +90,12 @@ const DropdownMenuItem = React.forwardRef<
       className
     )}
     {...props}
-  />
+    {...(pending ? { "aria-busy": true, "data-pending": "" } : {})}
+    disabled={disabled || pending || undefined}
+  >
+    {pending ? <Spinner size="xs" /> : icon}
+    {children}
+  </DropdownMenuPrimitive.Item>
 ))
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName
 

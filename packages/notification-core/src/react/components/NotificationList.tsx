@@ -1,8 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
-import { Badge, Button, Separator } from '@ttt-productions/ui-core/react';
+import { Badge, Button, ListPagination, Separator, Spinner } from '@ttt-productions/ui-core/react';
 import { useActiveNotifications } from '../hooks/useActiveNotifications.js';
 import { useArchiveNotification } from '../hooks/useArchiveNotification.js';
 import { useArchiveAllNotifications } from '../hooks/useArchiveAllNotifications.js';
@@ -29,8 +28,12 @@ export function NotificationList({
   const {
     data: notifications,
     isLoading,
+    isFetching,
+    page,
     hasNextPage,
+    hasPrevPage,
     nextPage,
+    prevPage,
   } = useActiveNotifications({
     config,
     userId,
@@ -138,9 +141,9 @@ export function NotificationList({
           variant="ghost"
           size="sm"
           onClick={handleClearAll}
-          disabled={!hasNotifications || isClearAllPending}
+          disabled={!hasNotifications}
+          pending={isClearAllPending}
         >
-          {isClearAllPending && <Loader2 className="mr-2 spinner-xs" aria-hidden="true" />}
           {isClearAllPending ? 'Clearing...' : 'Clear All'}
         </Button>
         {clearIncomplete && !isClearAllPending && (
@@ -153,7 +156,9 @@ export function NotificationList({
 
       <div className="ntf-list-body">
       {isLoading ? (
-        <div className="ntf-loading">Loading...</div>
+        <div className="ntf-loading">
+          <Spinner size="md" label="Loading notifications" />
+        </div>
       ) : !notifications || notifications.length === 0 ? (
         <NotificationEmptyState text={emptyText} />
       ) : (
@@ -186,13 +191,17 @@ export function NotificationList({
               )}
             </div>
           ))}
-          {hasNextPage && (
-            <div className="ntf-list-footer">
-              <Button variant="ghost" size="sm" onClick={nextPage}>
-                Load more
-              </Button>
-            </div>
-          )}
+          <ListPagination
+            pagination={{
+              currentPage: page,
+              canPreviousPage: hasPrevPage,
+              canNextPage: hasNextPage,
+              goToPreviousPage: prevPage,
+              goToNextPage: nextPage,
+            }}
+            busy={isFetching}
+            className="ntf-list-footer mt-0"
+          />
         </>
       )}
       </div>

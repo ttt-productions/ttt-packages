@@ -4,7 +4,7 @@ import * as React from "react";
 import type { ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
 import { isContinuation } from "@ttt-productions/chat-core";
 import type { MessageRendererRegistry } from "../types.js";
-import { Button } from "@ttt-productions/ui-core/react";
+import { Button, Spinner } from "@ttt-productions/ui-core/react";
 import { MessageItemDefault } from "./MessageItemDefault.js";
 
 export function MessageList(props: {
@@ -160,7 +160,11 @@ export function MessageList(props: {
   return (
     <div className={outerClass}>
       <div ref={scrollRef} className={`${scrollClass} overflow-y-auto p-4`} onScroll={onScroll}>
-        {isFetchingOlder && <div className="text-center text-xs opacity-70 mb-2">Loading…</div>}
+        {isFetchingOlder && (
+          <div className="flex justify-center mb-2">
+            <Spinner size="xs" label="Loading older messages" />
+          </div>
+        )}
 
         <div ref={topSentinelRef} />
 

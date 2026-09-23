@@ -4,7 +4,6 @@ import * as React from "react";
 import { Button, Textarea } from "@ttt-productions/ui-core/react";
 import { cn } from "@ttt-productions/ui-core";
 import { useOptionalLocalUploadGuard } from "@ttt-productions/upload-ui/react/guard";
-import { Loader2 } from "lucide-react";
 
 function genId(): string {
   return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -120,9 +119,10 @@ export function Composer(props: ComposerProps) {
           type="button"
           variant="default"
           disabled={isDisabled || !text.trim()}
+          pending={isSending}
           onClick={send}
         >
-          {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send"}
+          Send
         </Button>
       </div>
     </div>

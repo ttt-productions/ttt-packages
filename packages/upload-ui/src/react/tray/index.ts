@@ -22,12 +22,6 @@ export {
   type FirestoreLikeDocChange,
 } from '../in-flight-uploads-provider.js';
 export {
-  UploadActivityTray,
-  type UploadActivityTrayProps,
-  type UploadTrayLabelers,
-  type ViewAllLinkRenderArgs,
-} from '../upload-activity-tray.js';
-export {
   useClearUploadActivity,
   type ClearUploadActivityOptions,
 } from '../use-clear-upload-activity.js';

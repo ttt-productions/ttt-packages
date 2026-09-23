@@ -3,7 +3,7 @@
 import React, { forwardRef, useCallback, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
 import type { MediaCropSpec, MediaProcessingSpec, MediaOriginSpec, VideoOrientation } from "@ttt-productions/media-schemas";
 import { getSimplifiedMediaType } from "@ttt-productions/media-schemas";
-import { Info, Camera, Mic, Video, Upload, X, Loader2, Plus } from "lucide-react";
+import { Info, Camera, Mic, Video, Upload, X, Plus } from "lucide-react";
 
 import {
   Alert,
@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger,
   Input,
   Progress,
+  Spinner,
 } from "@ttt-productions/ui-core/react";
 import { cn } from "@ttt-productions/ui-core";
 import { MediaPreview } from "@ttt-productions/media-viewer/react";
@@ -184,6 +185,8 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
   // via the trigger button; the imperative `openSelection()` handle opens it when
   // more than one action is enabled.
   const [menuOpen, setMenuOpen] = useState(false);
+  const [validating, setValidating] = useState(false);
+  const [emittedSize, setEmittedSize] = useState<number | null>(null);
 
   // Prevent memory leaks from object URLs
   const lastObjectUrlRef = useRef<string | null>(null);
@@ -262,6 +265,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
       const mediaKind: "image" | "video" | "audio" =
         rawKind === "image" || rawKind === "video" || rawKind === "audio" ? rawKind : "image";
       const resolvedSpec = resolveActiveSpec(spec, mediaKind);
+      if (payload.file) setEmittedSize(payload.file.size);
       onChange({ spec: resolvedSpec, ...payload });
     },
     [onChange, spec]
@@ -275,7 +279,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
     [emit]
   );
 
-  const handleSelected = useCallback(
+  const validateAndEmit = useCallback(
     async (file: File, previewUrl?: string, action: ClientMediaClaim | undefined = undefined) => {
       setLocalError(null);
 
@@ -408,6 +412,21 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
     [spec, cropSpec, emit, fail]
   );
 
+  // A picked, captured, or recorded file is validated (type, meta, duration,
+  // dimensions, crop) before it is emitted. The trigger shows pending for that
+  // whole window, so a second pick cannot race the first.
+  const handleSelected = useCallback(
+    async (file: File, previewUrl?: string, action: ClientMediaClaim | undefined = undefined) => {
+      setValidating(true);
+      try {
+        await validateAndEmit(file, previewUrl, action);
+      } finally {
+        setValidating(false);
+      }
+    },
+    [validateAndEmit]
+  );
+
   const onPick = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -475,11 +494,14 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
   const isFinalizing = phase === 'finalizing' && isLoading;
 
   const sizeThreshold = progressBarMinBytes ?? DEFAULT_PROGRESS_BAR_MIN_BYTES;
+  // Consumers usually pass selectedFile={null} once the file is handed off, so
+  // the bar judges the size of the file this input emitted.
+  const trackedSize = selectedFile?.size ?? emittedSize;
   const showRealBar =
     isUploading &&
     typeof percent === 'number' &&
-    !!selectedFile &&
-    selectedFile.size >= sizeThreshold;
+    trackedSize !== null &&
+    trackedSize >= sizeThreshold;
 
   const canPick = spec.client?.allowPick ?? true;
   const canPhoto = spec.client?.allowCapturePhoto ?? true;
@@ -541,18 +563,18 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
   /** Build the list of enabled actions. */
   const actions = useMemo(() => {
     const list: Array<{ kind: ActionKind; label: string; icon: React.ReactNode }> = [];
-    if (canPick) list.push({ kind: "pick", label: "Choose file", icon: <Upload className="mr-2 icon-xs" /> });
-    if (canPhoto) list.push({ kind: "photo", label: "Take photo", icon: <Camera className="mr-2 icon-xs" /> });
-    if (canRecVideo) list.push({ kind: "recordVideo", label: "Record video", icon: <Video className="mr-2 icon-xs" /> });
-    if (canRecAudio) list.push({ kind: "recordAudio", label: "Record audio", icon: <Mic className="mr-2 icon-xs" /> });
+    if (canPick) list.push({ kind: "pick", label: "Choose file", icon: <Upload className="icon-xs" /> });
+    if (canPhoto) list.push({ kind: "photo", label: "Take photo", icon: <Camera className="icon-xs" /> });
+    if (canRecVideo) list.push({ kind: "recordVideo", label: "Record video", icon: <Video className="icon-xs" /> });
+    if (canRecAudio) list.push({ kind: "recordAudio", label: "Record audio", icon: <Mic className="icon-xs" /> });
     return list;
   }, [canPick, canPhoto, canRecVideo, canRecAudio]);
 
   /** Label & icon for the single trigger button. */
   const triggerIcon = useMemo(() => {
     if (actions.length === 1) return actions[0].icon;
-    if (buttonLabel !== "Add media") return <Upload className="mr-2 icon-xs" />;
-    return <Plus className="mr-2 icon-xs" />;
+    if (buttonLabel !== "Add media") return <Upload className="icon-xs" />;
+    return <Plus className="icon-xs" />;
   }, [actions, buttonLabel]);
 
   const triggerLabel = useMemo(() => {
@@ -579,13 +601,13 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
    * Never touches the hidden input directly, so none of the gates are bypassed.
    */
   const openSelection = useCallback(() => {
-    if (disabled || isLoading || actions.length === 0) return;
+    if (disabled || isLoading || validating || actions.length === 0) return;
     if (actions.length === 1) {
       void runAction(actions[0].kind);
       return;
     }
     setMenuOpen(true);
-  }, [disabled, isLoading, actions, runAction]);
+  }, [disabled, isLoading, validating, actions, runAction]);
 
   useImperativeHandle(ref, () => ({ openSelection }), [openSelection]);
 
@@ -599,7 +621,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
         accept={acceptAttr}
         className="hidden"
         onChange={onPick}
-        disabled={disabled || isLoading}
+        disabled={disabled || isLoading || validating}
       />
 
       {/* Selected file preview + semantic status (original names stay metadata-only). */}
@@ -635,7 +657,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
       {/* Upload / finalizing status */}
       {isLoading ? (
         <div className="flex items-center gap-2 mb-2">
-          <Loader2 className="icon-xs spinner-xs" />
+          <Spinner size="xs" />
           <span className="text-sm text-muted-foreground">
             {isPreparing
               ? "Preparing..."
@@ -673,23 +695,22 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
             variant="default"
             onClick={handleTriggerClick}
             disabled={disabled || isLoading || actions.length === 0}
+            pending={validating}
+            icon={triggerIcon}
           >
-            {triggerIcon}
             {triggerLabel}
           </Button>
         ) : (
           /* Multiple actions: dropdown menu */
           <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <Button variant="default" disabled={disabled || isLoading}>
-                {triggerIcon}
+              <Button variant="default" disabled={disabled || isLoading} pending={validating} icon={triggerIcon}>
                 {triggerLabel}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
               {actions.map((a) => (
-                <DropdownMenuItem key={a.kind} onClick={() => void runAction(a.kind)}>
-                  {a.icon}
+                <DropdownMenuItem key={a.kind} onClick={() => void runAction(a.kind)} icon={a.icon}>
                   {a.label}
                 </DropdownMenuItem>
               ))}

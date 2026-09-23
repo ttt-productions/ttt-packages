@@ -4,7 +4,7 @@ import React, { useState, useCallback } from "react";
 import Cropper, { type Area } from "react-easy-crop";
  
 const CropperComponent = Cropper as unknown as React.ComponentType<any>;
-import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, Slider } from "@ttt-productions/ui-core/react";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, Slider, useAsyncAction } from "@ttt-productions/ui-core/react";
 import { getCroppedImg } from "../../lib/image-utils.js";
 
 export interface ImageCropperModalProps {
@@ -29,21 +29,22 @@ export function ImageCropperModal(props: ImageCropperModalProps) {
     setCroppedAreaPixels(pixels);
   }, []);
 
-  const handleConfirm = useCallback(async () => {
-    if (!imageSrc || !croppedAreaPixels) return;
-    try {
+  // Confirm renders the crop, then emits it. It is pending for that whole window and
+  // ignores a repeat click, so a double click can never emit (and upload) twice.
+  const confirm = useAsyncAction(
+    async () => {
+      if (!imageSrc || !croppedAreaPixels) return;
       const blob = await getCroppedImg(imageSrc, croppedAreaPixels, 0, { horizontal: false, vertical: false }, outputWidth, outputHeight);
       onCropComplete(blob);
       onClose();
-    } catch {
-      onCropComplete(null);
-    }
-  }, [imageSrc, croppedAreaPixels, onCropComplete, onClose, outputWidth, outputHeight]);
+    },
+    { onError: () => onCropComplete(null) },
+  );
 
   if (!imageSrc) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !confirm.pending && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Crop Image</DialogTitle>
@@ -70,8 +71,8 @@ export function ImageCropperModal(props: ImageCropperModalProps) {
         </div>
 
         <DialogFooter className="flex-row justify-end gap-2">
-          <Button variant="destructive" onClick={onClose}>Cancel</Button>
-          <Button variant="default" onClick={handleConfirm}>Confirm</Button>
+          <Button variant="destructive" onClick={onClose} disabled={confirm.pending}>Cancel</Button>
+          <Button variant="default" onClick={() => void confirm.run()} pending={confirm.pending}>Confirm</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -3,8 +3,8 @@
 import type { ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
 import { MessageText } from "./MessageText.js";
 import { cn } from "@ttt-productions/ui-core";
-import { Button } from "@ttt-productions/ui-core/react";
-import { Loader2, AlertTriangle } from "lucide-react";
+import { Button, Spinner } from "@ttt-productions/ui-core/react";
+import { AlertTriangle } from "lucide-react";
 import { MessageActions } from "./menus.js";
 import { useResolvedSenderName } from "../context/ChatNameResolverContext.js";
 
@@ -155,7 +155,7 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
           send must never be indistinguishable from a delivered one. */}
       {sendPending && (
         <div className="chat-send-status mt-0.5" role="status" aria-live="polite">
-          <Loader2 className="h-3 w-3 shrink-0 animate-spin" />
+          <Spinner size="xs" className="shrink-0" />
           <span>Sending…</span>
         </div>
       )}

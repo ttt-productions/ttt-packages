@@ -5,6 +5,7 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "../../lib/utils.js"
+import { Spinner } from "./spinner.js"
 
 const Select = SelectPrimitive.Root
 const SelectGroup = SelectPrimitive.Group
@@ -12,8 +13,15 @@ const SelectValue = SelectPrimitive.Value
 
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
+    /**
+     * The change this select started is in flight: the trigger disables itself, sets
+     * `aria-busy`, and shows the spinner in place of its chevron. It keeps showing the
+     * COMMITTED value — the caller changes `value` only once the write lands.
+     */
+    pending?: boolean
+  }
+>(({ className, children, pending = false, disabled, ...props }, ref) => (
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
@@ -21,11 +29,17 @@ const SelectTrigger = React.forwardRef<
       className
     )}
     {...props}
+    {...(pending ? { "aria-busy": true, "data-pending": "" } : {})}
+    disabled={disabled || pending || undefined}
   >
     {children}
-    <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 opacity-50" />
-    </SelectPrimitive.Icon>
+    {pending ? (
+      <Spinner size="xs" />
+    ) : (
+      <SelectPrimitive.Icon asChild>
+        <ChevronDown className="h-4 w-4 opacity-50" />
+      </SelectPrimitive.Icon>
+    )}
   </SelectPrimitive.Trigger>
 ))
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName

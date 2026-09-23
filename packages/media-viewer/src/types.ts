@@ -157,6 +157,13 @@ export type AudioViewerProps = BaseMediaProps & MediaPlaybackProps & {
 
 export type MediaPreviewProps = {
   url?: string | File | Blob | null;
+  /**
+   * The URL is still being prepared (for example a short-lived access grant is
+   * being minted). While true and no `url` is available, the viewer renders a
+   * loading state instead of the empty fallback, so "not yet" never reads as
+   * "nothing here".
+   */
+  urlPending?: boolean;
   alt?: string;
   type?: MediaViewerType | string;
   className?: string;

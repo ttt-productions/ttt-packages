@@ -145,6 +145,88 @@ describe('<Button> — disabled behavior', () => {
     });
 });
 
+describe('<Button pending> — the in-progress contract', () => {
+    it('disables the button, marks it busy, and shows the canonical spinner', () => {
+        const { container } = render(<Button pending>Save</Button>);
+        const btn = screen.getByRole('button', { name: 'Save' });
+        expect(btn).toBeDisabled();
+        expect(btn).toHaveAttribute('aria-busy', 'true');
+        expect(btn).toHaveAttribute('data-pending');
+        expect(container.querySelector('.spinner-xs')).toBeInTheDocument();
+    });
+
+    it('ignores clicks while pending', () => {
+        const onClick = vi.fn();
+        render(<Button pending onClick={onClick}>Save</Button>);
+        fireEvent.click(screen.getByRole('button'));
+        expect(onClick).not.toHaveBeenCalled();
+    });
+
+    it('cannot resubmit its form while pending (a disabled submit blocks implicit submission)', () => {
+        const onSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
+        render(
+            <form onSubmit={onSubmit}>
+                <Button type="submit" pending>Send</Button>
+            </form>
+        );
+        fireEvent.click(screen.getByRole('button'));
+        expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('swaps a leading icon for the spinner, and restores it when pending ends', () => {
+        const { container, rerender } = render(
+            <Button icon={<svg data-testid="lead-icon" />}>Delete</Button>
+        );
+        expect(screen.getByTestId('lead-icon')).toBeInTheDocument();
+        expect(container.querySelector('.spinner-xs')).toBeNull();
+
+        rerender(<Button pending icon={<svg data-testid="lead-icon" />}>Delete</Button>);
+        expect(screen.queryByTestId('lead-icon')).toBeNull();
+        expect(container.querySelector('.spinner-xs')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Delete' })).toBeInTheDocument();
+    });
+
+    it('an icon button swaps its icon for the spinner and keeps its accessible name', () => {
+        const { container } = render(
+            <Button size="icon" pending aria-label="Clear notification">
+                <svg data-testid="x-icon" />
+            </Button>
+        );
+        expect(screen.queryByTestId('x-icon')).toBeNull();
+        expect(container.querySelector('.spinner-xs')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Clear notification' })).toBeDisabled();
+    });
+
+    it('uses the next spinner size up on a large button', () => {
+        const { container } = render(<Button size="lg" pending>Go</Button>);
+        expect(container.querySelector('.spinner-sm')).toBeInTheDocument();
+    });
+
+    it('leaves a caller aria-busy alone when not pending', () => {
+        render(<Button aria-busy="true">Busy elsewhere</Button>);
+        expect(screen.getByRole('button')).toHaveAttribute('aria-busy', 'true');
+    });
+
+    it('renders no busy attributes when not pending', () => {
+        render(<Button>Idle</Button>);
+        const btn = screen.getByRole('button');
+        expect(btn).not.toHaveAttribute('aria-busy');
+        expect(btn).not.toHaveAttribute('data-pending');
+        expect(btn).toBeEnabled();
+    });
+
+    it('asChild renders the leading icon INSIDE the child element', () => {
+        render(
+            <Button asChild icon={<svg data-testid="lead-icon" />}>
+                <a href="/p">Open</a>
+            </Button>
+        );
+        const link = screen.getByRole('link', { name: 'Open' });
+        expect(link).toContainElement(screen.getByTestId('lead-icon'));
+        expect(screen.queryByRole('button')).toBeNull();
+    });
+});
+
 describe('<Button asChild> — Slot delegation', () => {
     it('renders the child element (not a wrapping button) when asChild is true', () => {
         render(

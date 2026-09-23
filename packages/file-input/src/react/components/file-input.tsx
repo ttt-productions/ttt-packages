@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useId } from "react";
 import { getSimplifiedMediaType, type SimplifiedMediaType } from "@ttt-productions/media-schemas";
-import { Alert, AlertDescription, Button, Card, Input, Progress } from "@ttt-productions/ui-core/react";
+import { Alert, AlertDescription, Button, Card, Input, Progress, Spinner } from "@ttt-productions/ui-core/react";
 import { cn } from "@ttt-productions/ui-core";
-import { Info, X, Upload, Film, Music, Paperclip, AlertTriangle, Loader2 } from "lucide-react";
+import { Info, X, Upload, Film, Music, Paperclip, AlertTriangle } from "lucide-react";
 
 import type { FileInputError, FileInputProps } from "../../types.js";
 import { validateMediaDuration } from "../../lib/validate-media-duration.js";
@@ -252,7 +252,7 @@ export function FileInput(props: FileInputProps) {
 
               <span className="z-10 center-row w-full">
                 {isLoading ? (
-                  <><Loader2 className="mr-2 spinner-xs" /> {isUploading ? `${(uploadProgress ?? 0).toFixed(0)}%` : "Processing..."}</>
+                  <><Spinner size="xs" className="mr-2" /> {isUploading ? `${(uploadProgress ?? 0).toFixed(0)}%` : "Processing..."}</>
                 ) : fileValue ? (
                   <span className="flex items-center justify-between w-full">
                     <span className="truncate pr-2">{getSelectedFileLabel(fileValue)}</span>

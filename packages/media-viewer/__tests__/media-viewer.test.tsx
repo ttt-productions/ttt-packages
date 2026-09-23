@@ -48,6 +48,13 @@ describe('MediaViewer', () => {
       expect(container.querySelector('.mv-empty-fallback')).toBeInTheDocument();
     });
 
+    it('renders the pending state (a labeled spinner), never the empty fallback, while urlPending', () => {
+      const { container, getByRole } = render(<MediaViewer url={null as any} urlPending />);
+      expect(container.querySelector('.mv-pending-fallback')).toBeInTheDocument();
+      expect(container.querySelector('.mv-empty-fallback')).toBeNull();
+      expect(getByRole('status')).toHaveTextContent('Loading media');
+    });
+
     it('renders avatar-shaped empty fallback when isCircular and url is null', () => {
       const { container } = render(<MediaViewer url={null as any} isCircular />);
       expect(container.querySelector('.mv-avatar-fallback')).toBeInTheDocument();
