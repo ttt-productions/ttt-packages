@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { NEUTRAL_CONTENT_TYPE } from '../src/helpers.js';
-import { verifyStagedUploadMetadata } from '../src/staged-upload.js';
+import { parseStorageObjectSize, verifyStagedUploadMetadata } from '../src/staged-upload.js';
 import type { MediaOriginSpec } from '../src/types.js';
 
 type Spec = Pick<MediaOriginSpec, 'accept' | 'maxBytes'>;
@@ -111,5 +111,45 @@ describe('verifyStagedUploadMetadata', () => {
       reason: 'unreadable-size',
       size,
     });
+  });
+});
+
+describe('parseStorageObjectSize', () => {
+  it.each<[string, unknown, number]>([
+    ['a numeric string', '1024', 1024],
+    ['a numeric string with surrounding whitespace', ' 1024\n', 1024],
+    ['a whole number', 2048, 2048],
+    ['zero', 0, 0],
+    ['a zero string', '0', 0],
+    ['the largest safe integer', Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+    ['the largest safe integer as a string', String(Number.MAX_SAFE_INTEGER), Number.MAX_SAFE_INTEGER],
+    ['a whole bigint', 10n, 10],
+  ])('reads %s', (_label, size, bytes) => {
+    expect(parseStorageObjectSize(size)).toBe(bytes);
+  });
+
+  it.each<[string, unknown]>([
+    ['missing (undefined)', undefined],
+    ['missing (null)', null],
+    ['an empty string', ''],
+    ['NaN', Number.NaN],
+    ['a NaN string', 'NaN'],
+    ['Infinity', Number.POSITIVE_INFINITY],
+    ['a negative number', -1],
+    ['a negative string', '-5'],
+    ['a fractional number', 1.5],
+    ['a fractional string', '1.5'],
+    ['a trailing-zero decimal string', '10.0'],
+    ['one beyond the largest safe integer', Number.MAX_SAFE_INTEGER + 1],
+    ['a string beyond the largest safe integer', '9007199254740993'],
+    ['a huge digit string', '99999999999999999999'],
+    ['exponent notation', '1e3'],
+    ['a signed string', '+5'],
+    ['a hex string', '0x10'],
+    ['a digit string with a suffix', '12abc'],
+    ['an object', { size: 5 }],
+    ['a boolean', true],
+  ])('is undefined for %s', (_label, size) => {
+    expect(parseStorageObjectSize(size)).toBeUndefined();
   });
 });

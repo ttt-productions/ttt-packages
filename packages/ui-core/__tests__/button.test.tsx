@@ -22,7 +22,7 @@ describe('buttonVariants — variant class contract', () => {
         { variant: 'default', signatureClasses: ['bg-primary', 'text-primary-foreground', 'border-[hsl(var(--brand-primary-deep))]'] },
         // The destructive edge follows the destructive family, never the brand.
         { variant: 'destructive', signatureClasses: ['bg-destructive', 'text-destructive-foreground', 'border-[hsl(var(--destructive-border))]'] },
-        { variant: 'success', signatureClasses: ['bg-[color:var(--button-success)]', 'text-primary-foreground', 'border-[hsl(var(--status-success-border))]'] },
+        { variant: 'success', signatureClasses: ['bg-[color:var(--button-success)]', 'text-[hsl(var(--success-foreground))]', 'border-[hsl(var(--status-success-border))]'] },
         { variant: 'outline', signatureClasses: ['border-2', 'border-border', 'bg-background'] },
         { variant: 'secondary', signatureClasses: ['bg-secondary', 'text-secondary-foreground'] },
         { variant: 'ghost', signatureClasses: ['hover:bg-accent', 'hover:text-accent-foreground'] },
@@ -38,6 +38,39 @@ describe('buttonVariants — variant class contract', () => {
             }
         });
     }
+});
+
+// A solid status fill carries ITS OWN status foreground, and no other text colour at
+// rest. The success variant once rendered the default button's text on the green fill
+// (text-primary-foreground), which measured 2.09:1 in a dark theme.
+const TEXT_NOT_A_COLOUR = /^text-(xs|sm|base|lg|\d*xl|left|center|right|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip)$/;
+const restingTextColours = (classes: string) =>
+    classes.split(/\s+/).filter((c) => c.startsWith('text-') && !TEXT_NOT_A_COLOUR.test(c));
+
+describe('buttonVariants — a status fill carries its own status foreground', () => {
+    const cases = [
+        { variant: 'destructive', fill: 'bg-destructive', text: 'text-destructive-foreground' },
+        { variant: 'success', fill: 'bg-[color:var(--button-success)]', text: 'text-[hsl(var(--success-foreground))]' },
+    ] as const;
+
+    for (const { variant, fill, text } of cases) {
+        it(`variant="${variant}" pairs ${fill} with ${text} and no other text colour`, () => {
+            const classes = buttonVariants({ variant });
+            expect(classes.split(/\s+/)).toContain(fill);
+            expect(restingTextColours(classes)).toEqual([text]);
+        });
+    }
+
+    it('the success variant no longer borrows the default button text colour', () => {
+        expect(buttonVariants({ variant: 'success' })).not.toContain('text-primary-foreground');
+    });
+
+    it('the rendered success button carries the success foreground', () => {
+        render(<Button variant="success">Agree to Terms</Button>);
+        const btn = screen.getByRole('button', { name: 'Agree to Terms' });
+        expect(btn).toHaveClass('bg-[color:var(--button-success)]', 'text-[hsl(var(--success-foreground))]');
+        expect(btn).not.toHaveClass('text-primary-foreground');
+    });
 });
 
 describe('buttonVariants — size class contract', () => {

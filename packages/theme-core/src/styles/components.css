@@ -335,51 +335,6 @@ button .spinner-xl {
   color: hsl(var(--foreground));
 }
 
-/* Status pills (replaces bg-blue-100/text-blue-700 etc.) */
-.status-pill {
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 700;
-  color: hsl(var(--foreground));
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
-  border-radius: 9999px;
-  display: inline-flex;
-  align-items: center;
-}
-
-.status-pill--info {
-  background-color: hsl(var(--info) / 0.15);
-  color: hsl(var(--info));
-}
-
-.status-pill--success {
-  background-color: hsl(var(--success) / 0.15);
-  color: hsl(var(--success));
-}
-
-.status-pill--warning {
-  background-color: hsl(var(--warning) / 0.15);
-  color: hsl(var(--warning));
-}
-
-.status-pill--muted {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-}
-
-/* High contrast pills: pure B/W */
-.high-contrast .status-pill--info,
-.high-contrast .status-pill--success,
-.high-contrast .status-pill--warning,
-.high-contrast .status-pill--muted {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  border: 2px solid hsl(var(--border));
-}
-
 /* ===================
   SCREEN ADAPTIVE VIEW
 =================== */

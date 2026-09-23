@@ -1,4 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import ts from 'typescript';
 import { z } from 'zod';
 import { createPendingMediaSchemas } from '../src/factories/pending-media.js';
 import {
@@ -8,6 +11,11 @@ import {
   effectivePendingMediaLeaseExpiry,
   isPendingMediaTerminalStatus,
   type PendingMediaClaimPolicy,
+  type PendingMediaCompletedTerminalFields,
+  type PendingMediaFailedTerminalFields,
+  type PendingMediaRejectedTerminalFields,
+  type PendingMediaTerminalFields,
+  type PendingMediaTerminalStatus,
 } from '../src/pending-media-lifecycle.js';
 
 // Fixed clock and an injected policy: the package owns the state machine, the app owns
@@ -230,12 +238,64 @@ describe('buildPendingMediaTerminalFields', () => {
     expect(buildPendingMediaTerminalFields('rejected', {}, 7)).toMatchObject({ status: 'rejected', rejectedAt: 7 });
   });
   it('a terminal row built from these fields parses as that branch', () => {
+    const processingRow = { ...rawBase, status: 'processing' };
     const row = {
-      ...rawBase,
-      status: 'processing',
+      ...processingRow,
       ...buildPendingMediaTerminalFields('failed', { errorCategory: 'system', errorMessage: 'boom' }, NOW),
     };
     expect(PendingMediaSchema.safeParse(row).success).toBe(true);
+  });
+
+  it('with no extra fields each status returns exactly its literal field set', () => {
+    expect(buildPendingMediaTerminalFields('completed', {}, 1)).toStrictEqual({
+      status: 'completed', completedAt: 1, terminalAt: 1, updatedAt: 1,
+    });
+    expect(buildPendingMediaTerminalFields('failed', {}, 2)).toStrictEqual({
+      status: 'failed', failedAt: 2, terminalAt: 2, updatedAt: 2,
+    });
+    expect(buildPendingMediaTerminalFields('rejected', {}, 3)).toStrictEqual({
+      status: 'rejected', rejectedAt: 3, terminalAt: 3, updatedAt: 3,
+    });
+  });
+
+  it("the status's own *At stamp is written after the extra fields", () => {
+    expect(buildPendingMediaTerminalFields('completed', { completedAt: 1 }, 9).completedAt).toBe(9);
+  });
+
+  it('declares the literal field set per status, and the set merged with extra fields', () => {
+    expectTypeOf(buildPendingMediaTerminalFields('completed', {}, 1)).toEqualTypeOf<PendingMediaCompletedTerminalFields>();
+    expectTypeOf(buildPendingMediaTerminalFields('failed', {}, 1)).toEqualTypeOf<PendingMediaFailedTerminalFields>();
+    expectTypeOf(buildPendingMediaTerminalFields('rejected', {}, 1)).toEqualTypeOf<PendingMediaRejectedTerminalFields>();
+    expectTypeOf(buildPendingMediaTerminalFields('failed', { errorMessage: 'x' }, 1)).toEqualTypeOf<
+      PendingMediaFailedTerminalFields & { errorMessage: string }
+    >();
+    const anyStatus = 'rejected' as PendingMediaTerminalStatus;
+    const either: PendingMediaTerminalFields = buildPendingMediaTerminalFields(anyStatus, {}, 1);
+    expect(either.status).toBe('rejected');
+    // @ts-expect-error — a completed field set has no failedAt
+    expect(buildPendingMediaTerminalFields('completed', {}, 1).failedAt).toBeUndefined();
+  });
+
+  // A static reader of the shipped declarations (one that reads a function's declared
+  // return type, not the code) can list the keys only when the first declared signature
+  // names a plain object type — never an intersection, conditional, or index signature.
+  it('its first declared signature names the literal completed field set as a plain object type', () => {
+    const file = path.resolve(__dirname, '../src/pending-media-lifecycle.ts');
+    const source = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
+    const signatures: ts.FunctionDeclaration[] = [];
+    const aliases = new Map<string, ts.TypeAliasDeclaration>();
+    source.forEachChild((node) => {
+      if (ts.isFunctionDeclaration(node) && node.name?.text === 'buildPendingMediaTerminalFields') signatures.push(node);
+      if (ts.isTypeAliasDeclaration(node)) aliases.set(node.name.text, node);
+    });
+    const returned = signatures[0]?.type;
+    expect(returned && ts.isTypeReferenceNode(returned) && ts.isIdentifier(returned.typeName)).toBe(true);
+    const alias = aliases.get(((returned as ts.TypeReferenceNode).typeName as ts.Identifier).text);
+    expect(alias && ts.isTypeLiteralNode(alias.type)).toBe(true);
+    const keys = (alias!.type as ts.TypeLiteralNode).members.map((member) =>
+      ts.isPropertySignature(member) && ts.isIdentifier(member.name) ? member.name.text : '(not a plain key)',
+    );
+    expect(keys).toEqual(['status', 'completedAt', 'terminalAt', 'updatedAt']);
   });
 });
 

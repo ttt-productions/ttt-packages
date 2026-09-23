@@ -168,7 +168,7 @@ Equivalent forms: `<AudioViewer …/>`, or through the router as `<MediaPreview 
 
 Mechanics: the Web Audio graph (`createMediaElementSource` → `AnalyserNode` → destination) is created lazily on the first `play` event (autoplay policies suspend fresh `AudioContext`s; a user-gesture play resumes them) and is best-effort — if it fails, playback still works and only the visualizer goes dark. The element source is once-per-element and keyed to the element instance. The draw loop runs only while playing. Requires same-origin (or CORS-clean) audio, or the analyser reads silence.
 
-The shared render engine `startWaveformLoop({ analyser, getCanvas, mode })` (root export, no React) is the ONE waveform implementation — file-input's record dialog consumes it for the live-mic waveform. Chrome styling uses `.mv-player*` semantic classes (see styles) with token fallbacks.
+The shared render engine `startWaveformLoop({ analyser, getCanvas, mode })` (root export, no React) is the ONE waveform implementation — file-input's record dialog consumes it for the live-mic waveform. Chrome styling uses `.mv-player*` semantic classes (see styles) that read theme-core tokens directly — every token (colour and `--radius`) is a plain reference with no fallback, so the package's look comes only from the theme-core and app token layers.
 
 ## Image zoom pass-through
 

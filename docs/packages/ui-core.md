@@ -22,6 +22,7 @@ Every colour and shadow a ui-core component renders comes from a theme-core toke
 - **No shadow utility.** A Tailwind utility out-ranks every layered stylesheet, so shadows live on theme-core elevation hook classes the components carry, each reading a shadow token — the hook classes and what each covers are listed once, in [theme-core.md](theme-core.md#recipes-and-components-read-tokens-not-literals). `.page-card` and an app's own card rules therefore reach `<Card>`.
 - **One form-control edge.** `Input`, `Textarea`, and `Select` draw their edge from `--input` (`border-input`), and the unchecked `Switch` track fills with it (`bg-input`), so one token styles every form control in a form.
 - **Button edges follow their family.** `default` reads `--brand-primary-deep`, `destructive` reads `--destructive-border`, `success` reads `--status-success-border`, `inverted` reads the `--inverted-*` trio.
+- **A status fill carries its own status text.** Every variant that paints a solid status fill takes its text from that status's own foreground, never another family's: the `destructive` Button and Badge read `--destructive-foreground`, the `success` Button reads `--success-foreground` on `--button-success`, and each Toast status variant reads its `--toast-<status>-foreground`. An app that tunes a status foreground per theme for contrast therefore fixes every surface on that fill at once. theme-core's token-contract test enforces the pairing across every package.
 
 ## In-progress feedback — `Spinner`, `pending`, `useAsyncAction`
 

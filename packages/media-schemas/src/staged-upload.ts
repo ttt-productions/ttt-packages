@@ -24,8 +24,13 @@ export type StagedUploadVerdict =
   | { ok: false; reason: "unreadable-size"; size: unknown }
   | { ok: false; reason: "too-large"; sizeBytes: number; maxBytes: number };
 
-/** A present, whole, non-negative byte count — anything else (absent included) is unreadable. */
-function parseSize(size: unknown): number | undefined {
+/**
+ * A storage object's byte size, as a storage metadata read or a storage event reports it
+ * (a number, or a decimal string): a present, whole, non-negative, safe-integer byte count.
+ * Anything else — absent, `NaN`, negative, fractional, beyond `Number.MAX_SAFE_INTEGER`,
+ * or not a plain decimal — is `undefined`, never a guessed number.
+ */
+export function parseStorageObjectSize(size: unknown): number | undefined {
   if (size === undefined || size === null) return undefined;
   const text = String(size).trim();
   if (!/^\d+$/.test(text)) return undefined;
@@ -60,7 +65,7 @@ export function verifyStagedUploadMetadata(
     return { ok: false, reason: "unsupported-content-type", contentType };
   }
 
-  const sizeBytes = parseSize(metadata.size);
+  const sizeBytes = parseStorageObjectSize(metadata.size);
   if (sizeBytes === undefined) return { ok: false, reason: "unreadable-size", size: metadata.size };
   if (spec.maxBytes !== undefined && sizeBytes > spec.maxBytes) {
     return { ok: false, reason: "too-large", sizeBytes, maxBytes: spec.maxBytes };

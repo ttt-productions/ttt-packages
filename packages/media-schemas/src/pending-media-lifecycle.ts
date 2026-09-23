@@ -188,19 +188,84 @@ export function decidePendingMediaFinalize(
   return { decision: "conflict", currentStatus: status === undefined ? undefined : String(status) };
 }
 
+// The literal terminal field set each status writes. Plain object types rather than
+// interfaces: an interface is not assignable to an index-signature type (a Firestore
+// update's data, `Record<string, unknown>`), and a plain object type reads statically
+// from the shipped declarations, key by key.
+
+/** The terminal field set a `completed` transition writes. */
+export type PendingMediaCompletedTerminalFields = {
+  status: typeof STATUS.completed;
+  completedAt: number;
+  terminalAt: number;
+  updatedAt: number;
+};
+
+/** The terminal field set a `failed` transition writes. */
+export type PendingMediaFailedTerminalFields = {
+  status: typeof STATUS.failed;
+  failedAt: number;
+  terminalAt: number;
+  updatedAt: number;
+};
+
+/** The terminal field set a `rejected` transition writes. */
+export type PendingMediaRejectedTerminalFields = {
+  status: typeof STATUS.rejected;
+  rejectedAt: number;
+  terminalAt: number;
+  updatedAt: number;
+};
+
+/** The terminal field set for `S`; a union of statuses gives the union of their sets. */
+export type PendingMediaTerminalFields<S extends PendingMediaTerminalStatus = PendingMediaTerminalStatus> =
+  S extends typeof STATUS.completed
+    ? PendingMediaCompletedTerminalFields
+    : S extends typeof STATUS.failed
+      ? PendingMediaFailedTerminalFields
+      : PendingMediaRejectedTerminalFields;
+
 /**
  * The terminal field set for a status — the status, its `completedAt` / `failedAt` /
  * `rejectedAt`, `terminalAt`, and `updatedAt`, all at `now` — merged with the caller's
  * fields (`result`, `errorCategory`, `errorMessage`, `rejectionType`, …).
+ *
+ * With no extra fields (`{}`) and one known status, the declared result is exactly that
+ * status's literal field set — the first three signatures, one per status. With extra
+ * fields it is that set intersected with them. Extra fields are merged after `status`,
+ * `terminalAt`, and `updatedAt` and before the status's own `*At` stamp.
  */
+export function buildPendingMediaTerminalFields(
+  status: typeof STATUS.completed,
+  extraFields: Record<string, never>,
+  now: number,
+): PendingMediaCompletedTerminalFields;
+export function buildPendingMediaTerminalFields(
+  status: typeof STATUS.failed,
+  extraFields: Record<string, never>,
+  now: number,
+): PendingMediaFailedTerminalFields;
+export function buildPendingMediaTerminalFields(
+  status: typeof STATUS.rejected,
+  extraFields: Record<string, never>,
+  now: number,
+): PendingMediaRejectedTerminalFields;
+export function buildPendingMediaTerminalFields<S extends PendingMediaTerminalStatus, E extends Record<string, unknown>>(
+  status: S,
+  extraFields: E,
+  now: number,
+): PendingMediaTerminalFields<S> & E;
 export function buildPendingMediaTerminalFields(
   status: PendingMediaTerminalStatus,
   extraFields: Record<string, unknown>,
   now: number,
-): Record<string, unknown> {
-  const fields: Record<string, unknown> = { status, terminalAt: now, updatedAt: now, ...extraFields };
-  if (status === STATUS.completed) fields.completedAt = now;
-  else if (status === STATUS.failed) fields.failedAt = now;
-  else fields.rejectedAt = now;
-  return fields;
+): PendingMediaTerminalFields & Record<string, unknown> {
+  switch (status) {
+    case STATUS.completed:
+      return { status, terminalAt: now, updatedAt: now, ...extraFields, completedAt: now };
+    case STATUS.failed:
+      return { status, terminalAt: now, updatedAt: now, ...extraFields, failedAt: now };
+    case STATUS.rejected:
+      return { status, terminalAt: now, updatedAt: now, ...extraFields, rejectedAt: now };
+  }
 }

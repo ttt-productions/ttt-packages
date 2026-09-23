@@ -28,46 +28,6 @@
 }
 
 /* ===================
-    STATUS PILLS
-    =================== */
-.status-pill {
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 700;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
-  padding-top: 0.125rem;
-  padding-bottom: 0.125rem;
-  border-radius: 9999px;
-}
-
-/* map to semantic tokens (no blue/yellow/green hardcodes) */
-.status-pill--open-user {
-  background-color: hsl(var(--info) / 0.15);
-  color: hsl(var(--info-foreground));
-}
-
-.status-pill--admin-reply {
-  background-color: hsl(var(--warning) / 0.20);
-  color: hsl(var(--warning-foreground));
-}
-
-.status-pill--user-reply {
-  background-color: hsl(var(--success) / 0.18);
-  color: hsl(var(--success-foreground));
-}
-
-.status-pill--closed {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-}
-
-.status-pill--default {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-}
-
-/* ===================
     STATUS ICONS
     =================== */
 .status-icon {
