@@ -127,6 +127,12 @@ TTT Productions application-data package.
   that writes its result can never leave a doc missing its required fields, even as the first
   write into a fresh or wiped environment; readers derive their fallbacks from the same default.
   The release-owned version block has no default — it is absent until the first release.
+  `AppConfigSchema` caps every text lever with the same `constants/` declaration its
+  `UpdateAppConfigInputSchema` field uses (`MAX_APP_VERSION_LENGTH`,
+  `MAX_MAINTENANCE_MESSAGE_LENGTH`, `MAX_ANNOUNCEMENT_MESSAGE_LENGTH`; a package test compares
+  the two schemas field by field), so no writer — `mergeAppConfigUpdate` included — can store a
+  value the update input would refuse. `appVersion` still accepts the unpublished `''` at rest;
+  only the update input requires a non-empty version.
 - **Craft-skill kind copy and launch blocks** (`constants/craft-skill-statements`): the verbatim
   agreement statements, kind labels and order, and the ONE owner of which kinds are blocked at
   launch — `CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES`, the refusal copy keyed by kind. The blocked

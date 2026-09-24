@@ -31,6 +31,43 @@ describe('ConsequenceDialog', () => {
       expect(screen.getByText('Reversibility')).toBeInTheDocument();
     });
 
+    it('renders every slot as a block row: its label on its own line, directly above its text', () => {
+      render(
+        <ConsequenceDialog
+          open
+          onOpenChange={noop}
+          title="Do the thing?"
+          immediateEffect="does X right now"
+          delayedEffect="settles once the webhook lands"
+          reversibility="cannot be undone"
+          confirmLabel="Go"
+          onConfirm={noop}
+        />,
+      );
+      const isBlock = (el: Element) => getComputedStyle(el).display === 'block';
+
+      // The description the dialog announces holds the rows. Rows are blocks, which neither an
+      // inline element nor a <p> can hold.
+      const describedBy = screen.getByRole('alertdialog').getAttribute('aria-describedby');
+      const description = describedBy ? document.getElementById(describedBy) : null;
+      expect(description).not.toBeNull();
+      expect(description!.tagName).not.toBe('P');
+      expect(isBlock(description!)).toBe(true);
+
+      for (const [label, text] of [
+        ['Immediately', 'does X right now'],
+        ['Afterward', 'settles once the webhook lands'],
+        ['Reversibility', 'cannot be undone'],
+      ]) {
+        const labelEl = screen.getByText(label);
+        const textEl = screen.getByText(text);
+        expect(description!.contains(labelEl)).toBe(true);
+        expect(isBlock(labelEl)).toBe(true);
+        expect(isBlock(textEl)).toBe(true);
+        expect(labelEl.nextElementSibling).toBe(textEl);
+      }
+    });
+
     it('omits the slot labels that were not supplied', () => {
       render(
         <ConsequenceDialog

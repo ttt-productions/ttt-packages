@@ -4,6 +4,7 @@ import { UpdateAppConfigInputSchema } from '../src/schemas/admin';
 import { DEFAULT_APP_CONFIG, mergeAppConfigUpdate } from '../src/utils/app-config';
 import { planPublicDocumentRelease } from '../src/utils/public-documents';
 import { SPECIAL_DOCS } from '../src/paths/collections';
+import { MAX_APP_VERSION_LENGTH, MAX_MAINTENANCE_MESSAGE_LENGTH } from '../src/constants/business-admin';
 import * as root from '../src/index';
 import * as utils from '../src/utils';
 
@@ -85,6 +86,19 @@ describe('mergeAppConfigUpdate — the one rule for writing _appConfig/app', () 
 
   it('refuses rather than writes over an invalid field already on the doc', () => {
     expect(() => mergeAppConfigUpdate({ appVersion: 7 }, { maintenanceMode: true })).toThrow(/appVersion/);
+  });
+
+  it('writes a maintenance message up to its cap, and refuses one over it', () => {
+    const atCap = 'm'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH);
+    expect(mergeAppConfigUpdate(undefined, { maintenanceMode: true, maintenanceMessage: atCap }).maintenanceMessage).toBe(atCap);
+    expect(() => mergeAppConfigUpdate(undefined, { maintenanceMessage: `${atCap}m` })).toThrow(/maintenanceMessage/);
+  });
+
+  it('refuses rather than writes over an over-cap text lever already on the doc', () => {
+    const overCapVersion = '1'.repeat(MAX_APP_VERSION_LENGTH + 1);
+    expect(() => mergeAppConfigUpdate({ appVersion: overCapVersion }, { registrationEnabled: false })).toThrow(/appVersion/);
+    const overCapMessage = 'm'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH + 1);
+    expect(() => mergeAppConfigUpdate({ maintenanceMessage: overCapMessage }, { maintenanceMode: false })).toThrow(/maintenanceMessage/);
   });
 
   it('never mutates the default or its inputs', () => {

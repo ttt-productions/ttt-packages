@@ -8,8 +8,10 @@
  * IMPORTANT: This doc is for runtime-mutable config only — things you might
  * want to change on a Saturday afternoon without a deploy. Compile-time
  * constants (field length limits, file size caps, pagination sizes, etc.)
- * belong in app-level constants, NOT here. Putting validation limits in
- * Firestore creates security risks (admin typos can't bypass client-side
+ * are ONE named declaration each in this package's `constants/` (ARCH-102),
+ * and every enforcement point — zod `.max(MAX_X)`, `maxLength`, backend
+ * guards — derives from it; they are NOT fields on this doc. Putting validation
+ * limits in Firestore creates security risks (admin typos can't bypass client-side
  * guards) and doubles the surface area since server-side validation is still
  * required.
  *

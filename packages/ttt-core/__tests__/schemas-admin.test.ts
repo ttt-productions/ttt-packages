@@ -17,7 +17,12 @@ import {
   HALL_CLEARABLE_TEXT_FIELD_NAMES,
   HALL_CONTENT_SURFACES_BY_WORK_TYPE,
 } from '../src/constants/business-content.js';
-import { MAX_ANNOUNCEMENT_MESSAGE_LENGTH } from '../src/constants/business-admin.js';
+import { z } from 'zod';
+import {
+  MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
+  MAX_APP_VERSION_LENGTH,
+  MAX_MAINTENANCE_MESSAGE_LENGTH,
+} from '../src/constants/business-admin.js';
 import { OperatorStepUpSchema } from '../src/doc-schemas/backend-state.js';
 
 describe('AdminReplayDeadLetterInputSchema', () => {
@@ -120,6 +125,57 @@ describe('announcementMessage — the third operational lever on _config/app', (
     expect(
       UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { announcementBanner: 'x' } }).success,
     ).toBe(false);
+  });
+});
+
+describe('_appConfig/app text levers — one cap for the doc and its update input', () => {
+  const baseConfig = {
+    appVersion: '1.0.0',
+    maintenanceMode: true,
+    registrationEnabled: true,
+  };
+
+  it('caps the maintenance copy at the canonical length on BOTH the doc and the callable input', () => {
+    const atCap = 'a'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH);
+    const tooLong = 'a'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH + 1);
+    expect(AppConfigSchema.safeParse({ ...baseConfig, maintenanceMessage: atCap }).success).toBe(true);
+    expect(AppConfigSchema.safeParse({ ...baseConfig, maintenanceMessage: tooLong }).success).toBe(false);
+    expect(
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { maintenanceMessage: atCap } }).success,
+    ).toBe(true);
+    expect(
+      UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { maintenanceMessage: tooLong } }).success,
+    ).toBe(false);
+  });
+
+  it('caps the app version at the canonical length on BOTH, and the doc still holds the unpublished \'\'', () => {
+    const atCap = '1'.repeat(MAX_APP_VERSION_LENGTH);
+    const tooLong = '1'.repeat(MAX_APP_VERSION_LENGTH + 1);
+    expect(AppConfigSchema.safeParse({ ...baseConfig, appVersion: atCap }).success).toBe(true);
+    expect(AppConfigSchema.safeParse({ ...baseConfig, appVersion: tooLong }).success).toBe(false);
+    expect(AppConfigSchema.safeParse({ ...baseConfig, appVersion: '' }).success).toBe(true);
+    expect(UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: atCap } }).success).toBe(true);
+    expect(UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: tooLong } }).success).toBe(false);
+  });
+
+  it('every text field the update input caps carries the same cap on the doc', () => {
+    const textCap = (schema: z.ZodType): number | null | undefined => {
+      const inner = schema instanceof z.ZodOptional ? schema.unwrap() : schema;
+      return inner instanceof z.ZodString ? inner.maxLength : undefined;
+    };
+    const docFields: Record<string, z.ZodType> = AppConfigSchema.shape;
+    const capped = Object.entries(UpdateAppConfigInputSchema.shape.data.shape).filter(
+      ([, schema]) => typeof textCap(schema) === 'number',
+    );
+    expect(capped.map(([field]) => field)).toEqual(
+      expect.arrayContaining(['appVersion', 'maintenanceMessage', 'announcementMessage']),
+    );
+
+    const drift = capped.flatMap(([field, schema]) => {
+      const docCap = field in docFields ? textCap(docFields[field]) : 'absent from the doc';
+      return docCap === textCap(schema) ? [] : [`${field}: input caps at ${textCap(schema)}, doc at ${docCap}`];
+    });
+    expect(drift).toEqual([]);
   });
 });
 

@@ -2,15 +2,23 @@
 // Type inferred via z.infer. (Field docs live in ../types/system.ts.)
 
 import { z } from 'zod';
-import { MAX_ANNOUNCEMENT_MESSAGE_LENGTH } from '../constants/business-admin.js';
+import {
+  MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
+  MAX_APP_VERSION_LENGTH,
+  MAX_MAINTENANCE_MESSAGE_LENGTH,
+} from '../constants/business-admin.js';
 import { PublicDocumentVersionBlockSchema } from './public-documents.js';
 
 // Its write rule is `mergeAppConfigUpdate` (../utils/app-config.ts): an update over the doc as
 // read, any missing field from DEFAULT_APP_CONFIG, the whole doc validated against this schema.
+// Every text lever carries the same cap as its UpdateAppConfigInputSchema field, so no writer
+// can store a value the update input would refuse.
 export const AppConfigSchema = z.object({
-  appVersion: z.string(),
+  // '' (DEFAULT_APP_CONFIG) is valid here — no version published; only the update input
+  // requires a non-empty value.
+  appVersion: z.string().max(MAX_APP_VERSION_LENGTH),
   maintenanceMode: z.boolean(),
-  maintenanceMessage: z.string().optional(),
+  maintenanceMessage: z.string().max(MAX_MAINTENANCE_MESSAGE_LENGTH).optional(),
   registrationEnabled: z.boolean(),
   // Announcement banner (the third operational lever, alongside maintenanceMode and
   // registrationEnabled). OPTIONAL, and EMPTY means no banner — there is no separate

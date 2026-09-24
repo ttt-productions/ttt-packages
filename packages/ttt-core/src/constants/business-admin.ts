@@ -140,6 +140,9 @@ export const MAX_DMCA_CONTACT_LABEL_LENGTH = 100;
 export const MAX_DMCA_CONTACT_VALUE_LENGTH = 500;
 export const MAX_MAINTENANCE_MESSAGE_LENGTH = 2000;
 
+/** `_appConfig/app.appVersion` — the force-refresh version string VersionGate compares. */
+export const MAX_APP_VERSION_LENGTH = 64;
+
 /** Announcement-banner copy on `_appConfig/app.announcementMessage`. Deliberately far
  *  shorter than the maintenance message: the announcement renders as a one-line banner
  *  on the landing page and login screen, not a full-page takeover. */

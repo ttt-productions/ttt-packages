@@ -81,6 +81,11 @@ export interface ConsequenceDialogProps {
 
 const SLOT_ICON_CLASS = 'icon-xs mt-0.5 shrink-0 text-muted-foreground';
 
+/**
+ * One consequence slot: the icon beside a block column whose label sits on its own line above
+ * the slot text. Every element is a block: the `stack-*` spacing is a vertical margin, which an
+ * inline element ignores.
+ */
 function ConsequenceRow({
   icon: Icon,
   label,
@@ -91,15 +96,15 @@ function ConsequenceRow({
   children: React.ReactNode;
 }) {
   return (
-    <span className="flex items-start gap-2">
+    <div className="flex items-start gap-2">
       <Icon className={SLOT_ICON_CLASS} aria-hidden="true" />
-      <span className="stack-1 min-w-0">
-        <span className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="stack-1 min-w-0">
+        <div className="text-caption font-medium uppercase tracking-wide text-muted-foreground">
           {label}
-        </span>
-        <span className="text-small text-foreground">{children}</span>
-      </span>
-    </span>
+        </div>
+        <div className="text-small text-foreground">{children}</div>
+      </div>
+    </div>
   );
 }
 
@@ -195,8 +200,11 @@ export function ConsequenceDialog({
       >
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
+          {/* A div, not the primitive's default <p>: the rows are blocks, which a <p> cannot hold.
+              Left-aligned at every width — the header centres its text on narrow screens, and a
+              wrapped consequence line reads as a list, not a caption. */}
           <AlertDialogDescription asChild>
-            <span className="stack-3">
+            <div className="stack-3 text-left">
               {immediateEffect ? (
                 <ConsequenceRow icon={Zap} label="Immediately">
                   {immediateEffect}
@@ -212,7 +220,7 @@ export function ConsequenceDialog({
                   {reversibility}
                 </ConsequenceRow>
               ) : null}
-            </span>
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
 

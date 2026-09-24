@@ -51,6 +51,7 @@ import {
   MAX_DMCA_CONTACT_VALUE_LENGTH,
   MAX_MAINTENANCE_MESSAGE_LENGTH,
   MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
+  MAX_APP_VERSION_LENGTH,
   MAX_APPEAL_REVIEW_NOTES_LENGTH,
   MAX_REQUIRE_RETITLE_REASON_LENGTH,
   MAX_USER_FACING_REASON_DETAIL_LENGTH,
@@ -211,7 +212,7 @@ const AppConfigDocIdSchema = z.literal('app');
 export const UpdateAppConfigInputSchema = z.object({
   docId: AppConfigDocIdSchema,
   data: z.object({
-    appVersion: z.string().min(1).max(64).optional(),
+    appVersion: z.string().min(1).max(MAX_APP_VERSION_LENGTH).optional(),
     maintenanceMode: z.boolean().optional(),
     maintenanceMessage: z.string().max(MAX_MAINTENANCE_MESSAGE_LENGTH).optional(),
     registrationEnabled: z.boolean().optional(),

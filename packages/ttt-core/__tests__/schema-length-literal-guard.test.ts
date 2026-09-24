@@ -44,7 +44,7 @@ const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
   // extra 128s are the DMCA contact block/row opaque-id caps (same bound as every other
   // public-document item id).
   'src/schemas/admin.ts': [
-    1, 16, 16, 64, 128, 128, 128, 128, 128, 128, 128, 128, 200, 200, 200, 200, 500,
+    1, 16, 16, 128, 128, 128, 128, 128, 128, 128, 128, 200, 200, 200, 200, 500,
     2048, 2048, 2048,
   ],
   // 200s = admin chat-moderation requestId/caseId opaque-id caps; 50s = the ≤50 before/after

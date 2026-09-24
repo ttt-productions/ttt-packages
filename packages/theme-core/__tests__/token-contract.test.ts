@@ -11,6 +11,8 @@ import ts from 'typescript';
 //    ui-core renders no raw colour (palette utility or literal);
 //  - shadows are token- and class-owned: no Tailwind shadow utility in ui-core, no
 //    literal shadow in a theme-core recipe;
+//  - every theme-core scale class a package renders (stack-*, icon-*, spinner-*) is
+//    declared here — an undeclared one silently renders nothing;
 //  - no package stylesheet carries a raw colour literal (values live in theme-core's
 //    token declarations), and every package stylesheet reads only resolvable tokens;
 //  - every black-drop-shadow token is redeclared for the dark canvases.
@@ -137,6 +139,9 @@ const isRawColour = (fallback: string) => HSL_TRIPLET.test(fallback) || STYLESHE
 
 const SHADOW_UTILITY =/(?<=^|[\s"'`:!])((?:inset-|drop-)?shadow(?:-[^\s"'`]*)?)(?=$|[\s"'`])/g;
 const ELEVATION_HOOK = /(?<=^|[\s"'`])(elevation-[a-z-]+|card-border|tabs-trigger)(?=$|[\s"'`])/g;
+// theme-core's scale families. Tailwind defines none of these names, so a member theme-core
+// does not declare matches no rule at all: the element silently loses its spacing or size.
+const SCALE_CLASS = /(?<=^|[\s:!])((?:stack|icon|spinner)-[\w-]+)(?=$|\s)/g;
 
 // Every package's component source: raw colours and shadow utilities are banned in all of
 // them, not just ui-core (file-input, chat-react, media-viewer, … render with the same tokens).
@@ -410,6 +415,19 @@ describe('theme-core token contract', () => {
         .map((hook) => `${where(file)}: .${hook}`),
     );
     expect([...utilities, ...undefinedHooks]).toEqual([]);
+  });
+
+  it('every theme-core scale class a package renders (stack-*, icon-*, spinner-*) is declared by theme-core', () => {
+    const scaleClasses = (list: string) => [...list.matchAll(SCALE_CLASS)].map((m) => m[1]);
+    expect(scaleClasses('flex stack-3 sm:stack-4 icon-xs text-left')).toEqual(['stack-3', 'stack-4', 'icon-xs']);
+
+    const undeclared = packageSources.flatMap((file) =>
+      classStrings(file)
+        .flatMap(scaleClasses)
+        .filter((name) => !themeClasses.has(name))
+        .map((name) => `${where(file)}: .${name}`),
+    );
+    expect(undeclared).toEqual([]);
   });
 
   it('every theme-core recipe takes its shadow from a shadow token', () => {
