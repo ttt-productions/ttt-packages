@@ -1381,12 +1381,6 @@ erDiagram
     field source
   }
   statusReconcileQueue {
-    field uid
-    field enqueuedAt
-    field lastAttemptAt
-    field attemptCount
-    field targetStatus
-    field reason
   }
   summary {
     field netRaised
@@ -1736,7 +1730,6 @@ erDiagram
   userProfiles ||--o{ reservedDisplayNames : "userId"
   userProfiles ||--o{ socialPosts : "authorId"
   userProfiles ||--o{ sourceSignals : "actorId"
-  userProfiles ||--o{ statusReconcileQueue : "uid"
   userProfiles ||--o{ taggedCraftSkills : "userId"
   userProfiles ||--o{ takeItDownActions : "actorId"
   userProfiles ||--o{ taleChapters : "uid"

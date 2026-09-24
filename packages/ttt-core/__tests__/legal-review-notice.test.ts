@@ -110,6 +110,7 @@ describe('founder legal-review notice — placements', () => {
         'workProjectCreation',
         'artisanCreatorUpgrade',
         'craftSkillUpload',
+        'auditionEntrySubmission',
         'squareStreetzFirstPost',
         'guildInviteAgreement',
         'hallDownload',
@@ -141,9 +142,15 @@ describe('founder legal-review notice — placements', () => {
     expect(LEGAL_REVIEW_NOTICE_PLACEMENTS.reacceptance).toEqual(['card']);
   });
 
+  it('an Audition entry submission shows the compact strip', () => {
+    expect(LEGAL_REVIEW_NOTICE_PLACEMENTS.auditionEntrySubmission).toEqual(['strip']);
+    expect(legalReviewNoticePlainText('auditionEntrySubmission')).toBe(SHORT_LINE);
+  });
+
   it('types each placement to the variants it renders', () => {
     expectTypeOf<LegalReviewNoticeVariantFor<'publish'>>().toEqualTypeOf<'checkbox'>();
     expectTypeOf<LegalReviewNoticeVariantFor<'pledge'>>().toEqualTypeOf<'strip' | 'checkbox'>();
+    expectTypeOf<LegalReviewNoticeVariantFor<'auditionEntrySubmission'>>().toEqualTypeOf<'strip'>();
     expectTypeOf<'publicDocument'>().toMatchTypeOf<LegalReviewNoticeContext>();
   });
 

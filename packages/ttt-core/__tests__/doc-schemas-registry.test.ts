@@ -51,18 +51,38 @@ describe('Firestore collection schema registry', () => {
   });
 });
 
+type ShapedSchema = { shape?: Record<string, unknown>; options?: readonly ShapedSchema[] };
+
+/** The object shape(s) a binding validates against: its own, or every branch of a union. */
+function boundShapes(schema: ShapedSchema): Record<string, unknown>[] | null {
+  if (schema.shape) return [schema.shape];
+  if (!schema.options?.length) return null;
+  const shapes = schema.options.map((option) => option.shape);
+  return shapes.every((shape) => shape !== undefined) ? (shapes as Record<string, unknown>[]) : null;
+}
+
 describe('Doc-id field annotations (COLLECTION_DOC_ID_FIELDS)', () => {
   it('annotates only registered paths, each with a field the bound schema actually declares', () => {
     for (const [path, field] of Object.entries(COLLECTION_DOC_ID_FIELDS)) {
-      const schema = (COLLECTION_SCHEMAS as Record<string, { shape?: Record<string, unknown> }>)[path];
+      const schema = (COLLECTION_SCHEMAS as Record<string, ShapedSchema>)[path];
       expect(schema, `${path} must be a registered collection`).toBeDefined();
-      // Every annotated binding is a ZodObject whose shape includes the doc-id field; the
-      // drift-check injects doc.id under this key before validating.
-      expect(schema.shape, `${path} must be a ZodObject`).toBeDefined();
-      expect(
-        Object.keys(schema.shape ?? {}),
-        `${path}: doc-id field "${field}" must exist on the bound schema`,
-      ).toContain(field);
+      // Every annotated binding is a ZodObject, or a union of ZodObjects, whose every shape
+      // includes the doc-id field; the drift-check injects doc.id under this key before
+      // validating, so whichever branch a stored doc matches must declare it.
+      const shapes = boundShapes(schema);
+      expect(shapes, `${path} must be a ZodObject or a union of ZodObjects`).not.toBeNull();
+      for (const shape of shapes ?? []) {
+        expect(Object.keys(shape), `${path}: doc-id field "${field}" must exist on the bound schema`).toContain(
+          field,
+        );
+      }
     }
+  });
+
+  it('checks every branch of a union binding', () => {
+    const union = COLLECTION_SCHEMAS['statusReconcileQueue/{uid}'] as ShapedSchema;
+    expect(union.shape).toBeUndefined();
+    expect(boundShapes(union)).toHaveLength(2);
+    expect(boundShapes({ options: [{ shape: { uid: 1 } }, {}] })).toBeNull();
   });
 });

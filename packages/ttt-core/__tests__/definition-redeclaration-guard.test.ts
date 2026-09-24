@@ -183,6 +183,9 @@ const GUARDED: Record<string, GuardedLiteral> = {
   reacceptance: { owners: ['ttt-core/src/constants/public-documents.ts'] },
   // LegalReviewNoticeLinkTarget's non-document member — the founder's full note.
   founderNote: { owners: ['ttt-core/src/constants/legal-review-notice.ts'] },
+  // StatusReconcileQueueAuthEffect — which post-commit Auth effect queued a uid. Its other
+  // member, `accountStatus`, is too common a word to guard.
+  publicDocumentsAcceptedClaim: { owners: ['ttt-core/src/doc-schemas/operational.ts'] },
 };
 
 function walk(dir: string, out: string[]): void {

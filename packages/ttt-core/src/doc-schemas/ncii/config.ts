@@ -1,26 +1,21 @@
 // Trust & Safety — NCII config singletons (Appendix A §A11 [H6] / [H-17] / [H-18]).
 //
-// Two `_config` singleton documents:
+// Two Admin-SDK-only `_serverData` singleton documents, wired into COLLECTIONS,
+// PATH_BUILDERS, and the doc-schema registry:
 //   - `_serverData/nciiPolicy`              → NciiPolicyConfigV1
 //   - `_serverData/privilegedReviewerSecurity` → PrivilegedReviewerSecurityProfileV1
 //
-// These are VERSIONED launch defaults. Qualified counsel must approve them before
-// uploads open and may increase, decrease, or otherwise modify them. Any change
-// increments the policy version and triggers a retention/configuration review. The
-// launch/config audit FAILS CLOSED if any value is missing or a placeholder;
-// uploads stay BLOCKED until `counselApproved` flips true at the pre-launch counsel
-// gate.
+// These are VERSIONED operator launch defaults (`approvedBy: 'operatorLaunchDefault'`);
+// a reader falls back to the frozen DEFAULT when the stored doc is absent. Any change
+// increments the policy version and triggers a retention/configuration review.
 //
 // Every value in the DEFAULT consts below is transcribed verbatim from the frozen
 // Trust & Safety spec (Appendix A §A11 [H6] / [H-17] / [H-18]) — no invented values,
 // no placeholders; the durable design owner is ttt-prod
 // docs/design/nonconsensual-intimate-imagery-and-take-it-down.md. The schemas pin
 // each literal-defaulted field where the spec fixes a single literal value
-// (`policyVersion`, `approvedBy`, `counselApproved`, the security-profile string
-// literals, etc.) so a config write cannot silently drift from the frozen posture.
-//
-// Collection note: these are `_config` singleton docs; wiring collections.ts /
-// path-builders.ts / registry.ts is deferred to the app leg.
+// (`policyVersion`, `approvedBy`, the security-profile string literals, etc.) so a
+// config write cannot silently drift from the frozen posture.
 
 import { z } from 'zod';
 
@@ -33,10 +28,7 @@ import { z } from 'zod';
 export const NciiBlockedHashRetentionPolicySchema = z.literal('indefiniteUntilReversed');
 export type NciiBlockedHashRetentionPolicy = z.infer<typeof NciiBlockedHashRetentionPolicySchema>;
 
-/** `_serverData/nciiPolicy` = `NciiPolicyConfigV1` — the DJ-approved launch defaults.
- * Counsel ratifies (`counselApproved`) at the pre-launch gate; uploads stay
- * blocked until then. Any value missing/placeholder → the launch audit FAILS
- * CLOSED. */
+/** `_serverData/nciiPolicy` = `NciiPolicyConfigV1` — the operator launch defaults. */
 export const NciiPolicyConfigV1Schema = z.object({
   policyVersion: z.literal('ncii.2026-06-23.v1'),
   requesterPiiRetentionDays: z.number(),
@@ -73,8 +65,6 @@ export const NciiPolicyConfigV1Schema = z.object({
   evidenceScanMemoryBudgetMb: z.number(),
   rejectArchiveAndPolyglotPayloads: z.boolean(),
   approvedBy: z.literal('operatorLaunchDefault'),
-  // counselApproved flips true at the pre-launch counsel gate; uploads stay blocked until then
-  counselApproved: z.boolean(),
 }).strict();
 export type NciiPolicyConfigV1 = z.infer<typeof NciiPolicyConfigV1Schema>;
 
@@ -111,7 +101,6 @@ export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
   evidenceScanMemoryBudgetMb: 512,
   rejectArchiveAndPolyglotPayloads: true,
   approvedBy: 'operatorLaunchDefault',
-  counselApproved: false,
 };
 
 // ===========================================================================

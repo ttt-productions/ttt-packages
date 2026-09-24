@@ -64,19 +64,54 @@ export const ShortLinkSchema = z.object({
 });
 export type ShortLink = z.infer<typeof ShortLinkSchema>;
 
-// statusReconcileQueue/{uid} — backend-only retry queue for post-commit auth-effect reconciliation.
-// Written when an account-status change committed to Firestore but the follow-on Auth effect
-// (custom-claim set / account disable) failed; a retry loop drives the account toward `targetStatus`
-// and deletes the entry on success. Keyed by the affected uid (doc id == uid); Admin-SDK-only.
-// Timestamps are epoch-millis numbers (this repo never uses Firestore Timestamps).
-export const StatusReconcileQueueEntrySchema = z.object({
+// statusReconcileQueue/{uid} — backend-only retry queue for post-commit Auth-effect reconciliation.
+// Written when a change committed to Firestore but its follow-on Auth effect failed; the drain
+// re-converges every Auth-side mirror of the uid from its canonical docs and deletes the entry on
+// success. Keyed by the affected uid (doc id == uid; one entry per uid, whichever effect queued
+// it); Admin-SDK-only. Timestamps are epoch-millis numbers (this repo never uses Firestore
+// Timestamps).
+
+/**
+ * Which post-commit Auth effect failed and queued the uid:
+ * - `accountStatus` — the status claim / `disabled` flag / token revocation after a status change;
+ * - `publicDocumentsAcceptedClaim` — the `docsAccepted` claim after a public-document acceptance.
+ * An entry without `authEffect` predates the field and is an `accountStatus` entry.
+ */
+export const STATUS_RECONCILE_QUEUE_AUTH_EFFECTS = ['accountStatus', 'publicDocumentsAcceptedClaim'] as const;
+export const StatusReconcileQueueAuthEffectSchema = z.enum(STATUS_RECONCILE_QUEUE_AUTH_EFFECTS);
+export type StatusReconcileQueueAuthEffect = z.infer<typeof StatusReconcileQueueAuthEffectSchema>;
+
+const statusReconcileQueueEntryBase = {
   uid: z.string(),
   enqueuedAt: z.number(),
   lastAttemptAt: z.number().optional(),
   attemptCount: z.number(),
-  targetStatus: UserAccountStatusSchema,
   reason: z.literal('postCommitAuthEffectFailed'),
+};
+
+/** A failed status effect: the drain drives the account toward `targetStatus`. */
+export const StatusReconcileQueueAccountStatusEntrySchema = z.object({
+  ...statusReconcileQueueEntryBase,
+  authEffect: z.literal('accountStatus' satisfies StatusReconcileQueueAuthEffect).optional(),
+  targetStatus: UserAccountStatusSchema,
 });
+export type StatusReconcileQueueAccountStatusEntry = z.infer<typeof StatusReconcileQueueAccountStatusEntrySchema>;
+
+/** A failed `docsAccepted` claim write. Strict: it carries no status, so no `targetStatus`. */
+export const StatusReconcileQueuePublicDocumentsAcceptedClaimEntrySchema = z
+  .object({
+    ...statusReconcileQueueEntryBase,
+    authEffect: z.literal('publicDocumentsAcceptedClaim' satisfies StatusReconcileQueueAuthEffect),
+  })
+  .strict();
+export type StatusReconcileQueuePublicDocumentsAcceptedClaimEntry = z.infer<
+  typeof StatusReconcileQueuePublicDocumentsAcceptedClaimEntrySchema
+>;
+
+export const StatusReconcileQueueEntrySchema = z.discriminatedUnion('authEffect', [
+  StatusReconcileQueueAccountStatusEntrySchema,
+  StatusReconcileQueuePublicDocumentsAcceptedClaimEntrySchema,
+]);
 export type StatusReconcileQueueEntry = z.infer<typeof StatusReconcileQueueEntrySchema>;
 
 // feedbackAliases/{aliasId} — Console-managed map collapsing a synonym suggestion onto a canonical

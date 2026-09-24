@@ -119,6 +119,9 @@ export const LEGAL_REVIEW_NOTICE_PLACEMENTS = {
   artisanCreatorUpgrade: ['inline', 'strip'],
   /** Craft-skill upload, beside its agreement. */
   craftSkillUpload: ['inline', 'strip'],
+  /** An Artisan submitting an Audition entry — a compact strip beside Submit Entry (the launch
+   *  mascot Auditions hand their winning art to TTT). */
+  auditionEntrySubmission: ['strip'],
   /** Square first post, beside its agreement. */
   squareStreetzFirstPost: ['inline', 'strip'],
   /** Guild invite agreements. */

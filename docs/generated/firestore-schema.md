@@ -118,7 +118,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `evidenceScanMemoryBudgetMb` | `number` |  |
 | `rejectArchiveAndPolyglotPayloads` | `boolean` |  |
 | `approvedBy` | `"operatorLaunchDefault"` |  |
-| `counselApproved` | `boolean` |  |
 
 ## `_serverData/privilegedReviewerSecurity`
 
@@ -2211,12 +2210,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `uid` | `string` |  |
-| `enqueuedAt` | `number` |  |
-| `lastAttemptAt` | `number` | yes |
-| `attemptCount` | `number` |  |
-| `targetStatus` | `'active' \| 'suspended' \| 'banned'` |  |
-| `reason` | `"postCommitAuthEffectFailed"` |  |
+| _(document)_ | `{ uid, enqueuedAt, lastAttemptAt, attemptCount, reason, authEffect, targetStatus } \| { uid, enqueuedAt, lastAttemptAt, attemptCount, reason, authEffect }` |  |
 
 ## `sweepState/{sweepName}`
 

@@ -110,13 +110,26 @@ TTT Productions application-data package.
   helper for backend-owned copy, and the receipt builder. See § Public documents and the
   founder notice.
 - **Versioned public documents** (Terms, Privacy, Rules & Agreements, Future Plans, the DMCA
-  policy, Take It Down copy): the `PublicDocumentId` union, labels, and acceptance claim name
-  (`constants/public-documents`); the version, working-copy, release, version-block, and
-  acceptance-summary document schemas (`doc-schemas/public-documents`) with their path
-  builders; the save-draft / publish-release / accept / read-history callable schemas and the
-  `publicDocuments.released` / `publicDocuments.accepted` audit payloads
-  (`schemas/public-documents`); and the pure versioning and comparison rules
-  (`utils/public-documents`).
+  policy, Take It Down copy): the `PublicDocumentId` union, labels, acceptance claim name, and
+  the re-acceptance prompt's agreement statement (`constants/public-documents`); the version,
+  working-copy, release, version-block, and acceptance-summary document schemas
+  (`doc-schemas/public-documents`) with their path builders; the save-draft / publish-release /
+  accept / read-history callable schemas and the `publicDocuments.released` /
+  `publicDocuments.accepted` audit payloads (`schemas/public-documents`); the empty seed-callable
+  inputs, one per document (`schemas/utility`); and the pure versioning and comparison rules,
+  including the Square agreements rule (`utils/public-documents`).
+- **Craft-skill kind copy and launch blocks** (`constants/craft-skill-statements`): the verbatim
+  agreement statements, kind labels and order, and the ONE owner of which kinds are blocked at
+  launch — `CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES`, the refusal copy keyed by kind. The blocked
+  set (`BLOCKED_CRAFT_SKILL_KINDS`) and the `isBlockedCraftSkillKind` predicate derive from its
+  keys, so a blocked kind always has its copy. A blocked kind still renders in the picker;
+  selecting it stops the flow with that copy, and the upload callable refuses it with the same
+  words. Unblocking a kind is removing its entry.
+- **The account Auth-effect retry queue** (`statusReconcileQueue/{uid}`, `doc-schemas/operational`):
+  one entry per uid, discriminated on `authEffect` — `accountStatus` (carries its
+  `targetStatus`; an entry without `authEffect` is one of these) or
+  `publicDocumentsAcceptedClaim` (strict, no `targetStatus`). The drain re-converges every
+  Auth-side mirror of the uid from canonical docs whichever effect queued it.
 
 ## Entry points
 
@@ -234,8 +247,14 @@ durable rules:
   notice revision) is the person's side, and the `docsAccepted` claim mirrors the accepted
   level for the backend gate. `changedPublicDocuments` is the one "what changed for this person"
   rule — the prompt shows exactly that list and the accept callable compares what the prompt
-  showed with it, so a publish racing the prompt is detected. Acceptance history is only the
-  append-only `publicDocuments.accepted` audit events.
+  showed with it, so a publish racing the prompt is detected. The prompt's agreement line is
+  `PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT`, independent of the notice. Acceptance history is
+  only the append-only `publicDocuments.accepted` audit events.
+- **Square agreements.** The Square card incorporates the Rules & Agreements page by reference.
+  `squareStreetzAgreementsSatisfied` is the one rule the composer and every server Square post
+  path apply: a recorded acceptance date AND an accepted Rules version at or above the Rules'
+  latest required version (0 before any requiring Rules release). A Rules release that required
+  acceptance asks again; one that did not never does.
 - **The notice.** `LEGAL_REVIEW_NOTICE_ACTIVE` is a code constant (like `APP_MODE`), independent
   of the app mode and of any release's acceptance choice. Copy is verbatim; a wording change
   ships under a new `LEGAL_REVIEW_NOTICE_REVISION`, and the package test pins each revision to

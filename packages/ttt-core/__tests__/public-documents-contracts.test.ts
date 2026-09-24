@@ -3,8 +3,10 @@ import {
   PUBLIC_DOCUMENT_IDS,
   PUBLIC_DOCUMENT_LABELS,
   PUBLIC_DOCUMENTS_ACCEPTED_CLAIM,
+  PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT,
   type PublicDocumentId,
 } from '../src/constants/public-documents';
+import * as root from '../src/index';
 import { COLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
 import { PATH_BUILDERS, publicDocumentVersionDocId } from '../src/paths/path-builders';
 import { COLLECTION_REFS } from '../src/paths/collection-refs';
@@ -89,6 +91,13 @@ describe('public document identity', () => {
 
   it('names the acceptance claim once', () => {
     expect(PUBLIC_DOCUMENTS_ACCEPTED_CLAIM).toBe('docsAccepted');
+  });
+
+  it("states the re-acceptance prompt's agreement line verbatim, on the server-safe root", () => {
+    expect(PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT).toBe(
+      'By choosing Accept, you agree to the current versions of the documents listed above.',
+    );
+    expect(root.PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT).toBe(PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT);
   });
 
   it('has a content and a projection schema for every document', () => {

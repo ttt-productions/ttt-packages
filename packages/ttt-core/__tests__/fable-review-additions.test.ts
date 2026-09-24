@@ -3,7 +3,7 @@
 // delete marker/enum, the curated-audition 'closed' status, the moderation-cascade 'mediaAsset'
 // entity type, the backend-only statusReconcileQueue doc, and the AdminTaskType additions.
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
 import {
   PublishedHallItemSchema,
   PublishedTuneTrackSchema,
@@ -15,7 +15,16 @@ import {
 import { GuildChatChannelSchema } from '../src/doc-schemas/messaging';
 import { AuditionSchema } from '../src/doc-schemas/commissions';
 import { ModerationCascadeChangedEntityTypeSchema } from '../src/doc-schemas/moderation';
-import { StatusReconcileQueueEntrySchema } from '../src/doc-schemas/operational';
+import {
+  STATUS_RECONCILE_QUEUE_AUTH_EFFECTS,
+  StatusReconcileQueueEntrySchema,
+  StatusReconcileQueueAccountStatusEntrySchema,
+  type StatusReconcileQueueEntry,
+  type StatusReconcileQueueAuthEffect,
+  type StatusReconcileQueueAccountStatusEntry,
+  type StatusReconcileQueuePublicDocumentsAcceptedClaimEntry,
+} from '../src/doc-schemas/operational';
+import type { UserAccountStatus } from '../src/doc-schemas/user';
 import { AdminTaskTypeSchema } from '../src/doc-schemas/report-docs';
 import { FullWorkProjectSchema, WorkRealmSchema } from '../src/doc-schemas/work-project';
 
@@ -184,6 +193,51 @@ describe('StatusReconcileQueueEntrySchema (backend-only)', () => {
   it('pins reason to the literal and constrains targetStatus', () => {
     expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, reason: 'other' }).success).toBe(false);
     expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, targetStatus: 'deleted' }).success).toBe(false);
+  });
+
+  it('an entry without authEffect (written before the field) is an accountStatus entry', () => {
+    const parsed = StatusReconcileQueueEntrySchema.parse(valid);
+    expect(parsed.authEffect).toBeUndefined();
+    expect(StatusReconcileQueueAccountStatusEntrySchema.safeParse(valid).success).toBe(true);
+    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, authEffect: 'accountStatus' }).success).toBe(true);
+  });
+
+  it('an accountStatus entry still requires its targetStatus', () => {
+    const { targetStatus: _omit, ...withoutTarget } = valid;
+    expect(StatusReconcileQueueEntrySchema.safeParse(withoutTarget).success).toBe(false);
+    expect(
+      StatusReconcileQueueEntrySchema.safeParse({ ...withoutTarget, authEffect: 'accountStatus' }).success,
+    ).toBe(false);
+  });
+
+  it('a publicDocumentsAcceptedClaim entry carries no targetStatus', () => {
+    const acceptance = {
+      uid: 'u1',
+      enqueuedAt: 1,
+      attemptCount: 0,
+      authEffect: 'publicDocumentsAcceptedClaim' as const,
+      reason: 'postCommitAuthEffectFailed' as const,
+    };
+    expect(StatusReconcileQueueEntrySchema.safeParse(acceptance).success).toBe(true);
+    expect(StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, lastAttemptAt: 5 }).success).toBe(true);
+    expect(StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, targetStatus: 'active' }).success).toBe(false);
+    expect(StatusReconcileQueueEntrySchema.safeParse({ ...acceptance, reason: 'other' }).success).toBe(false);
+  });
+
+  it('rejects an unknown authEffect', () => {
+    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, authEffect: 'status' }).success).toBe(false);
+  });
+
+  it('names the two effects once, and the entry type narrows on authEffect', () => {
+    expect(STATUS_RECONCILE_QUEUE_AUTH_EFFECTS).toEqual(['accountStatus', 'publicDocumentsAcceptedClaim']);
+    expectTypeOf<StatusReconcileQueueEntry['authEffect']>().toEqualTypeOf<
+      StatusReconcileQueueAuthEffect | undefined
+    >();
+    expectTypeOf<
+      Extract<StatusReconcileQueueEntry, { authEffect: 'publicDocumentsAcceptedClaim' }>
+    >().toEqualTypeOf<StatusReconcileQueuePublicDocumentsAcceptedClaimEntry>();
+    expectTypeOf<StatusReconcileQueuePublicDocumentsAcceptedClaimEntry>().not.toHaveProperty('targetStatus');
+    expectTypeOf<StatusReconcileQueueAccountStatusEntry['targetStatus']>().toEqualTypeOf<UserAccountStatus>();
   });
 });
 

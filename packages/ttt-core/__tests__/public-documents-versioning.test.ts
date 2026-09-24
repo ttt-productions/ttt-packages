@@ -11,12 +11,15 @@ import {
   publicDocumentAcceptanceSummary,
   buildPublicDocumentProjection,
   publicDocumentContentEquals,
+  requiredPublicDocumentVersion,
+  squareStreetzAgreementsSatisfied,
 } from '../src/utils/public-documents';
 import {
   PublicDocumentVersionBlockSchema,
   PublicDocumentAcceptanceSchema,
   PUBLIC_DOCUMENT_PROJECTION_SCHEMAS,
   type PublicDocumentContent,
+  type PublicDocumentVersionBlock,
 } from '../src/doc-schemas/public-documents';
 
 const TERMS = SPECIAL_DOCS.TERMS_PAGE;
@@ -192,6 +195,68 @@ describe('samePublicDocumentVersions', () => {
         ],
       ),
     ).toBe(false);
+  });
+});
+
+describe('squareStreetzAgreementsSatisfied — the one Square agreements rule', () => {
+  // Rules v3 is current; v2 is the latest version a release required acceptance of.
+  const block: PublicDocumentVersionBlock = {
+    documents: { [RULES]: { currentVersion: 3, requiredVersion: 2 }, [TERMS]: { currentVersion: 5, requiredVersion: 5 } },
+    requiredAcceptanceLevel: 4,
+  };
+  const recorded = (version: number | undefined) => ({
+    squareStreetzAgreementsDate: 1_700_000_000_000,
+    squareStreetzAgreementsVersion: version,
+  });
+
+  it('reads the Rules document’s required version from the block (0 when absent)', () => {
+    expect(requiredPublicDocumentVersion(block, RULES)).toBe(2);
+    expect(requiredPublicDocumentVersion(block, PRIVACY)).toBe(0);
+    expect(requiredPublicDocumentVersion(undefined, RULES)).toBe(0);
+  });
+
+  it('refuses a missing acceptance date', () => {
+    expect(squareStreetzAgreementsSatisfied({ squareStreetzAgreementsVersion: 3 }, block)).toBe(false);
+  });
+
+  it('refuses a missing Rules version', () => {
+    expect(squareStreetzAgreementsSatisfied({ squareStreetzAgreementsDate: 1 }, block)).toBe(false);
+  });
+
+  it('refuses a Rules version older than the latest required one', () => {
+    expect(squareStreetzAgreementsSatisfied(recorded(1), block)).toBe(false);
+  });
+
+  it('accepts a Rules version equal to the latest required one', () => {
+    expect(squareStreetzAgreementsSatisfied(recorded(2), block)).toBe(true);
+  });
+
+  it('accepts a newer Rules version (a later release that did not require acceptance never re-asks)', () => {
+    expect(squareStreetzAgreementsSatisfied(recorded(3), block)).toBe(true);
+  });
+
+  it('with no version block, needs only a recorded date and version (0 is the pre-release sentinel)', () => {
+    expect(squareStreetzAgreementsSatisfied(recorded(0), undefined)).toBe(true);
+    expect(squareStreetzAgreementsSatisfied(recorded(undefined), undefined)).toBe(false);
+    expect(squareStreetzAgreementsSatisfied({ squareStreetzAgreementsVersion: 0 }, undefined)).toBe(false);
+  });
+
+  it('with a block that has no Rules entry, needs only a recorded date and version', () => {
+    const noRules: PublicDocumentVersionBlock = {
+      documents: { [TERMS]: { currentVersion: 1, requiredVersion: 1 } },
+      requiredAcceptanceLevel: 1,
+    };
+    expect(squareStreetzAgreementsSatisfied(recorded(0), noRules)).toBe(true);
+  });
+
+  it('refuses when there is no private data at all', () => {
+    expect(squareStreetzAgreementsSatisfied(undefined, block)).toBe(false);
+    expect(squareStreetzAgreementsSatisfied(null, undefined)).toBe(false);
+  });
+
+  it('ignores other documents’ required versions', () => {
+    // Terms requires v5, but only the Rules page is incorporated by the Square card.
+    expect(squareStreetzAgreementsSatisfied(recorded(2), block)).toBe(true);
   });
 });
 

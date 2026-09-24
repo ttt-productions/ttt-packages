@@ -4,6 +4,7 @@
 // disagree about what changed or what is required.
 
 import { PUBLIC_DOCUMENT_IDS, type PublicDocumentId } from '../constants/public-documents.js';
+import { SPECIAL_DOCS } from '../paths/collections.js';
 import type {
   PublicDocumentAcceptance,
   PublicDocumentContent,
@@ -12,6 +13,7 @@ import type {
   PublicDocumentVersionRef,
   PublicDocumentVersionState,
 } from '../doc-schemas/public-documents.js';
+import type { UserPrivateData } from '../doc-schemas/user.js';
 
 /** The version block before any release: every document at version 0, nothing required. */
 export const EMPTY_PUBLIC_DOCUMENT_VERSION_BLOCK: PublicDocumentVersionBlock = Object.freeze({
@@ -25,6 +27,14 @@ export function currentPublicDocumentVersion(
   documentId: PublicDocumentId,
 ): number {
   return block?.documents[documentId]?.currentVersion ?? 0;
+}
+
+/** The latest version of a document a release required acceptance of; 0 when none has. */
+export function requiredPublicDocumentVersion(
+  block: PublicDocumentVersionBlock | undefined,
+  documentId: PublicDocumentId,
+): number {
+  return block?.documents[documentId]?.requiredVersion ?? 0;
 }
 
 /** The required-acceptance level in force; 0 when nothing has ever required acceptance. */
@@ -69,6 +79,33 @@ export function changedPublicDocuments(
     if (version > acceptedPublicDocumentVersion(acceptance, documentId)) changed.push({ documentId, version });
   }
   return changed;
+}
+
+/** The two private-doc fields the Square agreements card records. */
+export type SquareStreetzAgreementsRecord = Pick<
+  UserPrivateData,
+  'squareStreetzAgreementsDate' | 'squareStreetzAgreementsVersion'
+>;
+
+/**
+ * True when the person's Square agreements still stand: they recorded an acceptance date AND
+ * the Rules & Agreements version they accepted is at or above the latest version a release
+ * REQUIRED acceptance of. The card incorporates the Rules page by reference, so a Rules release
+ * that required acceptance asks again; one that did not never does. The composer (client) and
+ * every Square post path (server) decide with this one rule. A missing version block means no
+ * Rules release has required acceptance yet.
+ */
+export function squareStreetzAgreementsSatisfied(
+  privateData: SquareStreetzAgreementsRecord | null | undefined,
+  block: PublicDocumentVersionBlock | undefined,
+): boolean {
+  const acceptedAt = privateData?.squareStreetzAgreementsDate;
+  const acceptedRulesVersion = privateData?.squareStreetzAgreementsVersion;
+  return (
+    typeof acceptedAt === 'number' &&
+    typeof acceptedRulesVersion === 'number' &&
+    acceptedRulesVersion >= requiredPublicDocumentVersion(block, SPECIAL_DOCS.RULES_AND_AGREEMENTS)
+  );
 }
 
 /**

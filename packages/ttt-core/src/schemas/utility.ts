@@ -46,14 +46,16 @@ export type SeedReservedUsernamesInput = z.infer<typeof SeedReservedUsernamesInp
 export const SeedBlockedFranchiseNamesInputSchema = z.object({}).strict();
 export type SeedBlockedFranchiseNamesInput = z.infer<typeof SeedBlockedFranchiseNamesInputSchema>;
 
+// Public-document seed callables (Ready for Launch tab), one per PublicDocumentId. Each
+// publishes its document's launch content as v1 through the public-document release owner,
+// only while that document has never been published (otherwise a no-op). The input is
+// intentionally empty.
 export const SeedRulesAndAgreementsInputSchema = z.object({}).strict();
 export type SeedRulesAndAgreementsInput = z.infer<typeof SeedRulesAndAgreementsInputSchema>;
 
 export const SeedFuturePlansInputSchema = z.object({}).strict();
 export type SeedFuturePlansInput = z.infer<typeof SeedFuturePlansInputSchema>;
 
-// Content-pages migration (DJ ruling 2026-07-06): seed callables for the three
-// editable content-page singletons (strict seed-if-empty — doc exists ⇒ no-op).
 export const SeedTermsPageInputSchema = z.object({}).strict();
 export type SeedTermsPageInput = z.infer<typeof SeedTermsPageInputSchema>;
 
@@ -62,6 +64,9 @@ export type SeedPrivacyPageInput = z.infer<typeof SeedPrivacyPageInputSchema>;
 
 export const SeedTakeItDownPageCopyInputSchema = z.object({}).strict();
 export type SeedTakeItDownPageCopyInput = z.infer<typeof SeedTakeItDownPageCopyInputSchema>;
+
+export const SeedDmcaPolicyInputSchema = z.object({}).strict();
+export type SeedDmcaPolicyInput = z.infer<typeof SeedDmcaPolicyInputSchema>;
 
 /** Admin add/remove words on the self-owned curated profanity list (no external sync). */
 export const CurateProfanityListInputSchema = z

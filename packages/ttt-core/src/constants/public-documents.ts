@@ -51,5 +51,14 @@ export const PUBLIC_DOCUMENTS_ACCEPTED_CLAIM = 'docsAccepted';
 export const PUBLIC_DOCUMENT_ACCEPTANCE_SOURCES = ['registration', 'reacceptance'] as const;
 export type PublicDocumentAcceptanceSource = (typeof PUBLIC_DOCUMENT_ACCEPTANCE_SOURCES)[number];
 
+/**
+ * The re-acceptance prompt's explicit agreement line, shown above its Accept and Log out
+ * choices. Verbatim and independent of the founder notice: it shows whether or not the notice
+ * is active. What a person accepted is recorded as the document/version pairs the prompt
+ * listed, so this line carries no revision of its own.
+ */
+export const PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT =
+  'By choosing Accept, you agree to the current versions of the documents listed above.';
+
 /** Versions returned per page by the Admin history read (newest first). */
 export const PUBLIC_DOCUMENT_HISTORY_PAGE_LIMIT = 10;
