@@ -15,6 +15,15 @@ import {
 } from './collections.js';
 import type { FollowableTargetType } from '../schemas/social.js';
 import type { WorkProjectType } from '../types/content.js';
+import type { PublicDocumentId } from '../constants/public-documents.js';
+
+/** The doc id of a published public-document version: `v1`, `v2`, … (whole numbers from 1). */
+export const publicDocumentVersionDocId = (version: number): string => {
+  if (!Number.isInteger(version) || version < 1) {
+    throw new Error(`public document versions are whole numbers from 1 (got ${version})`);
+  }
+  return `v${version}`;
+};
 
 export const PATH_BUILDERS = {
   // ===== USER PATHS =====
@@ -405,6 +414,26 @@ export const PATH_BUILDERS = {
 
   takeItDownPageCopy: (): [string, string] =>
     [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY],
+
+  dmcaPolicy: (): [string, string] =>
+    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.DMCA_POLICY],
+
+  // ===== PUBLIC DOCUMENTS (versioned releases) =====
+  // The public current projection of any public document. The id IS the `_appConfig` doc id,
+  // so this and the per-page builders above (termsPage(), dmcaPolicy(), …) name the same docs.
+  publicDocumentProjection: (documentId: PublicDocumentId): [string, string] =>
+    [COLLECTIONS.APP_CONFIG, documentId],
+
+  // One immutable published version (doc id `v{version}`).
+  publicDocumentVersion: (documentId: PublicDocumentId, version: number): [string, string, string, string] =>
+    [COLLECTIONS.PUBLIC_DOCUMENTS, documentId, NESTED_SUBCOLLECTIONS.PUBLIC_DOCUMENT_VERSIONS, publicDocumentVersionDocId(version)],
+
+  // The one private working copy of a document.
+  publicDocumentDraft: (documentId: PublicDocumentId): [string, string] =>
+    [COLLECTIONS.PUBLIC_DOCUMENT_DRAFTS, documentId],
+
+  publicDocumentRelease: (releaseId: string): [string, string] =>
+    [COLLECTIONS.PUBLIC_DOCUMENT_RELEASES, releaseId],
 
   appConfig: (): [string, string] =>
     [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.APP_CONFIG],

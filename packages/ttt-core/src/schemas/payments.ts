@@ -3,6 +3,7 @@ import {
   MIN_PLEDGE_PAYMENT_AMOUNT_CENTS,
   MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
 } from '../constants/business.js';
+import { LegalReviewNoticeAcknowledgedInputSchema } from './atoms.js';
 
 export const CreateStripeCheckoutSessionInputSchema = z.object({
   amount: z.number().int().min(MIN_PLEDGE_PAYMENT_AMOUNT_CENTS).max(MAX_PLEDGE_PAYMENT_AMOUNT_CENTS),
@@ -16,6 +17,10 @@ export const CreateStripeCheckoutSessionInputSchema = z.object({
   // is absent and stamps ageAttestedAt onto the SERVER-ONLY pledgePaymentProviderRefs doc (never
   // the member-readable pledgePayments ledger) so the consent is provable.
   ageAttested: z.literal(true),
+  // The founder legal-review notice checkbox — its own required checkbox on every pledge while
+  // the notice is active (the callable refuses a checkout without it then, and records the
+  // receipt from `buildLegalReviewNoticeReceipt`). Omitted, or null, while the notice is off.
+  legalReviewNoticeAcknowledged: LegalReviewNoticeAcknowledgedInputSchema,
 }).strict();
 export type CreateStripeCheckoutSessionInput = z.infer<typeof CreateStripeCheckoutSessionInputSchema>;
 

@@ -175,6 +175,14 @@ const GUARDED: Record<string, GuardedLiteral> = {
   tuneTrack: { owners: [HALL_SURFACE_OWNER] },
   televisionEpisode: { owners: [HALL_SURFACE_OWNER] },
   chapter: { owners: [HALL_SURFACE_OWNER, 'ttt-core/src/doc-schemas/content.ts'] },
+  // PublicDocumentId — each id IS its `_appConfig` projection doc id, declared once in
+  // SPECIAL_DOCS; PUBLIC_DOCUMENT_IDS and every per-document map key off those constants.
+  dmcaPolicy: { owners: ['ttt-core/src/paths/collections.ts'] },
+  // PublicDocumentAcceptanceSource (registration | reacceptance) — the audit payload enum
+  // derives from the tuple.
+  reacceptance: { owners: ['ttt-core/src/constants/public-documents.ts'] },
+  // LegalReviewNoticeLinkTarget's non-document member — the founder's full note.
+  founderNote: { owners: ['ttt-core/src/constants/legal-review-notice.ts'] },
 };
 
 function walk(dir: string, out: string[]): void {

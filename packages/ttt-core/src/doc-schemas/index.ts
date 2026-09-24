@@ -18,6 +18,8 @@ export * from './payments.js';
 export * from './commissions.js';
 export * from './messaging.js';
 export * from './system.js';
+export * from './public-documents.js';
+export * from './legal-review-notice.js';
 export * from './moderation.js';
 export * from './report-docs.js';
 export * from './audit.js';

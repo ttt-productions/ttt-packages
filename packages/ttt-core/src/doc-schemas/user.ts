@@ -11,6 +11,7 @@ import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
 import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 import { calendarDateSchema } from '../schemas/atoms.js';
+import { PublicDocumentAcceptanceSchema } from './public-documents.js';
 
 // The canonical stored media kind — declared once in doc-schemas/media-assets.ts.
 const mediaKindSchema = ContentMediaKindSchema;
@@ -156,11 +157,6 @@ export const FullUserSchema = z.object({
   // any authenticated user, so other viewers see the badge with no mirror. Not PII.
   // Revoked (→ false) on refund once refunds ship.
   hasPledged: z.boolean().optional(),
-  // Charter honor stamp: written once at registration by /api/register/complete as
-  // byMode(true, false) — true only for accounts created during Charter Season. The
-  // flip publish makes new signups false automatically; no backfill, no date math.
-  // Backend-only-writable, cosmetic, not PII (ttt-prod docs/charter-season/honor-roll-and-badges.md).
-  charterSignupMember: z.boolean().optional(),
   status: UserAccountStatusSchema.optional(),
   // Stamped by the one status writer on every status change: when, and the acting admin/operator
   // uid (a system actor writes its own id). Absent on an account whose status never changed.
@@ -198,8 +194,10 @@ export const UserAgreementsSchema = z.object({
   terms: z.boolean().optional(),
   agreedOn: z.number().optional(),
   /**
-   * The legal-document versions this account actually accepted, read server-side from the live
-   * terms/privacy docs at acceptance time — never client-supplied, never a hardcoded constant.
+   * The Terms / Privacy versions accepted at registration, read server-side from the live
+   * docs at acceptance time — never client-supplied, never a hardcoded constant. Kept for the
+   * accounts that recorded them; the current per-document record is
+   * `privateData.publicDocumentAcceptance`.
    *
    * `0` is the sentinel for "registered while no legal document was published" (a fresh
    * environment's first account). Published versions start at 1, so 0 can never equal a live
@@ -273,11 +271,19 @@ export const UserPrivateDataSchema = z.object({
   // The rules-and-agreements `version` in force when the user accepted; 0 when no versioned
   // rules doc existed yet, so a later real version 1 still re-prompts.
   squareStreetzAgreementsVersion: z.number().optional(),
+  // The rules-and-agreements version in force when the user accepted the Artisan upgrade's
+  // agreement, read server-side in the grant transaction (the grant time is the profile's
+  // `artisanCreator` stamp). Same 0 sentinel as `squareStreetzAgreementsVersion`.
+  artisanCreatorAgreementsVersion: z.number().int().nonnegative().optional(),
   // Epoch ms when the user accepted the one-time Hall download acknowledgement
   // (personal offline use only, no redistribution). Written server-side by the
   // acceptHallDownloadAcknowledgement callable; gates the Hall download button.
   hallDownloadAcknowledgedAt: z.number().optional(),
   agreements: UserAgreementsSchema.optional(),
+  // The latest accepted version of each public document and the accepted level (see
+  // PublicDocumentAcceptanceSchema). Written by registration and the acceptance callable only;
+  // the `docsAccepted` claim mirrors `acceptedLevel`. Absent = nothing accepted (level 0).
+  publicDocumentAcceptance: PublicDocumentAcceptanceSchema.optional(),
   // First-visit site-tour state (account-durable; the SOLE authority for tour
   // eligibility — no local-storage cache/mirror). Absent = never handled. Written only
   // by the updateSiteTourPreference callable. See UserSiteTourStateSchema above.

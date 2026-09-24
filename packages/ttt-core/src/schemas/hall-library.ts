@@ -14,6 +14,7 @@ import {
   hallItemIdSchema,
   itemIdSchema,
   changeRequestIdSchema,
+  LegalReviewNoticeAcknowledgedInputSchema,
 } from './atoms.js';
 import {
   MAX_HALL_LIBRARY_SUBMIT_BATCH,
@@ -84,6 +85,11 @@ export const SubmitForThresholdLibraryReviewInputSchema = z.object({
   // surfaces render the ONE standard platform disclaimer
   // (REAL_PEOPLE_DISCLAIMER_MESSAGE) — no free-text disclaimer input exists.
   depictsRealPeople: z.boolean(),
+  // The founder legal-review notice checkbox in the publish attestations, directly above Submit
+  // for Approval — required on every submission while the notice is active (the submit core
+  // refuses without it then and persists the receipt on each threshold item). Omitted, or null,
+  // while the notice is off.
+  legalReviewNoticeAcknowledged: LegalReviewNoticeAcknowledgedInputSchema,
 }).strict();
 export type SubmitForThresholdLibraryReviewInput = z.infer<typeof SubmitForThresholdLibraryReviewInputSchema>;
 

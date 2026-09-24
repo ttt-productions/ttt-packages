@@ -11,5 +11,6 @@ export * from './admin.js';
 export * from './admin-ops.js';
 export * from './admin-users.js';
 export * from './system.js';
+export * from './public-documents.js';
 export * from './audit.js';
 export type { InviteSource, InviteSourceType, RealmCreationMode } from '../schemas/work-project-management.js';

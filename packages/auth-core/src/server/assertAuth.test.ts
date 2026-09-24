@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // firebase-functions in assertAuth.ts is a TYPE import, which is erased at runtime.
 import { createAssertAuth } from "./assertAuth.js";
 import { AuthAssertionError } from "./authError.js";
+import { ACCEPTANCE_REQUIRED_REASON, isAcceptanceRequiredError } from "../acceptance.js";
 import type { AssertAuthConfig, UserStatus } from "./types.js";
 
 type TestUser = {
@@ -310,5 +311,127 @@ describe("Combined checks", () => {
     expect(ctx.uid).toBe("uid-123");
     expect(ctx.userDoc).toMatchObject({ status: "active" });
     expect(mockRequireAdmin).toHaveBeenCalled();
+  });
+});
+
+// Acceptance-level gate (optional `acceptance` config). Every case below that expects a
+// refusal passes on the pre-gate factory only if the gate is ignored — i.e. it fails there.
+describe("Acceptance-level gate", () => {
+  const CLAIM = "acceptedLevelClaim";
+
+  function gatedAssertAuth(requiredLevel: () => number | Promise<number>) {
+    const requireAdmin = vi.fn().mockResolvedValue("admin");
+    const config: AssertAuthConfig<TestUser, string> = {
+      firestore: () => fakeDbWithUser(),
+      userProfilePath: (uid) => `userProfiles/${uid}`,
+      getUserStatus: (user): UserStatus => (user.status === "banned" ? "banned" : "active"),
+      requireAdmin: requireAdmin as any,
+      acceptance: { claimKey: CLAIM, requiredLevel },
+    };
+    return { assert: createAssertAuth<TestUser, string>(config), requireAdmin };
+  }
+
+  function requestWithClaim(claim: unknown): any {
+    const req = makeRequest();
+    if (claim !== undefined) req.auth.token[CLAIM] = claim;
+    return req;
+  }
+
+  it("refuses a caller below the required level with a structured failed-precondition", async () => {
+    const { assert } = gatedAssertAuth(() => 3);
+    const err = await assert(requestWithClaim(2)).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AuthAssertionError);
+    expect(err).toMatchObject({
+      code: "failed-precondition",
+      details: { reason: ACCEPTANCE_REQUIRED_REASON, requiredLevel: 3, acceptedLevel: 2 },
+    });
+    expect(isAcceptanceRequiredError(err)).toBe(true);
+  });
+
+  it("treats a missing claim as accepted level 0", async () => {
+    const { assert } = gatedAssertAuth(() => 1);
+    await expect(assert(requestWithClaim(undefined))).rejects.toMatchObject({
+      details: { reason: ACCEPTANCE_REQUIRED_REASON, requiredLevel: 1, acceptedLevel: 0 },
+    });
+  });
+
+  it.each([["a string", "5"], ["NaN", Number.NaN], ["a negative", -4], ["null", null]])(
+    "treats %s claim as accepted level 0 (fails closed)",
+    async (_label, claim) => {
+      const { assert } = gatedAssertAuth(() => 1);
+      await expect(assert(requestWithClaim(claim))).rejects.toMatchObject({
+        details: { acceptedLevel: 0 },
+      });
+    }
+  );
+
+  it("passes a caller at or above the required level", async () => {
+    const { assert } = gatedAssertAuth(() => 3);
+    await expect(assert(requestWithClaim(3))).resolves.toMatchObject({ uid: "uid-123" });
+    await expect(assert(requestWithClaim(7))).resolves.toMatchObject({ uid: "uid-123" });
+  });
+
+  it("awaits an async required-level reader", async () => {
+    const { assert } = gatedAssertAuth(async () => 2);
+    await expect(assert(requestWithClaim(1))).rejects.toMatchObject({ code: "failed-precondition" });
+  });
+
+  it.each([["zero", 0], ["NaN", Number.NaN], ["a negative", -1]])(
+    "requires nothing when the required level is %s",
+    async (_label, level) => {
+      const { assert } = gatedAssertAuth(() => level);
+      await expect(assert(requestWithClaim(undefined))).resolves.toMatchObject({ uid: "uid-123" });
+    }
+  );
+
+  it("lets an allowUnaccepted callable through without reading the required level", async () => {
+    const requiredLevel = vi.fn(() => 9);
+    const { assert } = gatedAssertAuth(requiredLevel);
+    await expect(assert(requestWithClaim(undefined), { allowUnaccepted: true })).resolves.toMatchObject({
+      uid: "uid-123",
+    });
+    expect(requiredLevel).not.toHaveBeenCalled();
+  });
+
+  it("propagates a throwing required-level reader", async () => {
+    const failure = new Error("config unavailable");
+    const { assert } = gatedAssertAuth(() => {
+      throw failure;
+    });
+    await expect(assert(requestWithClaim(5))).rejects.toBe(failure);
+  });
+
+  it("refuses before the admin check runs", async () => {
+    const { assert, requireAdmin } = gatedAssertAuth(() => 2);
+    await expect(
+      assert(requestWithClaim(1), { admin: { allowJrAdmin: true }, allowAnyStatus: true })
+    ).rejects.toMatchObject({ code: "failed-precondition" });
+    expect(requireAdmin).not.toHaveBeenCalled();
+  });
+
+  it("still gates a callable that skips the status check (allowAnyStatus)", async () => {
+    const { assert } = gatedAssertAuth(() => 1);
+    await expect(assert(requestWithClaim(0), { allowAnyStatus: true })).rejects.toMatchObject({
+      code: "failed-precondition",
+    });
+  });
+
+  it("keeps authentication first — an unauthenticated caller never reaches the gate", async () => {
+    const requiredLevel = vi.fn(() => 1);
+    const { assert } = gatedAssertAuth(requiredLevel);
+    await expect(assert(makeUnauthRequest())).rejects.toMatchObject({ code: "unauthenticated" });
+    expect(requiredLevel).not.toHaveBeenCalled();
+  });
+
+  it("is absent without config: an app that never sets `acceptance` behaves exactly as before", async () => {
+    // The shared harness config has no `acceptance`; a token with no level claim still passes.
+    await expect(assertAuth(makeRequest(), { allowUnaccepted: false })).resolves.toMatchObject({
+      uid: "uid-123",
+    });
+  });
+
+  it("leaves `details` undefined on every other rejection", async () => {
+    const err = (await assertAuth(makeUnauthRequest()).catch((e: unknown) => e)) as AuthAssertionError;
+    expect(err.details).toBeUndefined();
   });
 });

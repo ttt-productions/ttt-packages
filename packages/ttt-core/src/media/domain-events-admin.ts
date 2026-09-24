@@ -43,17 +43,6 @@ export const ThresholdLibraryNeedsRevisionEventSchema = z
   })
   .strict();
 
-export const AdminDispatchSystemMarkedEventSchema = z
-  .object({
-    type: z.literal('adminDispatch.systemMarked'),
-    ids: z
-      .object({
-        userId: z.string().min(1),
-      })
-      .strict(),
-  })
-  .strict();
-
 export const AdminDispatchThreadUpdatedEventSchema = z
   .object({
     type: z.literal('adminDispatch.threadUpdated'),

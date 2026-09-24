@@ -36,13 +36,53 @@ export async function readStagedUploadMetadata(bucket: Bucket, storagePath: stri
  * The staged object's generation from metadata the caller already fetched, as a string
  * (GCS generations exceed 2^53) — the one normalization `readStagedObjectGeneration`
  * applies, for a processor that already holds the object's metadata and must not read
- * it again. `undefined` when the metadata carries no generation (the emulator may not).
+ * it again. `undefined` when the metadata carries no generation (the emulator may not):
+ * absent, `null`, or an empty string, which names no generation.
  */
 export function stagedObjectGenerationFromMetadata(metadata: {
   generation?: string | number | null;
 }): string | undefined {
   const { generation } = metadata;
-  return generation === undefined || generation === null ? undefined : String(generation);
+  if (generation === undefined || generation === null) return undefined;
+  const value = String(generation);
+  return value === "" ? undefined : value;
+}
+
+/** The stored-object metadata field an `UnreadableStorageObjectMetadataError` names. */
+export type StorageObjectMetadataField = "generation" | "size";
+
+/**
+ * A storage object whose metadata has no readable generation or byte size. GCS, the Storage
+ * emulator, and a Storage finalize event always carry both, so this is an anomaly to surface,
+ * never to paper over with a placeholder. The bucket and key are PROPERTIES, never message
+ * text: an escaping error reaches monitoring, and an object key must not.
+ */
+export class UnreadableStorageObjectMetadataError extends Error {
+  constructor(
+    public readonly bucket: string,
+    public readonly key: string,
+    public readonly field: StorageObjectMetadataField,
+  ) {
+    super(`storage object metadata has no readable ${field}`);
+    this.name = "UnreadableStorageObjectMetadataError";
+  }
+}
+
+/**
+ * The object's generation from metadata the caller already holds, for a site that cannot
+ * proceed without it (a hold key, an evidence record, a pinned read). Throws
+ * `UnreadableStorageObjectMetadataError` (field `generation`) when the metadata names none —
+ * the same normalization as `stagedObjectGenerationFromMetadata`, with no fallback value.
+ */
+export function requireStorageObjectGeneration(
+  metadata: { generation?: string | number | null },
+  object: { bucket: string; key: string },
+): string {
+  const generation = stagedObjectGenerationFromMetadata(metadata);
+  if (generation === undefined) {
+    throw new UnreadableStorageObjectMetadataError(object.bucket, object.key, "generation");
+  }
+  return generation;
 }
 
 export interface ReadStagedObjectGenerationOptions {

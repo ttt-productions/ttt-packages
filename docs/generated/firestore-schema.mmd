@@ -165,6 +165,7 @@ erDiagram
     field registrationEnabled
     field announcementMessage
     field rateLimitMultiplier
+    field publicDocumentVersions
   }
   appMode {
     field current
@@ -485,6 +486,13 @@ erDiagram
     field guildInviteId
     field isSystemMessage
     field meta
+  }
+  dmcaPolicy {
+    field version
+    field lastUpdated
+    field intro
+    field contactBlocks
+    field sections
   }
   eventProvenance {
     field schemaVersion
@@ -978,6 +986,7 @@ erDiagram
     field refundIds
     field disputeId
     field ageAttestedAt
+    field legalReviewNotice
     field createdAt
     field updatedAt
   }
@@ -1032,12 +1041,12 @@ erDiagram
     field nonUsArtisanInterest
     field squareStreetzAgreementsDate
     field squareStreetzAgreementsVersion
+    field artisanCreatorAgreementsVersion
     field hallDownloadAcknowledgedAt
     field agreements
+    field publicDocumentAcceptance
     field siteTour
     field statusReason
-    field statusReasonAt
-    field safetyLocked
   }
   privilegedReviewerSecurity {
     field requiredSecondFactor
@@ -1062,6 +1071,18 @@ erDiagram
     field wordListVersion
   }
   profileCraftSkills {
+  }
+  publicDocumentDrafts {
+  }
+  publicDocumentReleases {
+    field releaseId
+    field documents
+    field requireAcceptance
+    field requiredAcceptanceLevel
+    field publishedBy
+    field publishedAt
+  }
+  publicDocumentVersions {
   }
   publicGuildmateUsers {
     field uid
@@ -1195,6 +1216,7 @@ erDiagram
     field rules
     field agreements
     field version
+    field lastUpdated
   }
   safetyEvidenceJobDisposition {
     field bucket
@@ -1529,12 +1551,12 @@ erDiagram
     field profilePictureAssetId
     field artisanCreator
     field hasPledged
-    field charterSignupMember
     field status
     field statusUpdatedAt
     field statusUpdatedBy
     field accountAccessVersion
     field accountAccessState
+    field displayNameResetRequired
   }
   userSuggestions {
     field suggestionText

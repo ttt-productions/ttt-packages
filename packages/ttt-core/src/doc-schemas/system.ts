@@ -3,6 +3,7 @@
 
 import { z } from 'zod';
 import { MAX_ANNOUNCEMENT_MESSAGE_LENGTH } from '../constants/business-admin.js';
+import { PublicDocumentVersionBlockSchema } from './public-documents.js';
 
 export const AppConfigSchema = z.object({
   appVersion: z.string(),
@@ -19,6 +20,12 @@ export const AppConfigSchema = z.object({
   // 0 < m <= 1, tighten-only. Absent = 1 (no throttle). Set via updateAppConfig
   // (audited); read by the backend limiter wrapper with a short in-memory cache.
   rateLimitMultiplier: z.number().gt(0).max(1).optional(),
+  // Public-document version block — per document its current version and the latest version
+  // that required acceptance, plus the one required-acceptance level. Written ONLY by the
+  // release publish transaction (never updateAppConfig); every session already reads this doc
+  // live, so a required release reaches open sessions without a new listener. Absent until the
+  // first release: every document is then version 0 and nothing is required.
+  publicDocumentVersions: PublicDocumentVersionBlockSchema.optional(),
 });
 export type AppConfig = z.infer<typeof AppConfigSchema>;
 

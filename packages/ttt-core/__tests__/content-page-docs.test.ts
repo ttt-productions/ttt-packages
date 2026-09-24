@@ -6,9 +6,8 @@ import {
   RulesAndAgreementsSchema,
 } from '../src/doc-schemas/content';
 import {
-  UpdateTermsPageInputSchema,
-  UpdatePrivacyPageInputSchema,
-  UpdateTakeItDownPageCopyInputSchema,
+  LegalPageContentInputSchema,
+  TakeItDownPageCopyContentInputSchema,
 } from '../src/schemas/admin';
 import { COLLECTIONS, PATH_BUILDERS, SPECIAL_DOCS } from '../src/paths';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
@@ -71,30 +70,29 @@ describe('content-page doc schemas (content-pages migration)', () => {
   });
 });
 
-describe('content-page update-callable input schemas', () => {
+describe('content-page content input schemas (the working-copy content of each page)', () => {
   it('accepts a valid sections payload and rejects extra keys / version smuggling', () => {
-    expect(UpdateTermsPageInputSchema.safeParse({ sections: [section] }).success).toBe(true);
-    expect(UpdatePrivacyPageInputSchema.safeParse({ sections: [section] }).success).toBe(true);
+    expect(LegalPageContentInputSchema.safeParse({ sections: [section] }).success).toBe(true);
     // A bare divider heading (empty body) is legal content — a faithfully-seeded
     // doc must round-trip through the editor's save.
-    expect(UpdateTermsPageInputSchema.safeParse({
+    expect(LegalPageContentInputSchema.safeParse({
       sections: [{ ...section, body: '' }],
     }).success).toBe(true);
-    // `version` is server-bumped — a client sending it is rejected (strict).
-    expect(UpdateTermsPageInputSchema.safeParse({ sections: [section], version: 99 }).success).toBe(false);
+    // `version` is assigned by the release publish — content carrying it is rejected (strict).
+    expect(LegalPageContentInputSchema.safeParse({ sections: [section], version: 99 }).success).toBe(false);
     // Empty sections would blank a legal page — rejected.
-    expect(UpdateTermsPageInputSchema.safeParse({ sections: [] }).success).toBe(false);
+    expect(LegalPageContentInputSchema.safeParse({ sections: [] }).success).toBe(false);
   });
 
   it('take-it-down strings input enforces the 1–200 entry bound and strictness', () => {
-    expect(UpdateTakeItDownPageCopyInputSchema.safeParse({
+    expect(TakeItDownPageCopyContentInputSchema.safeParse({
       strings: { pageTitle: 'Take It Down' },
     }).success).toBe(true);
-    expect(UpdateTakeItDownPageCopyInputSchema.safeParse({ strings: {} }).success).toBe(false);
+    expect(TakeItDownPageCopyContentInputSchema.safeParse({ strings: {} }).success).toBe(false);
     const tooMany: Record<string, string> = {};
     for (let i = 0; i < 201; i++) tooMany[`k${i}`] = 'v';
-    expect(UpdateTakeItDownPageCopyInputSchema.safeParse({ strings: tooMany }).success).toBe(false);
-    expect(UpdateTakeItDownPageCopyInputSchema.safeParse({
+    expect(TakeItDownPageCopyContentInputSchema.safeParse({ strings: tooMany }).success).toBe(false);
+    expect(TakeItDownPageCopyContentInputSchema.safeParse({
       strings: { pageTitle: 'x' },
       version: 2,
     }).success).toBe(false);

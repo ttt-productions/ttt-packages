@@ -3,7 +3,9 @@ import {
   pinnedGcsUri,
   readStagedObjectGeneration,
   readStagedUploadMetadata,
+  requireStorageObjectGeneration,
   stagedObjectGenerationFromMetadata,
+  UnreadableStorageObjectMetadataError,
   type Bucket,
 } from '../src/server/index.js';
 
@@ -101,18 +103,58 @@ describe('stagedObjectGenerationFromMetadata', () => {
     expect(stagedObjectGenerationFromMetadata({ generation: null })).toBeUndefined();
   });
 
+  it('is undefined for an empty-string generation — an empty value names no generation', () => {
+    expect(stagedObjectGenerationFromMetadata({ generation: '' })).toBeUndefined();
+  });
+
   it('takes the Admin SDK metadata a processor already holds, unchanged', () => {
     const metadata: AdminFileMetadata = { name: 'uploads/a/u/1', contentType: 'video/mp4', size: '9', generation: '17' };
     expect(stagedObjectGenerationFromMetadata(metadata)).toBe('17');
   });
 
-  it.each([['1712345678901234567'], [42], [0], [undefined], [null]])(
+  it.each([['1712345678901234567'], [42], [0], [''], [undefined], [null]])(
     'is the normalization readStagedObjectGeneration applies (generation %s)',
     async (generation) => {
       const { bucket } = bucketWith(async () => [{ generation }]);
       expect(await readStagedObjectGeneration(bucket, 'p')).toBe(stagedObjectGenerationFromMetadata({ generation }));
     },
   );
+});
+
+describe('requireStorageObjectGeneration', () => {
+  const object = { bucket: 'evidence-bucket', key: 'safety/case-1/object' };
+
+  it('returns the normalized generation', () => {
+    expect(requireStorageObjectGeneration({ generation: '17' }, object)).toBe('17');
+    expect(requireStorageObjectGeneration({ generation: 42 }, object)).toBe('42');
+    expect(requireStorageObjectGeneration({ generation: 0 }, object)).toBe('0');
+  });
+
+  it.each([[{}], [{ generation: undefined }], [{ generation: null }], [{ generation: '' }]])(
+    'throws the named error when the metadata names no generation (%j)',
+    (metadata) => {
+      let thrown: unknown;
+      try {
+        requireStorageObjectGeneration(metadata, object);
+      } catch (e) {
+        thrown = e;
+      }
+      expect(thrown).toBeInstanceOf(UnreadableStorageObjectMetadataError);
+      expect(thrown).toMatchObject({
+        name: 'UnreadableStorageObjectMetadataError',
+        bucket: object.bucket,
+        key: object.key,
+        field: 'generation',
+      });
+    },
+  );
+
+  it('keeps the bucket and key out of the message (telemetry never carries an object key)', () => {
+    const err = new UnreadableStorageObjectMetadataError('b', 'uploads/secret/key', 'size');
+    expect(err.message).toBe('storage object metadata has no readable size');
+    expect(err.message).not.toContain('uploads/secret/key');
+    expect(err).toBeInstanceOf(Error);
+  });
 });
 
 describe('pinnedGcsUri', () => {

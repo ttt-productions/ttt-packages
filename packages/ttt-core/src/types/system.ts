@@ -13,9 +13,9 @@
  * guards) and doubles the surface area since server-side validation is still
  * required.
  *
- * In this initial implementation, only `appVersion` is read by code (by
- * VersionGate). The other fields are reserved — they're present in the doc
- * and type so future features have a home, but no UI wires them up yet.
+ * The one exception to "operator-editable" is `publicDocumentVersions`: the
+ * public-document version block, written only by the release publish, which
+ * rides this doc so every session's existing live read sees a new release.
  */
 // Shape is defined as a Zod schema in ../doc-schemas/system.ts; type inferred there.
 export type { AppConfig } from '../doc-schemas/system.js';

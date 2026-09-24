@@ -10,6 +10,7 @@ import {
   WORK_REALM_SUBCOLLECTIONS,
   NESTED_SUBCOLLECTIONS,
 } from './collections.js';
+import type { PublicDocumentId } from '../constants/public-documents.js';
 
 export const COLLECTION_REFS = {
   // Top-level collections
@@ -100,4 +101,9 @@ export const COLLECTION_REFS = {
   pendingMedia: (): [string] => [COLLECTIONS.PENDING_MEDIA],
 
   pendingMediaArchive: (): [string] => [COLLECTIONS.PENDING_MEDIA_ARCHIVE],
+
+  // One public document's immutable version history (queried newest-first by `version` for
+  // the admin history read). The per-document counterpart is PATH_BUILDERS.publicDocumentVersion.
+  publicDocumentVersions: (documentId: PublicDocumentId): [string, string, string] =>
+    [COLLECTIONS.PUBLIC_DOCUMENTS, documentId, NESTED_SUBCOLLECTIONS.PUBLIC_DOCUMENT_VERSIONS],
 } as const;

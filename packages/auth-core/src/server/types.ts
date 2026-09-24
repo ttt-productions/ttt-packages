@@ -39,6 +39,16 @@ export interface AuthRequirements {
   allowSuspended?: boolean;
 
   /**
+   * Let a caller below the currently required acceptance level through. Meaningful only
+   * when the factory was configured with `acceptance`; ignored otherwise.
+   * Use ONLY for callables that must work before the caller accepts: the accept callable
+   * itself, registration (a new account holds no accepted level yet), and last-recourse
+   * paths such as sign-out, support, refunds, account deletion, and legally required
+   * reporting. Default: false.
+   */
+  allowUnaccepted?: boolean;
+
+  /**
    * Require admin status. Delegates to config.requireAdmin().
    * The shape of this object is forwarded verbatim to the consumer's
    * requireAdmin callback — the package does not interpret it.
@@ -111,6 +121,31 @@ export interface AssertAuthConfig<TUser, TAdmin = void> {
     token: DecodedIdToken,
     options: AdminCheckOptions
   ) => Promise<TAdmin>;
+
+  /**
+   * Optional acceptance-level gate. When set, every assertAuth call that does not pass
+   * `allowUnaccepted` refuses a caller whose accepted level (read from the token claim
+   * `claimKey`) is below the level `requiredLevel()` returns. Absent = no gate, exactly the
+   * behavior before the gate existed.
+   */
+  acceptance?: AcceptanceGateConfig;
+}
+
+/**
+ * The consuming app's acceptance-level wiring. The package holds no claim name and no
+ * document knowledge: the app names the claim and supplies the current requirement.
+ */
+export interface AcceptanceGateConfig {
+  /** The custom claim on the verified ID token that holds the caller's accepted level. */
+  claimKey: string;
+
+  /**
+   * The level currently required. Runs on every gated assertAuth, so it must be cheap —
+   * read it from a cached snapshot, never a fresh Firestore read per call. A non-finite or
+   * non-positive result requires nothing (see `normalizeAcceptanceLevel`); a throw rejects
+   * the call.
+   */
+  requiredLevel: () => number | Promise<number>;
 }
 
 /**

@@ -7,9 +7,11 @@
 //   2. Email verification
 //   3. User doc Firestore read (when status check is needed)
 //   4. Status check (suspended / banned)
-//   5. Admin check (delegated to config.requireAdmin)
+//   5. Acceptance-level gate (only when config.acceptance is set)
+//   6. Admin check (delegated to config.requireAdmin)
 
 import type { CallableRequest } from "firebase-functions/v2/https";
+import { ACCEPTANCE_REQUIRED_REASON, normalizeAcceptanceLevel } from "../acceptance.js";
 import { AuthAssertionError } from "./authError.js";
 import type {
   AssertAuthConfig,
@@ -74,13 +76,33 @@ export function createAssertAuth<TUser, TAdmin = void>(
       userDoc = userData;
     }
 
-    // 5. Admin check (delegates to config.requireAdmin)
+    // 5. Acceptance-level gate. Runs only when the app configured one and the callable did
+    // not opt out. The required level comes from the app's cheap (cached) reader and the
+    // accepted level from the verified token, so the gate adds no per-call Firestore read.
+    // It sits after the status check so a banned caller still gets the standing refusal.
+    if (config.acceptance !== undefined && requirements.allowUnaccepted !== true) {
+      const requiredLevel = normalizeAcceptanceLevel(await config.acceptance.requiredLevel());
+      if (requiredLevel > 0) {
+        const acceptedLevel = normalizeAcceptanceLevel(
+          (token as Record<string, unknown>)[config.acceptance.claimKey]
+        );
+        if (acceptedLevel < requiredLevel) {
+          throw new AuthAssertionError(
+            "failed-precondition",
+            "The current documents must be accepted before continuing",
+            { reason: ACCEPTANCE_REQUIRED_REASON, requiredLevel, acceptedLevel }
+          );
+        }
+      }
+    }
+
+    // 6. Admin check (delegates to config.requireAdmin)
     let adminResult: TAdmin | undefined;
     if (requirements.admin !== undefined) {
       adminResult = await config.requireAdmin(uid, token, requirements.admin);
     }
 
-    // 6. Return context with whatever docs were fetched
+    // 7. Return context with whatever docs were fetched
     const ctx: AuthContext<TUser, TAdmin> = { uid, token };
     if (userDoc !== undefined) {
       ctx.userDoc = userDoc;

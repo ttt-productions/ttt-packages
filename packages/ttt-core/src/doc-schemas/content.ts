@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import { ModerationEdgeSyncOpSchema, ModerationEdgeSyncStateSchema } from './moderation.js';
 import { MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH } from '../constants/business-admin.js';
+import { LegalReviewNoticeReceiptSchema } from './legal-review-notice.js';
 import {
   HALL_CONTENT_DETAIL_SURFACES,
   HALL_CONTENT_SUB_ITEM_SURFACES,
@@ -158,6 +159,10 @@ export const ThresholdItemSchema = z.object({
   attestNoBegging: z.literal(true),
   attestHumanMadeOriginal: z.literal(true),
   attestedAt: z.number(),
+  // The founder legal-review notice acknowledgment given with the attestations, written in the
+  // same submission transaction. Present while the notice is active (the submit core refuses a
+  // submission without the checkbox then); absent when the notice is off.
+  legalReviewNotice: LegalReviewNoticeReceiptSchema.optional(),
   // Reviewer confirmations — stamped `true` together by the APPROVAL write and never otherwise,
   // so their presence means the item was approved with all four checks confirmed.
   confirmedNoBegging: z.literal(true).optional(),
@@ -461,6 +466,8 @@ export const RulesAndAgreementsSchema = z.object({
   // migration, DJ ruling 2026-07-06). Optional because pre-migration docs lack
   // it; readers treat absence as version 1.
   version: z.number().optional(),
+  // Stamped by the release publish, like every other public document's current projection.
+  lastUpdated: z.number().optional(),
 });
 export type RulesAndAgreements = z.infer<typeof RulesAndAgreementsSchema>;
 
@@ -506,3 +513,36 @@ export const TakeItDownPageCopySchema = z.object({
   strings: z.record(z.string(), z.string()),
 });
 export type TakeItDownPageCopy = z.infer<typeof TakeItDownPageCopySchema>;
+
+/** One labeled line of a DMCA contact block (e.g. `Email` → the agent's address). */
+export const DmcaContactRowSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  value: z.string(),
+  order: z.number(),
+});
+export type DmcaContactRow = z.infer<typeof DmcaContactRowSchema>;
+
+/** A titled group of contact rows (the service-provider and designated-agent blocks). */
+export const DmcaContactBlockSchema = z.object({
+  id: z.string(),
+  heading: z.string(),
+  order: z.number(),
+  rows: z.array(DmcaContactRowSchema),
+});
+export type DmcaContactBlock = z.infer<typeof DmcaContactBlockSchema>;
+
+/**
+ * `_appConfig/dmcaPolicy` — the /dmca page's current projection: a short intro, the labeled
+ * contact blocks (the designated agent's registration details), and long-form sections for the
+ * notice-and-takedown process the Terms point to. Versioned and released like every other
+ * public document.
+ */
+export const DmcaPolicyDocumentSchema = z.object({
+  version: z.number(),
+  lastUpdated: z.number(),
+  intro: z.string(),
+  contactBlocks: z.array(DmcaContactBlockSchema),
+  sections: z.array(ContentPageSectionSchema),
+});
+export type DmcaPolicyDocument = z.infer<typeof DmcaPolicyDocumentSchema>;

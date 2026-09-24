@@ -112,3 +112,12 @@ export const calendarDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 export const titleSchema = z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH);
 
 
+
+/**
+ * The founder legal-review notice checkbox on a callable input (pledge checkout, Hall
+ * submission). `true` when ticked; omitted — or `null`, which the Firebase callable client
+ * sends for an `undefined` field — when not. The backend requires `true` exactly while
+ * LEGAL_REVIEW_NOTICE_ACTIVE and records the receipt itself; the client never sends a revision
+ * or a time.
+ */
+export const LegalReviewNoticeAcknowledgedInputSchema = z.literal(true).nullish();

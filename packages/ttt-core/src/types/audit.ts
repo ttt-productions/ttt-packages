@@ -35,6 +35,11 @@ export type AuditEventType =
   | 'admin.thresholdItemReviewed'
   | 'admin.futurePlansUpdated'
   | 'admin.rulesAndAgreementsUpdated'
+  // versioned public documents. Payload shapes: PublicDocumentsReleasedAuditPayload /
+  // PublicDocumentsAcceptedAuditPayload in ../schemas/public-documents.ts. `accepted` is the
+  // ONLY acceptance history (registration and the re-acceptance prompt both write it).
+  | 'publicDocuments.released'
+  | 'publicDocuments.accepted'
   // content-pages migration (DJ ruling 2026-07-06): per-page admin editors
   | 'admin.termsPageUpdated'
   | 'admin.privacyPageUpdated'

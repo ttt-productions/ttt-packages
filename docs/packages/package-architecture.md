@@ -200,7 +200,10 @@ type and the `requireAdmin` callback. When a callable passes
 `requirements.admin`, the factory delegates to `config.requireAdmin` and
 surfaces the returned value on `ctx.admin` (left `undefined` when no admin check
 ran). App-specific role logic and Firestore paths are wired at the consuming
-app's boundary, never inside `auth-core`.
+app's boundary, never inside `auth-core`. The optional acceptance-level gate
+follows the same pattern: the app supplies the claim name and the required-level
+reader through `config.acceptance`; the package only compares the two levels
+(see `auth-core.md`).
 
 ## Build order and release order
 

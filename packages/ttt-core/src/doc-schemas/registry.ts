@@ -44,6 +44,7 @@ import {
   RulesAndAgreementsSchema,
   LegalPageDocumentSchema,
   TakeItDownPageCopySchema,
+  DmcaPolicyDocumentSchema,
   HallLibraryPreferencesSchema,
 } from './content.js';
 import {
@@ -77,6 +78,11 @@ import {
   ChatMessageV1Schema,
   ConversationFileSchema,
 } from './messaging.js';
+import {
+  PublicDocumentVersionSchema,
+  PublicDocumentDraftSchema,
+  PublicDocumentReleaseSchema,
+} from './public-documents.js';
 import { AppConfigSchema, AdminListSchema, ProfanityListSchema, ReservedUsernamesSchema, BlockedFranchiseNamesSchema, AppModeMarkerSchema } from './system.js';
 import {
   ContentViolationSchema,
@@ -350,6 +356,11 @@ export const COLLECTION_SCHEMAS = {
   'feedbackSubmissions/{feedbackType}/userSuggestions/{suggestionId}': UserSuggestionSchema,
   'statusReconcileQueue/{uid}': StatusReconcileQueueEntrySchema,
 
+  // ===== Versioned public documents (backend-written; never public — the public reads the _appConfig projections) =====
+  'publicDocuments/{documentId}/publicDocumentVersions/{versionId}': PublicDocumentVersionSchema,
+  'publicDocumentDrafts/{documentId}': PublicDocumentDraftSchema,
+  'publicDocumentReleases/{releaseId}': PublicDocumentReleaseSchema,
+
   // ===== Trust & Safety — child-safety case spine (§A1b, §A2) =====
   'childSafetyCaseList/{caseId}': ChildSafetyCaseListV1Schema,
   'activeSafetyCaseAlerts/{caseId}': SafetyCaseAlertV1Schema,
@@ -445,6 +456,8 @@ export const COLLECTION_SCHEMAS = {
   '_appConfig/termsOfService': LegalPageDocumentSchema,
   '_appConfig/privacyPolicy': LegalPageDocumentSchema,
   '_appConfig/takeItDownPageCopy': TakeItDownPageCopySchema,
+  // The /dmca page's current projection — a public document like the three above.
+  '_appConfig/dmcaPolicy': DmcaPolicyDocumentSchema,
 
   // ===== _serverData singletons (server-only — Cloud-Functions-only readers, BACKEND-108) =====
   '_serverData/agePolicy': AgePolicyConfigV1Schema,

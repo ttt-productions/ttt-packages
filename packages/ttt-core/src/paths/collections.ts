@@ -161,6 +161,15 @@ export const COLLECTIONS = {
   // container recycle, so a "~once/day" or "~once/week" pass fires on real elapsed time instead
   // of an in-memory counter. Admin-SDK-only.
   SWEEP_STATE: 'sweepState',
+
+  // Versioned public documents (Terms, Privacy, Rules & Agreements, Future Plans, DMCA,
+  // Take It Down copy). `publicDocuments/{documentId}` is a field-less container whose
+  // `publicDocumentVersions` subcollection holds the immutable published versions; the one
+  // private working copy per document and the release records are top-level. All three are
+  // backend-written; the public reads the `_appConfig/{documentId}` current projection.
+  PUBLIC_DOCUMENTS: 'publicDocuments',
+  PUBLIC_DOCUMENT_DRAFTS: 'publicDocumentDrafts',
+  PUBLIC_DOCUMENT_RELEASES: 'publicDocumentReleases',
 } as const;
 
 /**
@@ -371,6 +380,10 @@ export const NESTED_SUBCOLLECTIONS = {
   // which were anonymously readable with no client reader.
   FEEDBACK_ALIASES: 'feedbackAliases',
   FEEDBACK_DENYLIST: 'feedbackDenylist',
+
+  // Immutable published versions of one public document
+  // (publicDocuments/{documentId}/publicDocumentVersions/{versionId}).
+  PUBLIC_DOCUMENT_VERSIONS: 'publicDocumentVersions',
 } as const;
 
 /**
@@ -403,6 +416,9 @@ export const SPECIAL_DOCS = {
   TERMS_PAGE: 'termsOfService',
   PRIVACY_PAGE: 'privacyPolicy',
   TAKE_IT_DOWN_PAGE_COPY: 'takeItDownPageCopy',
+  // The /dmca page's current projection (_appConfig/dmcaPolicy). Each of these page ids is
+  // also that document's PublicDocumentId (constants/public-documents.ts).
+  DMCA_POLICY: 'dmcaPolicy',
   // Also the doc id of the pledge running-totals singleton (pledgePaymentTotals/summary).
   SUMMARY: 'summary',
 

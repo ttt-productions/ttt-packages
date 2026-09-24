@@ -343,3 +343,17 @@ describe('hallLibrary event itemType enums equal the canonical surface projectio
     );
   });
 });
+
+describe('retired domain events', () => {
+  it('no longer accepts adminDispatch.systemMarked — it had no producer, so nothing may emit it', () => {
+    expect(
+      DomainEventSchema.safeParse({ type: 'adminDispatch.systemMarked', ids: { userId: 'u_1' } }).success,
+    ).toBe(false);
+  });
+
+  it('still accepts the live admin-dispatch event', () => {
+    expect(
+      DomainEventSchema.safeParse({ type: 'adminDispatch.threadUpdated', ids: { adminDispatchId: 'd_1' } }).success,
+    ).toBe(true);
+  });
+});

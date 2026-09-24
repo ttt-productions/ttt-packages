@@ -38,6 +38,9 @@ describe('audit type catalog', () => {
       'ncii.evidenceMarked',
       // [P2-08] privileged raw-locator read (distinct from safety.privilegedReauthPerformed)
       'safety.privilegedRawLocatorRead',
+      // versioned public documents: the release and the (only) acceptance history
+      'publicDocuments.released',
+      'publicDocuments.accepted',
     ];
     expectTypeOf(sample).toEqualTypeOf<AuditEventType[]>();
   });

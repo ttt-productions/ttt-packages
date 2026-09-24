@@ -394,7 +394,7 @@ describe('theme-core token contract', () => {
     expect(sourceFallbackColours('text-[hsl(var(--a,_var(--b,_220_14%_96%)))]')).toEqual(['220 14% 96%']);
     expect(sourceFallbackColours('border-[color:var(--x,_white)]')).toEqual(['white']);
     expect(sourceFallbackColours('hsl(var(--muted, 220 14% 96%))')).toEqual(['220 14% 96%']);
-    expect(sourceFallbackColours('bg-[hsl(var(--pill-bg,_var(--muted)))]')).toEqual([]);
+    expect(sourceFallbackColours('bg-[hsl(var(--probe-bg,_var(--muted)))]')).toEqual([]);
     expect(sourceFallbackColours('h-[calc(var(--app-dvh,_var(--app-vh,_1vh))_*_100)]')).toEqual([]);
     expect(sourceFallbackColours('bg-[hsl(var(--muted))]')).toEqual([]);
   });
@@ -466,7 +466,7 @@ describe('theme-core token contract', () => {
     expect(raw('var(--scrim, rgb(0 0 0 / 0.8))')).toBe(true);
     expect(raw('var(--avatar-fallback, white)')).toBe(true);
     expect(raw('hsl(var(--a, var(--b, 0 0% 50%)))')).toBe(true);
-    expect(raw('hsl(var(--pill-bg, var(--muted)))')).toBe(false);
+    expect(raw('hsl(var(--probe-bg, var(--muted)))')).toBe(false);
     expect(raw('var(--radius, 0.375rem)')).toBe(false);
     expect(raw('calc(var(--vh, 1vh) * 100)')).toBe(false);
     expect(raw('hsl(var(--muted))')).toBe(false);

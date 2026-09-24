@@ -27,7 +27,7 @@
   /* ui-core destructive Button edge: tracks the destructive family, not the brand */
   --destructive-border: var(--destructive);
 
-  /* Extra semantic status colors (used by pills/toasts/etc.) */
+  /* Extra semantic status families (success / warning / info) — each solid fill pairs with its own -foreground */
   --success: var(--status-success);
   --success-foreground: var(--neutral-white);
 

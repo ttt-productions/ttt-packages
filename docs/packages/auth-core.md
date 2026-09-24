@@ -8,6 +8,7 @@ Generic Firebase Auth package.
 - Claims parsing helpers
 - Server-side `createAssertAuth<TUser, TAdmin>(config)` factory pattern. Both the factory and `AuthContext<TUser, TAdmin>` are generic over the consuming app's admin-check result type; the package stays app-agnostic and the consumer supplies `TAdmin`.
 - Generic auth floors such as signed-in, email-verified, banned/status handling, and admin requirements supplied by the consuming app. When a callable requests `requirements.admin`, the factory delegates to `config.requireAdmin` and surfaces its result on `ctx.admin` (left `undefined` when no admin check ran).
+- An optional acceptance-level gate. An app whose users must accept published documents configures `acceptance: { claimKey, requiredLevel }`: the caller's accepted level is read from that ID-token claim, the required level from the app's reader (which must be cheap — a cached snapshot, never a Firestore read per call), and a caller below it is refused with `failed-precondition` whose `AuthAssertionError.details` is `{ reason: 'acceptance-required', requiredLevel, acceptedLevel }`. The app forwards `details` into its `HttpsError` so the client can answer with its acceptance prompt; `isAcceptanceRequiredError` (root) recognizes the refusal on either side. Levels normalize through `normalizeAcceptanceLevel`: an unreadable accepted level is 0 (fails closed), an unreadable required level requires nothing. Callables that must work before acceptance pass `requirements.allowUnaccepted`. The gate runs after the status check and before the admin check; without `acceptance` config nothing changes. The claim name, what raises the level, and which callables opt out are the app's.
 - Route protection (`useAuthGuard` on `./react`). Public routes come ENTIRELY from the caller's `publicRoutes` config, matched by prefix, so a dynamic public section is listed as its prefix (`'/share/'`). The hook holds no built-in or implicit public route — an app-specific path baked in here would be an ARCH-201 violation and would silently override the consumer's own config.
 - Normalized auth-error mapping (`normalizeAuthError`, `getErrorMessage`) and environment helpers (`getAppEnvironment`, `isDevelopment`, `isProduction`). Consumers call `getErrorMessage()` instead of restating provider-code maps. Email-action (`oobCode`) failures — expired and invalid/already-used links — map to stable generic copy that names the recovery step and never discloses whether an account exists.
 
@@ -21,7 +22,7 @@ Consuming apps wire the generic factory at their boundary. In `ttt-prod`, `funct
 
 The root is pure: it exposes only contracts, claims parsing, normalized errors, and environment helpers, and never loads `firebase/auth` at runtime. Client/Admin/React runtimes each live behind an explicit subpath.
 
-- `.` — pure contracts, claims parsing, errors, env helpers (server-safe).
+- `.` — pure contracts, claims parsing, errors, env helpers, and the acceptance-refusal contract (server-safe).
 - `./client` — Firebase **client** auth runtime (`onAuthStateChanged` wrapper, `getAuthUser`); importing it pulls `firebase/auth`.
 - `./react` — React auth provider and hooks.
 - `./server` — Admin SDK / Functions helpers, including `createAssertAuth`.

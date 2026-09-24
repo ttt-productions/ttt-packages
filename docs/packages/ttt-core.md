@@ -104,6 +104,19 @@ TTT Productions application-data package.
   and NCII surface, the dead `ResolvedReportTargetV1.attachmentId` mirror, the
   `chat_derivative` media copy reason, the `guildChannel` media scope and grant
   lane, `chatAttachmentBytesUsed`, `attachmentFlip` — is gone, not aliased.
+- **The founder legal-review notice** (server-safe root, `constants/legal-review-notice-state` +
+  `constants/legal-review-notice`): the code-controlled switch and immutable revision id, the
+  settled copy, the typed placement table whose keys are the context union, the plain-text
+  helper for backend-owned copy, and the receipt builder. See § Public documents and the
+  founder notice.
+- **Versioned public documents** (Terms, Privacy, Rules & Agreements, Future Plans, the DMCA
+  policy, Take It Down copy): the `PublicDocumentId` union, labels, and acceptance claim name
+  (`constants/public-documents`); the version, working-copy, release, version-block, and
+  acceptance-summary document schemas (`doc-schemas/public-documents`) with their path
+  builders; the save-draft / publish-release / accept / read-history callable schemas and the
+  `publicDocuments.released` / `publicDocuments.accepted` audit payloads
+  (`schemas/public-documents`); and the pure versioning and comparison rules
+  (`utils/public-documents`).
 
 ## Entry points
 
@@ -198,3 +211,37 @@ Every file-bearing `upload-variables` schema carries an optional `claim`
 (`ClientMediaClaim` from media-schemas) so hooks thread MediaInput's action
 context (picker/camera/recorder) to `startUpload`; `upload-variables-claim.test.ts`
 structurally asserts no file-bearing schema ships without it.
+
+## Public documents and the founder notice
+
+The Admin-editable public pages are versioned documents published in release bundles. The
+durable rules:
+
+- **Identity.** Each `PublicDocumentId` is also the doc id of that page's public current
+  projection under `_appConfig`, so the ids derive from `SPECIAL_DOCS` and
+  `PATH_BUILDERS.publicDocumentProjection(id)` names the same doc as the per-page builders. A
+  document's CONTENT is its projection shape minus `version` / `lastUpdated`; the working copy,
+  the immutable version, and the projection all share it. The DMCA policy has its own content
+  schema (intro, labeled contact blocks, long-form sections) like the others.
+- **Versions.** Whole numbers v1, v2, … per document, assigned only by the publish. "Require
+  acceptance" is a property of the release, never a second version number: a requiring release
+  sets each included document's required version and raises the one required-acceptance level
+  by exactly one. `planPublicDocumentRelease` is the one version-assignment rule; a correction is
+  a new version, never an edit. There are no direct page-update input schemas — every change is a
+  saved working copy published through a release.
+- **Acceptance.** The `_appConfig/app` version block is the system side; the private
+  `publicDocumentAcceptance` summary (latest accepted version per document, accepted level,
+  notice revision) is the person's side, and the `docsAccepted` claim mirrors the accepted
+  level for the backend gate. `changedPublicDocuments` is the one "what changed for this person"
+  rule — the prompt shows exactly that list and the accept callable compares what the prompt
+  showed with it, so a publish racing the prompt is detected. Acceptance history is only the
+  append-only `publicDocuments.accepted` audit events.
+- **The notice.** `LEGAL_REVIEW_NOTICE_ACTIVE` is a code constant (like `APP_MODE`), independent
+  of the app mode and of any release's acceptance choice. Copy is verbatim; a wording change
+  ships under a new `LEGAL_REVIEW_NOTICE_REVISION`, and the package test pins each revision to
+  its exact copy so recorded receipts keep meaning the words a person saw. Off, the plain-text
+  helper returns null, no revision or receipt is recorded, and the registration Terms checkbox
+  reverts to the plain agreement. Take It Down and the DMCA policy are statutory processes and
+  carry no notice.
+- **Charter signup** is derived (an account created before the flip); there is no stored
+  `charterSignupMember` stamp.

@@ -130,7 +130,14 @@ export const MAX_PLATFORM_RULE_DESCRIPTION_LENGTH = 4000;
 export const MAX_AGREEMENT_POINT_LENGTH = 2000;
 export const MAX_CONTENT_PAGE_HEADING_LENGTH = 300;
 export const MAX_CONTENT_PAGE_BODY_LENGTH = 20000;
+/** Sections in one long-form content page (Terms, Privacy, the DMCA policy's process text). */
+export const MAX_CONTENT_PAGE_SECTIONS = 300;
 export const MAX_TAKE_IT_DOWN_COPY_LENGTH = 8000;
+/** DMCA policy page: the labeled contact blocks (service provider, designated agent) and their rows. */
+export const MAX_DMCA_CONTACT_BLOCKS = 10;
+export const MAX_DMCA_CONTACT_ROWS = 20;
+export const MAX_DMCA_CONTACT_LABEL_LENGTH = 100;
+export const MAX_DMCA_CONTACT_VALUE_LENGTH = 500;
 export const MAX_MAINTENANCE_MESSAGE_LENGTH = 2000;
 
 /** Announcement-banner copy on `_appConfig/app.announcementMessage`. Deliberately far

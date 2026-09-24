@@ -6,6 +6,7 @@
 // pledge/Stripe flow).
 
 import { z } from 'zod';
+import { LegalReviewNoticeReceiptSchema } from './legal-review-notice.js';
 
 // pledgePayments/{pledgePaymentId} — public-safe canonical money record. One doc per completed
 // pledge; never deleted/archived. No Stripe IDs, no supporter message. Auth-readable; server-only
@@ -50,6 +51,11 @@ export const PledgePaymentProviderRefSchema = z.object({
   // fraud-evidence plumbing, not transparency data, so it rides THIS server-only doc and never the
   // member-readable pledgePayments ledger (docs/design/donation-payment-system.md § Data model).
   ageAttestedAt: z.number(),
+  // The founder legal-review notice acknowledgment given at checkout (its own required checkbox
+  // on every pledge while the notice is active): the revision and server time, stamped at session
+  // creation and carried through the Stripe metadata like `ageAttestedAt`. Absent when the notice
+  // was off. Evidence, not transparency data — it rides this server-only doc only.
+  legalReviewNotice: LegalReviewNoticeReceiptSchema.optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 });

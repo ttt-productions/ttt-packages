@@ -23,6 +23,7 @@ import {
   MediaServingStatusSchema,
 } from '../doc-schemas/media-assets.js';
 import { MAX_MANIFEST_NCMEC_RECEIPTS } from '../doc-schemas/safety/evidence.js';
+import { RuleGroupSchema, RuleSubgroupSchema } from '../doc-schemas/content.js';
 import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   HALL_CLEARABLE_TEXT_FIELD_NAMES,
@@ -42,7 +43,12 @@ import {
   MAX_AGREEMENT_POINT_LENGTH,
   MAX_CONTENT_PAGE_HEADING_LENGTH,
   MAX_CONTENT_PAGE_BODY_LENGTH,
+  MAX_CONTENT_PAGE_SECTIONS,
   MAX_TAKE_IT_DOWN_COPY_LENGTH,
+  MAX_DMCA_CONTACT_BLOCKS,
+  MAX_DMCA_CONTACT_ROWS,
+  MAX_DMCA_CONTACT_LABEL_LENGTH,
+  MAX_DMCA_CONTACT_VALUE_LENGTH,
   MAX_MAINTENANCE_MESSAGE_LENGTH,
   MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
   MAX_APPEAL_REVIEW_NOTES_LENGTH,
@@ -98,9 +104,14 @@ export const ReviewContentAppealResultSchema = z.object({
 });
 export type ReviewContentAppealResult = z.infer<typeof ReviewContentAppealResultSchema>;
 
-// --- System-doc admin updates ---
+// --- Public-document content inputs ---
+// The Admin editors' strict CONTENT schemas, one per public document. A working copy is saved
+// through `SavePublicDocumentDraftInputSchema` (./public-documents.ts), which pairs each
+// document id with its content schema here; the content is FULL (a version is the whole
+// document, never a partial merge). The client never sends a version — the release publish
+// assigns it.
 
-const FuturePlanItemSchema = z.object({
+export const FuturePlanItemInputSchema = z.object({
   id: z.string().min(1).max(128),
   title: z.string().min(1).max(MAX_FUTURE_PLAN_TITLE_LENGTH),
   description: z.string().min(1).max(MAX_FUTURE_PLAN_DESCRIPTION_LENGTH),
@@ -109,49 +120,39 @@ const FuturePlanItemSchema = z.object({
   mediaType: z.enum(['video', 'image', 'audio', 'other']).optional(),
 }).strict();
 
-export const UpdateFuturePlansInputSchema = z.object({
-  plans: z.array(FuturePlanItemSchema).max(200),
+export const FuturePlansContentInputSchema = z.object({
+  plans: z.array(FuturePlanItemInputSchema).max(200),
 }).strict();
-export type UpdateFuturePlansInput = z.infer<typeof UpdateFuturePlansInputSchema>;
+export type FuturePlansContentInput = z.infer<typeof FuturePlansContentInputSchema>;
 
-const RuleSchema = z.object({
+export const PlatformRuleInputSchema = z.object({
   id: z.string().min(1).max(128),
   title: z.string().min(1).max(MAX_PLATFORM_RULE_TITLE_LENGTH),
   description: z.string().min(1).max(MAX_PLATFORM_RULE_DESCRIPTION_LENGTH),
   videoUrl: z.string().url().max(2048).optional(),
-  group: z.enum(['generic', 'workProjectType', 'hallWingType', 'workRealm', 'merchandising']).optional(),
-  subgroup: z.enum(['Tales', 'Tunes', 'Television', 'entertainment', 'educational', 'newsPolitical']).optional(),
+  group: RuleGroupSchema.optional(),
+  subgroup: RuleSubgroupSchema.optional(),
   order: z.number().int().min(0),
 }).strict();
 
-const AgreementCategorySchema = z.object({
+export const AgreementCategoryInputSchema = z.object({
   points: z.array(z.string().min(1).max(MAX_AGREEMENT_POINT_LENGTH)).max(200),
   videoUrl: z.string().url().max(2048).optional(),
 }).strict();
 
-const AgreementsSchema = z.object({
-  tales: AgreementCategorySchema.optional(),
-  tunes: AgreementCategorySchema.optional(),
-  television: AgreementCategorySchema.optional(),
+export const AgreementsInputSchema = z.object({
+  tales: AgreementCategoryInputSchema.optional(),
+  tunes: AgreementCategoryInputSchema.optional(),
+  television: AgreementCategoryInputSchema.optional(),
 }).strict();
 
-// Partial update — admin UI may send only `rules` or only `agreements`.
-// Server merges. At least one field must be present.
-export const UpdateRulesAndAgreementsInputSchema = z.object({
-  rules: z.array(RuleSchema).max(500).optional(),
-  agreements: AgreementsSchema.optional(),
-}).strict().refine(
-  (data) => data.rules !== undefined || data.agreements !== undefined,
-  { message: 'At least one of `rules` or `agreements` must be provided.' },
-);
-export type UpdateRulesAndAgreementsInput = z.infer<typeof UpdateRulesAndAgreementsInputSchema>;
+export const RulesAndAgreementsContentInputSchema = z.object({
+  rules: z.array(PlatformRuleInputSchema).max(500),
+  agreements: AgreementsInputSchema,
+}).strict();
+export type RulesAndAgreementsContentInput = z.infer<typeof RulesAndAgreementsContentInputSchema>;
 
-// --- Content-pages migration (DJ ruling 2026-07-06): per-page update callables ---
-// One callable per page (never a `kind` discriminator): updateTermsPage /
-// updatePrivacyPage / updateTakeItDownPageCopy. The client NEVER sends `version`
-// — the server bumps it atomically on every save.
-
-const ContentPageSectionInputSchema = z.object({
+export const ContentPageSectionInputSchema = z.object({
   id: z.string().min(1).max(128),
   heading: z.string().min(1).max(MAX_CONTENT_PAGE_HEADING_LENGTH),
   level: z.union([z.literal(1), z.literal(2)]),
@@ -163,17 +164,13 @@ const ContentPageSectionInputSchema = z.object({
   order: z.number().int().min(0),
 }).strict();
 
-export const UpdateTermsPageInputSchema = z.object({
-  sections: z.array(ContentPageSectionInputSchema).min(1).max(300),
+/** The Terms of Service and Privacy Policy content (the one long-form legal page shape). */
+export const LegalPageContentInputSchema = z.object({
+  sections: z.array(ContentPageSectionInputSchema).min(1).max(MAX_CONTENT_PAGE_SECTIONS),
 }).strict();
-export type UpdateTermsPageInput = z.infer<typeof UpdateTermsPageInputSchema>;
+export type LegalPageContentInput = z.infer<typeof LegalPageContentInputSchema>;
 
-export const UpdatePrivacyPageInputSchema = z.object({
-  sections: z.array(ContentPageSectionInputSchema).min(1).max(300),
-}).strict();
-export type UpdatePrivacyPageInput = z.infer<typeof UpdatePrivacyPageInputSchema>;
-
-export const UpdateTakeItDownPageCopyInputSchema = z.object({
+export const TakeItDownPageCopyContentInputSchema = z.object({
   strings: z.record(z.string().min(1).max(128), z.string().min(1).max(MAX_TAKE_IT_DOWN_COPY_LENGTH)),
 }).strict().refine(
   (data) => {
@@ -182,7 +179,32 @@ export const UpdateTakeItDownPageCopyInputSchema = z.object({
   },
   { message: 'strings must contain between 1 and 200 entries.' },
 );
-export type UpdateTakeItDownPageCopyInput = z.infer<typeof UpdateTakeItDownPageCopyInputSchema>;
+export type TakeItDownPageCopyContentInput = z.infer<typeof TakeItDownPageCopyContentInputSchema>;
+
+const DmcaContactRowInputSchema = z.object({
+  id: z.string().min(1).max(128),
+  label: z.string().min(1).max(MAX_DMCA_CONTACT_LABEL_LENGTH),
+  value: z.string().min(1).max(MAX_DMCA_CONTACT_VALUE_LENGTH),
+  order: z.number().int().min(0),
+}).strict();
+
+const DmcaContactBlockInputSchema = z.object({
+  id: z.string().min(1).max(128),
+  heading: z.string().min(1).max(MAX_CONTENT_PAGE_HEADING_LENGTH),
+  order: z.number().int().min(0),
+  rows: z.array(DmcaContactRowInputSchema).min(1).max(MAX_DMCA_CONTACT_ROWS),
+}).strict();
+
+/**
+ * The DMCA policy content: the intro line, the labeled contact blocks (at least one — the page
+ * exists to name the designated agent), and the long-form process sections.
+ */
+export const DmcaPolicyContentInputSchema = z.object({
+  intro: z.string().max(MAX_CONTENT_PAGE_BODY_LENGTH),
+  contactBlocks: z.array(DmcaContactBlockInputSchema).min(1).max(MAX_DMCA_CONTACT_BLOCKS),
+  sections: z.array(ContentPageSectionInputSchema).max(MAX_CONTENT_PAGE_SECTIONS),
+}).strict();
+export type DmcaPolicyContentInput = z.infer<typeof DmcaPolicyContentInputSchema>;
 
 const AppConfigDocIdSchema = z.literal('app');
 

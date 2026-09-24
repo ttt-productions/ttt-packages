@@ -1,3 +1,5 @@
+import type { AcceptanceRequiredDetails } from "../acceptance.js";
+
 /**
  * Typed failure channel for `createAssertAuth`.
  *
@@ -40,12 +42,25 @@ export type AuthAssertionErrorCode =
   | "not-found"
   | "permission-denied";
 
+/**
+ * Structured details an `AuthAssertionError` may carry. Today the only one is the
+ * acceptance refusal (`reason: 'acceptance-required'`), so the app forwards `details` as the
+ * `HttpsError` details and the client recognizes the refusal with `isAcceptanceRequiredError`:
+ *
+ *   throw new HttpsError(err.code, err.message, err.details);
+ *
+ * Every other rejection leaves `details` undefined.
+ */
+export type AuthAssertionErrorDetails = AcceptanceRequiredDetails;
+
 export class AuthAssertionError extends Error {
   readonly code: AuthAssertionErrorCode;
+  readonly details?: AuthAssertionErrorDetails;
 
-  constructor(code: AuthAssertionErrorCode, message: string) {
+  constructor(code: AuthAssertionErrorCode, message: string, details?: AuthAssertionErrorDetails) {
     super(message);
     this.name = "AuthAssertionError";
     this.code = code;
+    if (details !== undefined) this.details = details;
   }
 }
