@@ -7,9 +7,12 @@ import {
   createFirebaseEmulatorObjectStore,
   createFirebaseStorageObjectStore,
   getMimeFromExt,
+  ObjectAlreadyExistsError,
   R2StorageError,
   type Bucket,
 } from '../src/server/storage-ops.js';
+import { UnreadableStorageObjectMetadataError } from '../src/server/staged-object.js';
+import { isObjectNotFoundError } from '../src/server/gcs-errors.js';
 
 // Track every createReadStream call so the "fresh stream per PUT attempt" test
 // can prove a new stream object is created each attempt. Everything else in
@@ -72,17 +75,6 @@ describe('createR2ObjectStore', () => {
     await expect(store.putFile({ localPath, key: 'k' })).rejects.toThrow(/403/);
   });
 
-  it('copy issues a server-side x-amz-copy-source PUT', async () => {
-    const fetchMock = vi.fn(async (_input: Request) => new Response(null, { status: 200 }));
-    const store = makeR2(fetchMock as unknown as typeof fetch);
-    const result = await store.copy({ fromKey: 'mediaAssets/a/main', toKey: 'mediaAssets/b/main' });
-    expect(result.key).toBe('mediaAssets/b/main');
-    const req = fetchMock.mock.calls[0][0];
-    expect(req.method).toBe('PUT');
-    expect(req.url).toContain('/ttt-media-test/mediaAssets/b/main');
-    expect(req.headers.get('x-amz-copy-source')).toBe('/ttt-media-test/mediaAssets/a/main');
-  });
-
   it('delete tolerates 404 (missing object is a no-op)', async () => {
     const fetchMock = vi.fn(async () => new Response(null, { status: 404 }));
     const store = makeR2(fetchMock as unknown as typeof fetch);
@@ -94,20 +86,36 @@ describe('createR2ObjectStore', () => {
     const store = makeR2(fetchMock as unknown as typeof fetch);
     await expect(store.delete('k')).rejects.toThrow(/500/);
   });
+
+  it('a failed delete is an R2StorageError carrying the bucket and key as properties, never in its message', async () => {
+    const body = '<Error><Code>InternalError</Code><Key>mediaAssets/asset9/main</Key></Error>';
+    const fetchMock = vi.fn(async () => new Response(body, { status: 500 }));
+
+    const error = await makeR2(fetchMock as unknown as typeof fetch)
+      .delete('mediaAssets/asset9/main')
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(R2StorageError);
+    expect(error).toMatchObject({
+      operation: 'delete',
+      bucket: 'ttt-media-test',
+      key: 'mediaAssets/asset9/main',
+      attempts: 1,
+      status: 500,
+    });
+    expect((error as Error).message).toBe('R2 delete failed after 1 attempt(s): status 500 InternalError');
+  });
 });
 
 /**
- * Firebase Admin bucket double. `file(key)` returns a per-key handle, and every
- * call lands in one ordered `events` log tagged with the key it acted on, so a
- * test can prove WHICH object a metadata write hit and in what order.
+ * Firebase Admin bucket double for put/read/delete. `file(key)` returns a per-key
+ * handle, and every call lands in one ordered `events` log tagged with the key it
+ * acted on.
  */
 function makeFirebaseBucketMock(
   opts: {
     storedContentType?: string;
     deleteError?: Error;
-    setMetadataError?: Error;
-    /** Metageneration the rewrite response reports; `null` = the response carries none. */
-    rewriteMetageneration?: string | null;
   } = {},
 ) {
   const events: Array<{ op: string; key: string; arg?: any; options?: any }> = [];
@@ -116,15 +124,6 @@ function makeFirebaseBucketMock(
   });
   const file = vi.fn((key: string) => ({
     name: key,
-    copy: vi.fn(async (dest: { name: string }) => {
-      events.push({ op: 'copy', key, arg: dest.name });
-      const metageneration = opts.rewriteMetageneration === undefined ? '1' : opts.rewriteMetageneration;
-      return [dest, { done: true, resource: metageneration === null ? { name: dest.name } : { name: dest.name, metageneration } }];
-    }),
-    setMetadata: vi.fn(async (meta: unknown, options: unknown) => {
-      if (opts.setMetadataError) throw opts.setMetadataError;
-      events.push({ op: 'setMetadata', key, arg: meta, options });
-    }),
     download: vi.fn(async ({ destination }: { destination: string }) => {
       await writeFile(destination, 'stored-bytes');
       events.push({ op: 'download', key, arg: destination });
@@ -135,7 +134,7 @@ function makeFirebaseBucketMock(
       events.push({ op: 'delete', key });
     }),
   }));
-  return { bucket: { upload, file } as unknown as Bucket, upload, events };
+  return { bucket: { name: 'test-bucket', upload, file } as unknown as Bucket, upload, events };
 }
 
 describe('createFirebaseStorageObjectStore (deployed, token-free)', () => {
@@ -167,98 +166,294 @@ describe('createFirebaseStorageObjectStore (deployed, token-free)', () => {
     expect(result.contentType).toBe('image/png');
     expect(upload.mock.calls[0][1].metadata.contentType).toBe('image/png');
   });
+});
 
-  it('copy is server-side and then strips any download token the source carried, pinned to the rewrite', async () => {
-    const { bucket, events } = makeFirebaseBucketMock({ rewriteMetageneration: '1' });
-    const store = createFirebaseStorageObjectStore({ bucket });
+/**
+ * In-memory Cloud Storage bucket without object versioning, faithful to what the copy
+ * relies on: every write mints a new generation; a rewrite reads the source generation
+ * its handle is pinned to (404 once that generation is no longer live), checks
+ * `ifGenerationMatch` (0 = no live object) against the LIVE destination when it commits
+ * (412), and REPLACES the destination's metadata with the resource it was sent. The hooks
+ * let a test hold a copy before it commits, or act before a metadata read.
+ */
+function makeGcsFake() {
+  interface StoredObject {
+    bytes: string;
+    generation: string;
+    contentType?: string;
+    cacheControl?: string;
+    contentDisposition?: string;
+    contentEncoding?: string;
+    metadata: Record<string, string>;
+  }
+  const objects = new Map<string, StoredObject>();
+  const calls: Array<{ op: string; key: string; generation?: string; options?: Record<string, unknown> }> = [];
+  const hooks: { beforeCopyCommit?: () => Promise<void>; beforeGetMetadata?: (key: string) => void } = {};
+  let nextGeneration = 1_700_000_000_000_001;
 
-    const result = await store.copy({ fromKey: 'legacy/award1.png', toKey: 'processed/award1/md' });
+  const failure = (code: number, message: string) => Object.assign(new Error(message), { code });
 
-    expect(result).toEqual({ key: 'processed/award1/md' });
-    expect(events).toEqual([
-      { op: 'copy', key: 'legacy/award1.png', arg: 'processed/award1/md' },
+  function write(key: string, object: Omit<StoredObject, 'generation'>): StoredObject {
+    const stored = { ...object, generation: String(nextGeneration++) };
+    objects.set(key, stored);
+    return stored;
+  }
+
+  const file = (key: string, fileOptions: { generation?: string | number } = {}) => ({
+    name: key,
+    async getMetadata() {
+      hooks.beforeGetMetadata?.(key);
+      calls.push({ op: 'getMetadata', key });
+      const live = objects.get(key);
+      if (!live) throw failure(404, 'No such object');
+      const { bytes: _bytes, ...metadata } = live;
+      return [structuredClone(metadata)];
+    },
+    async copy(dest: { name: string }, options: Record<string, any> = {}) {
+      const pinned = fileOptions.generation === undefined ? undefined : String(fileOptions.generation);
+      calls.push({ op: 'copy', key, generation: pinned, options: structuredClone(options) });
+      await hooks.beforeCopyCommit?.();
+      const source = objects.get(key);
+      if (!source || (pinned !== undefined && source.generation !== pinned)) throw failure(404, 'No such object');
+      const wanted = options.preconditionOpts?.ifGenerationMatch;
+      if (wanted !== undefined) {
+        const live = objects.get(dest.name);
+        if (String(wanted) === '0' ? live !== undefined : live?.generation !== String(wanted)) {
+          throw failure(412, 'Precondition Failed');
+        }
+      }
+      const { preconditionOpts: _preconditions, metadata = {}, ...resource } = options;
+      const written = write(dest.name, { bytes: source.bytes, ...resource, metadata });
+      return [dest, { done: true, resource: { name: dest.name, generation: written.generation } }];
+    },
+  });
+
+  return { bucket: { name: 'fake-bucket', file } as unknown as Bucket, objects, calls, hooks, write };
+}
+
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+}
+
+/** Holds every copy at its commit until the test releases it, in arrival order. */
+function holdCopies(count: number) {
+  const gates = Array.from({ length: count }, deferred);
+  let arrivals = 0;
+  return {
+    hook: () => gates[arrivals++].promise,
+    arrived: () => arrivals,
+    release: (index: number) => gates[index].resolve(),
+  };
+}
+
+const settle = <T,>(p: Promise<T>) =>
+  p.then(
+    (value) => ({ ok: true as const, value }),
+    (error: unknown) => ({ ok: false as const, error }),
+  );
+
+const SOURCE = 'staging/sig 1.png';
+const OTHER_SOURCE = 'staging/sig-2.png';
+const KEPT = 'signatures/sig 1.png';
+const STAGED = {
+  bytes: 'signature-png',
+  contentType: 'image/png',
+  cacheControl: 'private, max-age=0',
+  metadata: { firebaseStorageDownloadTokens: 'source-token' },
+};
+
+describe('Firebase Storage copy: never overwrites, idempotent, one call', () => {
+  it('a copy onto an absent key commits the destination fully formed in one pinned, conditional rewrite', async () => {
+    const gcs = makeGcsFake();
+    const source = gcs.write(SOURCE, STAGED);
+
+    await expect(createFirebaseStorageObjectStore({ bucket: gcs.bucket }).copy({ fromKey: SOURCE, toKey: KEPT })).resolves.toEqual({
+      key: KEPT,
+      alreadyPresent: false,
+    });
+
+    const provenance = {
+      'copy-source': encodeURIComponent(SOURCE),
+      'copy-source-version': source.generation,
+    };
+    expect(gcs.calls).toEqual([
+      { op: 'getMetadata', key: SOURCE },
       {
-        op: 'setMetadata',
-        key: 'processed/award1/md',
-        arg: { metadata: { firebaseStorageDownloadTokens: null } },
-        // The metageneration precondition is what makes the library retry the strip.
-        options: { ifMetagenerationMatch: '1' },
+        op: 'copy',
+        key: SOURCE,
+        generation: source.generation,
+        options: {
+          contentType: 'image/png',
+          cacheControl: 'private, max-age=0',
+          metadata: provenance,
+          preconditionOpts: { ifGenerationMatch: 0 },
+        },
       },
     ]);
-  });
-
-  it('copy still strips the token when the rewrite response reports no metageneration', async () => {
-    const { bucket, events } = makeFirebaseBucketMock({ rewriteMetageneration: null });
-    await createFirebaseStorageObjectStore({ bucket }).copy({ fromKey: 'a', toKey: 'b' });
-    expect(events[1]).toEqual({
-      op: 'setMetadata',
-      key: 'b',
-      arg: { metadata: { firebaseStorageDownloadTokens: null } },
-      options: {},
+    const { generation: _generation, ...destination } = gcs.objects.get(KEPT)!;
+    expect(destination).toEqual({
+      bytes: 'signature-png',
+      contentType: 'image/png',
+      cacheControl: 'private, max-age=0',
+      metadata: provenance,
     });
   });
 
-  it('a failed token strip deletes the destination and rethrows, never leaving it live with the token', async () => {
-    const stripFailure = new Error('503 Service Unavailable');
-    const { bucket, events } = makeFirebaseBucketMock({ setMetadataError: stripFailure });
-    const store = createFirebaseStorageObjectStore({ bucket });
+  it('an existing object that is not this copy\'s result makes it throw ObjectAlreadyExistsError and stay untouched', async () => {
+    const gcs = makeGcsFake();
+    gcs.write(SOURCE, STAGED);
+    const existing = structuredClone(gcs.write(KEPT, { bytes: 'someone-else', contentType: 'image/png', metadata: {} }));
 
-    await expect(store.copy({ fromKey: 'legacy/award1.png', toKey: 'processed/award1/md' })).rejects.toBe(stripFailure);
-    expect(events).toEqual([
-      { op: 'copy', key: 'legacy/award1.png', arg: 'processed/award1/md' },
-      { op: 'delete', key: 'processed/award1/md' },
-    ]);
-  });
-
-  it('a failed token strip whose destination is already gone still rethrows the strip failure', async () => {
-    const stripFailure = new Error('503 Service Unavailable');
-    const { bucket } = makeFirebaseBucketMock({
-      setMetadataError: stripFailure,
-      deleteError: Object.assign(new Error('No such object'), { code: 404 }),
-    });
-    await expect(createFirebaseStorageObjectStore({ bucket }).copy({ fromKey: 'a', toKey: 'b' })).rejects.toBe(stripFailure);
-  });
-
-  it('a failed token strip whose cleanup also fails reports both failures', async () => {
-    const stripFailure = new Error('503 Service Unavailable');
-    const cleanupFailure = Object.assign(new Error('Permission denied'), { code: 403 });
-    const { bucket } = makeFirebaseBucketMock({ setMetadataError: stripFailure, deleteError: cleanupFailure });
-
-    const error = await createFirebaseStorageObjectStore({ bucket })
-      .copy({ fromKey: 'a', toKey: 'processed/b' })
+    const error = await createFirebaseStorageObjectStore({ bucket: gcs.bucket })
+      .copy({ fromKey: SOURCE, toKey: KEPT })
       .catch((e: unknown) => e);
 
-    expect(error).toBeInstanceOf(AggregateError);
-    expect((error as AggregateError).errors).toEqual([stripFailure, cleanupFailure]);
-    expect((error as AggregateError).message).toMatch(/processed\/b/);
+    expect(error).toBeInstanceOf(ObjectAlreadyExistsError);
+    expect((error as ObjectAlreadyExistsError).key).toBe(KEPT);
+    expect((error as Error).message).not.toContain(KEPT);
+    expect(gcs.objects.get(KEPT)).toEqual(existing);
+  });
+
+  it('a copy of an earlier version of the same source is not this copy\'s result', async () => {
+    const gcs = makeGcsFake();
+    const store = createFirebaseStorageObjectStore({ bucket: gcs.bucket });
+    gcs.write(SOURCE, STAGED);
+    await store.copy({ fromKey: SOURCE, toKey: KEPT });
+    const copied = structuredClone(gcs.objects.get(KEPT));
+    gcs.write(SOURCE, { ...STAGED, bytes: 'replaced-signature' });
+
+    await expect(store.copy({ fromKey: SOURCE, toKey: KEPT })).rejects.toBeInstanceOf(ObjectAlreadyExistsError);
+    expect(gcs.objects.get(KEPT)).toEqual(copied);
+  });
+
+  it('a retry of a copy whose answer was lost resolves as already present and leaves the object as it is', async () => {
+    const gcs = makeGcsFake();
+    const store = createFirebaseStorageObjectStore({ bucket: gcs.bucket });
+    gcs.write(SOURCE, STAGED);
+    await store.copy({ fromKey: SOURCE, toKey: KEPT });
+    const copied = structuredClone(gcs.objects.get(KEPT));
+
+    await expect(store.copy({ fromKey: SOURCE, toKey: KEPT })).resolves.toEqual({ key: KEPT, alreadyPresent: true });
+    expect(gcs.objects.get(KEPT)).toEqual(copied);
+  });
+
+  it('two racing copies of the same source both succeed and leave the first commit intact', async () => {
+    const gcs = makeGcsFake();
+    gcs.write(SOURCE, STAGED);
+    const held = holdCopies(2);
+    gcs.hooks.beforeCopyCommit = held.hook;
+
+    const first = settle(createFirebaseStorageObjectStore({ bucket: gcs.bucket }).copy({ fromKey: SOURCE, toKey: KEPT }));
+    const second = settle(createFirebaseStorageObjectStore({ bucket: gcs.bucket }).copy({ fromKey: SOURCE, toKey: KEPT }));
+    await vi.waitFor(() => expect(held.arrived()).toBe(2));
+    held.release(0);
+    expect(await first).toEqual({ ok: true, value: { key: KEPT, alreadyPresent: false } });
+    const committed = structuredClone(gcs.objects.get(KEPT));
+    held.release(1);
+
+    expect(await second).toEqual({ ok: true, value: { key: KEPT, alreadyPresent: true } });
+    expect(gcs.objects.get(KEPT)).toEqual(committed);
+  });
+
+  it('two racing copies of different sources: exactly one wins and the other throws ObjectAlreadyExistsError', async () => {
+    const gcs = makeGcsFake();
+    gcs.write(SOURCE, STAGED);
+    gcs.write(OTHER_SOURCE, { ...STAGED, bytes: 'other-signature' });
+    const held = holdCopies(2);
+    gcs.hooks.beforeCopyCommit = held.hook;
+
+    const winner = settle(createFirebaseStorageObjectStore({ bucket: gcs.bucket }).copy({ fromKey: SOURCE, toKey: KEPT }));
+    const loser = settle(createFirebaseStorageObjectStore({ bucket: gcs.bucket }).copy({ fromKey: OTHER_SOURCE, toKey: KEPT }));
+    await vi.waitFor(() => expect(held.arrived()).toBe(2));
+    held.release(0);
+    held.release(1);
+
+    expect(await winner).toEqual({ ok: true, value: { key: KEPT, alreadyPresent: false } });
+    const lost = await loser;
+    expect(lost.ok).toBe(false);
+    expect(!lost.ok && lost.error).toBeInstanceOf(ObjectAlreadyExistsError);
+    expect(gcs.objects.get(KEPT)?.bytes).toBe('signature-png');
+  });
+
+  it('a source replaced between its read and the copy fails the copy as not-found and writes nothing', async () => {
+    const gcs = makeGcsFake();
+    gcs.write(SOURCE, STAGED);
+    gcs.hooks.beforeCopyCommit = async () => {
+      gcs.write(SOURCE, { ...STAGED, bytes: 'replaced-signature' });
+    };
+
+    const error = await createFirebaseStorageObjectStore({ bucket: gcs.bucket })
+      .copy({ fromKey: SOURCE, toKey: KEPT })
+      .catch((e: unknown) => e);
+
+    expect(isObjectNotFoundError(error)).toBe(true);
+    expect(gcs.objects.has(KEPT)).toBe(false);
+  });
+
+  it('a destination removed before it can be inspected rethrows the precondition failure', async () => {
+    const gcs = makeGcsFake();
+    gcs.write(SOURCE, STAGED);
+    gcs.write(KEPT, { bytes: 'someone-else', metadata: {} });
+    gcs.hooks.beforeGetMetadata = (key) => {
+      if (key === KEPT) gcs.objects.delete(KEPT);
+    };
+
+    const error = await createFirebaseStorageObjectStore({ bucket: gcs.bucket })
+      .copy({ fromKey: SOURCE, toKey: KEPT })
+      .catch((e: unknown) => e);
+
+    expect(error).toMatchObject({ code: 412 });
+    expect(gcs.objects.has(KEPT)).toBe(false);
+  });
+
+  it('a source whose metadata names no generation fails the copy before anything is written', async () => {
+    const gcs = makeGcsFake();
+    gcs.write(SOURCE, STAGED);
+    const bucket = {
+      name: 'fake-bucket',
+      file: (key: string, options?: { generation?: string }) =>
+        key === SOURCE && options === undefined
+          ? { getMetadata: async () => [{ contentType: 'image/png' }] }
+          : (gcs.bucket.file as (k: string, o?: unknown) => unknown)(key, options),
+    } as unknown as Bucket;
+
+    const error = await createFirebaseStorageObjectStore({ bucket })
+      .copy({ fromKey: SOURCE, toKey: KEPT })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(UnreadableStorageObjectMetadataError);
+    expect(error).toMatchObject({ bucket: 'fake-bucket', key: SOURCE, field: 'generation' });
+    expect(gcs.objects.has(KEPT)).toBe(false);
   });
 });
 
 describe('createFirebaseEmulatorObjectStore', () => {
   function makeBucketMock() {
-    const setMetadata = vi.fn(async () => undefined);
-    const copy = vi.fn(async () => undefined);
     const del = vi.fn(async () => undefined);
     const upload = vi.fn(async () => undefined);
-    const file = vi.fn(() => ({ copy, setMetadata, delete: del }));
-    return { bucket: { upload, file } as unknown as Bucket, upload, file, copy, setMetadata, del };
+    const file = vi.fn(() => ({ delete: del }));
+    return { bucket: { upload, file } as unknown as Bucket, upload, file, del };
   }
 
-  it('copy stamps the FIXED download token on the destination', async () => {
-    const { bucket, events } = makeFirebaseBucketMock();
-    const store = createFirebaseEmulatorObjectStore({ bucket, downloadToken: 'ttt-emulator-media-token' });
+  it('copy writes the FIXED download token beside the provenance in its one rewrite', async () => {
+    const gcs = makeGcsFake();
+    const source = gcs.write('mediaAssets/a/main', { bytes: 'img', contentType: 'image/webp', metadata: {} });
 
-    await store.copy({ fromKey: 'mediaAssets/a/main', toKey: 'mediaAssets/b/main' });
+    await createFirebaseEmulatorObjectStore({ bucket: gcs.bucket, downloadToken: 'ttt-emulator-media-token' }).copy({
+      fromKey: 'mediaAssets/a/main',
+      toKey: 'mediaAssets/b/main',
+    });
 
-    expect(events).toEqual([
-      { op: 'copy', key: 'mediaAssets/a/main', arg: 'mediaAssets/b/main' },
-      {
-        op: 'setMetadata',
-        key: 'mediaAssets/b/main',
-        arg: { metadata: { firebaseStorageDownloadTokens: 'ttt-emulator-media-token' } },
-        options: { ifMetagenerationMatch: '1' },
-      },
-    ]);
+    expect(gcs.objects.get('mediaAssets/b/main')?.metadata).toEqual({
+      'copy-source': encodeURIComponent('mediaAssets/a/main'),
+      'copy-source-version': source.generation,
+      firebaseStorageDownloadTokens: 'ttt-emulator-media-token',
+    });
+    expect(gcs.calls.map((c) => c.op)).toEqual(['getMetadata', 'copy']);
   });
 
   it('putFile uploads with the FIXED download token attached', async () => {
@@ -311,12 +506,15 @@ describe.each([
     expect(events).toEqual([{ op: 'delete', key: 'processed/a/md' }]);
   });
 
-  it.each([
-    ['a 404 code', Object.assign(new Error('Not Found'), { code: 404 })],
-    ['a "No such object" message', new Error('No such object: bucket/processed/a/md')],
-  ])('delete of a missing object is a no-op (%s)', async (_label, err) => {
-    const { bucket } = makeFirebaseBucketMock({ deleteError: err });
+  it('delete of a missing object is a no-op, recognized by the numeric 404 code alone', async () => {
+    const { bucket } = makeFirebaseBucketMock({ deleteError: Object.assign(new Error(''), { code: 404 }) });
     await expect(makeStore(bucket).delete('processed/a/md')).resolves.toBeUndefined();
+  });
+
+  it('delete rethrows a failure that only says "No such object" in its message', async () => {
+    const messageOnly = new Error('No such object: bucket/processed/a/md');
+    const { bucket } = makeFirebaseBucketMock({ deleteError: messageOnly });
+    await expect(makeStore(bucket).delete('processed/a/md')).rejects.toBe(messageOnly);
   });
 
   it('delete rethrows a real failure', async () => {
@@ -584,21 +782,30 @@ describe('createR2ObjectStore — bounded transient retry', () => {
     expect(consumed).toBe(true);
   });
 
-  it('copy retries a 500 then succeeds, preserving the exact x-amz-copy-source', async () => {
-    const fetchMock = fetchSequence([
-      () => new Response('e', { status: 500 }),
-      () => new Response(null, { status: 200 }),
-    ]);
-    const store = makeR2WithSeams(fetchMock, { sleepImpl: noSleep, randomImpl: () => 0 });
+  it('copy retries a 500 then succeeds, re-sending the exact same conditional CopyObject', async () => {
+    const r2 = makeR2Fake();
+    r2.write('mediaAssets/a/main', { body: 'img', headers: { 'content-type': 'image/webp' } });
+    r2.hooks.failNextCopyWith = 500;
 
-    const result = await store.copy({ fromKey: 'mediaAssets/a/main', toKey: 'mediaAssets/b/main' });
+    const result = await makeR2WithSeams(r2.fetchImpl, { sleepImpl: noSleep, randomImpl: () => 0 }).copy({
+      fromKey: 'mediaAssets/a/main',
+      toKey: 'mediaAssets/b/main',
+    });
 
-    expect(result.key).toBe('mediaAssets/b/main');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    const req0 = fetchMock.mock.calls[0][0] as Request;
-    const req1 = fetchMock.mock.calls[1][0] as Request;
-    expect(req0.headers.get('x-amz-copy-source')).toBe('/ttt-media-test/mediaAssets/a/main');
-    expect(req1.headers.get('x-amz-copy-source')).toBe('/ttt-media-test/mediaAssets/a/main');
+    expect(result).toEqual({ key: 'mediaAssets/b/main', alreadyPresent: false });
+    const puts = r2.requests.filter((r) => r.method === 'PUT');
+    expect(puts).toHaveLength(2);
+    const conditions = (h: Record<string, string>) => ({
+      source: h['x-amz-copy-source'],
+      sourceMatch: h['x-amz-copy-source-if-match'],
+      destinationNoneMatch: h['cf-copy-destination-if-none-match'],
+    });
+    expect(conditions(puts[0].headers)).toEqual({
+      source: '/ttt-media-test/mediaAssets/a/main',
+      sourceMatch: r2.objects.get('mediaAssets/a/main')?.etag,
+      destinationNoneMatch: '*',
+    });
+    expect(conditions(puts[1].headers)).toEqual(conditions(puts[0].headers));
   });
 
   it('readToFile retries a 500 then streams the successful body to disk', async () => {
@@ -670,6 +877,24 @@ describe('createR2ObjectStore — bounded transient retry', () => {
     expect(serialized).not.toContain('X-Amz-Signature');
   });
 
+  it('an R2StorageError message names the S3 error code but never the bucket, the key, or a body that echoes them', async () => {
+    const body =
+      '<?xml version="1.0"?><Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message>' +
+      '<Key>mediaAssets/asset9/main</Key><BucketName>ttt-media-test</BucketName></Error>';
+    const fetchMock = fetchSequence([() => new Response(body, { status: 404 })]);
+    const dest = path.join(await mkdtemp(path.join(tmpdir(), 'r2-read-')), 'out.bin');
+
+    const error = await makeR2WithSeams(fetchMock, { sleepImpl: noSleep })
+      .readToFile({ key: 'mediaAssets/asset9/main', localPath: dest })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(R2StorageError);
+    expect(error).toMatchObject({ bucket: 'ttt-media-test', key: 'mediaAssets/asset9/main', status: 404 });
+    expect((error as R2StorageError).responseText).toContain('<Key>mediaAssets/asset9/main</Key>');
+    expect((error as Error).message).toBe('R2 readToFile failed after 1 attempt(s): status 404 NoSuchKey');
+    expect(isObjectNotFoundError(error)).toBe(true);
+  });
+
   it('delete makes exactly one request even on a 500 (never retried)', async () => {
     const fetchMock = fetchSequence([() => new Response('boom', { status: 500 })]);
     const sleep = vi.fn(noSleep);
@@ -694,5 +919,269 @@ describe('createR2ObjectStore — bounded transient retry', () => {
     await expect(store.delete('k')).rejects.toThrow();
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(sleep).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * In-memory R2 behind the store's S3 requests, faithful to what the copy relies on: a GET
+ * answers an object's headers (404 `NoSuchKey` with an XML body when absent); a CopyObject
+ * checks `x-amz-copy-source-if-match` against the source's ETag and
+ * `cf-copy-destination-if-none-match: *` against the destination when it commits (412
+ * `PreconditionFailed`), and with the REPLACE directive writes exactly the request's content
+ * headers and `x-amz-meta-*`. A copy gets an ETag of its own, never its source's.
+ */
+function makeR2Fake() {
+  interface R2Object {
+    body: string;
+    etag: string;
+    lastModified: string;
+    headers: Record<string, string>;
+  }
+  const CONTENT_HEADERS = ['content-type', 'cache-control', 'content-disposition', 'content-encoding'];
+  const objects = new Map<string, R2Object>();
+  const requests: Array<{ method: string; key: string; headers: Record<string, string> }> = [];
+  const hooks: { beforeCopyCommit?: () => Promise<void>; failNextCopyWith?: number; loseNextCopyResponse?: boolean } = {};
+  let clock = Date.UTC(2030, 0, 1);
+  let etags = 0;
+
+  const s3Error = (status: number, code: string) =>
+    new Response(`<?xml version="1.0" encoding="UTF-8"?><Error><Code>${code}</Code></Error>`, { status });
+  const keyOf = (path: string) => path.split('/').slice(2).map(decodeURIComponent).join('/');
+
+  function write(key: string, object: { body: string; etag?: string; headers?: Record<string, string> }): R2Object {
+    clock += 1000;
+    const stored = {
+      body: object.body,
+      etag: object.etag ?? `"copy-etag-${++etags}"`,
+      lastModified: new Date(clock).toUTCString(),
+      headers: object.headers ?? {},
+    };
+    objects.set(key, stored);
+    return stored;
+  }
+
+  const fetchImpl = (async (req: Request) => {
+    const key = keyOf(new URL(req.url).pathname);
+    const headers = Object.fromEntries(req.headers);
+    requests.push({ method: req.method, key, headers });
+    if (req.method === 'GET') {
+      const object = objects.get(key);
+      if (!object) return s3Error(404, 'NoSuchKey');
+      return new Response(object.body, {
+        status: 200,
+        headers: {
+          ...object.headers,
+          etag: object.etag,
+          'last-modified': object.lastModified,
+          'content-length': String(object.body.length),
+        },
+      });
+    }
+    if (req.method === 'PUT' && headers['x-amz-copy-source']) {
+      if (hooks.failNextCopyWith) {
+        const status = hooks.failNextCopyWith;
+        hooks.failNextCopyWith = undefined;
+        return s3Error(status, 'InternalError');
+      }
+      await hooks.beforeCopyCommit?.();
+      const source = objects.get(keyOf(headers['x-amz-copy-source']));
+      if (!source) return s3Error(404, 'NoSuchKey');
+      const sourceMatch = headers['x-amz-copy-source-if-match'];
+      if (sourceMatch !== undefined && sourceMatch !== source.etag) return s3Error(412, 'PreconditionFailed');
+      if (headers['cf-copy-destination-if-none-match'] === '*' && objects.has(key)) return s3Error(412, 'PreconditionFailed');
+      const written =
+        headers['x-amz-metadata-directive'] === 'REPLACE'
+          ? Object.fromEntries(
+              Object.entries(headers).filter(([name]) => name.startsWith('x-amz-meta-') || CONTENT_HEADERS.includes(name)),
+            )
+          : source.headers;
+      write(key, { body: source.body, headers: written });
+      if (hooks.loseNextCopyResponse) {
+        hooks.loseNextCopyResponse = false;
+        throw Object.assign(new TypeError('fetch failed'), {
+          cause: Object.assign(new Error('socket hang up'), { code: 'ECONNRESET' }),
+        });
+      }
+      return new Response('<CopyObjectResult/>', { status: 200 });
+    }
+    return new Response('unexpected request', { status: 501 });
+  }) as unknown as typeof fetch;
+
+  return { fetchImpl, objects, requests, hooks, write };
+}
+
+describe('R2 copy: never overwrites, idempotent, one call', () => {
+  const R2_SOURCE = 'mediaAssets/src 1/main';
+  const R2_OTHER_SOURCE = 'mediaAssets/src-2/main';
+  const R2_KEPT = 'mediaAssets/copy-1/main';
+  const R2_STAGED = {
+    body: 'video-bytes',
+    headers: { 'content-type': 'video/mp4', 'cache-control': 'public, max-age=31536000, immutable' },
+  };
+
+  const store = (fetchImpl: typeof fetch) => makeR2WithSeams(fetchImpl, { sleepImpl: noSleep, randomImpl: () => 0 });
+
+  it('a copy onto an absent key commits in one conditional CopyObject carrying the content headers and provenance', async () => {
+    const r2 = makeR2Fake();
+    const source = r2.write(R2_SOURCE, R2_STAGED);
+
+    await expect(store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT })).resolves.toEqual({
+      key: R2_KEPT,
+      alreadyPresent: false,
+    });
+
+    expect(r2.requests.map((r) => `${r.method} ${r.key}`)).toEqual([`GET ${R2_SOURCE}`, `PUT ${R2_KEPT}`]);
+    const provenance = {
+      'x-amz-meta-copy-source': encodeURIComponent(R2_SOURCE),
+      'x-amz-meta-copy-source-version': encodeURIComponent(`${source.etag} ${source.lastModified} ${R2_STAGED.body.length}`),
+    };
+    expect(r2.requests[1].headers).toMatchObject({
+      'x-amz-copy-source': `/ttt-media-test/${R2_SOURCE.split('/').map(encodeURIComponent).join('/')}`,
+      'x-amz-copy-source-if-match': source.etag,
+      'cf-copy-destination-if-none-match': '*',
+      'x-amz-metadata-directive': 'REPLACE',
+      ...R2_STAGED.headers,
+      ...provenance,
+    });
+    expect(r2.objects.get(R2_KEPT)).toMatchObject({ body: R2_STAGED.body, headers: { ...R2_STAGED.headers, ...provenance } });
+  });
+
+  it("an existing object that is not this copy's result makes it throw ObjectAlreadyExistsError and stay untouched", async () => {
+    const r2 = makeR2Fake();
+    r2.write(R2_SOURCE, R2_STAGED);
+    const existing = structuredClone(r2.write(R2_KEPT, { body: 'someone-else', headers: { 'content-type': 'video/mp4' } }));
+
+    const error = await store(r2.fetchImpl)
+      .copy({ fromKey: R2_SOURCE, toKey: R2_KEPT })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ObjectAlreadyExistsError);
+    expect((error as ObjectAlreadyExistsError).key).toBe(R2_KEPT);
+    expect((error as Error).message).not.toContain(R2_KEPT);
+    expect(r2.objects.get(R2_KEPT)).toEqual(existing);
+  });
+
+  it('a retry after a lost response resolves as already present', async () => {
+    const r2 = makeR2Fake();
+    r2.write(R2_SOURCE, R2_STAGED);
+    r2.hooks.loseNextCopyResponse = true;
+
+    await expect(store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT })).resolves.toEqual({
+      key: R2_KEPT,
+      alreadyPresent: true,
+    });
+    expect(r2.requests.map((r) => `${r.method} ${r.key}`)).toEqual([
+      `GET ${R2_SOURCE}`,
+      `PUT ${R2_KEPT}`,
+      `PUT ${R2_KEPT}`,
+      `GET ${R2_KEPT}`,
+    ]);
+  });
+
+  it('a multipart source is recognized by its provenance, never by comparing ETags', async () => {
+    const r2 = makeR2Fake();
+    const multipartEtag = '"3858f62230ac3c915f300c664312c11f-3"';
+    r2.write(R2_SOURCE, { ...R2_STAGED, etag: multipartEtag });
+    await store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT });
+    const copied = structuredClone(r2.objects.get(R2_KEPT));
+    expect(copied?.etag).not.toBe(multipartEtag);
+
+    await expect(store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT })).resolves.toEqual({
+      key: R2_KEPT,
+      alreadyPresent: true,
+    });
+    expect(r2.objects.get(R2_KEPT)).toEqual(copied);
+  });
+
+  it("a copy of an earlier version of the same source is not this copy's result", async () => {
+    const r2 = makeR2Fake();
+    r2.write(R2_SOURCE, R2_STAGED);
+    await store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT });
+    const copied = structuredClone(r2.objects.get(R2_KEPT));
+    r2.write(R2_SOURCE, { ...R2_STAGED, body: 'replaced-video' });
+
+    await expect(store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT })).rejects.toBeInstanceOf(ObjectAlreadyExistsError);
+    expect(r2.objects.get(R2_KEPT)).toEqual(copied);
+  });
+
+  it('two racing copies of the same source both succeed and leave the first commit intact', async () => {
+    const r2 = makeR2Fake();
+    r2.write(R2_SOURCE, R2_STAGED);
+    const held = holdCopies(2);
+    r2.hooks.beforeCopyCommit = held.hook;
+
+    const first = settle(store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT }));
+    const second = settle(store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT }));
+    await vi.waitFor(() => expect(held.arrived()).toBe(2));
+    held.release(0);
+    expect(await first).toEqual({ ok: true, value: { key: R2_KEPT, alreadyPresent: false } });
+    const committed = structuredClone(r2.objects.get(R2_KEPT));
+    held.release(1);
+
+    expect(await second).toEqual({ ok: true, value: { key: R2_KEPT, alreadyPresent: true } });
+    expect(r2.objects.get(R2_KEPT)).toEqual(committed);
+    expect(r2.requests.some((r) => r.method === 'DELETE')).toBe(false);
+  });
+
+  it('two racing copies of different sources: exactly one wins and the other throws ObjectAlreadyExistsError', async () => {
+    const r2 = makeR2Fake();
+    r2.write(R2_SOURCE, R2_STAGED);
+    r2.write(R2_OTHER_SOURCE, { ...R2_STAGED, body: 'other-video' });
+    const held = holdCopies(2);
+    r2.hooks.beforeCopyCommit = held.hook;
+
+    const winner = settle(store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT }));
+    const loser = settle(store(r2.fetchImpl).copy({ fromKey: R2_OTHER_SOURCE, toKey: R2_KEPT }));
+    await vi.waitFor(() => expect(held.arrived()).toBe(2));
+    held.release(0);
+    held.release(1);
+
+    expect(await winner).toEqual({ ok: true, value: { key: R2_KEPT, alreadyPresent: false } });
+    const lost = await loser;
+    expect(lost.ok).toBe(false);
+    expect(!lost.ok && lost.error).toBeInstanceOf(ObjectAlreadyExistsError);
+    expect(r2.objects.get(R2_KEPT)?.body).toBe(R2_STAGED.body);
+  });
+
+  it('a source replaced after its read rethrows the precondition failure and writes nothing', async () => {
+    const r2 = makeR2Fake();
+    r2.write(R2_SOURCE, R2_STAGED);
+    r2.hooks.beforeCopyCommit = async () => {
+      r2.write(R2_SOURCE, { ...R2_STAGED, body: 'replaced-video' });
+    };
+
+    const error = await store(r2.fetchImpl)
+      .copy({ fromKey: R2_SOURCE, toKey: R2_KEPT })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(R2StorageError);
+    expect(error).toMatchObject({ status: 412, s3ErrorCode: 'PreconditionFailed' });
+    expect(r2.objects.has(R2_KEPT)).toBe(false);
+  });
+
+  it('a missing source fails the copy with an error recognized as not-found', async () => {
+    const r2 = makeR2Fake();
+
+    const error = await store(r2.fetchImpl)
+      .copy({ fromKey: R2_SOURCE, toKey: R2_KEPT })
+      .catch((e: unknown) => e);
+
+    expect(error).toMatchObject({ status: 404, s3ErrorCode: 'NoSuchKey', key: R2_SOURCE });
+    expect(isObjectNotFoundError(error)).toBe(true);
+    expect(r2.requests.map((r) => r.method)).toEqual(['GET']);
+  });
+
+  it('a source read without an ETag fails the copy before anything is written', async () => {
+    const fetchImpl = vi.fn(
+      async () => new Response('bytes', { status: 200, headers: { 'last-modified': 'x', 'content-length': '5' } }),
+    );
+
+    const error = await store(fetchImpl as unknown as typeof fetch)
+      .copy({ fromKey: R2_SOURCE, toKey: R2_KEPT })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(UnreadableStorageObjectMetadataError);
+    expect(error).toMatchObject({ bucket: 'ttt-media-test', key: R2_SOURCE, field: 'etag' });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });

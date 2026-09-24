@@ -6,6 +6,8 @@
 // and where the caller's accepted level is stored (a custom claim named by the app). The package
 // only compares the two numbers and reports a refusal in one recognisable shape.
 
+import { failedPreconditionDetails } from "./refusal.js";
+
 /** The `details.reason` of the refusal a caller below the required level receives. */
 export const ACCEPTANCE_REQUIRED_REASON = "acceptance-required" as const;
 
@@ -44,20 +46,11 @@ export function isAcceptanceRequiredDetails(details: unknown): details is Accept
   );
 }
 
-// The HttpsError code the refusal carries, as the server (`failed-precondition`) and the
-// Firebase client SDK (`functions/failed-precondition`) spell it.
-const ACCEPTANCE_REFUSAL_CODES: ReadonlySet<string> = new Set([
-  "failed-precondition",
-  "functions/failed-precondition",
-]);
-
 /**
  * True when `err` is the acceptance refusal — a `failed-precondition` whose details carry
  * `reason: 'acceptance-required'`. Works on the server-side error and on the client-side
  * callable error alike, so the app has one recognizer for "show the acceptance prompt".
  */
 export function isAcceptanceRequiredError(err: unknown): boolean {
-  if (!err || typeof err !== "object") return false;
-  const e = err as { code?: unknown; details?: unknown };
-  return typeof e.code === "string" && ACCEPTANCE_REFUSAL_CODES.has(e.code) && isAcceptanceRequiredDetails(e.details);
+  return isAcceptanceRequiredDetails(failedPreconditionDetails(err));
 }

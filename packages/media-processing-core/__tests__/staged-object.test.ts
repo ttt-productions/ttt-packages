@@ -25,15 +25,19 @@ describe('readStagedUploadMetadata', () => {
     expect(file).toHaveBeenCalledWith('uploads/a/u/1');
   });
 
-  it.each([
-    ['a numeric 404', Object.assign(new Error('Not Found'), { code: 404 })],
-    ['a string 404', Object.assign(new Error('Not Found'), { code: '404' })],
-    ['a "No such object" message', new Error('No such object: bucket/uploads/a/u/1')],
-  ])('reports a missing object as not found (%s)', async (_label, err) => {
+  it('reports a missing object as not found from the numeric 404 code', async () => {
     const { bucket } = bucketWith(async () => {
-      throw err;
+      throw Object.assign(new Error(''), { code: 404 });
     });
     expect(await readStagedUploadMetadata(bucket, 'p')).toEqual({ found: false });
+  });
+
+  it('rethrows a failure that only says "No such object" in its message', async () => {
+    const messageOnly = new Error('No such object: bucket/uploads/a/u/1');
+    const { bucket } = bucketWith(async () => {
+      throw messageOnly;
+    });
+    await expect(readStagedUploadMetadata(bucket, 'p')).rejects.toBe(messageOnly);
   });
 
   it('rethrows any other read failure', async () => {

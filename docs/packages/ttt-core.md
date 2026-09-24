@@ -125,8 +125,19 @@ TTT Productions application-data package.
   one write rule: the update over the doc as read, missing fields from the default, validated
   whole against `AppConfigSchema` (it throws rather than return an invalid doc). A backend writer
   that writes its result can never leave a doc missing its required fields, even as the first
-  write into a fresh or wiped environment; readers derive their fallbacks from the same default.
-  The release-owned version block has no default — it is absent until the first release.
+  write into a fresh or wiped environment. The release-owned version block has no default — it is
+  absent until the first release.
+  - **The one read rule** for the untrusted stored doc: `readAppConfigLever(snapshot, lever)` is a
+    lever's stored value when its `AppConfigSchema` field accepts it, otherwise its
+    `DEFAULT_APP_CONFIG` value — for a missing doc, an absent field, and a value the schema
+    refuses (a console edit of the wrong type, an over-cap message, an out-of-range multiplier)
+    alike, one lever at a time so a bad field never costs the good ones. `readAppConfigLevers`
+    runs every lever through it (typed `AppConfigLevers`, keyed by `AppConfigLeverKey`). It never
+    throws, so a config read can never take the product down by itself; the backend's snapshot
+    reader and the client shell both read through it, and neither keeps a second reader.
+  - `DEFAULT_MAINTENANCE_MESSAGE` is the one line shown while maintenance is on and the operator
+    left `maintenanceMessage` blank — on the takeover screen and in the callable refusal alike.
+    The stored default stays `''`: blank is what selects the line.
   `AppConfigSchema` caps every text lever with the same `constants/` declaration its
   `UpdateAppConfigInputSchema` field uses (`MAX_APP_VERSION_LENGTH`,
   `MAX_MAINTENANCE_MESSAGE_LENGTH`, `MAX_ANNOUNCEMENT_MESSAGE_LENGTH`; a package test compares

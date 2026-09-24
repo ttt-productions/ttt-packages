@@ -29,12 +29,26 @@ import { isObjectNotFoundError } from "./gcs-errors.js";
 import {
   defaultR2RetrySeams,
   fetchWithR2Retry,
+  R2StorageError,
   type R2RetrySeams,
 } from "./r2-retry.js";
+import { requireStorageObjectGeneration, UnreadableStorageObjectMetadataError } from "./staged-object.js";
 
 // Re-export the exhaustion error so callers can recognize an exhausted R2
 // operation. The rest of the retry helper stays private to this module.
-export { R2StorageError } from "./r2-retry.js";
+export { R2StorageError };
+
+/**
+ * A copy found an object at its destination key that is not this copy's result, and
+ * wrote nothing; that object is untouched. The key is a PROPERTY, never message text, so
+ * an escaping error never carries an object key to monitoring.
+ */
+export class ObjectAlreadyExistsError extends Error {
+  constructor(public readonly key: string) {
+    super("copy destination already holds another object");
+    this.name = "ObjectAlreadyExistsError";
+  }
+}
 
 /** Firebase Admin Storage Bucket — inferred to avoid @google-cloud/storage dep. */
 export type Bucket = ReturnType<ReturnType<typeof getStorage>["bucket"]>;
@@ -50,6 +64,47 @@ export interface ObjectReadResult {
   contentType: string;
 }
 
+export interface ObjectCopyResult {
+  key: string;
+  /**
+   * `true` when the destination already held this copy's result — the same source version,
+   * committed by an earlier attempt whose answer was lost or by a concurrent identical
+   * copy; `false` when this call committed it.
+   */
+  alreadyPresent: boolean;
+}
+
+// Every copy records on its destination which source version it holds. A copy whose
+// destination already exists compares this record with its own, so it recognizes its
+// own earlier result and never mistakes another writer's object for it. The values are
+// URI-encoded because R2 carries custom metadata in HTTP headers, which must be ASCII.
+const COPY_SOURCE_METADATA_KEY = "copy-source";
+const COPY_SOURCE_VERSION_METADATA_KEY = "copy-source-version";
+
+type CopyProvenance = Record<typeof COPY_SOURCE_METADATA_KEY | typeof COPY_SOURCE_VERSION_METADATA_KEY, string>;
+
+function copyProvenance(fromKey: string, sourceVersion: string): CopyProvenance {
+  return {
+    [COPY_SOURCE_METADATA_KEY]: encodeURIComponent(fromKey),
+    [COPY_SOURCE_VERSION_METADATA_KEY]: encodeURIComponent(sourceVersion),
+  };
+}
+
+/** Whether an object's custom metadata, read through `readMetadata`, names exactly this provenance. */
+function holdsProvenance(readMetadata: (name: string) => unknown, provenance: CopyProvenance): boolean {
+  return Object.entries(provenance).every(([name, value]) => readMetadata(name) === value);
+}
+
+/** The content headers a copy carries from its source: HTTP header name → Cloud Storage field. */
+const CARRIED_CONTENT_HEADERS = {
+  "content-type": "contentType",
+  "cache-control": "cacheControl",
+  "content-disposition": "contentDisposition",
+  "content-encoding": "contentEncoding",
+} as const;
+
+type CarriedContentField = (typeof CARRIED_CONTENT_HEADERS)[keyof typeof CARRIED_CONTENT_HEADERS];
+
 export interface MediaObjectStore {
   /**
    * Upload a local file to the store at `key`. Objects are written with a
@@ -58,8 +113,16 @@ export interface MediaObjectStore {
    * an existing key would keep serving the old bytes from caches for up to a year.
    */
   putFile(args: { localPath: string; key: string; contentType?: string }): Promise<ObjectWriteResult>;
-  /** Server-side copy within the store. */
-  copy(args: { fromKey: string; toKey: string }): Promise<{ key: string }>;
+  /**
+   * Server-side copy within the store. It never overwrites and is idempotent: it commits
+   * only when `toKey` holds no object, in one call that writes the destination fully
+   * formed (the source version's bytes and content headers, its provenance, and this
+   * store's token policy). When `toKey` already holds this copy's result — a retry of
+   * the same copy of the same source version — it resolves with `alreadyPresent: true`;
+   * when it holds anything else, it throws `ObjectAlreadyExistsError` and leaves that
+   * object untouched. It never deletes anything.
+   */
+  copy(args: { fromKey: string; toKey: string }): Promise<ObjectCopyResult>;
   /**
    * Download an object's bytes from the store to a local file (streamed, so a
    * large video never sits fully in memory). Used by safety evidence capture to
@@ -124,6 +187,37 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
     return doFetch(signed, { ...(init.body ? { duplex: "half" } : {}) } as any);
   }
 
+  // A GET whose body is discarded unread, not a HEAD: a HEAD's error response carries no
+  // body, so the S3 error code that tells a missing key from a missing bucket would be lost.
+  async function readObjectHeaders(key: string): Promise<Headers> {
+    return fetchWithR2Retry({
+      operation: "copy",
+      bucket: args.bucket,
+      key,
+      seams,
+      runAttempt: async () => {
+        const res = await signedFetch(objectUrl(key), { method: "GET" });
+        if (!res.ok) return { kind: "response" as const, response: res };
+        await res.body?.cancel();
+        return { kind: "success" as const, value: res.headers };
+      },
+    });
+  }
+
+  // R2 exposes no object version id, so a source version is its ETag, last-modified time,
+  // and size together: replacing the source changes at least one of them unless the new
+  // content has the same MD5-derived ETag and lands within the same second. A multipart
+  // upload's ETag is not the content's MD5, but it is the same kind of version token.
+  function readSourceVersion(headers: Headers, key: string): { etag: string; version: string } {
+    const etag = headers.get("etag");
+    if (!etag) throw new UnreadableStorageObjectMetadataError(args.bucket, key, "etag");
+    const lastModified = headers.get("last-modified");
+    if (!lastModified) throw new UnreadableStorageObjectMetadataError(args.bucket, key, "lastModified");
+    const size = headers.get("content-length");
+    if (!size) throw new UnreadableStorageObjectMetadataError(args.bucket, key, "size");
+    return { etag, version: `${etag} ${lastModified} ${size}` };
+  }
+
   return {
     async putFile({ localPath, key, contentType }) {
       // stat() once, outside the retry loop: a missing input file is a
@@ -156,24 +250,55 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
     },
 
     async copy({ fromKey, toKey }) {
-      // Preserve the exact x-amz-copy-source across every re-signed attempt.
-      const copySource = `/${args.bucket}/${fromKey.split("/").map(encodeURIComponent).join("/")}`;
-      return fetchWithR2Retry({
-        operation: "copy",
-        bucket: args.bucket,
-        key: toKey,
-        seams,
-        runAttempt: async () => {
-          const res = await signedFetch(objectUrl(toKey), {
-            method: "PUT",
-            headers: { "x-amz-copy-source": copySource },
-          });
-          if (res.ok) {
-            return { kind: "success" as const, value: { key: toKey } };
-          }
-          return { kind: "response" as const, response: res };
-        },
-      });
+      const source = await readObjectHeaders(fromKey);
+      const { etag, version } = readSourceVersion(source, fromKey);
+      const provenance = copyProvenance(fromKey, version);
+      const headers: Record<string, string> = {
+        "x-amz-copy-source": `/${args.bucket}/${fromKey.split("/").map(encodeURIComponent).join("/")}`,
+        // Pins the copy to the source version the provenance names.
+        "x-amz-copy-source-if-match": etag,
+        // R2's destination-conditional CopyObject extension, checked when the copy commits;
+        // S3's x-amz-copy-source-if-* headers condition only the source.
+        "cf-copy-destination-if-none-match": "*",
+        // The destination takes exactly the headers below rather than the source's, so it
+        // commits fully formed in this one call.
+        "x-amz-metadata-directive": "REPLACE",
+      };
+      for (const name of Object.keys(CARRIED_CONTENT_HEADERS)) {
+        const value = source.get(name);
+        if (value !== null) headers[name] = value;
+      }
+      for (const [name, value] of Object.entries(provenance)) headers[`x-amz-meta-${name}`] = value;
+
+      try {
+        await fetchWithR2Retry({
+          operation: "copy",
+          bucket: args.bucket,
+          key: toKey,
+          seams,
+          runAttempt: async () => {
+            const res = await signedFetch(objectUrl(toKey), { method: "PUT", headers });
+            if (res.ok) return { kind: "success" as const, value: undefined };
+            return { kind: "response" as const, response: res };
+          },
+        });
+        return { key: toKey, alreadyPresent: false };
+      } catch (e) {
+        if (!(e instanceof R2StorageError && e.status === 412)) throw e;
+        // R2 answers 412 both for an existing destination and for a source that changed
+        // after it was read; only an existing destination can be this copy's result.
+        let destination: Headers;
+        try {
+          destination = await readObjectHeaders(toKey);
+        } catch (readError) {
+          if (isObjectNotFoundError(readError)) throw e;
+          throw readError;
+        }
+        if (holdsProvenance((name) => destination.get(`x-amz-meta-${name}`), provenance)) {
+          return { key: toKey, alreadyPresent: true };
+        }
+        throw new ObjectAlreadyExistsError(toKey);
+      }
     },
 
     async readToFile({ key, localPath }) {
@@ -209,7 +334,14 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
       const res = await signedFetch(objectUrl(key), { method: "DELETE" });
       // S3 DELETE returns 204 even for missing keys; anything else non-ok is real.
       if (!res.ok && res.status !== 404) {
-        throw new Error(`R2 delete failed for ${key}: ${res.status} ${await safeText(res)}`);
+        throw new R2StorageError({
+          operation: "delete",
+          bucket: args.bucket,
+          key,
+          attempts: 1,
+          status: res.status,
+          responseText: await safeText(res),
+        });
       }
     },
   };
@@ -279,34 +411,41 @@ function createFirebaseStore(bucket: Bucket, downloadToken: string | null): Medi
     },
 
     async copy({ fromKey, toKey }) {
-      const [, rewrite] = await bucket.file(fromKey).copy(bucket.file(toKey));
-      // A copy carries the source's custom metadata, token included. Stamp the
-      // destination with this store's policy: the fixed token, or `null`, which
-      // deletes any token the source carried. Pinning the stamp to the rewritten
-      // object's metageneration makes it conditionally idempotent, so the
-      // library retries transient failures instead of giving up after one try.
-      const metageneration = (rewrite as { resource?: { metageneration?: string | number } } | undefined)
-        ?.resource?.metageneration;
-      try {
-        await bucket.file(toKey).setMetadata(
-          { metadata: { [DOWNLOAD_TOKENS_METADATA_KEY]: downloadToken } },
-          metageneration === undefined ? {} : { ifMetagenerationMatch: metageneration },
-        );
-      } catch (stampError) {
-        // Never leave the destination live under the wrong token policy: remove
-        // it and fail the copy, so the caller retries the whole copy.
-        try {
-          await deleteObject(toKey);
-        } catch (cleanupError) {
-          throw new AggregateError(
-            [stampError, cleanupError],
-            `Copy to ${toKey}: stamping download-token metadata failed and the destination could not be removed`,
-            { cause: cleanupError },
-          );
-        }
-        throw stampError;
+      const [source] = await bucket.file(fromKey).getMetadata();
+      const generation = requireStorageObjectGeneration(source, { bucket: bucket.name, key: fromKey });
+      const provenance = copyProvenance(fromKey, generation);
+      const contentHeaders: Partial<Record<CarriedContentField, string>> = {};
+      for (const field of Object.values(CARRIED_CONTENT_HEADERS)) {
+        const value = source[field];
+        if (typeof value === "string" && value !== "") contentHeaders[field] = value;
       }
-      return { key: toKey };
+      try {
+        // A rewrite's resource REPLACES the destination's metadata rather than merging with
+        // the source's, so this one call commits the destination fully formed: the source's
+        // content headers, the provenance, and this store's token policy — never a token the
+        // source carried. The source is pinned to the generation the provenance names, so a
+        // 412 can only mean the destination exists; a replaced source fails as not-found.
+        await bucket.file(fromKey, { generation }).copy(bucket.file(toKey), {
+          ...contentHeaders,
+          metadata: downloadToken === null ? provenance : { ...provenance, [DOWNLOAD_TOKENS_METADATA_KEY]: downloadToken },
+          preconditionOpts: { ifGenerationMatch: 0 },
+        });
+        return { key: toKey, alreadyPresent: false };
+      } catch (e) {
+        if (!isPreconditionFailedError(e)) throw e;
+        let destinationMetadata: Record<string, unknown> | undefined;
+        try {
+          const [destination] = await bucket.file(toKey).getMetadata();
+          destinationMetadata = destination.metadata ?? undefined;
+        } catch (readError) {
+          if (isObjectNotFoundError(readError)) throw e;
+          throw readError;
+        }
+        if (holdsProvenance((name) => destinationMetadata?.[name], provenance)) {
+          return { key: toKey, alreadyPresent: true };
+        }
+        throw new ObjectAlreadyExistsError(toKey);
+      }
     },
 
     async readToFile({ key, localPath }) {
@@ -320,6 +459,11 @@ function createFirebaseStore(bucket: Bucket, downloadToken: string | null): Medi
 
     delete: deleteObject,
   };
+}
+
+/** The Cloud Storage Admin SDK's numeric `412`: a generation precondition did not hold. */
+function isPreconditionFailedError(e: unknown): boolean {
+  return (e as { code?: unknown } | null | undefined)?.code === 412;
 }
 
 // ---------------------------------------------------------------------------

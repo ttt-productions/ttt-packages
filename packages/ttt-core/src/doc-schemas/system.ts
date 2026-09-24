@@ -11,8 +11,9 @@ import { PublicDocumentVersionBlockSchema } from './public-documents.js';
 
 // Its write rule is `mergeAppConfigUpdate` (../utils/app-config.ts): an update over the doc as
 // read, any missing field from DEFAULT_APP_CONFIG, the whole doc validated against this schema.
-// Every text lever carries the same cap as its UpdateAppConfigInputSchema field, so no writer
-// can store a value the update input would refuse.
+// Its read rule is `readAppConfigLever` (same file): a lever this schema's field refuses reads as
+// its DEFAULT_APP_CONFIG value. Every text lever carries the same cap as its
+// UpdateAppConfigInputSchema field, so no writer can store a value the update input would refuse.
 export const AppConfigSchema = z.object({
   // '' (DEFAULT_APP_CONFIG) is valid here — no version published; only the update input
   // requires a non-empty value.

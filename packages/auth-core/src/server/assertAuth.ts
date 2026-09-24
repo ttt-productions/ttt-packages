@@ -12,6 +12,7 @@
 
 import type { CallableRequest } from "firebase-functions/v2/https";
 import { ACCEPTANCE_REQUIRED_REASON, normalizeAcceptanceLevel } from "../acceptance.js";
+import { EMAIL_VERIFICATION_REQUIRED_REASON } from "../email-verification.js";
 import { AuthAssertionError } from "./authError.js";
 import type {
   AssertAuthConfig,
@@ -35,13 +36,16 @@ export function createAssertAuth<TUser, TAdmin = void>(
     const uid = request.auth.uid;
     const token = request.auth.token;
 
-    // 2. Email verification check
+    // 2. Email verification check. The refusal carries its reason in `details`, so the client
+    // recognizes it structurally (`isEmailVerificationRequiredError`), never by the message.
     if (
       requirements.emailVerified === true &&
       requirements.allowUnverified !== true
     ) {
       if (token.email_verified !== true) {
-        throw new AuthAssertionError("failed-precondition", "Email must be verified");
+        throw new AuthAssertionError("failed-precondition", "Email must be verified", {
+          reason: EMAIL_VERIFICATION_REQUIRED_REASON,
+        });
       }
     }
 

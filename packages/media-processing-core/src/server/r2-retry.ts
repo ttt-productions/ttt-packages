@@ -29,6 +29,9 @@ export const R2_RETRYABLE_STATUSES: ReadonlySet<number> = new Set([408, 429, 500
 
 export type R2RetryableOperation = "putFile" | "copy" | "readToFile";
 
+/** Every R2 store operation an `R2StorageError` can name; `delete` is one-shot. */
+export type R2Operation = R2RetryableOperation | "delete";
+
 /** Deterministic seams for tests; production defaults are internal (see below). */
 export interface R2RetrySeams {
   /** Resolve after `ms` milliseconds. */
@@ -189,21 +192,29 @@ export function computeR2DelayMs(params: {
 // ---------------------------------------------------------------------------
 
 /**
- * Thrown when an R2 operation exhausts its retries or hits a non-retryable
- * response. Carries operation/bucket/key/attempt/status context and a
- * bounded, sanitized response body — never credentials, authorization headers,
- * or full signed URLs.
+ * Thrown when an R2 operation fails: a retried operation exhausts its attempts or
+ * hits a non-retryable response, or a one-shot delete fails. Carries
+ * operation/bucket/key/attempt/status context, the S3 error code parsed from the
+ * response body, and the bounded body itself as properties — never credentials,
+ * authorization headers, or full signed URLs. Callers classify it from those
+ * properties, never from the message.
+ *
+ * The message names only the operation, the attempts, the status, and the S3 error
+ * code. The bucket, the key, and the raw body — which can echo either — stay out of
+ * it, so an escaping error never carries an object key to monitoring.
  */
 export class R2StorageError extends Error {
-  readonly operation: R2RetryableOperation;
+  readonly operation: R2Operation;
   readonly bucket: string;
   readonly key: string;
   readonly attempts: number;
   readonly status?: number;
+  /** The S3 `<Code>` of the response body (`NoSuchKey`, `PreconditionFailed`, …), when it had one. */
+  readonly s3ErrorCode?: string;
   readonly responseText?: string;
 
   constructor(params: {
-    operation: R2RetryableOperation;
+    operation: R2Operation;
     bucket: string;
     key: string;
     attempts: number;
@@ -211,10 +222,10 @@ export class R2StorageError extends Error {
     responseText?: string;
     cause?: unknown;
   }) {
-    const statusPart = params.status !== undefined ? ` status ${params.status}` : "";
-    const bodyPart = params.responseText ? ` ${params.responseText}` : "";
+    const code = parseS3ErrorCode(params.responseText);
+    const detail = [params.status !== undefined ? `status ${params.status}` : undefined, code].filter(Boolean).join(" ");
     super(
-      `R2 ${params.operation} failed for ${params.bucket}/${params.key} after ${params.attempts} attempt(s):${statusPart}${bodyPart}`.trim(),
+      `R2 ${params.operation} failed after ${params.attempts} attempt(s)${detail ? `: ${detail}` : ""}`,
       params.cause !== undefined ? { cause: params.cause } : undefined,
     );
     this.name = "R2StorageError";
@@ -223,8 +234,14 @@ export class R2StorageError extends Error {
     this.key = params.key;
     this.attempts = params.attempts;
     this.status = params.status;
+    this.s3ErrorCode = code;
     this.responseText = params.responseText;
   }
+}
+
+/** The `<Code>` of an S3 XML error body; only a plain alphanumeric token is taken. */
+function parseS3ErrorCode(responseText: string | undefined): string | undefined {
+  return responseText ? /<Code>([A-Za-z0-9]{1,64})<\/Code>/.exec(responseText)?.[1] : undefined;
 }
 
 // ---------------------------------------------------------------------------

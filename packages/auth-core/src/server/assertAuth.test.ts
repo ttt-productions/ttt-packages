@@ -7,6 +7,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createAssertAuth } from "./assertAuth.js";
 import { AuthAssertionError } from "./authError.js";
 import { ACCEPTANCE_REQUIRED_REASON, isAcceptanceRequiredError } from "../acceptance.js";
+import {
+  EMAIL_VERIFICATION_REQUIRED_REASON,
+  isEmailVerificationRequiredError,
+} from "../email-verification.js";
 import type { AssertAuthConfig, UserStatus } from "./types.js";
 
 type TestUser = {
@@ -138,6 +142,21 @@ describe("Email verification", () => {
         allowAnyStatus: true,
       })
     ).rejects.toMatchObject({ code: "failed-precondition" });
+  });
+
+  it("carries the email-verification reason in details, with the message unchanged", async () => {
+    const err = await assertAuth(makeRequest({ emailVerified: false }), {
+      emailVerified: true,
+      allowAnyStatus: true,
+    }).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AuthAssertionError);
+    expect(err).toMatchObject({
+      code: "failed-precondition",
+      message: "Email must be verified",
+      details: { reason: EMAIL_VERIFICATION_REQUIRED_REASON },
+    });
+    expect(isEmailVerificationRequiredError(err)).toBe(true);
+    expect(isAcceptanceRequiredError(err)).toBe(false);
   });
 
   it("succeeds when emailVerified required and token email_verified is true", async () => {
@@ -346,6 +365,7 @@ describe("Acceptance-level gate", () => {
       details: { reason: ACCEPTANCE_REQUIRED_REASON, requiredLevel: 3, acceptedLevel: 2 },
     });
     expect(isAcceptanceRequiredError(err)).toBe(true);
+    expect(isEmailVerificationRequiredError(err)).toBe(false);
   });
 
   it("treats a missing claim as accepted level 0", async () => {
@@ -431,7 +451,17 @@ describe("Acceptance-level gate", () => {
   });
 
   it("leaves `details` undefined on every other rejection", async () => {
-    const err = (await assertAuth(makeUnauthRequest()).catch((e: unknown) => e)) as AuthAssertionError;
-    expect(err.details).toBeUndefined();
+    const unauthenticated = (await assertAuth(makeUnauthRequest()).catch((e: unknown) => e)) as AuthAssertionError;
+    expect(unauthenticated.details).toBeUndefined();
+
+    mockUserGet.mockResolvedValue({ exists: false, data: () => null });
+    const missingProfile = (await assertAuth(makeRequest()).catch((e: unknown) => e)) as AuthAssertionError;
+    expect(missingProfile.code).toBe("not-found");
+    expect(missingProfile.details).toBeUndefined();
+
+    mockUserGet.mockResolvedValue({ exists: true, data: () => ({ ...activeUserDoc, status: "banned" }) });
+    const banned = (await assertAuth(makeRequest()).catch((e: unknown) => e)) as AuthAssertionError;
+    expect(banned.code).toBe("permission-denied");
+    expect(banned.details).toBeUndefined();
   });
 });

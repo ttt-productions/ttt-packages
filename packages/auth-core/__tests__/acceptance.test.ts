@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   ACCEPTANCE_REQUIRED_REASON,
+  EMAIL_VERIFICATION_REQUIRED_REASON,
   isAcceptanceRequiredDetails,
   isAcceptanceRequiredError,
   normalizeAcceptanceLevel,
@@ -56,6 +57,13 @@ describe('isAcceptanceRequiredError', () => {
   it('rejects another failed-precondition (e.g. an unverified email)', () => {
     expect(isAcceptanceRequiredError({ code: 'failed-precondition', message: 'Email must be verified' })).toBe(false);
   });
+
+  it.each([['failed-precondition'], ['functions/failed-precondition']])(
+    'rejects the email-verification refusal (%s)',
+    (code) => {
+      expect(isAcceptanceRequiredError({ code, details: { reason: EMAIL_VERIFICATION_REQUIRED_REASON } })).toBe(false);
+    },
+  );
 
   it('rejects a different code carrying the same details', () => {
     expect(isAcceptanceRequiredError({ code: 'permission-denied', details })).toBe(false);

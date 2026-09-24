@@ -49,11 +49,12 @@ export function stagedObjectGenerationFromMetadata(metadata: {
 }
 
 /** The stored-object metadata field an `UnreadableStorageObjectMetadataError` names. */
-export type StorageObjectMetadataField = "generation" | "size";
+export type StorageObjectMetadataField = "generation" | "size" | "etag" | "lastModified";
 
 /**
- * A storage object whose metadata has no readable generation or byte size. GCS, the Storage
- * emulator, and a Storage finalize event always carry both, so this is an anomaly to surface,
+ * A storage object whose metadata lacks a field its backend always reports: a Cloud Storage
+ * generation or byte size (GCS, the Storage emulator, and a Storage finalize event carry
+ * both), or an R2 object's ETag, last-modified time, or size. This is an anomaly to surface,
  * never to paper over with a placeholder. The bucket and key are PROPERTIES, never message
  * text: an escaping error reaches monitoring, and an object key must not.
  */

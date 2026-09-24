@@ -1,4 +1,5 @@
 import type { AcceptanceRequiredDetails } from "../acceptance.js";
+import type { EmailVerificationRequiredDetails } from "../email-verification.js";
 
 /**
  * Typed failure channel for `createAssertAuth`.
@@ -43,15 +44,18 @@ export type AuthAssertionErrorCode =
   | "permission-denied";
 
 /**
- * Structured details an `AuthAssertionError` may carry. Today the only one is the
- * acceptance refusal (`reason: 'acceptance-required'`), so the app forwards `details` as the
- * `HttpsError` details and the client recognizes the refusal with `isAcceptanceRequiredError`:
+ * Structured details an `AuthAssertionError` may carry — one per refusal the client answers
+ * with a surface of its own, each told apart by `reason`: the email-verification refusal
+ * (`reason: 'email-verification-required'`, recognized by `isEmailVerificationRequiredError`)
+ * and the acceptance refusal (`reason: 'acceptance-required'`, recognized by
+ * `isAcceptanceRequiredError`). The app forwards `details` as the `HttpsError` details so the
+ * client can recognize them:
  *
  *   throw new HttpsError(err.code, err.message, err.details);
  *
  * Every other rejection leaves `details` undefined.
  */
-export type AuthAssertionErrorDetails = AcceptanceRequiredDetails;
+export type AuthAssertionErrorDetails = AcceptanceRequiredDetails | EmailVerificationRequiredDetails;
 
 export class AuthAssertionError extends Error {
   readonly code: AuthAssertionErrorCode;
