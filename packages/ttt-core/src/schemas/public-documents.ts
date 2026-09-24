@@ -34,6 +34,26 @@ const baseVersionSchema = z.number().int().nonnegative();
 const distinctVersionRefs = (refs: readonly PublicDocumentVersionRef[]) =>
   new Set(refs.map((ref) => ref.documentId)).size === refs.length;
 
+/**
+ * The document/version pairs a surface SHOWED before the person agreed — the acceptance prompt
+ * (`acceptPublicDocuments`) and the signup page (`registerUser`). Each document at most once. It
+ * is never authority: the server re-reads the version block in its transaction and compares this
+ * with what is current now (`samePublicDocumentVersions`); a difference means a publish raced
+ * what was shown.
+ */
+export const ShownPublicDocumentVersionsSchema = z
+  .array(PublicDocumentVersionRefSchema)
+  .max(PUBLIC_DOCUMENT_IDS.length)
+  .refine(distinctVersionRefs, { message: 'List each document once.' });
+
+/**
+ * The answer when a publish raced what the surface showed: nothing was written. The surface
+ * reads the version block live, so it shows the current versions and asks again.
+ */
+export const PublicDocumentsRefreshRequiredResultSchema = z.object({
+  status: z.literal('refreshRequired'),
+});
+
 // ── Save a working copy ──────────────────────────────────────────────────────
 
 /**
@@ -122,10 +142,7 @@ export type PublishPublicDocumentReleaseResult = z.infer<typeof PublishPublicDoc
  * the prompt asks again. Idempotent.
  */
 export const AcceptPublicDocumentsInputSchema = z.object({
-  documents: z
-    .array(PublicDocumentVersionRefSchema)
-    .max(PUBLIC_DOCUMENT_IDS.length)
-    .refine(distinctVersionRefs, { message: 'List each document once.' }),
+  documents: ShownPublicDocumentVersionsSchema,
 }).strict();
 export type AcceptPublicDocumentsInput = z.infer<typeof AcceptPublicDocumentsInputSchema>;
 
@@ -135,10 +152,7 @@ export const AcceptPublicDocumentsResultSchema = z.discriminatedUnion('status', 
     /** The level now on the private summary and the `docsAccepted` claim (refresh the token). */
     acceptedLevel: PublicDocumentAcceptanceLevelSchema,
   }),
-  z.object({
-    /** A publish raced the prompt: what it showed is no longer current. Nothing was written. */
-    status: z.literal('refreshRequired'),
-  }),
+  PublicDocumentsRefreshRequiredResultSchema,
 ]);
 export type AcceptPublicDocumentsResult = z.infer<typeof AcceptPublicDocumentsResultSchema>;
 

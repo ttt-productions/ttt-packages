@@ -1,3 +1,4 @@
+export * from './app-config.js';
 export * from './format.js';
 export * from './hall-content.js';
 export * from './password.js';

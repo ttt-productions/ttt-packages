@@ -118,6 +118,15 @@ TTT Productions application-data package.
   `publicDocuments.accepted` audit payloads (`schemas/public-documents`); the empty seed-callable
   inputs, one per document (`schemas/utility`); and the pure versioning and comparison rules,
   including the Square agreements rule (`utils/public-documents`).
+- **The `_appConfig/app` singleton at rest** (`utils/app-config`, root + `./utils`):
+  `DEFAULT_APP_CONFIG`, every operator lever at its open value (maintenance off, registration
+  open, no banner, no throttle, and `appVersion` `''` — no version published, so VersionGate stays
+  dormant until an operator sets a real one), and `mergeAppConfigUpdate(existing, update)`, the
+  one write rule: the update over the doc as read, missing fields from the default, validated
+  whole against `AppConfigSchema` (it throws rather than return an invalid doc). A backend writer
+  that writes its result can never leave a doc missing its required fields, even as the first
+  write into a fresh or wiped environment; readers derive their fallbacks from the same default.
+  The release-owned version block has no default — it is absent until the first release.
 - **Craft-skill kind copy and launch blocks** (`constants/craft-skill-statements`): the verbatim
   agreement statements, kind labels and order, and the ONE owner of which kinds are blocked at
   launch — `CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES`, the refusal copy keyed by kind. The blocked
@@ -247,7 +256,12 @@ durable rules:
   notice revision) is the person's side, and the `docsAccepted` claim mirrors the accepted
   level for the backend gate. `changedPublicDocuments` is the one "what changed for this person"
   rule — the prompt shows exactly that list and the accept callable compares what the prompt
-  showed with it, so a publish racing the prompt is detected. The prompt's agreement line is
+  showed with it, so a publish racing the prompt is detected. Registration makes the same
+  comparison: `RegisterUserInput.publicDocuments` is the list the signup page showed
+  (`changedPublicDocuments(block, undefined)` — empty before the first release, which is what
+  keeps first-admin bootstrap working), in the one `ShownPublicDocumentVersionsSchema` shape the
+  Accept input uses, and a mismatch answers `refreshRequired` and writes nothing. Both results
+  share `PublicDocumentsRefreshRequiredResultSchema` as their refusal arm. The prompt's agreement line is
   `PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT`, independent of the notice. Acceptance history is
   only the append-only `publicDocuments.accepted` audit events.
 - **Square agreements.** The Square card incorporates the Rules & Agreements page by reference.

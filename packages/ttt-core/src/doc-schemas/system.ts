@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { MAX_ANNOUNCEMENT_MESSAGE_LENGTH } from '../constants/business-admin.js';
 import { PublicDocumentVersionBlockSchema } from './public-documents.js';
 
+// Its write rule is `mergeAppConfigUpdate` (../utils/app-config.ts): an update over the doc as
+// read, any missing field from DEFAULT_APP_CONFIG, the whole doc validated against this schema.
 export const AppConfigSchema = z.object({
   appVersion: z.string(),
   maintenanceMode: z.boolean(),

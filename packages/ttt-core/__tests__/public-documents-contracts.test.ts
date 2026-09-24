@@ -41,6 +41,8 @@ import {
   PublicDocumentsReleasedAuditPayloadSchema,
   PublicDocumentsAcceptedAuditPayloadSchema,
 } from '../src/schemas/public-documents';
+import { RegisterUserInputSchema, RegisterUserResultSchema } from '../src/schemas/users';
+import { changedPublicDocuments, planPublicDocumentRelease, samePublicDocumentVersions } from '../src/utils/public-documents';
 import { CreateStripeCheckoutSessionInputSchema } from '../src/schemas/payments';
 import { SubmitForThresholdLibraryReviewInputSchema } from '../src/schemas/hall-library';
 import * as schemasBarrel from '../src/schemas';
@@ -389,6 +391,79 @@ describe('callable inputs', () => {
     ]) {
       expect(name in schemasBarrel, name).toBe(false);
     }
+  });
+});
+
+describe('registration carries the versions the signup page showed', () => {
+  const registration = {
+    displayName: 'NewMember',
+    agreements: { age: true, nudity: true, meet: true, cookies: true, terms: true },
+  } as const;
+
+  it('requires the shown list — a registration can no longer omit what it agreed to', () => {
+    expect(RegisterUserInputSchema.safeParse(registration).success).toBe(false);
+    expect(
+      RegisterUserInputSchema.safeParse({
+        ...registration,
+        publicDocuments: [
+          { documentId: TERMS, version: 2 },
+          { documentId: DMCA, version: 1 },
+        ],
+      }).success,
+    ).toBe(true);
+  });
+
+  it('first-admin bootstrap: before any release the page shows nothing, and that matches', () => {
+    const shown = changedPublicDocuments(undefined, undefined);
+    expect(shown).toEqual([]);
+    expect(RegisterUserInputSchema.safeParse({ ...registration, publicDocuments: shown }).success).toBe(true);
+    expect(samePublicDocumentVersions(shown, changedPublicDocuments(undefined, undefined))).toBe(true);
+  });
+
+  it('takes the same list shape as the Accept input — each document once, published versions only', () => {
+    expect(
+      RegisterUserInputSchema.safeParse({
+        ...registration,
+        publicDocuments: [
+          { documentId: TERMS, version: 2 },
+          { documentId: TERMS, version: 1 },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      RegisterUserInputSchema.safeParse({ ...registration, publicDocuments: [{ documentId: TERMS, version: 0 }] }).success,
+    ).toBe(false);
+    expect(
+      RegisterUserInputSchema.safeParse({ ...registration, publicDocuments: [{ documentId: 'cookiePolicy', version: 1 }] })
+        .success,
+    ).toBe(false);
+    // The client never names a level.
+    expect(
+      RegisterUserInputSchema.safeParse({ ...registration, publicDocuments: [], acceptedLevel: 1 }).success,
+    ).toBe(false);
+  });
+
+  it('a release racing the signup page is detected by the one comparison rule', () => {
+    const first = planPublicDocumentRelease(undefined, [TERMS, RULES], true);
+    const shown = changedPublicDocuments(first.block, undefined);
+    expect(samePublicDocumentVersions(shown, changedPublicDocuments(first.block, undefined))).toBe(true);
+    const raced = planPublicDocumentRelease(first.block, [TERMS], false);
+    expect(samePublicDocumentVersions(shown, changedPublicDocuments(raced.block, undefined))).toBe(false);
+  });
+
+  it('answers registered or refreshRequired — the same refusal arm as Accept', () => {
+    expect(RegisterUserResultSchema.safeParse({ status: 'registered' }).success).toBe(true);
+    expect(RegisterUserResultSchema.safeParse({ status: 'refreshRequired' }).success).toBe(true);
+    expect(AcceptPublicDocumentsResultSchema.safeParse({ status: 'refreshRequired' }).success).toBe(true);
+    expect(RegisterUserResultSchema.safeParse({ success: true }).success).toBe(false);
+    expect(RegisterUserResultSchema.safeParse({ status: 'accepted', acceptedLevel: 1 }).success).toBe(false);
+  });
+
+  it('both callables are importable from the one schemas subpath', () => {
+    expect(schemasBarrel.RegisterUserInputSchema).toBe(RegisterUserInputSchema);
+    expect(schemasBarrel.RegisterUserResultSchema).toBe(RegisterUserResultSchema);
+    expect(schemasBarrel.ShownPublicDocumentVersionsSchema).toBe(AcceptPublicDocumentsInputSchema.shape.documents);
+    expect(RegisterUserInputSchema.shape.publicDocuments).toBe(AcceptPublicDocumentsInputSchema.shape.documents);
   });
 });
 

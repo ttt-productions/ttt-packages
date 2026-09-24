@@ -9,6 +9,10 @@ import {
   MAX_USER_SEARCH_QUERY_LENGTH,
 } from '../constants/business.js';
 import { UserAccountStatusSchema } from '../doc-schemas/user.js';
+import {
+  ShownPublicDocumentVersionsSchema,
+  PublicDocumentsRefreshRequiredResultSchema,
+} from './public-documents.js';
 
 /** The ONE composed display-name field validator (length bounds + charset). Every
  * callable accepting a display name spreads this — never a re-composed copy. */
@@ -151,8 +155,22 @@ export const RegisterUserInputSchema = z.object({
     cookies: z.literal(true),
     terms: z.literal(true),
   }).strict(),
+  // The public-document versions the signup page SHOWED when the person agreed: every published
+  // document at its current version, `changedPublicDocuments(block, undefined)` off the live
+  // `_appConfig/app` version block. Empty before the first release (the first-admin bootstrap).
+  // Registration re-reads the block in its transaction and answers `refreshRequired`, writing
+  // nothing, when a publish raced the page — the same comparison the acceptance prompt's Accept makes.
+  publicDocuments: ShownPublicDocumentVersionsSchema,
 }).strict();
 export type RegisterUserInput = z.infer<typeof RegisterUserInputSchema>;
+
+export const RegisterUserResultSchema = z.discriminatedUnion('status', [
+  // The account is registered with the documents shown accepted (or already was — an idempotent
+  // replay). Refresh the token: the `docsAccepted` claim was set after the commit.
+  z.object({ status: z.literal('registered') }),
+  PublicDocumentsRefreshRequiredResultSchema,
+]);
+export type RegisterUserResult = z.infer<typeof RegisterUserResultSchema>;
 
 export const SetUserStatusInputSchema = z.object({
   userId: userIdSchema,
