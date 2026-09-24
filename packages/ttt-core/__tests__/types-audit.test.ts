@@ -41,6 +41,8 @@ describe('audit type catalog', () => {
       // versioned public documents: the release and the (only) acceptance history
       'publicDocuments.released',
       'publicDocuments.accepted',
+      // the Square posting agreements acceptance
+      'social.squareStreetzAgreementsAccepted',
     ];
     expectTypeOf(sample).toEqualTypeOf<AuditEventType[]>();
   });

@@ -41,7 +41,13 @@ import {
   PublicDocumentsReleasedAuditPayloadSchema,
   PublicDocumentsAcceptedAuditPayloadSchema,
 } from '../src/schemas/public-documents';
-import { RegisterUserInputSchema, RegisterUserResultSchema } from '../src/schemas/users';
+import {
+  RegisterUserInputSchema,
+  RegisterUserResultSchema,
+  SquareStreetzAgreementsAcceptedAuditPayloadSchema,
+} from '../src/schemas/users';
+import { PublicDocumentVersionOrNoneSchema } from '../src/doc-schemas/public-documents';
+import * as docSchemasBarrel from '../src/doc-schemas';
 import { changedPublicDocuments, planPublicDocumentRelease, samePublicDocumentVersions } from '../src/utils/public-documents';
 import { CreateStripeCheckoutSessionInputSchema } from '../src/schemas/payments';
 import { SubmitForThresholdLibraryReviewInputSchema } from '../src/schemas/hall-library';
@@ -278,6 +284,15 @@ describe('private acceptance summary', () => {
     expect(field.safeParse(-1).success).toBe(false);
   });
 
+  it('records the Square agreements\' Rules version as the canonical version-or-none value', () => {
+    const field = UserPrivateDataSchema.shape.squareStreetzAgreementsVersion;
+    expect(field.safeParse(3).success).toBe(true);
+    expect(field.safeParse(0).success).toBe(true);
+    expect(field.safeParse(undefined).success).toBe(true);
+    expect(field.safeParse(-1).success).toBe(false);
+    expect(field.safeParse(1.5).success).toBe(false);
+  });
+
   it('charterSignupMember is gone — Charter signup is derived from createdAt vs the flip', () => {
     expect(Object.keys(FullUserSchema.shape)).not.toContain('charterSignupMember');
   });
@@ -493,6 +508,33 @@ describe('audit payloads', () => {
         .success,
     ).toBe(true);
     expect(PublicDocumentsAcceptedAuditPayloadSchema.safeParse({ ...payload, acceptedVia: 'popup' }).success).toBe(false);
+  });
+
+  it('social.squareStreetzAgreementsAccepted — the Rules version accepted and the one it replaced (or null)', () => {
+    const payload = { acceptedVersion: 3, previousAcceptedVersion: 2 };
+    expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse(payload).success).toBe(true);
+    // The first acceptance replaces nothing; before any Rules release the version accepted is 0.
+    expect(
+      SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({ acceptedVersion: 0, previousAcceptedVersion: null }).success,
+    ).toBe(true);
+    // Both versions are the canonical version-or-none value, never a bare number.
+    expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.shape.acceptedVersion).toBe(PublicDocumentVersionOrNoneSchema);
+    for (const version of [-1, 1.5, '3', null]) {
+      expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({ ...payload, acceptedVersion: version }).success).toBe(false);
+    }
+    for (const version of [-1, 1.5, '2', undefined]) {
+      expect(
+        SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({ ...payload, previousAcceptedVersion: version }).success,
+      ).toBe(false);
+    }
+    expect(SquareStreetzAgreementsAcceptedAuditPayloadSchema.safeParse({ ...payload, acceptedAt: 1 }).success).toBe(false);
+  });
+
+  it('the Square agreements payload is importable from the one schemas subpath', () => {
+    expect(schemasBarrel.SquareStreetzAgreementsAcceptedAuditPayloadSchema).toBe(
+      SquareStreetzAgreementsAcceptedAuditPayloadSchema,
+    );
+    expect(docSchemasBarrel.PublicDocumentVersionOrNoneSchema).toBe(PublicDocumentVersionOrNoneSchema);
   });
 });
 

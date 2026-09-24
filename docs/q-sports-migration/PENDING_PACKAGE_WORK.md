@@ -31,16 +31,4 @@ Each entry is one `###` heading naming the change, then:
 
 ## Entries
 
-### A copy that can't clobber an existing destination
-
-- **Packages:** `media-processing-core`.
-- **What changes and why:** `MediaObjectStore.copy({ fromKey, toKey })` has no destination
-  precondition, and on a failed copy it deletes the file it was writing. When two identical
-  signing calls race, the losing call can delete the destination the winner's record already
-  points to. The copy should take an if-absent precondition (`ifGenerationMatch: 0`) and never
-  delete a destination it did not create.
-- **Skipped in Q-Sports:** the waiver and hardware signing paths (Units 5 and 12) and
-  `promoteStagedSignature` in `UPLOADS_AND_MEDIA.md` § Signatures are not built until this change
-  is published and installed.
-- **How Q-Sports adopts:** the signing cores pass the if-absent option, and a losing call reads the
-  winner's record and acknowledges it.
+None.

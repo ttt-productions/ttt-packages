@@ -32,8 +32,11 @@ export const PublicDocumentIdSchema = z.enum(PUBLIC_DOCUMENT_IDS);
 /** A published version number: v1 is the first. */
 export const PublicDocumentVersionNumberSchema = z.number().int().positive();
 
-/** A version reference where 0 means "none yet" (never accepted / never required / no base). */
-const versionOrNoneSchema = z.number().int().nonnegative();
+/**
+ * A version reference where 0 means "none yet" (never accepted / never required / no base / never
+ * published). Every recorded "which version was accepted" field derives from it.
+ */
+export const PublicDocumentVersionOrNoneSchema = z.number().int().nonnegative();
 
 /** An acceptance level: 0 = nothing required / nothing accepted; each requiring release adds 1. */
 export const PublicDocumentAcceptanceLevelSchema = z.number().int().nonnegative();
@@ -132,7 +135,7 @@ export type PublicDocumentVersion = z.infer<typeof PublicDocumentVersionSchema>;
  * current version, and one whose content equals the current version.
  */
 export const PublicDocumentDraftSchema = perDocument({
-  baseVersion: versionOrNoneSchema,
+  baseVersion: PublicDocumentVersionOrNoneSchema,
   savedBy: z.string().min(1),
   savedAt: z.number(),
 });
@@ -164,7 +167,7 @@ export type PublicDocumentRelease = z.infer<typeof PublicDocumentReleaseSchema>;
 export const PublicDocumentVersionStateSchema = z
   .object({
     currentVersion: PublicDocumentVersionNumberSchema,
-    requiredVersion: versionOrNoneSchema,
+    requiredVersion: PublicDocumentVersionOrNoneSchema,
   })
   .strict()
   .refine((state) => state.requiredVersion <= state.currentVersion, {
@@ -196,7 +199,7 @@ export type PublicDocumentVersionBlock = z.infer<typeof PublicDocumentVersionBlo
  */
 export const PublicDocumentAcceptanceSchema = z
   .object({
-    documentVersions: z.partialRecord(PublicDocumentIdSchema, versionOrNoneSchema),
+    documentVersions: z.partialRecord(PublicDocumentIdSchema, PublicDocumentVersionOrNoneSchema),
     acceptedLevel: PublicDocumentAcceptanceLevelSchema,
     legalReviewNoticeRevision: LegalReviewNoticeRevisionSchema.optional(),
     acceptedAt: z.number(),

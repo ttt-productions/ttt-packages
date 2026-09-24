@@ -11,7 +11,7 @@ import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
 import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 import { calendarDateSchema } from '../schemas/atoms.js';
-import { PublicDocumentAcceptanceSchema } from './public-documents.js';
+import { PublicDocumentAcceptanceSchema, PublicDocumentVersionOrNoneSchema } from './public-documents.js';
 
 // The canonical stored media kind — declared once in doc-schemas/media-assets.ts.
 const mediaKindSchema = ContentMediaKindSchema;
@@ -270,11 +270,11 @@ export const UserPrivateDataSchema = z.object({
   squareStreetzAgreementsDate: z.number().optional(),
   // The rules-and-agreements `version` in force when the user accepted; 0 when no versioned
   // rules doc existed yet, so a later real version 1 still re-prompts.
-  squareStreetzAgreementsVersion: z.number().optional(),
+  squareStreetzAgreementsVersion: PublicDocumentVersionOrNoneSchema.optional(),
   // The rules-and-agreements version in force when the user accepted the Artisan upgrade's
   // agreement, read server-side in the grant transaction (the grant time is the profile's
   // `artisanCreator` stamp). Same 0 sentinel as `squareStreetzAgreementsVersion`.
-  artisanCreatorAgreementsVersion: z.number().int().nonnegative().optional(),
+  artisanCreatorAgreementsVersion: PublicDocumentVersionOrNoneSchema.optional(),
   // Epoch ms when the user accepted the one-time Hall download acknowledgement
   // (personal offline use only, no redistribution). Written server-side by the
   // acceptHallDownloadAcknowledgement callable; gates the Hall download button.

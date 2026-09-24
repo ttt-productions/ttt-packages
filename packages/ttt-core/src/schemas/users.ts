@@ -9,6 +9,7 @@ import {
   MAX_USER_SEARCH_QUERY_LENGTH,
 } from '../constants/business.js';
 import { UserAccountStatusSchema } from '../doc-schemas/user.js';
+import { PublicDocumentVersionOrNoneSchema } from '../doc-schemas/public-documents.js';
 import {
   ShownPublicDocumentVersionsSchema,
   PublicDocumentsRefreshRequiredResultSchema,
@@ -24,6 +25,20 @@ export const displayNameSchema = z
 
 export const AcceptSquareStreetzAgreementsInputSchema = z.object({}).strict();
 export type AcceptSquareStreetzAgreementsInput = z.infer<typeof AcceptSquareStreetzAgreementsInputSchema>;
+
+/**
+ * `social.squareStreetzAgreementsAccepted` — the `metadata` of the event written with the
+ * private acceptance record. The card incorporates the Rules & Agreements page by reference, so
+ * the version is that page's: `acceptedVersion` is the one this acceptance recorded (0 while no
+ * Rules version is published), and `previousAcceptedVersion` the one the record held before,
+ * null when none was recorded (the first acceptance). The actor and server time ride the event
+ * envelope.
+ */
+export const SquareStreetzAgreementsAcceptedAuditPayloadSchema = z.object({
+  acceptedVersion: PublicDocumentVersionOrNoneSchema,
+  previousAcceptedVersion: PublicDocumentVersionOrNoneSchema.nullable(),
+}).strict();
+export type SquareStreetzAgreementsAcceptedAuditPayload = z.infer<typeof SquareStreetzAgreementsAcceptedAuditPayloadSchema>;
 
 // One-time acknowledgement gate before a user may download Hall content for personal
 // offline use (final wording owned by the legal-and-content step). No payload — the

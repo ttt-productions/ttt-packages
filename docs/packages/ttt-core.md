@@ -135,9 +135,24 @@ TTT Productions application-data package.
     runs every lever through it (typed `AppConfigLevers`, keyed by `AppConfigLeverKey`). It never
     throws, so a config read can never take the product down by itself; the backend's snapshot
     reader and the client shell both read through it, and neither keeps a second reader.
+  - **The version block's reader.** The release-owned `publicDocumentVersions` block has no
+    default to fall back to, so `readPublicDocumentVersionBlock(snapshot)` reports what the
+    untrusted doc holds instead of repairing it: `absent` (nothing released — its `block` is
+    `undefined`, which every public-document rule reads that way), `valid` (the parsed block), or
+    `invalid` (a stored block its `AppConfigSchema` field refuses, `null` included, with the
+    refused field named and no block to compute from). It never throws. What an invalid block
+    means is each consumer's policy, never the reader's: the one level derivation,
+    `requiredPublicDocumentAcceptanceLevelOfReading`, answers `null` for it rather than a number.
   - `DEFAULT_MAINTENANCE_MESSAGE` is the one line shown while maintenance is on and the operator
     left `maintenanceMessage` blank — on the takeover screen and in the callable refusal alike.
     The stored default stays `''`: blank is what selects the line.
+  - **The callable maintenance refusal** has one recognisable shape, owned beside that line: it is
+    thrown with `MAINTENANCE_REFUSAL_CODE` (`unavailable`) and details typed
+    `MaintenanceRefusalDetails`, whose `reason` is `MAINTENANCE_REFUSAL_REASON`.
+    `isMaintenanceRefusalError` recognises it on the server-side error and the client callable
+    error alike (both code spellings) by code and details, never by message text, so a real
+    `unavailable` outage is never mistaken for it; `isMaintenanceRefusalDetails` is the details
+    guard. The shape mirrors auth-core's structured refusals without sharing their internals.
   `AppConfigSchema` caps every text lever with the same `constants/` declaration its
   `UpdateAppConfigInputSchema` field uses (`MAX_APP_VERSION_LENGTH`,
   `MAX_MAINTENANCE_MESSAGE_LENGTH`, `MAX_ANNOUNCEMENT_MESSAGE_LENGTH`; a package test compares
@@ -151,6 +166,15 @@ TTT Productions application-data package.
   keys, so a blocked kind always has its copy. A blocked kind still renders in the picker;
   selecting it stops the flow with that copy, and the upload callable refuses it with the same
   words. Unblocking a kind is removing its entry.
+- **Pledge and Bouquet copy** (`constants/pledge-and-bouquet-copy`, server-safe root): the
+  settled sentences a pledge or Work surface states verbatim instead of restating them —
+  `PLEDGE_BADGE_RECOGNITION_COPY` (a badge comes at a pledge total; every Charter honor is
+  thank-you recognition, never something a pledge buys) and
+  `BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY` (Bouquets and artisan payouts are planned, not
+  built). The second is true only while the Bouquet purchasing and payout release flags are off;
+  a package test fails when either flips, so the flag and the sentence change together. A surface
+  that says something different — a different scope, voice, or legal wording — keeps its own
+  words rather than bending a shared sentence.
 - **The account Auth-effect retry queue** (`statusReconcileQueue/{uid}`, `doc-schemas/operational`):
   one entry per uid, discriminated on `authEffect` — `accountStatus` (carries its
   `targetStatus`; an entry without `authEffect` is one of these) or
@@ -268,7 +292,8 @@ durable rules:
   by exactly one. `planPublicDocumentRelease` is the one version-assignment rule; a correction is
   a new version, never an edit. There are no direct page-update input schemas — every change is a
   saved working copy published through a release.
-- **Acceptance.** The `_appConfig/app` version block is the system side; the private
+- **Acceptance.** The `_appConfig/app` version block is the system side (read off the untrusted
+  doc only through `readPublicDocumentVersionBlock`, § The `_appConfig/app` singleton); the private
   `publicDocumentAcceptance` summary (latest accepted version per document, accepted level,
   notice revision) is the person's side, and the `docsAccepted` claim mirrors the accepted
   level for the backend gate. `changedPublicDocuments` is the one "what changed for this person"
@@ -285,7 +310,14 @@ durable rules:
   `squareStreetzAgreementsSatisfied` is the one rule the composer and every server Square post
   path apply: a recorded acceptance date AND an accepted Rules version at or above the Rules'
   latest required version (0 before any requiring Rules release). A Rules release that required
-  acceptance asks again; one that did not never does.
+  acceptance asks again; one that did not never does. Each acceptance is audited as
+  `social.squareStreetzAgreementsAccepted`, whose payload is
+  `SquareStreetzAgreementsAcceptedAuditPayloadSchema` (`schemas/users`, beside the callable's
+  input): the Rules version accepted and the one the record held before it (null on the first
+  acceptance). Every recorded "which version was accepted" value — that payload, the private
+  record's `squareStreetzAgreementsVersion`, and the Artisan upgrade's
+  `artisanCreatorAgreementsVersion` — derives from `PublicDocumentVersionOrNoneSchema`
+  (`doc-schemas/public-documents`: a whole number, 0 meaning none yet).
 - **The notice.** `LEGAL_REVIEW_NOTICE_ACTIVE` is a code constant (like `APP_MODE`), independent
   of the app mode and of any release's acceptance choice. Copy is verbatim; a wording change
   ships under a new `LEGAL_REVIEW_NOTICE_REVISION`, and the package test pins each revision to

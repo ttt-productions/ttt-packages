@@ -14,6 +14,7 @@ import type {
   PublicDocumentVersionState,
 } from '../doc-schemas/public-documents.js';
 import type { UserPrivateData } from '../doc-schemas/user.js';
+import type { PublicDocumentVersionBlockReading } from './app-config.js';
 
 /** The version block before any release: every document at version 0, nothing required. */
 export const EMPTY_PUBLIC_DOCUMENT_VERSION_BLOCK: PublicDocumentVersionBlock = Object.freeze({
@@ -40,6 +41,17 @@ export function requiredPublicDocumentVersion(
 /** The required-acceptance level in force; 0 when nothing has ever required acceptance. */
 export function requiredPublicDocumentAcceptanceLevel(block: PublicDocumentVersionBlock | undefined): number {
   return block?.requiredAcceptanceLevel ?? 0;
+}
+
+/**
+ * The required-acceptance level a version-block reading states: 0 when the block is absent, the
+ * block's level when it is valid, and `null` when it is invalid — an invalid block states no
+ * level, so the caller decides what to require.
+ */
+export function requiredPublicDocumentAcceptanceLevelOfReading(
+  reading: PublicDocumentVersionBlockReading,
+): number | null {
+  return reading.status === 'invalid' ? null : requiredPublicDocumentAcceptanceLevel(reading.block);
 }
 
 /** The level a person has accepted; 0 when they have accepted nothing. */

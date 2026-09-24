@@ -184,7 +184,9 @@ export type AuditEventType =
   | 'system.orphanUploadsCleanedUp'
   | 'admin.profanityListSeeded'
   | 'admin.profanityListCurated'
-  // social
+  // social. Payload shape of the Square agreements acceptance:
+  // SquareStreetzAgreementsAcceptedAuditPayload in ../schemas/users.ts.
+  | 'social.squareStreetzAgreementsAccepted'
   | 'social.squareStreetzPostLiked'
   | 'social.squareStreetzPostUnliked'
   | 'social.targetFollowed'
