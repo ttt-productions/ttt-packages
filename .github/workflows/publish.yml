@@ -11,7 +11,8 @@ permissions:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    # An explicit image, never a -latest label, so a runner OS change is always a deliberate edit.
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout code

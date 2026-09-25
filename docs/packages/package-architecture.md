@@ -322,3 +322,7 @@ the rules above so they fail loudly:
   (the quiet runner's `runCmd`). It also pins the quiet runner's
   `SHELL_SAFE_TOKEN` to accepting plain command/flag/path tokens and rejecting
   every character `cmd.exe` or `sh` would reinterpret.
+- `ci-runner-pinned.test.ts` — fails if any `.github/workflows/` job's `runs-on`
+  names a runner label ending in `-latest`. GitHub moves a `-latest` label to a
+  new OS image on its own schedule, so every job names an explicit image and a
+  runner OS change is a deliberate edit.
