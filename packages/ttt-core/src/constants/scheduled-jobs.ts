@@ -48,3 +48,14 @@ export const HALL_MEDIA_REAPER_BACKOFF_MAX_MS = 14 * 24 * 60 * 60 * 1000;
  * signal to stop and report, not to keep growing the list.
  */
 export const HALL_MEDIA_REAPER_MAX_DEFERRED = 50;
+
+/**
+ * How long the copy-intent sweep holds a claim on an intent. Claiming moves the intent to
+ * `reaping` and stamps `reapClaimedAt`, and that stamp is the claim's fencing token. Once the claim
+ * is this old it has expired: a later sweep may take the intent over and re-stamp it, and the copy
+ * path may take the `reaping` intent back to `copying`. It must far exceed the timeout of the
+ * reaper function `reapOrphanedHallMediaCopies` (300 s), so a live pass never loses its claim, and
+ * stay far below the retry budget of the publish trigger `onThresholdItemReviewed` (about a day),
+ * so a publish stranded behind an abandoned claim always recovers inside it.
+ */
+export const HALL_MEDIA_REAPER_CLAIM_LEASE_MS = 60 * 60 * 1000;

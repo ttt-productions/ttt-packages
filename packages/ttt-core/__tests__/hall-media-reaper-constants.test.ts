@@ -3,13 +3,18 @@ import {
   HALL_MEDIA_ORPHAN_GRACE_MS,
   HALL_MEDIA_REAPER_BACKOFF_BASE_MS,
   HALL_MEDIA_REAPER_BACKOFF_MAX_MS,
+  HALL_MEDIA_REAPER_CLAIM_LEASE_MS,
   HALL_MEDIA_REAPER_MAX_DEFERRED,
   HALL_MEDIA_REAPER_PAGE_SIZE,
 } from '../src/constants/scheduled-jobs.js';
 import * as constantsBarrel from '../src/constants/index.js';
 import * as packageRoot from '../src/index.js';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+const HOUR_MS = 60 * 60 * 1000;
+const DAY_MS = 24 * HOUR_MS;
+// The `timeoutSeconds` of the app's reaper function `reapOrphanedHallMediaCopies`, which this
+// package cannot import.
+const REAPER_FUNCTION_TIMEOUT_MS = 300 * 1000;
 
 describe('Hall-media orphan reaper policy constants', () => {
   it('leaves Hall-media copies alone for 14 days, far past the day-long retry window of the publish trigger', () => {
@@ -33,6 +38,18 @@ describe('Hall-media orphan reaper policy constants', () => {
     expect(HALL_MEDIA_REAPER_MAX_DEFERRED).toBeLessThan(HALL_MEDIA_REAPER_PAGE_SIZE);
   });
 
+  it('holds a copy-intent claim for one hour', () => {
+    expect(HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBe(HOUR_MS);
+  });
+
+  it('holds a claim at least ten times the reaper function timeout, so a live pass never loses it', () => {
+    expect(HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBeGreaterThanOrEqual(10 * REAPER_FUNCTION_TIMEOUT_MS);
+  });
+
+  it('expires a claim inside the day-long retry budget of the publish trigger', () => {
+    expect(HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBeLessThan(DAY_MS);
+  });
+
   it('is importable from the constants barrel and the package root', () => {
     for (const surface of [constantsBarrel, packageRoot]) {
       expect(surface.HALL_MEDIA_ORPHAN_GRACE_MS).toBe(HALL_MEDIA_ORPHAN_GRACE_MS);
@@ -40,6 +57,7 @@ describe('Hall-media orphan reaper policy constants', () => {
       expect(surface.HALL_MEDIA_REAPER_BACKOFF_BASE_MS).toBe(HALL_MEDIA_REAPER_BACKOFF_BASE_MS);
       expect(surface.HALL_MEDIA_REAPER_BACKOFF_MAX_MS).toBe(HALL_MEDIA_REAPER_BACKOFF_MAX_MS);
       expect(surface.HALL_MEDIA_REAPER_MAX_DEFERRED).toBe(HALL_MEDIA_REAPER_MAX_DEFERRED);
+      expect(surface.HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBe(HALL_MEDIA_REAPER_CLAIM_LEASE_MS);
     }
   });
 });
