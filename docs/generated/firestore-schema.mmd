@@ -650,6 +650,7 @@ erDiagram
   hallMediaReaperCursor {
     field createdAtCursor
     field updatedAt
+    field deferred
   }
   legalProcess {
     field at
@@ -695,6 +696,8 @@ erDiagram
     field state
     field createdAt
     field updatedAt
+    field reapAfter
+    field reapAttemptCount
     field reapClaimedAt
   }
   mentionHistory {

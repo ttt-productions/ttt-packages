@@ -5,7 +5,8 @@
 // intent that outlives its copy is how the objects it names are found and removed.
 // Server-only (`allow read, write: if false`).
 //
-// No TTL field: an intent removed before its objects are reaped strands those objects.
+// No native-TTL field — `reapAfter` only schedules the sweep: an intent removed before its
+// objects are reaped strands those objects.
 
 import { z } from 'zod';
 import { MEDIA_VARIANT_KEYS, MediaAssetOwnerTypeSchema, MediaVariantKeySchema } from './media-assets.js';
@@ -27,6 +28,14 @@ export const MediaCopyIntentSchema = z
     state: MediaCopyIntentStateSchema,
     createdAt: z.number().int().nonnegative(),
     updatedAt: z.number().int().nonnegative(),
+    // The earliest epoch ms the sweep may take this intent up; the sweep lists due intents in
+    // this order. Recording sets it HALL_MEDIA_ORPHAN_GRACE_MS out, so a copy in flight is never
+    // due; a sweep that defers the intent pushes it out again, so an intent that cannot finish
+    // yet rotates behind the ones that can instead of holding the head of every page.
+    reapAfter: z.number().int().nonnegative(),
+    // How many times the sweep has taken this intent up and deferred it — the count the
+    // HALL_MEDIA_REAPER_BACKOFF_BASE_MS / HALL_MEDIA_REAPER_BACKOFF_MAX_MS backoff grows from.
+    reapAttemptCount: z.number().int().nonnegative(),
     reapClaimedAt: z.number().int().nonnegative().optional(),
   })
   .strict()
@@ -39,6 +48,13 @@ export const MediaCopyIntentSchema = z
     }
     if (val.state === 'copying' && val.reapClaimedAt !== undefined) {
       ctx.addIssue({ code: 'custom', path: ['reapClaimedAt'], message: 'a copying intent has not been claimed' });
+    }
+    if (val.reapAfter < val.updatedAt) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['reapAfter'],
+        message: 'an intent is never due before the copy last recorded it',
+      });
     }
   });
 export type MediaCopyIntent = z.infer<typeof MediaCopyIntentSchema>;

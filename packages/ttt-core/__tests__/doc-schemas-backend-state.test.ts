@@ -1,14 +1,89 @@
 import { describe, it, expect } from 'vitest';
 import {
+  HallMediaReaperCursorSchema,
   NcmecCompletionProofRecordV1Schema,
   NcmecPortalCorrectionRecordV1Schema,
   NcmecPortalReceiptArtifactV1Schema,
   PublicUsersReconcilerCursorSchema,
   SweepStateSchema,
 } from '../src/doc-schemas/backend-state';
+import { HALL_MEDIA_REAPER_MAX_DEFERRED } from '../src/constants/scheduled-jobs';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
 import { PATH_BUILDERS } from '../src/paths/path-builders';
 import { COLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
+
+describe('HallMediaReaperCursorSchema', () => {
+  const cursor = { createdAtCursor: 1_700_000_000_000, updatedAt: 1_702_000_000_000 };
+  const entry = (n: number) => ({
+    mediaAssetId: `asset-${n}`,
+    createdAt: cursor.createdAtCursor - n,
+    nextAttemptAt: cursor.updatedAt + 24 * 60 * 60 * 1000,
+    attemptCount: 1,
+  });
+
+  it('parses a cursor written before the deferred set existed', () => {
+    expect(HallMediaReaperCursorSchema.parse(cursor)).toEqual(cursor);
+  });
+
+  it('parses a cursor holding deferred candidates', () => {
+    const withDeferred = { ...cursor, deferred: [entry(1), { ...entry(2), attemptCount: 4 }] };
+    expect(HallMediaReaperCursorSchema.parse(withDeferred)).toEqual(withDeferred);
+  });
+
+  it(`holds at most HALL_MEDIA_REAPER_MAX_DEFERRED (${HALL_MEDIA_REAPER_MAX_DEFERRED}) candidates`, () => {
+    const full = Array.from({ length: HALL_MEDIA_REAPER_MAX_DEFERRED }, (_, i) => entry(i + 1));
+    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: full }).success).toBe(true);
+    const over = [...full, entry(HALL_MEDIA_REAPER_MAX_DEFERRED + 1)];
+    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: over }).success).toBe(false);
+  });
+
+  it('defers each asset at most once', () => {
+    const duplicate = { ...entry(2), mediaAssetId: entry(1).mediaAssetId };
+    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [entry(1), duplicate] }).success).toBe(false);
+  });
+
+  it('holds only candidates at or below the cursor that moved past them', () => {
+    const atCursor = { ...entry(1), createdAt: cursor.createdAtCursor };
+    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [atCursor] }).success).toBe(true);
+    const ahead = { ...entry(1), createdAt: cursor.createdAtCursor + 1 };
+    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [ahead] }).success).toBe(false);
+  });
+
+  it('counts at least the pass that deferred a candidate', () => {
+    for (const attemptCount of [0, -1, 1.5]) {
+      expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [{ ...entry(1), attemptCount }] }).success).toBe(
+        false,
+      );
+    }
+  });
+
+  it('keeps every deferred time epoch ms (ARCH-105)', () => {
+    const timestamp = { seconds: 1_702_086_400, nanoseconds: 0 };
+    for (const field of ['createdAt', 'nextAttemptAt'] as const) {
+      expect(
+        HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [{ ...entry(1), [field]: timestamp }] }).success,
+      ).toBe(false);
+    }
+  });
+
+  it('requires every deferred field, a non-empty id, and nothing undeclared', () => {
+    for (const field of ['mediaAssetId', 'createdAt', 'nextAttemptAt', 'attemptCount'] as const) {
+      const { [field]: _omitted, ...rest } = entry(1);
+      expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [rest] }).success).toBe(false);
+    }
+    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [{ ...entry(1), mediaAssetId: '' }] }).success).toBe(
+      false,
+    );
+    expect(
+      HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [{ ...entry(1), ownerId: 'hall-1' }] }).success,
+    ).toBe(false);
+  });
+
+  it('binds the registry path and the path builder to the same location', () => {
+    expect(COLLECTION_SCHEMAS['_systemData/hallMediaReaperCursor']).toBe(HallMediaReaperCursorSchema);
+    expect(PATH_BUILDERS.hallMediaReaperCursor().join('/')).toBe('_systemData/hallMediaReaperCursor');
+  });
+});
 
 describe('NcmecPortalReceiptArtifactV1Schema', () => {
   // The exact record recordNcmecPortalReceiptArtifact writes: the operator-supplied vault key

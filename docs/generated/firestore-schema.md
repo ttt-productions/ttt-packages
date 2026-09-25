@@ -159,6 +159,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | --- | --- | --- |
 | `createdAtCursor` | `number` |  |
 | `updatedAt` | `number` |  |
+| `deferred` | `{ mediaAssetId, createdAt, nextAttemptAt, attemptCount }[]` | yes |
 
 ## `_systemData/profanityList`
 
@@ -1402,6 +1403,8 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `state` | `'copying' \| 'reaping'` |  |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
+| `reapAfter` | `number` |  |
+| `reapAttemptCount` | `number` |  |
 | `reapClaimedAt` | `number` | yes |
 
 ## `moderationCascadeManifests/{cascadeId}`

@@ -23,6 +23,9 @@ function ts(ms: number) {
   };
 }
 
+const GRACE_MS = 14 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const copying = {
   newAssetId: 'copy-asset-1',
   sourceAssetId: 'source-asset-1',
@@ -32,9 +35,11 @@ const copying = {
   state: 'copying' as const,
   createdAt: 1_700_000_000_000,
   updatedAt: 1_700_000_000_000,
+  reapAfter: 1_700_000_000_000 + GRACE_MS,
+  reapAttemptCount: 0,
 };
 
-const reaping = { ...copying, state: 'reaping' as const, reapClaimedAt: 1_701_000_000_000, updatedAt: 1_701_000_000_000 };
+const reaping = { ...copying, state: 'reaping' as const, reapClaimedAt: 1_701_300_000_000 };
 
 describe('MediaCopyIntentSchema', () => {
   it('parses an intent recorded before the copy', () => {
@@ -83,6 +88,36 @@ describe('MediaCopyIntentSchema', () => {
   it('stores its times as epoch milliseconds, never a Firestore Timestamp (ARCH-105)', () => {
     expect(MediaCopyIntentSchema.safeParse({ ...copying, createdAt: ts(1_700_000_000_000) }).success).toBe(false);
     expect(MediaCopyIntentSchema.safeParse({ ...reaping, reapClaimedAt: ts(1_701_000_000_000) }).success).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAfter: ts(copying.reapAfter) }).success).toBe(false);
+  });
+
+  it('requires the time the sweep may take it up and its deferral count', () => {
+    const { reapAfter: _reapAfter, ...noReapAfter } = copying;
+    expect(MediaCopyIntentSchema.safeParse(noReapAfter).success).toBe(false);
+    const { reapAttemptCount: _reapAttemptCount, ...noAttemptCount } = copying;
+    expect(MediaCopyIntentSchema.safeParse(noAttemptCount).success).toBe(false);
+  });
+
+  it('parses an intent the sweep deferred, in either state, with its due time pushed out', () => {
+    const deferredClaim = { ...reaping, reapAfter: reaping.reapClaimedAt + DAY_MS, reapAttemptCount: 1 };
+    expect(MediaCopyIntentSchema.parse(deferredClaim)).toEqual(deferredClaim);
+    const deferredUnclaimed = { ...copying, reapAfter: copying.reapAfter + 2 * DAY_MS, reapAttemptCount: 2 };
+    expect(MediaCopyIntentSchema.parse(deferredUnclaimed)).toEqual(deferredUnclaimed);
+  });
+
+  it('rejects an intent due before the copy last recorded it, and accepts one due at that instant', () => {
+    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAfter: copying.updatedAt - 1 }).success).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAfter: copying.updatedAt }).success).toBe(true);
+  });
+
+  it('rejects a re-recorded intent whose due time was left behind at its first recording', () => {
+    const reRecorded = { ...copying, updatedAt: copying.reapAfter + DAY_MS };
+    expect(MediaCopyIntentSchema.safeParse(reRecorded).success).toBe(false);
+  });
+
+  it('counts deferrals as a whole, non-negative number', () => {
+    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAttemptCount: -1 }).success).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...copying, reapAttemptCount: 1.5 }).success).toBe(false);
   });
 
   it('stays strict — an undeclared field is rejected, not silently kept', () => {

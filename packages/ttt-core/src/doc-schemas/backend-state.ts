@@ -5,20 +5,64 @@
 // the drift-check read. Types are inferred via z.infer.
 
 import { z } from 'zod';
+import { HALL_MEDIA_REAPER_MAX_DEFERRED } from '../constants/scheduled-jobs.js';
 import {
   ChildSafetyNcmecCompletionChannelSchema,
   ChildSafetyNcmecCompletionProofTypeSchema,
 } from './safety/case.js';
 
+// One asset-phase candidate the Hall-media orphan reaper could not positively clear (a read
+// error, a missing owner). The cursor moves past it and the reaper retries it from here instead,
+// so one uncertain candidate never pins the scan window.
+export const HallMediaReaperDeferredCandidateSchema = z
+  .object({
+    mediaAssetId: z.string().min(1),
+    /** The candidate's mediaAssets `createdAt`. */
+    createdAt: z.number().int().nonnegative(),
+    /** Epoch ms from which a pass may retry it. */
+    nextAttemptAt: z.number().int().nonnegative(),
+    /** Passes that examined it without clearing it; the pass that deferred it is the first. The
+     *  HALL_MEDIA_REAPER_BACKOFF_BASE_MS / HALL_MEDIA_REAPER_BACKOFF_MAX_MS backoff grows from it. */
+    attemptCount: z.number().int().positive(),
+  })
+  .strict();
+export type HallMediaReaperDeferredCandidate = z.infer<typeof HallMediaReaperDeferredCandidateSchema>;
+
 // _systemData/hallMediaReaperCursor — the scheduled Hall-media orphan reaper's scan cursor.
-// `createdAtCursor` is the highest mediaAssets `createdAt` the reaper has POSITIVELY cleared
-// (candidate resolved referenced / reaped / already-deleted), so each pass resumes past
-// permanently-live Hall assets instead of re-reading the same oldest page forever.
+// `createdAtCursor` is the highest mediaAssets `createdAt` the reaper has moved past: every
+// candidate at or below it was positively cleared (referenced / reaped / already-deleted) or is
+// held in `deferred`, so each pass resumes past permanently-live Hall assets instead of
+// re-reading the same oldest page forever. `deferred` names each asset at most once, holds at
+// most HALL_MEDIA_REAPER_MAX_DEFERRED entries, and holds only candidates at or below the cursor
+// — deferring a candidate is what moves the cursor past it. A cursor written before the set
+// existed has no `deferred`, which reads as empty.
 // (functions/src/media/reapOrphanedHallMediaCopies.ts)
-export const HallMediaReaperCursorSchema = z.object({
-  createdAtCursor: z.number(),
-  updatedAt: z.number(),
-});
+export const HallMediaReaperCursorSchema = z
+  .object({
+    createdAtCursor: z.number(),
+    updatedAt: z.number(),
+    deferred: z.array(HallMediaReaperDeferredCandidateSchema).max(HALL_MEDIA_REAPER_MAX_DEFERRED).optional(),
+  })
+  .superRefine((val, ctx) => {
+    const seen = new Set<string>();
+    (val.deferred ?? []).forEach((entry, index) => {
+      if (seen.has(entry.mediaAssetId)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['deferred', index, 'mediaAssetId'],
+          message: 'a candidate is deferred at most once',
+        });
+      }
+      seen.add(entry.mediaAssetId);
+      if (entry.createdAt > val.createdAtCursor) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['deferred', index, 'createdAt'],
+          message: 'a deferred candidate sits at or below the cursor that moved past it',
+        });
+      }
+    });
+  });
 export type HallMediaReaperCursor = z.infer<typeof HallMediaReaperCursorSchema>;
 
 // _systemData/publicUsersReconcilerCursor — the scheduled publicUsers reconciler's sweep cursor.
