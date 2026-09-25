@@ -42,9 +42,6 @@
             "optional": true
         }
     },
-    "devDependencies": {
-        "typescript": "^5.8.3"
-    },
     "author": "DJ (TTT Productions)",
     "license": "MIT"
 }

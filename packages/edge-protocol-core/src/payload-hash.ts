@@ -1,7 +1,7 @@
 // Canonical payload hashing — the shared `payloadHash` primitive used by the
 // versioned-apply rule and every signed internal edge call (media-authority
-// apply, and later chat sync/command/outbox). WebCrypto only, so the SAME code
-// runs in Cloud Functions (Node 22) and Cloudflare Workers/DOs.
+// apply and the chat sync/command/outbox endpoints). WebCrypto only, so the
+// SAME code runs in Cloud Functions (Node 24) and Cloudflare Workers/DOs.
 //
 // The hash is computed over a DETERMINISTIC serialization (object keys sorted
 // recursively) so the same logical payload always produces the same digest

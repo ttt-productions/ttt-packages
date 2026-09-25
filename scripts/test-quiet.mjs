@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
 // Quiet pre-commit / pre-publish gate for ttt-packages. Runs the canonical `test:all` stages —
-// lint -> build (all 23, topo order) -> typecheck -> `tsc -b --noEmit` -> `vitest run` — and then,
+// audit -> lint -> build (every package, topo order) -> typecheck -> `tsc -b --noEmit` -> `vitest run` — and then,
 // ONLY if every one of those passed, a final `schema` stage that checks the generated Firestore
 // schema docs are in sync and AUTO-REGENERATES them if they are stale.
 //
@@ -17,7 +17,8 @@
 // Exit codes: 0 if everything passed — including when the schema docs were stale and got regenerated
 // (commit the regenerated files before publishing); non-zero if any stage failed, including if the
 // schema regeneration itself errored. This is the single command to run before committing + publishing.
-// It equals the release preflight minus its clean-room reinstall (which the release scripts still do).
+// The release preflight (scripts/preflight.sh) runs this same command after its install and lockfile
+// checks.
 import { spawn } from 'child_process';
 import { performance } from 'perf_hooks';
 
@@ -44,7 +45,7 @@ const RESET = '\x1b[0m';
 //   lint       -> npm run lint            (eslint, all workspaces)
 //   typecheck  -> npm run typecheck       (per-workspace tsc --noEmit; skips __tests__)
 //   tscb       -> npx tsc -b --noEmit     (project refs; the ONLY step that type-checks __tests__)
-//   build      -> npm run build           (all 23 packages, topo order)
+//   build      -> npm run build           (every package, topo order)
 //   test       -> npx vitest run          (the test suite)
 //   schema     -> generate-schema-docs.mjs --check, auto-regenerating the docs if they are stale
 const argv = process.argv.slice(2);
@@ -140,16 +141,28 @@ function fmtTime(ms) {
     return `${m}m${s}s`;
 }
 
-// On failure we show the TAIL of the combined output, not the head: the build stage chains 22
-// packages with `&&`, so the real error is at the end. Head-truncation would hide it.
+// On failure we show the TAIL of the combined output, not the head: the build stage chains every
+// package build with `&&`, so the real error is at the end. Head-truncation would hide it.
 function tail(s, n) {
     if (s.length <= n) return s;
     return `${DIM}…(${s.length - n} earlier chars truncated)…${RESET}\n` + s.slice(s.length - n);
 }
 
+// Every stage runs through a shell: on Windows `npm` / `npx` are `.cmd` shims, which Node refuses to
+// spawn without one. Node only space-joins an args ARRAY for a shell, unescaped, and deprecates that
+// form, so runCmd builds the one command line itself — and only from tokens that neither cmd.exe nor
+// sh reinterprets. Every token is a literal in this file; any other token fails its stage instead of
+// reaching the shell.
+const SHELL_SAFE_TOKEN = /^[\w@+=:,./-]+$/;
+
 function runCmd(cmd, args, opts = {}) {
     return new Promise((resolve) => {
-        const child = spawn(cmd, args, { shell: true, ...opts });
+        const unsafe = [cmd, ...args].find((token) => !SHELL_SAFE_TOKEN.test(token));
+        if (unsafe !== undefined) {
+            resolve({ code: 1, stdout: '', stderr: `Refusing to run: ${JSON.stringify(unsafe)} is not a shell-safe token.` });
+            return;
+        }
+        const child = spawn([cmd, ...args].join(' '), { shell: true, ...opts });
         let stdout = '';
         let stderr = '';
         child.stdout?.on('data', (d) => { stdout += d.toString(); });
@@ -374,11 +387,10 @@ async function stageSchema(name, root) {
     // Stop-on-fail chain — strict mirror of `test:all` (audit && lint && build && typecheck && tsc -b
     // && test), with a final schema gate that only runs if everything above (tests included) passed.
     //
-    // 0. Security audit FIRST — mirrors the publish workflow's "Security audit (production deps)"
-    // step EXACTLY (`npm audit --omit=dev --audit-level=high`, .github/workflows). The gate once ran
-    // green while that CI step failed a publish on a high advisory in a shipped dependency, because
-    // this stage did not exist: nothing local ever ran the audit. It runs first because it is the
-    // cheapest stage and a red here means "fix the lockfile", not "fix the code".
+    // 0. Security audit FIRST — the publish workflow's "Security audit (production deps)" step,
+    // verbatim, so a high advisory in a shipped dependency fails here before it can fail a publish. It
+    // runs first because it is the cheapest stage and a red here means "fix the lockfile", not "fix
+    // the code".
     if (shouldRun('audit')) {
         if (!(await stagePlain('audit (prod deps, high)', 'npm', ['audit', '--omit=dev', '--audit-level=high'], root))) return finish(overallStart);
     }
@@ -388,7 +400,7 @@ async function stageSchema(name, root) {
     // Build first: the two type-check stages below resolve @ttt-productions/* via node_modules -> dist,
     // so dist must exist. `npm run build` is topo-ordered and self-sufficient from a clean tree.
     if (shouldRun('build')) {
-        if (!(await stagePlain('build (all 24)', 'npm', ['run', 'build'], root))) return finish(overallStart);
+        if (!(await stagePlain('build (all packages)', 'npm', ['run', 'build'], root))) return finish(overallStart);
     }
     if (shouldRun('typecheck')) {
         if (!(await stagePlain('typecheck', 'npm', ['run', 'typecheck'], root))) return finish(overallStart);

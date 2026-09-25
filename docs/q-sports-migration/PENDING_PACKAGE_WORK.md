@@ -31,6 +31,43 @@ Each entry is one `###` heading naming the change, then:
 
 ## Entries
 
+### ui-core: a stable hook class on `Button` for app-side press styling
+
+- **Packages:** `ui-core`.
+- **What changes and why:** Q-Sports' design gives every button an instant press (`transform: scale`
+  on `:active`, `q-sports-league/docs/migration-2.0/ui-system/UI_SYSTEM.md` § Motion). ui-core's
+  `Button` renders only Tailwind utilities, so the one way an app can target it is by matching its
+  internal utility string (`.inline-flex.justify-center.whitespace-nowrap`) — which re-styles a
+  ui-core component through its private classes (FRONTEND-006), silently breaks when ui-core changes
+  that string, also catches `TabsTrigger`, and blinds the app's class-system guard to those three
+  utility names. `Button` gains a stable hook class (or `data-slot`) the way theme-core's hook
+  classes (`.card-border`, `.elevation-raised`) give apps a named target, so an app styles every
+  button's press from its own stylesheet.
+- **Skipped in Q-Sports:** Unit 1.5 — the button press rule in `src/app/styles/components.css`
+  (removed until this ships).
+- **How Q-Sports adopts:** one `:active` rule in `components.css` keyed on the hook class, reading
+  the motion tokens; covered by the kill switch.
+
+### theme-core: a generic device-preference store over the guarded storage
+
+- **Packages:** `theme-core` (`./react`).
+- **What changes and why:** theme-core's motion store and viewer-settings sync already own guarded
+  `localStorage` access (reads fall back to nothing-saved, a throwing write is held in memory for the
+  page) and same-tab + cross-tab sync, in the internal `src/react/local-storage.ts`. Q-Sports needs
+  the same device-local mechanism for its other per-device choices — the admin sidebar's collapsed
+  state and each stats table's saved View state — and an app-side copy of theme-core's internal
+  helper is a fork of a shared mechanism (ENG-003). ttt-prod's app-local stores (`text-size.tsx`,
+  the companion stores) are the same shape. theme-core exports one generic store factory — an
+  app-supplied storage key, change event, and parse/serialize — built on the same guarded storage
+  and sync its motion store uses, so every device preference in either app runs on one mechanism.
+- **Skipped in Q-Sports:** Unit 1.5 — `src/lib/device-storage.ts` is removed; the admin sidebar's
+  collapsed state and the stats table's saved View state are not persisted until this ships (their
+  keys already exist in `q-core`'s `constants/storage-keys.ts`, and the View state's merge logic is
+  built and tested).
+- **How Q-Sports adopts:** the sidebar's collapsed state and the stats table's View state each mount
+  one store from the factory with their `q-core` key and change event; the persistence tests are
+  written then.
+
 ### theme-core: the viewer settings mechanism — device store for theme and motion, and account sync
 
 - **Packages:** `theme-core` (the server-safe root and `./react`).
@@ -59,11 +96,10 @@ Each entry is one `###` heading naming the change, then:
     dismissing it keeps the device's values while the device remembers that exact difference (under
     an app-supplied key) so it does not ask again until something changes; no saved value can force
     motion on while the device asks for less. The prompt's UI stays the app's.
-- **Skipped in Q-Sports:** nothing yet — the batch runs before Unit 1.5's frontend lane starts.
-  That lane's device store for theme and motion (`CONVERSION_ORDER.md` Unit 1.5) and everything
-  that reads the motion store — the transition link and page transitions, the score-change effect,
-  the landing hero's rotation — wait on it.
-- **How Q-Sports adopts:** Unit 1.5 mounts the store with `q-core`'s storage keys
-  (`packages/q-core/src/constants/storage-keys.ts`) and every motion decision reads it; Unit 2
-  builds the settings page and its settings callable as the sync's adapter, and adds `theme` —
-  typed by the theme-core union — and `reducedMotion` to `UserPrivateDataSchema`.
+- **Published and installed** (`theme-core` 0.12.8); Unit 1.5 mounted the motion store with
+  `q-core`'s storage keys and every motion decision reads it.
+- **Skipped in Q-Sports — still to adopt:** Unit 2 — the settings page and the account sync.
+- **How Q-Sports adopts:** Unit 2 builds the settings page and its settings callable as the sync's
+  adapter (`accountId` is the signed-in uid), adds `theme` — typed by the theme-core union — and
+  `reducedMotion` to `UserPrivateDataSchema`, and adds the remembered-dismissal key to `q-core`'s
+  `constants/storage-keys.ts`; this entry is deleted then.

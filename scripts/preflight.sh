@@ -42,7 +42,7 @@ if ! npm ci --dry-run >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "preflight: npm run test:quiet (lint + build + typecheck + tsc -b --noEmit + test + schema; concise output)..."
+echo "preflight: npm run test:quiet (the full quiet gate; concise output)..."
 # test:quiet runs the same gate as test:all but with one-line-per-stage output, plus a final schema
 # stage that checks docs/generated/firestore-schema.{md,mmd} and AUTO-REGENERATES them if stale (it
 # prints "regenerated" and still exits 0 — commit the regenerated docs). That replaces the old

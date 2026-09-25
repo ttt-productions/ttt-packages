@@ -54,7 +54,6 @@
         }
     },
     "devDependencies": {
-        "typescript": "^5.8.3",
         "@sentry/nextjs": "^10.32.1",
         "@sentry/node": "^10.32.1",
         "react": "^19.2.0",

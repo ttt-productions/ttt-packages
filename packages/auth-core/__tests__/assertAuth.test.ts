@@ -1,17 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// NOTE: there is deliberately NO `vi.mock("firebase-functions/v2/https")` here.
-// assertAuth no longer constructs HttpsError — it throws AuthAssertionError and the
-// consuming app maps it (see authError.ts for why). The only remaining reference to
-// firebase-functions in assertAuth.ts is a TYPE import, which is erased at runtime.
-import { createAssertAuth } from "./assertAuth.js";
-import { AuthAssertionError } from "./authError.js";
-import { ACCEPTANCE_REQUIRED_REASON, isAcceptanceRequiredError } from "../acceptance.js";
+// There is deliberately NO `vi.mock("firebase-functions/v2/https")` here: assertAuth
+// throws AuthAssertionError, never HttpsError, and the consuming app maps it (authError.ts
+// says why). Its only firebase-functions reference is a TYPE import, erased at runtime.
+import { createAssertAuth } from "../src/server/assertAuth.js";
+import { AuthAssertionError } from "../src/server/authError.js";
+import { ACCEPTANCE_REQUIRED_REASON, isAcceptanceRequiredError } from "../src/acceptance.js";
 import {
   EMAIL_VERIFICATION_REQUIRED_REASON,
   isEmailVerificationRequiredError,
-} from "../email-verification.js";
-import type { AssertAuthConfig, UserStatus } from "./types.js";
+} from "../src/email-verification.js";
+import type { AssertAuthConfig, UserStatus } from "../src/server/types.js";
 
 type TestUser = {
   uid: string;

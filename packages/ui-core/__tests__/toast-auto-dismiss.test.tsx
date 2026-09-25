@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, fireEvent, createEvent } from '@testing-library/react';
+import { render, fireEvent } from '@testing-library/react';
 import { Toast, ToastProvider, ToastViewport, ToastTitle } from '../src/react/components/toast';
 
 function renderToast(props: React.ComponentProps<typeof Toast>) {
@@ -18,13 +18,8 @@ function findBar(container: HTMLElement): HTMLElement | null {
     return container.querySelector<HTMLElement>('.origin-left');
 }
 
-// This jsdom build has no `AnimationEvent` constructor, so the `animationName`
-// init option does not propagate through fireEvent. Set it explicitly so the
-// component's `e.animationName` guard sees the value a real browser would send.
 function fireAnimationEnd(el: HTMLElement, animationName: string) {
-    const ev = createEvent.animationEnd(el);
-    Object.defineProperty(ev, 'animationName', { value: animationName });
-    fireEvent(el, ev);
+    fireEvent.animationEnd(el, { animationName });
 }
 
 describe('Toast auto-dismiss (countdown bar in sync with dismissal)', () => {

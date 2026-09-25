@@ -1,13 +1,11 @@
 /**
- * Frozen deterministic ID + eventId formulas for the chat realtime + notification
- * redesign. The durable design owners are ttt-prod
- * docs/design/chat-realtime-system.md and docs/design/notification-system.md.
+ * Frozen deterministic ID + eventId formulas for chat realtime and notifications.
  *
  * These ids are computed INDEPENDENTLY by multiple producers/consumers
  * (Cloud Functions, the chat Worker, sometimes the client) and MUST match
  * byte-for-byte, so the construction is frozen here as the single source of
  * truth. Hashing uses `@ttt-productions/edge-protocol-core`'s runtime-neutral
- * WebCrypto SHA-256 (works in Node 22, Cloudflare Workers, and browsers), so
+ * WebCrypto SHA-256 (works in Node 24, Cloudflare Workers, and browsers), so
  * every builder is async.
  */
 

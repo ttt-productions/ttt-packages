@@ -5,7 +5,7 @@
 //
 // Source manifests legitimately carry "*" so workspace dev resolves to the
 // local package. At pack time scripts/pin-internal-deps.mjs rewrites these
-// to exact versions; CI enforces the HARD-FAIL against packed/published
+// to caret ranges (^x.y.z); CI enforces the HARD-FAIL against packed/published
 // output. That hard-fail belongs to the release/CI flow, NOT here — so this
 // check only REPORTS against source and never fails.
 
@@ -38,7 +38,7 @@ describe('boundary: internal "*" range audit (report-only)', () => {
 
     if (found.length > 0) {
       console.warn(
-        `[boundary] internal "*" ranges in source (expected pre-release; rewritten to exact pins at pack time by scripts/pin-internal-deps.mjs):\n  ${found.join('\n  ')}`,
+        `[boundary] internal "*" ranges in source (expected pre-release; rewritten to caret ranges at pack time by scripts/pin-internal-deps.mjs):\n  ${found.join('\n  ')}`,
       );
     }
     // Intentionally no assertion — the hard-fail lives in the release flow

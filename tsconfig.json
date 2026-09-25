@@ -2,6 +2,9 @@
     "compilerOptions": {
       "target": "ES2022",
       "lib": ["ES2022", "DOM", "DOM.Iterable"],
+      // TypeScript 6 auto-includes no @types package. Package builds and typechecks compile only
+      // `src`, so they see Node globals (`process`, `node:*` modules) through this entry.
+      "types": ["node"],
       "module": "ESNext",
       "moduleResolution": "bundler",
       "jsx": "react-jsx",

@@ -1,6 +1,27 @@
 import '@testing-library/jest-dom';
 import { vi } from 'vitest';
 
+// React DOM picks its animation event names by feature detection when it loads. jsdom has the
+// `animation` style properties but no AnimationEvent, so React listens for the prefixed
+// `webkitAnimationEnd` — a path no current browser takes — and an `onAnimationEnd` handler never
+// fires under test. A spec-shaped AnimationEvent restores the browser's `animationend` wiring. It
+// is defined here because this file runs before any test file loads react-dom.
+if (typeof window !== 'undefined' && !('AnimationEvent' in window)) {
+  class AnimationEvent extends Event {
+    readonly animationName: string;
+    readonly elapsedTime: number;
+    readonly pseudoElement: string;
+
+    constructor(type: string, init: AnimationEventInit = {}) {
+      super(type, init);
+      this.animationName = init.animationName ?? '';
+      this.elapsedTime = init.elapsedTime ?? 0;
+      this.pseudoElement = init.pseudoElement ?? '';
+    }
+  }
+  Object.defineProperty(window, 'AnimationEvent', { value: AnimationEvent, writable: true, configurable: true });
+}
+
 // jsdom does not implement canvas drawing. Media visualizers are best-effort
 // and no-op when a 2D context is unavailable, so mirror that browser-safe path
 // without emitting jsdom's noisy "not implemented" errors in every audio test.

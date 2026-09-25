@@ -34,7 +34,7 @@
         "@ttt-productions/ui-core": "*",
         "@ttt-productions/media-schemas": "*",
         "@ttt-productions/media-viewer": "*",
-        "react-easy-crop": "^5.5.0"
+        "react-easy-crop": "^6.2.3"
     },
     "peerDependencies": {
         "react": ">=19.0.0",
@@ -53,8 +53,7 @@
         }
     },
     "devDependencies": {
-        "lucide-react": "^1.30.0",
-        "typescript": "^5.8.3"
+        "lucide-react": "^1.30.0"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"

@@ -19,15 +19,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Node comes from .nvmrc. check-latest forces the newest release of that line instead of a
+      # possibly stale runner cache: npm Trusted Publishing (OIDC) needs npm >= 11.5.1, which only
+      # Node 24.5+ bundles.
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: "22"
+          node-version-file: .nvmrc
+          check-latest: true
           registry-url: "https://registry.npmjs.org"
-
-      # npm Trusted Publishing (OIDC) requires npm >= 11.5.1; Node 22 bundles npm 10.x.
-      - name: Update npm for Trusted Publishing
-        run: npm install -g npm@^11.5.1
 
       - name: Extract package info from tag
         id: pkg
@@ -75,7 +75,7 @@ jobs:
             exit 0
           fi
 
-          # Pin internal @ttt-productions/* "*" ranges to exact versions in the
+          # Pin internal @ttt-productions/* "*" ranges to caret ranges (^x.y.z) in the
           # about-to-be-packed manifest. Source keeps "*" for workspace dev; this
           # checkout is ephemeral, so the rewrite only affects the published
           # tarball. --check then HARD-FAILS if any internal "*" survived.

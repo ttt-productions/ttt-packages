@@ -1,68 +1,49 @@
 # TTT Packages
 
-Shared packages for TTT Productions and Q-Sports applications.
+The shared `@ttt-productions/*` packages used by the TTT Productions and Q-Sports apps. This is
+an npm-workspaces monorepo: each package lives in its own folder under `packages/` and is
+published to npm on its own.
 
-## 📦 Packages
+## Documentation
 
-| Package | Version | Description |
-|---------|---------|-------------|
-| [@ttt/ui-core](./packages/ui-core) | - | Shared UI components (shadcn/ui) |
-| @ttt/auth-core | - | Authentication system with custom claims |
-| @ttt/theme-core | - | Theme provider and CSS tokens |
-| @ttt/firebase-helpers | - | Firestore and Storage utilities |
-| @ttt/mobile-core | - | Mobile optimizations (iOS keyboard, viewport) |
-| @ttt/monitoring-core | - | Sentry error tracking wrapper |
-| @ttt/chat-core | - | Chat system with React Query |
+- [`docs/packages/package-architecture.md`](docs/packages/package-architecture.md) — how the
+  packages fit together: tiers, dependency direction, entry-point conventions, build and release
+  order, internal version pinning, and the boundary-guard tests.
+- [`docs/packages/`](docs/packages/) — one doc per package: what it owns, what it must not own,
+  and its public entry points.
+- [`docs/design/`](docs/design/) — invariants that span several packages.
+- [`CLAUDE.md`](CLAUDE.md) — the working rules for this repo, including the verification gate,
+  the release workflow, and version-bump policy.
 
-## 🚀 Installation
+Each package's `package.json` is the source of truth for its exports and dependencies.
+
+## Development
+
+Use the Node version in `.nvmrc`.
+
 ```bash
-npm install @ttt/ui-core
-npm install @ttt/auth-core
-npm install @ttt/theme-core
-```
-
-## 📖 Usage
-```typescript
-import { Button, Dialog, Input } from '@ttt/ui-core';
-import { useAuth } from '@ttt/auth-core';
-import { ThemeProvider } from '@ttt/theme-core';
-
-function App() {
-  const { user } = useAuth();
-  
-  return (
-    <ThemeProvider>
-      <Button>Click me</Button>
-    </ThemeProvider>
-  );
-}
-```
-
-## 🛠️ Development
-```bash
-# Install dependencies
 npm install
-
-# Build all packages
-npm run build
-
-# Run tests
-npm run test
-
-# Type check
-npm run typecheck
+npm run test:quiet
 ```
 
-## 📝 Publishing
+`npm run test:quiet` is the gate every change must pass before a release. It prints one line per
+stage; `CLAUDE.md` describes the stages, and `node scripts/test-quiet.mjs --help` lists the ones
+you can run alone with `--only`.
 
-Packages are automatically published to npm when tags are pushed:
+## Releasing
+
+Every release goes through one command, run from the repo root with short package folder names:
+
 ```bash
-# Bump version and publish
-cd packages/ui-core
-npm version patch  # or minor, major
-git push --tags
+./scripts/release-multiple.sh <folder> [<folder> ...] patch
 ```
 
-## 📄 License
+It runs `scripts/preflight.sh` once, which ends with `npm run test:quiet`, then releases the named
+packages in dependency order. For each one it bumps the version, commits, tags, and pushes. The
+pushed tag triggers `.github/workflows/publish.yml`, which rewrites internal `"*"` ranges to caret
+ranges and publishes the package to npm. `./scripts/release-all.sh` releases every package through
+the same script. Before launch, every release is a `patch` bump (see `CLAUDE.md`).
+
+## License
 
 MIT © TTT Productions

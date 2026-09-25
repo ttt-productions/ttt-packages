@@ -1,7 +1,7 @@
 # @ttt-productions/edge-protocol-core
 
 Runtime-neutral primitives for **signed internal backend ↔ Worker / Durable-Object
-calls**. WebCrypto + zod only, so the same code runs in Cloud Functions (Node 22)
+calls**. WebCrypto + zod only, so the same code runs in Cloud Functions (Node 24)
 and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
 
 ## Owns

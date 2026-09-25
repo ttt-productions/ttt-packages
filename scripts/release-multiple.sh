@@ -3,62 +3,33 @@ set -euo pipefail
 
 # release-multiple.sh — release a CHOSEN SUBSET of packages in one shot.
 #
-# Same machinery as release-all.sh, but you pass the packages you want by their
-# short folder name (no @ttt-productions/ prefix, no packages/ prefix). The
-# heavy preflight (npm run test:quiet — lint/build/typecheck/tsc -b/vitest) runs
-# ONCE up front, then each package is released with SKIP_PREFLIGHT=1, so you
-# don't pay the build/test cost per package.
+# Pass the packages you want by their short folder name (no @ttt-productions/
+# prefix, no packages/ prefix). The heavy preflight (scripts/preflight.sh, which
+# ends with the full npm run test:quiet gate) runs ONCE up front, then each
+# package is released with SKIP_PREFLIGHT=1, so you don't pay the build/test
+# cost per package.
 #
-# The bump (patch|minor|major) is optional and may be the LAST argument; it
-# defaults to patch. The packages are ALWAYS released in the canonical
-# dependency-safe order below (mirrors release-all.sh), regardless of the order
-# you type them — so a dep always publishes before its dependents.
+# The bump (patch|minor|major) is optional and may appear anywhere in the
+# argument list; it defaults to patch. The packages are ALWAYS released in the
+# dependency-safe order scripts/package-order.mjs prints, regardless of the
+# order you type them — so a dep always publishes before its dependents.
 #
 # Usage:
 #   ./scripts/release-multiple.sh ttt-core auth-core notification-core         # patch
 #   ./scripts/release-multiple.sh ttt-core auth-core notification-core minor
 #   ./scripts/release-multiple.sh minor ttt-core auth-core                     # bump can lead too
-#
-# When packages are added/renamed/removed, update RELEASE_ORDER below to match
-# release-all.sh / the root package.json build chain.
 
 # ---------------------------------------------------------------------------
 # Canonical dependency-safe release order (folder names under packages/).
-# Keep in sync with scripts/release-all.sh.
 # ---------------------------------------------------------------------------
-RELEASE_ORDER=(
-  # Tier 0 — generic, zero @ttt-productions/* deps
-  edge-protocol-core
-  realtime-core
-  firebase-helpers
-  ui-core
-  theme-core
-  query-core
-  monitoring-core
-  media-schemas
-  chat-schemas
-  # report-core + audit-core + notification-core — must release BEFORE ttt-core
-  report-core
-  audit-core
-  notification-core
-  # Application data
-  ttt-core
-  # Tier 1 — depend on Tier 0
-  mobile-core
-  media-viewer
-  file-input
-  auth-core
-  upload-core
-  # Tier 2 — depends on Tier 1
-  upload-ui
-  media-processing-core
-  # Tier 3 — chat
-  chat-core
-  chat-react
-  # Remaining
-  rate-limit-core
-  moderation-core
-)
+RELEASE_ORDER=()
+while IFS= read -r name; do
+  RELEASE_ORDER+=("${name%$'\r'}")
+done < <(node scripts/package-order.mjs)
+if [[ ${#RELEASE_ORDER[@]} -eq 0 ]]; then
+  echo "❌ Could not read the package order from scripts/package-order.mjs."
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
 # Parse args: collect package short-names, pull out an optional bump keyword

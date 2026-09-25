@@ -10,7 +10,7 @@ import {
   readFileHeader,
   ByteLimitExceededError,
   FILE_HEADER_BYTES,
-} from "../io/local-input.js";
+} from "../src/io/local-input.js";
 
 const chunked = (buf: Buffer, chunkSize: number): Readable => {
   const chunks: Buffer[] = [];

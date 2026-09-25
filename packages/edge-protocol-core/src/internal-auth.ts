@@ -1,9 +1,9 @@
 // Internal request signing/verification — the canonical HMAC scheme for signed
-// backend → Worker/DO calls (media-authority `apply`, and later chat internal
-// sync/command/outbox endpoints). Reuses the media Worker's `v1.` HMAC-SHA256
-// pattern (token.ts) but is a SEPARATE concern from the session/grant cookie:
-// each consumer uses its own secret + audience (e.g. MEDIA_AUTHORITY_SYNC_SECRET,
-// audience `media-authority:{env}`). WebCrypto only — runs in Node 22 + Workers.
+// backend → Worker/DO calls (media-authority `apply` and the chat internal
+// sync/command/outbox endpoints). A SEPARATE concern from the session/grant token
+// in signed-token.ts: each consumer uses its own secret + audience (e.g.
+// MEDIA_AUTHORITY_SYNC_SECRET, audience `media-authority:{env}`). WebCrypto only —
+// runs in Node 24 + Workers.
 //
 // The signature covers: protocol marker, audience, method, exact path, timestamp,
 // SHA-256 body hash, and a deterministic operationId. A narrow replay window is

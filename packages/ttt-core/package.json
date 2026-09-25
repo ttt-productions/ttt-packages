@@ -120,9 +120,6 @@
         "@ttt-productions/report-core": "*",
         "zod": "^4.4.3"
     },
-    "devDependencies": {
-        "typescript": "^5.8.3"
-    },
     "author": "DJ (TTT Productions)",
     "license": "MIT"
 }

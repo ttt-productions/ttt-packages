@@ -1,7 +1,7 @@
 // Shared WebCrypto helpers used by both the internal-request signer
 // (internal-auth.ts) and the signed-token primitive (signed-token.ts). Internal
 // to the package — not part of the public API. WebCrypto only, so the same code
-// runs in Node 22, Cloudflare Workers, and browsers.
+// runs in Node 24, Cloudflare Workers, and browsers.
 
 /** base64url-encode raw bytes (no padding). */
 export function bytesToB64url(bytes: Uint8Array): string {

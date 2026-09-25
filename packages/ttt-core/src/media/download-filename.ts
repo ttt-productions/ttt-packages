@@ -12,13 +12,9 @@
 // ASSEMBLY stays worker-side — this module only produces the two string forms.
 //
 // Everything here is PURE: no env, no I/O, no clock, no crypto. It runs unchanged
-// in Cloud Functions (Node 22) and in the Cloudflare Worker.
+// in Cloud Functions (Node 24) and in the Cloudflare Worker.
 //
 // Filenames are USER CONTENT. Never log them — not the raw input, not the output.
-//
-// See ttt-prod docs/design/media-assets-and-protected-serving.md and
-// docs/code_changes_needed/CODE_CHANGE_invite_finalization_conversation_files_and_downloads.md
-// (§3 "Gateway downloads").
 // ============================================================================
 
 import {

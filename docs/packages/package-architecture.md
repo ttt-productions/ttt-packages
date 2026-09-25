@@ -8,10 +8,9 @@ Code is the source of truth. This document explains the durable model; exact
 exports live in each package's `package.json`, and the wiring lives in the root
 `package.json` build chain and `scripts/`.
 
-The monorepo has **24 packages**. Generic packages never know about TTT-specific
-identifiers, Firestore collection names, copy, moderation policy, or
-domain-event catalogs — that lives in `@ttt-productions/ttt-core` or in the
-consuming app.
+Generic packages never know about TTT-specific identifiers, Firestore collection
+names, copy, moderation policy, or domain-event catalogs — that lives in
+`@ttt-productions/ttt-core` or in the consuming app.
 
 ## Tier model
 
@@ -44,8 +43,8 @@ package may consume it.
 - **Application data:** `ttt-core` (→ `audit-core`,
   `edge-protocol-core`, `media-schemas`, `notification-core`, `report-core`).
 
-The internal runtime-dependency edges (peers/dev excluded — they do not affect
-build order):
+The internal runtime-dependency edges (peer and dev edges are left out here; the
+build and release order still honors them):
 
     realtime-core          -> edge-protocol-core
     file-input             -> ui-core, media-schemas, media-viewer
@@ -60,14 +59,15 @@ build order):
 
 The `file-input -> media-viewer` edge is the only intra-Tier-1 dependency
 (`file-input` renders `MediaPreview` in `MediaInput`'s selected-file preview).
-It needs no tier renumbering: the build chain, `scripts/release-all.sh`, and
-`scripts/release-multiple.sh` already place `media-viewer` before `file-input`,
-so dependencies still build and release before their dependents.
+It needs no tier renumbering: the one package order (see Build order and release
+order) already places `media-viewer` before `file-input`, so dependencies still
+build and release before their dependents.
 
 Every other package has zero internal runtime dependencies. `ui-core`,
 `report-core`, `notification-core`, and `chat-react` declare some
 `@ttt-productions/*` peers (e.g. `firebase-helpers`, `ui-core`, `query-core`) —
-peers are not build edges.
+a peer is not a runtime edge, but a package whose source imports one compiles
+against its `dist`, so the peer still builds and releases first.
 
 ## Root purity rule
 
@@ -207,27 +207,23 @@ reader through `config.acceptance`; the package only compares the two levels
 
 ## Build order and release order
 
-Both orders are the topological order of the runtime-dependency graph above:
-a package builds (and releases) only after every internal dependency it
-consumes. The order is encoded in three places that must stay in sync whenever a
-package is added, renamed, or removed:
+Build and release follow one order: every package comes after each internal
+`@ttt-productions/*` package it declares (runtime, dev, or peer), so it compiles
+against a built `dist` and never publishes a caret range to a version npm does
+not have yet. That order is written in one place, the root `package.json` `build`
+chain, so adding, renaming, or removing a package means editing that chain only:
 
-- the root `package.json` `build` chain — the single source of build order;
-  `scripts/build-all.sh` and `scripts/preflight.sh` delegate to it rather than
-  re-listing packages.
-- `scripts/release-all.sh` — releases all 24 packages in the same order.
-- `scripts/release-multiple.sh` — releases a selected subset by walking the same
-  canonical `RELEASE_ORDER`.
+- `npm run build` runs the chain; `scripts/build-all.sh` and
+  `scripts/preflight.sh` delegate to it rather than re-listing packages.
+- `scripts/package-order.mjs` prints the chain as package folder names, one per
+  line. `scripts/release-multiple.sh` releases a selected subset in that order,
+  and `scripts/release-all.sh` hands every package folder to
+  `release-multiple.sh`.
+- `package-order.test.ts` (see Boundary guard tests) fails when the chain misses
+  a package or puts one ahead of an internal package it declares.
 
-Key ordering constraints: `chat-core` plus
-`chat-schemas`/`ui-core`/`upload-ui`/`mobile-core`/`firebase-helpers` before `chat-react`;
-`report-core`/`audit-core`/`notification-core`/`media-schemas`
-before `ttt-core`;
-`firebase-helpers`/`media-schemas` before `upload-core`; `file-input`/`ui-core`/`upload-core`/
-`media-schemas` before `upload-ui`.
-
-`scripts/preflight.sh` (and `release-all.sh`, which preflights once) nukes stale
-nested `node_modules/@ttt-productions` shadows and `dist/` before a fresh
+`scripts/preflight.sh`, which every release runs once before its first package,
+nukes stale nested `node_modules/@ttt-productions` shadows and `dist/` before an
 install + full build, so workspace symlinks resolve and no consumer reads stale
 `dist/`. `scripts/bundle-code.sh` and `scripts/zip-ttt-packages.sh` discover
 packages dynamically by globbing `packages/*`, so they need no per-package edits.
@@ -236,8 +232,9 @@ packages dynamically by globbing `packages/*`, so they need no per-package edits
 
 Published JavaScript sourcemaps are self-contained: the root TypeScript config
 keeps `sourceMap` and `inlineSources` enabled so every emitted `.js.map` carries
-the original TypeScript in `sourcesContent`. Most package tarballs publish
-`dist` without `src`; a map that only points back to `src` produces missing-source
+the original TypeScript in `sourcesContent`. Package tarballs publish `dist` and
+no TypeScript source (`publish-manifest.test.ts` enforces both); a map that only
+points back to `src` produces missing-source
 warnings in consumers and degrades stack traces. Do not fix that by dropping
 sourcemaps or broadly adding source trees to package tarballs.
 
@@ -303,3 +300,25 @@ the rules above so they fail loudly:
 - `sourcemap-sources.test.ts` (check #4) — after the build, fails if any package
   emits a JavaScript sourcemap without complete embedded `sourcesContent`, so a
   published `dist` never points consumers at source files the tarball omits.
+- `tests-outside-src.test.ts` — fails if a test file (`*.test.*` / `*.spec.*`) or a
+  `__tests__` / `__mocks__` folder sits under any package's `src`. Every package
+  build compiles all of `src` into the published `dist`, so package tests live in
+  the package's own `__tests__/` beside `src`.
+- `package-order.test.ts` — fails if the package order `scripts/package-order.mjs`
+  prints (the root `package.json` build chain) misses a package folder, lists one
+  twice, or puts a package ahead of an internal package it declares in any
+  dependency field; or if `release-multiple.sh` stops reading that order or
+  `release-all.sh` stops releasing through `release-multiple.sh`.
+- `publish-manifest.test.ts` — fails if a package's `prepublishOnly` is not
+  `npm run clean && npm run build`, its `clean` does not remove `dist`, its
+  `files` omits `dist`, or any other `files` entry is missing on disk or holds
+  TypeScript source. A stylesheet folder behind a `./styles` export is the only
+  other thing a tarball needs.
+- `no-shell-args-array.test.ts` — fails if any repo source file calls
+  `spawn` / `spawnSync` / `execFile` / `execFileSync` with an args array plus an
+  inline options object whose top-level `shell` is anything but `false`
+  (`shell` shorthand included): Node space-joins that array unescaped
+  and deprecates the form, so a child that needs a shell gets one command string
+  (the quiet runner's `runCmd`). It also pins the quiet runner's
+  `SHELL_SAFE_TOKEN` to accepting plain command/flag/path tokens and rejecting
+  every character `cmd.exe` or `sh` would reinterpret.

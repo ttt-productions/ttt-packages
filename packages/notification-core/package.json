@@ -35,7 +35,7 @@
         "build": "tsc",
         "clean": "rm -rf dist *.tsbuildinfo",
         "typecheck": "tsc --noEmit",
-        "prepublishOnly": "npm run build"
+        "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
         "zod": "^4.4.3"
@@ -74,10 +74,9 @@
         "@ttt-productions/ui-core": "*",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
-        "firebase": "^11.0.0",
+        "firebase": "^12.14.0",
         "react": "^19.2.0",
-        "react-dom": "^19.2.0",
-        "typescript": "^5.8.3"
+        "react-dom": "^19.2.0"
     },
     "author": "DJ (TTT Productions)",
     "license": "MIT"

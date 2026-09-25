@@ -256,7 +256,12 @@ function deferred() {
   return { promise, resolve };
 }
 
-/** Holds every copy at its commit until the test releases it, in arrival order. */
+/**
+ * Holds every copy at its commit until the test releases it, in arrival order. Arrival order is not
+ * call order — R2 requests are signed asynchronously, so either racing copy can reach the commit
+ * first — so a test identifies a released copy by the result it settles with, never by which call
+ * it started.
+ */
 function holdCopies(count: number) {
   const gates = Array.from({ length: count }, deferred);
   let arrivals = 0;
@@ -364,15 +369,18 @@ describe('Firebase Storage copy: never overwrites, idempotent, one call', () => 
     const held = holdCopies(2);
     gcs.hooks.beforeCopyCommit = held.hook;
 
-    const first = settle(createFirebaseStorageObjectStore({ bucket: gcs.bucket }).copy({ fromKey: SOURCE, toKey: KEPT }));
-    const second = settle(createFirebaseStorageObjectStore({ bucket: gcs.bucket }).copy({ fromKey: SOURCE, toKey: KEPT }));
+    const copies = [SOURCE, SOURCE].map((fromKey) =>
+      settle(createFirebaseStorageObjectStore({ bucket: gcs.bucket }).copy({ fromKey, toKey: KEPT })),
+    );
     await vi.waitFor(() => expect(held.arrived()).toBe(2));
     held.release(0);
-    expect(await first).toEqual({ ok: true, value: { key: KEPT, alreadyPresent: false } });
+    const committer = await Promise.race(copies);
+    expect(committer).toEqual({ ok: true, value: { key: KEPT, alreadyPresent: false } });
     const committed = structuredClone(gcs.objects.get(KEPT));
     held.release(1);
 
-    expect(await second).toEqual({ ok: true, value: { key: KEPT, alreadyPresent: true } });
+    const [a, b] = await Promise.all(copies);
+    expect(a === committer ? b : a).toEqual({ ok: true, value: { key: KEPT, alreadyPresent: true } });
     expect(gcs.objects.get(KEPT)).toEqual(committed);
   });
 
@@ -383,17 +391,20 @@ describe('Firebase Storage copy: never overwrites, idempotent, one call', () => 
     const held = holdCopies(2);
     gcs.hooks.beforeCopyCommit = held.hook;
 
-    const winner = settle(createFirebaseStorageObjectStore({ bucket: gcs.bucket }).copy({ fromKey: SOURCE, toKey: KEPT }));
-    const loser = settle(createFirebaseStorageObjectStore({ bucket: gcs.bucket }).copy({ fromKey: OTHER_SOURCE, toKey: KEPT }));
+    const copies = [SOURCE, OTHER_SOURCE].map((fromKey) =>
+      settle(createFirebaseStorageObjectStore({ bucket: gcs.bucket }).copy({ fromKey, toKey: KEPT })),
+    );
     await vi.waitFor(() => expect(held.arrived()).toBe(2));
     held.release(0);
     held.release(1);
 
-    expect(await winner).toEqual({ ok: true, value: { key: KEPT, alreadyPresent: false } });
-    const lost = await loser;
+    const results = await Promise.all(copies);
+    const winner = results.findIndex((result) => result.ok);
+    expect(results[winner]).toEqual({ ok: true, value: { key: KEPT, alreadyPresent: false } });
+    const lost = results[1 - winner];
     expect(lost.ok).toBe(false);
     expect(!lost.ok && lost.error).toBeInstanceOf(ObjectAlreadyExistsError);
-    expect(gcs.objects.get(KEPT)?.bytes).toBe('signature-png');
+    expect(gcs.objects.get(KEPT)?.bytes).toBe(['signature-png', 'other-signature'][winner]);
   });
 
   it('a source replaced between its read and the copy fails the copy as not-found and writes nothing', async () => {
@@ -1310,15 +1321,16 @@ describe('R2 copy: never overwrites, idempotent, one call', () => {
     const held = holdCopies(2);
     r2.hooks.beforeCopyCommit = held.hook;
 
-    const first = settle(store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT }));
-    const second = settle(store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT }));
+    const copies = [R2_SOURCE, R2_SOURCE].map((fromKey) => settle(store(r2.fetchImpl).copy({ fromKey, toKey: R2_KEPT })));
     await vi.waitFor(() => expect(held.arrived()).toBe(2));
     held.release(0);
-    expect(await first).toEqual({ ok: true, value: { key: R2_KEPT, alreadyPresent: false } });
+    const committer = await Promise.race(copies);
+    expect(committer).toEqual({ ok: true, value: { key: R2_KEPT, alreadyPresent: false } });
     const committed = structuredClone(r2.objects.get(R2_KEPT));
     held.release(1);
 
-    expect(await second).toEqual({ ok: true, value: { key: R2_KEPT, alreadyPresent: true } });
+    const [a, b] = await Promise.all(copies);
+    expect(a === committer ? b : a).toEqual({ ok: true, value: { key: R2_KEPT, alreadyPresent: true } });
     expect(r2.objects.get(R2_KEPT)).toEqual(committed);
     expect(r2.requests.some((r) => r.method === 'DELETE')).toBe(false);
   });
@@ -1330,17 +1342,18 @@ describe('R2 copy: never overwrites, idempotent, one call', () => {
     const held = holdCopies(2);
     r2.hooks.beforeCopyCommit = held.hook;
 
-    const winner = settle(store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT }));
-    const loser = settle(store(r2.fetchImpl).copy({ fromKey: R2_OTHER_SOURCE, toKey: R2_KEPT }));
+    const copies = [R2_SOURCE, R2_OTHER_SOURCE].map((fromKey) => settle(store(r2.fetchImpl).copy({ fromKey, toKey: R2_KEPT })));
     await vi.waitFor(() => expect(held.arrived()).toBe(2));
     held.release(0);
     held.release(1);
 
-    expect(await winner).toEqual({ ok: true, value: { key: R2_KEPT, alreadyPresent: false } });
-    const lost = await loser;
+    const results = await Promise.all(copies);
+    const winner = results.findIndex((result) => result.ok);
+    expect(results[winner]).toEqual({ ok: true, value: { key: R2_KEPT, alreadyPresent: false } });
+    const lost = results[1 - winner];
     expect(lost.ok).toBe(false);
     expect(!lost.ok && lost.error).toBeInstanceOf(ObjectAlreadyExistsError);
-    expect(r2.objects.get(R2_KEPT)?.body).toBe(R2_STAGED.body);
+    expect(r2.objects.get(R2_KEPT)?.body).toBe([R2_STAGED.body, 'other-video'][winner]);
   });
 
   it('a source replaced after its read rethrows the precondition failure and writes nothing', async () => {

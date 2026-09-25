@@ -3,18 +3,18 @@ set -euo pipefail
 
 # NOTE: This script bumps the version, commits, tags, and pushes. The actual
 # pack/publish happens in tag-triggered CI (.github/workflows/publish.yml).
-# Internal "@ttt-productions/*": "*" ranges are rewritten to EXACT versions at
-# pack time there (scripts/pin-internal-deps.mjs), so committed source keeps "*"
+# Internal "@ttt-productions/*": "*" ranges are rewritten to caret ranges (^x.y.z)
+# at pack time there (scripts/pin-internal-deps.mjs), so committed source keeps "*"
 # for workspace dev while published tarballs never ship a "*" internal range.
-# Do not pin internal deps here — that would commit exact pins into source.
+# Do not pin internal deps here — that would commit the pins into source.
 
 PKG="${1:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch|minor|major]}"
 PKGDIR="${2:?Usage: ./release-package.sh <pkgName> <pkgDir> [patch|minor|major]}"
 BUMP="${3:-patch}"
 
 # Safety: always preflight before a release to avoid stale nested node_modules
-# or cached dist shadowing workspace symlinks. See root CLAUDE.md.
-# Skipped when called from release-all.sh (which runs preflight once at the top).
+# or cached dist shadowing workspace symlinks. release-multiple.sh preflights
+# once for its whole batch and sets SKIP_PREFLIGHT=1.
 if [[ "${SKIP_PREFLIGHT:-0}" != "1" ]]; then
   npm run preflight
 fi

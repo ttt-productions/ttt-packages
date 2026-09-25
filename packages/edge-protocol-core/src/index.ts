@@ -1,6 +1,6 @@
 // @ttt-productions/edge-protocol-core — generic, runtime-neutral primitives for
 // signed internal backend ↔ Worker/Durable-Object calls. WebCrypto + zod only,
-// so the SAME code runs in Cloud Functions (Node 22) and Cloudflare Workers/DOs.
+// so the SAME code runs in Cloud Functions (Node 24) and Cloudflare Workers/DOs.
 // Deliberately NOT chat- or media-shaped: it holds the SHARED mechanisms
 // (internal HMAC signing and the header names that carry it, canonical payload
 // hashing, the versioned-apply rule, the structured-error + protocol-version

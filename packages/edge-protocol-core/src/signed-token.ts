@@ -2,8 +2,8 @@
 // secret, "v1."+payloadB64))}` format used by the media-session cookie and the
 // media/chat grants. The single canonical implementation: the Next media-session
 // route + createMediaGrant SIGN with it, and the media Worker + chat Worker VERIFY
-// with it, so the wire format can't drift across the four reimplementations it
-// replaced. WebCrypto only — runs in Node 22, Cloudflare Workers, and browsers.
+// with it, so the wire format can't drift between signers and verifiers.
+// WebCrypto only — runs in Node 24, Cloudflare Workers, and browsers.
 //
 // Distinct from internal-auth.ts: that binds method/exact-path/body-hash/audience
 // for backend→Worker/DO calls; THIS is the user-facing token whose JSON payload is

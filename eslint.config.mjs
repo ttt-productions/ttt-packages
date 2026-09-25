@@ -1,4 +1,4 @@
-// Flat config (ESLint 9) for the ttt-packages monorepo. Lints the published package source under
+// Flat config for the ttt-packages monorepo. Lints the published package source under
 // packages/*. Mirrors the rule philosophy of ttt-prod's eslint.config.js — `no-explicit-any` off,
 // `_`-prefixed unused allowed, react-hooks elevated to error — but WITHOUT the Next.js rule set:
 // these are framework-agnostic libraries, only some of which ship React.
