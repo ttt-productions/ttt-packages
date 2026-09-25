@@ -137,6 +137,10 @@ const GUARDED: Record<string, GuardedLiteral> = {
   parkedOnHold: {
     owners: ['ttt-core/src/doc-schemas/account-deletion.ts'],
   },
+  // Distinctive member of MediaCopyIntentState (the sweep's claim on a copy intent).
+  reaping: {
+    owners: ['ttt-core/src/doc-schemas/media-copy-intents.ts'],
+  },
   // The RealmFileCanonStatus approval gate (media-assets.ts) and the Work-in-realm
   // RealmCanonStatus (work-project.ts) are different unions that share two spellings:
   // `pendingApproval` belongs only to the file gate, while `canon` / `nonCanon` are

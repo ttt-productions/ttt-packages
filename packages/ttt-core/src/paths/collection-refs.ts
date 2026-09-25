@@ -102,6 +102,10 @@ export const COLLECTION_REFS = {
 
   pendingMediaArchive: (): [string] => [COLLECTIONS.PENDING_MEDIA_ARCHIVE],
 
+  // The media copy intents, which the orphaned-copy sweep queries for expired ones; the
+  // per-document counterpart is PATH_BUILDERS.mediaCopyIntent.
+  mediaCopyIntents: (): [string] => [COLLECTIONS.MEDIA_COPY_INTENTS],
+
   // One public document's immutable version history (queried newest-first by `version` for
   // the admin history read). The per-document counterpart is PATH_BUILDERS.publicDocumentVersion.
   publicDocumentVersions: (documentId: PublicDocumentId): [string, string, string] =>

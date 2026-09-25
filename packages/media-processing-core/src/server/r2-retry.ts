@@ -5,10 +5,11 @@
 // only public surface is the `R2StorageError` type, which storage-ops re-exports
 // so callers can recognize an exhausted storage operation.
 //
-// The policy applies to the idempotent-against-a-deterministic-key operations
-// only (putFile, copy, readToFile). `delete` is intentionally one-shot and never
-// routes through here. Signing/config failures, local filesystem errors, and
-// deterministic HTTP 4xx responses are never retried.
+// The policy applies to the idempotent-against-a-deterministic-key requests
+// only (putFile, copy, readToFile, and deleteCopy's read of the destination).
+// Every DELETE request is intentionally one-shot and never routes through here.
+// Signing/config failures, local filesystem errors, and deterministic HTTP 4xx
+// responses are never retried.
 
 // ---------------------------------------------------------------------------
 // Fixed internal policy — never exposed as tunables on the public factory.
@@ -27,9 +28,9 @@ export const R2_RETRY_AFTER_CAP_MS = 30_000;
 /** HTTP statuses treated as transient and safe to retry. */
 export const R2_RETRYABLE_STATUSES: ReadonlySet<number> = new Set([408, 429, 500, 502, 503, 504]);
 
-export type R2RetryableOperation = "putFile" | "copy" | "readToFile";
+export type R2RetryableOperation = "putFile" | "copy" | "readToFile" | "deleteCopy";
 
-/** Every R2 store operation an `R2StorageError` can name; `delete` is one-shot. */
+/** Every R2 store operation an `R2StorageError` can name; `delete` never retries. */
 export type R2Operation = R2RetryableOperation | "delete";
 
 /** Deterministic seams for tests; production defaults are internal (see below). */

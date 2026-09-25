@@ -182,6 +182,10 @@ describe('COLLECTION_REFS', () => {
       expect(result[0]).toBe(COLLECTIONS.PENDING_MEDIA_ARCHIVE);
     });
 
+    it('mediaCopyIntents returns single-element tuple', () => {
+      expect(COLLECTION_REFS.mediaCopyIntents()).toEqual([COLLECTIONS.MEDIA_COPY_INTENTS]);
+    });
+
     it('both are the parent collections of their per-document builders', () => {
       // The sweep reads and writes these as collections while the processors address single
       // rows — a divergence would archive into a collection nothing reads.

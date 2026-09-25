@@ -74,6 +74,13 @@ export interface ObjectCopyResult {
   alreadyPresent: boolean;
 }
 
+/**
+ * What `deleteCopy` found at the destination: `deleted` — a copy of the source, now removed;
+ * `absent` — no object; `notThisCopy` — an object this package did not copy from that
+ * source, left untouched.
+ */
+export type DeleteCopyResult = "deleted" | "absent" | "notThisCopy";
+
 // Every copy records on its destination which source version it holds. A copy whose
 // destination already exists compares this record with its own, so it recognizes its
 // own earlier result and never mistakes another writer's object for it. The values are
@@ -93,6 +100,20 @@ function copyProvenance(fromKey: string, sourceVersion: string): CopyProvenance 
 /** Whether an object's custom metadata, read through `readMetadata`, names exactly this provenance. */
 function holdsProvenance(readMetadata: (name: string) => unknown, provenance: CopyProvenance): boolean {
   return Object.entries(provenance).every(([name, value]) => readMetadata(name) === value);
+}
+
+/**
+ * Whether an object's custom metadata records a copy of `fromKey`, of whichever source
+ * version: `deleteCopy` reads only the destination, so it cannot know the source's version.
+ * A record naming the source without a version is not provenance this package wrote.
+ */
+function recordsCopyOf(readMetadata: (name: string) => unknown, fromKey: string): boolean {
+  const version = readMetadata(COPY_SOURCE_VERSION_METADATA_KEY);
+  return (
+    readMetadata(COPY_SOURCE_METADATA_KEY) === encodeURIComponent(fromKey) &&
+    typeof version === "string" &&
+    version !== ""
+  );
 }
 
 /** The content headers a copy carries from its source: HTTP header name → Cloud Storage field. */
@@ -134,6 +155,20 @@ export interface MediaObjectStore {
   readToFile(args: { key: string; localPath: string }): Promise<ObjectReadResult>;
   /** Delete an object. Missing objects are a no-op, not an error. */
   delete(key: string): Promise<void>;
+  /**
+   * Delete `toKey` only when the object there is a copy of `fromKey` this package made: its
+   * own recorded provenance must name `fromKey` as its source. Only the destination is read,
+   * so this works after the source is gone. Any other object — a copy of another source, or
+   * one with no provenance — is left untouched and answers `notThisCopy`.
+   *
+   * Firebase Storage deletes only the generation it checked; an object replaced after the
+   * check is checked again, never deleted blind. R2's DeleteObject takes no precondition, so
+   * there the delete follows the check unconditioned. That gap is harmless only under the key
+   * contract: keys are write-once and a copy never replaces an object, so in the gap the
+   * checked object can only be removed; and a copy's key is derived from its source, so the
+   * only object that can land there afterwards is another copy of the same source.
+   */
+  deleteCopy(args: { fromKey: string; toKey: string }): Promise<DeleteCopyResult>;
 }
 
 const DEFAULT_CACHE_CONTROL = "public, max-age=31536000, immutable";
@@ -189,9 +224,9 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
 
   // A GET whose body is discarded unread, not a HEAD: a HEAD's error response carries no
   // body, so the S3 error code that tells a missing key from a missing bucket would be lost.
-  async function readObjectHeaders(key: string): Promise<Headers> {
+  async function readObjectHeaders(key: string, operation: "copy" | "deleteCopy"): Promise<Headers> {
     return fetchWithR2Retry({
-      operation: "copy",
+      operation,
       bucket: args.bucket,
       key,
       seams,
@@ -250,7 +285,7 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
     },
 
     async copy({ fromKey, toKey }) {
-      const source = await readObjectHeaders(fromKey);
+      const source = await readObjectHeaders(fromKey, "copy");
       const { etag, version } = readSourceVersion(source, fromKey);
       const provenance = copyProvenance(fromKey, version);
       const headers: Record<string, string> = {
@@ -289,7 +324,7 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
         // after it was read; only an existing destination can be this copy's result.
         let destination: Headers;
         try {
-          destination = await readObjectHeaders(toKey);
+          destination = await readObjectHeaders(toKey, "copy");
         } catch (readError) {
           if (isObjectNotFoundError(readError)) throw e;
           throw readError;
@@ -344,6 +379,32 @@ export function createR2ObjectStore(args: CreateR2ObjectStoreArgs): MediaObjectS
         });
       }
     },
+
+    async deleteCopy({ fromKey, toKey }) {
+      let destination: Headers;
+      try {
+        destination = await readObjectHeaders(toKey, "deleteCopy");
+      } catch (e) {
+        if (isObjectNotFoundError(e)) return "absent";
+        throw e;
+      }
+      if (!recordsCopyOf((name) => destination.get(`x-amz-meta-${name}`), fromKey)) return "notThisCopy";
+      // Unconditioned: R2's DeleteObject honors no precondition header, so none is sent — one
+      // it silently ignored would only look like protection. `MediaObjectStore.deleteCopy`
+      // states why the gap after the check is harmless. One-shot, like `delete`.
+      const res = await signedFetch(objectUrl(toKey), { method: "DELETE" });
+      if (res.ok) return "deleted";
+      const error = new R2StorageError({
+        operation: "deleteCopy",
+        bucket: args.bucket,
+        key: toKey,
+        attempts: 1,
+        status: res.status,
+        responseText: await safeText(res),
+      });
+      if (isObjectNotFoundError(error)) return "absent";
+      throw error;
+    },
   };
 }
 
@@ -361,6 +422,13 @@ async function safeText(res: Response): Promise<string> {
 
 /** Custom-metadata key Firebase Storage reads download tokens from. */
 const DOWNLOAD_TOKENS_METADATA_KEY = "firebaseStorageDownloadTokens";
+
+/**
+ * How many times `deleteCopy` checks a Firebase Storage destination before giving up. Keys
+ * are write-once, so one change between the check and the delete is already rare; an object
+ * still changing after that is left alone and the precondition failure is rethrown.
+ */
+const DELETE_COPY_MAX_READS = 2;
 
 export interface CreateFirebaseStorageObjectStoreArgs {
   bucket: Bucket;
@@ -458,6 +526,33 @@ function createFirebaseStore(bucket: Bucket, downloadToken: string | null): Medi
     },
 
     delete: deleteObject,
+
+    async deleteCopy({ fromKey, toKey }) {
+      const file = bucket.file(toKey);
+      for (let read = 1; ; read++) {
+        let custom: Record<string, unknown> | undefined;
+        let generation: string | number | null | undefined;
+        try {
+          const [destination] = await file.getMetadata();
+          custom = destination.metadata ?? undefined;
+          generation = destination.generation;
+        } catch (e) {
+          if (isObjectNotFoundError(e)) return "absent";
+          throw e;
+        }
+        if (!recordsCopyOf((name) => custom?.[name], fromKey)) return "notThisCopy";
+        // The delete names the generation just checked, so it can only remove that object.
+        const checked = requireStorageObjectGeneration({ generation }, { bucket: bucket.name, key: toKey });
+        try {
+          await file.delete({ ifGenerationMatch: checked });
+          return "deleted";
+        } catch (e) {
+          if (isObjectNotFoundError(e)) return "absent";
+          // A 412 means the object changed after it was checked: check what is there now.
+          if (!isPreconditionFailedError(e) || read >= DELETE_COPY_MAX_READS) throw e;
+        }
+      }
+    },
   };
 }
 

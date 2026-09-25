@@ -438,6 +438,10 @@ describe('PATH_BUILDERS', () => {
       expect(result[1]).toBe('pma_123');
     });
 
+    it('mediaCopyIntent returns 2-segment tuple keyed by the new asset id', () => {
+      expect(PATH_BUILDERS.mediaCopyIntent('copy-asset-1')).toEqual([COLLECTIONS.MEDIA_COPY_INTENTS, 'copy-asset-1']);
+    });
+
   });
 
   // ===== PAYMENT & PLEDGE PATHS =====

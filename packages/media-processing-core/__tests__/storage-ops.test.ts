@@ -173,8 +173,10 @@ describe('createFirebaseStorageObjectStore (deployed, token-free)', () => {
  * relies on: every write mints a new generation; a rewrite reads the source generation
  * its handle is pinned to (404 once that generation is no longer live), checks
  * `ifGenerationMatch` (0 = no live object) against the LIVE destination when it commits
- * (412), and REPLACES the destination's metadata with the resource it was sent. The hooks
- * let a test hold a copy before it commits, or act before a metadata read.
+ * (412), and REPLACES the destination's metadata with the resource it was sent. A delete
+ * answers 404 for a missing object and 412 when `ifGenerationMatch` names a generation
+ * that is no longer live. The hooks let a test hold a copy before it commits, act before a
+ * metadata read, or act before a delete commits.
  */
 function makeGcsFake() {
   interface StoredObject {
@@ -188,7 +190,11 @@ function makeGcsFake() {
   }
   const objects = new Map<string, StoredObject>();
   const calls: Array<{ op: string; key: string; generation?: string; options?: Record<string, unknown> }> = [];
-  const hooks: { beforeCopyCommit?: () => Promise<void>; beforeGetMetadata?: (key: string) => void } = {};
+  const hooks: {
+    beforeCopyCommit?: () => Promise<void>;
+    beforeGetMetadata?: (key: string) => void;
+    beforeDelete?: (key: string) => void;
+  } = {};
   let nextGeneration = 1_700_000_000_000_001;
 
   const failure = (code: number, message: string) => Object.assign(new Error(message), { code });
@@ -225,6 +231,17 @@ function makeGcsFake() {
       const { preconditionOpts: _preconditions, metadata = {}, ...resource } = options;
       const written = write(dest.name, { bytes: source.bytes, ...resource, metadata });
       return [dest, { done: true, resource: { name: dest.name, generation: written.generation } }];
+    },
+    async delete(options: { ifGenerationMatch?: string | number } = {}) {
+      calls.push({ op: 'delete', key, options: structuredClone(options) });
+      hooks.beforeDelete?.(key);
+      const live = objects.get(key);
+      if (!live) throw failure(404, 'No such object');
+      if (options.ifGenerationMatch !== undefined && live.generation !== String(options.ifGenerationMatch)) {
+        throw failure(412, 'Precondition Failed');
+      }
+      objects.delete(key);
+      return [{}];
     },
   });
 
@@ -431,6 +448,159 @@ describe('Firebase Storage copy: never overwrites, idempotent, one call', () => 
   });
 });
 
+describe('Firebase Storage deleteCopy: deletes only a copy of the named source', () => {
+  /** A fake bucket holding SOURCE and its copy at KEPT, with the call log cleared. */
+  async function withCopy() {
+    const gcs = makeGcsFake();
+    gcs.write(SOURCE, STAGED);
+    const store = createFirebaseStorageObjectStore({ bucket: gcs.bucket });
+    await store.copy({ fromKey: SOURCE, toKey: KEPT });
+    const copied = structuredClone(gcs.objects.get(KEPT)!);
+    gcs.calls.length = 0;
+    return { gcs, store, copied };
+  }
+
+  /** The metadata a copy of `fromKey` records, at a made-up source version. */
+  const provenanceOf = (fromKey: string) => ({
+    'copy-source': encodeURIComponent(fromKey),
+    'copy-source-version': '1700000000000001',
+  });
+
+  it('deletes its own copy with a delete conditioned on the generation it checked', async () => {
+    const { gcs, store, copied } = await withCopy();
+
+    await expect(store.deleteCopy({ fromKey: SOURCE, toKey: KEPT })).resolves.toBe('deleted');
+
+    expect(gcs.objects.has(KEPT)).toBe(false);
+    expect(gcs.objects.has(SOURCE)).toBe(true);
+    expect(gcs.calls).toEqual([
+      { op: 'getMetadata', key: KEPT },
+      { op: 'delete', key: KEPT, options: { ifGenerationMatch: copied.generation } },
+    ]);
+  });
+
+  it('answers absent for a key with no object and deletes nothing', async () => {
+    const gcs = makeGcsFake();
+
+    await expect(
+      createFirebaseStorageObjectStore({ bucket: gcs.bucket }).deleteCopy({ fromKey: SOURCE, toKey: KEPT }),
+    ).resolves.toBe('absent');
+    expect(gcs.calls).toEqual([{ op: 'getMetadata', key: KEPT }]);
+  });
+
+  it('leaves a copy of a different source untouched', async () => {
+    const gcs = makeGcsFake();
+    gcs.write(OTHER_SOURCE, { ...STAGED, bytes: 'other-signature' });
+    const store = createFirebaseStorageObjectStore({ bucket: gcs.bucket });
+    await store.copy({ fromKey: OTHER_SOURCE, toKey: KEPT });
+    const other = structuredClone(gcs.objects.get(KEPT));
+
+    await expect(store.deleteCopy({ fromKey: SOURCE, toKey: KEPT })).resolves.toBe('notThisCopy');
+
+    expect(gcs.objects.get(KEPT)).toEqual(other);
+    expect(gcs.calls.some((c) => c.op === 'delete')).toBe(false);
+  });
+
+  it.each([
+    ['a plain upload with no provenance', {}],
+    ['a record naming the source with no source version', { 'copy-source': encodeURIComponent(SOURCE) }],
+  ])('leaves %s untouched', async (_label, metadata) => {
+    const gcs = makeGcsFake();
+    const uploaded = structuredClone(gcs.write(KEPT, { bytes: 'uploaded', contentType: 'image/png', metadata }));
+
+    await expect(
+      createFirebaseStorageObjectStore({ bucket: gcs.bucket }).deleteCopy({ fromKey: SOURCE, toKey: KEPT }),
+    ).resolves.toBe('notThisCopy');
+
+    expect(gcs.objects.get(KEPT)).toEqual(uploaded);
+    expect(gcs.calls.some((c) => c.op === 'delete')).toBe(false);
+  });
+
+  it('deletes its own copy after the source object is gone, never reading the source', async () => {
+    const { gcs, store } = await withCopy();
+    gcs.objects.delete(SOURCE);
+
+    await expect(store.deleteCopy({ fromKey: SOURCE, toKey: KEPT })).resolves.toBe('deleted');
+
+    expect(gcs.objects.has(KEPT)).toBe(false);
+    expect(gcs.calls.every((c) => c.key === KEPT)).toBe(true);
+  });
+
+  it('never deletes an object that replaced the checked copy: it checks again and leaves the replacement', async () => {
+    const { gcs, store, copied } = await withCopy();
+    let replacement: unknown;
+    gcs.hooks.beforeDelete = () => {
+      gcs.hooks.beforeDelete = undefined;
+      replacement = structuredClone(gcs.write(KEPT, { bytes: 'other-signature', metadata: provenanceOf(OTHER_SOURCE) }));
+    };
+
+    await expect(store.deleteCopy({ fromKey: SOURCE, toKey: KEPT })).resolves.toBe('notThisCopy');
+
+    expect(gcs.objects.get(KEPT)).toEqual(replacement);
+    expect(gcs.calls).toEqual([
+      { op: 'getMetadata', key: KEPT },
+      { op: 'delete', key: KEPT, options: { ifGenerationMatch: copied.generation } },
+      { op: 'getMetadata', key: KEPT },
+    ]);
+  });
+
+  it('a copy of the same source that replaced the checked one is checked again and deleted by its own generation', async () => {
+    const { gcs, store, copied } = await withCopy();
+    let replacementGeneration = '';
+    gcs.hooks.beforeDelete = () => {
+      gcs.hooks.beforeDelete = undefined;
+      replacementGeneration = gcs.write(KEPT, { bytes: copied.bytes, metadata: copied.metadata }).generation;
+    };
+
+    await expect(store.deleteCopy({ fromKey: SOURCE, toKey: KEPT })).resolves.toBe('deleted');
+
+    expect(gcs.objects.has(KEPT)).toBe(false);
+    expect(gcs.calls.filter((c) => c.op === 'delete').map((c) => c.options)).toEqual([
+      { ifGenerationMatch: copied.generation },
+      { ifGenerationMatch: replacementGeneration },
+    ]);
+  });
+
+  it('answers absent when the checked copy is removed before its delete lands', async () => {
+    const { gcs, store } = await withCopy();
+    gcs.hooks.beforeDelete = (key) => {
+      gcs.objects.delete(key);
+    };
+
+    await expect(store.deleteCopy({ fromKey: SOURCE, toKey: KEPT })).resolves.toBe('absent');
+  });
+
+  it('rethrows the precondition failure when the object is still changing after its second check, deleting nothing', async () => {
+    const { gcs, store, copied } = await withCopy();
+    gcs.hooks.beforeDelete = () => {
+      gcs.write(KEPT, { bytes: copied.bytes, metadata: copied.metadata });
+    };
+
+    const error = await store.deleteCopy({ fromKey: SOURCE, toKey: KEPT }).catch((e: unknown) => e);
+
+    expect(error).toMatchObject({ code: 412 });
+    expect(gcs.objects.has(KEPT)).toBe(true);
+    expect(gcs.calls.map((c) => c.op)).toEqual(['getMetadata', 'delete', 'getMetadata', 'delete']);
+  });
+
+  it('a copy whose metadata names no generation fails before anything is deleted', async () => {
+    const { copied } = await withCopy();
+    const del = vi.fn(async () => [{}]);
+    const bucket = {
+      name: 'fake-bucket',
+      file: () => ({ getMetadata: async () => [{ metadata: copied.metadata }], delete: del }),
+    } as unknown as Bucket;
+
+    const error = await createFirebaseStorageObjectStore({ bucket })
+      .deleteCopy({ fromKey: SOURCE, toKey: KEPT })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(UnreadableStorageObjectMetadataError);
+    expect(error).toMatchObject({ bucket: 'fake-bucket', key: KEPT, field: 'generation' });
+    expect(del).not.toHaveBeenCalled();
+  });
+});
+
 describe('createFirebaseEmulatorObjectStore', () => {
   function makeBucketMock() {
     const del = vi.fn(async () => undefined);
@@ -454,6 +624,16 @@ describe('createFirebaseEmulatorObjectStore', () => {
       firebaseStorageDownloadTokens: 'ttt-emulator-media-token',
     });
     expect(gcs.calls.map((c) => c.op)).toEqual(['getMetadata', 'copy']);
+  });
+
+  it('deleteCopy recognizes its own copy beside the fixed download token', async () => {
+    const gcs = makeGcsFake();
+    gcs.write('mediaAssets/a/main', { bytes: 'img', contentType: 'image/webp', metadata: {} });
+    const store = createFirebaseEmulatorObjectStore({ bucket: gcs.bucket, downloadToken: 'ttt-emulator-media-token' });
+    await store.copy({ fromKey: 'mediaAssets/a/main', toKey: 'mediaAssets/b/main' });
+
+    await expect(store.deleteCopy({ fromKey: 'mediaAssets/a/main', toKey: 'mediaAssets/b/main' })).resolves.toBe('deleted');
+    expect(gcs.objects.has('mediaAssets/b/main')).toBe(false);
   });
 
   it('putFile uploads with the FIXED download token attached', async () => {
@@ -928,7 +1108,9 @@ describe('createR2ObjectStore — bounded transient retry', () => {
  * checks `x-amz-copy-source-if-match` against the source's ETag and
  * `cf-copy-destination-if-none-match: *` against the destination when it commits (412
  * `PreconditionFailed`), and with the REPLACE directive writes exactly the request's content
- * headers and `x-amz-meta-*`. A copy gets an ETag of its own, never its source's.
+ * headers and `x-amz-meta-*`. A copy gets an ETag of its own, never its source's. A DELETE
+ * honors no precondition header, as R2's DeleteObject does not, and answers 204 whether or
+ * not an object was there.
  */
 function makeR2Fake() {
   interface R2Object {
@@ -940,7 +1122,14 @@ function makeR2Fake() {
   const CONTENT_HEADERS = ['content-type', 'cache-control', 'content-disposition', 'content-encoding'];
   const objects = new Map<string, R2Object>();
   const requests: Array<{ method: string; key: string; headers: Record<string, string> }> = [];
-  const hooks: { beforeCopyCommit?: () => Promise<void>; failNextCopyWith?: number; loseNextCopyResponse?: boolean } = {};
+  const hooks: {
+    beforeCopyCommit?: () => Promise<void>;
+    failNextCopyWith?: number;
+    loseNextCopyResponse?: boolean;
+    beforeDelete?: () => Promise<void>;
+    failNextDeleteWith?: number;
+    failGetsWith?: number;
+  } = {};
   let clock = Date.UTC(2030, 0, 1);
   let etags = 0;
 
@@ -965,6 +1154,7 @@ function makeR2Fake() {
     const headers = Object.fromEntries(req.headers);
     requests.push({ method: req.method, key, headers });
     if (req.method === 'GET') {
+      if (hooks.failGetsWith) return s3Error(hooks.failGetsWith, 'InternalError');
       const object = objects.get(key);
       if (!object) return s3Error(404, 'NoSuchKey');
       return new Response(object.body, {
@@ -1003,6 +1193,16 @@ function makeR2Fake() {
         });
       }
       return new Response('<CopyObjectResult/>', { status: 200 });
+    }
+    if (req.method === 'DELETE') {
+      if (hooks.failNextDeleteWith) {
+        const status = hooks.failNextDeleteWith;
+        hooks.failNextDeleteWith = undefined;
+        return s3Error(status, 'InternalError');
+      }
+      await hooks.beforeDelete?.();
+      objects.delete(key);
+      return new Response(null, { status: 204 });
     }
     return new Response('unexpected request', { status: 501 });
   }) as unknown as typeof fetch;
@@ -1183,5 +1383,131 @@ describe('R2 copy: never overwrites, idempotent, one call', () => {
     expect(error).toBeInstanceOf(UnreadableStorageObjectMetadataError);
     expect(error).toMatchObject({ bucket: 'ttt-media-test', key: R2_SOURCE, field: 'etag' });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('R2 deleteCopy: deletes only a copy of the named source', () => {
+  const R2_SOURCE = 'mediaAssets/src 1/main';
+  const R2_OTHER_SOURCE = 'mediaAssets/src-2/main';
+  const R2_KEPT = 'mediaAssets/copy-1/main';
+  const R2_STAGED = {
+    body: 'video-bytes',
+    headers: { 'content-type': 'video/mp4', 'cache-control': 'public, max-age=31536000, immutable' },
+  };
+
+  const store = (fetchImpl: typeof fetch) => makeR2WithSeams(fetchImpl, { sleepImpl: noSleep, randomImpl: () => 0 });
+
+  /** A fake R2 holding R2_SOURCE and its copy at R2_KEPT, with the request log cleared. */
+  async function withCopy() {
+    const r2 = makeR2Fake();
+    r2.write(R2_SOURCE, R2_STAGED);
+    await store(r2.fetchImpl).copy({ fromKey: R2_SOURCE, toKey: R2_KEPT });
+    const copied = structuredClone(r2.objects.get(R2_KEPT)!);
+    r2.requests.length = 0;
+    return { r2, copied };
+  }
+
+  it('deletes its own copy: one read of the destination, then one DELETE carrying no precondition R2 would ignore', async () => {
+    const { r2 } = await withCopy();
+
+    await expect(store(r2.fetchImpl).deleteCopy({ fromKey: R2_SOURCE, toKey: R2_KEPT })).resolves.toBe('deleted');
+
+    expect(r2.objects.has(R2_KEPT)).toBe(false);
+    expect(r2.objects.has(R2_SOURCE)).toBe(true);
+    expect(r2.requests.map((r) => `${r.method} ${r.key}`)).toEqual([`GET ${R2_KEPT}`, `DELETE ${R2_KEPT}`]);
+    expect(Object.keys(r2.requests[1].headers).filter((name) => name.startsWith('if-'))).toEqual([]);
+  });
+
+  it('answers absent for a key with no object and sends no DELETE', async () => {
+    const r2 = makeR2Fake();
+
+    await expect(store(r2.fetchImpl).deleteCopy({ fromKey: R2_SOURCE, toKey: R2_KEPT })).resolves.toBe('absent');
+    expect(r2.requests.map((r) => r.method)).toEqual(['GET']);
+  });
+
+  it('leaves a copy of a different source untouched and sends no DELETE', async () => {
+    const r2 = makeR2Fake();
+    r2.write(R2_OTHER_SOURCE, { ...R2_STAGED, body: 'other-video' });
+    await store(r2.fetchImpl).copy({ fromKey: R2_OTHER_SOURCE, toKey: R2_KEPT });
+    const other = structuredClone(r2.objects.get(R2_KEPT));
+
+    await expect(store(r2.fetchImpl).deleteCopy({ fromKey: R2_SOURCE, toKey: R2_KEPT })).resolves.toBe('notThisCopy');
+
+    expect(r2.objects.get(R2_KEPT)).toEqual(other);
+    expect(r2.requests.some((r) => r.method === 'DELETE')).toBe(false);
+  });
+
+  it.each([
+    ['a plain upload with no provenance', { 'content-type': 'video/mp4' }],
+    [
+      'a record naming the source with no source version',
+      { 'content-type': 'video/mp4', 'x-amz-meta-copy-source': encodeURIComponent(R2_SOURCE) },
+    ],
+  ])('leaves %s untouched', async (_label, headers) => {
+    const r2 = makeR2Fake();
+    const uploaded = structuredClone(r2.write(R2_KEPT, { body: 'uploaded', headers }));
+
+    await expect(store(r2.fetchImpl).deleteCopy({ fromKey: R2_SOURCE, toKey: R2_KEPT })).resolves.toBe('notThisCopy');
+
+    expect(r2.objects.get(R2_KEPT)).toEqual(uploaded);
+    expect(r2.requests.some((r) => r.method === 'DELETE')).toBe(false);
+  });
+
+  it('deletes its own copy after the source object is gone, never reading the source', async () => {
+    const { r2 } = await withCopy();
+    r2.objects.delete(R2_SOURCE);
+
+    await expect(store(r2.fetchImpl).deleteCopy({ fromKey: R2_SOURCE, toKey: R2_KEPT })).resolves.toBe('deleted');
+
+    expect(r2.objects.has(R2_KEPT)).toBe(false);
+    expect(r2.requests.every((r) => r.key === R2_KEPT)).toBe(true);
+  });
+
+  it('the key stays write-once between the check and the unconditioned delete: a copy of another source cannot land there', async () => {
+    const { r2, copied } = await withCopy();
+    r2.write(R2_OTHER_SOURCE, { ...R2_STAGED, body: 'other-video' });
+    let landing: Awaited<ReturnType<typeof settle>> | undefined;
+    let heldAtDelete: unknown;
+    r2.hooks.beforeDelete = async () => {
+      r2.hooks.beforeDelete = undefined;
+      landing = await settle(store(r2.fetchImpl).copy({ fromKey: R2_OTHER_SOURCE, toKey: R2_KEPT }));
+      heldAtDelete = structuredClone(r2.objects.get(R2_KEPT));
+    };
+
+    await expect(store(r2.fetchImpl).deleteCopy({ fromKey: R2_SOURCE, toKey: R2_KEPT })).resolves.toBe('deleted');
+
+    expect(landing?.ok).toBe(false);
+    expect(!landing?.ok && landing?.error).toBeInstanceOf(ObjectAlreadyExistsError);
+    expect(heldAtDelete).toEqual(copied);
+    expect(r2.objects.has(R2_KEPT)).toBe(false);
+  });
+
+  it('a destination read that keeps failing is a retried R2StorageError naming deleteCopy, and nothing is deleted', async () => {
+    const { r2 } = await withCopy();
+    r2.hooks.failGetsWith = 500;
+
+    const error = await store(r2.fetchImpl)
+      .deleteCopy({ fromKey: R2_SOURCE, toKey: R2_KEPT })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(R2StorageError);
+    expect(error).toMatchObject({ operation: 'deleteCopy', key: R2_KEPT, attempts: 3, status: 500 });
+    expect((error as Error).message).not.toContain(R2_KEPT);
+    expect(r2.requests.map((r) => r.method)).toEqual(['GET', 'GET', 'GET']);
+    expect(r2.objects.has(R2_KEPT)).toBe(true);
+  });
+
+  it('a failed DELETE is a one-shot R2StorageError naming deleteCopy', async () => {
+    const { r2 } = await withCopy();
+    r2.hooks.failNextDeleteWith = 500;
+
+    const error = await store(r2.fetchImpl)
+      .deleteCopy({ fromKey: R2_SOURCE, toKey: R2_KEPT })
+      .catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(R2StorageError);
+    expect(error).toMatchObject({ operation: 'deleteCopy', key: R2_KEPT, attempts: 1, status: 500 });
+    expect((error as Error).message).not.toContain(R2_KEPT);
+    expect(r2.requests.filter((r) => r.method === 'DELETE')).toHaveLength(1);
   });
 });

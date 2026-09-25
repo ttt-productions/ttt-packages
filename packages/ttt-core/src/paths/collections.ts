@@ -33,6 +33,7 @@ export const COLLECTIONS = {
   PENDING_MEDIA_ARCHIVE: 'pendingMediaArchive',
   MEDIA_ASSETS: 'mediaAssets',
   MEDIA_ACTIVATION_JOBS: 'mediaActivationJobs',
+  MEDIA_COPY_INTENTS: 'mediaCopyIntents',
   PENDING_ADMIN_DISPATCHES: 'pendingAdminDispatches',
   ACTIVE_REPORT_GROUPS: 'activeReportGroups',
   CONTENT_VIOLATIONS: 'contentViolations',

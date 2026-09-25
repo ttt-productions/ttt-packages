@@ -302,6 +302,10 @@ export const PATH_BUILDERS = {
   mediaActivationJob: (jobId: string): [string, string] =>
     [COLLECTIONS.MEDIA_ACTIVATION_JOBS, jobId],
 
+  // Server-only intent of one cross-owner media copy, keyed by the copy's new asset id.
+  mediaCopyIntent: (newAssetId: string): [string, string] =>
+    [COLLECTIONS.MEDIA_COPY_INTENTS, newAssetId],
+
   // ===== NOTIFICATION REDESIGN (ledger + fanout engine) PATHS =====
   notificationDelivery: (deliveryId: string): [string, string] =>
     [COLLECTIONS.NOTIFICATION_DELIVERIES, deliveryId],

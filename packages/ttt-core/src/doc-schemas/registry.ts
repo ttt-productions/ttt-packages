@@ -118,6 +118,7 @@ import { SquareAnnouncementJobSchema } from './square-announcement-jobs.js';
 import { PendingMediaSchema, ArchivedPendingMediaDocSchema } from '../media/pending-media.js';
 import { MediaAssetSchema } from './media-assets.js';
 import { MediaActivationJobSchema } from './media-activation-jobs.js';
+import { MediaCopyIntentSchema } from './media-copy-intents.js';
 import {
   ReservedDisplayNameSchema,
   ReservedRealmNameSchema,
@@ -322,6 +323,7 @@ export const COLLECTION_SCHEMAS = {
   'pendingMediaArchive/{pendingMediaId}': ArchivedPendingMediaDocSchema,
   'mediaAssets/{mediaAssetId}': MediaAssetSchema,
   'mediaActivationJobs/{jobId}': MediaActivationJobSchema,
+  'mediaCopyIntents/{newAssetId}': MediaCopyIntentSchema,
 
   // ===== Notifications =====
   'activeUserNotifications/{notificationId}': NotificationDocSchema,
