@@ -2,10 +2,12 @@
 
 import * as React from "react";
 import { useTheme } from "next-themes";
+import type { ThemeName } from "../themes.js";
+import { useOptionalViewerSettingsSync } from "./viewer-settings-sync.js";
 
 export interface ThemeOption {
-  /** Theme value passed to next-themes' setTheme. */
-  value: string;
+  /** The theme this option selects. */
+  value: ThemeName;
   /** Human-readable label rendered in the menu. */
   label: string;
   /** Icon rendered next to the label and in the trigger when this theme is active. */
@@ -23,11 +25,15 @@ export interface ThemeSwitcherProps {
   }) => React.ReactNode;
   /** Render prop for the menu container. Receives both the trigger node and the rendered items. */
   renderMenu: (args: { trigger: React.ReactNode; children: React.ReactNode }) => React.ReactNode;
-  /** Render prop for each menu item. */
+  /**
+   * Render prop for each menu item. `onSelect` switches the device's theme at once; under a
+   * `ViewerSettingsSyncProvider` it goes through the sync, so a signed-in viewer's account is
+   * saved too and the promise rejects when that save fails.
+   */
   renderItem: (args: {
     option: ThemeOption;
     isActive: boolean;
-    onSelect: () => void;
+    onSelect: () => Promise<void>;
   }) => React.ReactNode;
   /** Accessible label for the trigger. Defaults to "Toggle theme". */
   srLabel?: string;
@@ -46,8 +52,15 @@ export function ThemeSwitcher({
   srLabel = "Toggle theme",
 }: ThemeSwitcherProps) {
   const { theme, setTheme } = useTheme();
+  const sync = useOptionalViewerSettingsSync();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
+
+  const select = (value: ThemeName): Promise<void> => {
+    if (sync) return sync.setTheme(value);
+    setTheme(value);
+    return Promise.resolve();
+  };
 
   const active = themes.find((t) => t.value === theme);
   const activeIcon = active?.icon ?? null;
@@ -64,7 +77,7 @@ export function ThemeSwitcher({
           renderItem({
             option,
             isActive: option.value === theme,
-            onSelect: () => setTheme(option.value),
+            onSelect: () => select(option.value),
           }),
         ),
       })}

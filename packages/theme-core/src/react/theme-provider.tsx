@@ -3,6 +3,19 @@
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider, type ThemeProviderProps } from "next-themes";
 import { REQUIRED_TOKENS } from "../required-tokens.js";
+import { THEME_NAMES } from "../themes.js";
+
+const THEME_LIST: string[] = [...THEME_NAMES];
+
+// next-themes' own default, the key it stores the theme under when no storageKey is passed.
+const NEXT_THEMES_DEFAULT_STORAGE_KEY = "theme";
+
+const ThemeStorageKeyContext = React.createContext<string | null>(null);
+
+/** The localStorage key the enclosing ThemeProvider stores the theme under; `null` outside one. */
+export function useThemeStorageKey(): string | null {
+  return React.useContext(ThemeStorageKeyContext);
+}
 
 declare const process: {
   env: {
@@ -35,14 +48,16 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   }, []);
 
   return (
-    <NextThemesProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      themes={["light", "dark", "high-contrast"]}
-      {...props}
-    >
-      {children}
-    </NextThemesProvider>
+    <ThemeStorageKeyContext.Provider value={props.storageKey ?? NEXT_THEMES_DEFAULT_STORAGE_KEY}>
+      <NextThemesProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        themes={THEME_LIST}
+        {...props}
+      >
+        {children}
+      </NextThemesProvider>
+    </ThemeStorageKeyContext.Provider>
   );
 }

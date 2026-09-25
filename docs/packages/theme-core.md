@@ -4,7 +4,8 @@ Generic theme and CSS-token package.
 
 ## Owns
 
-- Theme provider wrappers
+- The theme set and the theme provider over `next-themes`
+- The viewer settings mechanism: the device store for motion, the `<html>` reduced-motion attribute, and the account sync for theme and motion
 - CSS token contract
 - Component/theme CSS entrypoints
 - Breakpoints and theme helpers
@@ -12,16 +13,46 @@ Generic theme and CSS-token package.
 
 ## Boundary
 
-Consumer apps own brand-specific copy, imagery, and final token overrides.
+Consumer apps own brand-specific copy, imagery, and final token overrides. They also own every storage key and event name the viewer settings use, the CSS kill switch the reduced-motion attribute drives, the account's storage and write (the sync's adapter), and all settings UI, the compare prompt's included.
 
 ## Entry points
 
-- `.` — server-safe root (breakpoints, `REQUIRED_TOKENS` constants). No React, enforced by a boundary test.
-- `./react` — `ThemeProvider` (wraps `next-themes`; hardcodes the theme set `["light", "dark", "high-contrast"]`, `attribute="class"`) and `ThemeSwitcher`.
+- `.` — server-safe root: breakpoints, `REQUIRED_TOKENS`, the theme set (`THEME_NAMES`, `ThemeName`), `REDUCED_MOTION_ATTRIBUTE`, and the viewer-settings types an app's adapter and prompt UI use (`ViewerSettings`, `ViewerSettingName`, `SavedViewerSettings`, `ViewerSettingDifference`). No React, enforced by a boundary test. The account sync's pure logic sits in the same server-safe tree so it is tested without React, but it is internal: apps use the sync, not its steps.
+- `./react` — `ThemeProvider`, `ThemeSwitcher`, `createReducedMotionStore`, and `ViewerSettingsSyncProvider` / `useViewerSettingsSync`.
 - `./styles.css` — base tokens and variables.
 - `./components.css` — shared component CSS patterns.
 
-`ThemeProvider` warns in non-production builds if the consuming app hasn't defined the `REQUIRED_TOKENS` (`--brand-primary`, `--brand-secondary`, `--brand-accent`) or is still using the loud placeholder fallback — the concrete mechanism behind "consumer apps own final token overrides" above.
+`ThemeProvider` wraps `next-themes` with `attribute="class"` and hands it `THEME_NAMES`. Its `storageKey` is the app's (next-themes' own `theme` when the app passes none), and it publishes that key to the account sync. It warns in non-production builds if the consuming app hasn't defined the `REQUIRED_TOKENS` (`--brand-primary`, `--brand-secondary`, `--brand-accent`) or is still using the loud placeholder fallback — the concrete mechanism behind "consumer apps own final token overrides" above.
+
+## Viewer settings
+
+A viewer's theme and motion choice live on the device and, while they are signed in, on their account. theme-core owns the mechanism; each app supplies its keys, its account read and write, and its UI.
+
+**The theme set.** `THEME_NAMES` (`'light' | 'dark' | 'high-contrast'`) is the one declaration: `ThemeProvider` passes it to `next-themes`, `ThemeSwitcher`'s options are typed by it, and an app's account schema types a saved theme with it (`z.enum(THEME_NAMES)`), never a second union. Each name is a persisted value.
+
+**The motion store.** `createReducedMotionStore({ storageKey, changeEvent })` is called once, at module scope, with the app's key and event. Effective reduced motion is the device's `prefers-reduced-motion` request OR the saved preference, and the device always wins: a saved "full motion" never turns motion back on. The saved preference is stored as `"true"` / `"false"`; absent means nothing is saved. Components read the effective value, the device request, and the saved value through the store's hooks; JS-scheduled motion reads `prefersReducedMotion()` at the moment it schedules. `useApplyReducedMotion()`, mounted once in the app shell, stamps `data-reduced-motion="true"` on `<html>`. A save notifies its own tab through the app's change event and other tabs through the native `storage` event. The store's setter writes the device alone.
+
+**Blocked storage.** A browser that blocks site data throws on every `localStorage` call. The store and the sync read that as "nothing saved" and hold each write in memory for the life of the page, so every page still renders and a viewer's choice still takes effect until they leave. A theme set through the account sync is held the same way, beside `next-themes`' own in-memory theme.
+
+The CSS kill switch stays app-side, beside the rule that defines it: it keys on `:root[data-reduced-motion='true']`, plus an `@media (prefers-reduced-motion: reduce)` block for the paint before the store runs. Nothing else checks the media query.
+
+**The account sync.** `ViewerSettingsSyncProvider` is mounted once, inside `ThemeProvider`, with the motion store, a dismissal storage key, and the app's account adapter:
+
+- `accountId`: the signed-in account's id, `null` while signed out. Signed out, settings live on the device alone.
+- `settings`: the account's saved theme and motion, `null` for a setting it has not saved. It is `undefined` while the read is loading or failing, never all-`null` in its place: all-`null` means an account with nothing saved, which the sync fills with the device's values, so a failed read passed as all-`null` would overwrite the account's real values.
+- `save(partial)`
+- `onSilentSaveError(error)`
+
+`useViewerSettingsSync()` returns the device's current theme (`undefined` until hydration), `setTheme`, `setReducedMotion`, and `prompt`.
+
+- Every change made through the sync goes to the device at once and, signed in, to the account. The returned promise rejects when the account write fails, so the control that started it shows its pending state and the failure. Under the sync, `ThemeSwitcher`'s `onSelect` goes through it too, and settings change through the sync, not the store's device-only setter.
+- Nothing is compared until the viewer is signed in, the account's values have loaded, and hydration has finished. Before hydration the device reads as the server's "nothing saved", and comparing that would hand the device the account's values over its own.
+- The sync keeps a record of the signed-in account: each setting's baseline, this tab's saves in flight, and the silent-save attempt. The record starts over whenever `accountId` changes, a sign-out or sign-in included, so a save belongs to the account that made it. `settings` going `undefined` (a read loading or failing) only pauses the comparison and keeps the record, so a read that fails and recovers picks up where it left off.
+- A setting the device has nothing saved for takes the account's value silently. A setting the account has nothing saved for takes the device's value silently, so signing in saves what the viewer chose while signed out. A failed silent save goes to `onSilentSaveError` and is not retried until the account's values change, `accountId` changes, or the app loads again; a read that fails and recovers does not retry it.
+- A viewer's own change never opens the prompt. Each setting is tracked on its own: a setting stays out of the comparison while a save of it from this tab is pending, or has landed but its value has not yet reached the account's values. A setting changed on this device by any tab is compared again only when that setting's account value next changes.
+- When both sides hold different values, `prompt` lists each differing setting that is not dismissed, with `adoptAccountSettings()`, `saveDeviceSettings()`, and `dismiss()`, each acting on the listed settings. The prompt is non-blocking and its UI is the app's. After `saveDeviceSettings()` it stays until the account's values arrive reflecting the save.
+- Dismissing keeps the device's values and remembers each listed difference on its own, as its setting with its device and account values, under the dismissal key. A dismissed difference is not asked about again while both of those values hold; changing another setting does not bring it back. A dismissal whose values no longer hold is dropped.
+- No saved value forces motion on: an account's "full motion" taken by a device that asks for less leaves motion reduced.
 
 ## Semantic token defaults
 

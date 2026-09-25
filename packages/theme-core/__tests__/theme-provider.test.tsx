@@ -1,14 +1,52 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
-import { ThemeProvider } from '../src/react/theme-provider';
+import { render, screen, waitFor } from '@testing-library/react';
+import { ThemeProvider, useThemeStorageKey } from '../src/react/theme-provider';
 import { REQUIRED_TOKENS } from '../src/required-tokens';
+import { THEME_NAMES } from '../src/themes';
 
 // `theme-provider.tsx` wraps `next-themes`. Mock it so the test does not
-// depend on next-themes runtime behavior — we only care about the
-// dev-mode token warning effect.
+// depend on next-themes runtime behavior — only on the props theme-core hands it.
+const nextThemes = vi.hoisted(() => ({ props: null as Record<string, unknown> | null }));
 vi.mock('next-themes', () => ({
-    ThemeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    ThemeProvider: (props: { children: React.ReactNode }) => {
+        nextThemes.props = props;
+        return <>{props.children}</>;
+    },
 }));
+
+function StorageKeyProbe() {
+    return <span data-testid="storage-key">{String(useThemeStorageKey())}</span>;
+}
+
+describe('ThemeProvider theme set and storage key', () => {
+    beforeEach(() => {
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('hands next-themes the declared theme set', () => {
+        render(<ThemeProvider>child</ThemeProvider>);
+        expect(nextThemes.props?.themes).toEqual([...THEME_NAMES]);
+    });
+
+    it('publishes next-themes\' default storage key when the app passes none', () => {
+        render(<ThemeProvider><StorageKeyProbe /></ThemeProvider>);
+        expect(screen.getByTestId('storage-key')).toHaveTextContent('theme');
+    });
+
+    it('publishes and forwards the app\'s storage key', () => {
+        render(<ThemeProvider storageKey="app-theme"><StorageKeyProbe /></ThemeProvider>);
+        expect(screen.getByTestId('storage-key')).toHaveTextContent('app-theme');
+        expect(nextThemes.props?.storageKey).toBe('app-theme');
+    });
+
+    it('publishes nothing outside a ThemeProvider', () => {
+        render(<StorageKeyProbe />);
+        expect(screen.getByTestId('storage-key')).toHaveTextContent('null');
+    });
+});
 
 function setTokens(values: Partial<Record<(typeof REQUIRED_TOKENS)[number], string>>) {
     for (const token of REQUIRED_TOKENS) {
