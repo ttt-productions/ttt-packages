@@ -88,6 +88,14 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `canonicalId` | `string` |  |
 | `originalType` | `string` |  |
 
+## `_serverData/hallMediaReaperCursor`
+
+| Field | Type | Optional |
+| --- | --- | --- |
+| `createdAtCursor` | `number` |  |
+| `updatedAt` | `number` |  |
+| `deferred` | `{ mediaAssetId, createdAt, nextAttemptAt, attemptCount }[]` | yes |
+
 ## `_serverData/nciiPolicy`
 
 | Field | Type | Optional |
@@ -132,6 +140,13 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `allowPrivilegedSessionRevocation` | `boolean` |  |
 | `everyInvocationAudited` | `boolean` |  |
 
+## `_serverData/publicUsersReconcilerCursor`
+
+| Field | Type | Optional |
+| --- | --- | --- |
+| `profileIdCursor` | `string` |  |
+| `updatedAt` | `number` |  |
+
 ## `_systemData/adminList`
 
 | Field | Type | Optional |
@@ -153,14 +168,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `names` | `string[]` |  |
 | `updatedAt` | `number` |  |
 
-## `_systemData/hallMediaReaperCursor`
-
-| Field | Type | Optional |
-| --- | --- | --- |
-| `createdAtCursor` | `number` |  |
-| `updatedAt` | `number` |  |
-| `deferred` | `{ mediaAssetId, createdAt, nextAttemptAt, attemptCount }[]` | yes |
-
 ## `_systemData/profanityList`
 
 | Field | Type | Optional |
@@ -169,13 +176,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `updatedAt` | `number` |  |
 | `wordCount` | `number` |  |
 | `wordListVersion` | `number` | yes |
-
-## `_systemData/publicUsersReconcilerCursor`
-
-| Field | Type | Optional |
-| --- | --- | --- |
-| `profileIdCursor` | `string` |  |
-| `updatedAt` | `number` |  |
 
 ## `_systemData/reservedUsernames`
 

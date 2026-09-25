@@ -28,7 +28,7 @@ export const HallMediaReaperDeferredCandidateSchema = z
   .strict();
 export type HallMediaReaperDeferredCandidate = z.infer<typeof HallMediaReaperDeferredCandidateSchema>;
 
-// _systemData/hallMediaReaperCursor — the scheduled Hall-media orphan reaper's scan cursor.
+// _serverData/hallMediaReaperCursor — the scheduled Hall-media orphan reaper's scan cursor.
 // `createdAtCursor` is the highest mediaAssets `createdAt` the reaper has moved past: every
 // candidate at or below it was positively cleared (referenced / reaped / already-deleted) or is
 // held in `deferred`, so each pass resumes past permanently-live Hall assets instead of
@@ -65,7 +65,7 @@ export const HallMediaReaperCursorSchema = z
   });
 export type HallMediaReaperCursor = z.infer<typeof HallMediaReaperCursorSchema>;
 
-// _systemData/publicUsersReconcilerCursor — the scheduled publicUsers reconciler's sweep cursor.
+// _serverData/publicUsersReconcilerCursor — the scheduled publicUsers reconciler's sweep cursor.
 // `profileIdCursor` is the last `userProfiles` document id the sweep has POSITIVELY cleared, so
 // each pass resumes after it instead of re-reading the same oldest page forever. An EMPTY STRING
 // means start from the beginning — both the first-ever pass and the wrap after the sweep exhausts

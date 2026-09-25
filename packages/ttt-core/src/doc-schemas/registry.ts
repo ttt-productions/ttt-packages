@@ -470,15 +470,16 @@ export const COLLECTION_SCHEMAS = {
   // `feedbackDenylist` subcollection has no field contract (`.exists`-only) — see
   // PENDING_COLLECTIONS.
   '_serverData/feedbackLists/feedbackAliases/{aliasId}': FeedbackAliasSchema,
+  // The scheduled sweeps' scan cursors — each read only by the function that owns it.
+  '_serverData/hallMediaReaperCursor': HallMediaReaperCursorSchema,
+  '_serverData/publicUsersReconcilerCursor': PublicUsersReconcilerCursorSchema,
 
-  // ===== _systemData singletons =====
+  // ===== _systemData singletons (signed-in readers, BACKEND-108) =====
   '_systemData/adminList': AdminListSchema,
   '_systemData/profanityList': ProfanityListSchema,
   '_systemData/reservedUsernames': ReservedUsernamesSchema,
   '_systemData/blockedFranchiseNames': BlockedFranchiseNamesSchema,
   '_systemData/appMode': AppModeMarkerSchema,
-  '_systemData/hallMediaReaperCursor': HallMediaReaperCursorSchema,
-  '_systemData/publicUsersReconcilerCursor': PublicUsersReconcilerCursorSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;
 
 export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;

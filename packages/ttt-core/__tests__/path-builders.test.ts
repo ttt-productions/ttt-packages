@@ -582,16 +582,16 @@ describe('PATH_BUILDERS', () => {
       expect(PATH_BUILDERS.appConfig()).toEqual(['_appConfig', SPECIAL_DOCS.APP_CONFIG]);
     });
 
-    it('hallMediaReaperCursor returns the _systemData singleton tuple', () => {
+    it('hallMediaReaperCursor lives in the server-only _serverData bucket', () => {
       expect(PATH_BUILDERS.hallMediaReaperCursor()).toEqual([
-        COLLECTIONS.SYSTEM_DATA,
+        COLLECTIONS.SERVER_DATA,
         SPECIAL_DOCS.HALL_MEDIA_REAPER_CURSOR,
       ]);
     });
 
-    it('publicUsersReconcilerCursor returns the _systemData singleton tuple', () => {
+    it('publicUsersReconcilerCursor lives in the server-only _serverData bucket', () => {
       expect(PATH_BUILDERS.publicUsersReconcilerCursor()).toEqual([
-        COLLECTIONS.SYSTEM_DATA,
+        COLLECTIONS.SERVER_DATA,
         SPECIAL_DOCS.PUBLIC_USERS_RECONCILER_CURSOR,
       ]);
     });

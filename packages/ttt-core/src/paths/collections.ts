@@ -2,6 +2,7 @@
 // Changes to these values require database migration.
 
 import type { WorkProjectType } from '../types/content.js';
+import type { HallSubItemType } from '../doc-schemas/content.js';
 
 /**
  * TOP-LEVEL COLLECTIONS
@@ -80,10 +81,9 @@ export const COLLECTIONS = {
   SYSTEM_DATA: '_systemData',
   APP_CONFIG: '_appConfig',
   // Server-only singleton bucket (BACKEND-108 — least-privileged reader). Docs whose ONLY
-  // readers are Cloud Functions (Admin SDK) live here, never in the public `_appConfig`
-  // bucket. Firestore rules deny all client reads/writes on `_serverData`.
-  // Docs: agePolicy, nciiPolicy, privilegedReviewerSecurity, and the feedbackLists
-  // container whose feedbackAliases / feedbackDenylist subcollections back submitFeedback.
+  // readers are Cloud Functions (Admin SDK) live here, never in the public `_appConfig` or
+  // the signed-in `_systemData` bucket. Firestore rules deny all client reads/writes on
+  // `_serverData`. Its docs are the `_serverData/…` entries of COLLECTION_SCHEMAS.
   SERVER_DATA: '_serverData',
 
   // Payments & pledge ledger
@@ -246,6 +246,17 @@ export const HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE: Record<WorkProjectType, HallI
 };
 
 /**
+ * WorkProjectType → the Hall sub-item kind a notification or Streetz payload carries for it.
+ * The values are typed against the canonical HallSubItemType rather than read off its schema, so
+ * this dependency-free paths module never pulls zod in at runtime.
+ */
+export const HALL_SUB_ITEM_TYPE_BY_WORK_TYPE: Record<WorkProjectType, HallSubItemType> = {
+  Tales: 'chapter',
+  Tunes: 'track',
+  Television: 'episode',
+};
+
+/**
  * DEEPLY NESTED SUBCOLLECTIONS
  * Third level and beyond
  */
@@ -405,11 +416,11 @@ export const SPECIAL_DOCS = {
   RESERVED_USERNAMES: 'reservedUsernames',
   BLOCKED_FRANCHISE_NAMES: 'blockedFranchiseNames',
   RULES_AND_AGREEMENTS: 'rulesAndAgreements',
-  // _systemData/hallMediaReaperCursor — the reapOrphanedHallMediaCopies scan cursor
-  // (highest `createdAt` the reaper has positively cleared). Backend-only.
+  // _serverData/hallMediaReaperCursor — the reapOrphanedHallMediaCopies scan cursor
+  // (highest `createdAt` the reaper has moved past, plus its deferred candidates). Server-only.
   HALL_MEDIA_REAPER_CURSOR: 'hallMediaReaperCursor',
-  // _systemData/publicUsersReconcilerCursor — the reconcilePublicUsers sweep cursor (last
-  // userProfiles document id positively cleared; '' = start). Backend-only.
+  // _serverData/publicUsersReconcilerCursor — the reconcilePublicUsers sweep cursor (last
+  // userProfiles document id positively cleared; '' = start). Server-only.
   PUBLIC_USERS_RECONCILER_CURSOR: 'publicUsersReconcilerCursor',
   // Editable content-page singletons under _appConfig (content-pages Firestore
   // migration, DJ ruling 2026-07-06): the ONLY source for /terms, /privacy, and

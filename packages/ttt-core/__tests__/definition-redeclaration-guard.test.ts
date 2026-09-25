@@ -178,7 +178,16 @@ const GUARDED: Record<string, GuardedLiteral> = {
   television: { owners: [HALL_SURFACE_OWNER] },
   tuneTrack: { owners: [HALL_SURFACE_OWNER] },
   televisionEpisode: { owners: [HALL_SURFACE_OWNER] },
-  chapter: { owners: [HALL_SURFACE_OWNER, 'ttt-core/src/doc-schemas/content.ts'] },
+  chapter: {
+    owners: [HALL_SURFACE_OWNER, 'ttt-core/src/doc-schemas/content.ts'],
+    allowed: [
+      {
+        file: 'ttt-core/src/paths/collections.ts',
+        declaration: 'HALL_SUB_ITEM_TYPE_BY_WORK_TYPE',
+        why: 'Typed `Record<WorkProjectType, HallSubItemType>` — the compiler checks every value against the canonical union, and reading it off the schema would pull zod into the dependency-free paths module.',
+      },
+    ],
+  },
   // PublicDocumentId — each id IS its `_appConfig` projection doc id, declared once in
   // SPECIAL_DOCS; PUBLIC_DOCUMENT_IDS and every per-document map key off those constants.
   dmcaPolicy: { owners: ['ttt-core/src/paths/collections.ts'] },

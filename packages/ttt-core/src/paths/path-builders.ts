@@ -446,16 +446,18 @@ export const PATH_BUILDERS = {
     [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.APP_MODE],
 
   // Singleton scan cursor for the scheduled Hall media orphan reaper
-  // (reapOrphanedHallMediaCopies). Backend-only; persists the highest `createdAt` the
-  // reaper has positively cleared so each pass resumes instead of re-reading the oldest page.
+  // (reapOrphanedHallMediaCopies); persists the highest `createdAt` the reaper has moved past
+  // so each pass resumes instead of re-reading the oldest page. Server-only bucket
+  // (BACKEND-108): its only reader is that function, and it carries Hall media asset ids.
   hallMediaReaperCursor: (): [string, string] =>
-    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.HALL_MEDIA_REAPER_CURSOR],
+    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.HALL_MEDIA_REAPER_CURSOR],
 
-  // Singleton sweep cursor for the scheduled publicUsers reconciler (reconcilePublicUsers).
-  // Backend-only; persists the last userProfiles document id the sweep positively cleared so
-  // each pass resumes instead of re-reading the same oldest page ('' = start from the beginning).
+  // Singleton sweep cursor for the scheduled publicUsers reconciler (reconcilePublicUsers);
+  // persists the last userProfiles document id the sweep positively cleared so each pass
+  // resumes instead of re-reading the same oldest page ('' = start from the beginning).
+  // Server-only bucket (BACKEND-108): its only reader is that function.
   publicUsersReconcilerCursor: (): [string, string] =>
-    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.PUBLIC_USERS_RECONCILER_CURSOR],
+    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.PUBLIC_USERS_RECONCILER_CURSOR],
 
   // Backend-only post-commit auth-effect reconcile queue entry, keyed by the affected uid.
   statusReconcileQueueEntry: (uid: string): [string, string] =>

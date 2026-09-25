@@ -80,8 +80,8 @@ describe('HallMediaReaperCursorSchema', () => {
   });
 
   it('binds the registry path and the path builder to the same location', () => {
-    expect(COLLECTION_SCHEMAS['_systemData/hallMediaReaperCursor']).toBe(HallMediaReaperCursorSchema);
-    expect(PATH_BUILDERS.hallMediaReaperCursor().join('/')).toBe('_systemData/hallMediaReaperCursor');
+    expect(COLLECTION_SCHEMAS['_serverData/hallMediaReaperCursor']).toBe(HallMediaReaperCursorSchema);
+    expect(PATH_BUILDERS.hallMediaReaperCursor().join('/')).toBe('_serverData/hallMediaReaperCursor');
   });
 });
 
@@ -299,15 +299,15 @@ describe('PublicUsersReconcilerCursorSchema', () => {
   });
 
   it('binds the registry path and the path builder to the same location', () => {
-    expect(COLLECTION_SCHEMAS['_systemData/publicUsersReconcilerCursor']).toBe(
+    expect(COLLECTION_SCHEMAS['_serverData/publicUsersReconcilerCursor']).toBe(
       PublicUsersReconcilerCursorSchema,
     );
     expect(PATH_BUILDERS.publicUsersReconcilerCursor()).toEqual([
-      COLLECTIONS.SYSTEM_DATA,
+      COLLECTIONS.SERVER_DATA,
       SPECIAL_DOCS.PUBLIC_USERS_RECONCILER_CURSOR,
     ]);
     expect(PATH_BUILDERS.publicUsersReconcilerCursor().join('/')).toBe(
-      '_systemData/publicUsersReconcilerCursor',
+      '_serverData/publicUsersReconcilerCursor',
     );
   });
 });

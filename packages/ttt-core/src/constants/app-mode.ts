@@ -10,6 +10,8 @@
 // 2026-07-13): chapter body content (maxChapterContentLength), because it
 // bounds threshold-review reading effort per item during charter season.
 
+import type { WorkProjectType } from '../types/content.js';
+
 export type AppMode = 'charter' | 'full';
 
 /** The deployed mode. Changing this constant (and publishing) IS the flip. */
@@ -306,8 +308,27 @@ export const FULL_LIMITS: TttLimits = {
 };
 
 /** The resolved limit set for the deployed mode. Import THIS (or the alias
- * constants that re-export from it), never CHARTER_/FULL_ directly. */
+ * constants that re-export from it), never CHARTER_/FULL_ directly. A read bound
+ * that must hold whichever mode the data was written under uses
+ * HALL_SUB_ITEM_READ_BOUND_BY_WORK_TYPE below instead. */
 export const ACTIVE_LIMITS: TttLimits = byMode(CHARTER_LIMITS, FULL_LIMITS);
+
+const largestInAnyMode = (pick: (limits: TttLimits) => number): number =>
+  Math.max(pick(CHARTER_LIMITS), pick(FULL_LIMITS));
+
+/**
+ * The most sub-items one Hall item can hold of each kind (Tale chapters, Tune tracks, Television
+ * episodes) in ANY app mode — each kind's count cap at its largest across CHARTER_LIMITS and
+ * FULL_LIMITS. A READ bound, never an enforced limit: a Hall item keeps the sub-items it was
+ * published with when the mode changes, so a reader that must see all of them sizes its query
+ * from this and treats a read that returns more as uncertain. Enforcement reads the active caps
+ * (MAX_CHAPTERS, MAX_TUNE_TRACKS, MAX_TELEVISION_EPISODES).
+ */
+export const HALL_SUB_ITEM_READ_BOUND_BY_WORK_TYPE: Readonly<Record<WorkProjectType, number>> = {
+  Tales: largestInAnyMode((limits) => limits.workProject.maxChapters),
+  Tunes: largestInAnyMode((limits) => limits.workProject.maxTuneTracks),
+  Television: largestInAnyMode((limits) => limits.workProject.maxTelevisionEpisodes),
+};
 
 /**
  * User-facing copy for a reached count cap — the ONE owner of the cap-message
