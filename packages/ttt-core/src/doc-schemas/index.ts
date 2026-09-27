@@ -55,3 +55,6 @@ export * from './ncii/config.js';
 export * from './backend-state.js';
 
 export * from './registry.js';
+
+// ===== Account-erasure fate of every registered path =====
+export * from './erasure-fates.js';

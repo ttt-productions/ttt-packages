@@ -254,7 +254,6 @@ export type AuditEventType =
   | 'childSafety.legalProcessRecorded'
   | 'childSafety.falsePositiveCorrected'
   // trust & safety — age / registration
-  | 'user.ageAttested'
   | 'user.ageUpgradedToAdult'
   | 'user.orphanAuthDeleted'
   | 'user.accountClosedUnder13'

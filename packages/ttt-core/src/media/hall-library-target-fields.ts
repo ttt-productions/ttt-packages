@@ -99,3 +99,17 @@ export function isHallLibrarySubItemFileOrigin(
   return Object.prototype.hasOwnProperty.call(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS, origin);
 }
 
+
+function distinctFields<F extends string>(fieldsByOrigin: Readonly<Record<string, F>>): readonly F[] {
+  return [...new Set(Object.values(fieldsByOrigin))];
+}
+
+/** Every asset-reference field a Hall parent (the Work's tale / tune / television section, and its
+ *  published Hall item) can carry — derived from the cover map, never restated. */
+export const HALL_LIBRARY_COVER_ASSET_FIELDS: readonly HallLibraryCoverTargetField[] =
+  distinctFields(HALL_LIBRARY_COVER_TARGET_FIELDS);
+
+/** Every asset-reference field a chapter / track / episode can carry — derived from the sub-item
+ *  map, never restated (several origins share one field, so each appears once). */
+export const HALL_LIBRARY_SUB_ITEM_ASSET_FIELDS: readonly HallLibrarySubItemTargetField[] =
+  distinctFields(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS);

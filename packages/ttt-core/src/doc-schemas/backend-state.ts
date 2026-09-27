@@ -5,76 +5,11 @@
 // the drift-check read. Types are inferred via z.infer.
 
 import { z } from 'zod';
-import { HALL_MEDIA_REAPER_MAX_DEFERRED } from '../constants/scheduled-jobs.js';
+import { SWEEP_STATE_MAX_DEFERRED, SWEEP_STATE_NAMES } from '../constants/scheduled-jobs.js';
 import {
   ChildSafetyNcmecCompletionChannelSchema,
   ChildSafetyNcmecCompletionProofTypeSchema,
 } from './safety/case.js';
-
-// One asset-phase candidate the Hall-media orphan reaper could not positively clear (a read
-// error, a missing owner). The cursor moves past it and the reaper retries it from here instead,
-// so one uncertain candidate never pins the scan window.
-export const HallMediaReaperDeferredCandidateSchema = z
-  .object({
-    mediaAssetId: z.string().min(1),
-    /** The candidate's mediaAssets `createdAt`. */
-    createdAt: z.number().int().nonnegative(),
-    /** Epoch ms from which a pass may retry it. */
-    nextAttemptAt: z.number().int().nonnegative(),
-    /** Passes that examined it without clearing it; the pass that deferred it is the first. The
-     *  HALL_MEDIA_REAPER_BACKOFF_BASE_MS / HALL_MEDIA_REAPER_BACKOFF_MAX_MS backoff grows from it. */
-    attemptCount: z.number().int().positive(),
-  })
-  .strict();
-export type HallMediaReaperDeferredCandidate = z.infer<typeof HallMediaReaperDeferredCandidateSchema>;
-
-// _serverData/hallMediaReaperCursor — the scheduled Hall-media orphan reaper's scan cursor.
-// `createdAtCursor` is the highest mediaAssets `createdAt` the reaper has moved past: every
-// candidate at or below it was positively cleared (referenced / reaped / already-deleted) or is
-// held in `deferred`, so each pass resumes past permanently-live Hall assets instead of
-// re-reading the same oldest page forever. `deferred` names each asset at most once, holds at
-// most HALL_MEDIA_REAPER_MAX_DEFERRED entries, and holds only candidates at or below the cursor
-// — deferring a candidate is what moves the cursor past it. A cursor written before the set
-// existed has no `deferred`, which reads as empty.
-// (functions/src/media/reapOrphanedHallMediaCopies.ts)
-export const HallMediaReaperCursorSchema = z
-  .object({
-    createdAtCursor: z.number(),
-    updatedAt: z.number(),
-    deferred: z.array(HallMediaReaperDeferredCandidateSchema).max(HALL_MEDIA_REAPER_MAX_DEFERRED).optional(),
-  })
-  .superRefine((val, ctx) => {
-    const seen = new Set<string>();
-    (val.deferred ?? []).forEach((entry, index) => {
-      if (seen.has(entry.mediaAssetId)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['deferred', index, 'mediaAssetId'],
-          message: 'a candidate is deferred at most once',
-        });
-      }
-      seen.add(entry.mediaAssetId);
-      if (entry.createdAt > val.createdAtCursor) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['deferred', index, 'createdAt'],
-          message: 'a deferred candidate sits at or below the cursor that moved past it',
-        });
-      }
-    });
-  });
-export type HallMediaReaperCursor = z.infer<typeof HallMediaReaperCursorSchema>;
-
-// _serverData/publicUsersReconcilerCursor — the scheduled publicUsers reconciler's sweep cursor.
-// `profileIdCursor` is the last `userProfiles` document id the sweep has POSITIVELY cleared, so
-// each pass resumes after it instead of re-reading the same oldest page forever. An EMPTY STRING
-// means start from the beginning — both the first-ever pass and the wrap after the sweep exhausts
-// the collection. (functions/src/users/reconcilePublicUsers.ts)
-export const PublicUsersReconcilerCursorSchema = z.object({
-  profileIdCursor: z.string(),
-  updatedAt: z.number(),
-});
-export type PublicUsersReconcilerCursor = z.infer<typeof PublicUsersReconcilerCursorSchema>;
 
 // operatorStepUp/{uid} — [H-08] per-operator TOTP step-up state: the authenticator secret
 // plus the currently open grant window. The secret is returned to the client EXACTLY ONCE by
@@ -99,34 +34,97 @@ export const OperatorStepUpSchema = z.object({
 });
 export type OperatorStepUp = z.infer<typeof OperatorStepUpSchema>;
 
-// safetyReconcilerCursors/{cursorKey} — one persisted pagination cursor per reconciler
-// needs-work backstop sweep (quarantine enqueue, NCMEC enqueue). The sweep pages a
-// needs-work-filtered query from `afterValue` and WRAPS to the start when exhausted, so
-// coverage does not stall on the oldest rows. (functions/src/safety/reconcilerCursor.ts)
-export const SafetyReconcilerCursorSchema = z.object({
-  /** `orderBy` value of the last row examined last pass (exclusive lower bound). Absent ⇒ 0. */
-  afterValue: z.number().optional(),
-  updatedAt: z.number(),
-});
-export type SafetyReconcilerCursor = z.infer<typeof SafetyReconcilerCursorSchema>;
+/** A `sweepState/{sweepName}` doc id — one of SWEEP_STATE_NAMES. */
+export const SweepStateNameSchema = z.enum(SWEEP_STATE_NAMES);
 
-// sweepState/{sweepName} — durable cadence + cursor state for one scheduled user sweep. One doc
-// per sweep name; the fields a given sweep uses are the ones it declares, so every field except
-// `updatedAt` is optional. `orphanRegistrationCleanup` carries all three (the ~daily privateData
-// reaper's last completed pass + its rolling page cursor, and the ~weekly `listUsers()` scan);
-// `reconcileAccountStatus` carries only `fullScanLastRunAt`. The stamps are wall-clock so a
-// container recycle cannot reset the cadence.
-// (functions/src/users/orphanRegistrationCleanup.ts, functions/src/users/reconcileAccountStatus.ts)
-export const SweepStateSchema = z.object({
-  /** Wall-clock ms the last COMPLETED privateData-reaper pass finished (absent = never). */
-  reaperLastRunAt: z.number().optional(),
-  /** Full document path of the last `privateData` doc the reaper examined. Empty/absent means no
-   *  pass is in flight; a non-empty value means one is mid-scan and must continue. */
-  reaperCursorPath: z.string().optional(),
-  /** Wall-clock ms the last full `listUsers()` scan ran (absent = never). */
-  fullScanLastRunAt: z.number().optional(),
-  updatedAt: z.number(),
-});
+// The rolling cursor one scheduled pass keeps over a bounded, ordered source (a Storage listing or
+// a Firestore query), so each run resumes where the last stopped instead of rereading the first
+// page and starving everything behind a stuck head.
+//   absent  — no lap has run: the next pass starts one at the beginning.
+//   inLap   — the next page starts strictly after the last row the lap moved past. `afterKey` is
+//             that row's key: the object NAME for a Storage listing (a listing's page token is
+//             opaque, so it is never stored), the document id for a Firestore query, or the full
+//             document path for a collection-group query. `afterValue` is that row's value of the
+//             numeric field the query orders by first (e.g. `createdAt`); a source ordered by key
+//             alone has none. A value is never a position by itself: rows can share it, so the query
+//             orders by the field and then by the key, and resumes with startAfter(afterValue,
+//             afterKey) — never `field > afterValue`, which skips every row tied with the last one,
+//             on every lap.
+//   done    — the last lap reached the end of its source. The pass that exhausted the source
+//             records it here instead of starting page one again in the same run; the next pass
+//             wraps and starts a new lap from the beginning, so rows added behind the cursor, or
+//             rows that became eligible after it passed them, are reached on the next lap.
+export const SweepRollingCursorSchema = z
+  .discriminatedUnion('state', [
+    z
+      .object({
+        state: z.literal('inLap'),
+        afterKey: z.string().min(1),
+        afterValue: z.number().optional(),
+        lapStartedAt: z.number().int().nonnegative(),
+      })
+      .strict(),
+    z
+      .object({
+        state: z.literal('done'),
+        lapStartedAt: z.number().int().nonnegative(),
+        lapCompletedAt: z.number().int().nonnegative(),
+      })
+      .strict(),
+  ])
+  .superRefine((val, ctx) => {
+    if (val.state === 'done' && val.lapCompletedAt < val.lapStartedAt) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['lapCompletedAt'],
+        message: 'a lap completes no earlier than it started',
+      });
+    }
+  });
+export type SweepRollingCursor = z.infer<typeof SweepRollingCursorSchema>;
+
+// One row a pass's rolling cursor moved past without positively clearing it (a read error, a
+// missing owner, a hold). The pass retries it from here once due instead of stopping at it, so one
+// uncertain row never pins the window. `key` / `value` are the row's position in the cursor's
+// terms (SweepRollingCursorSchema): its key, and its ordered value when the source has one.
+export const SweepDeferredRowSchema = z
+  .object({
+    key: z.string().min(1),
+    value: z.number().optional(),
+    /** Epoch ms from which a pass may retry it. */
+    nextAttemptAt: z.number().int().nonnegative(),
+    /** Passes that examined it without clearing it; the pass that deferred it is the first. A pass's
+     *  own backoff (e.g. HALL_MEDIA_REAPER_BACKOFF_BASE_MS / _MAX_MS) grows from it. */
+    attemptCount: z.number().int().positive(),
+  })
+  .strict();
+export type SweepDeferredRow = z.infer<typeof SweepDeferredRowSchema>;
+
+// sweepState/{sweepName} — durable cadence + cursor state for one scheduled pass: every persisted
+// sweep position in the app lives here, one doc per SWEEP_STATE_NAMES name. The fields a pass uses
+// are the ones it declares, so every field except `updatedAt` is optional. A pass over a bounded,
+// ordered source keeps its position in `rollingCursor` (a finished lap is `done`, stamped with
+// `lapCompletedAt` — the cadence stamp of a pass that runs a lap at a time), and the rows it moved
+// past without clearing in `deferred`. `fullScanLastRunAt` is the cadence of the ~weekly
+// `listUsers()` scan `orphanRegistrationCleanup` and `reconcileAccountStatus` run. The stamps are
+// wall-clock so a container recycle cannot reset the cadence.
+export const SweepStateSchema = z
+  .object({
+    /** Wall-clock ms the last full `listUsers()` scan ran (absent = never). */
+    fullScanLastRunAt: z.number().optional(),
+    rollingCursor: SweepRollingCursorSchema.optional(),
+    deferred: z.array(SweepDeferredRowSchema).max(SWEEP_STATE_MAX_DEFERRED).optional(),
+    updatedAt: z.number(),
+  })
+  .superRefine((val, ctx) => {
+    const seen = new Set<string>();
+    (val.deferred ?? []).forEach((row, index) => {
+      if (seen.has(row.key)) {
+        ctx.addIssue({ code: 'custom', path: ['deferred', index, 'key'], message: 'a row is deferred at most once' });
+      }
+      seen.add(row.key);
+    });
+  });
 export type SweepState = z.infer<typeof SweepStateSchema>;
 
 // childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecCompletionProof/record —

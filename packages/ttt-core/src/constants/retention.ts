@@ -18,13 +18,25 @@ export const PENDING_MEDIA_ARCHIVE_BATCH_SIZE = 500;
 // (the violation's `rejectedFilePath`; owner + admin readable, never served through the media
 // gateway). They are not kept forever: after this window the hold-aware fail-closed sweep
 // deletes them. Fail-closed means a file it cannot prove is out of window — or that carries an
-// active Trust & Safety / legal hold — is LEFT IN PLACE, never deleted on a best guess.
-// 90 days sits comfortably past the appeal window while bounding indefinite retention of
-// often-adult rejected content. See ttt-prod docs/design/content-moderation-and-reporting.md.
+// active Trust & Safety / legal hold, or a pending appeal — is LEFT IN PLACE, never deleted on a
+// best guess. The appeal window is this same window, so an appeal can only ever be filed while
+// its file is still kept.
 
 /** Days a moderation-rejected upload's quarantined bytes are retained before the
- *  hold-aware sweep deletes them. */
+ *  hold-aware sweep deletes them — and the days a member has to appeal the rejection. */
 export const REJECTED_MEDIA_RETENTION_DAYS = 90;
+
+const REJECTED_MEDIA_RETENTION_MS = REJECTED_MEDIA_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+/** The epoch-ms moment the appeal window of a rejection made at `rejectedAt` closes. */
+export function rejectedMediaAppealDeadline(rejectedAt: number): number {
+  return rejectedAt + REJECTED_MEDIA_RETENTION_MS;
+}
+
+/** Whether a rejection made at `rejectedAt` can still be appealed at `now`. */
+export function isRejectedMediaAppealOpen(rejectedAt: number, now: number): boolean {
+  return now < rejectedMediaAppealDeadline(rejectedAt);
+}
 
 // --- Orphan upload cleanup ---
 

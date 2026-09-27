@@ -24,6 +24,7 @@ export function VideoViewer(props: VideoViewerProps) {
     autoPlayOnVisible = false,
     onLoad,
     onError,
+    onVisibilityChange,
     fallback,
     loadTimeoutMs,
     onEnded,
@@ -38,9 +39,9 @@ export function VideoViewer(props: VideoViewerProps) {
 
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
-  const [hasMetadata, setHasMetadata] = React.useState(false);
   const [shouldLoad, setShouldLoad] = React.useState(priority || !lazy);
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const loadReportedRef = React.useRef(false);
 
   // Additive playback API (onEnded, progress sampling, startAt/resume,
   // endOverlay, imperative controls). Derives everything from element events —
@@ -62,14 +63,16 @@ export function VideoViewer(props: VideoViewerProps) {
     [attachElement],
   );
 
-  // Single observer for both lazy-load gating AND autoplay-on-visible.
-  // threshold: [0, 0.5] — 0 fires "any pixel visible" (drives shouldLoad),
-  // 0.5 fires "at least half visible" (drives autoplay/pause).
+  // Single observer for lazy-load gating, autoplay-on-visible, AND the visibility the
+  // viewer reports to its owner (MEDIA-102). threshold: [0, 0.5] — 0 fires "any pixel
+  // visible" (drives shouldLoad), 0.5 fires "at least half visible" (drives
+  // autoplay/pause). A listener keeps it observing after the first sighting.
   const { ref: inViewRef, inView, entry } = useInView({
-    triggerOnce: !unloadOnExit && !autoplayActive,
+    triggerOnce: !unloadOnExit && !autoplayActive && !onVisibilityChange,
     threshold: [0, 0.5],
     rootMargin: "200px",
     skip: !autoplayActive && (priority || !lazy),
+    onChange: (visible) => onVisibilityChange?.(visible),
   });
 
   const isFullyVisible = (entry?.intersectionRatio ?? 0) >= 0.5;
@@ -89,7 +92,7 @@ export function VideoViewer(props: VideoViewerProps) {
         video.load();
       }
       setIsLoaded(false);
-      setHasMetadata(false);
+      loadReportedRef.current = false;
       setShouldLoad(false);
     }
   }, [inView, shouldLoad, unloadOnExit, priority, lazy, retireElement]);
@@ -97,11 +100,15 @@ export function VideoViewer(props: VideoViewerProps) {
   React.useEffect(() => {
     setHasError(false);
     setIsLoaded(false);
-    setHasMetadata(false);
+    loadReportedRef.current = false;
   }, [url]);
 
-  const handleLoadedData = React.useCallback(() => {
+  // A preload="metadata" element may not fire loadeddata until play, so metadata alone makes
+  // it usable: the skeleton goes, the element shows, and onLoad fires once for this load.
+  const reveal = React.useCallback(() => {
     setIsLoaded(true);
+    if (loadReportedRef.current) return;
+    loadReportedRef.current = true;
     onLoad?.();
   }, [onLoad]);
 
@@ -110,21 +117,15 @@ export function VideoViewer(props: VideoViewerProps) {
     onError?.();
   }, [onError]);
 
-  // Watchdog settles on METADATA, not loadeddata — a healthy preload="metadata"
-  // list video may not fire loadeddata until play, and must not false-positive.
   const handleLoadedMetadata = React.useCallback(
     (e: React.SyntheticEvent<HTMLVideoElement>) => {
-      setHasMetadata(true);
+      reveal();
       playbackHandlers.onLoadedMetadata(e);
     },
-    [playbackHandlers]
+    [reveal, playbackHandlers]
   );
 
-  useLoadWatchdog(
-    shouldLoad && !isLoaded && !hasMetadata && !hasError,
-    loadTimeoutMs,
-    handleError
-  );
+  useLoadWatchdog(shouldLoad && !isLoaded && !hasError, loadTimeoutMs, handleError);
 
   // Autoplay on >=50% visible / pause when below (same single observer above)
   React.useEffect(() => {
@@ -170,13 +171,20 @@ export function VideoViewer(props: VideoViewerProps) {
     [enableFullscreen, requestFullscreen]
   );
 
+  // The error state stays inside the observed wrapper, so the viewer keeps reporting
+  // its visibility while its owner recovers it.
   if (hasError) {
-    if (fallback) return <>{fallback}</>;
     return (
-      <div className={className}>
-        <div className="mv-video-error">
-          <p>Failed to load video</p>
-        </div>
+      <div
+        ref={inViewRef}
+        className={className}
+        style={fallback ? { position: "relative", width: "100%", height: "100%" } : undefined}
+      >
+        {fallback ?? (
+          <div className="mv-video-error">
+            <p>Failed to load video</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -205,7 +213,7 @@ export function VideoViewer(props: VideoViewerProps) {
           muted={resolvedMuted}
           loop={loop}
           poster={posterUrl}
-          onLoadedData={handleLoadedData}
+          onLoadedData={reveal}
           onError={handleError}
           onLoadedMetadata={handleLoadedMetadata}
           onTimeUpdate={playbackHandlers.onTimeUpdate}
@@ -220,7 +228,7 @@ export function VideoViewer(props: VideoViewerProps) {
             height: "100%",
             objectFit: "cover",
             opacity: isLoaded ? 1 : 0,
-            transition: "opacity 300ms ease",
+            transition: "opacity var(--motion-slow) var(--motion-ease)",
             WebkitUserSelect: "none",
             WebkitTouchCallout: "none",
             WebkitTapHighlightColor: "transparent",

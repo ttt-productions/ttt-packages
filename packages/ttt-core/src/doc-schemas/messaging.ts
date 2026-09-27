@@ -125,8 +125,6 @@ export const GuildInviteConversationSchema = z.object({
   finalizedAt: z.number().optional(),
   senderConfirmed: z.boolean(),
   recipientConfirmed: z.boolean(),
-  lastMessage: z.string().optional(),
-  lastMessageAt: z.string().optional(),
   // Conversation Files quota counters for THIS invite conversation (per-conversation
   // caps: MAX_CONVERSATION_FILES / MAX_CONVERSATION_FILE_STORAGE_BYTES). Reserved at
   // startUpload, transferred to used at publication, released on every terminal path,

@@ -78,8 +78,12 @@ export type ReportCoreAuditEvent =
       timestamp: number;
     }
   | {
+      /** An expired checkout was taken over by a new checkout. */
       action: 'auto_released';
+      /** The admin whose checkout took the task over — the actor. */
       adminUserId: string;
+      /** The admin whose lock expired. */
+      priorAdminUserId: string;
       taskType: string;
       taskId: string;
       timestamp: number;

@@ -64,7 +64,7 @@ const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
   'src/schemas/safety.ts': [32, 200, 256, 256, 256, 256, 256, 1024, 1024, 1024],
   'src/schemas/social.ts': [128, 128],
   'src/schemas/uploads.ts': [200],
-  'src/schemas/users.ts': [12, 12, 31, 31],
+  'src/schemas/users.ts': [12, 31],
   'src/schemas/utility.ts': [64, 64, 64, 128, 500, 500],
   'src/doc-schemas/ncii/holds.ts': [16],
   'src/doc-schemas/ncii/requests.ts': [16, 16, 16],

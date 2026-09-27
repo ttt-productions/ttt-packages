@@ -75,6 +75,9 @@ const config: NotificationSystemConfig = {
   maxDeliveryAttempts: 3,
 };
 
+/** A ledger whose consumer has no eligibility rule: every recipient may receive. */
+const ELIGIBLE = { isRecipientEligible: async () => true };
+
 function row(over: Partial<DeliveryRowInput> = {}): DeliveryRowInput {
   return {
     deliveryId: 'd1',
@@ -125,7 +128,7 @@ describe('applyAggregation (pure)', () => {
 describe('createDeliveryLedger.enqueue', () => {
   it('creates new rows and treats an existing id as a duplicate no-op', async () => {
     const { db } = createMockFirestore();
-    const ledger = createDeliveryLedger(db, config);
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     const r1 = await ledger.enqueue([row({ deliveryId: 'a' })]);
     expect(r1.results[0].outcome).toBe('created');
     const r2 = await ledger.enqueue([row({ deliveryId: 'a' }), row({ deliveryId: 'b' })]);
@@ -147,7 +150,7 @@ describe('createDeliveryLedger.enqueue', () => {
         }),
       } as never;
     };
-    const ledger = createDeliveryLedger(db, config);
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     const res = await ledger.enqueue([row({ deliveryId: 'x' })]);
     expect(res.results[0].outcome).toBe('failed');
     expect(res.allResolved).toBe(false);
@@ -155,14 +158,14 @@ describe('createDeliveryLedger.enqueue', () => {
 
   it('throws when timestampFromMillis is missing', () => {
     const { db } = createMockFirestore();
-    expect(() => createDeliveryLedger(db, { ...config, timestampFromMillis: undefined })).toThrow(/timestampFromMillis/);
+    expect(() => createDeliveryLedger(db, { ...config, timestampFromMillis: undefined }, ELIGIBLE)).toThrow(/timestampFromMillis/);
   });
 });
 
 describe('createDeliveryLedger.materialize', () => {
   it('materializes a queued row into a new active card and flips state + expireAt', async () => {
     const { db, getCol } = createMockFirestore();
-    const ledger = createDeliveryLedger(db, config);
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([row({ deliveryId: 'd1' })]);
     const outcome = await ledger.materialize('d1');
     expect(outcome).toBe('materialized');
@@ -181,7 +184,7 @@ describe('createDeliveryLedger.materialize', () => {
 
   it('aggregates a second occurrence onto the same active card and rotates the generation', async () => {
     const { db, getCol } = createMockFirestore();
-    const ledger = createDeliveryLedger(db, config);
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([row({ deliveryId: 'd1', eventId: 'e1', payload: { actorId: 'a1', metadata: { k: 'agg1' }, occurrenceAt: 1 } })]);
     await ledger.materialize('d1');
     const gen1 = [...getCol('activeUserNotifications').values()][0].activityGeneration;
@@ -197,7 +200,7 @@ describe('createDeliveryLedger.materialize', () => {
 
   it('staticRelight keeps count at 1 across occurrences', async () => {
     const { db, getCol } = createMockFirestore();
-    const ledger = createDeliveryLedger(db, config);
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([row({ deliveryId: 'd1', notificationType: 'test_static', strategy: 'staticRelight' })]);
     await ledger.materialize('d1');
     await ledger.enqueue([row({ deliveryId: 'd2', notificationType: 'test_static', strategy: 'staticRelight' })]);
@@ -208,7 +211,7 @@ describe('createDeliveryLedger.materialize', () => {
 
   it('is an idempotent no-op on a materialized row, and missing on an absent row', async () => {
     const { db } = createMockFirestore();
-    const ledger = createDeliveryLedger(db, config);
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([row({ deliveryId: 'd1' })]);
     expect(await ledger.materialize('d1')).toBe('materialized');
     expect(await ledger.materialize('d1')).toBe('already-materialized');
@@ -217,7 +220,7 @@ describe('createDeliveryLedger.materialize', () => {
 
   it('refreshes title / targetPath / metadata from the latest occurrence on an existing card (N-I4)', async () => {
     const { db, getCol } = createMockFirestore();
-    const ledger = createDeliveryLedger(db, config);
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([
       row({ deliveryId: 'd1', notificationType: 'test_refresh', aggregationKey: 'agg', payload: { actorId: 'a1', metadata: { k: 'agg', title: 'First', id: '1' }, occurrenceAt: 1 } }),
     ]);
@@ -237,7 +240,7 @@ describe('createDeliveryLedger.materialize', () => {
 
   it('omits targetPath entirely for a type with no defaultTargetPath (linkless)', async () => {
     const { db, getCol } = createMockFirestore();
-    const ledger = createDeliveryLedger(db, config);
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([row({ deliveryId: 'd1', notificationType: 'test_linkless' })]);
     await ledger.materialize('d1');
 
@@ -257,7 +260,7 @@ describe('createDeliveryLedger.materialize', () => {
 describe('createDeliveryLedger lifecycle', () => {
   it('records transient failures with backoff, then dead-letters at the attempt cap', async () => {
     const { db, getCol } = createMockFirestore();
-    const ledger = createDeliveryLedger(db, config); // maxDeliveryAttempts: 3
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE); // maxDeliveryAttempts: 3
     await ledger.enqueue([row({ deliveryId: 'd1' })]);
     expect(getCol('notificationDeliveries').get('d1')!.materializationClass).toBe('directQueued');
     await ledger.recordTransientFailure('d1', new Error('e1'));
@@ -277,7 +280,7 @@ describe('createDeliveryLedger lifecycle', () => {
 
   it('replay returns a dead-letter to queued and clears terminal/TTL fields', async () => {
     const { db, getCol } = createMockFirestore();
-    const ledger = createDeliveryLedger(db, config);
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([row({ deliveryId: 'd1' })]);
     await ledger.deadLetter('d1', new Error('infra'));
     expect(getCol('notificationDeliveries').get('d1')!.state).toBe('deadLetter');
@@ -292,10 +295,92 @@ describe('createDeliveryLedger lifecycle', () => {
 
   it('materializeMany tallies outcomes', async () => {
     const { db } = createMockFirestore();
-    const ledger = createDeliveryLedger(db, config);
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
     await ledger.enqueue([row({ deliveryId: 'a' }), row({ deliveryId: 'b', aggregationKey: 'agg2', payload: { actorId: 'a', metadata: { k: 'agg2' }, occurrenceAt: 1 } })]);
     const tally = await ledger.materializeMany(['a', 'b', 'missing'], { concurrency: 2 });
     expect(tally.materialized).toBe(2);
     expect(tally.missing).toBe(1);
+  });
+});
+
+describe('recipient eligibility', () => {
+  function ledgerRejecting(ineligible: Set<string>, seen: Array<{ uid: string; inTransaction: boolean }> = []) {
+    const { db, getCol } = createMockFirestore();
+    const ledger = createDeliveryLedger(db, config, {
+      isRecipientEligible: async (uid, tx) => {
+        seen.push({ uid, inTransaction: typeof tx.get === 'function' });
+        return !ineligible.has(uid);
+      },
+    });
+    return { ledger, getCol, seen };
+  }
+
+  it('an ineligible recipient gets no card and the row is skipped, not retried', async () => {
+    const { ledger, getCol, seen } = ledgerRejecting(new Set(['erased']));
+    await ledger.enqueue([row({ deliveryId: 'dx', recipientUid: 'erased' })]);
+
+    expect(await ledger.materialize('dx')).toBe('skipped-ineligible-recipient');
+
+    expect(getCol('activeUserNotifications').size).toBe(0);
+    const d = getCol('notificationDeliveries').get('dx')!;
+    expect(d.state).toBe('skipped');
+    expect(d.skipReason).toBe('recipientIneligible');
+    expect(d.expireAt).toEqual({ __ts: (d.skippedAt as number) + 1000 });
+    expect(seen).toEqual([{ uid: 'erased', inTransaction: true }]);
+  });
+
+  it('eligible recipients in the same batch still get their cards', async () => {
+    const { ledger, getCol } = ledgerRejecting(new Set(['erased']));
+    await ledger.enqueue([
+      row({ deliveryId: 'd-a', recipientUid: 'alice' }),
+      row({ deliveryId: 'd-x', recipientUid: 'erased' }),
+      row({ deliveryId: 'd-b', recipientUid: 'bob' }),
+    ]);
+
+    const tally = await ledger.materializeMany(['d-a', 'd-x', 'd-b']);
+
+    expect(tally.materialized).toBe(2);
+    expect(tally['skipped-ineligible-recipient']).toBe(1);
+    const targets = [...getCol('activeUserNotifications').values()].map((c) => c.targetUserId).sort();
+    expect(targets).toEqual(['alice', 'bob']);
+  });
+
+  it('a re-run of a skipped row is a no-op', async () => {
+    const seen: Array<{ uid: string; inTransaction: boolean }> = [];
+    const { ledger, getCol } = ledgerRejecting(new Set(['erased']), seen);
+    await ledger.enqueue([row({ deliveryId: 'dx', recipientUid: 'erased' })]);
+    await ledger.materialize('dx');
+    const afterFirst = { ...getCol('notificationDeliveries').get('dx')! };
+
+    expect(await ledger.materialize('dx')).toBe('skipped-ineligible-recipient');
+    await ledger.replay('dx');
+
+    expect(getCol('notificationDeliveries').get('dx')).toEqual(afterFirst);
+    expect(getCol('activeUserNotifications').size).toBe(0);
+    expect(seen).toHaveLength(1);
+  });
+
+  it('a shared (recipient-less) row is never checked', async () => {
+    const seen: Array<{ uid: string; inTransaction: boolean }> = [];
+    const { ledger } = ledgerRejecting(new Set(), seen);
+    await ledger.enqueue([row({ deliveryId: 'ds', recipientUid: null })]);
+
+    expect(await ledger.materialize('ds')).toBe('materialized');
+    expect(seen).toHaveLength(0);
+  });
+
+  it('a failing eligibility read leaves the row queued for a retry, never skipped', async () => {
+    const { db, getCol } = createMockFirestore();
+    const ledger = createDeliveryLedger(db, config, {
+      isRecipientEligible: async () => { throw new Error('profile read failed'); },
+    });
+    await ledger.enqueue([row({ deliveryId: 'dr', recipientUid: 'alice' })]);
+
+    await ledger.materializeMany(['dr']);
+
+    const d = getCol('notificationDeliveries').get('dr')!;
+    expect(d.state).toBe('queued');
+    expect(d.attemptCount).toBe(1);
+    expect(getCol('activeUserNotifications').size).toBe(0);
   });
 });

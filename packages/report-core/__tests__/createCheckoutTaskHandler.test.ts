@@ -266,13 +266,65 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
     await handler({ taskType: 'userReport', specificTaskId: 'task1' }, { uid: 'admin1', token: {} });
 
     expect(onAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'auto_released', adminUserId: 'other' }),
+      expect.objectContaining({ action: 'auto_released', adminUserId: 'admin1', priorAdminUserId: 'other' }),
       expect.anything(),
     );
     expect(onAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'checkout', adminUserId: 'admin1' }),
       expect.anything(),
     );
+  });
+
+  it('names the caller who took over as the actor of the auto-release, never the prior holder', async () => {
+    const onAuditEvent = vi.fn();
+    const { db } = createMockDb({
+      docs: {
+        'adminTasks/task1': {
+          ...baseTask,
+          status: 'checkedOut',
+          checkoutDetails: { userId: 'other', expiresAt: Date.now() - 60_000 },
+        },
+        'activeReportGroups/group1': GROUP_DOC,
+      },
+    });
+    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, onAuditEvent });
+
+    await handler({ taskType: 'userReport', specificTaskId: 'task1' }, { uid: 'admin1', token: {} });
+
+    const release = onAuditEvent.mock.calls.map(([event]) => event).find((e) => e.action === 'auto_released');
+    expect(release.adminUserId).toBe('admin1');
+    expect(release.priorAdminUserId).toBe('other');
+  });
+
+  it('answers a re-checkout of the caller own active lock with the task as held and writes nothing', async () => {
+    const onAuditEvent = vi.fn();
+    const heldCheckout = { userId: 'admin1', checkedOutAt: 1_000, expiresAt: Date.now() + 60_000, workLaterUntil: null };
+    const { db, updates, sets } = createMockDb({
+      docs: {
+        'adminTasks/task1': { ...baseTask, status: 'checkedOut', checkoutDetails: heldCheckout },
+        'activeReportGroups/group1': GROUP_DOC,
+      },
+    });
+    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, onAuditEvent });
+
+    const result = (await handler(
+      { taskType: 'userReport', specificTaskId: 'task1' },
+      { uid: 'admin1', token: {} },
+    )) as { success: boolean; alreadyHeld: boolean; task: Record<string, unknown> };
+
+    expect(result.success).toBe(true);
+    expect(result.alreadyHeld).toBe(true);
+    expect(result.task).toMatchObject({
+      id: 'task1',
+      status: 'checkedOut',
+      checkedOutAt: heldCheckout.checkedOutAt,
+      expiresAt: heldCheckout.expiresAt,
+      checkoutDetails: heldCheckout,
+      itemData: GROUP_DOC,
+    });
+    expect(updates).toHaveLength(0);
+    expect(sets).toHaveLength(0);
+    expect(onAuditEvent).not.toHaveBeenCalled();
   });
 
   it('allows stealing an expired workLater task', async () => {
@@ -356,7 +408,7 @@ describe('createCheckoutTaskHandler — queue path (no specificTaskId)', () => {
     expect(result.success).toBe(true);
     expect(updates.some((u) => u.path === 'adminTasks/expired' && u.data.status === 'checkedOut')).toBe(true);
     expect(onAuditEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'auto_released', adminUserId: 'other' }),
+      expect.objectContaining({ action: 'auto_released', adminUserId: 'admin1', priorAdminUserId: 'other' }),
       expect.anything(),
     );
   });

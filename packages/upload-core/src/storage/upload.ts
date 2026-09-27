@@ -6,7 +6,6 @@ import { NEUTRAL_CONTENT_TYPE } from "@ttt-productions/media-schemas";
 import { UploadError, isValidMediaContentType } from "./upload-error.js";
 
 import {
-  getDownloadURL,
   ref,
   uploadBytesResumable,
   type FirebaseStorage,
@@ -16,6 +15,10 @@ import {
 
 function isAbortError(e: unknown) {
   return e instanceof DOMException && e.name === "AbortError";
+}
+
+function isStorageCanceledError(e: unknown) {
+  return typeof e === "object" && e !== null && (e as { code?: unknown }).code === "storage/canceled";
 }
 
 export function startResumableUpload(args: {
@@ -54,10 +57,23 @@ export function startResumableUpload(args: {
     rejectDone = rej;
   });
 
-  const onAbort = () => {
+  // The Storage SDK rejects a cancelled task with its own `storage/canceled` error.
+  // When this upload asked for the cancel (its signal aborted, or its controller's
+  // cancel() ran), that rejection becomes the canonical AbortError every consumer
+  // already treats as a user cancel; a `storage/canceled` nobody here asked for
+  // stays a real failure.
+  let canceledLocally = false;
+  const cancelTask = () => {
+    canceledLocally = true;
     try {
-      task.cancel();
-    } catch {}
+      return task.cancel();
+    } catch {
+      return false;
+    }
+  };
+
+  const onAbort = () => {
+    cancelTask();
   };
 
   if (signal) {
@@ -93,16 +109,20 @@ export function startResumableUpload(args: {
       if (signal) signal.removeEventListener("abort", onAbort);
       if (unsub) unsub();
 
-      // normalize aborts as "canceled" (not "error")
-      if (isAbortError(err)) {
+      const cancelError = isAbortError(err)
+        ? err
+        : canceledLocally && isStorageCanceledError(err)
+        ? new DOMException("Aborted", "AbortError")
+        : null;
+      if (cancelError) {
         upsertUploadSession({
           id,
           status: "canceled",
           path,
           updatedAt: Date.now(),
-          error: err,
+          error: cancelError,
         });
-        return rejectDone(err);
+        return rejectDone(cancelError);
       }
 
       upsertUploadSession({
@@ -117,12 +137,10 @@ export function startResumableUpload(args: {
     },
     async () => {
       try {
-        const downloadURL = await getDownloadURL(task.snapshot.ref);
         const contentType = task.snapshot.metadata?.contentType ?? null;
         const size = task.snapshot.totalBytes ?? getFileSize(file);
 
         const result: UploadFileResumableResult = {
-          downloadURL,
           fullPath: task.snapshot.ref.fullPath,
           contentType,
           size,
@@ -173,13 +191,7 @@ export function startResumableUpload(args: {
         return false;
       }
     },
-    cancel: () => {
-      try {
-        return task.cancel();
-      } catch {
-        return false;
-      }
-    },
+    cancel: cancelTask,
     done,
   };
 }

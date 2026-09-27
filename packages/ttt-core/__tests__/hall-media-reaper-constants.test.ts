@@ -4,7 +4,7 @@ import {
   HALL_MEDIA_REAPER_BACKOFF_BASE_MS,
   HALL_MEDIA_REAPER_BACKOFF_MAX_MS,
   HALL_MEDIA_REAPER_CLAIM_LEASE_MS,
-  HALL_MEDIA_REAPER_MAX_DEFERRED,
+  SWEEP_STATE_MAX_DEFERRED,
   HALL_MEDIA_REAPER_PAGE_SIZE,
 } from '../src/constants/scheduled-jobs.js';
 import * as constantsBarrel from '../src/constants/index.js';
@@ -33,9 +33,9 @@ describe('Hall-media orphan reaper policy constants', () => {
   });
 
   it('keeps retrying a full deferred set cheaper than one page of its own', () => {
-    expect(Number.isInteger(HALL_MEDIA_REAPER_MAX_DEFERRED)).toBe(true);
-    expect(HALL_MEDIA_REAPER_MAX_DEFERRED).toBeGreaterThan(0);
-    expect(HALL_MEDIA_REAPER_MAX_DEFERRED).toBeLessThan(HALL_MEDIA_REAPER_PAGE_SIZE);
+    expect(Number.isInteger(SWEEP_STATE_MAX_DEFERRED)).toBe(true);
+    expect(SWEEP_STATE_MAX_DEFERRED).toBeGreaterThan(0);
+    expect(SWEEP_STATE_MAX_DEFERRED).toBeLessThan(HALL_MEDIA_REAPER_PAGE_SIZE);
   });
 
   it('holds a copy-intent claim for one hour', () => {
@@ -56,7 +56,7 @@ describe('Hall-media orphan reaper policy constants', () => {
       expect(surface.HALL_MEDIA_REAPER_PAGE_SIZE).toBe(HALL_MEDIA_REAPER_PAGE_SIZE);
       expect(surface.HALL_MEDIA_REAPER_BACKOFF_BASE_MS).toBe(HALL_MEDIA_REAPER_BACKOFF_BASE_MS);
       expect(surface.HALL_MEDIA_REAPER_BACKOFF_MAX_MS).toBe(HALL_MEDIA_REAPER_BACKOFF_MAX_MS);
-      expect(surface.HALL_MEDIA_REAPER_MAX_DEFERRED).toBe(HALL_MEDIA_REAPER_MAX_DEFERRED);
+      expect(surface.SWEEP_STATE_MAX_DEFERRED).toBe(SWEEP_STATE_MAX_DEFERRED);
       expect(surface.HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBe(HALL_MEDIA_REAPER_CLAIM_LEASE_MS);
     }
   });

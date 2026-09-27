@@ -59,6 +59,8 @@ export interface FileInputProps {
   disabled?: boolean;
   isLoading?: boolean;
   buttonLabel?: string;
+  /** Accessible name of the icon-only button that clears the selected file. Default "Clear selected file". */
+  clearLabel?: string;
   className?: string;
 
   variant?: any;
@@ -116,6 +118,8 @@ export interface MediaInputProps {
   isLoading?: boolean;
   className?: string;
   buttonLabel?: string;
+  /** Accessible name of the icon-only button that clears the selected file. Default "Clear selected file". */
+  clearLabel?: string;
 
   /**
    * Extra advisory notes shown in the "Info" affordance alongside the built-in default

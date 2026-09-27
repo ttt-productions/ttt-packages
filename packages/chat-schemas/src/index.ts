@@ -7,6 +7,11 @@
 export * from './realtime-wire.js';
 
 /**
+ * The chat internal-endpoint contract (the body budget of the signed Functions to Worker calls).
+ */
+export * from './internal-contract.js';
+
+/**
  * Pure-Zod chat schemas package.
  *
  * Consumed directly as `@ttt-productions/chat-schemas` — by `chat-core` (the

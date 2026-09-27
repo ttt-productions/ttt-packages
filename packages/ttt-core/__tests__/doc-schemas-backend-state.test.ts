@@ -1,89 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import {
-  HallMediaReaperCursorSchema,
   NcmecCompletionProofRecordV1Schema,
   NcmecPortalCorrectionRecordV1Schema,
   NcmecPortalReceiptArtifactV1Schema,
-  PublicUsersReconcilerCursorSchema,
+  SweepRollingCursorSchema,
+  SweepStateNameSchema,
   SweepStateSchema,
 } from '../src/doc-schemas/backend-state';
-import { HALL_MEDIA_REAPER_MAX_DEFERRED } from '../src/constants/scheduled-jobs';
+import { SWEEP_STATE_MAX_DEFERRED, SWEEP_STATE_NAMES } from '../src/constants/scheduled-jobs';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
 import { PATH_BUILDERS } from '../src/paths/path-builders';
 import { COLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
-
-describe('HallMediaReaperCursorSchema', () => {
-  const cursor = { createdAtCursor: 1_700_000_000_000, updatedAt: 1_702_000_000_000 };
-  const entry = (n: number) => ({
-    mediaAssetId: `asset-${n}`,
-    createdAt: cursor.createdAtCursor - n,
-    nextAttemptAt: cursor.updatedAt + 24 * 60 * 60 * 1000,
-    attemptCount: 1,
-  });
-
-  it('parses a cursor written before the deferred set existed', () => {
-    expect(HallMediaReaperCursorSchema.parse(cursor)).toEqual(cursor);
-  });
-
-  it('parses a cursor holding deferred candidates', () => {
-    const withDeferred = { ...cursor, deferred: [entry(1), { ...entry(2), attemptCount: 4 }] };
-    expect(HallMediaReaperCursorSchema.parse(withDeferred)).toEqual(withDeferred);
-  });
-
-  it(`holds at most HALL_MEDIA_REAPER_MAX_DEFERRED (${HALL_MEDIA_REAPER_MAX_DEFERRED}) candidates`, () => {
-    const full = Array.from({ length: HALL_MEDIA_REAPER_MAX_DEFERRED }, (_, i) => entry(i + 1));
-    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: full }).success).toBe(true);
-    const over = [...full, entry(HALL_MEDIA_REAPER_MAX_DEFERRED + 1)];
-    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: over }).success).toBe(false);
-  });
-
-  it('defers each asset at most once', () => {
-    const duplicate = { ...entry(2), mediaAssetId: entry(1).mediaAssetId };
-    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [entry(1), duplicate] }).success).toBe(false);
-  });
-
-  it('holds only candidates at or below the cursor that moved past them', () => {
-    const atCursor = { ...entry(1), createdAt: cursor.createdAtCursor };
-    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [atCursor] }).success).toBe(true);
-    const ahead = { ...entry(1), createdAt: cursor.createdAtCursor + 1 };
-    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [ahead] }).success).toBe(false);
-  });
-
-  it('counts at least the pass that deferred a candidate', () => {
-    for (const attemptCount of [0, -1, 1.5]) {
-      expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [{ ...entry(1), attemptCount }] }).success).toBe(
-        false,
-      );
-    }
-  });
-
-  it('keeps every deferred time epoch ms (ARCH-105)', () => {
-    const timestamp = { seconds: 1_702_086_400, nanoseconds: 0 };
-    for (const field of ['createdAt', 'nextAttemptAt'] as const) {
-      expect(
-        HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [{ ...entry(1), [field]: timestamp }] }).success,
-      ).toBe(false);
-    }
-  });
-
-  it('requires every deferred field, a non-empty id, and nothing undeclared', () => {
-    for (const field of ['mediaAssetId', 'createdAt', 'nextAttemptAt', 'attemptCount'] as const) {
-      const { [field]: _omitted, ...rest } = entry(1);
-      expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [rest] }).success).toBe(false);
-    }
-    expect(HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [{ ...entry(1), mediaAssetId: '' }] }).success).toBe(
-      false,
-    );
-    expect(
-      HallMediaReaperCursorSchema.safeParse({ ...cursor, deferred: [{ ...entry(1), ownerId: 'hall-1' }] }).success,
-    ).toBe(false);
-  });
-
-  it('binds the registry path and the path builder to the same location', () => {
-    expect(COLLECTION_SCHEMAS['_serverData/hallMediaReaperCursor']).toBe(HallMediaReaperCursorSchema);
-    expect(PATH_BUILDERS.hallMediaReaperCursor().join('/')).toBe('_serverData/hallMediaReaperCursor');
-  });
-});
 
 describe('NcmecPortalReceiptArtifactV1Schema', () => {
   // The exact record recordNcmecPortalReceiptArtifact writes: the operator-supplied vault key
@@ -233,15 +160,27 @@ describe('NcmecCompletionProofRecordV1Schema', () => {
 });
 
 describe('SweepStateSchema', () => {
-  it('accepts the orphan-registration sweep state, which carries all three fields', () => {
-    expect(
-      SweepStateSchema.safeParse({
-        reaperLastRunAt: 1_700_000_000_000,
-        reaperCursorPath: 'userProfiles/u1/privateData/u1',
-        fullScanLastRunAt: 1_700_000_500_000,
-        updatedAt: 1_700_000_500_000,
-      }).success,
-    ).toBe(true);
+  it('accepts the orphan-registration sweep state: the privateData reaper lap and the full-scan stamp', () => {
+    const state = {
+      rollingCursor: {
+        state: 'inLap' as const,
+        // A collection-group query resumes after the full document path.
+        afterKey: 'userProfiles/u1/privateData/u1',
+        lapStartedAt: 1_700_000_000_000,
+      },
+      fullScanLastRunAt: 1_700_000_500_000,
+      updatedAt: 1_700_000_500_000,
+    };
+    expect(SweepStateSchema.parse(state)).toEqual(state);
+  });
+
+  it('keeps no second cursor beside the rolling cursor', () => {
+    const parsed = SweepStateSchema.parse({
+      reaperLastRunAt: 1_700_000_000_000,
+      reaperCursorPath: 'userProfiles/u1/privateData/u1',
+      updatedAt: 1_700_000_500_000,
+    });
+    expect(parsed).toEqual({ updatedAt: 1_700_000_500_000 });
   });
 
   it('accepts the reconcile sweep state, which carries only the full-scan stamp', () => {
@@ -259,9 +198,32 @@ describe('SweepStateSchema', () => {
     expect(SweepStateSchema.safeParse({ fullScanLastRunAt: 1 }).success).toBe(false);
   });
 
-  it('keeps the cadence stamps numeric epoch ms and the cursor a path string', () => {
+  it('keeps the cadence stamps numeric epoch ms', () => {
     expect(SweepStateSchema.safeParse({ updatedAt: 1, fullScanLastRunAt: '1' }).success).toBe(false);
-    expect(SweepStateSchema.safeParse({ updatedAt: 1, reaperCursorPath: 12 }).success).toBe(false);
+  });
+
+  it('holds the rows a pass deferred, each once, at most SWEEP_STATE_MAX_DEFERRED of them', () => {
+    const row = (n: number) => ({ key: `asset-${n}`, value: 1_700_000_000_000 - n, nextAttemptAt: 1, attemptCount: 1 });
+    const full = Array.from({ length: SWEEP_STATE_MAX_DEFERRED }, (_, i) => row(i + 1));
+    expect(SweepStateSchema.safeParse({ deferred: full, updatedAt: 1 }).success).toBe(true);
+    expect(SweepStateSchema.safeParse({ deferred: [...full, row(0)], updatedAt: 1 }).success).toBe(false);
+    expect(SweepStateSchema.safeParse({ deferred: [row(1), row(1)], updatedAt: 1 }).success).toBe(false);
+    expect(SweepStateSchema.safeParse({ deferred: [{ ...row(1), attemptCount: 0 }], updatedAt: 1 }).success).toBe(false);
+    expect(SweepStateSchema.safeParse({ deferred: [{ ...row(1), key: '' }], updatedAt: 1 }).success).toBe(false);
+  });
+
+  it('names every pass that keeps a persisted position, the safety backstops and reconcilers included', () => {
+    for (const name of [
+      'reconcilePublicUsers',
+      'hallMediaReaperAssetPhase',
+      'quarantineEnqueueBackstop',
+      'ncmecEnqueueBackstop',
+      'staleSafetyCaseAlertSweep',
+      'csamStrandedProcessing',
+      'nciiStrandedProcessing',
+    ]) {
+      expect(SweepStateNameSchema.safeParse(name).success, name).toBe(true);
+    }
   });
 
   it('binds the registry path and the path builder to the same location', () => {
@@ -274,40 +236,63 @@ describe('SweepStateSchema', () => {
       `${COLLECTIONS.SWEEP_STATE}/reconcileAccountStatus`,
     );
   });
+
+  it('names each sweep-state doc once, from the one list the path builder is typed on', () => {
+    expect(new Set(SWEEP_STATE_NAMES).size).toBe(SWEEP_STATE_NAMES.length);
+    expect(SweepStateNameSchema.options).toEqual([...SWEEP_STATE_NAMES]);
+    expect(SweepStateNameSchema.safeParse('someOtherSweep').success).toBe(false);
+    // @ts-expect-error a name outside SWEEP_STATE_NAMES is not a sweep-state doc id
+    PATH_BUILDERS.sweepState('someOtherSweep');
+  });
 });
 
-describe('PublicUsersReconcilerCursorSchema', () => {
-  it('accepts the first-write cursor, where the empty string means start from the beginning', () => {
+describe('SweepRollingCursorSchema', () => {
+  const lapStartedAt = 1_700_000_000_000;
+
+  it('keeps a Storage listing lap resuming after the last object name it moved past', () => {
+    const cursor = { state: 'inLap' as const, afterKey: 'rejected/u1/pm-9', lapStartedAt };
+    expect(SweepRollingCursorSchema.parse(cursor)).toEqual(cursor);
+    expect(SweepStateSchema.parse({ rollingCursor: cursor, updatedAt: lapStartedAt + 1 })).toEqual({
+      rollingCursor: cursor,
+      updatedAt: lapStartedAt + 1,
+    });
+  });
+
+  it("keeps a Firestore query lap resuming after the last row's ordered value and document id", () => {
+    const cursor = { state: 'inLap' as const, afterKey: 'asset-201', afterValue: 1_699_000_000_000, lapStartedAt };
+    expect(SweepRollingCursorSchema.parse(cursor)).toEqual(cursor);
+  });
+
+  it('never stores an ordered value without the key that breaks ties on it', () => {
     expect(
-      PublicUsersReconcilerCursorSchema.safeParse({ profileIdCursor: '', updatedAt: 1 }).success,
-    ).toBe(true);
+      SweepRollingCursorSchema.safeParse({ state: 'inLap', afterValue: 1_699_000_000_000, lapStartedAt }).success,
+    ).toBe(false);
   });
 
-  it('accepts a mid-sweep cursor naming the last cleared userProfiles document id', () => {
+  it('keeps an exhausted source as done, so the pass that exhausted it does not start page one again', () => {
+    const done = { state: 'done' as const, lapStartedAt, lapCompletedAt: lapStartedAt + 60_000 };
+    expect(SweepRollingCursorSchema.parse(done)).toEqual(done);
+    expect(SweepRollingCursorSchema.safeParse({ ...done, afterKey: 'rejected/u1/pm-9' }).success).toBe(false);
+  });
+
+  it('rejects a lap that completed before it started', () => {
     expect(
-      PublicUsersReconcilerCursorSchema.safeParse({
-        profileIdCursor: 'user-abc',
-        updatedAt: 1_700_000_000_000,
-      }).success,
-    ).toBe(true);
+      SweepRollingCursorSchema.safeParse({ state: 'done', lapStartedAt, lapCompletedAt: lapStartedAt - 1 }).success,
+    ).toBe(false);
   });
 
-  it('requires updatedAt — a cursor doc with no stamp cannot evidence a pass', () => {
-    expect(PublicUsersReconcilerCursorSchema.safeParse({ profileIdCursor: 'user-abc' }).success).toBe(
-      false,
-    );
+  it('never stores an in-lap cursor without the key it resumes after', () => {
+    expect(SweepRollingCursorSchema.safeParse({ state: 'inLap', lapStartedAt }).success).toBe(false);
+    expect(SweepRollingCursorSchema.safeParse({ state: 'inLap', afterKey: '', lapStartedAt }).success).toBe(false);
   });
 
-  it('binds the registry path and the path builder to the same location', () => {
-    expect(COLLECTION_SCHEMAS['_serverData/publicUsersReconcilerCursor']).toBe(
-      PublicUsersReconcilerCursorSchema,
-    );
-    expect(PATH_BUILDERS.publicUsersReconcilerCursor()).toEqual([
-      COLLECTIONS.SERVER_DATA,
-      SPECIAL_DOCS.PUBLIC_USERS_RECONCILER_CURSOR,
-    ]);
-    expect(PATH_BUILDERS.publicUsersReconcilerCursor().join('/')).toBe(
-      '_serverData/publicUsersReconcilerCursor',
-    );
+  it('stores its times as epoch milliseconds', () => {
+    expect(
+      SweepRollingCursorSchema.safeParse({ state: 'inLap', afterKey: 'k', lapStartedAt: '1700000000000' }).success,
+    ).toBe(false);
+  });
+
+  it('leaves a sweep-state doc without a cursor valid — no lap has run yet', () => {
+    expect(SweepStateSchema.parse({ updatedAt: lapStartedAt }).rollingCursor).toBeUndefined();
   });
 });

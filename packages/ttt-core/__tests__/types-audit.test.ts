@@ -192,3 +192,12 @@ describe('audit type catalog', () => {
     expectTypeOf(sample).toEqualTypeOf<TTTAuditEvent>();
   });
 });
+
+describe('sign-up age check', () => {
+  it('has no audit event type of its own — the account-registered event records the bracket', () => {
+    // @ts-expect-error — the birthday screen writes no audit record, so no such event type exists.
+    const ageAttested: AuditEventType = 'user.ageAttested';
+    const registered: AuditEventType = 'user.accountRegistered';
+    expect([ageAttested, registered]).toHaveLength(2);
+  });
+});

@@ -5,6 +5,7 @@ import { ensureFfmpegAvailable, runFfmpeg } from "./ffmpeg.js";
 import { probeVideo } from "./probe.js";
 import { safeOutputPathFor } from "../utils/safe-path.js";
 import type { ProcessMediaOptions } from "../types.js";
+import { TIMED_MEDIA_MAIN_OUTPUT_KEY, VIDEO_POSTER_OUTPUT_KEY } from "@ttt-productions/media-schemas";
 
 function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();
@@ -177,8 +178,8 @@ export async function processVideo(
       }
     }
 
-    const videoOut = outputPathFor(ctx.outputBasePath, "main", "mp4");
-    const posterOut = outputPathFor(ctx.outputBasePath, "poster", "jpg");
+    const videoOut = outputPathFor(ctx.outputBasePath, TIMED_MEDIA_MAIN_OUTPUT_KEY, "mp4");
+    const posterOut = outputPathFor(ctx.outputBasePath, VIDEO_POSTER_OUTPUT_KEY, "jpg");
 
     tempFiles.push(videoOut, posterOut);
 
@@ -272,7 +273,7 @@ export async function processVideo(
 
     const outputs: MediaOutput[] = [
       {
-        key: "main",
+        key: TIMED_MEDIA_MAIN_OUTPUT_KEY,
         url: `file://${videoOut}`,
         path: videoOut,
         mime: mimeFromExt("mp4"),
@@ -289,7 +290,7 @@ export async function processVideo(
 
     if (psSize > 0) {
       outputs.push({
-        key: "poster",
+        key: VIDEO_POSTER_OUTPUT_KEY,
         url: `file://${posterOut}`,
         path: posterOut,
         mime: "image/jpeg",

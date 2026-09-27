@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { MentionSchema } from '../media/atoms.js';
 import { FollowableTargetTypeSchema } from '../schemas/social.js';
 import { ContentMediaKindSchema } from './media-assets.js';
+import { ModerationHiddenBySchema } from './moderation.js';
 import { CraftSkillKindSchema, CraftSkillSourceReferenceSchema } from './user.js';
 import { HallSubItemTypeSchema } from './content.js';
 import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
@@ -79,6 +80,7 @@ export const SquareStreetzPostSchema = z.object({
   // media finalize under pattern C), so they were dead. Durable owner:
   // ttt-prod docs/design/streetz-social-feed.md.
   hidden: z.boolean(),
+  hiddenBy: ModerationHiddenBySchema.optional(),
 }).superRefine((val, ctx) => {
   if (val.mediaAssetId !== undefined && val.mediaType === undefined) {
     ctx.addIssue({

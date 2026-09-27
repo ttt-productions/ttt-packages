@@ -68,6 +68,17 @@ export const NciiPolicyConfigV1Schema = z.object({
 }).strict();
 export type NciiPolicyConfigV1 = z.infer<typeof NciiPolicyConfigV1Schema>;
 
+/**
+ * The largest single evidence file a take-it-down request may attach: the evidence-scan trigger
+ * downloads the whole object into a ~512 MiB Function before scanning, so an allowed file must fit
+ * in memory. storage.rules restates this per-file cap because rules cannot import TypeScript; the
+ * app's storage-rules cap test fails on a mismatch.
+ */
+export const NCII_EVIDENCE_MAX_FILE_BYTES = 100 * 1024 * 1024;
+
+/** The most evidence files one take-it-down request may attach. */
+export const NCII_EVIDENCE_MAX_FILES_PER_REQUEST = 3;
+
 /** The frozen launch default for `_serverData/nciiPolicy`. */
 export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
   policyVersion: 'ncii.2026-06-23.v1',
@@ -75,13 +86,9 @@ export const DEFAULT_NCII_POLICY_CONFIG_V1: NciiPolicyConfigV1 = {
   evidenceRetentionDays: 60,
   blockedHashRetentionPolicy: 'indefiniteUntilReversed',
   allowedEvidenceMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'],
-  // [H-01/R10] 100MB per file (was 500MB): the evidence-scan trigger downloads the whole object into a
-  // ~512MiB Function before scanning, so an allowed file must fit in memory. Total = 3×100MB = 300MB.
-  // Count stays 3. The storage.rules `nciiEvidence` per-file cap mirrors this 100MB (rules can't read
-  // this config).
-  maxEvidenceFileBytes: 104857600,
-  maxEvidenceFilesPerRequest: 3,
-  maxEvidenceTotalBytesPerRequest: 314572800,
+  maxEvidenceFileBytes: NCII_EVIDENCE_MAX_FILE_BYTES,
+  maxEvidenceFilesPerRequest: NCII_EVIDENCE_MAX_FILES_PER_REQUEST,
+  maxEvidenceTotalBytesPerRequest: NCII_EVIDENCE_MAX_FILES_PER_REQUEST * NCII_EVIDENCE_MAX_FILE_BYTES,
   uploadReservationMinutes: 30,
   abandonedUploadCleanupHours: 24,
   tempHoldInitialHours: 72,

@@ -43,6 +43,16 @@ and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
   the origin that validates the secret+host pair and mints the verified client
   IP import the SAME strings. Names only — each tree keeps its own trust logic.
 
+- **Bounded body read** — `readBoundedBody(source, { maxBytes })`: the one pre-authentication
+  body read for an endpoint whose signature covers the body (ARCH-005). A declared
+  `Content-Length` over `maxBytes` is refused without reading; otherwise the stream is read with a
+  running byte count and cancelled the moment it passes `maxBytes`, so an absent or understated
+  `Content-Length` buys nothing. It answers `{ ok: true, text }` — the UTF-8 text `request.text()`
+  gives, i.e. what the signed body hash covers — or `{ ok: false, reason: 'too-large', maxBytes }`,
+  which the endpoint answers (e.g. 413) before hashing, verifying, or parsing anything. The source
+  is structural (headers + a readable byte-stream body), so a Workers or Node `Request` passes as is.
+  Each endpoint's budget is declared by the package that owns that endpoint's contract, never here.
+
 ## Boundary
 
 Deliberately **domain-neutral**: it never names chat or media, never imports a

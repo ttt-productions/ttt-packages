@@ -40,6 +40,7 @@ export function FileInput(props: FileInputProps) {
     isLoading = false,
     disabled = false,
     buttonLabel = "Upload File",
+    clearLabel = "Clear selected file",
     className,
     uploadProgress = null,
     variant = "default",
@@ -256,7 +257,7 @@ export function FileInput(props: FileInputProps) {
                 ) : fileValue ? (
                   <span className="flex items-center justify-between w-full">
                     <span className="truncate pr-2">{getSelectedFileLabel(fileValue)}</span>
-                    <Button variant="ghost" size="icon" className="icon-sm hover:bg-destructive/20 shrink-0" onClick={handleClear}>
+                    <Button type="button" variant="ghost" size="icon" className="icon-sm shrink-0" onClick={handleClear} aria-label={clearLabel}>
                       <X className="icon-xs" />
                     </Button>
                   </span>

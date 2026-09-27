@@ -228,8 +228,31 @@ describe('StatusReconcileQueueEntrySchema (backend-only)', () => {
     expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, authEffect: 'status' }).success).toBe(false);
   });
 
-  it('names the two effects once, and the entry type narrows on authEffect', () => {
-    expect(STATUS_RECONCILE_QUEUE_AUTH_EFFECTS).toEqual(['accountStatus', 'publicDocumentsAcceptedClaim']);
+  it('queues a failed admin-role claim write and a failed registered-member claim write, neither with a status', () => {
+    for (const authEffect of ['adminClaims', 'registeredMemberClaim'] as const) {
+      const entry = {
+        uid: 'u1',
+        enqueuedAt: 1,
+        attemptCount: 0,
+        authEffect,
+        reason: 'postCommitAuthEffectFailed' as const,
+      };
+      expect(StatusReconcileQueueEntrySchema.safeParse(entry).success, authEffect).toBe(true);
+      expect(StatusReconcileQueueEntrySchema.safeParse({ ...entry, lastAttemptAt: 5 }).success, authEffect).toBe(true);
+      expect(
+        StatusReconcileQueueEntrySchema.safeParse({ ...entry, targetStatus: 'active' }).success,
+        authEffect,
+      ).toBe(false);
+    }
+  });
+
+  it('names the four effects once, and the entry type narrows on authEffect', () => {
+    expect(STATUS_RECONCILE_QUEUE_AUTH_EFFECTS).toEqual([
+      'accountStatus',
+      'publicDocumentsAcceptedClaim',
+      'adminClaims',
+      'registeredMemberClaim',
+    ]);
     expectTypeOf<StatusReconcileQueueEntry['authEffect']>().toEqualTypeOf<
       StatusReconcileQueueAuthEffect | undefined
     >();

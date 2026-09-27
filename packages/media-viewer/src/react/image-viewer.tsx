@@ -19,6 +19,7 @@ export function ImageViewer(props: ImageViewerProps) {
     preventGestures = true,
     onLoad,
     onError,
+    onVisibilityChange,
     fallback,
     loadTimeoutMs,
   } = props;
@@ -29,11 +30,14 @@ export function ImageViewer(props: ImageViewerProps) {
   const [zoomed, setZoomed] = React.useState(false);
   const imgRef = React.useRef<HTMLImageElement>(null);
 
+  // The viewer's one observer (MEDIA-102): lazy-load gating, and — while an owner listens —
+  // the visibility it reports, which is why it keeps observing after the first sighting then.
   const { ref: inViewRef, inView } = useInView({
-    triggerOnce: !unloadOnExit,
+    triggerOnce: !unloadOnExit && !onVisibilityChange,
     threshold: 0.01,
     rootMargin: "50px",
     skip: priority || !lazy,
+    onChange: (visible) => onVisibilityChange?.(visible),
   });
 
   React.useEffect(() => {
@@ -97,13 +101,23 @@ export function ImageViewer(props: ImageViewerProps) {
     [enableZoom, toggleZoom]
   );
 
-  if (hasError) {
-    return fallback ? <>{fallback}</> : null;
-  }
-
   const wrapperStyle: React.CSSProperties = isCircular
     ? { borderRadius: "50%", overflow: "hidden" }
     : {};
+
+  // The error state stays inside the observed wrapper, so the viewer keeps reporting
+  // its visibility while its owner recovers it.
+  if (hasError) {
+    return fallback ? (
+      <div
+        ref={inViewRef}
+        className={className}
+        style={{ position: "relative", width: "100%", height: "100%", ...wrapperStyle }}
+      >
+        {fallback}
+      </div>
+    ) : null;
+  }
 
   return (
     <div
@@ -138,7 +152,7 @@ export function ImageViewer(props: ImageViewerProps) {
             height: "100%",
             objectFit: "cover",
             opacity: isLoaded ? 1 : 0,
-            transition: "opacity 300ms ease, transform 150ms ease",
+            transition: "opacity var(--motion-slow) var(--motion-ease), transform var(--motion-fast) var(--motion-ease)",
             transform: zoomed ? "scale(1.5)" : "scale(1)",
             cursor: enableZoom ? (zoomed ? "zoom-out" : "zoom-in") : undefined,
             WebkitUserSelect: "none",

@@ -45,6 +45,13 @@ export const PUBLIC_DOCUMENT_LABELS: Record<PublicDocumentId, string> = {
 export const PUBLIC_DOCUMENTS_ACCEPTED_CLAIM = 'docsAccepted';
 
 /**
+ * The custom claim a finished registration carries (value `true`). Set when registration
+ * completes, and re-derived from the account's canonical state by the claim reconciler; the
+ * member-content read rules require it, so a bare login that skipped the age step reads nothing.
+ */
+export const REGISTERED_MEMBER_CLAIM = 'registeredMember';
+
+/**
  * How an acceptance was recorded: at registration, or through the re-acceptance prompt.
  * Both write the same private summary and the same `publicDocuments.accepted` audit event.
  */

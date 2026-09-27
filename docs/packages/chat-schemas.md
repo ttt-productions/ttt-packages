@@ -30,6 +30,15 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
   re-exports them under its historical names (`CLIENT_FRAME` / `SERVER_FRAME`) to
   keep its public surface stable.
 
+- **The chat internal-endpoint body budget** (`src/internal-contract.ts`) —
+  `CHAT_INTERNAL_BODY_MAX_BYTES` (256 KiB), the largest body a signed chat internal endpoint
+  (the Cloud Functions → chat Worker calls) accepts. The chat Worker reads each internal request
+  through edge-protocol-core's `readBoundedBody` with it before verifying the signature
+  (ARCH-005), and the Cloud Functions signer refuses a larger body, so the two sides import one
+  value. It is sized well above the largest bounded internal body (an outbox message at the
+  message-length cap, a history-swap chunk list); the curated word-list publish is the one body
+  with no size cap of its own, and a list that outgrows the budget is refused at publish.
+
 ## Boundary
 
 This package is intentionally tiny and has no internal `@ttt-productions/*` dependencies. It exists so `ttt-core`, Cloud Functions, the chat Worker, and the chat React client can compose chat validation, cleanup, or wire behavior without importing `chat-core`'s React/upload dependency graph.

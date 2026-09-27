@@ -46,6 +46,17 @@ export const PASSWORD_MIN_LENGTH = 7;
  */
 export const PASSWORD_MAX_LENGTH = 64;
 
+// --- Age from a date of birth ---
+
+/** Whole years of age at which a person may hold a (teen) account; younger is refused. */
+export const AGE_TEEN_FLOOR_YEARS = 13;
+
+/** Whole years of age at which an account is adult. */
+export const AGE_ADULT_FLOOR_YEARS = 18;
+
+/** The earliest birth year a date of birth may carry; an earlier year is not a real entry. */
+export const DATE_OF_BIRTH_MIN_YEAR = 1900;
+
 import { ACTIVE_LIMITS } from './app-mode.js';
 
 // --- User Profile Craft Skills ---

@@ -74,10 +74,17 @@ export type ShortLink = z.infer<typeof ShortLinkSchema>;
 /**
  * Which post-commit Auth effect failed and queued the uid:
  * - `accountStatus` — the status claim / `disabled` flag / token revocation after a status change;
- * - `publicDocumentsAcceptedClaim` — the `docsAccepted` claim after a public-document acceptance.
+ * - `publicDocumentsAcceptedClaim` — the `docsAccepted` claim after a public-document acceptance;
+ * - `adminClaims` — the admin-role claims after an admin-roster change;
+ * - `registeredMemberClaim` — the registered-member claim after a registration completed.
  * An entry without `authEffect` predates the field and is an `accountStatus` entry.
  */
-export const STATUS_RECONCILE_QUEUE_AUTH_EFFECTS = ['accountStatus', 'publicDocumentsAcceptedClaim'] as const;
+export const STATUS_RECONCILE_QUEUE_AUTH_EFFECTS = [
+  'accountStatus',
+  'publicDocumentsAcceptedClaim',
+  'adminClaims',
+  'registeredMemberClaim',
+] as const;
 export const StatusReconcileQueueAuthEffectSchema = z.enum(STATUS_RECONCILE_QUEUE_AUTH_EFFECTS);
 export type StatusReconcileQueueAuthEffect = z.infer<typeof StatusReconcileQueueAuthEffectSchema>;
 
@@ -108,9 +115,31 @@ export type StatusReconcileQueuePublicDocumentsAcceptedClaimEntry = z.infer<
   typeof StatusReconcileQueuePublicDocumentsAcceptedClaimEntrySchema
 >;
 
+/** A failed admin-role claim write. Strict: it carries no status. */
+export const StatusReconcileQueueAdminClaimsEntrySchema = z
+  .object({
+    ...statusReconcileQueueEntryBase,
+    authEffect: z.literal('adminClaims' satisfies StatusReconcileQueueAuthEffect),
+  })
+  .strict();
+export type StatusReconcileQueueAdminClaimsEntry = z.infer<typeof StatusReconcileQueueAdminClaimsEntrySchema>;
+
+/** A failed registered-member claim write. Strict: it carries no status. */
+export const StatusReconcileQueueRegisteredMemberClaimEntrySchema = z
+  .object({
+    ...statusReconcileQueueEntryBase,
+    authEffect: z.literal('registeredMemberClaim' satisfies StatusReconcileQueueAuthEffect),
+  })
+  .strict();
+export type StatusReconcileQueueRegisteredMemberClaimEntry = z.infer<
+  typeof StatusReconcileQueueRegisteredMemberClaimEntrySchema
+>;
+
 export const StatusReconcileQueueEntrySchema = z.discriminatedUnion('authEffect', [
   StatusReconcileQueueAccountStatusEntrySchema,
   StatusReconcileQueuePublicDocumentsAcceptedClaimEntrySchema,
+  StatusReconcileQueueAdminClaimsEntrySchema,
+  StatusReconcileQueueRegisteredMemberClaimEntrySchema,
 ]);
 export type StatusReconcileQueueEntry = z.infer<typeof StatusReconcileQueueEntrySchema>;
 

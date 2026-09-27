@@ -17,6 +17,18 @@ The package consumes generic media shapes from `media-schemas`; it does not know
 
 `MediaInput` exposes an additive imperative handle (`MediaInputHandle`) via `ref`: `openSelection()` activates the SAME trigger semantics as a human click — one enabled action runs directly through the canonical selection path (honoring `onBeforeSelect`, validation, and crop), multiple actions open the choice dropdown — and no-ops while `disabled`/`isLoading`. It never touches the hidden input directly, so none of the trigger gates are bypassed. Consumers use it to re-open the picker from an external control (e.g. a chat "Attach again" action).
 
+## Inside a consumer's form
+
+The pickers are rendered inside consumers' forms (e.g. a deferred-upload form shell), and ui-core's
+`Button` passes no `type`, so every `Button` a file-input component renders states `type="button"` (or
+renders through `asChild`): choosing a file, opening Info, clearing the choice, or cancelling an upload
+never submits the surrounding form. `__tests__/button-type-guard.test.ts` fails on an untyped one. The
+icon-only clear button is named by `clearLabel` (default "Clear selected file", like the package's
+other built-in labels, which a consumer may replace), and the record dialog's Video/Audio toggles
+announce the selected kind with `aria-pressed`. No
+secondary control carries a red hover or a red variant — red belongs only to a dialog's confirm
+action (FRONTEND-006); the dialogs' Close/Cancel buttons are `outline`.
+
 ## In-progress feedback
 
 Every async step shows pending for its whole window and ignores a repeat, so no double click can emit — and upload — twice:

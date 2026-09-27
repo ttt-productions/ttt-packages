@@ -7,6 +7,8 @@ vi.mock('../src/utils/upload-store.js', () => ({
   upsertUploadSession: (s: unknown) => upsertUploadSessionMock(s),
 }));
 
+const getDownloadURLMock = vi.hoisted(() => vi.fn(async () => 'https://example.com/test.jpg'));
+
 let lastTask: any = null;
 let lastObservers: {
   progress?: (snap: any) => void;
@@ -34,7 +36,7 @@ vi.mock('firebase/storage', () => ({
     lastTask = task;
     return task;
   }),
-  getDownloadURL: vi.fn(async () => 'https://example.com/test.jpg'),
+  getDownloadURL: getDownloadURLMock,
 }));
 
 import { startResumableUpload, uploadFileResumable } from '../src/storage/upload.js';
@@ -44,6 +46,13 @@ beforeEach(() => {
   lastTask = null;
   lastObservers = {};
 });
+
+/** The error shape the Storage SDK rejects a cancelled upload task with. */
+function storageCanceledError() {
+  return Object.assign(new Error('Firebase Storage: User canceled the upload/download. (storage/canceled)'), {
+    code: 'storage/canceled',
+  });
+}
 
 function makeFile() {
   // Node environment: Blob.type is read-only so we can't assign it.
@@ -123,6 +132,61 @@ describe('startResumableUpload — abort behavior', () => {
     controller.abort();
 
     expect((lastTask.cancel as ReturnType<typeof vi.fn>).mock.calls.length).toBe(callsBefore);
+  });
+
+  it('rejects with the canonical AbortError when the SDK reports storage/canceled after the signal aborted', async () => {
+    const controller = new AbortController();
+    const c = startResumableUpload({ ...makeArgs(), signal: controller.signal });
+    const outcome = c.done.then(
+      () => null,
+      (e: unknown) => e,
+    );
+
+    controller.abort();
+    await lastObservers.error!(storageCanceledError());
+
+    const err = await outcome;
+    expect(err).toBeInstanceOf(DOMException);
+    expect((err as DOMException).name).toBe('AbortError');
+    expect(upsertUploadSessionMock).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'canceled' }));
+  });
+
+  it('treats storage/canceled from the controller cancel() as the canonical cancel', async () => {
+    const c = startResumableUpload(makeArgs());
+    const outcome = c.done.then(
+      () => null,
+      (e: unknown) => e,
+    );
+
+    c.cancel();
+    await lastObservers.error!(storageCanceledError());
+
+    expect(((await outcome) as DOMException).name).toBe('AbortError');
+    expect(upsertUploadSessionMock).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'canceled' }));
+  });
+
+  it('keeps a storage/canceled the upload did not ask for as a real error', async () => {
+    const controller = new AbortController();
+    const c = startResumableUpload({ ...makeArgs(), signal: controller.signal });
+    const outcome = c.done.then(
+      () => null,
+      (e: unknown) => e,
+    );
+    const remote = storageCanceledError();
+
+    await lastObservers.error!(remote);
+
+    expect(await outcome).toBe(remote);
+    expect(upsertUploadSessionMock).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'error' }));
+  });
+
+  it('resolves the path, content type, and size without minting a download URL', async () => {
+    const c = startResumableUpload(makeArgs());
+
+    await lastObservers.complete!();
+
+    await expect(c.done).resolves.toEqual({ fullPath: 'tmp/test.jpg', contentType: 'image/jpeg', size: 1 });
+    expect(getDownloadURLMock).not.toHaveBeenCalled();
   });
 
   it('uploadFileResumable rejects when contentType metadata is missing', async () => {

@@ -20,6 +20,7 @@ export function AudioViewer(props: AudioViewerProps) {
     onLoad,
     onLoadChange,
     onError,
+    onVisibilityChange,
     fallback,
     loadTimeoutMs,
     onEnded,
@@ -34,9 +35,9 @@ export function AudioViewer(props: AudioViewerProps) {
 
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
-  const [hasMetadata, setHasMetadata] = React.useState(false);
   const [shouldLoad, setShouldLoad] = React.useState(priority || !lazy);
   const audioRef = React.useRef<HTMLAudioElement>(null);
+  const loadReportedRef = React.useRef(false);
 
   // Additive playback API — derives from element events (no observer, MEDIA-102).
   const { hasEnded, handlers: playbackHandlers, attachElement } = useMediaPlayback(
@@ -56,11 +57,14 @@ export function AudioViewer(props: AudioViewerProps) {
     [attachElement],
   );
 
+  // The viewer's one observer (MEDIA-102): lazy-load gating, and — while an owner listens —
+  // the visibility it reports, which is why it keeps running after the load starts then.
   const { ref: inViewRef, inView } = useInView({
     triggerOnce: false,
     threshold: 0.01,
-    skip: priority || shouldLoad,
+    skip: priority || (shouldLoad && !onVisibilityChange),
     rootMargin: "100px",
+    onChange: (visible) => onVisibilityChange?.(visible),
   });
 
   React.useEffect(() => {
@@ -85,17 +89,18 @@ export function AudioViewer(props: AudioViewerProps) {
   React.useEffect(() => {
     setHasError(false);
     setIsLoaded(false);
-    setHasMetadata(false);
+    loadReportedRef.current = false;
   }, [url]);
 
-  const handleLoadedData = React.useCallback(() => {
+  // A preload="metadata" element may not fire loadeddata or canplay until play, so the
+  // first of loadedmetadata / loadeddata / canplay makes it usable: the skeleton goes, the
+  // player shows, and onLoad fires once for this load.
+  const reveal = React.useCallback(() => {
     setIsLoaded(true);
+    if (loadReportedRef.current) return;
+    loadReportedRef.current = true;
     onLoad?.();
   }, [onLoad]);
-
-  const handleCanPlay = React.useCallback(() => {
-    setIsLoaded(true);
-  }, []);
 
   const handleError = React.useCallback(() => {
     setHasError(true);
@@ -103,29 +108,30 @@ export function AudioViewer(props: AudioViewerProps) {
     onError?.();
   }, [onError]);
 
-  // Watchdog settles on METADATA — preload="metadata" audio may not fire
-  // loadeddata/canplay until play, and must not false-positive.
   const handleLoadedMetadata = React.useCallback(
     (e: React.SyntheticEvent<HTMLAudioElement>) => {
-      setHasMetadata(true);
+      reveal();
       playbackHandlers.onLoadedMetadata(e);
     },
-    [playbackHandlers]
+    [reveal, playbackHandlers]
   );
 
-  useLoadWatchdog(
-    shouldLoad && !isLoaded && !hasMetadata && !hasError,
-    loadTimeoutMs,
-    handleError
-  );
+  useLoadWatchdog(shouldLoad && !isLoaded && !hasError, loadTimeoutMs, handleError);
 
+  // The error state stays inside the observed wrapper, so the viewer keeps reporting
+  // its visibility while its owner recovers it.
   if (hasError) {
-    if (fallback) return <>{fallback}</>;
     return (
-      <div className={className}>
-        <div className="mv-audio-error">
-          <p>Failed to load audio</p>
-        </div>
+      <div
+        ref={inViewRef}
+        className={className}
+        style={fallback ? { position: "relative", width: "100%", height: "100%" } : undefined}
+      >
+        {fallback ?? (
+          <div className="mv-audio-error">
+            <p>Failed to load audio</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -151,8 +157,8 @@ export function AudioViewer(props: AudioViewerProps) {
             autoPlay={autoPlay}
             loop={loop}
             preload={preload}
-            onLoadedData={handleLoadedData}
-            onCanPlay={handleCanPlay}
+            onLoadedData={reveal}
+            onCanPlay={reveal}
             onError={handleError}
             onLoadedMetadata={handleLoadedMetadata}
             onTimeUpdate={playbackHandlers.onTimeUpdate}
@@ -163,7 +169,7 @@ export function AudioViewer(props: AudioViewerProps) {
             style={{
               width: "100%",
               opacity: isLoaded ? 1 : 0,
-              transition: "opacity 300ms ease",
+              transition: "opacity var(--motion-slow) var(--motion-ease)",
             }}
           />
           <AudioPlayerChrome

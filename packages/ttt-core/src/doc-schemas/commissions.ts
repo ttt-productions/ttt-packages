@@ -5,6 +5,7 @@
 import { z } from 'zod';
 import { CommissionProposalStatusSchema } from '../schemas/commissions.js';
 import { ContentMediaKindSchema } from './media-assets.js';
+import { ModerationHiddenBySchema } from './moderation.js';
 
 const userRefSchema = z.object({ uid: z.string() });
 
@@ -47,6 +48,7 @@ export const FullCommissionListingSchema = z.object({
   // Admin moderation hide (reversible). When true the listing is suppressed from
   // the commission board; restored by clearing it.
   hidden: z.boolean(),
+  hiddenBy: ModerationHiddenBySchema.optional(),
 });
 export type FullCommissionListing = z.infer<typeof FullCommissionListingSchema>;
 
@@ -68,6 +70,7 @@ export const CommissionProposalSchema = z.object({
   // true the proposal's TEXT is suppressed from the board (tombstoned for ordinary viewers); restored
   // by clearing it. Optional so existing/seeded proposals don't need backfilling pre-launch.
   hidden: z.boolean().optional(),
+  hiddenBy: ModerationHiddenBySchema.optional(),
 });
 export type CommissionProposal = z.infer<typeof CommissionProposalSchema>;
 
@@ -137,6 +140,7 @@ export const AuditionSchema = z.object({
   // Admin moderation hide (reversible). When true the audition is suppressed from
   // the audition board; restored by clearing it.
   hidden: z.boolean(),
+  hiddenBy: ModerationHiddenBySchema.optional(),
 });
 export type Audition = z.infer<typeof AuditionSchema>;
 
@@ -159,6 +163,7 @@ export const AuditionEntrySchema = z.object({
   // Admin moderation hide (reversible). When true the entry is suppressed from the
   // audition's entry list; restored by clearing it.
   hidden: z.boolean(),
+  hiddenBy: ModerationHiddenBySchema.optional(),
 });
 export type AuditionEntry = z.infer<typeof AuditionEntrySchema>;
 

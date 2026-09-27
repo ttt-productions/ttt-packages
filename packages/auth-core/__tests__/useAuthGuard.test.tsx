@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
 import { useAuthGuard, type AuthGuardConfig } from '../src/react/useAuthGuard.js';
@@ -130,5 +130,102 @@ describe('useAuthGuard', () => {
     renderHook(() => useAuthGuard(makeConfig({ isAuthenticated: true, replace })));
     expect(replace).toHaveBeenCalledWith('/landing');
     expect(localStorage.getItem(KEY)).toBeNull();
+  });
+
+  describe('a session end saves no redirect', () => {
+    type Props = { isAuthenticated: boolean; pathname: string; replace: () => void };
+
+    function renderGuard(initial: Props) {
+      return renderHook((props: Props) => useAuthGuard(makeConfig(props)), { initialProps: initial });
+    }
+
+    it('signing out on a protected route saves nothing, clears a saved path, and still goes to login', () => {
+      const replace = vi.fn();
+      const { rerender } = renderGuard({ isAuthenticated: true, pathname: '/profile', replace });
+      localStorage.setItem(KEY, '/admin/queue');
+
+      rerender({ isAuthenticated: false, pathname: '/profile', replace });
+
+      expect(localStorage.getItem(KEY)).toBeNull();
+      expect(replace).toHaveBeenLastCalledWith('/login');
+    });
+
+    it('a re-run on the same pathname before the login navigation commits still saves nothing', () => {
+      const replace = vi.fn();
+      const { rerender } = renderGuard({ isAuthenticated: true, pathname: '/profile', replace });
+      rerender({ isAuthenticated: false, pathname: '/profile', replace });
+
+      const nextReplace = vi.fn();
+      rerender({ isAuthenticated: false, pathname: '/profile', replace: nextReplace });
+
+      expect(localStorage.getItem(KEY)).toBeNull();
+      expect(nextReplace).toHaveBeenCalledWith('/login');
+    });
+
+    it('the next account to sign in lands on the default route, not the previous account page', () => {
+      const replace = vi.fn();
+      const { rerender } = renderGuard({ isAuthenticated: true, pathname: '/profile', replace });
+      rerender({ isAuthenticated: false, pathname: '/profile', replace });
+      rerender({ isAuthenticated: false, pathname: '/login', replace });
+
+      rerender({ isAuthenticated: true, pathname: '/login', replace });
+
+      expect(replace).toHaveBeenLastCalledWith('/landing');
+    });
+
+    it('a visitor who later opens a protected link after the session ended still gets it saved', () => {
+      const replace = vi.fn();
+      const { rerender } = renderGuard({ isAuthenticated: true, pathname: '/profile', replace });
+      rerender({ isAuthenticated: false, pathname: '/profile', replace });
+      rerender({ isAuthenticated: false, pathname: '/login', replace });
+
+      rerender({ isAuthenticated: false, pathname: '/works/42', replace });
+
+      expect(localStorage.getItem(KEY)).toBe('/works/42');
+    });
+  });
+
+  describe('blocked storage', () => {
+    function blockStorage() {
+      const blocked = () => {
+        throw new DOMException('The operation is insecure.', 'SecurityError');
+      };
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(blocked);
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(blocked);
+      vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(blocked);
+    }
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('a visitor deep link survives to sign-in through the page-life copy without throwing', () => {
+      blockStorage();
+      const replace = vi.fn();
+      const { rerender } = renderHook(
+        (props: { isAuthenticated: boolean; pathname: string }) => useAuthGuard(makeConfig({ ...props, replace })),
+        { initialProps: { isAuthenticated: false, pathname: '/works/7' } },
+      );
+      expect(replace).toHaveBeenLastCalledWith('/login');
+
+      rerender({ isAuthenticated: false, pathname: '/login' });
+      rerender({ isAuthenticated: true, pathname: '/login' });
+
+      expect(replace).toHaveBeenLastCalledWith('/works/7');
+    });
+
+    it('a session end on a blocked store neither throws nor keeps a page-life copy', () => {
+      blockStorage();
+      const replace = vi.fn();
+      const { rerender } = renderHook(
+        (props: { isAuthenticated: boolean; pathname: string }) => useAuthGuard(makeConfig({ ...props, replace })),
+        { initialProps: { isAuthenticated: true, pathname: '/profile' } },
+      );
+      rerender({ isAuthenticated: false, pathname: '/profile' });
+      rerender({ isAuthenticated: false, pathname: '/login' });
+      rerender({ isAuthenticated: true, pathname: '/login' });
+
+      expect(replace).toHaveBeenLastCalledWith('/landing');
+    });
   });
 });

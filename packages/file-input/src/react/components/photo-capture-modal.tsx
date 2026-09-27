@@ -151,12 +151,13 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
         </div>
 
         <DialogFooter className="flex-row justify-between gap-2">
-          <Button variant="destructive" onClick={handleClose} disabled={capture.pending} icon={<X className="icon-xs" />}>
+          <Button type="button" variant="outline" onClick={handleClose} disabled={capture.pending} icon={<X className="icon-xs" />}>
             Close
           </Button>
 
           <div className="flex gap-2">
             <Button
+              type="button"
               variant="secondary"
               onClick={() => void flip.run()}
               disabled={!ready || capture.pending}
@@ -167,6 +168,7 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
             </Button>
 
             <Button
+              type="button"
               variant="default"
               onClick={() => void capture.run()}
               disabled={!ready || flip.pending}

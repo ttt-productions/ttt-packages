@@ -157,6 +157,20 @@ describe('RecordDialog', () => {
     );
   }
 
+  it('announces which recording kind is selected', async () => {
+    const user = userEvent.setup();
+    renderDialog({ initialKind: 'audio' });
+    const video = screen.getByRole('button', { name: /^video$/i });
+    const audio = screen.getByRole('button', { name: /^audio$/i });
+    expect(audio).toHaveAttribute('aria-pressed', 'true');
+    expect(video).toHaveAttribute('aria-pressed', 'false');
+
+    await user.click(video);
+
+    expect(video).toHaveAttribute('aria-pressed', 'true');
+    expect(audio).toHaveAttribute('aria-pressed', 'false');
+  });
+
   it('does not emit onRecorded when recording stops (Save gate)', async () => {
     const user = userEvent.setup();
     const { baseElement } = renderDialog();

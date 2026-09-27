@@ -6,7 +6,12 @@
 
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
-import { ModerationEdgeSyncOpSchema, ModerationEdgeSyncStateSchema } from './moderation.js';
+import {
+  ModerationDecisionNumberSchema,
+  ModerationEdgeSyncOpSchema,
+  ModerationEdgeSyncStateSchema,
+  ModerationHiddenBySchema,
+} from './moderation.js';
 import { MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH } from '../constants/business-admin.js';
 import { LegalReviewNoticeReceiptSchema } from './legal-review-notice.js';
 import {
@@ -269,7 +274,7 @@ export const PublishedHallItemSchema = z.object({
   hidden: z.boolean(),
   // Whether the current hide was applied DIRECTly to this item or propagated by a moderation
   // CASCADE from a parent (realm/work). Absent when not hidden. Backend-only-writable.
-  hiddenBy: z.enum(['direct', 'cascade']).optional(),
+  hiddenBy: ModerationHiddenBySchema.optional(),
   // Moderation text-clear remedy (extends the workProject/workRealm placeholder family, per-field):
   // which text fields an admin cleared to a neutral placeholder and now await steward re-entry
   // (e.g. ['title', 'description']). Empty/absent when nothing was cleared. `moderationClearedReason`
@@ -297,7 +302,7 @@ export const PublishedTuneTrackSchema = z.object({
   photoAssetId: z.string().min(1),
   hidden: z.boolean(),
   // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
-  hiddenBy: z.enum(['direct', 'cascade']).optional(),
+  hiddenBy: ModerationHiddenBySchema.optional(),
   // Per-field moderation text-clear remedy (see PublishedHallItemSchema): which text fields were
   // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
   moderationClearedFields: z.array(z.string()).optional(),
@@ -306,6 +311,7 @@ export const PublishedTuneTrackSchema = z.object({
   edgeSyncState: ModerationEdgeSyncStateSchema.nullable().optional(),
   edgeSyncProcessingAt: z.number().optional(),
   edgeSyncOp: ModerationEdgeSyncOpSchema.optional(),
+  edgeSyncDecision: ModerationDecisionNumberSchema.optional(),
   edgeSyncAssetIds: z.array(z.string().min(1)).optional(),
   edgeSyncError: z.string().optional(),
   edgeSyncFailedAt: z.number().optional(),
@@ -323,7 +329,7 @@ export const PublishedChapterSchema = z.object({
   photoAssetId: z.string().min(1),
   hidden: z.boolean(),
   // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
-  hiddenBy: z.enum(['direct', 'cascade']).optional(),
+  hiddenBy: ModerationHiddenBySchema.optional(),
   // Per-field moderation text-clear remedy (see PublishedHallItemSchema): which text fields were
   // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
   moderationClearedFields: z.array(z.string()).optional(),
@@ -332,6 +338,7 @@ export const PublishedChapterSchema = z.object({
   edgeSyncState: ModerationEdgeSyncStateSchema.nullable().optional(),
   edgeSyncProcessingAt: z.number().optional(),
   edgeSyncOp: ModerationEdgeSyncOpSchema.optional(),
+  edgeSyncDecision: ModerationDecisionNumberSchema.optional(),
   edgeSyncAssetIds: z.array(z.string().min(1)).optional(),
   edgeSyncError: z.string().optional(),
   edgeSyncFailedAt: z.number().optional(),
@@ -350,7 +357,7 @@ export const PublishedTelevisionEpisodeSchema = z.object({
   photoAssetId: z.string().min(1),
   hidden: z.boolean(),
   // Direct hide vs cascade-from-parent (see PublishedHallItemSchema). Absent when not hidden.
-  hiddenBy: z.enum(['direct', 'cascade']).optional(),
+  hiddenBy: ModerationHiddenBySchema.optional(),
   // Per-field moderation text-clear remedy (see PublishedHallItemSchema): which text fields were
   // cleared to a neutral placeholder and await steward re-entry, plus the operator's reason.
   moderationClearedFields: z.array(z.string()).optional(),
@@ -359,6 +366,7 @@ export const PublishedTelevisionEpisodeSchema = z.object({
   edgeSyncState: ModerationEdgeSyncStateSchema.nullable().optional(),
   edgeSyncProcessingAt: z.number().optional(),
   edgeSyncOp: ModerationEdgeSyncOpSchema.optional(),
+  edgeSyncDecision: ModerationDecisionNumberSchema.optional(),
   edgeSyncAssetIds: z.array(z.string().min(1)).optional(),
   edgeSyncError: z.string().optional(),
   edgeSyncFailedAt: z.number().optional(),

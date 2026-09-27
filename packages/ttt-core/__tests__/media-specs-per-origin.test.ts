@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { TTT_MEDIA_SPECS } from '../src/media/ttt-media-specs.js';
 import { FileOriginSchema } from '../src/media/file-origin.js';
+import { DEFAULT_NCII_POLICY_CONFIG_V1 } from '../src/doc-schemas/ncii/config.js';
 
 // Per-origin correctness of the TTT media-spec registry. The Record<FileOrigin, …>
 // type already forces one entry per origin at compile time; these runtime checks
@@ -52,4 +53,10 @@ describe('TTT_MEDIA_SPECS per-origin correctness', () => {
       });
     });
   }
+});
+
+describe('the NCII evidence upload cap', () => {
+  it('is the NCII policy per-file cap — one owner, never a second number', () => {
+    expect(TTT_MEDIA_SPECS['ncii-evidence'].maxBytes).toBe(DEFAULT_NCII_POLICY_CONFIG_V1.maxEvidenceFileBytes);
+  });
 });

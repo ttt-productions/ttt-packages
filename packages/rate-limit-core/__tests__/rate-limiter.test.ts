@@ -38,6 +38,38 @@ describe('createRateLimiterFactory', () => {
     expect(MockedRatelimit).toHaveBeenCalledTimes(1);
   });
 
+  it('builds a new limiter when the same prefix arrives with a different max or window', () => {
+    const slidingWindow = vi.mocked((Ratelimit as unknown as { slidingWindow: (...a: unknown[]) => unknown }).slidingWindow);
+    slidingWindow.mockClear();
+    const { getRateLimiter } = createRateLimiterFactory({ getRedis: () => ({} as never) });
+
+    const original = getRateLimiter({ prefix: 'ratelimit:write', maxRequests: 10, window: '1 m' });
+    const tightened = getRateLimiter({ prefix: 'ratelimit:write', maxRequests: 5, window: '1 m' });
+    const rewindowed = getRateLimiter({ prefix: 'ratelimit:write', maxRequests: 5, window: '1 h' });
+
+    expect(tightened).not.toBe(original);
+    expect(rewindowed).not.toBe(tightened);
+    expect(slidingWindow.mock.calls).toEqual([[10, '1 m'], [5, '1 m'], [5, '1 h']]);
+    // Every rebuilt limiter counts in the same Redis namespace.
+    expect(MockedRatelimit.mock.calls.map(([opts]) => (opts as { prefix: string }).prefix)).toEqual([
+      'ratelimit:write',
+      'ratelimit:write',
+      'ratelimit:write',
+    ]);
+  });
+
+  it('keeps one limiter per prefix: returning to an earlier config after a change builds it again', () => {
+    const { getRateLimiter } = createRateLimiterFactory({ getRedis: () => ({} as never) });
+    const relaxed = { prefix: 'ratelimit:write', maxRequests: 10, window: '1 m' };
+
+    getRateLimiter(relaxed);
+    getRateLimiter({ ...relaxed, maxRequests: 5 });
+    const current = getRateLimiter(relaxed);
+
+    expect(MockedRatelimit).toHaveBeenCalledTimes(3);
+    expect(getRateLimiter(relaxed)).toBe(current);
+  });
+
   it('returns { allowed: false, reset } when success=false', async () => {
     const reset = Date.now() + 60_000;
     mockLimit.mockResolvedValueOnce({ success: false, reset });

@@ -6,6 +6,7 @@
 // time field is epoch-ms `number`.
 
 import { z } from 'zod';
+import type { DeliverySkipReason, DeliveryState } from '@ttt-productions/notification-core/server';
 
 /** Native-TTL Timestamp (set only at the resolved-success terminal). */
 const expireAtField = z.unknown().optional();
@@ -19,12 +20,31 @@ export const NotificationDeliveryPayloadSchema = z.object({
   occurrenceAt: z.number(),
 });
 
+/**
+ * A delivery row's state: notification-core's `DeliveryState`, whose ledger writes these rows.
+ * `skipped` is terminal: the recipient was not eligible for a card when the row materialized (an
+ * erased account), so no card was written; a re-run or a replay leaves it.
+ */
+export const NotificationDeliveryStateSchema = z.enum([
+  'queued',
+  'materialized',
+  'skipped',
+  'deadLetter',
+] as const satisfies readonly DeliveryState[]);
+export type NotificationDeliveryState = z.infer<typeof NotificationDeliveryStateSchema>;
+
+/** Why a delivery row was skipped — notification-core's reasons, which write these rows. */
+export const NotificationDeliverySkipReasonSchema = z.enum([
+  'recipientIneligible',
+] as const satisfies readonly DeliverySkipReason[]);
+export type NotificationDeliverySkipReason = z.infer<typeof NotificationDeliverySkipReasonSchema>;
+
 // ── notificationDeliveries/{deliveryId} ─────────────────────────────────────
 // BOTH the recipient ledger AND the occurrence ledger. Shared-admin rows set
 // recipientUid=null (the deliveryId hash uses the literal 'shared').
 export const NotificationDeliverySchema = z.object({
   deliveryId: z.string(),
-  state: z.enum(['queued', 'materialized', 'deadLetter']),
+  state: NotificationDeliveryStateSchema,
   notificationType: z.string(),
   eventId: z.string(),
   recipientUid: z.string().nullable(),
@@ -39,7 +59,19 @@ export const NotificationDeliverySchema = z.object({
   lastError: z.string().nullable(),
   materializedAt: z.number().nullable(),
   deadLetteredAt: z.number().nullable(),
+  // Present exactly on a `skipped` row.
+  skipReason: NotificationDeliverySkipReasonSchema.optional(),
+  skippedAt: z.number().optional(),
   expireAt: expireAtField,
+}).superRefine((row, ctx) => {
+  const skipped = row.state === 'skipped';
+  if (skipped !== (row.skipReason !== undefined) || skipped !== (row.skippedAt !== undefined)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['state'],
+      message: 'skipReason and skippedAt are present exactly on a skipped delivery row.',
+    });
+  }
 });
 export type NotificationDelivery = z.infer<typeof NotificationDeliverySchema>;
 

@@ -14,39 +14,75 @@ import {
 
 // ---------------------------------------------------------------------------
 // Per-asset dedup registry (module-level singleton)
-// Keyed by URL; value is the set of broadcast callbacks registered for that URL.
-// Only the "leader" (first registrant) drives probes; all instances receive
-// state broadcasts.
+// Keyed by URL. Every instance whose element failed for that URL joins; exactly
+// one member — the leader — drives probes, and every member receives the state
+// broadcasts. When the leader leaves (unmount, URL change, successful load) the
+// earliest remaining member is promoted, so a recovery never loses its driver.
 // ---------------------------------------------------------------------------
 
-type BroadcastFn = (state: RecoveryState) => void;
+interface RecoveryMember {
+  /** A state another member broadcast for this URL. */
+  receive: (state: RecoveryState) => void;
+  /** This member became the leader because the previous one left. */
+  promote: () => void;
+}
 
-const activeRecoveries = new Map<string, Set<BroadcastFn>>();
+interface UrlRecovery {
+  members: Set<RecoveryMember>;
+  leader: RecoveryMember | null;
+}
 
-/** Returns true if this is the leader (first registrant for the URL). */
-function registerForUrl(url: string, fn: BroadcastFn): boolean {
-  const existing = activeRecoveries.get(url);
-  if (existing) {
-    existing.add(fn);
-    return false;
+const activeRecoveries = new Map<string, UrlRecovery>();
+
+function joinRecovery(url: string, member: RecoveryMember): void {
+  let entry = activeRecoveries.get(url);
+  if (!entry) {
+    entry = { members: new Set(), leader: null };
+    activeRecoveries.set(url, entry);
   }
-  const s = new Set<BroadcastFn>();
-  s.add(fn);
-  activeRecoveries.set(url, s);
-  return true;
+  entry.members.add(member);
+  if (!entry.leader) entry.leader = member;
 }
 
-function unregisterFromUrl(url: string, fn: BroadcastFn): void {
-  const s = activeRecoveries.get(url);
-  if (!s) return;
-  s.delete(fn);
-  if (s.size === 0) activeRecoveries.delete(url);
+/** Makes `member` the leader (a manual retry takes over the recovery it restarts). */
+function claimRecoveryLead(url: string, member: RecoveryMember): void {
+  joinRecovery(url, member);
+  activeRecoveries.get(url)!.leader = member;
 }
 
-function broadcastForUrl(url: string, state: RecoveryState): void {
-  const s = activeRecoveries.get(url);
-  if (!s) return;
-  for (const fn of s) fn(state);
+function leaveRecovery(url: string, member: RecoveryMember): void {
+  const entry = activeRecoveries.get(url);
+  if (!entry || !entry.members.delete(member)) return;
+  if (entry.members.size === 0) {
+    activeRecoveries.delete(url);
+    return;
+  }
+  if (entry.leader === member) {
+    const next = entry.members.values().next().value as RecoveryMember;
+    entry.leader = next;
+    next.promote();
+  }
+}
+
+function isRecoveryLeader(url: string, member: RecoveryMember): boolean {
+  return activeRecoveries.get(url)?.leader === member;
+}
+
+function broadcastForUrl(url: string, state: RecoveryState, from: RecoveryMember): void {
+  const entry = activeRecoveries.get(url);
+  if (!entry) return;
+  for (const member of entry.members) {
+    if (member !== from) member.receive(state);
+  }
+}
+
+/** Phases in which a failed element is still being recovered (not settled, not waiting on the user). */
+function isRecoveringPhase(state: RecoveryState): boolean {
+  return (
+    state.phase !== "hard-unavailable" &&
+    state.phase !== "max-wait-fallback" &&
+    state.phase !== "loaded"
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +95,13 @@ export interface UseMediaRecoveryOptions {
 
   /** Injected diagnostic adapter from the app. */
   adapter?: MediaDiagnosticAdapter;
+
+  /**
+   * Whether the viewer's own element is on screen, from the viewer's one
+   * IntersectionObserver (MEDIA-102). A scheduled retry waits while it is false.
+   * Omitted = visible (a viewer that does not observe itself).
+   */
+  isElementVisible?: boolean;
 
   /**
    * Optional app hint about the server-side lifecycle of the asset.
@@ -108,24 +151,18 @@ function isDocumentVisible(): boolean {
 export function useMediaRecovery({
   url,
   adapter,
+  isElementVisible = true,
   statusHint,
   onRemount,
 }: UseMediaRecoveryOptions): UseMediaRecoveryResult {
   const [recoveryState, setRecoveryState] = React.useState<RecoveryState>({
     phase: "idle",
   });
-
-  // Element viewport visibility
-  const [isElementVisible, setIsElementVisible] = React.useState(true);
+  const recoveryStateRef = React.useRef(recoveryState);
+  recoveryStateRef.current = recoveryState;
 
   // Document visibility
   const [isDocVisible, setIsDocVisible] = React.useState(isDocumentVisible());
-
-  // Stable ref for the registered broadcast function — stays constant for the
-  // lifetime of this hook instance so unregister always matches the register.
-  const broadcastFnRef = React.useRef<BroadcastFn>((state) =>
-    setRecoveryState(state)
-  );
 
   // Stable refs for mutable values used in closures
   const adapterRef = React.useRef<MediaDiagnosticAdapter | undefined>(adapter);
@@ -142,10 +179,36 @@ export function useMediaRecovery({
   const firstFailureAtRef = React.useRef<number | null>(null);
   const authRefreshedRef = React.useRef(false);
   const attemptRef = React.useRef(0);
-  const isLeaderRef = React.useRef(false);
   const isRegisteredRef = React.useRef(false);
+  // True from this instance's element failing until it loads: a failed element
+  // that is not the leader waits on the shared recovery.
+  const hasFailedRef = React.useRef(false);
 
   const stableUrl = url ?? null;
+
+  // Kept current each render so the registry member (created once) acts on it.
+  const runRecoveryRef = React.useRef<(attempt: number) => Promise<void>>(async () => {});
+  const remountForSharedRecoveryRef = React.useRef<() => void>(() => {});
+
+  // This instance's membership in the per-URL registry. Created once, so a
+  // leave always matches its join; its methods read the refs above.
+  const [member] = React.useState<RecoveryMember>(() => ({
+    receive: (state) => {
+      recoveryStateRef.current = state;
+      setRecoveryState(state);
+      // The shared recovery reports the asset loadable again (another member
+      // loaded it, or restarted it by hand): a failed element retries now.
+      if ((state.phase === "loaded" || state.phase === "loading") && hasFailedRef.current) {
+        remountForSharedRecoveryRef.current();
+      }
+    },
+    promote: () => {
+      if (!hasFailedRef.current || !isRecoveringPhase(recoveryStateRef.current)) return;
+      const attempt = attemptRef.current;
+      attemptRef.current += 1;
+      void runRecoveryRef.current(attempt);
+    },
+  }));
 
   // -------------------------------------------------------------------------
   // Document visibility
@@ -155,22 +218,6 @@ export function useMediaRecovery({
     const handler = () => setIsDocVisible(document.visibilityState !== "hidden");
     document.addEventListener("visibilitychange", handler);
     return () => document.removeEventListener("visibilitychange", handler);
-  }, []);
-
-  // -------------------------------------------------------------------------
-  // IntersectionObserver for element visibility (container-agnostic)
-  // Uses the mounted DOM node of the component; we observe document.body
-  // as a fallback for tests that don't wire a ref.
-  // -------------------------------------------------------------------------
-  React.useEffect(() => {
-    if (typeof IntersectionObserver === "undefined") return;
-    const target = document.body;
-    const io = new IntersectionObserver(
-      ([e]) => setIsElementVisible(e?.isIntersecting ?? true),
-      { threshold: 0.01 }
-    );
-    io.observe(target);
-    return () => io.disconnect();
   }, []);
 
   // -------------------------------------------------------------------------
@@ -185,26 +232,22 @@ export function useMediaRecovery({
     firstFailureAtRef.current = null;
     authRefreshedRef.current = false;
     attemptRef.current = 0;
+    hasFailedRef.current = false;
 
     setRecoveryState({ phase: "idle" });
 
-    // broadcastFnRef.current is a stable ref (created once, never reassigned),
-    // so capture it for the cleanup closure rather than reading the ref there
-    // (react-hooks/exhaustive-deps flags ref reads in cleanup).
-    const broadcastFn = broadcastFnRef.current;
     return () => {
-      // Unregister from dedup on unmount or URL change
+      // Leave the dedup registry on unmount or URL change; a follower takes the lead.
       if (stableUrl && isRegisteredRef.current) {
-        unregisterFromUrl(stableUrl, broadcastFn);
         isRegisteredRef.current = false;
-        isLeaderRef.current = false;
+        leaveRecovery(stableUrl, member);
       }
       if (retryTimerRef.current !== null) {
         clearTimeout(retryTimerRef.current);
         retryTimerRef.current = null;
       }
     };
-  }, [stableUrl]);
+  }, [stableUrl, member]);
 
   // -------------------------------------------------------------------------
   // Resume paused retries when visibility restores
@@ -235,10 +278,10 @@ export function useMediaRecovery({
     const timer = setTimeout(() => {
       const fallbackState: RecoveryState = { phase: "max-wait-fallback" };
       setRecoveryState(fallbackState);
-      if (stableUrl) broadcastForUrl(stableUrl, fallbackState);
+      if (stableUrl) broadcastForUrl(stableUrl, fallbackState, member);
     }, PHASE_MAX_WAIT_MS);
     return () => clearTimeout(timer);
-  }, [recoveryState.phase, stableUrl]);
+  }, [recoveryState.phase, stableUrl, member]);
 
   // -------------------------------------------------------------------------
   // Visibility snapshot ref (kept current so timer callbacks read fresh values)
@@ -272,7 +315,7 @@ export function useMediaRecovery({
       if (diagnosis.kind === "hard") {
         const hardState: RecoveryState = { phase: "hard-unavailable" };
         setRecoveryState(hardState);
-        broadcastForUrl(stableUrl, hardState);
+        broadcastForUrl(stableUrl, hardState, member);
         return;
       }
 
@@ -281,7 +324,7 @@ export function useMediaRecovery({
           authRefreshedRef.current = true;
           const authState: RecoveryState = { phase: "auth-retry" };
           setRecoveryState(authState);
-          broadcastForUrl(stableUrl, authState);
+          broadcastForUrl(stableUrl, authState, member);
 
           try {
             if (hint !== "failed" && hint !== "rejected") {
@@ -301,7 +344,7 @@ export function useMediaRecovery({
           reason: "auth",
         };
         setRecoveryState(hardAuthState);
-        broadcastForUrl(stableUrl, hardAuthState);
+        broadcastForUrl(stableUrl, hardAuthState, member);
         return;
       }
 
@@ -315,7 +358,7 @@ export function useMediaRecovery({
       ) {
         const fallbackState: RecoveryState = { phase: "max-wait-fallback" };
         setRecoveryState(fallbackState);
-        broadcastForUrl(stableUrl, fallbackState);
+        broadcastForUrl(stableUrl, fallbackState, member);
         return;
       }
 
@@ -325,7 +368,7 @@ export function useMediaRecovery({
         nextRetryMs: nextDelay,
       };
       setRecoveryState(retryState);
-      broadcastForUrl(stableUrl, retryState);
+      broadcastForUrl(stableUrl, retryState, member);
 
       // Schedule remount — cancel if hidden at fire time
       retryTimerRef.current = setTimeout(() => {
@@ -338,8 +381,16 @@ export function useMediaRecovery({
         onRemountRef.current?.();
       }, nextDelay);
     },
-    [stableUrl]
+    [stableUrl, member]
   );
+  runRecoveryRef.current = runRecovery;
+  remountForSharedRecoveryRef.current = () => {
+    if (retryTimerRef.current !== null) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    onRemountRef.current?.();
+  };
 
   // -------------------------------------------------------------------------
   // Public: onMediaError
@@ -353,7 +404,7 @@ export function useMediaRecovery({
     if (hint === "failed" || hint === "rejected") {
       const s: RecoveryState = { phase: "hard-unavailable", reason: hint };
       setRecoveryState(s);
-      broadcastForUrl(stableUrl, s);
+      broadcastForUrl(stableUrl, s, member);
       return;
     }
 
@@ -361,13 +412,13 @@ export function useMediaRecovery({
     if (hint === "processing") {
       const s: RecoveryState = { phase: "processing" };
       setRecoveryState(s);
-      broadcastForUrl(stableUrl, s);
+      broadcastForUrl(stableUrl, s, member);
       return;
     }
     if (hint === "finalizing") {
       const s: RecoveryState = { phase: "finalizing" };
       setRecoveryState(s);
-      broadcastForUrl(stableUrl, s);
+      broadcastForUrl(stableUrl, s, member);
       return;
     }
 
@@ -378,20 +429,21 @@ export function useMediaRecovery({
 
     const attempt = attemptRef.current;
     attemptRef.current += 1;
+    hasFailedRef.current = true;
 
     // Dedup registration
     if (!isRegisteredRef.current) {
-      isLeaderRef.current = registerForUrl(stableUrl, broadcastFnRef.current);
+      joinRecovery(stableUrl, member);
       isRegisteredRef.current = true;
     }
 
     // Only the leader drives recovery probes
-    if (!isLeaderRef.current) {
+    if (!isRecoveryLeader(stableUrl, member)) {
       return;
     }
 
     void runRecovery(attempt);
-  }, [stableUrl, runRecovery]);
+  }, [stableUrl, runRecovery, member]);
 
   // -------------------------------------------------------------------------
   // Public: onMediaLoad
@@ -401,19 +453,23 @@ export function useMediaRecovery({
       clearTimeout(retryTimerRef.current);
       retryTimerRef.current = null;
     }
-    if (stableUrl && isRegisteredRef.current) {
-      unregisterFromUrl(stableUrl, broadcastFnRef.current);
-      isRegisteredRef.current = false;
-      isLeaderRef.current = false;
-    }
+    hasFailedRef.current = false;
     firstFailureAtRef.current = null;
     authRefreshedRef.current = false;
     attemptRef.current = 0;
 
     const loadedState: RecoveryState = { phase: "loaded" };
     setRecoveryState(loadedState);
-    if (stableUrl) broadcastForUrl(stableUrl, loadedState);
-  }, [stableUrl]);
+    if (stableUrl) {
+      // Tell the members first (a failed one retries now), then leave; a
+      // promoted member whose state is now `loaded` does not probe.
+      broadcastForUrl(stableUrl, loadedState, member);
+      if (isRegisteredRef.current) {
+        isRegisteredRef.current = false;
+        leaveRecovery(stableUrl, member);
+      }
+    }
+  }, [stableUrl, member]);
 
   // -------------------------------------------------------------------------
   // Public: manualRetry
@@ -431,19 +487,15 @@ export function useMediaRecovery({
     authRefreshedRef.current = false;
     attemptRef.current = 0;
 
-    // Re-establish as leader
-    if (isRegisteredRef.current) {
-      unregisterFromUrl(stableUrl, broadcastFnRef.current);
-      isRegisteredRef.current = false;
-    }
-    isLeaderRef.current = registerForUrl(stableUrl, broadcastFnRef.current);
+    // The instance restarting the recovery leads it.
+    claimRecoveryLead(stableUrl, member);
     isRegisteredRef.current = true;
 
     const loadingState: RecoveryState = { phase: "loading" };
     setRecoveryState(loadingState);
-    broadcastForUrl(stableUrl, loadingState);
+    broadcastForUrl(stableUrl, loadingState, member);
     onRemountRef.current?.();
-  }, [stableUrl]);
+  }, [stableUrl, member]);
 
   return {
     recoveryState,

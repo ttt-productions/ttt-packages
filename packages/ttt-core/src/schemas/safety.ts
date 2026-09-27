@@ -27,11 +27,30 @@ import {
   NCMEC_PORTAL_CORRECTION_CONFIRMATION,
 } from '../constants/safety-confirmation-phrases.js';
 import { AccountActionSchema } from '../doc-schemas/safety/sagas.js';
+import { SafetySlaMonitorV1Schema } from '../doc-schemas/safety/monitors.js';
+import { NciiCaseV1Schema } from '../doc-schemas/ncii/cases.js';
+import {
+  NciiRetainedEvidenceInventoryV1Schema,
+  TakeItDownRequestRootV1Schema,
+} from '../doc-schemas/ncii/requests.js';
+import { DeadLetterCollectionSchema } from './admin.js';
 import {
   ChildSafetyAccountRoleSchema,
   ChildSafetyAccountSubjectDispositionSchema,
+  ChildSafetyCaseListV1Schema,
+  ChildSafetyCaseV1Schema,
+  ChildSafetyPreservationStatusSchema,
+  SafetyCaseLaneSchema,
 } from '../doc-schemas/safety/case.js';
-import { SafetyEvidenceExternalFactKindSchema } from '../doc-schemas/safety/evidence.js';
+
+// The case-lane enum is declared beside the case shapes (a leaf both schema files import); it is
+// re-exported here with the console and case-lookup inputs that take it.
+export { SafetyCaseLaneSchema, type SafetyCaseLane } from '../doc-schemas/safety/case.js';
+import {
+  SafetyEvidenceExternalFactKindSchema,
+  SafetyEvidenceJobPhaseSchema,
+  SafetyEvidenceJobStatusSchema,
+} from '../doc-schemas/safety/evidence.js';
 
 // ---------------------------------------------------------------------------
 // commandAccountAction — apply a per-account safety action on a child-safety case.
@@ -74,16 +93,132 @@ export type SafetyCaseConsoleCursor = z.infer<typeof SafetyCaseConsoleCursorSche
 
 const SAFETY_CONSOLE_MAX_PAGE_SIZE = 200;
 
+
+/** The console's three paged sources — the keys of its per-source pagination. */
+export const SafetyCaseConsoleSourceSchema = z.enum(['childSafety', 'ncii', 'takeItDown']);
+export type SafetyCaseConsoleSource = z.infer<typeof SafetyCaseConsoleSourceSchema>;
+
+/**
+ * `exhaustedSources` names each source whose last page the console already holds: the read skips
+ * that source's page query (still counting its total), so a source that ran out is never restarted
+ * at its first page while another source keeps paging.
+ */
 export const GetSafetyCaseConsoleInputSchema = z
   .object({
     pageSize: z.number().int().min(1).max(SAFETY_CONSOLE_MAX_PAGE_SIZE).optional(),
     childSafetyCursor: SafetyCaseConsoleCursorSchema.nullish(),
     nciiCursor: SafetyCaseConsoleCursorSchema.nullish(),
     takeItDownCursor: SafetyCaseConsoleCursorSchema.nullish(),
+    exhaustedSources: z
+      .array(SafetyCaseConsoleSourceSchema)
+      .max(SafetyCaseConsoleSourceSchema.options.length)
+      .refine((sources) => new Set(sources).size === sources.length, { message: 'List each source once.' })
+      .optional(),
   })
   .strict()
   .nullish();
 export type GetSafetyCaseConsoleInput = z.infer<typeof GetSafetyCaseConsoleInputSchema>;
+
+/** One evidence job's disposition state, as a case row shows it. */
+export const SafetyEvidenceJobSummarySchema = z
+  .object({
+    jobId: z.string().min(1),
+    phase: SafetyEvidenceJobPhaseSchema,
+    status: SafetyEvidenceJobStatusSchema,
+  })
+  .strict();
+export type SafetyEvidenceJobSummary = z.infer<typeof SafetyEvidenceJobSummarySchema>;
+
+/**
+ * A dead-lettered enforcement job behind a `failed` safety case — what the console's Restart hands
+ * to the dead-letter replay: its replay lane, the job doc id, and the operator-facing label.
+ */
+export const SafetyCaseFailedJobRefSchema = z
+  .object({
+    collection: DeadLetterCollectionSchema.extract(['quarantineSagaJobs', 'nciiRemovalJobs']),
+    docId: z.string().min(1),
+    label: z.string().min(1),
+  })
+  .strict();
+export type SafetyCaseFailedJobRef = z.infer<typeof SafetyCaseFailedJobRefSchema>;
+
+/** A child-safety case row: its list projection, its armed or overdue monitors, and its evidence jobs. */
+export const ChildSafetyCaseConsoleRowSchema = z
+  .object({
+    case: ChildSafetyCaseListV1Schema,
+    monitors: z.array(SafetySlaMonitorV1Schema),
+    evidenceJobs: z.array(SafetyEvidenceJobSummarySchema),
+    failedJobs: z.array(SafetyCaseFailedJobRefSchema).optional(),
+    crossoverLegs: ChildSafetyCaseV1Schema.shape.crossoverLegs,
+  })
+  .strict();
+export type ChildSafetyCaseConsoleRow = z.infer<typeof ChildSafetyCaseConsoleRowSchema>;
+
+/** An NCII case row: the case and its case- and request-scoped monitors. */
+export const NciiCaseConsoleRowSchema = z
+  .object({
+    case: NciiCaseV1Schema,
+    monitors: z.array(SafetySlaMonitorV1Schema),
+    failedJobs: z.array(SafetyCaseFailedJobRefSchema).optional(),
+  })
+  .strict();
+export type NciiCaseConsoleRow = z.infer<typeof NciiCaseConsoleRowSchema>;
+
+/**
+ * An unresolved public TAKE IT DOWN request: the request root's non-sensitive fields (the raw
+ * locator and the requester's details stay on the restricted subdoc) and its removal-clock monitors.
+ */
+export const TakeItDownRequestConsoleRowSchema = TakeItDownRequestRootV1Schema.pick({
+  requestId: true,
+  requesterRole: true,
+  targetLocatorSummary: true,
+  completenessStatus: true,
+  validityStatus: true,
+  publicStatus: true,
+  removalDeadlineAt: true,
+  receivedAt: true,
+})
+  .extend({ monitors: z.array(SafetySlaMonitorV1Schema) })
+  .strict();
+export type TakeItDownRequestConsoleRow = z.infer<typeof TakeItDownRequestConsoleRowSchema>;
+
+/** One source's page: its active total, whether more pages follow, and the next page's cursor. */
+export const SafetyCaseConsolePageInfoSchema = z
+  .object({
+    total: z.number().int().nonnegative(),
+    hasMore: z.boolean(),
+    nextCursor: SafetyCaseConsoleCursorSchema.nullable(),
+  })
+  .strict();
+export type SafetyCaseConsolePageInfo = z.infer<typeof SafetyCaseConsolePageInfoSchema>;
+
+/** The `getSafetyCaseConsole` answer: one page per source, the per-source pagination, and the
+ *  urgent projection — every active case with an armed or overdue monitor, never capped. */
+export const GetSafetyCaseConsoleResultSchema = z
+  .object({
+    childSafetyCases: z.array(ChildSafetyCaseConsoleRowSchema),
+    nciiCases: z.array(NciiCaseConsoleRowSchema),
+    takeItDownRequests: z.array(TakeItDownRequestConsoleRowSchema),
+    pagination: z
+      .object({
+        childSafety: SafetyCaseConsolePageInfoSchema,
+        ncii: SafetyCaseConsolePageInfoSchema,
+        takeItDown: SafetyCaseConsolePageInfoSchema,
+      } satisfies Record<SafetyCaseConsoleSource, z.ZodType>)
+      .strict(),
+    urgentProjection: z.array(
+      z
+        .object({
+          caseId: z.string().min(1),
+          lane: SafetyCaseLaneSchema,
+          monitors: z.array(SafetySlaMonitorV1Schema),
+        })
+        .strict(),
+    ),
+    generatedAt: z.number(),
+  })
+  .strict();
+export type GetSafetyCaseConsoleResult = z.infer<typeof GetSafetyCaseConsoleResultSchema>;
 
 // ---------------------------------------------------------------------------
 // getSafetyCaseById — full-admin read of a terminal safety case by id.
@@ -91,7 +226,7 @@ export type GetSafetyCaseConsoleInput = z.infer<typeof GetSafetyCaseConsoleInput
 
 export const GetSafetyCaseByIdInputSchema = z
   .object({
-    caseType: z.enum(['csam', 'ncii']),
+    caseType: SafetyCaseLaneSchema,
     caseId: z.string().min(1).max(200),
   })
   .strict();
@@ -103,7 +238,7 @@ export type GetSafetyCaseByIdInput = z.infer<typeof GetSafetyCaseByIdInputSchema
 
 export const GetSafetyCasePartiesInputSchema = z
   .object({
-    caseType: z.enum(['csam', 'ncii']),
+    caseType: SafetyCaseLaneSchema,
     caseId: z.string().min(1),
   })
   .strict();
@@ -124,17 +259,19 @@ export type GetTakeItDownRequestDetailInput = z.infer<typeof GetTakeItDownReques
 // listRetainedEvidenceInventory — paginated retained-evidence inventory read.
 // ---------------------------------------------------------------------------
 
-/** Cursor for the retained-evidence inventory — the last row's `(createdAt, docId)`. */
-export const RetainedEvidenceInventoryCursorSchema = z
-  .object({ createdAt: z.number(), id: z.string().min(1) })
-  .strict();
-export type RetainedEvidenceInventoryCursor = z.infer<typeof RetainedEvidenceInventoryCursorSchema>;
+/** A retention list's cursor — the last row's `(createdAt, docId)`, newest first. */
+const createdAtCursorSchema = () => z.object({ createdAt: z.number(), id: z.string().min(1) }).strict();
 
-const RETAINED_EVIDENCE_MAX_PAGE_SIZE = 200;
+/** The largest page either retention list serves. */
+const RETENTION_LIST_MAX_PAGE_SIZE = 200;
+
+/** Cursor for the retained-evidence inventory — the last row's `(createdAt, docId)`. */
+export const RetainedEvidenceInventoryCursorSchema = createdAtCursorSchema();
+export type RetainedEvidenceInventoryCursor = z.infer<typeof RetainedEvidenceInventoryCursorSchema>;
 
 export const ListRetainedEvidenceInventoryInputSchema = z
   .object({
-    pageSize: z.number().int().min(1).max(RETAINED_EVIDENCE_MAX_PAGE_SIZE).optional(),
+    pageSize: z.number().int().min(1).max(RETENTION_LIST_MAX_PAGE_SIZE).optional(),
     cursor: RetainedEvidenceInventoryCursorSchema.nullish(),
     /** Exact inventoryId lookup — returns just that row (or none), ignoring the cursor. */
     exactId: z.string().min(1).optional(),
@@ -142,6 +279,66 @@ export const ListRetainedEvidenceInventoryInputSchema = z
   .strict()
   .nullish();
 export type ListRetainedEvidenceInventoryInput = z.infer<typeof ListRetainedEvidenceInventoryInputSchema>;
+
+export const ListRetainedEvidenceInventoryResultSchema = z
+  .object({
+    rows: z.array(NciiRetainedEvidenceInventoryV1Schema),
+    /** Pass as `cursor` for the next page; null when this page reached the end. */
+    nextCursor: RetainedEvidenceInventoryCursorSchema.nullable(),
+    /** Every inventory row, counted with an aggregate. */
+    total: z.number().int().nonnegative(),
+  })
+  .strict();
+export type ListRetainedEvidenceInventoryResult = z.infer<typeof ListRetainedEvidenceInventoryResultSchema>;
+
+// ---------------------------------------------------------------------------
+// listRetainedChildSafetyCases — the Retention tab's paged list of closed child-safety cases whose
+// evidence is still preserved.
+// ---------------------------------------------------------------------------
+
+/**
+ * A closed child-safety case is retained while its evidence is: every preservation status but
+ * `destroyed`. The list reads cases whose `workStatus` is `operationallyResolved` (the one closed
+ * work status) and whose `preservationStatus` is one of these, newest `createdAt` first.
+ */
+export const CHILD_SAFETY_RETAINED_PRESERVATION_STATUSES = ChildSafetyPreservationStatusSchema.exclude([
+  'destroyed',
+]).options;
+
+/** Cursor for the retained child-safety case list — the last row's `(createdAt, docId)`. */
+export const RetainedChildSafetyCaseCursorSchema = createdAtCursorSchema();
+export type RetainedChildSafetyCaseCursor = z.infer<typeof RetainedChildSafetyCaseCursorSchema>;
+
+export const ListRetainedChildSafetyCasesInputSchema = z
+  .object({
+    pageSize: z.number().int().min(1).max(RETENTION_LIST_MAX_PAGE_SIZE).optional(),
+    cursor: RetainedChildSafetyCaseCursorSchema.nullish(),
+    /** Exact caseId lookup — returns just that case when it is retained (or none), ignoring the cursor. */
+    exactId: z.string().min(1).optional(),
+  })
+  .strict()
+  .nullish();
+export type ListRetainedChildSafetyCasesInput = z.infer<typeof ListRetainedChildSafetyCasesInputSchema>;
+
+/** One retained case: its list projection and its own evidence jobs (read by case, never a global window). */
+export const RetainedChildSafetyCaseRowSchema = z
+  .object({
+    case: ChildSafetyCaseListV1Schema,
+    evidenceJobs: z.array(SafetyEvidenceJobSummarySchema),
+  })
+  .strict();
+export type RetainedChildSafetyCaseRow = z.infer<typeof RetainedChildSafetyCaseRowSchema>;
+
+export const ListRetainedChildSafetyCasesResultSchema = z
+  .object({
+    rows: z.array(RetainedChildSafetyCaseRowSchema),
+    /** Pass as `cursor` for the next page; null when this page reached the end. */
+    nextCursor: RetainedChildSafetyCaseCursorSchema.nullable(),
+    /** Every retained case, counted with an aggregate. */
+    total: z.number().int().nonnegative(),
+  })
+  .strict();
+export type ListRetainedChildSafetyCasesResult = z.infer<typeof ListRetainedChildSafetyCasesResultSchema>;
 
 // ---------------------------------------------------------------------------
 // ncmecOperatorCommands — NCMEC manual-portal completion path.
@@ -220,7 +417,7 @@ export type RevealCaseEvidenceInput = z.infer<typeof RevealCaseEvidenceInputSche
 export const RefetchProtectedCaseContextInputSchema = z
   .object({
     caseId: z.string().min(1),
-    lane: z.enum(['csam', 'ncii']),
+    lane: SafetyCaseLaneSchema,
   })
   .strict();
 export type RefetchProtectedCaseContextInput = z.infer<typeof RefetchProtectedCaseContextInputSchema>;

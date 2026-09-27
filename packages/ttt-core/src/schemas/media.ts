@@ -8,6 +8,8 @@ import {
   adminDispatchIdSchema,
   reportGroupIdSchema,
   mediaAssetIdSchema,
+  workRealmIdSchema,
+  realmFileShareRequestIdSchema,
 } from './atoms.js';
 
 // Scoped-media grant request for the gateway Worker (design doc: scoped tier =
@@ -60,6 +62,17 @@ export const CreateMediaGrantInputSchema = z.discriminatedUnion('scopeKind', [
     scopeKind: z.literal('adminReview'),
     reportGroupId: reportGroupIdSchema,
     mediaAssetId: mediaAssetIdSchema,
+  }).strict(),
+  // A Realm steward's preview of ONE Work file awaiting their promotion decision — the Realm's
+  // current steward only, and only while the file is still pending under this request id in this
+  // Realm (the callable re-checks all three at mint). The request id is the one the steward's queue
+  // row showed, so a decided, withdrawn, or superseded request mints nothing. The grant names
+  // exactly that asset and never reveals a hidden one.
+  z.object({
+    scopeKind: z.literal('realmFilePreview'),
+    workRealmId: workRealmIdSchema,
+    mediaAssetId: mediaAssetIdSchema,
+    realmFileShareRequestId: realmFileShareRequestIdSchema,
   }).strict(),
 ]);
 export type CreateMediaGrantInput = z.infer<typeof CreateMediaGrantInputSchema>;

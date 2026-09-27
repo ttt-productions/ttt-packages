@@ -13,6 +13,7 @@ import {
   toSharpPosition,
   type Gravity,
 } from "./resize.js";
+import { IMAGE_DEFAULT_OUTPUT_KEY } from "@ttt-productions/media-schemas";
 
 function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();
@@ -209,7 +210,7 @@ export async function processImage(
       return { ok: false, mediaType: "image", error: { code: "processing_canceled", message: "Processing canceled." } };
     }
 
-    const variants = spec.image?.variants?.length ? spec.image.variants : [{ key: "original" as const }];
+    const variants = spec.image?.variants?.length ? spec.image.variants : [{ key: IMAGE_DEFAULT_OUTPUT_KEY }];
 
     const outDir = path.dirname(ctx.outputBasePath);
     await mkdir(outDir, { recursive: true });

@@ -209,13 +209,10 @@ import {
   PrivilegedReviewerSecurityProfileV1Schema,
 } from './ncii/config.js';
 import {
-  HallMediaReaperCursorSchema,
   NcmecCompletionProofRecordV1Schema,
   NcmecPortalCorrectionRecordV1Schema,
   NcmecPortalReceiptArtifactV1Schema,
   OperatorStepUpSchema,
-  PublicUsersReconcilerCursorSchema,
-  SafetyReconcilerCursorSchema,
   SweepStateSchema,
 } from './backend-state.js';
 
@@ -417,7 +414,6 @@ export const COLLECTION_SCHEMAS = {
   // ===== Trust & Safety — operator step-up + reconciler cursors (backend-only) =====
   // Cloud-Functions-only readers/writers; client access denied in firestore.rules.
   'operatorStepUp/{uid}': OperatorStepUpSchema,
-  'safetyReconcilerCursors/{cursorKey}': SafetyReconcilerCursorSchema,
 
   // ===== Scheduled user sweeps — durable cadence/cursor state (backend-only) =====
   'sweepState/{sweepName}': SweepStateSchema,
@@ -471,8 +467,6 @@ export const COLLECTION_SCHEMAS = {
   // PENDING_COLLECTIONS.
   '_serverData/feedbackLists/feedbackAliases/{aliasId}': FeedbackAliasSchema,
   // The scheduled sweeps' scan cursors — each read only by the function that owns it.
-  '_serverData/hallMediaReaperCursor': HallMediaReaperCursorSchema,
-  '_serverData/publicUsersReconcilerCursor': PublicUsersReconcilerCursorSchema,
 
   // ===== _systemData singletons (signed-in readers, BACKEND-108) =====
   '_systemData/adminList': AdminListSchema,

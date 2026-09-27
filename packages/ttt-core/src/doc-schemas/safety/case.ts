@@ -74,6 +74,10 @@ export type ChildSafetySignalKind = z.infer<typeof ChildSafetySignalKindSchema>;
  * exhausts its retries (dead-letter), the case moves to `failed` — kept pinned, surfaced in
  * the Safety Console failed-jobs view, with a Restart that re-arms the job. Both are explicit
  * values (never derived). */
+/** The two safety-case lanes: a child-safety (CSAM) case and an NCII case. */
+export const SafetyCaseLaneSchema = z.enum(['csam', 'ncii']);
+export type SafetyCaseLane = z.infer<typeof SafetyCaseLaneSchema>;
+
 export const ChildSafetyWorkStatusSchema = z.enum([
   'new',
   'triaged',

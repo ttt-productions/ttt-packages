@@ -15,8 +15,9 @@ export const ADMIN_TASK_CLEANUP_MAX_ITERATIONS = 10;
 
 /**
  * How long Hall-media copies are left alone before the orphan reaper may reclaim them — both a
- * Hall-owned asset (asset phase, measured from its `createdAt`) and the objects a copy intent
- * names (copy-intent phase: recording sets the intent's `reapAfter` this far out). It must exceed
+ * Hall-owned asset (asset phase, measured from its `createdAt`) and the objects a write intent
+ * names (copy-intent phase: recording a copy's or a first ingest's intent sets its `reapAfter`
+ * this far out, far beyond any ingest's processing and retry time). It must exceed
  * the longest retry window of the publish trigger `onThresholdItemReviewed` (about a day), since
  * a pending retry re-derives the same deterministic copy and attaches its bytes. It also leaves a
  * publish that parked partway time to be unwound, resubmitted, and re-driven onto the same
@@ -40,14 +41,14 @@ export const HALL_MEDIA_REAPER_BACKOFF_BASE_MS = 24 * 60 * 60 * 1000;
 export const HALL_MEDIA_REAPER_BACKOFF_MAX_MS = 14 * 24 * 60 * 60 * 1000;
 
 /**
- * Most asset-phase candidates the Hall-media orphan reaper holds in its cursor's `deferred`
- * set. Every pass retries the entries that are due, each retry re-reading the candidate and its
- * owning Hall item, so the bound keeps that work to half of a HALL_MEDIA_REAPER_PAGE_SIZE page on
- * top of the pass's own page, and keeps the singleton cursor doc a few kilobytes. A candidate the
- * reaper cannot positively clear is rare, so a full set means something systemic is failing — the
- * signal to stop and report, not to keep growing the list.
+ * Most rows one pass holds in its sweep-state `deferred` set — the rows its rolling cursor moved past
+ * without positively clearing. Every pass retries the entries that are due, each retry re-reading the
+ * row, so for the Hall-media orphan reaper the bound keeps that work to half of a
+ * HALL_MEDIA_REAPER_PAGE_SIZE page on top of the pass's own page, and it keeps the sweep-state doc a
+ * few kilobytes. A row a pass cannot positively clear is rare, so a full set means something
+ * systemic is failing — the signal to stop and report, not to keep growing the list.
  */
-export const HALL_MEDIA_REAPER_MAX_DEFERRED = 50;
+export const SWEEP_STATE_MAX_DEFERRED = 50;
 
 /**
  * How long the copy-intent sweep holds a claim on an intent. Claiming moves the intent to
@@ -59,3 +60,29 @@ export const HALL_MEDIA_REAPER_MAX_DEFERRED = 50;
  * so a publish stranded behind an abandoned claim always recovers inside it.
  */
 export const HALL_MEDIA_REAPER_CLAIM_LEASE_MS = 60 * 60 * 1000;
+
+// --- Sweep state ---
+
+/**
+ * The `sweepState/{sweepName}` doc ids: one per scheduled pass that keeps durable cadence or
+ * rolling-cursor state (`SweepStateSchema`), so each pass owns exactly one doc and its cursor is
+ * never shared with another pass.
+ */
+export const SWEEP_STATE_NAMES = [
+  'orphanRegistrationCleanup',
+  'reconcileAccountStatus',
+  'reconcilePublicUsers',
+  'hallMediaReaperAssetPhase',
+  'quarantineEnqueueBackstop',
+  'ncmecEnqueueBackstop',
+  'staleSafetyCaseAlertSweep',
+  'csamStrandedProcessing',
+  'nciiStrandedProcessing',
+  'expireRejectedMedia',
+  'cleanupOrphanUploads',
+  'mediaReconcileUnpublishedAssets',
+  'mediaReconcileUnreferencedBroadAssets',
+  'nciiEvidenceOrphanSweeper',
+  'nciiRetentionClosedRequests',
+] as const;
+export type SweepStateName = (typeof SWEEP_STATE_NAMES)[number];

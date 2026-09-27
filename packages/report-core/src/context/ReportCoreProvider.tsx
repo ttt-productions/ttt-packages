@@ -3,34 +3,11 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { ReportCoreConfig, PriorityThreshold } from '../config.js';
 import { DEFAULT_PRIORITY_THRESHOLDS } from '../config.js';
+import type { AdditionalReportAction } from '../types-ui-props.js';
 
 // ============================================
 // CONTEXT
 // ============================================
-
-/** The report target the dialog is acting on (passed to an additional action's handler). */
-export interface ReportTargetRef {
-  itemType: string;
-  itemId: string;
-  parentItemId?: string;
-  reportedUserId?: string;
-}
-
-/**
- * A consumer-supplied EXTRA option in the report-reason picker — generic; report-core knows nothing
- * about what it does. The consumer (e.g. the consuming app) supplies these, already filtered for who may
- * see them (an admin-only action is supplied only when the current user is an admin). When the user
- * selects one and submits, the dialog calls `handler(target, comment)` INSTEAD of the report-intake
- * callable. Example use: an admin "mark as NCII linked evidence" option that calls a different callable.
- */
-export interface AdditionalReportAction {
-  /** Stable id (used as the picker value, prefixed internally). */
-  id: string;
-  /** Picker label shown in the reason dropdown. */
-  label: string;
-  /** Called instead of the report-intake submit when this option is selected. */
-  handler: (target: ReportTargetRef, comment: string) => Promise<void>;
-}
 
 export interface ReportCoreContextValue {
   config: ReportCoreConfig;

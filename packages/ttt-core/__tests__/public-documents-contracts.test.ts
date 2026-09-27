@@ -3,6 +3,7 @@ import {
   PUBLIC_DOCUMENT_IDS,
   PUBLIC_DOCUMENT_LABELS,
   PUBLIC_DOCUMENTS_ACCEPTED_CLAIM,
+  REGISTERED_MEMBER_CLAIM,
   PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT,
   type PublicDocumentId,
 } from '../src/constants/public-documents';
@@ -34,6 +35,7 @@ import { FullUserSchema, UserPrivateDataSchema } from '../src/doc-schemas/user';
 import { PledgePaymentProviderRefSchema } from '../src/doc-schemas/payments';
 import {
   SavePublicDocumentDraftInputSchema,
+  SavePublicDocumentDraftResultSchema,
   PublishPublicDocumentReleaseInputSchema,
   AcceptPublicDocumentsInputSchema,
   AcceptPublicDocumentsResultSchema,
@@ -99,6 +101,12 @@ describe('public document identity', () => {
 
   it('names the acceptance claim once', () => {
     expect(PUBLIC_DOCUMENTS_ACCEPTED_CLAIM).toBe('docsAccepted');
+  });
+
+  it('names the registered-member claim once, on the server-safe root, apart from the acceptance claim', () => {
+    expect(REGISTERED_MEMBER_CLAIM).toBe('registeredMember');
+    expect(REGISTERED_MEMBER_CLAIM).not.toBe(PUBLIC_DOCUMENTS_ACCEPTED_CLAIM);
+    expect(root.REGISTERED_MEMBER_CLAIM).toBe(REGISTERED_MEMBER_CLAIM);
   });
 
   it("states the re-acceptance prompt's agreement line verbatim, on the server-safe root", () => {
@@ -198,11 +206,28 @@ describe('working copy and release record', () => {
       documentId: RULES,
       content: { rules: [], agreements: {} },
       baseVersion: 0,
+      revision: 1,
       savedBy: 'admin-uid',
       savedAt: 1,
     };
     expect(PublicDocumentDraftSchema.safeParse(draft).success).toBe(true);
     expect(PublicDocumentDraftSchema.safeParse({ ...draft, baseVersion: -1 }).success).toBe(false);
+  });
+
+  it('a working copy counts its saves from revision 1', () => {
+    const draft = {
+      documentId: TERMS,
+      content: { sections: [section] },
+      baseVersion: 2,
+      revision: 3,
+      savedBy: 'admin-uid',
+      savedAt: 1,
+    };
+    expect(PublicDocumentDraftSchema.safeParse(draft).success).toBe(true);
+    const { revision: _revision, ...withoutRevision } = draft;
+    expect(PublicDocumentDraftSchema.safeParse(withoutRevision).success).toBe(false);
+    expect(PublicDocumentDraftSchema.safeParse({ ...draft, revision: 0 }).success).toBe(false);
+    expect(PublicDocumentDraftSchema.safeParse({ ...draft, revision: 1.5 }).success).toBe(false);
   });
 
   it('a release names at least one document/version pair', () => {
@@ -313,25 +338,46 @@ describe('current projection', () => {
 describe('callable inputs', () => {
   it('save draft validates each document\'s content by its own schema', () => {
     expect(
-      SavePublicDocumentDraftInputSchema.safeParse({ documentId: TERMS, baseVersion: 1, content: { sections: [section] } })
-        .success,
+      SavePublicDocumentDraftInputSchema.safeParse({
+        documentId: TERMS,
+        baseVersion: 1,
+        expectedRevision: 0,
+        content: { sections: [section] },
+      }).success,
     ).toBe(true);
     expect(
-      SavePublicDocumentDraftInputSchema.safeParse({ documentId: DMCA, baseVersion: 0, content: dmcaContent }).success,
+      SavePublicDocumentDraftInputSchema.safeParse({ documentId: DMCA, baseVersion: 0, expectedRevision: 2, content: dmcaContent })
+        .success,
     ).toBe(true);
     // Terms content under the Rules id.
     expect(
-      SavePublicDocumentDraftInputSchema.safeParse({ documentId: RULES, baseVersion: 1, content: { sections: [section] } })
-        .success,
+      SavePublicDocumentDraftInputSchema.safeParse({
+        documentId: RULES,
+        baseVersion: 1,
+        expectedRevision: 0,
+        content: { sections: [section] },
+      }).success,
     ).toBe(false);
     // The DMCA page exists to name the agent: at least one contact block.
     expect(
       SavePublicDocumentDraftInputSchema.safeParse({
         documentId: DMCA,
         baseVersion: 0,
+        expectedRevision: 0,
         content: { ...dmcaContent, contactBlocks: [] },
       }).success,
     ).toBe(false);
+  });
+
+  it('save draft names the working-copy revision the editor opened, 0 for none', () => {
+    const input = { documentId: TERMS, baseVersion: 1, expectedRevision: 4, content: { sections: [section] } };
+    expect(SavePublicDocumentDraftInputSchema.safeParse(input).success).toBe(true);
+    const { expectedRevision: _expected, ...withoutRevision } = input;
+    expect(SavePublicDocumentDraftInputSchema.safeParse(withoutRevision).success).toBe(false);
+    expect(SavePublicDocumentDraftInputSchema.safeParse({ ...input, expectedRevision: -1 }).success).toBe(false);
+    const result = { documentId: TERMS, baseVersion: 1, revision: 5, savedAt: 1 };
+    expect(SavePublicDocumentDraftResultSchema.safeParse(result).success).toBe(true);
+    expect(SavePublicDocumentDraftResultSchema.safeParse({ ...result, revision: 0 }).success).toBe(false);
   });
 
   it('save draft is strict — no version smuggling, full content only', () => {
@@ -339,23 +385,41 @@ describe('callable inputs', () => {
       SavePublicDocumentDraftInputSchema.safeParse({
         documentId: TERMS,
         baseVersion: 1,
+        expectedRevision: 0,
         version: 9,
         content: { sections: [section] },
       }).success,
     ).toBe(false);
     // Rules content is the whole document — a partial (rules only) is rejected.
     expect(
-      SavePublicDocumentDraftInputSchema.safeParse({ documentId: RULES, baseVersion: 1, content: { rules: [] } }).success,
+      SavePublicDocumentDraftInputSchema.safeParse({
+        documentId: RULES,
+        baseVersion: 1,
+        expectedRevision: 0,
+        content: { rules: [] },
+      }).success,
     ).toBe(false);
   });
 
-  it('publish names each document once, with a client-minted release id', () => {
-    const input = { releaseId: RELEASE_ID, documentIds: [TERMS, DMCA], requireAcceptance: true };
+  it('publish names each document once at the working-copy revision it reviewed, with a client-minted release id', () => {
+    const terms = { documentId: TERMS, expectedRevision: 2 };
+    const input = {
+      releaseId: RELEASE_ID,
+      drafts: [terms, { documentId: DMCA, expectedRevision: 1 }],
+      requireAcceptance: true,
+    };
     expect(PublishPublicDocumentReleaseInputSchema.safeParse(input).success).toBe(true);
-    expect(PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, documentIds: [TERMS, TERMS] }).success).toBe(
-      false,
-    );
-    expect(PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, documentIds: [] }).success).toBe(false);
+    expect(
+      PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, drafts: [terms, { ...terms, expectedRevision: 3 }] })
+        .success,
+    ).toBe(false);
+    expect(PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, drafts: [] }).success).toBe(false);
+    // A publish reviews a saved working copy, so it names a real revision.
+    expect(
+      PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, drafts: [{ ...terms, expectedRevision: 0 }] })
+        .success,
+    ).toBe(false);
+    expect(PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, documentIds: [TERMS] }).success).toBe(false);
     expect(PublishPublicDocumentReleaseInputSchema.safeParse({ ...input, releaseId: 'r1' }).success).toBe(false);
     const { requireAcceptance: _omit, ...withoutChoice } = input;
     expect(PublishPublicDocumentReleaseInputSchema.safeParse(withoutChoice).success).toBe(false);

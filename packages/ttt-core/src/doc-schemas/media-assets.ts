@@ -7,6 +7,7 @@
 
 import { z } from 'zod';
 import { StructuredErrorSchema } from '@ttt-productions/edge-protocol-core';
+import { TIMED_MEDIA_MAIN_OUTPUT_KEY, VIDEO_POSTER_OUTPUT_KEY } from '@ttt-productions/media-schemas';
 import { FileOriginSchema } from '../media/file-origin.js';
 
 /** Who may be served the bytes (the Worker's tier check). */
@@ -57,12 +58,21 @@ export const ContentMediaKindSchema = z.enum(['image', 'video', 'audio']);
 export type ContentMediaKind = z.infer<typeof ContentMediaKindSchema>;
 
 /**
- * The named-variant key set for `variantSha256s` — declared ONCE here; every declared
- * `image.variants[].key` in `TTT_MEDIA_SPECS` is compile-checked against this union
- * (the specs type their variant keys as `MediaVariantKey`), so an undeclared variant
- * name fails the BUILD — no sync test needed. Never an open `string`.
+ * Every variant key the media pipeline writes under an asset id — never an open `string`: the image
+ * variants `TTT_MEDIA_SPECS` declares, plus the video and audio outputs, which derive from the
+ * pipeline's own output-key declarations (media-schemas) — the transcoded `main` and the video's
+ * `poster` frame. A copy or an ingest intent names its objects with these, so a key outside the set
+ * could be written but never reclaimed. `__tests__/media-origin-lineage.test.ts` fails when a spec
+ * declares a key outside the set, a pipeline output falls outside it, or a member is produced by
+ * nothing.
  */
-export const MEDIA_VARIANT_KEYS = ['full', 'medium', 'small', 'main'] as const;
+export const MEDIA_VARIANT_KEYS = [
+  'full',
+  'medium',
+  'small',
+  TIMED_MEDIA_MAIN_OUTPUT_KEY,
+  VIDEO_POSTER_OUTPUT_KEY,
+] as const;
 export const MediaVariantKeySchema = z.enum(MEDIA_VARIANT_KEYS);
 export type MediaVariantKey = z.infer<typeof MediaVariantKeySchema>;
 
@@ -333,6 +343,49 @@ export const MediaServingAuthorityRecordSchema = z.object({
 }).strict();
 export type MediaServingAuthorityRecord = z.infer<typeof MediaServingAuthorityRecordSchema>;
 
+/**
+ * Why the retirement drain last deferred an owed retirement: `held` — a legal or safety hold
+ * blocks the byte removal; `failed` — an edge step or an object delete failed.
+ */
+export const MediaAssetRetirementDeferralSchema = z.enum(['held', 'failed']);
+export type MediaAssetRetirementDeferral = z.infer<typeof MediaAssetRetirementDeferralSchema>;
+
+/**
+ * The retirement obligation of an asset whose owner record is gone — written onto the asset doc in
+ * the SAME transaction or batch as the delete (or refusal) that leaves it unowned, together with the
+ * durable authority deny when the asset is still servable (servingStatusOnRetirementRequest), so no
+ * path deletes a record and then retires its media best-effort. One
+ * scheduled drain owns the byte removal: it takes up due obligations in `nextAttemptAt` order, and
+ * the asset becomes `retired` only when every variant's object delete has succeeded. A hold or a
+ * failure defers the obligation (`attemptCount`, `nextAttemptAt`, `lastDeferral`); it is never
+ * dropped. The drain deletes the obligation in the transaction that marks the asset retired.
+ */
+export const MediaAssetRetirementSchema = z
+  .object({
+    /** Epoch ms the obligation was co-written with the delete. */
+    requestedAt: z.number().int().nonnegative(),
+    /** Variant keys whose object delete has not yet succeeded (an already-absent object counts as
+     *  deleted). Starts as every key of `variants`; the drain removes a key only after its delete
+     *  succeeds. */
+    pendingVariantKeys: z.array(z.string().min(1)),
+    attemptCount: z.number().int().nonnegative(),
+    /** Epoch ms from which the drain may take the obligation up; the drain lists due ones in this
+     *  order, so a deferred one rotates behind the ones that can finish. */
+    nextAttemptAt: z.number().int().nonnegative(),
+    lastDeferral: MediaAssetRetirementDeferralSchema.optional(),
+    lastError: StructuredErrorSchema.optional(),
+  })
+  .strict()
+  .superRefine((val, ctx) => {
+    if (new Set(val.pendingVariantKeys).size !== val.pendingVariantKeys.length) {
+      ctx.addIssue({ code: 'custom', path: ['pendingVariantKeys'], message: 'a variant key is owed at most once' });
+    }
+    if (val.lastError !== undefined && val.lastDeferral !== 'failed') {
+      ctx.addIssue({ code: 'custom', path: ['lastError'], message: 'an error is recorded only for a failed attempt' });
+    }
+  });
+export type MediaAssetRetirement = z.infer<typeof MediaAssetRetirementSchema>;
+
 export const MediaAssetSchema = z.object({
   mediaAssetId: z.string().min(1),
   mediaKind: ContentMediaKindSchema,
@@ -409,9 +462,30 @@ export const MediaAssetSchema = z.object({
   authoritySyncAttemptCount: z.number().int().nonnegative().optional(),
   authoritySyncNextAttemptAt: z.number().optional(),
 
+  // Present exactly while a retirement is owed (MediaAssetRetirementSchema).
+  retirement: MediaAssetRetirementSchema.optional(),
+
   createdAt: z.number(),
   updatedAt: z.number(),
 }).strict().superRefine((val, ctx) => {
+  // ===== Retirement invariant =====
+  // An owed retirement already denies serving (the delete co-wrote the authority deny) and is not
+  // yet retired (the drain clears it when it marks the asset retired). It owes only the asset's
+  // own variants.
+  if (val.retirement !== undefined) {
+    if (val.servingStatus === 'servable') {
+      ctx.addIssue({ code: 'custom', path: ['servingStatus'], message: 'an asset owing retirement is never servable' });
+    }
+    if (val.publicationState === 'retired') {
+      ctx.addIssue({ code: 'custom', path: ['retirement'], message: 'a retired asset owes no retirement' });
+    }
+    for (const key of val.retirement.pendingVariantKeys) {
+      if (!Object.prototype.hasOwnProperty.call(val.variants, key)) {
+        ctx.addIssue({ code: 'custom', path: ['retirement', 'pendingVariantKeys'], message: `${key} is not one of this asset's variants` });
+      }
+    }
+  }
+
   // ===== Realm-file legal-combination invariant =====
   // The realm-file field GROUP is one state machine, not five independently-optional
   // fields. Declared HERE, on the canonical doc schema (ARCH-102), so every writer inherits
@@ -469,3 +543,36 @@ export const MediaAssetSchema = z.object({
   }
 });
 export type MediaAsset = z.infer<typeof MediaAssetSchema>;
+
+/**
+ * Where an asset stands on retirement — the one reading a caller that must not delete a record
+ * naming media before its media is gone (account erasure) decides from: `absent` (no asset doc),
+ * `retired` (every byte removed), `owed` (an obligation is still draining), `none` (not retiring).
+ */
+export type MediaAssetRetirementStanding = 'absent' | 'retired' | 'owed' | 'none';
+
+export function mediaAssetRetirementStanding(
+  asset: Pick<MediaAsset, 'publicationState' | 'retirement'> | undefined,
+): MediaAssetRetirementStanding {
+  if (asset === undefined) return 'absent';
+  if (asset.publicationState === 'retired') return 'retired';
+  if (asset.retirement !== undefined) return 'owed';
+  return 'none';
+}
+
+/**
+ * The serving status a retirement co-write leaves on an asset: a `servable` asset is denied
+ * (`hidden`) at once, and an asset already `hidden`, `quarantined`, or `deleted` keeps its status —
+ * retiring an asset never downgrades a quarantine or reopens a deleted one (MEDIA-103).
+ */
+export function servingStatusOnRetirementRequest(current: MediaServingStatus): MediaServingStatus {
+  return current === 'servable' ? 'hidden' : current;
+}
+
+/**
+ * The serving status the drain writes when it marks an asset `retired`: `deleted`, except that a
+ * `quarantined` asset stays quarantined — only the safety flows move a quarantine.
+ */
+export function servingStatusOnRetirementComplete(current: MediaServingStatus): MediaServingStatus {
+  return current === 'quarantined' ? 'quarantined' : 'deleted';
+}

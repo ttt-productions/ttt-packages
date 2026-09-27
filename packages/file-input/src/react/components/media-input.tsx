@@ -145,6 +145,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
     isLoading = false,
     className,
     buttonLabel = "Add media",
+    clearLabel = "Clear selected file",
     uploadState,
     progressBarMinBytes,
     selectedFile,
@@ -646,7 +647,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
           <div className="flex items-center gap-2">
             <span className="text-sm truncate flex-1">{selectedFileLabel}</span>
             {onClear && (
-              <Button variant="ghost" size="icon" className="icon-sm hover:bg-destructive/20 shrink-0" onClick={onClear}>
+              <Button type="button" variant="ghost" size="icon" className="icon-sm shrink-0" onClick={onClear} aria-label={clearLabel}>
                 <X className="icon-xs" />
               </Button>
             )}
@@ -674,7 +675,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
               type="button"
               variant="ghost"
               size="icon"
-              className="icon-sm hover:bg-destructive/20 shrink-0 ml-auto"
+              className="icon-sm shrink-0 ml-auto"
               onClick={onCancel}
               aria-label="Cancel upload"
             >
@@ -692,6 +693,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
         {actions.length <= 1 ? (
           /* Single action (or none): plain button, no dropdown */
           <Button
+            type="button"
             variant="default"
             onClick={handleTriggerClick}
             disabled={disabled || isLoading || actions.length === 0}
@@ -704,7 +706,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
           /* Multiple actions: dropdown menu */
           <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
             <DropdownMenuTrigger asChild>
-              <Button variant="default" disabled={disabled || isLoading} pending={validating} icon={triggerIcon}>
+              <Button type="button" variant="default" disabled={disabled || isLoading} pending={validating} icon={triggerIcon}>
                 {triggerLabel}
               </Button>
             </DropdownMenuTrigger>
@@ -719,7 +721,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
         )}
 
         {showInfoToggle ? (
-          <Button variant="outline" onClick={() => setShowInfo((v) => !v)} disabled={disabled || isLoading}>
+          <Button type="button" variant="outline" onClick={() => setShowInfo((v) => !v)} disabled={disabled || isLoading}>
             <Info className="mr-2 icon-xs" />
             {showInfo ? "Hide info" : "Info"}
           </Button>

@@ -5,6 +5,7 @@ import { safeOutputPathFor } from "../utils/safe-path.js";
 import { ensureFfmpegAvailable, runFfmpeg } from "../video/ffmpeg.js";
 import { probeAudio } from "./probe.js";
 import type { ProcessMediaOptions } from "../types.js";
+import { TIMED_MEDIA_MAIN_OUTPUT_KEY } from "@ttt-productions/media-schemas";
 
 function matchMime(accepted: string, actual: string): boolean {
   const a = accepted.trim().toLowerCase();
@@ -93,7 +94,7 @@ export async function processAudio(
     }
 
     // Normalize to AAC in m4a (small + widely supported)
-    const outPath = outputPathFor(ctx.outputBasePath, "main", "m4a");
+    const outPath = outputPathFor(ctx.outputBasePath, TIMED_MEDIA_MAIN_OUTPUT_KEY, "m4a");
 
     tempFiles.push(outPath);
 
@@ -133,7 +134,7 @@ export async function processAudio(
 
     const outputs: MediaOutput[] = [
       {
-        key: "main",
+        key: TIMED_MEDIA_MAIN_OUTPUT_KEY,
         url: `file://${outPath}`,
         path: outPath,
         mime: "audio/mp4",

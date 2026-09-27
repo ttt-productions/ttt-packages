@@ -6,3 +6,4 @@ export { createPendingMediaSchemas, PendingMediaStatusSchema } from "./factories
 export type { PendingMediaSchemas } from "./factories/pending-media.js";
 export * from "./pending-media-lifecycle.js";
 export * from "./staged-upload.js";
+export * from "./pipeline-output-keys.js";

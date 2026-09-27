@@ -1,90 +1,97 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button } from '@ttt-productions/ui-core/react';
 import { Flag } from 'lucide-react';
-import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import { ReportDialog } from './ReportDialog.js';
-import type { ReportButtonProps } from '../types.js';
+import type {
+  ReportButtonProps,
+  ReportTargetRef,
+  UseReportButtonOptions,
+  UseReportButtonResult,
+} from '../types-ui-props.js';
 
 /**
- * Flag icon button that opens the ReportDialog.
- *
- * Reads report reasons and item type display names from ReportCoreProvider context.
+ * Open state for a report dialog, for a custom trigger or a target chosen at click time (a
+ * message in a list). The open state is bound to the reporter who opened it, so a different
+ * signed-in reporter reads it closed (FRONTEND-108); with no reporter, `openReport` calls
+ * `onSignInRequired` and opens nothing.
  */
+export function useReportButton({ reporterUserId, onSignInRequired }: UseReportButtonOptions): UseReportButtonResult {
+  const [state, setState] = useState<{
+    reporterUserId: string | undefined;
+    open: boolean;
+    target: ReportTargetRef | null;
+  }>({ reporterUserId: undefined, open: false, target: null });
+
+  const isCurrentReporter = !!reporterUserId && state.reporterUserId === reporterUserId;
+
+  const openReport = useCallback(
+    (target: ReportTargetRef): boolean => {
+      if (!reporterUserId) {
+        onSignInRequired?.();
+        return false;
+      }
+      setState({ reporterUserId, open: true, target });
+      return true;
+    },
+    [reporterUserId, onSignInRequired],
+  );
+
+  const onOpenChange = useCallback(
+    (open: boolean) => {
+      setState((prev) => ({ ...prev, open: open && !!reporterUserId && prev.reporterUserId === reporterUserId }));
+    },
+    [reporterUserId],
+  );
+
+  return {
+    open: isCurrentReporter && state.open,
+    target: isCurrentReporter ? state.target : null,
+    openReport,
+    onOpenChange,
+  };
+}
+
+/** A flag trigger that opens the report dialog for one item. */
 export function ReportButton({
   itemType,
   itemId,
   parentItemId,
   reportedUserId,
-  reporterUserId,
-  onSubmitSuccess,
-  onSubmitError,
-  triggerButtonVariant = 'destructive',
+  triggerLabel,
+  onSignInRequired,
+  triggerButtonVariant = 'ghost',
   triggerButtonSize = 'icon',
   triggerButtonClassName,
+  ...dialogProps
 }: ReportButtonProps) {
-  const { config } = useReportCoreContext();
-  const [isOpen, setIsOpen] = useState(false);
-
-  const displayItemType =
-    config.reportableItems[itemType]?.displayName ?? itemType;
+  const report = useReportButton({ reporterUserId: dialogProps.reporterUserId, onSignInRequired });
+  const iconOnly = triggerButtonSize === 'icon';
 
   return (
     <>
       <Button
-        variant={triggerButtonVariant as 'destructive'}
+        type="button"
+        variant={triggerButtonVariant as 'ghost'}
         size={triggerButtonSize as 'icon'}
         className={triggerButtonClassName}
-        title={`Report ${displayItemType}`}
-        onClick={() => setIsOpen(true)}
+        aria-label={iconOnly ? triggerLabel : undefined}
+        onClick={() => report.openReport({ itemType, itemId, parentItemId, reportedUserId })}
       >
-        <Flag className="icon-xs" />
-        {triggerButtonSize !== 'icon' && <span className="ml-2">Report</span>}
+        <Flag className="icon-xs" aria-hidden="true" />
+        {!iconOnly && <span>{triggerLabel}</span>}
       </Button>
 
       <ReportDialog
-        open={isOpen}
-        onOpenChange={setIsOpen}
+        {...dialogProps}
         itemType={itemType}
         itemId={itemId}
         parentItemId={parentItemId}
         reportedUserId={reportedUserId}
-        reporterUserId={reporterUserId}
-        onSubmitSuccess={onSubmitSuccess}
-        onSubmitError={onSubmitError}
+        open={report.open}
+        onOpenChange={report.onOpenChange}
       />
     </>
   );
-}
-
-// ============================================
-// HEADLESS VERSION — for apps that need full control
-// ============================================
-
-export interface UseReportButtonOptions {
-  itemType: string;
-  itemId: string;
-  currentUserId?: string;
-}
-
-/**
- * Headless hook for report button logic.
- * Use when you need custom trigger UI. The submit callable is idempotent, so a
- * duplicate report is a benign no-op success — no client-side duplicate pre-check.
- */
-export function useReportButton({ currentUserId }: UseReportButtonOptions) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleOpenReport = (): boolean => {
-    if (!currentUserId) return false;
-    setIsOpen(true);
-    return true;
-  };
-
-  return {
-    isOpen,
-    setIsOpen,
-    handleOpenReport,
-  };
 }

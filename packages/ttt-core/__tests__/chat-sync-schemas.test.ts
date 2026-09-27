@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, expectTypeOf } from 'vitest';
+import type { DeliverySkipReason, DeliveryState } from '@ttt-productions/notification-core/server';
 import {
   ChatChannelAuthProjectionSchema,
   ChatScopeDegradedSchema,
@@ -10,6 +11,9 @@ import {
 } from '../src/doc-schemas/chat-sync';
 import {
   NotificationDeliverySchema,
+  NotificationDeliveryStateSchema,
+  type NotificationDeliveryState,
+  type NotificationDeliverySkipReason,
   NotificationFanoutJobSchema,
 } from '../src/doc-schemas/notification-ledger';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
@@ -111,6 +115,20 @@ describe('notification ledger schemas parse representative docs', () => {
     }).success).toBe(true);
   });
 
+  it('NotificationDelivery closes as skipped, with its reason and time, when the recipient was not eligible', () => {
+    const queued = {
+      deliveryId: 'd3', state: 'queued', notificationType: 'guild_invite', eventId: 'gi3', recipientUid: 'erased-uid', aggregationKey: 'gi3',
+      strategy: 'increment', payload: { actorId: 'a', metadata: {}, occurrenceAt: 1 }, payloadVersion: 1, materializationClass: 'directQueued',
+      createdAt: 1, attemptCount: 0, nextAttemptAt: 1, lastError: null, materializedAt: null, deadLetteredAt: null,
+    };
+    const skipped = { ...queued, state: 'skipped', skipReason: 'recipientIneligible', skippedAt: 5 };
+    expect(NotificationDeliverySchema.safeParse(skipped).success).toBe(true);
+    const { skipReason: _reason, ...withoutReason } = skipped;
+    expect(NotificationDeliverySchema.safeParse(withoutReason).success).toBe(false);
+    expect(NotificationDeliverySchema.safeParse({ ...queued, skipReason: 'recipientIneligible', skippedAt: 5 }).success).toBe(false);
+    expect(NotificationDeliverySchema.safeParse({ ...skipped, skipReason: 'other' }).success).toBe(false);
+  });
+
   it('NotificationFanoutJob', () => {
     expect(NotificationFanoutJobSchema.safeParse({
       jobId: 'rg1:content_report', schemaVersion: 1, notificationType: 'followed_content_published', eventId: 't1', priority: 2,
@@ -144,5 +162,13 @@ describe('registry + paths wiring', () => {
       COLLECTIONS.CHAT_SCOPE_DEGRADED, 'sk', NESTED_SUBCOLLECTIONS.CHAT_SCOPE_DEGRADED_CAUSES, 'c1',
     ]);
     expect(PATH_BUILDERS.chatAdminActionCommand('r1')).toEqual([COLLECTIONS.CHAT_ADMIN_ACTION_COMMANDS, 'r1']);
+  });
+});
+
+describe('notification delivery states follow notification-core, whose ledger writes the rows', () => {
+  it('names exactly the ledger\'s states and skip reasons', () => {
+    expectTypeOf<NotificationDeliveryState>().toEqualTypeOf<DeliveryState>();
+    expectTypeOf<NotificationDeliverySkipReason>().toEqualTypeOf<DeliverySkipReason>();
+    expect(NotificationDeliveryStateSchema.options).toContain('skipped');
   });
 });

@@ -6,7 +6,9 @@ Generic media display package.
 
 - Image, video, and audio viewer components
 - Fallback display behavior for unsupported or missing media
-- Loading states: `urlPending` renders a labeled pending state (`PendingFallback`) instead of the empty fallback while a URL is still being prepared, so "not yet" never reads as "nothing here"; the audio player's play button shows the spinner while playback waits on data (`waiting` / `seeking`)
+- Loading states: `urlPending` renders a labeled pending state (`PendingFallback`) instead of the empty fallback while a URL is still being prepared, so "not yet" never reads as "nothing here"; the audio player's play button shows the spinner while playback waits on data (`waiting` / `seeking`). A video or audio element is usable — skeleton gone, element shown, `onLoad` fired once — on the first of `loadedmetadata`, `loadeddata`, or `canplay`: a healthy `preload="metadata"` element may never reach `loadeddata` before play, so metadata alone must not leave it looking like it is still loading
+- Each viewer's own visibility: every viewer owns exactly one IntersectionObserver (MEDIA-102) and reports what it sees through the optional `onVisibilityChange(visible)`; with a listener it keeps observing after the first sighting. `MediaPreview` listens only while its media has failed to load (the only time a retry is scheduled), feeds it to the recovery below, and adds no observer of its own; a healthy preview keeps its viewer's ordinary observer lifetime
+- Motion: the viewers' inline fades read theme-core's motion tokens (`--motion-slow`, `--motion-fast`, `--motion-ease`, FRONTEND-204) — never a raw duration. theme-core declares their defaults (theme-invariant), so the fade resolves in every theme; an app that overrides them in its own token layer changes the viewers' timing with it
 - Media-kind routing using generic media types from `media-schemas`
 - Bounded media-recovery state machine (loading → retry → fallback)
 
@@ -86,11 +88,11 @@ type AssetStatusHint =
 2 s → 5 s → 10 s → 20 s → 30 s → 30 s  (then capped at 30 s)
 ```
 
-Each delay has ±20% jitter. Retries pause while the element is off-screen (IntersectionObserver) or the document is hidden (visibilitychange). Budget resets on manual retry.
+Each delay has ±20% jitter. A scheduled retry waits while the viewer's element is off screen (the viewer's own observer, through `isElementVisible`) or the document is hidden (visibilitychange). While a `MediaPreview` recovers, its recovery overlay renders as the failed viewer's fallback, inside that viewer's observed wrapper, so the visibility signal continues through the failure. Budget resets on manual retry.
 
-### Per-asset dedup
+### Per-asset dedup and leadership
 
-Multiple instances of the same asset URL on-screen share one recovery cycle. The first instance to error becomes the "leader" and drives probes; all other instances receive the same state broadcasts. This prevents thundering-herd probes when the same thumbnail appears in many list items.
+Multiple instances of the same asset URL share one recovery cycle. Each instance whose element fails joins it; the first becomes the "leader" and drives probes, and every member receives the state broadcasts, so the same thumbnail in many list items causes one probe, not a thundering herd. Leadership never lapses: when the leader leaves (unmount, URL change, or its own successful load) the earliest remaining member is promoted, and a promoted member whose element is still failing drives the recovery at once. When any member reports the asset loaded — or restarts the recovery by hand, which makes it the leader — every member whose element failed retries its own element immediately.
 
 ---
 
@@ -140,12 +142,13 @@ import { useMediaRecovery } from "@ttt-productions/media-viewer/react";
 const { recoveryState, onMediaError, onMediaLoad, manualRetry } = useMediaRecovery({
   url: mediaUrl,
   adapter: tttAdapter,
+  isElementVisible: visible, // from the element's own observer; omitted = visible
   statusHint: "live",
   onRemount: () => setRemountKey(k => k + 1),
 });
 ```
 
-Wire `onMediaError` / `onMediaLoad` to the element's `onError` / `onLoad` (or `onLoadedData` for video/audio). Call `manualRetry` from a Retry button in `max-wait-fallback` state.
+Wire `onMediaError` / `onMediaLoad` to the element's `onError` / `onLoad` (for video/audio, the first of `onLoadedMetadata` / `onLoadedData`). Call `manualRetry` from a Retry button in `max-wait-fallback` state. The hook creates no IntersectionObserver; it takes the element's visibility from its caller.
 
 ---
 

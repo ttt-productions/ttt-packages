@@ -17,6 +17,8 @@ import {
   PublicDocumentAcceptanceLevelSchema,
   PublicDocumentVersionRefSchema,
   PublicDocumentVersionSchema,
+  PublicDocumentDraftRevisionSchema,
+  PublicDocumentDraftRevisionOrNoneSchema,
   type PublicDocumentVersionRef,
 } from '../doc-schemas/public-documents.js';
 import { LegalReviewNoticeRevisionSchema } from '../doc-schemas/legal-review-notice.js';
@@ -59,39 +61,46 @@ export const PublicDocumentsRefreshRequiredResultSchema = z.object({
 /**
  * `savePublicDocumentDraft` — replace a document's one private working copy with the editor's
  * FULL content. `baseVersion` is the published version the edit started from (the prior version
- * the editor showed for reference; 0 for a never-published document). The server refuses a base
- * that is no longer current. Discriminated on `documentId`, so each document's content is
- * validated by its own schema.
+ * the editor showed for reference; 0 for a never-published document). `expectedRevision` is the
+ * working-copy revision the editor opened (0 when it opened with none). The server refuses a base
+ * that is no longer current and a revision another save has moved since. Discriminated on
+ * `documentId`, so each document's content is validated by its own schema.
  */
 export const SavePublicDocumentDraftInputSchema = z.discriminatedUnion('documentId', [
   z.object({
     documentId: z.literal(SPECIAL_DOCS.TERMS_PAGE),
     baseVersion: baseVersionSchema,
+    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
     content: LegalPageContentInputSchema,
   }).strict(),
   z.object({
     documentId: z.literal(SPECIAL_DOCS.PRIVACY_PAGE),
     baseVersion: baseVersionSchema,
+    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
     content: LegalPageContentInputSchema,
   }).strict(),
   z.object({
     documentId: z.literal(SPECIAL_DOCS.RULES_AND_AGREEMENTS),
     baseVersion: baseVersionSchema,
+    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
     content: RulesAndAgreementsContentInputSchema,
   }).strict(),
   z.object({
     documentId: z.literal(SPECIAL_DOCS.FUTURE_PLANS),
     baseVersion: baseVersionSchema,
+    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
     content: FuturePlansContentInputSchema,
   }).strict(),
   z.object({
     documentId: z.literal(SPECIAL_DOCS.DMCA_POLICY),
     baseVersion: baseVersionSchema,
+    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
     content: DmcaPolicyContentInputSchema,
   }).strict(),
   z.object({
     documentId: z.literal(SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY),
     baseVersion: baseVersionSchema,
+    expectedRevision: PublicDocumentDraftRevisionOrNoneSchema,
     content: TakeItDownPageCopyContentInputSchema,
   }).strict(),
 ]);
@@ -100,27 +109,40 @@ export type SavePublicDocumentDraftInput = z.infer<typeof SavePublicDocumentDraf
 export const SavePublicDocumentDraftResultSchema = z.object({
   documentId: PublicDocumentIdSchema,
   baseVersion: baseVersionSchema,
+  /** The revision this save wrote — the editor's next `expectedRevision`. */
+  revision: PublicDocumentDraftRevisionSchema,
   savedAt: z.number(),
 });
 export type SavePublicDocumentDraftResult = z.infer<typeof SavePublicDocumentDraftResultSchema>;
 
 // ── Publish a release ────────────────────────────────────────────────────────
 
+/** A document's working copy at the revision a surface showed. */
+export const PublicDocumentDraftRevisionRefSchema = z
+  .object({
+    documentId: PublicDocumentIdSchema,
+    expectedRevision: PublicDocumentDraftRevisionSchema,
+  })
+  .strict();
+export type PublicDocumentDraftRevisionRef = z.infer<typeof PublicDocumentDraftRevisionRefSchema>;
+
 /**
  * `publishPublicDocumentRelease` — publish the saved working copies of the listed documents as
  * ONE all-or-nothing release. `releaseId` is minted by the client once per release attempt and
  * reused on retry, so a repeated call finds the release it already committed instead of
  * publishing twice. `requireAcceptance` is the release's one choice (the form defaults it to yes).
- * Every listed document must have a saved working copy whose base is still current and whose
- * content differs from the current version.
+ * Every listed document must have a saved working copy at the revision the publisher reviewed,
+ * whose base is still current and whose content differs from the current version.
  */
 export const PublishPublicDocumentReleaseInputSchema = z.object({
   releaseId: z.string().uuid(),
-  documentIds: z
-    .array(PublicDocumentIdSchema)
+  drafts: z
+    .array(PublicDocumentDraftRevisionRefSchema)
     .min(1)
     .max(PUBLIC_DOCUMENT_IDS.length)
-    .refine((ids) => new Set(ids).size === ids.length, { message: 'List each document once.' }),
+    .refine((drafts) => new Set(drafts.map((draft) => draft.documentId)).size === drafts.length, {
+      message: 'List each document once.',
+    }),
   requireAcceptance: z.boolean(),
 }).strict();
 export type PublishPublicDocumentReleaseInput = z.infer<typeof PublishPublicDocumentReleaseInputSchema>;

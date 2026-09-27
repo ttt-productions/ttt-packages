@@ -1,11 +1,13 @@
-// mediaCopyIntents/{newAssetId} — the intent of one cross-owner media copy, recorded before
-// the first variant object is copied and read back by the sweep that removes the objects of
-// a copy that never finished.
+// mediaCopyIntents/{newAssetId} — the intent of one media write in flight (a cross-owner copy or
+// a first ingest), recorded before the first variant object is written and read back by the
+// sweep that removes the objects of a write that never finished.
 
 import { describe, it, expect } from 'vitest';
 import {
+  MediaCopyIntentKindSchema,
   MediaCopyIntentSchema,
   MediaCopyIntentStateSchema,
+  MediaIngestIntentSchema,
 } from '../src/doc-schemas/media-copy-intents';
 import { MEDIA_VARIANT_KEYS, MediaAssetOwnerTypeSchema } from '../src/doc-schemas/media-assets';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
@@ -27,6 +29,7 @@ const GRACE_MS = 14 * 24 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const copying = {
+  kind: 'copy' as const,
   newAssetId: 'copy-asset-1',
   sourceAssetId: 'source-asset-1',
   ownerType: 'hallItem' as const,
@@ -71,6 +74,10 @@ describe('MediaCopyIntentSchema', () => {
     expect(MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: ['thumbnail'] }).success).toBe(false);
     expect(MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: ['main', 'main'] }).success).toBe(false);
     expect(MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: [] }).success).toBe(false);
+  });
+
+  it("names a video's poster frame, so a copy of a video with a poster can record every object it writes", () => {
+    expect(MediaCopyIntentSchema.safeParse({ ...copying, variantKeys: ['main', 'poster'] }).success).toBe(true);
   });
 
   it('never stores an object key in place of a variant name', () => {
@@ -126,6 +133,58 @@ describe('MediaCopyIntentSchema', () => {
 
   it('has exactly the two states', () => {
     expect(MediaCopyIntentStateSchema.options).toEqual(['copying', 'reaping']);
+  });
+
+  it('rejects an intent that does not say which write it covers', () => {
+    const { kind: _kind, ...unkinded } = copying;
+    expect(MediaCopyIntentSchema.safeParse(unkinded).success).toBe(false);
+  });
+
+  it('covers exactly a copy or a first ingest', () => {
+    expect(MediaCopyIntentKindSchema.options).toEqual(['copy', 'ingest']);
+  });
+});
+
+const ingesting = {
+  kind: 'ingest' as const,
+  newAssetId: 'minted-asset-1',
+  pendingMediaId: 'pending-1',
+  state: 'copying' as const,
+  createdAt: 1_700_000_000_000,
+  updatedAt: 1_700_000_000_000,
+  reapAfter: 1_700_000_000_000 + GRACE_MS,
+  reapAttemptCount: 0,
+};
+
+describe('MediaCopyIntentSchema — first ingest', () => {
+  it('parses an ingest intent recorded before the pipeline writes', () => {
+    expect(MediaCopyIntentSchema.parse(ingesting)).toEqual(ingesting);
+    expect(MediaIngestIntentSchema.parse(ingesting)).toEqual(ingesting);
+  });
+
+  it('parses an ingest intent the sweep has claimed, and requires the claim time', () => {
+    const claimed = { ...ingesting, state: 'reaping' as const, reapClaimedAt: 1_701_300_000_000 };
+    expect(MediaCopyIntentSchema.parse(claimed)).toEqual(claimed);
+    const { reapClaimedAt: _claimedAt, ...unstamped } = claimed;
+    expect(MediaCopyIntentSchema.safeParse(unstamped).success).toBe(false);
+  });
+
+  it('names the upload it ingests', () => {
+    const { pendingMediaId: _pendingMediaId, ...noUpload } = ingesting;
+    expect(MediaCopyIntentSchema.safeParse(noUpload).success).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, pendingMediaId: '' }).success).toBe(false);
+  });
+
+  it('carries no copy source, owner, or variant list — its objects are every canonical variant under the asset', () => {
+    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, sourceAssetId: 'source-asset-1' }).success).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, ownerType: 'userProfile', ownerId: 'u1' }).success).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, variantKeys: ['main'] }).success).toBe(false);
+  });
+
+  it('keeps the lifecycle rules of a copy intent', () => {
+    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, reapAfter: ingesting.updatedAt - 1 }).success).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, reapClaimedAt: 1_701_000_000_000 }).success).toBe(false);
+    expect(MediaCopyIntentSchema.safeParse({ ...ingesting, createdAt: ts(1_700_000_000_000) }).success).toBe(false);
   });
 });
 

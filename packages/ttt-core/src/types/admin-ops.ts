@@ -59,20 +59,21 @@ export interface OpsStatus {
   generatedAt: number;
   /** pendingMedia processing pipeline depth + uncleared failures. */
   media: { pending: number; processing: number; failed: number };
-  /** Open admin work-queue tasks by type (status == 'pending'). `opsAnomalies` is the
-   *  combined stake-share + pledge-ledger + pledge-payment-repair integrity lane depth.
-   *  `refundRequests` and `disputes` are additive (optional) money-ops queue counts — an
-   *  older backend that does not project them simply omits them. */
+  /** Unclaimed admin work-queue tasks by type — `status == 'pending'`, so a checked-out or
+   *  work-later task is not counted. `opsAnomalies` is the combined stake-share + pledge-ledger +
+   *  pledge-payment-repair integrity lane. This is the one count every queue badge reads. */
   adminQueue: {
     libraryReviews: number;
+    /** Published-Hall text change requests (`hallContentChangeRequest` tasks). */
+    changeRequests: number;
     reports: number;
     appeals: number;
     dispatches: number;
     opsAnomalies: number;
-    /** Pending user-initiated refund requests (the `payment.pledgeRefundRequested` lane). */
-    refundRequests?: number;
-    /** Open Stripe disputes / chargebacks awaiting resolution. */
-    disputes?: number;
+    /** User-initiated refund requests (`pledgeRefundRequested` tasks). */
+    refundRequests: number;
+    /** Stripe disputes (`pledgeDisputeOpened` tasks). */
+    disputes: number;
   };
   /** userProfiles created in the last 24h. */
   signupsLast24h: number;

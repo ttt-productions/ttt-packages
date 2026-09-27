@@ -17,6 +17,7 @@ import {
 import {
   ChildSafetyAccountRoleSchema,
   ChildSafetyAccountSubjectDispositionSchema,
+  SafetyCaseLaneSchema,
 } from '../doc-schemas/safety/case.js';
 import {
   ContentMediaKindSchema,
@@ -733,7 +734,7 @@ export type SafetyStagedAction = z.infer<typeof SafetyStagedActionSchema>;
 
 export const SafetyCaseInputSchema = z
   .object({
-    caseType: z.enum(['csam', 'ncii']),
+    caseType: SafetyCaseLaneSchema,
     caseId: z.string().min(1),
     outcome: z.enum(['founded', 'unfounded']),
     resolutionSummary: z.string().trim().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
@@ -752,7 +753,7 @@ export type SafetyCaseInput = z.infer<typeof SafetyCaseInputSchema>;
 
 export const ReopenSafetyCaseInputSchema = z
   .object({
-    caseType: z.enum(['csam', 'ncii']),
+    caseType: SafetyCaseLaneSchema,
     caseId: z.string().min(1),
     reasonInternal: z.string().trim().min(4).max(MAX_INTERNAL_REASON_LENGTH),
     expectedRevision: z.number().int().nonnegative().optional(),

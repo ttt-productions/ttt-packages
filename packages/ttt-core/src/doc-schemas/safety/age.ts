@@ -136,13 +136,11 @@ export const AGE_SESSION_COOKIE_SPEC = {
 } as const;
 
 // ===========================================================================
-// A7 / A11 [H6] — AgePolicyConfigV1 (the `_serverData/agePolicy` singleton)
+// AgePolicyConfigV1 — the `_serverData/agePolicy` singleton
 //
-// The generic gRPC retryable/terminal code lists are REMOVED — deletion is driven
-// ONLY by the RegistrationCompletionOutcome domain enum (§A7). No raw gRPC code ever
-// deletes an account. noDeleteOutcomes / terminalDeletableOutcomes are typed against
-// the imported RegistrationCompletionOutcome enum so the two arrays can never drift
-// from the domain outcome set.
+// No registration outcome deletes the login it was completing: a failed completion keeps
+// the Auth user, the person re-does the age step on the same login, and an abandoned login
+// is removed only by the orphan-registration cleanup after `registrationGracePeriodMinutes`.
 // ===========================================================================
 
 export const AgePolicyConfigV1Schema = z.object({
@@ -151,8 +149,6 @@ export const AgePolicyConfigV1Schema = z.object({
   cleanupSchedule: z.string().min(1), // cron expression for the orphan-Auth cleanup worker
   ageTokenTtlSeconds: z.number().int(), // [M-09] token TTL
   keyRetirementVerificationMinutes: z.number().int(), // [M-09] retired-signingKeyVersion verification window (> TTL so no live token is orphaned by a rotation)
-  noDeleteOutcomes: z.array(RegistrationCompletionOutcomeSchema),
-  terminalDeletableOutcomes: z.array(RegistrationCompletionOutcomeSchema),
 }).strict();
 export type AgePolicyConfigV1 = z.infer<typeof AgePolicyConfigV1Schema>;
 
@@ -164,22 +160,6 @@ export const DEFAULT_AGE_POLICY_CONFIG_V1: AgePolicyConfigV1 = {
   cleanupSchedule: '*/15 * * * *',
   ageTokenTtlSeconds: 600,
   keyRetirementVerificationMinutes: 15,
-  noDeleteOutcomes: [
-    'completed',
-    'alreadyCompletedSameUid',
-    'retryableInfrastructureFailure',
-    'reauthenticationRequired',
-    'appCheckRetryRequired',
-    'privateDataConflict',
-  ],
-  terminalDeletableOutcomes: [
-    'nonceExpired',
-    'nonceUnknown',
-    'nonceConsumedDifferentUid',
-    'sessionHashMismatch',
-    'attestationSignatureInvalid',
-    'policyVersionRejected',
-  ],
 };
 
 // ===========================================================================

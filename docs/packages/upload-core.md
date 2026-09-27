@@ -15,6 +15,17 @@ Feature code must not call the low-level upload primitive directly. Upload-capab
 
 The historical `./react` subpath was removed. Do not reintroduce unguarded upload hooks.
 
+## Result and cancellation
+
+A finished upload resolves `UploadFileResumableResult` = `{ fullPath, contentType, size }`. The
+primitive never mints a download URL: a staged upload is read only by the backend, and a download-token
+link would be a public, never-expiring address for unscanned bytes.
+
+A cancel the upload asked for — its `AbortSignal` aborting, or its controller's `cancel()` — rejects
+with the canonical `DOMException` named `AbortError` and records the session `canceled`, including when
+the Storage SDK reports it as its own `storage/canceled` error. A `storage/canceled` the upload did not
+ask for stays a real error. Consumers treat `AbortError` as a user cancel, never as a failure.
+
 ## Neutral content-type opt-in
 
 `uploadFileResumable` accepts `allowNeutralContentType: true` to permit EXACTLY

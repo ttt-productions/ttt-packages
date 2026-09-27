@@ -126,8 +126,12 @@ action is expected on either entry; do not "fix" them by relocating the value to
   mints them and the origin that validates them, and the internal-auth transport
   names (`internal-auth-headers.ts`), shared by the Cloud Functions tree that signs
   an internal request and the Worker/DO tree that verifies it. ARCH-005 requires
-  exactly one definition here; a per-tree copy is the drift the rule exists to
-  prevent. ONE named-exception block, at the top of `provenance-headers.ts`, is
+  one definition of each cross-tree trust contract, in the shared package every
+  participating tree installs: `edge-protocol-core` for the generic contracts (these
+  header names, the signing primitives, the bounded body reader), `ttt-core` for the
+  TTT-specific shapes (the media grant scope, session cookie, and apply body), and
+  `chat-schemas` for the chat contracts. A per-tree copy is the drift the rule exists
+  to prevent. ONE named-exception block, at the top of `provenance-headers.ts`, is
   scoped to every `x-ttt-*` wire name the package owns — do not duplicate it per
   file, and do not extend it to a branded string that is not a wire name.
 

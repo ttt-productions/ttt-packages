@@ -128,14 +128,23 @@ export type PublicDocumentVersion = z.infer<typeof PublicDocumentVersionSchema>;
 
 // ── Working copy ─────────────────────────────────────────────────────────────
 
+/** A working copy's revision: its first save writes 1 and every later save the next number. */
+export const PublicDocumentDraftRevisionSchema = z.number().int().positive();
+
+/** A working-copy revision where 0 means "no working copy". */
+export const PublicDocumentDraftRevisionOrNoneSchema = z.number().int().nonnegative();
+
 /**
  * `publicDocumentDrafts/{documentId}` — the one private working copy of a document, saved from
  * its Admin editor. `baseVersion` is the published version the edit started from (0 when the
  * document has never been published): the publish rejects a draft whose base is no longer the
- * current version, and one whose content equals the current version.
+ * current version, and one whose content equals the current version. `revision` counts its
+ * saves: a save or a publish names the revision it saw and is refused when another admin's save
+ * has moved it since, so one admin's save never silently replaces another's.
  */
 export const PublicDocumentDraftSchema = perDocument({
   baseVersion: PublicDocumentVersionOrNoneSchema,
+  revision: PublicDocumentDraftRevisionSchema,
   savedBy: z.string().min(1),
   savedAt: z.number(),
 });

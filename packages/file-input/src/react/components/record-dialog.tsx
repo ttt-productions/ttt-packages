@@ -570,7 +570,9 @@ export function RecordDialog({
           <div className="flex flex-wrap gap-2">
             {canRecVideo && (
               <Button
+                type="button"
                 variant={recordKind === "video" ? "default" : "secondary"}
+                aria-pressed={recordKind === "video"}
                 onClick={() => handleSelectKind("video")}
                 disabled={!isIdle || acquiring}
                 icon={<Video className="icon-xs" />}
@@ -580,7 +582,9 @@ export function RecordDialog({
             )}
             {canRecAudio && (
               <Button
+                type="button"
                 variant={recordKind === "audio" ? "default" : "secondary"}
+                aria-pressed={recordKind === "audio"}
                 onClick={() => handleSelectKind("audio")}
                 disabled={!isIdle || acquiring}
                 icon={<Mic className="icon-xs" />}
@@ -590,6 +594,7 @@ export function RecordDialog({
             )}
             {canPhoto && onRequestPhoto && (
               <Button
+                type="button"
                 variant="secondary"
                 onClick={() => {
                   onRequestPhoto();
@@ -670,7 +675,8 @@ export function RecordDialog({
 
           <DialogFooter className="flex-row justify-between gap-2">
             <Button
-              variant="destructive"
+              type="button"
+              variant="outline"
               onClick={() => handleDialogOpenChange(false)}
               disabled={save.pending}
               icon={<X className="icon-xs" />}
@@ -680,6 +686,7 @@ export function RecordDialog({
 
             {isIdle && (
               <Button
+                type="button"
                 variant="default"
                 onClick={() => void start.run(recordKind)}
                 disabled={disabled || isLoading || acquiring}
@@ -691,17 +698,18 @@ export function RecordDialog({
             )}
 
             {isRecording && (
-              <Button variant="default" onClick={stopRecording}>
+              <Button type="button" variant="default" onClick={stopRecording}>
                 Stop
               </Button>
             )}
 
             {isPreview && (
               <div className="flex gap-2">
-                <Button variant="secondary" onClick={handleReRecord} disabled={save.pending} icon={<RotateCcw className="icon-xs" />}>
+                <Button type="button" variant="secondary" onClick={handleReRecord} disabled={save.pending} icon={<RotateCcw className="icon-xs" />}>
                   Re-record
                 </Button>
                 <Button
+                  type="button"
                   variant="default"
                   onClick={() => void save.run()}
                   disabled={disabled || isLoading}

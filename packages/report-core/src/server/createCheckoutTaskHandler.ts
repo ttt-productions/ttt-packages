@@ -114,6 +114,32 @@ export function createCheckoutTaskHandler({
         const stealableExpired =
           (status === 'checkedOut' || status === 'workLater') && !lockActive;
 
+        const checkoutHolder = (taskData.checkoutDetails as Record<string, unknown> | undefined)?.userId;
+        if (lockActive && checkoutHolder === userId && opts.onConflict === 'throw') {
+          // The caller already holds this task under a live lock: answer that truthfully with
+          // the task as held, and change nothing — no lock extension, no audit event.
+          const originalDocRef = db.doc(taskData.originalPath as string);
+          const originalDoc = await transaction.get(originalDocRef);
+          const heldCheckout = taskData.checkoutDetails as Record<string, unknown>;
+          return {
+            success: true,
+            alreadyHeld: true,
+            task: {
+              id: taskDoc.id,
+              taskType: taskData.taskType,
+              taskId: taskData.taskId,
+              originalPath: taskData.originalPath,
+              summary: taskData.summary,
+              priority: taskData.priority,
+              checkedOutAt: heldCheckout.checkedOutAt,
+              expiresAt: heldCheckout.expiresAt,
+              status,
+              checkoutDetails: heldCheckout,
+              itemData: originalDoc.exists ? originalDoc.data() : null,
+            },
+          };
+        }
+
         if (status !== 'pending' && !stealableExpired) {
           if (opts.onConflict === 'skip') return null;
           if (lockActive) {
@@ -131,14 +157,16 @@ export function createCheckoutTaskHandler({
         const originalDocRef = db.doc(taskData.originalPath as string);
         const originalDoc = await transaction.get(originalDocRef);
 
-        // Audit auto-release if previously checked out
+        // Audit the auto-release of a previous (expired) checkout. The caller taking it over is
+        // the actor; the holder whose lock expired is the subject.
         if (taskData.checkoutDetails) {
           const prevCheckout = taskData.checkoutDetails as Record<string, unknown>;
           if (onAuditEvent) {
             await onAuditEvent(
               {
                 action: 'auto_released',
-                adminUserId: prevCheckout.userId as string,
+                adminUserId: userId,
+                priorAdminUserId: prevCheckout.userId as string,
                 taskType: taskData.taskType as string,
                 taskId: taskData.taskId as string,
                 timestamp: now,

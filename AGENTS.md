@@ -18,7 +18,7 @@ DJ's commands and written rules are absolute. The agent executes exactly what DJ
 
 - The user performs every version bump, publish, install, git, and push action.
 - The only user-facing release command is `./scripts/release-multiple.sh <folder> [<folder> ...] <patch|minor|major>` with short folder names. Never hand the user `release-package.sh` directly.
-- Default to `patch` for all non-breaking changes, additive included. Include directly affected dependents only for a deliberate breaking bump.
+- Pre-launch, every release is `patch` — additive exports, fixes, and breaking changes alike; never hand off `minor` or `major` (`CLAUDE.md` § Version bump selection). A breaking change still requires confirming that no consumer relies on what it removes or alters before it ships as a patch.
 - After `npm run test:quiet` is green, stop with the exact release command and the install commands as ONE fenced `bash` block runnable from the `ttt-master-app` root (install at the root, `cd` into each other consuming folder — `functions`, `media-worker`, … — install there, end with `cd ..` back at the root; never separate per-folder blocks). Do not begin app adoption until the user explicitly continues.
 
 ## Review agents

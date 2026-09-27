@@ -23,6 +23,31 @@ export const displayNameSchema = z
   .max(USERNAME_MAX_LENGTH)
   .regex(USERNAME_REGEX);
 
+/**
+ * A date of birth's fields with no bounds at all — for the registration age step, which must answer
+ * a malformed or out-of-range date exactly as it answers an under-13 one. A bound here would refuse
+ * that date as a distinguishable bad request and reveal which answer the date got; the range checks
+ * belong to `deriveAgeBracket`, whose `invalid` the route maps to the same refusal.
+ */
+export const DateOfBirthShapeSchema = z
+  .object({
+    year: z.number(),
+    month: z.number(),
+    day: z.number(),
+  })
+  .strict();
+
+/**
+ * A date of birth as a form submits it — whole-number parts, month 1–12, day 1–31. Only the shape:
+ * whether it is a real, past date and which bracket it gives is `deriveAgeBracket`'s to decide.
+ */
+export const DateOfBirthSchema = DateOfBirthShapeSchema.extend({
+  year: z.number().int(),
+  month: z.number().int().min(1).max(12),
+  day: z.number().int().min(1).max(31),
+});
+export type DateOfBirth = z.infer<typeof DateOfBirthSchema>;
+
 export const AcceptSquareStreetzAgreementsInputSchema = z.object({}).strict();
 export type AcceptSquareStreetzAgreementsInput = z.infer<typeof AcceptSquareStreetzAgreementsInputSchema>;
 
@@ -62,11 +87,7 @@ export const BecomeArtisanCreatorInputSchema = z.object({
   // ships, it has to match their payout (KYC) identity. The callable re-derives 18+ server-side
   // from this value; an under-18 derivation rejects (failure audit, nothing stored). Stored as
   // privateData attestedDateOfBirth + attestedDobSource 'artisanOnboarding'.
-  dob: z.object({
-    year: z.number().int(),
-    month: z.number().int().min(1).max(12),
-    day: z.number().int().min(1).max(31),
-  }).strict(),
+  dob: DateOfBirthSchema,
 }).strict();
 export type BecomeArtisanCreatorInput = z.infer<typeof BecomeArtisanCreatorInputSchema>;
 
@@ -225,11 +246,7 @@ export type CheckDisplayNameAvailableInput = z.infer<typeof CheckDisplayNameAvai
 // eligibility from server-side against a fresh attestation. Only the shape is validated
 // here; the age math + attestation binding live in the callable.
 export const UpgradeAccountToAdultInputSchema = z.object({
-  dob: z.object({
-    year: z.number().int(),
-    month: z.number().int().min(1).max(12),
-    day: z.number().int().min(1).max(31),
-  }).strict(),
+  dob: DateOfBirthSchema,
 }).strict();
 export type UpgradeAccountToAdultInput = z.infer<typeof UpgradeAccountToAdultInputSchema>;
 

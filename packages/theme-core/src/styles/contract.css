@@ -1,5 +1,12 @@
 
 :root {
+  /* Motion (theme-invariant, FRONTEND-204): the durations and easing every transition reads,
+     package or app. Defaults; an app overrides any of them from its own later-loading token layer. */
+  --motion-fast: 150ms;
+  --motion-base: 200ms;
+  --motion-slow: 250ms;
+  --motion-ease: cubic-bezier(0.215, 0.61, 0.355, 1);
+
   /* Loud fallbacks: if you see this, app did NOT define required brand tokens */
   --brand-primary: 999 100% 50%;
   --brand-secondary: 999 100% 50%;

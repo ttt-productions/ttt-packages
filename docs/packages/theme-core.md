@@ -7,6 +7,10 @@ Generic theme and CSS-token package.
 - The theme set and the theme provider over `next-themes`
 - The viewer settings mechanism: the device store for motion, the `<html>` reduced-motion attribute, and the account sync for theme and motion
 - CSS token contract
+- The motion tokens' defaults — the whole FRONTEND-204 family: `--motion-fast` (150ms), `--motion-base` (200ms), `--motion-slow` (250ms), and `--motion-ease`
+  (an ease-out cubic), declared theme-invariant in `contract.css`'s `:root`, so every
+  transition that reads them, in a package or the app (FRONTEND-204), resolves in every theme. An app may override any of them
+  from its own later-loading token layer; it does not restate them
 - Component/theme CSS entrypoints
 - Breakpoints and theme helpers
 - Generic theme switcher React component

@@ -13,7 +13,7 @@ Generic server-side rate-limit infrastructure.
 Single entry point (`.`), server-safe.
 
 - `createRedisClientFactory({ credentials, disabledWhen?, logger? }) → { get(): Redis | null, __reset() }` — lazy singleton; returns `null` when disabled (e.g. emulator) or credentials missing. Callers must treat `null` as "limiting unavailable" with an explicit fail-open/closed decision.
-- `createRateLimiterFactory({ getRedis, analytics?, onDegraded? }) → { getRateLimiter(config), checkRateLimit(key, config) }` — memoized per-config sliding-window limiters; `checkRateLimit` resolves `{ allowed: true } | { allowed: false, reset }` (reset = epoch ms).
+- `createRateLimiterFactory({ getRedis, analytics?, onDegraded? }) → { getRateLimiter(config), checkRateLimit(key, config) }` — memoized sliding-window limiters, one per `prefix`, reused only while `maxRequests` and `window` still match: a caller that changes a bucket's capacity at runtime (a live multiplier) gets a limiter built for the new values, counting in the same Redis prefix, never the one built first. `checkRateLimit` resolves `{ allowed: true } | { allowed: false, reset }` (reset = epoch ms).
 
 ## Failure posture (decided 2026-07-03): FAIL OPEN + ALERT LOUDLY
 

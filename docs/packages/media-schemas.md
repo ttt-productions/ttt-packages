@@ -12,6 +12,15 @@ Generic media schema and helper package. This replaces the old `media-contracts`
 - Optional crash-recovery lifecycle fields on the pending-media factory base shape (ride every status + archive branch): `processingAttemptCount` (non-negative integer) and `processingLeaseExpiresAt` (epoch ms). Optional everywhere so legacy/archived docs still parse. The state machine that interprets them is below; the policy values (lease length, attempt ceiling) are the app's.
 - `createPendingMediaSchemas(...)` factory for composing app-specific pending-media schemas
 - The pure pending-media lifecycle decisions and the staged-upload metadata verdict (see below)
+- The media pipeline's output-key names (`src/pipeline-output-keys.ts`) — the ONE declaration of
+  the keys media-processing-core writes: `TIMED_MEDIA_MAIN_OUTPUT_KEY` (`main`, a video's or audio
+  file's transcode), `VIDEO_POSTER_OUTPUT_KEY` (`poster`, a video's poster frame, written whenever the
+  transcode produces one), `IMAGE_DEFAULT_OUTPUT_KEY` (`original`, an image whose spec declares no
+  variants; otherwise each variant's own `key`), the per-kind set `MEDIA_PIPELINE_OUTPUT_KEYS`
+  (`{ video: [main, poster], audio: [main] }`), and the `MediaPipelineOutputKey` type. media-processing-core
+  names its outputs from these, and a consumer that must know every object an ingest can leave behind
+  (an app's canonical variant-key set, a cleanup sweep) derives it from them rather than restating the
+  names
 
 ## Boundary
 

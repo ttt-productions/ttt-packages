@@ -18,14 +18,18 @@
  *    opaque `activityGeneration`, resets `seenAt`, and flips the row to
  *    `materialized` — so the "applied but not marked" double-apply window is gone.
  *    Retrying a `materialized` row is a successful no-op.
+ *  - The same transaction asks the app whether the recipient may still receive
+ *    (`options.isRecipientEligible`); an ineligible recipient gets no card and the
+ *    row turns terminal `skipped`, so a row queued before (or retried after) the
+ *    recipient became ineligible can never recreate a card. Re-running it is a no-op.
  *  - TTL (`expireAt`, a real Firestore Timestamp via `config.timestampFromMillis`)
- *    is set ONLY at `materialized`; a `queued` or `deadLetter` row is NEVER TTL'd
- *    (round-19) so an unresolved delivery can't be silently deleted before replay.
+ *    is set ONLY at `materialized` / `skipped`; a `queued` or `deadLetter` row is NEVER TTL'd
+ *    so an unresolved delivery can't be silently deleted before replay.
  */
 
 import { randomUUID } from 'node:crypto';
 import type { NotificationSystemConfig, NotificationDoc } from '../types.js';
-import type { ServerFirestore, ServerDocRef } from './types.js';
+import type { ServerFirestore, ServerDocRef, ServerTransaction } from './types.js';
 import { buildActiveNotificationDocId } from './activeNotificationId.js';
 
 const DEFAULT_DELIVERIES_PATH = 'notificationDeliveries';
@@ -36,7 +40,28 @@ const DEFAULT_ACTOR_CAP = 5;
 const BACKOFF_BASE_MS = 60 * 1000; // 1 min
 const BACKOFF_MAX_MS = 60 * 60 * 1000; // 1 hour
 
-export type DeliveryState = 'queued' | 'materialized' | 'deadLetter';
+/**
+ * `skipped` is terminal: the recipient was not eligible when the row was materialized, so no card
+ * was written. It is TTL'd like `materialized` and never retried.
+ */
+export type DeliveryState = 'queued' | 'materialized' | 'skipped' | 'deadLetter';
+
+/** Why a row was terminalized as `skipped`. */
+export type DeliverySkipReason = 'recipientIneligible';
+
+/**
+ * Ledger options the consuming app must decide.
+ */
+export interface DeliveryLedgerOptions {
+  /**
+   * Whether `recipientUid` may still receive a notification. Called INSIDE the materialize
+   * transaction, after the delivery row is read and before anything is written, so the answer
+   * and the card write commit together (BACKEND-116): read through `tx` only. A recipient that
+   * answers false gets no card, and the row becomes `skipped`. Not called for a shared
+   * (recipient-less) row. A consumer with no eligibility rule answers true.
+   */
+  isRecipientEligible: (recipientUid: string, tx: ServerTransaction) => Promise<boolean>;
+}
 export type AggregationStrategy = 'increment' | 'staticRelight';
 export type MaterializationClass =
   | 'directQueued'
@@ -80,6 +105,7 @@ export interface EnqueueResult {
 export type MaterializeOutcome =
   | 'materialized'
   | 'already-materialized'
+  | 'skipped-ineligible-recipient'
   | 'missing'
   | 'skipped-non-queued';
 
@@ -145,7 +171,9 @@ export function applyAggregation(params: {
 export function createDeliveryLedger(
   db: ServerFirestore,
   config: NotificationSystemConfig,
+  options: DeliveryLedgerOptions,
 ): DeliveryLedger {
+  const { isRecipientEligible } = options;
   const deliveriesPath = config.deliveriesCollectionPath ?? DEFAULT_DELIVERIES_PATH;
   const ttlMs = config.deliveryTtlMs ?? DEFAULT_DELIVERY_TTL_MS;
   const maxAttempts = config.maxDeliveryAttempts ?? DEFAULT_MAX_ATTEMPTS;
@@ -183,7 +211,7 @@ export function createDeliveryLedger(
       createdAt: now,
       materializedAt: null,
       deadLetteredAt: null,
-      // No expireAt while queued (round-19).
+      // No expireAt while queued.
     };
   }
 
@@ -222,11 +250,25 @@ export function createDeliveryLedger(
       const d = (dSnap.data() ?? {}) as Record<string, unknown>;
       const state = d.state as DeliveryState;
       if (state === 'materialized') return 'already-materialized';
+      if (state === 'skipped') return 'skipped-ineligible-recipient';
       if (state !== 'queued') return 'skipped-non-queued';
 
       const notificationType = d.notificationType as string;
       const aggregationKey = d.aggregationKey as string;
       const recipientUid = (d.recipientUid as string | null) ?? null;
+
+      // The recipient is checked in this transaction, so a recipient that became ineligible
+      // (e.g. an erased account) never gets a card from a row queued before, or retried after.
+      if (recipientUid !== null && !(await isRecipientEligible(recipientUid, tx))) {
+        const skippedAt = Date.now();
+        tx.update(dRef, {
+          state: 'skipped' as DeliveryState,
+          skipReason: 'recipientIneligible' as DeliverySkipReason,
+          skippedAt,
+          expireAt: toTimestamp(skippedAt + ttlMs),
+        });
+        return 'skipped-ineligible-recipient';
+      }
       const strategy = (d.strategy as AggregationStrategy) ?? 'increment';
       const payload = (d.payload as DeliveryPayload) ?? { actorId: '', metadata: {}, occurrenceAt: Date.now() };
       const { typeConfig, categoryConfig } = getTypeConfig(notificationType);
@@ -376,7 +418,7 @@ export function createDeliveryLedger(
         nextAttemptAt: Date.now(),
         lastError: null,
         deadLetteredAt: null,
-        expireAt: null, // clear any TTL set on a prior terminal (round-19)
+        expireAt: null, // clear any TTL set on a prior terminal
       });
     });
   }
@@ -389,6 +431,7 @@ export function createDeliveryLedger(
     const tally: Record<MaterializeOutcome, number> = {
       materialized: 0,
       'already-materialized': 0,
+      'skipped-ineligible-recipient': 0,
       missing: 0,
       'skipped-non-queued': 0,
     };

@@ -163,7 +163,7 @@ describe('UploadQueue', () => {
     highPriCtrl.done.catch(() => {});
 
     // Complete job1 — should start the high priority job next
-    ctrl1.resolveDone({ downloadURL: '', fullPath: '', contentType: null, size: 0 });
+    ctrl1.resolveDone({ fullPath: '', contentType: null, size: 0 });
 
     // The startResumableUpload call count tells us ordering.
     // The queue picks up the next pending job via a microtask after the
@@ -211,7 +211,7 @@ describe('UploadQueue', () => {
     expect(queue.getRunningCount()).toBe(1);
 
     // Resolve the job
-    ctrl.resolveDone({ downloadURL: '', fullPath: '', contentType: null, size: 0 });
+    ctrl.resolveDone({ fullPath: '', contentType: null, size: 0 });
 
     // Wait for the promise chain to settle. Two microtask flushes match
     // the two `.then` hops the queue uses to mark the slot freed; no

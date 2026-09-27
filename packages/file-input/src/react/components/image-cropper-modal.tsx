@@ -71,8 +71,8 @@ export function ImageCropperModal(props: ImageCropperModalProps) {
         </div>
 
         <DialogFooter className="flex-row justify-end gap-2">
-          <Button variant="destructive" onClick={onClose} disabled={confirm.pending}>Cancel</Button>
-          <Button variant="default" onClick={() => void confirm.run()} pending={confirm.pending}>Confirm</Button>
+          <Button type="button" variant="outline" onClick={onClose} disabled={confirm.pending}>Cancel</Button>
+          <Button type="button" variant="default" onClick={() => void confirm.run()} pending={confirm.pending}>Confirm</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

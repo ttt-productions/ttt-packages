@@ -135,8 +135,6 @@ erDiagram
     field cleanupSchedule
     field ageTokenTtlSeconds
     field keyRetirementVerificationMinutes
-    field noDeleteOutcomes
-    field terminalDeletableOutcomes
   }
   allWorkProjects {
     field workProjectId
@@ -253,6 +251,9 @@ erDiagram
     field restored
     field restoredAt
     field restoreSkipped
+    field edgeSyncOwnerType
+    field edgeSyncOwnerId
+    field edgeSyncAssetIds
   }
   chatAdminActionCommands {
     field requestId
@@ -647,11 +648,6 @@ erDiagram
     field settings
     field lastUpdated
   }
-  hallMediaReaperCursor {
-    field createdAtCursor
-    field updatedAt
-    field deferred
-  }
   legalProcess {
     field at
     field kind
@@ -688,17 +684,6 @@ erDiagram
     field moderationStatus
   }
   mediaCopyIntents {
-    field newAssetId
-    field sourceAssetId
-    field ownerType
-    field ownerId
-    field variantKeys
-    field state
-    field createdAt
-    field updatedAt
-    field reapAfter
-    field reapAttemptCount
-    field reapClaimedAt
   }
   mentionHistory {
     field userId
@@ -709,6 +694,9 @@ erDiagram
     field action
     field entityType
     field entityId
+    field parentEntityId
+    field targetKey
+    field decision
     field actorUid
     field reason
     field createdAt
@@ -1121,14 +1109,11 @@ erDiagram
     field disabled
     field anonymizedAt
   }
-  publicUsersReconcilerCursor {
-    field profileIdCursor
-    field updatedAt
-  }
   publicWorkProjects {
     field workProjectId
     field publicWorkStatus
     field publicWorkHidden
+    field publicWorkHiddenBy
     field workRealmId
     field realmCanonStatus
     field type
@@ -1137,7 +1122,6 @@ erDiagram
     field workingTitle_lowercase
     field workingDescription
     field coverAssetId
-    field workStewardUid
   }
   quarantineSagaJobs {
     field schemaVersion
@@ -1295,10 +1279,6 @@ erDiagram
     field blocksReplacementCleanupCount
     field updatedAt
   }
-  safetyReconcilerCursors {
-    field afterValue
-    field updatedAt
-  }
   safetyResourceCommands {
     field schemaVersion
     field resourceKeyHash
@@ -1404,9 +1384,9 @@ erDiagram
     field updatedAt
   }
   sweepState {
-    field reaperLastRunAt
-    field reaperCursorPath
     field fullScanLastRunAt
+    field rollingCursor
+    field deferred
     field updatedAt
   }
   taggedCraftSkills {
@@ -1419,6 +1399,7 @@ erDiagram
     field tags
     field createdAt
     field hidden
+    field hiddenBy
     field kind
     field source
   }
@@ -1606,6 +1587,7 @@ erDiagram
     field name
     field mediaAssetId
     field contentType
+    field mediaKind
     field sizeBytes
     field uploadedBy
     field createdAt
@@ -1654,6 +1636,7 @@ erDiagram
     field realmType
     field realmStatus
     field realmHidden
+    field realmHiddenBy
     field workingTitle
     field workingTitle_lowercase
     field workingDescription
@@ -1661,7 +1644,6 @@ erDiagram
     field workStewardUid
     field foundingArtisanUid
     field foundingWorkProjectId
-    field createdOn
   }
   allWorkProjects ||--o{ adminTasks : "workProjectId"
   allWorkProjects ||--o{ auditionBoard : "workProjectId"

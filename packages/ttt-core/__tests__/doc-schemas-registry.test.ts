@@ -8,6 +8,7 @@ import {
   NESTED_SUBCOLLECTIONS,
 } from '../src/paths/collections';
 import { COLLECTION_SCHEMAS, PENDING_COLLECTIONS, COLLECTION_DOC_ID_FIELDS } from '../src/doc-schemas/registry';
+import { STATUS_RECONCILE_QUEUE_AUTH_EFFECTS } from '../src/doc-schemas/operational';
 
 const allCollectionNames = [
   ...Object.values(COLLECTIONS),
@@ -82,7 +83,7 @@ describe('Doc-id field annotations (COLLECTION_DOC_ID_FIELDS)', () => {
   it('checks every branch of a union binding', () => {
     const union = COLLECTION_SCHEMAS['statusReconcileQueue/{uid}'] as ShapedSchema;
     expect(union.shape).toBeUndefined();
-    expect(boundShapes(union)).toHaveLength(2);
+    expect(boundShapes(union)).toHaveLength(STATUS_RECONCILE_QUEUE_AUTH_EFFECTS.length);
     expect(boundShapes({ options: [{ shape: { uid: 1 } }, {}] })).toBeNull();
   });
 });

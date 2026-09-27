@@ -153,9 +153,6 @@ export const COLLECTIONS = {
   // the enroll callable and is NEVER readable through Firestore.
   OPERATOR_STEP_UP: 'operatorStepUp',
 
-  // Trust & Safety — one persisted pagination-cursor doc per reconciler needs-work backstop
-  // sweep (quarantine enqueue, NCMEC enqueue), keyed by the sweep's cursor key. Admin-SDK-only.
-  SAFETY_RECONCILER_CURSORS: 'safetyReconcilerCursors',
 
   // Durable per-sweep cadence/cursor state for the scheduled user sweeps, keyed by the sweep
   // name (orphanRegistrationCleanup, reconcileAccountStatus). Wall-clock stamps that survive a
@@ -416,12 +413,6 @@ export const SPECIAL_DOCS = {
   RESERVED_USERNAMES: 'reservedUsernames',
   BLOCKED_FRANCHISE_NAMES: 'blockedFranchiseNames',
   RULES_AND_AGREEMENTS: 'rulesAndAgreements',
-  // _serverData/hallMediaReaperCursor — the reapOrphanedHallMediaCopies scan cursor
-  // (highest `createdAt` the reaper has moved past, plus its deferred candidates). Server-only.
-  HALL_MEDIA_REAPER_CURSOR: 'hallMediaReaperCursor',
-  // _serverData/publicUsersReconcilerCursor — the reconcilePublicUsers sweep cursor (last
-  // userProfiles document id positively cleared; '' = start). Server-only.
-  PUBLIC_USERS_RECONCILER_CURSOR: 'publicUsersReconcilerCursor',
   // Editable content-page singletons under _appConfig (content-pages Firestore
   // migration, DJ ruling 2026-07-06): the ONLY source for /terms, /privacy, and
   // the /take-it-down page copy — no hardcoded fallbacks anywhere.

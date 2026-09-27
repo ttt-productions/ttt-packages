@@ -27,7 +27,11 @@ import {
   MAX_REPORT_SNAPSHOT_TEXT_LENGTH,
 } from '../../constants/business.js';
 import { MediaAssetOwnerTypeSchema } from '../media-assets.js';
-import { ModerationEdgeSyncOpSchema, ModerationEdgeSyncStateSchema } from '../moderation.js';
+import {
+  ModerationDecisionNumberSchema,
+  ModerationEdgeSyncOpSchema,
+  ModerationEdgeSyncStateSchema,
+} from '../moderation.js';
 
 // ===========================================================================
 // Canonical-key version token. The key formulas are DEFINED below as comments
@@ -227,10 +231,13 @@ export const ReportGroupV1Schema = z.object({
   // --- Edge-sync obligation (moderateReportedContent, replayed by adminReplayDeadLetter). Co-written
   // with the content action so edge state is never silently lost. Owner-keyed types persist
   // ownerType + ownerId; asset-level types persist only the asset ids. The params are deleted
-  // once the obligation settles and `edgeSyncState` is set to null.
+  // once the obligation settles and `edgeSyncState` is set to null. `edgeSyncDecision` is the
+  // moderation decision the obligation belongs to: a step applies or clears it only while that
+  // decision is still the target's latest.
   edgeSyncState: ModerationEdgeSyncStateSchema.nullable().optional(),
   edgeSyncProcessingAt: z.number().optional(),
   edgeSyncOp: ModerationEdgeSyncOpSchema.optional(),
+  edgeSyncDecision: ModerationDecisionNumberSchema.optional(),
   edgeSyncOwnerType: MediaAssetOwnerTypeSchema.optional(),
   edgeSyncOwnerId: z.string().min(1).optional(),
   edgeSyncAssetIds: z.array(z.string().min(1)).optional(),
@@ -265,6 +272,12 @@ export const ReportGroupV1Schema = z.object({
   // begins releasing the hold until the idempotent release succeeds; the cleanup schedule
   // re-issues the release for any group still carrying true.
   pendingHoldRelease: z.boolean().optional(),
+
+  // --- Ordinary report-root close-out (resolveAdminTask, the chat-tombstone close, and a closing
+  // safety case for the ordinary reports it owned). True, co-committed with the resolve, until every
+  // ordinary report root and public projection of the group is terminal and its reporter feedback
+  // sent; the close-out drain clears it. The outcome it applies is `resolutionOutcome`.
+  pendingRootTerminalization: z.boolean().optional(),
 }).strict();
 export type ReportGroupV1 = z.infer<typeof ReportGroupV1Schema>;
 

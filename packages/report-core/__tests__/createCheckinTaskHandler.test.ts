@@ -20,6 +20,12 @@ const TEST_CONFIG: ServerReportCoreConfig = {
   },
 };
 
+/** Every task type resolves on check-in except the one a domain resolver owns. */
+const OWNER = {
+  isResolvedByCheckin: (taskType: string) => taskType !== 'guidedDecision',
+  domainResolutionRefusalMessage: 'Resolve this task from its own decision.',
+};
+
 function createMockDb(taskData: Record<string, unknown> | null) {
   let autoId = 0;
   const store = new Map<string, Record<string, unknown>>();
@@ -64,7 +70,7 @@ function createMockDb(taskData: Record<string, unknown> | null) {
 
 describe('createCheckinTaskHandler', () => {
   it('factory returns a function', () => {
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db: {} as any });
+    const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db: {} as any });
     expect(typeof handler).toBe('function');
   });
 
@@ -77,7 +83,7 @@ describe('createCheckinTaskHandler', () => {
       checkoutDetails: { userId: 'admin1', checkedOutAt: now - 5 * 60_000 },
     };
     const { db, updates } = createMockDb(taskData);
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db });
+    const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db });
 
     const result = await handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
 
@@ -97,7 +103,7 @@ describe('createCheckinTaskHandler', () => {
       checkoutDetails: { userId: 'admin1', checkedOutAt: now - 10 * 60_000 },
     };
     const { db, updates } = createMockDb(taskData);
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db });
+    const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db });
 
     const result = await handler({ taskId: 'task1', resolved: false }, { uid: 'admin1' });
 
@@ -109,7 +115,7 @@ describe('createCheckinTaskHandler', () => {
 
   it('returns idempotent success when task not found (already resolved by another writer)', async () => {
     const { db } = createMockDb(null);
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db });
+    const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db });
 
     const result = await handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
 
@@ -119,7 +125,7 @@ describe('createCheckinTaskHandler', () => {
   it('does not write activity log or audit event when task not found', async () => {
     const { db, sets, updates } = createMockDb(null);
     const onAuditEvent = vi.fn();
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
+    const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db, onAuditEvent });
 
     await handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
 
@@ -136,7 +142,7 @@ describe('createCheckinTaskHandler', () => {
       checkoutDetails: { userId: 'other-admin', checkedOutAt: Date.now() - 1000 },
     };
     const { db } = createMockDb(taskData);
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db });
+    const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db });
 
     await expect(
       handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' }),
@@ -152,7 +158,7 @@ describe('createCheckinTaskHandler', () => {
       checkoutDetails: { userId: 'admin1', checkedOutAt: now - 1000 },
     };
     const { db, sets } = createMockDb(taskData);
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db });
+    const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db });
 
     await handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
 
@@ -169,7 +175,7 @@ describe('createCheckinTaskHandler', () => {
     };
     const { db } = createMockDb(taskData);
     const onAuditEvent = vi.fn();
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
+    const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db, onAuditEvent });
 
     await handler({ taskId: 'task1', resolved: false }, { uid: 'admin1' });
 
@@ -190,7 +196,7 @@ describe('createCheckinTaskHandler', () => {
     };
     const { db } = createMockDb(taskData);
     const onAuditEvent = vi.fn();
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
+    const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db, onAuditEvent });
 
     await handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
 
@@ -209,7 +215,7 @@ describe('createCheckinTaskHandler', () => {
     };
     const { db, transaction } = createMockDb(taskData);
     const onAuditEvent = vi.fn();
-    const handler = createCheckinTaskHandler({ config: TEST_CONFIG, db, onAuditEvent });
+    const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db, onAuditEvent });
 
     await handler({ taskId: 'task1', resolved: true, resolution: 'looks fine' }, { uid: 'admin1' });
 
@@ -227,4 +233,63 @@ describe('createCheckinTaskHandler', () => {
     );
   });
 
+
+  describe('a task whose resolution a domain resolver owns', () => {
+    const heldGuidedTask = () => ({
+      taskType: 'guidedDecision',
+      taskId: 'group1',
+      status: 'checkedOut',
+      checkoutDetails: { userId: 'admin1', checkedOutAt: Date.now() - 1000 },
+    });
+
+    it('refuses a resolved check-in with the app refusal and writes nothing', async () => {
+      const { db, updates, sets } = createMockDb(heldGuidedTask());
+      const onAuditEvent = vi.fn();
+      const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db, onAuditEvent });
+
+      const attempt = handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' });
+
+      await expect(attempt).rejects.toMatchObject({
+        name: 'ReportCoreTaskError',
+        code: 'failed-precondition',
+        message: 'Resolve this task from its own decision.',
+      });
+      expect(updates).toHaveLength(0);
+      expect(sets).toHaveLength(0);
+      expect(onAuditEvent).not.toHaveBeenCalled();
+    });
+
+    it('still lets the holder check it back in unresolved', async () => {
+      const { db, updates } = createMockDb(heldGuidedTask());
+      const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db });
+
+      await expect(handler({ taskId: 'task1', resolved: false }, { uid: 'admin1' })).resolves.toEqual({ success: true });
+      expect(updates[0].data.status).toBe('pending');
+    });
+
+    it('answers the already-resolved success when its resolver already deleted the task', async () => {
+      const { db } = createMockDb(null);
+      const handler = createCheckinTaskHandler({ ...OWNER, config: TEST_CONFIG, db });
+
+      await expect(handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' })).resolves.toEqual({
+        success: true,
+        alreadyResolved: true,
+      });
+    });
+
+    it('refuses a task with no readable type', async () => {
+      const { db, updates } = createMockDb({ ...heldGuidedTask(), taskType: undefined });
+      const handler = createCheckinTaskHandler({
+        ...OWNER,
+        isResolvedByCheckin: (taskType: string) => taskType === 'userReport',
+        config: TEST_CONFIG,
+        db,
+      });
+
+      await expect(handler({ taskId: 'task1', resolved: true }, { uid: 'admin1' })).rejects.toThrow(
+        'Resolve this task from its own decision.',
+      );
+      expect(updates).toHaveLength(0);
+    });
+  });
 });

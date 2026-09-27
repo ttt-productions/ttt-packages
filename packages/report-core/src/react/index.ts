@@ -11,8 +11,6 @@ export {
 export type {
   ReportCoreProviderProps,
   ReportCoreContextValue,
-  AdditionalReportAction,
-  ReportTargetRef,
 } from '../context/ReportCoreProvider.js';
 
 // ============================================

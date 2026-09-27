@@ -22,7 +22,7 @@ in the active collection until archived; personal unread state is tracked with
   spins while its page loads.
 - **The history (archived) read surface:** `useNotificationHistory` (paginated read of the archived-history collection resolved from the category's `historyPath`, ordered `archivedAt desc`, flattening each `archivedSnapshot` wrapper into a `NotificationHistoryItem` via a `select` mapper) and the read-only `NotificationHistoryList` component. Owner-only (user) / admin-only (admin) reads are enforced by Firestore rules; history rows are immutable (archive is one-way — no re-archive). The active read surface stays `useActiveNotifications` / `NotificationList`.
 - The batch-processing server helper (`processBatchHelper`) for the pending-queue path
-- **The generic delivery ledger (notification redesign):** `createDeliveryLedger(db, config)` —
+- **The generic delivery ledger (notification redesign):** `createDeliveryLedger(db, config, options)` —
   one Firestore doc per (recipient|shared, type, occurrence) that is BOTH the queue row AND the
   idempotency ledger. `enqueue` is create-if-absent (`ALREADY_EXISTS` ⇒ a per-row duplicate
   no-op, never a page failure); `materialize` is ONE transaction that reads the delivery row +
@@ -31,9 +31,20 @@ in the active collection until archived; personal unread state is tracked with
   `seenAt`, and flips the row to `materialized`; `recordTransientFailure` / `deadLetter` /
   `replay` / `materializeMany` (bounded concurrency) own the retry / dead-letter / replay
   lifecycle. `expireAt` (a real Firestore `Timestamp` via the injected
-  `config.timestampFromMillis`) is set ONLY at `materialized` — a `queued` or `deadLetter` row is
-  never TTL'd. The app owns the concrete collection name + the deterministic
-  `deliveryId`/`eventId`/`aggregationKey` construction and passes fully-formed rows in.
+  `config.timestampFromMillis`) is set ONLY at a terminal success (`materialized` or `skipped`) —
+  a `queued` or `deadLetter` row is never TTL'd. The app owns the concrete collection name + the
+  deterministic `deliveryId`/`eventId`/`aggregationKey` construction and passes fully-formed rows in.
+- **Recipient eligibility at materialization.** `options.isRecipientEligible(recipientUid, tx)`
+  (required) is the app's answer to "may this recipient still receive a notification?". The ledger
+  calls it inside the `materialize` transaction, after reading the delivery row and before any write,
+  reading only through `tx`, so the answer and the card write commit together. An ineligible
+  recipient gets no card: the row becomes terminal `skipped` (`skipReason: 'recipientIneligible'`,
+  `skippedAt`, TTL'd) and the call answers `'skipped-ineligible-recipient'`; a re-run answers the
+  same and writes nothing, and `replay` leaves it alone (it re-queues only dead letters). A row whose
+  check throws is an ordinary transient failure (retried, never skipped), and one row's answer never
+  affects the others in a `materializeMany` batch. A shared (recipient-less) row is never checked. A
+  consumer with no eligibility rule passes `async () => true`; the package knows nothing of what
+  makes a recipient ineligible.
 - **The observed-generation seen/archive protocol:** `markNotificationSeenWithGeneration`
   (stamps `seenAt` only if the card's opaque `activityGeneration` still matches the observed one)
   and `archiveNotificationWithGeneration` (deterministic history doc id ⇒ same-`payloadHash`

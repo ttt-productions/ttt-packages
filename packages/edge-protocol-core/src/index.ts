@@ -4,7 +4,8 @@
 // Deliberately NOT chat- or media-shaped: it holds the SHARED mechanisms
 // (internal HMAC signing and the header names that carry it, canonical payload
 // hashing, the versioned-apply rule, the structured-error + protocol-version
-// envelopes, the edge→origin provenance header names) that both the media
+// envelopes, the edge→origin provenance header names, the bounded body read
+// that precedes a signature check) that both the media
 // serving authority and the chat realtime layer build on, and that the
 // app-delivery front door and its origin share.
 // Each consumer supplies its own secret + audience; this package never names a
@@ -17,3 +18,4 @@ export * from './signed-token.js';
 export * from './versioned-apply.js';
 export * from './envelopes.js';
 export * from './provenance-headers.js';
+export * from './bounded-body.js';

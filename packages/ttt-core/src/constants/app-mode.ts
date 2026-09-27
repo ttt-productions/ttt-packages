@@ -97,6 +97,7 @@ export interface TttLimits {
     LIBRARY_SUBMISSION: RateLimitValue;
     CHANNEL_CREATE: RateLimitValue;
     CHECKOUT_CREATE: RateLimitValue;
+    AGE_ATTEST: RateLimitValue;
   };
 }
 
@@ -215,6 +216,11 @@ export const CHARTER_LIMITS: TttLimits = {
     LIBRARY_SUBMISSION: { maxRequests: 10, window: '1 h' },
     CHANNEL_CREATE: { maxRequests: 5, window: '1 h' },
     CHECKOUT_CREATE: { maxRequests: 5, window: '1 h' },
+    // The registration age step, keyed per hashed client IP (pre-account, no uid). One call per
+    // attempt — a corrected date or a retry at most doubles it — so 30/h gives one IP the same
+    // registrants per hour as DISPLAY_NAME_CHECK's 120/h at its 3–8 debounced checks each, while a
+    // script minting age-attestation records gets far less headroom.
+    AGE_ATTEST: { maxRequests: 30, window: '1 h' },
   },
 };
 
@@ -304,6 +310,8 @@ export const FULL_LIMITS: TttLimits = {
     LIBRARY_SUBMISSION: { maxRequests: 20, window: '1 h' },
     CHANNEL_CREATE: { maxRequests: 20, window: '1 h' },
     CHECKOUT_CREATE: { maxRequests: 20, window: '1 h' },
+    // Scaled with DISPLAY_NAME_CHECK's full-mode 300/h — see the CHARTER_LIMITS note.
+    AGE_ATTEST: { maxRequests: 75, window: '1 h' },
   },
 };
 

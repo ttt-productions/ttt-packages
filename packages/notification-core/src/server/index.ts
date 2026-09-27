@@ -10,6 +10,8 @@ export type {
   DeliveryRowInput,
   DeliveryPayload,
   DeliveryState,
+  DeliverySkipReason,
+  DeliveryLedgerOptions,
   AggregationStrategy,
   MaterializationClass,
   EnqueueResult,

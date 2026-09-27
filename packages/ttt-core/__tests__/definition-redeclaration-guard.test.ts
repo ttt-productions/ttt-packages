@@ -199,6 +199,16 @@ const GUARDED: Record<string, GuardedLiteral> = {
   // StatusReconcileQueueAuthEffect — which post-commit Auth effect queued a uid. Its other
   // member, `accountStatus`, is too common a word to guard.
   publicDocumentsAcceptedClaim: { owners: ['ttt-core/src/doc-schemas/operational.ts'] },
+  registeredMemberClaim: { owners: ['ttt-core/src/doc-schemas/operational.ts'] },
+  adminClaims: { owners: ['ttt-core/src/doc-schemas/operational.ts'] },
+  // The registered-member claim NAME — read by the rules and written by registration and the
+  // reconciler through REGISTERED_MEMBER_CLAIM.
+  registeredMember: { owners: ['ttt-core/src/constants/public-documents.ts'] },
+  // AdminTaskResolutionOwner — who resolves each admin task type.
+  reportResolution: { owners: ['ttt-core/src/constants/business-admin.ts'] },
+  changeRequestReview: { owners: ['ttt-core/src/constants/business-admin.ts'] },
+  // ModerationCascadeChangedEntityType — the craft-skill tag mirror a hide reaches.
+  craftSkillReference: { owners: ['ttt-core/src/doc-schemas/moderation.ts'] },
 };
 
 function walk(dir: string, out: string[]): void {

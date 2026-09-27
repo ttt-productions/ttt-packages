@@ -107,8 +107,19 @@ export type BaseMediaProps = {
   lazy?: boolean;
   priority?: boolean;
   skeleton?: boolean;
+  /**
+   * Fires once per load of the element, when it becomes usable: an image's `load`; a video's or
+   * audio's first `loadedmetadata`, `loadeddata`, or `canplay` (a `preload="metadata"` element may
+   * never reach `loadeddata` before play).
+   */
   onLoad?: () => void;
   onError?: () => void;
+  /**
+   * The viewer's own visibility, as its one IntersectionObserver reports it (MEDIA-102): called
+   * with each observation while the observer runs. Not called while the observer is skipped
+   * (a priority or non-lazy element that needs no visibility), which a consumer reads as visible.
+   */
+  onVisibilityChange?: (visible: boolean) => void;
   fallback?: React.ReactNode;
   /**
    * Load-watchdog budget in ms (default LOAD_WATCHDOG_MS). A visible, loading

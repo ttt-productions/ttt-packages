@@ -581,33 +581,12 @@ describe('PATH_BUILDERS', () => {
       expect(COLLECTIONS.APP_CONFIG).toBe('_appConfig');
       expect(PATH_BUILDERS.appConfig()).toEqual(['_appConfig', SPECIAL_DOCS.APP_CONFIG]);
     });
-
-    it('hallMediaReaperCursor lives in the server-only _serverData bucket', () => {
-      expect(PATH_BUILDERS.hallMediaReaperCursor()).toEqual([
-        COLLECTIONS.SERVER_DATA,
-        SPECIAL_DOCS.HALL_MEDIA_REAPER_CURSOR,
-      ]);
-    });
-
-    it('publicUsersReconcilerCursor lives in the server-only _serverData bucket', () => {
-      expect(PATH_BUILDERS.publicUsersReconcilerCursor()).toEqual([
-        COLLECTIONS.SERVER_DATA,
-        SPECIAL_DOCS.PUBLIC_USERS_RECONCILER_CURSOR,
-      ]);
-    });
   });
 
-  // ===== BACKEND-ONLY OPERATOR / RECONCILER PATHS =====
-  describe('Backend-only operator + reconciler paths', () => {
+  // ===== BACKEND-ONLY OPERATOR PATHS =====
+  describe('Backend-only operator paths', () => {
     it('operatorStepUp returns 2-segment tuple keyed by uid', () => {
       expect(PATH_BUILDERS.operatorStepUp('op-1')).toEqual([COLLECTIONS.OPERATOR_STEP_UP, 'op-1']);
-    });
-
-    it('safetyReconcilerCursor returns 2-segment tuple keyed by the sweep cursor key', () => {
-      expect(PATH_BUILDERS.safetyReconcilerCursor('quarantineEnqueue')).toEqual([
-        COLLECTIONS.SAFETY_RECONCILER_CURSORS,
-        'quarantineEnqueue',
-      ]);
     });
 
     it('childSafetyNcmecSubmissionAttempt returns the 6-segment attempt tuple', () => {

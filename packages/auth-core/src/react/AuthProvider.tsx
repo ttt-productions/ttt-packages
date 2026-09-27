@@ -9,9 +9,20 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
+import type { User } from "firebase/auth";
 import { useAuthState } from "./useAuthState.js";
 import { getIdTokenClaims } from "../claims.js";
 import type { AuthProviderConfig, AuthContextValue } from "./types.js";
+
+/**
+ * Claims resolved for one signed-in session. `user` is the Firebase `User` instance (it carries
+ * the uid and is replaced on every sign-in), and `generation` orders the reads that produced it.
+ */
+interface ResolvedClaims<TClaims> {
+  user: User;
+  generation: number;
+  claims: TClaims;
+}
 
  
 export const AuthContext = createContext<AuthContextValue<any> | null>(null);
@@ -26,12 +37,44 @@ export function AuthProvider<TClaims = Record<string, unknown>>(
 ) {
   const { user, loading: authLoading } = useAuthState(config.auth);
 
-  const [claims, setClaims] = useState<TClaims>(config.defaultClaims);
-  const [claimsLoading, setClaimsLoading] = useState(true);
+  // Claims are held with the session they were read for and derived at render (below), so a
+  // render can never pair one account's `user` with another account's claims, and a read that
+  // settles after the session changed (a late refresh, a slow initial read) is dropped.
+  const [resolved, setResolved] = useState<ResolvedClaims<TClaims> | null>(null);
+  const generationRef = useRef(0);
+  const appliedGenerationRef = useRef(0);
+  const currentUserRef = useRef<User | null>(user);
+  currentUserRef.current = user;
 
   // Stable config ref so effects don't re-fire on config object identity changes
   const configRef = useRef(config);
   configRef.current = config;
+
+  /**
+   * Read `forUser`'s claims under a new generation and apply them only if `forUser` is still
+   * the signed-in session and no newer read has applied. A failed read leaves the session's
+   * claims as they are, or settles an unread session on the default claims.
+   */
+  const readClaims = useCallback(
+    async (forUser: User, read: () => Promise<Record<string, unknown> | null>, context: string) => {
+      const generation = ++generationRef.current;
+      try {
+        const raw = await read();
+        if (currentUserRef.current !== forUser || generation <= appliedGenerationRef.current) return;
+        appliedGenerationRef.current = generation;
+        setResolved({ user: forUser, generation, claims: configRef.current.parseClaims(raw ?? {}) });
+      } catch (err) {
+        if (currentUserRef.current !== forUser) return;
+        configRef.current.onError?.(err, context);
+        setResolved((prev) =>
+          prev && prev.user === forUser
+            ? prev
+            : { user: forUser, generation, claims: configRef.current.defaultClaims },
+        );
+      }
+    },
+    [],
+  );
 
   // --- Optional readiness gate (see AuthProviderConfig.readyGate) ---
   // Open immediately when no gate is configured; otherwise held closed until the
@@ -57,45 +100,33 @@ export function AuthProvider<TClaims = Record<string, unknown>>(
     if (authLoading) return;
 
     if (!user) {
-      setClaims(configRef.current.defaultClaims);
-      setClaimsLoading(false);
+      setResolved(null);
       configRef.current.onAuthStateChange?.(null);
       return;
     }
 
-    let cancelled = false;
-    setClaimsLoading(true);
     configRef.current.onAuthStateChange?.(user);
-
-    getIdTokenClaims(user)
-      .then((raw) => {
-        if (cancelled) return;
-        setClaims(configRef.current.parseClaims((raw ?? {}) as Record<string, unknown>));
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        configRef.current.onError?.(err, "getIdTokenClaims");
-        setClaims(configRef.current.defaultClaims);
-      })
-      .finally(() => {
-        if (!cancelled) setClaimsLoading(false);
-      });
-
-    return () => { cancelled = true; };
-  }, [user, authLoading]);
+    void readClaims(
+      user,
+      async () => ((await getIdTokenClaims(user)) ?? {}) as Record<string, unknown>,
+      "getIdTokenClaims",
+    );
+  }, [user, authLoading, readClaims]);
 
   // --- refreshClaims ---
   const refreshClaims = useCallback(async () => {
     if (!user) return;
-    try {
-      const result = await user.getIdTokenResult(true);
-      setClaims(
-        configRef.current.parseClaims((result.claims ?? {}) as Record<string, unknown>),
-      );
-    } catch (err) {
-      configRef.current.onError?.(err, "refreshClaims");
-    }
-  }, [user]);
+    await readClaims(
+      user,
+      async () => ((await user.getIdTokenResult(true)).claims ?? {}) as Record<string, unknown>,
+      "refreshClaims",
+    );
+  }, [user, readClaims]);
+
+  // --- Derived at render: only the current session's claims are ever exposed ---
+  const sessionClaims = user && resolved?.user === user ? resolved : null;
+  const claims = sessionClaims ? sessionClaims.claims : config.defaultClaims;
+  const claimsLoading = authLoading || (user !== null && sessionClaims === null);
 
   // --- Context value ---
   const loading = authLoading || claimsLoading || !gateOpen;

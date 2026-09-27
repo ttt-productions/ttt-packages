@@ -10,6 +10,15 @@ export interface CheckinTaskHandlerConfig {
     requireAdmin: (uid: string, token?: unknown) => Promise<void>;
   };
   onAuditEvent?: OnAuditEvent;
+  /**
+   * Whether a resolved check-in may complete a task of this stored `taskType`. A type whose
+   * resolution belongs to a domain resolver (a guided decision that writes its own outcome and
+   * deletes the task) answers false, and a resolved check-in of it is refused — completing it
+   * here would drop the decision its resolver owns. An unknown type should answer false.
+   */
+  isResolvedByCheckin: (taskType: string) => boolean;
+  /** The refusal message a resolved check-in of such a task answers with (app copy). */
+  domainResolutionRefusalMessage: string;
 }
 
 /**
@@ -21,6 +30,8 @@ export function createCheckinTaskHandler({
   db,
   auth,
   onAuditEvent,
+  isResolvedByCheckin,
+  domainResolutionRefusalMessage,
 }: CheckinTaskHandlerConfig) {
   return async (
     data: CheckinTaskRequest,
@@ -54,6 +65,10 @@ export function createCheckinTaskHandler({
 
       if (!checkoutDetails || checkoutDetails.userId !== userId) {
         throw new ReportCoreTaskError('failed-precondition', 'You do not have this task checked out.');
+      }
+
+      if (resolved && !isResolvedByCheckin(String(taskData.taskType ?? ''))) {
+        throw new ReportCoreTaskError('failed-precondition', domainResolutionRefusalMessage);
       }
 
       const timeSpentMinutes = Math.round(

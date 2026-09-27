@@ -1,5 +1,8 @@
+/**
+ * What a finished upload reports: where the bytes landed, their stored content type, and
+ * their size. No download URL is minted — a staged upload is read only by the backend.
+ */
 export interface UploadFileResumableResult {
-  downloadURL: string;
   fullPath: string;
   contentType: string | null;
   size: number;

@@ -1,6 +1,7 @@
 // Admin + content-moderation business-rule constants — task priority, dispatches,
 // the moderation/feedback workflow, and admin-task lifecycle.
 import { ACTIVE_LIMITS } from './app-mode.js';
+import type { AdminTaskType } from '../doc-schemas/report-docs.js';
 
 // --- Admin Task Priority System ---
 
@@ -237,3 +238,45 @@ export const ADMIN_TASK_STATUS = {
   WORK_LATER: 'workLater',
   COMPLETED: 'completed',
 } as const;
+
+/**
+ * Who resolves each kind of admin task. `checkin` means the generic queue check-in completes it
+ * (the task carries no decision of its own). Every other owner is the domain decision that closes
+ * the task — and deletes it in the same transaction — so a generic check-in must never mark one
+ * of those tasks resolved: that would drop the decision it exists to collect.
+ */
+export const ADMIN_TASK_RESOLUTION_OWNERS = [
+  'checkin',
+  'reportResolution',
+  'thresholdReview',
+  'appealReview',
+  'refundDecision',
+  'changeRequestReview',
+  'dispatchClose',
+] as const;
+export type AdminTaskResolutionOwner = (typeof ADMIN_TASK_RESOLUTION_OWNERS)[number];
+
+/** The resolution owner of every admin task type. A new task type fails the build until classified. */
+export const ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE = {
+  adminDispatch: 'dispatchClose',
+  thresholdLibraryReview: 'thresholdReview',
+  userReport: 'reportResolution',
+  'content-appeal': 'appealReview',
+  stakeShareAnomaly: 'checkin',
+  pledgeLedgerAnomaly: 'checkin',
+  pledgePaymentRepairNeeded: 'checkin',
+  pledgeDisputeOpened: 'checkin',
+  pledgeRefundRequested: 'refundDecision',
+  hallContentChangeRequest: 'changeRequestReview',
+} as const satisfies Record<AdminTaskType, AdminTaskResolutionOwner>;
+
+/**
+ * Whether a generic check-in may mark a task of this stored type resolved. The type is read off an
+ * untrusted stored task as a string, so an unknown type answers `false` (fails closed).
+ */
+export function isAdminTaskResolvedByCheckin(taskType: string): boolean {
+  return (
+    Object.hasOwn(ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE, taskType) &&
+    ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE[taskType as AdminTaskType] === 'checkin'
+  );
+}

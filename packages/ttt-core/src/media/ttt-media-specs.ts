@@ -1,6 +1,7 @@
 import type { FileOrigin } from "./file-origin.js";
 import type { MediaOriginSpec } from "@ttt-productions/media-schemas";
 import { byMode } from "../constants/app-mode.js";
+import { DEFAULT_NCII_POLICY_CONFIG_V1 } from "../doc-schemas/ncii/config.js";
 
 // Mode-aware media-origin registry. Two distinct caps per origin (see
 // ttt-prod docs/design/charter-season-and-app-mode.md):
@@ -10,7 +11,8 @@ import { byMode } from "../constants/app-mode.js";
 //  - processing `maxOutputBytes` / `maxDurationSec` — the PROCESSED-OUTPUT
 //    spec the transcoder enforces. This is what actually gets stored/served.
 // Charter mode = lower durations/output quality; full mode raises them.
-// storage.rules `uploadMaxBytes` mirrors the raw caps — keep in sync (S6 test).
+// storage.rules `uploadMaxBytes` restates the raw caps because rules cannot import TypeScript; the
+// app's storage-rules cap test fails when the two differ.
 
 const MB = 1024 * 1024;
 
@@ -19,11 +21,10 @@ const IMAGE_RAW_BYTES = 25 * MB; // 48MP phone HEIC/JPEG fits comfortably
 const VIDEO_RAW_BYTES = byMode(500 * MB, 1024 * MB);
 const AUDIO_RAW_BYTES = byMode(100 * MB, 250 * MB);
 const CONVERSATION_FILE_RAW_BYTES = byMode(250 * MB, 500 * MB);
-// [H-01/R10] NCII take-it-down evidence: 100MB. The scan trigger downloads the whole object into a
-// ~512MiB Function before scanning, so an allowed file must fit in memory. No mode variation (the
-// evidence is preserveOriginal — never transcoded). Mirrored by storage.rules `uploadMaxBytes` (caps
-// sync test) + NciiPolicyConfigV1.maxEvidenceFileBytes (104857600).
-const NCII_EVIDENCE_RAW_BYTES = 100 * MB;
+// NCII take-it-down evidence: the NCII policy's per-file cap is the one owner. The scan trigger
+// downloads the whole object into a ~512MiB Function before scanning, so an allowed file must fit
+// in memory. No mode variation (the evidence is preserveOriginal — never transcoded).
+const NCII_EVIDENCE_RAW_BYTES = DEFAULT_NCII_POLICY_CONFIG_V1.maxEvidenceFileBytes;
 
 // --- Output duration caps (seconds) ---
 const SHORT_VIDEO_DURATION_SEC = byMode(60, 180);
@@ -75,7 +76,8 @@ const ACCEPT_IMAGE_VIDEO = {
 // (`MEDIA_VARIANT_KEYS`, doc-schemas/media-assets.ts). The generic MediaOriginSpec
 // types them as open strings, so the CI validation lives in
 // media-origin-lineage.test.ts: every declared key must parse against
-// MediaVariantKeySchema (and every schema member must be declared somewhere).
+// MediaVariantKeySchema, and every schema member must be produced by some origin (a spec's image
+// variants, or the video/audio outputs).
 export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
 
   'profile-picture': {
@@ -725,7 +727,6 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
   'ncii-evidence': {
     kind: 'generic',
     accept: ACCEPT_IMAGE_VIDEO,
-    // [H-01/R10] 100MB (was VIDEO_RAW_BYTES=500MB) — see NCII_EVIDENCE_RAW_BYTES.
     maxBytes: NCII_EVIDENCE_RAW_BYTES,
     // Byte-exact: scanned, but NEVER transcoded/resized (legal evidence integrity).
     // The explicit flag marks this no-`processing` origin as intentional, not forgotten.

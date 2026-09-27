@@ -164,14 +164,29 @@ export function MediaViewer(props: MediaPreviewProps) {
     setRemountKey((k) => k + 1);
   }, []);
 
+  // The viewer's visibility as its own observer reports it (MEDIA-102 — this router adds
+  // none). Only a recovering viewer listens — one whose element failed, the only time a
+  // retry is scheduled — and retries wait while it is off screen. A healthy viewer does
+  // not listen, so its observer keeps its own lazy-load lifetime. Each failure starts from
+  // "visible", so a report from an earlier failure never outlives it.
+  const listensForVisibility = recoveryAdapter !== undefined && hasError;
+  const [elementVisible, setElementVisible] = React.useState(true);
+  const [listenedLastRender, setListenedLastRender] = React.useState(listensForVisibility);
+  if (listenedLastRender !== listensForVisibility) {
+    setListenedLastRender(listensForVisibility);
+    setElementVisible(true);
+  }
+
   // Recovery hook (no-op when recoveryAdapter is omitted)
   const { recoveryState, onMediaError, onMediaLoad, manualRetry } =
     useMediaRecovery({
       url: typeof url === "string" ? url : null,
       adapter: recoveryAdapter,
+      isElementVisible: elementVisible,
       statusHint: assetStatusHint,
       onRemount: handleRemount,
     });
+  const onVisibilityChange = listensForVisibility ? setElementVisible : undefined;
 
   React.useEffect(() => {
     setHasError(false);
@@ -236,18 +251,13 @@ export function MediaViewer(props: MediaPreviewProps) {
     );
   }
 
-  // Recovery overlay (for all non-idle/non-loaded recovery states)
-  if (isInRecovery && hasError) {
-    return (
-      <div className={className} style={wrapperStyle}>
-        <RecoveryOverlay
-          state={recoveryState}
-          onManualRetry={manualRetry}
-          isCircular={isCircular}
-        />
-      </div>
-    );
-  }
+  // Recovery overlay (for all non-idle/non-loaded recovery states). It renders as the
+  // failed viewer's fallback, inside that viewer's observed wrapper, so the viewer keeps
+  // reporting its visibility while it recovers.
+  const recoveryOverlay =
+    isInRecovery && hasError ? (
+      <RecoveryOverlay state={recoveryState} onManualRetry={manualRetry} isCircular={isCircular} />
+    ) : null;
 
   // Vanilla error (no recovery adapter) -> error fallback
   if (hasError && !recoveryAdapter) {
@@ -276,7 +286,8 @@ export function MediaViewer(props: MediaPreviewProps) {
           loadTimeoutMs={loadTimeoutMs}
           onLoad={handleLoad}
           onError={handleError}
-          fallback={<ErrorFallback isCircular={isCircular} />}
+          onVisibilityChange={onVisibilityChange}
+          fallback={recoveryOverlay ?? <ErrorFallback isCircular={isCircular} />}
         />
       </div>
     );
@@ -302,6 +313,8 @@ export function MediaViewer(props: MediaPreviewProps) {
           loadTimeoutMs={loadTimeoutMs}
           onLoad={handleLoad}
           onError={handleError}
+          onVisibilityChange={onVisibilityChange}
+          fallback={recoveryOverlay ?? undefined}
           onEnded={onEnded}
           onProgressSample={onProgressSample}
           startAtSeconds={startAtSeconds}
@@ -331,6 +344,8 @@ export function MediaViewer(props: MediaPreviewProps) {
           onLoad={handleLoad}
           onLoadChange={onLoadChange}
           onError={handleError}
+          onVisibilityChange={onVisibilityChange}
+          fallback={recoveryOverlay ?? undefined}
           onEnded={onEnded}
           onProgressSample={onProgressSample}
           startAtSeconds={startAtSeconds}

@@ -10,6 +10,7 @@ import { MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business.js';
 import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
 import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 import { ContentMediaKindSchema } from './media-assets.js';
+import { ModerationHiddenBySchema } from './moderation.js';
 import { calendarDateSchema } from '../schemas/atoms.js';
 import { PublicDocumentAcceptanceSchema, PublicDocumentVersionOrNoneSchema } from './public-documents.js';
 
@@ -74,6 +75,7 @@ const craftSkillBaseShape = {
   // craft-skill hide cascade (report auto-hide or admin action). Mirrored onto
   // every taggedCraftSkills index doc so discovery surfaces can filter it.
   hidden: z.boolean(),
+  hiddenBy: ModerationHiddenBySchema.optional(),
   attestation: CraftSkillAttestationSchema,
 };
 
@@ -106,6 +108,7 @@ export const CraftSkillReferenceSchema = z.object({
   createdAt: z.number(),
   // Mirror of CraftSkill.hidden; lets the tag-browse filter hidden skills out.
   hidden: z.boolean(),
+  hiddenBy: ModerationHiddenBySchema.optional(),
   // Mirror of CraftSkill.kind so the tag-browse card can render the kind badge without a
   // second read.
   kind: CraftSkillKindSchema,

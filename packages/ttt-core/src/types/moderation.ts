@@ -6,6 +6,10 @@
 export type {
   ContentViolation,
   ContentAppealTask,
+  ContentViolationActions,
+  ModerationHiddenBy,
+  ModerationDecisionNumber,
+  ModerationTarget,
   ModerationCascadeAction,
   ModerationCascadeStatus,
   ModerationCascadeChangedEntityType,

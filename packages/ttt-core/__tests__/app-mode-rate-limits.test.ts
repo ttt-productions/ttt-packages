@@ -245,3 +245,25 @@ describe('Conversation Files usage counters (absent ⇒ 0)', () => {
     expect(AdminDispatchSchema.safeParse({ ...dispatch, partyKind: 'guild' }).success).toBe(false);
   });
 });
+
+describe('the registration age-step bucket', () => {
+  it('is 30 an hour in charter mode and 75 an hour in full mode', () => {
+    expect(CHARTER_LIMITS.rateLimits.AGE_ATTEST).toEqual({ maxRequests: 30, window: '1 h' });
+    expect(FULL_LIMITS.rateLimits.AGE_ATTEST).toEqual({ maxRequests: 75, window: '1 h' });
+  });
+
+  it('shares the display-name check window and stays below its ceiling in every mode', () => {
+    for (const limits of [CHARTER_LIMITS, FULL_LIMITS, ACTIVE_LIMITS]) {
+      const { AGE_ATTEST, DISPLAY_NAME_CHECK } = limits.rateLimits;
+      expect(AGE_ATTEST.window).toBe(DISPLAY_NAME_CHECK.window);
+      expect(AGE_ATTEST.maxRequests).toBeLessThan(DISPLAY_NAME_CHECK.maxRequests);
+    }
+  });
+});
+
+describe('guild invite conversation record', () => {
+  it('declares no opening-message copy — the message lives only in the invite channel', () => {
+    expect(Object.keys(GuildInviteConversationSchema.shape)).not.toContain('lastMessage');
+    expect(Object.keys(GuildInviteConversationSchema.shape)).not.toContain('lastMessageAt');
+  });
+});

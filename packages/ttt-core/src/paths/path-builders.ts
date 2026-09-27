@@ -16,6 +16,7 @@ import {
 import type { FollowableTargetType } from '../schemas/social.js';
 import type { WorkProjectType } from '../types/content.js';
 import type { PublicDocumentId } from '../constants/public-documents.js';
+import type { SweepStateName } from '../constants/scheduled-jobs.js';
 
 /** The doc id of a published public-document version: `v1`, `v2`, … (whole numbers from 1). */
 export const publicDocumentVersionDocId = (version: number): string => {
@@ -445,20 +446,6 @@ export const PATH_BUILDERS = {
   appModeMarker: (): [string, string] =>
     [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.APP_MODE],
 
-  // Singleton scan cursor for the scheduled Hall media orphan reaper
-  // (reapOrphanedHallMediaCopies); persists the highest `createdAt` the reaper has moved past
-  // so each pass resumes instead of re-reading the oldest page. Server-only bucket
-  // (BACKEND-108): its only reader is that function, and it carries Hall media asset ids.
-  hallMediaReaperCursor: (): [string, string] =>
-    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.HALL_MEDIA_REAPER_CURSOR],
-
-  // Singleton sweep cursor for the scheduled publicUsers reconciler (reconcilePublicUsers);
-  // persists the last userProfiles document id the sweep positively cleared so each pass
-  // resumes instead of re-reading the same oldest page ('' = start from the beginning).
-  // Server-only bucket (BACKEND-108): its only reader is that function.
-  publicUsersReconcilerCursor: (): [string, string] =>
-    [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.PUBLIC_USERS_RECONCILER_CURSOR],
-
   // Backend-only post-commit auth-effect reconcile queue entry, keyed by the affected uid.
   statusReconcileQueueEntry: (uid: string): [string, string] =>
     [COLLECTIONS.STATUS_RECONCILE_QUEUE, uid],
@@ -602,18 +589,14 @@ export const PATH_BUILDERS = {
   ageAttestationNonce: (nonceHash: string): [string, string] =>
     [COLLECTIONS.AGE_ATTESTATION_NONCES, nonceHash],
 
-  // ===== TRUST & SAFETY — operator step-up + reconciler cursors (backend-only) =====
+  // ===== TRUST & SAFETY — operator step-up (backend-only) =====
   // [H-08] per-operator TOTP step-up state, keyed by uid. Cloud-Functions-only.
   operatorStepUp: (uid: string): [string, string] =>
     [COLLECTIONS.OPERATOR_STEP_UP, uid],
 
-  // Persisted pagination cursor for one reconciler needs-work backstop sweep.
-  safetyReconcilerCursor: (cursorKey: string): [string, string] =>
-    [COLLECTIONS.SAFETY_RECONCILER_CURSORS, cursorKey],
-
-  // Durable cadence/cursor state for one scheduled user sweep, keyed by the sweep name
-  // (orphanRegistrationCleanup, reconcileAccountStatus). Backend-only.
-  sweepState: (sweepName: string): [string, string] =>
+  // Durable cadence/cursor state for one scheduled pass, keyed by its SWEEP_STATE_NAMES name.
+  // Backend-only.
+  sweepState: (sweepName: SweepStateName): [string, string] =>
     [COLLECTIONS.SWEEP_STATE, sweepName],
 
   // ===== TRUST & SAFETY — NCII / TAKE IT DOWN (§A11) =====

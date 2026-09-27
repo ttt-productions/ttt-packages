@@ -1,27 +1,51 @@
 import { describe, it, expectTypeOf } from 'vitest';
 import type { OpsStatus, OpsSafetyClocks, OpsBrokenMachinery } from '../src/types/admin-ops';
 
-describe('OpsStatus additive extension (Mission Control landing)', () => {
+describe('OpsStatus snapshot shape (Mission Control landing)', () => {
   const basePledge = { netRaised: 0, grossRaised: 0, totalRefunded: 0, pledgeCount: 0 };
+  const adminQueue = {
+    libraryReviews: 0,
+    changeRequests: 0,
+    reports: 0,
+    appeals: 0,
+    dispatches: 0,
+    opsAnomalies: 0,
+    refundRequests: 0,
+    disputes: 0,
+  };
 
-  it('an older-shaped snapshot (no new blocks/fields) still satisfies OpsStatus', () => {
-    const legacy: OpsStatus = {
+  it('a snapshot without the optional safety and machinery blocks satisfies OpsStatus', () => {
+    const snapshot: OpsStatus = {
       generatedAt: 1,
       media: { pending: 0, processing: 0, failed: 0 },
-      adminQueue: { libraryReviews: 0, reports: 0, appeals: 0, dispatches: 0, opsAnomalies: 0 },
+      adminQueue,
       signupsLast24h: 0,
       actionFailuresLast24h: 0,
       paymentFailuresLast24h: 0,
       pledge: basePledge,
     };
-    expectTypeOf(legacy).toMatchTypeOf<OpsStatus>();
+    expectTypeOf(snapshot).toMatchTypeOf<OpsStatus>();
   });
 
-  it('the new blocks + queue counts are all optional', () => {
+  it('every admin-queue lane, the change-request lane included, is a required count', () => {
+    expectTypeOf<OpsStatus['adminQueue']>().toEqualTypeOf<{
+      libraryReviews: number;
+      changeRequests: number;
+      reports: number;
+      appeals: number;
+      dispatches: number;
+      opsAnomalies: number;
+      refundRequests: number;
+      disputes: number;
+    }>();
+    // @ts-expect-error — a snapshot without the change-request lane is not a complete queue count.
+    const withoutChangeRequests: OpsStatus['adminQueue'] = { ...adminQueue, changeRequests: undefined };
+    void withoutChangeRequests;
+  });
+
+  it('the safety and machinery blocks are optional', () => {
     expectTypeOf<OpsStatus['safetyClocks']>().toEqualTypeOf<OpsSafetyClocks | undefined>();
     expectTypeOf<OpsStatus['brokenMachinery']>().toEqualTypeOf<OpsBrokenMachinery | undefined>();
-    expectTypeOf<OpsStatus['adminQueue']['refundRequests']>().toEqualTypeOf<number | undefined>();
-    expectTypeOf<OpsStatus['adminQueue']['disputes']>().toEqualTypeOf<number | undefined>();
   });
 
   it('safety-clocks counts are numbers; per-lane earliest-deadline epochs are optional numbers', () => {

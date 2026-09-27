@@ -46,6 +46,15 @@ The two Firebase stores are one implementation that differs only in token policy
 
 **`isObjectNotFoundError(e)`** is the one "the object does not exist" classifier, for both backends, and it decides from structured fields only — never message text: an `R2StorageError` with status `404` and `s3ErrorCode` `NoSuchKey` (an R2 `NoSuchBucket` is not a missing object), or a Cloud Storage Admin SDK error with the numeric code `404`. A message that says "No such object", or a string `"404"` code, is not a missing object. The stores' `delete` and `deleteCopy`, a copy's destination read, and `readStagedUploadMetadata` use it; a consumer deciding whether a failed store read, or its own Admin-SDK Storage call, hit a missing object calls it rather than re-testing codes.
 
+## Output keys
+
+Every output the processors write is named from media-schemas' one declaration: a video's
+`TIMED_MEDIA_MAIN_OUTPUT_KEY` and `VIDEO_POSTER_OUTPUT_KEY`, an audio file's
+`TIMED_MEDIA_MAIN_OUTPUT_KEY`, an image's spec-declared variant keys or, with none declared,
+`IMAGE_DEFAULT_OUTPUT_KEY` (`MEDIA_PIPELINE_OUTPUT_KEYS` groups the timed ones by kind). The package
+declares no output key of its own; `__tests__/output-keys.test.ts` fails on a processor that names
+one with a string literal.
+
 ## Canonical inspector + pipeline seam
 
 `inspectMedia` (src/inspection/) is THE server classification authority: bounded 64KiB

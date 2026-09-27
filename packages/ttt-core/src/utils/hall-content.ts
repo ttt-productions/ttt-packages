@@ -8,6 +8,7 @@ import {
   HALL_SUB_ITEM_REQUIREMENT_LABELS,
 } from '../constants/business-content.js';
 import type { WorkProjectType } from '../types/content.js';
+import type { FullChapter, FullTelevisionEpisode, FullTuneTrack } from '../doc-schemas/content.js';
 
 /** A published hall-content surface whose text a change request or the moderation
  *  text-clear remedy can target. */
@@ -88,4 +89,18 @@ export function isHallSubItemPublishable(
   subItem: Readonly<Record<string, unknown>>,
 ): boolean {
   return unmetHallSubItemRequirements(workProjectType, subItem).length === 0;
+}
+
+/** The review status every chapter / track / episode carries (one set for the three kinds). */
+export type HallSubItemStatus = (FullChapter | FullTuneTrack | FullTelevisionEpisode)['status'];
+
+/** The statuses that lock a sub-item against edits and media attaches: submitted for library
+ *  review, or published to the Hall. Text changes to a published item go through a change
+ *  request instead. */
+export const HALL_SUB_ITEM_LOCKED_STATUSES = ['pending_approval', 'published'] as const satisfies readonly HallSubItemStatus[];
+
+/** True when a sub-item in this status is locked; any other value, a missing status included, is
+ *  not a lock. */
+export function isHallSubItemLocked(status: unknown): boolean {
+  return (HALL_SUB_ITEM_LOCKED_STATUSES as readonly unknown[]).includes(status);
 }

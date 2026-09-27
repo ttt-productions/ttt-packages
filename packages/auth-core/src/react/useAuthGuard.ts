@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { clearRedirectPath, readRedirectPath, saveRedirectPath } from "./redirect-storage.js";
 
 export interface AuthGuardConfig {
   /**
@@ -39,7 +40,11 @@ const DEFAULT_REDIRECT_KEY = "auth_redirect_path";
  * - Does nothing while loading.
  * - Redirects unauthenticated users from protected routes to loginRoute.
  * - Redirects authenticated users from authRedirectRoutes to defaultRoute.
- * - Saves attempted path for post-login redirect.
+ * - Saves attempted path for post-login redirect — a visitor's deep link only. When a
+ *   session ends (an observed signed-in → signed-out transition: a sign-out, a forced
+ *   sign-out, an expiry, another tab), the path it ended on is NOT saved and any saved
+ *   path is cleared, so the next account to sign in on this device never lands on the
+ *   previous account's page.
  *
  * "Public" is decided ENTIRELY by `config.publicRoutes` (prefix match). The hook
  * carries no built-in or implicit public route: every route a consumer wants
@@ -70,8 +75,23 @@ export function useAuthGuard(config: AuthGuardConfig): void {
   // the saved path. The latch resets whenever the pathname is off the auth-route set.
   const authRouteRedirected = useRef(false);
 
+  // The last settled authentication state this guard observed (null before the first), and
+  // the pathname a session ended on. The effect can re-run on that same pathname before the
+  // login navigation commits, so the "do not save" decision is held for that pathname rather
+  // than for one run.
+  const lastAuthenticated = useRef<boolean | null>(null);
+  const sessionEndedOn = useRef<string | null>(null);
+
   useEffect(() => {
     if (loading) return;
+
+    if (lastAuthenticated.current === true && !isAuthenticated) {
+      sessionEndedOn.current = pathname;
+      clearRedirectPath(redirectKey);
+    } else if (isAuthenticated || sessionEndedOn.current !== pathname) {
+      sessionEndedOn.current = null;
+    }
+    lastAuthenticated.current = isAuthenticated;
 
     if (!authRedirectRoutes.includes(pathname)) {
       authRouteRedirected.current = false;
@@ -86,11 +106,9 @@ export function useAuthGuard(config: AuthGuardConfig): void {
     const isPublic = publicRoutes.some((r) => pathname.startsWith(r));
     const isAuthRedirect = authRedirectRoutes.includes(pathname);
 
-    // Unauthenticated on protected route -> save path, go to login
+    // Unauthenticated on protected route -> save a visitor's path, go to login
     if (!isAuthenticated && !isPublic) {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(redirectKey, pathname);
-      }
+      if (sessionEndedOn.current === null) saveRedirectPath(redirectKey, pathname);
       replace(loginRoute);
       return;
     }
@@ -100,13 +118,11 @@ export function useAuthGuard(config: AuthGuardConfig): void {
       if (authRouteRedirected.current) return;
       authRouteRedirected.current = true;
       let target = defaultRoute;
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem(redirectKey);
-        if (saved && !authRedirectRoutes.includes(saved)) {
-          target = saved;
-        }
-        localStorage.removeItem(redirectKey);
+      const saved = readRedirectPath(redirectKey);
+      if (saved && !authRedirectRoutes.includes(saved)) {
+        target = saved;
       }
+      clearRedirectPath(redirectKey);
       replace(target);
     }
   }, [

@@ -11,6 +11,8 @@
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import { isGuildStandingId, type GuildStandingId } from '../permissions/index.js';
+import { ModerationHiddenBySchema } from './moderation.js';
+import { ContentMediaKindSchema } from './media-assets.js';
 
 const guildStandingIdSchema = z.custom<GuildStandingId>(isGuildStandingId);
 const userRefSchema = z.object({ uid: z.string() });
@@ -131,6 +133,7 @@ export const PublicWorkProjectSchema = z.object({
   workProjectId: z.string(),
   publicWorkStatus: z.enum(['draft', 'released']),
   publicWorkHidden: z.boolean(),
+  publicWorkHiddenBy: ModerationHiddenBySchema.optional(),
   workRealmId: z.string(),
   realmCanonStatus: RealmCanonStatusSchema,
   type: z.enum(WORK_PROJECT_TYPE_KEYS),
@@ -187,6 +190,9 @@ export const WorkFileSchema = z.object({
   name: z.string(),
   mediaAssetId: z.string(),
   contentType: z.string(),
+  // The kind the server inspected from the bytes — what a preview renders by. `contentType` is the
+  // client-declared MIME, which may be the neutral type, so it never decides how a file renders.
+  mediaKind: ContentMediaKindSchema,
   sizeBytes: z.number(),
   uploadedBy: userRefSchema,
   createdAt: z.number(),
@@ -199,6 +205,7 @@ export const WorkRealmSchema = z.object({
   realmType: z.enum(['public', 'standalone']),
   realmStatus: z.enum(['draft', 'released']),
   realmHidden: z.boolean(),
+  realmHiddenBy: ModerationHiddenBySchema.optional(),
   workingTitle: z.string(),
   workingTitle_lowercase: z.string(),
   workingDescription: z.string(),

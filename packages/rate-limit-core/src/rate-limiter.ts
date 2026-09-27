@@ -47,11 +47,13 @@ export interface RateLimiterFactoryOptions {
 }
 
 /**
- * Create a memoized Ratelimit factory. Limiters are cached by their `prefix`
- * so repeated calls with the same config return the same instance.
+ * Create a memoized Ratelimit factory. One limiter is kept per `prefix`, and it is
+ * reused only while `maxRequests` and `window` still match: a caller that varies
+ * the capacity at runtime (a live incident multiplier) gets a limiter built for the
+ * new values, counting in the same Redis prefix, instead of the one built first.
  */
 export function createRateLimiterFactory(options: RateLimiterFactoryOptions) {
-  const limiters = new Map<string, Ratelimit>();
+  const limiters = new Map<string, { maxRequests: number; window: string; limiter: Ratelimit }>();
   const analytics = options.analytics ?? true;
   // Fire the `unavailable` degradation at most once per factory instance.
   let reportedUnavailable = false;
@@ -69,7 +71,9 @@ export function createRateLimiterFactory(options: RateLimiterFactoryOptions) {
     if (!redis) return null;
 
     const existing = limiters.get(config.prefix);
-    if (existing) return existing;
+    if (existing && existing.maxRequests === config.maxRequests && existing.window === config.window) {
+      return existing.limiter;
+    }
 
     const limiter = new Ratelimit({
       redis,
@@ -77,7 +81,7 @@ export function createRateLimiterFactory(options: RateLimiterFactoryOptions) {
       analytics,
       prefix: config.prefix,
     });
-    limiters.set(config.prefix, limiter);
+    limiters.set(config.prefix, { maxRequests: config.maxRequests, window: config.window, limiter });
     return limiter;
   }
 
