@@ -9,6 +9,7 @@ export type {
   WithId,
   FirestoreSourceState,
   WithSourceState,
+  BatchFirestoreDocOutcome,
   FirestoreBaseOptions,
   FirestoreDocOptions,
   FirestoreCollectionOptions,

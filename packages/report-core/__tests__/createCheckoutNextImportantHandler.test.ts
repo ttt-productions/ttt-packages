@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createCheckoutNextImportantHandler } from '../src/server/createCheckoutNextImportantHandler';
 import { ReportCoreTaskError } from '../src/server/taskError';
-import type { ServerReportCoreConfig } from '../src/server/types';
+import type { ServerReportCoreConfig, TaskClaimGuard } from '../src/server/types';
 
 const TEST_CONFIG: ServerReportCoreConfig = {
   collections: {
@@ -53,6 +53,7 @@ function createMockDb(opts: MockDbOptions = {}) {
   const updates: Array<{ path: string; data: DocData }> = [];
   const sets: Array<{ path: string; data: DocData }> = [];
   let queryCount = 0;
+  let docsRead = 0;
   let hasWritten = false;
 
   const makeRef = (path: string) => ({ id: path.split('/').pop()!, _path: path });
@@ -67,14 +68,16 @@ function createMockDb(opts: MockDbOptions = {}) {
     dir: 'asc' | 'desc';
   }
 
-  const makeQuery = (colPath: string, clauses: Clause[], orders: Order[], lim?: number) => {
+  const makeQuery = (colPath: string, clauses: Clause[], orders: Order[], lim?: number, afterPath?: string) => {
     const query = {
       _isQuery: true,
       where: (field: string, op: string, value: unknown) =>
-        makeQuery(colPath, [...clauses, { field, op, value }], orders, lim),
+        makeQuery(colPath, [...clauses, { field, op, value }], orders, lim, afterPath),
       orderBy: (field: string, direction: 'asc' | 'desc' = 'asc') =>
-        makeQuery(colPath, clauses, [...orders, { field, dir: direction }], lim),
-      limit: (n: number) => makeQuery(colPath, clauses, orders, n),
+        makeQuery(colPath, clauses, [...orders, { field, dir: direction }], lim, afterPath),
+      limit: (n: number) => makeQuery(colPath, clauses, orders, n, afterPath),
+      startAfter: (snapshot: { ref: { _path: string } }) =>
+        makeQuery(colPath, clauses, orders, lim, snapshot.ref._path),
       get: async () => {
         opts.beforeQuery?.(store);
         queryCount++;
@@ -100,7 +103,12 @@ function createMockDb(opts: MockDbOptions = {}) {
           }
           return 0;
         });
+        if (afterPath !== undefined) {
+          const at = rows.findIndex((r) => r.path === afterPath);
+          if (at >= 0) rows = rows.slice(at + 1);
+        }
         if (lim !== undefined) rows = rows.slice(0, lim);
+        docsRead += rows.length;
         const docs = rows.map((r) => ({
           id: r.path.split('/').pop()!,
           exists: true,
@@ -160,7 +168,7 @@ function createMockDb(opts: MockDbOptions = {}) {
     }),
   } as any;
 
-  return { db, transaction, store, sets, updates, queryCount: () => queryCount };
+  return { db, transaction, store, sets, updates, queryCount: () => queryCount, docsRead: () => docsRead };
 }
 
 const pendingTask = (taskId: string, priority: number, createdAt = 1): DocData => ({
@@ -481,5 +489,112 @@ describe('createCheckoutNextImportantHandler', () => {
       'queue is busy',
     );
     expect(queryCount()).toBe(5);
+  });
+});
+
+describe('createCheckoutNextImportantHandler — the app claim guard', () => {
+  const refuseInFlight: TaskClaimGuard = async ({ originalData }) =>
+    originalData?.status === 'processing'
+      ? { claimable: false, message: 'in flight' }
+      : { claimable: true };
+
+  it('skips a refused candidate, without auditing it, and claims the next one', async () => {
+    const onAuditEvent = vi.fn();
+    const { db, updates } = createMockDb({
+      docs: {
+        'adminTasks/busy': pendingTask('groupBusy', 9),
+        'adminTasks/free': pendingTask('groupFree', 1),
+        'activeReportGroups/groupBusy': { status: 'processing' },
+        'activeReportGroups/groupFree': { status: 'pending' },
+      },
+    });
+    const handler = createCheckoutNextImportantHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: { adminUserIds: ['admin1'] },
+      onAuditEvent,
+      assertTaskClaimable: refuseInFlight,
+    });
+
+    const result = await handler({}, { uid: 'admin1', token: null });
+
+    expect((result.task as { id: string }).id).toBe('free');
+    expect(updates).toHaveLength(1);
+    expect(updates[0].path).toBe('adminTasks/free');
+    expect(onAuditEvent).toHaveBeenCalledTimes(1);
+    expect(onAuditEvent).toHaveBeenCalledWith(expect.objectContaining({ taskId: 'groupFree' }), expect.anything());
+  });
+
+  it('hands the guard the task, its item, and the claim transaction', async () => {
+    const { db, transaction } = createMockDb({
+      docs: {
+        'adminTasks/task1': pendingTask('group1', 5),
+        'activeReportGroups/group1': { status: 'pending' },
+      },
+    });
+    const guard = vi.fn<TaskClaimGuard>(async () => ({ claimable: true }));
+    const handler = createCheckoutNextImportantHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: { adminUserIds: ['admin1'] },
+      assertTaskClaimable: guard,
+    });
+
+    await handler({}, { uid: 'admin1', token: null });
+
+    const args = guard.mock.calls[0][0];
+    expect(args.taskDocId).toBe('task1');
+    expect(args.taskData).toMatchObject({ taskId: 'group1', status: 'pending' });
+    expect(args.originalData).toEqual({ status: 'pending' });
+    expect(args.transaction).toBe(transaction);
+    expect(transaction.update.mock.invocationCallOrder[0]).toBeGreaterThan(guard.mock.invocationCallOrder[0]);
+  });
+
+  it('reads past refused candidates one document per refusal, never re-reading the queue head', async () => {
+    const docs: Record<string, DocData> = {
+      'adminTasks/free': pendingTask('groupFree', 1),
+      'activeReportGroups/groupFree': { status: 'pending' },
+    };
+    for (let i = 0; i < 6; i++) {
+      docs[`adminTasks/busy${i}`] = pendingTask(`groupBusy${i}`, 20 - i);
+      docs[`activeReportGroups/groupBusy${i}`] = { status: 'processing' };
+    }
+    const { db, docsRead, queryCount } = createMockDb({ docs });
+    const handler = createCheckoutNextImportantHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: { adminUserIds: ['admin1'] },
+      assertTaskClaimable: refuseInFlight,
+    });
+
+    const result = await handler({}, { uid: 'admin1', token: null });
+
+    expect((result.task as { id: string }).id).toBe('free');
+    // Six refusals and one claim: seven one-document reads in total.
+    expect(queryCount()).toBe(7);
+    expect(docsRead()).toBe(7);
+  });
+
+  it('answers an empty queue when every pending task is refused', async () => {
+    const { db, updates } = createMockDb({
+      docs: {
+        'adminTasks/a': pendingTask('groupA', 9),
+        'adminTasks/b': pendingTask('groupB', 5),
+        'activeReportGroups/groupA': { status: 'processing' },
+        'activeReportGroups/groupB': { status: 'processing' },
+      },
+    });
+    const handler = createCheckoutNextImportantHandler({
+      config: TEST_CONFIG,
+      db,
+      auth: { adminUserIds: ['admin1'] },
+      assertTaskClaimable: refuseInFlight,
+    });
+
+    const error = await handler({}, { uid: 'admin1', token: null }).catch((e) => e);
+
+    expect(error).toBeInstanceOf(ReportCoreTaskError);
+    expect(error.code).toBe('not-found');
+    expect(updates).toHaveLength(0);
   });
 });

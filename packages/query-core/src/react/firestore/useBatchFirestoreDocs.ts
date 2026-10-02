@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueries, useQueryClient } from '@tanstack/react-query';
 import type { Firestore } from 'firebase/firestore';
-import { isListenerOwned, subscribeDoc } from './doc-subscription-registry.js';
+import { isListenerOwned, listenerErrorOf, subscribeDoc } from './doc-subscription-registry.js';
 import { getDocLoader } from './batch-doc-loader.js';
 import { ABSENT_RETRY_DELAYS_MS, trackAbsentDoc } from './absence-scheduler.js';
+import type { BatchFirestoreDocOutcome } from '../../firestore/types.js';
 
 /** Transport used to resolve an id in one-shot mode. */
 export type BatchFirestoreDocsTransport = 'batch' | 'get';
@@ -122,10 +123,29 @@ export type BatchFirestoreDocsResult<T> = {
   error: Error | null;
 
   /**
+   * One entry per requested id (empty ids and duplicates dropped): `loading`, `present` with
+   * its data, `absent`, or `failed` with that id's own error. A multi-id consumer reads which
+   * ids are missing and which failed here — `data` / `isError` / `error` are the aggregate
+   * view and cannot tell them apart. The map, and each unchanged entry, keep their identity
+   * across renders.
+   */
+  outcomes: Record<string, BatchFirestoreDocOutcome<T>>;
+
+  /**
    * Refetch every requested id, cached ones included. A no-op in subscribe mode.
    */
   refetch: () => Promise<void>;
 };
+
+const LOADING_OUTCOME = { status: 'loading' } as const;
+const ABSENT_OUTCOME = { status: 'absent' } as const;
+
+function sameOutcome<T>(a: BatchFirestoreDocOutcome<T>, b: BatchFirestoreDocOutcome<T>): boolean {
+  if (a.status !== b.status) return false;
+  if (a.status === 'present') return a.data === (b as { data: T }).data;
+  if (a.status === 'failed') return a.error === (b as { error: Error }).error;
+  return true;
+}
 
 function shallowRecordEqual<T>(a: Record<string, T>, b: Record<string, T>): boolean {
   const aKeys = Object.keys(a);
@@ -148,6 +168,9 @@ function shallowRecordEqual<T>(a: Record<string, T>, b: Record<string, T>): bool
  * A nonexistent document resolves to `null` (negative caching) and is excluded from `data`;
  * an absent id is then re-read on a bounded ladder (see `absentRetryDelaysMs`) so a doc
  * that appears shortly afterwards shows up without an invalidation.
+ *
+ * Each id's own answer — loading, present, absent, or failed with its own error — is in
+ * `outcomes`; the aggregate fields cannot tell an absent id from a failed one.
  *
  * @example
  * ```typescript
@@ -187,8 +210,8 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
 
   // ── Real-time subscribe mode ──────────────────────────────────────────────
   // Listener errors cannot surface through the per-id queries (they are disabled while
-  // subscribed), so they are tracked here and merged into the returned result.
-  const [subscribeError, setSubscribeError] = useState<Error | null>(null);
+  // subscribed), so they are tracked here, per id, and merged into the returned result.
+  const [subscribeErrors, setSubscribeErrors] = useState<Record<string, Error>>({});
   // Snapshot re-render trigger. The per-id query observers do notify on the listener's
   // cache write, but only on React Query's batched microtask; bumping state in the
   // snapshot callback keeps a landed snapshot visible in the SAME tick it arrives.
@@ -203,8 +226,11 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
           transport === 'get' ? await loader.loadOne(id, signal) : await loader.loadBatched(id, signal);
         // If a shared listener took ownership of this key while the read was in flight, the
         // listener's value is the newer truth — `onSnapshot` will not re-emit until the doc
-        // changes, so returning the read result here would leave a stale value stuck.
+        // changes, so returning the read result here would leave a stale value stuck. A listener
+        // that errored left only a `null` placeholder; its error is the answer, never an absence.
         if (isListenerOwned(queryClient, queryKeyPrefix, id)) {
+          const listenerError = listenerErrorOf(queryClient, queryKeyPrefix, id);
+          if (listenerError) throw listenerError;
           const owned = queryClient.getQueryData([queryKeyPrefix, id]);
           if (owned !== undefined) return owned as T | null;
         }
@@ -225,7 +251,7 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
 
   useEffect(() => {
     if (!subscribe || !enabled || uniqueIds.length === 0) return;
-    setSubscribeError(null);
+    setSubscribeErrors({});
     const unsubscribers = uniqueIds.map((id) =>
       subscribeDoc({
         queryClient,
@@ -233,8 +259,16 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
         collectionPath,
         queryKeyPrefix,
         id,
-        onUpdate: () => setSnapshotVersion((version) => version + 1),
-        onError: (error) => setSubscribeError(error),
+        onUpdate: () => {
+          setSubscribeErrors((errors) => {
+            if (!(id in errors)) return errors;
+            const { [id]: _cleared, ...rest } = errors;
+            return rest;
+          });
+          setSnapshotVersion((version) => version + 1);
+        },
+        onError: (error) =>
+          setSubscribeErrors((errors) => (errors[id] === error ? errors : { ...errors, [id]: error })),
       }),
     );
     return () => {
@@ -261,35 +295,63 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
     };
   }, [uniqueIds, queryKeyPrefix, queryClient, absentDelays]);
 
+  // The maps are rebuilt every render; the committed refs below hand back the last
+  // COMMITTED objects while nothing changed, so consumers can depend on their identity. Only
+  // the effect writes the refs, so a concurrent render React discards can never leave them
+  // pointing at an uncommitted map.
+  const committedDataRef = useRef<Record<string, T>>({});
+  const committedOutcomesRef = useRef<Record<string, BatchFirestoreDocOutcome<T>>>({});
+
   const nextData: Record<string, T> = {};
+  const nextOutcomes: Record<string, BatchFirestoreDocOutcome<T>> = {};
   let anyError: Error | null = null;
+  let anyListenerError: Error | null = null;
   let oneShotLoading = false;
   let anyUnresolved = false;
 
   for (let index = 0; index < uniqueIds.length; index += 1) {
+    const id = uniqueIds[index];
     const result = results[index];
-    if (!result) continue;
-    if (result.isError) {
-      anyError ??= (result.error as Error | null) ?? null;
-      continue;
+    let outcome: BatchFirestoreDocOutcome<T> = LOADING_OUTCOME;
+    // A one-shot reader of a key a failed shared listener owns sees that listener's `null`
+    // placeholder in the cache; the registry's error is what it stands for.
+    const listenerError =
+      (subscribe ? subscribeErrors[id] : undefined) ??
+      listenerErrorOf(queryClient, queryKeyPrefix, id) ??
+      undefined;
+    if (result?.isError) {
+      const error = result.error as Error;
+      anyError ??= error;
+      outcome = { status: 'failed', error };
+    } else if (result) {
+      if (result.isLoading) oneShotLoading = true;
+      const value = result.data as T | null | undefined;
+      if (value === undefined) anyUnresolved = true;
+      if (listenerError) {
+        anyListenerError ??= listenerError;
+        outcome = { status: 'failed', error: listenerError };
+      } else if (value === null) {
+        outcome = ABSENT_OUTCOME;
+      } else if (value !== undefined) {
+        nextData[id] = value;
+        outcome = { status: 'present', data: value };
+      }
     }
-    if (result.isLoading) oneShotLoading = true;
-    const value = result.data as T | null | undefined;
-    if (value === undefined) anyUnresolved = true;
-    else if (value) nextData[uniqueIds[index]] = value;
+    const committed = committedOutcomesRef.current[id];
+    nextOutcomes[id] = committed && sameOutcome(committed, outcome) ? committed : outcome;
   }
 
-  // The map is rebuilt every render; keep the last COMMITTED object while it is unchanged so
-  // consumers can safely depend on `data`'s identity. Only the effect writes the ref, so a
-  // concurrent render React discards can never leave it pointing at an uncommitted map.
-  const committedDataRef = useRef<Record<string, T>>(nextData);
   const data = shallowRecordEqual(committedDataRef.current, nextData)
     ? committedDataRef.current
     : nextData;
+  const outcomes = shallowRecordEqual(committedOutcomesRef.current, nextOutcomes)
+    ? committedOutcomesRef.current
+    : nextOutcomes;
 
   useEffect(() => {
     committedDataRef.current = data;
-  }, [data]);
+    committedOutcomesRef.current = outcomes;
+  }, [data, outcomes]);
 
   const refetch = useCallback(async () => {
     // Subscribe mode owns its freshness through the shared listeners — refetching would
@@ -309,8 +371,9 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   return {
     data,
     isLoading,
-    isError: anyError !== null || subscribeError !== null,
-    error: anyError ?? subscribeError,
+    isError: anyError !== null || anyListenerError !== null,
+    error: anyError ?? anyListenerError,
+    outcomes,
     refetch,
   };
 }

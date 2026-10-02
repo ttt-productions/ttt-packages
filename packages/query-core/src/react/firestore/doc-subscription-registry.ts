@@ -18,10 +18,14 @@ import type { QueryClient } from '@tanstack/react-query';
  * not (negative caching, so a missing/lagging doc resolves the instant it appears instead
  * of staying blank until staleTime). A listener ERROR also negative-caches the id: a
  * rules-denied doc (hidden, or non-existent when the rule references `resource.data`) is
- * resolved-absent, not forever-loading — consumers see `data: null` plus the error instead
- * of an eternal spinner. The registry is keyed per `QueryClient` (a WeakMap), which in
- * practice means per browser tab, so each tab listens independently and stays consistent
- * without cross-tab plumbing.
+ * resolved, not forever-loading — consumers see `data: null` plus the error instead
+ * of an eternal spinner. Firestore ends a listener that errors, so the entry keeps that error
+ * for as long as the entry lives (until its last subscriber leaves; a later snapshot, were one
+ * to arrive, clears it): a subscriber that joins an errored listener receives the error too,
+ * and a one-shot reader of the same key reads it through `listenerErrorOf`, so neither takes
+ * the cached `null` as a missing document. The registry is keyed per `QueryClient` (a WeakMap),
+ * which in practice means per browser tab, so each tab listens independently and stays
+ * consistent without cross-tab plumbing.
  */
 
 type Subscriber = {
@@ -32,6 +36,8 @@ type Subscriber = {
 type Entry = {
   unsubscribe: () => void;
   subscribers: Set<Subscriber>;
+  /** The listener's last error, cleared by the next snapshot. */
+  error: Error | null;
 };
 
 // Per-QueryClient registry. WeakMap so a discarded QueryClient (and its entries) is GC'd.
@@ -57,6 +63,19 @@ export function isListenerOwned(
   return registries.get(queryClient)?.has(registryKey(queryKeyPrefix, id)) ?? false;
 }
 
+/**
+ * The error of the shared listener that owns `[queryKeyPrefix, id]`, or `null` when no listener
+ * owns the key or it has not errored. The listener writes `null` to the key when it errors, so a
+ * one-shot reader of the same key consults this before taking that `null` as a missing document.
+ */
+export function listenerErrorOf(
+  queryClient: QueryClient,
+  queryKeyPrefix: string,
+  id: string,
+): Error | null {
+  return registries.get(queryClient)?.get(registryKey(queryKeyPrefix, id))?.error ?? null;
+}
+
 function getRegistry(queryClient: QueryClient): Map<string, Entry> {
   let registry = registries.get(queryClient);
   if (!registry) {
@@ -76,7 +95,7 @@ export interface SubscribeDocParams {
   id: string;
   /** Called whenever a snapshot (data or missing) lands, so the caller can re-render. */
   onUpdate: () => void;
-  /** Called on listener error. */
+  /** Called on listener error — and at once on joining a listener that has already errored. */
   onError?: (error: Error) => void;
 }
 
@@ -92,11 +111,13 @@ export function subscribeDoc(params: SubscribeDocParams): () => void {
 
   let entry = registry.get(key);
   if (!entry) {
-    const subscribers = new Set<Subscriber>();
+    const created: Entry = { unsubscribe: () => {}, subscribers: new Set<Subscriber>(), error: null };
+    const subscribers = created.subscribers;
     const ref = doc(db, collectionPath, id);
-    const unsubscribe = onSnapshot(
+    created.unsubscribe = onSnapshot(
       ref,
       (snapshot) => {
+        created.error = null;
         queryClient.setQueryData(
           [queryKeyPrefix, id],
           snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null,
@@ -106,19 +127,21 @@ export function subscribeDoc(params: SubscribeDocParams): () => void {
         for (const sub of [...subscribers]) sub.onUpdate();
       },
       (error) => {
-        // Negative-cache the id: a denied doc is resolved-absent. Without this,
-        // subscribe-mode loading state ("no cache entry yet") would stay true
-        // forever for ids whose listener can never land a snapshot.
+        // Write `null` so the id resolves — as a failure, through the kept error — instead
+        // of loading forever: subscribe-mode loading ("no cache entry yet") would otherwise
+        // stay true for ids whose listener can never land a snapshot.
+        created.error = error;
         queryClient.setQueryData([queryKeyPrefix, id], null, { updatedAt: Date.now() });
         for (const sub of [...subscribers]) sub.onError?.(error);
       },
     );
-    entry = { unsubscribe, subscribers };
+    entry = created;
     registry.set(key, entry);
   }
 
   const subscriber: Subscriber = { onUpdate, onError };
   entry.subscribers.add(subscriber);
+  if (entry.error) onError?.(entry.error);
 
   let released = false;
   return () => {
@@ -130,6 +153,11 @@ export function subscribeDoc(params: SubscribeDocParams): () => void {
     if (current.subscribers.size === 0) {
       current.unsubscribe();
       registry.delete(key);
+      // A failed listener's `null` is a placeholder, not a read: once nothing owns the key,
+      // mark it stale so a remaining one-shot reader reads the document for itself.
+      if (current.error) {
+        void queryClient.invalidateQueries({ queryKey: [queryKeyPrefix, id], exact: true });
+      }
     }
   };
 }

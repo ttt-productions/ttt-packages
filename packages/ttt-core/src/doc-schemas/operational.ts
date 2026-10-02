@@ -3,6 +3,7 @@
 
 import { z } from 'zod';
 import { UserAccountStatusSchema } from './user.js';
+import { ShortLinkTargetTypeSchema } from '../schemas/atoms.js';
 
 // reservedDisplayNames/{displayNameUppercase} — uniqueness claim written in the registerUser
 // transaction; existence == name taken. (functions/src/users/registerUser.ts)
@@ -43,20 +44,20 @@ export const StakeShareAuditEventSchema = z.object({
 });
 export type StakeShareAuditEvent = z.infer<typeof StakeShareAuditEventSchema>;
 
-// shortLinks/{shortId} — short link to a share target (Audition / AuditionEntry /
-// Commission), with a click counter. (functions/src/utility/createShortLink.ts)
-// `type` mirrors the CreateShortLinkInput target type; `metadata` carries the target
-// id(s) the destination URL was built from. Fields are per-target-optional so a new
-// target type slots in without reworking the map. Add a `type` value when adding a target.
+// shortLinks/{shortId} — short link to a share target (an audition, an audition entry, a
+// commission listing, or a whole Hall entry), with a click counter. Written once by
+// `createShortLink` and never deleted. `type` is the create input's target type.
 export const ShortLinkSchema = z.object({
   shortId: z.string(),
   shortUrl: z.string(),
   destinationUrl: z.string(),
-  type: z.enum(['audition', 'audition-entry', 'commission']),
+  type: ShortLinkTargetTypeSchema,
+  // The ids of what the link points at, one field per target kind, null where it does not apply.
   metadata: z.object({
     auditionId: z.string().nullable(),
     auditionEntryId: z.string().nullable(),
     commissionListingId: z.string().nullable(),
+    hallItemId: z.string().nullable(),
   }),
   createdAt: z.number(),
   createdBy: z.string(),

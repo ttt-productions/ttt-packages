@@ -5,7 +5,13 @@
 
 import { z } from 'zod';
 import { InviteSourceSchema } from '../schemas/work-project-management.js';
-import { guildInviteConversationStatusSchema } from '../schemas/atoms.js';
+import {
+  guildInviteConversationStatusSchema,
+  thresholdItemIdSchema,
+  hallItemIdSchema,
+  hallSubItemIdSchema,
+  changeRequestIdSchema,
+} from '../schemas/atoms.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 
 const userRefSchema = z.object({ uid: z.string() });
@@ -112,7 +118,7 @@ export const GuildInviteConversationSchema = z.object({
   createdBy: userRefSchema,
   sender: userRefSchema,
   recipient: userRefSchema,
-  stakeSharesOffered: z.number(),
+  stakeSharesOffered: z.number().int().min(1),
   source: InviteSourceSchema,
   // State machine: pending → accepted (transient, trigger-consumed) → finalized (terminal
   // success), or pending → declined / cancelled (terminal failure). No 'error' state is ever
@@ -133,19 +139,29 @@ export const GuildInviteConversationSchema = z.object({
 });
 export type GuildInviteConversation = z.infer<typeof GuildInviteConversationSchema>;
 
+// The `listGuildInvites` answer: one page of a Work's invite history and the opaque cursor of
+// the next page, `null` on the last. Homed beside the invite doc because this module imports
+// ./schemas (`InviteSourceSchema`), so the reverse import would be a module cycle; ./schemas
+// re-exports it with the callable's input.
+export const ListGuildInvitesResultSchema = z.object({
+  invites: z.array(GuildInviteConversationSchema),
+  nextCursor: z.string().min(1).nullable(),
+}).strict();
+export type ListGuildInvitesResult = z.infer<typeof ListGuildInvitesResultSchema>;
+
 // Typed context ref carried by a dispatch thread born from a review send-back, a
 // moderation placeholder, or a published change request — lets the admin queue card
 // say what the thread is about without parsing the subject line. Extensible union;
 // server-validated against the thread's party (never trusted raw from the client).
 export const AdminDispatchContextRefSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('thresholdItem'), thresholdItemId: z.string() }),
+  z.object({ kind: z.literal('thresholdItem'), thresholdItemId: thresholdItemIdSchema }),
   z.object({
     kind: z.literal('hallContent'),
-    hallItemId: z.string(),
+    hallItemId: hallItemIdSchema,
     // null ⇒ the hall parent DETAIL; set ⇒ a chapter/track/episode sub-item.
-    subItemId: z.string().nullable(),
+    subItemId: hallSubItemIdSchema.nullable(),
   }),
-  z.object({ kind: z.literal('hallContentChangeRequest'), changeRequestId: z.string() }),
+  z.object({ kind: z.literal('hallContentChangeRequest'), changeRequestId: changeRequestIdSchema }),
 ]);
 export type AdminDispatchContextRef = z.infer<typeof AdminDispatchContextRefSchema>;
 

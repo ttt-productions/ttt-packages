@@ -4,6 +4,9 @@ import {
   auditionIdSchema,
   auditionEntryIdSchema,
   commissionListingIdSchema,
+  shortLinkIdSchema,
+  adminDispatchIdSchema,
+  hallItemIdSchema,
 } from './atoms.js';
 import { MAX_APPEAL_MESSAGE_LENGTH, MAX_FEEDBACK_SUGGESTION_LENGTH, FEEDBACK_TYPES } from '../constants/business.js';
 
@@ -12,11 +15,8 @@ export const AcceptViolationDecisionInputSchema = z.object({
 }).strict();
 export type AcceptViolationDecisionInput = z.infer<typeof AcceptViolationDecisionInputSchema>;
 
-// Share-target types the short-link system can point at. New system entities (hall items,
-// etc.) slot in by adding a `targetType` literal + its own union member below — no rework
-// of the existing members. Each member carries exactly the id(s) its destination URL needs.
-export const ShortLinkTargetTypeSchema = z.enum(['audition', 'audition-entry', 'commission']);
-export type ShortLinkTargetType = z.infer<typeof ShortLinkTargetTypeSchema>;
+// One member per `ShortLinkTargetTypeSchema` value (schemas/atoms.ts), each carrying exactly the
+// id(s) its destination URL needs.
 
 export const CreateShortLinkInputSchema = z.discriminatedUnion('targetType', [
   z.object({
@@ -31,6 +31,10 @@ export const CreateShortLinkInputSchema = z.discriminatedUnion('targetType', [
   z.object({
     targetType: z.literal('commission'),
     commissionListingId: commissionListingIdSchema,
+  }).strict(),
+  z.object({
+    targetType: z.literal('hall-library-item'),
+    hallItemId: hallItemIdSchema,
   }).strict(),
 ]);
 export type CreateShortLinkInput = z.infer<typeof CreateShortLinkInputSchema>;
@@ -93,21 +97,14 @@ export const SubmitFeedbackInputSchema = z.object({
 export type SubmitFeedbackInput = z.infer<typeof SubmitFeedbackInputSchema>;
 
 export const TrackShortLinkClickInputSchema = z.object({
-  shortId: z.string().min(1).max(64),
+  shortId: shortLinkIdSchema.max(64),
 }).strict();
 export type TrackShortLinkClickInput = z.infer<typeof TrackShortLinkClickInputSchema>;
 
 export const MarkAdminDispatchReadInputSchema = z.object({
-  adminDispatchId: z.string().min(1).max(128),
+  adminDispatchId: adminDispatchIdSchema.max(128),
 }).strict();
 export type MarkAdminDispatchReadInput = z.infer<typeof MarkAdminDispatchReadInputSchema>;
-
-// Admin/jr-admin deletes a short link (`deleteShortLink`). Non-strict posture is carried
-// faithfully from the source callable.
-export const DeleteShortLinkInputSchema = z.object({
-  shortId: z.string().min(1, 'shortId is required'),
-});
-export type DeleteShortLinkInput = z.infer<typeof DeleteShortLinkInputSchema>;
 
 // --- Authoritative mutation RESULTS (non-strict server → client posture) ---
 

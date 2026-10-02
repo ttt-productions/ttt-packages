@@ -3,8 +3,9 @@
  *
  * A defense-in-depth `beforeSend`-style hook that walks an ENTIRE Sentry event
  * (message, exception values + stacktrace frame vars, breadcrumbs, extra,
- * contexts, tags, request data, user) and replaces any substring matching a
- * forbidden pattern with a fixed placeholder.
+ * contexts, tags, request data, user, a transaction's name and its spans'
+ * descriptions and data, a replay event's page URLs) and replaces any substring
+ * matching a forbidden pattern with a fixed placeholder.
  *
  * This package is GENERIC — it ships only obvious, domain-neutral defaults
  * (full IPv4/IPv6 addresses, bearer/authorization tokens, generic credential
@@ -170,6 +171,12 @@ export type ScrubbableEvent = {
   tags?: unknown;
   request?: unknown;
   user?: unknown;
+  /** A transaction event's name — for a page load, the page's URL. */
+  transaction?: unknown;
+  /** A transaction event's child spans; each span's `description` and `data` can carry URLs. */
+  spans?: unknown;
+  /** A replay event's visited page URLs. */
+  urls?: unknown;
   [key: string]: unknown;
 };
 
@@ -221,10 +228,26 @@ export function redactEvent<T extends ScrubbableEvent>(
     }
   }
 
-  // Free-form containers — walked wholesale.
-  for (const container of ["breadcrumbs", "extra", "contexts", "tags", "request", "user"] as const) {
+  // Free-form containers — walked wholesale. `transaction` is a page load's URL and
+  // `urls` a replay event's visited pages, so both can carry query-string credentials.
+  for (const container of ["breadcrumbs", "extra", "contexts", "tags", "request", "user", "transaction", "urls"] as const) {
     if (event[container] !== undefined) {
       event[container] = deepRedact(event[container], deepOptions, seen);
+    }
+  }
+
+  // Transaction spans: a navigation or resource span is named from the full URL it
+  // fetched, and its data repeats it. Only those two fields are walked — ids,
+  // timestamps, and op stay intact so the trace still assembles.
+  if (Array.isArray(event.spans)) {
+    for (const span of event.spans) {
+      if (span === null || typeof span !== "object") continue;
+      const record = span as Record<string, unknown>;
+      for (const field of ["description", "data"] as const) {
+        if (record[field] !== undefined) {
+          record[field] = deepRedact(record[field], deepOptions, seen);
+        }
+      }
     }
   }
 
@@ -235,7 +258,10 @@ export function redactEvent<T extends ScrubbableEvent>(
  * A Sentry `beforeSend`-style hook: `(event, hint?) => event | null`. Drop-in
  * for `Sentry.init({ beforeSend })` in both the browser and Node SDKs.
  */
-export type BeforeSendHook = (event: ScrubbableEvent, hint?: unknown) => ScrubbableEvent | null;
+export type BeforeSendHook = (
+  event: ScrubbableEvent,
+  hint?: { originalException?: unknown } & Record<string, unknown>
+) => ScrubbableEvent | null;
 
 /**
  * Build a `beforeSend` hook that scrubs every outgoing event. The app supplies

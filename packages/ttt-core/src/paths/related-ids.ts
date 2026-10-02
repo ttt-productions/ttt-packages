@@ -1,13 +1,16 @@
-// Typed prefixes for structured relationship-array IDs (e.g. SquareStreetz post `relatedIds`).
-// Structured relationship arrays that mix entity types MUST store typed IDs using these
-// underscore prefixes. See ttt-prod docs/design/work-realm-discovery-system.md and
-// engineering-rules BACKEND-206 (ttt-master-app/docs/engineering-rules/backend/sensitive-writes-and-audit.md).
+// Typed ids for relationship arrays that mix entity kinds (a Square post's `relatedIds`): each id
+// carries its kind's prefix, so ids of different kinds never collide (BACKEND-206). Every
+// MentionType is a kind here, so a post can relate every entity it mentions.
+
+import type { MentionType } from '../media/atoms.js';
 
 export const RELATED_ID_PREFIXES = {
   user: 'user_',
   workProject: 'workProject_',
   workRealm: 'workRealm_',
-} as const;
+  commission: 'commission_',
+  audition: 'audition_',
+} as const satisfies Record<MentionType, string>;
 
 export type RelatedIdEntity = keyof typeof RELATED_ID_PREFIXES;
 

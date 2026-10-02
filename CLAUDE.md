@@ -38,7 +38,7 @@ Orientation only (read the docs above before designing): generic Tier 0 foundati
 
 `npm run test:all` is the canonical, must-pass gate for any change here — run it green BEFORE handing off a publish list or pushing. It chains: `npm audit --omit=dev --audit-level=high` (the EXACT command the publish workflow runs — a high advisory in a shipped dependency fails a publish, so the gate must fail first) → lint → build (every package, topo order) → typecheck → `npx tsc -b --noEmit` → `vitest run`. **Build runs before the two type-check stages on purpose:** both resolve internal `@ttt-productions/*` imports through `node_modules → dist`, and the release preflight (and `npm run clean`) wipe `dist`, so a build-first order is what lets the gate survive a clean tree. The `tsc -b` step is the only one that type-checks `__tests__`.
 
-**Quiet runner — `npm run test:quiet` (the pre-commit / pre-publish gate).** Runs the `test:all` stages and then, ONLY if all pass, a final `schema` stage that runs `schema:check` and **auto-regenerates** `docs/generated/firestore-schema.{md,mmd}` when stale. One line per stage; on failure it prints only the failing output. Exit 0 when everything passes (including when stale schema docs were regenerated — commit them before publishing); non-zero on any failure. Targeted: `npm run test:quiet:test`, or `node scripts/test-quiet.mjs --only <audit|lint|typecheck|tscb|build|test|schema>`. An audit red is a lockfile fix (`npm audit fix` stays inside declared ranges; a fix that needs a range change is a real dependency bump for the owning package), never a reason to lower the threshold.
+**Quiet runner — `npm run test:quiet` (the pre-commit / pre-publish gate).** Runs the `test:all` stages and then, ONLY if all pass, a final `schema` stage that runs `schema:check` and **auto-regenerates** `docs/generated/firestore-schema.{md,mmd}` when stale. One line per stage; on failure it prints only the failing output. Exit 0 when everything passes (including when stale schema docs were regenerated — commit them before publishing); non-zero on any failure. Targeted: `npm run test:quiet:test`, or `node scripts/test-quiet.mjs --only <audit|lint|typecheck|tscb|build|test|schema>`. An audit red is a lockfile fix (`npm audit fix` stays inside declared ranges; a fix that needs a range change is a real dependency bump for the owning package), never a reason to lower the threshold. A transitive advisory that a shipped dependency's own range cannot reach is handled by a parent-scoped root `overrides` entry guarded by `test/boundary/firestore-grpc-override-guard.test.ts`, which fails the gate when the override becomes redundant.
 
 **Linting.** Root `eslint.config.mjs` (flat config) lints `packages/**` only: `@eslint/js` + `typescript-eslint` recommended + `react-hooks` (rules-of-hooks / exhaustive-deps as **error**). Mirrors ttt-prod's philosophy — `no-explicit-any` off, `^_` unused-ignore, empty `catch` allowed. Run with `npm run lint` (or `lint:fix`); it runs right after the audit stage in `test:all` / `test:quiet`. Lint policy (including that a justified, reasoned `eslint-disable-next-line` is permitted here for the narrow intentional cases, unlike ttt-prod's zero-suppression) is owned by **QUALITY-006**.
 
@@ -81,6 +81,15 @@ publish/install handoff → STOP for DJ's continue → app work → the Normal T
 
 - DJ publishes and installs, then says when to continue. Do not adopt package changes into ttt-prod
   before that explicit continuation, and never adopt against unpublished sibling source.
+- Never run ttt-packages work and consuming-app work at the same time, personally or through
+  agents — "the app doesn't import the changed symbols" is not an exception.
+- The release command is always `./scripts/release-multiple.sh …` — never `release-package.sh`,
+  never `bash scripts/…` — and stays its own fenced block, separate from the install block.
+- The handoff goes plainly in the turn's FINAL chat message — never a status doc, no padding.
+- A multi-item sweep batches ONE publish cycle: all package needs first, one combined handoff,
+  then all app adoption in a second pass.
+- Never announce that work "may need a package change" — it is routine plumbing done
+  packages-first; the only words DJ hears about it are the handoff itself.
 - Do not reference a sibling local checkout from consuming-app implementation prompts.
 - Run package builds/tests for every package touched.
 - Regenerate lockfiles after package renames or dependency graph changes.

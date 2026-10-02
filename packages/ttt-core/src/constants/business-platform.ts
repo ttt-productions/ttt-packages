@@ -17,6 +17,9 @@ export const SHORT_LINK_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxy
 /** Maximum operations in a single Firestore write batch. */
 export const FIRESTORE_BATCH_LIMIT = 500;
 
+/** Firestore's published limit on one document id, in UTF-8 bytes. */
+export const FIRESTORE_DOCUMENT_ID_MAX_BYTES = 1500;
+
 // --- Payments ---
 
 /**
@@ -44,3 +47,6 @@ export const MAX_PLEDGE_PAYMENT_AMOUNT_CENTS = 50_000_000;
  * requestPledgeRefund callable re-enforces it server-side before creating the request.
  */
 export const PLEDGE_REFUND_REQUEST_WINDOW_MS = 60 * 24 * 60 * 60 * 1000;
+
+/** Longest Stripe Checkout session id the success-page lookup accepts (Stripe ids are far shorter). */
+export const MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH = 256;

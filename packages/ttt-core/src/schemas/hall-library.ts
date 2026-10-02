@@ -15,6 +15,8 @@ import {
   itemIdSchema,
   changeRequestIdSchema,
   LegalReviewNoticeAcknowledgedInputSchema,
+  hallSubItemIdSchema,
+  workRealmIdSchema,
 } from './atoms.js';
 import {
   MAX_HALL_LIBRARY_SUBMIT_BATCH,
@@ -78,7 +80,7 @@ export type ReviewThresholdItemInput = z.infer<typeof ReviewThresholdItemInputSc
 export const SubmitForThresholdLibraryReviewInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   workProjectType: workProjectTypeSchema,
-  selectedItemIds: z.array(z.string().min(1)).min(1).max(MAX_HALL_LIBRARY_SUBMIT_BATCH),
+  selectedItemIds: z.array(hallSubItemIdSchema).min(1).max(MAX_HALL_LIBRARY_SUBMIT_BATCH),
   // AUTHOR attestation (R3, 2026-07-12): the submitting artisan attests this work
   // depicts real people (parody / satire / commentary). Stored on the threshold
   // item as `hasRealPeople`; the reviewer sees it READ-ONLY. When true, published
@@ -114,8 +116,8 @@ export type WithdrawFromThresholdLibraryReviewInput = z.infer<typeof WithdrawFro
 export const SubmitHallContentChangeRequestInputSchema = z.object({
   hallItemId: hallItemIdSchema.nullish(),
   workProjectType: workProjectTypeSchema.nullish(),
-  workRealmId: z.string().min(1).nullish(),
-  subItemId: z.string().min(1).nullish(),
+  workRealmId: workRealmIdSchema.nullish(),
+  subItemId: hallSubItemIdSchema.nullish(),
   proposedFields: z.record(z.string().min(1).max(64), z.string().trim().min(1).max(MAX_CHAPTER_CONTENT_LENGTH))
     .refine((fields) => Object.keys(fields).length > 0, { message: 'Propose at least one field change.' }),
 }).strict().superRefine((val, ctx) => {

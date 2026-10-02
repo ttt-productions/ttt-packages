@@ -390,23 +390,21 @@ export const SafetyReviewerCapabilitySchema = z.enum([
 export type SafetyReviewerCapability = z.infer<typeof SafetyReviewerCapabilitySchema>;
 
 // ===========================================================================
-// A7 — Registration-completion outcome (DOMAIN enum; replaces the unsafe
-// generic gRPC retryable/terminal code lists). Only a domain outcome feeds the
-// orphan-Auth deletion policy.
+// Registration-completion outcome — the DOMAIN result of completing a registration,
+// never a raw gRPC or infrastructure code. The completion route decides from it whether
+// the age fields stand, the person re-does the age step, or the same attestation is
+// retried; no outcome deletes the login.
 // ===========================================================================
 
 export const RegistrationCompletionOutcomeSchema = z.enum([
   'completed',
   'alreadyCompletedSameUid',
   'retryableInfrastructureFailure',
-  'reauthenticationRequired',
-  'appCheckRetryRequired',
   'nonceExpired',
   'nonceUnknown',
   'nonceConsumedDifferentUid',
   'sessionHashMismatch',
   'attestationSignatureInvalid',
-  'privateDataConflict',
   'policyVersionRejected',
 ]);
 export type RegistrationCompletionOutcome = z.infer<typeof RegistrationCompletionOutcomeSchema>;
@@ -598,11 +596,11 @@ export const NciiChildSafetyCrossoverSchema = z.object({
 }).strict();
 export type NciiChildSafetyCrossover = z.infer<typeof NciiChildSafetyCrossoverSchema>;
 
-/** [H-2] Per-leg lifecycle status for the possible-minor crossover side-effects (serving-deny,
- * PhotoDNA) persisted on the crossover child-safety case (see ChildSafetyCaseV1.crossoverLegs).
- * `pending` is the in-transaction initial marker the assessment writes before the post-commit leg
- * runs; the leg then flips it to `done` (succeeded) or `failed` (captureException'd, awaiting a
- * reconcile/replay). A leg is ABSENT (not `pending`) when it never applied — an external / no-media
- * target has no bytes to deny or scan. */
+/** The status of one possible-minor crossover side effect (serving deny, PhotoDNA) on a crossover
+ * item row (`ChildSafetyCrossoverItemV1`) and its rollup on the case
+ * (`ChildSafetyCaseV1.crossoverLegs`). `pending` is written in the transaction that registers the
+ * item, before the post-commit leg runs; the leg then sets `done` (succeeded) or `failed` (captured,
+ * awaiting the reconciler). An item's leg is ABSENT when it never applies — an asset with no origin
+ * lineage has nothing to scan. */
 export const SafetyCrossoverLegStatusSchema = z.enum(['pending', 'done', 'failed']);
 export type SafetyCrossoverLegStatus = z.infer<typeof SafetyCrossoverLegStatusSchema>;

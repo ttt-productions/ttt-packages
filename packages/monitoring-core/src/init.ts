@@ -1,6 +1,8 @@
 import type { MonitoringAdapter } from "./adapter.js";
 import type { MonitoringInitOptions } from "./types.js";
 import { NoopAdapter } from "./adapters/noop.js";
+import { SentryAdapter } from "./adapters/sentry.js";
+import { SentryNodeAdapter } from "./adapters/sentry-node.js";
 
 let adapter: MonitoringAdapter = NoopAdapter;
 let initialized = false;
@@ -12,16 +14,33 @@ export function getMonitoringAdapter(): MonitoringAdapter {
   return adapter;
 }
 
+/**
+ * Option equality for the re-init check. Functions (`beforeSend`, an integration's hooks)
+ * compare by reference — a serialization would drop them and call two different hooks
+ * equal; arrays and plain objects compare member by member.
+ */
+function sameOptionValue(a: unknown, b: unknown, seen: WeakSet<object>): boolean {
+  if (Object.is(a, b)) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (seen.has(a)) return false;
+  seen.add(a);
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((item, index) => sameOptionValue(item, b[index], seen));
+  }
+  const aRecord = a as Record<string, unknown>;
+  const bRecord = b as Record<string, unknown>;
+  const keys = Object.keys(aRecord);
+  if (keys.length !== Object.keys(bRecord).length) return false;
+  return keys.every((key) => Object.prototype.hasOwnProperty.call(bRecord, key) && sameOptionValue(aRecord[key], bRecord[key], seen));
+}
+
 export async function initMonitoring(
   options: MonitoringInitOptions,
   force = false
 ): Promise<void> {
   // Prevent unnecessary re-init
-  if (
-    initialized &&
-    !force &&
-    JSON.stringify(currentOptions) === JSON.stringify(options)
-  ) {
+  if (initialized && !force && sameOptionValue(currentOptions, options, new WeakSet())) {
     return;
   }
 
@@ -33,17 +52,14 @@ export async function initMonitoring(
 
   const enabled = options.enabled ?? true;
 
-  // Local-dev gate: force noop adapter when any Firebase emulator signal is
-  // present, or when the explicit kill switch is set. This keeps Sentry
-  // completely inert during local dev (npm run dev:local + emulators),
-  // including not importing the SDK. Hosted dev and hosted prod are
-  // unaffected — they never have these env vars set.
+  // Local-dev gate: force the noop adapter whenever a Firebase emulator signal is present,
+  // so local dev (emulators) never imports or initializes the SDK. Hosted environments
+  // never set these. There is no other off switch: a deployment without a DSN sends nothing.
   const isLocalDev =
     (typeof process !== "undefined" &&
       (process.env?.NEXT_PUBLIC_USE_EMULATORS === "true" ||
         process.env?.FUNCTIONS_EMULATOR === "true" ||
-        !!process.env?.FIREBASE_EMULATOR_HUB ||
-        process.env?.NEXT_PUBLIC_SENTRY_ENABLED === "false"));
+        !!process.env?.FIREBASE_EMULATOR_HUB));
 
   if (!enabled || options.provider === "noop" || isLocalDev) {
     adapter = NoopAdapter;
@@ -51,16 +67,15 @@ export async function initMonitoring(
     return;
   }
 
-  // ---------- BROWSER (Next.js / React) ----------
+  // The provider adapter is installed BEFORE anything is awaited: a capture issued while the
+  // SDK loads reaches the real adapter, which holds it until its own init has run.
   if (options.provider === "sentry") {
-    const { SentryAdapter } = await import("./adapters/sentry.js");
     adapter = SentryAdapter;
-    await adapter.init(options);
+    await SentryAdapter.init(options);
     initialized = true;
     return;
   }
 
-  // ---------- NODE (Firebase Functions, servers) ----------
   if (options.provider === "sentry-node") {
     if (isBrowser) {
       console.warn(
@@ -71,9 +86,8 @@ export async function initMonitoring(
       return;
     }
 
-    const { SentryNodeAdapter } = await import("./adapters/sentry-node.js");
     adapter = SentryNodeAdapter;
-    await adapter.init(options);
+    await SentryNodeAdapter.init(options);
     initialized = true;
     return;
   }

@@ -11,6 +11,7 @@
 // ============================================================================
 
 import { z } from 'zod';
+import { documentIdSegmentSchema } from '../schemas/atoms.js';
 import {
   MediaAssetOwnerTypeSchema,
   MediaServingAuthorityRecordSchema,
@@ -130,7 +131,7 @@ export const MediaSessionTokenPayloadSchema = z
   .strict();
 export type SessionTokenPayload = z.infer<typeof MediaSessionTokenPayloadSchema>;
 
-const grantIdSchema = z.string().min(1);
+const grantIdSchema = documentIdSegmentSchema;
 
 /**
  * A signed grant's scope — the ONE definition the Functions signer types its payload with and the

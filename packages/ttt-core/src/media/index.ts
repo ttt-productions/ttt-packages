@@ -3,8 +3,17 @@ export {
   MentionSchema,
   MentionTypeSchema,
   rejectDuplicateMentionPlaceholders,
+  MentionPlaceholderSchema,
+  buildMentionPlaceholder,
+  tokenizeMentionContent,
+  validateMentionCorrespondence,
+  refineMentionCorrespondence,
+  SquareStreetzPostMentionSchema,
+  SquareStreetzPostMentionsSchema,
   type Mention,
   type MentionType,
+  type MentionContentSegment,
+  type MentionCorrespondenceIssue,
 } from "./atoms.js";
 export * from "./conversation-file-ref.js";
 export * from "./domain-events.js";

@@ -1,11 +1,34 @@
 import { z } from 'zod';
-import { ReportableItemTypeSchema, NciiMinorAssessmentSchema } from '../doc-schemas/safety/foundation.js';
+import {
+  reportTargetItemIdSchema,
+  reportTargetParentRefSchema,
+  reportTargetUserIdSchema,
+  safetyCaseIdSchema,
+  nciiAllegationIdSchema,
+  takeItDownRequestIdSchema,
+} from './atoms.js';
+import {
+  ReportableItemTypeSchema,
+  NciiMinorAssessmentSchema,
+  TakeItDownRequesterRoleSchema,
+} from '../doc-schemas/safety/foundation.js';
+import { TakeItDownSignatureMethodSchema } from '../doc-schemas/ncii/requests.js';
 import {
   MAX_NCII_EVIDENCE_REASON_LENGTH,
   MAX_NCII_RATIONALE_LENGTH,
   MAX_NCII_NONCONSENT_STATEMENT_LENGTH,
   MAX_NCII_SIGNED_NAME_LENGTH,
   MAX_NCII_SUPPORTING_FACTS_LENGTH,
+  MAX_NCII_REQUESTER_NAME_LENGTH,
+  MAX_NCII_REPRESENTED_PERSON_NAME_LENGTH,
+  MAX_NCII_AUTHORITY_BASIS_LENGTH,
+  MAX_NCII_AUTHORITY_EVIDENCE_REF_LENGTH,
+  MAX_NCII_LOCATOR_URL_LENGTH,
+  NCII_IDEMPOTENCY_KEY_MIN_LENGTH,
+  NCII_IDEMPOTENCY_KEY_MAX_LENGTH,
+  MAX_NCII_CONTACT_EMAIL_LENGTH,
+  NCII_CONTACT_PHONE_MIN_LENGTH,
+  NCII_CONTACT_PHONE_MAX_LENGTH,
 } from '../constants/business.js';
 import { TAKE_IT_DOWN_VALIDITY_CONFIRMATION } from '../constants/safety-confirmation-phrases.js';
 
@@ -20,7 +43,7 @@ import { TAKE_IT_DOWN_VALIDITY_CONFIRMATION } from '../constants/safety-confirma
 // removal clock and WITHOUT auto-NCMEC (that still needs a validated hash or explicit human
 // confirmApparentViolation). Writes the `ncii.minorAssessmentSet` audit event.
 export const SetNciiMinorAssessmentInputSchema = z.object({
-  caseId: z.string().min(1),
+  caseId: safetyCaseIdSchema,
   minorAssessment: NciiMinorAssessmentSchema,
 }).strict();
 export type SetNciiMinorAssessmentInput = z.infer<typeof SetNciiMinorAssessmentInputSchema>;
@@ -30,7 +53,7 @@ export type SetNciiMinorAssessmentInput = z.infer<typeof SetNciiMinorAssessmentI
 // Optional caseId selects the currently-linked evidence to also return.
 // ===========================================================================
 export const ListNciiEvidencePoolInputSchema = z.object({
-  caseId: z.string().min(1).optional(),
+  caseId: safetyCaseIdSchema.optional(),
 }).strict();
 export type ListNciiEvidencePoolInput = z.infer<typeof ListNciiEvidencePoolInputSchema>;
 
@@ -38,14 +61,14 @@ export type ListNciiEvidencePoolInput = z.infer<typeof ListNciiEvidencePoolInput
 // linkNciiEvidenceToCase / unlinkNciiEvidenceFromCase — find-&-link step 2 (+ reverse).
 // ===========================================================================
 export const LinkNciiEvidenceToCaseInputSchema = z.object({
-  allegationId: z.string().min(1),
-  caseId: z.string().min(1),
+  allegationId: nciiAllegationIdSchema,
+  caseId: safetyCaseIdSchema,
 }).strict();
 export type LinkNciiEvidenceToCaseInput = z.infer<typeof LinkNciiEvidenceToCaseInputSchema>;
 
 export const UnlinkNciiEvidenceFromCaseInputSchema = z.object({
-  allegationId: z.string().min(1),
-  caseId: z.string().min(1),
+  allegationId: nciiAllegationIdSchema,
+  caseId: safetyCaseIdSchema,
 }).strict();
 export type UnlinkNciiEvidenceFromCaseInput = z.infer<typeof UnlinkNciiEvidenceFromCaseInputSchema>;
 
@@ -55,9 +78,9 @@ export type UnlinkNciiEvidenceFromCaseInput = z.infer<typeof UnlinkNciiEvidenceF
 // ===========================================================================
 export const MarkNciiEvidenceInputSchema = z.object({
   itemType: ReportableItemTypeSchema,
-  reportedItemId: z.string().min(1),
-  parentItemId: z.string().min(1).optional(),
-  reportedUserId: z.string().min(1).optional(),
+  reportedItemId: reportTargetItemIdSchema,
+  parentItemId: reportTargetParentRefSchema.optional(),
+  reportedUserId: reportTargetUserIdSchema.optional(),
   reason: z.string().trim().max(MAX_NCII_EVIDENCE_REASON_LENGTH).optional(),
 }).strict();
 export type MarkNciiEvidenceInput = z.infer<typeof MarkNciiEvidenceInputSchema>;
@@ -83,7 +106,7 @@ export const TakeItDownInvalidReasonCodeSchema = z.enum([
 export type TakeItDownInvalidReasonCodeInput = z.infer<typeof TakeItDownInvalidReasonCodeSchema>;
 
 export const DecideTakeItDownValidityInputSchema = z.object({
-  requestId: z.string().min(1),
+  requestId: takeItDownRequestIdSchema,
   result: z.enum(['valid', 'invalid', 'unableToLocate']),
   /** Required for an 'invalid' result; an enumerated reason (never free-form). */
   reasonCode: TakeItDownInvalidReasonCodeSchema.optional(),
@@ -101,30 +124,107 @@ export const DecideTakeItDownValidityInputSchema = z.object({
 export type DecideTakeItDownValidityInput = z.infer<typeof DecideTakeItDownValidityInputSchema>;
 
 // ===========================================================================
+// The statutory intake fields both entries share (in-app and no-login).
+// ===========================================================================
+const nciiIdempotencyKeySchema = z
+  .string()
+  .min(NCII_IDEMPOTENCY_KEY_MIN_LENGTH)
+  .max(NCII_IDEMPOTENCY_KEY_MAX_LENGTH);
+const nciiContactEmailSchema = z.string().email().max(MAX_NCII_CONTACT_EMAIL_LENGTH);
+const nciiContactPhoneSchema = z
+  .string()
+  .min(NCII_CONTACT_PHONE_MIN_LENGTH)
+  .max(NCII_CONTACT_PHONE_MAX_LENGTH);
+
+// The form must carry at least one contact method: rejecting at the door gives a clean 400 instead
+// of an incomplete receipt for a wholly uncontactable request.
+const ONE_CONTACT_METHOD_REQUIRED = {
+  message: 'At least one contact method (email or phone) is required.',
+  path: ['contactEmail'],
+};
+const hasContactMethod = (body: { contactEmail?: string; contactPhone?: string }): boolean =>
+  Boolean(body.contactEmail) || Boolean(body.contactPhone);
+
+// ===========================================================================
 // submitInAppNciiRequest — logged-in entry to the one NCII statutory intake core.
 // Client ids are HINTS; the target is re-resolved server-side.
 // ===========================================================================
 export const SubmitInAppNciiRequestInputSchema = z
   .object({
-    idempotencyKey: z.string().min(8).max(256),
+    idempotencyKey: nciiIdempotencyKeySchema,
     itemType: ReportableItemTypeSchema,
-    reportedItemId: z.string().min(1).max(256),
-    parentItemId: z.string().min(1).max(256).optional(),
+    reportedItemId: reportTargetItemIdSchema,
+    parentItemId: reportTargetParentRefSchema.optional(),
     nonconsentStatement: z.string().min(1).max(MAX_NCII_NONCONSENT_STATEMENT_LENGTH),
     /** Typed-name electronic signature. */
     signedName: z.string().min(1).max(MAX_NCII_SIGNED_NAME_LENGTH),
     goodFaithCertification: z.literal(true),
-    contactEmail: z.string().email().max(320).optional(),
-    contactPhone: z.string().min(3).max(64).optional(),
+    contactEmail: nciiContactEmailSchema.optional(),
+    contactPhone: nciiContactPhoneSchema.optional(),
     supportingFacts: z.string().max(MAX_NCII_SUPPORTING_FACTS_LENGTH).default(''),
   })
   .strict()
-  // At least one contact method — the form prefills the account email but allows an override.
-  .refine((b) => Boolean(b.contactEmail) || Boolean(b.contactPhone), {
-    message: 'At least one contact method (email or phone) is required.',
-    path: ['contactEmail'],
-  });
+  // The form prefills the account email but allows an override.
+  .refine(hasContactMethod, ONE_CONTACT_METHOD_REQUIRED);
 export type SubmitInAppNciiRequestInput = z.infer<typeof SubmitInAppNciiRequestInputSchema>;
+
+// ===========================================================================
+// POST /api/take-it-down — the PUBLIC, no-login statutory intake body. It is url-ONLY by design:
+// it never carries a TTT-hosted locator the server would resolve and hold, so an anonymous caller
+// cannot take platform content down without an account. A report of TTT content goes through the
+// authenticated report path. The route parses this before it reads anything else of the request.
+// ===========================================================================
+export const PublicTakeItDownLocatorSchema = z
+  .object({ kind: z.literal('url'), url: z.string().min(1).max(MAX_NCII_LOCATOR_URL_LENGTH) })
+  .strict();
+
+export const TakeItDownElectronicSignatureInputSchema = z
+  .object({
+    signedName: z.string().min(1).max(MAX_NCII_SIGNED_NAME_LENGTH),
+    signedAt: z.number(),
+    signatureMethod: TakeItDownSignatureMethodSchema,
+  })
+  .strict();
+
+export const TakeItDownAuthorizedRepresentativeInputSchema = z
+  .object({
+    representedPersonName: z.string().min(1).max(MAX_NCII_REPRESENTED_PERSON_NAME_LENGTH),
+    authorityBasis: z.string().min(1).max(MAX_NCII_AUTHORITY_BASIS_LENGTH),
+    authorityEvidenceRef: z.string().min(1).max(MAX_NCII_AUTHORITY_EVIDENCE_REF_LENGTH).optional(),
+  })
+  .strict();
+
+export const TakeItDownIntakeBodySchema = z
+  .object({
+    idempotencyKey: nciiIdempotencyKeySchema,
+    requesterRole: TakeItDownRequesterRoleSchema,
+    locator: PublicTakeItDownLocatorSchema,
+    requesterName: z.string().min(1).max(MAX_NCII_REQUESTER_NAME_LENGTH),
+    contactEmail: nciiContactEmailSchema.optional(),
+    contactPhone: nciiContactPhoneSchema.optional(),
+    electronicSignature: TakeItDownElectronicSignatureInputSchema,
+    authorizedRepresentative: TakeItDownAuthorizedRepresentativeInputSchema.optional(),
+    nonconsentStatement: z.string().min(1).max(MAX_NCII_NONCONSENT_STATEMENT_LENGTH),
+    supportingFacts: z.string().max(MAX_NCII_SUPPORTING_FACTS_LENGTH).default(''),
+    goodFaithCertification: z.boolean(),
+    accuracyCertification: z.boolean().optional(),
+    authorityCertification: z.boolean().optional(),
+  })
+  .strict()
+  .refine(hasContactMethod, ONE_CONTACT_METHOD_REQUIRED)
+  .superRefine((intake, ctx) => {
+    const representative = intake.requesterRole === TakeItDownRequesterRoleSchema.enum.authorizedRepresentative;
+    if (representative && !intake.authorizedRepresentative) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'An authorized representative request requires the authorizedRepresentative block.',
+      });
+    }
+    if (!representative && intake.authorizedRepresentative) {
+      ctx.addIssue({ code: 'custom' });
+    }
+  });
+export type TakeItDownIntakeBody = z.infer<typeof TakeItDownIntakeBodySchema>;
 
 // ===========================================================================
 // resolveNciiReportPreview — logged-in read resolving a reported item to a previewable asset.
@@ -132,7 +232,7 @@ export type SubmitInAppNciiRequestInput = z.infer<typeof SubmitInAppNciiRequestI
 // ===========================================================================
 export const ResolveNciiReportPreviewInputSchema = z.object({
   itemType: ReportableItemTypeSchema,
-  reportedItemId: z.string().min(1).max(256),
-  parentItemId: z.string().min(1).max(256).optional(),
+  reportedItemId: reportTargetItemIdSchema,
+  parentItemId: reportTargetParentRefSchema.optional(),
 }).strict();
 export type ResolveNciiReportPreviewInput = z.infer<typeof ResolveNciiReportPreviewInputSchema>;

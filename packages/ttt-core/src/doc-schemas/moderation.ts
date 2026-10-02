@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { PendingMediaProcessingSchema } from '../media/pending-media.js';
 import { AdminTaskSchema } from './report-docs.js';
 import { ReportableItemTypeSchema } from './safety/foundation.js';
-import { MediaAssetOwnerTypeSchema } from './media-assets.js';
+import { ContentMediaKindSchema, MediaAssetOwnerTypeSchema } from './media-assets.js';
 import { isRejectedMediaAppealOpen } from '../constants/retention.js';
 
 /**
@@ -48,6 +48,10 @@ export const ContentViolationSchema = z.object({
   // Media-only fields. Optional because text violations omit them, and `scores` is nullable
   // because moderateTextOrThrow writes `scores: result.scores ?? null`.
   originalFileName: z.string().optional(),
+  // The kind the server inspected from the rejected bytes — what a preview renders by. The
+  // pending row's `originalContentType` is the client-declared MIME, which may be the neutral
+  // type, so it never decides how a rejected upload renders. Present exactly on a media violation.
+  mediaKind: ContentMediaKindSchema.optional(),
   scores: z.object({
     adult: z.string(),
     violence: z.string(),
@@ -68,6 +72,14 @@ export const ContentViolationSchema = z.object({
   reviewedAt: z.number().optional(),
   reviewDecision: z.enum(['approved', 'denied']).optional(),
   reviewNotes: z.string().optional(),
+}).superRefine((violation, ctx) => {
+  const isMedia = violation.violationType === 'media';
+  if (isMedia && violation.mediaKind === undefined) {
+    ctx.addIssue({ code: 'custom', path: ['mediaKind'], message: 'mediaKind is required on a media violation' });
+  }
+  if (!isMedia && violation.mediaKind !== undefined) {
+    ctx.addIssue({ code: 'custom', path: ['mediaKind'], message: 'mediaKind is only allowed on a media violation' });
+  }
 });
 export type ContentViolation = z.infer<typeof ContentViolationSchema>;
 

@@ -37,13 +37,6 @@ export const UpdateGuildInviteStakeSharesInputSchema = z.object({
 }).strict();
 export type UpdateGuildInviteStakeSharesInput = z.infer<typeof UpdateGuildInviteStakeSharesInputSchema>;
 
-// Admin/jr-admin deletes a user's support dispatch thread (`deleteAdminDispatch`). Non-strict
-// posture is carried faithfully from the source callable.
-export const DeleteAdminDispatchInputSchema = z.object({
-  adminDispatchId: adminDispatchIdSchema,
-});
-export type DeleteAdminDispatchInput = z.infer<typeof DeleteAdminDispatchInputSchema>;
-
 // --- Authoritative mutation RESULTS (non-strict server → client posture) ---
 
 export const UpdateAdminDispatchStatusResultSchema = z.object({
@@ -58,16 +51,3 @@ export const UpdateAdminDispatchStatusResultSchema = z.object({
   auditEventId: z.string().min(1).optional(),
 });
 export type UpdateAdminDispatchStatusResult = z.infer<typeof UpdateAdminDispatchStatusResultSchema>;
-
-export const DeleteAdminDispatchResultSchema = z.object({
-  success: z.literal(true),
-  adminDispatchId: adminDispatchIdSchema,
-  /** Conversation messages removed with the thread (counted during the delete itself). */
-  deletedMessageCount: z.number().int().nonnegative(),
-  /** Operation-receipt audit id — the `admin.dispatchDeleted` event written in the same
-   * transaction. Optional/additive; the domain id (`adminDispatchId`) is already carried above. */
-  auditEventId: z.string().min(1).optional(),
-});
-export type DeleteAdminDispatchResult = z.infer<typeof DeleteAdminDispatchResultSchema>;
-
-

@@ -11,7 +11,10 @@ import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
 import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 import { ModerationHiddenBySchema } from './moderation.js';
-import { calendarDateSchema } from '../schemas/atoms.js';
+import {
+  calendarDateSchema,
+  documentIdSegmentSchema,
+} from '../schemas/atoms.js';
 import { PublicDocumentAcceptanceSchema, PublicDocumentVersionOrNoneSchema } from './public-documents.js';
 
 // The canonical stored media kind — declared once in doc-schemas/media-assets.ts.
@@ -43,7 +46,7 @@ export const CRAFT_SKILL_KIND_REQUIRING_SOURCE: CraftSkillKind = 'mimicOnTtt';
 export const CraftSkillSourceReferenceSchema = z
   .object({
     type: z.enum(['user', 'workProject']),
-    id: z.string().min(1),
+    id: documentIdSegmentSchema,
   })
   .strict();
 export type CraftSkillSourceReference = z.infer<typeof CraftSkillSourceReferenceSchema>;

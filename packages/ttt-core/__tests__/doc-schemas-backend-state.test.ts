@@ -3,10 +3,10 @@ import {
   NcmecCompletionProofRecordV1Schema,
   NcmecPortalCorrectionRecordV1Schema,
   NcmecPortalReceiptArtifactV1Schema,
-  SweepRollingCursorSchema,
   SweepStateNameSchema,
   SweepStateSchema,
 } from '../src/doc-schemas/backend-state';
+import { SweepRollingCursorSchema } from '../src/doc-schemas/sweep-cursor';
 import { SWEEP_STATE_MAX_DEFERRED, SWEEP_STATE_NAMES } from '../src/constants/scheduled-jobs';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
 import { PATH_BUILDERS } from '../src/paths/path-builders';

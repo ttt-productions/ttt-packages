@@ -54,14 +54,11 @@ const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
   // Firestore field name, not a business text limit; the per-field VALUE caps derive from
   // HALL_CONTENT_TEXT_FIELD_MAX at the backend boundary).
   'src/schemas/hall-library.ts': [64],
-  'src/schemas/ncii.ts': [64, 256, 256, 256, 256, 256, 320],
   // 64 died with reportedItemTypeSchema tightening to the canonical enum; 2000 became
   // MAX_BROADCAST_EXPLICIT_UIDS (2026-07-13 consolidation sweep).
   'src/schemas/notification.ts': [128],
-  // preserveAsEvidence structural caps: 256 opaque-id caps (mediaAssetId / profile uid / chat
-  // channelId / attachment-ids array / caseId), 1024 ref/path caps (postDocPath /
-  // transcriptObjectRef / narrativeRef), 32 augmentations fan-out cap.
-  'src/schemas/safety.ts': [32, 200, 256, 256, 256, 256, 256, 1024, 1024, 1024],
+  // 200 = the opaque-id cap on the safety-case-by-id lookup's caseId.
+  'src/schemas/safety.ts': [200],
   'src/schemas/social.ts': [128, 128],
   'src/schemas/uploads.ts': [200],
   'src/schemas/users.ts': [12, 31],

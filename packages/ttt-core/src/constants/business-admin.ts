@@ -96,6 +96,10 @@ export const MAX_SAFETY_ADMIN_NOTE_LENGTH = 4000;
 /** Reporter free-text narrative/comment (segregated private doc; never on the root). */
 export const MAX_REPORT_NARRATIVE_LENGTH = 4000;
 
+/** The ids a client names as the target of a report — the item, its parent reference, and the
+ *  owner hint. They are hints the server re-derives, so the cap only bounds what is read. */
+export const MAX_REPORT_TARGET_ID_LENGTH = 256;
+
 /** The report DIALOG's comment field cap (the client-side compose bound — tighter than
  * the server narrative cap above, which also absorbs upgrade concatenations). */
 export const MAX_REPORT_COMMENT_LENGTH = 1000;
@@ -202,6 +206,21 @@ export const MAX_NCII_AUTHORITY_BASIS_LENGTH = 2000;
 /** Optional pointer/reference to authority evidence supplied by a representative. */
 export const MAX_NCII_AUTHORITY_EVIDENCE_REF_LENGTH = 512;
 
+/** The external URL a no-login statutory request names as the content to remove. */
+export const MAX_NCII_LOCATOR_URL_LENGTH = 2048;
+
+/** The client-generated idempotency key of a statutory request: a retried submit carries the same
+ *  key, and the server derives the request id from it. */
+export const NCII_IDEMPOTENCY_KEY_MIN_LENGTH = 8;
+export const NCII_IDEMPOTENCY_KEY_MAX_LENGTH = 256;
+
+/** A statutory requester's contact email (the address-length ceiling of an email). */
+export const MAX_NCII_CONTACT_EMAIL_LENGTH = 320;
+
+/** A statutory requester's contact phone number. */
+export const NCII_CONTACT_PHONE_MIN_LENGTH = 3;
+export const NCII_CONTACT_PHONE_MAX_LENGTH = 64;
+
 /** Maximum length for a feedback suggestion. */
 export const MAX_FEEDBACK_SUGGESTION_LENGTH = 100;
 
@@ -267,6 +286,7 @@ export const ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE = {
   pledgePaymentRepairNeeded: 'checkin',
   pledgeDisputeOpened: 'checkin',
   pledgeRefundRequested: 'refundDecision',
+  pledgeRefundFailed: 'refundDecision',
   hallContentChangeRequest: 'changeRequestReview',
 } as const satisfies Record<AdminTaskType, AdminTaskResolutionOwner>;
 

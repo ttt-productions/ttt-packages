@@ -2,6 +2,8 @@ import { z } from 'zod';
 import {
   MAX_WORK_PROJECT_TITLE_LENGTH,
   MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH,
+  MAX_REPORT_TARGET_ID_LENGTH,
+  FIRESTORE_DOCUMENT_ID_MAX_BYTES,
 } from '../constants/business.js';
 import { WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import {
@@ -9,23 +11,55 @@ import {
   type ModerationClearableSurface,
 } from '../constants/business-content.js';
 
+// One Firestore document-id segment. A client string that becomes a path segment is validated as ONE
+// segment before any path is built from it: a "/" addresses a different document or a subcollection,
+// "." and ".." are not ids, and Firestore reserves the "__name__" form and caps an id at 1,500 bytes.
+// Every id atom below derives from it.
+export const documentIdSegmentSchema = z
+  .string()
+  .min(1)
+  .refine((id) => !id.includes('/'), { message: 'An id is one path segment and cannot contain "/".' })
+  .refine((id) => id !== '.' && id !== '..', { message: 'An id cannot be "." or "..".' })
+  .refine((id) => !/^__.*__$/.test(id), { message: 'An id cannot use the reserved __name__ form.' })
+  .refine((id) => new TextEncoder().encode(id).length <= FIRESTORE_DOCUMENT_ID_MAX_BYTES, {
+    message: 'An id is longer than Firestore allows.',
+  });
+
+// The ids a report names as its target. They are HINTS the server re-derives (ARCH-106), so each is
+// bounded and shaped as the path it could become. A chat report's parent is a channel reference of
+// one or two ids joined by "/" (a Work channel is `workProjectId/guildChatChannelId`, an invite
+// is a single id) and a conversation-file report's is `<kind>/<scopeId>`.
+export const reportTargetItemIdSchema = documentIdSegmentSchema.max(MAX_REPORT_TARGET_ID_LENGTH);
+export const reportTargetUserIdSchema = documentIdSegmentSchema.max(MAX_REPORT_TARGET_ID_LENGTH);
+export const reportTargetParentRefSchema = z
+  .string()
+  .min(1)
+  .max(MAX_REPORT_TARGET_ID_LENGTH)
+  .refine(
+    (ref) => {
+      const parts = ref.split('/');
+      return parts.length <= 2 && parts.every((part) => documentIdSegmentSchema.safeParse(part).success);
+    },
+    { message: 'A parent reference is one id, or two ids joined by "/".' },
+  );
+
 // ID atoms — every callable input that includes an ID field uses one of these.
 // Kept as separate constants (not aliases of a generic `idSchema`) so consumers
 // reading a callable's schema can see exactly which entity the field refers to.
-export const workProjectIdSchema = z.string().min(1);
-export const userIdSchema = z.string().min(1);
-export const guildInviteIdSchema = z.string().min(1);
-export const violationIdSchema = z.string().min(1);
-export const auditionIdSchema = z.string().min(1);
-export const commissionListingIdSchema = z.string().min(1);
-export const commissionProposalIdSchema = z.string().min(1);
-export const auditionEntryIdSchema = z.string().min(1);
-export const guildChatChannelIdSchema = z.string().min(1);
-export const workFileFolderIdSchema = z.string().min(1);
-export const workRealmIdSchema = z.string().min(1);
+export const workProjectIdSchema = documentIdSegmentSchema;
+export const userIdSchema = documentIdSegmentSchema;
+export const guildInviteIdSchema = documentIdSegmentSchema;
+export const violationIdSchema = documentIdSegmentSchema;
+export const auditionIdSchema = documentIdSegmentSchema;
+export const commissionListingIdSchema = documentIdSegmentSchema;
+export const commissionProposalIdSchema = documentIdSegmentSchema;
+export const auditionEntryIdSchema = documentIdSegmentSchema;
+export const guildChatChannelIdSchema = documentIdSegmentSchema;
+export const workFileFolderIdSchema = documentIdSegmentSchema;
+export const workRealmIdSchema = documentIdSegmentSchema;
 /** A folder in a Realm's shared-file pool (`workRealms/{id}/realmFileFolders/{id}`) —
  *  distinct from `workFileFolderIdSchema`, which addresses a WORK's private file folder. */
-export const realmFileFolderIdSchema = z.string().min(1);
+export const realmFileFolderIdSchema = documentIdSegmentSchema;
 /** The CLIENT-generated stable id of one realm-file promotion request. Approval, decline,
  *  and withdrawal all carry it and compare it against the pending request recorded on the
  *  asset, so a stale tab can never decide a newer re-request.
@@ -34,26 +68,38 @@ export const realmFileFolderIdSchema = z.string().min(1);
  *  payload, notification metadata, aggregation key), so an unbounded string is a write
  *  amplification an attacker can send without the UI. Every consumer inherits the cap by
  *  using this atom rather than restating a bound. */
-export const realmFileShareRequestIdSchema = z
-  .string()
-  .min(1)
-  .max(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH);
-export const notificationFanoutJobIdSchema = z.string().min(1);
-export const taleIdSchema = z.string().min(1);
-export const tuneIdSchema = z.string().min(1);
-export const televisionIdSchema = z.string().min(1);
-export const chapterIdSchema = z.string().min(1);
-export const trackIdSchema = z.string().min(1);
-export const episodeIdSchema = z.string().min(1);
-export const craftSkillIdSchema = z.string().min(1);
-export const taskIdSchema = z.string().min(1);
-export const adminDispatchIdSchema = z.string().min(1);
-export const reportGroupIdSchema = z.string().min(1);
-export const mediaAssetIdSchema = z.string().min(1);
-export const hallItemIdSchema = z.string().min(1);
-export const itemIdSchema = z.string().min(1);
-export const thresholdItemIdSchema = z.string().min(1);
-export const changeRequestIdSchema = z.string().min(1);
+export const realmFileShareRequestIdSchema = documentIdSegmentSchema.max(MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH);
+export const notificationFanoutJobIdSchema = documentIdSegmentSchema;
+export const taleIdSchema = documentIdSegmentSchema;
+export const tuneIdSchema = documentIdSegmentSchema;
+export const televisionIdSchema = documentIdSegmentSchema;
+export const chapterIdSchema = documentIdSegmentSchema;
+export const trackIdSchema = documentIdSegmentSchema;
+export const episodeIdSchema = documentIdSegmentSchema;
+export const craftSkillIdSchema = documentIdSegmentSchema;
+export const taskIdSchema = documentIdSegmentSchema;
+export const adminDispatchIdSchema = documentIdSegmentSchema;
+export const reportGroupIdSchema = documentIdSegmentSchema;
+export const mediaAssetIdSchema = documentIdSegmentSchema;
+export const hallItemIdSchema = documentIdSegmentSchema;
+export const itemIdSchema = documentIdSegmentSchema;
+export const thresholdItemIdSchema = documentIdSegmentSchema;
+export const changeRequestIdSchema = documentIdSegmentSchema;
+/** A Hall sub-item — a chapter, track, or episode — where the Work type, not the field, names its kind. */
+export const hallSubItemIdSchema = documentIdSegmentSchema;
+export const workFileIdSchema = documentIdSegmentSchema;
+export const conversationFileIdSchema = documentIdSegmentSchema;
+export const pendingMediaIdSchema = documentIdSegmentSchema;
+export const squareStreetzPostIdSchema = documentIdSegmentSchema;
+/** A child-safety or NCII case; both lanes key a case by one id. */
+export const safetyCaseIdSchema = documentIdSegmentSchema;
+export const nciiAllegationIdSchema = documentIdSegmentSchema;
+export const takeItDownRequestIdSchema = documentIdSegmentSchema;
+/** A member's active notification card. */
+export const activeNotificationIdSchema = documentIdSegmentSchema;
+export const shortLinkIdSchema = documentIdSegmentSchema;
+export const pledgePaymentIdSchema = documentIdSegmentSchema;
+export const pledgeRefundRequestIdSchema = documentIdSegmentSchema;
 
 // Action / enum atoms.
 export const addRemoveActionSchema = z.enum(['add', 'remove']);
@@ -95,6 +141,13 @@ export const guildInviteConversationStatusSchema = z.enum([
   'finalized',
 ]);
 export type GuildInviteConversationStatus = z.infer<typeof guildInviteConversationStatusSchema>;
+
+// The ONE set of things a short link can point at — an audition, one audition entry, a commission
+// listing, or a whole Hall entry (a book, album, or show; never one chapter, track, or episode, and
+// never a Realm). The create input (schemas/utility.ts) and the stored link (doc-schemas/operational.ts)
+// both derive from it; it lives in this leaf module so the doc schema never imports ./schemas/utility.
+export const ShortLinkTargetTypeSchema = z.enum(['audition', 'audition-entry', 'commission', 'hall-library-item']);
+export type ShortLinkTargetType = z.infer<typeof ShortLinkTargetTypeSchema>;
 
 /**
  * A strict `YYYY-MM-DD` LOCAL calendar date. Declared once here (a leaf module) because both

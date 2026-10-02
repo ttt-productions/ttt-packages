@@ -481,6 +481,13 @@ export const PATH_BUILDERS = {
   childSafetyCaseAccounts: (caseId: string): [string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS],
 
+  // One asset's crossover leg row, and the collection of a case's rows (its parent).
+  childSafetyCaseCrossoverItem: (caseId: string, mediaAssetId: string): [string, string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_CROSSOVER_ITEMS, mediaAssetId],
+
+  childSafetyCaseCrossoverItems: (caseId: string): [string, string, string] =>
+    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_CROSSOVER_ITEMS],
+
   childSafetyCaseAccountHistory: (caseId: string, uid: string, historyId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNTS, uid, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_CASE_ACCOUNT_HISTORY, historyId],
 

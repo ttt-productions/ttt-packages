@@ -32,9 +32,10 @@ the scope internally on exactly one branch.
 
 ## withScope invokes its callback exactly once
 
-`withScope(fn)` calls `fn` once on every path and returns its result. Once the SDK instance is
-loaded it runs through the real Sentry scope; during the narrow window before the dynamic import
-resolves it runs against a minimal no-op scope and that window's scope data is not attached. The
+`withScope(fn)` calls `fn` once on every path and returns its result. Once the SDK is ready
+(loaded, and initialized when an init is running) it runs through the real Sentry scope; during the
+window before that it runs against a minimal no-op scope and that window's scope data is not
+attached. The
 callback is never replayed against the real scope afterwards — call sites wrap whole request
 handlers in `fn`, so a replay would re-execute their business logic. Losing pre-load scope data is
 the correct tradeoff against running the caller twice.
@@ -43,10 +44,18 @@ the correct tradeoff against running the caller twice.
 
 `createTelemetryScrubber` builds a Sentry `beforeSend` hook (and `redactEvent` exposes the same pass
 for the backend `withScope` / manual-capture path) that walks an entire outgoing event — message,
-exception values and stacktrace frame vars, breadcrumbs, `extra`, `contexts`, `tags`, `request`, and
-`user` — and overwrites every substring matching a forbidden pattern with a fixed placeholder. It is
-defense in depth, not the primary control: the real fix for a leak is never emitting the value, and
-the scrubber exists to catch what third-party error text and SDK-recorded URLs drag in anyway.
+exception values and stacktrace frame vars, breadcrumbs, `extra`, `contexts`, `tags`, `request`,
+`user`, a transaction's `transaction` name and each of its `spans`' `description` and `data`, and a
+replay event's top-level `urls` — and overwrites every substring matching a forbidden pattern with a
+fixed placeholder. A span's ids, op, and timestamps are left alone so the trace still assembles. It
+is defense in depth, not the primary control: the real fix for a leak is never emitting the value,
+and the scrubber exists to catch what third-party error text and SDK-recorded URLs drag in anyway.
+
+One hook covers one event type. The SDK runs `beforeSend` on error events and
+`beforeSendTransaction` on transactions; a Session Replay event (`type: 'replay_event'`, page URLs
+in `urls`) goes through the SDK's event processors and through NEITHER hook, so a consumer that
+records replays registers the scrubber as an event processor for those events as well. The replay
+recording payload itself is not an event and never passes through any of them.
 
 Ownership of the pattern set is split, and both halves are always in play:
 
@@ -87,8 +96,37 @@ the scrubber exists to keep readable — and `state` / `nonce` are not secrets. 
 credential-bearing parameter under one of these names gets a **path-scoped** pattern naming the
 route that carries it, never a bare parameter-name rule.
 
+## Initialization
+
+`initMonitoring(options)` installs the provider's adapter BEFORE it awaits anything, then runs the
+adapter's init. A capture issued while the SDK is still loading therefore reaches the real adapter,
+which holds it until its own `S.init` has run and then sends it — through the init-time hooks. Calls
+made before `initMonitoring` runs at all go to the Noop adapter.
+
+The options reach the SDK's init as given; anything left out is left out:
+
+- `beforeSend` / `beforeSendTransaction` — the SDK's own hooks, active from the first event the SDK
+  sends. A `BeforeSendHook` receives the event and the SDK's hint (`hint.originalException` is the
+  thrown value) and returns the event, or `null` to drop it.
+- `integrations` — ADDED to the SDK's default integrations; `[]` switches nothing off.
+- `defaultIntegrations: false` — switches the defaults off, so only `integrations` run (a list
+  replaces the defaults).
+- `tracesSampleRate` — the provider's trace sampling.
+
+A repeated `initMonitoring` with the same options is skipped; options compare value by value, and a
+function-valued option (a hook) compares by reference, so swapping a hook re-initializes.
+
+If the SDK fails to load or its `init` throws, `initMonitoring` rejects (the caller reports it), and
+every call that waits for the SDK reports itself on `console.error` as not delivered, naming the step
+that failed: `[monitoring-core] <op> was not delivered: the monitoring SDK did not load`, `… failed
+to initialize`, or — when the SDK itself throws on the call — `… threw`. Never a silent loss and
+never an unhandled rejection.
+
+The Node SDK is named in one module (`adapters/sentry-node-sdk`) that the package's `browser` field
+maps to an empty module, so a browser bundle never pulls `@sentry/node` in.
+
 ## Boundary
 
 App code owns initialization values, environment naming, and fallback UI. The React error boundary accepts app-owned context/fallback values.
 
-`initMonitoring` auto-forces the Noop adapter (skipping the dynamic SDK import entirely) whenever `NEXT_PUBLIC_USE_EMULATORS`, `FUNCTIONS_EMULATOR`, `FIREBASE_EMULATOR_HUB`, or `NEXT_PUBLIC_SENTRY_ENABLED=false` is set — local dev and emulator runs never load or initialize Sentry.
+`initMonitoring` auto-forces the Noop adapter (skipping the SDK import entirely) whenever `NEXT_PUBLIC_USE_EMULATORS`, `FUNCTIONS_EMULATOR`, or `FIREBASE_EMULATOR_HUB` is set — local dev and emulator runs never load or initialize Sentry. There is no other off switch: the DSN is the switch, and an adapter initialized without one initializes no SDK.

@@ -21,6 +21,13 @@ export type AuditEventType =
   | 'user.displayNameResetForced'
   | 'user.displayNameChanged'
   | 'user.nonUsArtisanInterestRecorded'
+  // Credential and session records: the sign-in the Identity Platform hook records (with the real
+  // request origin), and the server step that follows each credential action once it succeeds.
+  | 'user.signedIn'
+  | 'user.passwordChanged'
+  | 'user.passwordResetCompleted'
+  | 'user.emailChanged'
+  | 'user.emailRecovered'
   // account deletion / GDPR erasure (N3)
   | 'account.deletionRequested'
   | 'account.deletionCancelled'
@@ -52,10 +59,6 @@ export type AuditEventType =
   | 'admin.termsPageSeeded'
   | 'admin.privacyPageSeeded'
   | 'admin.takeItDownPageCopySeeded'
-  // admin direct-delete callables (replaced the last two direct-SDK admin-browser deletes):
-  // deleteAdminDispatch (support thread + its conversationMessages) and deleteShortLink.
-  | 'admin.dispatchDeleted'
-  | 'admin.shortLinkDeleted'
   // trademark-assist (advisory check at approval) + parody/real-people disclaimer baked at approval
   | 'admin.trademarkChecked'
   | 'content.parodyDisclaimerApplied'

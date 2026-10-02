@@ -378,3 +378,62 @@ describe('redactEvent — direct backend use', () => {
     expect(event.message).not.toContain(FAKE_DETECTOR_HASH);
   });
 });
+
+describe('transaction and replay events — every place a page URL rides', () => {
+  const RESET_URL = 'https://example.test/auth/action?mode=resetPassword&oobCode=AbCdEfGh123456&lang=en';
+
+  it('redacts the reset code from a page-load transaction name', () => {
+    const event: ScrubbableEvent = { type: 'transaction', transaction: RESET_URL };
+    const out = createTelemetryScrubber()(event)!;
+    expect(out.transaction).not.toContain('AbCdEfGh123456');
+    expect(out.transaction).toContain('mode=resetPassword');
+  });
+
+  it('redacts the reset code from span descriptions and span data', () => {
+    const event: ScrubbableEvent = {
+      type: 'transaction',
+      spans: [
+        { op: 'browser.request', description: RESET_URL, span_id: 'aaaa1111bbbb2222', data: { url: RESET_URL } },
+        { op: 'navigation', description: 'GET /home', span_id: 'cccc3333dddd4444' },
+      ],
+    };
+    const out = createTelemetryScrubber()(event)!;
+    const spans = out.spans as Array<Record<string, unknown>>;
+    expect(JSON.stringify(spans)).not.toContain('AbCdEfGh123456');
+    expect(spans[0].description).toContain(REDACTION_PLACEHOLDER);
+    expect((spans[0].data as Record<string, unknown>).url).toContain(REDACTION_PLACEHOLDER);
+    expect(spans[1].description).toBe('GET /home');
+  });
+
+  it('leaves a span\'s ids and op intact so the trace still assembles', () => {
+    const event: ScrubbableEvent = {
+      type: 'transaction',
+      spans: [{ op: 'browser.request', span_id: 'aaaa1111bbbb2222', trace_id: 'f'.repeat(32), description: RESET_URL }],
+    };
+    const out = createTelemetryScrubber()(event)!;
+    const span = (out.spans as Array<Record<string, unknown>>)[0];
+    expect(span.span_id).toBe('aaaa1111bbbb2222');
+    expect(span.trace_id).toBe('f'.repeat(32));
+    expect(span.op).toBe('browser.request');
+  });
+
+  it('redacts the reset code from a replay event\'s visited URLs', () => {
+    const event: ScrubbableEvent = { type: 'replay_event', urls: ['https://example.test/home', RESET_URL] };
+    const out = createTelemetryScrubber()(event)!;
+    const urls = out.urls as string[];
+    expect(urls[0]).toBe('https://example.test/home');
+    expect(urls[1]).not.toContain('AbCdEfGh123456');
+    expect(urls[1]).toContain(REDACTION_PLACEHOLDER);
+  });
+
+  it('applies the app-injected patterns to spans and replay URLs too', () => {
+    const event: ScrubbableEvent = {
+      transaction: `/evidence/${FAKE_DETECTOR_HASH}`,
+      spans: [{ description: `GET ${FAKE_EVIDENCE_URL}` }],
+      urls: [`https://example.test/case/${FAKE_DETECTOR_HASH}`],
+    };
+    const out = createTelemetryScrubber({ patterns: TTT_PATTERNS })(event)!;
+    expect(JSON.stringify(out)).not.toContain(FAKE_DETECTOR_HASH);
+    expect(JSON.stringify(out)).not.toContain(FAKE_EVIDENCE_PREFIX);
+  });
+});

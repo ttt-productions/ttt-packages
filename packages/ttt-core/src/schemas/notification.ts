@@ -9,9 +9,8 @@
 // (`writeReliableOccurrenceRow` / `enqueueReliableOccurrence`) and audience fanout
 // (`notificationFanoutJobs` → `processNotificationFanoutJobs`) — which converge on
 // the `notificationDeliveries` ledger, with `materializeDeliveries` as the sole
-// materializer. The fanout lane validates `metadata` against
-// `NotificationMetadataByTypeSchema` before a job is enqueued. See ttt-prod
-// docs/design/notification-system.md.
+// materializer. `validateNotificationMetadata` is the one check of a row's or job's `metadata`
+// against its type, for both lanes.
 //
 // The two notification audit-event payload shapes live here too (the
 // `AuditEventType` union members `notification.broadcastSent` /
@@ -34,6 +33,8 @@ import {
   mediaAssetIdSchema,
   workRealmIdSchema,
   realmFileShareRequestIdSchema,
+  documentIdSegmentSchema,
+  activeNotificationIdSchema,
 } from './atoms.js';
 import {
   MAX_THRESHOLD_REVIEW_NOTES_LENGTH,
@@ -43,14 +44,15 @@ import {
 } from '../constants/business.js';
 import { HallSubItemTypeSchema } from '../doc-schemas/content.js';
 import { ReportableItemTypeSchema } from '../doc-schemas/safety/foundation.js';
+import { NotificationFanoutPrioritySchema } from '../doc-schemas/notification-ledger.js';
 
 // String shape atoms specific to notifications.
 const notificationMessageSchema = z.string().min(1).max(MAX_NOTIFICATION_MESSAGE_LENGTH);
 // The canonical reportable-item enum — never an open string (ARCH-102).
 const reportedItemTypeSchema = ReportableItemTypeSchema;
-const reportedItemIdSchema = z.string().min(1).max(128);
-const reportIdSchema = z.string().min(1);
-const appealIdSchema = z.string().min(1);
+const reportedItemIdSchema = documentIdSegmentSchema.max(128);
+const reportIdSchema = documentIdSegmentSchema;
+const appealIdSchema = documentIdSegmentSchema;
 
 // ============================================================================
 // TYPE + CHANNEL CATALOG
@@ -166,7 +168,6 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     type: z.literal('guild_invite'),
     workProjectId: workProjectIdSchema,
     guildInviteId: guildInviteIdSchema,
-    workTitle: titleSchema,
   }).strict(),
   z.object({
     type: z.literal('admin_dispatch_reply'),
@@ -288,6 +289,21 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
 ]);
 export type NotificationMetadataByType = z.infer<typeof NotificationMetadataByTypeSchema>;
 
+/**
+ * The one check of a notification's `metadata` against its type, for both intake lanes: the
+ * reliable lane's delivery rows and the fanout lane's jobs. Metadata never carries the `type`
+ * discriminant itself (it would hide the type the notification is sent as). Throws on a mismatch.
+ */
+export function validateNotificationMetadata(
+  type: NotificationType,
+  metadata: Record<string, unknown>,
+): NotificationMetadataByType {
+  if (Object.prototype.hasOwnProperty.call(metadata, 'type')) {
+    throw new TypeError('Notification metadata must not carry its own type.');
+  }
+  return NotificationMetadataByTypeSchema.parse({ ...metadata, type });
+}
+
 // ============================================================================
 // BROADCAST AUDIENCE SELECTOR
 // ============================================================================
@@ -333,7 +349,7 @@ export type CreateNotificationBroadcastInput = z.infer<typeof CreateNotification
 
 /** Archive scope: a single notification, or the caller's whole category. */
 export const ArchiveNotificationScopeSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('single'), notificationId: z.string().min(1) }).strict(),
+  z.object({ kind: z.literal('single'), notificationId: activeNotificationIdSchema }).strict(),
   z.object({ kind: z.literal('all') }).strict(),
 ]);
 export type ArchiveNotificationScope = z.infer<typeof ArchiveNotificationScopeSchema>;
@@ -370,7 +386,7 @@ const MARK_SEEN_MAX_ITEMS = 50;
  * `observedActivityGeneration` is the opaque token from that document.
  */
 const SeenItemSchema = z.object({
-  activeId: z.string().min(1),
+  activeId: activeNotificationIdSchema,
   observedActivityGeneration: z.string().min(1),
 }).strict();
 
@@ -413,7 +429,7 @@ export type MarkNotificationsSeenObservedInput = z.infer<typeof MarkNotification
 export const ArchiveNotificationObservedScopeSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('single'),
-    notificationId: z.string().min(1),
+    notificationId: activeNotificationIdSchema,
     observedActivityGeneration: z.string().min(1),
   }).strict(),
   z.object({
@@ -462,7 +478,7 @@ export const EnqueueArchiveAllInputSchema = z.object({
 export type EnqueueArchiveAllInput = z.infer<typeof EnqueueArchiveAllInputSchema>;
 
 export const GetArchiveAllStatusInputSchema = z.object({
-  jobId: z.string().min(1),
+  jobId: documentIdSegmentSchema,
 }).strict();
 export type GetArchiveAllStatusInput = z.infer<typeof GetArchiveAllStatusInputSchema>;
 
@@ -474,6 +490,32 @@ export const ResumeFanoutJobInputSchema = z.object({
   jobId: notificationFanoutJobIdSchema,
 }).strict();
 export type ResumeFanoutJobInput = z.infer<typeof ResumeFanoutJobInputSchema>;
+
+// One dead-lettered fanout job in the Ops Repairs inventory (`listDeadLetteredFanoutJobs`, oldest
+// first): the job's own identity, type, and priority, when it parked and why, and how long it has
+// been parked. Server → client posture: non-strict, so the backend may add fields.
+export const DeadLetteredFanoutJobRowSchema = z.object({
+  jobId: notificationFanoutJobIdSchema,
+  notificationType: z.string(),
+  priority: NotificationFanoutPrioritySchema,
+  deadLetteredAt: z.number().nullable(),
+  lastError: z.string().nullable(),
+  ageMs: z.number().nullable(),
+});
+export type DeadLetteredFanoutJobRow = z.infer<typeof DeadLetteredFanoutJobRowSchema>;
+
+export const ListDeadLetteredFanoutJobsResultSchema = z.object({
+  jobs: z.array(DeadLetteredFanoutJobRowSchema),
+});
+export type ListDeadLetteredFanoutJobsResult = z.infer<typeof ListDeadLetteredFanoutJobsResultSchema>;
+
+// The `resumeFanoutJob` re-arm: `resumed: false` with a `reason` when the job was no longer
+// dead-lettered (an idempotent no-op).
+export const ResumeFanoutJobResultSchema = z.object({
+  resumed: z.boolean(),
+  reason: z.string().optional(),
+});
+export type ResumeFanoutJobResult = z.infer<typeof ResumeFanoutJobResultSchema>;
 
 // ============================================================================
 // AUDIT EVENT PAYLOADS (admin-only)

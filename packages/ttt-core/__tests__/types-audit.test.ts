@@ -22,8 +22,6 @@ describe('audit type catalog', () => {
       'craftSkill.userCraftSkillDeleted',
       'audition.entryCreated',
       'audition.curatedBatchFailed',
-      'admin.dispatchDeleted',
-      'admin.shortLinkDeleted',
       'workProject.fileFolderAccessChanged',
       // fable-review campaign additions
       'chat.guildChatChannelDeleted',
@@ -199,5 +197,37 @@ describe('sign-up age check', () => {
     const ageAttested: AuditEventType = 'user.ageAttested';
     const registered: AuditEventType = 'user.accountRegistered';
     expect([ageAttested, registered]).toHaveLength(2);
+  });
+});
+
+describe('credential and session records', () => {
+  it('has a type for the sign-in record and one for each credential action a server step records', () => {
+    const credentialEvents: AuditEventType[] = [
+      'user.signedIn',
+      'user.passwordChanged',
+      'user.passwordResetCompleted',
+      'user.emailChanged',
+      'user.emailRecovered',
+    ];
+    expect(new Set(credentialEvents).size).toBe(credentialEvents.length);
+  });
+});
+
+describe('short-link audit types', () => {
+  it('has no short-link deletion event — a short link is never deleted', () => {
+    // @ts-expect-error — a short link is never deleted, so no deletion event exists.
+    const removed: AuditEventType = 'admin.shortLinkDeleted';
+    void removed;
+  });
+});
+
+describe('support thread audit types', () => {
+  it('has no thread-deletion event — a thread is closed, never deleted', () => {
+    // @ts-expect-error — a support thread is closed, never deleted, so no thread-deletion event exists.
+    const removed: AuditEventType = 'admin.dispatchDeleted';
+    void removed;
+
+    const closed: AuditEventType = 'chat.adminThreadStatusChanged';
+    void closed;
   });
 });

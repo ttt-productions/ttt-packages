@@ -11,9 +11,13 @@ import {
   MarkNotificationsSeenInputSchema,
   MarkNotificationsSeenObservedInputSchema,
   ArchiveNotificationObservedInputSchema,
+  DeadLetteredFanoutJobRowSchema,
+  ListDeadLetteredFanoutJobsResultSchema,
+  ResumeFanoutJobResultSchema,
   type NotificationType,
   type MarkNotificationsSeenObservedInput,
   type ArchiveNotificationObservedInput,
+  validateNotificationMetadata,
 } from '../src/schemas/notification';
 import type { AuditEventType } from '../src/types/audit';
 
@@ -92,7 +96,6 @@ describe('NotificationMetadataByType', () => {
       type: 'guild_invite',
       workProjectId: 'wp1',
       guildInviteId: 'gi1',
-      workTitle: 'My Work',
     }).success).toBe(true);
 
     expect(NotificationMetadataByTypeSchema.safeParse({
@@ -295,6 +298,38 @@ describe('NotificationMetadataByType', () => {
       adminDispatchId: 'ad1',
       extra: 'nope',
     }).success).toBe(false);
+  });
+});
+
+describe('a guild invite notification carries ids only', () => {
+  it('refuses a Work title snapshot — the title resolves from the Work id when the card renders', () => {
+    expect(NotificationMetadataByTypeSchema.safeParse({
+      type: 'guild_invite',
+      workProjectId: 'wp1',
+      guildInviteId: 'gi1',
+      workTitle: 'My Work',
+    }).success).toBe(false);
+  });
+});
+
+describe('validateNotificationMetadata', () => {
+  it('accepts metadata that matches its type and answers it typed', () => {
+    const parsed = validateNotificationMetadata('guild_invite', { workProjectId: 'wp1', guildInviteId: 'gi1' });
+    expect(parsed).toEqual({ type: 'guild_invite', workProjectId: 'wp1', guildInviteId: 'gi1' });
+  });
+
+  it('refuses metadata that does not match its type', () => {
+    expect(() => validateNotificationMetadata('guild_invite', { workProjectId: 'wp1' })).toThrow();
+    expect(() => validateNotificationMetadata('admin_dispatch_reply', { workProjectId: 'wp1', guildInviteId: 'gi1' })).toThrow();
+    expect(() =>
+      validateNotificationMetadata('admin_dispatch_reply', { adminDispatchId: 'ad1', extra: 'nope' }),
+    ).toThrow();
+  });
+
+  it('refuses metadata that carries its own type, which would hide the type it is sent as', () => {
+    expect(() =>
+      validateNotificationMetadata('admin_dispatch_reply', { type: 'guild_invite', workProjectId: 'wp1', guildInviteId: 'gi1' }),
+    ).toThrow();
   });
 });
 
@@ -614,5 +649,41 @@ describe('legacy schemas remain intact after observed-generation additions', () 
       scope: { kind: 'all' },
       requestId: 'r1',
     }).success).toBe(false);
+  });
+});
+
+describe('fanout dead-letter repair contracts', () => {
+  const row = {
+    jobId: 'evt-1:admin_announcement',
+    notificationType: 'admin_announcement',
+    priority: 1,
+    deadLetteredAt: 1_700_000_000_000,
+    lastError: 'recipient page failed',
+    ageMs: 90_000,
+  } as const;
+
+  it('reads the row the inventory callable returns, with a numeric priority as the job stores it', () => {
+    expect(DeadLetteredFanoutJobRowSchema.parse(row)).toEqual(row);
+    expect(DeadLetteredFanoutJobRowSchema.safeParse({ ...row, priority: 'high' }).success).toBe(false);
+    expect(DeadLetteredFanoutJobRowSchema.safeParse({ ...row, priority: 3 }).success).toBe(false);
+  });
+
+  it('accepts a job with no recorded park time or error', () => {
+    expect(
+      DeadLetteredFanoutJobRowSchema.safeParse({ ...row, deadLetteredAt: null, lastError: null, ageMs: null }).success,
+    ).toBe(true);
+  });
+
+  it('wraps the rows in the inventory result', () => {
+    expect(ListDeadLetteredFanoutJobsResultSchema.parse({ jobs: [row] }).jobs).toHaveLength(1);
+    expect(ListDeadLetteredFanoutJobsResultSchema.safeParse({ jobs: [{ jobId: 'x' }] }).success).toBe(false);
+  });
+
+  it('reports a re-arm with a reason only when nothing was resumed', () => {
+    expect(ResumeFanoutJobResultSchema.parse({ resumed: true })).toEqual({ resumed: true });
+    expect(ResumeFanoutJobResultSchema.parse({ resumed: false, reason: 'not-dead-lettered' }).reason).toBe(
+      'not-dead-lettered',
+    );
+    expect(ResumeFanoutJobResultSchema.safeParse({ reason: 'x' }).success).toBe(false);
   });
 });

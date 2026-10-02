@@ -15,6 +15,9 @@ import {
   workRealmIdSchema,
   realmFileFolderIdSchema,
   realmFileShareRequestIdSchema,
+  documentIdSegmentSchema,
+  workFileFolderIdSchema,
+  workFileIdSchema,
 } from './atoms.js';
 import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
 import { GUILD_STANDING_VALUES } from '../permissions/index.js';
@@ -260,7 +263,7 @@ export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationM
   z.object({
     ...baseFields,
     realmCreationMode: z.literal('existingPublicRealm'),
-    workRealmId: z.string().min(1),
+    workRealmId: workRealmIdSchema,
   }).strict(),
 ]);
 export type CreateWorkProjectInput = z.infer<typeof CreateWorkProjectInputSchema>;
@@ -269,7 +272,7 @@ export type CreateWorkProjectInput = z.infer<typeof CreateWorkProjectInputSchema
 // (no delete path may depend on a URL; see media-assets-and-protected-serving.md).
 export const DeleteWorkAssetInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  workAssetId: z.string().min(1),
+  workAssetId: documentIdSegmentSchema,
 }).strict();
 export type DeleteWorkAssetInput = z.infer<typeof DeleteWorkAssetInputSchema>;
 
@@ -324,9 +327,13 @@ export type InviteUserToGuildInput = z.infer<typeof InviteUserToGuildInputSchema
 // consumes within seconds). Managers must be able to list finalized invites to see the
 // guild's actual recruitment history — not only failures and in-flight items. Derives from
 // the ONE canonical status enum (schemas/atoms.ts), never a re-declared literal.
+// The history is paged: the server reads `ITEMS_PER_PAGE_GUILD_INVITES` invites per call (the
+// caller sends no page size), and `cursor` is the opaque token the previous page answered.
+// The result is `ListGuildInvitesResultSchema` (doc-schemas/messaging, beside the invite doc).
 export const ListGuildInvitesInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   statuses: z.array(guildInviteConversationStatusSchema).min(1),
+  cursor: z.string().min(1).optional(),
 }).strict();
 export type ListGuildInvitesInput = z.infer<typeof ListGuildInvitesInputSchema>;
 
@@ -364,7 +371,7 @@ export const UpdatePublicWorkProjectDetailsInputSchema = z.object({
 export type UpdatePublicWorkProjectDetailsInput = z.infer<typeof UpdatePublicWorkProjectDetailsInputSchema>;
 
 export const UpdateWorkRealmDetailsInputSchema = z.object({
-  workRealmId: z.string().min(1),
+  workRealmId: workRealmIdSchema,
   workingTitle: z.string().min(1).max(MAX_WORK_REALM_TITLE_LENGTH),
   workingDescription: z.string().min(1).max(MAX_WORK_REALM_DESCRIPTION_LENGTH),
 }).strict();
@@ -389,7 +396,7 @@ const tradeProfessionListSchema = z
   .max(TRADE_PROFESSION_OPTIONS.length);
 
 export const CreateFileFolderInputSchema = z.object({
-  workProjectId: z.string().min(1),
+  workProjectId: workProjectIdSchema,
   name: z.string().min(1).max(MAX_FILE_FOLDER_NAME_LENGTH),
   canViewTradeProfessions: tradeProfessionListSchema,
   canUploadTradeProfessions: tradeProfessionListSchema,
@@ -398,15 +405,15 @@ export const CreateFileFolderInputSchema = z.object({
 export type CreateFileFolderInput = z.infer<typeof CreateFileFolderInputSchema>;
 
 export const RenameFileFolderInputSchema = z.object({
-  workProjectId: z.string().min(1),
-  folderId: z.string().min(1),
+  workProjectId: workProjectIdSchema,
+  folderId: workFileFolderIdSchema,
   name: z.string().min(1).max(MAX_FILE_FOLDER_NAME_LENGTH),
 }).strict();
 export type RenameFileFolderInput = z.infer<typeof RenameFileFolderInputSchema>;
 
 export const UpdateFolderProfessionsInputSchema = z.object({
-  workProjectId: z.string().min(1),
-  folderId: z.string().min(1),
+  workProjectId: workProjectIdSchema,
+  folderId: workFileFolderIdSchema,
   canViewTradeProfessions: tradeProfessionListSchema,
   canUploadTradeProfessions: tradeProfessionListSchema,
   canDeleteTradeProfessions: tradeProfessionListSchema,
@@ -414,8 +421,8 @@ export const UpdateFolderProfessionsInputSchema = z.object({
 export type UpdateFolderProfessionsInput = z.infer<typeof UpdateFolderProfessionsInputSchema>;
 
 export const DeleteFileFolderInputSchema = z.object({
-  workProjectId: z.string().min(1),
-  folderId: z.string().min(1),
+  workProjectId: workProjectIdSchema,
+  folderId: workFileFolderIdSchema,
 }).strict();
 export type DeleteFileFolderInput = z.infer<typeof DeleteFileFolderInputSchema>;
 
@@ -424,9 +431,9 @@ export type DeleteFileFolderInput = z.infer<typeof DeleteFileFolderInputSchema>;
 // Delete a single work file (by folder + file id). File-admin authz is enforced in the
 // callable/core transaction.
 export const DeleteWorkFileInputSchema = z.object({
-  workProjectId: z.string().min(1),
-  folderId: z.string().min(1),
-  workFileId: z.string().min(1),
+  workProjectId: workProjectIdSchema,
+  folderId: workFileFolderIdSchema,
+  workFileId: workFileIdSchema,
 }).strict();
 export type DeleteWorkFileInput = z.infer<typeof DeleteWorkFileInputSchema>;
 
@@ -455,7 +462,7 @@ export type UpdateWorkFileRealmCanonInput = z.infer<typeof UpdateWorkFileRealmCa
 // request is already pending is a conflict — never a silent overwrite.
 export const UpdateWorkFileRealmShareInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  workFileId: z.string().min(1),
+  workFileId: workFileIdSchema,
   requestId: realmFileShareRequestIdSchema,
 }).strict();
 export type UpdateWorkFileRealmShareInput = z.infer<typeof UpdateWorkFileRealmShareInputSchema>;
@@ -466,7 +473,7 @@ export type UpdateWorkFileRealmShareInput = z.infer<typeof UpdateWorkFileRealmSh
 // itself, and compares `requestId` so a withdrawal can never cancel a newer re-request.
 export const WithdrawRealmFilePromotionRequestInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  workFileId: z.string().min(1),
+  workFileId: workFileIdSchema,
   requestId: realmFileShareRequestIdSchema,
 }).strict();
 export type WithdrawRealmFilePromotionRequestInput = z.infer<typeof WithdrawRealmFilePromotionRequestInputSchema>;
@@ -503,7 +510,7 @@ export type DeclineRealmFilePromotionInput = z.infer<typeof DeclineRealmFileProm
 // from anything in this payload.
 export const AdminUpdateWorkFileRealmUnshareInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  workFileId: z.string().min(1),
+  workFileId: workFileIdSchema,
 }).strict();
 export type AdminUpdateWorkFileRealmUnshareInput = z.infer<typeof AdminUpdateWorkFileRealmUnshareInputSchema>;
 

@@ -2,8 +2,14 @@ import { z } from 'zod';
 import {
   MIN_PLEDGE_PAYMENT_AMOUNT_CENTS,
   MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
+  MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH,
 } from '../constants/business.js';
-import { LegalReviewNoticeAcknowledgedInputSchema } from './atoms.js';
+import { PledgePaymentSchema } from '../doc-schemas/payments.js';
+import {
+  LegalReviewNoticeAcknowledgedInputSchema,
+  pledgePaymentIdSchema,
+  pledgeRefundRequestIdSchema,
+} from './atoms.js';
 
 export const CreateStripeCheckoutSessionInputSchema = z.object({
   amount: z.number().int().min(MIN_PLEDGE_PAYMENT_AMOUNT_CENTS).max(MAX_PLEDGE_PAYMENT_AMOUNT_CENTS),
@@ -28,15 +34,16 @@ export type CreateStripeCheckoutSessionInput = z.infer<typeof CreateStripeChecko
 // enforces the PLEDGE_REFUND_REQUEST_WINDOW_MS eligibility window server-side; the client only
 // names which pledge it wants refunded.
 export const RequestPledgeRefundInputSchema = z.object({
-  pledgePaymentId: z.string(),
+  pledgePaymentId: pledgePaymentIdSchema,
 }).strict();
 export type RequestPledgeRefundInput = z.infer<typeof RequestPledgeRefundInputSchema>;
 
-// Admin resolution of a pending pledge refund request: approve (initiate the Stripe refund) or deny.
-// `denialReason` is REQUIRED when denying and forbidden/ignored otherwise.
+// Admin resolution of a pledge refund request: approve or deny a requested one (approve initiates the
+// Stripe refund), or resolveFailure — close the follow-up of a failed refund, which lets the
+// supporter request again. `denialReason` is REQUIRED when denying.
 export const AdminResolvePledgeRefundRequestInputSchema = z.object({
-  requestId: z.string(),
-  decision: z.enum(['approve', 'deny']),
+  requestId: pledgeRefundRequestIdSchema,
+  decision: z.enum(['approve', 'deny', 'resolveFailure']),
   denialReason: z.string().optional(),
 }).strict().refine(
   (v) => v.decision !== 'deny' || (typeof v.denialReason === 'string' && v.denialReason.length > 0),
@@ -44,3 +51,21 @@ export const AdminResolvePledgeRefundRequestInputSchema = z.object({
 );
 export type AdminResolvePledgeRefundRequestInput = z.infer<typeof AdminResolvePledgeRefundRequestInputSchema>;
 
+// The checkout success page's lookup of the caller's own pledge by its Stripe Checkout session id.
+// The server resolves the session against the server-only provider reference and answers the pledge
+// as PledgeDisplay, or null while the webhook has not recorded it yet.
+export const GetMyPledgeByCheckoutSessionInputSchema = z.object({
+  sessionId: z.string().min(1).max(MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH),
+}).strict();
+export type GetMyPledgeByCheckoutSessionInput = z.infer<typeof GetMyPledgeByCheckoutSessionInputSchema>;
+
+/** The pledge fields the success page shows — never a Stripe id. */
+export const PledgeDisplaySchema = PledgePaymentSchema.pick({
+  pledgePaymentId: true,
+  amount: true,
+  netAmount: true,
+  currency: true,
+  status: true,
+  createdAt: true,
+});
+export type PledgeDisplay = z.infer<typeof PledgeDisplaySchema>;

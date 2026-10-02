@@ -1,3 +1,5 @@
+import type { BeforeSendHook } from "./scrubber.js";
+
 export type MonitoringProvider = "sentry" | "sentry-node" | "noop";
 
 export type MonitoringInitOptions = {
@@ -9,10 +11,19 @@ export type MonitoringInitOptions = {
   /** Performance-trace sample rate (0–1), passed through to the provider's init.
    *  Omit to use the provider default. */
   tracesSampleRate?: number;
-  /** Provider integrations passed through to the SDK init — e.g. `[]` to disable the
-   *  default auto-integrations and keep init lightweight (the consuming app's Cloud
-   *  Functions bootstrap does this). Typed loosely: it is a provider-specific pass-through. */
+  /** Provider integrations passed through to the SDK init. The SDK ADDS this list to its
+   *  default integrations — `[]` adds nothing and switches nothing off. To run without the
+   *  defaults, pass `defaultIntegrations: false` and list the wanted ones here. Typed
+   *  loosely: it is a provider-specific pass-through. */
   integrations?: unknown[];
+  /** Passed through to the SDK init: `false` switches the provider's default integrations
+   *  off, so only `integrations` run; a list replaces the defaults. */
+  defaultIntegrations?: false | unknown[];
+  /** The SDK's `beforeSend`, installed by the init itself — it runs on every error event
+   *  from the first one the SDK sends. Returning `null` drops the event. */
+  beforeSend?: BeforeSendHook;
+  /** The SDK's `beforeSendTransaction` — the same hook for transaction events. */
+  beforeSendTransaction?: BeforeSendHook;
 };
 
 export type MonitoringUser = {

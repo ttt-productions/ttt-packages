@@ -3,11 +3,14 @@ import {
   CreateStripeCheckoutSessionInputSchema,
   RequestPledgeRefundInputSchema,
   AdminResolvePledgeRefundRequestInputSchema,
+  GetMyPledgeByCheckoutSessionInputSchema,
+  PledgeDisplaySchema,
 } from '../src/schemas/payments';
 import {
   MIN_PLEDGE_PAYMENT_AMOUNT_CENTS,
   MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
   PLEDGE_REFUND_REQUEST_WINDOW_MS,
+  MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH,
 } from '../src/constants/business';
 
 const ATTEMPT_ID = 'f1f86a55-94f6-4c5e-9396-1c4e3f9b7a01';
@@ -217,7 +220,7 @@ describe('AdminResolvePledgeRefundRequestInputSchema', () => {
     ).toBe(false);
   });
 
-  it('constrains decision to approve | deny', () => {
+  it('constrains decision to approve | deny | resolveFailure', () => {
     expect(
       AdminResolvePledgeRefundRequestInputSchema.safeParse({
         requestId: 'r1',
@@ -234,5 +237,43 @@ describe('AdminResolvePledgeRefundRequestInputSchema', () => {
         extra: 'nope',
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('the checkout success lookup', () => {
+  it('takes the Stripe Checkout session id', () => {
+    expect(GetMyPledgeByCheckoutSessionInputSchema.safeParse({ sessionId: 'cs_test_a1' }).success).toBe(true);
+  });
+
+  it('refuses an empty, oversized, or extra-keyed lookup', () => {
+    expect(GetMyPledgeByCheckoutSessionInputSchema.safeParse({ sessionId: '' }).success).toBe(false);
+    expect(
+      GetMyPledgeByCheckoutSessionInputSchema.safeParse({ sessionId: 'c'.repeat(MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH + 1) }).success,
+    ).toBe(false);
+    expect(GetMyPledgeByCheckoutSessionInputSchema.safeParse({ sessionId: 'cs_1', uid: 'u1' }).success).toBe(false);
+  });
+
+  it('answers only the pledge display fields — never Stripe ids or the supporter', () => {
+    expect(Object.keys(PledgeDisplaySchema.shape).sort()).toEqual(
+      ['amount', 'createdAt', 'currency', 'netAmount', 'pledgePaymentId', 'status'],
+    );
+    expect(
+      PledgeDisplaySchema.safeParse({
+        pledgePaymentId: 'pp1',
+        amount: 1000,
+        netAmount: 1000,
+        currency: 'usd',
+        status: 'completed',
+        createdAt: 1,
+      }).success,
+    ).toBe(true);
+  });
+});
+
+describe('resolving a failed refund follow-up', () => {
+  it('an admin may resolve the follow-up of a failed refund request', () => {
+    expect(
+      AdminResolvePledgeRefundRequestInputSchema.safeParse({ requestId: 'req-1', decision: 'resolveFailure' }).success,
+    ).toBe(true);
   });
 });

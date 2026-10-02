@@ -2,7 +2,7 @@
 // signed internal backend ↔ Worker/Durable-Object calls. WebCrypto + zod only,
 // so the SAME code runs in Cloud Functions (Node 24) and Cloudflare Workers/DOs.
 // Deliberately NOT chat- or media-shaped: it holds the SHARED mechanisms
-// (internal HMAC signing and the header names that carry it, canonical payload
+// (internal HMAC signing, its pre-body header check, and the header names that carry it, canonical payload
 // hashing, the versioned-apply rule, the structured-error + protocol-version
 // envelopes, the edge→origin provenance header names, the bounded body read
 // that precedes a signature check) that both the media

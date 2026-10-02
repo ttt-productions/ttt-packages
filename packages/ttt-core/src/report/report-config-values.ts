@@ -182,6 +182,13 @@ export const REPORT_TASK_QUEUES: Record<string, ReportTaskQueueDefinition> = {
     workLaterMinutes: 1440,
     maxWorkLaterMinutes: 2880,
   },
+  pledgeRefundFailed: {
+    displayName: 'Failed Pledge Refunds',
+    description: 'Approved pledge refunds that Stripe reported as failed',
+    defaultCheckoutMinutes: 60,
+    workLaterMinutes: 1440,
+    maxWorkLaterMinutes: 2880,
+  },
 };
 // (The comment cap MAX_REPORT_COMMENT_LENGTH lives with the other business
 // constants — import it from the constants barrel.)

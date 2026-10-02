@@ -70,7 +70,8 @@ export interface OpsStatus {
     appeals: number;
     dispatches: number;
     opsAnomalies: number;
-    /** User-initiated refund requests (`pledgeRefundRequested` tasks). */
+    /** Refund work: supporters' refund requests (`pledgeRefundRequested` tasks) and approved refunds
+     *  Stripe reported as failed (`pledgeRefundFailed` tasks). */
     refundRequests: number;
     /** Stripe disputes (`pledgeDisputeOpened` tasks). */
     disputes: number;

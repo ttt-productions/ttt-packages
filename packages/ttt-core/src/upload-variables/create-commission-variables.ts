@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { workProjectIdSchema } from '../schemas/atoms.js';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
@@ -9,7 +10,7 @@ import {
 } from '../constants/business.js';
 
 export const CreateCommissionVariablesSchema = z.object({
-  workProjectId: z.string().min(1),
+  workProjectId: workProjectIdSchema,
   commissionListingData: z.object({
     title: z.string().min(1).max(MAX_COMMISSION_TITLE_LENGTH),
     description: z.string().max(MAX_COMMISSION_DESCRIPTION_LENGTH),

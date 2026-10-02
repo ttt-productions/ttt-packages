@@ -2,7 +2,7 @@
 // retention profile).
 //
 // `eventProvenance/{eventId}` — server-only, restricted provenance for source
-// events (upload/message/login/report). On a hold the record is copied/linked into
+// events (upload/message/report). On a hold the record is copied/linked into
 // the evidence manifest (retentionClass='casePromoted', hold-governed). A scheduled
 // deletion worker enforces the routine TTLs with a hold-aware no-delete guard.
 //
@@ -20,7 +20,7 @@ import { z } from 'zod';
 // ===========================================================================
 // §A6 — eventProvenance/{eventId}
 // `eventId` is DETERMINISTIC per source event (e.g. the upload event id, the
-// message-send seq key, the login session key, or the report id) so a replayed
+// message-send seq key, or the report id) so a replayed
 // source event converges on the same provenance doc — never a duplicate.
 // ===========================================================================
 
@@ -29,14 +29,12 @@ export const EventProvenanceKindSchema = z.enum([
   'uploadInit',
   'uploadFinalize',
   'messageSend',
-  'login',
   'reportSubmit',
 ]);
 export type EventProvenanceKind = z.infer<typeof EventProvenanceKindSchema>;
 
 /** §A6 retention class. Build defaults (counsel may only SHORTEN):
  *   routine uploadInit/uploadFinalize/messageSend = 90 days;
- *   login = 30 days;
  *   reportSubmit = retained with the case.
  * On a hold the record is copied/linked into the evidence manifest as
  * 'casePromoted' (hold-governed); the scheduled deletion worker's hold-aware
@@ -82,6 +80,5 @@ export const EVENT_PROVENANCE_ROUTINE_TTL_DAYS = {
   uploadInit: 90,
   uploadFinalize: 90,
   messageSend: 90,
-  login: 30,
   // reportSubmit: retained with the case — no routine TTL.
 } as const;

@@ -4,6 +4,7 @@
 
 import { z } from 'zod';
 import { CommissionProposalStatusSchema } from '../schemas/commissions.js';
+import { MAX_WORK_PROJECT_STAKE_SHARES } from '../constants/business.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 import { ModerationHiddenBySchema } from './moderation.js';
 
@@ -28,7 +29,7 @@ export const FullCommissionListingSchema = z.object({
   description: z.string(),
   commissionAttachment: CommissionAttachmentSchema.optional(),
   requiredTradeProfessions: z.array(z.string()),
-  stakeSharesOffered: z.number(),
+  stakeSharesOffered: z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES),
   createdAt: z.number(),
   createdBy: userRefSchema,
   // Work reference only — title/description are NOT snapshotted (Display Identity Invariant:
@@ -131,7 +132,7 @@ export const AuditionSchema = z.object({
   // failed-audition surface on the project page.
   curatedFailureReason: z.string().optional(),
   sponsoredAuditionAmountUSD: z.number().optional(),
-  stakeSharesOffered: z.number().optional(),
+  stakeSharesOffered: z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES).optional(),
   status: z.enum(['open', 'closed', 'pendingReview']),
   closedAt: z.number().optional(), // set by the close write, together with status 'closed'
   auditionEntryCount: z.number().optional(),

@@ -6,6 +6,16 @@ import {
   hallItemIdSchema,
   workProjectTypeSchema,
   moderationClearableSurfaceSchema,
+  reportTargetItemIdSchema,
+  reportTargetParentRefSchema,
+  documentIdSegmentSchema,
+  reportGroupIdSchema,
+  hallSubItemIdSchema,
+  workRealmIdSchema,
+  userIdSchema,
+  guildChatChannelIdSchema,
+  guildInviteIdSchema,
+  safetyCaseIdSchema,
 } from './atoms.js';
 import {
   ReportDispositionSchema,
@@ -290,7 +300,7 @@ export const CheckTrademarkInputSchema = z.object({
 export type CheckTrademarkInput = z.infer<typeof CheckTrademarkInputSchema>;
 
 export const GetReportedContentDetailInputSchema = z.object({
-  reportGroupId: z.string().min(1),
+  reportGroupId: reportGroupIdSchema,
 }).strict();
 export type GetReportedContentDetailInput = z.infer<typeof GetReportedContentDetailInputSchema>;
 
@@ -328,7 +338,7 @@ export type ReportedMediaAsset = z.infer<typeof ReportedMediaAssetSchema>;
 
 export const GetReportedContentDetailResultSchema = z.object({
   itemType: z.string().min(1),
-  reportedItemId: z.string().min(1),
+  reportedItemId: reportTargetItemIdSchema,
   /** First non-empty display-text field (legacy single-field snapshot; textFields is the
    *  complete labeled set). */
   textSnapshot: z.string().nullable(),
@@ -376,7 +386,7 @@ export type GetReportedContentDetailResult = z.infer<typeof GetReportedContentDe
 export const HideHallSubItemInputSchema = z.object({
   hallItemId: hallItemIdSchema,
   workProjectType: workProjectTypeSchema,
-  subItemId: z.string().min(1),
+  subItemId: hallSubItemIdSchema,
   reason: z.string().min(1),
 }).strict();
 export type HideHallSubItemInput = z.infer<typeof HideHallSubItemInputSchema>;
@@ -384,7 +394,7 @@ export type HideHallSubItemInput = z.infer<typeof HideHallSubItemInputSchema>;
 export const RestoreHallSubItemInputSchema = z.object({
   hallItemId: hallItemIdSchema,
   workProjectType: workProjectTypeSchema,
-  subItemId: z.string().min(1),
+  subItemId: hallSubItemIdSchema,
 }).strict();
 export type RestoreHallSubItemInput = z.infer<typeof RestoreHallSubItemInputSchema>;
 
@@ -395,7 +405,7 @@ export const HideWorkProjectInputSchema = z.object({
 export type HideWorkProjectInput = z.infer<typeof HideWorkProjectInputSchema>;
 
 export const HideWorkRealmInputSchema = z.object({
-  workRealmId: z.string().min(1),
+  workRealmId: workRealmIdSchema,
   reason: z.string().min(1),
 }).strict();
 export type HideWorkRealmInput = z.infer<typeof HideWorkRealmInputSchema>;
@@ -404,13 +414,13 @@ export type HideWorkRealmInput = z.infer<typeof HideWorkRealmInputSchema>;
 // omitted, and restore just that one cascade when it is supplied.
 export const RestoreWorkProjectInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  cascadeId: z.string().min(1).optional(),
+  cascadeId: documentIdSegmentSchema.optional(),
 }).strict();
 export type RestoreWorkProjectInput = z.infer<typeof RestoreWorkProjectInputSchema>;
 
 export const RestoreWorkRealmInputSchema = z.object({
-  workRealmId: z.string().min(1),
-  cascadeId: z.string().min(1).optional(),
+  workRealmId: workRealmIdSchema,
+  cascadeId: documentIdSegmentSchema.optional(),
 }).strict();
 export type RestoreWorkRealmInput = z.infer<typeof RestoreWorkRealmInputSchema>;
 
@@ -436,7 +446,7 @@ export const ClearWorkProjectTextInputSchema = z.object({
 export type ClearWorkProjectTextInput = z.infer<typeof ClearWorkProjectTextInputSchema>;
 
 export const ClearWorkRealmTextInputSchema = z.object({
-  workRealmId: z.string().min(1),
+  workRealmId: workRealmIdSchema,
   fields: z.array(ModerationShellClearFieldSchema).min(1),
   reason: z.string().trim().min(1).max(MAX_REQUIRE_RETITLE_REASON_LENGTH),
 }).strict();
@@ -450,7 +460,7 @@ export type HallClearField = z.infer<typeof HallClearFieldSchema>;
 export const ClearHallContentTextInputSchema = z.object({
   hallItemId: hallItemIdSchema,
   workProjectType: workProjectTypeSchema,
-  subItemId: z.string().min(1).optional(),
+  subItemId: hallSubItemIdSchema.optional(),
   fields: z.array(HallClearFieldSchema).min(1),
   reason: z.string().trim().min(1).max(MAX_REQUIRE_RETITLE_REASON_LENGTH),
 }).strict();
@@ -459,7 +469,7 @@ export type ClearHallContentTextInput = z.infer<typeof ClearHallContentTextInput
 // --- getLatestHideCascade — resolve the latest hide-cascade id for a Work/Realm ---
 
 export const GetLatestHideCascadeInputSchema = z.object({
-  entityId: z.string().min(1),
+  entityId: documentIdSegmentSchema,
   targetType: z.enum(['work-project', 'work-realm']),
 }).strict();
 export type GetLatestHideCascadeInput = z.infer<typeof GetLatestHideCascadeInputSchema>;
@@ -484,10 +494,10 @@ const MODERATE_REPORTED_CONTENT_TARGET_TYPES = [
 ] as const satisfies readonly ReportableItemType[];
 
 export const ModerateReportedContentInputSchema = z.object({
-  reportGroupId: z.string().min(1),
+  reportGroupId: reportGroupIdSchema,
   targetType: z.enum(MODERATE_REPORTED_CONTENT_TARGET_TYPES),
-  reportedItemId: z.string().min(1),
-  parentItemId: z.string().min(1).optional(),
+  reportedItemId: reportTargetItemIdSchema,
+  parentItemId: reportTargetParentRefSchema.optional(),
   action: z.enum(['hide', 'restore', 'remove']),
   // [EUAS-023] A destructive action (hide/remove) MUST carry a reason; restore is a reversal.
   reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH).optional(),
@@ -527,15 +537,15 @@ const ContentActionSchema = z
   .object({
     button: z.enum(['hideContent', 'restoreContent', 'permaRemoveContent']),
     targetType: z.enum(CONTENT_ACTION_TARGET_TYPES),
-    reportedItemId: z.string().min(1),
-    parentItemId: z.string().min(1).optional(),
+    reportedItemId: reportTargetItemIdSchema,
+    parentItemId: reportTargetParentRefSchema.optional(),
   })
   .strict();
 
 const WarnUserSchema = z
   .object({
     button: z.literal('warnUser'),
-    userId: z.string().min(1),
+    userId: userIdSchema,
     // A warning IS an admin dispatch (resolveAdminTask → runCreateAdminDispatchToUser),
     // so it shares the dispatch subject/body caps.
     subject: z.string().trim().min(1).max(MAX_ADMIN_DISPATCH_SUBJECT_LENGTH),
@@ -546,17 +556,17 @@ const WarnUserSchema = z
 const SuspendOrBanSchema = z
   .object({
     button: z.enum(['suspendUser', 'banUser']),
-    userId: z.string().min(1),
+    userId: userIdSchema,
     reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH),
   })
   .strict();
 
 const ReinstateUserSchema = z
-  .object({ button: z.literal('reinstateUser'), userId: z.string().min(1), reason: z.string().trim().max(MAX_INTERNAL_REASON_LENGTH).optional() })
+  .object({ button: z.literal('reinstateUser'), userId: userIdSchema, reason: z.string().trim().max(MAX_INTERNAL_REASON_LENGTH).optional() })
   .strict();
 
 const ForceUsernameResetSchema = z
-  .object({ button: z.literal('forceUsernameReset'), userId: z.string().min(1), reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH).optional() })
+  .object({ button: z.literal('forceUsernameReset'), userId: userIdSchema, reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH).optional() })
   .strict();
 
 /** Whole-object Work/Realm remedies — `reportedItemId` is the workProjectId / workRealmId. */
@@ -564,7 +574,7 @@ const WorkObjectActionSchema = z
   .object({
     button: z.enum(['hideWorkObject', 'restoreWorkObject', 'forceRetitle']),
     targetType: z.enum(['work-project', 'work-realm']),
-    reportedItemId: z.string().min(1),
+    reportedItemId: reportTargetItemIdSchema,
   })
   .strict();
 
@@ -611,8 +621,8 @@ const ClearContentTextActionSchema = z
   .object({
     button: z.literal('clearContentText'),
     targetType: z.enum(CLEAR_CONTENT_TEXT_TARGET_TYPES),
-    reportedItemId: z.string().min(1),
-    parentItemId: z.string().min(1).optional(),
+    reportedItemId: reportTargetItemIdSchema,
+    parentItemId: reportTargetParentRefSchema.optional(),
     fields: z.array(ClearContentTextFieldSchema).min(1),
   })
   .strict();
@@ -622,8 +632,8 @@ const TombstoneChatSchema = z
   .object({
     button: z.literal('tombstoneChat'),
     channel: z.discriminatedUnion('kind', [
-      z.object({ kind: z.literal('channel'), workProjectId: z.string().min(1), guildChatChannelId: z.string().min(1) }).strict(),
-      z.object({ kind: z.literal('invite'), guildInviteId: z.string().min(1) }).strict(),
+      z.object({ kind: z.literal('channel'), workProjectId: workProjectIdSchema, guildChatChannelId: guildChatChannelIdSchema }).strict(),
+      z.object({ kind: z.literal('invite'), guildInviteId: guildInviteIdSchema }).strict(),
     ]),
     messageSeq: z.number().int().nonnegative(),
     expectedMessageRevision: z.number().int().nonnegative(),
@@ -670,7 +680,7 @@ export type StagedAction = z.infer<typeof StagedActionSchema>;
 export const NormalReportInputSchema = z
   .object({
     caseType: z.literal('normalReport').default('normalReport'),
-    taskId: z.string().min(1),
+    taskId: taskIdSchema,
     outcome: z.enum(['founded', 'unfounded']),
     resolutionSummary: z.string().trim().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
     actions: z.array(StagedActionSchema).max(16).default([]),
@@ -706,7 +716,7 @@ const HashRemoveActionSchema = z.object({ button: z.literal('hashRemoveFile') })
 const SafetyAccountActionSchema = z
   .object({
     button: z.enum(['suspendUser', 'banUser', 'reinstateUser']),
-    targetUid: z.string().min(1),
+    targetUid: userIdSchema,
     reasonInternal: z.string().trim().min(4).max(MAX_INTERNAL_REASON_LENGTH),
     reasonUserFacing: z.string().trim().min(1).max(MAX_USER_FACING_REASON_LENGTH),
     role: ChildSafetyAccountRoleSchema,
@@ -735,7 +745,7 @@ export type SafetyStagedAction = z.infer<typeof SafetyStagedActionSchema>;
 export const SafetyCaseInputSchema = z
   .object({
     caseType: SafetyCaseLaneSchema,
-    caseId: z.string().min(1),
+    caseId: safetyCaseIdSchema,
     outcome: z.enum(['founded', 'unfounded']),
     resolutionSummary: z.string().trim().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
     actions: z.array(SafetyStagedActionSchema).max(16).default([]),
@@ -754,7 +764,7 @@ export type SafetyCaseInput = z.infer<typeof SafetyCaseInputSchema>;
 export const ReopenSafetyCaseInputSchema = z
   .object({
     caseType: SafetyCaseLaneSchema,
-    caseId: z.string().min(1),
+    caseId: safetyCaseIdSchema,
     reasonInternal: z.string().trim().min(4).max(MAX_INTERNAL_REASON_LENGTH),
     expectedRevision: z.number().int().nonnegative().optional(),
     confirmation: z.literal(SAFETY_CASE_REOPEN_CONFIRMATION),
@@ -796,7 +806,7 @@ export type FlatDeadLetterCollection = z.infer<typeof FlatDeadLetterCollectionSc
 export const HallSubItemEdgeSyncReplayTargetSchema = z.object({
   hallItemId: hallItemIdSchema,
   workProjectType: workProjectTypeSchema,
-  subItemId: z.string().min(1),
+  subItemId: hallSubItemIdSchema,
 }).strict();
 export type HallSubItemEdgeSyncReplayTarget = z.infer<typeof HallSubItemEdgeSyncReplayTargetSchema>;
 
@@ -804,7 +814,7 @@ export const AdminReplayDeadLetterInputSchema = z
   .discriminatedUnion('collection', [
     z.object({
       collection: FlatDeadLetterCollectionSchema,
-      docId: z.string().min(1).max(200),
+      docId: documentIdSegmentSchema.max(200),
       reason: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
       dryRun: z.boolean().optional(),
     }).strict(),

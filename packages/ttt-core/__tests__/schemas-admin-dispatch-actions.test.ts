@@ -4,8 +4,8 @@ import {
   UpdateInviteConfirmationInputSchema,
   UpdateGuildInviteStakeSharesInputSchema,
   UpdateAdminDispatchStatusResultSchema,
-  DeleteAdminDispatchResultSchema,
 } from '../src/schemas/admin-dispatch-actions';
+import * as adminDispatchActions from '../src/schemas/admin-dispatch-actions';
 
 describe('UpdateAdminDispatchStatusInputSchema', () => {
   it('accepts a valid input with closed_resolved', () => {
@@ -186,14 +186,10 @@ describe('dispatch-action result receipts carry an optional auditEventId', () =>
     expect(UpdateAdminDispatchStatusResultSchema.parse(base).auditEventId).toBeUndefined();
     expect(UpdateAdminDispatchStatusResultSchema.parse({ ...base, auditEventId: 'evt-3' }).auditEventId).toBe('evt-3');
   });
-
-  it('DeleteAdminDispatchResultSchema parses WITH and WITHOUT auditEventId', () => {
-    const base = { success: true as const, adminDispatchId: 'msg-1', deletedMessageCount: 4 };
-    expect(DeleteAdminDispatchResultSchema.parse(base).auditEventId).toBeUndefined();
-    expect(DeleteAdminDispatchResultSchema.parse({ ...base, auditEventId: 'evt-4' }).auditEventId).toBe('evt-4');
-  });
 });
 
-
-
-
+describe('support thread lifecycle', () => {
+  it('has no delete contract — a thread is closed, never deleted', () => {
+    expect(Object.keys(adminDispatchActions).filter((name) => /^Delete/.test(name))).toEqual([]);
+  });
+});

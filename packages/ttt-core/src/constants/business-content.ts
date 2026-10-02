@@ -352,6 +352,9 @@ export const MAX_POST_LENGTH = 500;
 /** Maximum number of mentions allowed in a single SquareStreetz post. */
 export const MAX_MENTIONS = 3;
 
+/** Longest mention placeholder (`@m` + the composer counter) a stored or sent mention may carry. */
+export const MAX_MENTION_PLACEHOLDER_LENGTH = 32;
+
 /** Maximum characters of a mention's display name shown before truncation. */
 export const MAX_MENTION_DISPLAY_LENGTH = 30;
 

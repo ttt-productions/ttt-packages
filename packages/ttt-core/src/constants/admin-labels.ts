@@ -17,9 +17,17 @@ import type { ClearableTextFieldName } from './business-content.js';
 // override keys to the fields that surface actually exposes.
 import { HALL_CONTENT_TEXT_FIELDS } from './business-content.js';
 import type { HallContentTextSurface } from '../doc-schemas/content.js';
-import type { ReportDisposition } from '../doc-schemas/safety/foundation.js';
+import type { ReportDisposition, NciiInternalStatus } from '../doc-schemas/safety/foundation.js';
+import type { ChildSafetyWorkStatus } from '../doc-schemas/safety/case.js';
 import type { BroadcastAudienceSelector } from '../schemas/notification.js';
 import type { DeadLetterCollection } from '../schemas/admin.js';
+import type { GuildInviteConversationStatus, ShortLinkTargetType } from '../schemas/atoms.js';
+import type { AdminDispatch } from '../doc-schemas/messaging.js';
+import type { CommissionProposalStatus } from '../schemas/commissions.js';
+import type { InviteSourceType } from '../schemas/work-project-management.js';
+import type { Audition } from '../doc-schemas/commissions.js';
+import type { WorkProjectType } from '../types/content.js';
+import type { HallSubItemStatus } from '../utils/hall-content.js';
 
 /** Moderation status labels (user-management view, status badges). */
 export const USER_ACCOUNT_STATUS_LABELS: Record<UserAccountStatus, string> = {
@@ -198,3 +206,92 @@ export function userFacingReasonLabel(code: string | undefined): string | undefi
 
 export const WORK_PROJECT_TYPE_RULE_GROUP_TITLE = 'Work Type Rules';
 export const HALL_WING_TYPE_RULE_GROUP_TITLE = 'Hall Wing Rules';
+
+// --- Stored-enum display labels ---
+// What a screen shows for a stored enum value, keyed by the canonical union so a new member fails
+// the build until it has its text. A screen renders the label, never the raw value.
+
+/** Guild invite statuses (a Work's invited-users list and an invite conversation's status line). */
+export const GUILD_INVITE_STATUS_LABELS: Record<GuildInviteConversationStatus, string> = {
+  pending: 'Pending',
+  accepted: 'Accepted',
+  declined: 'Declined',
+  cancelled: 'Cancelled',
+  finalized: 'Finalized',
+};
+
+/** Commission proposal statuses (a Work's proposals table). */
+export const COMMISSION_PROPOSAL_STATUS_LABELS: Record<CommissionProposalStatus, string> = {
+  open: 'Open',
+  invited: 'Invited',
+  accepted: 'Accepted',
+  rejected: 'Rejected',
+};
+
+/** Chapter, track, and episode review statuses (the Tale, Tune, and Television section tables). */
+export const HALL_SUB_ITEM_STATUS_LABELS: Record<HallSubItemStatus, string> = {
+  unpublished: 'unpublished',
+  pending_approval: 'Pending approval',
+  published: 'published',
+};
+
+/** Audition statuses (the audition page). */
+export const AUDITION_STATUS_LABELS: Record<Audition['status'], string> = {
+  open: 'Open',
+  closed: 'Closed',
+  pendingReview: 'PendingReview',
+};
+
+/** Work types (Work lists, the Work overview, the Works popover). */
+export const WORK_PROJECT_TYPE_LABELS: Record<WorkProjectType, string> = {
+  Tales: 'Tales',
+  Tunes: 'Tunes',
+  Television: 'Television',
+};
+
+/** Invite source types, as the invite dialog names the context an invite was sent from. */
+export const INVITE_SOURCE_TYPE_LABELS: Record<InviteSourceType, string> = {
+  standalone: 'standalone',
+  craftSkill: 'craftSkill',
+  commission: 'commission',
+  audition: 'audition',
+};
+
+/** Short-link target types (the admin Short Links list), in the target-type enum's order. */
+export const SHORT_LINK_TARGET_TYPE_LABELS: Record<ShortLinkTargetType, string> = {
+  audition: 'Audition',
+  'audition-entry': 'Audition entry',
+  commission: 'Commission',
+  'hall-library-item': 'Hall entry',
+};
+
+/** Support-thread statuses (a member's Messages, a Work's Correspondence, the admin browse list). */
+export const ADMIN_DISPATCH_STATUS_LABELS: Record<AdminDispatch['status'], string> = {
+  open: 'Open',
+  user_reply: 'User replied',
+  admin_reply: 'Admin replied',
+  closed_resolved: 'Resolved',
+  closed_unresolved: 'Closed',
+};
+
+/** Child-safety case work statuses (the safety case console's case rows and closed-case lookup). */
+export const CHILD_SAFETY_CASE_WORK_STATUS_LABELS: Record<ChildSafetyWorkStatus, string> = {
+  new: 'new',
+  triaged: 'triaged',
+  reporting: 'reporting',
+  actioning: 'actioning',
+  processing: 'processing',
+  failed: 'failed',
+  operationallyResolved: 'operationallyResolved',
+};
+
+/** NCII case statuses (the safety case console's case rows and closed-case lookup). */
+export const NCII_CASE_STATUS_LABELS: Record<NciiInternalStatus, string> = {
+  open: 'open',
+  removalInProgress: 'removalInProgress',
+  processing: 'processing',
+  failed: 'failed',
+  removed: 'removed',
+  rejected: 'rejected',
+  closed: 'closed',
+};

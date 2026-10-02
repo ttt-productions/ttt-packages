@@ -103,7 +103,7 @@ describe('PledgePaymentProviderRefSchema (server-only Stripe refs)', () => {
     updatedAt: 1,
   };
 
-  it('accepts a defaulted launch ref (refundIds [], disputeId null, no charge yet)', () => {
+  it('accepts a new pledge ref (refundIds [], disputeId null, no charge yet)', () => {
     expect(PledgePaymentProviderRefSchema.safeParse(validRef).success).toBe(true);
   });
 
@@ -115,7 +115,7 @@ describe('PledgePaymentProviderRefSchema (server-only Stripe refs)', () => {
     expect(PledgePaymentProviderRefSchema.safeParse(withoutAttestation).success).toBe(false);
   });
 
-  it('accepts a resolved charge id and post-launch refund/dispute ids', () => {
+  it('accepts a resolved charge id and refund/dispute ids', () => {
     expect(
       PledgePaymentProviderRefSchema.safeParse({
         ...validRef,
@@ -264,7 +264,7 @@ describe('PledgeRefundRequestSchema (user-initiated refund request)', () => {
     ).toBe(true);
   });
 
-  it('constrains status to requested | initiated | denied | completed', () => {
+  it('constrains status to the refund request lifecycle', () => {
     expect(PledgeRefundRequestSchema.safeParse({ ...validRequest, status: 'cancelled' }).success).toBe(false);
   });
 

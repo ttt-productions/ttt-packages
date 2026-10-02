@@ -88,6 +88,21 @@ matching `HttpsError` code.
 - **Re-checking out your own lock.** A specific-task checkout of a task the caller already holds
   under a live lock answers `{ success: true, alreadyHeld: true, task }` with the lock as it stands,
   and writes nothing (no extension, no audit). Another admin's live lock is refused.
+- **The app's claim guard.** `createCheckoutTaskHandler` and `createCheckoutNextImportantHandler`
+  take an optional `assertTaskClaimable: TaskClaimGuard` — the app's check that a task may be
+  claimed right now (for TTT, that its report group is not owned by an automated action or already
+  resolved). It runs inside the claim transaction, after the status guard and the reads of the task
+  and its `originalPath` document, and before any write or audit: it receives `{ taskDocId,
+  taskData, originalData, transaction }` (`originalData` is `null` when that document is gone), may
+  read more through `transaction`, and answers `{ claimable: true }` or `{ claimable: false,
+  message }`. A refused specific-task checkout throws `failed-precondition` with the app's
+  `message`; a refused queue candidate (pending or expired) is skipped and the queue's cursor moves
+  past it (`startAfter` the refused task, one one-document read per refusal — never a re-read from
+  the head), a refusal does not use one of the contention rounds, and a queue with no unrefused
+  candidate left answers the ordinary empty-queue `not-found`. `ServerQuery` therefore includes
+  `startAfter(snapshot)`, which the Admin SDK's `Query` provides. The guard is never asked
+  for the already-held answer, and a guard that throws aborts the claim (a failed check is never
+  "claimable").
 
 ## Boundary
 

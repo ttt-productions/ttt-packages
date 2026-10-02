@@ -1,12 +1,17 @@
 import { z } from 'zod';
+import {
+  workProjectIdSchema,
+  tuneIdSchema,
+  trackIdSchema,
+} from '../schemas/atoms.js';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 
 
 export const UpdateTuneTrackMediaVariablesSchema = z.object({
-  workProjectId: z.string().min(1),
-  tuneId: z.string().min(1),
-  trackId: z.string().min(1),
+  workProjectId: workProjectIdSchema,
+  tuneId: tuneIdSchema,
+  trackId: trackIdSchema,
   file: z.instanceof(File).or(z.instanceof(Blob)),
 
   // Untrusted client claim of what the user's action implies (advisory; the

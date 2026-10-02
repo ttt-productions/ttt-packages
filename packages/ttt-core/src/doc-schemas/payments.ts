@@ -7,24 +7,70 @@
 
 import { z } from 'zod';
 import { LegalReviewNoticeReceiptSchema } from './legal-review-notice.js';
+import { MAX_INTERNAL_REASON_LENGTH } from '../constants/business-admin.js';
+
+/** How much of a pledge has been refunded: `partial` while some net remains, `full` once none does. */
+export const PLEDGE_REFUND_STATES = ['none', 'partial', 'full'] as const;
+export const PledgeRefundStateSchema = z.enum(PLEDGE_REFUND_STATES);
+export type PledgeRefundState = z.infer<typeof PledgeRefundStateSchema>;
+
+/** Where a chargeback dispute stands: `underReview` while open, then `won` or `lost` once closed. */
+export const PLEDGE_DISPUTE_STATES = ['none', 'underReview', 'won', 'lost'] as const;
+export const PledgeDisputeStateSchema = z.enum(PLEDGE_DISPUTE_STATES);
+export type PledgeDisputeState = z.infer<typeof PledgeDisputeStateSchema>;
+
+const PLEDGE_DISPUTE_STATE_RANK: Record<PledgeDisputeState, number> = {
+  none: 0,
+  underReview: 1,
+  won: 2,
+  lost: 2,
+};
+
+/** A dispute state's place on the one-way ladder none < underReview < won | lost. */
+export function pledgeDisputeStateRank(state: PledgeDisputeState): number {
+  return PLEDGE_DISPUTE_STATE_RANK[state];
+}
+
+/**
+ * Whether moving ONE dispute from `from` to `to` goes up the ladder. Stripe can deliver a
+ * dispute's events late or twice, so within one dispute a closed dispute never reopens to
+ * `underReview`, and `won` and `lost` never replace each other.
+ */
+export function isPledgeDisputeAdvance(from: PledgeDisputeState, to: PledgeDisputeState): boolean {
+  return pledgeDisputeStateRank(to) > pledgeDisputeStateRank(from);
+}
+
+/**
+ * Whether a dispute event may set the pledge's dispute state. The ladder holds per dispute: an
+ * event for a different dispute than the recorded `disputeId` (the first one, or a later dispute
+ * on the same charge) starts its own ladder, and an event for the recorded dispute applies only as
+ * an advance. Ordering across disputes is the observation stamp's job — the handler first refuses
+ * an event no newer than `disputeObservedAt`, so a late event of an earlier dispute never lands.
+ */
+export function isPledgeDisputeEventApplicable(
+  recorded: { disputeId: string | null; state: PledgeDisputeState },
+  event: { disputeId: string; state: PledgeDisputeState },
+): boolean {
+  if (recorded.disputeId !== event.disputeId) return true;
+  return isPledgeDisputeAdvance(recorded.state, event.state);
+}
 
 // pledgePayments/{pledgePaymentId} — public-safe canonical money record. One doc per completed
 // pledge; never deleted/archived. No Stripe IDs, no supporter message. Auth-readable; server-only
-// writes. netAmount = max(0, amount - refundedAmount - disputeLostAmount) is the sum() target.
-// At launch refundedAmount/disputeLostAmount are 0 so netAmount === amount.
-// (functions/src/payments/runProcessStripePledgeEvent.ts)
+// writes, by the Stripe webhook alone. netAmount = max(0, amount - refundedAmount - disputeLostAmount)
+// is the sum() target; the refund and dispute handlers recompute it from Stripe's totals.
 export const PledgePaymentSchema = z.object({
   pledgePaymentId: z.string(),
   userId: z.string(),
   amount: z.number(), // gross cents charged (Stripe-confirmed amount_total)
-  refundedAmount: z.number(), // cumulative refunded cents; LAUNCH default 0
-  disputeLostAmount: z.number(), // cents withdrawn on a lost dispute; LAUNCH default 0
+  refundedAmount: z.number(), // cumulative refunded cents, from the Charge's amount_refunded; 0 on a new pledge
+  disputeLostAmount: z.number(), // cents withdrawn on a lost dispute; 0 otherwise
   netAmount: z.number(), // max(0, amount - refundedAmount - disputeLostAmount); sum() target
   currency: z.string(), // "usd"
   paymentInstrument: z.literal('card'),
   status: z.literal('completed'),
-  refundState: z.enum(['none', 'partial', 'full']), // LAUNCH always 'none'
-  disputeState: z.enum(['none', 'underReview', 'won', 'lost']), // LAUNCH always 'none'
+  refundState: PledgeRefundStateSchema,
+  disputeState: PledgeDisputeStateSchema,
   // NO ageAttestedAt here: age-attestation evidence is server-only and lives on
   // PledgePaymentProviderRefSchema. This doc is auth-readable by every signed-in member.
   createdAt: z.number(),
@@ -33,19 +79,17 @@ export const PledgePaymentSchema = z.object({
 export type PledgePayment = z.infer<typeof PledgePaymentSchema>;
 
 // pledgePaymentProviderRefs/{pledgePaymentId} — server-only Stripe references for reconciliation
-// and (post-launch) refund/dispute lookup, PLUS the age-attestation consent evidence. Rule is
-// permanently `if false` (Admin SDK only) so no Stripe IDs ever sit on an auth-readable doc. One
-// doc per pledge (singular). refundIds/disputeId are refund-ready, defaulted ([] / null) at
-// launch — zero migration when handlers ship.
-// (functions/src/payments/runProcessStripePledgeEvent.ts)
+// and refund/dispute lookup, PLUS the age-attestation consent evidence. Rule is permanently
+// `if false` (Admin SDK only) so no Stripe IDs ever sit on an auth-readable doc. One doc per pledge
+// (singular).
 export const PledgePaymentProviderRefSchema = z.object({
   pledgePaymentId: z.string(),
   userId: z.string(),
   stripeSessionId: z.string(),
   paymentIntentId: z.string(),
   latestChargeId: z.string().nullable(), // resolved when known; null at launch if not fetched
-  refundIds: z.array(z.string()), // post-launch; LAUNCH default []
-  disputeId: z.string().nullable(), // post-launch; LAUNCH default null
+  refundIds: z.array(z.string()), // every Stripe refund id seen on the charge; [] on a new pledge
+  disputeId: z.string().nullable(), // the dispute the ledger's disputeState describes (the latest opened), null until one opens
   // Server timestamp (ms) of the checkout's 18+/public-disclosure attestation, stamped at session
   // creation and carried through Stripe metadata. A paid session missing it is quarantined. It is
   // fraud-evidence plumbing, not transparency data, so it rides THIS server-only doc and never the
@@ -56,6 +100,22 @@ export const PledgePaymentProviderRefSchema = z.object({
   // creation and carried through the Stripe metadata like `ageAttestedAt`. Absent when the notice
   // was off. Evidence, not transparency data — it rides this server-only doc only.
   legalReviewNotice: LegalReviewNoticeReceiptSchema.optional(),
+  // The refund an approval asks Stripe for: written in the transaction that moves its request to
+  // `approving` (before Stripe is called), `refundId` stamped once Stripe answers, removed when the
+  // request reaches `completed` or `failed`. A request is finished only by a refund matching it.
+  refundCorrelation: z
+    .object({
+      requestId: z.string().min(1),
+      intendedAmount: z.number().int().positive(),
+      refundId: z.string().min(1).optional(),
+    })
+    .optional(),
+  // The Stripe event time (epoch ms) the refund handler and the dispute handler last applied. Stripe
+  // can deliver events out of order, so each handler applies an event only when it is newer.
+  refundObservedAt: z.number().optional(),
+  disputeObservedAt: z.number().optional(),
+  // Stripe's reason for the last failed refund, kept server-side for the admin following up.
+  lastRefundFailureReason: z.string().max(MAX_INTERNAL_REASON_LENGTH).optional(),
   createdAt: z.number(),
   updatedAt: z.number(),
 });
@@ -64,7 +124,8 @@ export type PledgePaymentProviderRef = z.infer<typeof PledgePaymentProviderRefSc
 // pledgePaymentTotals/summary — the stored running-totals singleton behind every "total raised"
 // surface. Incremented via FieldValue.increment INSIDE the Stripe webhook's pledge-record
 // transaction (same commit as the pledgePayments doc — the two can never drift on a completed
-// pledge); refund/dispute paths decrement when those handlers ship. Auth-readable, server-only
+// pledge); the refund and dispute handlers adjust it in the transaction that changes the pledge,
+// through pledgePaymentTotalsOf (utils/pledge-totals). Auth-readable, server-only
 // writes. An idempotent recompute script rebuilds/verifies it from pledgePayments for drift
 // repair. Shape mirrors the PledgePaymentTotals view-model + updatedAt.
 export const PledgePaymentTotalsDocSchema = z.object({
@@ -133,20 +194,60 @@ export const PaymentWebhookQuarantineSchema = z.object({
 });
 export type PaymentWebhookQuarantine = z.infer<typeof PaymentWebhookQuarantineSchema>;
 
-// pledgeRefundRequests/{requestId} — user-initiated pledge refund request (post-launch handler).
-// Lifecycle: requested → (admin approves) initiated → completed, or requested → (admin) denied.
-// NO Stripe ids on this doc — the refund id lands on pledgePaymentProviderRefs.refundIds. Server-only
-// writes. Timestamps are epoch-millis numbers (this repo never uses Firestore Timestamps).
+// pledgeRefundRequests/{requestId} — a supporter's pledge refund request. Lifecycle: requested →
+// (admin approves) approving → initiated → completed, or → failed when Stripe reports the refund
+// failed, which raises a pledgeRefundFailed admin task; requested → denied by an admin. A full refund of the pledge from anywhere, the Stripe
+// Dashboard included, completes an open request. NO Stripe ids on this doc — they live on
+// pledgePaymentProviderRefs. Server-only writes. Timestamps are epoch-millis numbers.
+export const PLEDGE_REFUND_REQUEST_STATUSES = [
+  'requested',
+  'approving',
+  'initiated',
+  'denied',
+  'completed',
+  'failed',
+] as const;
+export const PledgeRefundRequestStatusSchema = z.enum(PLEDGE_REFUND_REQUEST_STATUSES);
+export type PledgeRefundRequestStatus = z.infer<typeof PledgeRefundRequestStatusSchema>;
+
+/** The statuses of a request in flight. A failed request is open too until its follow-up is resolved. */
+export const PLEDGE_REFUND_OPEN_STATUSES = [
+  'requested',
+  'approving',
+  'initiated',
+] as const satisfies readonly PledgeRefundRequestStatus[];
+
+/**
+ * Whether a request still blocks a new one for its pledge (a pledge has at most one open request):
+ * in flight, or failed while an admin is still following the failure up — the supporter may not
+ * ask again until that follow-up is resolved.
+ */
+export function isPledgeRefundRequestOpen(
+  request: Pick<PledgeRefundRequest, 'status' | 'failureFollowUpResolvedAt'>,
+): boolean {
+  if (request.status === 'failed') return request.failureFollowUpResolvedAt === undefined;
+  return (PLEDGE_REFUND_OPEN_STATUSES as readonly PledgeRefundRequestStatus[]).includes(request.status);
+}
+
 export const PledgeRefundRequestSchema = z.object({
   pledgePaymentId: z.string(),
   userId: z.string(),
   amount: z.number(),
-  status: z.enum(['requested', 'initiated', 'denied', 'completed']),
+  status: PledgeRefundRequestStatusSchema,
   reason: z.string().optional(), // the requester's stated reason
   denialReason: z.string().optional(), // set when an admin denies
   resolvedBy: z.string().optional(), // admin uid who approved/denied
   requestedAt: z.number(),
   resolvedAt: z.number().optional(),
+  approvingAt: z.number().optional(), // when an admin's approval began, before Stripe was called
   completedAt: z.number().optional(),
+  failedAt: z.number().optional(), // when Stripe reported the refund failed
+  // When an admin resolved the failed refund's follow-up task (the refund decision that closes it).
+  // Only a failed request carries it; until it is set, the failed request keeps its pledge open.
+  failureFollowUpResolvedAt: z.number().optional(),
+}).superRefine((val, ctx) => {
+  if (val.failureFollowUpResolvedAt !== undefined && val.status !== 'failed') {
+    ctx.addIssue({ code: 'custom', path: ['failureFollowUpResolvedAt'] });
+  }
 });
 export type PledgeRefundRequest = z.infer<typeof PledgeRefundRequestSchema>;

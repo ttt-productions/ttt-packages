@@ -6,6 +6,7 @@ import {
 } from '../src/constants/business-admin';
 import { AdminTaskTypeSchema } from '../src/doc-schemas/report-docs';
 import * as root from '../src/index';
+import { REPORT_TASK_QUEUES } from '../src/report/report-config-values';
 
 describe('admin-task resolution owners', () => {
   it('classifies every admin task type, and only those', () => {
@@ -45,5 +46,31 @@ describe('admin-task resolution owners', () => {
   it('is exported from the package root', () => {
     expect(root.isAdminTaskResolvedByCheckin).toBe(isAdminTaskResolvedByCheckin);
     expect(root.ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE).toBe(ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE);
+  });
+});
+
+describe('the failed pledge refund task', () => {
+  it('is resolved by the refund decision, never a generic check-in — resolving it reopens the pledge to new requests', () => {
+    expect(AdminTaskTypeSchema.options).toContain('pledgeRefundFailed');
+    expect(ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE.pledgeRefundFailed).toBe('refundDecision');
+    expect(isAdminTaskResolvedByCheckin('pledgeRefundFailed')).toBe(false);
+  });
+
+  it('has its own queue beside the refund requests, with the refund-request windows', () => {
+    expect(REPORT_TASK_QUEUES.pledgeRefundFailed).toEqual({
+      displayName: 'Failed Pledge Refunds',
+      description: 'Approved pledge refunds that Stripe reported as failed',
+      defaultCheckoutMinutes: REPORT_TASK_QUEUES.pledgeRefundRequested.defaultCheckoutMinutes,
+      workLaterMinutes: REPORT_TASK_QUEUES.pledgeRefundRequested.workLaterMinutes,
+      maxWorkLaterMinutes: REPORT_TASK_QUEUES.pledgeRefundRequested.maxWorkLaterMinutes,
+    });
+    const order = Object.keys(REPORT_TASK_QUEUES);
+    expect(order.indexOf('pledgeRefundFailed')).toBe(order.indexOf('pledgeRefundRequested') + 1);
+  });
+
+  it('every admin task type has a queue', () => {
+    for (const taskType of AdminTaskTypeSchema.options) {
+      expect(REPORT_TASK_QUEUES[taskType], taskType).toBeDefined();
+    }
   });
 });

@@ -210,6 +210,7 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   'childSafetyCases/{caseId}/childSafetyDecisions/{decisionId}/childSafetyDecisionViews/{viewId}': RETAIN,
   'childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}': RETAIN,
   'childSafetyCases/{caseId}/childSafetyCaseAccounts/{uid}/childSafetyCaseAccountHistory/{historyId}': RETAIN,
+  'childSafetyCases/{caseId}/childSafetyCaseCrossoverItems/{mediaAssetId}': RETAIN,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}': RETAIN,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecSubmissionFiles/{fileId}': RETAIN,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecCompletionProof/record': RETAIN,

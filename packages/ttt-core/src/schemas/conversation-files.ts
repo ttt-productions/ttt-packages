@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { conversationFileIdSchema } from './atoms.js';
 import { ConversationFileRefSchema } from '../media/conversation-file-ref.js';
 
 // ---- conversation files (guild-invite / admin-support Conversation Files) -------------
@@ -8,6 +9,6 @@ import { ConversationFileRefSchema } from '../media/conversation-file-ref.js';
 // two-kind union makes a guild-CHANNEL target unrepresentable at the wire boundary.
 export const DeleteConversationFileInputSchema = z.object({
   conversation: ConversationFileRefSchema,
-  conversationFileId: z.string().min(1),
+  conversationFileId: conversationFileIdSchema,
 }).strict();
 export type DeleteConversationFileInput = z.infer<typeof DeleteConversationFileInputSchema>;

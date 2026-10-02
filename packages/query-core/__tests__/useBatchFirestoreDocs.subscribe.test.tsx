@@ -183,7 +183,7 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     expect(onSnapshotMock).not.toHaveBeenCalled();
   });
 
-  it('a listener error negative-caches the id: resolved-absent, never forever-loading', () => {
+  it('a listener error resolves the id with its error, never forever-loading', () => {
     const { Wrapper, queryClient } = makeWrapper();
     const { result } = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['hidden'] }), { wrapper: Wrapper });
 

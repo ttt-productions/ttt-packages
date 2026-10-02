@@ -4,7 +4,7 @@
 // stored doc — it stays in ../types/social.ts.)
 
 import { z } from 'zod';
-import { MentionSchema } from '../media/atoms.js';
+import { MentionSchema, SquareStreetzPostMentionsSchema, refineMentionCorrespondence } from '../media/atoms.js';
 import { FollowableTargetTypeSchema } from '../schemas/social.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 import { ModerationHiddenBySchema } from './moderation.js';
@@ -62,7 +62,8 @@ export const SquareStreetzPostSchema = z.object({
   createdBy: z.object({ uid: z.string() }),
   authorId: z.string(),
   content: z.string(),
-  mentions: z.array(MentionSchema).optional(),
+  // The post mention list; each placeholder appears in `content` exactly once (refined below).
+  mentions: SquareStreetzPostMentionsSchema.optional(),
   relatedIds: z.array(z.string()),
   /** Paired with `mediaType` — see the media-pair invariant above. */
   mediaAssetId: z.string().optional(),
@@ -82,6 +83,7 @@ export const SquareStreetzPostSchema = z.object({
   hidden: z.boolean(),
   hiddenBy: ModerationHiddenBySchema.optional(),
 }).superRefine((val, ctx) => {
+  refineMentionCorrespondence(val.content, val.mentions, ctx);
   if (val.mediaAssetId !== undefined && val.mediaType === undefined) {
     ctx.addIssue({
       code: 'custom',
@@ -116,7 +118,9 @@ export type SquareStreetzPost = z.infer<typeof SquareStreetzPostSchema>;
  */
 export const SquareStreetzPostPayloadSchema = z.object({
   userId: z.string(),
-  mentions: z.array(MentionSchema).optional(),
+  // Each item is a post mention (its placeholder in the @m grammar). The list's correspondence
+  // with the post text is checked at delivery, by SquareStreetzPostSchema.
+  mentions: SquareStreetzPostMentionsSchema.optional(),
   newMediaAssetId: z.string().optional(),
   // NEW_CRAFT_SKILL announcement descriptor — id/kind/tags/source let the post describe the
   // craft WITHOUT leaking the client-supplied original file name.

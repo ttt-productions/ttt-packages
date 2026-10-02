@@ -13,7 +13,27 @@ import {
   CLEARABLE_TEXT_FIELD_LABEL_OVERRIDES,
   clearableTextFieldLabel,
   type ClearableTextFieldLabelOverrides,
+  GUILD_INVITE_STATUS_LABELS,
+  COMMISSION_PROPOSAL_STATUS_LABELS,
+  HALL_SUB_ITEM_STATUS_LABELS,
+  AUDITION_STATUS_LABELS,
+  WORK_PROJECT_TYPE_LABELS,
+  INVITE_SOURCE_TYPE_LABELS,
+  SHORT_LINK_TARGET_TYPE_LABELS,
+  ADMIN_DISPATCH_STATUS_LABELS,
+  CHILD_SAFETY_CASE_WORK_STATUS_LABELS,
+  NCII_CASE_STATUS_LABELS,
 } from '../src/constants/admin-labels';
+import { ChildSafetyWorkStatusSchema } from '../src/doc-schemas/safety/case';
+import { NciiInternalStatusSchema } from '../src/doc-schemas/safety/foundation';
+import { ShortLinkTargetTypeSchema } from '../src/schemas/atoms';
+import { AdminDispatchSchema } from '../src/doc-schemas/messaging';
+import { guildInviteConversationStatusSchema } from '../src/schemas/atoms';
+import { CommissionProposalStatusSchema } from '../src/schemas/commissions';
+import { InviteSourceSchema } from '../src/schemas/work-project-management';
+import { FullChapterSchema, FullTuneTrackSchema, FullTelevisionEpisodeSchema } from '../src/doc-schemas/content';
+import { AuditionSchema } from '../src/doc-schemas/commissions';
+import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
 import { FEEDBACK_TYPES } from '../src/constants/business-admin';
 import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
@@ -205,5 +225,104 @@ describe('rules-surface group titles', () => {
   it('are the canonical headings both rules surfaces render', () => {
     expect(WORK_PROJECT_TYPE_RULE_GROUP_TITLE).toBe('Work Type Rules');
     expect(HALL_WING_TYPE_RULE_GROUP_TITLE).toBe('Hall Wing Rules');
+  });
+});
+
+// Each map's values are the text its screens render today: the stored value as each site shows
+// it (CSS `capitalize` uppercases the first letter of each word; a site with no transform shows
+// the raw value). A map keyed by its canonical union has exactly the union's members.
+describe('stored-enum display labels', () => {
+  it('guild invite statuses read as the invite screens show them', () => {
+    expect(GUILD_INVITE_STATUS_LABELS).toEqual({
+      pending: 'Pending',
+      accepted: 'Accepted',
+      declined: 'Declined',
+      cancelled: 'Cancelled',
+      finalized: 'Finalized',
+    });
+    expect(Object.keys(GUILD_INVITE_STATUS_LABELS).sort()).toEqual([...guildInviteConversationStatusSchema.options].sort());
+  });
+
+  it('commission proposal statuses read as the proposals table shows them', () => {
+    expect(COMMISSION_PROPOSAL_STATUS_LABELS).toEqual({
+      open: 'Open',
+      invited: 'Invited',
+      accepted: 'Accepted',
+      rejected: 'Rejected',
+    });
+    expect(Object.keys(COMMISSION_PROPOSAL_STATUS_LABELS).sort()).toEqual([...CommissionProposalStatusSchema.options].sort());
+  });
+
+  it('chapter, track, and episode statuses read as the section tables show them, pending approval as "Pending approval"', () => {
+    expect(HALL_SUB_ITEM_STATUS_LABELS).toEqual({
+      unpublished: 'unpublished',
+      pending_approval: 'Pending approval',
+      published: 'published',
+    });
+    for (const schema of [FullChapterSchema, FullTuneTrackSchema, FullTelevisionEpisodeSchema]) {
+      expect(Object.keys(HALL_SUB_ITEM_STATUS_LABELS).sort()).toEqual([...schema.shape.status.options].sort());
+    }
+  });
+
+  it('audition statuses read as the audition page shows them', () => {
+    expect(AUDITION_STATUS_LABELS).toEqual({
+      open: 'Open',
+      closed: 'Closed',
+      pendingReview: 'PendingReview',
+    });
+    expect(Object.keys(AUDITION_STATUS_LABELS).sort()).toEqual([...AuditionSchema.shape.status.options].sort());
+  });
+
+  it('Work types read as the Work lists show them', () => {
+    expect(WORK_PROJECT_TYPE_LABELS).toEqual({ Tales: 'Tales', Tunes: 'Tunes', Television: 'Television' });
+    expect(Object.keys(WORK_PROJECT_TYPE_LABELS).sort()).toEqual([...WORK_PROJECT_TYPE_KEYS].sort());
+  });
+
+  it('invite source types read as the invite dialog states them', () => {
+    expect(INVITE_SOURCE_TYPE_LABELS).toEqual({
+      standalone: 'standalone',
+      craftSkill: 'craftSkill',
+      commission: 'commission',
+      audition: 'audition',
+    });
+    const sourceTypes = InviteSourceSchema.options.map((option) => option.shape.type.value);
+    expect(Object.keys(INVITE_SOURCE_TYPE_LABELS).sort()).toEqual([...sourceTypes].sort());
+  });
+});
+
+describe('short-link and support-thread labels', () => {
+  it('short-link targets read as Audition, Audition entry, Commission, Hall entry', () => {
+    expect(SHORT_LINK_TARGET_TYPE_LABELS).toEqual({
+      audition: 'Audition',
+      'audition-entry': 'Audition entry',
+      commission: 'Commission',
+      'hall-library-item': 'Hall entry',
+    });
+    expect(Object.keys(SHORT_LINK_TARGET_TYPE_LABELS)).toEqual([...ShortLinkTargetTypeSchema.options]);
+  });
+
+  it('support-thread statuses read with the admin browse list\'s words on every screen', () => {
+    expect(ADMIN_DISPATCH_STATUS_LABELS).toEqual({
+      open: 'Open',
+      user_reply: 'User replied',
+      admin_reply: 'Admin replied',
+      closed_resolved: 'Resolved',
+      closed_unresolved: 'Closed',
+    });
+    expect(Object.keys(ADMIN_DISPATCH_STATUS_LABELS).sort()).toEqual([...AdminDispatchSchema.shape.status.options].sort());
+  });
+});
+
+describe('safety case status labels', () => {
+  it('child-safety case work statuses read as the case console shows them', () => {
+    expect(CHILD_SAFETY_CASE_WORK_STATUS_LABELS).toEqual(
+      Object.fromEntries(ChildSafetyWorkStatusSchema.options.map((status) => [status, status])),
+    );
+  });
+
+  it('NCII case statuses read as the case console shows them', () => {
+    expect(NCII_CASE_STATUS_LABELS).toEqual(
+      Object.fromEntries(NciiInternalStatusSchema.options.map((status) => [status, status])),
+    );
   });
 });

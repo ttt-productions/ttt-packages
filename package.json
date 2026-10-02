@@ -46,6 +46,7 @@
         "@types/node": "^24.13.6",
         "@types/react": "^19.0.0",
         "@types/react-dom": "^19.0.0",
+        "@types/semver": "^7.8.0",
         "@vitejs/plugin-react": "^6.1.1",
         "@vitest/coverage-v8": "^4.1.8",
         "eslint": "^10.4.1",
@@ -54,6 +55,11 @@
         "typescript": "^6.0.3",
         "typescript-eslint": "^8.3.0",
         "vitest": "^4.1.8"
+    },
+    "overrides": {
+        "@firebase/firestore": {
+            "@grpc/grpc-js": "~1.14.5"
+        }
     },
     "dependencies": {
         "@tanstack/react-query": "^5.90.17",

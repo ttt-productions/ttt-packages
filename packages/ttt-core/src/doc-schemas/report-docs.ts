@@ -23,6 +23,8 @@ export const AdminTaskTypeSchema = z.enum([
   // dispute task; a user refund request opens a refund-request task for admin resolution.
   'pledgeDisputeOpened',
   'pledgeRefundRequested',
+  // An approved refund Stripe reported as failed — the admin follows up with the supporter.
+  'pledgeRefundFailed',
   // A member's proposal to change TEXT fields on a PUBLISHED hall item — reviewed in the same
   // admin queue as library publishes (hallContentChangeRequests/{changeRequestId} is the source doc).
   'hallContentChangeRequest',

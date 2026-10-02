@@ -22,9 +22,9 @@
 // docs/design/age-gating-and-account-types.md and
 // docs/design/age-data-handling-profile.md — no invented values, no placeholders.
 //
-// `RegistrationCompletionOutcome` is the DOMAIN outcome that feeds the orphan-Auth
-// deletion policy; it is the SINGLE SOURCE in ./foundation.js and is IMPORTED here
-// (never redefined).
+// `RegistrationCompletionOutcome` is the DOMAIN outcome the registration-completion
+// route acts on (no outcome deletes the login); it is the SINGLE SOURCE in
+// ./foundation.js and is IMPORTED here (never redefined).
 //
 // Timestamp convention: epoch-MILLISECONDS via z.number() — EXCEPT the JWS token
 // claims `iat`/`exp`, which are epoch-SECONDS per JWT (RFC 7519); those are commented
@@ -253,8 +253,7 @@ export { RegistrationCompletionOutcomeSchema } from './foundation.js';
 export type { RegistrationCompletionOutcome } from './foundation.js';
 
 /** The result envelope `completeRegistration.ts` returns. `outcome` is the imported
- * domain enum (never a raw gRPC code); only this domain outcome feeds the orphan-Auth
- * deletion policy. */
+ * domain enum (never a raw gRPC code) the completion route acts on. */
 export const RegistrationCompletionResultV1Schema = z.object({
   outcome: RegistrationCompletionOutcomeSchema,
   uid: z.string().min(1).optional(), // present on 'completed' / 'alreadyCompletedSameUid'

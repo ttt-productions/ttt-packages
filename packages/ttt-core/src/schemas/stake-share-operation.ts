@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   workProjectIdSchema,
   userIdSchema,
+  guildInviteIdSchema,
 } from './atoms.js';
 
 // Mirrors the StakeShareOperation TS type in packages/ttt-core/src/types/work-project.ts.
@@ -28,31 +29,31 @@ export const StakeShareOperationSchema = z.discriminatedUnion('type', [
     type: z.literal('add-pending'),
     amount: z.number().int().positive().optional(),
     user: userRefSchema.optional(),
-    sourceId: z.string().min(1).optional(),
+    sourceId: guildInviteIdSchema.optional(),
   }).strict(),
   z.object({
     type: z.literal('remove-pending'),
     amount: z.number().int().positive().optional(),
     user: userRefSchema.optional(),
-    sourceId: z.string().min(1).optional(),
+    sourceId: guildInviteIdSchema.optional(),
   }).strict(),
   z.object({
     type: z.literal('add-active'),
     amount: z.number().int().positive().optional(),
     user: userRefSchema.optional(),
-    sourceId: z.string().min(1).optional(),
+    sourceId: guildInviteIdSchema.optional(),
   }).strict(),
   z.object({
     type: z.literal('create-workProject'),
     amount: z.number().int().positive().optional(),
     user: userRefSchema.optional(),
-    sourceId: z.string().min(1).optional(),
+    sourceId: guildInviteIdSchema.optional(),
   }).strict(),
   z.object({
     type: z.literal('convert-invite'),
     amount: z.number().int().positive().optional(),
     user: userRefSchema.optional(),
-    sourceId: z.string().min(1).optional(),
+    sourceId: guildInviteIdSchema.optional(),
   }).strict(),
   // Member self-leave (leaveWorkProject). Pre-publish only; forfeits the leaver's
   // shares back to the pool. `user` is the leaver (server sets it to request.auth.uid).
@@ -95,7 +96,7 @@ export const PublicStakeShareOperationSchema = z.discriminatedUnion('type', [
     type: z.literal('add-active'),
     amount: z.number().int().positive().optional(),
     user: userRefSchema.optional(),
-    sourceId: z.string().min(1).optional(),
+    sourceId: guildInviteIdSchema.optional(),
   }).strict(),
 ]);
 

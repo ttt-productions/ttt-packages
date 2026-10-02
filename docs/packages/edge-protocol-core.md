@@ -9,6 +9,17 @@ and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
 - **Internal request auth** — `signInternalRequest` / `verifyInternalRequest`:
   HMAC-SHA256 over protocol marker + audience + method + exact path + timestamp +
   body hash + deterministic `operationId`, with a narrow replay window. Fails closed.
+- **Pre-body header check** — `precheckInternalHeaders(headers, { nowSec, replayWindowSec })`:
+  the rejects that need no body and no secret, for an operation-id-profile request (ARCH-005's
+  "cheap pre-body rejects"). It reads `INTERNAL_AUTH_OPERATION_VERSION_HEADER` and
+  `INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER` (decimal seconds, digits only) and answers
+  `{ ok: true, version, timestampSec }` or `{ ok: false, reason: 'bad-version' | 'bad-timestamp' |
+  'expired' | 'future' }` (`InternalPrecheckResult`). It applies the same version + window rule
+  `verifyInternalRequest` applies — one rule, not a copy — so an endpoint runs it before
+  `readBoundedBody`, answers a refusal at once (e.g. 401), and hands the returned `version` and
+  `timestampSec` to `verifyInternalRequest` after the bounded read. The compact profile has no
+  pre-body check (it has no consumer). `headers` is structural, so a Workers or Node `Headers`
+  passes as is.
 - **Internal-auth transport headers** (`internal-auth-headers.ts`) — the wire names
   that carry a signature from the Cloud Functions tree that MINTS it to the
   Worker/DO tree that VERIFIES it, in the two deployed profiles: the **compact**

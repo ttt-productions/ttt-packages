@@ -21,6 +21,8 @@ export interface ServerQuery {
   where(field: string, op: string, value: unknown): ServerQuery;
   orderBy(field: string, direction?: 'asc' | 'desc'): ServerQuery;
   limit(n: number): ServerQuery;
+  /** Start after a document this query returned (the Admin SDK's `Query.startAfter(snapshot)`). */
+  startAfter(snapshot: ServerDocSnapshot): ServerQuery;
   get(): Promise<ServerQuerySnapshot>;
 }
 
@@ -127,6 +129,28 @@ export type OnAuditEvent = (
   event: ReportCoreAuditEvent,
   transaction: ServerTransaction,
 ) => void | Promise<void>;
+
+/** A claim guard's answer: the task may be claimed, or it may not, with the app's reason. */
+export type TaskClaimVerdict = { claimable: true } | { claimable: false; message: string };
+
+/**
+ * Optional consumer-supplied check that a task may be claimed RIGHT NOW, decided inside the
+ * claim transaction (so it commits with the claim it guards). The checkout handlers call it
+ * after their status guard and their reads, before any write — never for the "you already
+ * hold this" answer. It may read more through `transaction`; it must not write. A thrown error
+ * aborts the claim (a failed read never counts as claimable).
+ *
+ * - `taskDocId` — the admin task document's id (not the stored `taskData.taskId`).
+ * - `taskData` — the task as read in this transaction.
+ * - `originalData` — the document at `taskData.originalPath` as read in this transaction, or
+ *   `null` when it does not exist.
+ */
+export type TaskClaimGuard = (args: {
+  taskDocId: string;
+  taskData: Record<string, unknown>;
+  originalData: Record<string, unknown> | null;
+  transaction: ServerTransaction;
+}) => Promise<TaskClaimVerdict>;
 
 /**
  * Admin auth config for backend factories.

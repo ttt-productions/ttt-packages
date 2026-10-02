@@ -5,6 +5,8 @@ import {
   guildChatChannelIdSchema,
   guildInviteIdSchema,
   adminDispatchIdSchema,
+  documentIdSegmentSchema,
+  reportGroupIdSchema,
 } from './atoms.js';
 import {
   MAX_CHAT_MESSAGE_LENGTH,
@@ -48,7 +50,7 @@ export const CreateGuildChatChannelInputSchema = z.object({
   channelName: z.string().min(1).max(MAX_GUILD_CHAT_CHANNEL_NAME_LENGTH),
   description: z.string().max(MAX_GUILD_CHAT_CHANNEL_DESCRIPTION_LENGTH).optional(),
   requiredGuildStandings: z.array(z.string().min(1).max(64)).max(20),
-  allowedUserIds: z.array(z.string().min(1).max(128)).max(500),
+  allowedUserIds: z.array(userIdSchema.max(128)).max(500),
 }).strict();
 export type CreateGuildChatChannelInput = z.infer<typeof CreateGuildChatChannelInputSchema>;
 
@@ -159,7 +161,7 @@ export const UpdateGuildChatChannelInputSchema = z.object({
   channelName: z.string().min(1).max(MAX_GUILD_CHAT_CHANNEL_NAME_LENGTH).optional(),
   description: z.string().max(MAX_GUILD_CHAT_CHANNEL_DESCRIPTION_LENGTH).optional(),
   requiredGuildStandings: z.array(z.string().min(1).max(64)).max(20).optional(),
-  allowedUserIds: z.array(z.string().min(1).max(128)).max(500).optional(),
+  allowedUserIds: z.array(userIdSchema.max(128)).max(500).optional(),
 }).strict();
 export type UpdateGuildChatChannelInput = z.infer<typeof UpdateGuildChatChannelInputSchema>;
 
@@ -180,11 +182,11 @@ export type AdminChatModerationChannel = z.infer<typeof AdminChatModerationChann
 // no media (files live in the conversation's Conversation Files list), so this is a text-only
 // hide/delete; `.strict()` rejects any asset-id field.
 export const AdminModerateChatMessageInputSchema = z.object({
-  requestId: z.string().min(1).max(200),
+  requestId: documentIdSegmentSchema.max(200),
   action: z.enum(['hide', 'delete']),
   messageSeq: z.number().int().nonnegative(),
   expectedMessageRevision: z.number().int().nonnegative(),
-  caseId: z.string().min(1).max(200),
+  caseId: reportGroupIdSchema.max(200),
   reason: z.string().min(1).max(MAX_CHAT_MODERATION_REASON_LENGTH),
   channel: AdminChatModerationChannelSchema,
 }).strict();
@@ -195,7 +197,7 @@ export type AdminModerateChatMessageInput = z.infer<typeof AdminModerateChatMess
 // outcome are audited.
 export const AdminReadChannelContextInputSchema = z.object({
   reportedSeq: z.number().int().nonnegative(),
-  caseId: z.string().min(1).max(200),
+  caseId: reportGroupIdSchema.max(200),
   reason: z.string().min(1).max(MAX_CHAT_MODERATION_REASON_LENGTH),
   before: z.number().int().min(0).max(50).optional(),
   after: z.number().int().min(0).max(50).optional(),

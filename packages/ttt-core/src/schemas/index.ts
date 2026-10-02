@@ -33,3 +33,7 @@ export {
   CreateCommissionProposalTextResultSchema,
   type CreateCommissionProposalTextResult,
 } from '../doc-schemas/commissions.js';
+export {
+  ListGuildInvitesResultSchema,
+  type ListGuildInvitesResult,
+} from '../doc-schemas/messaging.js';

@@ -15,7 +15,7 @@
         "dist"
     ],
     "browser": {
-        "./dist/adapters/sentry-node.js": false
+        "./dist/adapters/sentry-node-sdk.js": false
     },
     "exports": {
         ".": {

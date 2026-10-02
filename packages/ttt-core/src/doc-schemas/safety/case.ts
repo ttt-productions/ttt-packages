@@ -31,9 +31,11 @@ import {
   SafetyCaseClosureV1Schema,
   TargetLocatorV1Schema,
   SafetyCrossoverLegStatusSchema,
+  type SafetyCrossoverLegStatus,
 } from './foundation.js';
 import { MAX_MANIFEST_NCMEC_RECEIPTS } from './evidence.js';
 import { LEGAL_REPORTING_DISPOSITION_CONFIRMATION } from '../../constants/safety-confirmation-phrases.js';
+import { SweepRollingCursorSchema, type SweepRollingCursor } from '../sweep-cursor.js';
 
 // ===========================================================================
 // Cluster-local enums (§A1b + §A9). These are case-spine-specific value sets,
@@ -297,29 +299,116 @@ export const ChildSafetyCaseV1Schema = z.object({
   // [H-04 V1] Mirror of the list-doc field — kept in sync so the restricted root can be
   // independently queried/checked without a join against childSafetyCaseList.
   contextResolutionPending: z.boolean().optional(),
-  // [H-2] Per-leg persisted state for the two POST-COMMIT possible-minor crossover side-effects
-  // (serving-deny + PhotoDNA) that `setNciiMinorAssessment` fans out when it opens/links this
-  // parallel crossover case. Written via dotted-path update() (`crossoverLegs.servingDeny` etc.)
-  // AFTER the case root is created in-tx, so an operator/reconciler can see which leg is
-  // pending/done/failed and drive a replay — a leg failure never rolls back the committed
-  // assessment, and the NCII removal clock is never touched. ABSENT on non-crossover cases (this
-  // object exists only on a crossover child-safety case), and each leg field is absent when that
-  // leg never applied (external / no-media target). The app also writes an in-transaction initial
-  // `pending` marker, so the status enum includes `pending`.
+  // The case-level ROLLUP of the possible-minor crossover's two post-commit side effects
+  // (serving deny + PhotoDNA), present only on a crossover child-safety case. The per-asset state
+  // lives on `childSafetyCaseCrossoverItems/{mediaAssetId}`; each leg here is
+  // `rollupCrossoverLegStatus` of that leg across the case's items and the registration progress,
+  // so a scheduled pass finds a case with outstanding work by one query on a leg and then resumes
+  // registration and lists its item rows. `itemsCursor` is the progress of registering the case's
+  // items across bounded transactions: absent before the first page, `inLap` while more remain
+  // after `afterKey`, `done` once every item is registered. Until it is `done` the unregistered
+  // items still owe both legs, so each leg is `pending` or `failed` — never `done` or absent — and a
+  // stalled registration keeps the case findable (BACKEND-302). Once it is `done`, a leg is absent
+  // when no item has it (an external, no-media target has nothing to deny or scan). A leg failure
+  // never rolls back the committed assessment and the NCII removal clock is never touched.
   crossoverLegs: z.object({
-    // Serving-deny leg: `pending` (in-tx marker) → `done` | `failed`.
     servingDeny: SafetyCrossoverLegStatusSchema.optional(),
-    servingDeniedAt: z.number().optional(), // epoch ms; set when servingDeny → done
-    servingDenyFailedAt: z.number().optional(), // epoch ms; set when servingDeny → failed
-    servingDenyLastError: z.string().optional(), // error name captured on failure (never raw bytes/PII)
-    // PhotoDNA leg: `pending` (in-tx marker) → `done` | `failed`.
     photoDna: SafetyCrossoverLegStatusSchema.optional(),
-    photoDnaScannedAt: z.number().optional(), // epoch ms; set when photoDna → done
-    photoDnaFailedAt: z.number().optional(), // epoch ms; set when photoDna → failed
-    photoDnaLastError: z.string().optional(), // error name captured on failure
-  }).strict().optional(),
+    itemsCursor: SweepRollingCursorSchema.optional(),
+  }).strict().superRefine((legs, ctx) => {
+    if (isCrossoverItemRegistrationDone(legs.itemsCursor)) return;
+    for (const leg of ['servingDeny', 'photoDna'] as const) {
+      if (legs[leg] !== 'pending' && legs[leg] !== 'failed') {
+        ctx.addIssue({
+          code: 'custom',
+          path: [leg],
+          message: 'a leg stays pending or failed until every item of the case is registered',
+        });
+      }
+    }
+  }).optional(),
 }).strict();
 export type ChildSafetyCaseV1 = z.infer<typeof ChildSafetyCaseV1Schema>;
+
+// ===========================================================================
+// Possible-minor crossover — per-asset leg state
+// ===========================================================================
+
+/**
+ * Whether every item of a crossover case is registered: true only when the registration cursor's
+ * lap reached the end of the case's items. Absent (not started) and `inLap` both mean items may
+ * still owe their legs.
+ */
+export function isCrossoverItemRegistrationDone(itemsCursor: SweepRollingCursor | undefined): boolean {
+  return itemsCursor?.state === 'done';
+}
+
+/**
+ * The case-level status of one crossover leg across a case's items: `failed` when any registered
+ * item's leg failed; else `pending` while registration is unfinished (the unregistered items still
+ * owe the leg) or any item's leg is pending; else `done` when any completed; `undefined` when every
+ * item is registered and none has the leg. The ONE rollup rule — the writer of
+ * `ChildSafetyCaseV1.crossoverLegs`, the reconciler, and the console read the same answer.
+ */
+export function rollupCrossoverLegStatus(
+  statuses: readonly (SafetyCrossoverLegStatus | undefined)[],
+  itemsCursor: SweepRollingCursor | undefined,
+): SafetyCrossoverLegStatus | undefined {
+  const present = statuses.filter((status): status is SafetyCrossoverLegStatus => status !== undefined);
+  if (present.includes('failed')) return 'failed';
+  if (!isCrossoverItemRegistrationDone(itemsCursor)) return 'pending';
+  if (present.includes('pending')) return 'pending';
+  if (present.includes('done')) return 'done';
+  return undefined;
+}
+
+/**
+ * `childSafetyCases/{caseId}/childSafetyCaseCrossoverItems/{mediaAssetId}` — one row per asset the
+ * possible-minor assessment acts on: the leg state of that asset's serving deny and PhotoDNA scan.
+ * The case's `crossoverLegs` is the rollup of these rows. `servingDeny` is always present (every
+ * item has a deny leg); `photoDna` is absent when the asset has no origin lineage to scan. A leg's
+ * `…At` stamp is present exactly when the leg is `done` (`servingDeniedAt`, `photoDnaScannedAt`);
+ * `…FailedAt` is present whenever the leg is `failed` and may stay after a later success;
+ * `…LastError` is an error NAME (never raw bytes or PII) and only accompanies a failure stamp.
+ */
+export const ChildSafetyCrossoverItemV1Schema = z.object({
+  schemaVersion: z.literal(1),
+  caseId: z.string().min(1),
+  mediaAssetId: z.string().min(1),
+  servingDeny: SafetyCrossoverLegStatusSchema,
+  servingDeniedAt: z.number().optional(),
+  servingDenyFailedAt: z.number().optional(),
+  servingDenyLastError: z.string().optional(),
+  photoDna: SafetyCrossoverLegStatusSchema.optional(),
+  photoDnaScannedAt: z.number().optional(),
+  photoDnaFailedAt: z.number().optional(),
+  photoDnaLastError: z.string().optional(),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+}).strict().superRefine((item, ctx) => {
+  const issue = (path: string, message: string) => ctx.addIssue({ code: 'custom', path: [path], message });
+  const legs = [
+    { status: item.servingDeny, doneAt: 'servingDeniedAt', failedAt: 'servingDenyFailedAt', lastError: 'servingDenyLastError' },
+    { status: item.photoDna, doneAt: 'photoDnaScannedAt', failedAt: 'photoDnaFailedAt', lastError: 'photoDnaLastError' },
+  ] as const;
+  for (const leg of legs) {
+    const doneAt = item[leg.doneAt];
+    const failedAt = item[leg.failedAt];
+    const lastError = item[leg.lastError];
+    if (leg.status === undefined) {
+      if (doneAt !== undefined) issue(leg.doneAt, 'a leg that never applied has no completion stamp');
+      if (failedAt !== undefined) issue(leg.failedAt, 'a leg that never applied has no failure stamp');
+      if (lastError !== undefined) issue(leg.lastError, 'a leg that never applied has no error');
+      continue;
+    }
+    if (leg.status === 'done' && doneAt === undefined) issue(leg.doneAt, 'a done leg carries its completion stamp');
+    if (leg.status !== 'done' && doneAt !== undefined) issue(leg.doneAt, 'only a done leg carries a completion stamp');
+    if (leg.status === 'failed' && failedAt === undefined) issue(leg.failedAt, 'a failed leg carries its failure stamp');
+    if (leg.status === 'pending' && failedAt !== undefined) issue(leg.failedAt, 'a pending leg has not failed');
+    if (lastError !== undefined && failedAt === undefined) issue(leg.lastError, 'an error accompanies a failure stamp');
+  }
+});
+export type ChildSafetyCrossoverItemV1 = z.infer<typeof ChildSafetyCrossoverItemV1Schema>;
 
 // ===========================================================================
 // §A1b subcollections (append-only, NEVER arrays)

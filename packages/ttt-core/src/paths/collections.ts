@@ -325,6 +325,8 @@ export const NESTED_SUBCOLLECTIONS = {
   CHILD_SAFETY_DECISION_VIEWS: 'childSafetyDecisionViews',
   CHILD_SAFETY_CASE_ACCOUNTS: 'childSafetyCaseAccounts',
   CHILD_SAFETY_CASE_ACCOUNT_HISTORY: 'childSafetyCaseAccountHistory',
+  // Per-asset leg state of the possible-minor crossover (childSafetyCases/{caseId}/childSafetyCaseCrossoverItems/{mediaAssetId}).
+  CHILD_SAFETY_CASE_CROSSOVER_ITEMS: 'childSafetyCaseCrossoverItems',
   CHILD_SAFETY_NCMEC_SUBMISSIONS: 'ncmecSubmissions',
   CHILD_SAFETY_NCMEC_SUBMISSION_FILES: 'ncmecSubmissionFiles',
   // Per-submission NCMEC transmission attempts

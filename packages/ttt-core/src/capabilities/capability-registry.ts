@@ -34,8 +34,8 @@ export interface CapabilityDefinition {
   id: CapabilityId;
   /** Human-facing summary (admin/debug only; not user copy). */
   description: string;
-  /** The age gate. `adult18Plus` capabilities are server-enforced; the claim is
-   * NOT the sole authority (accountCapabilityVersion + privateData re-check). */
+  /** The age gate. `adult18Plus` capabilities are server-enforced against the age flag
+   * the backend reads from `privateData`; no age claim exists on the token. */
   ageRequirement: CapabilityAgeRequirement;
   /** When true, BOTH ends must satisfy the requirement (no-minor-messaging). */
   bilateral: boolean;
@@ -150,8 +150,8 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, CapabilityDefinition> = {
 /** All capability ids (for exhaustiveness tests + iteration). */
 export const ALL_CAPABILITY_IDS = Object.keys(CAPABILITY_REGISTRY) as CapabilityId[];
 
-/** The actor's age-relevant view, derived server-side from privateData (the
- * claim is corroborating, never sole authority). */
+/** The actor's age-relevant view, read server-side from privateData — the only age
+ * authority; the token carries no age claim. */
 export interface AgeCapabilityContext {
   is18Plus: boolean;
   accountCapabilityVersion: number;

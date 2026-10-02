@@ -29,6 +29,22 @@ export type FirestoreSourceState = 'connecting' | 'live' | 'offline' | 'error';
 export type WithSourceState<R> = R & { sourceState: FirestoreSourceState };
 
 /**
+ * One requested id's answer from `useBatchFirestoreDocs`:
+ * - `loading` — no answer yet (nothing cached for the id, or the hook is disabled).
+ * - `present` — the document exists and is readable; `data` is it.
+ * - `absent` — the read succeeded and the document does not exist.
+ * - `failed` — the read (or, in subscribe mode, the listener) errored; `error` is the cause.
+ *   A failure is never reported as `absent`, and a document cached before the failure is
+ *   not reported as `present`. What a failure means for a given collection (a rules denial
+ *   that stands for "not there for this reader", say) is the consumer's to decide from `error`.
+ */
+export type BatchFirestoreDocOutcome<T> =
+  | { status: 'loading' }
+  | { status: 'present'; data: T }
+  | { status: 'absent' }
+  | { status: 'failed'; error: Error };
+
+/**
  * Extract document data with ID from a QueryDocumentSnapshot.
  */
 export function docWithId<T extends DocumentData>(

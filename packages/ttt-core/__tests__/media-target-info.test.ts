@@ -193,6 +193,11 @@ describe('SquareStreetzTargetInfoSchema', () => {
       mentions: [{ ...validMention, id: 'u'.repeat(129) }],
     })).toThrow();
   });
+  it('rejects a placeholder outside the @m grammar', () => {
+    expect(() => SquareStreetzTargetInfoSchema.parse({
+      mentions: [{ ...validMention, placeholder: '@user1' }],
+    })).toThrow();
+  });
   it('rejects duplicate mention placeholders', () => {
     expect(() => SquareStreetzTargetInfoSchema.parse({
       mentions: [validMention, { ...validMention, id: 'user_def' }],

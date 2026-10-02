@@ -107,7 +107,7 @@ describe('activeReportGroups — the whole stored document', () => {
 });
 
 describe('contentViolations.pendingFile — the row AS CLAIMED', () => {
-  const violation = { id: 'v1', userId: 'u1', fileType: 'squareStreetz', violationType: 'media', reason: 'flagged', timestamp: 1, appealStatus: 'none' } as const;
+  const violation = { id: 'v1', userId: 'u1', fileType: 'squareStreetz', violationType: 'media', mediaKind: 'image', reason: 'flagged', timestamp: 1, appealStatus: 'none' } as const;
 
   it('accepts the claimed (processing) snapshot logContentViolation stores', () => {
     expect(ContentViolationSchema.safeParse({ ...violation, pendingFile: { id: 'pm-1', userId: 'u1', status: 'processing', processingAttemptCount: 1, processingStartedAt: 2 } }).success).toBe(true);
@@ -116,6 +116,24 @@ describe('contentViolations.pendingFile — the row AS CLAIMED', () => {
   it('rejects a status the snapshot can never carry', () => {
     expect(ContentViolationSchema.safeParse({ ...violation, pendingFile: { status: 'pending' } }).success).toBe(false);
     expect(ContentViolationSchema.safeParse({ ...violation, pendingFile: { status: 'rejected' } }).success).toBe(false);
+  });
+
+  it('requires the inspected media kind on a media violation, so no preview classifies by client MIME', () => {
+    const { mediaKind: _omitted, ...withoutKind } = violation;
+    expect(ContentViolationSchema.safeParse(withoutKind).success).toBe(false);
+  });
+
+  it('accepts only an inspected kind a stored upload can have', () => {
+    for (const kind of ['image', 'video', 'audio']) {
+      expect(ContentViolationSchema.safeParse({ ...violation, mediaKind: kind }).success).toBe(true);
+    }
+    expect(ContentViolationSchema.safeParse({ ...violation, mediaKind: 'application/pdf' }).success).toBe(false);
+  });
+
+  it('refuses a media kind on a text violation', () => {
+    const text = { id: 'v2', userId: 'u1', fileType: 'squareStreetz', violationType: 'text', reason: 'flagged', timestamp: 1, appealStatus: 'none' } as const;
+    expect(ContentViolationSchema.safeParse(text).success).toBe(true);
+    expect(ContentViolationSchema.safeParse({ ...text, mediaKind: 'image' }).success).toBe(false);
   });
 });
 

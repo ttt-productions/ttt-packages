@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { workProjectIdSchema } from '../schemas/atoms.js';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import {
@@ -21,7 +22,7 @@ export const CreateWorkProjectAuditionVariablesSchema = z.object({
 
   claim: ClientMediaClaimSchema.optional(),
   openTill: z.string().min(1),
-  workProjectId: z.string().min(1),
+  workProjectId: workProjectIdSchema,
   stakeSharesOffered: z.number().int().min(0).max(MAX_WORK_PROJECT_STAKE_SHARES).optional(),
   // Curated vs open (default 'open' when absent). 'curated' → the creating work posts the option
   // videos itself and users may ONLY vote. The strict schema is why this MUST live on the variables

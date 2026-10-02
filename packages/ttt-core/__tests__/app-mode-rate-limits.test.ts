@@ -261,6 +261,23 @@ describe('the registration age-step bucket', () => {
   });
 });
 
+describe('the Hall-preference and refund-decision buckets', () => {
+  it('Hall preferences are 120 an hour in charter mode and in full mode', () => {
+    expect(CHARTER_LIMITS.rateLimits.HALL_PREFERENCE).toEqual({ maxRequests: 120, window: '1 h' });
+    expect(FULL_LIMITS.rateLimits.HALL_PREFERENCE).toEqual({ maxRequests: 120, window: '1 h' });
+  });
+
+  it('a refund decision is 30 an hour in charter mode and in full mode', () => {
+    expect(CHARTER_LIMITS.rateLimits.REFUND_DECISION).toEqual({ maxRequests: 30, window: '1 h' });
+    expect(FULL_LIMITS.rateLimits.REFUND_DECISION).toEqual({ maxRequests: 30, window: '1 h' });
+  });
+
+  it('the active limit set carries both buckets', () => {
+    expect(ACTIVE_LIMITS.rateLimits.HALL_PREFERENCE.maxRequests).toBeGreaterThan(0);
+    expect(ACTIVE_LIMITS.rateLimits.REFUND_DECISION.maxRequests).toBeGreaterThan(0);
+  });
+});
+
 describe('guild invite conversation record', () => {
   it('declares no opening-message copy — the message lives only in the invite channel', () => {
     expect(Object.keys(GuildInviteConversationSchema.shape)).not.toContain('lastMessage');

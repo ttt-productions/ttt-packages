@@ -41,7 +41,7 @@ export const GuildmateUserSchema = z.object({
   uid: z.string(),
   guildStandings: z.array(guildStandingIdSchema),
   tradeProfessions: z.array(z.string()),
-  stakeShareCount: z.number(),
+  stakeShareCount: z.number().int().nonnegative(),
   joinedAt: z.number(),
   status: GuildmateStatusSchema,
   /**
@@ -91,7 +91,7 @@ export type PublicGuildmateUser = z.infer<typeof PublicGuildmateUserSchema>;
 
 export const PendingStakeSharesSchema = z.record(
   z.string(),
-  z.object({ amount: z.number(), createdAt: z.number() }),
+  z.object({ amount: z.number().int().positive(), createdAt: z.number() }),
 );
 export type PendingStakeShares = z.infer<typeof PendingStakeSharesSchema>;
 
@@ -103,7 +103,8 @@ export const FullWorkProjectSchema = z.object({
   workingTitle: z.string(),
   hallWingType: z.enum(HALL_WING_TYPE_KEYS),
   createdBy: userRefSchema,
-  status: z.enum(['open', 'pendingVerification', 'published', 'rejected']),
+  // `open` from creation; `published` once its first Hall item publishes.
+  status: z.enum(['open', 'published']),
   guildmateUserIds: z.record(z.string(), z.boolean()).optional(),
   invitedUserIds: z.record(z.string(), z.boolean()).optional(),
   workRealmId: z.string(),
@@ -210,9 +211,10 @@ export const WorkRealmSchema = z.object({
   workingTitle_lowercase: z.string(),
   workingDescription: z.string(),
   // Square realm cover art (the 'realm-cover' upload origin; processor-written).
-  // Optional while the realm is a DRAFT; releasing the realm REQUIRES it — the
-  // realm release callable enforces presence (never required at founding, so a
-  // work creation is never blocked on realm art).
+  // Optional while the realm is a DRAFT. A public realm is released by its first published Hall
+  // item, so the founding Work's first submit for library review requires the cover while the
+  // realm is still a draft; it is never required at founding, so creating a Work is never
+  // blocked on realm art.
   realmCoverAssetId: z.string().optional(),
   workStewardUid: z.string(),
   foundingArtisanUid: z.string(),

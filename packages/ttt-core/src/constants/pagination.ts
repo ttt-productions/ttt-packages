@@ -38,6 +38,9 @@ export const VIOLATIONS_PER_PAGE = 5;
 /** Page size for the craft-skills list hook. */
 export const CRAFT_SKILL_MEDIA_PER_PAGE = 12;
 
+/** Page size for each Works list on a Realm's page (canon and non-canon), a card grid like the craft list. */
+export const ITEMS_PER_PAGE_REALM_WORKS = 12;
+
 /**
  * Hard page limit for the Realm shared-files gallery projection (`getRealmSharedFiles`).
  * The query was previously unbounded; this is the named cap the input schema derives its

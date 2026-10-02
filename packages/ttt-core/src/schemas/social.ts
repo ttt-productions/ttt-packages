@@ -1,14 +1,18 @@
 import { z } from 'zod';
-import { MentionSchema, rejectDuplicateMentionPlaceholders } from '../media/atoms.js';
-import { MAX_POST_LENGTH, MAX_MENTIONS } from '../constants/business.js';
+import {
+  documentIdSegmentSchema,
+  squareStreetzPostIdSchema,
+} from './atoms.js';
+import { MentionSchema, SquareStreetzPostMentionsSchema, refineMentionCorrespondence } from '../media/atoms.js';
+import { MAX_POST_LENGTH } from '../constants/business.js';
 
 export const LikeSquareStreetzPostInputSchema = z.object({
-  postId: z.string().min(1),
+  postId: squareStreetzPostIdSchema,
 }).strict();
 export type LikeSquareStreetzPostInput = z.infer<typeof LikeSquareStreetzPostInputSchema>;
 
 export const UnlikeSquareStreetzPostInputSchema = z.object({
-  postId: z.string().min(1),
+  postId: squareStreetzPostIdSchema,
 }).strict();
 export type UnlikeSquareStreetzPostInput = z.infer<typeof UnlikeSquareStreetzPostInputSchema>;
 
@@ -18,13 +22,13 @@ export type FollowableTargetType = z.infer<typeof FollowableTargetTypeSchema>;
 
 export const FollowTargetInputSchema = z.object({
   targetType: FollowableTargetTypeSchema,
-  targetId: z.string().min(1).max(128),
+  targetId: documentIdSegmentSchema.max(128),
 }).strict();
 export type FollowTargetInput = z.infer<typeof FollowTargetInputSchema>;
 
 export const UnfollowTargetInputSchema = z.object({
   targetType: FollowableTargetTypeSchema,
-  targetId: z.string().min(1).max(128),
+  targetId: documentIdSegmentSchema.max(128),
 }).strict();
 export type UnfollowTargetInput = z.infer<typeof UnfollowTargetInputSchema>;
 
@@ -33,14 +37,11 @@ export const AddToMentionHistoryInputSchema = z.object({
 }).strict();
 export type AddToMentionHistoryInput = z.infer<typeof AddToMentionHistoryInputSchema>;
 
+// Each listed mention's placeholder appears in the text exactly once.
 export const CreateSquareStreetzTextPostInputSchema = z.object({
   textContent: z.string().min(1).max(MAX_POST_LENGTH),
-  mentions: z
-    .array(MentionSchema)
-    .max(MAX_MENTIONS)
-    .superRefine(rejectDuplicateMentionPlaceholders)
-    .optional(),
-}).strict();
+  mentions: SquareStreetzPostMentionsSchema.optional(),
+}).strict().superRefine((input, ctx) => refineMentionCorrespondence(input.textContent, input.mentions, ctx));
 export type CreateSquareStreetzTextPostInput = z.infer<typeof CreateSquareStreetzTextPostInputSchema>;
 
 // --- Authoritative mutation RESULTS -----------------------------------------

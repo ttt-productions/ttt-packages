@@ -7,6 +7,7 @@ import {
   CreateWorkProjectInputSchema,
   realmWorkingTitleSchema,
 } from '../src/schemas/work-project-management';
+import { ListGuildInvitesResultSchema } from '../src/schemas';
 import { MAX_GUILD_INVITE_MESSAGE_LENGTH } from '../src/constants/business';
 
 const validStandaloneSource = { type: 'standalone' } as const;
@@ -234,6 +235,73 @@ describe('ListGuildInvitesInputSchema', () => {
   });
 });
 
+
+describe('ListGuildInvitesInputSchema paging', () => {
+  it('takes the opaque cursor the previous page answered', () => {
+    const parsed = ListGuildInvitesInputSchema.parse({
+      workProjectId: 'workProject-1',
+      statuses: ['finalized'],
+      cursor: 'opaque-token',
+    });
+    expect(parsed.cursor).toBe('opaque-token');
+  });
+
+  it('reads the first page when no cursor is sent', () => {
+    const parsed = ListGuildInvitesInputSchema.parse({ workProjectId: 'workProject-1', statuses: ['pending'] });
+    expect(parsed.cursor).toBeUndefined();
+  });
+
+  it('refuses an empty cursor', () => {
+    expect(
+      ListGuildInvitesInputSchema.safeParse({ workProjectId: 'workProject-1', statuses: ['pending'], cursor: '' }).success,
+    ).toBe(false);
+  });
+
+  it('refuses a client page size — the server owns it', () => {
+    expect(
+      ListGuildInvitesInputSchema.safeParse({ workProjectId: 'workProject-1', statuses: ['pending'], limit: 500 }).success,
+    ).toBe(false);
+  });
+});
+
+describe('ListGuildInvitesResultSchema', () => {
+  const invite = {
+    guildInviteId: 'gi1',
+    workProjectId: 'wp1',
+    relatedUserIds: ['u1', 'u2'],
+    workProject: { workProjectId: 'wp1', type: 'tales' },
+    createdBy: { uid: 'u1' },
+    sender: { uid: 'u1' },
+    recipient: { uid: 'u2' },
+    stakeSharesOffered: 10,
+    source: { type: 'standalone' as const },
+    status: 'pending' as const,
+    createdAt: 1,
+    updatedAt: 1,
+    lastUpdatedAt: 1,
+    senderConfirmed: false,
+    recipientConfirmed: false,
+  };
+
+  it('is one page of stored invites plus the cursor of the next page', () => {
+    const parsed = ListGuildInvitesResultSchema.parse({ invites: [invite], nextCursor: 'next' });
+    expect(parsed.invites).toHaveLength(1);
+    expect(parsed.nextCursor).toBe('next');
+  });
+
+  it('marks the last page with a null cursor', () => {
+    expect(ListGuildInvitesResultSchema.parse({ invites: [], nextCursor: null }).nextCursor).toBeNull();
+  });
+
+  it('always answers whether another page exists', () => {
+    expect(ListGuildInvitesResultSchema.safeParse({ invites: [invite] }).success).toBe(false);
+  });
+
+  it('carries each invite in its stored document shape', () => {
+    const { status: _status, ...withoutStatus } = invite;
+    expect(ListGuildInvitesResultSchema.safeParse({ invites: [withoutStatus], nextCursor: null }).success).toBe(false);
+  });
+});
 describe('realmWorkingTitleSchema (reservedRealmNames doc-ID safety)', () => {
   it('accepts an ordinary title', () => {
     expect(realmWorkingTitleSchema.parse('Tales of Wonder')).toBe('Tales of Wonder');

@@ -9,11 +9,11 @@
 // Every object schema is `.strict()` so an unknown field on a privileged operator/admin
 // action is REJECTED rather than silently accepted (defense-in-depth on the highest-risk
 // callables). `caseId` / `targetUid` / `requestId` / `submissionId` and similar identifiers
-// are plain `z.string().min(1)` — matching the shapes the callables accept today; do not
-// broaden or weaken them.
+// derive from the id atoms, so each is exactly one document-id segment (ARCH-106).
 
 import { z } from 'zod';
 import {
+  MAX_REPORT_NARRATIVE_LENGTH,
   MAX_INTERNAL_REASON_LENGTH,
   MAX_USER_FACING_REASON_LENGTH,
   MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH,
@@ -27,6 +27,16 @@ import {
   NCMEC_PORTAL_CORRECTION_CONFIRMATION,
 } from '../constants/safety-confirmation-phrases.js';
 import { AccountActionSchema } from '../doc-schemas/safety/sagas.js';
+import { ReportableItemTypeSchema, ReportReasonSchema } from '../doc-schemas/safety/foundation.js';
+import {
+  reportTargetItemIdSchema,
+  reportTargetParentRefSchema,
+  reportTargetUserIdSchema,
+  documentIdSegmentSchema,
+  safetyCaseIdSchema,
+  userIdSchema,
+  takeItDownRequestIdSchema,
+} from './atoms.js';
 import { SafetySlaMonitorV1Schema } from '../doc-schemas/safety/monitors.js';
 import { NciiCaseV1Schema } from '../doc-schemas/ncii/cases.js';
 import {
@@ -47,7 +57,6 @@ import {
 // re-exported here with the console and case-lookup inputs that take it.
 export { SafetyCaseLaneSchema, type SafetyCaseLane } from '../doc-schemas/safety/case.js';
 import {
-  SafetyEvidenceExternalFactKindSchema,
   SafetyEvidenceJobPhaseSchema,
   SafetyEvidenceJobStatusSchema,
 } from '../doc-schemas/safety/evidence.js';
@@ -66,8 +75,8 @@ export type CommandAccountActionValue = z.infer<typeof CommandAccountActionSchem
 
 export const CommandAccountActionInputSchema = z
   .object({
-    caseId: z.string().min(1),
-    targetUid: z.string().min(1),
+    caseId: safetyCaseIdSchema,
+    targetUid: userIdSchema,
     action: CommandAccountActionSchema,
     /** Operator-facing internal rationale (LE-loggable). */
     reasonInternal: z.string().min(4, 'An internal reason is required.').max(MAX_INTERNAL_REASON_LENGTH),
@@ -87,7 +96,7 @@ export type CommandAccountActionInput = z.infer<typeof CommandAccountActionInput
 
 /** Cursor for the next page of a paginated console source — the last row's `(orderField value, docId)`. */
 export const SafetyCaseConsoleCursorSchema = z
-  .object({ v: z.number(), id: z.string().min(1) })
+  .object({ v: z.number(), id: documentIdSegmentSchema })
   .strict();
 export type SafetyCaseConsoleCursor = z.infer<typeof SafetyCaseConsoleCursorSchema>;
 
@@ -227,7 +236,7 @@ export type GetSafetyCaseConsoleResult = z.infer<typeof GetSafetyCaseConsoleResu
 export const GetSafetyCaseByIdInputSchema = z
   .object({
     caseType: SafetyCaseLaneSchema,
-    caseId: z.string().min(1).max(200),
+    caseId: safetyCaseIdSchema.max(200),
   })
   .strict();
 export type GetSafetyCaseByIdInput = z.infer<typeof GetSafetyCaseByIdInputSchema>;
@@ -239,7 +248,7 @@ export type GetSafetyCaseByIdInput = z.infer<typeof GetSafetyCaseByIdInputSchema
 export const GetSafetyCasePartiesInputSchema = z
   .object({
     caseType: SafetyCaseLaneSchema,
-    caseId: z.string().min(1),
+    caseId: safetyCaseIdSchema,
   })
   .strict();
 export type GetSafetyCasePartiesInput = z.infer<typeof GetSafetyCasePartiesInputSchema>;
@@ -250,7 +259,7 @@ export type GetSafetyCasePartiesInput = z.infer<typeof GetSafetyCasePartiesInput
 
 export const GetTakeItDownRequestDetailInputSchema = z
   .object({
-    requestId: z.string().min(1),
+    requestId: takeItDownRequestIdSchema,
   })
   .strict();
 export type GetTakeItDownRequestDetailInput = z.infer<typeof GetTakeItDownRequestDetailInputSchema>;
@@ -260,7 +269,7 @@ export type GetTakeItDownRequestDetailInput = z.infer<typeof GetTakeItDownReques
 // ---------------------------------------------------------------------------
 
 /** A retention list's cursor — the last row's `(createdAt, docId)`, newest first. */
-const createdAtCursorSchema = () => z.object({ createdAt: z.number(), id: z.string().min(1) }).strict();
+const createdAtCursorSchema = () => z.object({ createdAt: z.number(), id: documentIdSegmentSchema }).strict();
 
 /** The largest page either retention list serves. */
 const RETENTION_LIST_MAX_PAGE_SIZE = 200;
@@ -274,7 +283,7 @@ export const ListRetainedEvidenceInventoryInputSchema = z
     pageSize: z.number().int().min(1).max(RETENTION_LIST_MAX_PAGE_SIZE).optional(),
     cursor: RetainedEvidenceInventoryCursorSchema.nullish(),
     /** Exact inventoryId lookup — returns just that row (or none), ignoring the cursor. */
-    exactId: z.string().min(1).optional(),
+    exactId: documentIdSegmentSchema.optional(),
   })
   .strict()
   .nullish();
@@ -314,7 +323,7 @@ export const ListRetainedChildSafetyCasesInputSchema = z
     pageSize: z.number().int().min(1).max(RETENTION_LIST_MAX_PAGE_SIZE).optional(),
     cursor: RetainedChildSafetyCaseCursorSchema.nullish(),
     /** Exact caseId lookup — returns just that case when it is retained (or none), ignoring the cursor. */
-    exactId: z.string().min(1).optional(),
+    exactId: documentIdSegmentSchema.optional(),
   })
   .strict()
   .nullish();
@@ -346,8 +355,8 @@ export type ListRetainedChildSafetyCasesResult = z.infer<typeof ListRetainedChil
 
 export const RecordNcmecPortalReceiptArtifactInputSchema = z
   .object({
-    caseId: z.string().min(1),
-    submissionId: z.string().min(1),
+    caseId: safetyCaseIdSchema,
+    submissionId: documentIdSegmentSchema,
     /** The key of an object already in the restricted evidence vault (verified via statObject). */
     evidenceVaultKey: z.string().min(1, 'An evidence vault object key is required.'),
     /** Optional operator description of what the artifact is (e.g. "NCMEC portal screenshot"). */
@@ -362,10 +371,10 @@ export type RecordNcmecPortalReceiptArtifactInput = z.infer<
 
 export const MarkNcmecPortalCompleteInputSchema = z
   .object({
-    caseId: z.string().min(1),
-    submissionId: z.string().min(1),
+    caseId: safetyCaseIdSchema,
+    submissionId: documentIdSegmentSchema,
     /** [Q13/H-06] The ID of an existing NcmecPortalReceiptArtifactV1 record bound to this (caseId, submissionId). */
-    artifactId: z.string().min(1, 'A valid portal-receipt artifact id is required.'),
+    artifactId: documentIdSegmentSchema,
     /** [Q13/H-06] The object generation recorded on the artifact at registration time (immutable-object peg). */
     artifactObjectGeneration: z.string().min(1, 'The artifact object generation is required.'),
     /** [Q13/H-06] The sha256 hex digest recorded on the artifact at registration time (content-integrity check). */
@@ -397,7 +406,7 @@ export type OperatorStepUpCodeInput = z.infer<typeof OperatorStepUpCodeInputSche
 
 export const RevealCaseEvidenceInputSchema = z
   .object({
-    caseId: z.string().min(1),
+    caseId: safetyCaseIdSchema,
     /** Explicit typed confirmation (interim control until the passkey profile lands). */
     confirmation: z.literal(REVEAL_CASE_EVIDENCE_CONFIRMATION),
     /** The operator's child-safety warning acknowledgement, carried so the backend can persist it
@@ -416,68 +425,11 @@ export type RevealCaseEvidenceInput = z.infer<typeof RevealCaseEvidenceInputSche
 
 export const RefetchProtectedCaseContextInputSchema = z
   .object({
-    caseId: z.string().min(1),
+    caseId: safetyCaseIdSchema,
     lane: SafetyCaseLaneSchema,
   })
   .strict();
 export type RefetchProtectedCaseContextInput = z.infer<typeof RefetchProtectedCaseContextInputSchema>;
-
-// ---------------------------------------------------------------------------
-// preserveAsEvidence — general-purpose ADMIN "Preserve as Evidence" callable.
-// ---------------------------------------------------------------------------
-
-/**
- * A target to preserve, discriminated by surface. Non-strict members are carried faithfully
- * from the source callable. The id / path / ref bounds are opaque structural caps (not user
- * text), and the augmentation `factKind` REUSES the canonical evidence external-fact enum
- * (`SafetyEvidenceExternalFactKindSchema`) rather than re-declaring its members.
- */
-export const PreserveTargetSchema = z.discriminatedUnion('targetKind', [
-  z.object({
-    targetKind: z.literal('media'),
-    mediaAssetId: z.string().min(1).max(256),
-  }),
-  z.object({
-    targetKind: z.literal('post'),
-    postDocPath: z.string().min(1).max(1024),
-    revision: z.number().int().nonnegative().optional(),
-  }),
-  z.object({
-    targetKind: z.literal('profile'),
-    uid: z.string().min(1).max(256),
-    revision: z.number().int().nonnegative().optional(),
-  }),
-  z.object({
-    targetKind: z.literal('chat'),
-    channelId: z.string().min(1).max(256),
-    messageSeqStart: z.number().int().nonnegative(),
-    messageSeqEnd: z.number().int().nonnegative(),
-    transcriptObjectRef: z.string().min(1).max(1024),
-    attachmentItemIds: z.array(z.string().min(1)).max(256).optional(),
-  }),
-]);
-export type PreserveTarget = z.infer<typeof PreserveTargetSchema>;
-
-export const PreserveAsEvidenceInputSchema = z
-  .object({
-    /** Attach to an existing case; absent → open a standalone preservation case. */
-    caseId: z.string().min(1).max(256).optional(),
-    target: PreserveTargetSchema,
-    /** Operator note recorded on the case (internal). */
-    reasonInternal: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
-    /** Optional admin AUGMENTATION — extra externalFact refs preserved alongside the baseline. */
-    augmentations: z
-      .array(
-        z.object({
-          factKind: SafetyEvidenceExternalFactKindSchema,
-          narrativeRef: z.string().min(1).max(1024),
-        }),
-      )
-      .max(32)
-      .optional(),
-  })
-  .strict();
-export type PreserveAsEvidenceInput = z.infer<typeof PreserveAsEvidenceInputSchema>;
 
 // ---------------------------------------------------------------------------
 // recordNcmecPortalCorrection — record an operator's NCMEC manual-portal correction filing.
@@ -485,7 +437,7 @@ export type PreserveAsEvidenceInput = z.infer<typeof PreserveAsEvidenceInputSche
 
 export const RecordNcmecPortalCorrectionInputSchema = z
   .object({
-    caseId: z.string().min(1),
+    caseId: safetyCaseIdSchema,
     ncmecReportId: z.string().min(1),
     correctionFiledAt: z.number(),
     reason: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
@@ -493,3 +445,27 @@ export const RecordNcmecPortalCorrectionInputSchema = z
   })
   .strict();
 export type RecordNcmecPortalCorrectionInput = z.infer<typeof RecordNcmecPortalCorrectionInputSchema>;
+
+// ---------------------------------------------------------------------------
+// submitReport — the one report-intake callable. The target ids are HINTS the server re-derives
+// (never owner or target authority): each is bounded and shaped as the path it could become, and
+// `parentItemId` may be a chat channel or conversation-file reference of two ids joined by "/".
+// ---------------------------------------------------------------------------
+export const SubmitReportInputSchema = z
+  .object({
+    itemType: ReportableItemTypeSchema,
+    reportedItemId: reportTargetItemIdSchema,
+    parentItemId: reportTargetParentRefSchema.optional(),
+    /** HINT ONLY — ignored as owner authority (the owner is server-derived). */
+    reportedUserId: reportTargetUserIdSchema.optional(),
+    reason: ReportReasonSchema,
+    /** Free-text reporter narrative (segregated; never inlined on the public projection). */
+    comment: z.string().max(MAX_REPORT_NARRATIVE_LENGTH).optional(),
+    narrative: z.string().max(MAX_REPORT_NARRATIVE_LENGTH).optional(),
+    /** The user-confirmed SECOND call that escalates an EXISTING report on this target to a
+     *  protected reason (Child Safety / NCII). Only meaningful with a protected reason and an
+     *  existing report; ignored otherwise. */
+    confirmUpgrade: z.boolean().optional(),
+  })
+  .strict();
+export type SubmitReportInput = z.infer<typeof SubmitReportInputSchema>;

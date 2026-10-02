@@ -83,12 +83,16 @@ export const NotificationFanoutPhaseSchema = z.object({
   done: z.boolean(),
 });
 
+/** A fanout job's priority tier: 0, 1, or 2 (the lane the scheduler drains it from). */
+export const NotificationFanoutPrioritySchema = z.union([z.literal(0), z.literal(1), z.literal(2)]);
+export type NotificationFanoutPriority = z.infer<typeof NotificationFanoutPrioritySchema>;
+
 const NotificationFanoutJobBaseSchema = z.object({
   jobId: z.string(),
   schemaVersion: z.number(),
   notificationType: z.string(),
   eventId: z.string(),
-  priority: z.union([z.literal(0), z.literal(1), z.literal(2)]),
+  priority: NotificationFanoutPrioritySchema,
   payload: z.record(z.string(), z.unknown()),
   phases: z.array(NotificationFanoutPhaseSchema),
   phaseIndex: z.number(),

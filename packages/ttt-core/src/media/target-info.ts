@@ -1,7 +1,21 @@
 import { z } from "zod";
+import {
+  workProjectIdSchema,
+  commissionListingIdSchema,
+  auditionIdSchema,
+  itemIdSchema,
+  workRealmIdSchema,
+  taleIdSchema,
+  chapterIdSchema,
+  tuneIdSchema,
+  trackIdSchema,
+  televisionIdSchema,
+  episodeIdSchema,
+  workFileFolderIdSchema,
+} from "../schemas/atoms.js";
 import type { FileOrigin } from "./file-origin.js";
 import { ConversationFileRefSchema } from "./conversation-file-ref.js";
-import { MentionSchema, rejectDuplicateMentionPlaceholders } from "./atoms.js";
+import { SquareStreetzPostMentionsSchema } from "./atoms.js";
 import {
   TRADE_PROFESSION_OPTIONS,
   TRADE_PROFESSION_VALUES,
@@ -20,7 +34,6 @@ import {
 import { CRAFT_SKILL_STATEMENT_VERSION } from "../constants/craft-skill-statements.js";
 import { HALL_CONTENT_DETAIL_SURFACES } from "../constants/hall-content-routing.js";
 import {
-  MAX_MENTIONS,
   MAX_POST_LENGTH,
   MAX_CRAFT_SKILL_TAGS,
   MAX_COMMISSION_TITLE_LENGTH,
@@ -126,15 +139,12 @@ export const CraftSkillMediaTargetInfoSchema = z
   .strict()
   .superRefine(refineCraftSkillUploadAttestation);
 
-// squareStreetz: mentions array of structured Mention objects. Capped at
-// MAX_MENTIONS with unique placeholders (duplicate placeholders collide at render
-// time — both tokens resolve to the later entity).
+// squareStreetz: the post's mention list. The caption travels outside targetInfo
+// (StartUploadRequest.textContent), so startUpload checks that each placeholder appears in it
+// exactly once with refineMentionCorrespondence / validateMentionCorrespondence.
 export const SquareStreetzTargetInfoSchema = z
   .object({
-    mentions: z
-      .array(MentionSchema)
-      .max(MAX_MENTIONS)
-      .superRefine(rejectDuplicateMentionPlaceholders),
+    mentions: SquareStreetzPostMentionsSchema,
   })
   .strict();
 
@@ -158,13 +168,13 @@ export const CommissionPostingTargetInfoSchema = z
     // upload/transcode/moderation — so fail fast at the trust boundary instead of burning
     // the activation-job retry budget on a deterministic dead-letter.
     stakeSharesOffered: z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES),
-    workProjectId: z.string().min(1),
+    workProjectId: workProjectIdSchema,
   })
   .strict();
 
 export const CommissionProposalTargetInfoSchema = z
   .object({
-    commissionListingId: z.string().min(1),
+    commissionListingId: commissionListingIdSchema,
     replyText: z.string().max(MAX_COMMISSION_DESCRIPTION_LENGTH),
   })
   .strict();
@@ -178,12 +188,12 @@ export const AuditionPromptTargetInfoSchema = z
     // treat it with create-no-overwrite semantics (first write wins; a colliding id from a
     // different actor/batch is rejected, never overwritten). This is NOT a reference to an
     // existing audition (contrast audition-entry's auditionId).
-    auditionId: z.string().min(1),
+    auditionId: auditionIdSchema,
     type: z.literal('workAudition'),
     title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
     description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
     openTill: z.number().int().positive(),
-    workProjectId: z.string().min(1),
+    workProjectId: workProjectIdSchema,
     // min(1): the create core rejects <1 shares at PUBLISH (see CommissionPosting above).
     // Optional — defaults to a floor of 1 at invite time when absent.
     stakeSharesOffered: z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES).optional(),
@@ -205,7 +215,7 @@ export const AdminAuditionPromptTargetInfoSchema = z
     // auditionId): a curated audition's multiple option videos share this one id before any
     // Audition doc exists; the backend uses create-no-overwrite semantics. NOT a reference to
     // an existing audition.
-    auditionId: z.string().min(1),
+    auditionId: auditionIdSchema,
     type: z.enum(['platformAudition', 'sponsoredAudition']),
     title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
     description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
@@ -221,7 +231,7 @@ export const AdminAuditionPromptTargetInfoSchema = z
 
 export const AuditionEntryTargetInfoSchema = z
   .object({
-    auditionId: z.string().min(1),
+    auditionId: auditionIdSchema,
   })
   .strict();
 
@@ -238,9 +248,9 @@ export const AuditionEntryTargetInfoSchema = z
 // ───────────────────────────────────────────────────────────────────
 const HallLibraryCoverTargetInfoSchema = z
   .object({
-    workProjectId: z.string().min(1),
+    workProjectId: workProjectIdSchema,
     itemType: z.enum(HALL_CONTENT_DETAIL_SURFACES),
-    itemId: z.string().min(1),
+    itemId: itemIdSchema,
   })
   .strict();
 
@@ -253,7 +263,7 @@ export const HallLibraryCoverCinematicTargetInfoSchema = HallLibraryCoverTargetI
 // callable authorizes against the realm's workStewardUid).
 export const RealmCoverTargetInfoSchema = z
   .object({
-    workRealmId: z.string().min(1),
+    workRealmId: workRealmIdSchema,
   })
   .strict();
 
@@ -268,17 +278,17 @@ export const RealmCoverTargetInfoSchema = z
 // ───────────────────────────────────────────────────────────────────
 export const ChapterPhotoTargetInfoSchema = z
   .object({
-    workProjectId: z.string().min(1),
-    taleId: z.string().min(1),
-    chapterId: z.string().min(1),
+    workProjectId: workProjectIdSchema,
+    taleId: taleIdSchema,
+    chapterId: chapterIdSchema,
   })
   .strict();
 
 const TuneTrackMediaTargetInfoSchema = z
   .object({
-    workProjectId: z.string().min(1),
-    tuneId: z.string().min(1),
-    trackId: z.string().min(1),
+    workProjectId: workProjectIdSchema,
+    tuneId: tuneIdSchema,
+    trackId: trackIdSchema,
   })
   .strict();
 
@@ -287,9 +297,9 @@ export const TuneTrackAudioTargetInfoSchema = TuneTrackMediaTargetInfoSchema;
 
 const TelevisionEpisodeMediaTargetInfoSchema = z
   .object({
-    workProjectId: z.string().min(1),
-    televisionId: z.string().min(1),
-    episodeId: z.string().min(1),
+    workProjectId: workProjectIdSchema,
+    televisionId: televisionIdSchema,
+    episodeId: episodeIdSchema,
   })
   .strict();
 
@@ -305,10 +315,10 @@ export const ConversationFileTargetInfoSchema = ConversationFileRefSchema;
 
 export const WorkAssetTargetInfoSchema = z
   .object({
-    workProjectId: z.string().min(1),
+    workProjectId: workProjectIdSchema,
     // The folder the file is uploaded INTO (S7 folder system). Custom folders gate
     // upload by trade profession; the default folder accepts any active guildmate.
-    folderId: z.string().min(1),
+    folderId: workFileFolderIdSchema,
   })
   .strict();
 

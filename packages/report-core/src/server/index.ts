@@ -42,4 +42,6 @@ export type {
   ServerReportCoreConfig,
   ServerTransaction,
   ServerWriteBatch,
+  TaskClaimGuard,
+  TaskClaimVerdict,
 } from './types.js';

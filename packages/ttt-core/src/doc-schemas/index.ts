@@ -53,6 +53,7 @@ export * from './ncii/config.js';
 
 // ===== Backend-only cursor / operational state =====
 export * from './backend-state.js';
+export * from './sweep-cursor.js';
 
 export * from './registry.js';
 

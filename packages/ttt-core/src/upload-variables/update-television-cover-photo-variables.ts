@@ -1,11 +1,12 @@
 import { z } from 'zod';
+import { workProjectIdSchema, televisionIdSchema } from '../schemas/atoms.js';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 
 
 export const UpdateTelevisionCoverPhotoVariablesSchema = z.object({
-  workProjectId: z.string().min(1),
-  televisionId: z.string().min(1),
+  workProjectId: workProjectIdSchema,
+  televisionId: televisionIdSchema,
   file: z.instanceof(File).or(z.instanceof(Blob)),
 
   // Untrusted client claim of what the user's action implies (advisory; the

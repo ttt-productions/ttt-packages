@@ -98,6 +98,8 @@ export interface TttLimits {
     CHANNEL_CREATE: RateLimitValue;
     CHECKOUT_CREATE: RateLimitValue;
     AGE_ATTEST: RateLimitValue;
+    HALL_PREFERENCE: RateLimitValue;
+    REFUND_DECISION: RateLimitValue;
   };
 }
 
@@ -221,6 +223,13 @@ export const CHARTER_LIMITS: TttLimits = {
     // registrants per hour as DISPLAY_NAME_CHECK's 120/h at its 3–8 debounced checks each, while a
     // script minting age-attestation records gets far less headroom.
     AGE_ATTEST: { maxRequests: 30, window: '1 h' },
+    // A member's own Hall settings, ink marks, hidden Works, reading position, and recently viewed
+    // list. Reading position and recently viewed are written as the member reads, so the bucket is
+    // sized like NOTIFICATION_MARK_SEEN, the other passive per-member write.
+    HALL_PREFERENCE: { maxRequests: 120, window: '1 h' },
+    // An admin's approve or deny of a refund request. Admin-only, so mode-invariant like
+    // APPEAL_REVIEW, the other admin decision on a member's request.
+    REFUND_DECISION: { maxRequests: 30, window: '1 h' },
   },
 };
 
@@ -312,6 +321,9 @@ export const FULL_LIMITS: TttLimits = {
     CHECKOUT_CREATE: { maxRequests: 20, window: '1 h' },
     // Scaled with DISPLAY_NAME_CHECK's full-mode 300/h — see the CHARTER_LIMITS note.
     AGE_ATTEST: { maxRequests: 75, window: '1 h' },
+    // Both stay at their charter values — see the CHARTER_LIMITS notes.
+    HALL_PREFERENCE: { maxRequests: 120, window: '1 h' },
+    REFUND_DECISION: { maxRequests: 30, window: '1 h' },
   },
 };
 

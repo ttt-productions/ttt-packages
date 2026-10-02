@@ -358,6 +358,20 @@ erDiagram
     field reasonInternal
     field updatedAt
   }
+  childSafetyCaseCrossoverItems {
+    field schemaVersion
+    field caseId
+    field mediaAssetId
+    field servingDeny
+    field servingDeniedAt
+    field servingDenyFailedAt
+    field servingDenyLastError
+    field photoDna
+    field photoDnaScannedAt
+    field photoDnaFailedAt
+    field photoDnaLastError
+    field createdAt
+  }
   childSafetyCaseList {
     field schemaVersion
     field caseId
@@ -464,8 +478,8 @@ erDiagram
     field flaggedWords
     field originalText
     field originalFileName
+    field mediaKind
     field scores
-    field rejectedFilePath
   }
   conversationFiles {
     field conversationFileId
@@ -989,8 +1003,9 @@ erDiagram
     field disputeId
     field ageAttestedAt
     field legalReviewNotice
-    field createdAt
-    field updatedAt
+    field refundCorrelation
+    field refundObservedAt
+    field disputeObservedAt
   }
   pledgePayments {
     field pledgePaymentId
@@ -1016,7 +1031,9 @@ erDiagram
     field resolvedBy
     field requestedAt
     field resolvedAt
+    field approvingAt
     field completedAt
+    field failedAt
   }
   portalReceiptArtifacts {
     field schemaVersion
