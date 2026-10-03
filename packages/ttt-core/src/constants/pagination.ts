@@ -17,6 +17,8 @@ export const ITEMS_PER_PAGE_TELEVISION_EPISODES = 3;
 export const ITEMS_PER_PAGE_PROPOSAL_ARTISANS = 5;
 export const ITEMS_PER_PAGE_FOLLOWED_USERS = 10;
 export const ITEMS_PER_PAGE_ADMIN_DISPATCH_THREADS = 10;
+/** The admin Dispatches browse list (every support thread, admin-only) — not a member's own thread list above. */
+export const ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE = 12;
 
 // --- Hook-specific page sizes ---
 

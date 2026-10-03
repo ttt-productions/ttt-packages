@@ -31,6 +31,16 @@ export function toSdkInitOptions(options: MonitoringInitOptions): Record<string,
   for (const key of passThrough) {
     if (options[key] !== undefined) sdkOptions[key] = options[key];
   }
+  const keep = options.keepDefaultIntegrations;
+  if (keep !== undefined) {
+    // The SDK's function form of `integrations` receives the SDK's own default list, so the
+    // kept defaults are the SDK's instances and the app never constructs one.
+    const added = options.integrations ?? [];
+    sdkOptions.integrations = (defaults: Array<{ name?: unknown }>) => [
+      ...defaults.filter((integration) => typeof integration?.name === "string" && keep.includes(integration.name)),
+      ...added,
+    ];
+  }
   return sdkOptions;
 }
 

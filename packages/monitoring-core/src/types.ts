@@ -19,6 +19,11 @@ export type MonitoringInitOptions = {
   /** Passed through to the SDK init: `false` switches the provider's default integrations
    *  off, so only `integrations` run; a list replaces the defaults. */
   defaultIntegrations?: false | unknown[];
+  /** Keep only these of the provider's default integrations, named by their SDK `name`;
+   *  every other default is off, and `integrations` is still added after them. Lets the app
+   *  choose defaults without importing the SDK to construct them. Cannot be combined with
+   *  `defaultIntegrations` — `initMonitoring` rejects the pair on every provider. */
+  keepDefaultIntegrations?: readonly string[];
   /** The SDK's `beforeSend`, installed by the init itself — it runs on every error event
    *  from the first one the SDK sends. Returning `null` drops the event. */
   beforeSend?: BeforeSendHook;

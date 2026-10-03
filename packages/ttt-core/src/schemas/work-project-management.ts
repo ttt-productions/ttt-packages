@@ -21,6 +21,7 @@ import {
 } from './atoms.js';
 import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
 import { GUILD_STANDING_VALUES } from '../permissions/index.js';
+import { FullWorkProjectSchema } from '../doc-schemas/work-project.js';
 import {
   MAX_GUILD_INVITE_MESSAGE_LENGTH,
   MAX_WORK_PROJECT_TITLE_LENGTH,
@@ -267,6 +268,21 @@ export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationM
   }).strict(),
 ]);
 export type CreateWorkProjectInput = z.infer<typeof CreateWorkProjectInputSchema>;
+
+/** The `createWorkProject` answer: the new Work's id and its stored document, which that id names. */
+export const CreateWorkProjectResultSchema = z
+  .object({
+    success: z.literal(true),
+    workProjectId: workProjectIdSchema,
+    workProjectData: FullWorkProjectSchema,
+  })
+  .strict()
+  .superRefine((result, ctx) => {
+    if (result.workProjectData.workProjectId !== result.workProjectId) {
+      ctx.addIssue({ code: 'custom', path: ['workProjectData', 'workProjectId'] });
+    }
+  });
+export type CreateWorkProjectResult = z.infer<typeof CreateWorkProjectResultSchema>;
 
 // Identified by the workAssets subcollection doc id — never by URL parsing
 // (no delete path may depend on a URL; see media-assets-and-protected-serving.md).

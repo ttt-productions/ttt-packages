@@ -27,7 +27,13 @@ import {
   NCMEC_PORTAL_CORRECTION_CONFIRMATION,
 } from '../constants/safety-confirmation-phrases.js';
 import { AccountActionSchema } from '../doc-schemas/safety/sagas.js';
-import { ReportableItemTypeSchema, ReportReasonSchema } from '../doc-schemas/safety/foundation.js';
+import {
+  NciiInternalStatusSchema,
+  ReportableItemTypeSchema,
+  ReportDispositionSchema,
+  ReportReasonSchema,
+  SafetyCaseClosureV1Schema,
+} from '../doc-schemas/safety/foundation.js';
 import {
   reportTargetItemIdSchema,
   reportTargetParentRefSchema,
@@ -38,7 +44,7 @@ import {
   takeItDownRequestIdSchema,
 } from './atoms.js';
 import { SafetySlaMonitorV1Schema } from '../doc-schemas/safety/monitors.js';
-import { NciiCaseV1Schema } from '../doc-schemas/ncii/cases.js';
+import { NciiCaseLaneSchema, NciiCaseV1Schema } from '../doc-schemas/ncii/cases.js';
 import {
   NciiRetainedEvidenceInventoryV1Schema,
   TakeItDownRequestRootV1Schema,
@@ -49,7 +55,9 @@ import {
   ChildSafetyAccountSubjectDispositionSchema,
   ChildSafetyCaseListV1Schema,
   ChildSafetyCaseV1Schema,
+  ChildSafetyIncidentClassSchema,
   ChildSafetyPreservationStatusSchema,
+  ChildSafetyWorkStatusSchema,
   SafetyCaseLaneSchema,
 } from '../doc-schemas/safety/case.js';
 
@@ -240,6 +248,37 @@ export const GetSafetyCaseByIdInputSchema = z
   })
   .strict();
 export type GetSafetyCaseByIdInput = z.infer<typeof GetSafetyCaseByIdInputSchema>;
+
+// The lookup is a reopen surface: it carries the case's status, revision, safe metadata, and
+// closure history only — never evidence or reporter identity.
+const SafetyCaseByIdFields = {
+  caseId: safetyCaseIdSchema,
+  /** The revision `reopenSafetyCase` must name. */
+  revision: z.number().int().nonnegative(),
+  meta: z
+    .object({
+      incidentClass: ChildSafetyIncidentClassSchema.optional(),
+      lane: NciiCaseLaneSchema.optional(),
+      createdAt: z.number().optional(),
+      actualKnowledgeAt: z.number().optional(),
+      preserveUntil: z.number().optional(),
+      reportDisposition: ReportDispositionSchema.optional(),
+    })
+    .strict(),
+  /** Each close, as the closure record it wrote, keyed by the event that recorded it. */
+  closureHistory: z.array(SafetyCaseClosureV1Schema.extend({ eventId: z.string().min(1) }).strict()),
+};
+
+/** The `getSafetyCaseById` answer: a child-safety case with its work status, an NCII case with its internal status. */
+export const SafetyCaseByIdResultSchema = z.discriminatedUnion('caseType', [
+  z
+    .object({ ...SafetyCaseByIdFields, caseType: z.literal(SafetyCaseLaneSchema.enum.csam), status: ChildSafetyWorkStatusSchema })
+    .strict(),
+  z
+    .object({ ...SafetyCaseByIdFields, caseType: z.literal(SafetyCaseLaneSchema.enum.ncii), status: NciiInternalStatusSchema })
+    .strict(),
+]);
+export type SafetyCaseByIdResult = z.infer<typeof SafetyCaseByIdResultSchema>;
 
 // ---------------------------------------------------------------------------
 // getSafetyCaseParties — server-resolved party panel for a safety case.

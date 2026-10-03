@@ -10,6 +10,7 @@ Generic monitoring adapter package.
 - Generic `captureException` and related API
 - React `ErrorBoundary` on `./react`
 - The telemetry scrubber — the forbidden-pattern redaction layer for outgoing events
+- The telemetry content policy — the allowlist that cuts an outgoing event to diagnostic fields
 
 ## Capture context
 
@@ -96,6 +97,28 @@ the scrubber exists to keep readable — and `state` / `nonce` are not secrets. 
 credential-bearing parameter under one of these names gets a **path-scoped** pattern naming the
 route that carries it, never a bare parameter-name rule.
 
+## Telemetry content policy
+
+`createTelemetryContentPolicy(options)` returns `keepAllowlistedTelemetry(event)` and `isDiagnosticKey(key)`. The
+scrubber removes known secret shapes but cannot recognise free text; the policy is the allowlist in front of it. It
+rewrites an event in place and returns it (so it composes with the scrubber as one pre-send hook):
+
+- the incoming request and the breadcrumbs are deleted;
+- the user is cut to its `id` when that is a token, otherwise removed;
+- in tags, extras, and scope contexts, a number, flag, or null is kept under any key (it cannot carry text); text is
+  kept only under a diagnostic key and only as a token — 1–200 characters with no whitespace — and lists and nested
+  objects under a diagnostic key are walked the same way, at most 20 items a list and four levels down; a `path` key
+  is kept only as a list (a validation issue's field names), never as a string (a storage or document path);
+- the SDK's own runtime contexts (`DEFAULT_SDK_CONTEXTS`: trace, runtime, os, app, device, culture, cloud_resource,
+  or the caller's `sdkContexts` in their place) are kept whole; a context the caller names in `codeNameContexts` keeps
+  its `name` (the code name of what ran) as a token;
+- the error itself — message and exception — is left for the scrubber.
+
+The package owns the mechanism only (ARCH-201): which keys are diagnostic is the caller's — `diagnosticKeys`, matched
+exactly, and `diagnosticKeySuffixes`, matched at the end of a key that starts with a lowercase letter (`Id` admits
+`caseId`, never `Id` alone; an empty list admits nothing). For TTT those lists are `TTT_TELEMETRY_CONTENT_POLICY` in
+`ttt-core`. The module imports no SDK and no Node API, so any runtime — Node, browser, or edge — can apply it.
+
 ## Initialization
 
 `initMonitoring(options)` installs the provider's adapter BEFORE it awaits anything, then runs the
@@ -111,6 +134,12 @@ The options reach the SDK's init as given; anything left out is left out:
 - `integrations` — ADDED to the SDK's default integrations; `[]` switches nothing off.
 - `defaultIntegrations: false` — switches the defaults off, so only `integrations` run (a list
   replaces the defaults).
+- `keepDefaultIntegrations` — a list of default-integration names (each integration's SDK `name`):
+  only those defaults run, every other default is off, and `integrations` is still added after them.
+  The adapter hands the SDK the function form of `integrations`, which the SDK calls with its own
+  default list, so the app chooses defaults without importing the SDK to construct them. It cannot
+  be combined with `defaultIntegrations`: `initMonitoring` rejects that pair before choosing a
+  provider, so an emulator or Noop run refuses it the same as a deployed one.
 - `tracesSampleRate` — the provider's trace sampling.
 
 A repeated `initMonitoring` with the same options is skipped; options compare value by value, and a

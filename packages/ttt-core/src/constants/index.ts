@@ -14,6 +14,8 @@ export * from './legal-review-notice-state.js';
 export * from './legal-review-notice.js';
 export * from './safety-confirmation-phrases.js';
 export * from './safety-telemetry-patterns.js';
+export * from './safety-active-statuses.js';
+export * from './telemetry-content-policy.js';
 export * from './pagination.js';
 export * from './release-flags.js';
 export * from './retention.js';

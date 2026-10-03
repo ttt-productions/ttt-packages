@@ -55,6 +55,37 @@ export function isPledgeDisputeEventApplicable(
   return isPledgeDisputeAdvance(recorded.state, event.state);
 }
 
+/**
+ * The pledge's dispute number for a dispute event: the recorded number while the event is about the
+ * recorded dispute (the provider ref's `disputeId`), one more for any other dispute — so the first
+ * dispute is 1 and each later one adds one. The number is what the member-readable pledge carries in
+ * place of Stripe's dispute id, which stays on the server-only provider ref.
+ */
+export function pledgeDisputeNumberForEvent(
+  recorded: { disputeId: string | null; disputeNumber: number },
+  eventDisputeId: string,
+): number {
+  return recorded.disputeId === eventDisputeId ? recorded.disputeNumber : recorded.disputeNumber + 1;
+}
+
+/**
+ * Whether a pledge's dispute fields may move from `before` to `after` — the rule an integrity check
+ * reads from the pledge alone. Under the same dispute number the state only climbs the ladder (or stays,
+ * as a redelivery or a refund leaves it); a number one higher is a new dispute, which starts its own
+ * ladder at any state but `none` (its close may arrive before its opening). Any other number change is
+ * not a legal transition.
+ */
+export function isPledgeDisputeTransitionLegal(
+  before: { disputeNumber: number; disputeState: PledgeDisputeState },
+  after: { disputeNumber: number; disputeState: PledgeDisputeState },
+): boolean {
+  if (after.disputeNumber === before.disputeNumber) {
+    return after.disputeState === before.disputeState || isPledgeDisputeAdvance(before.disputeState, after.disputeState);
+  }
+  if (after.disputeNumber === before.disputeNumber + 1) return after.disputeState !== 'none';
+  return false;
+}
+
 // pledgePayments/{pledgePaymentId} — public-safe canonical money record. One doc per completed
 // pledge; never deleted/archived. No Stripe IDs, no supporter message. Auth-readable; server-only
 // writes, by the Stripe webhook alone. netAmount = max(0, amount - refundedAmount - disputeLostAmount)
@@ -71,10 +102,18 @@ export const PledgePaymentSchema = z.object({
   status: z.literal('completed'),
   refundState: PledgeRefundStateSchema,
   disputeState: PledgeDisputeStateSchema,
+  // How many disputes the pledge has had: 0 until the first, then 1, 2, … (pledgeDisputeNumberForEvent).
+  // It tells one dispute from the next on this member-readable doc; Stripe's dispute id stays on the
+  // server-only provider ref.
+  disputeNumber: z.number().int().nonnegative(),
   // NO ageAttestedAt here: age-attestation evidence is server-only and lives on
   // PledgePaymentProviderRefSchema. This doc is auth-readable by every signed-in member.
   createdAt: z.number(),
   updatedAt: z.number(),
+}).superRefine((val, ctx) => {
+  if ((val.disputeNumber === 0) !== (val.disputeState === 'none')) {
+    ctx.addIssue({ code: 'custom', path: ['disputeNumber'] });
+  }
 });
 export type PledgePayment = z.infer<typeof PledgePaymentSchema>;
 

@@ -5,6 +5,7 @@ import {
   ListGuildInvitesInputSchema,
   CheckRealmNameAvailableInputSchema,
   CreateWorkProjectInputSchema,
+  CreateWorkProjectResultSchema,
   realmWorkingTitleSchema,
 } from '../src/schemas/work-project-management';
 import { ListGuildInvitesResultSchema } from '../src/schemas';
@@ -341,3 +342,56 @@ describe('realmWorkingTitleSchema (reservedRealmNames doc-ID safety)', () => {
 
 
 
+
+describe('CreateWorkProjectResultSchema', () => {
+  const createdWork = {
+    workProjectId: 'work-1',
+    createdOn: 1_700_000_000_000,
+    type: 'Tales',
+    workingDescription: 'A working description',
+    workingTitle: 'A Working Title',
+    hallWingType: 'entertainment',
+    createdBy: { uid: 'user-1' },
+    status: 'open',
+    workRealmId: 'realm-1',
+    realmCanonStatus: 'canon',
+  } as const;
+
+  it("answers success, the new Work's id, and its stored document", () => {
+    const result = { success: true, workProjectId: 'work-1', workProjectData: createdWork };
+    expect(CreateWorkProjectResultSchema.parse(result)).toEqual(result);
+  });
+
+  it('is the answer of a create that succeeded — never a failure shape', () => {
+    expect(
+      CreateWorkProjectResultSchema.safeParse({ success: false, workProjectId: 'work-1', workProjectData: createdWork })
+        .success,
+    ).toBe(false);
+  });
+
+  it('carries the stored Work document whole, so a document its schema refuses is refused here too', () => {
+    const { workRealmId: _omitted, ...withoutRealm } = createdWork;
+    expect(
+      CreateWorkProjectResultSchema.safeParse({ success: true, workProjectId: 'work-1', workProjectData: withoutRealm })
+        .success,
+    ).toBe(false);
+  });
+
+  it("names the document it returns: the answered id is that Work's own id", () => {
+    expect(
+      CreateWorkProjectResultSchema.safeParse({ success: true, workProjectId: 'work-2', workProjectData: createdWork })
+        .success,
+    ).toBe(false);
+  });
+
+  it('accepts nothing beyond the three answered fields', () => {
+    expect(
+      CreateWorkProjectResultSchema.safeParse({
+        success: true,
+        workProjectId: 'work-1',
+        workProjectData: createdWork,
+        workRealmId: 'realm-1',
+      }).success,
+    ).toBe(false);
+  });
+});

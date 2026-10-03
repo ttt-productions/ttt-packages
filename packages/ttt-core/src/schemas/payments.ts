@@ -59,13 +59,15 @@ export const GetMyPledgeByCheckoutSessionInputSchema = z.object({
 }).strict();
 export type GetMyPledgeByCheckoutSessionInput = z.infer<typeof GetMyPledgeByCheckoutSessionInputSchema>;
 
-/** The pledge fields the success page shows — never a Stripe id. */
-export const PledgeDisplaySchema = PledgePaymentSchema.pick({
-  pledgePaymentId: true,
-  amount: true,
-  netAmount: true,
-  currency: true,
-  status: true,
-  createdAt: true,
+/** The pledge fields the success page shows — never a Stripe id. Each field is the ledger's own
+ *  field schema; the ledger's whole-document refinement keeps zod from `pick`ing it. */
+const pledgeFields = PledgePaymentSchema.shape;
+export const PledgeDisplaySchema = z.object({
+  pledgePaymentId: pledgeFields.pledgePaymentId,
+  amount: pledgeFields.amount,
+  netAmount: pledgeFields.netAmount,
+  currency: pledgeFields.currency,
+  status: pledgeFields.status,
+  createdAt: pledgeFields.createdAt,
 });
 export type PledgeDisplay = z.infer<typeof PledgeDisplaySchema>;

@@ -201,15 +201,103 @@ describe('sign-up age check', () => {
 });
 
 describe('credential and session records', () => {
-  it('has a type for the sign-in record and one for each credential action a server step records', () => {
-    const credentialEvents: AuditEventType[] = [
-      'user.signedIn',
-      'user.passwordChanged',
-      'user.passwordResetCompleted',
-      'user.emailChanged',
-      'user.emailRecovered',
-    ];
+  it('has a type for the sign-in record and for a completed password reset — the credential records something writes', () => {
+    const credentialEvents: AuditEventType[] = ['user.signedIn', 'user.passwordResetCompleted'];
     expect(new Set(credentialEvents).size).toBe(credentialEvents.length);
+  });
+
+  it('has no type for a credential change no flow performs: a password change, an email change, an email recovery', () => {
+    // @ts-expect-error — there is no in-app password change, so nothing records one.
+    const passwordChanged: AuditEventType = 'user.passwordChanged';
+    // @ts-expect-error — there is no in-app email change, so nothing records one.
+    const emailChanged: AuditEventType = 'user.emailChanged';
+    // @ts-expect-error — an email recovery has no server step that could record it.
+    const emailRecovered: AuditEventType = 'user.emailRecovered';
+    expect([passwordChanged, emailChanged, emailRecovered]).toHaveLength(3);
+  });
+});
+
+describe('the catalog names only events something writes', () => {
+  it('has no per-page public-document seed or edit events — a release is the record of every public-document change', () => {
+    const released: AuditEventType = 'publicDocuments.released';
+    // @ts-expect-error — public documents change only through a release.
+    const futurePlansSeeded: AuditEventType = 'admin.futurePlansSeeded';
+    // @ts-expect-error — public documents change only through a release.
+    const futurePlansUpdated: AuditEventType = 'admin.futurePlansUpdated';
+    // @ts-expect-error — public documents change only through a release.
+    const privacyPageSeeded: AuditEventType = 'admin.privacyPageSeeded';
+    // @ts-expect-error — public documents change only through a release.
+    const privacyPageUpdated: AuditEventType = 'admin.privacyPageUpdated';
+    // @ts-expect-error — public documents change only through a release.
+    const rulesSeeded: AuditEventType = 'admin.rulesAndAgreementsSeeded';
+    // @ts-expect-error — public documents change only through a release.
+    const rulesUpdated: AuditEventType = 'admin.rulesAndAgreementsUpdated';
+    // @ts-expect-error — public documents change only through a release.
+    const takeItDownCopySeeded: AuditEventType = 'admin.takeItDownPageCopySeeded';
+    // @ts-expect-error — public documents change only through a release.
+    const takeItDownCopyUpdated: AuditEventType = 'admin.takeItDownPageCopyUpdated';
+    // @ts-expect-error — public documents change only through a release.
+    const termsSeeded: AuditEventType = 'admin.termsPageSeeded';
+    // @ts-expect-error — public documents change only through a release.
+    const termsUpdated: AuditEventType = 'admin.termsPageUpdated';
+    expect([
+      released,
+      futurePlansSeeded,
+      futurePlansUpdated,
+      privacyPageSeeded,
+      privacyPageUpdated,
+      rulesSeeded,
+      rulesUpdated,
+      takeItDownCopySeeded,
+      takeItDownCopyUpdated,
+      termsSeeded,
+      termsUpdated,
+    ]).toHaveLength(11);
+  });
+
+  it('records a Realm file share by its request and approval, and a Realm by its release, with no instant-share or creation event', () => {
+    const shareApproved: AuditEventType = 'workFile.realmSharePromotionApproved';
+    const realmReleased: AuditEventType = 'workRealm.released';
+    // @ts-expect-error — a file reaches a Realm only through an approved share request.
+    const sharedToRealm: AuditEventType = 'workFile.sharedToRealm';
+    // @ts-expect-error — a Realm is recorded when it is released.
+    const realmCreated: AuditEventType = 'workRealm.created';
+    expect([shareApproved, realmReleased, sharedToRealm, realmCreated]).toHaveLength(4);
+  });
+
+  it('keeps the child-safety events something writes, and the two the legal-process intake owes', () => {
+    const written: AuditEventType[] = ['childSafety.holdReleased', 'childSafety.quarantineCompleted'];
+    const owedByLegalProcessIntake: AuditEventType[] = ['childSafety.legalProcessRecorded', 'childSafety.evidenceDisposed'];
+    // @ts-expect-error — nothing records a hold placement as an event of its own.
+    const holdPlaced: AuditEventType = 'childSafety.holdPlaced';
+    // @ts-expect-error — nothing records an account-action reversal.
+    const accountActionReverted: AuditEventType = 'childSafety.accountActionReverted';
+    // @ts-expect-error — the evidence manifest is itself the chain-of-custody record.
+    const manifestCreated: AuditEventType = 'childSafety.evidenceManifestCreated';
+    expect([...written, ...owedByLegalProcessIntake, holdPlaced, accountActionReverted, manifestCreated]).toHaveLength(7);
+  });
+
+  it('keeps the NCII intake event, with no event for a step nothing records', () => {
+    const received: AuditEventType = 'ncii.requestReceived';
+    // @ts-expect-error — nothing records this step.
+    const scanMatch: AuditEventType = 'ncii.evidenceScanValidatedMatch';
+    // @ts-expect-error — nothing records this step.
+    const completeness: AuditEventType = 'ncii.completenessDetermined';
+    // @ts-expect-error — nothing records this step.
+    const supplemented: AuditEventType = 'ncii.requestSupplemented';
+    // @ts-expect-error — nothing records this step.
+    const hashBlockReversed: AuditEventType = 'ncii.hashBlockReversed';
+    // @ts-expect-error — nothing records this step.
+    const policyConfigUpdated: AuditEventType = 'ncii.policyConfigUpdated';
+    expect([received, scanMatch, completeness, supplemented, hashBlockReversed, policyConfigUpdated]).toHaveLength(6);
+  });
+
+  it('has no reviewer-capability grant or revocation events — nothing records either', () => {
+    // @ts-expect-error — nothing records a reviewer-capability grant.
+    const granted: AuditEventType = 'safety.reviewerCapabilityGranted';
+    // @ts-expect-error — nothing records a reviewer-capability revocation.
+    const revoked: AuditEventType = 'safety.reviewerCapabilityRevoked';
+    expect([granted, revoked]).toHaveLength(2);
   });
 });
 

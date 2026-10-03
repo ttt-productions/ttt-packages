@@ -19,6 +19,9 @@ export {
   createTelemetryScrubber,
 } from "./scrubber.js";
 
+export type { TelemetryContentPolicyOptions, TelemetryContentPolicy } from "./telemetry-content-policy.js";
+export { DEFAULT_SDK_CONTEXTS, createTelemetryContentPolicy } from "./telemetry-content-policy.js";
+
 export type {
   DefaultSafeEventKey,
   SafeEvent,

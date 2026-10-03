@@ -67,15 +67,17 @@ publish/install handoff → STOP for DJ's continue → app work → the Normal T
   see Release gate above) plus the install commands as ONE fenced `bash` block he copy-pastes once
   from the `ttt-master-app` root: install at the root, then `cd` into each other consuming folder
   (`functions`, `media-worker`, …) and install there, ending with `cd ..` back at the root. Never
-  separate per-folder blocks. Installs use `@latest`, never a pinned version. Example:
+  separate per-folder blocks. Installs use `@latest`, never a pinned version, and every install line
+  ends with `--prefer-online` so npm re-checks the registry instead of answering `@latest` from its
+  cached metadata right after a publish. Example:
 
   ```bash
-  npm install @ttt-productions/ttt-core@latest
+  npm install @ttt-productions/ttt-core@latest --prefer-online
   cd functions
-  npm install @ttt-productions/ttt-core@latest
+  npm install @ttt-productions/ttt-core@latest --prefer-online
   cd ..
   cd media-worker
-  npm install @ttt-productions/ttt-core@latest
+  npm install @ttt-productions/ttt-core@latest --prefer-online
   cd ..
   ```
 

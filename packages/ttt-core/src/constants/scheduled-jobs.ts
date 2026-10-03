@@ -84,5 +84,8 @@ export const SWEEP_STATE_NAMES = [
   'mediaReconcileUnreferencedBroadAssets',
   'nciiEvidenceOrphanSweeper',
   'nciiRetentionClosedRequests',
+  'reconcilePledgeRefundApprovals',
+  'crossoverServingDenyReconcile',
+  'crossoverPhotoDnaReconcile',
 ] as const;
 export type SweepStateName = (typeof SWEEP_STATE_NAMES)[number];

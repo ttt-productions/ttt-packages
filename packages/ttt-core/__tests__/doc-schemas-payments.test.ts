@@ -6,6 +6,8 @@ import {
   PledgePaymentLedgerEventSchema,
   PaymentWebhookQuarantineSchema,
   PledgeRefundRequestSchema,
+  pledgeDisputeNumberForEvent,
+  isPledgeDisputeTransitionLegal,
 } from '../src/doc-schemas/payments';
 
 const validPledgePayment = {
@@ -20,6 +22,7 @@ const validPledgePayment = {
   status: 'completed',
   refundState: 'none',
   disputeState: 'none',
+  disputeNumber: 0,
   createdAt: 1,
   updatedAt: 1,
 };
@@ -273,5 +276,66 @@ describe('PledgeRefundRequestSchema (user-initiated refund request)', () => {
     expect(parsed).not.toHaveProperty('refundId');
     expect(parsed).not.toHaveProperty('paymentIntentId');
     expect(parsed).not.toHaveProperty('stripeSessionId');
+  });
+});
+
+describe('the dispute number on the member-readable pledge', () => {
+  it('is required: 0 until the first dispute, then the count of disputes the pledge has had', () => {
+    const { disputeNumber: _number, ...withoutNumber } = validPledgePayment;
+    expect(PledgePaymentSchema.safeParse(withoutNumber).success).toBe(false);
+    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 0 }).success).toBe(true);
+    expect(
+      PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 1, disputeState: 'underReview' }).success,
+    ).toBe(true);
+    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 2, disputeState: 'won' }).success).toBe(true);
+  });
+
+  it('is a whole count, never a Stripe dispute id', () => {
+    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 'dp_123' }).success).toBe(false);
+    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: -1 }).success).toBe(false);
+    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 1.5, disputeState: 'won' }).success).toBe(false);
+  });
+
+  it('agrees with the dispute state: no dispute is number 0, and a dispute is number 1 or more', () => {
+    expect(
+      PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 0, disputeState: 'underReview' }).success,
+    ).toBe(false);
+    expect(PledgePaymentSchema.safeParse({ ...validPledgePayment, disputeNumber: 1, disputeState: 'none' }).success).toBe(false);
+  });
+
+  it('numbers the first dispute 1, keeps the number for a later event of the same dispute, and adds one for a new dispute', () => {
+    expect(pledgeDisputeNumberForEvent({ disputeId: null, disputeNumber: 0 }, 'dp_1')).toBe(1);
+    expect(pledgeDisputeNumberForEvent({ disputeId: 'dp_1', disputeNumber: 1 }, 'dp_1')).toBe(1);
+    expect(pledgeDisputeNumberForEvent({ disputeId: 'dp_1', disputeNumber: 1 }, 'dp_2')).toBe(2);
+    expect(pledgeDisputeNumberForEvent({ disputeId: 'dp_2', disputeNumber: 2 }, 'dp_3')).toBe(3);
+  });
+
+  describe('which dispute transitions a pledge may make', () => {
+    const at = (disputeNumber: number, disputeState: 'none' | 'underReview' | 'won' | 'lost') => ({ disputeNumber, disputeState });
+
+    it('within one dispute, only up the ladder (or unchanged, as a redelivery or a refund leaves it)', () => {
+      expect(isPledgeDisputeTransitionLegal(at(0, 'none'), at(0, 'none'))).toBe(true);
+      expect(isPledgeDisputeTransitionLegal(at(1, 'underReview'), at(1, 'won'))).toBe(true);
+      expect(isPledgeDisputeTransitionLegal(at(1, 'underReview'), at(1, 'lost'))).toBe(true);
+      expect(isPledgeDisputeTransitionLegal(at(1, 'lost'), at(1, 'lost'))).toBe(true);
+      expect(isPledgeDisputeTransitionLegal(at(1, 'won'), at(1, 'underReview'))).toBe(false);
+      expect(isPledgeDisputeTransitionLegal(at(1, 'won'), at(1, 'lost'))).toBe(false);
+      expect(isPledgeDisputeTransitionLegal(at(1, 'lost'), at(1, 'won'))).toBe(false);
+    });
+
+    it('a new dispute (number up by one) starts its own ladder at any state but none', () => {
+      expect(isPledgeDisputeTransitionLegal(at(0, 'none'), at(1, 'underReview'))).toBe(true);
+      expect(isPledgeDisputeTransitionLegal(at(1, 'won'), at(2, 'underReview'))).toBe(true);
+      // A close delivered before its opening.
+      expect(isPledgeDisputeTransitionLegal(at(0, 'none'), at(1, 'won'))).toBe(true);
+      expect(isPledgeDisputeTransitionLegal(at(1, 'lost'), at(2, 'lost'))).toBe(true);
+      expect(isPledgeDisputeTransitionLegal(at(1, 'won'), at(2, 'none'))).toBe(false);
+    });
+
+    it('never skips a number or goes back', () => {
+      expect(isPledgeDisputeTransitionLegal(at(0, 'none'), at(2, 'underReview'))).toBe(false);
+      expect(isPledgeDisputeTransitionLegal(at(2, 'won'), at(1, 'won'))).toBe(false);
+      expect(isPledgeDisputeTransitionLegal(at(1, 'underReview'), at(0, 'none'))).toBe(false);
+    });
   });
 });

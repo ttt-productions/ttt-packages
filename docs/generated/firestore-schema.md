@@ -1881,6 +1881,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `status` | `"completed"` |  |
 | `refundState` | `'none' \| 'partial' \| 'full'` |  |
 | `disputeState` | `'none' \| 'underReview' \| 'won' \| 'lost'` |  |
+| `disputeNumber` | `number` |  |
 | `createdAt` | `number` |  |
 | `updatedAt` | `number` |  |
 

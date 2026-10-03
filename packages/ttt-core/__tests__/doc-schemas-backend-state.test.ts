@@ -226,6 +226,23 @@ describe('SweepStateSchema', () => {
     }
   });
 
+  it('gives the refund-approval reconciler its own position, so a row that keeps failing can leave its window', () => {
+    expect(SweepStateNameSchema.safeParse('reconcilePledgeRefundApprovals').success).toBe(true);
+    expect(PATH_BUILDERS.sweepState('reconcilePledgeRefundApprovals')).toEqual([
+      COLLECTIONS.SWEEP_STATE,
+      'reconcilePledgeRefundApprovals',
+    ]);
+  });
+
+  it('gives each crossover leg reconcile query its own position, so the two legs never share a cursor', () => {
+    const legPasses = ['crossoverServingDenyReconcile', 'crossoverPhotoDnaReconcile'] as const;
+    for (const name of legPasses) {
+      expect(SweepStateNameSchema.safeParse(name).success, name).toBe(true);
+      expect(PATH_BUILDERS.sweepState(name)).toEqual([COLLECTIONS.SWEEP_STATE, name]);
+    }
+    expect(new Set(legPasses).size).toBe(legPasses.length);
+  });
+
   it('binds the registry path and the path builder to the same location', () => {
     expect(COLLECTION_SCHEMAS['sweepState/{sweepName}']).toBe(SweepStateSchema);
     expect(PATH_BUILDERS.sweepState('orphanRegistrationCleanup')).toEqual([

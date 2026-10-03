@@ -21,13 +21,10 @@ export type AuditEventType =
   | 'user.displayNameResetForced'
   | 'user.displayNameChanged'
   | 'user.nonUsArtisanInterestRecorded'
-  // Credential and session records: the sign-in the Identity Platform hook records (with the real
-  // request origin), and the server step that follows each credential action once it succeeds.
+  // Credential and session records, each with the request origin: the sign-in the Identity Platform
+  // hook records, and a completed password reset, recorded from Identity Platform's own request log.
   | 'user.signedIn'
-  | 'user.passwordChanged'
   | 'user.passwordResetCompleted'
-  | 'user.emailChanged'
-  | 'user.emailRecovered'
   // account deletion / GDPR erasure (N3)
   | 'account.deletionRequested'
   | 'account.deletionCancelled'
@@ -40,25 +37,14 @@ export type AuditEventType =
   | 'admin.systemRoleSyncedFromDirectEdit'
   | 'admin.contentAppealReviewed'
   | 'admin.thresholdItemReviewed'
-  | 'admin.futurePlansUpdated'
-  | 'admin.rulesAndAgreementsUpdated'
   // versioned public documents. Payload shapes: PublicDocumentsReleasedAuditPayload /
   // PublicDocumentsAcceptedAuditPayload in ../schemas/public-documents.ts. `accepted` is the
   // ONLY acceptance history (registration and the re-acceptance prompt both write it).
   | 'publicDocuments.released'
   | 'publicDocuments.accepted'
-  // content-pages migration (DJ ruling 2026-07-06): per-page admin editors
-  | 'admin.termsPageUpdated'
-  | 'admin.privacyPageUpdated'
-  | 'admin.takeItDownPageCopyUpdated'
   // admin launch-seed actions (Ready for Launch tab)
   | 'admin.reservedUsernamesSeeded'
   | 'admin.blockedFranchiseNamesSeeded'
-  | 'admin.rulesAndAgreementsSeeded'
-  | 'admin.futurePlansSeeded'
-  | 'admin.termsPageSeeded'
-  | 'admin.privacyPageSeeded'
-  | 'admin.takeItDownPageCopySeeded'
   // trademark-assist (advisory check at approval) + parody/real-people disclaimer baked at approval
   | 'admin.trademarkChecked'
   | 'content.parodyDisclaimerApplied'
@@ -104,13 +90,6 @@ export type AuditEventType =
   // members once approved; the only way out is an admin acting on a support thread).
   | 'workFile.realmCanonChanged'
   | 'workFile.unsharedFromRealm'
-  // RETIRED-ON-ADOPTION: the pre-approval-gate instant-share event. Its one emitter
-  // (runUpdateWorkFileRealmShare) becomes a REQUEST and emits
-  // `workFile.realmShareRequested`; the moment a file actually enters the pool is
-  // `workFile.realmSharePromotionApproved`. Kept in the union only so the approval-gate
-  // package release stays additive (a removal is a breaking contract change); delete it in
-  // the follow-up release once no emitter remains.
-  | 'workFile.sharedToRealm'
   // craft-skills
   | 'craftSkill.userCraftSkillDeleted'
   | 'craftSkill.hidden'
@@ -224,7 +203,6 @@ export type AuditEventType =
   | 'workProject.restored'
   | 'workProject.moderationPlaceholderApplied'
   | 'workProject.moderationRetitleCleared'
-  | 'workRealm.created'
   | 'workRealm.released'
   | 'workRealm.detailsUpdated'
   | 'workRealm.hidden'
@@ -245,11 +223,8 @@ export type AuditEventType =
   | 'report.childSafetyCaseOpened'
   | 'report.nciiCaseOpened'
   | 'childSafety.reportDispositionSet'
-  | 'childSafety.holdPlaced'
   | 'childSafety.holdReleased'
   | 'childSafety.accountActionApplied'
-  | 'childSafety.accountActionReverted'
-  | 'childSafety.evidenceManifestCreated'
   | 'childSafety.evidenceDisposed'
   | 'childSafety.quarantineCompleted'
   | 'childSafety.ncmecSubmissionCompleted'
@@ -263,8 +238,6 @@ export type AuditEventType =
   | 'user.safetyLocked'
   // trust & safety — NCII / TAKE IT DOWN
   | 'ncii.requestReceived'
-  | 'ncii.requestSupplemented'
-  | 'ncii.completenessDetermined'
   | 'ncii.validityDecided'
   | 'ncii.tempHoldPlaced'
   | 'ncii.tempHoldReleased'
@@ -273,10 +246,7 @@ export type AuditEventType =
   // operator marks NCII evidence (e.g. flags/annotates an evidence item on the case) — a reviewed
   // evidence-handling action, audited like the other ncii evidence events.
   | 'ncii.evidenceMarked'
-  | 'ncii.evidenceScanValidatedMatch'
-  | 'ncii.hashBlockReversed'
   | 'ncii.requesterPiiScrubbed'
-  | 'ncii.policyConfigUpdated'
   // operator sets the child-safety crossover minorAssessment on an NCII case (e.g. → possibleMinor):
   // routing action that opens/links a PARALLEL child-safety review + deny-serving + PhotoDNA, WITHOUT
   // touching the NCII removal clock and WITHOUT auto-NCMEC. Payload records from→to assessment.
@@ -293,11 +263,7 @@ export type AuditEventType =
   // reveal reauth above, which is the step-up). One event per read. Mirrors the
   // chat.moderationContextRead privileged-read convention.
   | 'safety.privilegedRawLocatorRead'
-  | 'safety.deadlineBreachRecorded'
-  // [M-6] per-operator reviewer-capability grant lifecycle. Granting/revoking a
-  // SafetyReviewerCapability is an authorization change — always audited.
-  | 'safety.reviewerCapabilityGranted'
-  | 'safety.reviewerCapabilityRevoked';
+  | 'safety.deadlineBreachRecorded';
 
 /**
  * How the actor was acting when the audited action was performed. This is

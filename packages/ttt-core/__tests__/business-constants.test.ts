@@ -148,3 +148,16 @@ describe('MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH', () => {
   });
 });
 
+
+describe('admin Dispatches browse page size', () => {
+  it("is 12 threads a page — the admin browse list's own size, apart from a member's own thread list", async () => {
+    const pagination = await import('../src/constants/pagination');
+    expect(pagination.ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE).toBe(12);
+    expect(pagination.ITEMS_PER_PAGE_ADMIN_DISPATCH_THREADS).toBe(10);
+  });
+
+  it('is importable from the server-safe root, where the browse list reads it', async () => {
+    const root = await import('../src/index');
+    expect(root.ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE).toBe(12);
+  });
+});

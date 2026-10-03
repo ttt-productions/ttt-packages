@@ -35,10 +35,22 @@ function sameOptionValue(a: unknown, b: unknown, seen: WeakSet<object>): boolean
   return keys.every((key) => Object.prototype.hasOwnProperty.call(bRecord, key) && sameOptionValue(aRecord[key], bRecord[key], seen));
 }
 
+/** Option pairs no provider can honour. Checked before any provider choice, so an emulator or
+ *  Noop run refuses the same configuration a deployed one would. */
+function assertCombinableOptions(options: MonitoringInitOptions): void {
+  if (options.keepDefaultIntegrations !== undefined && options.defaultIntegrations !== undefined) {
+    throw new Error(
+      "[monitoring-core] keepDefaultIntegrations cannot be combined with defaultIntegrations: keepDefaultIntegrations already chooses which defaults run."
+    );
+  }
+}
+
 export async function initMonitoring(
   options: MonitoringInitOptions,
   force = false
 ): Promise<void> {
+  assertCombinableOptions(options);
+
   // Prevent unnecessary re-init
   if (initialized && !force && sameOptionValue(currentOptions, options, new WeakSet())) {
     return;
