@@ -4,6 +4,7 @@ import * as React from "react";
 import { Button, Textarea } from "@ttt-productions/ui-core/react";
 import { cn } from "@ttt-productions/ui-core";
 import { useOptionalLocalUploadGuard } from "@ttt-productions/upload-ui/react/guard";
+import { CHAT_MESSAGE_TEXT_MAX_LENGTH } from "@ttt-productions/chat-schemas";
 
 function genId(): string {
   return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -52,6 +53,7 @@ export function Composer(props: ComposerProps) {
   // fire on hard navs and lets GuardedLink-style navigation confirm first.
   // Optional accessor — consumers without the provider degrade to old behavior.
   const navigationGuard = useOptionalLocalUploadGuard();
+  const counterId = React.useId();
 
   // focus stability: never steal focus unless explicitly enabled
   React.useEffect(() => {
@@ -98,6 +100,8 @@ export function Composer(props: ComposerProps) {
         <Textarea
           ref={ref}
           value={text}
+          maxLength={CHAT_MESSAGE_TEXT_MAX_LENGTH}
+          aria-describedby={text.length > 0 ? counterId : undefined}
           onChange={(e) => {
             setText(e.target.value);
             if (sendError) setSendError(null);
@@ -125,6 +129,11 @@ export function Composer(props: ComposerProps) {
           Send
         </Button>
       </div>
+      {text.length > 0 && (
+        <div id={counterId} className="px-1 pt-1 text-xs text-right text-muted-foreground">
+          {text.length}/{CHAT_MESSAGE_TEXT_MAX_LENGTH}
+        </div>
+      )}
     </div>
   );
 }

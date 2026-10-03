@@ -19,8 +19,9 @@ import {
   moderationAppliedAuditId,
   moderationFailedAuditId,
   chatAnonymizeJobId,
-  type ChannelRef,
+  chatParkedDeliveryId,
 } from '../src/ids/chat-ids';
+import { toChatConversationRef } from '../src/ids/guild-chat-conversation';
 
 const HEX64 = /^[0-9a-f]{64}$/;
 
@@ -49,21 +50,32 @@ describe('hash (canonical, frozen)', () => {
   });
 });
 
-describe('channel identity', () => {
-  const guild: ChannelRef = { scope: 'channel', workProjectId: 'wp1', guildChatChannelId: 'ch1' };
-  const invite: ChannelRef = { scope: 'invite', guildInviteId: 'gi1' };
+describe('conversation identity', () => {
+  const guild = toChatConversationRef({ kind: 'channel', workProjectId: 'wp1', guildChatChannelId: 'ch1' });
+  const invite = toChatConversationRef({ kind: 'invite', guildInviteId: 'gi1' });
 
-  it('channelKey is per-scope and matches the frozen formula', async () => {
-    expect(await channelKey(guild)).toBe(await hash('chat-channel', 'wp1', 'ch1'));
-    expect(await channelKey(invite)).toBe(await hash('chat-invite', 'gi1'));
+  it('channelKey hashes the neutral reference — its kind and its id as separate parts', async () => {
+    expect(await channelKey(guild)).toBe(await hash('chat-conversation', guild.kind, guild.id));
+    expect(await channelKey({ kind: 'room', id: 'r1' })).toBe(await hash('chat-conversation', 'room', 'r1'));
   });
 
-  it('guild and invite channel keys never collide', async () => {
+  it('two kinds never share a key, even with the same id', async () => {
+    expect(await channelKey({ kind: 'a', id: 'x' })).not.toBe(await channelKey({ kind: 'b', id: 'x' }));
     expect(await channelKey(guild)).not.toBe(await channelKey(invite));
   });
 
   it('authPairKey = hash(chat-channel-auth, channelKey, uid)', async () => {
     expect(await authPairKey(guild, 'u1')).toBe(await hash('chat-channel-auth', await channelKey(guild), 'u1'));
+  });
+});
+
+describe('chatParkedDeliveryId', () => {
+  it('names one parking of one room row — a later parking of the same row is a new occurrence', async () => {
+    const first = await chatParkedDeliveryId('room-a', 'evt-1', 1000);
+    expect(first).toBe(await hash('chat-parked-delivery', 'room-a', 'evt-1', 1000));
+    expect(await chatParkedDeliveryId('room-a', 'evt-1', 1000)).toBe(first);
+    expect(await chatParkedDeliveryId('room-a', 'evt-1', 2000)).not.toBe(first);
+    expect(await chatParkedDeliveryId('room-b', 'evt-1', 1000)).not.toBe(first);
   });
 });
 

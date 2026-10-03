@@ -233,6 +233,9 @@ export const PATH_BUILDERS = {
   adminDispatchConversationFile: (adminDispatchId: string, conversationFileId: string): [string, string, string, string] =>
     [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_FILES, conversationFileId],
 
+  adminDispatchReadMarker: (adminDispatchId: string, uid: string): [string, string, string, string] =>
+    [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.DISPATCH_READ_MARKERS, uid],
+
   contentReport: (reportId: string): [string, string] =>
     [COLLECTIONS.CONTENT_REPORTS, reportId],
 
@@ -338,6 +341,9 @@ export const PATH_BUILDERS = {
 
   chatHistoryAnonymizationJob: (jobId: string): [string, string] =>
     [COLLECTIONS.CHAT_HISTORY_ANONYMIZATION_JOBS, jobId],
+
+  chatParkedDelivery: (deliveryId: string): [string, string] =>
+    [COLLECTIONS.CHAT_PARKED_DELIVERIES, deliveryId],
 
   chatHistoryAnonymizationAffectedChunk: (jobId: string, chunkOrdinal: string): [string, string, string, string] =>
     [COLLECTIONS.CHAT_HISTORY_ANONYMIZATION_JOBS, jobId, NESTED_SUBCOLLECTIONS.CHAT_ANONYMIZATION_AFFECTED_CHUNKS, chunkOrdinal],

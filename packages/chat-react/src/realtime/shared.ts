@@ -94,6 +94,15 @@ export function isTerminalErrorCode(code: string | null | undefined): code is Te
   return code === TERMINAL_ERROR_CODE.REVOKED || code === TERMINAL_ERROR_CODE.ACCESS_DENIED;
 }
 
+/**
+ * How long a client keeps failing to open for the first time before it reports the
+ * first open as failed (`initialLoadFailed`) — so a chat or inbox that cannot connect
+ * shows a failure the user can retry instead of an opening state that never ends. The
+ * client keeps retrying in the background after it reports. Client policy, not a wire
+ * constant.
+ */
+export const CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS = 15_000;
+
 // The client-agreed limits live in the wire contract; re-export to keep this
 // module's public surface stable.
 export { HEARTBEAT_MS, TYPING_COALESCE_MS, HISTORY_PAGE_MAX } from '@ttt-productions/chat-schemas';
@@ -130,3 +139,13 @@ export const SERVER_RETRYABLE_MAX_AGE_MS = 90_000;
  */
 export const SEND_RETRY_MIN_DELAY_MS = 250;
 export const SEND_RETRY_MAX_DELAY_MS = 30_000;
+
+/**
+ * A fresh client-minted id for a command the client correlates with its answer (a send's
+ * `clientMessageId`, a mark-read's `requestId`). Random, so two tabs never collide.
+ */
+export function newCorrelationId(): string {
+  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  return `cid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}

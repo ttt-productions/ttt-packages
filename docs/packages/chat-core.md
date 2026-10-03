@@ -5,13 +5,22 @@ Pure chat contracts and logic package. **No React, no Firebase.**
 ## Owns
 
 - Message/thread contract types that are not React-shaped (`ChatMessageV1`,
-  `ChatThreadV1`, `ChatId`, `ChatAccessMode`, `ModerationHandlers`,
-  `ChatNameResolver`, …). `ChatMessageV1` is TEXT-only — there is no attachment
-  field or attachment-send contract; a conversation's files are owned by the
-  consuming app's Conversation Files surface. It carries no `replyTo` field
-  either (see "Not owned" below).
-- Message grouping helper (`isContinuation`) and package constants
-  (`MAX_CHAT_MESSAGE_LENGTH`, `GROUP_GAP_SEC`)
+  `ChatThreadV1`, `ChatId`, `ModerationHandlers`, `ChatPrewarmSenders`).
+  `ChatMessageV1` is TEXT-only — there is no attachment field or attachment-send
+  contract; a conversation's files are owned by the consuming app's Conversation
+  Files surface. It carries no `replyTo` field either (see "Not owned" below).
+  `ChatThreadV1` carries no access list: who may read or write a conversation is
+  the consuming app's decision, handed to the UI as one `allowed` fact
+  (`chat-react`'s `ChatCoreConfig.allowed`).
+- **Sender-name resolution.** `ChatNameResolver = (senderId) => ChatNameResolution`,
+  where `ChatNameResolution` is `{ status: 'resolved'; name }`,
+  `{ status: 'pending' }`, `{ status: 'unavailable' }`, or
+  `{ status: 'failed'; retry }`. The resolver reads the app's own cache during
+  render; only `resolved` carries a name, and the UI renders the other three
+  through the app's slot rather than inventing a name.
+- Message grouping helper (`isContinuation`) and `GROUP_GAP_SEC`. There is no
+  message-length constant here: the one send-text bound is
+  `CHAT_MESSAGE_TEXT_MAX_LENGTH` in `chat-schemas`.
 
 ## Boundary
 

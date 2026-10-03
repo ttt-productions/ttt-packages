@@ -40,7 +40,7 @@ package may consume it.
   in-flight-send navigation guard only — chat is text-only and runs no upload
   path, which is why it has no `file-input` / `media-viewer` / `media-schemas`
   edge.
-- **Application data:** `ttt-core` (→ `audit-core`,
+- **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
   `edge-protocol-core`, `media-schemas`, `notification-core`, `report-core`).
 
 The internal runtime-dependency edges (peer and dev edges are left out here; the
@@ -52,7 +52,7 @@ build and release order still honors them):
     media-processing-core  -> media-schemas
     upload-core            -> firebase-helpers, media-schemas
     upload-ui              -> file-input, media-schemas, ui-core, upload-core
-    ttt-core               -> audit-core, edge-protocol-core,
+    ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
                               media-schemas, notification-core, report-core
     chat-react             -> chat-core, chat-schemas, realtime-core,
                               ui-core, upload-ui, mobile-core, firebase-helpers

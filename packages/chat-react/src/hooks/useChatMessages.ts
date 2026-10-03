@@ -4,9 +4,9 @@ import * as React from "react";
 import type { DocumentData } from "firebase/firestore";
 import { toMillis } from "@ttt-productions/firebase-helpers";
 import { useFirestoreLiveInfinite } from "@ttt-productions/query-core/react";
+import type { FirestoreSourceState } from "@ttt-productions/query-core";
 import type { ChatMessageV1 } from "@ttt-productions/chat-core";
 import type { ChatCoreConfig } from "../types.js";
-import { canAccessThread } from "./useChatThreadAccess.js";
 import { messagesColPath } from "../firestore/queries.js";
 import { useOptionalChatNameResolver } from "../context/ChatNameResolverContext.js";
 
@@ -20,6 +20,14 @@ export type UseChatMessagesResult = {
   fetchOlder: () => Promise<void>;
   hasOlder: boolean;
   isFetchingOlder: boolean;
+  /** The live listener's state: `connecting` while it (re)subscribes, `error` once it failed. */
+  sourceState: FirestoreSourceState;
+  /** The live listener's failure; the messages already shown stay in `messages`. */
+  error: Error | null;
+  /** The last older-page read failed; the list stops asking for older pages until `retry`. */
+  olderError: Error | null;
+  /** Re-run what failed: resubscribe a failed listener, re-read a failed older page. */
+  retry: () => void;
 };
 
 function mapMsg(
@@ -45,6 +53,7 @@ function mapMsg(
     text: d.text ?? "",
     type: d.type,
     isSystemMessage: d.isSystemMessage ?? undefined,
+    referencedUids: Array.isArray(d.referencedUids) ? d.referencedUids : undefined,
     // Moderation tombstone flag (backend-written) — carried through so renderers
     // can tombstone the content.
     hidden: d.hidden ?? undefined,
@@ -59,9 +68,7 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     threadId,
     pageSize: requestedPageSize = 20,
     currentUserId,
-    isAdmin,
-    accessMode,
-    threadAllowedUserIds,
+    allowed,
     createdAtField = "createdAt",
   } = config;
 
@@ -72,17 +79,6 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
       `[useChatMessages] Requested pageSize ${requestedPageSize} exceeds maximum ${MAX_PAGE_SIZE}. Using ${MAX_PAGE_SIZE}.`
     );
   }
-
-  const allowed = React.useMemo(
-    () =>
-      canAccessThread({
-        accessMode,
-        isAdmin,
-        currentUserId,
-        allowedUserIds: threadAllowedUserIds,
-      }),
-    [accessMode, isAdmin, currentUserId, threadAllowedUserIds]
-  );
 
   // Stable key segment for the message collection path (string | string[]).
   const pathKey = React.useMemo(
@@ -99,10 +95,10 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     [chatCollectionPath, threadId, messagesSubcollection]
   );
 
-  const { items, isInitialLoading, fetchOlder, hasOlder, isFetchingOlder } =
+  const { items, isInitialLoading, fetchOlder, hasOlder, isFetchingOlder, sourceState, error, olderError, retry } =
     useFirestoreLiveInfinite<ChatMessageV1>({
       collectionPath,
-      queryKey: ["chat-core", "messages", pathKey, threadId, messagesSubcollection, pageSize],
+      queryKey: ["chat-core", "messages", pathKey, threadId, messagesSubcollection, pageSize, currentUserId],
       orderByField: createdAtField,
       pageSize,
       enabled: allowed,
@@ -120,6 +116,7 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     const set = new Set<string>();
     for (const m of messages) {
       set.add(m.senderId);
+      for (const uid of m.referencedUids ?? []) set.add(uid);
     }
     return Array.from(set);
   }, [messages]);
@@ -137,5 +134,9 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     fetchOlder,
     hasOlder,
     isFetchingOlder,
+    sourceState,
+    error: allowed ? error : null,
+    olderError: allowed ? olderError : null,
+    retry,
   };
 }

@@ -103,7 +103,7 @@ describe('useFirestoreCollection — sourceState (metadata-derived)', () => {
     expect(result.current.sourceState).toBe('error');
   });
 
-  it('resets to connecting when the subscription identity changes (uid / admin-claim change)', () => {
+  it('reads connecting for a new subscription identity (uid / admin-claim change)', () => {
     const { Wrapper } = makeWrapper();
     const { result, rerender } = renderHook(
       ({ key }: { key: string }) =>
@@ -145,5 +145,59 @@ describe('useFirestoreDoc — sourceState (metadata-derived)', () => {
     );
     act(() => docCaps[0].error(new Error('permission-denied')));
     expect(result.current.sourceState).toBe('error');
+  });
+});
+
+describe('source state and error belong to the subscription identity that produced them', () => {
+  it('a collection never renders the previous identity as live, not even for one render', () => {
+    const { Wrapper } = makeWrapper();
+    const seen: Array<{ key: string; state: string }> = [];
+    const { rerender } = renderHook(
+      ({ key }: { key: string }) => {
+        const r = useFirestoreCollection({ collectionPath: 'items', queryKey: ['items', key], subscribe: true });
+        seen.push({ key, state: r.sourceState });
+        return r;
+      },
+      { wrapper: Wrapper, initialProps: { key: 'u1' } },
+    );
+    act(() => colCaps[0].next(colSnap(false)));
+
+    rerender({ key: 'u2' });
+    const u2States = seen.filter((s) => s.key === 'u2').map((s) => s.state);
+    expect(u2States.length).toBeGreaterThan(0);
+    expect(u2States.every((s) => s === 'connecting')).toBe(true);
+  });
+
+  it('a doc never renders the previous identity’s error under the new path', () => {
+    const { Wrapper } = makeWrapper();
+    const seen: Array<{ path: string; error: unknown; state: string }> = [];
+    const { rerender } = renderHook(
+      ({ path }: { path: string }) => {
+        const r = useFirestoreDoc({ docPath: path, queryKey: ['doc', path], subscribe: true });
+        seen.push({ path, error: r.error, state: r.sourceState });
+        return r;
+      },
+      { wrapper: Wrapper, initialProps: { path: 'users/u1' } },
+    );
+    act(() => docCaps[0].error(new Error('boom')));
+
+    rerender({ path: 'users/u2' });
+    const u2 = seen.filter((s) => s.path === 'users/u2');
+    expect(u2.length).toBeGreaterThan(0);
+    expect(u2.every((s) => s.error === null && s.state === 'connecting')).toBe(true);
+  });
+
+  it('a late callback from the retired listener does not touch the new identity', () => {
+    const { Wrapper } = makeWrapper();
+    const { result, rerender } = renderHook(
+      ({ key }: { key: string }) =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items', key], subscribe: true }),
+      { wrapper: Wrapper, initialProps: { key: 'u1' } },
+    );
+    const retired = colCaps[0];
+    rerender({ key: 'u2' });
+    act(() => retired.error(new Error('late')));
+    expect(result.current.sourceState).toBe('connecting');
+    expect(result.current.error).toBeNull();
   });
 });

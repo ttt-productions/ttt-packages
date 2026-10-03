@@ -15,6 +15,7 @@ import type { ChatMessageV1 } from "@ttt-productions/chat-core";
 import type { RealtimeChatClient } from "./transport.js";
 import type { ChannelClientState } from "./channel-client.js";
 import { useOptionalChatNameResolver } from "../context/ChatNameResolverContext.js";
+import { newCorrelationId } from "./shared.js";
 
 export type UseRealtimeChatMessagesResult = {
   allowed: boolean;
@@ -23,6 +24,10 @@ export type UseRealtimeChatMessagesResult = {
   fetchOlder: () => Promise<void>;
   hasOlder: boolean;
   isFetchingOlder: boolean;
+  /** True once the first open has failed (see `ChannelClientState.initialLoadFailed`). */
+  initialLoadFailed: boolean;
+  /** Retry the connection now — the first-open failure's Retry. */
+  retry: () => void;
   /** Realtime extras (not present on the firestore result) — optional for the UI. */
   status: ChannelClientState["status"];
   /** The last structured error code the DO sent (e.g. a close reason). Drives the
@@ -66,6 +71,7 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
     const set = new Set<string>();
     for (const m of state.messages) {
       set.add(m.senderId);
+      for (const uid of m.referencedUids ?? []) set.add(uid);
     }
     return Array.from(set);
   }, [state.messages]);
@@ -80,7 +86,7 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
 
   const send = React.useCallback(
     (text: string): boolean =>
-      client.channel.send({ clientMessageId: makeClientMessageId(), text }),
+      client.channel.send({ clientMessageId: newCorrelationId(), text }),
     [client],
   );
 
@@ -95,6 +101,7 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
   );
 
   const signalTyping = React.useCallback(() => client.channel.typing(), [client]);
+  const retry = React.useCallback(() => client.retry(), [client]);
   const presenceSubscribe = React.useCallback(() => client.channel.presenceSubscribe(), [client]);
   const presenceUnsubscribe = React.useCallback(() => client.channel.presenceUnsubscribe(), [client]);
 
@@ -110,6 +117,8 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
     // a socket can be 'open' with no snapshot yet, and a post-load reconnect must not
     // fall back into the opening state. `hasLoadedInitialData` encodes the full table.
     isInitialLoading: !state.hasLoadedInitialData,
+    initialLoadFailed: state.initialLoadFailed,
+    retry,
     messages: state.messages,
     fetchOlder,
     hasOlder: state.hasOlder,
@@ -127,9 +136,3 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
   };
 }
 
-/** A client message id for optimistic-send idempotency (SQLite unique (senderUid, clientMessageId)). */
-function makeClientMessageId(): string {
-  const c = (globalThis as { crypto?: { randomUUID?: () => string } }).crypto;
-  if (c?.randomUUID) return c.randomUUID();
-  return `cmid-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}

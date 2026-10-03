@@ -65,6 +65,7 @@ describe('NotificationHistoryList — renderRowAction (inert, read-only rows)', 
     config: makeConfig(),
     userId: 'u1',
     category: 'user',
+    renderError: () => <div role="alert">read failed</div>,
   };
 
   it('renders a plain row with no action slot when renderRowAction is absent', () => {
@@ -109,5 +110,44 @@ describe('NotificationHistoryList — renderRowAction (inert, read-only rows)', 
     expect(row).not.toHaveAttribute('role', 'button');
     // Clicking the row is a no-op (nothing throws, no handler).
     fireEvent.click(row);
+  });
+});
+
+describe('NotificationHistoryList — failed and empty pages', () => {
+  const props = {
+    config: makeConfig(),
+    userId: 'u1',
+    category: 'user',
+    emptyText: 'No archived notifications',
+    renderError: () => <div role="alert">read failed</div>,
+  };
+
+  it('renders the error slot, never the empty state, when the first read fails', () => {
+    mocks.useNotificationHistory.mockReturnValue({
+      data: undefined, isLoading: false, isError: true, error: new Error('denied'),
+      page: 1, hasNextPage: false, hasPrevPage: false, nextPage: vi.fn(), prevPage: vi.fn(),
+    });
+    render(<NotificationHistoryList {...props} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('read failed');
+    expect(screen.queryByText('No archived notifications')).toBeNull();
+  });
+
+  it('keeps Previous on an empty later page and shows no empty state there', () => {
+    mocks.useNotificationHistory.mockReturnValue({
+      data: [], isLoading: false, isError: false, page: 2,
+      hasNextPage: false, hasPrevPage: true, nextPage: vi.fn(), prevPage: vi.fn(),
+    });
+    render(<NotificationHistoryList {...props} />);
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeEnabled();
+    expect(screen.queryByText('No archived notifications')).toBeNull();
+  });
+
+  it('shows the empty state for an answered, empty first page', () => {
+    mocks.useNotificationHistory.mockReturnValue({
+      data: [], isLoading: false, isError: false, page: 1,
+      hasNextPage: false, hasPrevPage: false, nextPage: vi.fn(), prevPage: vi.fn(),
+    });
+    render(<NotificationHistoryList {...props} />);
+    expect(screen.getByText('No archived notifications')).toBeInTheDocument();
   });
 });

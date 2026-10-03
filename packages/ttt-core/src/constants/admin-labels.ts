@@ -125,6 +125,9 @@ export function clearableTextFieldLabel(field: string, surface?: string): string
   );
 }
 
+/** What the admin screens show for a thread whose `awaitingAdminReply` is set. */
+export const ADMIN_DISPATCH_AWAITING_REPLY_LABEL = 'Awaiting reply';
+
 /** Human labels for the dead-letter replay ledgers (Ops Repairs dead-letter table). */
 export const DEAD_LETTER_COLLECTION_LABELS: Record<DeadLetterCollection, string> = {
   chatSyncEvents: 'Chat sync event',
@@ -140,6 +143,7 @@ export const DEAD_LETTER_COLLECTION_LABELS: Record<DeadLetterCollection, string>
   accountActionCommands: 'Account safety action',
   activeReportGroups: 'Report edge sync',
   hallSubItemEdgeSync: 'Hall sub-item edge sync',
+  chatParkedDeliveries: 'Chat room delivery',
 };
 
 /** Operator-settable report dispositions with their console copy. 'undetermined' is the

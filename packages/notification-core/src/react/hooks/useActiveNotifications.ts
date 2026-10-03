@@ -6,10 +6,11 @@ import type { NotificationDoc, UseActiveNotificationsOptions } from '../../types
 
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_REFETCH_INTERVAL = 30_000;
+const DEFAULT_STALE_TIME = 30_000;
 
 /**
- * Paginated fetch of active (unread) notifications.
- * Uses polling (refetchInterval) instead of real-time subscriptions for cost control.
+ * Paginated read of active notifications. The displayed page is re-read every
+ * `refetchInterval` ms while mounted — polling, not a realtime listener, for cost.
  */
 export function useActiveNotifications({
   config,
@@ -18,6 +19,7 @@ export function useActiveNotifications({
   enabled = true,
   pageSize = DEFAULT_PAGE_SIZE,
   refetchInterval = DEFAULT_REFETCH_INTERVAL,
+  staleTime = DEFAULT_STALE_TIME,
 }: UseActiveNotificationsOptions) {
   const categoryConfig = config.categories[category];
   if (!categoryConfig) {
@@ -38,6 +40,7 @@ export function useActiveNotifications({
     constraints,
     pageSize,
     enabled: enabled && !!userId,
-    staleTime: refetchInterval,
+    refetchInterval,
+    staleTime,
   });
 }

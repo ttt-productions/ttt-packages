@@ -18,7 +18,13 @@ TTT config, Firebase project values, toast behavior, monitoring behavior, and ca
 
 ## Callable invocation contract
 
-`callCallable` is the ONE invocation primitive (`useCallableMutation` delegates to it). `useCallableMutation().isLoading` is true while ANY call from that hook instance is in flight — overlapping calls keep it true until the last one settles. It is instance-wide, not per action: a control that needs its own in-progress state takes it from its own action. The primitive owns:
+`callCallable(getFunctions, functionName, data?, callbacks?, transport?)` is the ONE invocation primitive (`useCallableMutation` delegates to it). `useCallableMutation().isLoading` is true while ANY call from that hook instance is in flight — overlapping calls keep it true until the last one settles, and every call, a failed one included, settles it. It is instance-wide, not per action: a control that needs its own in-progress state takes it from its own action. The primitive owns:
+
+- **Acquiring Functions** — it takes a `FunctionsProvider` (`() => Functions | null | undefined`,
+  or a promise of one for a lazily imported init) and calls it inside its own error tail. A
+  provider that throws, or answers no instance (`FUNCTIONS_UNAVAILABLE_MESSAGE`), fails the call
+  like any other failure: one `captureException`, one `onError`, rethrow. A synchronous
+  provider invokes the SDK in the same tick; an async one is awaited within the deadline.
 
 - **The undefined-strip** — `undefined`-valued keys are dropped deep before the wire (the SDK
   encodes them as `null`, which strict optional-not-nullable zod inputs reject).

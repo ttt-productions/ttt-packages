@@ -10,6 +10,7 @@
  */
 
 import { sha256Hex } from '@ttt-productions/edge-protocol-core';
+import type { ChatConversationRef } from '@ttt-productions/chat-schemas';
 
 /** ASCII unit separator — never appears in uids/doc-ids/collection names/numbers. */
 const UNIT_SEPARATOR = '\x1f';
@@ -38,20 +39,16 @@ export function hash(
 
 // ── Channel identity ────────────────────────────────────────────────────────
 
-/** A logical chat channel — a typed tuple, NEVER a Firestore path string. */
-export type ChannelRef =
-  | { scope: 'channel'; workProjectId: string; guildChatChannelId: string }
-  | { scope: 'invite'; guildInviteId: string };
-
-/** Per-scope collision-safe channel key. The raw tuple is stored alongside wherever this is a doc id. */
-export function channelKey(ref: ChannelRef): Promise<string> {
-  return ref.scope === 'channel'
-    ? hash('chat-channel', ref.workProjectId, ref.guildChatChannelId)
-    : hash('chat-invite', ref.guildInviteId);
+/**
+ * The collision-safe key of one conversation, over its neutral reference (build it with
+ * `toChatConversationRef`). The kind is hashed as its own part, so two kinds never share a key.
+ */
+export function channelKey(ref: ChatConversationRef): Promise<string> {
+  return hash('chat-conversation', ref.kind, ref.id);
 }
 
-/** Per-(channel, user) projection doc id (replaces the unsafe `{channelRef}__{uid}`). */
-export async function authPairKey(ref: ChannelRef, uid: string): Promise<string> {
+/** Per-(conversation, user) projection doc id. */
+export async function authPairKey(ref: ChatConversationRef, uid: string): Promise<string> {
   return hash('chat-channel-auth', await channelKey(ref), uid);
 }
 
@@ -159,6 +156,16 @@ export function moderationAppliedAuditId(requestId: string, resultingMessageRevi
 }
 export function moderationFailedAuditId(requestId: string, terminalFailureGeneration: number): Promise<string> {
   return hash('chat-moderation-failed', requestId, terminalFailureGeneration);
+}
+
+// ── A chat room's parked deliveries ──────────────────────────────────────────
+
+/**
+ * The `chatParkedDeliveries` row id of one parking of one room outbox row. `parkedAt` is part of
+ * the identity: a row the room parks again after a replay is a second occurrence with its own row.
+ */
+export function chatParkedDeliveryId(targetDo: string, eventId: string, parkedAt: number): Promise<string> {
+  return hash('chat-parked-delivery', targetDo, eventId, parkedAt);
 }
 
 // ── History anonymization ───────────────────────────────────────────────────

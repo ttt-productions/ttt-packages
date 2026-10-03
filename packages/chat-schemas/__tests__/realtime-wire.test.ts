@@ -5,7 +5,17 @@ import {
   CLIENT_KINDS,
   SERVER_KINDS,
   CHAT_CLOSE_CODES,
-  ChannelRefTupleSchema,
+  ChatConversationRefSchema,
+  ChatGrantScopeSchema,
+  ChatGrantClaimsSchema,
+  CHAT_CONVERSATION_KIND_MAX_LENGTH,
+  CHAT_CONVERSATION_ID_MAX_LENGTH,
+  CHAT_MESSAGE_TEXT_MAX_LENGTH,
+  CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH,
+  ChatClientMessageIdSchema,
+  ChatMarkReadPayloadSchema,
+  ChatMarkReadResultPayloadSchema,
+  CHAT_MARK_READ_FAILURE_CODES,
   CHAT_GRANT_AUDIENCE,
   MODERATION_REDACTED_TEXT,
   HEARTBEAT_MS,
@@ -14,7 +24,7 @@ import {
   CHAT_SEND_REJECTION_CODES,
   CHAT_SEND_REJECTION_RETRYABLE,
   ChatSendRejectedPayloadSchema,
-  type ChannelRefTuple,
+  type ChatConversationRef,
   type ChatGrantScope,
   type ChatSendRejectionCode,
 } from '../src/index.js';
@@ -52,6 +62,7 @@ describe('chat realtime wire contract — constants', () => {
       REVISION: 'revision',
       SEND_REJECTED: 'send-rejected',
       HEARTBEAT_ACK: 'heartbeat-ack',
+      MARK_READ_RESULT: 'mark-read-result',
     });
   });
 
@@ -90,36 +101,90 @@ describe('chat realtime wire contract — constants', () => {
   });
 });
 
-describe('ChannelRefTupleSchema', () => {
-  it('accepts a channel-scoped ref', () => {
-    const ref: ChannelRefTuple = { scope: 'channel', workProjectId: 'wp1', guildChatChannelId: 'ch1' };
-    expect(ChannelRefTupleSchema.parse(ref)).toEqual(ref);
+describe('ChatConversationRefSchema — a conversation is a neutral kind plus an id', () => {
+  it('accepts an app-chosen kind and an opaque id, including a composite id with separators', () => {
+    const ref: ChatConversationRef = { kind: 'teamRoom', id: 'org-1/room:7' };
+    expect(ChatConversationRefSchema.parse(ref)).toEqual(ref);
   });
 
-  it('accepts an invite-scoped ref', () => {
-    const ref: ChannelRefTuple = { scope: 'invite', guildInviteId: 'inv1' };
-    expect(ChannelRefTupleSchema.parse(ref)).toEqual(ref);
+  it('refuses a kind that could hold a separator, so a kind can never bleed into an id', () => {
+    for (const kind of ['team:room', 'team/room', 'Team', '1team', '', 'team room']) {
+      expect(ChatConversationRefSchema.safeParse({ kind, id: 'x' }).success).toBe(false);
+    }
   });
 
-  it('rejects an unknown scope', () => {
-    expect(() => ChannelRefTupleSchema.parse({ scope: 'dm', a: 'x' })).toThrow();
+  it('bounds the kind and the id', () => {
+    expect(ChatConversationRefSchema.safeParse({ kind: 'k'.repeat(CHAT_CONVERSATION_KIND_MAX_LENGTH), id: 'x' }).success).toBe(true);
+    expect(ChatConversationRefSchema.safeParse({ kind: 'k'.repeat(CHAT_CONVERSATION_KIND_MAX_LENGTH + 1), id: 'x' }).success).toBe(false);
+    expect(ChatConversationRefSchema.safeParse({ kind: 'room', id: 'i'.repeat(CHAT_CONVERSATION_ID_MAX_LENGTH) }).success).toBe(true);
+    expect(ChatConversationRefSchema.safeParse({ kind: 'room', id: 'i'.repeat(CHAT_CONVERSATION_ID_MAX_LENGTH + 1) }).success).toBe(false);
   });
 
-  it('rejects a channel ref missing a field', () => {
-    expect(() => ChannelRefTupleSchema.parse({ scope: 'channel', workProjectId: 'wp1' })).toThrow();
+  it('refuses an empty id and an id holding a control character', () => {
+    expect(ChatConversationRefSchema.safeParse({ kind: 'room', id: '' }).success).toBe(false);
+    for (const code of [0x00, 0x0a, 0x1f, 0x7f]) {
+      const id = `a${String.fromCharCode(code)}b`;
+      expect(ChatConversationRefSchema.safeParse({ kind: 'room', id }).success).toBe(false);
+    }
+  });
+
+  it('refuses any field beyond kind and id — no app business field rides the ref', () => {
+    expect(ChatConversationRefSchema.safeParse({ kind: 'room', id: 'x', workProjectId: 'w' }).success).toBe(false);
   });
 });
 
-describe('ChatGrantScope type', () => {
-  it('models the channel and inbox variants', () => {
-    // Type-level assertion via assignability; runtime just confirms the shapes construct.
-    const channelScope: ChatGrantScope = {
-      kind: 'channel',
-      channelRef: { scope: 'invite', guildInviteId: 'inv1' },
-    };
+describe('ChatGrantScopeSchema', () => {
+  it('parses a channel grant naming one conversation and an inbox grant naming its uid', () => {
+    const channelScope: ChatGrantScope = { kind: 'channel', channelRef: { kind: 'room', id: 'r1' } };
     const inboxScope: ChatGrantScope = { kind: 'inbox', uid: 'u1' };
-    expect(channelScope.kind).toBe('channel');
-    expect(inboxScope.kind).toBe('inbox');
+    expect(ChatGrantScopeSchema.parse(channelScope)).toEqual(channelScope);
+    expect(ChatGrantScopeSchema.parse(inboxScope)).toEqual(inboxScope);
+  });
+
+  it('refuses a channel grant whose conversation ref is malformed', () => {
+    expect(ChatGrantScopeSchema.safeParse({ kind: 'channel', channelRef: { scope: 'invite', guildInviteId: 'i1' } }).success).toBe(false);
+    expect(ChatGrantScopeSchema.safeParse({ kind: 'channel', channelRef: { kind: 'room', id: '' } }).success).toBe(false);
+  });
+
+  it('refuses an unknown scope kind and an inbox grant without a uid', () => {
+    expect(ChatGrantScopeSchema.safeParse({ kind: 'admin', uid: 'u1' }).success).toBe(false);
+    expect(ChatGrantScopeSchema.safeParse({ kind: 'inbox', uid: '' }).success).toBe(false);
+  });
+});
+
+describe('the send bounds', () => {
+  it('one text bound for every send path: 4000 UTF-16 code units', () => {
+    expect(CHAT_MESSAGE_TEXT_MAX_LENGTH).toBe(4000);
+  });
+
+  it('a client message id is non-empty and bounded', () => {
+    expect(ChatClientMessageIdSchema.safeParse('c'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH)).success).toBe(true);
+    expect(ChatClientMessageIdSchema.safeParse('c'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH + 1)).success).toBe(false);
+    expect(ChatClientMessageIdSchema.safeParse('').success).toBe(false);
+  });
+});
+
+describe('the mark-read command and its correlated result', () => {
+  it('a mark-read names the entry and the request its result will name', () => {
+    expect(ChatMarkReadPayloadSchema.parse({ channelRef: 'abc', requestId: 'r-1' })).toEqual({ channelRef: 'abc', requestId: 'r-1' });
+    expect(ChatMarkReadPayloadSchema.safeParse({ channelRef: 'abc' }).success).toBe(false);
+    expect(ChatMarkReadPayloadSchema.safeParse({ channelRef: '', requestId: 'r-1' }).success).toBe(false);
+  });
+
+  it('a success result names its request', () => {
+    expect(ChatMarkReadResultPayloadSchema.parse({ requestId: 'r-1', ok: true })).toEqual({ requestId: 'r-1', ok: true });
+  });
+
+  it('a failure result names its request and one of the declared reasons', () => {
+    for (const code of CHAT_MARK_READ_FAILURE_CODES) {
+      expect(ChatMarkReadResultPayloadSchema.parse({ requestId: 'r-1', ok: false, code })).toEqual({ requestId: 'r-1', ok: false, code });
+    }
+    expect(ChatMarkReadResultPayloadSchema.safeParse({ requestId: 'r-1', ok: false, code: 'nope' }).success).toBe(false);
+    expect(ChatMarkReadResultPayloadSchema.safeParse({ requestId: 'r-1', ok: false }).success).toBe(false);
+  });
+
+  it('a result without a request id is not a result', () => {
+    expect(ChatMarkReadResultPayloadSchema.safeParse({ ok: true }).success).toBe(false);
   });
 });
 
@@ -133,6 +198,7 @@ describe('ChatSendRejectedPayloadSchema', () => {
       'blocked-word',
       'flood',
       'slow-mode',
+      'too-long',
     ]);
     expect(CHAT_SEND_REJECTION_RETRYABLE).toEqual({
       'membership-pending': true,
@@ -142,7 +208,15 @@ describe('ChatSendRejectedPayloadSchema', () => {
       'archived': false,
       'deleted': false,
       'blocked-word': false,
+      'too-long': false,
     });
+  });
+
+  it('an over-bound text is a terminal rejection — the same text can never be accepted', () => {
+    expect(CHAT_SEND_REJECTION_RETRYABLE['too-long']).toBe(false);
+    expect(
+      ChatSendRejectedPayloadSchema.safeParse({ clientMessageId: 'c-1', code: 'too-long', retryable: true }).success,
+    ).toBe(false);
   });
 
   it('accepts each allowed code with its canonical retryability', () => {
@@ -239,5 +313,40 @@ describe('ChatSendRejectedPayloadSchema', () => {
         retryAfterMs: 12.5,
       }),
     ).toThrow();
+  });
+});
+
+describe('ChatGrantClaimsSchema — what the signer signs is exactly what the verifier accepts', () => {
+  const claims = {
+    v: 1,
+    typ: 'grant',
+    aud: 'ttt-chat',
+    env: 'dev',
+    uid: 'u1',
+    scope: { kind: 'channel', channelRef: { kind: 'room', id: 'r1' } },
+    iat: 1000,
+    exp: 1900,
+  };
+
+  it('accepts a well-formed channel or inbox grant payload', () => {
+    expect(ChatGrantClaimsSchema.parse(claims)).toEqual(claims);
+    expect(ChatGrantClaimsSchema.safeParse({ ...claims, scope: { kind: 'inbox', uid: 'u1' } }).success).toBe(true);
+  });
+
+  it('refuses a payload for another audience, version, or token type', () => {
+    expect(ChatGrantClaimsSchema.safeParse({ ...claims, aud: 'ttt-media' }).success).toBe(false);
+    expect(ChatGrantClaimsSchema.safeParse({ ...claims, v: 2 }).success).toBe(false);
+    expect(ChatGrantClaimsSchema.safeParse({ ...claims, typ: 'session' }).success).toBe(false);
+  });
+
+  it('refuses a missing or malformed identity, scope, or time', () => {
+    expect(ChatGrantClaimsSchema.safeParse({ ...claims, uid: '' }).success).toBe(false);
+    expect(ChatGrantClaimsSchema.safeParse({ ...claims, scope: { kind: 'channel', channelRef: { scope: 'invite' } } }).success).toBe(false);
+    expect(ChatGrantClaimsSchema.safeParse({ ...claims, iat: Number.NaN }).success).toBe(false);
+    expect(ChatGrantClaimsSchema.safeParse({ ...claims, exp: 1000 }).success).toBe(false);
+  });
+
+  it('refuses any claim beyond the declared ones', () => {
+    expect(ChatGrantClaimsSchema.safeParse({ ...claims, adm: 1 }).success).toBe(false);
   });
 });

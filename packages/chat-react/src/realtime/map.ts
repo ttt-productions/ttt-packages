@@ -7,7 +7,7 @@
 // context, identical to the Firestore path.
 
 import type { ChatMessageV1 } from '@ttt-productions/chat-core';
-import { MODERATION_REDACTED_TEXT } from '@ttt-productions/chat-schemas';
+import { CHAT_SYSTEM_SENDER_ID, MODERATION_REDACTED_TEXT } from '@ttt-productions/chat-schemas';
 import type { RevisionKind, WireMessageRow } from './wire.js';
 
 // The redacted-text constant lives in the wire contract; re-export to keep this
@@ -76,7 +76,8 @@ export function wireRowToMessage(row: WireMessageRow, threadId: string): ChatMes
     createdAt: row.createdAt,
     senderId: row.senderUid,
     text: row.text,
-    isSystemMessage: row.senderUid === 'system' || undefined,
+    isSystemMessage: row.senderUid === CHAT_SYSTEM_SENDER_ID || undefined,
+    ...(row.referencedUids && row.referencedUids.length > 0 ? { referencedUids: [...row.referencedUids] } : {}),
     meta: {
       seq: row.seq,
       epoch: row.epoch,

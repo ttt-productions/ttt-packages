@@ -22,7 +22,7 @@ function makeMessage(meta?: Record<string, unknown>): ChatMessageV1 {
 
 function renderItem(m: ChatMessageV1, onRetrySend?: (cmid: string) => void) {
   return render(
-    <ChatNameResolverProvider resolveName={() => "Me"}>
+    <ChatNameResolverProvider resolveName={() => ({ status: "resolved", name: "Me" })}>
       <MessageItemDefault m={m} currentUserId="u-me" isAdmin={false} onRetrySend={onRetrySend} />
     </ChatNameResolverProvider>,
   );

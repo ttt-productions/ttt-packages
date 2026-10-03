@@ -190,12 +190,12 @@ erDiagram
     field description
     field videoAssetId
     field mediaType
-    field openTill
+    field entriesCloseAt
+    field auditionCloseAt
     field createdOn
     field createdBy
     field workProjectId
     field mode
-    field curatedAssemblyStatus
   }
   auditionEntries {
     field auditionEntryId
@@ -309,6 +309,20 @@ erDiagram
     field createdAt
     field appliedAt
     field deadLetteredAt
+  }
+  chatParkedDeliveries {
+    field targetDo
+    field roomKind
+    field eventId
+    field deliveryKind
+    field roomAttemptCount
+    field roomLastError
+    field parkedAt
+    field status
+    field attemptCount
+    field nextAttemptAt
+    field lastError
+    field createdAt
   }
   chatScopeDegraded {
     field scopeKey
@@ -502,6 +516,12 @@ erDiagram
     field isSystemMessage
     field meta
   }
+  dispatchReadMarkers {
+    field adminDispatchId
+    field uid
+    field lastSeenMessageAt
+    field updatedAt
+  }
   dmcaPolicy {
     field version
     field lastUpdated
@@ -549,13 +569,13 @@ erDiagram
     field channelName
     field description
     field requiredGuildStandings
-    field allowedUserIds
     field createdAt
     field createdBy
     field lastMessageAt
     field lastMessage
     field messageCount
     field isArchived
+    field isDeleted
   }
   guildInviteConversations {
     field guildInviteId
@@ -968,7 +988,7 @@ erDiagram
     field status
     field createdAt
     field lastUpdatedAt
-    field readByAdmin
+    field lastMessageAt
   }
   pendingMedia {
   }
@@ -1693,6 +1713,7 @@ erDiagram
   hallItems ||--o{ hallContentChangeRequests : "hallItemId"
   hallItems ||--o{ reservation : "hallItemId"
   hallItems ||--o{ thresholdItems : "hallItemId"
+  pendingAdminDispatches ||--o{ dispatchReadMarkers : "adminDispatchId"
   pledgePayments ||--o{ paymentWebhookQuarantine : "pledgePaymentId"
   pledgePayments ||--o{ pledgePaymentLedgerEvents : "pledgePaymentId"
   pledgePayments ||--o{ pledgePaymentProviderRefs : "pledgePaymentId"
@@ -1713,6 +1734,7 @@ erDiagram
   userProfiles ||--o{ contentViolations : "reviewedBy"
   userProfiles ||--o{ contentViolations : "userId"
   userProfiles ||--o{ conversationMessages : "senderId"
+  userProfiles ||--o{ dispatchReadMarkers : "uid"
   userProfiles ||--o{ followEdges : "followerUid"
   userProfiles ||--o{ guildmateUsers : "uid"
   userProfiles ||--o{ hallContentChangeRequests : "resolvedBy"

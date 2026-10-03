@@ -1,13 +1,14 @@
 /**
- * The chat realtime wire contract (subprotocol, frame-kind maps, close codes,
- * channel-ref tuple + schema, grant scope/audience, and the client-agreed
- * limits) — the single owner consumed by the chat React client, the chat
- * Cloudflare Worker, and Cloud Functions.
+ * The chat realtime wire contract (subprotocol, frame-kind maps, close codes, the
+ * neutral conversation reference, grant scope/audience, the send and mark-read
+ * contracts, and the client-agreed limits) — the single owner consumed by the chat
+ * React client, the chat Cloudflare Worker, and Cloud Functions.
  */
 export * from './realtime-wire.js';
 
 /**
- * The chat internal-endpoint contract (the body budget of the signed Functions to Worker calls).
+ * The chat internal-endpoint contract (the body budget of the signed Functions to Worker calls, and
+ * a room's parked-delivery report and replay).
  */
 export * from './internal-contract.js';
 

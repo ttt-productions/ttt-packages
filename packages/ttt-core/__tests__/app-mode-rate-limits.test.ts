@@ -199,8 +199,8 @@ describe('Conversation Files usage counters (absent ⇒ 0)', () => {
     status: 'open' as const,
     createdAt: 1,
     lastUpdatedAt: 1,
-    readByAdmin: false,
-    readByUser: true,
+    lastMessageAt: 1,
+    awaitingAdminReply: true,
   };
 
   const COUNTER_FIELDS = [

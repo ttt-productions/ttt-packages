@@ -11,15 +11,31 @@ in the active collection until archived; personal unread state is tracked with
 - React hooks and components (no context provider — hooks take `NotificationSystemConfig` as a plain prop and consume `query-core`'s `FirestoreProvider` directly)
 - Active/history list headers accept app-supplied title content. The active
   list places the title left and Clear All right; history is title-only and
-  read-only. Active row actions receive `isArchivePending`, which remains true
-  after a successful callable response until the authoritative active query
-  removes that row. Clear All is disabled with a visible spinner for the full
+  read-only. Clear All is disabled with a visible spinner for the full
   pending interval; a text-only loading swap is never the async affordance.
-  While a list loads it renders ui-core's `Spinner` as a status region, never
-  its empty state.
-  Both lists page with ui-core's `ListPagination` (Previous / counter / Next):
-  the hooks are page-based, so Next replaces the list, and the clicked control
-  spins while its page loads.
+- **Single-row archive.** The app's `archiveFn` (`NotificationArchiveFn`) receives the
+  row exactly as the list rendered it (so the app sends what it observed — e.g. the
+  row's activity generation) and resolves `{ archived: boolean }`, rejecting on
+  failure. A row's `isArchivePending` stays true after `{ archived: true }` until the
+  authoritative active read drops the row; `{ archived: false }` (the server archived
+  nothing — the card changed after it was rendered) and a rejection clear it at once.
+- **Read states.** While a list's first page loads it renders ui-core's `Spinner` as
+  a status region. A failed read renders the app's required `renderError` slot
+  (`NotificationListErrorState`: `error`, `retry` — re-reads the displayed page —
+  `retrying`, and `hasRows` when an earlier read's rows are still shown above it);
+  it is never shown as the empty state. The empty state is the answer for an
+  answered, empty page 1 only. Both lists page with ui-core's `ListPagination`
+  (Previous / counter / Next), which stays on a failed or empty later page so the
+  user can step back; Next replaces the list, and the clicked control spins while
+  its page loads. All copy in these slots is the app's.
+- **Rendered rows.** The active list calls `onRenderedRowsChange(rows)` with the rows on
+  screen each time the displayed page's answered rows change — the rows the app marks
+  seen, on any page.
+- **Freshness.** `useActiveNotifications` re-reads the displayed page every
+  `refetchInterval` ms (default 30s) while mounted, and takes `staleTime` (default
+  30s) as a separate setting; both are list props too. Paging is query-core's
+  `useFirestorePaginated` (one cache entry per page with a look-ahead, so `hasNextPage`
+  is truthful).
 - **The history (archived) read surface:** `useNotificationHistory` (paginated read of the archived-history collection resolved from the category's `historyPath`, ordered `archivedAt desc`, flattening each `archivedSnapshot` wrapper into a `NotificationHistoryItem` via a `select` mapper) and the read-only `NotificationHistoryList` component. Owner-only (user) / admin-only (admin) reads are enforced by Firestore rules; history rows are immutable (archive is one-way — no re-archive). The active read surface stays `useActiveNotifications` / `NotificationList`.
 - The batch-processing server helper (`processBatchHelper`) for the pending-queue path
 - **The generic delivery ledger (notification redesign):** `createDeliveryLedger(db, config, options)` —

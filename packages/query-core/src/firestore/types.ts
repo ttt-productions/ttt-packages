@@ -119,6 +119,8 @@ export interface FirestorePaginatedOptions<T> extends FirestoreBaseOptions {
   pageSize?: number;
   /** Initial page number (default: 1) */
   initialPage?: number;
+  /** Re-read the displayed page every `refetchInterval` ms while it is mounted (omit for none). */
+  refetchInterval?: number;
   /** Transform function applied to each document. Receives data WITH id included. */
   select?: (data: DocumentData & { id: string }) => T;
 }
@@ -172,12 +174,16 @@ export interface InfinitePage<T> {
 }
 
 /**
- * Result for paginated queries.
+ * One page's cache entry for `useFirestorePaginated`, stored at `[...queryKey, 'page', n]`:
+ * the page's rows, its last row (the next page's cursor; `null` for an empty page), and
+ * whether a further page exists (read with a one-row look-ahead), and the id of the row it
+ * was read after (`null` for page 1), checked against the previous page's cursor.
  */
-export interface PaginatedResult<T> {
-  items: WithId<T>[];
-  cursors: DocumentSnapshot[];
+export interface PaginatedPage<T> {
+  items: T[];
+  cursor: DocumentSnapshot | null;
   hasMore: boolean;
+  after: string | null;
 }
 
 /**

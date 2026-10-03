@@ -145,6 +145,8 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   'pendingAdminDispatches/{adminDispatchId}/conversationMessages/{adminDispatchMessageId}': ['delete', 'anonymize'],
   // Deleted with a deleted thread; a kept thread keeps its files.
   'pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}': ['delete', 'retain'],
+  // The member's own read position — nobody else reads it, so it goes with them.
+  'pendingAdminDispatches/{adminDispatchId}/dispatchReadMarkers/{uid}': DELETE,
   // A link others may already have shared; its creator is an account id only.
   'shortLinks/{shortId}': RETAIN,
   // A suggestion is shared by everyone who sent the same word: the member is removed from its
@@ -195,6 +197,9 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   // is done; a done job is retained until its expiry.
   'chatHistoryAnonymizationJobs/{jobId}': RETAIN,
   'chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal}': NONE,
+  // An operator ledger row: a room's address (an inbox room's names its member) and ids only,
+  // kept like the sync events it sits beside.
+  'chatParkedDeliveries/{deliveryId}': RETAIN,
 
   // ===== Public documents (admin-written) =====
   'publicDocuments/{documentId}/publicDocumentVersions/{versionId}': RETAIN,

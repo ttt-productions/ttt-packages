@@ -3,6 +3,7 @@ import {
   GUILD_STANDING_IDS,
   GUILD_STANDING_VALUE_BY_ID,
   STEWARD_OWNER_GUILD_STANDING_ID,
+  WORK_FILE_ADMIN_GUILD_STANDING_IDS,
   WORK_PROJECT_ACTIONS,
   WORK_PROJECT_ACTION_IDS,
   type GuildStandingId,
@@ -50,5 +51,33 @@ export function isWorkProjectActionId(value: unknown): value is WorkProjectActio
 export function getActionsForGuildStanding(guildStandingId: GuildStandingId): WorkProjectActionId[] {
   return WORK_PROJECT_ACTION_IDS.filter((action) =>
     (WORK_PROJECT_ACTIONS[action].grantedTo as readonly GuildStandingId[]).includes(guildStandingId)
+  );
+}
+
+/**
+ * Whether a standing set grants a Work action — the one reading of `WORK_PROJECT_ACTIONS`'
+ * grants. It answers for the standings alone: the active-Guildmate floor (an active guildmate
+ * doc and membership) is the caller's check, made before this one.
+ */
+export function guildStandingsGrantAction(
+  guildStandings: readonly string[] | null | undefined,
+  action: WorkProjectActionId,
+): boolean {
+  const grantedTo = WORK_PROJECT_ACTIONS[action].grantedTo as readonly string[];
+  return guildStandings?.some((standing) => grantedTo.includes(standing)) === true;
+}
+
+/**
+ * Whether a Guildmate administers the Work's file system: active, and holding one of
+ * `WORK_FILE_ADMIN_GUILD_STANDING_IDS`. A file admin's access overrides every folder's
+ * trade-profession lists.
+ */
+export function isWorkFileAdmin(member: {
+  status: string;
+  guildStandings: readonly string[];
+}): boolean {
+  if (member.status !== 'active') return false;
+  return member.guildStandings.some((standing) =>
+    (WORK_FILE_ADMIN_GUILD_STANDING_IDS as readonly string[]).includes(standing),
   );
 }

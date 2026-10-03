@@ -103,6 +103,7 @@ import {
   NotificationFanoutJobSchema,
 } from './notification-ledger.js';
 import { NotificationArchiveAllJobSchema } from './notification-archive-all-jobs.js';
+import { AdminDispatchReadMarkerSchema } from './admin-dispatch-read-markers.js';
 import {
   ChatChannelAuthProjectionSchema,
   ChatScopeDegradedSchema,
@@ -113,6 +114,7 @@ import {
   ChatAdminActionCommandSchema,
   ChatHistoryAnonymizationJobSchema,
   ChatHistoryAnonymizationAffectedChunkSchema,
+  ChatParkedDeliverySchema,
 } from './chat-sync.js';
 import { SquareAnnouncementJobSchema } from './square-announcement-jobs.js';
 import { PendingMediaSchema, ArchivedPendingMediaDocSchema } from '../media/pending-media.js';
@@ -315,6 +317,7 @@ export const COLLECTION_SCHEMAS = {
   'pendingAdminDispatches/{adminDispatchId}': AdminDispatchSchema,
   'pendingAdminDispatches/{adminDispatchId}/conversationMessages/{adminDispatchMessageId}': ChatMessageV1Schema,
   'pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}': ConversationFileSchema,
+  'pendingAdminDispatches/{adminDispatchId}/dispatchReadMarkers/{uid}': AdminDispatchReadMarkerSchema,
 
   // ===== Media pipeline =====
   'pendingMedia/{pendingMediaId}': PendingMediaSchema,
@@ -344,6 +347,7 @@ export const COLLECTION_SCHEMAS = {
   'chatAdminActionCommands/{requestId}': ChatAdminActionCommandSchema,
   'chatHistoryAnonymizationJobs/{jobId}': ChatHistoryAnonymizationJobSchema,
   'chatHistoryAnonymizationJobs/{jobId}/affectedChunks/{chunkOrdinal}': ChatHistoryAnonymizationAffectedChunkSchema,
+  'chatParkedDeliveries/{deliveryId}': ChatParkedDeliverySchema,
 
   // ===== Craft skills index =====
   'craftSkillsByTag/{tag}/taggedCraftSkills/{compositeId}': CraftSkillReferenceSchema,

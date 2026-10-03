@@ -3,10 +3,10 @@ import { renderHook, act } from '@testing-library/react';
 import { useRealtimeChatMessages } from '../../src/realtime/useRealtimeChatMessages.js';
 import { createRealtimeChatClient, type RealtimeChatClient } from '../../src/realtime/transport.js';
 import { ChatAccessDeniedError } from '../../src/realtime/shared.js';
-import type { ChannelRefTuple } from '../../src/realtime/wire.js';
+import type { ChatConversationRef } from '@ttt-productions/chat-schemas';
 import { createMockSocketHarness, createFakeClock, type MockSocketHarness, type FakeClock } from './mock-socket.js';
 
-const CHANNEL_REF: ChannelRefTuple = { scope: 'channel', workProjectId: 'wp1', guildChatChannelId: 'ch1' };
+const CHANNEL_REF: ChatConversationRef = { kind: 'room', id: 'wp1/ch1' };
 
 function makeClient(uid: string, harness: MockSocketHarness, clock: FakeClock, grant: string): RealtimeChatClient {
   return createRealtimeChatClient({

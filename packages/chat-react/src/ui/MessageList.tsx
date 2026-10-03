@@ -35,9 +35,15 @@ export function MessageList(props: {
   fillHeight?: boolean;
 
   handlers?: ModerationHandlers;
-  onSenderClick?: (senderId: string, displayName: string) => void;
+  onSenderClick?: (senderId: string) => void;
   /** Retry a failed realtime send by clientMessageId (realtime transport only). */
   onRetrySend?: (clientMessageId: string) => void;
+  /**
+   * The failed older-page row (the consumer's error state with its retry). While set, it
+   * renders at the top of the list and the list stops requesting older pages — a failed
+   * page is retried only through the row, never by scrolling into it again.
+   */
+  olderLoadErrorRow?: React.ReactNode;
 }) {
   const {
     messages,
@@ -56,7 +62,9 @@ export function MessageList(props: {
     handlers,
     onSenderClick,
     onRetrySend,
+    olderLoadErrorRow,
   } = props;
+  const olderLoadFailed = olderLoadErrorRow != null;
 
   const scrollClass = scrollClassName ?? (fillHeight ? "flex-1 min-h-0" : "h-[400px]");
   const outerClass = fillHeight ? "relative flex flex-col flex-1 min-h-0" : "relative";
@@ -92,7 +100,7 @@ export function MessageList(props: {
       (entries) => {
         const e = entries[0];
         if (!e?.isIntersecting) return;
-        if (!hasOlder || isFetchingOlder) return;
+        if (!hasOlder || isFetchingOlder || olderLoadFailed) return;
 
         prevScrollHeightRef.current = root.scrollHeight;
         onLoadOlder?.();
@@ -102,7 +110,7 @@ export function MessageList(props: {
 
     io.observe(target);
     return () => io.disconnect();
-  }, [hasOlder, isFetchingOlder, onLoadOlder]);
+  }, [hasOlder, isFetchingOlder, olderLoadFailed, onLoadOlder]);
 
   // Scroll management — FIXES accordion scroll jump
   React.useLayoutEffect(() => {
@@ -160,11 +168,13 @@ export function MessageList(props: {
   return (
     <div className={outerClass}>
       <div ref={scrollRef} className={`${scrollClass} overflow-y-auto p-4`} onScroll={onScroll}>
-        {isFetchingOlder && (
+        {olderLoadFailed ? (
+          <div className="mb-2">{olderLoadErrorRow}</div>
+        ) : isFetchingOlder ? (
           <div className="flex justify-center mb-2">
             <Spinner size="xs" label="Loading older messages" />
           </div>
-        )}
+        ) : null}
 
         <div ref={topSentinelRef} />
 

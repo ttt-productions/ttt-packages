@@ -88,7 +88,7 @@ describe('audition sort keys', () => {
     }
   });
 
-  it('pins the shared pair to the settled labels + sort fields', () => {
+  it('pins the shared pair to the settled labels + sort fields — Ending Soon orders by the audition close', () => {
     expect(AUDITION_SORT_OPTIONS.default.newest).toEqual({
       label: 'Newest First',
       field: 'createdOn',
@@ -96,7 +96,7 @@ describe('audition sort keys', () => {
     });
     expect(AUDITION_SORT_OPTIONS.default.endingSoon).toEqual({
       label: 'Ending Soon',
-      field: 'openTill',
+      field: 'auditionCloseAt',
       direction: 'asc',
     });
   });

@@ -10,6 +10,11 @@
 
 import { createReconnectController, type ReconnectController } from '@ttt-productions/realtime-core';
 import {
+  ChatMarkReadResultPayloadSchema,
+  SERVER_KINDS,
+  type ChatMarkReadFailureCode,
+} from '@ttt-productions/chat-schemas';
+import {
   CLIENT_FRAME,
   CHAT_CLOSE_CODES,
   buildFrame,
@@ -24,8 +29,10 @@ import {
   defaultTimers,
   isChatAccessDeniedError,
   isTerminalErrorCode,
+  newCorrelationId,
   TERMINAL_ERROR_CODE,
 } from './shared.js';
+import { InitialLoadBudget } from './initial-load-budget.js';
 import {
   createDiagnosticsEmitter,
   safeDiagnosticLabel,
@@ -51,7 +58,28 @@ export interface InboxClientState {
    * hook in this package), so this stable code is the surface — it invents no new UI.
    */
   lastErrorCode: string | null;
+  /**
+   * True once the first authoritative snapshot has been applied — the registry and dots
+   * are then the inbox runtime's answer, so an empty registry means "nothing here"
+   * rather than "not loaded yet". Once true it stays true.
+   */
+  hasLoadedInitialData: boolean;
+  /**
+   * True once the first open has failed for long enough to say so — the same rule as
+   * `ChannelClientState.initialLoadFailed`. Cleared by the first snapshot or `retryNow()`.
+   */
+  initialLoadFailed: boolean;
 }
+
+/**
+ * How one `markRead` ended: `ok` — the inbox runtime advanced the read cursor (its
+ * fresh snapshot clears the dot); otherwise `code` says why not — the runtime's own
+ * reason, `not-sent` (no open socket, nothing was sent), or `connection-lost` (the
+ * socket closed before the answer arrived, so the outcome is unknown and the dot stays).
+ */
+export type ChatMarkReadOutcome =
+  | { ok: true }
+  | { ok: false; code: ChatMarkReadFailureCode | 'not-sent' | 'connection-lost' };
 
 export interface InboxClientConfig {
   endpoint: string;
@@ -74,7 +102,15 @@ export interface InboxClientConfig {
   diagnostics?: ChatClientDiagnosticsOption;
 }
 
-const INITIAL: InboxClientState = { status: 'idle', registry: [], hasUnread: false, unreadChannelRefs: [], lastErrorCode: null };
+const INITIAL: InboxClientState = {
+  status: 'idle',
+  registry: [],
+  hasUnread: false,
+  unreadChannelRefs: [],
+  lastErrorCode: null,
+  hasLoadedInitialData: false,
+  initialLoadFailed: false,
+};
 
 export class InboxClient {
   private readonly timers: TransportTimers;
@@ -85,12 +121,20 @@ export class InboxClient {
   private reauthAttempted = false;
   private reconnectTimer: ReturnType<TransportTimers['setTimeout']> | null = null;
   private closedByUs = false;
+  /**
+   * The current lifecycle's number, advanced by every `connect()` and `close()`; a grant,
+   * timer, or socket callback of an older lifecycle is ignored (FRONTEND-108).
+   */
+  private lifecycle = 0;
+  private readonly initialLoad: InitialLoadBudget;
+  /** Mark-reads sent on the current socket, awaiting their correlated result, by requestId. */
+  private readonly pendingMarkReads = new Map<string, (outcome: ChatMarkReadOutcome) => void>();
   /** Structured diagnostics emitter, or null when off (the default, zero-overhead). */
   private readonly diag: ChatClientDiagnosticsEmitter;
   /** Monotonic socket-open attempt counter (diagnostics correlation only). */
   private connectAttempt = 0;
   /** Why the CURRENT connect attempt is happening (diagnostics only). */
-  private reconnectCause: 'initial' | 'auth-expired' | 'transient-close' | 'grant-error' = 'initial';
+  private reconnectCause: 'initial' | 'auth-expired' | 'transient-close' | 'grant-error' | 'manual-retry' = 'initial';
   /** The last close code observed, carried into the next attempt's cause line. */
   private lastCloseCode: number | null = null;
 
@@ -98,6 +142,7 @@ export class InboxClient {
     this.timers = config.timers ?? defaultTimers;
     this.controller = createReconnectController(config.reconnect ?? {});
     this.diag = createDiagnosticsEmitter(config.diagnostics);
+    this.initialLoad = new InitialLoadBudget(this.timers, () => this.reportInitialLoadFailed());
   }
 
   getState(): InboxClientState {
@@ -115,6 +160,34 @@ export class InboxClient {
   }
 
   async connect(): Promise<void> {
+    return this.startLifecycle(true);
+  }
+
+  /**
+   * Retry now (the first-open failure's Retry) — the same rule as `ChannelClient.retryNow`:
+   * a reconnect waiting out its backoff opens at once; a stopped lifecycle starts again; an
+   * attempt in flight is left to finish; the first-open failure clears either way.
+   */
+  retryNow(): void {
+    if (!this.state.hasLoadedInitialData) this.initialLoad.manualRetry();
+    if (this.state.status === 'closed') {
+      void this.startLifecycle(false);
+      return;
+    }
+    if (this.reconnectTimer == null) {
+      if (this.state.initialLoadFailed) this.setState({ initialLoadFailed: false });
+      return;
+    }
+    this.timers.clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+    this.controller.reset();
+    this.controller.start();
+    this.reconnectCause = 'manual-retry';
+    this.setState({ status: 'reconnecting', initialLoadFailed: false });
+    void this.openSocket();
+  }
+
+  private async startLifecycle(freshBudget: boolean): Promise<void> {
     // Idempotency guard (mirrors ChannelClient): connect() only starts a lifecycle
     // from a fresh (idle) or fully torn-down (closed) state. A second connect()
     // while one is already connecting / open / reconnecting is a no-op, so a
@@ -135,13 +208,21 @@ export class InboxClient {
     // is authoritative, and blanking the dock on every restart is pure UI churn.
     if (isTerminalErrorCode(this.state.lastErrorCode)) this.setState({ lastErrorCode: null });
     this.closedByUs = false;
+    this.lifecycle += 1;
     this.reconnectCause = 'initial';
+    if (!this.state.hasLoadedInitialData) this.initialLoad.begin(freshBudget);
     this.controller.start();
-    this.setState({ status: 'connecting' });
+    this.setState({ status: 'connecting', initialLoadFailed: false });
     await this.openSocket();
   }
 
+  private reportInitialLoadFailed(): void {
+    if (this.state.hasLoadedInitialData || this.state.initialLoadFailed) return;
+    this.setState({ initialLoadFailed: true });
+  }
+
   private async openSocket(): Promise<void> {
+    const lifecycle = this.lifecycle;
     this.connectAttempt += 1;
     this.diag?.(DIAG.INBOX_CONNECT_ATTEMPT, {
       attempt: this.connectAttempt,
@@ -153,6 +234,7 @@ export class InboxClient {
     try {
       grantToken = await this.config.grantProvider();
     } catch (err) {
+      if (lifecycle !== this.lifecycle) return;
       // A TERMINAL access denial (the app translated an authoritative policy "no"
       // — e.g. Firebase `permission-denied` for a banned/suspended account — into the
       // package-owned ChatAccessDeniedError) must NOT reconnect: the next mint would
@@ -162,20 +244,33 @@ export class InboxClient {
       this.diag?.(DIAG.INBOX_GRANT_FAILED, { attempt: this.connectAttempt, terminal });
       if (terminal) return this.denyAccessTerminally();
       this.reconnectCause = 'grant-error';
+      if (!this.state.hasLoadedInitialData) this.initialLoad.noteFailedAttempt();
       return this.scheduleReconnect();
     }
-    if (this.closedByUs) return;
+    // A grant minted for an earlier lifecycle must never open a socket in this one.
+    if (lifecycle !== this.lifecycle || this.closedByUs) return;
     const url = `${this.config.endpoint.replace(/\/$/, '')}/inbox`;
-    this.socket = this.config.socketFactory({
+    // Every callback is fenced to THIS socket: once it has been replaced or torn down, its
+    // late open, frames, and close are ignored.
+    let socket: RealtimeSocket | null = null;
+    const isCurrent = () => socket !== null && this.socket === socket;
+    socket = this.config.socketFactory({
       url,
       grantToken,
       handlers: {
-        onOpen: () => this.onOpen(),
-        onMessage: (data) => this.onMessage(data),
-        onClose: (code, reason) => this.onClose(code, reason),
+        onOpen: () => {
+          if (isCurrent()) this.onOpen();
+        },
+        onMessage: (data) => {
+          if (isCurrent()) this.onMessage(data);
+        },
+        onClose: (code, reason) => {
+          if (isCurrent()) this.onClose(code, reason);
+        },
         onError: () => undefined,
       },
     });
+    this.socket = socket;
   }
 
   private onOpen(): void {
@@ -198,6 +293,8 @@ export class InboxClient {
   private onClose(code: number, _reason: string): void {
     this.socket = null;
     this.lastCloseCode = code;
+    // A mark-read sent on this socket can no longer be answered.
+    this.settlePendingMarkReads({ ok: false, code: 'connection-lost' });
     if (this.closedByUs) {
       this.diag?.(DIAG.INBOX_SOCKET_CLOSE, { code, closedByUs: true, outcome: 'closed' });
       this.setState({ status: 'closed' });
@@ -216,9 +313,11 @@ export class InboxClient {
       this.controller.close();
       this.diag?.(DIAG.INBOX_SOCKET_CLOSE, { code, closedByUs: false, outcome: 'revoked' });
       this.setState({ status: 'closed', lastErrorCode: TERMINAL_ERROR_CODE.REVOKED });
+      this.reportInitialLoadFailed();
       return;
     }
     this.reconnectCause = 'transient-close';
+    if (!this.state.hasLoadedInitialData) this.initialLoad.noteFailedAttempt();
     this.diag?.(DIAG.INBOX_SOCKET_CLOSE, { code, closedByUs: false, outcome: 'reconnect' });
     this.scheduleReconnect();
   }
@@ -234,6 +333,7 @@ export class InboxClient {
   private denyAccessTerminally(): void {
     this.closedByUs = true;
     this.controller.close();
+    this.initialLoad.dispose();
     this.setState({ status: 'closed', lastErrorCode: TERMINAL_ERROR_CODE.ACCESS_DENIED });
   }
 
@@ -246,12 +346,14 @@ export class InboxClient {
     });
     if (delay == null) {
       this.setState({ status: 'closed' });
+      this.reportInitialLoadFailed();
       return;
     }
     this.setState({ status: 'reconnecting' });
+    const lifecycle = this.lifecycle;
     this.reconnectTimer = this.timers.setTimeout(() => {
       this.reconnectTimer = null;
-      if (this.closedByUs) return;
+      if (this.closedByUs || lifecycle !== this.lifecycle) return;
       void this.openSocket();
     }, delay);
   }
@@ -262,6 +364,7 @@ export class InboxClient {
       this.diag?.(DIAG.INBOX_FRAME_DROPPED, { kind: 'unparseable', reason: 'bad-envelope' });
       return;
     }
+    if (frame.type === SERVER_KINDS.MARK_READ_RESULT) return this.applyMarkReadResult(frame.payload);
     // The inbox DO pushes a full `snapshot`; a future lightweight `unread` push
     // carries either a full snapshot or a `{ hasUnread }` dock-dot patch. Route both
     // instead of silently dropping the `unread` type (C-M2).
@@ -307,7 +410,8 @@ export class InboxClient {
     const unreadChannelRefs = deriveUnreadRefs(snap);
     const hasUnread = Boolean(snap.hasUnread);
     const before = this.state;
-    this.setState({ registry, hasUnread, unreadChannelRefs });
+    if (!before.hasLoadedInitialData) this.initialLoad.loaded();
+    this.setState({ registry, hasUnread, unreadChannelRefs, hasLoadedInitialData: true, initialLoadFailed: false });
     if (!this.diag) return;
     // SIZES ONLY — a channelRef names one specific conversation and never enters a
     // diagnostic line.
@@ -348,32 +452,59 @@ export class InboxClient {
 
   /**
    * Clear a channel/invite's unread WITHOUT opening it (the inbox-view mark-read
-   * controls). Sends `mark-read` on the inbox socket; the inbox DO advances the
-   * member's read cursor to tail on the channel DO and then pushes a fresh
-   * authoritative snapshot, which is what removes the row — there is NO optimistic
-   * local clear, so a failed mark-read honestly leaves the dot in place.
-   * Returns false when the socket is not open (the caller may surface a retry).
+   * controls). Sends `mark-read` with a fresh `requestId`; the inbox runtime advances the
+   * member's read cursor, pushes a fresh authoritative snapshot (which is what removes
+   * the dot — there is NO optimistic local clear), and answers with a
+   * `mark-read-result` naming the same request. The promise settles on that answer —
+   * never on a timer — or with `not-sent` when no socket is open, or `connection-lost`
+   * when the socket closes first.
    */
-  markRead(channelRef: string): boolean {
-    const sent = this.sendFrame(CLIENT_FRAME.MARK_READ, { channelRef });
+  markRead(channelRef: string): Promise<ChatMarkReadOutcome> {
+    const requestId = newCorrelationId();
+    const sent = this.sendFrame(CLIENT_FRAME.MARK_READ, { channelRef, requestId });
     // The ref itself is never logged — only that a mark-read was written and what the
     // unread projection looked like at that moment (the DO's snapshot is what clears it).
     this.diag?.(DIAG.INBOX_MARK_READ, { sent, unreadCount: this.state.unreadChannelRefs.length });
-    return sent;
+    if (!sent) return Promise.resolve({ ok: false, code: 'not-sent' });
+    return new Promise((resolve) => this.pendingMarkReads.set(requestId, resolve));
+  }
+
+  /** Settle the mark-read the result names; a result naming no pending request is ignored. */
+  private applyMarkReadResult(payload: Record<string, unknown> | undefined): void {
+    const parsed = ChatMarkReadResultPayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      this.diag?.(DIAG.INBOX_FRAME_DROPPED, { kind: SERVER_KINDS.MARK_READ_RESULT, reason: 'malformed-payload' });
+      return;
+    }
+    const resolve = this.pendingMarkReads.get(parsed.data.requestId);
+    if (!resolve) return;
+    this.pendingMarkReads.delete(parsed.data.requestId);
+    resolve(parsed.data.ok ? { ok: true } : { ok: false, code: parsed.data.code });
+  }
+
+  private settlePendingMarkReads(outcome: ChatMarkReadOutcome): void {
+    const pending = [...this.pendingMarkReads.values()];
+    this.pendingMarkReads.clear();
+    for (const resolve of pending) resolve(outcome);
   }
 
   /** Permanently close (auth-user switch / unmount). Idempotent. */
   close(): void {
     this.closedByUs = true;
+    this.lifecycle += 1;
     this.controller.close();
+    this.initialLoad.dispose();
     if (this.reconnectTimer != null) {
       this.timers.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
     if (this.socket) {
-      this.socket.close(1000, 'client teardown');
+      // Detach first: the socket's own late close is not this lifecycle's event.
+      const socket = this.socket;
       this.socket = null;
+      socket.close(1000, 'client teardown');
     }
+    this.settlePendingMarkReads({ ok: false, code: 'connection-lost' });
     this.setState({ status: 'closed' });
   }
 }

@@ -75,8 +75,8 @@ export const GuildChatChannelSchema = z.object({
   workProjectId: z.string(),
   channelName: z.string(),
   description: z.string().optional(),
+  // Who may use the channel is decided from this list alone, by `canAccessGuildChatChannel`.
   requiredGuildStandings: z.array(z.string()),
-  allowedUserIds: z.array(z.string()),
   createdAt: z.number(),
   // NOTE: createdBy here is a flat uid string (unlike the `{ uid }` object form on
   // most other docs). Preserved as-is; flagged in the schema-registry recon.
@@ -189,8 +189,12 @@ export const AdminDispatchSchema = z.object({
   status: z.enum(['open', 'user_reply', 'admin_reply', 'closed_resolved', 'closed_unresolved']),
   createdAt: z.number(),
   lastUpdatedAt: z.number(),
-  readByAdmin: z.boolean(),
-  readByUser: z.boolean(),
+  // Epoch ms of the thread's latest message — the anchor of each reader's per-person unread
+  // marker (`dispatchReadMarkers`). Unlike `lastUpdatedAt`, a status change or close never moves it.
+  lastMessageAt: z.number(),
+  // True while the member side spoke last and no admin has replied — the admin queue's shared
+  // "Awaiting reply" state. Not a read flag: nothing an admin opens clears it.
+  awaitingAdminReply: z.boolean(),
   closedBy: z.string().optional(),
   // Conversation Files quota counters for THIS admin-support thread — same
   // per-conversation caps and same backend-only ownership as the invite conversation.

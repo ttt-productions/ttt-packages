@@ -16,17 +16,20 @@ export type {
 } from "./types.js";
 
 // Name-resolver context.
-export type { ChatNameResolverProviderProps } from "./context/ChatNameResolverContext.js";
+export type {
+  ChatNameResolverProviderProps,
+  UnresolvedChatName,
+} from "./context/ChatNameResolverContext.js";
 export {
   ChatNameResolverProvider,
   useChatNameResolver,
   useOptionalChatNameResolver,
-  useResolvedSenderName,
+  useSenderNameResolution,
 } from "./context/ChatNameResolverContext.js";
+export { SenderName } from "./ui/SenderName.js";
 
 export type { UseChatMessagesResult } from "./hooks/useChatMessages.js";
 export { useChatMessages } from "./hooks/useChatMessages.js";
-export { canAccessThread } from "./hooks/useChatThreadAccess.js";
 
 // Realtime (Cloudflare Durable Object) transport — the client half of the chat
 // worker wire protocol. Opt-in via `ChatCoreConfig.transport === 'realtime'`; the
@@ -40,6 +43,7 @@ export {
   browserSocketFactory,
   ChatAccessDeniedError,
   isChatAccessDeniedError,
+  CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS,
   CHAT_SUBPROTOCOL,
   CHAT_CLOSE_CODES,
   CLIENT_FRAME,
@@ -58,6 +62,7 @@ export type {
   ChannelClientConfig,
   InboxClientState,
   InboxClientConfig,
+  ChatMarkReadOutcome,
   UseRealtimeChatMessagesResult,
   GrantProvider,
   TransportTimers,
@@ -65,7 +70,6 @@ export type {
   RealtimeSocket,
   SocketFactory,
   SocketHandlers,
-  ChannelRefTuple,
   WireMessageRow,
   WireInboxSnapshot,
   WireRegistryEntry,
@@ -80,7 +84,7 @@ export type {
 // nothing imports them from here today. Add them to the block above when a consumer
 // genuinely needs to apply the overlay directly. (Comment-only; rides the next publish.)
 
-export type { ChatShellProps } from "./ui/ChatShell.js";
+export type { ChatShellProps, ChatLoadFailure } from "./ui/ChatShell.js";
 export { ChatShell } from "./ui/ChatShell.js";
 export { MessageList } from "./ui/MessageList.js";
 export type { ComposerProps } from "./ui/Composer.js";

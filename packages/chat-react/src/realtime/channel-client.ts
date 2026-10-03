@@ -60,6 +60,7 @@ import {
   SEND_RETRY_MIN_DELAY_MS,
   SEND_RETRY_MAX_DELAY_MS,
 } from './shared.js';
+import { InitialLoadBudget } from './initial-load-budget.js';
 
 /** An un-acked send tracked for reconnect resend (clientMessageId idempotency). */
 interface PendingSend {
@@ -116,6 +117,15 @@ export interface ChannelClientState {
    * A grant retry / socket open before any snapshot leaves it false.
    */
   hasLoadedInitialData: boolean;
+  /**
+   * True once the first open has failed for good enough to say so: attempts have kept
+   * failing for {@link CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS} without any initial data, or
+   * reconnecting stopped (gave up, or the socket was revoked) before any. The client keeps
+   * retrying in the background; the first authoritative data, or a manual `retryNow()`,
+   * clears it. Never true once initial data has loaded — a later outage keeps the loaded
+   * messages under the reconnect banner instead.
+   */
+  initialLoadFailed: boolean;
 }
 
 export interface ChannelClientConfig {
@@ -152,6 +162,7 @@ const INITIAL: ChannelClientState = {
   hasOlder: true,
   lastErrorCode: null,
   hasLoadedInitialData: false,
+  initialLoadFailed: false,
 };
 
 /**
@@ -228,6 +239,15 @@ export class ChannelClient {
   private membershipRetryTimer: ReturnType<TransportTimers['setTimeout']> | null = null;
   private closedByUs = false;
   /**
+   * The current lifecycle's number, advanced by every `connect()` and `close()`. A grant
+   * that resolves, or a timer that fires, for an older lifecycle is dropped — so a
+   * close → connect while an earlier grant is still minting can never open a second
+   * socket or touch the new lifecycle's state (FRONTEND-108).
+   */
+  private lifecycle = 0;
+  /** Reports the first open as failed once its attempts have failed for the budget. */
+  private readonly initialLoad: InitialLoadBudget;
+  /**
    * Per-seq moderation overlay (the max-revision wins). A `revision` frame writes
    * here keyed by `messageSeq` so it applies whether it arrives BEFORE its base
    * row (re-applied when the row later renders) or AFTER (re-renders the present
@@ -258,7 +278,7 @@ export class ChannelClient {
   /** Monotonic socket-open attempt counter (diagnostics correlation only). */
   private connectAttempt = 0;
   /** Why the CURRENT connect attempt is happening (diagnostics only). */
-  private reconnectCause: 'initial' | 'auth-expired' | 'transient-close' | 'grant-error' = 'initial';
+  private reconnectCause: 'initial' | 'auth-expired' | 'transient-close' | 'grant-error' | 'manual-retry' = 'initial';
   /** The last close code observed, carried into the next attempt's cause line. */
   private lastCloseCode: number | null = null;
 
@@ -266,6 +286,7 @@ export class ChannelClient {
     this.timers = config.timers ?? defaultTimers;
     this.controller = createReconnectController(config.reconnect ?? {});
     this.diag = createDiagnosticsEmitter(config.diagnostics);
+    this.initialLoad = new InitialLoadBudget(this.timers, () => this.reportInitialLoadFailed());
   }
 
   // ---- observable store ----
@@ -287,6 +308,37 @@ export class ChannelClient {
   // ---- connection lifecycle ----
 
   async connect(): Promise<void> {
+    return this.startLifecycle(true);
+  }
+
+  /**
+   * Retry now (the first-open failure's Retry). While a reconnect is waiting out its
+   * backoff, the wait is cancelled and a socket opens at once; a lifecycle that stopped
+   * (reconnect gave up, or the socket was revoked) starts again; an attempt already in
+   * flight is left to finish. Either way the first-open failure clears, so the opening state
+   * shows while the retry runs. The spent budget stays spent: a retry that fails is reported
+   * again at once, and one that hangs a full budget later.
+   */
+  retryNow(): void {
+    if (!this.state.hasLoadedInitialData) this.initialLoad.manualRetry();
+    if (this.state.status === 'closed') {
+      void this.startLifecycle(false);
+      return;
+    }
+    if (this.reconnectTimer == null) {
+      if (this.state.initialLoadFailed) this.setState({ initialLoadFailed: false });
+      return;
+    }
+    this.timers.clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+    this.controller.reset();
+    this.controller.start();
+    this.reconnectCause = 'manual-retry';
+    this.setState({ status: 'reconnecting', initialLoadFailed: false });
+    void this.openSocket();
+  }
+
+  private async startLifecycle(freshBudget: boolean): Promise<void> {
     // Idempotency guard (C-B7): connect() only starts a lifecycle from a fresh
     // (idle) or fully torn-down (closed) state. A second connect() while one is
     // already connecting / open / reconnecting is a no-op, so a stray double-owner
@@ -311,13 +363,28 @@ export class ChannelClient {
     // restart must not churn the UI back to an empty opening state.
     if (isTerminalErrorCode(this.state.lastErrorCode)) this.setState({ lastErrorCode: null });
     this.closedByUs = false;
+    this.lifecycle += 1;
     this.reconnectCause = 'initial';
+    if (!this.state.hasLoadedInitialData) this.initialLoad.begin(freshBudget);
     this.controller.start();
-    this.setState({ status: 'connecting' });
+    this.setState({ status: 'connecting', initialLoadFailed: false });
     await this.openSocket();
   }
 
+  /** The first open has failed for long enough to say so (see `initialLoadFailed`). */
+  private reportInitialLoadFailed(): void {
+    if (this.state.hasLoadedInitialData || this.state.initialLoadFailed) return;
+    this.setState({ initialLoadFailed: true });
+  }
+
+  /** The first authoritative data is applied; it ends any first-open failure. */
+  private initialDataLoaded(): Partial<ChannelClientState> {
+    this.initialLoad.loaded();
+    return { hasLoadedInitialData: true, initialLoadFailed: false };
+  }
+
   private async openSocket(): Promise<void> {
+    const lifecycle = this.lifecycle;
     this.connectAttempt += 1;
     this.diag?.(DIAG.CONNECT_ATTEMPT, {
       attempt: this.connectAttempt,
@@ -330,6 +397,8 @@ export class ChannelClient {
     try {
       grantToken = await this.config.grantProvider();
     } catch (err) {
+      // A grant for a lifecycle that has since been closed or restarted answers nobody.
+      if (lifecycle !== this.lifecycle) return;
       // A TERMINAL access denial (the app's grant provider translated an
       // authoritative policy "no" into the package-owned ChatAccessDeniedError)
       // must NOT reconnect — the next mint would just re-deny, stranding the shell
@@ -340,23 +409,38 @@ export class ChannelClient {
       this.diag?.(DIAG.GRANT_FAILED, { attempt: this.connectAttempt, terminal });
       if (terminal) return this.denyAccessTerminally();
       this.reconnectCause = 'grant-error';
+      if (!this.state.hasLoadedInitialData) this.initialLoad.noteFailedAttempt();
       return this.scheduleReconnect();
     }
-    if (this.closedByUs) return;
+    // A grant minted for an earlier lifecycle must never open a socket in this one.
+    if (lifecycle !== this.lifecycle || this.closedByUs) return;
     // Socket REPLACEMENT: the previous socket's liveness record dies with it, so
     // the watchdog never judges a new socket against an old deadline.
     this.lastInboundAt = null;
     const url = `${this.config.endpoint.replace(/\/$/, '')}/channel`;
-    this.socket = this.config.socketFactory({
+    // Every callback is fenced to THIS socket: once it has been replaced or torn down,
+    // its late open, frames, and close are ignored.
+    let socket: RealtimeSocket | null = null;
+    const isCurrent = () => socket !== null && this.socket === socket;
+    socket = this.config.socketFactory({
       url,
       grantToken,
       handlers: {
-        onOpen: () => this.onOpen(),
-        onMessage: (data) => this.onMessage(data),
-        onClose: (code, reason) => this.onClose(code, reason),
-        onError: () => this.onError(),
+        onOpen: () => {
+          if (isCurrent()) this.onOpen();
+        },
+        onMessage: (data) => {
+          if (isCurrent()) this.onMessage(data);
+        },
+        onClose: (code, reason) => {
+          if (isCurrent()) this.onClose(code, reason);
+        },
+        onError: () => {
+          if (isCurrent()) this.onError();
+        },
       },
     });
+    this.socket = socket;
   }
 
   private onOpen(): void {
@@ -716,6 +800,8 @@ export class ChannelClient {
     this.socket = null;
     this.lastInboundAt = null;
     this.lastCloseCode = code;
+    // An older-history request in flight died with the socket; nothing will answer it.
+    if (this.state.isFetchingOlder) this.setState({ isFetchingOlder: false });
     if (this.closedByUs) {
       this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: true, outcome: 'closed', resumeSeq: this.resumeSeq });
       this.setState({ status: 'closed' });
@@ -740,9 +826,12 @@ export class ChannelClient {
       this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: false, outcome: 'revoked', resumeSeq: this.resumeSeq });
       this.failAllPendingSends();
       this.setState({ status: 'closed', lastErrorCode: TERMINAL_ERROR_CODE.REVOKED });
+      // Revoked before anything loaded: the first open has failed, and nothing retries it.
+      this.reportInitialLoadFailed();
       return;
     }
     this.reconnectCause = 'transient-close';
+    if (!this.state.hasLoadedInitialData) this.initialLoad.noteFailedAttempt();
     this.diag?.(DIAG.SOCKET_CLOSE, { code, closedByUs: false, outcome: 'reconnect', resumeSeq: this.resumeSeq });
     this.scheduleReconnect();
   }
@@ -760,12 +849,15 @@ export class ChannelClient {
       // an eternal "Sending…"; flip them to the visible failed/retry state.
       this.failAllPendingSends();
       this.setState({ status: 'closed' });
+      // Gave up before anything loaded: nothing retries the first open any more.
+      this.reportInitialLoadFailed();
       return;
     }
     this.setState({ status: 'reconnecting' });
+    const lifecycle = this.lifecycle;
     this.reconnectTimer = this.timers.setTimeout(() => {
       this.reconnectTimer = null;
-      if (this.closedByUs) return;
+      if (this.closedByUs || lifecycle !== this.lifecycle) return;
       void this.openSocket();
     }, delay);
   }
@@ -782,6 +874,7 @@ export class ChannelClient {
   private denyAccessTerminally(): void {
     this.closedByUs = true;
     this.controller.close();
+    this.initialLoad.dispose();
     this.failAllPendingSends();
     this.setState({ status: 'closed', lastErrorCode: TERMINAL_ERROR_CODE.ACCESS_DENIED });
   }
@@ -983,7 +1076,7 @@ export class ChannelClient {
       // A non-resync snapshot IS the first authoritative data (even an empty delta =
       // caught up) — end initial loading. A resync snapshot instead defers to the
       // re-paged first history page below, so it must NOT end it here.
-      if (!this.state.hasLoadedInitialData) this.setState({ hasLoadedInitialData: true });
+      if (!this.state.hasLoadedInitialData) this.setState(this.initialDataLoaded());
       return;
     }
 
@@ -1158,9 +1251,9 @@ export class ChannelClient {
       isFetchingOlder: false,
       hasOlder: rows.length >= HISTORY_PAGE_MAX,
       // The first history page — INCLUDING an empty one — is a successful authoritative
-      // load, so it ends initial loading. (Older-page fetches redundantly re-set true,
-      // which is a harmless no-op since the flag never flips back to false.)
-      hasLoadedInitialData: true,
+      // load, so it ends initial loading. An older page arrives only after it, so this
+      // never runs a second time.
+      ...(this.state.hasLoadedInitialData ? {} : this.initialDataLoaded()),
     });
     if (!this.diag) return;
     const seqs = rows.map((r) => r.seq).filter((s): s is number => typeof s === 'number');
@@ -1286,12 +1379,14 @@ export class ChannelClient {
     const oldest = this.state.messages.find((m) => typeof m.meta?.seq === 'number');
     const beforeSeq = oldest && typeof oldest.meta?.seq === 'number' ? (oldest.meta.seq as number) : null;
     this.setState({ isFetchingOlder: true });
-    this.requestHistory(beforeSeq);
+    // Unsent (the socket is down): nothing will answer, so it is not in flight.
+    if (!this.requestHistory(beforeSeq)) this.setState({ isFetchingOlder: false });
   }
 
-  private requestHistory(beforeSeq: number | null): void {
+  private requestHistory(beforeSeq: number | null): boolean {
     const sent = this.sendFrame(CLIENT_FRAME.HISTORY, { beforeSeq, limit: HISTORY_PAGE_MAX });
     this.diag?.(DIAG.HISTORY_REQUEST, { beforeSeq, limit: HISTORY_PAGE_MAX, sent });
+    return sent;
   }
 
   // ---- heartbeat (20s) + dead-socket watchdog ----
@@ -1352,7 +1447,9 @@ export class ChannelClient {
   /** Permanently close this client (auth-user switch / unmount). Idempotent. */
   close(): void {
     this.closedByUs = true;
+    this.lifecycle += 1;
     this.controller.close();
+    this.initialLoad.dispose();
     this.stopHeartbeat();
     // The heartbeat timer IS the watchdog's timer — stopping it above ends both.
     // Clearing the record too means a later connect() starts from a clean deadline.
@@ -1373,10 +1470,12 @@ export class ChannelClient {
       this.membershipRetryTimer = null;
     }
     if (this.socket) {
-      this.socket.close(1000, 'client teardown');
+      // Detach first: the socket's own late close is not this lifecycle's event.
+      const socket = this.socket;
       this.socket = null;
+      socket.close(1000, 'client teardown');
     }
-    this.setState({ status: 'closed', typing: [], presence: [] });
+    this.setState({ status: 'closed', typing: [], presence: [], isFetchingOlder: false });
   }
 }
 

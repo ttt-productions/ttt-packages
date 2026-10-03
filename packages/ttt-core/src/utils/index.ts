@@ -2,6 +2,8 @@ export * from './admin-standing.js';
 export * from './age-derivation.js';
 export * from './app-config.js';
 export * from './format.js';
+export * from './guild-chat-access.js';
+export * from './guild-invite-system-message.js';
 export * from './hall-content.js';
 export * from './password.js';
 export * from './public-documents.js';

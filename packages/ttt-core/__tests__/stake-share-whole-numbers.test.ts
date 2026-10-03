@@ -33,3 +33,15 @@ describe('stored stake-share offers are whole, positive numbers', () => {
     }
   });
 });
+
+describe('one stake-share offer constraint', () => {
+  it('every offer site uses the one atom', async () => {
+    const { stakeSharesOfferedSchema } = await import('../src/schemas/atoms');
+    const { CommissionPostingTargetInfoSchema } = await import('../src/media/target-info');
+    expect(FullCommissionListingSchema.shape.stakeSharesOffered).toBe(stakeSharesOfferedSchema);
+    expect(CommissionPostingTargetInfoSchema.shape.stakeSharesOffered).toBe(stakeSharesOfferedSchema);
+    for (const bad of [0, 1.5, MAX_WORK_PROJECT_STAKE_SHARES + 1]) {
+      expect(stakeSharesOfferedSchema.safeParse(bad).success).toBe(false);
+    }
+  });
+});

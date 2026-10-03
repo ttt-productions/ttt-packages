@@ -53,3 +53,14 @@ export const UpdateCraftSkillTagsResultSchema = z.object({
 export type UpdateCraftSkillTagsResult = z.infer<typeof UpdateCraftSkillTagsResultSchema>;
 
 
+
+// getOwnHiddenCraftSkillCount — how many of the caller's OWN crafts moderation hid. A hidden craft
+// still holds one of the caller's craft slots, but it is unreadable to everyone, its owner
+// included, so the owner's counter learns the number from the server. Only the count is answered.
+export const GetOwnHiddenCraftSkillCountInputSchema = z.object({}).strict();
+export type GetOwnHiddenCraftSkillCountInput = z.infer<typeof GetOwnHiddenCraftSkillCountInputSchema>;
+
+export const GetOwnHiddenCraftSkillCountResultSchema = z.object({
+  hiddenCount: z.number().int().nonnegative(),
+});
+export type GetOwnHiddenCraftSkillCountResult = z.infer<typeof GetOwnHiddenCraftSkillCountResultSchema>;

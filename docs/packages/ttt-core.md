@@ -212,15 +212,70 @@ TTT Productions application-data package.
   erasure must act on. The scrub's safety-hold carve-out overrides every destructive fate.
 - User-status provenance: `FullUserSchema.statusUpdatedBy` is optional until a status first changes, then is always either the authenticated actor's uid or a stable namespaced system actor identifier (for example `system:autoHashLock`), never `null`.
 - The notification type catalog and broadcast/archive schemas (`./schemas/notification` — `NotificationType`, `NOTIFICATION_TYPE_CATALOG`, broadcast/archive input schemas), and the Ops Repairs contracts for a dead-lettered fanout job: `DeadLetteredFanoutJobRowSchema` (job id, type, `priority` as the job stores it — `NotificationFanoutPrioritySchema`, 0, 1, or 2 — park time, last error, age), `ListDeadLetteredFanoutJobsResultSchema`, and `ResumeFanoutJobResultSchema`, beside `ResumeFanoutJobInputSchema`. Each type's `metadata` shape is `NotificationMetadataByTypeSchema`, ids only — a `guild_invite` carries the Work and invite ids and the card resolves the Work's title when it renders — and `validateNotificationMetadata(type, metadata)` is the one check of a reliable-lane row's or fanout job's metadata against its type (metadata never carries the `type` key itself)
+  - `admin_dispatch_created` signals the first message of an admin-started thread (title 'Admin Message', message 'An admin has created a new thread message').
 - The published Hall text-change contract: `HallContentChangeRequestSchema` is a plain, top-level-diffable document schema whose `surface` is the single authoritative discriminator and whose `proposedFields` is a FLAT field map. The strict per-surface rule — allowlist plus per-field caps, both read from the canonical `HALL_CONTENT_TEXT_FIELDS` / `HALL_CONTENT_TEXT_FIELD_MAX` owners — is the exported `validateHallContentTextFields`, which the backend calls at its boundary before persisting or applying a proposal. There is no second allowlist and no nested patch shape.
 - Hall PUBLICATION requirements: the published shapes carry them as REQUIRED fields (all three covers on `PublishedHallItemSchema`; the picture plus the type's media on the published chapter/track/episode), while the working `Full*` shapes stay able to represent incomplete content. The per-work-type submit/approve/publish rule itself is one owner — `HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE` with `HALL_SUB_ITEM_REQUIREMENT_LABELS` and the pure `unmetHallSubItemRequirements` / `isHallSubItemPublishable` — so the member-side eligibility filter and all three backend cores read the same definition instead of restating the branch. The sub-item LOCK is one owner beside it (`utils/hall-content`): `HALL_SUB_ITEM_LOCKED_STATUSES` (`pending_approval`, `published` — typed against the chapter / track / episode `status` field, exported as `HallSubItemStatus`) and the pure `isHallSubItemLocked(status)`, true exactly for those two, so the backend lock checks and the editors decide from one definition.
 - A terminally parked Hall publish is visible on the threshold document: the optional `publishParkedReason` (bounded by `MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH`) + `publishParkedAt` on `ThresholdItemSchema`. It adds no status value — `reviewStatus` keeps its three states and the admin unwind path is unchanged.
 - Closed field maps for the computed-key writers: `MODERATION_CLEARABLE_TEXT_FIELDS` (per clearable surface), `WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD` (work shell text field → its published hall-item field), and `HALL_LIBRARY_TARGET_FIELDS` (upload origin → the doc field that receives the media-asset id). Each is `as const satisfies`, and a package test proves every value is a field the target document's schema actually declares, so a writer may keep its computed-key form without escaping the registry. `HALL_LIBRARY_TARGET_FIELDS` additionally ships the two WRITE-LEVEL subsets derived from that one map — the hall-parent cover origins and the chapter/track/episode sub-item origins, with their key-union types and type guards — so a processor that owns one level indexes only the fields the document it writes declares, and an origin added to the parent map fails to build until it is classified. The distinct fields of each subset ship too — `HALL_LIBRARY_COVER_ASSET_FIELDS` (the Hall parent's cover fields) and `HALL_LIBRARY_SUB_ITEM_ASSET_FIELDS` (a chapter / track / episode's media fields) — derived from the maps, so a reader that walks every Hall media reference (the orphan reaper, the Realm hide/restore cascade, the publisher) never restates a field list.
 - `AuditEventType` catalog, `TTTAuditActor`, `TTTAuditTarget`, and `TTTAuditEvent` specialization of the `@ttt-productions/audit-core` generic. The union names the events the app writes, plus the two its planned legal-process intake owes (`childSafety.legalProcessRecorded`, `childSafety.evidenceDisposed`): public documents change only through `publicDocuments.released` (no per-page seed or edit types), a file reaches a Realm through its share request and approval (no instant-share type), and a Realm is recorded at its release. Credential and session records have their own types — `user.signedIn` (the sign-in the Identity Platform hook records) and `user.passwordResetCompleted` (a completed password reset, recorded from Identity Platform's own request log); there is no type for a password change, an email change, or an email recovery, which no server step records. The audit document carries the request origin in its own `ip`, `userAgent`, and `region` fields. A support thread has no deletion event: a thread is closed, never deleted.
+- **TTT's realtime conversations** (`ids/guild-chat-conversation`, root): `GuildChatConversation`
+  — a Work's guild chat channel (`{ kind: 'channel', workProjectId, guildChatChannelId }`) or a guild
+  invite's conversation (`{ kind: 'invite', guildInviteId }`), `GUILD_CHAT_CONVERSATION_KINDS` — and its
+  one mapping onto the chat packages' neutral `ChatConversationRef` (`chat-schemas`):
+  `toChatConversationRef` (kinds `guildChannel` / `guildInvite` from
+  `CHAT_CONVERSATION_REF_KIND_BY_GUILD_KIND`; a channel's id is `workProjectId/guildChatChannelId`, safe
+  because every TTT id is one path segment) and `fromChatConversationRef` (null for a reference that names
+  no TTT conversation). The chat packages and the chat Worker see only the neutral reference.
+  `GuildChatConversationSchema` (`schemas/chat`) is the one wire shape of a conversation: the grant
+  request's two conversation arms (`ChatGrantInputSchema`), the admin moderation and context-read inputs,
+  and the staged chat tombstone all take it; `parseChatChannelRef` (`report/chat-report-channel-ref`)
+  reads a chat report's hint pair into it.
+- **One access rule per conversation kind** (`utils/guild-chat-access`, root + `./utils`):
+  `canAccessGuildChatChannel(member, channel)` — an active person Guildmate (never the founding-Work
+  holder) of a channel that is not deleted, holding a required standing OR trade profession; an empty
+  requirement admits every active Guildmate. `guildInvitePartyOf({ uid, senderUid, recipientUid, member })`
+  — `recipient`, or `work` for the sender and for every active person Guildmate holding an invite-handling
+  standing (`GUILD_INVITE_HANDLER_GUILD_STANDING_IDS`: Steward, WorkProject Manager, Invite Manager), who
+  see the conversation, reply in it, and accept for the Work; `canAccessGuildInviteConversation` adds
+  that the invite is live (`GUILD_INVITE_CONVERSATION_LIVE_STATUSES`: `pending`, `accepted`);
+  `canCancelGuildInvite(member)` — an active person Guildmate whose standings grant `guildInvite.revokeAny`
+  (a sender holding none cannot cancel). A guild chat channel stores no member list: its
+  `requiredGuildStandings` is the whole access input, and the create/update inputs take nothing else.
+- **Invite system messages** (`utils/guild-invite-system-message`, root + `./utils`): what an invite's
+  conversation records — `agreed` / `declined` / `cancelled` / `retracted` (with `actorUid`),
+  `finalized` (with `recipientUid`), `offerUpdated` (with `stakeShares`) — as
+  `GuildInviteSystemMessageSchema`. `encodeGuildInviteSystemMessage` writes one as `chat-schemas`'
+  `ChatServerMessagePayload`: the system sender, the event as text, and the account it names in
+  `referencedUids` — never inside the text and never a name (ARCH-103) — so the room's account
+  anonymization rewrites it like a sender. `decodeGuildInviteSystemMessage(message)` reads one back from a
+  message, and only from a message the server wrote (`senderId` is `CHAT_SYSTEM_SENDER_ID`): a member who
+  types the same text sends an ordinary message. `guildInviteSystemMessageSegments` is the one place each
+  sentence is written, with a name slot wherever it names an account, so the conversation shows each
+  person's current name.
+- **A channel change's enforcement** (`schemas/chat`): the one result of the five channel-lifecycle
+  callables, `GuildChatChannelLifecycleResultSchema`, carries `enforcement`
+  (`GUILD_CHAT_CHANNEL_ENFORCEMENT_STATES`: `applied` — the chat Worker already enforces the change;
+  `pending` — committed and queued). Never a failure. `SendGuildChatMessageInputSchema.text` is bounded by
+  `chat-schemas`' `CHAT_MESSAGE_TEXT_MAX_LENGTH`, the one chat text bound.
+- **A chat room's parked deliveries** (`doc-schemas/chat-sync`): `chatParkedDeliveries/{deliveryId}`
+  (`COLLECTIONS.CHAT_PARKED_DELIVERIES`, `PATH_BUILDERS.chatParkedDelivery`, registry-bound, retained by an
+  erasure) holds one delivery a channel or inbox room parked, as the room reported it through its signed
+  call — `ChatParkedDeliverySchema` extends `chat-schemas`' `ChatParkedDeliveryReportSchema` with the
+  replay ledger (`status`: `deadLetter` / `pending` / `delivered`, `attemptCount`, `nextAttemptAt`,
+  `lastError`, `createdAt`, `deadLetteredAt`, `deliveredAt`, native-TTL `expireAt`). The id is
+  `chatParkedDeliveryId(targetDo, eventId, parkedAt)` — one parking of one room row. It is the
+  `chatParkedDeliveries` lane of `DeadLetterCollectionSchema` (a flat lane, so the generic replay reset
+  applies) with its `DEAD_LETTER_COLLECTION_LABELS` entry.
+- **Audition deadlines** (`constants/audition-deadlines`): an audition carries two poster-picked deadlines, `entriesCloseAt` and `auditionCloseAt` (epoch ms), on the doc, both prompt target infos, and both upload-variables schemas. The minimum gaps are named (`AUDITION_MIN_ENTRY_WINDOW_MS` 7 days from posting, `AUDITION_MIN_VOTING_AFTER_ENTRIES_MS` 24 hours after entries close); every wire schema carrying both refines with `refineAuditionDeadlineOrder`, and the posting-time gap is `auditionDeadlineProblem(deadlines, postedAt)`, checked when the upload starts and again at publish against the submit time. `areAuditionEntriesOpen(audition, submittedAt)` judges an entry by its submit time; `isAuditionVotingOpen(audition, now)` judges a vote by now — the one predicate pair the server enforces and the UI offers from. The pickers open on `defaultAuditionEntriesCloseAt(today)` (end of day three weeks out) and `defaultAuditionCloseAt(entriesCloseAt)` (end of the next day). "Ending Soon" sorts by `auditionCloseAt`.
+- **Admin audition by type**: the admin prompt target info and variables are discriminated by `type` — a sponsored audition requires `sponsoredAuditionAmountUSD` (`SponsoredAuditionAmountUSDSchema`: positive, finite, up to `MAX_SPONSORED_AUDITION_AMOUNT_USD`); a platform audition carries none.
+- **Owner-only answers** (`schemas/auditions`, `schemas/craft-skills`): `getOwnAuditionEntryStatus` (`none | visible | underReview`) and `getOwnHiddenCraftSkillCount` (`hiddenCount`) — inputs and results only; moderation-hidden entries and crafts stay unreadable to everyone, their owner included.
+- **Dispatch read markers** (`doc-schemas/admin-dispatch-read-markers`): one `AdminDispatchReadMarkerSchema` per member-side reader under `pendingAdminDispatches/{id}/dispatchReadMarkers/{uid}`; `hasUnseenAdminDispatchMessage(thread, marker)` is the one unread predicate; `MarkAdminDispatchReadInputSchema` carries `seenThroughMessageAt` and the result the committed `lastSeenMessageAt`. The admin queue's state is the thread's `awaitingAdminReply`, never a read flag.
+- **Tray Safety Cases cap** (`constants/pagination`): `SAFETY_CASE_TRAY_COUNT_CAP` (100), `SAFETY_CASE_TRAY_READ_LIMIT` (cap + 1), `formatSafetyCaseTrayCount` ("100+" above the cap); and `ITEMS_PER_PAGE_ADMIN_TASK_BROWSE` (12) for the admin task browse list.
 - **Chat-edge-rebuild concrete contracts (P1):**
   - The frozen deterministic ID/`hash()` helpers in `src/ids/chat-ids.ts`
     (canonical domain-tagged SHA-256 via `edge-protocol-core`'s runtime-neutral
-    `sha256Hex`; ALL async): `channelKey`/`authPairKey`, the `chatSyncEvents`
+    `sha256Hex`; ALL async): `channelKey`/`authPairKey` (over the neutral `ChatConversationRef`:
+    `hash('chat-conversation', kind, id)`), `chatParkedDeliveryId`, the `chatSyncEvents`
     eventIds, `chatSyncFanoutJobId`, the degraded-cause/scope keys, the inbox
     projection eventId, `notificationDeliveryId`/archive ids (the active-card id
     is NOT here — it is `notification-core`'s `buildActiveNotificationDocId`), the
@@ -443,6 +498,15 @@ When adding a new invite source or commission-proposal lifecycle state, update t
 
 
 ## Work guild-standing and action ownership
+
+Every defined Work action is enforced by the server or absent from the catalog. The standing lists the
+rules read are declared once beside the catalog and each action's grant reads its list:
+`WORK_FILE_ADMIN_GUILD_STANDING_IDS` (the file-system administrators — every file action, and
+`isWorkFileAdmin`), `GUILD_INVITE_HANDLER_GUILD_STANDING_IDS` (`guildInvite.send` / `.list` /
+`.revokeAny`), and `STAKE_SHARE_POWER_GUILD_STANDING_IDS` (`workProject.stakeShares.addActive`,
+`guildInvite.stakeShares.update` — so only the stake-power standings change stake amounts, an invite's
+offer included). `guildStandingsGrantAction(guildStandings, action)` is the one reading of a grant; the
+active-Guildmate floor stays the caller's check.
 
 `ttt-core` owns the work guild-standing contract consumed by both `ttt-prod` frontend code and Cloud Functions code. The durable source files are:
 

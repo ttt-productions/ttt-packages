@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { type Functions } from "firebase/functions";
 import {
   callCallable,
   type CallCallableCallbacks,
   type CallCallableTransport,
+  type FunctionsProvider,
 } from "../client/call-callable.js";
 
 /** Alias of the shared callback contract — kept for existing consumers' imports. */
@@ -16,7 +16,7 @@ export interface UseCallableMutationOptions extends CallableMutationCallbacks, C
    * Returns the Functions instance. Lazy so SSR-safe.
    * Required.
    */
-  getFunctions: () => Functions | null | undefined;
+  getFunctions: FunctionsProvider;
 }
 
 export interface UseCallableMutationResult {
@@ -52,22 +52,13 @@ export function useCallableMutation(
       functionName: string,
       data?: TRequest,
     ): Promise<TResponse> => {
-      const functions = getFunctions();
-      if (!functions) {
-        const err = new Error(
-          "Firebase Functions is not available in this environment.",
-        );
-        captureRef.current?.(err, { functionName });
-        throw err;
-      }
       setInFlight((n) => n + 1);
       try {
-        // Delegate to the ONE shared invocation primitive (owns the
-        // undefined-strip + error-callback contract + total-invocation
-        // deadline + the limited-use App Check opt-in — see
-        // client/call-callable.ts).
+        // The ONE shared invocation primitive acquires Functions from the provider
+        // inside its own error tail, so an unavailable provider reaches capture and
+        // onError exactly like a failed call.
         return await callCallable<TRequest, TResponse>(
-          functions,
+          getFunctions,
           functionName,
           data,
           {
@@ -91,7 +82,7 @@ export function useCallableMutation(
  * that don't want to thread it through every hook call. Overrides accept the
  * full option surface minus the bound provider (callbacks + transport).
  */
-export function createCallableClient(getFunctions: () => Functions | null | undefined) {
+export function createCallableClient(getFunctions: FunctionsProvider) {
   return {
     useCallableMutation: (overrides?: Omit<UseCallableMutationOptions, "getFunctions">) =>
       useCallableMutation({ getFunctions, ...overrides }),

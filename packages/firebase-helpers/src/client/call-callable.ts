@@ -113,6 +113,28 @@ export function stripUndefinedDeep<T>(value: T): T {
   return value;
 }
 
+/**
+ * Supplies the Functions instance for one invocation. It may be lazy (an async import of
+ * the app's Firebase init) and may answer null/undefined where Functions is unavailable.
+ */
+export type FunctionsProvider = () =>
+  | Functions
+  | null
+  | undefined
+  | Promise<Functions | null | undefined>;
+
+/** The error an invocation fails with when its provider has no Functions instance. */
+export const FUNCTIONS_UNAVAILABLE_MESSAGE =
+  "Firebase Functions is not available in this environment.";
+
+function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { then?: unknown }).then === "function"
+  );
+}
+
 /** Firebase-shaped deadline error: consumers classify on `code`, same as SDK errors. */
 function deadlineExceededError(functionName: string, timeoutMs: number): Error {
   const error = new Error(
@@ -126,14 +148,17 @@ function deadlineExceededError(functionName: string, timeoutMs: number): Error {
 /**
  * Invoke a Firebase Callable Function — the ONE shared invocation primitive.
  * `useCallableMutation` (./react) delegates here; non-hook contexts (pre-auth
- * flows, plain modules) call it directly. Owns the undefined-strip (see
- * stripUndefinedDeep), the generic error-callback contract, and the optional
- * total-invocation deadline, and the limited-use App Check opt-in plus its
- * one-shot throttle fallback (see CallCallableTransport); consumers own
- * toast/UX semantics.
+ * flows, plain modules) call it directly. Owns acquiring Functions from the
+ * provider, the undefined-strip (see stripUndefinedDeep), the generic
+ * error-callback contract, and the optional total-invocation deadline, and the
+ * limited-use App Check opt-in plus its one-shot throttle fallback (see
+ * CallCallableTransport); consumers own toast/UX semantics.
+ *
+ * Every failure — a provider that throws or has no instance included — reaches
+ * `captureException` once and `onError` once, then rethrows.
  */
 export async function callCallable<TRequest = unknown, TResponse = unknown>(
-  functions: Functions,
+  getFunctions: FunctionsProvider,
   functionName: string,
   data?: TRequest,
   callbacks?: CallCallableCallbacks,
@@ -169,6 +194,21 @@ export async function callCallable<TRequest = unknown, TResponse = unknown>(
         : new Promise<never>((_, reject) => {
             timer = setTimeout(() => reject(deadlineExceededError(functionName, timeoutMs)), timeoutMs);
           });
+    // A synchronous provider is used as-is, so the SDK is invoked in the same tick
+    // as the call; only an async provider is awaited (inside the deadline).
+    const provided = getFunctions();
+    let instance: Functions | null | undefined;
+    if (isPromiseLike(provided)) {
+      const acquiring = Promise.resolve(provided);
+      // A provider still pending when the deadline wins must not surface later as an
+      // unhandled rejection.
+      if (deadline !== undefined) void acquiring.catch(() => {});
+      instance = await (deadline === undefined ? acquiring : Promise.race([acquiring, deadline]));
+    } else {
+      instance = provided;
+    }
+    if (!instance) throw new Error(FUNCTIONS_UNAVAILABLE_MESSAGE);
+    const functions = instance;
     const payload = stripUndefinedDeep(data) as TRequest;
     const attempt = (limitedUse: boolean): Promise<HttpsCallableResult<TResponse>> => {
       const fn: HttpsCallable<TRequest, TResponse> = httpsCallable(

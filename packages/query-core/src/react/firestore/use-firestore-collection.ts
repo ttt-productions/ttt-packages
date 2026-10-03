@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import {
   collection,
@@ -11,9 +11,9 @@ import {
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
+import { useSubscriptionStatus } from './subscription-status.js';
 import type {
   FirestoreCollectionOptions,
-  FirestoreSourceState,
   WithId,
   WithSourceState,
 } from '../../firestore/types.js';
@@ -57,16 +57,20 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
   const queryKeyMemo = JSON.stringify(queryKey);
 
   // Listener errors can't surface through useQuery (the queryFn is disabled while
-  // subscribed), so they're tracked here and merged into the returned result.
-  const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
-  // Metadata-derived source state — reset whenever the subscription identity changes.
-  const [sourceState, setSourceState] = useState<FirestoreSourceState>('connecting');
+  // subscribed), so they're tracked per subscription identity and merged into the result.
+  const {
+    error: subscriptionError,
+    sourceState,
+    reset: resetStatus,
+    update: updateStatus,
+  } = useSubscriptionStatus(
+    JSON.stringify([collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe]),
+  );
 
   useEffect(() => {
     if (!subscribe || !enabled) return;
 
-    setSubscriptionError(null);
-    setSourceState('connecting');
+    resetStatus();
 
     // Bounded resubscribe: a transient `permission-denied` (e.g. a failed mid-session
     // App Check token refresh) is retried on the RESUBSCRIBE_DELAYS_MS ladder before the
@@ -89,7 +93,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
         { includeMetadataChanges: true },
         (snapshot) => {
           attempt = 0;
-          setSubscriptionError(null);
+          updateStatus({ error: null });
           const items = snapshot.docs.map((docSnap) => {
             const rawData = docSnap.data();
             const dataWithId = { id: docSnap.id, ...rawData };
@@ -98,7 +102,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
           });
           queryClient.setQueryData(queryKey, items);
           const fromCache = snapshot.metadata?.fromCache ?? false;
-          setSourceState((prev) => (fromCache ? (prev === 'connecting' ? 'connecting' : 'offline') : 'live'));
+          updateStatus((prev) => ({ sourceState: fromCache ? (prev.sourceState === 'connecting' ? 'connecting' : 'offline') : 'live' }));
         },
         (error) => {
           // Heal a transient permission-denied by resubscribing on the backoff ladder,
@@ -109,13 +113,12 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
             currentUnsubscribe = null;
             const delay = RESUBSCRIBE_DELAYS_MS[attempt];
             attempt += 1;
-            setSourceState('connecting');
+            updateStatus({ sourceState: 'connecting' });
             retryTimer = setTimeout(start, delay);
             return;
           }
           console.error('[useFirestoreCollection] Subscription error:', error);
-          setSubscriptionError(error);
-          setSourceState('error');
+          updateStatus({ error, sourceState: 'error' });
           queryClient.setQueryData(queryKey, undefined);
         }
       );
@@ -131,7 +134,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     // queryKey & constraints are tracked via their stringified forms above; select is intentionally
     // excluded so an inline caller function doesn't force a re-subscribe on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db, collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe, queryClient]);
+  }, [db, collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe, queryClient, resetStatus, updateStatus]);
 
   const queryResult = useQuery({
     queryKey,

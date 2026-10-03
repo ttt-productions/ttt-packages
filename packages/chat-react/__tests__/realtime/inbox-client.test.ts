@@ -334,9 +334,10 @@ describe('InboxClient — markRead (tray clear without opening the chat)', () =>
       'snapshot',
       snap([{ channelRef: 'c1', kind: 'channel', state: 'active', registryVersion: 1, unread: true }], true),
     );
-    expect(client.markRead('c1')).toBe(true);
+    void client.markRead('c1');
     const frame = sock.sent.find((f) => f.type === 'mark-read');
-    expect(frame?.payload).toEqual({ channelRef: 'c1' });
+    expect(frame?.payload).toMatchObject({ channelRef: 'c1' });
+    expect(typeof frame?.payload.requestId).toBe('string');
     // No optimistic clear — only the DO's pushed snapshot removes the dot.
     expect(client.channelHasUnread('c1')).toBe(true);
     expect(client.getState().hasUnread).toBe(true);
@@ -349,10 +350,10 @@ describe('InboxClient — markRead (tray clear without opening the chat)', () =>
     expect(client.getState().hasUnread).toBe(false);
   });
 
-  it('returns false when the socket is not open', async () => {
+  it('settles not-sent when the socket is not open — nothing was sent', async () => {
     const { client } = makeInbox();
     // Never connected — no socket to send on.
-    expect(client.markRead('c1')).toBe(false);
+    await expect(client.markRead('c1')).resolves.toEqual({ ok: false, code: 'not-sent' });
   });
 });
 
@@ -438,9 +439,9 @@ async function runInboxScenario(diagnostics?: ChatClientDiagnosticsOption) {
   return ctx;
 }
 
-/** Every frame every socket sent, as a stable comparable string. */
+/** Every frame every socket sent, as a stable comparable string (a request's random id aside). */
 function allInboxFrames(harness: { sockets: Array<{ sent: unknown[] }> }): string {
-  return JSON.stringify(harness.sockets.map((s) => s.sent));
+  return JSON.stringify(harness.sockets.map((s) => s.sent), (key, value) => (key === 'requestId' ? '<id>' : value));
 }
 
 describe('InboxClient — diagnostics OFF (the default: zero behavior change, zero output)', () => {

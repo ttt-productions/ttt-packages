@@ -2,7 +2,14 @@
 export { STALE_TIMES } from './defaults.js';
 
 // Cache Helpers
-export { invalidateByPrefix, removeByPrefix, updateQueryData } from './cache-helpers.js';
+export {
+  invalidateByPrefix,
+  removeByPrefix,
+  updateQueryData,
+  paginatedPageKey,
+  mapPaginatedItems,
+  prependToFirstPaginatedPage,
+} from './cache-helpers.js';
 
 // Firestore Types & Pure Helpers
 export type {
@@ -16,7 +23,7 @@ export type {
   FirestoreInfiniteOptions,
   FirestorePaginatedOptions,
   InfinitePage,
-  PaginatedResult,
+  PaginatedPage,
   MutationOperation,
   FirestoreMutationOptions,
   FirestoreBatchOptions,

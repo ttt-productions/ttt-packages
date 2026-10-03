@@ -33,7 +33,7 @@ export const GUILD_STANDINGS = {
   },
   AuditionManager: {
     label: 'Audition Manager',
-    description: 'Can open, edit, and close workProject auditions and manage respondents without starting invite conversations.',
+    description: 'Can open and close workProject auditions without starting invite conversations.',
   },
   HallLibraryEditor: {
     label: 'Hall Editor',
@@ -45,7 +45,7 @@ export const GUILD_STANDINGS = {
   },
   GuildChatChannelManager: {
     label: 'Guild Chat Channel Manager',
-    description: 'Can create, update, archive, delete, and moderate workProject chat channels.',
+    description: 'Can create, update, archive, and delete workProject chat channels.',
   },
 } as const;
 
@@ -76,6 +76,34 @@ export const GUILD_STANDING_VALUE_BY_ID = {
 export type GuildStandingValue = (typeof GUILD_STANDING_VALUE_BY_ID)[GuildStandingId];
 export const GUILD_STANDING_VALUES = Object.values(GUILD_STANDING_VALUE_BY_ID) as GuildStandingValue[];
 
+/**
+ * The standings that administer a Work's file system: create and manage folders, see every folder
+ * and file, upload anywhere, delete any file, and request a file's share to the Realm. Every file
+ * action's grant reads this list, and so does the file-admin check (`isWorkFileAdmin`).
+ */
+export const WORK_FILE_ADMIN_GUILD_STANDING_IDS = [
+  'StewardOwner',
+  'WorkProjectManager',
+  'WorkAssetAdmin',
+] as const satisfies readonly GuildStandingId[];
+
+/**
+ * A Work's invite handlers: they send the Work's invites, list them, cancel them, and take the
+ * Work's side in every invite conversation — they see it, reply in it, and accept for the Work.
+ */
+export const GUILD_INVITE_HANDLER_GUILD_STANDING_IDS = [
+  'StewardOwner',
+  'WorkProjectManager',
+  'InviteManager',
+] as const satisfies readonly GuildStandingId[];
+
+/** The standings that change stake amounts — active Guildmates' stakes and pending invite offers. */
+export const STAKE_SHARE_POWER_GUILD_STANDING_IDS = [
+  'StewardOwner',
+  'WorkProjectManager',
+  'StakeShareManager',
+] as const satisfies readonly GuildStandingId[];
+
 export const WORK_PROJECT_ACTIONS = {
   'workProject.read': {
     label: 'Read workProject',
@@ -102,60 +130,55 @@ export const WORK_PROJECT_ACTIONS = {
       'holds file-admin override.',
     grantedTo: ['StewardOwner', 'WorkProjectManager'],
   },
-  'workProject.stakeShares.manage': {
-    label: 'Manage workProject stakes',
-    description: 'Run workProject stake-share operations under the 1000-stake cap.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'StakeShareManager'],
-  },
   'workProject.stakeShares.addActive': {
     label: 'Add active Guildmate stakes',
     description: 'Increase stakes for an existing active workProject Guildmate.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'StakeShareManager'],
+    grantedTo: STAKE_SHARE_POWER_GUILD_STANDING_IDS,
   },
   'guildInvite.send': {
     label: 'Send invites',
     description: 'Start a workProject invite conversation and reserve pending stakes.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'InviteManager'],
+    grantedTo: GUILD_INVITE_HANDLER_GUILD_STANDING_IDS,
   },
   'guildInvite.list': {
     label: 'List invites',
     description: 'View workProject invite conversation state.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'InviteManager'],
+    grantedTo: GUILD_INVITE_HANDLER_GUILD_STANDING_IDS,
   },
   'guildInvite.revokeAny': {
     label: 'Revoke pending invites',
     description: 'Cancel or revoke pending workProject invites.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'InviteManager'],
+    grantedTo: GUILD_INVITE_HANDLER_GUILD_STANDING_IDS,
   },
   'guildInvite.stakeShares.update': {
     label: 'Update invite stakes',
     description: 'Increase stakes offered on a pending invite.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'StakeShareManager'],
+    grantedTo: STAKE_SHARE_POWER_GUILD_STANDING_IDS,
   },
   'fileFolder.create': {
     label: 'Create file folders',
     description: 'Create workProject file folders and set their trade-profession access lists.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
+    grantedTo: WORK_FILE_ADMIN_GUILD_STANDING_IDS,
   },
   'fileFolder.manage': {
     label: 'Manage file folders',
     description: 'Rename folders, edit folder trade-profession access lists, and delete folders.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
+    grantedTo: WORK_FILE_ADMIN_GUILD_STANDING_IDS,
   },
   'fileFolder.viewAll': {
     label: 'View all file folders',
     description: 'View every folder and file regardless of folder trade-profession access (admin override).',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
+    grantedTo: WORK_FILE_ADMIN_GUILD_STANDING_IDS,
   },
   'workFile.uploadAny': {
     label: 'Upload to any folder',
     description: 'Upload files to any folder regardless of folder trade-profession access (admin override).',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
+    grantedTo: WORK_FILE_ADMIN_GUILD_STANDING_IDS,
   },
   'workFile.deleteAny': {
     label: 'Delete any file',
     description: 'Delete any file regardless of folder trade-profession access (admin override).',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
+    grantedTo: WORK_FILE_ADMIN_GUILD_STANDING_IDS,
   },
   'workFile.promoteToRealm': {
     label: 'Request file sharing to realm',
@@ -163,7 +186,7 @@ export const WORK_PROJECT_ACTIONS = {
       'The realm steward approves the request and chooses the folder, or declines it; ' +
       'nothing is shared to the realm until then. Canon promotion is a separate ' +
       'realm-steward power, evaluated at the realm level, not here.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'WorkAssetAdmin'],
+    grantedTo: WORK_FILE_ADMIN_GUILD_STANDING_IDS,
   },
   'commission.open': {
     label: 'Open commissions',
@@ -190,19 +213,9 @@ export const WORK_PROJECT_ACTIONS = {
     description: 'Create workProject audition prompts.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'AuditionManager'],
   },
-  'audition.edit': {
-    label: 'Edit auditions',
-    description: 'Edit workProject audition prompts.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'AuditionManager'],
-  },
   'audition.close': {
     label: 'Close auditions',
     description: 'Close workProject auditions.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'AuditionManager'],
-  },
-  'audition.respondent.manage': {
-    label: 'Manage audition respondents',
-    description: 'Manage workProject audition respondents without starting invite conversations.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'AuditionManager'],
   },
   'hallLibrary.chapter.create': {
@@ -303,11 +316,6 @@ export const WORK_PROJECT_ACTIONS = {
   'guildChatChannel.delete': {
     label: 'Delete chat channels',
     description: 'Delete (tombstone) workProject chat channels; storage is retained.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildChatChannelManager'],
-  },
-  'guildChatMessage.moderate': {
-    label: 'Moderate chat messages',
-    description: 'Update or delete workProject channel messages for moderation.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'GuildChatChannelManager'],
   },
   'adminDispatch.start': {

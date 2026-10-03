@@ -1,7 +1,7 @@
 // Chat realtime WIRE PROTOCOL (Contract C) — the client side of the Channel +
 // Inbox Durable Object protocol. The canonical protocol declarations (subprotocol,
-// frame-kind maps, close codes, channel-ref tuple, grant scope, client-agreed
-// limits) are owned by `@ttt-productions/chat-schemas`; this file consumes them
+// frame-kind maps, close codes, the neutral conversation reference, grant scope,
+// the send and mark-read contracts, client-agreed limits) are owned by `@ttt-productions/chat-schemas`; this file consumes them
 // and adds the client-side raw row/frame shapes the transport maps into the UI
 // message shape. The client and the worker runtime agree on the wire by both
 // importing that one contract; neither imports the other.
@@ -28,13 +28,16 @@ export {
 } from '@ttt-productions/chat-schemas';
 export type {
   ChatCloseCode,
-  ChannelRefTuple,
   ChatSendRejectedPayload,
   ChatSendRejectionCode,
 } from '@ttt-productions/chat-schemas';
 
 import { CHAT_WIRE_VERSION } from '@ttt-productions/chat-schemas';
-import type { ChannelRefTuple, ChatSendRejectedPayload } from '@ttt-productions/chat-schemas';
+import type {
+  ChatConversationRef,
+  ChatMarkReadResultPayload,
+  ChatSendRejectedPayload,
+} from '@ttt-productions/chat-schemas';
 
 // ---- raw wire row shapes (what the DO serializes; opaque-but-typed here) ----
 
@@ -64,6 +67,8 @@ export interface WireMessageRow {
   text: string;
   createdAt: number;
   epoch: number;
+  /** Account ids a server-written row's text refers to (absent on a member's own message). */
+  referencedUids?: string[];
   /**
    * The effective (max-`messageRevision`) moderation kind for this row, or null
    * when never moderated. Populated by the DO's getHistory/getDeltaSince overlay
@@ -105,11 +110,11 @@ export interface WireRegistryEntry {
   state: 'active' | 'tombstoned';
   registryVersion: number;
   /**
-   * The typed channel-ref tuple — the OPENABLE identity for the inbox view (the
-   * `channelRef` is an opaque DO-id dedup key). Null/absent on legacy or pre-tuple
-   * rows; the consumer falls back to hiding the open action for those entries.
+   * The conversation this entry is — the OPENABLE identity for the inbox view (the
+   * `channelRef` is an opaque registry key). The app maps it back to its own
+   * conversation; absent, the entry offers no open action.
    */
-  ref?: ChannelRefTuple | null;
+  ref?: ChatConversationRef | null;
   /**
    * Per-entry unread flag (drives the per-row dot). Optional/absent until the inbox
    * DO populates it; `deriveUnreadRefs` reads it as a typed field (no cast).
@@ -145,6 +150,8 @@ export type ServerFrame =
   // it instead of silently dropping it (forward-compatible with a future DO push).
   | { type: 'unread'; payload: WireInboxSnapshot | { hasUnread: boolean } }
   | { type: 'error'; payload: { code: string; retryAfterMs?: number } }
+  // The inbox runtime's correlated answer to one `mark-read`.
+  | { type: 'mark-read-result'; payload: ChatMarkReadResultPayload }
   // A CORRELATED send rejection (SERVER_FRAME.SEND_REJECTED): names the SAME
   // clientMessageId as the rejected send + the canonical retry classification, so
   // exactly one optimistic bubble is failed/retried. See ChatSendRejectedPayload.

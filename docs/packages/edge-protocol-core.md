@@ -36,6 +36,13 @@ and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
 - **Canonical payload hashing** — `canonicalize` (sorted-key deterministic JSON),
   `sha256Hex`, `hashPayload`: the `payloadHash` used by the versioned-apply rule
   and the activation contract (hash computed EXCLUDING the hash field itself).
+- **Canonical string-set hashing** — `hashStringSet(values)`: SHA-256 hex of the
+  values sorted by UTF-16 code unit and joined with `\n`, so two runtimes holding
+  the same values in any order agree on the digest. A value containing `\n` is
+  refused (`RangeError`) — the separator must stay unambiguous. It is the one
+  definition of the chat word-list snapshot hash: the Cloud Function that publishes
+  the snapshot, the Worker that stores it, and the room that loads it each compute it
+  here and refuse a snapshot whose hash disagrees.
 - **Versioned-apply rule** — `decideVersionedApply`: the frozen
   apply / idempotent / conflict / stale decision shared by the media serving
   authority and the chat realtime authorities.

@@ -101,15 +101,23 @@ export const TrackShortLinkClickInputSchema = z.object({
 }).strict();
 export type TrackShortLinkClickInput = z.infer<typeof TrackShortLinkClickInputSchema>;
 
+// The caller marks the thread seen through the newest message it has on screen. The server
+// moves the caller's OWN marker (AdminDispatchReadMarkerSchema) to that time, never past the
+// thread's latest message and never backwards, so a message that arrived after the screen
+// rendered stays unseen.
 export const MarkAdminDispatchReadInputSchema = z.object({
   adminDispatchId: adminDispatchIdSchema.max(128),
+  seenThroughMessageAt: z.number().int().nonnegative(),
 }).strict();
 export type MarkAdminDispatchReadInput = z.infer<typeof MarkAdminDispatchReadInputSchema>;
 
 // --- Authoritative mutation RESULTS (non-strict server → client posture) ---
 
+/** The caller's committed marker — the client patches its cached thread rows from it. */
 export const MarkAdminDispatchReadResultSchema = z.object({
   success: z.literal(true),
+  adminDispatchId: adminDispatchIdSchema,
+  lastSeenMessageAt: z.number().int().nonnegative(),
 });
 export type MarkAdminDispatchReadResult = z.infer<typeof MarkAdminDispatchReadResultSchema>;
 

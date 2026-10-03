@@ -6,7 +6,8 @@ import { cn } from "@ttt-productions/ui-core";
 import { Button, Spinner } from "@ttt-productions/ui-core/react";
 import { AlertTriangle } from "lucide-react";
 import { MessageActions } from "./menus.js";
-import { useResolvedSenderName } from "../context/ChatNameResolverContext.js";
+import { SenderName } from "./SenderName.js";
+import { useSenderNameResolution } from "../context/ChatNameResolverContext.js";
 
 // A chat message renders TEXT (plus its send-state rows). Files live in the
 // conversation's Conversation Files surface, never in the timeline — there is no
@@ -76,8 +77,8 @@ export type MessageItemDefaultProps = {
   // Grouping
   isContinuation?: boolean;
 
-  // Sender interaction
-  onSenderClick?: (senderId: string, displayName: string) => void;
+  // Sender interaction — the app resolves anything it needs about the sender from the id.
+  onSenderClick?: (senderId: string) => void;
 
   /** Retry a failed realtime send by its original clientMessageId (wired by
    *  ChatShell on the realtime transport; absent on firestore). Enables the
@@ -86,8 +87,11 @@ export type MessageItemDefaultProps = {
 };
 
 export function MessageItemDefault(props: MessageItemDefaultProps) {
-  const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick, onRetrySend } = props;
-  const senderName = useResolvedSenderName(m.senderId);
+  const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick: senderClick, onRetrySend } = props;
+  // Only a resolved name is a click target: the app's unresolved state (a Retry included) is never
+  // nested inside a button.
+  const nameResolved = useSenderNameResolution(m.senderId).status === "resolved";
+  const onSenderClick = nameResolved ? senderClick : undefined;
 
   // System messages render differently
   if (m.isSystemMessage) {
@@ -130,14 +134,14 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
           <div className="flex items-center gap-2 text-xs opacity-80 mb-1">
             <span
               className={cn("font-medium", onSenderClick && "cursor-pointer hover:underline")}
-              onClick={onSenderClick ? () => onSenderClick(m.senderId, senderName) : undefined}
+              onClick={onSenderClick ? () => onSenderClick(m.senderId) : undefined}
               role={onSenderClick ? "button" : undefined}
               tabIndex={onSenderClick ? 0 : undefined}
               onKeyDown={onSenderClick ? (e) => {
-                if (e.key === "Enter" || e.key === " ") onSenderClick(m.senderId, senderName);
+                if (e.key === "Enter" || e.key === " ") onSenderClick(m.senderId);
               } : undefined}
             >
-              {senderName}
+              <SenderName senderId={m.senderId} />
             </span>
             <span>·</span>
             <span>{new Date(m.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>

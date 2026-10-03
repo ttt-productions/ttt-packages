@@ -98,6 +98,19 @@ export const TTT_NOTIFICATION_CONFIG: NotificationSystemConfig = {
       actorCap: 1,
       icon: '📩',
     },
+    admin_dispatch_created: {
+      ...catalogEntry('admin_dispatch_created'),
+      dedupKeyPattern: (meta) => `adminDispatchCreated_${meta.adminDispatchId}`,
+      titlePattern: () => 'Admin Message',
+      messagePattern: () => 'An admin has created a new thread message',
+      defaultTargetPath: (meta) =>
+        meta.partyKind === 'workProject' && typeof meta.workProjectId === 'string'
+          ? `/work-projects/${meta.workProjectId}`
+          : '/messages',
+      countCap: 1,
+      actorCap: 1,
+      icon: '📩',
+    },
     threshold_library_submission: {
       ...catalogEntry('threshold_library_submission'),
       dedupKeyPattern: (meta) => `thresholdLibrarySubmission_${meta.workProjectId}`,

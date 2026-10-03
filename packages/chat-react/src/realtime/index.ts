@@ -15,7 +15,6 @@ export {
   isInboxSnapshot,
 } from './wire.js';
 export type {
-  ChannelRefTuple,
   ChatCloseCode,
   WireMessageRow,
   WireChannelSnapshot,
@@ -30,6 +29,7 @@ export { browserSocketFactory } from './socket.js';
 
 export type { GrantProvider, TransportTimers, RealtimeStatus } from './shared.js';
 export {
+  CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS,
   defaultTimers,
   ChatAccessDeniedError,
   isChatAccessDeniedError,
@@ -58,7 +58,7 @@ export type {
 export { ChannelClient } from './channel-client.js';
 export type { ChannelClientState, ChannelClientConfig } from './channel-client.js';
 export { InboxClient } from './inbox-client.js';
-export type { InboxClientState, InboxClientConfig } from './inbox-client.js';
+export type { InboxClientState, InboxClientConfig, ChatMarkReadOutcome } from './inbox-client.js';
 
 export {
   createRealtimeChatClient,

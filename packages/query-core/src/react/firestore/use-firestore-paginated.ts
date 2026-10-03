@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import {
   collection,
@@ -12,15 +12,17 @@ import {
   type DocumentSnapshot,
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
-import type { FirestorePaginatedOptions, WithId } from '../../firestore/types.js';
+import { paginatedPageKey } from '../../cache-helpers.js';
+import type { FirestorePaginatedOptions, PaginatedPage, WithId } from '../../firestore/types.js';
 
 const DEFAULT_PAGE_SIZE = 10;
-const MAX_CACHED_CURSORS = 20;
 
 /**
- * Return type for useFirestorePaginated hook
+ * Return type for useFirestorePaginated hook. `data` is the displayed page's rows; the
+ * page's cache entry (rows, cursor, has-more) lives at `paginatedPageKey(queryKey, page)`.
  */
-export type UseFirestorePaginatedResult<T> = UseQueryResult<WithId<T>[], Error> & {
+export type UseFirestorePaginatedResult<T> = Omit<UseQueryResult<PaginatedPage<WithId<T>>, Error>, 'data'> & {
+  data: WithId<T>[] | undefined;
   page: number;
   pageSize: number;
   hasNextPage: boolean;
@@ -28,31 +30,32 @@ export type UseFirestorePaginatedResult<T> = UseQueryResult<WithId<T>[], Error> 
   setPage: (page: number) => void;
   nextPage: () => void;
   prevPage: () => void;
-  resetToFirstPage: () => void;
 };
 
 /**
- * Page-based pagination for Firestore collections.
- * Supports navigating to specific pages (1, 2, 3...) rather than infinite scroll.
- * * @example
+ * Page-based pagination for Firestore collections (Previous / Next, one page at a time).
+ *
+ * Each page is ONE cache entry at `[...queryKey, 'page', n]` holding its rows, its last
+ * row as the next page's cursor, and whether a further page exists — read with a one-row
+ * look-ahead, so `hasNextPage` is false exactly when nothing follows the displayed page.
+ * Page n reads page n-1's cursor from the cache (loading the chain first if it is
+ * missing) and records it as `after`. A displayed page whose `after` no longer matches
+ * page n-1's cached cursor (page n-1 was re-read and its last row moved) is re-read before
+ * it is shown, so every instance, remount, and refetch of a key agrees on where a page
+ * starts. The page number belongs to the query identity (path, key, constraints, page
+ * size): a new identity renders `initialPage` in its first render.
+ *
+ * `queryKey` must encode everything that changes the read — path, filters, ordering, and
+ * page size — because the cache entries are shared by key.
+ *
+ * @example
  * ```tsx
- * const {
- * data,
- * page,
- * setPage,
- * hasNextPage,
- * hasPrevPage,
- * isLoading,
- * } = useFirestorePaginated<Task>({
- * collectionPath: 'tasks',
- * queryKey: ['tasks', 'list'],
- * constraints: [where('status', '==', 'active'), orderBy('createdAt', 'desc')],
- * pageSize: 10,
+ * const { data, page, nextPage, prevPage, hasNextPage, hasPrevPage } = useFirestorePaginated<Task>({
+ *   collectionPath: 'tasks',
+ *   queryKey: ['tasks', 'active', { pageSize: 10 }],
+ *   constraints: [where('status', '==', 'active'), orderBy('createdAt', 'desc')],
+ *   pageSize: 10,
  * });
- * * // Render pagination controls
- * <button onClick={() => setPage(page - 1)} disabled={!hasPrevPage}>Previous</button>
- * <span>Page {page}</span>
- * <button onClick={() => setPage(page + 1)} disabled={!hasNextPage}>Next</button>
  * ```
  */
 export function useFirestorePaginated<T extends DocumentData = DocumentData>({
@@ -64,112 +67,121 @@ export function useFirestorePaginated<T extends DocumentData = DocumentData>({
   enabled = true,
   staleTime,
   gcTime,
+  refetchInterval,
   select,
 }: FirestorePaginatedOptions<T>): UseFirestorePaginatedResult<T> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
 
-  const [page, setPageInternal] = useState(initialPage);
-  const [cursors, setCursors] = useState<Map<number, DocumentSnapshot>>(new Map());
-  const [hasMore, setHasMore] = useState(true);
+  const queryKeyMemo = JSON.stringify(queryKey);
+  const constraintsMemo = JSON.stringify(constraints);
+  const identity = JSON.stringify([collectionPath, queryKeyMemo, constraintsMemo, pageSize]);
+  const firstPage = Math.max(1, Math.floor(initialPage));
 
-  // Create a stable query key that includes the page
-  const pageQueryKey = useMemo(
-    () => [...queryKey, 'page', page],
-    [queryKey, page]
+  const [pageState, setPageState] = useState(() => ({ identity, page: firstPage }));
+  const page = pageState.identity === identity ? pageState.page : firstPage;
+
+  const selectRef = useRef(select);
+  selectRef.current = select;
+
+  const fetchPage = useCallback(
+    async (n: number): Promise<PaginatedPage<WithId<T>>> => {
+      let cursor: DocumentSnapshot | null = null;
+      if (n > 1) {
+        const previous = await queryClient.ensureQueryData<PaginatedPage<WithId<T>>>({
+          queryKey: paginatedPageKey(queryKey, n - 1),
+          queryFn: () => fetchPage(n - 1),
+        });
+        if (!previous.hasMore || !previous.cursor) {
+          return { items: [], cursor: null, hasMore: false, after: previous.cursor?.id ?? null };
+        }
+        cursor = previous.cursor;
+      }
+      const q = query(
+        collection(db, collectionPath),
+        ...constraints,
+        ...(cursor ? [startAfter(cursor)] : []),
+        limit(pageSize + 1),
+      );
+      const snapshot = await getDocs(q);
+      const pageDocs = snapshot.docs.slice(0, pageSize);
+      return {
+        items: pageDocs.map((docSnap) => {
+          const dataWithId = { id: docSnap.id, ...docSnap.data() };
+          const mapped = selectRef.current ? selectRef.current(dataWithId) : dataWithId;
+          return mapped as WithId<T>;
+        }),
+        cursor: pageDocs[pageDocs.length - 1] ?? null,
+        hasMore: snapshot.docs.length > pageSize,
+        after: cursor?.id ?? null,
+      };
+    },
+    // queryKey and constraints are captured through their serialized identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [db, queryClient, identity, selectRef],
   );
 
   const queryResult = useQuery({
-    queryKey: pageQueryKey,
-    queryFn: async (): Promise<WithId<T>[]> => {
-      const collectionRef = collection(db, collectionPath);
-
-      // Get cursor for current page (if not page 1)
-      const cursor = page > 1 ? cursors.get(page - 1) : undefined;
-
-      // Build query
-      const queryConstraints = [
-        ...constraints,
-        ...(cursor ? [startAfter(cursor)] : []),
-        limit(pageSize),
-      ];
-
-      const q = query(collectionRef, ...queryConstraints);
-      const snapshot = await getDocs(q);
-
-      // Store the last doc as cursor for next page
-      if (snapshot.docs.length > 0) {
-        const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-        setCursors((prev) => {
-          const next = new Map(prev);
-          next.set(page, lastDoc);
-
-          // Prune old cursors if too many (prevent memory leaks)
-          if (next.size > MAX_CACHED_CURSORS) {
-            const sorted = Array.from(next.keys()).sort((a, b) => a - b);
-            const toDelete = sorted.slice(0, sorted.length - MAX_CACHED_CURSORS);
-            toDelete.forEach((k) => next.delete(k));
-          }
-
-          return next;
-        });
-      }
-
-      // Determine if there are more pages
-      setHasMore(snapshot.docs.length === pageSize);
-
-      return snapshot.docs.map((docSnap) => {
-        const rawData = docSnap.data();
-        // Include id in data passed to select, so it can be renamed/transformed
-        const dataWithId = { id: docSnap.id, ...rawData };
-        const data = select ? select(dataWithId) : dataWithId;
-        return data as WithId<T>;
-      });
-    },
+    queryKey: paginatedPageKey(queryKey, page),
+    queryFn: () => fetchPage(page),
     enabled,
     staleTime,
     gcTime,
+    refetchInterval,
   });
 
-  const setPage = useCallback((newPage: number) => {
-    if (newPage < 1) return;
+  // The page before the displayed one, observed from the cache only (never fetched here).
+  // When it is re-read and its last row moves, the displayed entry no longer starts where the
+  // chain says it must: it is re-read before it is shown as current.
+  const previousPage = useQuery({
+    queryKey: paginatedPageKey(queryKey, Math.max(1, page - 1)),
+    queryFn: () => fetchPage(Math.max(1, page - 1)),
+    enabled: false,
+  });
+  const cachedEntry = queryResult.data;
+  const outOfChain =
+    page > 1 &&
+    cachedEntry !== undefined &&
+    (previousPage.data === undefined || cachedEntry.after !== (previousPage.data.cursor?.id ?? null));
+  const { refetch, isFetching } = queryResult;
+  useEffect(() => {
+    if (enabled && outOfChain && !isFetching) void refetch();
+  }, [enabled, outOfChain, isFetching, refetch]);
 
-    // Can only go forward one page at a time if cursor doesn't exist
-    if (newPage > page + 1 && !cursors.has(newPage - 1)) {
-      console.warn('[useFirestorePaginated] Cannot skip pages. Navigate sequentially.');
-      return;
-    }
+  const entry = outOfChain ? undefined : cachedEntry;
+  const hasNextPage = Boolean(entry?.hasMore && entry.cursor);
 
-    setPageInternal(newPage);
-  }, [page, cursors]);
+  const setPage = useCallback(
+    (target: number) => {
+      const next = Math.floor(target);
+      if (next < 1 || next === page) return;
+      if (next > page + 1) {
+        const before = queryClient.getQueryData<PaginatedPage<unknown>>(
+          paginatedPageKey(queryKey, next - 1),
+        );
+        if (!before?.hasMore) return;
+      }
+      if (next === page + 1 && !hasNextPage) return;
+      setPageState({ identity, page: next });
+    },
+    // queryKey is captured through its serialized identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [page, hasNextPage, identity, queryClient],
+  );
 
-  const nextPage = useCallback(() => {
-    if (hasMore) setPage(page + 1);
-  }, [page, hasMore, setPage]);
-
-  const prevPage = useCallback(() => {
-    if (page > 1) setPage(page - 1);
-  }, [page, setPage]);
-
-  const resetToFirstPage = useCallback(() => {
-    setCursors(new Map());
-    setPageInternal(1);
-    setHasMore(true);
-    // Invalidate all cached pages
-    queryClient.invalidateQueries({ queryKey, exact: false });
-  }, [queryClient, queryKey]);
+  const nextPage = useCallback(() => setPage(page + 1), [page, setPage]);
+  const prevPage = useCallback(() => setPage(page - 1), [page, setPage]);
 
   return {
     ...queryResult,
-    // Pagination state
+    ...(outOfChain ? { isLoading: true, isPending: true, isSuccess: false, status: 'pending' as const } : {}),
+    data: entry?.items,
     page,
     pageSize,
-    hasNextPage: hasMore,
+    hasNextPage,
     hasPrevPage: page > 1,
-    // Navigation functions
     setPage,
     nextPage,
     prevPage,
-    resetToFirstPage,
-  };
+  } as UseFirestorePaginatedResult<T>;
 }

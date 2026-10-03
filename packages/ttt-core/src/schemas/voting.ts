@@ -6,8 +6,6 @@ export const VoteForAuditionEntryInputSchema = z.object({
   newVote: z.object({
     auditionEntryId: auditionEntryIdSchema,
   }).strict(),
-  // Accepted for backwards compatibility but ignored server-side; see runtime comment below.
-  currentVoteId: auditionEntryIdSchema.nullable().optional(),
 }).strict();
 export type VoteForAuditionEntryInput = z.infer<typeof VoteForAuditionEntryInputSchema>;
 
@@ -18,8 +16,8 @@ export type VoteForAuditionEntryInput = z.infer<typeof VoteForAuditionEntryInput
  * decrement — so both committed counts cost no extra read; the like/unlike precedent).
  *
  * This callable only CASTS or MOVES a vote — there is no unvote path (the input
- * requires `newVote.auditionEntryId`; `currentVoteId` is ignored server-side), so
- * `isVoted` is always true.
+ * requires `newVote.auditionEntryId`, and the vote it moves off is read server-side),
+ * so `isVoted` is always true.
  *
  * Path semantics:
  * - First vote: `alreadyVoted: false`, `voteCount` = read count + 1,

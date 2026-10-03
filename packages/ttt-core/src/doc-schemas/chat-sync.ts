@@ -8,7 +8,9 @@
 // does not false-flag a Timestamp object against `z.number()`).
 
 import { z } from 'zod';
+import { ChatParkedDeliveryReportSchema } from '@ttt-productions/chat-schemas';
 import { systemRoleSchema } from '../schemas/atoms.js';
+import { GUILD_CHAT_CONVERSATION_KINDS } from '../ids/guild-chat-conversation.js';
 
 /** Native-TTL field — a real Firestore Timestamp (NOT epoch-ms). Absent until the terminal that sets TTL. */
 const expireAtField = z.unknown().optional();
@@ -16,7 +18,7 @@ const expireAtField = z.unknown().optional();
 // ── chatChannelAuthProjections/{authPairKey} ────────────────────────────────
 // Per-(user, channel) authorization FACT. Absent ⇒ removed/deny (fail-closed).
 export const ChatChannelAuthProjectionSchema = z.object({
-  channelRefScope: z.enum(['channel', 'invite']),
+  channelRefScope: z.enum(GUILD_CHAT_CONVERSATION_KINDS),
   workProjectId: z.string().nullable(),
   guildChatChannelId: z.string().nullable(),
   guildInviteId: z.string().nullable(),
@@ -249,3 +251,24 @@ export const ChatHistoryAnonymizationAffectedChunkSchema = z.object({
   deleteState: z.enum(['pending', 'done']),
 });
 export type ChatHistoryAnonymizationAffectedChunk = z.infer<typeof ChatHistoryAnonymizationAffectedChunkSchema>;
+
+// ── chatParkedDeliveries/{deliveryId} ───────────────────────────────────────
+// One delivery a chat room parked in its own outbox, as the room reported it through its signed
+// call (the report's fields, from the chat contract), plus the server-side replay ledger. The row
+// is created `deadLetter` (create-if-absent on `chatParkedDeliveryId`), so it lists with every
+// other dead-lettered row; an operator replay resets it to `pending` (the generic ledger reset —
+// `attemptCount`, `nextAttemptAt`, `lastError`, `deadLetteredAt`, `expireAt`); the server's replay
+// drain asks the room to requeue it and marks it `delivered` (and sets `expireAt`) on a `requeued`
+// or `not-parked` answer, or parks it `deadLetter` again once its own retries run out.
+export const CHAT_PARKED_DELIVERY_STATUSES = ['deadLetter', 'pending', 'delivered'] as const;
+export const ChatParkedDeliverySchema = ChatParkedDeliveryReportSchema.extend({
+  status: z.enum(CHAT_PARKED_DELIVERY_STATUSES),
+  attemptCount: z.number().int().nonnegative(),
+  nextAttemptAt: z.number(),
+  lastError: z.string().nullable(),
+  createdAt: z.number(),
+  deadLetteredAt: z.number().nullable(),
+  deliveredAt: z.number().nullable(),
+  expireAt: expireAtField,
+});
+export type ChatParkedDelivery = z.infer<typeof ChatParkedDeliverySchema>;

@@ -5,7 +5,7 @@ Chat **React UI** package — the React half of the chat split.
 ## Owns
 
 - Chat shell, composer, message list, and the realtime-newest-window +
-  infinite-older hooks (`useChatMessages`, `canAccessThread`). The UI is
+  infinite-older hooks (`useChatMessages`). The UI is
   **text-only**: there is no attachment control, attachment bubble, upload
   adapter, media-injection context, or URL-resolver context. A conversation's
   files live in the consuming app's Conversation Files surface (a Files button +
@@ -21,15 +21,47 @@ Chat **React UI** package — the React half of the chat split.
   **verbatim**: there is no mention/token grammar, no autocomplete dropdown, no
   composer token insertion, and no chip renderer. Mentions are a Square-posts
   concept owned by the consuming app, never a chat concept.
-- The name-resolver context (`ChatNameResolverProvider`, …)
+- **Access is the app's one fact.** `ChatCoreConfig.allowed` (required) is whether the
+  current user may read the conversation, decided by the consuming app's own rule for
+  the conversation's kind — the package never decides access, holds no member list, and
+  has no access mode. False renders the no-access state and reads nothing. On the
+  realtime transport a terminal denial from the grant closes the conversation too.
+- **One failure seat.** `ChatShellProps.renderLoadError` (required) renders every read
+  the chat could not complete, as a `ChatLoadFailure` (`{ scope, error, retry }`):
+  `initial` — nothing loaded (the realtime client's first open failed for its budget,
+  or the Firestore listener failed before any message) — takes the message list's place;
+  `live` — the Firestore listener failed after messages loaded — is a band above the
+  kept messages; `older` — an older page failed — is the row at the top of the list
+  (`MessageList.olderLoadErrorRow`), and while it shows the list stops requesting older
+  pages. `error` is the read's own error (null on the realtime transport), `retry`
+  re-runs what failed, and `retrying` is true while a retry runs with the failure still
+  shown (an older page being read again), so the app's Retry shows its pending state; a
+  retried initial or live failure gives way to the opening state instead. The copy is the app's (the package renders only its slot); the
+  Firestore errors come from query-core's `useFirestoreLiveInfinite` (its listener
+  error, `olderError`, and `retry`), which `useChatMessages` passes through with
+  `sourceState`.
+- **The one text bound.** The `Composer` caps its textarea at `chat-schemas`'
+  `CHAT_MESSAGE_TEXT_MAX_LENGTH` and shows a `{length}/{max}` counter once text is
+  typed (wired by `aria-describedby`). A send the Worker still refuses for length comes
+  back as a correlated terminal `too-long` rejection that fails exactly that bubble.
+- **Sender names.** `ChatNameResolverProvider` takes the app's `resolveName`
+  (`chat-core`'s `ChatNameResolver`, answering a `ChatNameResolution`) and an optional
+  `renderUnresolvedName(resolution)` for `pending` / `unavailable` / `failed` (the
+  last with `retry`). `<SenderName senderId>` (used by `MessageItemDefault`) renders the
+  resolved name or the app's slot — never a stand-in name; `useSenderNameResolution`
+  answers the resolution itself. `MessageItemDefault.onSenderClick` hands the app the
+  sender id, and only a resolved name is a click target — the app's unresolved state (a
+  Retry included) is never nested inside it. Both message hooks prewarm the senders and
+  every server-written line's `referencedUids` (`ChatMessageV1.referencedUids`, mapped from
+  the row), so the app resolves the accounts a system line names.
 - The adapter config types (`ChatCoreConfig`) and the React render types
   (`MessageRenderer`, `MessageRendererRegistry`)
 - A discriminated **transport config** (chat-edge-rebuild P1): `ChatCoreConfig`
   carries an optional `transport: ChatTransportMode` (`'firestore' | 'realtime'`,
   default `'firestore'` so existing call sites are unchanged) plus an optional
-  `realtime: ChatRealtimeTransportConfig` (the DO-socket handle). On the `realtime`
-  transport, data access is enforced by the DO grant, so `accessMode` becomes
-  **presentation-only**.
+  `realtime: ChatRealtimeTransportConfig` (the DO-socket handle and the conversation's
+  neutral `ChatConversationRef`). On the `realtime` transport the DO grant is the
+  data-access authority.
 - The **realtime (Cloudflare Durable Object) transport CLIENT** (`src/realtime/`)
   — the client half of the `ttt-master-app/chat-worker` wire protocol. See the
   "Realtime transport" section below. The FIRESTORE transport stays the unchanged
@@ -50,14 +82,17 @@ The realtime transport is the client for the chat Worker's Durable Objects
 the generic [`@ttt-productions/realtime-core`](./realtime-core.md) primitives
 (reconnect/resume controller, versioned-apply) and NEVER imports `ttt-core` or
 the chat Worker. The canonical wire contract (`{ v, type, payload }` frame
-version, `CLIENT_KINDS` / `SERVER_KINDS`, close codes, `ChannelRefTuple`, grant
-scope/audience, and the client-agreed limits) is owned by
+version, `CLIENT_KINDS` / `SERVER_KINDS`, close codes, the neutral conversation
+reference `ChatConversationRef`, grant scope/audience, the send and mark-read
+contracts, and the client-agreed limits) is owned by
 [`@ttt-productions/chat-schemas`](./chat-schemas.md); the transport imports it
 (re-exporting the frame-kind maps under its historical `CLIENT_FRAME` /
 `SERVER_FRAME` names) and adds the client-side row/frame shapes (`WireMessageRow`,
 `ServerFrame`, …) it maps into the UI message shape. The chat Worker consumes the
 same contract, so the two agree on the wire without importing each other. The app
-injects everything app-specific (the grant provider, the endpoint, the channel ref).
+injects everything app-specific (the grant provider, the endpoint, and the
+conversation as a `ChatConversationRef` — the client never interprets its kind or id;
+`chat-schemas` is where the type is imported from).
 
 **Pieces** (all under `src/realtime/`, re-exported from the package root):
 
@@ -73,9 +108,17 @@ injects everything app-specific (the grant provider, the endpoint, the channel r
   `InboxClient` (one per USER, mounted once at the dock — NOT per thread). A
   SEPARATE socket scoped `inbox`; mirrors the DO's `{ registry, hasUnread }`
   snapshot (active entries only) into an observable store. Dots only, no counts.
+  `InboxClientState.hasLoadedInitialData` is true from the first snapshot, so an empty
+  registry before it means "not loaded", never "nothing here". `markRead(channelRef)`
+  sends `mark-read` with a fresh `requestId` and returns a promise of a
+  `ChatMarkReadOutcome`: `{ ok: true }` on the runtime's correlated
+  `mark-read-result`, `{ ok: false, code }` with the runtime's reason, `not-sent` (no open
+  socket), or `connection-lost` (the socket closed first — the outcome is unknown and the
+  dot stays). It settles on the command's own answer, never a timer, and there is no
+  optimistic clear: the runtime's fresh snapshot removes the dot.
 - `useRealtimeChatMessages(client)` → the same result shape as `useChatMessages`
   (the firestore hook) plus realtime extras (`status`, `typing`, `presence`,
-  `send`, `readAck`, `signalTyping`). Connects on mount; tears every socket down
+  `send`, `readAck`, `signalTyping`, `initialLoadFailed`, `retry`). Connects on mount; tears every socket down
   on unmount OR when the client identity changes (the auth-user-switch teardown
   key — pass a NEW client for a new uid).
 - `ChatShell` dispatches on `config.transport`: `'realtime'` uses the realtime
@@ -114,6 +157,27 @@ suppresses the reconnect banner so it cannot compete; the header, actions,
 `renderAboveMessages`/`renderBelowMessages`, and footer slots still render. After
 initial load, messages stay mounted through reconnects under the existing
 reconnect/disconnected banner.
+
+**A first open that keeps failing.** Both clients carry `initialLoadFailed`. It turns
+true when there is still no initial data `CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS` (15 s, client
+policy) after the first attempt started — whether the attempts failed or one is hanging (a
+grant mint stuck until its timeout, a socket that opened but never sent a snapshot) — or at
+once when reconnecting stops before any data (the controller gave up, or a 4403 revoke). The
+client keeps reconnecting in the background. `ChatShell` then shows the app's `initial`
+failure instead of "Opening chat…". `retryNow()` (`RealtimeChatClient.retry()`) cancels a
+pending backoff and opens a socket at once (a stopped lifecycle starts again; an attempt
+already in flight is left to finish) and clears the flag either way, so the opening state
+shows while it tries; the budget already spent stays spent, so a retry that fails is
+reported again at once, and one that hangs a full budget later. The first authoritative data clears it for
+good; it is never set once data has loaded. An older-history request that cannot be sent,
+or whose socket drops, is not left in flight.
+
+**Lifecycle fence (both clients).** Every `connect()` and `close()` advances the
+client's lifecycle number. A grant that resolves for an older lifecycle opens nothing,
+and every socket callback is fenced to its own socket: a replaced or torn-down socket's
+late open, frames, and close never touch the current state (FRONTEND-108). `close()`
+detaches the socket before closing it, and settles every pending mark-read as
+`connection-lost`.
 
 **Terminal grant denial (Firebase-free).** A `grantProvider` distinguishes a
 transient mint failure from a terminal access denial by throwing the package-owned

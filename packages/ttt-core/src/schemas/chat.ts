@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { CHAT_MESSAGE_TEXT_MAX_LENGTH } from '@ttt-productions/chat-schemas';
+import type { GuildChatConversation } from '../ids/guild-chat-conversation.js';
 import {
   workProjectIdSchema,
   userIdSchema,
@@ -9,7 +11,6 @@ import {
   reportGroupIdSchema,
 } from './atoms.js';
 import {
-  MAX_CHAT_MESSAGE_LENGTH,
   MAX_GUILD_CHAT_CHANNEL_NAME_LENGTH,
   MAX_GUILD_CHAT_CHANNEL_DESCRIPTION_LENGTH,
 } from '../constants/chat.js';
@@ -19,6 +20,26 @@ import {
   MAX_CHAT_MODERATION_REASON_LENGTH,
 } from '../constants/business.js';
 import { AdminDispatchContextRefSchema } from '../doc-schemas/messaging.js';
+
+/**
+ * The wire shape of a TTT realtime conversation (`GuildChatConversation`): a Work's guild chat
+ * channel or a guild invite's conversation, each by its own ids. Every input that names a
+ * conversation — the grant request, the admin moderation and context reads, the staged chat
+ * tombstone — takes this one schema.
+ */
+const GuildChatChannelConversationSchema = z.object({
+  kind: z.literal('channel'),
+  workProjectId: workProjectIdSchema,
+  guildChatChannelId: guildChatChannelIdSchema,
+}).strict();
+const GuildInviteConversationRefSchema = z.object({
+  kind: z.literal('invite'),
+  guildInviteId: guildInviteIdSchema,
+}).strict();
+export const GuildChatConversationSchema = z.discriminatedUnion('kind', [
+  GuildChatChannelConversationSchema,
+  GuildInviteConversationRefSchema,
+]) satisfies z.ZodType<GuildChatConversation>;
 
 export const ArchiveGuildChatChannelInputSchema = z.object({
   workProjectId: workProjectIdSchema,
@@ -50,12 +71,22 @@ export const CreateGuildChatChannelInputSchema = z.object({
   channelName: z.string().min(1).max(MAX_GUILD_CHAT_CHANNEL_NAME_LENGTH),
   description: z.string().max(MAX_GUILD_CHAT_CHANNEL_DESCRIPTION_LENGTH).optional(),
   requiredGuildStandings: z.array(z.string().min(1).max(64)).max(20),
-  allowedUserIds: z.array(userIdSchema.max(128)).max(500),
 }).strict();
 export type CreateGuildChatChannelInput = z.infer<typeof CreateGuildChatChannelInputSchema>;
 
+/**
+ * Whether the chat Worker already enforces a channel change when its callable answers:
+ * `applied` — the change reached the channel's room before the answer; `pending` — it is
+ * committed and queued, and the room applies it within the sync retry window. Never a failure:
+ * the change itself is saved either way.
+ */
+export const GUILD_CHAT_CHANNEL_ENFORCEMENT_STATES = ['applied', 'pending'] as const;
+export const GuildChatChannelEnforcementSchema = z.enum(GUILD_CHAT_CHANNEL_ENFORCEMENT_STATES);
+export type GuildChatChannelEnforcement = z.infer<typeof GuildChatChannelEnforcementSchema>;
+
 // ONE wire result contract for ALL FIVE channel-lifecycle callables (create / archive /
-// unarchive / update / delete): each answers with the id of the channel it acted on.
+// unarchive / update / delete): each answers with the id of the channel it acted on and
+// whether the chat Worker already enforces the change.
 // One named shape, not five aliases — the lanes deliberately share a result contract, and a
 // future divergence should be a visible schema split, not a silent drift between app-local
 // copies (the frontend once typed unarchive's result as `{ channelId }` against a backend
@@ -63,6 +94,7 @@ export type CreateGuildChatChannelInput = z.infer<typeof CreateGuildChatChannelI
 export const GuildChatChannelLifecycleResultSchema = z.object({
   success: z.literal(true),
   guildChatChannelId: guildChatChannelIdSchema,
+  enforcement: GuildChatChannelEnforcementSchema,
 });
 export type GuildChatChannelLifecycleResult = z.infer<typeof GuildChatChannelLifecycleResultSchema>;
 
@@ -73,7 +105,7 @@ export const SendGuildChatMessageInputSchema = z.object({
   threadKind: z.literal('adminSupport'),
   adminDispatchId: adminDispatchIdSchema,
   isUserReply: z.boolean(),
-  text: z.string().max(MAX_CHAT_MESSAGE_LENGTH),
+  text: z.string().max(CHAT_MESSAGE_TEXT_MAX_LENGTH),
   // No reply pointer: chat has no reply-authoring affordance, so a client could never
   // legitimately send one. `.strict()` therefore REJECTS a client-sent `replyTo`
   // (DJ ruling 2026-07-29).
@@ -92,8 +124,7 @@ export const SendGuildChatMessageResultSchema = z.object({
 });
 export type SendGuildChatMessageResult = z.infer<typeof SendGuildChatMessageResultSchema>;
 
-// Subject/initial-text share the admin-dispatch caps (the "contact admin" composer
-// enforces them) — the old MAX_CHAT_MESSAGE_LENGTH bound let a 4000-char SUBJECT through.
+// Subject/initial-text share the admin-dispatch caps (the "contact admin" composer enforces them).
 export const StartAdminSupportThreadInputSchema = z.object({
   subject: z.string().min(1).max(MAX_ADMIN_DISPATCH_SUBJECT_LENGTH),
   initialMessage: z.string().min(1).max(MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH),
@@ -149,8 +180,8 @@ export type CreateAdminDispatchToUserInput = z.infer<typeof CreateAdminDispatchT
 // convention, not locally in the functions repo. The REAL Firestore authorization
 // check happens in the callable; this schema pins the scope shape.
 export const ChatGrantInputSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('channel'), workProjectId: workProjectIdSchema, guildChatChannelId: guildChatChannelIdSchema }).strict(),
-  z.object({ kind: z.literal('invite'), guildInviteId: guildInviteIdSchema }).strict(),
+  GuildChatChannelConversationSchema,
+  GuildInviteConversationRefSchema,
   z.object({ kind: z.literal('inbox') }).strict(),
 ]);
 export type ChatGrantInput = z.infer<typeof ChatGrantInputSchema>;
@@ -161,22 +192,10 @@ export const UpdateGuildChatChannelInputSchema = z.object({
   channelName: z.string().min(1).max(MAX_GUILD_CHAT_CHANNEL_NAME_LENGTH).optional(),
   description: z.string().max(MAX_GUILD_CHAT_CHANNEL_DESCRIPTION_LENGTH).optional(),
   requiredGuildStandings: z.array(z.string().min(1).max(64)).max(20).optional(),
-  allowedUserIds: z.array(userIdSchema.max(128)).max(500).optional(),
 }).strict();
 export type UpdateGuildChatChannelInput = z.infer<typeof UpdateGuildChatChannelInputSchema>;
 
 // --- Admin chat moderation callables (review-only; ttt-prod docs/design/chat-realtime-system.md) ---
-
-// The CLIENT-facing channel-ref for the admin chat-moderation callables
-// (`adminModerateChatMessage` / `adminReadChannelContext`). This is the WIRE shape, which
-// is `kind`-discriminated — NOT the internal `scope`-keyed `ChannelRefTupleSchema`
-// (@ttt-productions/chat-schemas), which the callables map to server-side AFTER parsing.
-// Mirrors the existing `TombstoneChatSchema.channel` union in schemas/admin.ts.
-export const AdminChatModerationChannelSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('channel'), workProjectId: workProjectIdSchema, guildChatChannelId: guildChatChannelIdSchema }).strict(),
-  z.object({ kind: z.literal('invite'), guildInviteId: guildInviteIdSchema }).strict(),
-]);
-export type AdminChatModerationChannel = z.infer<typeof AdminChatModerationChannelSchema>;
 
 // `adminModerateChatMessage` — queue a DO-owned hide/delete command. A chat message carries
 // no media (files live in the conversation's Conversation Files list), so this is a text-only
@@ -188,7 +207,7 @@ export const AdminModerateChatMessageInputSchema = z.object({
   expectedMessageRevision: z.number().int().nonnegative(),
   caseId: reportGroupIdSchema.max(200),
   reason: z.string().min(1).max(MAX_CHAT_MODERATION_REASON_LENGTH),
-  channel: AdminChatModerationChannelSchema,
+  channel: GuildChatConversationSchema,
 }).strict();
 export type AdminModerateChatMessageInput = z.infer<typeof AdminModerateChatMessageInputSchema>;
 
@@ -201,7 +220,7 @@ export const AdminReadChannelContextInputSchema = z.object({
   reason: z.string().min(1).max(MAX_CHAT_MODERATION_REASON_LENGTH),
   before: z.number().int().min(0).max(50).optional(),
   after: z.number().int().min(0).max(50).optional(),
-  channel: AdminChatModerationChannelSchema,
+  channel: GuildChatConversationSchema,
 }).strict();
 export type AdminReadChannelContextInput = z.infer<typeof AdminReadChannelContextInputSchema>;
 

@@ -13,6 +13,11 @@ import {
   canAssignGuildStanding,
   NON_ASSIGNABLE_GUILD_STANDINGS,
   STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS,
+  GUILD_INVITE_HANDLER_GUILD_STANDING_IDS,
+  STAKE_SHARE_POWER_GUILD_STANDING_IDS,
+  WORK_FILE_ADMIN_GUILD_STANDING_IDS,
+  guildStandingsGrantAction,
+  isWorkFileAdmin,
   type GuildStandingId,
 } from '../src/permissions/index.js';
 import { UpdateGuildmateStandingInputSchema } from '../src/schemas/work-project-management.js';
@@ -297,5 +302,77 @@ describe('UpdateGuildmateStandingInputSchema', () => {
         extra: 'nope',
       }),
     ).toThrow();
+  });
+});
+
+describe('every defined action is enforced or gone', () => {
+  it('the four defined-but-unenforced actions are deleted', () => {
+    for (const removed of [
+      'guildChatMessage.moderate',
+      'workProject.stakeShares.manage',
+      'audition.edit',
+      'audition.respondent.manage',
+    ]) {
+      expect(isWorkProjectActionId(removed)).toBe(false);
+    }
+  });
+
+  it('the standing descriptions no longer promise the deleted powers', () => {
+    expect(GUILD_STANDINGS.GuildChatChannelManager.description).not.toMatch(/moderate/i);
+    expect(GUILD_STANDINGS.AuditionManager.description).not.toMatch(/\bedit\b/i);
+    expect(GUILD_STANDINGS.AuditionManager.description).not.toMatch(/respondent/i);
+  });
+
+  it('guildInvite.revokeAny stays — it is the invite-cancel check', () => {
+    expect(isWorkProjectActionId('guildInvite.revokeAny')).toBe(true);
+  });
+});
+
+describe('the standing lists the invite, stake, and file rules read', () => {
+  it('invite handlers are exactly Steward, WorkProject Manager, and Invite Manager, and they send, list, and cancel', () => {
+    expect([...GUILD_INVITE_HANDLER_GUILD_STANDING_IDS].sort()).toEqual(['InviteManager', 'StewardOwner', 'WorkProjectManager']);
+    for (const action of ['guildInvite.send', 'guildInvite.list', 'guildInvite.revokeAny'] as const) {
+      expect([...WORK_PROJECT_ACTIONS[action].grantedTo].sort()).toEqual([...GUILD_INVITE_HANDLER_GUILD_STANDING_IDS].sort());
+    }
+  });
+
+  it('only the stake-power standings change stake amounts — an Invite Manager cannot change an invite offer', () => {
+    expect([...STAKE_SHARE_POWER_GUILD_STANDING_IDS].sort()).toEqual(['StakeShareManager', 'StewardOwner', 'WorkProjectManager']);
+    expect([...WORK_PROJECT_ACTIONS['guildInvite.stakeShares.update'].grantedTo].sort()).toEqual(
+      [...STAKE_SHARE_POWER_GUILD_STANDING_IDS].sort(),
+    );
+    expect(guildStandingsGrantAction(['InviteManager'], 'guildInvite.stakeShares.update')).toBe(false);
+    expect(guildStandingsGrantAction(['StakeShareManager'], 'guildInvite.stakeShares.update')).toBe(true);
+  });
+
+  it('file admins are Steward, WorkProject Manager, and Work Asset Admin, and every file-admin action reads that list', () => {
+    expect([...WORK_FILE_ADMIN_GUILD_STANDING_IDS].sort()).toEqual(['StewardOwner', 'WorkAssetAdmin', 'WorkProjectManager']);
+    for (const action of ['fileFolder.create', 'fileFolder.manage', 'fileFolder.viewAll', 'workFile.uploadAny', 'workFile.deleteAny'] as const) {
+      expect([...WORK_PROJECT_ACTIONS[action].grantedTo].sort()).toEqual([...WORK_FILE_ADMIN_GUILD_STANDING_IDS].sort());
+    }
+  });
+});
+
+describe('guildStandingsGrantAction', () => {
+  it('grants when any held standing is in the action grant list', () => {
+    expect(guildStandingsGrantAction(['HallLibraryEditor', 'InviteManager'], 'guildInvite.send')).toBe(true);
+  });
+
+  it('refuses when no held standing is granted, and for an empty or absent list', () => {
+    expect(guildStandingsGrantAction(['HallLibraryEditor'], 'guildInvite.send')).toBe(false);
+    expect(guildStandingsGrantAction([], 'guildInvite.send')).toBe(false);
+    expect(guildStandingsGrantAction(undefined, 'guildInvite.send')).toBe(false);
+  });
+});
+
+describe('isWorkFileAdmin', () => {
+  it('is an active Guildmate holding a file-admin standing', () => {
+    expect(isWorkFileAdmin({ status: 'active', guildStandings: ['WorkAssetAdmin'] })).toBe(true);
+    expect(isWorkFileAdmin({ status: 'active', guildStandings: ['StewardOwner'] })).toBe(true);
+  });
+
+  it('is never a departed Guildmate, nor one without a file-admin standing', () => {
+    expect(isWorkFileAdmin({ status: 'departed', guildStandings: ['WorkAssetAdmin'] })).toBe(false);
+    expect(isWorkFileAdmin({ status: 'active', guildStandings: ['InviteManager'] })).toBe(false);
   });
 });

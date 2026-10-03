@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge, Button, ListPagination, Separator, Spinner } from '@ttt-productions/ui-core/react';
 import { useActiveNotifications } from '../hooks/useActiveNotifications.js';
 import { useArchiveNotification } from '../hooks/useArchiveNotification.js';
@@ -22,13 +22,19 @@ export function NotificationList({
   title,
   onClearAll,
   refetchInterval,
+  staleTime,
   emptyText,
+  renderError,
+  onRenderedRowsChange,
   renderRowAction,
 }: NotificationListProps) {
   const {
     data: notifications,
     isLoading,
     isFetching,
+    isError,
+    error,
+    refetch,
     page,
     hasNextPage,
     hasPrevPage,
@@ -39,6 +45,7 @@ export function NotificationList({
     userId,
     category,
     refetchInterval,
+    staleTime,
   });
 
   const archiveMutation = useArchiveNotification({
@@ -67,9 +74,15 @@ export function NotificationList({
     () => new Set(),
   );
 
-  // Successful archive requests stay visibly pending until the authoritative
-  // active-notification query removes each row. A callable response alone does
-  // not prove the listener/cache has reconciled yet.
+  const renderedRowsRef = useRef(onRenderedRowsChange);
+  renderedRowsRef.current = onRenderedRowsChange;
+  useEffect(() => {
+    if (notifications) renderedRowsRef.current?.(notifications);
+  }, [notifications]);
+
+  // An archive the server confirmed stays visibly pending until the authoritative
+  // active-notification query removes the row: the callable's answer alone does not
+  // prove the read has caught up.
   useEffect(() => {
     if (!notifications) return;
     const activeIds = new Set(notifications.map((notification) => notification.id));
@@ -81,21 +94,26 @@ export function NotificationList({
     setPendingClearAllIds(keepActive);
   }, [notifications]);
 
-  const archiveOne = useCallback(async (notificationId: string) => {
+  const archiveOne = useCallback(async (notification: NotificationDoc) => {
+    const clearPending = () =>
+      setPendingArchiveIds((current) => {
+        const next = new Set(current);
+        next.delete(notification.id);
+        return next;
+      });
     setPendingArchiveIds((current) => {
       const next = new Set(current);
-      next.add(notificationId);
+      next.add(notification.id);
       return next;
     });
     try {
-      await archiveMutation.mutateAsync(notificationId);
-    } catch (error) {
-      setPendingArchiveIds((current) => {
-        const next = new Set(current);
-        next.delete(notificationId);
-        return next;
-      });
-      throw error;
+      const result = await archiveMutation.mutateAsync(notification);
+      // Nothing was archived (the card changed after it was rendered): the row stays
+      // active, so it is not left looking like it is clearing.
+      if (!result.archived) clearPending();
+    } catch (archiveError) {
+      clearPending();
+      throw archiveError;
     }
   }, [archiveMutation]);
 
@@ -130,6 +148,10 @@ export function NotificationList({
   );
 
   const hasNotifications = !!notifications && notifications.length > 0;
+  // A later page that came back empty keeps its pager so the user can step back; the
+  // empty state is the answer for page 1 only.
+  const showEmptyState =
+    !isError && notifications !== undefined && notifications.length === 0 && page === 1;
   const isClearAllPending = archiveAllMutation.isPending || pendingClearAllIds.size > 0;
 
   return (
@@ -159,11 +181,9 @@ export function NotificationList({
         <div className="ntf-loading">
           <Spinner size="md" label="Loading notifications" />
         </div>
-      ) : !notifications || notifications.length === 0 ? (
-        <NotificationEmptyState text={emptyText} />
       ) : (
         <>
-          {notifications.map((notification: NotificationDoc) => (
+          {(notifications ?? []).map((notification: NotificationDoc) => (
             <div key={notification.id} className="ntf-item">
               <div className="ntf-item-icon">
                 {getTypeIcon(notification.type)}
@@ -183,7 +203,7 @@ export function NotificationList({
               {renderRowAction && (
                 <div className="ntf-item-row-action">
                   {renderRowAction(notification, {
-                    archive: () => archiveOne(notification.id),
+                    archive: () => archiveOne(notification),
                     isArchivePending:
                       pendingClearAllIds.has(notification.id) || pendingArchiveIds.has(notification.id),
                   })}
@@ -191,6 +211,17 @@ export function NotificationList({
               )}
             </div>
           ))}
+          {isError && error
+            ? renderError({
+                error,
+                retry: () => {
+                  void refetch();
+                },
+                retrying: isFetching,
+                hasRows: hasNotifications,
+              })
+            : null}
+          {showEmptyState && <NotificationEmptyState text={emptyText} />}
           <ListPagination
             pagination={{
               currentPage: page,

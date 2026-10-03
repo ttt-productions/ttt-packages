@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   MAX_WORK_PROJECT_TITLE_LENGTH,
+  MAX_WORK_PROJECT_STAKE_SHARES,
   MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH,
   MAX_REPORT_TARGET_ID_LENGTH,
   FIRESTORE_DOCUMENT_ID_MAX_BYTES,
@@ -10,6 +11,9 @@ import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   type ModerationClearableSurface,
 } from '../constants/business-content.js';
+
+/** A stake-share offer (a commission listing, an audition): whole, positive, within the Work total. */
+export const stakeSharesOfferedSchema = z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES);
 
 // One Firestore document-id segment. A client string that becomes a path segment is validated as ONE
 // segment before any path is built from it: a "/" addresses a different document or a subcollection,

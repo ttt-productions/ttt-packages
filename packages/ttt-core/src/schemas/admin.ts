@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { GuildChatConversationSchema } from './chat.js';
 import {
   violationIdSchema,
   taskIdSchema,
@@ -13,8 +14,6 @@ import {
   hallSubItemIdSchema,
   workRealmIdSchema,
   userIdSchema,
-  guildChatChannelIdSchema,
-  guildInviteIdSchema,
   safetyCaseIdSchema,
 } from './atoms.js';
 import {
@@ -631,10 +630,7 @@ const ClearContentTextActionSchema = z
 const TombstoneChatSchema = z
   .object({
     button: z.literal('tombstoneChat'),
-    channel: z.discriminatedUnion('kind', [
-      z.object({ kind: z.literal('channel'), workProjectId: workProjectIdSchema, guildChatChannelId: guildChatChannelIdSchema }).strict(),
-      z.object({ kind: z.literal('invite'), guildInviteId: guildInviteIdSchema }).strict(),
-    ]),
+    channel: GuildChatConversationSchema,
     messageSeq: z.number().int().nonnegative(),
     expectedMessageRevision: z.number().int().nonnegative(),
   })
@@ -791,6 +787,7 @@ export const DeadLetterCollectionSchema = z.enum([
   'accountActionCommands',
   'activeReportGroups',
   'hallSubItemEdgeSync',
+  'chatParkedDeliveries',
 ]);
 export type DeadLetterCollection = z.infer<typeof DeadLetterCollectionSchema>;
 

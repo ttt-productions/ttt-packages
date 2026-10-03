@@ -19,6 +19,8 @@ export const ITEMS_PER_PAGE_FOLLOWED_USERS = 10;
 export const ITEMS_PER_PAGE_ADMIN_DISPATCH_THREADS = 10;
 /** The admin Dispatches browse list (every support thread, admin-only) — not a member's own thread list above. */
 export const ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE = 12;
+/** The admin task browse list (every queue task of one type, admin-only). */
+export const ITEMS_PER_PAGE_ADMIN_TASK_BROWSE = 12;
 
 // --- Hook-specific page sizes ---
 
@@ -71,3 +73,18 @@ export const HALL_LIBRARY_PAGE_CONSTANTS = {
   SEARCH_DEBOUNCE_MS: 300,
 } as const;
 
+
+/**
+ * The notification tray's Safety Cases view shows how many safety cases are open, up to this
+ * many; above it the view says `${SAFETY_CASE_TRAY_COUNT_CAP}+`. The view only signals that there
+ * is work — the Safety Case Console holds the details — so it never counts past the cap.
+ */
+export const SAFETY_CASE_TRAY_COUNT_CAP = 100;
+
+/** The tray's open-case read limit: one row past the cap, so a full cap is told apart from more. */
+export const SAFETY_CASE_TRAY_READ_LIMIT = SAFETY_CASE_TRAY_COUNT_CAP + 1;
+
+/** The tray's open safety-case count as shown: exact up to the cap, `"100+"` above it. */
+export function formatSafetyCaseTrayCount(loadedRows: number): string {
+  return loadedRows > SAFETY_CASE_TRAY_COUNT_CAP ? `${SAFETY_CASE_TRAY_COUNT_CAP}+` : String(loadedRows);
+}

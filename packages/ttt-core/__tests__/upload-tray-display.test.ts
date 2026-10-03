@@ -19,7 +19,7 @@ describe('fileOriginRowLabel', () => {
   it('labels the admin audition origin neutrally — it creates BOTH audition types', () => {
     // The origin's own target-info accepts platformAudition AND sponsoredAudition, so a
     // type-specific label (it used to say "Sponsored audition") is wrong half the time.
-    const accepted = AdminAuditionPromptTargetInfoSchema.shape.type.options;
+    const accepted = AdminAuditionPromptTargetInfoSchema.options.map((member) => member.shape.type.value);
     expect([...accepted].sort()).toEqual(['platformAudition', 'sponsoredAudition']);
     expect(fileOriginRowLabel['admin-audition-prompt']).toBe('Admin audition');
   });

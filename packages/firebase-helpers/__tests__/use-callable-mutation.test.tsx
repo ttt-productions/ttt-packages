@@ -233,3 +233,37 @@ describe('useCallableMutation', () => {
     }
   });
 });
+
+describe('useCallableMutation — an unavailable Functions provider', () => {
+  it('reaches onError and capture once each, and leaves nothing in flight', async () => {
+    const onError = vi.fn();
+    const captureException = vi.fn();
+    const { result } = renderHook(() =>
+      useCallableMutation({ getFunctions: () => null, onError, captureException }),
+    );
+    await act(async () => {
+      await expect(result.current.callFunction('fn', { x: 1 })).rejects.toThrow(
+        'Firebase Functions is not available',
+      );
+    });
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(result.current.isLoading).toBe(false);
+  });
+
+  it('reaches onError and capture once each when the provider throws', async () => {
+    const thrown = new Error('getter threw');
+    const onError = vi.fn();
+    const captureException = vi.fn();
+    const { result } = renderHook(() =>
+      useCallableMutation({ getFunctions: () => { throw thrown; }, onError, captureException }),
+    );
+    await act(async () => {
+      await expect(result.current.callFunction('fn')).rejects.toBe(thrown);
+    });
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toBe(thrown);
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(result.current.isLoading).toBe(false);
+  });
+});

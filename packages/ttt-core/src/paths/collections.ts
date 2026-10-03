@@ -68,6 +68,7 @@ export const COLLECTIONS = {
   CHAT_MESSAGE_OUTBOX: 'chatMessageOutbox',
   CHAT_ADMIN_ACTION_COMMANDS: 'chatAdminActionCommands',
   CHAT_HISTORY_ANONYMIZATION_JOBS: 'chatHistoryAnonymizationJobs',
+  CHAT_PARKED_DELIVERIES: 'chatParkedDeliveries',
 
   // Square Streetz announcement outbox (Admin-SDK-only): durable jobs enqueued in the
   // announcing domain's transaction and drained by the outbox trigger worker. Job ids
@@ -277,6 +278,10 @@ export const NESTED_SUBCOLLECTIONS = {
   //   pendingAdminDispatches/{adminDispatchId}/conversationFiles/{conversationFileId}
   // Guild chat channels deliberately have NO conversationFiles subcollection.
   CONVERSATION_FILES: 'conversationFiles',
+
+  // Per-person read markers of an admin-support thread, one per member-side reader:
+  //   pendingAdminDispatches/{adminDispatchId}/dispatchReadMarkers/{uid}
+  DISPATCH_READ_MARKERS: 'dispatchReadMarkers',
 
   // SquareStreetz & Social
   SOCIAL_POSTS: 'socialPosts',

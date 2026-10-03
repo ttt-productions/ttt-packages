@@ -259,7 +259,7 @@ export type AuditionTypeFilter = AuditionType | typeof AUDITION_TYPE_FILTER_ALL;
  */
 const AUDITION_SORT_OPTIONS_BASE = {
   newest: { label: 'Newest First', field: 'createdOn', direction: 'desc' },
-  endingSoon: { label: 'Ending Soon', field: 'openTill', direction: 'asc' },
+  endingSoon: { label: 'Ending Soon', field: 'auditionCloseAt', direction: 'asc' },
 } as const;
 
 /** Sort options shown on the audition feeds, keyed by feed type. `default` serves the board's

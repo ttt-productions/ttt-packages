@@ -36,6 +36,8 @@ export { Progress } from "./components/progress.js";
 export { Slider } from "./components/slider.js";
 export type { DatePickerProps } from "./components/date-picker.js";
 export { DatePicker } from "./components/date-picker.js";
+export type { DateTimePickerProps, DateTimePickerTime } from "./components/date-time-picker.js";
+export { DateTimePicker } from "./components/date-time-picker.js";
 export { ScrollArea, ScrollBar } from "./components/scroll-area.js";
 export { Table, TableHeader, TableBody, TableFooter, TableHead, TableRow, TableCell, TableCaption } from "./components/table.js";
 export { Sheet, SheetPortal, SheetOverlay, SheetTrigger, SheetClose, SheetContent, SheetHeader, SheetFooter, SheetTitle, SheetDescription } from "./components/sheet.js";

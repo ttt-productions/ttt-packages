@@ -12,6 +12,7 @@ import {
   televisionIdSchema,
   episodeIdSchema,
   workFileFolderIdSchema,
+  stakeSharesOfferedSchema,
 } from "../schemas/atoms.js";
 import type { FileOrigin } from "./file-origin.js";
 import { ConversationFileRefSchema } from "./conversation-file-ref.js";
@@ -33,6 +34,7 @@ import {
 } from "../doc-schemas/user.js";
 import { CRAFT_SKILL_STATEMENT_VERSION } from "../constants/craft-skill-statements.js";
 import { HALL_CONTENT_DETAIL_SURFACES } from "../constants/hall-content-routing.js";
+import { AuditionDeadlineSchema, refineAuditionDeadlineOrder } from "../constants/audition-deadlines.js";
 import {
   MAX_POST_LENGTH,
   MAX_CRAFT_SKILL_TAGS,
@@ -40,7 +42,6 @@ import {
   MAX_COMMISSION_DESCRIPTION_LENGTH,
   MAX_AUDITION_TITLE_LENGTH,
   MAX_AUDITION_DESCRIPTION_LENGTH,
-  MAX_WORK_PROJECT_STAKE_SHARES,
   MAX_SPONSORED_AUDITION_AMOUNT_USD,
   MIN_CURATED_AUDITION_OPTIONS,
   MAX_CURATED_AUDITION_OPTIONS,
@@ -167,7 +168,7 @@ export const CommissionPostingTargetInfoSchema = z
     // min(1): the create core rejects 0 shares (invalid-argument) at PUBLISH — after
     // upload/transcode/moderation — so fail fast at the trust boundary instead of burning
     // the activation-job retry budget on a deterministic dead-letter.
-    stakeSharesOffered: z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES),
+    stakeSharesOffered: stakeSharesOfferedSchema,
     workProjectId: workProjectIdSchema,
   })
   .strict();
@@ -192,11 +193,15 @@ export const AuditionPromptTargetInfoSchema = z
     type: z.literal('workAudition'),
     title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
     description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
-    openTill: z.number().int().positive(),
+    // The poster's two deadlines (constants/audition-deadlines.ts). Their order is refined
+    // below; their gap from the posting time is checked when the upload starts and again at
+    // publish against the submit time.
+    entriesCloseAt: AuditionDeadlineSchema,
+    auditionCloseAt: AuditionDeadlineSchema,
     workProjectId: workProjectIdSchema,
     // min(1): the create core rejects <1 shares at PUBLISH (see CommissionPosting above).
     // Optional — defaults to a floor of 1 at invite time when absent.
-    stakeSharesOffered: z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES).optional(),
+    stakeSharesOffered: stakeSharesOfferedSchema.optional(),
     // Curated vs open audition. Absent ⇒ 'open' (community replies + votes). 'curated' ⇒ the
     // creating work posts the option entries itself and users may ONLY vote (the create/reply
     // callable derives each option entry's isCreatorOption server-side and rejects community replies).
@@ -206,28 +211,48 @@ export const AuditionPromptTargetInfoSchema = z
     // coordinator knows when ALL options have landed. Required by the create core when mode==='curated'.
     expectedOptionCount: z.number().int().min(MIN_CURATED_AUDITION_OPTIONS).max(MAX_CURATED_AUDITION_OPTIONS).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine(refineAuditionDeadlineOrder);
 
-// admin-audition-prompt: admin-operated featured/sponsored audition creation payload.
+/** A sponsored audition's prize: a positive USD amount, up to the maximum. */
+export const SponsoredAuditionAmountUSDSchema = z
+  .number()
+  .positive()
+  .finite()
+  .max(MAX_SPONSORED_AUDITION_AMOUNT_USD);
+
+// The admin audition fields both types share.
+const adminAuditionPromptFields = {
+  // SANCTIONED client-minted upload-batch correlation ID (see AuditionPromptTargetInfoSchema.
+  // auditionId): a curated audition's multiple option videos share this one id before any
+  // Audition doc exists; the backend uses create-no-overwrite semantics. NOT a reference to
+  // an existing audition.
+  auditionId: auditionIdSchema,
+  title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
+  description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
+  entriesCloseAt: AuditionDeadlineSchema,
+  auditionCloseAt: AuditionDeadlineSchema,
+  // Curated vs open (see AuditionPromptTargetInfoSchema.mode). Absent ⇒ 'open'.
+  mode: z.enum(['open', 'curated']).optional(),
+  // Curated ONLY: fixed number of option videos (2..8) in the atomic batch (see
+  // AuditionPromptTargetInfoSchema.expectedOptionCount). Required by the create core when curated.
+  expectedOptionCount: z.number().int().min(MIN_CURATED_AUDITION_OPTIONS).max(MAX_CURATED_AUDITION_OPTIONS).optional(),
+};
+
+// admin-audition-prompt: admin-operated audition creation payload, by type — a sponsored
+// audition carries its prize amount; a platform audition carries none.
 export const AdminAuditionPromptTargetInfoSchema = z
-  .object({
-    // SANCTIONED client-minted upload-batch correlation ID (see AuditionPromptTargetInfoSchema.
-    // auditionId): a curated audition's multiple option videos share this one id before any
-    // Audition doc exists; the backend uses create-no-overwrite semantics. NOT a reference to
-    // an existing audition.
-    auditionId: auditionIdSchema,
-    type: z.enum(['platformAudition', 'sponsoredAudition']),
-    title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
-    description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
-    openTill: z.number().int().positive(),
-    sponsoredAuditionAmountUSD: z.number().nonnegative().finite().max(MAX_SPONSORED_AUDITION_AMOUNT_USD).optional(),
-    // Curated vs open (see AuditionPromptTargetInfoSchema.mode). Absent ⇒ 'open'.
-    mode: z.enum(['open', 'curated']).optional(),
-    // Curated ONLY: fixed number of option videos (2..8) in the atomic batch (see
-    // AuditionPromptTargetInfoSchema.expectedOptionCount). Required by the create core when curated.
-    expectedOptionCount: z.number().int().min(MIN_CURATED_AUDITION_OPTIONS).max(MAX_CURATED_AUDITION_OPTIONS).optional(),
-  })
-  .strict();
+  .discriminatedUnion('type', [
+    z.object({ type: z.literal('platformAudition'), ...adminAuditionPromptFields }).strict(),
+    z
+      .object({
+        type: z.literal('sponsoredAudition'),
+        ...adminAuditionPromptFields,
+        sponsoredAuditionAmountUSD: SponsoredAuditionAmountUSDSchema,
+      })
+      .strict(),
+  ])
+  .superRefine(refineAuditionDeadlineOrder);
 
 export const AuditionEntryTargetInfoSchema = z
   .object({

@@ -9,8 +9,8 @@ import type { NotificationHistoryItem, NotificationHistoryListProps } from '../.
 
 /**
  * Read-only, paginated list of ARCHIVED notifications (the history tier). Rows are
- * inert (DJ ruling 2026-07-07) and read-only — archive is one-way, there is no
- * re-archive, so the row exposes no `archive` action. Any per-row control (e.g. an
+ * inert and read-only — archive is one-way, there is no re-archive, so the row
+ * exposes no `archive` action. Any per-row control (e.g. an
  * ArrowRight "go to") is rendered by the consumer via `renderRowAction`.
  */
 export function NotificationHistoryList({
@@ -20,6 +20,7 @@ export function NotificationHistoryList({
   pageSize,
   staleTime,
   emptyText,
+  renderError,
   title,
   renderRowAction,
 }: NotificationHistoryListProps) {
@@ -27,6 +28,9 @@ export function NotificationHistoryList({
     data: notifications,
     isLoading,
     isFetching,
+    isError,
+    error,
+    refetch,
     page,
     hasNextPage,
     hasPrevPage,
@@ -39,6 +43,12 @@ export function NotificationHistoryList({
     pageSize,
     staleTime,
   });
+
+  const hasRows = !!notifications && notifications.length > 0;
+  // A later page that came back empty keeps its pager so the user can step back; the
+  // empty state is the answer for page 1 only.
+  const showEmptyState =
+    !isError && notifications !== undefined && notifications.length === 0 && page === 1;
 
   const getTypeIcon = useCallback(
     (type: string) => config.types[type]?.icon ?? '🔔',
@@ -60,11 +70,9 @@ export function NotificationHistoryList({
           <div className="ntf-loading">
             <Spinner size="md" label="Loading notifications" />
           </div>
-        ) : !notifications || notifications.length === 0 ? (
-          <NotificationEmptyState text={emptyText} />
         ) : (
           <>
-            {notifications.map((notification: NotificationHistoryItem) => {
+            {(notifications ?? []).map((notification: NotificationHistoryItem) => {
               return (
                 <div
                   key={notification.archiveOccurrenceId}
@@ -91,6 +99,17 @@ export function NotificationHistoryList({
                 </div>
               );
             })}
+            {isError && error
+              ? renderError({
+                  error,
+                  retry: () => {
+                    void refetch();
+                  },
+                  retrying: isFetching,
+                  hasRows,
+                })
+              : null}
+            {showEmptyState && <NotificationEmptyState text={emptyText} />}
             <ListPagination
               pagination={{
                 currentPage: page,

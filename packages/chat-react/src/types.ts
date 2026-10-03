@@ -3,10 +3,8 @@
 // react / firebase/firestore / firebase/storage references.
 
 import type { ReactNode } from "react";
-import type {
-  ChatAccessMode,
-  ChatMessageV1,
-} from "@ttt-productions/chat-core";
+import type { ChatMessageV1 } from "@ttt-productions/chat-core";
+import type { ChatConversationRef } from "@ttt-productions/chat-schemas";
 
 // ============================================
 // CONFIG
@@ -19,11 +17,9 @@ import type {
 
 /**
  * Which transport backs a chat thread.
- * - `firestore` — the current Firestore newest-window + cursor path (default).
- * - `realtime` — the Cloudflare Durable Object socket (chat-edge-rebuild). On
- *   this transport DATA ACCESS is enforced by the DO grant, so `accessMode`
- *   becomes PRESENTATION-ONLY (UI affordances like read-only), never a
- *   data-access gate.
+ * - `firestore` — the Firestore newest-window + cursor path (default).
+ * - `realtime` — the Cloudflare Durable Object socket; the grant is the data-access
+ *   authority there.
  */
 export type ChatTransportMode = 'firestore' | 'realtime';
 
@@ -32,13 +28,13 @@ export type ChatTransportMode = 'firestore' | 'realtime';
  * in this package (`realtime/transport.ts`); chat-react consumes it through this
  * config so the UI stays transport-agnostic. The app builds the `client` via
  * `createRealtimeChatClient({ endpoint, channelRef, grantProvider, ... })` and
- * passes it here. `channelRef`/`client` stay structurally typed (`unknown` at the
- * config seam) so `ChatCoreConfig` does not pull the realtime module's types into
- * every firestore consumer — the realtime hook narrows them at the call site.
+ * passes it here. `client` stays structurally typed (`unknown` at the config seam)
+ * so `ChatCoreConfig` does not pull the realtime module's types into every firestore
+ * consumer — the realtime hook narrows it at the call site.
  */
 export interface ChatRealtimeTransportConfig {
-  /** Opaque channel reference the socket is scoped to (guild channel / invite thread). */
-  channelRef: unknown;
+  /** The conversation the socket is scoped to, as the app maps it onto the neutral reference. */
+  channelRef: ChatConversationRef;
   /**
    * The realtime client handle from `createRealtimeChatClient(...)`. Drives the
    * channel socket (subscribe / send / ack / typing / presence / history). The UI
@@ -62,15 +58,13 @@ export type ChatCoreConfig = {
   /** Required iff `transport === 'realtime'`; ignored on the firestore transport. */
   realtime?: ChatRealtimeTransportConfig;
   /**
-   * The Firestore data-access gate (see ChatAccessMode docs in
-   * @ttt-productions/chat-core). REQUIRED. On the `realtime` transport this is
-   * PRESENTATION-ONLY — the DO grant is the real data-access authority.
+   * Whether the current user may read this conversation — the app's ONE access fact,
+   * decided by the app's own rule for the conversation's kind (the package never decides
+   * access). False renders the no-access state and reads nothing. On the `realtime`
+   * transport the grant is the data authority, and a terminal denial from the grant
+   * closes the conversation even when this is true.
    */
-  accessMode: ChatAccessMode;
-  /**
-   * Required iff accessMode === "explicit-allowlist". Ignored otherwise.
-   */
-  threadAllowedUserIds?: string[];
+  allowed: boolean;
   createdAtField?: string;         // default: "createdAt"
   pageSize?: number;
 };

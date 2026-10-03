@@ -15,6 +15,7 @@ import { callCallable, stripUndefinedDeep } from "../src/client/call-callable.js
 import { httpsCallable, type Functions } from "firebase/functions";
 
 const fakeFunctions = {} as Functions;
+const getFakeFunctions = () => fakeFunctions;
 
 beforeEach(() => {
   invokeSpy.mockReset();
@@ -53,7 +54,7 @@ describe("stripUndefinedDeep", () => {
 
 describe("callCallable", () => {
   it("invokes with the STRIPPED payload — an omitted optional never rides as undefined", async () => {
-    await callCallable(fakeFunctions, "setUserStatus", {
+    await callCallable(getFakeFunctions, "setUserStatus", {
       userId: "u1",
       status: "active",
       reason: undefined,
@@ -67,7 +68,7 @@ describe("callCallable", () => {
   it("returns result.data and fires no callbacks on success", async () => {
     const onError = vi.fn();
     const captureException = vi.fn();
-    const out = await callCallable(fakeFunctions, "fn", { a: 1 }, { onError, captureException });
+    const out = await callCallable(getFakeFunctions, "fn", { a: 1 }, { onError, captureException });
     expect(out).toEqual({ ok: true });
     expect(onError).not.toHaveBeenCalled();
     expect(captureException).not.toHaveBeenCalled();
@@ -79,7 +80,7 @@ describe("callCallable", () => {
     const onError = vi.fn();
     const captureException = vi.fn();
     await expect(
-      callCallable(fakeFunctions, "fn", { a: 1 }, { onError, captureException }),
+      callCallable(getFakeFunctions, "fn", { a: 1 }, { onError, captureException }),
     ).rejects.toThrow("nope");
     // Telemetry channel gets bounded metadata ONLY — the request payload must
     // never reach captureException (it can forward straight to Sentry).
@@ -105,9 +106,9 @@ describe("callCallable deadline", () => {
   });
 
   it("forwards the timeout to the SDK when supplied, and omits options when not", async () => {
-    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { timeoutMs: 45_000 });
+    await callCallable(getFakeFunctions, "fn", { a: 1 }, undefined, { timeoutMs: 45_000 });
     expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", { timeout: 45_000 });
-    await callCallable(fakeFunctions, "fn", { a: 1 });
+    await callCallable(getFakeFunctions, "fn", { a: 1 });
     expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", undefined);
   });
 
@@ -116,7 +117,7 @@ describe("callCallable deadline", () => {
     async (bad) => {
       invokeSpy.mockClear();
       await expect(
-        callCallable(fakeFunctions, "fn", {}, undefined, { timeoutMs: bad }),
+        callCallable(getFakeFunctions, "fn", {}, undefined, { timeoutMs: bad }),
       ).rejects.toThrow(TypeError);
       expect(invokeSpy).not.toHaveBeenCalled();
     },
@@ -126,7 +127,7 @@ describe("callCallable deadline", () => {
     // A promise that never settles models the SDK stuck ANYWHERE — including
     // the pre-transport auth/App Check phase its own timer does not cover.
     invokeSpy.mockReturnValueOnce(new Promise(() => {}));
-    const call = callCallable(fakeFunctions, "hangs", { a: 1 }, undefined, { timeoutMs: 1_000 });
+    const call = callCallable(getFakeFunctions, "hangs", { a: 1 }, undefined, { timeoutMs: 1_000 });
     const assertion = expect(call).rejects.toMatchObject({
       name: "FirebaseError",
       code: "functions/deadline-exceeded",
@@ -139,7 +140,7 @@ describe("callCallable deadline", () => {
     invokeSpy.mockReturnValueOnce(new Promise(() => {}));
     const onError = vi.fn();
     const captureException = vi.fn();
-    const call = callCallable(fakeFunctions, "hangs", { secret: "x" }, { onError, captureException }, { timeoutMs: 1_000 });
+    const call = callCallable(getFakeFunctions, "hangs", { secret: "x" }, { onError, captureException }, { timeoutMs: 1_000 });
     const assertion = expect(call).rejects.toMatchObject({ code: "functions/deadline-exceeded" });
     await vi.advanceTimersByTimeAsync(1_000);
     await assertion;
@@ -157,12 +158,12 @@ describe("callCallable deadline", () => {
 
   it("clears the timer on success and on SDK failure (no timer survives settlement)", async () => {
     invokeSpy.mockResolvedValueOnce({ data: { ok: true } });
-    await callCallable(fakeFunctions, "fn", {}, undefined, { timeoutMs: 60_000 });
+    await callCallable(getFakeFunctions, "fn", {}, undefined, { timeoutMs: 60_000 });
     expect(vi.getTimerCount()).toBe(0);
 
     invokeSpy.mockRejectedValueOnce(new Error("sdk failed"));
     await expect(
-      callCallable(fakeFunctions, "fn", {}, undefined, { timeoutMs: 60_000 }),
+      callCallable(getFakeFunctions, "fn", {}, undefined, { timeoutMs: 60_000 }),
     ).rejects.toThrow("sdk failed");
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -175,7 +176,7 @@ describe("callCallable deadline", () => {
         setTimeout(() => reject(new Error("late SDK rejection")), 3_000);
       }),
     );
-    const call = callCallable(fakeFunctions, "hangs", {}, undefined, { timeoutMs: 1_000 });
+    const call = callCallable(getFakeFunctions, "hangs", {}, undefined, { timeoutMs: 1_000 });
     const assertion = expect(call).rejects.toMatchObject({ code: "functions/deadline-exceeded" });
     await vi.advanceTimersByTimeAsync(1_000);
     await assertion;
@@ -192,25 +193,25 @@ describe("callCallable deadline", () => {
 // Absent unless explicitly enabled — existing callers must be unaffected.
 describe("callCallable limited-use App Check", () => {
   it("sets limitedUseAppCheckTokens on the SDK options when enabled", async () => {
-    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: true });
+    await callCallable(getFakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: true });
     expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", {
       limitedUseAppCheckTokens: true,
     });
   });
 
   it("omits the flag entirely when unset, false, or the transport is absent", async () => {
-    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: false });
+    await callCallable(getFakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: false });
     expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", undefined);
 
-    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, {});
+    await callCallable(getFakeFunctions, "fn", { a: 1 }, undefined, {});
     expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", undefined);
 
-    await callCallable(fakeFunctions, "fn", { a: 1 });
+    await callCallable(getFakeFunctions, "fn", { a: 1 });
     expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", undefined);
   });
 
   it("combines with the deadline without either option dropping the other", async () => {
-    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, {
+    await callCallable(getFakeFunctions, "fn", { a: 1 }, undefined, {
       timeoutMs: 30_000,
       limitedUseAppCheck: true,
     });
@@ -221,7 +222,7 @@ describe("callCallable limited-use App Check", () => {
   });
 
   it("timeout alone still carries no App Check flag", async () => {
-    await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { timeoutMs: 30_000 });
+    await callCallable(getFakeFunctions, "fn", { a: 1 }, undefined, { timeoutMs: 30_000 });
     const opts = vi.mocked(httpsCallable).mock.lastCall?.[2] as Record<string, unknown>;
     expect(opts).toEqual({ timeout: 30_000 });
     expect("limitedUseAppCheckTokens" in opts).toBe(false);
@@ -244,7 +245,7 @@ describe("callCallable limited-use App Check throttle fallback", () => {
       invokeSpy.mockRejectedValueOnce(throttleError(code));
       invokeSpy.mockResolvedValueOnce({ data: { ok: "fallback" } });
 
-      const out = await callCallable(fakeFunctions, "fn", { a: 1 }, undefined, {
+      const out = await callCallable(getFakeFunctions, "fn", { a: 1 }, undefined, {
         limitedUseAppCheck: true,
       });
 
@@ -266,7 +267,7 @@ describe("callCallable limited-use App Check throttle fallback", () => {
     const captureException = vi.fn();
 
     await callCallable(
-      fakeFunctions,
+      getFakeFunctions,
       "fn",
       { secret: "x" },
       { onError, captureException },
@@ -290,7 +291,7 @@ describe("callCallable limited-use App Check throttle fallback", () => {
     invokeSpy.mockRejectedValueOnce(throttleError("appCheck/throttled"));
     invokeSpy.mockResolvedValueOnce({ data: { ok: true } });
     await callCallable(
-      fakeFunctions,
+      getFakeFunctions,
       "fn",
       { userId: "u1", reason: undefined },
       undefined,
@@ -303,7 +304,7 @@ describe("callCallable limited-use App Check throttle fallback", () => {
     invokeSpy.mockRejectedValueOnce(throttleError("appCheck/throttled"));
     const captureException = vi.fn();
     await expect(
-      callCallable(fakeFunctions, "fn", { a: 1 }, { captureException }),
+      callCallable(getFakeFunctions, "fn", { a: 1 }, { captureException }),
     ).rejects.toMatchObject({ code: "appCheck/throttled" });
     expect(invokeSpy).toHaveBeenCalledTimes(1);
     expect(captureException).toHaveBeenCalledTimes(1);
@@ -315,7 +316,7 @@ describe("callCallable limited-use App Check throttle fallback", () => {
       invokeSpy.mockReset();
       invokeSpy.mockRejectedValueOnce(throttleError(code));
       await expect(
-        callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: true }),
+        callCallable(getFakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: true }),
       ).rejects.toMatchObject({ code });
       expect(invokeSpy).toHaveBeenCalledTimes(1);
     }
@@ -325,7 +326,7 @@ describe("callCallable limited-use App Check throttle fallback", () => {
     invokeSpy.mockRejectedValueOnce(throttleError("appCheck/initial-throttle"));
     invokeSpy.mockRejectedValueOnce(throttleError("appCheck/throttled"));
     await expect(
-      callCallable(fakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: true }),
+      callCallable(getFakeFunctions, "fn", { a: 1 }, undefined, { limitedUseAppCheck: true }),
     ).rejects.toMatchObject({ code: "appCheck/throttled" });
     expect(invokeSpy).toHaveBeenCalledTimes(2);
   });
@@ -338,7 +339,7 @@ describe("callCallable limited-use App Check throttle fallback", () => {
     const captureException = vi.fn();
 
     await expect(
-      callCallable(fakeFunctions, "fn", { a: 1 }, { onError, captureException }, { limitedUseAppCheck: true }),
+      callCallable(getFakeFunctions, "fn", { a: 1 }, { onError, captureException }, { limitedUseAppCheck: true }),
     ).rejects.toThrow("retry blew up");
 
     expect(onError).toHaveBeenCalledTimes(1);
@@ -361,7 +362,7 @@ describe("callCallable limited-use App Check throttle fallback", () => {
       // deadline must still expire on the ORIGINAL schedule.
       invokeSpy.mockRejectedValueOnce(throttleError("appCheck/throttled"));
       invokeSpy.mockReturnValueOnce(new Promise(() => {}));
-      const call = callCallable(fakeFunctions, "hangs", { a: 1 }, undefined, {
+      const call = callCallable(getFakeFunctions, "hangs", { a: 1 }, undefined, {
         limitedUseAppCheck: true,
         timeoutMs: 1_000,
       });
@@ -383,7 +384,7 @@ describe("callCallable limited-use App Check throttle fallback", () => {
     try {
       invokeSpy.mockReset();
       invokeSpy.mockReturnValueOnce(new Promise(() => {}));
-      const call = callCallable(fakeFunctions, "hangs", { a: 1 }, undefined, {
+      const call = callCallable(getFakeFunctions, "hangs", { a: 1 }, undefined, {
         limitedUseAppCheck: true,
         timeoutMs: 1_000,
       });
@@ -394,5 +395,66 @@ describe("callCallable limited-use App Check throttle fallback", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("callCallable — acquiring Functions from the provider", () => {
+  it("accepts a lazy async provider and invokes with its instance", async () => {
+    const out = await callCallable(async () => fakeFunctions, "fn", { a: 1 });
+    expect(out).toEqual({ ok: true });
+    expect(vi.mocked(httpsCallable)).toHaveBeenLastCalledWith(fakeFunctions, "fn", undefined);
+  });
+
+  it("reports a provider with no instance once to capture and once to onError, then rejects", async () => {
+    const onError = vi.fn();
+    const captureException = vi.fn();
+    await expect(
+      callCallable(() => null, "fn", { secret: "x" }, { onError, captureException }),
+    ).rejects.toThrow("Firebase Functions is not available");
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException.mock.calls[0][1]).toEqual({ functionName: "fn", timeoutMs: undefined });
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][1]).toEqual({ functionName: "fn", requestData: { secret: "x" } });
+    expect(invokeSpy).not.toHaveBeenCalled();
+  });
+
+  it("reports a throwing provider once to capture and once to onError, rethrowing its error", async () => {
+    const thrown = new Error("init failed");
+    const onError = vi.fn();
+    const captureException = vi.fn();
+    await expect(
+      callCallable(() => { throw thrown; }, "fn", {}, { onError, captureException }),
+    ).rejects.toBe(thrown);
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(captureException.mock.calls[0][0]).toBe(thrown);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toBe(thrown);
+    expect(invokeSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("callCallable — the provider and the deadline", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("rejects a provider that never answers once the deadline passes, reporting it once", async () => {
+    vi.useFakeTimers();
+    const onError = vi.fn();
+    const captureException = vi.fn();
+    const call = callCallable(() => new Promise<never>(() => {}), "fn", { a: 1 }, { onError, captureException }, {
+      timeoutMs: 1_000,
+    });
+    const assertion = expect(call).rejects.toMatchObject({ code: "functions/deadline-exceeded" });
+    await vi.advanceTimersByTimeAsync(1_000);
+    await assertion;
+    expect(captureException).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(invokeSpy).not.toHaveBeenCalled();
+  });
+
+  it("invokes the SDK in the same tick when the provider answers synchronously", () => {
+    void callCallable(getFakeFunctions, "fn", { a: 1 });
+    expect(invokeSpy).toHaveBeenCalledTimes(1);
   });
 });

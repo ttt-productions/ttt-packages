@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, act, screen, fireEvent } from '@testing-library/react';
 import { Composer } from '../src/ui/Composer.js';
+import { CHAT_MESSAGE_TEXT_MAX_LENGTH } from '@ttt-productions/chat-schemas';
 
 describe('Composer is text-only (Conversation Files replaced chat attachments)', () => {
   it('renders no attach control and no file picker', () => {
@@ -97,5 +98,22 @@ describe('Composer navigation-guard registration (in-flight send)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Send' }));
     await act(async () => {});
     expect(onSend).toHaveBeenCalled();
+  });
+});
+
+describe('Composer enforces the one chat text bound', () => {
+  it('caps the textarea at the wire bound, so an over-long message cannot be typed or sent', () => {
+    render(<Composer onSend={vi.fn().mockResolvedValue(undefined)} />);
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+    expect(textarea.maxLength).toBe(CHAT_MESSAGE_TEXT_MAX_LENGTH);
+  });
+
+  it('shows a length counter against the bound once text is typed, tied to the textarea', () => {
+    render(<Composer onSend={vi.fn().mockResolvedValue(undefined)} />);
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+    expect(screen.queryByText(`0/${CHAT_MESSAGE_TEXT_MAX_LENGTH}`)).toBeNull();
+    fireEvent.change(textarea, { target: { value: 'hello' } });
+    const counter = screen.getByText(`5/${CHAT_MESSAGE_TEXT_MAX_LENGTH}`);
+    expect(textarea.getAttribute('aria-describedby')).toBe(counter.id);
   });
 });

@@ -62,6 +62,9 @@ export const NOTIFICATION_TYPE_VALUES = [
   'content_report',
   'guild_invite',
   'admin_dispatch_reply',
+  // The FIRST message of a thread the admin team started — to the user, or to every active
+  // member of the Work. A reply is `admin_dispatch_reply`.
+  'admin_dispatch_created',
   'threshold_library_submission',
   // Author feedback for a Threshold Library review decision (only needs_revision is
   // delivered today — an approval reaches the author via the publish member fanout).
@@ -134,6 +137,7 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
   content_report: { category: 'admin', delivery: 'realtime', defaultChannels: ['inApp'] },
   guild_invite: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   admin_dispatch_reply: { category: 'user', delivery: 'realtime', defaultChannels: ['inApp'] },
+  admin_dispatch_created: { category: 'user', delivery: 'realtime', defaultChannels: ['inApp'] },
   threshold_library_submission: { category: 'admin', delivery: 'queued', defaultChannels: ['inApp'] },
   threshold_library_reviewed: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   hall_content_change_request_resolved: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
@@ -175,6 +179,13 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     // Party-generic dispatch: present on workProject-party threads so the card routes
     // to the Work's correspondence surface. Absent on user-party threads (legacy shape).
     partyKind: z.enum(['user', 'workProject']).optional(),
+    workProjectId: workProjectIdSchema.optional(),
+  }).strict(),
+  z.object({
+    type: z.literal('admin_dispatch_created'),
+    adminDispatchId: adminDispatchIdSchema,
+    partyKind: z.enum(['user', 'workProject']),
+    // Set on workProject-party threads, so the card routes to the Work.
     workProjectId: workProjectIdSchema.optional(),
   }).strict(),
   z.object({

@@ -161,3 +161,24 @@ describe('admin Dispatches browse page size', () => {
     expect(root.ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE).toBe(12);
   });
 });
+
+describe('admin task browse page size', () => {
+  it('is 12 tasks a page, read from the server-safe root by the task browse list', async () => {
+    const root = await import('../src/index');
+    expect(root.ITEMS_PER_PAGE_ADMIN_TASK_BROWSE).toBe(12);
+  });
+});
+
+describe('the tray Safety Cases count', () => {
+  it('shows an exact count up to 100 and "100+" once more than 100 cases are open', async () => {
+    const root = await import('../src/index');
+    expect(root.formatSafetyCaseTrayCount(99)).toBe('99');
+    expect(root.formatSafetyCaseTrayCount(100)).toBe('100');
+    expect(root.formatSafetyCaseTrayCount(101)).toBe('100+');
+  });
+
+  it('reads one case past the cap, so 100 open cases are told apart from more', async () => {
+    const root = await import('../src/index');
+    expect(root.SAFETY_CASE_TRAY_READ_LIMIT).toBe(101);
+  });
+});

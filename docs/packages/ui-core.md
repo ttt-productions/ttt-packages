@@ -101,3 +101,14 @@ Generic calendar (`./react` → `DatePicker`). Durable behavior contract — des
 - **Controlled resync.** The visible month/year and roving focus follow the controlled `selected` prop when it changes.
 - **Accessibility.** Stable header trigger labels ("Choose month, currently August"), full-date day labels ("August 15, 1990"), selected day via `aria-pressed`, today via `aria-current="date"`; one polite live region announces the displayed month/year; roving day focus (single tab stop) with Arrow / Home-End / PageUp-PageDown / Enter-Space; focus moves to a deliberate stable target after each view transition (header trigger or the active grid cell), never `document.body`.
 - **Generic + semantic only.** Semantic theme tokens (`primary`/`primary-foreground`/`accent`/`border`/`muted-foreground`/…), transform/opacity-only motion with a `motion-safe:` reduced-motion fallback, no business identifiers. The public prop contract (`selected`, `onSelect`, `disabled`, `disablePast`, `disableFuture`, `className`) is additive-only.
+
+## DateTimePicker
+
+Generic date-and-time picker (`./react` → `DateTimePicker`): `DatePicker` for the day beside hour / minute / AM-PM columns of buttons for the time of day — never a native date or time input. Durable behavior contract:
+
+- **Controlled instant.** `value` is the chosen local instant; `onChange` receives the new one, always inside `min` / `max`, with seconds and milliseconds zero. The time of day is in the viewer's own time zone.
+- **Range to the minute.** `min` / `max` bound the selectable instants. A day with no allowed instant is disabled in the calendar; on the chosen day, an hour, minute, or AM/PM choice that would land outside the range is disabled — the picker never offers a value the caller's rule refuses.
+- **Picking keeps the time.** A picked day keeps the chosen time of day (or `defaultTime` — 23:59, end of day — when there is no value yet) and moves it to the nearest allowed time on that day; an hour or AM/PM whose current minute is unavailable takes the nearest allowed minute.
+- **`minuteStep`** (default 1) limits the minutes offered to its multiples.
+- **Accessibility.** Each time column is a labelled group and one tab stop with roving focus (ArrowUp / ArrowDown, Home / End); every option is a real button with `aria-pressed` and its own name ("9 o'clock", "45 minutes", "PM"). The columns are fixed-height and keep the chosen option scrolled into view.
+- **Generic + semantic only.** Semantic theme tokens, no business identifiers, no defaults beyond end of day — the caller supplies its own range and starting value.

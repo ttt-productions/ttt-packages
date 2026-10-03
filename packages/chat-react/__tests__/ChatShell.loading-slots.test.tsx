@@ -22,6 +22,8 @@ function loadingResult(status: UseRealtimeChatMessagesResult["status"]): Partial
   return {
     allowed: true,
     isInitialLoading: true,
+    initialLoadFailed: false,
+    retry: () => {},
     messages: [],
     fetchOlder: async () => {},
     hasOlder: false,
@@ -41,9 +43,9 @@ function realtimeConfig(): ChatCoreConfig {
     threadId: "ch1",
     currentUserId: "u1",
     isAdmin: false,
-    accessMode: "firestore-rules",
+    allowed: true,
     realtime: {
-      channelRef: { scope: "channel", workProjectId: "wp1", guildChatChannelId: "ch1" },
+      channelRef: { kind: "room", id: "ch1" },
       client: { subscribe: () => {}, send: () => {} },
     },
   };
@@ -58,6 +60,7 @@ describe("ChatShell — initial-loading state", () => {
     const { getByText, getByRole } = render(
       <ChatShell
         config={realtimeConfig()}
+        renderLoadError={() => null}
         header={<span>INVITE HEADER</span>}
         renderAboveMessages={() => <div>BINDING NOTICE</div>}
         renderBelowMessages={() => <button>Agree to Terms</button>}
@@ -77,12 +80,12 @@ describe("ChatShell — initial-loading state", () => {
     // A collapsed conversation-files section returns null from the slot; the
     // wrapper's border must not paint an empty 1px strip under the header.
     const { container, rerender } = render(
-      <ChatShell config={realtimeConfig()} renderAboveMessages={() => null} />,
+      <ChatShell config={realtimeConfig()} renderLoadError={() => null} renderAboveMessages={() => null} />,
     );
     expect(container.querySelector(".border-b")).toBeNull();
     // The wrapper appears the moment the slot produces content.
     rerender(
-      <ChatShell config={realtimeConfig()} renderAboveMessages={() => <div>FILES SECTION</div>} />,
+      <ChatShell config={realtimeConfig()} renderLoadError={() => null} renderAboveMessages={() => <div>FILES SECTION</div>} />,
     );
     const wrapper = container.querySelector(".border-b");
     expect(wrapper).not.toBeNull();
@@ -93,7 +96,7 @@ describe("ChatShell — initial-loading state", () => {
     // Even while the transport is 'reconnecting' during INITIAL loading, the opening
     // indicator wins — the reconnect/disconnected banner must not compete with it.
     mockRealtimeResult.current = loadingResult("reconnecting");
-    const { getByText, getByRole, queryByText } = render(<ChatShell config={realtimeConfig()} />);
+    const { getByText, getByRole, queryByText } = render(<ChatShell config={realtimeConfig()} renderLoadError={() => null} />);
 
     const status = getByRole("status");
     expect(status).toHaveTextContent(/Opening chat/i);

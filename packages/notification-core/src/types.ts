@@ -194,7 +194,10 @@ export interface UseActiveNotificationsOptions {
   category: string;
   enabled?: boolean;
   pageSize?: number;
+  /** Re-read the displayed page every `refetchInterval` ms while mounted (default 30s). */
   refetchInterval?: number;
+  /** How long a read page counts as fresh, in ms (default 30s). */
+  staleTime?: number;
 }
 
 /**
@@ -230,16 +233,31 @@ export interface UseUnreadCountOptions {
   countLimit?: number;
 }
 
+/**
+ * What an archive adapter answers: whether the card was archived. `false` means the
+ * server archived nothing (for example the card gained new activity after it was
+ * rendered); the row stays active and is not shown as clearing.
+ */
+export interface NotificationArchiveResult {
+  archived: boolean;
+}
+
+/**
+ * App-supplied adapter that archives one rendered notification (active → history).
+ * It receives the row exactly as the list rendered it, so the app can send what it
+ * observed (e.g. the row's activity generation). It rejects on failure and resolves
+ * whether the card was archived.
+ */
+export type NotificationArchiveFn = (notification: NotificationDoc) => Promise<NotificationArchiveResult>;
+
 export interface UseArchiveNotificationOptions {
   userId: string;
   category: string;
   /**
-   * App-supplied adapter that performs the archive (active → history) for one
-   * notification — typically `httpsCallable(functions, 'archiveNotification')`.
-   * The hook performs no client Firestore writes; it only invalidates the read
-   * keys on success.
+   * Performs the archive through the app's callable. The hook performs no client
+   * Firestore writes; it only invalidates the read keys on success.
    */
-  archiveFn: (notificationId: string) => Promise<unknown>;
+  archiveFn: NotificationArchiveFn;
   invalidateKeys?: readonly unknown[][];
 }
 
@@ -347,15 +365,31 @@ export interface UseArchiveAllNotificationsOptions {
 
 /**
  * Per-row actions the list hands to `renderRowAction`. The row itself is inert
- * (DJ ruling 2026-07-07) — every affordance lives in the controls the consumer
+ * — every affordance lives in the controls the consumer
  * renders in the slot. `archive` performs the active→history archive for that
  * row; it is present ONLY on the active list (archived history rows cannot be
  * re-archived, so it is absent there).
  */
 export interface NotificationRowActions {
+  /** Archives this row; rejects when the archive fails. */
   archive?: () => Promise<void>;
-  /** True while this row is archiving, including a category-wide Clear All. */
+  /**
+   * True while this row is archiving, including a category-wide Clear All. After an
+   * archive the server confirmed, it stays true until the row leaves the active list.
+   */
   isArchivePending?: boolean;
+}
+
+/**
+ * What a list hands its `renderError` slot when its read failed. `hasRows` is true when
+ * rows from an earlier read are still on screen above the slot (a failed refresh);
+ * `retry` re-reads the displayed page and `retrying` is that read's pending flag.
+ */
+export interface NotificationListErrorState {
+  error: Error;
+  retry: () => void;
+  retrying: boolean;
+  hasRows: boolean;
 }
 
 export interface NotificationListProps {
@@ -363,10 +397,10 @@ export interface NotificationListProps {
   userId: string;
   category: string;
   /**
-   * Adapter that archives one notification (active → history). Passed straight
-   * through to `useArchiveNotification`; the app wires it to its callable.
+   * Archives one rendered notification. Passed straight through to
+   * `useArchiveNotification`; the app wires it to its callable.
    */
-  archiveFn: (notificationId: string) => Promise<unknown>;
+  archiveFn: NotificationArchiveFn;
   /**
    * Adapter that ENQUEUES one server-owned archive-all job scoped to `category` and returns its
    * `jobId`. Passed straight through to `useArchiveAllNotifications`; the app wires it to its
@@ -382,13 +416,24 @@ export interface NotificationListProps {
   /** Left-aligned title for the active-list header. */
   title?: ReactNode;
   onClearAll?: () => void;
+  /** Re-read the displayed page every `refetchInterval` ms while mounted (default 30s). */
   refetchInterval?: number;
+  /** How long a read page counts as fresh, in ms (default 30s). */
+  staleTime?: number;
+  /** Empty-state text, shown only for an answered, empty first page. */
   emptyText?: string;
+  /** The failed-read state, shown before (never instead of) the pager. Copy is the app's. */
+  renderError: (state: NotificationListErrorState) => ReactNode;
   /**
-   * Per-row control slot. The row itself is inert (DJ ruling 2026-07-07); the
-   * consumer renders the row's controls here — typically an ArrowRight "go to"
-   * (which may call `actions.archive` then navigate) plus a clear/archive button
-   * (calls `actions.archive`). Omit to render a row with no controls.
+   * Called with the rows on screen each time the displayed page's answered rows change
+   * (not while a page is loading or failed with nothing shown) — the rows to mark seen.
+   */
+  onRenderedRowsChange?: (rows: readonly NotificationDoc[]) => void;
+  /**
+   * Per-row control slot. The row itself is inert; the consumer renders the row's
+   * controls here — typically an ArrowRight "go to" (which may call `actions.archive`
+   * then navigate) plus a clear/archive button (calls `actions.archive`). Omit to render
+   * a row with no controls.
    */
   renderRowAction?: (notification: NotificationDoc, actions: NotificationRowActions) => ReactNode;
 }
@@ -399,7 +444,10 @@ export interface NotificationHistoryListProps {
   category: string;
   pageSize?: number;
   staleTime?: number;
+  /** Empty-state text, shown only for an answered, empty first page. */
   emptyText?: string;
+  /** The failed-read state, shown before (never instead of) the pager. Copy is the app's. */
+  renderError: (state: NotificationListErrorState) => ReactNode;
   /** Left-aligned title for the read-only archived-list header. */
   title?: ReactNode;
   /**

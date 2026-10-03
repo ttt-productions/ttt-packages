@@ -53,3 +53,18 @@ export async function sha256Hex(input: string): Promise<string> {
 export async function hashPayload(payload: unknown): Promise<string> {
   return sha256Hex(canonicalize(payload));
 }
+
+/**
+ * Canonical hash of a set of strings: the values sorted by UTF-16 code unit, joined
+ * with `\n`, then SHA-256 hex. Order-independent, so two runtimes holding the same
+ * values in a different order agree on the digest — the property a published
+ * snapshot's hash check depends on. A value containing `\n` is refused, because the
+ * separator would then stop being unambiguous (two different sets could join to the
+ * same string). Duplicates are kept: the input is hashed as given.
+ */
+export async function hashStringSet(values: readonly string[]): Promise<string> {
+  for (const value of values) {
+    if (value.includes('\n')) throw new RangeError('hashStringSet: a value must not contain a newline');
+  }
+  return sha256Hex([...values].sort().join('\n'));
+}

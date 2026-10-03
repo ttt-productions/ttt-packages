@@ -30,6 +30,8 @@ import {
 import { CRAFT_SKILL_STATEMENT_VERSION } from '../src/constants/craft-skill-statements.js';
 import { CRAFT_SKILL_TAG_OPTIONS } from '../src/constants/options.js';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 describe('ProfilePictureTargetInfoSchema', () => {
   it('accepts empty object', () => {
     expect(() => ProfilePictureTargetInfoSchema.parse({})).not.toThrow();
@@ -270,7 +272,8 @@ describe('AuditionPromptTargetInfoSchema', () => {
     type: 'workAudition' as const,
     title: 'T',
     description: 'D',
-    openTill: 1_700_000_000_000,
+    entriesCloseAt: 1_700_000_000_000,
+    auditionCloseAt: 1_700_000_000_000 + DAY_MS,
     workProjectId: 'p_1',
   };
   it('accepts minimum required fields', () => {
@@ -282,10 +285,25 @@ describe('AuditionPromptTargetInfoSchema', () => {
   it('rejects a client-supplied createdBy', () => {
     expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, createdBy: { uid: 'spoofed' } })).toThrow();
   });
-  it('rejects a non-positive or non-integer openTill', () => {
-    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, openTill: 0 })).toThrow();
-    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, openTill: -1 })).toThrow();
-    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, openTill: 1.5 })).toThrow();
+  it('rejects a non-positive or non-integer deadline', () => {
+    for (const bad of [0, -1, 1.5]) {
+      expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, entriesCloseAt: bad })).toThrow();
+      expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, auditionCloseAt: bad })).toThrow();
+    }
+  });
+  it('requires both deadlines', () => {
+    const { entriesCloseAt: _e, ...noEntries } = valid;
+    const { auditionCloseAt: _a, ...noClose } = valid;
+    expect(() => AuditionPromptTargetInfoSchema.parse(noEntries)).toThrow();
+    expect(() => AuditionPromptTargetInfoSchema.parse(noClose)).toThrow();
+  });
+  it('refuses an audition that closes less than 24 hours after entries close', () => {
+    expect(() =>
+      AuditionPromptTargetInfoSchema.parse({ ...valid, auditionCloseAt: valid.entriesCloseAt + DAY_MS - 1 }),
+    ).toThrow();
+  });
+  it('refuses a stake offer of zero, like the stored audition', () => {
+    expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, stakeSharesOffered: 0 })).toThrow();
   });
   it('rejects an over-long description', () => {
     expect(() => AuditionPromptTargetInfoSchema.parse({ ...valid, description: 'x'.repeat(MAX_AUDITION_DESCRIPTION_LENGTH + 1) })).toThrow();
@@ -301,7 +319,8 @@ describe('AdminAuditionPromptTargetInfoSchema', () => {
     type: 'platformAudition' as const,
     title: 'T',
     description: 'D',
-    openTill: 1_700_000_000_000,
+    entriesCloseAt: 1_700_000_000_000,
+    auditionCloseAt: 1_700_000_000_000 + DAY_MS,
   };
   it('accepts platformAudition', () => {
     expect(() => AdminAuditionPromptTargetInfoSchema.parse(valid)).not.toThrow();
@@ -324,6 +343,23 @@ describe('AdminAuditionPromptTargetInfoSchema', () => {
     expect(() => AdminAuditionPromptTargetInfoSchema.parse({
       ...valid, type: 'sponsoredAudition', sponsoredAuditionAmountUSD: -1,
     })).toThrow();
+  });
+  it('requires a sponsored audition to carry a positive prize amount', () => {
+    const sponsored = { ...valid, type: 'sponsoredAudition' as const };
+    expect(() => AdminAuditionPromptTargetInfoSchema.parse(sponsored)).toThrow();
+    expect(() => AdminAuditionPromptTargetInfoSchema.parse({ ...sponsored, sponsoredAuditionAmountUSD: 0 })).toThrow();
+    expect(() => AdminAuditionPromptTargetInfoSchema.parse({ ...sponsored, sponsoredAuditionAmountUSD: Infinity })).toThrow();
+    expect(() =>
+      AdminAuditionPromptTargetInfoSchema.parse({ ...sponsored, sponsoredAuditionAmountUSD: MAX_SPONSORED_AUDITION_AMOUNT_USD }),
+    ).not.toThrow();
+  });
+  it('refuses a prize amount on a platform audition', () => {
+    expect(() => AdminAuditionPromptTargetInfoSchema.parse({ ...valid, sponsoredAuditionAmountUSD: 100 })).toThrow();
+  });
+  it('refuses an audition that closes less than 24 hours after entries close', () => {
+    expect(() =>
+      AdminAuditionPromptTargetInfoSchema.parse({ ...valid, auditionCloseAt: valid.entriesCloseAt + DAY_MS - 1 }),
+    ).toThrow();
   });
 });
 

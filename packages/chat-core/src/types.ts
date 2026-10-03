@@ -13,7 +13,6 @@
 export type ChatId = string;
 
 export type ChatThreadV1 = {
-  allowedUserIds: string[];
   participantUserIds?: string[];
   createdAt: number;       // millis
   lastMessageAt: number;   // millis
@@ -29,32 +28,16 @@ export type ChatMessageV1 = {
   text?: string;
   type?: string;               // optional for renderer registry
   isSystemMessage?: boolean;
+  /**
+   * Account ids a server-written message's text refers to, stored beside the text (never inside
+   * it). The UI prewarms and resolves them like senders; an account's anonymization rewrites them.
+   */
+  referencedUids?: string[];
   /** Moderation tombstone flag on the stored message (backend-written); consumers
    * render a tombstone instead of the content when true. */
   hidden?: boolean;
   meta?: Record<string, unknown>;
 };
-
-// ============================================
-// ACCESS
-// ============================================
-
-/**
- * Access mode controls how chat decides whether the current user can
- * read/write a thread.
- *
- * - "firestore-rules" — trust Firestore rules. canAccessThread returns true
- *   for any signed-in user; if rules deny, onSnapshot will surface
- *   permission-denied. Use this when access depends on data the client doesn't
- *   reliably know up-front (entity membership, invite participation, etc.).
- *
- * - "explicit-allowlist" — access is enforced client-side via
- *   threadAllowedUserIds. The list is required in this mode. Use this when the
- *   consumer already knows the participants (admin/support threads).
- *
- * Admins (`isAdmin: true`) bypass both modes.
- */
-export type ChatAccessMode = "firestore-rules" | "explicit-allowlist";
 
 // ============================================
 // MODERATION
@@ -79,11 +62,24 @@ export const GROUP_GAP_SEC = 120;
 // ============================================
 
 /**
- * Resolves a senderId to a display name synchronously from app-side cache.
- * Returns null if the sender is unknown or the cache hasn't loaded yet —
- * the chat UI will render a stable fallback ("User") in that case.
+ * What the app knows about a sender's display name right now. `pending` — the read has
+ * not answered; `unavailable` — the read answered and there is no person to name;
+ * `failed` — the read failed, and `retry` asks again. Only `resolved` carries a name:
+ * the chat UI never invents one for the other three, it hands them to the app's
+ * renderer (chat-react's `renderUnresolvedName`).
  */
-export type ChatNameResolver = (senderId: string) => string | null;
+export type ChatNameResolution =
+  | { status: 'resolved'; name: string }
+  | { status: 'pending' }
+  | { status: 'unavailable' }
+  | { status: 'failed'; retry: () => void };
+
+/**
+ * Resolves a senderId synchronously from the app's own cache. Called during render,
+ * so it reads what the app already holds and never starts a fetch itself — the app
+ * fetches through {@link ChatPrewarmSenders}.
+ */
+export type ChatNameResolver = (senderId: string) => ChatNameResolution;
 
 /**
  * Optional pre-warm callback. The chat UI calls this with the deduped list of

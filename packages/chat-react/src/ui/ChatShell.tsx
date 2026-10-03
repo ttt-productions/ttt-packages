@@ -15,8 +15,36 @@ import { MessageList } from "./MessageList.js";
 import { Composer } from "./Composer.js";
 import { ThreadActions } from "./menus.js";
 
+/**
+ * A read the chat could not complete, handed to the app's `renderLoadError`:
+ * - `initial` — nothing loaded: the first open failed (the realtime client's attempts
+ *   failed for its budget, or the Firestore listener failed before any message). It
+ *   takes the place of the message list.
+ * - `live` — the Firestore listener failed after messages loaded. The messages stay,
+ *   with this band above them.
+ * - `older` — an older page failed to load. It renders at the top of the list, which
+ *   stops asking for older pages until `retry`.
+ * `error` is the read's own error (null on the realtime transport); `retry` re-runs what
+ * failed — the realtime transport also keeps retrying in the background. `retrying` is true
+ * while a retry of this failure is running and the failure is still shown (an older page being
+ * read again), so the app's Retry shows its pending state. A retried initial or live failure
+ * gives way to the opening state instead.
+ */
+export type ChatLoadFailure = {
+  scope: "initial" | "live" | "older";
+  error: Error | null;
+  retry: () => void;
+  retrying: boolean;
+};
+
 export type ChatShellProps = {
   config: ChatCoreConfig;
+
+  /**
+   * Renders every failed read (see {@link ChatLoadFailure}) — the app's own error state and
+   * copy. Required: a chat that cannot load must say so, and the words are the app's.
+   */
+  renderLoadError: (failure: ChatLoadFailure) => React.ReactNode;
 
   // Header
   header?: React.ReactNode;
@@ -41,7 +69,7 @@ export type ChatShellProps = {
   renderFooter?: () => React.ReactNode;
 
   // Sender interaction
-  onSenderClick?: (senderId: string, displayName: string) => void;
+  onSenderClick?: (senderId: string) => void;
 
   // Disable
   composerDisabled?: boolean;
@@ -64,6 +92,10 @@ type ResolvedChat = {
   fetchOlder: () => Promise<void>;
   hasOlder: boolean;
   isFetchingOlder: boolean;
+  /** The failed read that replaces or annotates the list (initial / live), or null. */
+  loadFailure: ChatLoadFailure | null;
+  /** The failed older page, or null. */
+  olderFailure: ChatLoadFailure | null;
   /** The send handler the Composer calls (socket send on realtime, prop on firestore). */
   send: (text: string) => Promise<void>;
   /** Retry a failed realtime send by its original clientMessageId (realtime only;
@@ -102,7 +134,31 @@ function FirestoreChatShell(props: ChatShellProps) {
     },
     [onSend],
   );
-  return <ChatShellView {...props} resolved={{ ...r, send }} />;
+  const { error, olderError, retry, messages, isFetchingOlder } = r;
+  const loadFailure = React.useMemo<ChatLoadFailure | null>(
+    () => (error ? { scope: messages.length > 0 ? "live" : "initial", error, retry, retrying: false } : null),
+    [error, messages.length, retry],
+  );
+  const olderFailure = React.useMemo<ChatLoadFailure | null>(
+    () => (olderError ? { scope: "older", error: olderError, retry, retrying: isFetchingOlder } : null),
+    [olderError, retry, isFetchingOlder],
+  );
+  return (
+    <ChatShellView
+      {...props}
+      resolved={{
+        allowed: r.allowed,
+        isInitialLoading: r.isInitialLoading,
+        messages: r.messages,
+        fetchOlder: r.fetchOlder,
+        hasOlder: r.hasOlder,
+        isFetchingOlder: r.isFetchingOlder,
+        loadFailure,
+        olderFailure,
+        send,
+      }}
+    />
+  );
 }
 
 function RealtimeChatShell(props: ChatShellProps) {
@@ -114,6 +170,11 @@ function RealtimeChatShell(props: ChatShellProps) {
     );
   }
   const r = useRealtimeChatMessages(client);
+  const { initialLoadFailed, retry } = r;
+  const loadFailure = React.useMemo<ChatLoadFailure | null>(
+    () => (initialLoadFailed ? { scope: "initial", error: null, retry, retrying: false } : null),
+    [initialLoadFailed, retry],
+  );
   const send = React.useCallback(
     async (text: string) => {
       const ok = r.send(text);
@@ -128,12 +189,15 @@ function RealtimeChatShell(props: ChatShellProps) {
     <ChatShellView
       {...props}
       resolved={{
-        allowed: r.allowed,
+        // The app's access fact AND the grant's: a terminal denial closes it either way.
+        allowed: config.allowed && r.allowed,
         isInitialLoading: r.isInitialLoading,
         messages: r.messages,
         fetchOlder: r.fetchOlder,
         hasOlder: r.hasOlder,
         isFetchingOlder: r.isFetchingOlder,
+        loadFailure,
+        olderFailure: null,
         send,
         retrySend: r.retrySend,
         readAck: r.readAck,
@@ -161,10 +225,13 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     composerDisabled,
     fillHeight = false,
     scrollClassName,
+    renderLoadError,
     resolved,
   } = props;
 
-  const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder, send, retrySend, readAck, status, typing, signalTyping } = resolved;
+  const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder, loadFailure, olderFailure, send, retrySend, readAck, status, typing, signalTyping } = resolved;
+  // Nothing loaded and the read failed: the failure takes the list's place.
+  const initialFailure = loadFailure?.scope === "initial" ? loadFailure : null;
 
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
   const [atBottom, setAtBottom] = React.useState(true);
@@ -227,7 +294,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     return <div className="p-4 text-sm opacity-70">You don&apos;t have access to this thread.</div>;
   }
 
-  if (isInitialLoading) {
+  if (isInitialLoading || initialFailure) {
     // Before the first authoritative snapshot/history result, show an HONEST working
     // state — a visible "Opening chat…" spinner in a polite live region — NOT a blank
     // parchment/skeleton box (which read as an empty chat) and NOT the reconnect banner
@@ -256,14 +323,18 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           ) : null;
         })()}
         <CardContent className={contentClassName}>
-          <div
-            className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-muted-foreground"
-            role="status"
-            aria-live="polite"
-          >
-            <Spinner size="sm" />
-            <span>Opening chat…</span>
-          </div>
+          {initialFailure ? (
+            renderLoadError(initialFailure)
+          ) : (
+            <div
+              className="flex flex-col items-center justify-center gap-2 py-12 text-sm text-muted-foreground"
+              role="status"
+              aria-live="polite"
+            >
+              <Spinner size="sm" />
+              <span>Opening chat…</span>
+            </div>
+          )}
         </CardContent>
         {renderBelowMessages && (
           <div className="border-t">{renderBelowMessages()}</div>
@@ -298,6 +369,9 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
         <div className="border-b">{renderAboveMessages()}</div>
       )}
 
+      {/* The listener failed after messages loaded: they stay, with the failure above them. */}
+      {loadFailure?.scope === "live" && <div className="border-b">{renderLoadError(loadFailure)}</div>}
+
       <CardContent className={contentClassName}>
         <MessageList
           messages={messages}
@@ -316,6 +390,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           handlers={handlers}
           onSenderClick={onSenderClick}
           onRetrySend={retrySend}
+          olderLoadErrorRow={olderFailure ? renderLoadError(olderFailure) : null}
         />
       </CardContent>
 

@@ -1854,3 +1854,27 @@ describe('ChannelClient — diagnostics ON (structured decision log)', () => {
     for (const name of names) expect(declared.has(name)).toBe(true);
   });
 });
+
+describe('ChannelClient — an over-bound text is rejected by name, terminally', () => {
+  it('fails exactly that bubble with the too-long reason and offers no retry', async () => {
+    const { client, harness, clock } = makeClient();
+    await client.connect();
+    const sock = harness.last();
+    sock.serverOpen();
+    client.send({ clientMessageId: 'c-long', text: 'x' });
+    client.send({ clientMessageId: 'c-ok', text: 'fine' });
+
+    sock.serverFrame('send-rejected', { clientMessageId: 'c-long', code: 'too-long', retryable: false });
+
+    const long = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-long');
+    const ok = client.getState().messages.find((m) => m.meta?.clientMessageId === 'c-ok');
+    expect(long?.meta?.sendFailed).toBe(true);
+    expect(long?.meta?.sendFailureCode).toBe('too-long');
+    expect(long?.meta?.sendRetryable).toBe(false);
+    expect(ok?.meta?.sendFailed).toBeUndefined();
+    // Terminal: nothing resends it, however long the socket stays up.
+    const sendsBefore = sock.sent.filter((f) => f.type === 'send').length;
+    tickAlive(clock, sock, 120_000);
+    expect(sock.sent.filter((f) => f.type === 'send').length).toBe(sendsBefore);
+  });
+});

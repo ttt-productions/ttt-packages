@@ -12,7 +12,7 @@ Generic TanStack Query package.
   `useFirestoreCollection` (one-shot or realtime via `subscribe`),
   `useFirestoreInfinite`, `useFirestorePaginated`, `useFirestoreCount`
   (server-side `count()`), `useFirestoreLiveInfinite` (live newest-window +
-  cursor-bridged older pages — for chat / live feeds), `useBatchFirestoreDocs`,
+  anchored older pages — for chat / live feeds), `useBatchFirestoreDocs`,
   and the `useFirestoreSet/Update/Delete/Batch` mutations
 - A metadata-derived **subscription source state** on the realtime `useFirestoreDoc` /
   `useFirestoreCollection` hooks (`subscribe: true`): the result carries
@@ -22,10 +22,68 @@ Generic TanStack Query package.
   serves cached snapshots offline WITHOUT firing the error callback, so error-only
   detection would render a stale cached empty result as live; the hook stays
   `connecting` until a server-confirmed snapshot (`fromCache === false`), goes
-  `offline` when only cached data arrives after being live, `error` on the listener
-  error callback, and resets to `connecting` when the subscription identity
-  (query key / path) changes. Consumed by the TTT notification/badge tray to show a
-  degraded indicator instead of a false "all caught up".
+  `offline` when only cached data arrives after being live, and `error` on the listener
+  error callback. The source state and the listener error belong to the subscription
+  identity (path, key, constraints, enabled) that produced them: a new identity reads
+  `connecting` with no error from its very first render, and a retired listener's late
+  callback never lands on the new one. Consumed by the TTT notification/badge tray to
+  show a degraded indicator instead of a false "all caught up".
+
+## `useFirestorePaginated` — one cache entry per page
+
+Previous / Next paging, one page at a time. Each page is ONE cache entry at
+`[...queryKey, 'page', n]` (`paginatedPageKey(queryKey, n)`), a `PaginatedPage<T>`:
+`{ items, cursor, hasMore, after }` — the page's rows, its last row (the next page's cursor),
+whether a further page exists, and the id of the row it was read after. Every read asks for one row past the page, so
+`hasMore` is false exactly when nothing follows (an exactly-full last page included).
+Page n starts after page n-1's cached cursor; when page n-1 is not cached it is read
+first (the chain loads back to page 1). When page n-1 is read again and its last row
+moves, the displayed page n no longer follows it (`after` differs from page n-1's cursor):
+it is re-read before it is shown as current. So every instance, remount, and refetch of a
+key agrees on where a page starts, and no row is skipped or repeated across a re-read. `hasNextPage` comes from the DISPLAYED page's entry. The
+page number belongs to the query identity (path, key, constraints, page size): a new
+identity renders `initialPage` in its first render. `refetchInterval` re-reads the
+displayed page while it is mounted. The result's `data` is the displayed page's rows.
+
+Because entries are shared by key, the caller's `queryKey` encodes everything that
+changes the read — path, filters, ordering, and page size.
+
+Cache updaters for these entries live on the server-safe root (they take the
+`QueryClient` and the base `queryKey` the hook was given):
+`mapPaginatedItems(client, queryKey, mapItem)` patches rows in place across every cached
+page, and `prependToFirstPaginatedPage(client, queryKey, item)` puts a new row at the
+top of page 1 when page 1 is cached — for newest-first lists only. Page 1 keeps its
+cursor, so it shows one extra row and page 2 keeps its place until page 1 is next read;
+that read moves page 1's cursor, and the hook re-reads page 2 from it before showing it.
+
+## `useFirestoreLiveInfinite` — live rows plus older pages
+
+The result is `{ items, isInitialLoading, sourceState, error, fetchOlder, hasOlder,
+isFetchingOlder, olderError, retry }` (`FirestoreLiveInfiniteResult`).
+
+- **Fixed anchor.** Until the first server-confirmed snapshot that has rows, the listener
+  reads the newest `pageSize` rows plus one look-ahead row. That snapshot fixes the
+  window's oldest row as the anchor; the listener then covers anchor → newest with no
+  limit (it grows only with rows that arrive while the list is open), and every older
+  page starts after the anchor. No row ever falls between the live set and the older
+  pages. A cached snapshot never fixes the anchor.
+- **Truthful `hasOlder`.** The anchoring snapshot's look-ahead row says whether anything
+  older exists; older pages (`getDocs`, `startAfter`, one row past the page) carry the
+  same look-ahead. When older rows exist, the first older page loads by itself.
+- **Identity.** Rows, anchor, source state, and errors are tagged to the subscription
+  identity (path, key, ordering, constraints, page size, enabled). A new identity renders
+  empty, `isInitialLoading`, and `connecting` in its first render; the older-pages query
+  is keyed by identity and anchor, so a retired identity's page never lands.
+- **Listener failure.** A `permission-denied` listener error resubscribes on the
+  `RESUBSCRIBE_DELAYS_MS` ladder (`sourceState: 'connecting'` meanwhile); once the ladder
+  is spent, or at once for any other code, `error` is set, `sourceState` is `'error'`,
+  and the hook `console.error`s it. Rows already on screen are kept beside the error; with
+  none, `isInitialLoading` is false. A healthy snapshot clears `error`.
+- **Older-page failure.** `olderError` holds a failed older read (the loaded rows stay;
+  `hasOlder` stays true) until an older read succeeds. `fetchOlder` never rejects.
+- **`retry()`** resubscribes a failed listener with a fresh ladder (clearing `error`,
+  keeping rows and the anchor) and re-reads a failed older page; `isFetchingOlder` is the
+  older re-read's pending flag.
 - Generic search hook/types
 - Domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`, `predicate`, `applyInvalidations`, `serializeInvalidation`)
 
@@ -44,7 +102,7 @@ so it contributes nothing to wait on.
 
 ## Entry points
 
-- `.` — server-safe root: cache helpers, Firestore types and `docWithId`, infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
+- `.` — server-safe root: cache helpers (including the paginated-entry updaters and `paginatedPageKey`), Firestore types (including `PaginatedPage`) and `docWithId`, infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
 - `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
 - `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, and the `createQueryClient` factory.
 - `./types` — Firestore option/type surface, including `FirestoreCountOptions` and `FirestoreLiveInfiniteOptions` (these two are not re-exported from root, unlike the other Firestore option types).

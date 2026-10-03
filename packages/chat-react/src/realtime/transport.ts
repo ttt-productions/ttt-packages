@@ -15,7 +15,7 @@ import { InboxClient, type InboxClientConfig, type InboxClientState } from './in
 import { browserSocketFactory, type SocketFactory } from './socket.js';
 import type { GrantProvider, TransportTimers } from './shared.js';
 import type { ChatClientDiagnosticsOption } from './diagnostics.js';
-import type { ChannelRefTuple } from './wire.js';
+import type { ChatConversationRef } from '@ttt-productions/chat-schemas';
 
 /**
  * Everything the channel transport needs. The app supplies `grantProvider`
@@ -24,7 +24,8 @@ import type { ChannelRefTuple } from './wire.js';
  */
 export interface RealtimeTransportConfig {
   endpoint: string;
-  channelRef: ChannelRefTuple;
+  /** The conversation the socket is for, as the app maps it onto the neutral reference. */
+  channelRef: ChatConversationRef;
   threadId: string;
   currentUserId: string;
   grantProvider: GrantProvider;
@@ -48,9 +49,11 @@ export interface RealtimeTransportConfig {
  */
 export interface RealtimeChatClient {
   readonly channel: ChannelClient;
-  readonly channelRef: ChannelRefTuple;
+  readonly channelRef: ChatConversationRef;
   readonly currentUserId: string;
   connect(): Promise<void>;
+  /** Retry the connection now (the first-open failure's Retry) — see `ChannelClient.retryNow`. */
+  retry(): void;
   /** Tear down every socket (auth-user switch / unmount). Idempotent. */
   close(): void;
   getState(): ChannelClientState;
@@ -75,6 +78,7 @@ export function createRealtimeChatClient(config: RealtimeTransportConfig): Realt
     channelRef: config.channelRef,
     currentUserId: config.currentUserId,
     connect: () => channel.connect(),
+    retry: () => channel.retryNow(),
     close: () => channel.close(),
     getState: () => channel.getState(),
     subscribe: (fn) => channel.subscribe(fn),

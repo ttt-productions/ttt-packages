@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { createRealtimeChatClient, createInboxClient } from '../../src/realtime/transport.js';
-import type { ChannelRefTuple } from '../../src/realtime/wire.js';
+import type { ChatConversationRef } from '@ttt-productions/chat-schemas';
 import { createMockSocketHarness, createFakeClock } from './mock-socket.js';
 
-const CHANNEL_REF: ChannelRefTuple = { scope: 'channel', workProjectId: 'wp1', guildChatChannelId: 'ch1' };
+const CHANNEL_REF: ChatConversationRef = { kind: 'room', id: 'wp1/ch1' };
 
 describe('createRealtimeChatClient — handle wiring', () => {
   it('exposes the channelRef + uid and drives the channel socket', async () => {

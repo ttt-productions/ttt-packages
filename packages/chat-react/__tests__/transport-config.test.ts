@@ -5,10 +5,9 @@ import type {
   ChatRealtimeTransportConfig,
 } from "../src/types.js";
 
-// Boundary-guard tests for the discriminated transport config (chat-edge-rebuild P1).
-// These are compile-time shape guards exercised at runtime: a firestore config
-// (default transport) and a realtime config must both satisfy ChatCoreConfig,
-// and `accessMode` remains present on both (presentation-only on realtime).
+// Shape guards for the discriminated transport config, exercised at runtime: a firestore
+// config (the default transport) and a realtime config must both satisfy ChatCoreConfig,
+// and both carry the app's one access fact, `allowed`.
 
 describe("ChatCoreConfig transport", () => {
   it("defaults to the firestore transport when `transport` is omitted (non-breaking)", () => {
@@ -17,7 +16,7 @@ describe("ChatCoreConfig transport", () => {
       threadId: "ch1",
       currentUserId: "u1",
       isAdmin: false,
-      accessMode: "firestore-rules",
+      allowed: true,
     };
     expect(cfg.transport).toBeUndefined(); // consumers treat undefined as 'firestore'
   });
@@ -29,15 +28,14 @@ describe("ChatCoreConfig transport", () => {
       threadId: "ch1",
       currentUserId: "u1",
       isAdmin: false,
-      accessMode: "explicit-allowlist",
-      threadAllowedUserIds: ["u1", "u2"],
+      allowed: false,
     };
     expect(cfg.transport).toBe("firestore");
   });
 
-  it("accepts a realtime transport with an opaque realtime handle; accessMode is presentation-only", () => {
+  it("accepts a realtime transport with a neutral conversation reference and an opaque client", () => {
     const realtime: ChatRealtimeTransportConfig = {
-      channelRef: { scope: "channel", workProjectId: "wp1", guildChatChannelId: "ch1" },
+      channelRef: { kind: "room", id: "wp1/ch1" },
       client: { subscribe: () => {}, send: () => {} },
     };
     const cfg: ChatCoreConfig = {
@@ -46,11 +44,24 @@ describe("ChatCoreConfig transport", () => {
       threadId: "ch1",
       currentUserId: "u1",
       isAdmin: false,
-      accessMode: "firestore-rules", // presentation-only on realtime; the DO grant gates data
+      allowed: true,
       realtime,
     };
     expect(cfg.transport).toBe("realtime");
     expect(cfg.realtime).toBe(realtime);
+  });
+
+  it("carries no package-side access mode or member list — access is the app's one fact", () => {
+    const cfg: ChatCoreConfig = {
+      chatCollectionPath: "c",
+      threadId: "t",
+      currentUserId: "u",
+      isAdmin: false,
+      allowed: true,
+    };
+    // @ts-expect-error — the allowlist mode and its member list are gone from the config.
+    const legacy: ChatCoreConfig = { ...cfg, accessMode: "explicit-allowlist", threadAllowedUserIds: ["u"] };
+    expect(legacy.allowed).toBe(true);
   });
 
   it("transport mode union is exactly firestore | realtime", () => {

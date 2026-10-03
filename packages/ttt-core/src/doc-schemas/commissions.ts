@@ -4,7 +4,8 @@
 
 import { z } from 'zod';
 import { CommissionProposalStatusSchema } from '../schemas/commissions.js';
-import { MAX_WORK_PROJECT_STAKE_SHARES } from '../constants/business.js';
+import { stakeSharesOfferedSchema } from '../schemas/atoms.js';
+import { AuditionDeadlineSchema } from '../constants/audition-deadlines.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 import { ModerationHiddenBySchema } from './moderation.js';
 
@@ -29,7 +30,7 @@ export const FullCommissionListingSchema = z.object({
   description: z.string(),
   commissionAttachment: CommissionAttachmentSchema.optional(),
   requiredTradeProfessions: z.array(z.string()),
-  stakeSharesOffered: z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES),
+  stakeSharesOffered: stakeSharesOfferedSchema,
   createdAt: z.number(),
   createdBy: userRefSchema,
   // Work reference only — title/description are NOT snapshotted (Display Identity Invariant:
@@ -105,7 +106,10 @@ export const AuditionSchema = z.object({
   // derived from the ONE canonical stored-kind union narrowed to video — never an inline
   // re-declared union (ARCH-102).
   mediaType: ContentMediaKindSchema.extract(['video']),
-  openTill: z.number(),
+  // The poster's two deadlines (epoch ms) — see constants/audition-deadlines.ts: entries are
+  // in time when SUBMITTED before `entriesCloseAt`; votes are in time before `auditionCloseAt`.
+  entriesCloseAt: AuditionDeadlineSchema,
+  auditionCloseAt: AuditionDeadlineSchema,
   createdOn: z.number(),
   createdBy: userRefSchema,
   workProjectId: z.string().optional(),
@@ -118,12 +122,16 @@ export const AuditionSchema = z.object({
   // WHOLE batch is live and every video passed moderation:
   //   'assembling' — batch still processing/moderating; not votable, not on the board (status stays
   //                  'pendingReview'), only the creator sees a "preparing…" state.
-  //   'ready'      — all N+1 landed and approved; app flips status → 'open' and the audition reveals.
-  //   'failed'     — any video in the batch was rejected by moderation; the whole audition fails.
-  //                  status stays non-open; only the creator sees it (on the project page) to Edit &
-  //                  resubmit or Discard.
-  //   'closed'     — a curated audition that was closed (by its creator or an admin) after reveal;
-  //                  terminal, kept for record. Distinct from the pre-reveal assembly states above.
+  //   'ready'      — all N+1 landed and approved; the reveal flips status → 'open', or straight to
+  //                  'closed' when the audition's close has already passed. A curated audition
+  //                  closed after its reveal keeps 'ready' (only its status changes).
+  //   'failed'     — any video in the batch was rejected by moderation, or the batch was still
+  //                  assembling a day after creation; the whole audition fails. status stays
+  //                  non-open; only the creator sees it (on the project page) to Edit & resubmit or
+  //                  Discard.
+  //   'closed'     — the audition was closed (by its creator or an admin) while still
+  //                  'assembling', BEFORE any reveal; terminal, so an option video that finishes
+  //                  afterwards lands silently and never reveals it.
   curatedAssemblyStatus: z.enum(['assembling', 'ready', 'failed', 'closed']).optional(),
   // The fixed number of creator option videos submitted at create-time (2..8). Used to know when the
   // whole batch has landed (all expected entries approved → reveal).
@@ -132,7 +140,7 @@ export const AuditionSchema = z.object({
   // failed-audition surface on the project page.
   curatedFailureReason: z.string().optional(),
   sponsoredAuditionAmountUSD: z.number().optional(),
-  stakeSharesOffered: z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES).optional(),
+  stakeSharesOffered: stakeSharesOfferedSchema.optional(),
   status: z.enum(['open', 'closed', 'pendingReview']),
   closedAt: z.number().optional(), // set by the close write, together with status 'closed'
   auditionEntryCount: z.number().optional(),
