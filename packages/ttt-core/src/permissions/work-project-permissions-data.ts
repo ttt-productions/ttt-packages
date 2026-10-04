@@ -104,6 +104,15 @@ export const STAKE_SHARE_POWER_GUILD_STANDING_IDS = [
   'StakeShareManager',
 ] as const satisfies readonly GuildStandingId[];
 
+/**
+ * The standings that open the Work's invites: the invite handlers, and the stake-power standings,
+ * which open an invite to change its offer. Opening an invite is not taking part in it — the
+ * conversation, its files, the Work's agreement, and cancelling stay the handlers'.
+ */
+export const GUILD_INVITE_VIEWER_GUILD_STANDING_IDS: readonly GuildStandingId[] = [
+  ...new Set<GuildStandingId>([...GUILD_INVITE_HANDLER_GUILD_STANDING_IDS, ...STAKE_SHARE_POWER_GUILD_STANDING_IDS]),
+];
+
 export const WORK_PROJECT_ACTIONS = {
   'workProject.read': {
     label: 'Read workProject',
@@ -142,8 +151,10 @@ export const WORK_PROJECT_ACTIONS = {
   },
   'guildInvite.list': {
     label: 'List invites',
-    description: 'View workProject invite conversation state.',
-    grantedTo: GUILD_INVITE_HANDLER_GUILD_STANDING_IDS,
+    description:
+      "Open the Work's invites and see their state and offers. A stake-power standing opens an invite " +
+      'to change its offer; replying, agreeing for the Work, and cancelling stay with the invite handlers.',
+    grantedTo: GUILD_INVITE_VIEWER_GUILD_STANDING_IDS,
   },
   'guildInvite.revokeAny': {
     label: 'Revoke pending invites',

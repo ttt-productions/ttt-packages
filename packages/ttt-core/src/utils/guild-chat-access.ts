@@ -74,6 +74,42 @@ export function guildInvitePartyOf(args: {
   return handles ? 'work' : null;
 }
 
+/** How a person opens an invite: as one of its two sides, or as a stake editor of the inviting Work. */
+export type GuildInviteViewerRole = GuildInviteParty | 'stakeEditor';
+
+/**
+ * How a person may open an invite, or null when they may not. A party opens it on its own side
+ * (`guildInvitePartyOf`). Any other active person Guildmate of the inviting Work whose standings
+ * grant both `guildInvite.list` and `guildInvite.stakeShares.update` — a stake-power standing that
+ * handles no invites — opens it as a `stakeEditor`: they see the invite and its offer to change
+ * the offer, and take no part in the conversation, its files, the Work's agreement, or a cancel.
+ */
+export function guildInviteViewerRoleOf(args: {
+  uid: string;
+  senderUid: string;
+  recipientUid: string;
+  member: GuildChatAccessMember | null;
+}): GuildInviteViewerRole | null {
+  const party = guildInvitePartyOf(args);
+  if (party !== null) return party;
+  const { uid, member } = args;
+  if (!uid || !isActivePersonGuildmate(member)) return null;
+  const opensToChangeOffer =
+    guildStandingsGrantAction(member.guildStandings, 'guildInvite.list') &&
+    guildStandingsGrantAction(member.guildStandings, 'guildInvite.stakeShares.update');
+  return opensToChangeOffer ? 'stakeEditor' : null;
+}
+
+/** Whether a person may open an invite (read the invite itself): a party, or a stake editor. */
+export function canViewGuildInvite(args: {
+  uid: string;
+  senderUid: string;
+  recipientUid: string;
+  member: GuildChatAccessMember | null;
+}): boolean {
+  return guildInviteViewerRoleOf(args) !== null;
+}
+
 /** Whether a person may use an invite's conversation now: a party to it, while it is open. */
 export function canAccessGuildInviteConversation(args: {
   uid: string;

@@ -216,6 +216,53 @@ export const GetWorkFileRealmShareStatesResponseSchema = z.object({
 }).strict();
 export type GetWorkFileRealmShareStatesResponse = z.infer<typeof GetWorkFileRealmShareStatesResponseSchema>;
 
+// ---- what a Realm-file action changed ------------------------------------------------------
+// The gallery and the steward's queue are endless lists a client patches in place, never reloads
+// (FRONTEND-103); their rows are server projections the client cannot read, so every action that
+// changes a file's standing answers with the file's row in each list after it, built by the same
+// projection owners the reads use.
+
+/**
+ * One file's rows after an action: its gallery row, its queue row, and its Work-side share state —
+ * each `null` when the file is absent from that list — plus every folder whose server-computed
+ * `fileCount` the action changed (an approval, a move, or an un-share), as the gallery shows it.
+ * Each row is non-null only when the file passes that list's own read filters — `sharedFile` only
+ * for an approved file whose serving status is `servable`, so an action on a hidden or quarantined
+ * file never puts it back into a gallery the read would not show it in.
+ */
+export const RealmFileListsChangeSchema = z.object({
+  mediaAssetId: mediaAssetIdSchema,
+  workProjectId: workProjectIdSchema,
+  workFileId: z.string(),
+  sharedFile: RealmSharedFileProjectionSchema.nullable(),
+  promotionRequest: RealmFilePromotionQueueRowSchema.nullable(),
+  shareState: WorkFileRealmShareStateSchema.nullable(),
+  folders: z.array(RealmFileFolderProjectionSchema),
+}).strict();
+export type RealmFileListsChange = z.infer<typeof RealmFileListsChangeSchema>;
+
+/** The answer of every action that changes a file's Realm standing: request, withdraw, approve,
+ *  decline, canon toggle, folder move, and the admin un-share. Non-strict (server → client). */
+export const RealmFileTransitionResultSchema = z.object({
+  success: z.literal(true),
+  change: RealmFileListsChangeSchema,
+});
+export type RealmFileTransitionResult = z.infer<typeof RealmFileTransitionResultSchema>;
+
+/** The answer of a Realm folder create or rename: the folder as the gallery shows it. */
+export const RealmFileFolderResultSchema = z.object({
+  success: z.literal(true),
+  folder: RealmFileFolderProjectionSchema,
+});
+export type RealmFileFolderResult = z.infer<typeof RealmFileFolderResultSchema>;
+
+/** The answer of a Realm folder delete: the folder it removed. */
+export const DeleteRealmFileFolderResultSchema = z.object({
+  success: z.literal(true),
+  realmFileFolderId: realmFileFolderIdSchema,
+});
+export type DeleteRealmFileFolderResult = z.infer<typeof DeleteRealmFileFolderResultSchema>;
+
 const baseFields = {
   workingTitle: z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH),
   workingDescription: z.string().min(1).max(MAX_WORK_PROJECT_DESCRIPTION_LENGTH),

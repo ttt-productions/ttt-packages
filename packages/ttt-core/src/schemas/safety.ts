@@ -29,6 +29,7 @@ import {
 import { AccountActionSchema } from '../doc-schemas/safety/sagas.js';
 import {
   NciiInternalStatusSchema,
+  NciiMinorAssessmentSchema,
   ReportableItemTypeSchema,
   ReportDispositionSchema,
   ReportReasonSchema,
@@ -49,7 +50,11 @@ import {
   NciiRetainedEvidenceInventoryV1Schema,
   TakeItDownRequestRootV1Schema,
 } from '../doc-schemas/ncii/requests.js';
-import { DeadLetterCollectionSchema } from './admin.js';
+import {
+  DeadLetterCollectionSchema,
+  FlatDeadLetterCollectionSchema,
+  HallSubItemEdgeSyncReplayTargetSchema,
+} from './admin.js';
 import {
   ChildSafetyAccountRoleSchema,
   ChildSafetyAccountSubjectDispositionSchema,
@@ -209,6 +214,16 @@ export const SafetyCaseConsolePageInfoSchema = z
   .strict();
 export type SafetyCaseConsolePageInfo = z.infer<typeof SafetyCaseConsolePageInfoSchema>;
 
+/** One case in the urgent projection: an active case with an armed or overdue monitor. */
+export const SafetyCaseConsoleUrgentEntrySchema = z
+  .object({
+    caseId: z.string().min(1),
+    lane: SafetyCaseLaneSchema,
+    monitors: z.array(SafetySlaMonitorV1Schema),
+  })
+  .strict();
+export type SafetyCaseConsoleUrgentEntry = z.infer<typeof SafetyCaseConsoleUrgentEntrySchema>;
+
 /** The `getSafetyCaseConsole` answer: one page per source, the per-source pagination, and the
  *  urgent projection — every active case with an armed or overdue monitor, never capped. */
 export const GetSafetyCaseConsoleResultSchema = z
@@ -223,19 +238,137 @@ export const GetSafetyCaseConsoleResultSchema = z
         takeItDown: SafetyCaseConsolePageInfoSchema,
       } satisfies Record<SafetyCaseConsoleSource, z.ZodType>)
       .strict(),
-    urgentProjection: z.array(
-      z
-        .object({
-          caseId: z.string().min(1),
-          lane: SafetyCaseLaneSchema,
-          monitors: z.array(SafetySlaMonitorV1Schema),
-        })
-        .strict(),
-    ),
+    urgentProjection: z.array(SafetyCaseConsoleUrgentEntrySchema),
     generatedAt: z.number(),
   })
   .strict();
 export type GetSafetyCaseConsoleResult = z.infer<typeof GetSafetyCaseConsoleResultSchema>;
+
+// ---------------------------------------------------------------------------
+// The console patch — what a console action changed, so the console's loaded pages are patched in
+// place rather than reloaded (FRONTEND-103). Its rows come from Functions-only collections the
+// client cannot read, so the action answers with them, built by the console's own row projection.
+// ---------------------------------------------------------------------------
+
+/**
+ * One console row an action changed, keyed by the id its source keys it by. `row` is the row as the
+ * console now shows it; `null` means it is no longer in the active console. A row that was not
+ * loaded or not active before is placed in its source's order.
+ */
+export const SafetyCaseConsoleRowChangeSchema = z.discriminatedUnion('source', [
+  z.object({ source: z.literal('childSafety'), caseId: safetyCaseIdSchema, row: ChildSafetyCaseConsoleRowSchema.nullable() }).strict(),
+  z.object({ source: z.literal('ncii'), caseId: safetyCaseIdSchema, row: NciiCaseConsoleRowSchema.nullable() }).strict(),
+  z.object({ source: z.literal('takeItDown'), requestId: takeItDownRequestIdSchema, row: TakeItDownRequestConsoleRowSchema.nullable() }).strict(),
+]);
+export type SafetyCaseConsoleRowChange = z.infer<typeof SafetyCaseConsoleRowChangeSchema>;
+
+/**
+ * The console after an action: every row it changed, entered, or removed, each source's active
+ * total, and the complete urgent set — the same values a console read would answer — so no count
+ * or urgent entry is derived from the pages a client happens to hold (BACKEND-112).
+ */
+export const SafetyCaseConsolePatchSchema = z
+  .object({
+    changes: z.array(SafetyCaseConsoleRowChangeSchema),
+    totals: z
+      .object({
+        childSafety: z.number().int().nonnegative(),
+        ncii: z.number().int().nonnegative(),
+        takeItDown: z.number().int().nonnegative(),
+      } satisfies Record<SafetyCaseConsoleSource, z.ZodType>)
+      .strict(),
+    urgentProjection: z.array(SafetyCaseConsoleUrgentEntrySchema),
+    generatedAt: z.number(),
+  })
+  .strict();
+export type SafetyCaseConsolePatch = z.infer<typeof SafetyCaseConsolePatchSchema>;
+
+// The answers of the console's actions, each carrying its console patch. Non-strict (server →
+// client result posture).
+
+/** `decideTakeItDownValidity`. */
+export const DecideTakeItDownValidityResultSchema = z.object({
+  success: z.literal(true),
+  result: z.enum(['valid', 'invalid', 'unableToLocate']),
+  /** Present on a `valid` ruling. */
+  validRequestReceivedAt: z.number().optional(),
+  removalDeadlineAt: z.number().optional(),
+  caseId: z.string().min(1).optional(),
+  alreadyDecided: z.boolean(),
+  console: SafetyCaseConsolePatchSchema,
+});
+export type DecideTakeItDownValidityResult = z.infer<typeof DecideTakeItDownValidityResultSchema>;
+
+/** `setNciiMinorAssessment`. */
+export const SetNciiMinorAssessmentResultSchema = z.object({
+  ok: z.literal(true),
+  caseId: z.string().min(1),
+  from: NciiMinorAssessmentSchema,
+  to: NciiMinorAssessmentSchema,
+  /** Set when the change opened or linked a parallel child-safety review. */
+  childSafetyCaseId: z.string().min(1).optional(),
+  /** Whether this call denied serving on any asset. */
+  servingDenied: z.boolean(),
+  console: SafetyCaseConsolePatchSchema,
+});
+export type SetNciiMinorAssessmentResult = z.infer<typeof SetNciiMinorAssessmentResultSchema>;
+
+/** `refetchProtectedCaseContext`. */
+export const RefetchProtectedCaseContextResultSchema = z.object({
+  resolved: z.boolean(),
+  senderUid: z.string().min(1).optional(),
+  reason: z.string().min(1).optional(),
+  console: SafetyCaseConsolePatchSchema,
+});
+export type RefetchProtectedCaseContextResult = z.infer<typeof RefetchProtectedCaseContextResultSchema>;
+
+/** `markNcmecPortalComplete`. */
+export const MarkNcmecPortalCompleteResultSchema = z.object({
+  success: z.literal(true),
+  state: z.literal('completed'),
+  alreadyCompleted: z.boolean(),
+  console: SafetyCaseConsolePatchSchema,
+});
+export type MarkNcmecPortalCompleteResult = z.infer<typeof MarkNcmecPortalCompleteResultSchema>;
+
+/** `reopenSafetyCase`. */
+export const ReopenSafetyCaseResultSchema = z.object({
+  success: z.literal(true),
+  reopened: z.boolean(),
+  console: SafetyCaseConsolePatchSchema,
+});
+export type ReopenSafetyCaseResult = z.infer<typeof ReopenSafetyCaseResultSchema>;
+
+/** The replay lanes behind a `failed` safety case — a performed replay of one answers the console patch. */
+export const SAFETY_CASE_REPLAY_LANES = SafetyCaseFailedJobRefSchema.shape.collection.options;
+
+const replayOutcomeShape = {
+  replayed: z.literal(true).optional(),
+  resetTo: z.string().optional(),
+  dryRun: z.literal(true).optional(),
+  currentStatus: z.unknown().optional(),
+  wouldResetTo: z.string().optional(),
+  console: SafetyCaseConsolePatchSchema.optional(),
+};
+
+/**
+ * The `adminReplayDeadLetter` answer: the replayed target and its outcome. `console` is present
+ * exactly on a performed (not dry-run) replay of a safety lane, the console's Restart. Declared
+ * here, beside the console patch, because this module already imports ./admin.js.
+ */
+export const AdminReplayDeadLetterResultSchema = z
+  .discriminatedUnion('collection', [
+    z.object({ collection: FlatDeadLetterCollectionSchema, docId: z.string().min(1), ...replayOutcomeShape }),
+    z.object({ collection: z.literal('hallSubItemEdgeSync'), ...HallSubItemEdgeSyncReplayTargetSchema.shape, ...replayOutcomeShape }),
+  ])
+  .superRefine((answer, ctx) => {
+    const safetyLane = (SAFETY_CASE_REPLAY_LANES as readonly string[]).includes(answer.collection);
+    const performed = answer.replayed === true && answer.dryRun !== true;
+    if ((answer.console !== undefined) !== (safetyLane && performed)) {
+      ctx.addIssue({ code: 'custom', path: ['console'] });
+    }
+  });
+export type AdminReplayDeadLetterResult = z.infer<typeof AdminReplayDeadLetterResultSchema>;
 
 // ---------------------------------------------------------------------------
 // getSafetyCaseById — full-admin read of a terminal safety case by id.

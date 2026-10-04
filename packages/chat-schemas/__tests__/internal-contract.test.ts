@@ -85,3 +85,131 @@ describe('a server-written message keeps the accounts it names beside its text',
     expect(chatSchemas.ChatServerMessagePayloadSchema.safeParse({ ...base, replyTo: 'm1' }).success).toBe(false);
   });
 });
+
+describe('a signed chat internal call is signed for one direction', () => {
+  it('has exactly two directions: the server to a room, and a room to the server', () => {
+    expect(chatSchemas.CHAT_INTERNAL_CALL_DIRECTIONS).toEqual(['to-room', 'to-server']);
+  });
+
+  it('gives each direction and environment its own audience under the chat audience', () => {
+    expect(chatSchemas.chatInternalAudience('to-room', 'prod')).toBe('ttt-chat:to-room:prod');
+    expect(chatSchemas.chatInternalAudience('to-server', 'prod')).toBe('ttt-chat:to-server:prod');
+    expect(chatSchemas.chatInternalAudience('to-room', 'dev').startsWith(`${chatSchemas.CHAT_GRANT_AUDIENCE}:`)).toBe(true);
+  });
+
+  it('never gives two directions or environments the same audience, so one signature verifies in one direction only', () => {
+    const audiences = chatSchemas.CHAT_INTERNAL_CALL_DIRECTIONS.flatMap((direction) =>
+      ['prod', 'dev', 'test', 'to-room', 'to-server:prod'].map((env) => chatSchemas.chatInternalAudience(direction, env)),
+    );
+    expect(new Set(audiences).size).toBe(audiences.length);
+  });
+
+  it('refuses an empty environment', () => {
+    expect(() => chatSchemas.chatInternalAudience('to-room', '')).toThrow(RangeError);
+  });
+});
+
+describe('a parked-delivery report travels as signed raw bytes', () => {
+  it('signs the parked row it names: the operation id is the report eventId', () => {
+    expect(chatSchemas.chatParkedDeliveryReportOperationId({ eventId: 'evt-7' })).toBe('evt-7');
+  });
+
+  it('is sent as an opaque byte body, so the receiver parses nothing before verifying it', () => {
+    expect(chatSchemas.CHAT_PARKED_DELIVERY_REPORT_CONTENT_TYPE).toBe('application/octet-stream');
+  });
+});
+
+describe('a sync event the server applies to a room', () => {
+  const event = {
+    eventId: 'evt-1',
+    targetDo: 'ttt:prod:channel:guildChannel:wp1/c1',
+    kind: 'channelAuth' as const,
+    version: 3,
+    payload: { uid: 'u1', channelAuthState: 'authorized' },
+    tombstone: false,
+    payloadHash: 'a'.repeat(64),
+  };
+
+  it('carries the event id, the room, the fact kind, its version and hash, and the fact', () => {
+    expect(chatSchemas.ChatSyncApplyRequestSchema.parse(event)).toEqual(event);
+  });
+
+  it('syncs only the three authoritative facts a room applies', () => {
+    expect(chatSchemas.CHAT_SYNC_APPLY_KINDS).toEqual(['channelAuth', 'accountAccess', 'config']);
+    expect(chatSchemas.ChatSyncApplyRequestSchema.safeParse({ ...event, kind: 'serverMessage' }).success).toBe(false);
+  });
+
+  it('refuses a coerced or missing field rather than guessing it', () => {
+    const parse = (over: Record<string, unknown>) => chatSchemas.ChatSyncApplyRequestSchema.safeParse({ ...event, ...over }).success;
+    expect(parse({ version: '3' })).toBe(false);
+    expect(parse({ version: -1 })).toBe(false);
+    expect(parse({ version: 1.5 })).toBe(false);
+    expect(parse({ tombstone: 'false' })).toBe(false);
+    expect(parse({ payload: null })).toBe(false);
+    expect(parse({ payload: ['x'] })).toBe(false);
+    expect(parse({ payloadHash: '' })).toBe(false);
+    expect(parse({ payloadHash: undefined })).toBe(false);
+    expect(parse({ eventId: '' })).toBe(false);
+    expect(parse({ targetDo: '' })).toBe(false);
+  });
+
+  it('refuses any other field', () => {
+    expect(chatSchemas.ChatSyncApplyRequestSchema.safeParse({ ...event, status: 'pending' }).success).toBe(false);
+  });
+
+  it('accepts the largest room address and operation id', () => {
+    const largest = {
+      ...event,
+      eventId: 'e'.repeat(chatSchemas.CHAT_INTERNAL_OPERATION_ID_MAX_LENGTH),
+      targetDo: 't'.repeat(chatSchemas.CHAT_ROOM_TARGET_MAX_LENGTH),
+      payloadHash: 'h'.repeat(chatSchemas.CHAT_DIGEST_MAX_LENGTH),
+    };
+    expect(chatSchemas.ChatSyncApplyRequestSchema.safeParse(largest).success).toBe(true);
+    expect(chatSchemas.ChatSyncApplyRequestSchema.safeParse({ ...largest, eventId: `${largest.eventId}e` }).success).toBe(false);
+    expect(chatSchemas.ChatSyncApplyRequestSchema.safeParse({ ...largest, payloadHash: `${largest.payloadHash}h` }).success).toBe(false);
+  });
+});
+
+describe('a server-originated message the server appends to a room', () => {
+  const command = {
+    commandId: 'cmd-1',
+    kind: 'systemMsg' as const,
+    threadRef: 'ttt:prod:channel:guildInvite:inv1',
+    payload: { senderId: chatSchemas.CHAT_SYSTEM_SENDER_ID, text: 'agreed', referencedUids: ['u1'] },
+  };
+
+  it('carries the command id, its kind, the room, and the server message', () => {
+    expect(chatSchemas.ChatOutboxAppendRequestSchema.parse(command)).toEqual(command);
+  });
+
+  it('is either a member message the server sends or a system line', () => {
+    expect(chatSchemas.CHAT_OUTBOX_COMMAND_KINDS).toEqual(['userMsg', 'systemMsg']);
+    expect(chatSchemas.ChatOutboxAppendRequestSchema.safeParse({ ...command, kind: 'attachment' }).success).toBe(false);
+  });
+
+  it('refuses a message the server-message contract refuses, a missing room, and any other field', () => {
+    const parse = (over: Record<string, unknown>) => chatSchemas.ChatOutboxAppendRequestSchema.safeParse({ ...command, ...over }).success;
+    expect(parse({ payload: { senderId: 'system', text: 'x', replyTo: 'm1' } })).toBe(false);
+    expect(parse({ payload: { text: 'x' } })).toBe(false);
+    expect(parse({ threadRef: '' })).toBe(false);
+    expect(parse({ commandId: '' })).toBe(false);
+    expect(parse({ payloadVersion: 1 })).toBe(false);
+  });
+});
+
+describe('the word-list snapshot the server publishes', () => {
+  const snapshot = { wordListVersion: 4, words: ['a', 'b'], hash: 'f'.repeat(64) };
+
+  it('carries the version, the words, and their hash', () => {
+    expect(chatSchemas.ChatWordListSnapshotSchema.parse(snapshot)).toEqual(snapshot);
+  });
+
+  it('refuses a malformed version, a missing hash, a non-string word, and any other field', () => {
+    const parse = (over: Record<string, unknown>) => chatSchemas.ChatWordListSnapshotSchema.safeParse({ ...snapshot, ...over }).success;
+    expect(parse({ wordListVersion: -1 })).toBe(false);
+    expect(parse({ wordListVersion: '4' })).toBe(false);
+    expect(parse({ hash: '' })).toBe(false);
+    expect(parse({ words: ['a', 1] })).toBe(false);
+    expect(parse({ publishedAt: 1 })).toBe(false);
+  });
+});

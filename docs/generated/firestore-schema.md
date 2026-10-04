@@ -799,7 +799,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | --- | --- | --- |
 | `eventId` | `string` |  |
 | `targetDo` | `string` |  |
-| `kind` | `'channelAuth' \| 'accountAccess' \| 'config' \| 'serverMessage'` |  |
+| `kind` | `'channelAuth' \| 'accountAccess' \| 'config'` |  |
 | `version` | `number` |  |
 | `payload` | `Record<string, unknown> \| null` |  |
 | `tombstone` | `boolean` | yes |
@@ -1050,7 +1050,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `workProjectId` | `string` |  |
 | `proposalText` | `string` |  |
 | `proposalFileAssetId` | `string` | yes |
-| `proposalFileType` | `string` | yes |
+| `proposalFileType` | `'image' \| 'video' \| 'audio'` | yes |
 | `createdBy` | `{ uid }` |  |
 | `createdOn` | `number` |  |
 | `status` | `'open' \| 'invited' \| 'accepted' \| 'rejected'` |  |
@@ -1223,6 +1223,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `lastUpdatedAt` | `number` |  |
 | `finalizedAt` | `number` | yes |
 | `senderConfirmed` | `boolean` |  |
+| `senderConfirmedBy` | `string` | yes |
 | `recipientConfirmed` | `boolean` |  |
 | `conversationFileCount` | `number` | yes |
 | `conversationFileBytesUsed` | `number` | yes |
@@ -2530,6 +2531,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `statusReason` | `string` | yes |
 | `statusReasonAt` | `number` | yes |
 | `safetyLocked` | `boolean` | yes |
+| `craftSkillChangeMarker` | `number` | yes |
 | `accountType` | `'teen' \| 'adult'` |  |
 | `is18Plus` | `boolean` |  |
 | `agePolicyVersion` | `string` |  |

@@ -11,6 +11,7 @@ import {
   hallItemIdSchema,
   hallSubItemIdSchema,
   changeRequestIdSchema,
+  userIdSchema,
 } from '../schemas/atoms.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 
@@ -130,6 +131,10 @@ export const GuildInviteConversationSchema = z.object({
   lastUpdatedAt: z.number(),
   finalizedAt: z.number().optional(),
   senderConfirmed: z.boolean(),
+  // The account that gave the Work's agreement (the sender or any of the Work's invite handlers):
+  // set with `senderConfirmed: true`, removed whenever `senderConfirmed` goes false, and carried
+  // by the accept audit event.
+  senderConfirmedBy: userIdSchema.optional(),
   recipientConfirmed: z.boolean(),
   // Conversation Files quota counters for THIS invite conversation (per-conversation
   // caps: MAX_CONVERSATION_FILES / MAX_CONVERSATION_FILE_STORAGE_BYTES). Reserved at
@@ -167,6 +172,13 @@ export type AdminDispatchContextRef = z.infer<typeof AdminDispatchContextRefSche
 
 export const AdminDispatchPartyKindSchema = z.enum(['user', 'workProject']);
 export type AdminDispatchPartyKind = z.infer<typeof AdminDispatchPartyKindSchema>;
+
+// Who a message on a support thread is from: the system, the admin team, or the member side (the
+// thread owner, or a member of the Work on a Work thread). No writer stores it; it is derived from
+// the sender and the thread's party when a message is shown.
+export const ADMIN_DISPATCH_SENDER_ROLES = ['user', 'admin', 'system'] as const;
+export const AdminDispatchSenderRoleSchema = z.enum(ADMIN_DISPATCH_SENDER_ROLES);
+export type AdminDispatchSenderRole = z.infer<typeof AdminDispatchSenderRoleSchema>;
 
 export const AdminDispatchSchema = z.object({
   adminDispatchId: z.string(),

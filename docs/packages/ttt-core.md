@@ -157,6 +157,15 @@ TTT Productions application-data package.
   console's answer as `GetSafetyCaseConsoleResultSchema` (the child-safety, NCII, and take-it-down
   rows, `SafetyCaseFailedJobRef`, per-source `SafetyCaseConsolePageInfo`, and the urgent projection by
   `SafetyCaseLane`) and the retained-evidence inventory's as `ListRetainedEvidenceInventoryResultSchema`.
+  A console action answers with what it changed, so the console's loaded pages are patched in place
+  rather than reloaded: `SafetyCaseConsolePatchSchema` — every changed, entering, or leaving row
+  (`SafetyCaseConsoleRowChangeSchema`, by source, `row: null` when it left the active console), each
+  source's total, and the complete urgent set (`SafetyCaseConsoleUrgentEntrySchema`, the console read's
+  own element) — rides each action's answer: `DecideTakeItDownValidityResultSchema`,
+  `SetNciiMinorAssessmentResultSchema`, `RefetchProtectedCaseContextResultSchema`,
+  `MarkNcmecPortalCompleteResultSchema`, `ReopenSafetyCaseResultSchema`, and
+  `AdminReplayDeadLetterResultSchema`, where it is present exactly on a performed replay of a safety lane
+  (`SAFETY_CASE_REPLAY_LANES`).
   `SafetyCaseLaneSchema` (`csam | ncii`) is declared once beside the case shapes
   (`doc-schemas/safety/case`) and every case input takes it. The closed-case lookup answers
   `SafetyCaseByIdResultSchema` (beside `GetSafetyCaseByIdInputSchema`): discriminated by `caseType` (the
@@ -211,7 +220,7 @@ TTT Productions application-data package.
   leaves the roster, and the account-status queue entry drains itself. `collectionPathsWithErasureFate(fate)` lists the paths an
   erasure must act on. The scrub's safety-hold carve-out overrides every destructive fate.
 - User-status provenance: `FullUserSchema.statusUpdatedBy` is optional until a status first changes, then is always either the authenticated actor's uid or a stable namespaced system actor identifier (for example `system:autoHashLock`), never `null`.
-- The notification type catalog and broadcast/archive schemas (`./schemas/notification` — `NotificationType`, `NOTIFICATION_TYPE_CATALOG`, broadcast/archive input schemas), and the Ops Repairs contracts for a dead-lettered fanout job: `DeadLetteredFanoutJobRowSchema` (job id, type, `priority` as the job stores it — `NotificationFanoutPrioritySchema`, 0, 1, or 2 — park time, last error, age), `ListDeadLetteredFanoutJobsResultSchema`, and `ResumeFanoutJobResultSchema`, beside `ResumeFanoutJobInputSchema`. Each type's `metadata` shape is `NotificationMetadataByTypeSchema`, ids only — a `guild_invite` carries the Work and invite ids and the card resolves the Work's title when it renders — and `validateNotificationMetadata(type, metadata)` is the one check of a reliable-lane row's or fanout job's metadata against its type (metadata never carries the `type` key itself)
+- The notification type catalog and broadcast/archive schemas (`./schemas/notification` — `NotificationType`, `NOTIFICATION_TYPE_CATALOG`, broadcast/archive input schemas), and the Ops Repairs contracts for a dead-lettered fanout job: `DeadLetteredFanoutJobRowSchema` (job id, type, `priority` as the job stores it — `NotificationFanoutPrioritySchema`, 0, 1, or 2 — park time, last error, age), `ListDeadLetteredFanoutJobsResultSchema`, and `ResumeFanoutJobResultSchema`, beside `ResumeFanoutJobInputSchema`. The archive callable answers `ArchiveNotificationResultSchema` (`archived`, the cards this call archived — 0 when a card was relit after it rendered — and `hasMore` for an archive-all its bound stopped). Each type's `metadata` shape is `NotificationMetadataByTypeSchema`, ids only — a `guild_invite` carries the Work and invite ids and the card resolves the Work's title when it renders — and `validateNotificationMetadata(type, metadata)` is the one check of a reliable-lane row's or fanout job's metadata against its type (metadata never carries the `type` key itself)
   - `admin_dispatch_created` signals the first message of an admin-started thread (title 'Admin Message', message 'An admin has created a new thread message').
 - The published Hall text-change contract: `HallContentChangeRequestSchema` is a plain, top-level-diffable document schema whose `surface` is the single authoritative discriminator and whose `proposedFields` is a FLAT field map. The strict per-surface rule — allowlist plus per-field caps, both read from the canonical `HALL_CONTENT_TEXT_FIELDS` / `HALL_CONTENT_TEXT_FIELD_MAX` owners — is the exported `validateHallContentTextFields`, which the backend calls at its boundary before persisting or applying a proposal. There is no second allowlist and no nested patch shape.
 - Hall PUBLICATION requirements: the published shapes carry them as REQUIRED fields (all three covers on `PublishedHallItemSchema`; the picture plus the type's media on the published chapter/track/episode), while the working `Full*` shapes stay able to represent incomplete content. The per-work-type submit/approve/publish rule itself is one owner — `HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE` with `HALL_SUB_ITEM_REQUIREMENT_LABELS` and the pure `unmetHallSubItemRequirements` / `isHallSubItemPublishable` — so the member-side eligibility filter and all three backend cores read the same definition instead of restating the branch. The sub-item LOCK is one owner beside it (`utils/hall-content`): `HALL_SUB_ITEM_LOCKED_STATUSES` (`pending_approval`, `published` — typed against the chapter / track / episode `status` field, exported as `HallSubItemStatus`) and the pure `isHallSubItemLocked(status)`, true exactly for those two, so the backend lock checks and the editors decide from one definition.
@@ -225,7 +234,11 @@ TTT Productions application-data package.
   `toChatConversationRef` (kinds `guildChannel` / `guildInvite` from
   `CHAT_CONVERSATION_REF_KIND_BY_GUILD_KIND`; a channel's id is `workProjectId/guildChatChannelId`, safe
   because every TTT id is one path segment) and `fromChatConversationRef` (null for a reference that names
-  no TTT conversation). The chat packages and the chat Worker see only the neutral reference.
+  no TTT conversation). The chat packages and the chat Worker see only the neutral reference. A
+  room's address is built and read by chat-schemas' `buildChatRoomAddress` / `parseChatRoomAddress`,
+  which name no product: ttt-core owns TTT's segment, `TTT_CHAT_ROOM_PRODUCT` (`ttt`), and
+  `tttChatRoomNamespace(env)`, which the server and the chat Worker both pass in, so every address is
+  `ttt:{env}:channel:{kind}:{id}` or `ttt:{env}:inbox:{uid}` on both sides.
   `GuildChatConversationSchema` (`schemas/chat`) is the one wire shape of a conversation: the grant
   request's two conversation arms (`ChatGrantInputSchema`), the admin moderation and context-read inputs,
   and the staged chat tombstone all take it; `parseChatChannelRef` (`report/chat-report-channel-ref`)
@@ -239,7 +252,14 @@ TTT Productions application-data package.
   see the conversation, reply in it, and accept for the Work; `canAccessGuildInviteConversation` adds
   that the invite is live (`GUILD_INVITE_CONVERSATION_LIVE_STATUSES`: `pending`, `accepted`);
   `canCancelGuildInvite(member)` — an active person Guildmate whose standings grant `guildInvite.revokeAny`
-  (a sender holding none cannot cancel). A guild chat channel stores no member list: its
+  (a sender holding none cannot cancel). Opening an invite is wider than taking part in it:
+  `guildInviteViewerRoleOf` answers the party side, or `stakeEditor` for an active person Guildmate
+  whose standings grant `guildInvite.list` and `guildInvite.stakeShares.update` without handling invites (a Stake Share Manager) — who sees
+  the invite and its offer to change the offer, and takes no part in its conversation, files, the
+  Work's agreement, or a cancel; `canViewGuildInvite` is whether either applies. An invite records
+  who gave the Work's agreement (`senderConfirmedBy`, a uid, present while `senderConfirmed` is
+  true), and the accept event's payload (`GuildInviteAcceptedAuditPayloadSchema`,
+  `schemas/admin-dispatch-actions`) carries it beside the invite and its offer. A guild chat channel stores no member list: its
   `requiredGuildStandings` is the whole access input, and the create/update inputs take nothing else.
 - **Invite system messages** (`utils/guild-invite-system-message`, root + `./utils`): what an invite's
   conversation records — `agreed` / `declined` / `cancelled` / `retracted` (with `actorUid`),
@@ -266,7 +286,7 @@ TTT Productions application-data package.
   `chatParkedDeliveryId(targetDo, eventId, parkedAt)` — one parking of one room row. It is the
   `chatParkedDeliveries` lane of `DeadLetterCollectionSchema` (a flat lane, so the generic replay reset
   applies) with its `DEAD_LETTER_COLLECTION_LABELS` entry.
-- **Audition deadlines** (`constants/audition-deadlines`): an audition carries two poster-picked deadlines, `entriesCloseAt` and `auditionCloseAt` (epoch ms), on the doc, both prompt target infos, and both upload-variables schemas. The minimum gaps are named (`AUDITION_MIN_ENTRY_WINDOW_MS` 7 days from posting, `AUDITION_MIN_VOTING_AFTER_ENTRIES_MS` 24 hours after entries close); every wire schema carrying both refines with `refineAuditionDeadlineOrder`, and the posting-time gap is `auditionDeadlineProblem(deadlines, postedAt)`, checked when the upload starts and again at publish against the submit time. `areAuditionEntriesOpen(audition, submittedAt)` judges an entry by its submit time; `isAuditionVotingOpen(audition, now)` judges a vote by now — the one predicate pair the server enforces and the UI offers from. The pickers open on `defaultAuditionEntriesCloseAt(today)` (end of day three weeks out) and `defaultAuditionCloseAt(entriesCloseAt)` (end of the next day). "Ending Soon" sorts by `auditionCloseAt`.
+- **Audition deadlines** (`constants/audition-deadlines`): an audition carries two poster-picked deadlines, `entriesCloseAt` and `auditionCloseAt` (epoch ms), on the doc, both prompt target infos, and both upload-variables schemas. The minimum gaps are named (`AUDITION_MIN_ENTRY_WINDOW_MS` 7 days from posting, `AUDITION_MIN_VOTING_AFTER_ENTRIES_MS` 24 hours after entries close); every wire schema carrying both refines with `refineAuditionDeadlineOrder`, and the posting-time gap is `auditionDeadlineProblem(deadlines, postedAt)`, checked when the upload starts and again at publish against the submit time; `AUDITION_DEADLINE_PROBLEM_MESSAGES` is the one refusal sentence per problem, its numbers derived from the two gap constants, read by the server's refusal and the form alike. `areAuditionEntriesOpen(audition, submittedAt)` judges an entry by its submit time; `isAuditionVotingOpen(audition, now)` judges a vote by now — the one predicate pair the server enforces and the UI offers from. The pickers open on `defaultAuditionEntriesCloseAt(today)` (end of day three weeks out) and `defaultAuditionCloseAt(entriesCloseAt)` (end of the next day). "Ending Soon" sorts by `auditionCloseAt`.
 - **Admin audition by type**: the admin prompt target info and variables are discriminated by `type` — a sponsored audition requires `sponsoredAuditionAmountUSD` (`SponsoredAuditionAmountUSDSchema`: positive, finite, up to `MAX_SPONSORED_AUDITION_AMOUNT_USD`); a platform audition carries none.
 - **Owner-only answers** (`schemas/auditions`, `schemas/craft-skills`): `getOwnAuditionEntryStatus` (`none | visible | underReview`) and `getOwnHiddenCraftSkillCount` (`hiddenCount`) — inputs and results only; moderation-hidden entries and crafts stay unreadable to everyone, their owner included.
 - **Dispatch read markers** (`doc-schemas/admin-dispatch-read-markers`): one `AdminDispatchReadMarkerSchema` per member-side reader under `pendingAdminDispatches/{id}/dispatchReadMarkers/{uid}`; `hasUnseenAdminDispatchMessage(thread, marker)` is the one unread predicate; `MarkAdminDispatchReadInputSchema` carries `seenThroughMessageAt` and the result the committed `lastSeenMessageAt`. The admin queue's state is the thread's `awaitingAdminReply`, never a read flag.
@@ -298,6 +318,21 @@ TTT Productions application-data package.
     `GuildmateUser.guildAuthInputVersion` (absent ⇒ 0), plus the
     `activityGeneration`/`seenAtGeneration` opaque-token fields on the active
     notification doc.
+  - The stored sync-event and outbox rows' `kind`s derive from chat-schemas' `CHAT_SYNC_APPLY_KINDS` and
+    `CHAT_OUTBOX_COMMAND_KINDS` — the kinds the chat room applies — and the redeclaration guard keeps their members
+    out of ttt-core source.
+- **Chat callable answers** (`schemas/chat`): `AdminReadChannelContextResultSchema` (each `ChatContextMessageSchema` —
+  sequence, sender, text, time, moderation overlay and revision, and the accounts a server line names) and
+  `MintChatGrantResultSchema` (the signed grant and its expiry), so Functions and the app type one shape.
+- **The curated word list's terms** (`CurateProfanityListInputSchema`, `schemas/utility`): each added or removed term
+  refuses a line break, because the published list is hashed with edge-protocol-core's `hashStringSet`, which joins
+  terms with one.
+- **The Craft change marker** (`UserPrivateDataSchema.craftSkillChangeMarker`, on the server-written
+  `privateData/{uid}`): every Craft publish and every Craft delete reads it and writes the next value inside its
+  transaction, so two publishes that both counted a free slot conflict and the Craft cap holds exactly (BACKEND-116).
+  Absent until the first change; a moderation hide never writes it.
+- **A commission proposal's attached file** carries its stored kind as `ContentMediaKindSchema`
+  (`CommissionProposalSchema.proposalFileType`), the union the listing attachment's `type` uses.
 - **Conversation Files contract** (replaced inline chat attachments): the
   `ConversationFileRef` union (`src/media/conversation-file-ref.ts` — EXACTLY
   `guildInvite` | `adminSupport`; guild chat channels are excluded by design), the
@@ -399,7 +434,9 @@ TTT Productions application-data package.
   `GUILD_INVITE_STATUS_LABELS`, `COMMISSION_PROPOSAL_STATUS_LABELS`, `HALL_SUB_ITEM_STATUS_LABELS`,
   `AUDITION_STATUS_LABELS`, `WORK_PROJECT_TYPE_LABELS`, `INVITE_SOURCE_TYPE_LABELS`, `SHORT_LINK_TARGET_TYPE_LABELS`
   (Audition / Audition entry / Commission / Hall entry), and `ADMIN_DISPATCH_STATUS_LABELS` (Open / User replied / Admin
-  replied / Resolved / Closed — one set of words on every support-thread screen), and the safety case console's
+  replied / Resolved / Closed — one set of words on every support-thread screen), `ADMIN_DISPATCH_SENDER_ROLE_LABELS`
+  (User / Admin / System, keyed by `AdminDispatchSenderRole` from `doc-schemas/messaging` — who a support-thread
+  message is from, derived at render and never stored), and the safety case console's
   `CHILD_SAFETY_CASE_WORK_STATUS_LABELS` and `NCII_CASE_STATUS_LABELS`, beside the admin-surface maps in the same file. A screen renders the label, never the raw value.
 - **Analytics event names** (`constants/analytics`, root + `./constants`): `ANALYTICS_EVENT_NAMES` is the one declaration of the
   events the app logs — the page view, sign-up, the creator funnel, and the payment funnel — and `AnalyticsEventName` the type
@@ -502,8 +539,9 @@ When adding a new invite source or commission-proposal lifecycle state, update t
 Every defined Work action is enforced by the server or absent from the catalog. The standing lists the
 rules read are declared once beside the catalog and each action's grant reads its list:
 `WORK_FILE_ADMIN_GUILD_STANDING_IDS` (the file-system administrators — every file action, and
-`isWorkFileAdmin`), `GUILD_INVITE_HANDLER_GUILD_STANDING_IDS` (`guildInvite.send` / `.list` /
-`.revokeAny`), and `STAKE_SHARE_POWER_GUILD_STANDING_IDS` (`workProject.stakeShares.addActive`,
+`isWorkFileAdmin`), `GUILD_INVITE_HANDLER_GUILD_STANDING_IDS` (`guildInvite.send` /
+`.revokeAny`), `GUILD_INVITE_VIEWER_GUILD_STANDING_IDS` (`guildInvite.list` — the handlers and the
+stake-power standings, derived from both lists: opening the Work's invites, not taking part), and `STAKE_SHARE_POWER_GUILD_STANDING_IDS` (`workProject.stakeShares.addActive`,
 `guildInvite.stakeShares.update` — so only the stake-power standings change stake amounts, an invite's
 offer included). `guildStandingsGrantAction(guildStandings, action)` is the one reading of a grant; the
 active-Guildmate floor stays the caller's check.
@@ -564,6 +602,7 @@ Sharing a Work file to its Realm is a **request**, not an instant share, and `tt
 - `RealmFileFolderSchema` at `workRealms/{workRealmId}/realmFileFolders/{realmFileFolderId}` (`WORK_REALM_SUBCOLLECTIONS`, `PATH_BUILDERS.realmFileFolder`, `COLLECTION_REFS.realmFileFolders`, registry-bound). Pure containers: no default folder (approval IS the folder assignment), no access lists (Realm-level visibility is the whole access model), no stored counts. `MAX_REALM_FILE_FOLDERS` bounds the collection; folder names reuse the one platform `MAX_FILE_FOLDER_NAME_LENGTH`, and the server derives `name_lowercase` for case-insensitive uniqueness.
 - The callable inputs for request / withdraw / approve / decline / folder create-update-delete / folder reassignment, each carrying the client-generated stable request id so a decision always names the request it observed.
 - Three server projections, deliberately separate rather than one flag-switched query: the paginated artisan gallery (`REALM_SHARED_FILES_PAGE_LIMIT`, opaque cursor, `{ files, folders, nextCursor }`) whose file rows accept only the approved standings; the steward/admin promotion queue (`REALM_FILE_PROMOTION_QUEUE_PAGE_LIMIT`) whose rows accept only the pending standing; and the file-admin-gated Work-side share-state projection (`{ states }`), whose rows accept only the ACTIVE standings and exist ONLY for files that are requested or shared — an absent row means never shared. Folder documents are returned through a projection owner, never opened to direct client reads, and the folder projection's `fileCount` is server-computed per response (the folder document itself still stores no counts) so a paged client never derives a count from whichever gallery pages it happens to hold.
+- What an action changed, so the gallery and the queue (endless lists) are patched in place: every action that changes a file's standing (request, withdraw, approve, decline, canon toggle, folder move, admin un-share) answers `RealmFileTransitionResultSchema`, whose `RealmFileListsChangeSchema` holds the file's gallery row, queue row, and Work share state after it (each `null` when absent from that list) and every folder whose server-computed `fileCount` it changed — a row only when the file passes that list's read filters (the gallery row only for an approved, servable file); a folder create or rename answers `RealmFileFolderResultSchema` (the folder), a delete `DeleteRealmFileFolderResultSchema` (its id).
 - The client-minted `requestId` is bounded at the atom by `MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH` — it is client-CHOSEN and durably persisted (asset doc, audit payload, notification metadata, aggregation key), so the cap lives on the shared atom rather than on each call site.
 - The two canonical notification types (share request → the steward; share resolution → the party who did not act, `metadata.resolution` distinguishing approved/declined/withdrawn), keyed on the request id as the occurrence identity, with copy that stores no name or title snapshot.
 - The audit event types for request, withdrawal, approval, decline, folder-assignment change, and Realm-folder create/update/delete; and the `workFile.promoteToRealm` permission copy describing request submission rather than instant sharing.

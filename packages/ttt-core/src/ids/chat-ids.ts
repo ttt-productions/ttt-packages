@@ -78,9 +78,6 @@ export function accountAccessEventId(uid: string, accountAccessVersion: number, 
 export function configEventId(channelKeyHash: string, configVersion: number): Promise<string> {
   return hash('config', channelKeyHash, configVersion);
 }
-export function serverMessageEventId(threadRef: string, sourceDocId: string): Promise<string> {
-  return hash('server-msg', threadRef, sourceDocId);
-}
 
 /** `chatMessageOutbox` commandId for invite/system messages. */
 export function serverMessageCommandId(threadRef: string, sourceDocId: string): Promise<string> {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { adminDispatchIdSchema, guildInviteIdSchema } from './atoms.js';
+import { adminDispatchIdSchema, guildInviteIdSchema, userIdSchema, workProjectIdSchema } from './atoms.js';
 
 /** The two terminal dispatch-thread statuses a close can set (ONE canonical declaration —
  * shared by the close input and its authoritative result). */
@@ -30,6 +30,21 @@ export const UpdateInviteConfirmationInputSchema = z.discriminatedUnion('action'
   }).strict(),
 ]);
 export type UpdateInviteConfirmationInput = z.infer<typeof UpdateInviteConfirmationInputSchema>;
+
+/**
+ * The payload of the `workProject.guildInviteAccepted` event the finalizing agree writes: the
+ * invite, the offer agreed to, and the account that gave the Work's agreement — the caller when
+ * the Work's agree finalizes, else the invite's stored `senderConfirmedBy`. Ids and numbers only
+ * (BACKEND-203).
+ */
+export const GuildInviteAcceptedAuditPayloadSchema = z.object({
+  workProjectId: workProjectIdSchema,
+  guildInviteId: guildInviteIdSchema,
+  // Whatever offer the invite held, so an anomalous stored value is still recorded.
+  stakeSharesOffered: z.number(),
+  senderConfirmedBy: userIdSchema,
+}).strict();
+export type GuildInviteAcceptedAuditPayload = z.infer<typeof GuildInviteAcceptedAuditPayloadSchema>;
 
 export const UpdateGuildInviteStakeSharesInputSchema = z.object({
   guildInviteId: guildInviteIdSchema,

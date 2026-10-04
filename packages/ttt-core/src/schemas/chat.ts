@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CHAT_MESSAGE_TEXT_MAX_LENGTH } from '@ttt-productions/chat-schemas';
+import { CHAT_MESSAGE_TEXT_MAX_LENGTH, ChatMessageRevisionKindSchema } from '@ttt-productions/chat-schemas';
 import type { GuildChatConversation } from '../ids/guild-chat-conversation.js';
 import {
   workProjectIdSchema,
@@ -223,6 +223,36 @@ export const AdminReadChannelContextInputSchema = z.object({
   channel: GuildChatConversationSchema,
 }).strict();
 export type AdminReadChannelContextInput = z.infer<typeof AdminReadChannelContextInputSchema>;
+
+/** One message of the context window, as the conversation's room holds it now. */
+export const ChatContextMessageSchema = z.object({
+  seq: z.number().int().nonnegative(),
+  senderUid: z.string(),
+  text: z.string(),
+  createdAt: z.number(),
+  /** The message's moderation overlay, or null when none applies. */
+  moderationKind: ChatMessageRevisionKindSchema.nullable(),
+  /** The message's current revision (0 if never moderated): a moderation action names it as
+   *  `expectedMessageRevision`, so it cannot apply to a message that changed since the read. */
+  moderationRevision: z.number().int().nonnegative(),
+  /** The accounts a server-written line names; it renders them by their current names. */
+  referencedUids: z.array(z.string().min(1)).optional(),
+});
+export type ChatContextMessage = z.infer<typeof ChatContextMessageSchema>;
+
+/** The `adminReadChannelContext` answer. Non-strict (server → client result posture). */
+export const AdminReadChannelContextResultSchema = z.object({
+  messages: z.array(ChatContextMessageSchema),
+});
+export type AdminReadChannelContextResult = z.infer<typeof AdminReadChannelContextResultSchema>;
+
+/** The `mintChatGrant` answer: the signed grant and when it expires (epoch ms) — the client
+ *  refreshes before then. Non-strict (server → client result posture). */
+export const MintChatGrantResultSchema = z.object({
+  grant: z.string().min(1),
+  expiresAt: z.number(),
+});
+export type MintChatGrantResult = z.infer<typeof MintChatGrantResultSchema>;
 
 
 

@@ -62,7 +62,8 @@ const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
   'src/schemas/social.ts': [128, 128],
   'src/schemas/uploads.ts': [200],
   'src/schemas/users.ts': [12, 31],
-  'src/schemas/utility.ts': [64, 64, 64, 128, 500, 500],
+  // One 64 is the curated word-list term atom (add and remove share it).
+  'src/schemas/utility.ts': [64, 64, 128, 500, 500],
   'src/doc-schemas/ncii/holds.ts': [16],
   'src/doc-schemas/ncii/requests.ts': [16, 16, 16],
   // The former lone 32 (evidenceRefs) now derives from MAX_MANIFEST_NCMEC_RECEIPTS.

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FullCommissionListingSchema } from '../src/doc-schemas/commissions';
+import { CommissionProposalSchema, FullCommissionListingSchema } from '../src/doc-schemas/commissions';
 
 const validListing = {
   commissionListingId: 'cl1',
@@ -45,5 +45,33 @@ describe('FullCommissionListingSchema — Display Identity Invariant', () => {
   it('requires a work reference (workProjectId is mandatory)', () => {
     const { workProjectAssociatedWith: _drop, ...noRef } = validListing;
     expect(FullCommissionListingSchema.safeParse(noRef).success).toBe(false);
+  });
+});
+
+describe('CommissionProposalSchema — the attached file kind', () => {
+  const proposal = {
+    commissionProposalId: 'p1',
+    commissionListingId: 'l1',
+    workProjectId: 'w1',
+    proposalText: 'I can do this.',
+    createdBy: { uid: 'u1' },
+    createdOn: 1,
+    status: 'open' as const,
+  };
+
+  it('stores the server-inspected media kind of the attached file', () => {
+    for (const kind of ['image', 'video', 'audio'] as const) {
+      expect(CommissionProposalSchema.parse({ ...proposal, proposalFileAssetId: 'a1', proposalFileType: kind }).proposalFileType).toBe(kind);
+    }
+  });
+
+  it('refuses a file kind outside the stored media kinds', () => {
+    for (const kind of ['', 'image/png', 'document']) {
+      expect(CommissionProposalSchema.safeParse({ ...proposal, proposalFileAssetId: 'a1', proposalFileType: kind }).success).toBe(false);
+    }
+  });
+
+  it('carries no kind on a text-only proposal', () => {
+    expect(CommissionProposalSchema.parse(proposal).proposalFileType).toBeUndefined();
   });
 });

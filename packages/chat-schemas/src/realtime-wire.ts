@@ -359,3 +359,56 @@ export const ChatMarkReadResultPayloadSchema = z.discriminatedUnion('ok', [
   z.object({ requestId: ChatRequestIdSchema, ok: z.literal(false), code: z.enum(CHAT_MARK_READ_FAILURE_CODES) }),
 ]);
 export type ChatMarkReadResultPayload = z.infer<typeof ChatMarkReadResultPayloadSchema>;
+
+// ---- the channel socket's client frame payloads ----
+//
+// The chat Worker parses each frame's payload with its schema before acting on it; the client sends
+// the same shape. Unknown keys are stripped, so a client one release ahead still parses.
+
+/**
+ * A `send`: the message's idempotency id and its text, and nothing else (chat is text-only, with no
+ * reply pointer). The text's length is judged after this parse, so an over-long text is answered
+ * with a `too-long` rejection that names the parsed id; a send that fails this parse has no
+ * trustworthy id.
+ */
+export const ChatSendPayloadSchema = z.object({ clientMessageId: ChatClientMessageIdSchema, text: z.string() });
+export type ChatSendPayload = z.infer<typeof ChatSendPayloadSchema>;
+
+/**
+ * A `read-ack`: the member has read through `readSeq`; `focused` — the conversation is open and at
+ * its latest message.
+ */
+export const ChatReadAckPayloadSchema = z.object({
+  readSeq: z.number().int().nonnegative(),
+  focused: z.boolean().default(false),
+});
+export type ChatReadAckPayload = z.infer<typeof ChatReadAckPayloadSchema>;
+
+/**
+ * A `history` request: up to `limit` messages older than `beforeSeq` (the newest page when absent),
+ * never more than {@link HISTORY_PAGE_MAX}.
+ */
+export const ChatHistoryPayloadSchema = z.object({
+  beforeSeq: z.number().int().positive().nullish(),
+  limit: z.number().int().positive().max(HISTORY_PAGE_MAX).default(HISTORY_PAGE_MAX),
+});
+export type ChatHistoryPayload = z.infer<typeof ChatHistoryPayloadSchema>;
+
+/**
+ * A `resume`: the last message seq the client holds, so the room answers with what came after it;
+ * absent when the client holds none.
+ */
+export const ChatResumePayloadSchema = z.object({ afterSeq: z.number().int().nonnegative().nullish() });
+export type ChatResumePayload = z.infer<typeof ChatResumePayloadSchema>;
+
+// ---- message revisions ----
+
+/**
+ * What a revision does to a message: `delete` and `moderate` hide its text, `edit` replaces it, and
+ * `restore` brings the original back. A message's effective state is its highest revision's kind, so
+ * a later `restore` supersedes an earlier `moderate` or `delete`. The room stores these, sends them
+ * on a `revision` frame and on each row it returns, and the server reads them back.
+ */
+export const CHAT_MESSAGE_REVISION_KINDS = ['delete', 'moderate', 'edit', 'restore'] as const;
+export type ChatMessageRevisionKind = (typeof CHAT_MESSAGE_REVISION_KINDS)[number];
+export const ChatMessageRevisionKindSchema = z.enum(CHAT_MESSAGE_REVISION_KINDS);

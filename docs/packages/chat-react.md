@@ -309,6 +309,13 @@ the DO's heartbeat auto-response (`tickAlive`) — a bare clock advance is inbou
 silence, which the watchdog correctly treats as a dead socket.
 
 **Wire details, each confirmed against the Worker:**
+- Outbound payloads are typed by the contract: `ChannelClient` sends each `send`,
+  `read-ack`, `history`, and `resume` payload as chat-schemas' `ChatSendPayload` /
+  `ChatReadAckPayload` / `ChatHistoryPayload` / `ChatResumePayload` — the shapes the
+  Worker parses those frames with — so a sender that drifts from the contract fails to
+  compile; frames with no payload schema (typing, presence, heartbeat) send `{}`.
+  `__tests__/realtime/frame-payloads.test.ts` parses every such frame the client puts on
+  the socket with its schema.
 - Per-row inbox unread dots: the inbox DO snapshot carries a per-entry `unread`
   boolean on every active registry entry alongside the global `hasUnread` roll-up
   that drives the dock badge (`inbox-do.ts` `snapshot()` → `listRegistryWithUnread()`).

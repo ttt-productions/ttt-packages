@@ -300,7 +300,11 @@ the rules above so they fail loudly:
   consuming app supplies the ONE lucide every package renders from.
 - `neutral-content-type.test.ts` — fails if the neutral content type
   (`application/octet-stream`) is re-typed as a string literal anywhere in package
-  source outside its one declaration, media-schemas' `NEUTRAL_CONTENT_TYPE`.
+  source outside its one declaration, media-schemas' `NEUTRAL_CONTENT_TYPE`. The same
+  bytes declared for a different concept, in a package that cannot import media-schemas,
+  is a reviewed entry with its justification (chat-schemas' parked-delivery report body
+  type), allowed exactly one literal in its file; an entry whose file no longer declares
+  the value exactly once fails the guard.
 - `sourcemap-sources.test.ts` (check #4) — after the build, fails if any package
   emits a JavaScript sourcemap without complete embedded `sourcesContent`, so a
   published `dist` never points consumers at source files the tarball omits.

@@ -103,6 +103,12 @@ const GUARDED: Record<string, GuardedLiteral> = {
     // The canonical moderation-redaction wire text (MODERATION_REDACTED_TEXT).
     owners: ['chat-schemas/src/realtime-wire.ts'],
   },
+  // The chat room's internal sync-apply and outbox-command kinds (CHAT_SYNC_APPLY_KINDS /
+  // CHAT_OUTBOX_COMMAND_KINDS); the stored sync and outbox rows derive from them.
+  channelAuth: { owners: ['chat-schemas/src/internal-contract.ts'] },
+  accountAccess: { owners: ['chat-schemas/src/internal-contract.ts'] },
+  systemMsg: { owners: ['chat-schemas/src/internal-contract.ts'] },
+  userMsg: { owners: ['chat-schemas/src/internal-contract.ts'] },
   'ttt.chat.v1': {
     // The canonical chat WebSocket subprotocol token (CHAT_SUBPROTOCOL).
     owners: ['chat-schemas/src/realtime-wire.ts'],

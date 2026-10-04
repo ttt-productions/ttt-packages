@@ -54,6 +54,19 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
   - `CHAT_CLOSE_CODES` + the `ChatCloseCode` type
   - `MODERATION_REDACTED_TEXT`
   - the client-agreed limits `HEARTBEAT_MS`, `TYPING_COALESCE_MS`, `HISTORY_PAGE_MAX`
+  - **Message revision kinds.** `CHAT_MESSAGE_REVISION_KINDS` / `ChatMessageRevisionKind` /
+    `ChatMessageRevisionKindSchema` (`delete`, `moderate`, `edit`, `restore`): what a revision
+    does to a message. A message's effective state is its highest revision's kind, so a later
+    `restore` supersedes an earlier `moderate` or `delete`. The room stores them and sends them on
+    a `revision` frame and on each row; chat-react and ttt-core's context-read answer type with them.
+  - **The channel socket's client frame payloads**, which the Worker parses before acting
+    and the client sends: `ChatSendPayloadSchema` (`clientMessageId` + `text`; the text's
+    length is judged after the parse, so an over-long text gets a `too-long` rejection naming
+    the parsed id), `ChatReadAckPayloadSchema` (`readSeq`, whole and non-negative; `focused`,
+    false when absent), `ChatHistoryPayloadSchema` (`beforeSeq`, positive or absent; `limit`
+    at most and by default `HISTORY_PAGE_MAX`), and `ChatResumePayloadSchema` (`afterSeq`,
+    the last seq the client holds, or absent). Unknown keys are stripped, so a client one
+    release ahead still parses.
 
   Consumers import these (never re-declare them); `chat-react`'s realtime transport
   re-exports the frame-kind maps under its historical names (`CLIENT_FRAME` /
@@ -68,23 +81,56 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
     message at the message-length cap, a history-swap chunk list); the curated word-list publish
     is the one body with no size cap of its own, and a list that outgrows the budget is refused
     at publish.
+  - **Who a signed call is for.** Every internal call is signed with edge-protocol-core's
+    internal auth. `CHAT_INTERNAL_CALL_DIRECTIONS` names the two directions — `to-room` (the
+    server's calls to the Worker's rooms) and `to-server` (a room's report) — and
+    `chatInternalAudience(direction, env)` gives each direction and environment its own audience,
+    `ttt-chat:{direction}:{env}` (rooted in `CHAT_GRANT_AUDIENCE`). Both directions share one
+    secret, so the distinct audience is what keeps a signature made for one direction from
+    verifying in the other. The signer and the verifier of each direction call the same builder.
+  - **The server's call bodies**, each parsed after its signature is verified (strict, so an
+    unknown or coerced field is refused rather than guessed):
+    `ChatSyncApplyRequestSchema` — one versioned sync event (`eventId`, the room `targetDo`,
+    `kind` from `CHAT_SYNC_APPLY_KINDS`: `channelAuth` / `accountAccess` / `config`, `version`,
+    `payload` as a JSON object, `tombstone`, `payloadHash`); `ChatOutboxAppendRequestSchema` — one
+    server-originated message (`commandId`, `kind` from `CHAT_OUTBOX_COMMAND_KINDS`: `userMsg` /
+    `systemMsg`, the room `threadRef`, `payload` as `ChatServerMessagePayloadSchema`);
+    `ChatWordListSnapshotSchema` — the global word list (`wordListVersion`, `words`, and `hash`,
+    which edge-protocol-core's `hashStringSet` computes and every reader recomputes). Ids are bounded
+    by `CHAT_INTERNAL_OPERATION_ID_MAX_LENGTH`, digests by `CHAT_DIGEST_MAX_LENGTH`, rooms by
+    `CHAT_ROOM_TARGET_MAX_LENGTH`.
   - **A server-written message.** `ChatServerMessagePayloadSchema` (`senderId`, `text` within
     `CHAT_MESSAGE_TEXT_MAX_LENGTH`, optional `referencedUids`; strict) is the message part of a
     server-originated outbox command; the room stores `referencedUids` on the row beside
     `senderUid`, returns it with the row, and rewrites it on an account's anonymization.
   - **A room's parked deliveries.** A chat room (`CHAT_ROOM_KINDS`: `channel`, `inbox`)
-    that parks an outbox delivery reports it to the server through a signed call whose body is
-    `ChatParkedDeliveryReportSchema` — `targetDo` (the Worker's own internal-call address of
-    the room), `roomKind`, `eventId` (the parked row), `deliveryKind`, `roomAttemptCount`,
-    `roomLastError`, `parkedAt` — read within `CHAT_PARKED_DELIVERY_REPORT_MAX_BODY_BYTES`
-    before the signature is verified (a package test proves the largest valid report fits). The
-    room address bound `CHAT_ROOM_TARGET_MAX_LENGTH` derives from the conversation reference's own
-    bounds plus `CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH`, so every valid conversation's room can be
-    reported. An
-    operator replay asks the room, with `ChatParkedDeliveryReplayRequestSchema` (`targetDo`,
-    `eventId`), to put the delivery back on its outbox; the room answers
-    `ChatParkedDeliveryReplayResultSchema` — `requeued`, or `not-parked` when it holds no
-    parked delivery by that id, so a repeated replay is a no-op.
+    that parks an outbox delivery reports it to the server through a signed `to-server` call whose
+    body is `ChatParkedDeliveryReportSchema` — `targetDo` (the room's address), `roomKind`,
+    `eventId` (the parked row), `deliveryKind`, `roomAttemptCount`, `roomLastError`, `parkedAt` —
+    sent as `CHAT_PARKED_DELIVERY_REPORT_CONTENT_TYPE` (`application/octet-stream`, so the receiving
+    platform buffers raw bytes and parses nothing before the signature is verified) and read within
+    `CHAT_PARKED_DELIVERY_REPORT_MAX_BODY_BYTES` (a package test proves the largest valid report
+    fits). The signed operation id is `chatParkedDeliveryReportOperationId(report)` — the report's
+    `eventId` — and the receiver refuses a body naming another. An operator replay asks the room,
+    with `ChatParkedDeliveryReplayRequestSchema` (`targetDo`, `eventId`), to put the delivery back on
+    its outbox; the room answers `ChatParkedDeliveryReplayResultSchema` — `requeued`, or
+    `not-parked` when it holds no parked delivery by that id, so a repeated replay is a no-op.
+
+- **A chat room's address** (`src/room-address.ts`) — the one build and parse the server and the
+  chat Worker share. The Worker derives a room's Durable Object id from it and the server signs it
+  into every internal call. A conversation's room is `{product}:{env}:channel:{kind}:{id}` and an
+  inbox is `{product}:{env}:inbox:{uid}`; existing rooms live under these exact strings, so the
+  format is fixed. `ChatRoomNamespace` (`{ product, env }`) is the app's — the package names no
+  product — and `ChatRoom` is `{ kind: 'channel', ref }` or `{ kind: 'inbox', uid }`.
+  `buildChatRoomAddress(namespace, room)` throws a `RangeError` for anything that would not parse
+  back to the same room: an empty or `:`-holding product or env, a namespace longer than
+  `CHAT_ROOM_TARGET_PREFIX_MAX_LENGTH` allows, a reference `ChatConversationRefSchema` refuses, or an
+  inbox uid that is empty, holds `:`, or is longer than `CHAT_ACCOUNT_ID_MAX_LENGTH`. So every
+  address it returns fits `CHAT_ROOM_TARGET_MAX_LENGTH` (which derives from the conversation
+  reference's own bounds plus the prefix bound) and can be reported. `parseChatRoomAddress(address,
+  namespace)` returns the room, or null for another product or environment, an unknown room kind, or
+  an invalid uid or conversation; a conversation's id is everything after the fourth `:`, since its
+  kind never holds one.
 
 ## Boundary
 

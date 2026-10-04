@@ -22,7 +22,7 @@ import type { ChildSafetyWorkStatus } from '../doc-schemas/safety/case.js';
 import type { BroadcastAudienceSelector } from '../schemas/notification.js';
 import type { DeadLetterCollection } from '../schemas/admin.js';
 import type { GuildInviteConversationStatus, ShortLinkTargetType } from '../schemas/atoms.js';
-import type { AdminDispatch } from '../doc-schemas/messaging.js';
+import type { AdminDispatch, AdminDispatchSenderRole } from '../doc-schemas/messaging.js';
 import type { CommissionProposalStatus } from '../schemas/commissions.js';
 import type { InviteSourceType } from '../schemas/work-project-management.js';
 import type { Audition } from '../doc-schemas/commissions.js';
@@ -276,6 +276,13 @@ export const ADMIN_DISPATCH_STATUS_LABELS: Record<AdminDispatch['status'], strin
   admin_reply: 'Admin replied',
   closed_resolved: 'Resolved',
   closed_unresolved: 'Closed',
+};
+
+/** Who a support-thread message is from, as the admin thread preview labels it. */
+export const ADMIN_DISPATCH_SENDER_ROLE_LABELS: Record<AdminDispatchSenderRole, string> = {
+  user: 'User',
+  admin: 'Admin',
+  system: 'System',
 };
 
 /** Child-safety case work statuses (the safety case console's case rows and closed-case lookup). */

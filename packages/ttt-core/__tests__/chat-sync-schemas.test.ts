@@ -1,4 +1,5 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
+import { CHAT_OUTBOX_COMMAND_KINDS, CHAT_SYNC_APPLY_KINDS } from '@ttt-productions/chat-schemas';
 import type { DeliverySkipReason, DeliveryState } from '@ttt-productions/notification-core/server';
 import {
   ChatChannelAuthProjectionSchema,
@@ -170,5 +171,16 @@ describe('notification delivery states follow notification-core, whose ledger wr
     expectTypeOf<NotificationDeliveryState>().toEqualTypeOf<DeliveryState>();
     expectTypeOf<NotificationDeliverySkipReason>().toEqualTypeOf<DeliverySkipReason>();
     expect(NotificationDeliveryStateSchema.options).toContain('skipped');
+  });
+});
+
+describe('the stored chat sync and outbox rows take the wire kinds the chat room applies', () => {
+  it('a sync event row accepts exactly the chat-schemas apply kinds', () => {
+    expect([...ChatSyncEventSchema.shape.kind.options].sort()).toEqual([...CHAT_SYNC_APPLY_KINDS].sort());
+    expect(ChatSyncEventSchema.shape.kind.safeParse('serverMessage').success).toBe(false);
+  });
+
+  it('an outbox row accepts exactly the chat-schemas command kinds', () => {
+    expect([...ChatMessageOutboxSchema.shape.kind.options].sort()).toEqual([...CHAT_OUTBOX_COMMAND_KINDS].sort());
   });
 });

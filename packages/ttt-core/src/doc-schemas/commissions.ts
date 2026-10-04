@@ -60,7 +60,9 @@ export const CommissionProposalSchema = z.object({
   workProjectId: z.string(),
   proposalText: z.string(),
   proposalFileAssetId: z.string().optional(),
-  proposalFileType: z.string().optional(),
+  // The attached file's stored content kind, inspected by the upload pipeline — the same union
+  // the listing attachment's `type` derives from (ARCH-102).
+  proposalFileType: ContentMediaKindSchema.optional(),
   createdBy: userRefSchema,
   createdOn: z.number(),
   status: CommissionProposalStatusSchema,

@@ -1,16 +1,20 @@
 /**
  * The chat realtime wire contract (subprotocol, frame-kind maps, close codes, the
- * neutral conversation reference, grant scope/audience, the send and mark-read
- * contracts, and the client-agreed limits) — the single owner consumed by the chat
+ * neutral conversation reference, grant scope/audience, the client frame payloads, the
+ * send and mark-read contracts, and the client-agreed limits) — the single owner consumed by the chat
  * React client, the chat Cloudflare Worker, and Cloud Functions.
  */
 export * from './realtime-wire.js';
 
 /**
- * The chat internal-endpoint contract (the body budget of the signed Functions to Worker calls, and
- * a room's parked-delivery report and replay).
+ * The chat internal-endpoint contract (the body budget and per-direction audience of the signed calls
+ * between the server and the chat Worker, the sync, outbox, and word-list bodies, and a room's
+ * parked-delivery report and replay).
  */
 export * from './internal-contract.js';
+
+/** A chat room's address: the one build and parse both the server and the chat Worker use. */
+export * from './room-address.js';
 
 /**
  * Pure-Zod chat schemas package.

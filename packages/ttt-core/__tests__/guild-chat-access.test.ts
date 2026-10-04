@@ -4,6 +4,8 @@ import {
   canAccessGuildInviteConversation,
   canCancelGuildInvite,
   guildInvitePartyOf,
+  guildInviteViewerRoleOf,
+  canViewGuildInvite,
   isGuildInviteConversationLive,
   GUILD_INVITE_CONVERSATION_LIVE_STATUSES,
   type GuildChatAccessMember,
@@ -117,5 +119,37 @@ describe('who may cancel the Work invites', () => {
     expect(canCancelGuildInvite(member({ status: 'departed', guildStandings: ['StewardOwner'] }))).toBe(false);
     expect(canCancelGuildInvite(member({ holderType: FOUNDING_WORK_HOLDER_TYPE, guildStandings: ['StewardOwner'] }))).toBe(false);
     expect(canCancelGuildInvite(null)).toBe(false);
+  });
+});
+
+describe('who may open an invite: its parties, and a Stake Share Manager to change the offer', () => {
+  const invite = { senderUid: 'sender', recipientUid: 'recipient' };
+
+  it('the parties open it on their own side', () => {
+    expect(guildInviteViewerRoleOf({ ...invite, uid: 'recipient', member: null })).toBe('recipient');
+    expect(guildInviteViewerRoleOf({ ...invite, uid: 'sender', member: null })).toBe('work');
+    expect(guildInviteViewerRoleOf({ ...invite, uid: 'h', member: member({ guildStandings: ['InviteManager'] }) })).toBe('work');
+  });
+
+  it('a Stake Share Manager opens it as a stake editor, never as a party', () => {
+    const ssm = member({ guildStandings: ['StakeShareManager'] });
+    expect(guildInviteViewerRoleOf({ ...invite, uid: 'ssm', member: ssm })).toBe('stakeEditor');
+    expect(canViewGuildInvite({ ...invite, uid: 'ssm', member: ssm })).toBe(true);
+    expect(guildInvitePartyOf({ ...invite, uid: 'ssm', member: ssm })).toBeNull();
+    expect(canCancelGuildInvite(ssm)).toBe(false);
+  });
+
+  it('a handler who also holds stake power stays a party', () => {
+    const both = member({ guildStandings: ['InviteManager', 'StakeShareManager'] });
+    expect(guildInviteViewerRoleOf({ ...invite, uid: 'both', member: both })).toBe('work');
+  });
+
+  it('nobody else opens it: another standing, a departed Stake Share Manager, the founding Work, or no member', () => {
+    expect(canViewGuildInvite({ ...invite, uid: 'o', member: member({ guildStandings: ['CommissionManager'] }) })).toBe(false);
+    expect(canViewGuildInvite({ ...invite, uid: 'o', member: member({ status: 'departed', guildStandings: ['StakeShareManager'] }) })).toBe(false);
+    expect(
+      canViewGuildInvite({ ...invite, uid: 'o', member: member({ holderType: FOUNDING_WORK_HOLDER_TYPE, guildStandings: ['StakeShareManager'] }) }),
+    ).toBe(false);
+    expect(canViewGuildInvite({ ...invite, uid: 'o', member: null })).toBe(false);
   });
 });

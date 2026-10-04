@@ -7,7 +7,6 @@ import {
   channelAuthEventId,
   accountAccessEventId,
   configEventId,
-  serverMessageEventId,
   serverMessageCommandId,
   chatSyncFanoutJobId,
   userWorkScopeKey,
@@ -84,7 +83,6 @@ describe('sync event + job ids match the frozen formulas', () => {
     expect(await channelAuthEventId('ck', 'u1', 3)).toBe(await hash('channel-auth', 'ck', 'u1', 3));
     expect(await accountAccessEventId('u1', 2, 'ck')).toBe(await hash('account-access', 'u1', 2, 'ck'));
     expect(await configEventId('ck', 7)).toBe(await hash('config', 'ck', 7));
-    expect(await serverMessageEventId('tr', 'src')).toBe(await hash('server-msg', 'tr', 'src'));
     expect(await serverMessageCommandId('tr', 'src')).toBe(await hash('server-msg', 'tr', 'src'));
   });
 

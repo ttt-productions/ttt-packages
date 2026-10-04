@@ -36,19 +36,14 @@ import { CHAT_WIRE_VERSION } from '@ttt-productions/chat-schemas';
 import type {
   ChatConversationRef,
   ChatMarkReadResultPayload,
+  ChatMessageRevisionKind,
   ChatSendRejectedPayload,
 } from '@ttt-productions/chat-schemas';
 
 // ---- raw wire row shapes (what the DO serializes; opaque-but-typed here) ----
 
-/**
- * The moderation revision `kind` (the worker runtime's revision input + the
- * `revisions.kind` column). The EFFECTIVE state of a message is its
- * MAX-`messageRevision` row's kind, so a `restore` (a later revision) supersedes
- * an earlier `moderate`/`delete`. `moderate`/`delete` blank the original text;
- * `edit` overlays new text; `restore` reverts to the original.
- */
-export type RevisionKind = 'delete' | 'moderate' | 'edit' | 'restore';
+/** A revision's kind (chat-schemas `ChatMessageRevisionKind`), under this package's historical name. */
+export type RevisionKind = ChatMessageRevisionKind;
 
 /**
  * A message row as the Channel DO stores + broadcasts it (the worker runtime's

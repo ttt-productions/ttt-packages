@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  AUDITION_DEADLINE_PROBLEM_MESSAGES,
   AUDITION_MIN_ENTRY_WINDOW_MS,
   AUDITION_MIN_VOTING_AFTER_ENTRIES_MS,
   auditionDeadlineProblem,
@@ -98,5 +99,21 @@ describe('the stored audition holds its deadlines to the wire constraints', () =
       expect(field.safeParse(bad).success).toBe(false);
       expect(AuditionSchema.shape.auditionCloseAt.safeParse(bad).success).toBe(false);
     }
+  });
+});
+
+describe('the deadline refusal copy', () => {
+  it('states each broken minimum gap in the approved words', () => {
+    expect(AUDITION_DEADLINE_PROBLEM_MESSAGES).toEqual({
+      entriesCloseTooSoon: 'Entries must stay open for at least 7 days after posting.',
+      auditionCloseTooSoon: 'The audition must close at least 24 hours after entries close.',
+    });
+  });
+
+  it('has the words for every problem the rule can report', () => {
+    const tooSoonEntries = auditionDeadlineProblem({ entriesCloseAt: posted + DAY, auditionCloseAt: posted + 30 * DAY }, posted);
+    const tooSoonClose = auditionDeadlineProblem({ entriesCloseAt: posted + 8 * DAY, auditionCloseAt: posted + 8 * DAY + HOUR }, posted);
+    expect(AUDITION_DEADLINE_PROBLEM_MESSAGES[tooSoonEntries!]).toContain('7 days');
+    expect(AUDITION_DEADLINE_PROBLEM_MESSAGES[tooSoonClose!]).toContain('24 hours');
   });
 });

@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { ChatConversationRefSchema } from '@ttt-productions/chat-schemas';
+import { ChatConversationRefSchema, buildChatRoomAddress, parseChatRoomAddress } from '@ttt-productions/chat-schemas';
 import {
   toChatConversationRef,
   fromChatConversationRef,
+  TTT_CHAT_ROOM_PRODUCT,
+  tttChatRoomNamespace,
   type GuildChatConversation,
 } from '../src/ids/guild-chat-conversation';
 
@@ -54,5 +56,22 @@ describe('a chat report reads its conversation through the same mapping', () => 
     expect(parseChatChannelRef('guild-chat-message', 'a/')).toBeNull();
     expect(parseChatChannelRef('guild-invite-message', 'a/b')).toBeNull();
     expect(parseChatChannelRef('square-post', 'wp1/ch1')).toBeNull();
+  });
+});
+
+describe('TTT chat room addresses', () => {
+  it('name the TTT product, so every room address keeps its exact bytes', () => {
+    expect(TTT_CHAT_ROOM_PRODUCT).toBe('ttt');
+    const ns = tttChatRoomNamespace('prod');
+    expect(buildChatRoomAddress(ns, { kind: 'channel', ref: toChatConversationRef(CHANNEL) })).toBe('ttt:prod:channel:guildChannel:wp1/ch1');
+    expect(buildChatRoomAddress(ns, { kind: 'channel', ref: toChatConversationRef(INVITE) })).toBe('ttt:prod:channel:guildInvite:gi1');
+    expect(buildChatRoomAddress(ns, { kind: 'inbox', uid: 'u1' })).toBe('ttt:prod:inbox:u1');
+  });
+
+  it('read back only an address of the same product and environment', () => {
+    const address = 'ttt:dev:channel:guildChannel:wp1/ch1';
+    expect(parseChatRoomAddress(address, tttChatRoomNamespace('dev'))).toEqual({ kind: 'channel', ref: toChatConversationRef(CHANNEL) });
+    expect(parseChatRoomAddress(address, tttChatRoomNamespace('prod'))).toBeNull();
+    expect(parseChatRoomAddress('other:dev:inbox:u1', tttChatRoomNamespace('dev'))).toBeNull();
   });
 });

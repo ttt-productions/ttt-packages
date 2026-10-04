@@ -8,7 +8,7 @@
  * reference and back.
  */
 
-import type { ChatConversationRef } from '@ttt-productions/chat-schemas';
+import type { ChatConversationRef, ChatRoomNamespace } from '@ttt-productions/chat-schemas';
 
 /** The TTT realtime conversation kinds. */
 export const GUILD_CHAT_CONVERSATION_KINDS = ['channel', 'invite'] as const;
@@ -57,4 +57,16 @@ export function fromChatConversationRef(ref: ChatConversationRef): GuildChatConv
     return { kind: 'channel', workProjectId: parts[0], guildChatChannelId: parts[1] };
   }
   return null;
+}
+
+/**
+ * The product segment of every TTT chat room address. A room address is a wire value the server
+ * and the chat Worker must build identically (ARCH-005), and chat-schemas names no product, so
+ * TTT's value lives here and both trees pass it into `buildChatRoomAddress` / `parseChatRoomAddress`.
+ */
+export const TTT_CHAT_ROOM_PRODUCT = 'ttt';
+
+/** The TTT room-address namespace for one deployment environment. */
+export function tttChatRoomNamespace(env: string): ChatRoomNamespace {
+  return { product: TTT_CHAT_ROOM_PRODUCT, env };
 }

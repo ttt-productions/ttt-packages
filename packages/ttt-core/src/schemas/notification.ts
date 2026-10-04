@@ -471,6 +471,18 @@ export const ArchiveNotificationObservedInputSchema = z.object({
 }).strict();
 export type ArchiveNotificationObservedInput = z.infer<typeof ArchiveNotificationObservedInputSchema>;
 
+/**
+ * The `archiveNotification` answer: how many cards this call archived (0 when a single card was
+ * relit after it rendered, so the row stays active), and for an archive-all, `hasMore` when the
+ * call's bound stopped it before the category was empty. Non-strict (server → client posture).
+ */
+export const ArchiveNotificationResultSchema = z.object({
+  success: z.literal(true),
+  archived: z.number().int().nonnegative(),
+  hasMore: z.boolean().optional(),
+});
+export type ArchiveNotificationResult = z.infer<typeof ArchiveNotificationResultSchema>;
+
 // ============================================================================
 // SERVER-OWNED ARCHIVE-ALL JOB (replaces the browser clear-all loop)
 //

@@ -29,6 +29,13 @@ import {
   type RevisionKind,
   type ChatSendRejectionCode,
 } from './wire.js';
+import type {
+  ChatHistoryPayload,
+  ChatReadAckPayload,
+  ChatResumePayload,
+  ChatSendPayload,
+  ClientFrameKind,
+} from '@ttt-productions/chat-schemas';
 import type { RealtimeSocket, SocketFactory } from './socket.js';
 import {
   wireRowToMessage,
@@ -61,6 +68,21 @@ import {
   SEND_RETRY_MAX_DELAY_MS,
 } from './shared.js';
 import { InitialLoadBudget } from './initial-load-budget.js';
+
+/**
+ * The payload of each frame this client sends, typed by the chat-schemas payload the Worker parses
+ * it with, so a sender that drifts from the contract fails to compile. A frame with no payload
+ * schema (typing, presence, heartbeat) carries an empty object.
+ */
+type ChannelFramePayload<K extends ClientFrameKind> = K extends typeof CLIENT_FRAME.SEND
+  ? ChatSendPayload
+  : K extends typeof CLIENT_FRAME.READ_ACK
+    ? ChatReadAckPayload
+    : K extends typeof CLIENT_FRAME.HISTORY
+      ? ChatHistoryPayload
+      : K extends typeof CLIENT_FRAME.RESUME
+        ? ChatResumePayload
+        : Record<string, never>;
 
 /** An un-acked send tracked for reconnect resend (clientMessageId idempotency). */
 interface PendingSend {
@@ -1285,7 +1307,7 @@ export class ChannelClient {
 
   // ---- outbound actions ----
 
-  private sendFrame(type: string, payload: Record<string, unknown>): boolean {
+  private sendFrame<K extends ClientFrameKind>(type: K, payload: ChannelFramePayload<K>): boolean {
     if (!this.socket || !this.socket.isOpen) return false;
     this.socket.send(buildFrame(type, payload));
     return true;

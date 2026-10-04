@@ -304,6 +304,11 @@ export const UserPrivateDataSchema = z.object({
   // restricted to the owner's view. Set true while a child-safety/NCII action is
   // pending against the account; the app gates the user accordingly.
   safetyLocked: z.boolean().optional(),
+  // Counts the owner's Craft publishes and deletes. Each one reads this doc and writes the next
+  // value inside its own transaction, so two publishes that both counted a free Craft slot write
+  // the same document and conflict instead of both landing past the cap (BACKEND-116). Absent
+  // until the first Craft change (read as 0); a moderation hide never writes it.
+  craftSkillChangeMarker: z.number().int().nonnegative().optional(),
   // Trust & Safety (§A7): server-write-only age/registration fields, merged from the
   // standalone age cluster shape (./safety/age.js) so the canonical schema and the
   // age cluster cannot drift.

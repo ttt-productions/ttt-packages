@@ -11,6 +11,15 @@ import { REPO_ROOT } from './leak-utils';
 
 const DECLARATION = 'packages/media-schemas/src/helpers.ts';
 const LITERAL = /(["'])application\/octet-stream\1/;
+const LITERALS = new RegExp(LITERAL.source, 'g');
+
+// The same bytes declared for a different concept, in a package that cannot import
+// media-schemas. Each entry is that concept's one declaration, with why it is not a copy;
+// the file may hold exactly that one literal, so a second one there is still caught.
+const OTHER_CONCEPTS: Readonly<Record<string, string>> = {
+  'packages/chat-schemas/src/internal-contract.ts':
+    "CHAT_PARKED_DELIVERY_REPORT_CONTENT_TYPE — a signed chat report's wire body type (raw bytes the receiver must not parse before verifying), not a file's type; chat-schemas is a zero-dependency schema package",
+};
 
 function listSource(dir: string): string[] {
   if (!existsSync(dir)) return [];
@@ -24,6 +33,7 @@ function listSource(dir: string): string[] {
 const packagesDir = join(REPO_ROOT, 'packages');
 const sourceFiles = readdirSync(packagesDir).flatMap((pkg) => listSource(join(packagesDir, pkg, 'src')));
 const rel = (file: string) => relative(REPO_ROOT, file).split(sep).join('/');
+const countLiterals = (file: string) => (readFileSync(join(REPO_ROOT, file), 'utf8').match(LITERALS) ?? []).length;
 
 describe('boundary: one neutral content type', () => {
   it('declares it exactly once, in media-schemas', () => {
@@ -34,7 +44,12 @@ describe('boundary: one neutral content type', () => {
     const copies = sourceFiles
       .map(rel)
       .filter((file) => file !== DECLARATION)
-      .filter((file) => LITERAL.test(readFileSync(join(REPO_ROOT, file), 'utf8')));
+      .filter((file) => countLiterals(file) > (file in OTHER_CONCEPTS ? 1 : 0));
     expect(copies, `import NEUTRAL_CONTENT_TYPE from @ttt-productions/media-schemas instead:\n  ${copies.join('\n  ')}`).toEqual([]);
+  });
+
+  it('keeps no stale entry for another concept: each still declares the value it is listed for, exactly once', () => {
+    const stale = Object.keys(OTHER_CONCEPTS).filter((file) => !existsSync(join(REPO_ROOT, file)) || countLiterals(file) !== 1);
+    expect(stale).toEqual([]);
   });
 });

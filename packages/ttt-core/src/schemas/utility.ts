@@ -72,11 +72,20 @@ export type SeedTakeItDownPageCopyInput = z.infer<typeof SeedTakeItDownPageCopyI
 export const SeedDmcaPolicyInputSchema = z.object({}).strict();
 export type SeedDmcaPolicyInput = z.infer<typeof SeedDmcaPolicyInputSchema>;
 
+/** One curated word-list term. The published list is hashed with edge-protocol-core's
+ *  `hashStringSet`, which joins terms with a line break and refuses a term holding one, so a
+ *  term with a line break is refused here rather than failing every later publish. */
+const curatedProfanityTermSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[^\r\n\u2028\u2029]*$/);
+
 /** Admin add/remove words on the self-owned curated profanity list (no external sync). */
 export const CurateProfanityListInputSchema = z
   .object({
-    add: z.array(z.string().min(1).max(64)).max(500).optional(),
-    remove: z.array(z.string().min(1).max(64)).max(500).optional(),
+    add: z.array(curatedProfanityTermSchema).max(500).optional(),
+    remove: z.array(curatedProfanityTermSchema).max(500).optional(),
   })
   .strict()
   .refine((v) => (v.add?.length ?? 0) + (v.remove?.length ?? 0) > 0, {

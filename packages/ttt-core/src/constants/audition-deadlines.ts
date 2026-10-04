@@ -39,6 +39,12 @@ export interface AuditionDeadlines {
 /** Which minimum gap a pair of deadlines breaks. */
 export type AuditionDeadlineProblem = 'entriesCloseTooSoon' | 'auditionCloseTooSoon';
 
+/** The refusal each broken minimum gap answers with — the server's refusal and the form's alike. */
+export const AUDITION_DEADLINE_PROBLEM_MESSAGES: Record<AuditionDeadlineProblem, string> = {
+  entriesCloseTooSoon: `Entries must stay open for at least ${AUDITION_MIN_ENTRY_WINDOW_MS / DAY_MS} days after posting.`,
+  auditionCloseTooSoon: `The audition must close at least ${AUDITION_MIN_VOTING_AFTER_ENTRIES_MS / HOUR_MS} hours after entries close.`,
+};
+
 /**
  * The deadline-pair rule every wire schema carrying both deadlines refines with: the audition
  * closes at least `AUDITION_MIN_VOTING_AFTER_ENTRIES_MS` after entries close. (The gap from the

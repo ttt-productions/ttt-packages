@@ -8,7 +8,11 @@
 // does not false-flag a Timestamp object against `z.number()`).
 
 import { z } from 'zod';
-import { ChatParkedDeliveryReportSchema } from '@ttt-productions/chat-schemas';
+import {
+  CHAT_OUTBOX_COMMAND_KINDS,
+  CHAT_SYNC_APPLY_KINDS,
+  ChatParkedDeliveryReportSchema,
+} from '@ttt-productions/chat-schemas';
 import { systemRoleSchema } from '../schemas/atoms.js';
 import { GUILD_CHAT_CONVERSATION_KINDS } from '../ids/guild-chat-conversation.js';
 
@@ -61,7 +65,8 @@ export type ChatScopeDegradedCause = z.infer<typeof ChatScopeDegradedCauseSchema
 export const ChatSyncEventSchema = z.object({
   eventId: z.string(),
   targetDo: z.string(),
-  kind: z.enum(['channelAuth', 'accountAccess', 'config', 'serverMessage']),
+  // The room applies only the chat-schemas apply kinds, so a row holds nothing else.
+  kind: z.enum(CHAT_SYNC_APPLY_KINDS),
   version: z.number(),
   payload: z.record(z.string(), z.unknown()).nullable(),
   tombstone: z.boolean().optional(),
@@ -141,7 +146,7 @@ export type ChatSyncFanoutJob = z.infer<typeof ChatSyncFanoutJobSchema>;
 // ── chatMessageOutbox/{commandId} ───────────────────────────────────────────
 export const ChatMessageOutboxSchema = z.object({
   commandId: z.string(),
-  kind: z.enum(['userMsg', 'systemMsg']),
+  kind: z.enum(CHAT_OUTBOX_COMMAND_KINDS),
   threadRef: z.string(),
   payload: z.record(z.string(), z.unknown()),
   payloadVersion: z.number(),

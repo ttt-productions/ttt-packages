@@ -15,6 +15,7 @@ import {
   STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS,
   GUILD_INVITE_HANDLER_GUILD_STANDING_IDS,
   STAKE_SHARE_POWER_GUILD_STANDING_IDS,
+  GUILD_INVITE_VIEWER_GUILD_STANDING_IDS,
   WORK_FILE_ADMIN_GUILD_STANDING_IDS,
   guildStandingsGrantAction,
   isWorkFileAdmin,
@@ -329,9 +330,9 @@ describe('every defined action is enforced or gone', () => {
 });
 
 describe('the standing lists the invite, stake, and file rules read', () => {
-  it('invite handlers are exactly Steward, WorkProject Manager, and Invite Manager, and they send, list, and cancel', () => {
+  it('invite handlers are exactly Steward, WorkProject Manager, and Invite Manager, and they send and cancel', () => {
     expect([...GUILD_INVITE_HANDLER_GUILD_STANDING_IDS].sort()).toEqual(['InviteManager', 'StewardOwner', 'WorkProjectManager']);
-    for (const action of ['guildInvite.send', 'guildInvite.list', 'guildInvite.revokeAny'] as const) {
+    for (const action of ['guildInvite.send', 'guildInvite.revokeAny'] as const) {
       expect([...WORK_PROJECT_ACTIONS[action].grantedTo].sort()).toEqual([...GUILD_INVITE_HANDLER_GUILD_STANDING_IDS].sort());
     }
   });
@@ -343,6 +344,21 @@ describe('the standing lists the invite, stake, and file rules read', () => {
     );
     expect(guildStandingsGrantAction(['InviteManager'], 'guildInvite.stakeShares.update')).toBe(false);
     expect(guildStandingsGrantAction(['StakeShareManager'], 'guildInvite.stakeShares.update')).toBe(true);
+  });
+
+  it("the Work's invites are opened by the invite handlers and by a Stake Share Manager, who changes their offers", () => {
+    expect([...GUILD_INVITE_VIEWER_GUILD_STANDING_IDS].sort()).toEqual(['InviteManager', 'StakeShareManager', 'StewardOwner', 'WorkProjectManager']);
+    expect([...WORK_PROJECT_ACTIONS['guildInvite.list'].grantedTo].sort()).toEqual([...GUILD_INVITE_VIEWER_GUILD_STANDING_IDS].sort());
+    expect(guildStandingsGrantAction(['StakeShareManager'], 'guildInvite.list')).toBe(true);
+    expect(guildStandingsGrantAction(['StakeShareManager'], 'guildInvite.revokeAny')).toBe(false);
+    expect(guildStandingsGrantAction(['StakeShareManager'], 'guildInvite.send')).toBe(false);
+  });
+
+  it('every standing that opens invites without handling them holds the power to change their offers', () => {
+    const handlers = GUILD_INVITE_HANDLER_GUILD_STANDING_IDS as readonly string[];
+    for (const standing of GUILD_INVITE_VIEWER_GUILD_STANDING_IDS.filter((id) => !handlers.includes(id))) {
+      expect(guildStandingsGrantAction([standing], 'guildInvite.stakeShares.update')).toBe(true);
+    }
   });
 
   it('file admins are Steward, WorkProject Manager, and Work Asset Admin, and every file-admin action reads that list', () => {

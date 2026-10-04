@@ -21,13 +21,14 @@ import {
   INVITE_SOURCE_TYPE_LABELS,
   SHORT_LINK_TARGET_TYPE_LABELS,
   ADMIN_DISPATCH_STATUS_LABELS,
+  ADMIN_DISPATCH_SENDER_ROLE_LABELS,
   CHILD_SAFETY_CASE_WORK_STATUS_LABELS,
   NCII_CASE_STATUS_LABELS,
 } from '../src/constants/admin-labels';
 import { ChildSafetyWorkStatusSchema } from '../src/doc-schemas/safety/case';
 import { NciiInternalStatusSchema } from '../src/doc-schemas/safety/foundation';
 import { ShortLinkTargetTypeSchema } from '../src/schemas/atoms';
-import { AdminDispatchSchema } from '../src/doc-schemas/messaging';
+import { AdminDispatchSchema, AdminDispatchSenderRoleSchema } from '../src/doc-schemas/messaging';
 import { guildInviteConversationStatusSchema } from '../src/schemas/atoms';
 import { CommissionProposalStatusSchema } from '../src/schemas/commissions';
 import { InviteSourceSchema } from '../src/schemas/work-project-management';
@@ -310,6 +311,13 @@ describe('short-link and support-thread labels', () => {
       closed_unresolved: 'Closed',
     });
     expect(Object.keys(ADMIN_DISPATCH_STATUS_LABELS).sort()).toEqual([...AdminDispatchSchema.shape.status.options].sort());
+  });
+});
+
+describe('support-thread sender roles', () => {
+  it('name who a message is from in the words the preview showed', () => {
+    expect(ADMIN_DISPATCH_SENDER_ROLE_LABELS).toEqual({ user: 'User', admin: 'Admin', system: 'System' });
+    expect(Object.keys(ADMIN_DISPATCH_SENDER_ROLE_LABELS).sort()).toEqual([...AdminDispatchSenderRoleSchema.options].sort());
   });
 });
 
