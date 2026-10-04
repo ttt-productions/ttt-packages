@@ -25,8 +25,9 @@ export * from './room-address.js';
  * backend that needs the chat wire contracts. There is no `chat-core/schemas`
  * subpath: chat-core re-exports nothing under a `./schemas` path.
  *
- * Tier 0 — pure Zod, zero `@ttt-productions/*` deps. Safe for backend / schema
- * composition without pulling in any React or Firebase dependency graph.
+ * Tier 1 — pure Zod; its one `@ttt-productions/*` dependency is the zero-dependency
+ * `input-format-core`. Safe for backend / schema composition without pulling in any
+ * React or Firebase dependency graph.
  */
 
 // Chat is TEXT-ONLY. There is deliberately no attachment shape here: a file is

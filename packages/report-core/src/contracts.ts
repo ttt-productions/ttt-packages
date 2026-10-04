@@ -35,9 +35,9 @@ export {
 // --- Pure wire schemas (zod) ---
 export {
   CheckoutTaskRequestSchema,
-  CheckinTaskRequestSchema,
+  createCheckinTaskRequestSchema,
   ReleaseTaskRequestSchema,
-  SubmitReportRequestSchema,
+  createSubmitReportRequestSchema,
 } from './schemas/index.js';
 export type {
   CheckoutTaskRequest,
@@ -45,4 +45,5 @@ export type {
   ReleaseTaskRequest,
   SubmitReportRequest,
   SubmitReportResult,
+  ReportTextFieldSchema,
 } from './schemas/index.js';

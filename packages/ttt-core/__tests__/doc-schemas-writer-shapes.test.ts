@@ -352,13 +352,12 @@ describe('second registry completion batch', () => {
     for (const key of ['edgeSyncState', 'edgeSyncProcessingAt', 'edgeSyncOp', 'edgeSyncAssetIds', 'edgeSyncError', 'edgeSyncFailedAt']) {
       expect(Object.keys(PublishedHallItemSchema.shape)).not.toContain(key);
     }
-    // The clear runner writes moderatedAt to these six live source shapes as well.
+    // The clear runner writes moderatedAt to the live sources it clears as well: the three
+    // sub-item shapes, and — for a Hall detail, whose text is the Work's own — the Work shell.
     for (const template of [
-      'allWorkProjects/{workProjectId}/workProjectTales/{taleId}',
+      'allWorkProjects/{workProjectId}',
       'allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}',
-      'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}',
       'allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}/tuneTracks/{trackId}',
-      'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}',
       'allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}',
     ] as const) {
       const schema = COLLECTION_SCHEMAS[template] as unknown as { shape: Record<string, unknown> };

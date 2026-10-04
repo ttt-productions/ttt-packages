@@ -1,3 +1,4 @@
+import type { DeclaredInputFormat } from '@ttt-productions/input-format-core';
 import type {
   ReportableItemConfig,
   PriorityConfig,
@@ -33,8 +34,11 @@ export interface ReportCoreConfig {
   /** Task queue definitions keyed by task type string */
   taskQueues: Record<string, TaskQueueConfig>;
 
-  /** Max characters for the user's report comment */
-  maxReportCommentLength: number;
+  /**
+   * The report comment's field declaration — its format, min, and max. `min: 0` lets a report
+   * reason or a `submit` action go without a comment; a `handOff` action never takes one.
+   */
+  reportCommentInput: DeclaredInputFormat;
 
   /** Priority thresholds for PriorityBadge display (score → label/color) */
   priorityThresholds?: PriorityThreshold[];

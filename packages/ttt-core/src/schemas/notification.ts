@@ -28,7 +28,7 @@ import {
   changeRequestIdSchema,
   workProjectTypeSchema,
   notificationFanoutJobIdSchema,
-  titleSchema,
+  storedTitleSchema,
   reportGroupIdSchema,
   mediaAssetIdSchema,
   workRealmIdSchema,
@@ -42,12 +42,15 @@ import {
   MAX_NOTIFICATION_MESSAGE_LENGTH,
   MAX_BROADCAST_EXPLICIT_UIDS,
 } from '../constants/business.js';
+import { BROADCAST_MESSAGE_INPUT, BROADCAST_TITLE_INPUT } from '../constants/text-fields.js';
 import { HallSubItemTypeSchema } from '../doc-schemas/content.js';
+import { textFieldSchema } from './text-field.js';
 import { ReportableItemTypeSchema } from '../doc-schemas/safety/foundation.js';
 import { NotificationFanoutPrioritySchema } from '../doc-schemas/notification-ledger.js';
 
-// String shape atoms specific to notifications.
-const notificationMessageSchema = z.string().min(1).max(MAX_NOTIFICATION_MESSAGE_LENGTH);
+// A stored broadcast message an announcement's metadata carries (the typed field is the
+// broadcast input's `BROADCAST_MESSAGE_INPUT`).
+const storedNotificationMessageSchema = z.string().min(1).max(MAX_NOTIFICATION_MESSAGE_LENGTH);
 // The canonical reportable-item enum — never an open string (ARCH-102).
 const reportedItemTypeSchema = ReportableItemTypeSchema;
 const reportedItemIdSchema = documentIdSegmentSchema.max(128);
@@ -223,16 +226,16 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
   }).strict(),
   z.object({
     type: z.literal('admin_announcement'),
-    title: titleSchema,
-    message: notificationMessageSchema,
+    title: storedTitleSchema,
+    message: storedNotificationMessageSchema,
   }).strict(),
   z.object({
     type: z.literal('followed_content_published'),
     workProjectId: workProjectIdSchema,
     workRealmId: workRealmIdSchema.optional(),
-    workTitle: titleSchema,
+    workTitle: storedTitleSchema,
     hallItemId: hallItemIdSchema,
-    hallItemTitle: titleSchema,
+    hallItemTitle: storedTitleSchema,
     hallSubItemType: HallSubItemTypeSchema,
   }).strict(),
   // P7 Hall-publish MEMBER job — same Hall-publication fields as the follower type (it describes
@@ -242,9 +245,9 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     type: z.literal('member_content_published'),
     workProjectId: workProjectIdSchema,
     workRealmId: workRealmIdSchema.optional(),
-    workTitle: titleSchema,
+    workTitle: storedTitleSchema,
     hallItemId: hallItemIdSchema,
-    hallItemTitle: titleSchema,
+    hallItemTitle: storedTitleSchema,
     hallSubItemType: HallSubItemTypeSchema,
   }).strict(),
   // P7 craft-skill publish — points at the artisan whose skills updated. The actor name
@@ -353,8 +356,8 @@ export const CreateNotificationBroadcastInputSchema = z.object({
   // deterministically from (actorUid, requestId) so a lost-ack retry is idempotent.
   requestId: z.string().min(1),
   selector: BroadcastAudienceSelectorSchema,
-  title: titleSchema,
-  message: notificationMessageSchema,
+  title: textFieldSchema(BROADCAST_TITLE_INPUT),
+  message: textFieldSchema(BROADCAST_MESSAGE_INPUT),
 }).strict();
 export type CreateNotificationBroadcastInput = z.infer<typeof CreateNotificationBroadcastInputSchema>;
 

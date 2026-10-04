@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { commissionListingIdSchema, commissionProposalIdSchema } from './atoms.js';
-import { MAX_COMMISSION_DESCRIPTION_LENGTH } from '../constants/business.js';
+import { COMMISSION_COVER_LETTER_INPUT } from '../constants/text-fields.js';
+import { textFieldSchema } from './text-field.js';
 
 export const CommissionProposalStatusSchema = z.enum([
   'open',
@@ -30,7 +31,7 @@ export type SetCommissionProposalSavedInput = z.infer<typeof SetCommissionPropos
 
 export const CreateCommissionProposalTextInputSchema = z.object({
   commissionListingId: commissionListingIdSchema,
-  coverLetterText: z.string().min(1).max(MAX_COMMISSION_DESCRIPTION_LENGTH),
+  coverLetterText: textFieldSchema(COMMISSION_COVER_LETTER_INPUT),
 }).strict();
 export type CreateCommissionProposalTextInput = z.infer<typeof CreateCommissionProposalTextInputSchema>;
 

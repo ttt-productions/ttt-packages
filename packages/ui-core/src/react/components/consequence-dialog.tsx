@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useId, useMemo, useState } from 'react';
 import {
   AlertDialog,
   AlertDialogTrigger,
@@ -14,18 +14,17 @@ import { Button } from './button.js';
 import { Textarea } from './textarea.js';
 import { Input } from './input.js';
 import { Label } from './label.js';
+import { checkInputFormat, defineInputFormat, type DeclaredInputFormat } from '@ttt-productions/input-format-core';
 import { Zap, Clock, RotateCcw } from 'lucide-react';
 
 /**
- * The inline required-reason config. The caller OWNS the reason value/onChange (draft state lives at
- * the call site). Any `minLength`/`maxLength` the caller supplies MUST come from a caller-owned
- * constant — this component declares no business numbers and no copy; it only derives the gate + the
- * Textarea `maxLength` from the values it is handed.
+ * The inline reason field. The caller OWNS the reason value/onChange (draft state lives at the call
+ * site) and the field's declaration — this component declares no business numbers and no copy.
+ * Confirm stays disabled until the value passes the declaration's check; `min: 0` makes the reason
+ * optional.
  */
 export interface ConsequenceDialogReason {
-  required?: boolean;
-  minLength?: number;
-  maxLength?: number;
+  inputFormat: DeclaredInputFormat;
   placeholder?: string;
   label?: React.ReactNode;
   value: string;
@@ -59,7 +58,7 @@ export interface ConsequenceDialogProps {
   /** SLOT 3 — whether/how this can be undone or superseded. */
   reversibility?: React.ReactNode;
 
-  /** Inline required-reason field. Optional. */
+  /** Inline reason field. Optional. */
   reason?: ConsequenceDialogReason;
   /** Exact-phrase typed-confirmation gate. Optional. */
   typedConfirmation?: ConsequenceDialogTypedConfirmation;
@@ -110,7 +109,7 @@ function ConsequenceRow({
 
 /**
  * A reusable confirm-before-a-consequential-action dialog. Three optional, consistently-styled
- * consequence slots (immediate / afterward / reversibility), an optional inline required-reason field,
+ * consequence slots (immediate / afterward / reversibility), an optional inline reason field,
  * and an optional exact-phrase typed-confirmation gate. Composes the ui-core AlertDialog primitives
  * (Radix) — it never re-implements them. Supports BOTH a `trigger` (uncontrolled) and `open` /
  * `onOpenChange` (controlled).
@@ -177,18 +176,15 @@ export function ConsequenceDialog({
     }
   }, [pending, onConfirm, setOpenState]);
 
-  const reasonTrimmedLength = reason ? reason.value.trim().length : 0;
-  const reasonProvided = reasonTrimmedLength > 0;
-  const reasonOk = !reason
-    ? true
-    : reason.required && !reasonProvided
-      ? false
-      : !reasonProvided
-        ? true // optional + empty is fine
-        : (reason.minLength === undefined || reasonTrimmedLength >= reason.minLength) &&
-          (reason.maxLength === undefined || reason.value.length <= reason.maxLength);
+  const reasonOk = !reason || checkInputFormat(reason.value, reason.inputFormat).ok;
 
   const typedOk = !typedConfirmation ? true : typedValue === typedConfirmation.phrase;
+  // The phrase is one line, and nothing longer than it can ever match it.
+  const phrase = typedConfirmation?.phrase ?? '';
+  const typedFormat = useMemo(
+    () => (phrase.length > 0 ? defineInputFormat({ format: 'singleLine', min: 1, max: phrase.length }) : null),
+    [phrase],
+  );
 
   return (
     <AlertDialog open={actualOpen} onOpenChange={handleOpenChange}>
@@ -232,14 +228,14 @@ export function ConsequenceDialog({
               value={reason.value}
               onChange={(e) => reason.onChange(e.target.value)}
               placeholder={reason.placeholder}
-              maxLength={reason.maxLength}
+              inputFormat={reason.inputFormat}
               rows={reason.rows ?? 3}
               disabled={pending}
             />
           </div>
         ) : null}
 
-        {typedConfirmation ? (
+        {typedConfirmation && typedFormat ? (
           <div className="stack-2">
             <Label htmlFor={typedId}>
               {typedConfirmation.label ?? (
@@ -253,6 +249,7 @@ export function ConsequenceDialog({
               value={typedValue}
               onChange={(e) => setTypedValue(e.target.value)}
               placeholder={typedConfirmation.phrase}
+              inputFormat={typedFormat}
               disabled={pending}
               autoComplete="off"
             />

@@ -36,6 +36,7 @@ import {
   HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE,
   MODERATION_CLEARABLE_TEXT_FIELDS,
   WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD,
+  HALL_DETAIL_TEXT_FIELD_TO_WORK_SHELL_FIELD,
 } from '../src/constants/business-content';
 import { MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH } from '../src/constants/business-admin';
 import {
@@ -401,9 +402,11 @@ describe('MODERATION_CLEARABLE_TEXT_FIELDS values are declared keys on the docs 
   const TARGETS: Record<string, AnySchema[]> = {
     workProject: [FullWorkProjectSchema as AnySchema, PublicWorkProjectSchema as AnySchema],
     workRealm: [WorkRealmSchema as AnySchema],
-    tale: [FullTaleSchema as AnySchema, PublishedHallItemSchema as AnySchema],
-    tune: [FullTuneSchema as AnySchema, PublishedHallItemSchema as AnySchema],
-    television: [FullTelevisionSchema as AnySchema, PublishedHallItemSchema as AnySchema],
+    // A Hall detail's text is the Work's own: the Hall entry holds its snapshot, and the clear
+    // also writes the Work fields HALL_DETAIL_TEXT_FIELD_TO_WORK_SHELL_FIELD names (below).
+    tale: [PublishedHallItemSchema as AnySchema],
+    tune: [PublishedHallItemSchema as AnySchema],
+    television: [PublishedHallItemSchema as AnySchema],
     chapter: [FullChapterSchema as AnySchema, PublishedChapterSchema as AnySchema],
     tuneTrack: [FullTuneTrackSchema as AnySchema, PublishedTuneTrackSchema as AnySchema],
     televisionEpisode: [FullTelevisionEpisodeSchema as AnySchema, PublishedTelevisionEpisodeSchema as AnySchema],
@@ -435,6 +438,25 @@ describe('MODERATION_CLEARABLE_TEXT_FIELDS values are declared keys on the docs 
         expect(declares(schema, 'moderationClearedFields')).toBe(true);
         expect(declares(schema, 'moderationClearedReason')).toBe(true);
       }
+    }
+  });
+});
+
+describe('a Hall detail clear reaches the Work', () => {
+  it('every detail field maps to a Work field the Work shell and its public mirror declare', () => {
+    for (const surface of ['tale', 'tune', 'television'] as const) {
+      for (const field of MODERATION_CLEARABLE_TEXT_FIELDS[surface]) {
+        const workField = HALL_DETAIL_TEXT_FIELD_TO_WORK_SHELL_FIELD[field];
+        expect(declares(FullWorkProjectSchema as AnySchema, workField)).toBe(true);
+        expect(declares(PublicWorkProjectSchema as AnySchema, workField)).toBe(true);
+      }
+    }
+  });
+
+  it('the section docs no longer hold detail text', () => {
+    for (const schema of [FullTaleSchema, FullTuneSchema, FullTelevisionSchema] as AnySchema[]) {
+      expect(declares(schema, 'title')).toBe(false);
+      expect(declares(schema, 'description')).toBe(false);
     }
   });
 });

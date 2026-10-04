@@ -14,14 +14,6 @@ import {
 } from '../doc-schemas/safety/foundation.js';
 import { TakeItDownSignatureMethodSchema } from '../doc-schemas/ncii/requests.js';
 import {
-  MAX_NCII_EVIDENCE_REASON_LENGTH,
-  MAX_NCII_RATIONALE_LENGTH,
-  MAX_NCII_NONCONSENT_STATEMENT_LENGTH,
-  MAX_NCII_SIGNED_NAME_LENGTH,
-  MAX_NCII_SUPPORTING_FACTS_LENGTH,
-  MAX_NCII_REQUESTER_NAME_LENGTH,
-  MAX_NCII_REPRESENTED_PERSON_NAME_LENGTH,
-  MAX_NCII_AUTHORITY_BASIS_LENGTH,
   MAX_NCII_AUTHORITY_EVIDENCE_REF_LENGTH,
   MAX_NCII_LOCATOR_URL_LENGTH,
   NCII_IDEMPOTENCY_KEY_MIN_LENGTH,
@@ -31,6 +23,17 @@ import {
   NCII_CONTACT_PHONE_MAX_LENGTH,
 } from '../constants/business.js';
 import { TAKE_IT_DOWN_VALIDITY_CONFIRMATION } from '../constants/safety-confirmation-phrases.js';
+import {
+  NCII_AUTHORITY_BASIS_INPUT,
+  NCII_NONCONSENT_STATEMENT_INPUT,
+  NCII_REPRESENTED_PERSON_NAME_INPUT,
+  NCII_REQUESTER_NAME_INPUT,
+  NCII_SIGNED_NAME_INPUT,
+  NCII_SUPPORTING_FACTS_INPUT,
+  REPORT_COMMENT_INPUT,
+  TAKE_IT_DOWN_VALIDITY_RATIONALE_INPUT,
+} from '../constants/text-fields.js';
+import { textFieldSchema } from './text-field.js';
 
 // NCII / TAKE IT DOWN callable-input schemas. Cross-boundary contracts for the
 // `functions/src/ncii/` callables — moved here from local `functions/` definitions so the
@@ -81,7 +84,7 @@ export const MarkNciiEvidenceInputSchema = z.object({
   reportedItemId: reportTargetItemIdSchema,
   parentItemId: reportTargetParentRefSchema.optional(),
   reportedUserId: reportTargetUserIdSchema.optional(),
-  reason: z.string().trim().max(MAX_NCII_EVIDENCE_REASON_LENGTH).optional(),
+  reason: textFieldSchema(REPORT_COMMENT_INPUT).optional(),
 }).strict();
 export type MarkNciiEvidenceInput = z.infer<typeof MarkNciiEvidenceInputSchema>;
 
@@ -113,11 +116,7 @@ export const DecideTakeItDownValidityInputSchema = z.object({
   /** [EUAS-010] The operator's written rationale for this ruling. Persisted as an IMMUTABLE
    *  restricted rationale row that `rationaleRef` then points at — the UI no longer fabricates a
    *  `rationale:<requestId>` pointer. Required + substantive (non-placeholder). */
-  rationaleText: z
-    .string()
-    .trim()
-    .min(10, 'A substantive rationale is required for a validity decision.')
-    .max(MAX_NCII_RATIONALE_LENGTH),
+  rationaleText: textFieldSchema(TAKE_IT_DOWN_VALIDITY_RATIONALE_INPUT),
   /** Explicit typed confirmation (interim control until the passkey profile lands). */
   confirmation: z.literal(TAKE_IT_DOWN_VALIDITY_CONFIRMATION),
 }).strict();
@@ -155,13 +154,13 @@ export const SubmitInAppNciiRequestInputSchema = z
     itemType: ReportableItemTypeSchema,
     reportedItemId: reportTargetItemIdSchema,
     parentItemId: reportTargetParentRefSchema.optional(),
-    nonconsentStatement: z.string().min(1).max(MAX_NCII_NONCONSENT_STATEMENT_LENGTH),
+    nonconsentStatement: textFieldSchema(NCII_NONCONSENT_STATEMENT_INPUT),
     /** Typed-name electronic signature. */
-    signedName: z.string().min(1).max(MAX_NCII_SIGNED_NAME_LENGTH),
+    signedName: textFieldSchema(NCII_SIGNED_NAME_INPUT),
     goodFaithCertification: z.literal(true),
     contactEmail: nciiContactEmailSchema.optional(),
     contactPhone: nciiContactPhoneSchema.optional(),
-    supportingFacts: z.string().max(MAX_NCII_SUPPORTING_FACTS_LENGTH).default(''),
+    supportingFacts: textFieldSchema(NCII_SUPPORTING_FACTS_INPUT).default(''),
   })
   .strict()
   // The form prefills the account email but allows an override.
@@ -180,7 +179,7 @@ export const PublicTakeItDownLocatorSchema = z
 
 export const TakeItDownElectronicSignatureInputSchema = z
   .object({
-    signedName: z.string().min(1).max(MAX_NCII_SIGNED_NAME_LENGTH),
+    signedName: textFieldSchema(NCII_SIGNED_NAME_INPUT),
     signedAt: z.number(),
     signatureMethod: TakeItDownSignatureMethodSchema,
   })
@@ -188,8 +187,8 @@ export const TakeItDownElectronicSignatureInputSchema = z
 
 export const TakeItDownAuthorizedRepresentativeInputSchema = z
   .object({
-    representedPersonName: z.string().min(1).max(MAX_NCII_REPRESENTED_PERSON_NAME_LENGTH),
-    authorityBasis: z.string().min(1).max(MAX_NCII_AUTHORITY_BASIS_LENGTH),
+    representedPersonName: textFieldSchema(NCII_REPRESENTED_PERSON_NAME_INPUT),
+    authorityBasis: textFieldSchema(NCII_AUTHORITY_BASIS_INPUT),
     authorityEvidenceRef: z.string().min(1).max(MAX_NCII_AUTHORITY_EVIDENCE_REF_LENGTH).optional(),
   })
   .strict();
@@ -199,13 +198,13 @@ export const TakeItDownIntakeBodySchema = z
     idempotencyKey: nciiIdempotencyKeySchema,
     requesterRole: TakeItDownRequesterRoleSchema,
     locator: PublicTakeItDownLocatorSchema,
-    requesterName: z.string().min(1).max(MAX_NCII_REQUESTER_NAME_LENGTH),
+    requesterName: textFieldSchema(NCII_REQUESTER_NAME_INPUT),
     contactEmail: nciiContactEmailSchema.optional(),
     contactPhone: nciiContactPhoneSchema.optional(),
     electronicSignature: TakeItDownElectronicSignatureInputSchema,
     authorizedRepresentative: TakeItDownAuthorizedRepresentativeInputSchema.optional(),
-    nonconsentStatement: z.string().min(1).max(MAX_NCII_NONCONSENT_STATEMENT_LENGTH),
-    supportingFacts: z.string().max(MAX_NCII_SUPPORTING_FACTS_LENGTH).default(''),
+    nonconsentStatement: textFieldSchema(NCII_NONCONSENT_STATEMENT_INPUT),
+    supportingFacts: textFieldSchema(NCII_SUPPORTING_FACTS_INPUT).default(''),
     goodFaithCertification: z.boolean(),
     accuracyCertification: z.boolean().optional(),
     authorityCertification: z.boolean().optional(),

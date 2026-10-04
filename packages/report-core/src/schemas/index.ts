@@ -11,13 +11,25 @@ export const CheckoutTaskRequestSchema = z.object({
 
 export type CheckoutTaskRequest = z.infer<typeof CheckoutTaskRequestSchema>;
 
-export const CheckinTaskRequestSchema = z.object({
-  taskId: z.string().min(1),
-  resolved: z.boolean(),
-  resolution: z.string().max(2000).optional(),
-}).strict();
+/**
+ * A free-text field's schema, built by the consuming app over its own field declaration: its
+ * format, its bounds, its trim, and whether it may be absent are the app's (ARCH-201, ARCH-102).
+ */
+export type ReportTextFieldSchema = z.ZodType<string | undefined, unknown>;
 
-export type CheckinTaskRequest = z.infer<typeof CheckinTaskRequestSchema>;
+/** The check-in request, its `resolution` note judged by the app's field schema. */
+export function createCheckinTaskRequestSchema<R extends ReportTextFieldSchema>(fields: { resolution: R }) {
+  return z.object({
+    taskId: z.string().min(1),
+    resolved: z.boolean(),
+    resolution: fields.resolution,
+  }).strict();
+}
+
+/** A check-in request whose resolution note is optional text — the shape the handler reads. */
+export type CheckinTaskRequest = z.infer<
+  ReturnType<typeof createCheckinTaskRequestSchema<z.ZodOptional<z.ZodString>>>
+>;
 
 export const ReleaseTaskRequestSchema = z.object({
   taskId: z.string().min(1),
@@ -31,22 +43,28 @@ export type ReleaseTaskRequest = z.infer<typeof ReleaseTaskRequestSchema>;
 // here; the consuming app's submitReport callable validates them against the
 // canonical app-core enums.
 // `reportedUserId` is a HINT ONLY — the server re-derives the owner and never trusts
-// it as authority. `comment` is the free-text reporter narrative (segregated server-side).
-export const SubmitReportRequestSchema = z.object({
-  itemType: z.string().min(1).max(64),
-  reportedItemId: z.string().min(1).max(256),
-  parentItemId: z.string().min(1).max(256).optional(),
-  reportedUserId: z.string().min(1).max(256).optional(),
-  reason: z.string().min(1).max(128),
-  comment: z.string().max(4000).optional(),
-  // When true, this is the user-confirmed SECOND call that escalates an EXISTING report on the same
-  // target to a protected reason (Child Safety / NCII). Only meaningful when `reason` is a protected
-  // reason and the reporter already has a report on this target; the server then opens the protected
-  // case for the existing report (the original deadline/disposition is preserved). Ignored otherwise.
-  confirmUpgrade: z.boolean().optional(),
-}).strict();
+// it as authority. `comment` is the free-text reporter narrative (segregated server-side), judged
+// by the app's field schema — the same declaration the dialog's `reportCommentInput` carries.
+export function createSubmitReportRequestSchema<C extends ReportTextFieldSchema>(fields: { comment: C }) {
+  return z.object({
+    itemType: z.string().min(1).max(64),
+    reportedItemId: z.string().min(1).max(256),
+    parentItemId: z.string().min(1).max(256).optional(),
+    reportedUserId: z.string().min(1).max(256).optional(),
+    reason: z.string().min(1).max(128),
+    comment: fields.comment,
+    // When true, this is the user-confirmed SECOND call that escalates an EXISTING report on the same
+    // target to a protected reason (Child Safety / NCII). Only meaningful when `reason` is a protected
+    // reason and the reporter already has a report on this target; the server then opens the protected
+    // case for the existing report (the original deadline/disposition is preserved). Ignored otherwise.
+    confirmUpgrade: z.boolean().optional(),
+  }).strict();
+}
 
-export type SubmitReportRequest = z.infer<typeof SubmitReportRequestSchema>;
+/** A submit request whose comment is optional text — the shape the dialog's hook sends. */
+export type SubmitReportRequest = z.infer<
+  ReturnType<typeof createSubmitReportRequestSchema<z.ZodOptional<z.ZodString>>>
+>;
 
 /**
  * The `submitReport` callable result — discriminated on `outcome`.

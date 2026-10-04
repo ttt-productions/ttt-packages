@@ -1,10 +1,27 @@
 import { describe, it, expect } from 'vitest';
+import { z } from 'zod';
+import { checkInputFormat, defineInputFormat, type InputFormatSpec } from '@ttt-productions/input-format-core';
 import {
   CheckoutTaskRequestSchema,
-  CheckinTaskRequestSchema,
+  createCheckinTaskRequestSchema,
   ReleaseTaskRequestSchema,
-  SubmitReportRequestSchema,
+  createSubmitReportRequestSchema,
 } from '../src/schemas/index';
+
+// Stands in for the consuming app's field-schema builder over a declaration: trim, then the check.
+function textField(spec: InputFormatSpec) {
+  return z.string().transform((text, ctx) => {
+    const result = checkInputFormat(text, spec);
+    if (!result.ok) {
+      ctx.addIssue({ code: 'custom', message: result.issue });
+      return z.NEVER;
+    }
+    return result.value;
+  });
+}
+
+const RESOLUTION = defineInputFormat({ format: 'none', min: 0, max: 2000 });
+const COMMENT = defineInputFormat({ format: 'none', min: 1, max: 1000 });
 
 describe('CheckoutTaskRequestSchema', () => {
   it('accepts taskType only', () => {
@@ -25,28 +42,32 @@ describe('CheckoutTaskRequestSchema', () => {
   });
 });
 
-describe('CheckinTaskRequestSchema', () => {
-  it('accepts a resolved checkin', () => {
-    const r = { taskId: 'task-1', resolved: true, resolution: 'Cleared profanity' };
-    expect(CheckinTaskRequestSchema.parse(r)).toEqual(r);
+describe('createCheckinTaskRequestSchema', () => {
+  const schema = createCheckinTaskRequestSchema({ resolution: textField(RESOLUTION).optional() });
+
+  it('accepts a resolved checkin and keeps the resolution trimmed', () => {
+    expect(schema.parse({ taskId: 'task-1', resolved: true, resolution: '  Cleared profanity  ' })).toEqual({
+      taskId: 'task-1',
+      resolved: true,
+      resolution: 'Cleared profanity',
+    });
   });
-  it('accepts a checkin without resolution text', () => {
+  it('accepts a checkin without resolution text when the field is optional', () => {
     const r = { taskId: 'task-1', resolved: false };
-    expect(CheckinTaskRequestSchema.parse(r)).toEqual(r);
+    expect(schema.parse(r)).toEqual(r);
   });
   it('rejects missing resolved field', () => {
-    expect(() =>
-      CheckinTaskRequestSchema.parse({ taskId: 'task-1' }),
-    ).toThrow();
+    expect(() => schema.parse({ taskId: 'task-1' })).toThrow();
   });
-  it('rejects resolution longer than 2000 chars', () => {
-    expect(() =>
-      CheckinTaskRequestSchema.parse({
-        taskId: 'task-1',
-        resolved: true,
-        resolution: 'a'.repeat(2001),
-      }),
-    ).toThrow();
+  it("takes the resolution's bound from the consumer's field schema, not from the package", () => {
+    expect(() => schema.parse({ taskId: 'task-1', resolved: true, resolution: 'a'.repeat(2001) })).toThrow();
+    const wider = createCheckinTaskRequestSchema({
+      resolution: textField(defineInputFormat({ format: 'none', min: 0, max: 5000 })).optional(),
+    });
+    expect(wider.parse({ taskId: 'task-1', resolved: true, resolution: 'a'.repeat(4500) }).resolution).toHaveLength(4500);
+  });
+  it('rejects unknown keys', () => {
+    expect(() => schema.parse({ taskId: 'task-1', resolved: true, extra: 1 })).toThrow();
   });
 });
 
@@ -65,58 +86,46 @@ describe('ReleaseTaskRequestSchema', () => {
   });
 });
 
-describe('SubmitReportRequestSchema', () => {
+describe('createSubmitReportRequestSchema', () => {
+  const schema = createSubmitReportRequestSchema({ comment: textField(COMMENT) });
   const minimal = {
     itemType: 'squareStreetzPost',
     reportedItemId: 'item-1',
     reason: 'Spam or Misleading',
+    comment: 'Extra detail',
   };
 
-  it('accepts a minimal valid request (required fields only — comment optional)', () => {
-    expect(SubmitReportRequestSchema.parse(minimal)).toEqual(minimal);
+  it('accepts a request with all optional fields populated', () => {
+    const full = { ...minimal, parentItemId: 'parent-1', reportedUserId: 'user-2', confirmUpgrade: true };
+    expect(schema.parse(full)).toEqual(full);
   });
 
-  it('accepts a request with all optional fields populated', () => {
-    const full = {
-      ...minimal,
-      parentItemId: 'parent-1',
-      reportedUserId: 'user-2',
-      comment: 'Extra detail',
-    };
-    expect(SubmitReportRequestSchema.parse(full)).toEqual(full);
+  it('refuses a whitespace-only comment when the field cannot be blank, and trims a real one', () => {
+    expect(() => schema.parse({ ...minimal, comment: '   ' })).toThrow();
+    expect(schema.parse({ ...minimal, comment: '  why  ' }).comment).toBe('why');
+  });
+
+  it("refuses a comment over the consumer's declared max", () => {
+    expect(() => schema.parse({ ...minimal, comment: 'a'.repeat(1001) })).toThrow();
+  });
+
+  it('allows an absent comment only when the consumer makes the field optional', () => {
+    const { comment: _comment, ...withoutComment } = minimal;
+    expect(() => schema.parse(withoutComment)).toThrow();
+    const optional = createSubmitReportRequestSchema({ comment: textField(COMMENT).optional() });
+    expect(optional.parse(withoutComment)).toEqual(withoutComment);
   });
 
   it('rejects empty reason', () => {
-    expect(() =>
-      SubmitReportRequestSchema.parse({ ...minimal, reason: '' }),
-    ).toThrow();
-  });
-
-  it('accepts a request with no comment (idempotent intake — comment is optional)', () => {
-    expect(SubmitReportRequestSchema.parse(minimal)).toEqual(minimal);
-  });
-
-  it('rejects comment over 4000 chars', () => {
-    expect(() =>
-      SubmitReportRequestSchema.parse({ ...minimal, comment: 'a'.repeat(4001) }),
-    ).toThrow();
+    expect(() => schema.parse({ ...minimal, reason: '' })).toThrow();
   });
 
   it('rejects unknown keys (e.g. reportId should not be accepted)', () => {
-    expect(() =>
-      SubmitReportRequestSchema.parse({ ...minimal, reportId: 'uid_item-1' }),
-    ).toThrow();
+    expect(() => schema.parse({ ...minimal, reportId: 'uid_item-1' })).toThrow();
   });
 
-  it('rejects empty itemType', () => {
-    expect(() =>
-      SubmitReportRequestSchema.parse({ ...minimal, itemType: '' }),
-    ).toThrow();
-  });
-
-  it('rejects empty reportedItemId', () => {
-    expect(() =>
-      SubmitReportRequestSchema.parse({ ...minimal, reportedItemId: '' }),
-    ).toThrow();
+  it('rejects empty itemType and reportedItemId', () => {
+    expect(() => schema.parse({ ...minimal, itemType: '' })).toThrow();
+    expect(() => schema.parse({ ...minimal, reportedItemId: '' })).toThrow();
   });
 });

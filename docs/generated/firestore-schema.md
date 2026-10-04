@@ -488,16 +488,11 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `uid` | `string` |  |
-| `title` | `string` |  |
-| `description` | `string` |  |
 | `createdOn` | `number` |  |
 | `coverSquareAssetId` | `string` | yes |
 | `coverPosterAssetId` | `string` | yes |
 | `coverCinematicAssetId` | `string` | yes |
 | `workGenres` | `string[]` | yes |
-| `moderationClearedFields` | `string[]` | yes |
-| `moderationClearedReason` | `string` | yes |
-| `moderatedAt` | `number` | yes |
 
 ## `allWorkProjects/{workProjectId}/workProjectTales/{taleId}/taleChapters/{chapterId}`
 
@@ -520,16 +515,11 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `uid` | `string` |  |
-| `title` | `string` |  |
-| `description` | `string` |  |
 | `createdOn` | `number` |  |
 | `coverSquareAssetId` | `string` | yes |
 | `coverPosterAssetId` | `string` | yes |
 | `coverCinematicAssetId` | `string` | yes |
 | `workGenres` | `string[]` |  |
-| `moderationClearedFields` | `string[]` | yes |
-| `moderationClearedReason` | `string` | yes |
-| `moderatedAt` | `number` | yes |
 
 ## `allWorkProjects/{workProjectId}/workProjectTelevision/{televisionId}/televisionEpisodes/{episodeId}`
 
@@ -553,16 +543,11 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `uid` | `string` |  |
-| `title` | `string` |  |
-| `description` | `string` |  |
 | `coverSquareAssetId` | `string` | yes |
 | `coverPosterAssetId` | `string` | yes |
 | `coverCinematicAssetId` | `string` | yes |
 | `workGenres` | `string[]` |  |
 | `createdOn` | `number` |  |
-| `moderationClearedFields` | `string[]` | yes |
-| `moderationClearedReason` | `string` | yes |
-| `moderatedAt` | `number` | yes |
 
 ## `allWorkProjects/{workProjectId}/workProjectTunes/{tuneId}/tuneTracks/{trackId}`
 

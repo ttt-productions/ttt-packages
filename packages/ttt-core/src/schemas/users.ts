@@ -1,13 +1,8 @@
 import { z } from 'zod';
 import { userIdSchema, calendarDateSchema } from './atoms.js';
-import {
-  USERNAME_MIN_LENGTH,
-  USERNAME_MAX_LENGTH,
-  USERNAME_REGEX,
-  MAX_ARTISAN_LOCATION_LENGTH,
-  MAX_INTERNAL_REASON_LENGTH,
-  MAX_USER_SEARCH_QUERY_LENGTH,
-} from '../constants/business.js';
+import { MAX_ARTISAN_LOCATION_LENGTH, MAX_USER_SEARCH_QUERY_LENGTH } from '../constants/business.js';
+import { ACCOUNT_ACTION_REASON_INPUT, ARTISAN_REGION_INPUT, USERNAME_INPUT } from '../constants/text-fields.js';
+import { textFieldSchema } from './text-field.js';
 import { UserAccountStatusSchema } from '../doc-schemas/user.js';
 import { PublicDocumentVersionOrNoneSchema } from '../doc-schemas/public-documents.js';
 import {
@@ -15,13 +10,9 @@ import {
   PublicDocumentsRefreshRequiredResultSchema,
 } from './public-documents.js';
 
-/** The ONE composed display-name field validator (length bounds + charset). Every
- * callable accepting a display name spreads this — never a re-composed copy. */
-export const displayNameSchema = z
-  .string()
-  .min(USERNAME_MIN_LENGTH)
-  .max(USERNAME_MAX_LENGTH)
-  .regex(USERNAME_REGEX);
+/** The ONE display-name field schema, over its declaration (`USERNAME_INPUT`). Every callable
+ * accepting a display name uses this — never a re-composed copy. */
+export const displayNameSchema = textFieldSchema(USERNAME_INPUT);
 
 /**
  * A date of birth's fields with no bounds at all — for the registration age step, which must answer
@@ -178,7 +169,7 @@ export type SiteTourPendingPreference = z.infer<typeof SiteTourPendingPreference
 // adult accounts (never a minor's location).
 export const MarkNonUsArtisanInterestInputSchema = z.object({
   country: z.string().min(1).max(MAX_ARTISAN_LOCATION_LENGTH),
-  region: z.string().max(MAX_ARTISAN_LOCATION_LENGTH).optional(),
+  region: textFieldSchema(ARTISAN_REGION_INPUT).optional(),
 }).strict();
 export type MarkNonUsArtisanInterestInput = z.infer<typeof MarkNonUsArtisanInterestInputSchema>;
 
@@ -214,7 +205,7 @@ export const SetUserStatusInputSchema = z.object({
   // Required by the callable when status is 'suspended' or 'banned' (shown to the
   // user in their restricted view and recorded on the audit event). Optional here
   // so reinstating to 'active' can omit it; the callable enforces presence.
-  reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH).optional(),
+  reason: textFieldSchema(ACCOUNT_ACTION_REASON_INPUT).optional(),
 }).strict();
 export type SetUserStatusInput = z.infer<typeof SetUserStatusInputSchema>;
 
@@ -223,7 +214,7 @@ export type SetUserStatusInput = z.infer<typeof SetUserStatusInputSchema>;
 export const ForceDisplayNameResetInputSchema = z.object({
   userId: userIdSchema,
   // Optional admin note recorded on the audit event.
-  reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH).optional(),
+  reason: textFieldSchema(ACCOUNT_ACTION_REASON_INPUT).optional(),
 }).strict();
 export type ForceDisplayNameResetInput = z.infer<typeof ForceDisplayNameResetInputSchema>;
 

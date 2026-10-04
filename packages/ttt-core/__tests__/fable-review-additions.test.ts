@@ -9,7 +9,6 @@ import {
   PublishedTuneTrackSchema,
   PublishedChapterSchema,
   PublishedTelevisionEpisodeSchema,
-  FullTaleSchema,
   FullChapterSchema,
 } from '../src/doc-schemas/content';
 import { GuildChatChannelSchema } from '../src/doc-schemas/messaging';
@@ -78,13 +77,7 @@ describe('hiddenBy marker on published projections', () => {
 });
 
 describe('per-field moderation text-clear flags (uniform shape across the family)', () => {
-  it('are optional on the live content detail + sub-item schemas', () => {
-    const tale = { uid: 't1', title: 'T', description: 'D', createdOn: 1 };
-    expect(FullTaleSchema.safeParse(tale).success).toBe(true);
-    expect(
-      FullTaleSchema.safeParse({ ...tale, moderationClearedFields: ['title'], moderationClearedReason: 'x' }).success,
-    ).toBe(true);
-
+  it('are optional on the live sub-item schemas', () => {
     const chapter = { uid: 'c1', title: 'C', content: 'b', description: 'D', order: 0, status: 'published', createdOn: 1 };
     expect(FullChapterSchema.safeParse(chapter).success).toBe(true);
     expect(FullChapterSchema.safeParse({ ...chapter, moderationClearedFields: [] }).success).toBe(true);

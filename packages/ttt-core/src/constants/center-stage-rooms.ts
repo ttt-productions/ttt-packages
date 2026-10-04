@@ -44,3 +44,11 @@ export const CENTER_STAGE_ROOMS: readonly CenterStageRoom[] = [
       'Artisans post auditions for their works, and the community votes on the entries. Cast your vote — one per audition, switch it anytime.',
   },
 ];
+
+/**
+ * The label of the button that enters a room: "Enter the Hall ›", "Enter the Square ›",
+ * "Enter the Audition Stage ›" — the room's name, its leading "The" lowercased into the phrase.
+ */
+export function centerStageRoomEnterLabel(room: Pick<CenterStageRoom, 'name'>): string {
+  return `Enter the ${room.name.replace(/^The /, '')} ›`;
+}

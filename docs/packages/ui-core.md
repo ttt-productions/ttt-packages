@@ -12,7 +12,29 @@ Generic UI primitive package.
 
 ## Boundary
 
-Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`. `lucide-react` is an optional peer: the app supplies the one copy every package renders icons from.
+Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`. `lucide-react` is an optional peer: the app supplies the one copy every package renders icons from. Its one internal runtime dependency is `input-format-core` (Tier 1): text formats and their check live there, never here, so the server can run the same check without installing React.
+
+## Free-text inputs — `Input`, `Textarea`
+
+Every free-text input carries its field's declaration (a `DeclaredInputFormat` from `input-format-core`'s `defineInputFormat`: format, min, max — an inline literal does not type-check), and its bounds come from nothing else (ENG-005). Durable contract:
+
+- **Which inputs take a declaration.** `Textarea` always takes `inputFormat`. `Input` takes it when its `type` is omitted or `"text"`. An `Input` whose browser owns the format — `password`, `email`, `number`, `tel`, `url`, `search`, `file`, `color`, the date and time types, `range`, `checkbox`, `radio`, `hidden`, and the button types (`BuiltInFormatInputType`) — takes none, and the types refuse one.
+- **Text boxes that are not free text.** A text box holding digits typed as text (a date-of-birth part, a share count, a one-time code) or an identifier (an account, document, or case id) is not free text and has no input format. It says so with `textEntry: "numeric" | "identifier"` (`NonFreeTextEntry`; `NonFreeTextInputProps`), takes no `inputFormat`, keeps its native `maxLength` / `pattern` / `inputMode` / `required`, and derives nothing; its value is judged by its own rule (a whole-input number parse, the one-segment id rule). `textEntry` never reaches the DOM.
+- **No second bound.** A free-text input has no `maxLength`, `minLength`, `pattern`, or `required` prop; the types refuse them — the declaration's `min` is the one statement of whether the field is required.
+- **Derived attributes.** `maxLength` is the declaration's `max`. `aria-required` is set when `min` is above 0. With a controlled `value`, `aria-invalid` is set when the value has characters its format refuses or runs past `max`; a value that is only too short (an empty or half-typed required field) is not marked, leaving that to the form's submit-time validation. A caller's own `aria-required` / `aria-invalid` wins — `FormControl` passes the state its whole schema decided.
+- **The cap counts the text as typed; the check counts it trimmed.** Every value the field keeps can still be typed, and surrounding whitespace is dropped by the check, so the input and the server accept the same stored values.
+- Types: `InputProps` (`FreeTextInputProps | NonFreeTextInputProps | BuiltInFormatInputProps`), `NonFreeTextEntry`, `BuiltInFormatInputType`, `TextareaProps`.
+
+## SearchDropdown
+
+A search box with a results dropdown (`./react` → `SearchDropdown<T>`). Its input is a built-in-format `type="search"` input. Durable contract:
+
+- **Stays open through every settled state.** Once the value reaches `minChars`, the dropdown shows searching, the results, the `emptyMessage`, or a failure — whichever is current — until the user dismisses it with Escape, a click outside, or a selection.
+- **A dismissal holds for its value.** Re-rendered props (a fresh `[]` every render included) never reopen it; typing, a new value, or ArrowDown does.
+- **Escape is the dropdown's, never the search field's.** On an open dropdown it closes it; on a closed one holding a value it clears the value through the same path as the clear button, so `onClear` always runs. The field's native Escape-clear never fires.
+- **Failures belong to the consumer.** `error` is the raw failure (`null` / `undefined` = none) and the required `renderError(error)` renders it inside the dropdown; the package has no failure copy or failure styling of its own.
+- **Combobox semantics.** The input is a `combobox` (`aria-autocomplete="list"`, `aria-expanded` while the dropdown is open, `aria-controls` naming the listbox while results show and the open panel otherwise) and keeps focus throughout. Results are a `listbox` of `option`s named by the `label` (or the placeholder); ArrowDown / ArrowUp move the highlight, which is the input's `aria-activedescendant` and the option's `aria-selected`; hovering moves it too; Enter or a click selects. The highlight belongs to its query: a refreshed result list for the same value keeps it, a new value starts with none. One always-mounted, visually hidden polite `status` region announces the open panel's state — "Searching...", the `emptyMessage`, or the result count (`resultsAnnouncement(count)`, default "1 result" / "N results"); a failure is announced by the consumer's `renderError`. The below-minimum hint describes the input.
+- **Per-instance ids.** The label, input, listbox, options, and hint take ids from `useId`, so several instances can share a page.
 
 ## Styling contract — theme tokens only
 
@@ -33,6 +55,7 @@ Every in-progress indicator renders through ONE owner, so the spinner's look, si
 - **Control pending.** `Switch` (spinner in the thumb), `SelectTrigger` (spinner replaces the chevron), and `DropdownMenuItem` (`pending` + leading `icon`) follow the same contract. Switch and Select keep showing the COMMITTED value — the caller flips it only once the write lands. Keeping a menu open while its item is pending is the caller's `onSelect` (`event.preventDefault()`, close on settle). `DropdownMenuItem` supports `asChild` (e.g. a link item): the child element becomes the menu item, and the icon / spinner is slotted inside it, before its content.
 - **`ConsequenceDialog`** renders its confirm with `pending`; it stays open while the promise `onConfirm` returns is pending and after it rejects. `onConfirm` stays typed `void | Promise<void>` — a caller that wants the pending state returns the promise.
 - **`ConsequenceDialog` layout.** Each consequence slot (`immediateEffect` / `delayedEffect` / `reversibility`, labelled Immediately / Afterward / Reversibility) is a block row: the slot icon beside a column whose label sits on its own line directly above the slot text. The rows form the dialog's accessible description (the element its `aria-describedby` names), rendered as a `div` — never the primitive's default `<p>`, which cannot hold block rows, and never inline spans, on which theme-core's `stack-*` vertical spacing does nothing. The rows stay left-aligned at every width.
+- **`ConsequenceDialog` reason and typed confirmation.** The optional `reason` carries the caller's field declaration (`inputFormat`) beside its value and `onChange`; its `Textarea` takes that declaration, and confirm stays disabled until the value passes `checkInputFormat` (`min: 0` makes the reason optional). The `typedConfirmation` input is a `singleLine` field capped at the phrase's length, and confirm waits for an exact match of the phrase.
 - **`useAsyncAction(action, { onError })`** returns `{ run, pending }` for async work that is not a React Query mutation (a local media step, a sign-out, an awaited navigation). A repeat `run` while pending is ignored — the guard is a ref, so two clicks in one frame cannot both start — and `run` never rejects: errors go to the required `onError`. Server writes stay mutations.
 
 ## List pagination

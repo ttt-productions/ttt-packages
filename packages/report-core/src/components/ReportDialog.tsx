@@ -19,6 +19,7 @@ import {
   SelectValue,
   useAsyncAction,
 } from '@ttt-productions/ui-core/react';
+import { checkInputFormat } from '@ttt-productions/input-format-core';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import { useReportSubmit } from '../hooks/useReportSubmit.js';
 import type { SubmitReportResult } from '../schemas/index.js';
@@ -57,7 +58,6 @@ export function ReportDialog({
   reportedUserId,
   reporterUserId,
   copy,
-  requireComment = true,
   onSubmitSuccess,
   onSubmitError,
 }: ReportDialogProps) {
@@ -76,7 +76,7 @@ export function ReportDialog({
 
   const target: ReportTargetRef = { itemType, itemId, parentItemId, reportedUserId };
   const itemTypeLabel = config.reportableItems[itemType]?.displayName ?? itemType;
-  const maxLength = config.maxReportCommentLength;
+  const commentInput = config.reportCommentInput;
   const selectedAction = additionalReportActions.find((a) => `${ACTION_PREFIX}${a.id}` === draft.reason);
   const isHandOff = selectedAction?.kind === 'handOff';
 
@@ -106,8 +106,10 @@ export function ReportDialog({
   };
 
   const commentLength = draft.comment.length;
-  const isOverLimit = commentLength > maxLength;
-  const commentOk = isHandOff || ((!requireComment || draft.comment.trim().length > 0) && !isOverLimit);
+  // What is sent is the checked comment — trimmed, exactly what the server keeps.
+  const checkedComment = checkInputFormat(draft.comment, commentInput);
+  const isOverLimit = !checkedComment.ok && checkedComment.issue === 'tooLong';
+  const commentOk = isHandOff || checkedComment.ok;
   const canSubmit = !!reporterUserId && !!draft.reason && commentOk;
 
   const submit = useAsyncAction(
@@ -120,12 +122,14 @@ export function ReportDialog({
         return;
       }
       if (selectedAction) {
-        await selectedAction.handler(target, draft.comment);
+        await selectedAction.handler(target, checkedComment.value);
         closeAndReset();
         onSubmitSuccess({ outcome: 'actionCompleted', actionId: selectedAction.id });
         return;
       }
-      applyOutcome(await submitMutation.mutateAsync({ ...target, reason: draft.reason, comment: draft.comment }));
+      applyOutcome(
+        await submitMutation.mutateAsync({ ...target, reason: draft.reason, comment: checkedComment.value }),
+      );
     },
     { onError: onSubmitError },
   );
@@ -137,7 +141,7 @@ export function ReportDialog({
         await submitMutation.mutateAsync({
           ...target,
           reason: draft.view.reason,
-          comment: draft.comment,
+          comment: checkedComment.value,
           confirmUpgrade: true,
         }),
       );
@@ -219,14 +223,14 @@ export function ReportDialog({
                       placeholder={copy.commentPlaceholder}
                       aria-describedby={counterId}
                       className="col-span-3 pr-12"
-                      maxLength={maxLength}
+                      inputFormat={commentInput}
                       rows={4}
                     />
                     <div
                       id={counterId}
                       className={`absolute bottom-2 right-2 text-xs font-semibold ${isOverLimit ? 'text-destructive' : ''}`}
                     >
-                      {commentLength}/{maxLength}
+                      {commentLength}/{commentInput.max}
                     </div>
                   </div>
                 </div>

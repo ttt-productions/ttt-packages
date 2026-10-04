@@ -1,12 +1,13 @@
 // Pure hall-content rules shared by the member surfaces and the backend cores that own the
 // writes. Server-safe: constants and plain functions only.
 
+import { checkTextField, type TextFieldDeclaration } from './text-field.js';
 import {
   HALL_CONTENT_TEXT_FIELDS,
-  HALL_CONTENT_TEXT_FIELD_MAX,
   HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE,
   HALL_SUB_ITEM_REQUIREMENT_LABELS,
 } from '../constants/business-content.js';
+import { HALL_CONTENT_CHANGE_REQUEST_INPUTS } from '../constants/text-fields.js';
 import type { WorkProjectType } from '../types/content.js';
 import type { FullChapter, FullTelevisionEpisode, FullTuneTrack } from '../doc-schemas/content.js';
 
@@ -24,13 +25,14 @@ export type HallContentTextFieldsValidation<S extends HallContentTextFieldSurfac
 
 /**
  * The ONE strict per-surface check for a proposed hall-content text map: every key must be a
- * field that surface owns, every value a trimmed non-empty string within that field's cap. The
+ * field that surface owns, and every value must meet that field's change-request declaration
+ * (`HALL_CONTENT_CHANGE_REQUEST_INPUTS` — trimmed, never empty, within its max, in its format). The
  * stored `hallContentChangeRequests` shape is a flat field map with the request's own `surface`
  * as the single authoritative discriminator, so this is where the allowlist is enforced — at the
  * backend boundary, before the map is persisted or written onto a published doc.
  *
- * Both the allowlist and the caps come from the canonical Hall text-field maps; there is no
- * second allowlist anywhere.
+ * The allowlist comes from the canonical Hall text-field map and each rule from the field's
+ * declaration; there is no second allowlist anywhere.
  *
  * @returns the normalized (trimmed) field map, or the user-facing reason it was rejected.
  */
@@ -45,15 +47,10 @@ export function validateHallContentTextFields<S extends HallContentTextFieldSurf
     if (!allowed.includes(field)) {
       return { ok: false, reason: `Field "${field}" is not editable on this item.` };
     }
-    const value = typeof rawValue === 'string' ? rawValue.trim() : '';
-    if (value.length === 0) {
-      return { ok: false, reason: `Field "${field}" cannot be empty.` };
-    }
-    const max = HALL_CONTENT_TEXT_FIELD_MAX[field as keyof typeof HALL_CONTENT_TEXT_FIELD_MAX];
-    if (value.length > max) {
-      return { ok: false, reason: `Field "${field}" exceeds the maximum length of ${max}.` };
-    }
-    normalized[field] = value;
+    const declaration = (HALL_CONTENT_CHANGE_REQUEST_INPUTS[surface] as Record<string, TextFieldDeclaration>)[field];
+    const result = checkTextField(declaration, typeof rawValue === 'string' ? rawValue : '');
+    if (!result.ok) return { ok: false, reason: result.reason };
+    normalized[field] = result.value;
   }
 
   if (Object.keys(normalized).length === 0) {
@@ -103,4 +100,16 @@ export const HALL_SUB_ITEM_LOCKED_STATUSES = ['pending_approval', 'published'] a
  *  not a lock. */
 export function isHallSubItemLocked(status: unknown): boolean {
   return (HALL_SUB_ITEM_LOCKED_STATUSES as readonly unknown[]).includes(status);
+}
+
+/** The `targetKey` a Hall-grain change request is stored and queried under: one open request per
+ *  Hall item's detail or per sub-item. */
+export function hallContentChangeRequestTargetKey(hallItemId: string, subItemId?: string | null): string {
+  return `${hallItemId}_${subItemId ?? 'detail'}`;
+}
+
+/** The `targetKey` a Realm-grain change request is stored and queried under: one open request per
+ *  Realm. */
+export function workRealmChangeRequestTargetKey(workRealmId: string): string {
+  return `realm_${workRealmId}`;
 }

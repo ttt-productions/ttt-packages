@@ -2,18 +2,18 @@ import { z } from 'zod';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import {
-  MAX_AUDITION_TITLE_LENGTH,
-  MAX_AUDITION_DESCRIPTION_LENGTH,
   MIN_CURATED_AUDITION_OPTIONS,
   MAX_CURATED_AUDITION_OPTIONS,
 } from '../constants/business.js';
+import { AUDITION_DESCRIPTION_INPUT, AUDITION_TITLE_INPUT } from '../constants/text-fields.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 import { AuditionDeadlineSchema, refineAuditionDeadlineOrder } from '../constants/audition-deadlines.js';
 import { SponsoredAuditionAmountUSDSchema } from '../media/target-info.js';
 
 // The admin audition variables both types share.
 const adminAuditionVariableFields = {
-  title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
-  description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
+  title: textFieldSchema(AUDITION_TITLE_INPUT),
+  description: textFieldSchema(AUDITION_DESCRIPTION_INPUT),
   videoFile: z.instanceof(File).or(z.instanceof(Blob)),
   // Untrusted client claim of what the user's action implies (advisory; the
   // server byte inspection is the only classification authority).

@@ -4,7 +4,7 @@
 // `constants/` export, and every zod bound that enforces it DERIVES from that
 // constant — `.max(MAX_X)`, never `.max(2500)`. The pre-2026-07-13 codebase carried
 // two independent truth sets (constants said title 150 / description 300 / chapter
-// content 2500 while the schemas + HALL_CONTENT_TEXT_FIELD_MAX said 200 / 5000 /
+// content 2500 while the schemas + the change-request cap map said 200 / 5000 /
 // 100000) — invisible drift, because the tighter UI bound always fired first.
 //
 // This test scans every schema source for numeric `.max(<digits>)` literals and
@@ -20,17 +20,14 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
-  HALL_CONTENT_TEXT_FIELD_MAX,
   MAX_WORK_PROJECT_TITLE_LENGTH,
   MAX_WORK_PROJECT_DESCRIPTION_LENGTH,
   MAX_CHAPTER_CONTENT_LENGTH,
-  MAX_WORK_REALM_TITLE_LENGTH,
-  MAX_WORK_REALM_DESCRIPTION_LENGTH,
 } from '../src/constants/business';
 import { CHARTER_LIMITS, FULL_LIMITS, ACTIVE_LIMITS } from '../src/constants/app-mode';
 
 const PKG_ROOT = path.resolve(__dirname, '..');
-const SCANNED_DIRS = ['src/schemas', 'src/doc-schemas'];
+const SCANNED_DIRS = ['src/schemas', 'src/doc-schemas', 'src/media', 'src/upload-variables'];
 
 /** Reviewed STRUCTURAL `.max(<digits>)` literals per file (sorted ascending) — opaque-id
  *  caps, array/fan-out counts, URL 2048, RFC email 320, calendar month/day, 0–1 ratios.
@@ -51,8 +48,8 @@ const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
   // context-window pagination bound (adminModerateChatMessage / adminReadChannelContext).
   'src/schemas/chat.ts': [20, 20, 50, 50, 64, 64, 200, 200, 200],
   // 64 = the structural bound on a proposed-field KEY in the change-request field map (a
-  // Firestore field name, not a business text limit; the per-field VALUE caps derive from
-  // HALL_CONTENT_TEXT_FIELD_MAX at the backend boundary).
+  // Firestore field name, not a business text limit; each VALUE is judged by its field's
+  // declaration in HALL_CONTENT_CHANGE_REQUEST_INPUTS through validateHallContentTextFields).
   'src/schemas/hall-library.ts': [64],
   // 64 died with reportedItemTypeSchema tightening to the canonical enum; 2000 became
   // MAX_BROADCAST_EXPLICIT_UIDS (2026-07-13 consolidation sweep).
@@ -71,6 +68,8 @@ const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
   'src/doc-schemas/safety/report.ts': [16, 32],
   'src/doc-schemas/safety/sagas.ts': [256],
   'src/doc-schemas/system.ts': [1],
+  // 128 = the opaque-id cap on a mention's target id.
+  'src/media/atoms.ts': [128],
 };
 
 function walk(dir: string): string[] {
@@ -112,12 +111,19 @@ describe('schema length-literal guard (one variable, one number)', () => {
     }
   });
 
-  it('HALL_CONTENT_TEXT_FIELD_MAX derives from the owning constants (no third truth set)', () => {
-    expect(HALL_CONTENT_TEXT_FIELD_MAX.title).toBe(MAX_WORK_PROJECT_TITLE_LENGTH);
-    expect(HALL_CONTENT_TEXT_FIELD_MAX.description).toBe(MAX_WORK_PROJECT_DESCRIPTION_LENGTH);
-    expect(HALL_CONTENT_TEXT_FIELD_MAX.content).toBe(MAX_CHAPTER_CONTENT_LENGTH);
-    expect(HALL_CONTENT_TEXT_FIELD_MAX.workingTitle).toBe(MAX_WORK_REALM_TITLE_LENGTH);
-    expect(HALL_CONTENT_TEXT_FIELD_MAX.workingDescription).toBe(MAX_WORK_REALM_DESCRIPTION_LENGTH);
+  it('no numeric .min() literal above 1 appears in any schema file — a text minimum comes from its declaration', () => {
+    const found: string[] = [];
+    for (const dir of SCANNED_DIRS) {
+      for (const file of walk(path.join(PKG_ROOT, dir))) {
+        const src = fs.readFileSync(file, 'utf8');
+        for (const match of src.matchAll(/\.min\((\d[\d_]*)[,)]/g)) {
+          if (Number(match[1].replace(/_/g, '')) > 1) {
+            found.push(`${path.relative(PKG_ROOT, file).split(path.sep).join('/')}: .min(${match[1]})`);
+          }
+        }
+      }
+    }
+    expect(found).toEqual([]);
   });
 
   it('chapter content is the mode-varied text limit with the ruled values (30k charter / 100k full)', () => {

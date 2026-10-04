@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { defineInputFormat } from '@ttt-productions/input-format-core';
 import { render, renderHook, screen, cleanup, act, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReportCoreProvider } from '../src/context/ReportCoreProvider.js';
@@ -69,7 +70,7 @@ describe('ReportButton', () => {
     reportReasons: ['Spam'],
     priorityConfig: {},
     taskQueues: {},
-    maxReportCommentLength: 20,
+    reportCommentInput: defineInputFormat({ format: 'none', min: 1, max: 20 }),
   } as unknown as ReportCoreConfig;
 
   function renderButton(reporterUserId: string | undefined, onSignInRequired = vi.fn()) {

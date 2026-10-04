@@ -2,12 +2,13 @@ import { z } from 'zod';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import { commissionListingIdSchema } from '../schemas/atoms.js';
-import { MAX_COMMISSION_DESCRIPTION_LENGTH } from '../constants/business.js';
+import { COMMISSION_COVER_LETTER_INPUT } from '../constants/text-fields.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 
 
 export const ApplyToCommissionVariablesSchema = z.object({
   commissionListingId: commissionListingIdSchema,
-  coverLetterText: z.string().min(1).max(MAX_COMMISSION_DESCRIPTION_LENGTH),
+  coverLetterText: textFieldSchema(COMMISSION_COVER_LETTER_INPUT),
   file: z.instanceof(File).or(z.instanceof(Blob)).nullish(),
 
   // Untrusted client claim of what the user's action implies (advisory; the

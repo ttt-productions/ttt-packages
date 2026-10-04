@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { defineInputFormat } from '@ttt-productions/input-format-core';
 import { renderHook } from '@testing-library/react';
 import React from 'react';
 
@@ -31,7 +32,7 @@ const config = {
   reportReasons: [],
   priorityConfig: {},
   taskQueues: {},
-  maxReportCommentLength: 4000,
+  reportCommentInput: defineInputFormat({ format: 'none', min: 1, max: 4000 }),
 } as unknown as ReportCoreConfig;
 
 function wrapper({ children }: { children: React.ReactNode }) {

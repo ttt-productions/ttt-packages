@@ -4,7 +4,11 @@ import * as React from "react";
 import { Button, Textarea } from "@ttt-productions/ui-core/react";
 import { cn } from "@ttt-productions/ui-core";
 import { useOptionalLocalUploadGuard } from "@ttt-productions/upload-ui/react/guard";
-import { CHAT_MESSAGE_TEXT_MAX_LENGTH } from "@ttt-productions/chat-schemas";
+import {
+  CHAT_MESSAGE_TEXT_INPUT,
+  CHAT_MESSAGE_TEXT_MAX_LENGTH,
+  judgeChatMessageText,
+} from "@ttt-productions/chat-schemas";
 
 function genId(): string {
   return `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -61,9 +65,11 @@ export function Composer(props: ComposerProps) {
     ref.current?.focus();
   }, [autoFocus]);
 
+  // The same judgement the Worker applies: a blank text is never sent, and what is sent is trimmed.
+  const judged = judgeChatMessageText(text);
+
   const send = async () => {
-    const v = text.trim();
-    if (!v) return;
+    if (!judged.ok) return;
 
     setIsSending(true);
     setSendError(null);
@@ -71,7 +77,7 @@ export function Composer(props: ComposerProps) {
     navigationGuard?.registerUpload(sendGuardId);
 
     try {
-      await onSend(text);
+      await onSend(judged.text);
       setText("");
     } catch (err) {
       // C-B8: a failed send (e.g. the realtime socket was closed) must NOT clear the
@@ -100,7 +106,7 @@ export function Composer(props: ComposerProps) {
         <Textarea
           ref={ref}
           value={text}
-          maxLength={CHAT_MESSAGE_TEXT_MAX_LENGTH}
+          inputFormat={CHAT_MESSAGE_TEXT_INPUT}
           aria-describedby={text.length > 0 ? counterId : undefined}
           onChange={(e) => {
             setText(e.target.value);
@@ -122,7 +128,7 @@ export function Composer(props: ComposerProps) {
         <Button
           type="button"
           variant="default"
-          disabled={isDisabled || !text.trim()}
+          disabled={isDisabled || !judged.ok}
           pending={isSending}
           onClick={send}
         >

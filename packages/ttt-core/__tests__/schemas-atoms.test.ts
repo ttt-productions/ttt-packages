@@ -5,7 +5,7 @@ import {
   addRemoveActionSchema,
   workProjectTypeSchema,
   moderationClearableSurfaceSchema,
-  titleSchema,
+  storedTitleSchema,
 } from '../src/schemas/atoms';
 import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../src/constants/business';
 import { MODERATION_CLEARABLE_TEXT_FIELDS } from '../src/constants/business-content';
@@ -88,18 +88,18 @@ describe('atom schemas', () => {
     });
   });
 
-  describe('titleSchema', () => {
+  describe('storedTitleSchema', () => {
     it('accepts a normal title', () => {
-      expect(titleSchema.parse('My Tale')).toBe('My Tale');
+      expect(storedTitleSchema.parse('My Tale')).toBe('My Tale');
     });
     it('rejects empty title', () => {
-      expect(() => titleSchema.parse('')).toThrow();
+      expect(() => storedTitleSchema.parse('')).toThrow();
     });
     it('rejects title longer than MAX_WORK_PROJECT_TITLE_LENGTH', () => {
-      expect(() => titleSchema.parse('a'.repeat(MAX_WORK_PROJECT_TITLE_LENGTH + 1))).toThrow();
+      expect(() => storedTitleSchema.parse('a'.repeat(MAX_WORK_PROJECT_TITLE_LENGTH + 1))).toThrow();
     });
     it('accepts exactly MAX_WORK_PROJECT_TITLE_LENGTH chars', () => {
-      expect(titleSchema.parse('a'.repeat(MAX_WORK_PROJECT_TITLE_LENGTH))).toBe(
+      expect(storedTitleSchema.parse('a'.repeat(MAX_WORK_PROJECT_TITLE_LENGTH))).toBe(
         'a'.repeat(MAX_WORK_PROJECT_TITLE_LENGTH),
       );
     });

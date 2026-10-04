@@ -1,12 +1,6 @@
 // Content-surface business-rule constants — commissions, auditions, the social
 // feed, and messaging.
-import {
-  MAX_WORK_PROJECT_TITLE_LENGTH,
-  MAX_WORK_PROJECT_DESCRIPTION_LENGTH,
-  MAX_CHAPTER_CONTENT_LENGTH,
-  MAX_WORK_REALM_TITLE_LENGTH,
-  MAX_WORK_REALM_DESCRIPTION_LENGTH,
-} from "./business-work-project.js";
+import { MAX_WORK_PROJECT_TITLE_LENGTH } from "./business-work-project.js";
 import { ACTIVE_LIMITS } from './app-mode.js';
 import { HALL_LIBRARY_TARGET_FIELDS } from '../media/hall-library-target-fields.js';
 import type { WorkProjectType } from '../types/content.js';
@@ -118,7 +112,8 @@ export const HALL_CLEARABLE_TEXT_FIELD_NAMES = [
  * The raw doc field names each published hall-content surface exposes as changeable TEXT.
  * Cross-boundary: the member "Update details" field picker offers this set per surface and
  * the change-request submit runner validates against it. Detail surfaces (tale/tune/
- * television) live on the hall parent doc; sub-item surfaces on the published chapter/
+ * television) are the hall parent doc's snapshot of the Work's own title and description
+ * (`HALL_DETAIL_TEXT_FIELD_TO_WORK_SHELL_FIELD`); sub-item surfaces are the published chapter/
  * track/episode doc. This is the HALL-SURFACE SUBSET of the canonical
  * MODERATION_CLEARABLE_TEXT_FIELDS above (it excludes the `workProject` shell) — every
  * tuple is projected from that one owner, so the two can never drift.
@@ -133,20 +128,6 @@ export const HALL_CONTENT_TEXT_FIELDS = {
   // Realm grain (R1, 2026-07-12): targets the `workRealms/{id}` doc directly.
   workRealm: MODERATION_CLEARABLE_TEXT_FIELDS.workRealm,
 } as const satisfies Record<string, readonly string[]>;
-
-/** Per-field max lengths for proposed hall-content text. DERIVED from the owning
- *  constants — never independent numbers — so the change-request pipeline can never
- *  drift from the authoring limits again (the pre-2026-07-13 copy carried its own
- *  200/5000/100000 set while authoring enforced 150/300/2500). Keyed on the derived
- *  ClearableTextFieldName union, so a new clearable field fails the build here until
- *  it has a cap. */
-export const HALL_CONTENT_TEXT_FIELD_MAX = {
-  title: MAX_WORK_PROJECT_TITLE_LENGTH,
-  description: MAX_WORK_PROJECT_DESCRIPTION_LENGTH,
-  content: MAX_CHAPTER_CONTENT_LENGTH,
-  workingTitle: MAX_WORK_REALM_TITLE_LENGTH,
-  workingDescription: MAX_WORK_REALM_DESCRIPTION_LENGTH,
-} as const satisfies Record<ClearableTextFieldName, number>;
 
 /** One work-project type's two hall text surfaces — the published DETAIL on the hall parent
  *  and its chapter/track/episode SUB-ITEM — each with the clearable/changeable field tuple
@@ -212,6 +193,21 @@ export const WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD = {
 } as const satisfies Record<
   (typeof MODERATION_CLEARABLE_TEXT_FIELDS.workProject)[number],
   (typeof MODERATION_CLEARABLE_TEXT_FIELDS.tale)[number]
+>;
+
+/**
+ * Hall parent DETAIL text field → the Work field it snapshots: the inverse of
+ * `WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD`. A Tale / Tune / Television section has no text of
+ * its own, so a detail change request or a detail moderation clear names the Hall field and acts
+ * on this Work field, the Work's public mirror, and the Hall entry together. Both sides are
+ * projected from the canonical clearable-field map.
+ */
+export const HALL_DETAIL_TEXT_FIELD_TO_WORK_SHELL_FIELD = {
+  [MODERATION_CLEARABLE_TEXT_FIELDS.tale[0]]: MODERATION_CLEARABLE_TEXT_FIELDS.workProject[0], // title → workingTitle
+  [MODERATION_CLEARABLE_TEXT_FIELDS.tale[1]]: MODERATION_CLEARABLE_TEXT_FIELDS.workProject[1], // description → workingDescription
+} as const satisfies Record<
+  (typeof MODERATION_CLEARABLE_TEXT_FIELDS.tale)[number],
+  (typeof MODERATION_CLEARABLE_TEXT_FIELDS.workProject)[number]
 >;
 
 // --- Hall sub-item publish requirements ---

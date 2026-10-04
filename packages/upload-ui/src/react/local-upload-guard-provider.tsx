@@ -1,27 +1,21 @@
 'use client';
 
 /**
- * Local upload navigation guard provider.
+ * The navigation and leave guard: warns before the user leaves while work that leaving would lose
+ * is registered — a LOCAL byte upload in flight, or an editor's unsaved input.
  *
- * Tracks the count of in-progress LOCAL byte uploads (file → Firebase
- * Storage). While the count is > 0, installs a `beforeunload` listener
- * to warn the user before they close the tab or reload mid-upload.
+ * Uploads: phases `preparing` and `uploading` only. `finalizing` and backend `pendingMedia`
+ * processing are safe to leave (the bytes are already in Storage), so they are not registered.
+ * Unsaved work: an editor registers while it holds input its user has not saved, and unregisters
+ * when the input is saved, discarded, or the editor unmounts.
  *
- * Scope:
- *  - Covers phases `preparing` and `uploading` only.
- *  - Does NOT cover `finalizing` — at that point bytes are already in
- *    Storage and the only remaining work is the `startUpload` callable.
- *  - Does NOT cover backend `pendingMedia` status (`pending` /
- *    `processing`). Those run server-side and are safe to leave.
+ * While anything is registered the provider installs ONE `beforeunload` listener (tab close,
+ * reload, full-page navigation), and `confirmNavigation()` asks before an in-app navigation. It is
+ * the one leave guard: an editor never installs its own `beforeunload` handler (FRONTEND-207).
  *
- * Consumers register with a stable id (typically the local upload
- * session id or `pendingMedia` doc id once known) on entering
- * `preparing`/`uploading`, and unregister on transition to
- * `finalizing`/success/error/cancel/unmount.
- *
- * Public hook: `useLocalUploadGuard()` returns
- * `{ activeUploadCount, registerUpload, unregisterUpload }`. Throws if
- * used outside a `LocalUploadGuardProvider`.
+ * Consumers register with a stable id per piece of work; registering a registered id, or
+ * unregistering an absent one, is a no-op. Uploads and unsaved work are counted separately, so the
+ * same id may be both.
  */
 
 import {
@@ -29,6 +23,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -47,20 +42,27 @@ export interface ConfirmNavigationOptions {
 }
 
 interface LocalUploadGuardContextValue {
+  /** Registered local uploads. */
   activeUploadCount: number;
+  /** Registered pieces of unsaved work. */
+  unsavedWorkCount: number;
+  /** Everything the guard warns about: uploads plus unsaved work. Zero means leaving asks nothing. */
+  guardedWorkCount: number;
   registerUpload: (id: string) => void;
   unregisterUpload: (id: string) => void;
-  /** Returns true iff at least one upload is currently registered. Pure read. */
+  registerUnsavedWork: (id: string) => void;
+  unregisterUnsavedWork: (id: string) => void;
+  /** Returns true iff an upload or unsaved work is currently registered. Pure read. */
   shouldConfirmNavigation: () => boolean;
   /**
-   * Shows a confirm() dialog with the configured message and returns the user's
-   * choice. Safe to call when no upload is active — returns true without prompting.
+   * Shows a confirm() dialog with the message for what is registered and returns the user's
+   * choice. Safe to call when nothing is registered — returns true without prompting.
    *
-   * With `{ fullPageNavigation: true }` and a result of true (confirmed, or no
-   * upload active), arms a ONE-SHOT bypass: the next `beforeunload` is not
-   * prevented, so a confirmed full-page navigation does not prompt twice. A
-   * declined confirm never arms it; the bypass is cleared when it is consumed, when
-   * a new upload registers, and on `pageshow` (a back/forward-cache return).
+   * With `{ fullPageNavigation: true }` and a result of true (confirmed, or nothing registered),
+   * arms a ONE-SHOT bypass: the next `beforeunload` is not prevented, so a confirmed full-page
+   * navigation does not prompt twice. A declined confirm never arms it; the bypass is cleared when
+   * it is consumed, when new work (an upload or unsaved work) registers, and on `pageshow` (a
+   * back/forward-cache return).
    */
   confirmNavigation: (options?: ConfirmNavigationOptions) => boolean;
 }
@@ -69,52 +71,92 @@ const LocalUploadGuardContext = createContext<LocalUploadGuardContextValue | und
 
 export interface LocalUploadGuardProviderProps {
   /**
-   * Message shown by the browser when the user attempts to close the tab or
-   * reload during an active upload. Modern browsers may ignore the custom
-   * string and show a generic dialog.
+   * Message the browser is given when the user closes the tab, reloads, or leaves the page while
+   * work is registered. Modern browsers show their own generic dialog and ignore it; when omitted,
+   * the default for what is registered is used.
    */
   beforeUnloadMessage?: string;
-  /**
-   * Message shown by `confirmNavigation()` when an upload is in progress and
-   * the user attempts to navigate away within the app. Defaults to a
-   * reasonable English string.
-   */
+  /** `confirmNavigation()`'s message while an upload is in progress (and no unsaved work). */
   navigationConfirmMessage?: string;
+  /** `confirmNavigation()`'s message while unsaved work is registered (and no upload). */
+  unsavedWorkConfirmMessage?: string;
+  /** `confirmNavigation()`'s message while both an upload and unsaved work are registered. */
+  uploadAndUnsavedWorkConfirmMessage?: string;
   children: ReactNode;
 }
 
-const DEFAULT_BEFORE_UNLOAD_MESSAGE =
-  'File upload in progress. Are you sure you want to leave and end the file upload?';
 const DEFAULT_NAVIGATION_CONFIRM_MESSAGE =
   'An upload is currently in progress. If you leave this page, the upload will be canceled. Continue?';
+const DEFAULT_UNSAVED_WORK_CONFIRM_MESSAGE =
+  'You have unsaved changes. If you leave this page, they will be lost. Continue?';
+const DEFAULT_UPLOAD_AND_UNSAVED_WORK_CONFIRM_MESSAGE =
+  'An upload is in progress and you have unsaved changes. If you leave this page, the upload will be canceled and your changes will be lost. Continue?';
+const DEFAULT_UPLOAD_BEFORE_UNLOAD_MESSAGE =
+  'File upload in progress. Are you sure you want to leave and end the file upload?';
+const DEFAULT_UNSAVED_WORK_BEFORE_UNLOAD_MESSAGE =
+  'You have unsaved changes. Are you sure you want to leave and lose them?';
+
+function useRegistry(onRegister: () => void) {
+  const idsRef = useRef<Set<string>>(new Set());
+  const [count, setCount] = useState(0);
+
+  const register = useCallback(
+    (id: string) => {
+      if (idsRef.current.has(id)) return;
+      onRegister();
+      idsRef.current.add(id);
+      setCount(idsRef.current.size);
+    },
+    [onRegister],
+  );
+
+  const unregister = useCallback((id: string) => {
+    if (!idsRef.current.has(id)) return;
+    idsRef.current.delete(id);
+    setCount(idsRef.current.size);
+  }, []);
+
+  return { idsRef, count, register, unregister };
+}
 
 export function LocalUploadGuardProvider(props: LocalUploadGuardProviderProps) {
   const {
     children,
-    beforeUnloadMessage = DEFAULT_BEFORE_UNLOAD_MESSAGE,
+    beforeUnloadMessage,
     navigationConfirmMessage = DEFAULT_NAVIGATION_CONFIRM_MESSAGE,
+    unsavedWorkConfirmMessage = DEFAULT_UNSAVED_WORK_CONFIRM_MESSAGE,
+    uploadAndUnsavedWorkConfirmMessage = DEFAULT_UPLOAD_AND_UNSAVED_WORK_CONFIRM_MESSAGE,
   } = props;
-  const activeIdsRef = useRef<Set<string>>(new Set());
-  const [activeUploadCount, setActiveUploadCount] = useState(0);
   // One-shot: the user already confirmed the full-page navigation now unloading.
   const bypassNextUnloadRef = useRef(false);
-
-  const registerUpload = useCallback((id: string) => {
-    if (activeIdsRef.current.has(id)) return;
-    // Work that starts after a confirmation was not covered by it.
+  // Also run when work registers: work that starts after a confirmation was not covered by it.
+  const clearBypass = useCallback(() => {
     bypassNextUnloadRef.current = false;
-    activeIdsRef.current.add(id);
-    setActiveUploadCount(activeIdsRef.current.size);
   }, []);
 
-  const unregisterUpload = useCallback((id: string) => {
-    if (!activeIdsRef.current.has(id)) return;
-    activeIdsRef.current.delete(id);
-    setActiveUploadCount(activeIdsRef.current.size);
-  }, []);
+  const uploads = useRegistry(clearBypass);
+  const unsavedWork = useRegistry(clearBypass);
+  const uploadIdsRef = uploads.idsRef;
+  const unsavedWorkIdsRef = unsavedWork.idsRef;
+  const guardedWorkCount = uploads.count + unsavedWork.count;
+  const hasGuardedWork = guardedWorkCount > 0;
+
+  // Read at the moment of asking, so a message always matches what is registered right then.
+  const confirmMessage = useCallback((): string => {
+    const uploading = uploadIdsRef.current.size > 0;
+    const unsaved = unsavedWorkIdsRef.current.size > 0;
+    if (uploading && unsaved) return uploadAndUnsavedWorkConfirmMessage;
+    return uploading ? navigationConfirmMessage : unsavedWorkConfirmMessage;
+  }, [
+    uploadIdsRef,
+    unsavedWorkIdsRef,
+    navigationConfirmMessage,
+    unsavedWorkConfirmMessage,
+    uploadAndUnsavedWorkConfirmMessage,
+  ]);
 
   useEffect(() => {
-    if (activeUploadCount <= 0) return;
+    if (!hasGuardedWork) return;
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (bypassNextUnloadRef.current) {
@@ -122,10 +164,13 @@ export function LocalUploadGuardProvider(props: LocalUploadGuardProviderProps) {
         return;
       }
       event.preventDefault();
-      // Modern browsers may ignore the custom string and show their own
-      // generic confirmation. The key behavior is that navigation is
-      // blocked/warned, not the exact text.
-      event.returnValue = beforeUnloadMessage;
+      // Modern browsers may ignore the custom string and show their own generic confirmation;
+      // what matters is that leaving is warned, not the exact text.
+      event.returnValue =
+        beforeUnloadMessage ??
+        (uploadIdsRef.current.size > 0
+          ? DEFAULT_UPLOAD_BEFORE_UNLOAD_MESSAGE
+          : DEFAULT_UNSAVED_WORK_BEFORE_UNLOAD_MESSAGE);
       return event.returnValue;
     };
 
@@ -133,46 +178,56 @@ export function LocalUploadGuardProvider(props: LocalUploadGuardProviderProps) {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [activeUploadCount, beforeUnloadMessage]);
+  }, [hasGuardedWork, beforeUnloadMessage, uploadIdsRef]);
 
   // A back/forward-cache return re-shows this page without reloading it: an
   // armed bypass from the navigation that left must never outlive that navigation.
   useEffect(() => {
-    const clearBypass = () => {
-      bypassNextUnloadRef.current = false;
-    };
     window.addEventListener('pageshow', clearBypass);
     return () => {
       window.removeEventListener('pageshow', clearBypass);
     };
-  }, []);
+  }, [clearBypass]);
 
   const shouldConfirmNavigation = useCallback(
-    () => activeIdsRef.current.size > 0,
-    [],
+    () => uploadIdsRef.current.size > 0 || unsavedWorkIdsRef.current.size > 0,
+    [uploadIdsRef, unsavedWorkIdsRef],
   );
 
   const confirmNavigation = useCallback(
     (options?: ConfirmNavigationOptions): boolean => {
       // SSR / non-browser safety: if `window` isn't available, default to allow.
       if (typeof window === 'undefined') return true;
-      const proceed =
-        activeIdsRef.current.size === 0 || window.confirm(navigationConfirmMessage);
+      const proceed = !shouldConfirmNavigation() || window.confirm(confirmMessage());
       if (proceed && options?.fullPageNavigation) bypassNextUnloadRef.current = true;
       return proceed;
     },
-    [navigationConfirmMessage],
+    [shouldConfirmNavigation, confirmMessage],
   );
 
   const value = useMemo<LocalUploadGuardContextValue>(
     () => ({
-      activeUploadCount,
-      registerUpload,
-      unregisterUpload,
+      activeUploadCount: uploads.count,
+      unsavedWorkCount: unsavedWork.count,
+      guardedWorkCount,
+      registerUpload: uploads.register,
+      unregisterUpload: uploads.unregister,
+      registerUnsavedWork: unsavedWork.register,
+      unregisterUnsavedWork: unsavedWork.unregister,
       shouldConfirmNavigation,
       confirmNavigation,
     }),
-    [activeUploadCount, registerUpload, unregisterUpload, shouldConfirmNavigation, confirmNavigation],
+    [
+      uploads.count,
+      uploads.register,
+      uploads.unregister,
+      unsavedWork.count,
+      unsavedWork.register,
+      unsavedWork.unregister,
+      guardedWorkCount,
+      shouldConfirmNavigation,
+      confirmNavigation,
+    ],
   );
 
   return (
@@ -183,9 +238,9 @@ export function LocalUploadGuardProvider(props: LocalUploadGuardProviderProps) {
 }
 
 /**
- * Low-level accessor for the local-upload guard context. Throws if used
- * outside a `LocalUploadGuardProvider`. Most consumers should use
- * `useLocalUploadGuard` (the public re-export below) instead.
+ * Low-level accessor for the guard context. Throws if used outside a
+ * `LocalUploadGuardProvider`. Most consumers should use `useLocalUploadGuard`
+ * (the public re-export below) instead.
  */
 export function useLocalUploadGuardContext(): LocalUploadGuardContextValue {
   const ctx = useContext(LocalUploadGuardContext);
@@ -208,9 +263,7 @@ export function useOptionalLocalUploadGuard(): LocalUploadGuardContextValue | nu
 }
 
 /**
- * Public hook for the local upload navigation guard.
- *
- * Returns `{ activeUploadCount, registerUpload, unregisterUpload }`.
+ * Public hook for the navigation and leave guard.
  *
  * Typical usage in an upload flow:
  *
@@ -221,7 +274,30 @@ export function useOptionalLocalUploadGuard(): LocalUploadGuardContextValue | nu
  *         return () => unregisterUpload(uploadId);
  *       }
  *     }, [phase, uploadId, registerUpload, unregisterUpload]);
+ *
+ * An editor holding input uses `useUnsavedWorkGuard(hasUnsavedWork)` instead.
  */
 export function useLocalUploadGuard(): LocalUploadGuardContextValue {
   return useLocalUploadGuardContext();
+}
+
+/**
+ * Registers the calling editor's unsaved input with the leave guard while `hasUnsavedWork` is
+ * true, and unregisters it when that turns false or the editor unmounts. While registered, closing
+ * the tab, reloading, a full-page navigation, and every guarded in-app navigation ask first.
+ * Throws outside a `LocalUploadGuardProvider`.
+ *
+ * Returns `release`, which unregisters at once: an editor that saves and then navigates in the
+ * same handler calls it after the save, because its dirty flag clears only on the next render.
+ */
+export function useUnsavedWorkGuard(hasUnsavedWork: boolean): { release: () => void } {
+  const { registerUnsavedWork, unregisterUnsavedWork } = useLocalUploadGuardContext();
+  const id = useId();
+  useEffect(() => {
+    if (!hasUnsavedWork) return;
+    registerUnsavedWork(id);
+    return () => unregisterUnsavedWork(id);
+  }, [hasUnsavedWork, id, registerUnsavedWork, unregisterUnsavedWork]);
+  const release = useCallback(() => unregisterUnsavedWork(id), [id, unregisterUnsavedWork]);
+  return useMemo(() => ({ release }), [release]);
 }

@@ -88,9 +88,10 @@ export const AdminDisplayNameResetForcedEventSchema = z
   .strict();
 
 // A hall content change request was APPROVED — the only decision that writes
-// anything. An approval updates the public Work shell and, on the realm grain,
-// the Realm doc, so both ids ride the event; `workRealmId` is absent on the hall
-// grains. A denial changes no content and emits nothing.
+// anything. On the Hall grains an approval updates the Hall entry (`hallItemId`;
+// `subItemId` when the request targeted a chapter / track / episode) and, for the
+// detail, the Work and its public mirror; on the realm grain it updates the Realm
+// doc (`workRealmId`, and no Hall ids). A denial changes no content and emits nothing.
 export const HallContentChangeRequestApprovedEventSchema = z
   .object({
     type: z.literal('hallContentChangeRequest.approved'),
@@ -98,6 +99,8 @@ export const HallContentChangeRequestApprovedEventSchema = z
       .object({
         workProjectId: z.string().min(1),
         workRealmId: z.string().min(1).optional(),
+        hallItemId: z.string().min(1).optional(),
+        subItemId: z.string().min(1).optional(),
       })
       .strict(),
   })

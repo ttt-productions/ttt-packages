@@ -2,7 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { REDUCED_MOTION_ATTRIBUTE } from "../reduced-motion.js";
-import { readStoredValue, writeStoredValue } from "./local-storage.js";
+import { createDevicePreferenceStore } from "./device-preference-store.js";
 
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
@@ -58,11 +58,16 @@ export function createReducedMotionStore({
     return mediaQueryList()?.matches ?? false;
   }
 
+  const saved = createDevicePreferenceStore<boolean | null>({
+    storageKey,
+    changeEvent,
+    parse: (stored) => (stored === "true" ? true : stored === "false" ? false : undefined),
+    serialize: String,
+    fallback: null,
+  });
+
   function savedReducedMotion(): boolean | null {
-    const stored = readStoredValue(storageKey);
-    if (stored === "true") return true;
-    if (stored === "false") return false;
-    return null;
+    return saved.get();
   }
 
   function prefersReducedMotion(): boolean {
@@ -76,20 +81,17 @@ export function createReducedMotionStore({
   }
 
   function setSavedReducedMotion(reduced: boolean): void {
-    writeStoredValue(storageKey, String(reduced));
-    applyAttribute(prefersReducedMotion());
-    window.dispatchEvent(new Event(changeEvent));
+    applyAttribute(deviceReducedMotion() || reduced);
+    saved.set(reduced);
   }
 
   function subscribe(onChange: () => void): () => void {
     const mql = mediaQueryList();
     mql?.addEventListener("change", onChange);
-    window.addEventListener(changeEvent, onChange);
-    window.addEventListener("storage", onChange);
+    const unsubscribeSaved = saved.subscribe(onChange);
     return () => {
       mql?.removeEventListener("change", onChange);
-      window.removeEventListener(changeEvent, onChange);
-      window.removeEventListener("storage", onChange);
+      unsubscribeSaved();
     };
   }
 

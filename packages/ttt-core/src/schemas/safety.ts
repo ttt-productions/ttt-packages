@@ -12,13 +12,16 @@
 // derive from the id atoms, so each is exactly one document-id segment (ARCH-106).
 
 import { z } from 'zod';
+import { MAX_REPORT_NARRATIVE_LENGTH, MAX_USER_FACING_REASON_LENGTH } from '../constants/business.js';
 import {
-  MAX_REPORT_NARRATIVE_LENGTH,
-  MAX_INTERNAL_REASON_LENGTH,
-  MAX_USER_FACING_REASON_LENGTH,
-  MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH,
-  MAX_NCMEC_PORTAL_PROOF_TEXT_LENGTH,
-} from '../constants/business.js';
+  ADMIN_TASK_RESOLUTION_INPUT,
+  NCMEC_ARTIFACT_DESCRIPTION_INPUT,
+  NCMEC_CORRECTION_REASON_INPUT,
+  NCMEC_PORTAL_PROOF_TEXT_INPUT,
+  REPORT_COMMENT_INPUT,
+  SAFETY_INTERNAL_REASON_INPUT,
+} from '../constants/text-fields.js';
+import { textFieldSchema } from './text-field.js';
 import {
   SAFETY_ACCOUNT_ACTION_CONFIRMATION,
   NCMEC_PORTAL_RECEIPT_CONFIRMATION,
@@ -92,7 +95,7 @@ export const CommandAccountActionInputSchema = z
     targetUid: userIdSchema,
     action: CommandAccountActionSchema,
     /** Operator-facing internal rationale (LE-loggable). */
-    reasonInternal: z.string().min(4, 'An internal reason is required.').max(MAX_INTERNAL_REASON_LENGTH),
+    reasonInternal: textFieldSchema(SAFETY_INTERNAL_REASON_INPUT),
     /** The generic owner-readable reason (no detail leaks). */
     reasonUserFacing: z.string().min(1).max(MAX_USER_FACING_REASON_LENGTH),
     /** Per-account case role (A1b) — the canonical case enums, never re-declared. */
@@ -535,7 +538,7 @@ export const RecordNcmecPortalReceiptArtifactInputSchema = z
     /** The key of an object already in the restricted evidence vault (verified via statObject). */
     evidenceVaultKey: z.string().min(1, 'An evidence vault object key is required.'),
     /** Optional operator description of what the artifact is (e.g. "NCMEC portal screenshot"). */
-    description: z.string().min(1).max(MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH).optional(),
+    description: textFieldSchema(NCMEC_ARTIFACT_DESCRIPTION_INPUT).optional(),
     /** Explicit typed confirmation (interim control until the passkey profile lands). */
     confirmation: z.literal(NCMEC_PORTAL_RECEIPT_CONFIRMATION),
   })
@@ -555,7 +558,7 @@ export const MarkNcmecPortalCompleteInputSchema = z
     /** [Q13/H-06] The sha256 hex digest recorded on the artifact at registration time (content-integrity check). */
     artifactSha256: z.string().regex(/^[0-9a-f]{64}$/, 'artifactSha256 must be a 64-character hex string.'),
     /** Optional operator free-text note describing the portal confirmation. */
-    proofText: z.string().min(1).max(MAX_NCMEC_PORTAL_PROOF_TEXT_LENGTH).optional(),
+    proofText: textFieldSchema(NCMEC_PORTAL_PROOF_TEXT_INPUT).optional(),
     /** The NCMEC-assigned report id — REQUIRED (it IS the proof; no "filed, number pending" grace). */
     ncmecReportId: z.string().min(1, 'The NCMEC report id is required to mark the report complete.'),
     /** Explicit typed confirmation (interim control until the passkey profile lands). */
@@ -615,7 +618,7 @@ export const RecordNcmecPortalCorrectionInputSchema = z
     caseId: safetyCaseIdSchema,
     ncmecReportId: z.string().min(1),
     correctionFiledAt: z.number(),
-    reason: z.string().min(1).max(MAX_INTERNAL_REASON_LENGTH),
+    reason: textFieldSchema(NCMEC_CORRECTION_REASON_INPUT),
     confirmation: z.literal(NCMEC_PORTAL_CORRECTION_CONFIRMATION),
   })
   .strict();
@@ -626,6 +629,11 @@ export type RecordNcmecPortalCorrectionInput = z.infer<typeof RecordNcmecPortalC
 // (never owner or target authority): each is bounded and shaped as the path it could become, and
 // `parentItemId` may be a chat channel or conversation-file reference of two ids joined by "/".
 // ---------------------------------------------------------------------------
+/** A report's comment — the field schema the report intake and report-core's submit schema share. */
+export const reportCommentFieldSchema = textFieldSchema(REPORT_COMMENT_INPUT);
+/** An admin task's check-in resolution note — the field report-core's check-in schema takes. */
+export const adminTaskResolutionFieldSchema = textFieldSchema(ADMIN_TASK_RESOLUTION_INPUT);
+
 export const SubmitReportInputSchema = z
   .object({
     itemType: ReportableItemTypeSchema,
@@ -634,8 +642,8 @@ export const SubmitReportInputSchema = z
     /** HINT ONLY — ignored as owner authority (the owner is server-derived). */
     reportedUserId: reportTargetUserIdSchema.optional(),
     reason: ReportReasonSchema,
-    /** Free-text reporter narrative (segregated; never inlined on the public projection). */
-    comment: z.string().max(MAX_REPORT_NARRATIVE_LENGTH).optional(),
+    /** The reporter's comment (segregated; never inlined on the public projection). */
+    comment: reportCommentFieldSchema,
     narrative: z.string().max(MAX_REPORT_NARRATIVE_LENGTH).optional(),
     /** The user-confirmed SECOND call that escalates an EXISTING report on this target to a
      *  protected reason (Child Safety / NCII). Only meaningful with a protected reason and an

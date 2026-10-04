@@ -36,7 +36,7 @@ import {
   type Baseline,
   type SaveTracks,
 } from "../viewer-settings-logic.js";
-import { noteStoredValue, readStoredValue, writeStoredValue } from "./local-storage.js";
+import { noteStoredValue, readStoredValue, writeStoredValue } from "../device-storage.js";
 import type { ReducedMotionStore } from "./reduced-motion-store.js";
 import { useThemeStorageKey } from "./theme-provider.js";
 

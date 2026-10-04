@@ -1,6 +1,7 @@
 // Admin + content-moderation business-rule constants — task priority, dispatches,
 // the moderation/feedback workflow, and admin-task lifecycle.
 import { ACTIVE_LIMITS } from './app-mode.js';
+import { MAX_WORK_PROJECT_TITLE_LENGTH } from './business-work-project.js';
 import type { AdminTaskType } from '../doc-schemas/report-docs.js';
 
 // --- Admin Task Priority System ---
@@ -165,13 +166,13 @@ export const MAX_USER_FACING_REASON_DETAIL_LENGTH = 2000;
 /** Admin broadcast / user notification message body. */
 export const MAX_NOTIFICATION_MESSAGE_LENGTH = 2000;
 
+/** Admin broadcast title — the same length as a Work title. */
+export const MAX_BROADCAST_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
+
 /** Admin user-search query input. */
 export const MAX_USER_SEARCH_QUERY_LENGTH = 100;
 
 // --- NCII / child-safety statutory + operator text caps ---
-
-/** Operator reason on the admin "mark as NCII linked evidence" intake. */
-export const MAX_NCII_EVIDENCE_REASON_LENGTH = 1000;
 
 /** Operator written rationale on a TAKE IT DOWN validity decision (immutable row). */
 export const MAX_NCII_RATIONALE_LENGTH = 4000;

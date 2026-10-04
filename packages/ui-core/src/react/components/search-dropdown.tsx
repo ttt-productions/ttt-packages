@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import { Input } from './input.js';
 import { Label } from './label.js';
 import { X, Search } from 'lucide-react';
 import { Spinner } from './spinner.js';
 import { cn } from "../../lib/utils.js";
+
+function defaultResultsAnnouncement(count: number): string {
+  return count === 1 ? '1 result' : `${count} results`;
+}
 
 export interface SearchDropdownProps<T> {
   /** Current search value */
@@ -16,8 +20,13 @@ export interface SearchDropdownProps<T> {
   results: T[];
   /** Loading state */
   isLoading: boolean;
-  /** Error message */
-  error: string | null;
+  /** The search's failure exactly as the data layer reported it; `null` or `undefined` when it did not fail. */
+  error: unknown;
+  /**
+   * Renders a failed search inside the open dropdown. The consumer owns the failure's words and any
+   * retry, so the dropdown never shows a failure state of its own.
+   */
+  renderError: (error: unknown) => React.ReactNode;
   /** Called when a result is selected */
   onSelect: (result: T) => void;
   /** Called when search is cleared (after the value has been reset). Optional notification hook. */
@@ -36,14 +45,22 @@ export interface SearchDropdownProps<T> {
   minChars?: number;
   /** Message to show when no results found */
   emptyMessage?: string;
+  /** What assistive technology hears when results arrive (default: "1 result" / "N results"). */
+  resultsAnnouncement?: (count: number) => string;
   /** Custom render function for each result */
   renderResult: (result: T, index: number) => React.ReactNode;
 }
 
 /**
- * Generic search dropdown component with debounced input and keyboard navigation.
- * Supports any data type and custom rendering.
- * 
+ * A search box with a results dropdown, following the combobox pattern: the input keeps focus, the
+ * results are a listbox, and the arrow-highlighted result is the input's active descendant. Every
+ * instance carries its own ids, so several can share a page.
+ *
+ * Once the value is long enough the dropdown stays open through every settled state — results, an
+ * empty answer, or a failure — until the user dismisses it (Escape, a click outside, a selection).
+ * A dismissal holds for the value it was made on: re-rendered props never reopen it, while typing,
+ * a new value, or ArrowDown does.
+ *
  * @example
  * ```tsx
  * <SearchDropdown<User>
@@ -52,8 +69,8 @@ export interface SearchDropdownProps<T> {
  *   results={users}
  *   isLoading={isLoading}
  *   error={error}
+ *   renderError={(error) => <MyErrorState error={error} />}
  *   onSelect={(user) => console.log(user)}
- *   onClear={() => setSearchValue('')}
  *   placeholder="Search users..."
  *   renderResult={(user) => (
  *     <div>{user.displayName}</div>
@@ -67,6 +84,7 @@ export function SearchDropdown<T>({
   results,
   isLoading,
   error,
+  renderError,
   onSelect,
   onClear,
   placeholder = 'Search...',
@@ -76,100 +94,128 @@ export function SearchDropdown<T>({
   icon = <Search className="h-4 w-4" />,
   minChars = 3,
   emptyMessage = 'No results found',
+  resultsAnnouncement = defaultResultsAnnouncement,
   renderResult,
 }: SearchDropdownProps<T>) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const baseId = useId();
+  const inputId = `${baseId}-input`;
+  const labelId = `${baseId}-label`;
+  const listboxId = `${baseId}-listbox`;
+  const panelId = `${baseId}-panel`;
+  const hintId = `${baseId}-hint`;
+  const optionId = (index: number) => `${baseId}-option-${index}`;
+
+  const [dismissedFor, setDismissedFor] = useState<string | null>(null);
+  // The highlight belongs to the value it was made on, so a new query starts with none, while a
+  // refreshed result list for the same query keeps it.
+  const [highlight, setHighlight] = useState<{ value: string; index: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const searchable = value.length >= minChars;
+  const isOpen = searchable && dismissedFor !== value;
+  const failed = error !== null && error !== undefined;
+  const showOptions = isOpen && !failed && !isLoading && results.length > 0;
+  const activeIndex =
+    showOptions && highlight && highlight.value === value && highlight.index < results.length ? highlight.index : -1;
+  const showHint = value.length > 0 && !searchable;
+  const announcement =
+    !isOpen || failed
+      ? ''
+      : isLoading
+        ? 'Searching...'
+        : results.length === 0
+          ? emptyMessage
+          : resultsAnnouncement(results.length);
+
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
+        setDismissedFor(value);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isOpen, value]);
 
-  useEffect(() => {
-    if (value.length >= minChars && (results.length > 0 || isLoading || error)) {
-      setIsOpen(true);
-    } else {
-      setIsOpen(false);
-    }
-  }, [value, results, isLoading, error, minChars]);
-
-  useEffect(() => {
-    setSelectedIndex(-1);
-  }, [results]);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen || results.length === 0) return;
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : prev));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < results.length) {
-          onSelect(results[selectedIndex]);
-          setIsOpen(false);
-        }
-        break;
-      case 'Escape':
-        e.preventDefault();
-        setIsOpen(false);
-        inputRef.current?.blur();
-        break;
-    }
+  const select = (result: T) => {
+    onSelect(result);
+    setDismissedFor(value);
   };
 
-  const handleResultClick = (result: T) => {
-    onSelect(result);
-    setIsOpen(false);
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    switch (e.key) {
+      case 'ArrowDown':
+        if (!searchable) return;
+        e.preventDefault();
+        if (!isOpen) {
+          setDismissedFor(null);
+          return;
+        }
+        if (!showOptions) return;
+        setHighlight({ value, index: activeIndex < results.length - 1 ? activeIndex + 1 : activeIndex });
+        break;
+      case 'ArrowUp':
+        if (!showOptions) return;
+        e.preventDefault();
+        setHighlight({ value, index: activeIndex > 0 ? activeIndex - 1 : 0 });
+        break;
+      case 'Enter':
+        if (activeIndex < 0) return;
+        e.preventDefault();
+        select(results[activeIndex]);
+        break;
+      case 'Escape':
+        // Escape never falls through to the search field's own clear, which would skip onClear:
+        // it closes an open dropdown, and clears a closed one through handleClear.
+        e.preventDefault();
+        if (isOpen) setDismissedFor(value);
+        else if (value) handleClear();
+        break;
+    }
   };
 
   const handleClear = () => {
     onValueChange('');
     onClear?.();
-    setIsOpen(false);
+    setDismissedFor(null);
     inputRef.current?.focus();
   };
-
-  const showDropdown = isOpen && value.length >= minChars;
 
   return (
     <div ref={containerRef} className={cn('relative', className)}>
       {label && (
-        <Label htmlFor="search-input" className="mb-2 block">
+        <Label id={labelId} htmlFor={inputId} className="mb-2 block">
           {label}
         </Label>
       )}
-      
+
       <div className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true">
           {icon}
         </div>
-        
+
         <Input
           ref={inputRef}
-          id="search-input"
-          type="text"
+          id={inputId}
+          type="search"
+          role="combobox"
+          aria-autocomplete="list"
+          aria-expanded={isOpen}
+          aria-controls={isOpen ? (showOptions ? listboxId : panelId) : undefined}
+          aria-activedescendant={activeIndex >= 0 ? optionId(activeIndex) : undefined}
+          aria-describedby={showHint ? hintId : undefined}
+          autoComplete="off"
           value={value}
-          onChange={(e) => onValueChange(e.target.value)}
+          onChange={(e) => {
+            setDismissedFor(null);
+            onValueChange(e.target.value);
+          }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="pl-10 pr-10"
+          className="pl-10 pr-10 [&::-webkit-search-cancel-button]:appearance-none"
         />
 
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -188,12 +234,10 @@ export function SearchDropdown<T>({
         </div>
       </div>
 
-      {showDropdown && (
-        <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md elevation-raised max-h-60 overflow-auto">
-          {error ? (
-            <div className="px-3 py-2 text-sm text-destructive">
-              {error}
-            </div>
+      {isOpen && (
+        <div id={panelId} className="absolute z-50 w-full mt-1 bg-popover border rounded-md elevation-raised max-h-60 overflow-auto">
+          {failed ? (
+            renderError(error)
           ) : isLoading ? (
             <div className="px-3 py-2 text-sm text-muted-foreground flex items-center gap-2">
               <Spinner size="xs" />
@@ -204,27 +248,43 @@ export function SearchDropdown<T>({
               {emptyMessage}
             </div>
           ) : (
-            results.map((result, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => handleResultClick(result)}
-                onMouseEnter={() => setSelectedIndex(index)}
-                className={cn(
-                  'w-full text-left transition-colors cursor-pointer',
-                  'hover:bg-accent focus:bg-accent focus:outline-hidden',
-                  selectedIndex === index && 'bg-accent'
-                )}
-              >
-                {renderResult(result, index)}
-              </button>
-            ))
+            <div
+              role="listbox"
+              id={listboxId}
+              aria-labelledby={label ? labelId : undefined}
+              aria-label={label ? undefined : placeholder}
+            >
+              {results.map((result, index) => (
+                <div
+                  key={index}
+                  id={optionId(index)}
+                  role="option"
+                  aria-selected={index === activeIndex}
+                  // Keeps focus in the input, where the combobox's keyboard handling lives.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => select(result)}
+                  onMouseEnter={() => setHighlight({ value, index })}
+                  className={cn(
+                    'w-full text-left transition-colors cursor-pointer hover:bg-accent',
+                    index === activeIndex && 'bg-accent'
+                  )}
+                >
+                  {renderResult(result, index)}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
-      
-      {value.length > 0 && value.length < minChars && (
-        <p className="text-xs text-muted-foreground mt-1">
+
+      {/* Always mounted, so every change of the open panel's state is announced. A failure is
+          announced by the consumer's renderError. */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {announcement}
+      </div>
+
+      {showHint && (
+        <p id={hintId} className="text-xs text-muted-foreground mt-1">
           Type at least {minChars} characters to search
         </p>
       )}

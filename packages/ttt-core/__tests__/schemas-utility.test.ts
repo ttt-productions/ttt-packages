@@ -89,12 +89,12 @@ describe('SubmitFeedbackInputSchema', () => {
       expect(result.success).toBe(false);
     });
 
-    it('rejects a suggestion containing uppercase letters', () => {
+    it('accepts uppercase letters, as the form does, and stores the word lowercase', () => {
       const result = SubmitFeedbackInputSchema.safeParse({
         feedbackType: 'tradeProfessionSuggestions',
         suggestion: 'Jazz',
       });
-      expect(result.success).toBe(false);
+      expect(result.success && result.data.suggestion).toBe('jazz');
     });
 
     it('rejects a suggestion containing digits', () => {

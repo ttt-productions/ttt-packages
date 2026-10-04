@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { defineInputFormat } from '@ttt-productions/input-format-core';
 import { render, screen, cleanup, fireEvent, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
@@ -35,7 +36,7 @@ const config = {
   reportReasons: ['Spam', 'Child Safety'],
   priorityConfig: {},
   taskQueues: {},
-  maxReportCommentLength: 20,
+  reportCommentInput: defineInputFormat({ format: 'none', min: 1, max: 20 }),
 } as unknown as ReportCoreConfig;
 
 const copy: ReportDialogCopy = {
@@ -85,8 +86,10 @@ function setup(
     answers?: Array<SubmitReportResult | Error | Promise<SubmitReportResult>>;
     actions?: AdditionalReportAction[];
     props?: Partial<ReportDialogProps>;
+    config?: Partial<ReportCoreConfig>;
   } = {},
 ) {
+  const providerConfig = { ...config, ...options.config } as ReportCoreConfig;
   const answers = [...(options.answers ?? [])];
   const callFunction = vi.fn(async () => {
     const next = answers.shift();
@@ -111,7 +114,7 @@ function setup(
   };
   const ui = (p: ReportDialogProps) => (
     <QueryClientProvider client={queryClient}>
-      <ReportCoreProvider config={config} callFunction={callFunction as never} additionalReportActions={options.actions}>
+      <ReportCoreProvider config={providerConfig} callFunction={callFunction as never} additionalReportActions={options.actions}>
         <ReportDialog {...p} />
       </ReportCoreProvider>
     </QueryClientProvider>
@@ -176,7 +179,7 @@ describe('ReportDialog outcomes', () => {
   it('an upgrade offer shows the upgrade view, and confirming escalates the existing report', async () => {
     const t = setup({ answers: [{ outcome: 'upgradeAvailable', reportId: 'r1', reason: 'Child Safety' }, upgraded] });
     pick('Child Safety');
-    typeComment('now worse');
+    typeComment('  now worse  ');
     await clickSubmit();
 
     expect(screen.getByText('copy:upgradeDescription:Post:Child Safety')).toBeInTheDocument();
@@ -186,6 +189,7 @@ describe('ReportDialog outcomes', () => {
 
     expect(t.callFunction).toHaveBeenLastCalledWith('submitReport', expect.objectContaining({
       reason: 'Child Safety',
+      comment: 'now worse',
       confirmUpgrade: true,
     }));
     expect(t.onSubmitSuccess).toHaveBeenCalledWith(upgraded);
@@ -248,7 +252,7 @@ describe('ReportDialog outcomes', () => {
 });
 
 describe('ReportDialog comments', () => {
-  it('requires a comment for a report reason by default', () => {
+  it('requires a comment that is more than whitespace when its declaration has min 1', () => {
     setup();
     pick('Spam');
     expect(screen.getByRole('button', { name: 'copy:submit' })).toBeDisabled();
@@ -258,17 +262,36 @@ describe('ReportDialog comments', () => {
     expect(screen.getByRole('button', { name: 'copy:submit' })).toBeEnabled();
   });
 
-  it('submits without a comment when the app does not require one', () => {
-    setup({ props: { requireComment: false } });
+  it('submits without a comment when its declaration has min 0', () => {
+    setup({ config: { reportCommentInput: defineInputFormat({ format: 'none', min: 0, max: 20 }) } });
     pick('Spam');
     expect(screen.getByRole('button', { name: 'copy:submit' })).toBeEnabled();
   });
 
-  it('refuses a comment over the configured length', () => {
+  it('refuses a comment over the declared max, and caps the field at it', () => {
     setup();
     pick('Spam');
+    expect(screen.getByLabelText('copy:commentLabel')).toHaveAttribute('maxLength', '20');
     typeComment('x'.repeat(21));
     expect(screen.getByRole('button', { name: 'copy:submit' })).toBeDisabled();
+  });
+
+  it('refuses a comment with characters its declared format does not allow', () => {
+    setup({ config: { reportCommentInput: defineInputFormat({ format: 'singleLine', min: 1, max: 20 }) } });
+    pick('Spam');
+    typeComment('two\nlines');
+    expect(screen.getByRole('button', { name: 'copy:submit' })).toBeDisabled();
+  });
+
+  it('sends the comment trimmed, as the server keeps it', async () => {
+    const t = setup({ answers: [filed] });
+    pick('Spam');
+    typeComment('  why  ');
+    await clickSubmit();
+    expect(t.callFunction).toHaveBeenCalledWith(
+      'submitReport',
+      expect.objectContaining({ reason: 'Spam', comment: 'why' }),
+    );
   });
 
   it('submits nothing without a signed-in reporter', () => {
@@ -326,7 +349,7 @@ describe('ReportDialog additional actions', () => {
     const t = setup({ actions: [{ id: 'evidence', label: 'Mark evidence', kind: 'submit', handler: mark }] });
     pick('__rc_action__:evidence');
     expect(screen.getByRole('button', { name: 'Mark evidence' })).toBeDisabled();
-    typeComment('why');
+    typeComment('  why  ');
     await clickSubmit('Mark evidence');
 
     expect(mark).toHaveBeenCalledWith(expect.objectContaining({ itemId: 'p1' }), 'why');

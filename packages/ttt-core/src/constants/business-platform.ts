@@ -20,6 +20,10 @@ export const FIRESTORE_BATCH_LIMIT = 500;
 /** Firestore's published limit on one document id, in UTF-8 bytes. */
 export const FIRESTORE_DOCUMENT_ID_MAX_BYTES = 1500;
 
+/** Firestore's published limit on an indexed field value, in UTF-8 bytes: a longer value is
+ *  truncated in the index, so an equality query on it is not exact. */
+export const FIRESTORE_INDEXED_VALUE_MAX_BYTES = 1500;
+
 // --- Payments ---
 
 /**

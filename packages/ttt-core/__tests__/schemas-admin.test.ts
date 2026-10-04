@@ -13,6 +13,11 @@ import {
 } from '../src/schemas/admin.js';
 import { AppConfigSchema } from '../src/doc-schemas/system.js';
 import {
+  ANNOUNCEMENT_MESSAGE_INPUT,
+  APP_VERSION_INPUT,
+  MAINTENANCE_MESSAGE_INPUT,
+} from '../src/constants/text-fields.js';
+import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   HALL_CLEARABLE_TEXT_FIELD_NAMES,
   HALL_CONTENT_SURFACES_BY_WORK_TYPE,
@@ -158,22 +163,20 @@ describe('_appConfig/app text levers — one cap for the doc and its update inpu
     expect(UpdateAppConfigInputSchema.safeParse({ docId: 'app', data: { appVersion: tooLong } }).success).toBe(false);
   });
 
-  it('every text field the update input caps carries the same cap on the doc', () => {
-    const textCap = (schema: z.ZodType): number | null | undefined => {
+  it('every text lever the update input declares carries the same cap on the doc', () => {
+    const docCap = (schema: z.ZodType): number | null | undefined => {
       const inner = schema instanceof z.ZodOptional ? schema.unwrap() : schema;
       return inner instanceof z.ZodString ? inner.maxLength : undefined;
     };
     const docFields: Record<string, z.ZodType> = AppConfigSchema.shape;
-    const capped = Object.entries(UpdateAppConfigInputSchema.shape.data.shape).filter(
-      ([, schema]) => typeof textCap(schema) === 'number',
-    );
-    expect(capped.map(([field]) => field)).toEqual(
-      expect.arrayContaining(['appVersion', 'maintenanceMessage', 'announcementMessage']),
-    );
-
-    const drift = capped.flatMap(([field, schema]) => {
-      const docCap = field in docFields ? textCap(docFields[field]) : 'absent from the doc';
-      return docCap === textCap(schema) ? [] : [`${field}: input caps at ${textCap(schema)}, doc at ${docCap}`];
+    const declared = {
+      appVersion: APP_VERSION_INPUT,
+      maintenanceMessage: MAINTENANCE_MESSAGE_INPUT,
+      announcementMessage: ANNOUNCEMENT_MESSAGE_INPUT,
+    };
+    const drift = Object.entries(declared).flatMap(([field, declaration]) => {
+      const cap = field in docFields ? docCap(docFields[field]) : 'absent from the doc';
+      return cap === declaration.max ? [] : [`${field}: input caps at ${declaration.max}, doc at ${cap}`];
     });
     expect(drift).toEqual([]);
   });

@@ -9,8 +9,8 @@ export const USERNAME_MIN_LENGTH = 3;
 /** Maximum length for a user display name (inclusive). */
 export const USERNAME_MAX_LENGTH = 20;
 
-/** Allowed characters in a user display name: letters and numbers only. */
-export const USERNAME_REGEX = /^[a-zA-Z0-9]+$/;
+/** Maximum length for the name of a theme a member builds in Theme Studio. */
+export const MAX_THEME_NAME_LENGTH = 50;
 
 /**
  * Display-name sentinel for an erased account (N3 data-deletion / GDPR erasure).

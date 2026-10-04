@@ -8,12 +8,14 @@ import {
   adminDispatchIdSchema,
   hallItemIdSchema,
 } from './atoms.js';
-import { MAX_APPEAL_MESSAGE_LENGTH, MAX_FEEDBACK_SUGGESTION_LENGTH, FEEDBACK_TYPES } from '../constants/business.js';
+import { FEEDBACK_TYPES } from '../constants/business.js';
+import { MAX_CURATED_PROFANITY_TERMS_PER_REQUEST } from '../constants/moderation.js';
 import {
-  MIN_CURATED_PROFANITY_TERM_LENGTH,
-  MAX_CURATED_PROFANITY_TERM_LENGTH,
-  MAX_CURATED_PROFANITY_TERMS_PER_REQUEST,
-} from '../constants/moderation.js';
+  APPEAL_MESSAGE_INPUT,
+  CURATED_PROFANITY_TERM_INPUT,
+  FEEDBACK_SUGGESTION_INPUT,
+} from '../constants/text-fields.js';
+import { textFieldSchema } from './text-field.js';
 
 export const AcceptViolationDecisionInputSchema = z.object({
   violationId: violationIdSchema,
@@ -78,13 +80,10 @@ export const SeedDmcaPolicyInputSchema = z.object({}).strict();
 export type SeedDmcaPolicyInput = z.infer<typeof SeedDmcaPolicyInputSchema>;
 
 /** One curated word-list term. The published list is hashed with edge-protocol-core's
- *  `hashStringSet`, which joins terms with a line break and refuses a term holding one, so a
- *  term with a line break is refused here rather than failing every later publish. */
-const curatedProfanityTermSchema = z
-  .string()
-  .min(MIN_CURATED_PROFANITY_TERM_LENGTH)
-  .max(MAX_CURATED_PROFANITY_TERM_LENGTH)
-  .regex(/^[^\r\n\u2028\u2029]*$/);
+ *  `hashStringSet`, which joins terms with a line break and refuses a term holding one, so its
+ *  declaration is single-line and a term with a line break is refused here rather than failing
+ *  every later publish. */
+const curatedProfanityTermSchema = textFieldSchema(CURATED_PROFANITY_TERM_INPUT);
 
 /** Admin add/remove words on the self-owned curated profanity list (no external sync). */
 export const CurateProfanityListInputSchema = z
@@ -110,13 +109,14 @@ export type CurateProfanityListResult = z.infer<typeof CurateProfanityListResult
 
 export const SubmitContentAppealInputSchema = z.object({
   violationId: violationIdSchema,
-  appealMessage: z.string().min(1).max(MAX_APPEAL_MESSAGE_LENGTH),
+  appealMessage: textFieldSchema(APPEAL_MESSAGE_INPUT),
 }).strict();
 export type SubmitContentAppealInput = z.infer<typeof SubmitContentAppealInputSchema>;
 
 export const SubmitFeedbackInputSchema = z.object({
   feedbackType: z.enum(FEEDBACK_TYPES),
-  suggestion: z.string().min(1).max(MAX_FEEDBACK_SUGGESTION_LENGTH).regex(/^[a-z]+$/),
+  // Stored lowercase, so "Dark" and "dark" are one suggestion.
+  suggestion: textFieldSchema(FEEDBACK_SUGGESTION_INPUT).transform((word) => word.toLowerCase()),
 }).strict();
 export type SubmitFeedbackInput = z.infer<typeof SubmitFeedbackInputSchema>;
 

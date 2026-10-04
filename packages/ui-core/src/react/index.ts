@@ -6,6 +6,7 @@ export type { SpinnerProps, SpinnerSize } from "./components/spinner.js";
 export { Spinner } from "./components/spinner.js";
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from "./components/card.js";
 export { Label } from "./components/label.js";
+export type { TextareaProps } from "./components/textarea.js";
 export { Textarea } from "./components/textarea.js";
 export { Skeleton } from "./components/skeleton.js";
 export { Dialog, DialogPortal, DialogOverlay, DialogClose, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "./components/dialog.js";
@@ -19,6 +20,7 @@ export { ToastProvider, ToastViewport, Toast, ToastTitle, ToastDescription, Toas
 export { Toaster } from "./components/toaster.js";
 export type { ToastVariant, ToasterToast } from "./hooks/use-toast.js";
 export { toast, useToast } from "./hooks/use-toast.js";
+export type { InputProps, FreeTextInputProps, NonFreeTextInputProps, NonFreeTextEntry, BuiltInFormatInputProps, BuiltInFormatInputType } from "./components/input.js";
 export { Input } from "./components/input.js";
 export { Select, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectLabel, SelectItem, SelectSeparator, SelectScrollUpButton, SelectScrollDownButton } from "./components/select.js";
 export { Tabs, TabsList, TabsTrigger, TabsContent } from "./components/tabs.js";

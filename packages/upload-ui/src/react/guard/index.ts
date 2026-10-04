@@ -3,6 +3,7 @@ export {
   useLocalUploadGuard,
   useLocalUploadGuardContext,
   useOptionalLocalUploadGuard,
+  useUnsavedWorkGuard,
   type ConfirmNavigationOptions,
   type LocalUploadGuardProviderProps,
 } from '../local-upload-guard-provider.js';

@@ -34,14 +34,19 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
     refers to — beside the text, never inside it, so the room's account anonymization rewrites
     them like a sender.
   - **The send bounds.** `CHAT_MESSAGE_TEXT_MAX_LENGTH` (4000 UTF-16 code units — what
-    a zod `.max()` and a textarea `maxLength` both count), the one text bound the
-    composer, the Worker, and an app send schema share; `CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH`
-    and `ChatClientMessageIdSchema`, which the Worker parses before it judges the text.
+    a zod `.max()` and a textarea `maxLength` both count) and `CHAT_MESSAGE_TEXT_INPUT`, the
+    message text's input-format declaration (`none` — any characters, line breaks included —
+    min 1, max `CHAT_MESSAGE_TEXT_MAX_LENGTH`): the one declaration the composer's textarea, the
+    Worker, and an app send schema share. `judgeChatMessageText(text)` runs input-format-core's
+    check against it and returns `{ ok: true, text }` — the trimmed text to send and store — or
+    `{ ok: false, code }` with `blank` (empty or whitespace only) or `too-long`.
+    `CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH` and `ChatClientMessageIdSchema` bound the id the Worker
+    parses before it judges the text.
   - **The correlated send rejection.** Every valid `send` receives an `ack` or a
     `send-rejected` naming the same `clientMessageId`: `CHAT_SEND_REJECTION_CODES`
-    (the closed list — `too-long` included), `CHAT_SEND_REJECTION_RETRYABLE` (the
-    canonical retryable/terminal table; `archived`, `deleted`, `blocked-word`, and
-    `too-long` are terminal), `ChatSendRejectedPayloadSchema` (refined so the wire
+    (the closed list — `too-long` and `blank` included), `CHAT_SEND_REJECTION_RETRYABLE` (the
+    canonical retryable/terminal table; `archived`, `deleted`, `blocked-word`, `too-long`, and
+    `blank` are terminal), `ChatSendRejectedPayloadSchema` (refined so the wire
     `retryable` must agree with the table), and the `ChatSendRejectionCode` /
     `ChatSendRejectedPayload` types.
   - **The correlated mark-read.** An inbox `mark-read` carries
@@ -60,9 +65,9 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
     `restore` supersedes an earlier `moderate` or `delete`. The room stores them and sends them on
     a `revision` frame and on each row; chat-react and ttt-core's context-read answer type with them.
   - **The channel socket's client frame payloads**, which the Worker parses before acting
-    and the client sends: `ChatSendPayloadSchema` (`clientMessageId` + `text`; the text's
-    length is judged after the parse, so an over-long text gets a `too-long` rejection naming
-    the parsed id), `ChatReadAckPayloadSchema` (`readSeq`, whole and non-negative; `focused`,
+    and the client sends: `ChatSendPayloadSchema` (`clientMessageId` + `text`; the text
+    is judged with `judgeChatMessageText` after the parse, so a blank or over-long text gets a
+    `blank` or `too-long` rejection naming the parsed id), `ChatReadAckPayloadSchema` (`readSeq`, whole and non-negative; `focused`,
     false when absent), `ChatHistoryPayloadSchema` (`beforeSeq`, positive or absent; `limit`
     at most and by default `HISTORY_PAGE_MAX`), and `ChatResumePayloadSchema` (`afterSeq`,
     the last seq the client holds, or absent). Unknown keys are stripped, so a client one
@@ -134,7 +139,7 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
 
 ## Boundary
 
-This package is intentionally tiny and has no internal `@ttt-productions/*` dependencies. It exists so `ttt-core`, Cloud Functions, the chat Worker, and the chat React client can compose chat validation, cleanup, or wire behavior without importing `chat-core`'s React/upload dependency graph.
+This package is intentionally tiny. Its one internal `@ttt-productions/*` dependency is `input-format-core` — itself dependency-free and server-safe — so the message text is judged by the same check every other text input runs, and the chat Worker reaches that check through this package without installing anything else. It exists so `ttt-core`, Cloud Functions, the chat Worker, and the chat React client can compose chat validation, cleanup, or wire behavior without importing `chat-core`'s React/upload dependency graph.
 
 ## Does not own
 

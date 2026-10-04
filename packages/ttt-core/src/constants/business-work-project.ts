@@ -77,23 +77,12 @@ export const MAX_REALM_FILE_FOLDERS = 30;
  */
 export const MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH = 64;
 
-/** Allowed characters in titles: letters, numbers, spaces. */
-export const TITLE_PATTERN = /^[a-zA-Z0-9 ]+$/;
-
 /** Maximum number of auditions a single workProject can have open at once. Mode-varied. */
 export const MAX_WORK_PROJECT_AUDITIONS = ACTIVE_LIMITS.workProject.maxWorkProjectAuditions;
 
-// --- WorkProject Subtypes (Tales / Tunes / Television) ---
-// Length aliases — kept as named exports so call sites read clearly.
-
-export const MAX_TALE_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
-export const MAX_TALE_DESCRIPTION_LENGTH = MAX_WORK_PROJECT_DESCRIPTION_LENGTH;
-
-export const MAX_TUNE_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
-export const MAX_TUNE_DESCRIPTION_LENGTH = MAX_WORK_PROJECT_DESCRIPTION_LENGTH;
-
-export const MAX_TELEVISION_TITLE_LENGTH = MAX_WORK_PROJECT_TITLE_LENGTH;
-export const MAX_TELEVISION_DESCRIPTION_LENGTH = MAX_WORK_PROJECT_DESCRIPTION_LENGTH;
+// --- WorkProject sub-items (chapters / tracks / episodes) ---
+// Length aliases — kept as named exports so call sites read clearly. The Tale / Tune / Television
+// section itself has no text: the Work's own title and description are its text.
 
 /** Maximum number of chapters a Tale can have. Mode-varied. */
 export const MAX_CHAPTERS = ACTIVE_LIMITS.workProject.maxChapters;

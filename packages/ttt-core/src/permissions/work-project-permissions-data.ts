@@ -244,21 +244,6 @@ export const WORK_PROJECT_ACTIONS = {
     description: 'Create Television episode content.',
     grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibraryEditor'],
   },
-  'hallLibrary.tale.details.update': {
-    label: 'Update Tale details',
-    description: 'Edit Tale details and public copy.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibraryEditor'],
-  },
-  'hallLibrary.tune.details.update': {
-    label: 'Update Tune details',
-    description: 'Edit Tune details and public copy.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibraryEditor'],
-  },
-  'hallLibrary.television.details.update': {
-    label: 'Update Television details',
-    description: 'Edit Television details and public copy.',
-    grantedTo: ['StewardOwner', 'WorkProjectManager', 'HallLibraryEditor'],
-  },
   'hallLibrary.chapter.details.update': {
     label: 'Update chapter details',
     description: 'Edit chapter details and body fields.',

@@ -36,16 +36,19 @@ import { CRAFT_SKILL_STATEMENT_VERSION } from "../constants/craft-skill-statemen
 import { HALL_CONTENT_DETAIL_SURFACES } from "../constants/hall-content-routing.js";
 import { AuditionDeadlineSchema, refineAuditionDeadlineOrder } from "../constants/audition-deadlines.js";
 import {
-  MAX_POST_LENGTH,
   MAX_CRAFT_SKILL_TAGS,
-  MAX_COMMISSION_TITLE_LENGTH,
-  MAX_COMMISSION_DESCRIPTION_LENGTH,
-  MAX_AUDITION_TITLE_LENGTH,
-  MAX_AUDITION_DESCRIPTION_LENGTH,
   MAX_SPONSORED_AUDITION_AMOUNT_USD,
   MIN_CURATED_AUDITION_OPTIONS,
   MAX_CURATED_AUDITION_OPTIONS,
 } from "../constants/business.js";
+import {
+  AUDITION_DESCRIPTION_INPUT,
+  AUDITION_TITLE_INPUT,
+  COMMISSION_COVER_LETTER_INPUT,
+  COMMISSION_DESCRIPTION_INPUT,
+  COMMISSION_TITLE_INPUT,
+} from "../constants/text-fields.js";
+import { textFieldSchema } from "../schemas/text-field.js";
 
 export const ProfilePictureTargetInfoSchema = z.object({}).strict();
 
@@ -149,21 +152,13 @@ export const SquareStreetzTargetInfoSchema = z
   })
   .strict();
 
-// Per-origin text (caption) rule for the squareStreetz media-upload path. The caption
-// travels as StartUploadRequest.textContent (top-level, generic + optional) — not inside
-// targetInfo — so `startUpload` validates it with THIS schema when
-// fileOrigin === 'squareStreetz', mirroring the text-post callable's
-// CreateSquareStreetzTextPostInputSchema.textContent (min 1, max MAX_POST_LENGTH). This
-// closes the media-path gap where a caption was accepted unbounded / empty.
-export const SquareStreetzCaptionSchema = z.string().min(1).max(MAX_POST_LENGTH);
-
 // commission-posting: full commission creation payload.
 export const CommissionPostingTargetInfoSchema = z
   .object({
     // No commissionListingId: the backend mints the listing id server-side at publish;
     // it is not accepted from the client.
-    title: z.string().min(1).max(MAX_COMMISSION_TITLE_LENGTH),
-    description: z.string().max(MAX_COMMISSION_DESCRIPTION_LENGTH),
+    title: textFieldSchema(COMMISSION_TITLE_INPUT),
+    description: textFieldSchema(COMMISSION_DESCRIPTION_INPUT),
     requiredTradeProfessions: z.array(z.enum(TRADE_PROFESSION_VALUES)).max(TRADE_PROFESSION_OPTIONS.length),
     // min(1): the create core rejects 0 shares (invalid-argument) at PUBLISH — after
     // upload/transcode/moderation — so fail fast at the trust boundary instead of burning
@@ -176,7 +171,7 @@ export const CommissionPostingTargetInfoSchema = z
 export const CommissionProposalTargetInfoSchema = z
   .object({
     commissionListingId: commissionListingIdSchema,
-    replyText: z.string().max(MAX_COMMISSION_DESCRIPTION_LENGTH),
+    replyText: textFieldSchema(COMMISSION_COVER_LETTER_INPUT),
   })
   .strict();
 
@@ -191,8 +186,8 @@ export const AuditionPromptTargetInfoSchema = z
     // existing audition (contrast audition-entry's auditionId).
     auditionId: auditionIdSchema,
     type: z.literal('workAudition'),
-    title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
-    description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
+    title: textFieldSchema(AUDITION_TITLE_INPUT),
+    description: textFieldSchema(AUDITION_DESCRIPTION_INPUT),
     // The poster's two deadlines (constants/audition-deadlines.ts). Their order is refined
     // below; their gap from the posting time is checked when the upload starts and again at
     // publish against the submit time.
@@ -228,8 +223,8 @@ const adminAuditionPromptFields = {
   // Audition doc exists; the backend uses create-no-overwrite semantics. NOT a reference to
   // an existing audition.
   auditionId: auditionIdSchema,
-  title: z.string().min(1).max(MAX_AUDITION_TITLE_LENGTH),
-  description: z.string().max(MAX_AUDITION_DESCRIPTION_LENGTH),
+  title: textFieldSchema(AUDITION_TITLE_INPUT),
+  description: textFieldSchema(AUDITION_DESCRIPTION_INPUT),
   entriesCloseAt: AuditionDeadlineSchema,
   auditionCloseAt: AuditionDeadlineSchema,
   // Curated vs open (see AuditionPromptTargetInfoSchema.mode). Absent ⇒ 'open'.

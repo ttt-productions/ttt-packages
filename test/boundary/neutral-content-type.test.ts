@@ -18,7 +18,7 @@ const LITERALS = new RegExp(LITERAL.source, 'g');
 // the file may hold exactly that one literal, so a second one there is still caught.
 const OTHER_CONCEPTS: Readonly<Record<string, string>> = {
   'packages/chat-schemas/src/internal-contract.ts':
-    "CHAT_PARKED_DELIVERY_REPORT_CONTENT_TYPE — a signed chat report's wire body type (raw bytes the receiver must not parse before verifying), not a file's type; chat-schemas is a zero-dependency schema package",
+    "CHAT_PARKED_DELIVERY_REPORT_CONTENT_TYPE — a signed chat report's wire body type (raw bytes the receiver must not parse before verifying), not a file's type; chat-schemas is a pure schema package that depends on no other schema package",
 };
 
 function listSource(dir: string): string[] {

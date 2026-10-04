@@ -1,6 +1,11 @@
 import { z } from "zod";
 import { documentIdSegmentSchema } from "../schemas/atoms.js";
 import { MAX_MENTIONS, MAX_MENTION_PLACEHOLDER_LENGTH } from "../constants/business-content.js";
+import { SQUARE_POST_TEXT_INPUT } from "../constants/text-fields.js";
+import { textFieldSchema } from "../schemas/text-field.js";
+
+/** A Square post's text — the ONE schema for a text post's text and a media post's caption. */
+export const SquareStreetzPostTextSchema = textFieldSchema(SQUARE_POST_TEXT_INPUT);
 
 export const MentionTypeSchema = z.enum(['user', 'workProject', 'workRealm', 'commission', 'audition']);
 

@@ -22,13 +22,19 @@ import {
 import { WorkRealmSchema } from '../src/doc-schemas/work-project';
 import {
   HALL_CONTENT_TEXT_FIELDS,
-  HALL_CONTENT_TEXT_FIELD_MAX,
   HALL_CONTENT_SURFACES_BY_WORK_TYPE,
   MODERATION_CLEARABLE_TEXT_FIELDS,
   REAL_PEOPLE_DISCLAIMER_HEADER,
   REAL_PEOPLE_DISCLAIMER_MESSAGE,
 } from '../src/constants/business-content';
 import { validateHallContentTextFields } from '../src/utils/hall-content';
+import {
+  CHAPTER_CONTENT_INPUT,
+  CHAPTER_TITLE_INPUT,
+  HALL_CONTENT_CHANGE_REQUEST_INPUTS,
+  REALM_DESCRIPTION_INPUT,
+  REALM_NAME_INPUT,
+} from '../src/constants/text-fields';
 import { CLEARABLE_TEXT_FIELD_LABELS } from '../src/constants/admin-labels';
 import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
 import {
@@ -153,7 +159,7 @@ describe('validateHallContentTextFields (the per-surface boundary check)', () =>
   it('rejects an empty value and an over-cap value', () => {
     expect(validateHallContentTextFields('tale', { title: '   ' }).ok).toBe(false);
     expect(validateHallContentTextFields('chapter', {
-      title: 'x'.repeat(HALL_CONTENT_TEXT_FIELD_MAX.title + 1),
+      title: 'x'.repeat(CHAPTER_TITLE_INPUT.max + 1),
     }).ok).toBe(false);
   });
 
@@ -186,15 +192,18 @@ describe('realm grain surface + allowlist', () => {
     expect(HALL_CONTENT_TEXT_FIELDS.workRealm).toEqual(['workingTitle', 'workingDescription']);
   });
 
-  it('realm field caps derive from the owning realm constants (one truth set)', () => {
-    expect(HALL_CONTENT_TEXT_FIELD_MAX.workingTitle).toBe(MAX_WORK_REALM_TITLE_LENGTH);
-    expect(HALL_CONTENT_TEXT_FIELD_MAX.workingDescription).toBe(MAX_WORK_REALM_DESCRIPTION_LENGTH);
+  it('realm proposals take the Realm declarations, capped by the realm constants', () => {
+    expect(HALL_CONTENT_CHANGE_REQUEST_INPUTS.workRealm.workingTitle).toBe(REALM_NAME_INPUT);
+    expect(HALL_CONTENT_CHANGE_REQUEST_INPUTS.workRealm.workingDescription).toBe(REALM_DESCRIPTION_INPUT);
+    expect(REALM_NAME_INPUT.max).toBe(MAX_WORK_REALM_TITLE_LENGTH);
+    expect(REALM_DESCRIPTION_INPUT.max).toBe(MAX_WORK_REALM_DESCRIPTION_LENGTH);
   });
 
-  it('every allowlisted field name has a cap', () => {
-    for (const fieldNames of Object.values(HALL_CONTENT_TEXT_FIELDS)) {
+  it('every allowlisted field has a declaration that requires text', () => {
+    for (const [surface, fieldNames] of Object.entries(HALL_CONTENT_TEXT_FIELDS)) {
+      const declarations = HALL_CONTENT_CHANGE_REQUEST_INPUTS as Record<string, Record<string, { min: number }>>;
       for (const field of fieldNames) {
-        expect(HALL_CONTENT_TEXT_FIELD_MAX[field as keyof typeof HALL_CONTENT_TEXT_FIELD_MAX]).toBeTypeOf('number');
+        expect(declarations[surface][field].min).toBeGreaterThanOrEqual(1);
       }
     }
   });
@@ -247,10 +256,15 @@ describe('HALL_CONTENT_SURFACES_BY_WORK_TYPE', () => {
     );
   });
 
-  it('every routed field has a cap and a display label', () => {
+  it('every routed field has a declaration and a display label', () => {
+    const declarations = HALL_CONTENT_CHANGE_REQUEST_INPUTS as Record<string, Record<string, { max: number }>>;
     for (const routing of Object.values(HALL_CONTENT_SURFACES_BY_WORK_TYPE)) {
-      for (const field of [...routing.detailFields, ...routing.subItemFields]) {
-        expect(HALL_CONTENT_TEXT_FIELD_MAX[field]).toBeTypeOf('number');
+      for (const field of routing.detailFields) {
+        expect(declarations[routing.detailSurface][field].max).toBeTypeOf('number');
+        expect(CLEARABLE_TEXT_FIELD_LABELS[field].length).toBeGreaterThan(0);
+      }
+      for (const field of routing.subItemFields) {
+        expect(declarations[routing.subItemSurface][field].max).toBeTypeOf('number');
         expect(CLEARABLE_TEXT_FIELD_LABELS[field].length).toBeGreaterThan(0);
       }
     }
@@ -384,5 +398,14 @@ describe('WorkRealm monotonic publish lock', () => {
     };
     expect(WorkRealmSchema.safeParse(base).success).toBe(true);
     expect(WorkRealmSchema.safeParse({ ...base, hasEverPublishedWork: true }).success).toBe(true);
+  });
+});
+
+describe('the change-request wire cap', () => {
+  it('judges the trimmed text, as the field declarations do', () => {
+    const base = { hallItemId: 'h1', workProjectType: 'Tales' as const, subItemId: 'c1' };
+    const atCap = 'a'.repeat(CHAPTER_CONTENT_INPUT.max);
+    expect(SubmitHallContentChangeRequestInputSchema.safeParse({ ...base, proposedFields: { content: atCap + '\n' } }).success).toBe(true);
+    expect(SubmitHallContentChangeRequestInputSchema.safeParse({ ...base, proposedFields: { content: atCap + 'a' } }).success).toBe(false);
   });
 });

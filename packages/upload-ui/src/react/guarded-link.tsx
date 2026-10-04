@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * Render-prop link wrapper that guards navigation when an upload is in
- * progress. The consumer owns the actual navigator component (Next.js Link,
+ * Render-prop link wrapper that guards navigation while an upload or unsaved
+ * work is registered. The consumer owns the actual navigator component (Next.js Link,
  * React Router Link, plain anchor, etc.) — this wrapper only injects the
  * onClick interceptor.
  *

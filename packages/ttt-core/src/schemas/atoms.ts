@@ -163,10 +163,10 @@ export type ShortLinkTargetType = z.infer<typeof ShortLinkTargetTypeSchema>;
  */
 export const calendarDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
-// String shape atoms. Length derives from the owning constant — every title alias
-// (tale/tune/tv/chapter/track/episode/commission) resolves to the same value, so the
-// UI counter, the Save guard, and this server bound are provably the same rule.
-export const titleSchema = z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH);
+// A stored title a server-written payload carries (notification metadata). It is not a typed
+// field — a typed title is a `textFieldSchema` over its declaration — and a stored title can hold
+// the moderation placeholder, so it is bounded by the title length alone.
+export const storedTitleSchema = z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH);
 
 
 

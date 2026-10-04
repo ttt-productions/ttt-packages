@@ -18,19 +18,22 @@ import {
   documentIdSegmentSchema,
   workFileFolderIdSchema,
   workFileIdSchema,
+  stakeSharesOfferedSchema,
 } from './atoms.js';
 import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
 import { GUILD_STANDING_VALUES } from '../permissions/index.js';
 import { FullWorkProjectSchema } from '../doc-schemas/work-project.js';
+import { MAX_CRAFT_SKILL_NAME_LENGTH } from '../constants/business.js';
 import {
-  MAX_GUILD_INVITE_MESSAGE_LENGTH,
-  MAX_WORK_PROJECT_TITLE_LENGTH,
-  MAX_WORK_PROJECT_DESCRIPTION_LENGTH,
-  MAX_WORK_REALM_TITLE_LENGTH,
-  MAX_WORK_REALM_DESCRIPTION_LENGTH,
-  MAX_CRAFT_SKILL_NAME_LENGTH,
-  MAX_FILE_FOLDER_NAME_LENGTH,
-} from '../constants/business.js';
+  GUILD_INVITE_MESSAGE_INPUT,
+  REALM_DESCRIPTION_INPUT,
+  REALM_FILE_FOLDER_NAME_INPUT,
+  REALM_NAME_INPUT,
+  WORK_DESCRIPTION_INPUT,
+  WORK_FILE_FOLDER_NAME_INPUT,
+  WORK_TITLE_INPUT,
+} from '../constants/text-fields.js';
+import { textFieldSchema } from './text-field.js';
 import {
   REALM_SHARED_FILES_PAGE_LIMIT,
   REALM_FILE_PROMOTION_QUEUE_PAGE_LIMIT,
@@ -271,28 +274,24 @@ export const DeleteRealmFileFolderResultSchema = z.object({
 });
 export type DeleteRealmFileFolderResult = z.infer<typeof DeleteRealmFileFolderResultSchema>;
 
+// The Work's and the Realm's named text schemas: one each, used by create and by the edit.
+export const workProjectTitleSchema = textFieldSchema(WORK_TITLE_INPUT);
+export const workProjectDescriptionSchema = textFieldSchema(WORK_DESCRIPTION_INPUT);
+// A Realm working title, used by create, the availability check, and the draft rename. Its
+// declaration (`REALM_NAME_INPUT`: English letters, digits, and spaces) also keeps the reservation
+// key (`workRealmNameReservationKey`) one document-id segment (ARCH-106): no "/", ".", or "_".
+export const realmWorkingTitleSchema = textFieldSchema(REALM_NAME_INPUT);
+export const realmWorkingDescriptionSchema = textFieldSchema(REALM_DESCRIPTION_INPUT);
+// A folder's name — one schema for create and rename, per folder kind.
+export const workFileFolderNameSchema = textFieldSchema(WORK_FILE_FOLDER_NAME_INPUT);
+export const realmFileFolderNameSchema = textFieldSchema(REALM_FILE_FOLDER_NAME_INPUT);
+
 const baseFields = {
-  workingTitle: z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH),
-  workingDescription: z.string().min(1).max(MAX_WORK_PROJECT_DESCRIPTION_LENGTH),
+  workingTitle: workProjectTitleSchema,
+  workingDescription: workProjectDescriptionSchema,
   workProjectType: workProjectTypeSchema,
   hallWingType: hallWingTypeSchema,
 };
-
-// A Realm working title is reserved under `reservedRealmNames/{UPPER(title)}` — the
-// UPPERCASED title IS the Firestore doc ID (runCreateWorkRealm.reservedRealmNameRef).
-// Firestore doc IDs cannot contain `/` and cannot be exactly `.` or `..`, so a title
-// that would produce an invalid/ambiguous doc ID must be rejected at the callable
-// boundary (both the create transaction and the soft availability check) rather than
-// hard-failing with an opaque `internal` error deep inside ref construction. Length
-// derives from MAX_WORK_REALM_TITLE_LENGTH; only the doc-ID-breaking characters are
-// forbidden. Keep CheckRealmNameAvailableInputSchema in lockstep so a valid-at-create
-// name is never rejected at form time (and vice-versa).
-export const realmWorkingTitleSchema = z
-  .string()
-  .min(1)
-  .max(MAX_WORK_REALM_TITLE_LENGTH)
-  .refine((v) => !v.includes('/'), { message: 'Realm name cannot contain a slash (/).' })
-  .refine((v) => v !== '.' && v !== '..', { message: 'Realm name cannot be "." or "..".' });
 
 export const RealmCreationModeSchema = z.enum([
   'newPublicRealm',
@@ -306,7 +305,7 @@ export const CreateWorkProjectInputSchema = z.discriminatedUnion('realmCreationM
     ...baseFields,
     realmCreationMode: z.literal('newPublicRealm'),
     realmWorkingTitle: realmWorkingTitleSchema,
-    realmWorkingDescription: z.string().min(1).max(MAX_WORK_REALM_DESCRIPTION_LENGTH),
+    realmWorkingDescription: realmWorkingDescriptionSchema,
   }).strict(),
   // Standalone realms are background plumbing (DJ ruling 2026-07-19): the user enters NO
   // realm information — the backend creates the realm shell with a synthetic unique
@@ -388,8 +387,8 @@ export type InviteSourceType = InviteSource['type'];
 export const InviteUserToGuildInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   inviteeUid: userIdSchema,
-  message: z.string().min(1).max(MAX_GUILD_INVITE_MESSAGE_LENGTH),
-  stakeSharesOffered: z.number().int().min(1),
+  message: textFieldSchema(GUILD_INVITE_MESSAGE_INPUT),
+  stakeSharesOffered: stakeSharesOfferedSchema,
   source: InviteSourceSchema,
 }).strict();
 export type InviteUserToGuildInput = z.infer<typeof InviteUserToGuildInputSchema>;
@@ -434,25 +433,26 @@ export const LeaveWorkProjectInputSchema = z.object({
 }).strict();
 export type LeaveWorkProjectInput = z.infer<typeof LeaveWorkProjectInputSchema>;
 
+// An edit sends only the fields its user changed (BACKEND-116), so each is optional and at
+// least one is required.
 export const UpdatePublicWorkProjectDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  workingTitle: z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH),
-  workingDescription: z.string().min(1).max(MAX_WORK_PROJECT_DESCRIPTION_LENGTH),
-}).strict();
+  workingTitle: workProjectTitleSchema.optional(),
+  workingDescription: workProjectDescriptionSchema.optional(),
+}).strict().refine((input) => input.workingTitle !== undefined || input.workingDescription !== undefined);
 export type UpdatePublicWorkProjectDetailsInput = z.infer<typeof UpdatePublicWorkProjectDetailsInputSchema>;
 
+// An edit sends only the fields its user changed (BACKEND-116), so each is optional and at
+// least one is required.
 export const UpdateWorkRealmDetailsInputSchema = z.object({
   workRealmId: workRealmIdSchema,
-  workingTitle: z.string().min(1).max(MAX_WORK_REALM_TITLE_LENGTH),
-  workingDescription: z.string().min(1).max(MAX_WORK_REALM_DESCRIPTION_LENGTH),
-}).strict();
+  workingTitle: realmWorkingTitleSchema.optional(),
+  workingDescription: realmWorkingDescriptionSchema.optional(),
+}).strict().refine((input) => input.workingTitle !== undefined || input.workingDescription !== undefined);
 export type UpdateWorkRealmDetailsInput = z.infer<typeof UpdateWorkRealmDetailsInputSchema>;
 
-// Unauthenticated soft-check for a Realm working title. Must match the authoritative
-// realmWorkingTitle contract in CreateWorkProjectInputSchema (realmWorkingTitleSchema:
-// MAX_WORK_REALM_TITLE_LENGTH, rejecting the doc-ID-breaking `/` and reserved `.`/`..`). Never be
-// stricter than the create transaction or a valid-at-create name would be rejected at
-// form time — reuse the SAME schema so the two can never drift.
+// Unauthenticated soft-check for a Realm working title: the same declaration create uses, so a
+// name valid at create is never refused at form time, and the reverse.
 export const CheckRealmNameAvailableInputSchema = z.object({
   workingTitle: realmWorkingTitleSchema,
 }).strict();
@@ -468,7 +468,7 @@ const tradeProfessionListSchema = z
 
 export const CreateFileFolderInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  name: z.string().min(1).max(MAX_FILE_FOLDER_NAME_LENGTH),
+  name: workFileFolderNameSchema,
   canViewTradeProfessions: tradeProfessionListSchema,
   canUploadTradeProfessions: tradeProfessionListSchema,
   canDeleteTradeProfessions: tradeProfessionListSchema,
@@ -478,7 +478,7 @@ export type CreateFileFolderInput = z.infer<typeof CreateFileFolderInputSchema>;
 export const RenameFileFolderInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   folderId: workFileFolderIdSchema,
-  name: z.string().min(1).max(MAX_FILE_FOLDER_NAME_LENGTH),
+  name: workFileFolderNameSchema,
 }).strict();
 export type RenameFileFolderInput = z.infer<typeof RenameFileFolderInputSchema>;
 
@@ -593,7 +593,7 @@ export type AdminUpdateWorkFileRealmUnshareInput = z.infer<typeof AdminUpdateWor
 
 export const CreateRealmFileFolderInputSchema = z.object({
   workRealmId: workRealmIdSchema,
-  name: z.string().min(1).max(MAX_FILE_FOLDER_NAME_LENGTH),
+  name: realmFileFolderNameSchema,
 }).strict();
 export type CreateRealmFileFolderInput = z.infer<typeof CreateRealmFileFolderInputSchema>;
 
@@ -601,7 +601,7 @@ export type CreateRealmFileFolderInput = z.infer<typeof CreateRealmFileFolderInp
 export const UpdateRealmFileFolderInputSchema = z.object({
   workRealmId: workRealmIdSchema,
   realmFileFolderId: realmFileFolderIdSchema,
-  name: z.string().min(1).max(MAX_FILE_FOLDER_NAME_LENGTH),
+  name: realmFileFolderNameSchema,
 }).strict();
 export type UpdateRealmFileFolderInput = z.infer<typeof UpdateRealmFileFolderInputSchema>;
 

@@ -15,7 +15,7 @@ describe('audit type catalog', () => {
       'user.accountRegistered',
       'admin.systemRoleGranted',
       'workProject.created',
-      'content.taleDetailsUpdated',
+      'content.taleWorkGenresUpdated',
       'payment.pledgePaymentCompleted',
       'system.manualIntervention',
       'social.targetFollowed',

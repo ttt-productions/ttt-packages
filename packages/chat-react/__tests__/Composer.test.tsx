@@ -108,6 +108,31 @@ describe('Composer enforces the one chat text bound', () => {
     expect(textarea.maxLength).toBe(CHAT_MESSAGE_TEXT_MAX_LENGTH);
   });
 
+  it('keeps Send disabled for whitespace-only text and never sends it', async () => {
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    render(<Composer onSend={onSend} />);
+    const textarea = screen.getByRole('textbox');
+    fireEvent.change(textarea, { target: { value: '  \n\t ' } });
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled();
+    fireEvent.keyDown(textarea, { key: 'Enter' });
+    await act(async () => {});
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('sends the text trimmed, as the Worker stores it', async () => {
+    const onSend = vi.fn().mockResolvedValue(undefined);
+    render(<Composer onSend={onSend} />);
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: '  line one\nline two  \n' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    await act(async () => {});
+    expect(onSend).toHaveBeenCalledWith('line one\nline two');
+  });
+
+  it('announces the message box as required', () => {
+    render(<Composer onSend={vi.fn().mockResolvedValue(undefined)} />);
+    expect(screen.getByRole('textbox')).toHaveAttribute('aria-required', 'true');
+  });
+
   it('shows a length counter against the bound once text is typed, tied to the textarea', () => {
     render(<Composer onSend={vi.fn().mockResolvedValue(undefined)} />);
     const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;

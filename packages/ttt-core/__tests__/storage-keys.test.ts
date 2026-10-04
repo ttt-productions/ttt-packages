@@ -14,6 +14,7 @@ import {
   TEXT_SIZE_STORAGE_KEY,
   TEXT_SIZE_CHANGE_EVENT,
   COOKIE_CONSENT_STORAGE_KEY,
+  THEME_STORAGE_KEY,
 } from '../src/constants/storage-keys';
 
 describe('Company dock storage keys + events are byte-stable', () => {
@@ -74,5 +75,11 @@ describe('Cookie/analytics consent storage key (device-local)', () => {
       COMPANION_STORAGE_KEY,
     ];
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe('theme storage key', () => {
+  it('is the next-themes default key, so a theme saved under the unnamed default keeps applying', () => {
+    expect(THEME_STORAGE_KEY).toBe('theme');
   });
 });

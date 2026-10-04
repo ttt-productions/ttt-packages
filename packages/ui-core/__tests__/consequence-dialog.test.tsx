@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { useState } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { defineInputFormat, type DeclaredInputFormat } from '@ttt-productions/input-format-core';
 
 import { ConsequenceDialog } from '../src/react/components/consequence-dialog';
 
@@ -135,7 +136,7 @@ describe('ConsequenceDialog', () => {
   });
 
   describe('reason gate', () => {
-    function ReasonHarness({ minLength, maxLength }: { minLength?: number; maxLength?: number }) {
+    function ReasonHarness({ inputFormat }: { inputFormat: DeclaredInputFormat }) {
       const [value, setValue] = useState('');
       return (
         <ConsequenceDialog
@@ -143,34 +144,51 @@ describe('ConsequenceDialog', () => {
           onOpenChange={noop}
           title="Deny?"
           reversibility="r"
-          reason={{ required: true, minLength, maxLength, label: 'Reason', value, onChange: setValue }}
+          reason={{ inputFormat, label: 'Reason', value, onChange: setValue }}
           confirmLabel="Deny"
           onConfirm={noop}
         />
       );
     }
 
-    it('a required reason disables confirm until non-empty', async () => {
+    it('a reason that cannot be blank keeps confirm disabled until it holds more than whitespace', async () => {
       const user = userEvent.setup();
-      render(<ReasonHarness />);
+      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 1, max: 2000 })} />);
       const confirm = screen.getByRole('button', { name: 'Deny' });
+      expect(confirm).toBeDisabled();
+      await user.type(screen.getByRole('textbox'), '   ');
       expect(confirm).toBeDisabled();
       await user.type(screen.getByRole('textbox'), 'because reasons');
       expect(confirm).toBeEnabled();
     });
 
-    it('enforces an injected minLength', async () => {
+    it("enforces the declaration's min on the trimmed reason", async () => {
       const user = userEvent.setup();
-      render(<ReasonHarness minLength={5} />);
+      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 5, max: 2000 })} />);
       const confirm = screen.getByRole('button', { name: 'Deny' });
-      await user.type(screen.getByRole('textbox'), 'abc');
+      await user.type(screen.getByRole('textbox'), ' abc  ');
       expect(confirm).toBeDisabled();
       await user.type(screen.getByRole('textbox'), 'de');
       expect(confirm).toBeEnabled();
     });
 
-    it('derives the Textarea maxLength from the injected constant', () => {
-      render(<ReasonHarness maxLength={280} />);
+    it("refuses a reason with characters the declaration's format does not allow", async () => {
+      const user = userEvent.setup();
+      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'singleLine', min: 1, max: 100 })} />);
+      const confirm = screen.getByRole('button', { name: 'Deny' });
+      await user.type(screen.getByRole('textbox'), 'first line');
+      expect(confirm).toBeEnabled();
+      await user.type(screen.getByRole('textbox'), '{Enter}second line');
+      expect(confirm).toBeDisabled();
+    });
+
+    it('leaves confirm enabled for an empty optional reason', () => {
+      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 0, max: 2000 })} />);
+      expect(screen.getByRole('button', { name: 'Deny' })).toBeEnabled();
+    });
+
+    it('derives the Textarea maxLength from the declaration', () => {
+      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 1, max: 280 })} />);
       expect(screen.getByRole('textbox')).toHaveAttribute('maxLength', '280');
     });
   });
@@ -195,6 +213,21 @@ describe('ConsequenceDialog', () => {
       expect(confirm).toBeDisabled();
       await user.type(screen.getByRole('textbox'), ' REOPEN');
       expect(confirm).toBeEnabled();
+    });
+
+    it('caps the typed confirmation at the length of the phrase', () => {
+      render(
+        <ConsequenceDialog
+          open
+          onOpenChange={noop}
+          title="Reopen?"
+          reversibility="r"
+          typedConfirmation={{ phrase: 'CONFIRM REOPEN' }}
+          confirmLabel="Reopen"
+          onConfirm={noop}
+        />,
+      );
+      expect(screen.getByRole('textbox')).toHaveAttribute('maxLength', String('CONFIRM REOPEN'.length));
     });
   });
 

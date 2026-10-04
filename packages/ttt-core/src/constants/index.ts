@@ -1,6 +1,7 @@
 export * from './analytics.js';
 export * from './app-mode.js';
 export * from './business.js';
+export * from './text-fields.js';
 export * from './chat.js';
 export * from './conversation-files.js';
 export * from './moderation.js';

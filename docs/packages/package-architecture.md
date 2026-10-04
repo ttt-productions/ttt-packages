@@ -20,20 +20,27 @@ application-data package: it may consume generic packages, but no generic
 package may consume it.
 
 - **Tier 0 — generic foundations (zero internal runtime deps):**
-  `firebase-helpers`, `chat-schemas`, `chat-core`, `media-schemas`, `mobile-core`,
-  `monitoring-core`, `query-core`, `theme-core`, `ui-core`, `rate-limit-core`,
+  `input-format-core` (the named text-input formats, a field's format/min/max
+  declaration, and the one check every text input and server bound runs; no
+  dependencies at all), `firebase-helpers`, `chat-core`, `media-schemas`,
+  `mobile-core`, `monitoring-core`, `query-core`, `theme-core`, `rate-limit-core`,
   `audit-core`, `moderation-core`, `auth-core`, `edge-protocol-core`
   (runtime-neutral signed-edge-call primitives plus the edge→origin provenance
   header contract; WebCrypto + zod only).
 - **Tier 1 — depend on Tier 0 only:**
-  `file-input` (→ `ui-core`, `media-schemas`, `media-viewer`), `media-viewer`
-  (→ `media-schemas`, `ui-core`), `media-processing-core` (→ `media-schemas`),
-  `upload-core` (→ `firebase-helpers`, `media-schemas`), `realtime-core` (→ `edge-protocol-core`;
-  generic runtime-neutral realtime primitives), `report-core` and
-  `notification-core` (no internal runtime deps; their UI/query needs are optional peers).
-- **Tier 2:** `upload-ui` (→ `file-input`, `media-schemas`, `ui-core`,
+  `ui-core` (→ `input-format-core`; its free-text inputs take a field
+  declaration), `chat-schemas` (→ `input-format-core`; the chat message text's
+  declaration and judgement), `report-core` (→ `input-format-core`; the report
+  comment's check — its UI/query needs are optional peers), `media-processing-core`
+  (→ `media-schemas`), `upload-core` (→ `firebase-helpers`, `media-schemas`),
+  `realtime-core` (→ `edge-protocol-core`; generic runtime-neutral realtime
+  primitives), `notification-core` (no internal runtime deps; its UI/query needs are
+  optional peers).
+- **Tier 2:** `media-viewer` (→ `media-schemas`, `ui-core`), `file-input`
+  (→ `ui-core`, `media-schemas`, `media-viewer`).
+- **Tier 3:** `upload-ui` (→ `file-input`, `media-schemas`, `ui-core`,
   `upload-core`).
-- **Tier 3:** `chat-react` (→ `chat-core`, `chat-schemas`, `realtime-core`,
+- **Tier 4:** `chat-react` (→ `chat-core`, `chat-schemas`, `realtime-core`,
   `ui-core`, `upload-ui`, `mobile-core`, `firebase-helpers`). The `realtime-core`
   edge is the realtime (Durable Object) chat transport client; `realtime-core` is
   Tier 1 so it already builds before `chat-react`. The `upload-ui` edge is the
@@ -41,11 +48,15 @@ package may consume it.
   path, which is why it has no `file-input` / `media-viewer` / `media-schemas`
   edge.
 - **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
-  `edge-protocol-core`, `media-schemas`, `notification-core`, `report-core`).
+  `edge-protocol-core`, `input-format-core`, `media-schemas`, `notification-core`,
+  `report-core`).
 
 The internal runtime-dependency edges (peer and dev edges are left out here; the
 build and release order still honors them):
 
+    ui-core                -> input-format-core
+    chat-schemas           -> input-format-core
+    report-core            -> input-format-core
     realtime-core          -> edge-protocol-core
     file-input             -> ui-core, media-schemas, media-viewer
     media-viewer           -> media-schemas, ui-core
@@ -53,12 +64,13 @@ build and release order still honors them):
     upload-core            -> firebase-helpers, media-schemas
     upload-ui              -> file-input, media-schemas, ui-core, upload-core
     ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
-                              media-schemas, notification-core, report-core
+                              input-format-core, media-schemas,
+                              notification-core, report-core
     chat-react             -> chat-core, chat-schemas, realtime-core,
                               ui-core, upload-ui, mobile-core, firebase-helpers
 
-The `file-input -> media-viewer` edge is the only intra-Tier-1 dependency
-(`file-input` renders `MediaPreview` in `MediaInput`'s selected-file preview).
+The `file-input -> media-viewer` edge is the only intra-tier dependency (both
+Tier 2; `file-input` renders `MediaPreview` in `MediaInput`'s selected-file preview).
 It needs no tier renumbering: the one package order (see Build order and release
 order) already places `media-viewer` before `file-input`, so dependencies still
 build and release before their dependents.
@@ -101,8 +113,12 @@ safety:
 - Generic packages must not import `ttt-core`. If a generic package needs
   app-specific values, it exposes a factory, adapter, callback, schema factory,
   or configuration object (the `auth-core` / upload / backend pattern).
-- Pure schema packages (`chat-schemas`, `media-schemas`) stay pure Zod/TS with
-  zero `@ttt-productions/*` runtime deps.
+- Pure schema packages (`chat-schemas`, `media-schemas`) stay pure Zod/TS. Their
+  only allowed `@ttt-productions/*` runtime dependency is `input-format-core` —
+  itself dependency-free and server-safe — so a text bound they own runs the same
+  check as every other text input (`chat-schemas` judges a chat message's text
+  with it). Nothing else, so a backend importing a schema package never inherits
+  another package's graph.
 - UI packages must not import server (`./server` / Admin SDK) packages.
 - Server packages must not import React/UI.
 - No dependency cycles.

@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * Wraps a navigation action so it prompts the user when an upload is in
- * progress. Returns a function that takes the consumer's actual navigation
- * call and either runs it immediately (no active uploads) or shows a confirm()
+ * Wraps a navigation action so it prompts the user while an upload or unsaved
+ * work is registered. Returns a function that takes the consumer's actual navigation
+ * call and either runs it immediately (nothing registered) or shows a confirm()
  * dialog first.
  *
  * Designed to be framework-agnostic — the consumer supplies the navigator
@@ -27,8 +27,8 @@ import { useLocalUploadGuard, type ConfirmNavigationOptions } from './local-uplo
 
 /**
  * Returns a callable that wraps a navigation action. Calling the returned
- * function with `performNavigation` either invokes it immediately (when no
- * active uploads) or shows a confirmation prompt; if the user confirms,
+ * function with `performNavigation` either invokes it immediately (when
+ * nothing is registered) or shows a confirmation prompt; if the user confirms,
  * `performNavigation` is invoked. `options` passes through to
  * `confirmNavigation()`.
  */

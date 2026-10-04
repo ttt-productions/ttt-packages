@@ -4,7 +4,7 @@ Generic report-filing UI and admin-task queue package.
 
 ## Owns
 
-- The `submitReport` wire contract (`SubmitReportRequestSchema` / `SubmitReportResult`) consumed by the
+- The `submitReport` wire contract (`createSubmitReportRequestSchema` / `SubmitReportResult`) consumed by the
   app's `submitReport` callable. Report data itself has no canonical stored shape here; the app owns the
   Firestore report document and report-group shape.
 - The report-filing dialog (`ReportDialog`, `ReportButton`, `useReportButton`) and its contract types.
@@ -24,7 +24,12 @@ Generic report-filing UI and admin-task queue package.
 - `./react` — `ReportCoreProvider` / `useReportCoreContext`, the report dialog, the queue hooks, and
   `CountdownTimer` / `PriorityBadge`.
 - `./server` — the queue handler factories.
-- `./schemas` — wire-format Zod schemas.
+- `./schemas` — wire-format Zod schemas. A free-text field in them is never bounded here: `createCheckinTaskRequestSchema({ resolution })`
+  and `createSubmitReportRequestSchema({ comment })` take the consuming app's own field schema
+  (`ReportTextFieldSchema`, `z.ZodType<string | undefined>` — built by the app over its declaration, so its
+  format, bounds, trim, and optionality are the app's; ARCH-201, ARCH-102). The opaque ids, item type, and
+  reason keep their structural bounds. `CheckinTaskRequest` and `SubmitReportRequest` are the shapes with
+  that text optional, which the check-in handler and the dialog's submit hook read and send.
 - `./styles` — admin/report CSS. It reads theme-core's semantic tokens (`hsl(var(--card))`,
   `--destructive`, `--warning`, …) and carries no raw colour; its keyframes are namespaced (`rc-pulse`).
 
@@ -49,9 +54,13 @@ package carries no product copy and no product routing:
   the reporter to another surface: the comment field is hidden and never required or passed — nothing
   the reporter typed can ride along — its handler resolves once the destination has rendered, and the
   dialog then closes without reporting a submission.
-- **Comments.** `requireComment` (default `true`) makes a report reason or a `submit` action need a
-  non-blank comment; the comment is capped at `config.maxReportCommentLength`, and its counter is wired
-  to the field with `aria-describedby`.
+- **Comments.** The comment's field declaration is the app's — `config.reportCommentInput`, an
+  `input-format-core` `DeclaredInputFormat` made by `defineInputFormat` (format, min, max). Its `Textarea` takes the declaration (so
+  the field is capped at its `max`), and a report reason or a `submit` action can be sent only when
+  `checkInputFormat` passes the comment: with `min: 1` it cannot be blank, with `min: 0` it may be
+  empty. What is sent — to the callable and to a `submit` action's handler — is the checked value,
+  trimmed, exactly what the server keeps. Its `{length}/{max}` counter is wired to the field with
+  `aria-describedby`.
 - **Unsent comment.** Closing the form or upgrade view — Cancel, Escape, an outside click — while
   the draft holds a non-blank comment asks first through ui-core's `ConsequenceDialog`
   (FRONTEND-207), worded by `copy.discardTitle` / `discardDescription` / `discardConfirmLabel` /
@@ -107,5 +116,6 @@ matching `HttpsError` code.
 ## Boundary
 
 The consuming app owns the concrete `AdminTaskType` union, which task types a domain resolver owns,
-every string the dialog shows, and any app-specific report routing (e.g. TTT's protected-category
-hand-off). `report-core` does not import `ttt-core`.
+every string the dialog shows, the report comment's declaration, and any app-specific report routing
+(e.g. TTT's protected-category hand-off). `report-core` does not import `ttt-core`; its one internal
+runtime dependency is `input-format-core`, whose check judges the comment.

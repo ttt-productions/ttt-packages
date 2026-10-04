@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { checkInputFormat, defineInputFormat } from '@ttt-productions/input-format-core';
 
 /**
  * Chat realtime WIRE CONTRACT — the single canonical declaration of the chat
@@ -17,7 +18,8 @@ import { z } from 'zod';
  *     {@link SERVER_KINDS} (server→client),
  *   - `payload` is the per-`type` body.
  *
- * Tier 0 — pure Zod/TS, zero `@ttt-productions/*` deps. Safe for the browser
+ * Pure Zod/TS; its one `@ttt-productions/*` dependency is the zero-dependency
+ * `input-format-core`, whose check judges a message's text. Safe for the browser
  * client, the Worker runtime, and backend/schema composition alike.
  */
 
@@ -100,12 +102,39 @@ export type ServerFrameKind = (typeof SERVER_KINDS)[keyof typeof SERVER_KINDS];
  */
 export const CHAT_MESSAGE_TEXT_MAX_LENGTH = 4000;
 
+/**
+ * A message text's declaration: any characters, line breaks included, never blank, at most
+ * {@link CHAT_MESSAGE_TEXT_MAX_LENGTH}. The composer's textarea, the Worker's send judgement, and an
+ * app-side send schema all take this one declaration, so they accept exactly the same texts.
+ */
+export const CHAT_MESSAGE_TEXT_INPUT = defineInputFormat({
+  format: 'none',
+  min: 1,
+  max: CHAT_MESSAGE_TEXT_MAX_LENGTH,
+});
+
+/** A send's text judged against {@link CHAT_MESSAGE_TEXT_INPUT}: the trimmed text to send and store, or its rejection. */
+export type ChatMessageTextJudgement =
+  | { ok: true; text: string }
+  | { ok: false; code: Extract<ChatSendRejectionCode, 'blank' | 'too-long'> };
+
+/**
+ * Judges a message text with the input-format check. A text that passes is sent and stored
+ * trimmed (`text`); a blank one earns `blank` and an over-long one `too-long`, both terminal.
+ */
+export function judgeChatMessageText(text: string): ChatMessageTextJudgement {
+  const result = checkInputFormat(text, CHAT_MESSAGE_TEXT_INPUT);
+  if (result.ok) return { ok: true, text: result.value };
+  // A `none` text has no character rule, so the only failures are its two length bounds.
+  return { ok: false, code: result.issue === 'tooShort' ? 'blank' : 'too-long' };
+}
+
 /** The longest `clientMessageId` a send, and every frame correlated to it, may carry. */
 export const CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH = 200;
 
 /**
- * A send's idempotency id. The Worker parses it before judging the text, so an
- * over-bound text is answered with a `too-long` rejection that names it.
+ * A send's idempotency id. The Worker parses it before judging the text, so a blank
+ * or over-bound text is answered with a `blank` or `too-long` rejection that names it.
  */
 export const ChatClientMessageIdSchema = z.string().min(1).max(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH);
 
@@ -153,6 +182,7 @@ export const CHAT_SEND_REJECTION_CODES = [
   'flood',
   'slow-mode',
   'too-long',
+  'blank',
 ] as const;
 
 /** A correlated send-rejection reason code. */
@@ -175,6 +205,8 @@ export type ChatSendRejectionCode = (typeof CHAT_SEND_REJECTION_CODES)[number];
  *   succeed. Terminal.
  * - `too-long` — the text is longer than {@link CHAT_MESSAGE_TEXT_MAX_LENGTH}; the same
  *   text can never be accepted. Terminal.
+ * - `blank` — the text is empty or whitespace only; the same text can never be
+ *   accepted. Terminal.
  */
 export const CHAT_SEND_REJECTION_RETRYABLE: Record<ChatSendRejectionCode, boolean> = {
   'membership-pending': true,
@@ -185,6 +217,7 @@ export const CHAT_SEND_REJECTION_RETRYABLE: Record<ChatSendRejectionCode, boolea
   'deleted': false,
   'blocked-word': false,
   'too-long': false,
+  'blank': false,
 };
 
 /**
@@ -367,9 +400,9 @@ export type ChatMarkReadResultPayload = z.infer<typeof ChatMarkReadResultPayload
 
 /**
  * A `send`: the message's idempotency id and its text, and nothing else (chat is text-only, with no
- * reply pointer). The text's length is judged after this parse, so an over-long text is answered
- * with a `too-long` rejection that names the parsed id; a send that fails this parse has no
- * trustworthy id.
+ * reply pointer). The text is judged after this parse ({@link judgeChatMessageText}), so a blank or
+ * over-long text is answered with a `blank` or `too-long` rejection that names the parsed id; a send
+ * that fails this parse has no trustworthy id.
  */
 export const ChatSendPayloadSchema = z.object({ clientMessageId: ChatClientMessageIdSchema, text: z.string() });
 export type ChatSendPayload = z.infer<typeof ChatSendPayloadSchema>;

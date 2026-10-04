@@ -40,32 +40,41 @@ import {
 } from '../constants/business-content.js';
 import {
   MAX_WORK_PROJECT_TITLE_LENGTH,
-  MAX_ADMIN_DISPATCH_SUBJECT_LENGTH,
-  MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH,
   MAX_INTERNAL_REASON_LENGTH,
   MAX_USER_FACING_REASON_LENGTH,
   MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH,
-  MAX_SAFETY_ADMIN_NOTE_LENGTH,
-  MAX_FUTURE_PLAN_TITLE_LENGTH,
-  MAX_FUTURE_PLAN_DESCRIPTION_LENGTH,
-  MAX_PLATFORM_RULE_TITLE_LENGTH,
-  MAX_PLATFORM_RULE_DESCRIPTION_LENGTH,
-  MAX_AGREEMENT_POINT_LENGTH,
-  MAX_CONTENT_PAGE_HEADING_LENGTH,
-  MAX_CONTENT_PAGE_BODY_LENGTH,
   MAX_CONTENT_PAGE_SECTIONS,
-  MAX_TAKE_IT_DOWN_COPY_LENGTH,
   MAX_DMCA_CONTACT_BLOCKS,
   MAX_DMCA_CONTACT_ROWS,
-  MAX_DMCA_CONTACT_LABEL_LENGTH,
-  MAX_DMCA_CONTACT_VALUE_LENGTH,
-  MAX_MAINTENANCE_MESSAGE_LENGTH,
-  MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
-  MAX_APP_VERSION_LENGTH,
-  MAX_APPEAL_REVIEW_NOTES_LENGTH,
-  MAX_REQUIRE_RETITLE_REASON_LENGTH,
-  MAX_USER_FACING_REASON_DETAIL_LENGTH,
 } from '../constants/business.js';
+import {
+  ACCOUNT_ACTION_REASON_INPUT,
+  ACCOUNT_REINSTATE_REASON_INPUT,
+  ADMIN_DISPATCH_MESSAGE_INPUT,
+  ADMIN_DISPATCH_SUBJECT_INPUT,
+  AGREEMENT_POINT_INPUT,
+  ANNOUNCEMENT_MESSAGE_INPUT,
+  APP_VERSION_INPUT,
+  APPEAL_REVIEW_NOTES_INPUT,
+  CLEAR_TEXT_REASON_INPUT,
+  CLOSE_OUT_ADMIN_NOTE_INPUT,
+  CONTENT_PAGE_BODY_INPUT,
+  CONTENT_PAGE_HEADING_INPUT,
+  DMCA_CONTACT_LABEL_INPUT,
+  DMCA_CONTACT_VALUE_INPUT,
+  FUTURE_PLAN_DESCRIPTION_INPUT,
+  FUTURE_PLAN_TITLE_INPUT,
+  HIDE_REASON_INPUT,
+  MAINTENANCE_MESSAGE_INPUT,
+  MODERATION_ACTION_REASON_INPUT,
+  PLATFORM_RULE_DESCRIPTION_INPUT,
+  PLATFORM_RULE_TITLE_INPUT,
+  RETITLE_REASON_INPUT,
+  SAFETY_INTERNAL_REASON_INPUT,
+  TAKE_IT_DOWN_COPY_INPUT,
+  USER_FACING_REASON_DETAIL_INPUT,
+} from '../constants/text-fields.js';
+import { textFieldSchema } from './text-field.js';
 import {
   SAFETY_ACTIONS_CONFIRMATION,
   SAFETY_CASE_REOPEN_CONFIRMATION,
@@ -96,7 +105,7 @@ export const ReviewContentAppealInputSchema = z.object({
   violationId: violationIdSchema,
   taskId: taskIdSchema,
   decision: ContentAppealDecisionSchema,
-  adminNotes: z.string().max(MAX_APPEAL_REVIEW_NOTES_LENGTH),
+  adminNotes: textFieldSchema(APPEAL_REVIEW_NOTES_INPUT),
 }).strict();
 export type ReviewContentAppealInput = z.infer<typeof ReviewContentAppealInputSchema>;
 
@@ -124,8 +133,8 @@ export type ReviewContentAppealResult = z.infer<typeof ReviewContentAppealResult
 
 export const FuturePlanItemInputSchema = z.object({
   id: z.string().min(1).max(128),
-  title: z.string().min(1).max(MAX_FUTURE_PLAN_TITLE_LENGTH),
-  description: z.string().min(1).max(MAX_FUTURE_PLAN_DESCRIPTION_LENGTH),
+  title: textFieldSchema(FUTURE_PLAN_TITLE_INPUT),
+  description: textFieldSchema(FUTURE_PLAN_DESCRIPTION_INPUT),
   order: z.number().int().min(0),
   videoUrl: z.string().url().max(2048).optional(),
   mediaType: z.enum(['video', 'image', 'audio', 'other']).optional(),
@@ -138,8 +147,8 @@ export type FuturePlansContentInput = z.infer<typeof FuturePlansContentInputSche
 
 export const PlatformRuleInputSchema = z.object({
   id: z.string().min(1).max(128),
-  title: z.string().min(1).max(MAX_PLATFORM_RULE_TITLE_LENGTH),
-  description: z.string().min(1).max(MAX_PLATFORM_RULE_DESCRIPTION_LENGTH),
+  title: textFieldSchema(PLATFORM_RULE_TITLE_INPUT),
+  description: textFieldSchema(PLATFORM_RULE_DESCRIPTION_INPUT),
   videoUrl: z.string().url().max(2048).optional(),
   group: RuleGroupSchema.optional(),
   subgroup: RuleSubgroupSchema.optional(),
@@ -147,7 +156,7 @@ export const PlatformRuleInputSchema = z.object({
 }).strict();
 
 export const AgreementCategoryInputSchema = z.object({
-  points: z.array(z.string().min(1).max(MAX_AGREEMENT_POINT_LENGTH)).max(200),
+  points: z.array(textFieldSchema(AGREEMENT_POINT_INPUT)).max(200),
   videoUrl: z.string().url().max(2048).optional(),
 }).strict();
 
@@ -165,13 +174,13 @@ export type RulesAndAgreementsContentInput = z.infer<typeof RulesAndAgreementsCo
 
 export const ContentPageSectionInputSchema = z.object({
   id: z.string().min(1).max(128),
-  heading: z.string().min(1).max(MAX_CONTENT_PAGE_HEADING_LENGTH),
+  heading: textFieldSchema(CONTENT_PAGE_HEADING_INPUT),
   level: z.union([z.literal(1), z.literal(2)]),
   // Empty body is LEGAL: a bare divider heading (e.g. terms "Part 1 — Our
   // Intention") is real content. The input schema must accept everything the
   // stored ContentPageSectionSchema accepts, or a faithfully-seeded doc becomes
   // unsaveable in the admin editor (found by adversarial review 2026-07-06).
-  body: z.string().max(MAX_CONTENT_PAGE_BODY_LENGTH),
+  body: textFieldSchema(CONTENT_PAGE_BODY_INPUT),
   order: z.number().int().min(0),
 }).strict();
 
@@ -182,7 +191,7 @@ export const LegalPageContentInputSchema = z.object({
 export type LegalPageContentInput = z.infer<typeof LegalPageContentInputSchema>;
 
 export const TakeItDownPageCopyContentInputSchema = z.object({
-  strings: z.record(z.string().min(1).max(128), z.string().min(1).max(MAX_TAKE_IT_DOWN_COPY_LENGTH)),
+  strings: z.record(z.string().min(1).max(128), textFieldSchema(TAKE_IT_DOWN_COPY_INPUT)),
 }).strict().refine(
   (data) => {
     const count = Object.keys(data.strings).length;
@@ -194,14 +203,14 @@ export type TakeItDownPageCopyContentInput = z.infer<typeof TakeItDownPageCopyCo
 
 const DmcaContactRowInputSchema = z.object({
   id: z.string().min(1).max(128),
-  label: z.string().min(1).max(MAX_DMCA_CONTACT_LABEL_LENGTH),
-  value: z.string().min(1).max(MAX_DMCA_CONTACT_VALUE_LENGTH),
+  label: textFieldSchema(DMCA_CONTACT_LABEL_INPUT),
+  value: textFieldSchema(DMCA_CONTACT_VALUE_INPUT),
   order: z.number().int().min(0),
 }).strict();
 
 const DmcaContactBlockInputSchema = z.object({
   id: z.string().min(1).max(128),
-  heading: z.string().min(1).max(MAX_CONTENT_PAGE_HEADING_LENGTH),
+  heading: textFieldSchema(CONTENT_PAGE_HEADING_INPUT),
   order: z.number().int().min(0),
   rows: z.array(DmcaContactRowInputSchema).min(1).max(MAX_DMCA_CONTACT_ROWS),
 }).strict();
@@ -211,7 +220,7 @@ const DmcaContactBlockInputSchema = z.object({
  * exists to name the designated agent), and the long-form process sections.
  */
 export const DmcaPolicyContentInputSchema = z.object({
-  intro: z.string().max(MAX_CONTENT_PAGE_BODY_LENGTH),
+  intro: textFieldSchema(CONTENT_PAGE_BODY_INPUT),
   contactBlocks: z.array(DmcaContactBlockInputSchema).min(1).max(MAX_DMCA_CONTACT_BLOCKS),
   sections: z.array(ContentPageSectionInputSchema).max(MAX_CONTENT_PAGE_SECTIONS),
 }).strict();
@@ -222,12 +231,12 @@ const AppConfigDocIdSchema = z.literal('app');
 export const UpdateAppConfigInputSchema = z.object({
   docId: AppConfigDocIdSchema,
   data: z.object({
-    appVersion: z.string().min(1).max(MAX_APP_VERSION_LENGTH).optional(),
+    appVersion: textFieldSchema(APP_VERSION_INPUT).optional(),
     maintenanceMode: z.boolean().optional(),
-    maintenanceMessage: z.string().max(MAX_MAINTENANCE_MESSAGE_LENGTH).optional(),
+    maintenanceMessage: textFieldSchema(MAINTENANCE_MESSAGE_INPUT).optional(),
     registrationEnabled: z.boolean().optional(),
     // Announcement banner copy; '' clears the banner (empty = nothing renders).
-    announcementMessage: z.string().max(MAX_ANNOUNCEMENT_MESSAGE_LENGTH).optional(),
+    announcementMessage: textFieldSchema(ANNOUNCEMENT_MESSAGE_INPUT).optional(),
     // Runtime abuse throttle: 0 < m <= 1 (tighten-only; 1 = no throttle).
     rateLimitMultiplier: z.number().gt(0).max(1).optional(),
   }).strict().refine(
@@ -386,7 +395,7 @@ export const HideHallSubItemInputSchema = z.object({
   hallItemId: hallItemIdSchema,
   workProjectType: workProjectTypeSchema,
   subItemId: hallSubItemIdSchema,
-  reason: z.string().min(1),
+  reason: textFieldSchema(HIDE_REASON_INPUT),
 }).strict();
 export type HideHallSubItemInput = z.infer<typeof HideHallSubItemInputSchema>;
 
@@ -399,13 +408,13 @@ export type RestoreHallSubItemInput = z.infer<typeof RestoreHallSubItemInputSche
 
 export const HideWorkProjectInputSchema = z.object({
   workProjectId: workProjectIdSchema,
-  reason: z.string().min(1),
+  reason: textFieldSchema(HIDE_REASON_INPUT),
 }).strict();
 export type HideWorkProjectInput = z.infer<typeof HideWorkProjectInputSchema>;
 
 export const HideWorkRealmInputSchema = z.object({
   workRealmId: workRealmIdSchema,
-  reason: z.string().min(1),
+  reason: textFieldSchema(HIDE_REASON_INPUT),
 }).strict();
 export type HideWorkRealmInput = z.infer<typeof HideWorkRealmInputSchema>;
 
@@ -426,7 +435,7 @@ export type RestoreWorkRealmInput = z.infer<typeof RestoreWorkRealmInputSchema>;
 // The `requireWorkProjectRetitle` / `requireWorkRealmRetitle` callables share this base
 // `{ reason }` shape and each `.extend(...)` it with its own id field at parse time.
 export const RequireRetitleInputSchema = z.object({
-  reason: z.string().min(1).max(MAX_REQUIRE_RETITLE_REASON_LENGTH),
+  reason: textFieldSchema(RETITLE_REASON_INPUT),
 }).strict();
 export type RequireRetitleInput = z.infer<typeof RequireRetitleInputSchema>;
 
@@ -440,14 +449,14 @@ export type ModerationShellClearField = z.infer<typeof ModerationShellClearField
 export const ClearWorkProjectTextInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   fields: z.array(ModerationShellClearFieldSchema).min(1),
-  reason: z.string().trim().min(1).max(MAX_REQUIRE_RETITLE_REASON_LENGTH),
+  reason: textFieldSchema(CLEAR_TEXT_REASON_INPUT),
 }).strict();
 export type ClearWorkProjectTextInput = z.infer<typeof ClearWorkProjectTextInputSchema>;
 
 export const ClearWorkRealmTextInputSchema = z.object({
   workRealmId: workRealmIdSchema,
   fields: z.array(ModerationShellClearFieldSchema).min(1),
-  reason: z.string().trim().min(1).max(MAX_REQUIRE_RETITLE_REASON_LENGTH),
+  reason: textFieldSchema(CLEAR_TEXT_REASON_INPUT),
 }).strict();
 export type ClearWorkRealmTextInput = z.infer<typeof ClearWorkRealmTextInputSchema>;
 
@@ -461,7 +470,7 @@ export const ClearHallContentTextInputSchema = z.object({
   workProjectType: workProjectTypeSchema,
   subItemId: hallSubItemIdSchema.optional(),
   fields: z.array(HallClearFieldSchema).min(1),
-  reason: z.string().trim().min(1).max(MAX_REQUIRE_RETITLE_REASON_LENGTH),
+  reason: textFieldSchema(CLEAR_TEXT_REASON_INPUT),
 }).strict();
 export type ClearHallContentTextInput = z.infer<typeof ClearHallContentTextInputSchema>;
 
@@ -499,7 +508,7 @@ export const ModerateReportedContentInputSchema = z.object({
   parentItemId: reportTargetParentRefSchema.optional(),
   action: z.enum(['hide', 'restore', 'remove']),
   // [EUAS-023] A destructive action (hide/remove) MUST carry a reason; restore is a reversal.
-  reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH).optional(),
+  reason: textFieldSchema(MODERATION_ACTION_REASON_INPUT).optional(),
 })
   .strict()
   .superRefine((val, ctx) => {
@@ -547,8 +556,8 @@ const WarnUserSchema = z
     userId: userIdSchema,
     // A warning IS an admin dispatch (resolveAdminTask → runCreateAdminDispatchToUser),
     // so it shares the dispatch subject/body caps.
-    subject: z.string().trim().min(1).max(MAX_ADMIN_DISPATCH_SUBJECT_LENGTH),
-    message: z.string().trim().min(1).max(MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH),
+    subject: textFieldSchema(ADMIN_DISPATCH_SUBJECT_INPUT),
+    message: textFieldSchema(ADMIN_DISPATCH_MESSAGE_INPUT),
   })
   .strict();
 
@@ -556,16 +565,16 @@ const SuspendOrBanSchema = z
   .object({
     button: z.enum(['suspendUser', 'banUser']),
     userId: userIdSchema,
-    reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH),
+    reason: textFieldSchema(ACCOUNT_ACTION_REASON_INPUT),
   })
   .strict();
 
 const ReinstateUserSchema = z
-  .object({ button: z.literal('reinstateUser'), userId: userIdSchema, reason: z.string().trim().max(MAX_INTERNAL_REASON_LENGTH).optional() })
+  .object({ button: z.literal('reinstateUser'), userId: userIdSchema, reason: textFieldSchema(ACCOUNT_REINSTATE_REASON_INPUT).optional() })
   .strict();
 
 const ForceUsernameResetSchema = z
-  .object({ button: z.literal('forceUsernameReset'), userId: userIdSchema, reason: z.string().trim().min(1).max(MAX_INTERNAL_REASON_LENGTH).optional() })
+  .object({ button: z.literal('forceUsernameReset'), userId: userIdSchema, reason: textFieldSchema(ACCOUNT_ACTION_REASON_INPUT).optional() })
   .strict();
 
 /** Whole-object Work/Realm remedies — `reportedItemId` is the workProjectId / workRealmId. */
@@ -681,8 +690,8 @@ export const NormalReportInputSchema = z
     resolutionSummary: z.string().trim().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
     actions: z.array(StagedActionSchema).max(16).default([]),
     userFacingReasonCode: z.string().trim().min(1).max(128).optional(),
-    userFacingReasonDetail: z.string().trim().max(MAX_USER_FACING_REASON_DETAIL_LENGTH).optional(),
-    adminNote: z.string().trim().max(MAX_SAFETY_ADMIN_NOTE_LENGTH).optional(),
+    userFacingReasonDetail: textFieldSchema(USER_FACING_REASON_DETAIL_INPUT).optional(),
+    adminNote: textFieldSchema(CLOSE_OUT_ADMIN_NOTE_INPUT).optional(),
   })
   .strict();
 export type ResolveAdminTaskInput = z.infer<typeof NormalReportInputSchema>;
@@ -713,7 +722,7 @@ const SafetyAccountActionSchema = z
   .object({
     button: z.enum(['suspendUser', 'banUser', 'reinstateUser']),
     targetUid: userIdSchema,
-    reasonInternal: z.string().trim().min(4).max(MAX_INTERNAL_REASON_LENGTH),
+    reasonInternal: textFieldSchema(SAFETY_INTERNAL_REASON_INPUT),
     reasonUserFacing: z.string().trim().min(1).max(MAX_USER_FACING_REASON_LENGTH),
     role: ChildSafetyAccountRoleSchema,
     subjectDisposition: ChildSafetyAccountSubjectDispositionSchema,
@@ -745,7 +754,7 @@ export const SafetyCaseInputSchema = z
     outcome: z.enum(['founded', 'unfounded']),
     resolutionSummary: z.string().trim().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
     actions: z.array(SafetyStagedActionSchema).max(16).default([]),
-    adminNote: z.string().trim().max(MAX_SAFETY_ADMIN_NOTE_LENGTH).optional(),
+    adminNote: textFieldSchema(CLOSE_OUT_ADMIN_NOTE_INPUT).optional(),
     // [EUAS-017] Optimistic-concurrency token (`childSafetyCaseList.revision` / `nciiCases.revision`).
     // The close is rejected if the case changed since the operator loaded it — concurrent stale closes
     // can't silently overwrite. Optional for backward compatibility; the console always supplies it.
@@ -761,7 +770,7 @@ export const ReopenSafetyCaseInputSchema = z
   .object({
     caseType: SafetyCaseLaneSchema,
     caseId: safetyCaseIdSchema,
-    reasonInternal: z.string().trim().min(4).max(MAX_INTERNAL_REASON_LENGTH),
+    reasonInternal: textFieldSchema(SAFETY_INTERNAL_REASON_INPUT),
     expectedRevision: z.number().int().nonnegative().optional(),
     confirmation: z.literal(SAFETY_CASE_REOPEN_CONFIRMATION),
   })

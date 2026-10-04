@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { PLEDGE_REFUND_DENIAL_REASON_INPUT } from '../constants/text-fields.js';
+import { textFieldSchema } from './text-field.js';
 import {
   MIN_PLEDGE_PAYMENT_AMOUNT_CENTS,
   MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
@@ -44,7 +46,7 @@ export type RequestPledgeRefundInput = z.infer<typeof RequestPledgeRefundInputSc
 export const AdminResolvePledgeRefundRequestInputSchema = z.object({
   requestId: pledgeRefundRequestIdSchema,
   decision: z.enum(['approve', 'deny', 'resolveFailure']),
-  denialReason: z.string().optional(),
+  denialReason: textFieldSchema(PLEDGE_REFUND_DENIAL_REASON_INPUT).optional(),
 }).strict().refine(
   (v) => v.decision !== 'deny' || (typeof v.denialReason === 'string' && v.denialReason.length > 0),
   { message: 'denialReason is required when decision is "deny"', path: ['denialReason'] },

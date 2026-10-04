@@ -3,16 +3,14 @@ import { workProjectIdSchema, stakeSharesOfferedSchema } from '../schemas/atoms.
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
-import {
-  MAX_COMMISSION_TITLE_LENGTH,
-  MAX_COMMISSION_DESCRIPTION_LENGTH,
-} from '../constants/business.js';
+import { COMMISSION_DESCRIPTION_INPUT, COMMISSION_TITLE_INPUT } from '../constants/text-fields.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 
 export const CreateCommissionVariablesSchema = z.object({
   workProjectId: workProjectIdSchema,
   commissionListingData: z.object({
-    title: z.string().min(1).max(MAX_COMMISSION_TITLE_LENGTH),
-    description: z.string().max(MAX_COMMISSION_DESCRIPTION_LENGTH),
+    title: textFieldSchema(COMMISSION_TITLE_INPUT),
+    description: textFieldSchema(COMMISSION_DESCRIPTION_INPUT),
     requiredTradeProfessions: z.array(z.enum(TRADE_PROFESSION_VALUES)).max(TRADE_PROFESSION_OPTIONS.length),
     stakeSharesOffered: stakeSharesOfferedSchema,
   }).strict(),

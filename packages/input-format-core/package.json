@@ -1,0 +1,38 @@
+{
+    "name": "@ttt-productions/input-format-core",
+    "version": "0.1.0",
+    "description": "The named text-input formats (the characters each allows), the declaration of one text field's format, min and max, and the one check every text input and every server bound runs. Tier 0 — no dependencies, no React, server-safe.",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/input-format-core"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build",
+        "test": "vitest run"
+    },
+    "keywords": [
+        "input",
+        "validation",
+        "text"
+    ],
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+}

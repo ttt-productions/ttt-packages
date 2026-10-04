@@ -18,3 +18,11 @@ describe('THEME_NAMES', () => {
     }
   });
 });
+
+describe('the package root', () => {
+  it('exports the theme-name check beside the theme set', async () => {
+    const root = await import('../src/index');
+    expect(root.isThemeName).toBe(isThemeName);
+    expect(root.THEME_NAMES).toBe(THEME_NAMES);
+  });
+});

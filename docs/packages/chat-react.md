@@ -40,10 +40,13 @@ Chat **React UI** package — the React half of the chat split.
   Firestore errors come from query-core's `useFirestoreLiveInfinite` (its listener
   error, `olderError`, and `retry`), which `useChatMessages` passes through with
   `sourceState`.
-- **The one text bound.** The `Composer` caps its textarea at `chat-schemas`'
-  `CHAT_MESSAGE_TEXT_MAX_LENGTH` and shows a `{length}/{max}` counter once text is
-  typed (wired by `aria-describedby`). A send the Worker still refuses for length comes
-  back as a correlated terminal `too-long` rejection that fails exactly that bubble.
+- **The one text declaration.** The `Composer`'s textarea takes `chat-schemas`'
+  `CHAT_MESSAGE_TEXT_INPUT` (so it is capped at `CHAT_MESSAGE_TEXT_MAX_LENGTH` and announced as
+  required) and shows a `{length}/{max}` counter once text is typed (wired by
+  `aria-describedby`). It judges the text with `judgeChatMessageText`, the Worker's own
+  judgement: Send stays disabled for a blank text, and what `onSend` receives is the trimmed
+  text. A send the Worker still refuses — `too-long` or `blank` — comes back as a correlated
+  terminal rejection that fails exactly that bubble.
 - **Sender names.** `ChatNameResolverProvider` takes the app's `resolveName`
   (`chat-core`'s `ChatNameResolver`, answering a `ChatNameResolution`) and an optional
   `renderUnresolvedName(resolution)` for `pending` / `unavailable` / `failed` (the

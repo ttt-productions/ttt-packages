@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   CENTER_STAGE_ROOMS,
+  centerStageRoomEnterLabel,
   type CenterStageRoomKey,
 } from '../src/constants/center-stage-rooms';
 
@@ -44,5 +45,15 @@ describe('CENTER_STAGE_ROOMS', () => {
 
   it('is pure JSON-serializable data', () => {
     expect(() => JSON.stringify(CENTER_STAGE_ROOMS)).not.toThrow();
+  });
+});
+
+describe('centerStageRoomEnterLabel', () => {
+  it('reads "Enter the <room> ›" for each room', () => {
+    expect(CENTER_STAGE_ROOMS.map(centerStageRoomEnterLabel)).toEqual([
+      'Enter the Hall ›',
+      'Enter the Square ›',
+      'Enter the Audition Stage ›',
+    ]);
   });
 });

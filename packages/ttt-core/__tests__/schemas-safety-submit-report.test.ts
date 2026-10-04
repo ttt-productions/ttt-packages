@@ -14,7 +14,13 @@ describe('SubmitReportInputSchema', () => {
   });
 
   it('accepts a chat report: a numeric message sequence under a two-id channel reference', () => {
-    const chat = { itemType: 'guild-chat-message', reportedItemId: '17', parentItemId: 'work-1/channel-2', reason: 'Spam' };
+    const chat = {
+      itemType: 'guild-chat-message',
+      reportedItemId: '17',
+      parentItemId: 'work-1/channel-2',
+      reason: 'Spam',
+      comment: 'Posted the same link ten times.',
+    };
     expect(SubmitReportInputSchema.safeParse(chat).success).toBe(true);
   });
 

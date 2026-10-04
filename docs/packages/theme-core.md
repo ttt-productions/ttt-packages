@@ -6,6 +6,7 @@ Generic theme and CSS-token package.
 
 - The theme set and the theme provider over `next-themes`
 - The viewer settings mechanism: the device store for motion, the `<html>` reduced-motion attribute, and the account sync for theme and motion
+- Guarded Web Storage access and the generic device-preference store every device-local choice runs on
 - CSS token contract
 - The motion tokens' defaults — the whole FRONTEND-204 family: `--motion-fast` (150ms), `--motion-base` (200ms), `--motion-slow` (250ms), and `--motion-ease`
   (an ease-out cubic), declared theme-invariant in `contract.css`'s `:root`, so every
@@ -17,12 +18,12 @@ Generic theme and CSS-token package.
 
 ## Boundary
 
-Consumer apps own brand-specific copy, imagery, and final token overrides. They also own every storage key and event name the viewer settings use, the CSS kill switch the reduced-motion attribute drives, the account's storage and write (the sync's adapter), and all settings UI, the compare prompt's included.
+Consumer apps own brand-specific copy, imagery, and final token overrides. They also own every storage key and event name the viewer settings and device preferences use, each preference's values and codec, the CSS kill switch the reduced-motion attribute drives, the account's storage and write (the sync's adapter), and all settings UI, the compare prompt's included.
 
 ## Entry points
 
-- `.` — server-safe root: breakpoints, `REQUIRED_TOKENS`, the theme set (`THEME_NAMES`, `ThemeName`), `REDUCED_MOTION_ATTRIBUTE`, and the viewer-settings types an app's adapter and prompt UI use (`ViewerSettings`, `ViewerSettingName`, `SavedViewerSettings`, `ViewerSettingDifference`). No React, enforced by a boundary test. The account sync's pure logic sits in the same server-safe tree so it is tested without React, but it is internal: apps use the sync, not its steps.
-- `./react` — `ThemeProvider`, `ThemeSwitcher`, `createReducedMotionStore`, and `ViewerSettingsSyncProvider` / `useViewerSettingsSync`.
+- `.` — server-safe root: breakpoints, `REQUIRED_TOKENS`, the theme set (`THEME_NAMES`, `ThemeName`, `isThemeName`), `REDUCED_MOTION_ATTRIBUTE`, the guarded storage functions (`readStoredValue`, `writeStoredValue`, `DeviceStorageArea`), and the viewer-settings types an app's adapter and prompt UI use (`ViewerSettings`, `ViewerSettingName`, `SavedViewerSettings`, `ViewerSettingDifference`). No React, enforced by a boundary test. The account sync's pure logic sits in the same server-safe tree so it is tested without React, but it is internal: apps use the sync, not its steps.
+- `./react` — `ThemeProvider`, `ThemeSwitcher`, `createReducedMotionStore`, `createDevicePreferenceStore`, and `ViewerSettingsSyncProvider` / `useViewerSettingsSync`.
 - `./styles.css` — base tokens and variables.
 - `./components.css` — shared component CSS patterns.
 
@@ -32,11 +33,13 @@ Consumer apps own brand-specific copy, imagery, and final token overrides. They 
 
 A viewer's theme and motion choice live on the device and, while they are signed in, on their account. theme-core owns the mechanism; each app supplies its keys, its account read and write, and its UI.
 
-**The theme set.** `THEME_NAMES` (`'light' | 'dark' | 'high-contrast'`) is the one declaration: `ThemeProvider` passes it to `next-themes`, `ThemeSwitcher`'s options are typed by it, and an app's account schema types a saved theme with it (`z.enum(THEME_NAMES)`), never a second union. Each name is a persisted value.
+**The theme set.** `THEME_NAMES` (`'light' | 'dark' | 'high-contrast'`) is the one declaration: `ThemeProvider` passes it to `next-themes`, `ThemeSwitcher`'s options are typed by it, and an app's account schema types a saved theme with it (`z.enum(THEME_NAMES)`), never a second union. `isThemeName(value)` is the one membership check, for a value read from storage or anywhere untyped. Each name is a persisted value.
 
-**The motion store.** `createReducedMotionStore({ storageKey, changeEvent })` is called once, at module scope, with the app's key and event. Effective reduced motion is the device's `prefers-reduced-motion` request OR the saved preference, and the device always wins: a saved "full motion" never turns motion back on. The saved preference is stored as `"true"` / `"false"`; absent means nothing is saved. Components read the effective value, the device request, and the saved value through the store's hooks; JS-scheduled motion reads `prefersReducedMotion()` at the moment it schedules. `useApplyReducedMotion()`, mounted once in the app shell, stamps `data-reduced-motion="true"` on `<html>`. A save notifies its own tab through the app's change event and other tabs through the native `storage` event. The store's setter writes the device alone.
+**The motion store.** `createReducedMotionStore({ storageKey, changeEvent })` is called once, at module scope, with the app's key and event. Its saved preference is a device-preference store (below). Effective reduced motion is the device's `prefers-reduced-motion` request OR the saved preference, and the device always wins: a saved "full motion" never turns motion back on. The saved preference is stored as `"true"` / `"false"`; absent means nothing is saved. Components read the effective value, the device request, and the saved value through the store's hooks; JS-scheduled motion reads `prefersReducedMotion()` at the moment it schedules. `useApplyReducedMotion()`, mounted once in the app shell, stamps `data-reduced-motion="true"` on `<html>`. A save notifies its own tab through the app's change event and other tabs through the native `storage` event. The store's setter writes the device alone.
 
-**Blocked storage.** A browser that blocks site data throws on every `localStorage` call. The store and the sync read that as "nothing saved" and hold each write in memory for the life of the page, so every page still renders and a viewer's choice still takes effect until they leave. A theme set through the account sync is held the same way, beside `next-themes`' own in-memory theme.
+**Blocked storage.** A browser that blocks site data throws on every `localStorage` / `sessionStorage` call, even on reading the property. Every storage access in the package goes through `readStoredValue(key, area?)` / `writeStoredValue(key, value, area?)` (`area` is `'local'`, the default, or `'session'`): a blocked read is "nothing saved", and a refused write — a removal (`null`) included — is held in memory for the life of the page, so every page still renders and a viewer's choice still takes effect until they leave. Neither function throws, and both do nothing useful without a window (a read is `null`). A theme set through the account sync is held the same way, beside `next-themes`' own in-memory theme. The two functions are exported from the root so an app routes its own storage reads and writes through the same guard.
+
+**Device preferences.** `createDevicePreferenceStore<T>({ storageKey, changeEvent, parse, serialize, fallback })` is called once, at module scope, for one device-local choice with the app's key and event. `parse(stored)` turns a saved string into a value, or `undefined` for one it does not recognise; `serialize(value)` gives the string to save; `fallback` is the value while nothing is saved, the saved string is unrecognised, or storage is blocked, and on the server and during hydration. The store returns `get()`, `set(value)`, `clear()` (removes the saved value, so it reads `fallback`), `subscribe(onChange)`, and the reactive `useValue()`. A `set` or `clear` notifies its own tab through the app's change event and other tabs through the native `storage` event, so every open tab reads the same value. The same saved string always yields the same value object, so a parsed object is a stable React snapshot. Anything the app does when the value changes (a class on `<html>`) is the app's, around `set` or on `useValue()`.
 
 The CSS kill switch stays app-side, beside the rule that defines it: it keys on `:root[data-reduced-motion='true']`, plus an `@media (prefers-reduced-motion: reduce)` block for the paint before the store runs. Nothing else checks the media query.
 

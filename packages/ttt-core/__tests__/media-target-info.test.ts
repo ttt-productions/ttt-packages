@@ -5,7 +5,6 @@ import {
   CraftSkillMediaTargetInfoSchema,
   CraftSkillUploadAttestationSchema,
   SquareStreetzTargetInfoSchema,
-  SquareStreetzCaptionSchema,
   CommissionPostingTargetInfoSchema,
   CommissionProposalTargetInfoSchema,
   AuditionPromptTargetInfoSchema,
@@ -18,6 +17,8 @@ import {
   ConversationFileTargetInfoSchema,
 } from '../src/media/target-info.js';
 import { HALL_LIBRARY_TARGET_FIELDS } from '../src/media/hall-library-target-fields.js';
+import { SquareStreetzPostTextSchema } from '../src/media/atoms.js';
+import { CreateSquareStreetzTextPostInputSchema } from '../src/schemas/social.js';
 import {
   MAX_COMMISSION_DESCRIPTION_LENGTH,
   MAX_AUDITION_DESCRIPTION_LENGTH,
@@ -207,15 +208,23 @@ describe('SquareStreetzTargetInfoSchema', () => {
   });
 });
 
-describe('SquareStreetzCaptionSchema (per-origin media caption rule)', () => {
+describe('SquareStreetzPostTextSchema (the text post and the media caption)', () => {
   it('accepts a normal caption', () => {
-    expect(() => SquareStreetzCaptionSchema.parse('hello world')).not.toThrow();
+    expect(() => SquareStreetzPostTextSchema.parse('hello world')).not.toThrow();
   });
   it('rejects an empty caption', () => {
-    expect(() => SquareStreetzCaptionSchema.parse('')).toThrow();
+    expect(() => SquareStreetzPostTextSchema.parse('')).toThrow();
   });
   it('rejects a caption longer than MAX_POST_LENGTH', () => {
-    expect(() => SquareStreetzCaptionSchema.parse('x'.repeat(MAX_POST_LENGTH + 1))).toThrow();
+    expect(() => SquareStreetzPostTextSchema.parse('x'.repeat(MAX_POST_LENGTH + 1))).toThrow();
+  });
+  it('refuses a whitespace-only caption and keeps a caption trimmed', () => {
+    expect(SquareStreetzPostTextSchema.safeParse('   \n  ').success).toBe(false);
+    expect(SquareStreetzPostTextSchema.parse('  hello  ')).toBe('hello');
+  });
+  it('is the text post schema too', () => {
+    expect(CreateSquareStreetzTextPostInputSchema.safeParse({ textContent: '   ' }).success).toBe(false);
+    expect(CreateSquareStreetzTextPostInputSchema.parse({ textContent: ' hi ' }).textContent).toBe('hi');
   });
 });
 

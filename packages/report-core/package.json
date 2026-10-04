@@ -46,6 +46,7 @@
         "prepublishOnly": "npm run clean && npm run build"
     },
     "dependencies": {
+        "@ttt-productions/input-format-core": "*",
         "zod": "^4.4.3"
     },
     "peerDependencies": {

@@ -158,6 +158,26 @@ describe('the send bounds', () => {
     expect(CHAT_MESSAGE_TEXT_MAX_LENGTH).toBe(4000);
   });
 
+  it('a message text is declared as any characters, never blank, at most the one text bound', () => {
+    expect(chatSchemas.CHAT_MESSAGE_TEXT_INPUT).toEqual({ format: 'none', min: 1, max: CHAT_MESSAGE_TEXT_MAX_LENGTH });
+  });
+
+  it('a text that passes is sent and stored trimmed, line breaks and every character kept', () => {
+    expect(chatSchemas.judgeChatMessageText('  hello\nthere 😀  ')).toEqual({ ok: true, text: 'hello\nthere 😀' });
+  });
+
+  it('an empty or whitespace-only text is a blank rejection', () => {
+    expect(chatSchemas.judgeChatMessageText('')).toEqual({ ok: false, code: 'blank' });
+    expect(chatSchemas.judgeChatMessageText(' \n\t ')).toEqual({ ok: false, code: 'blank' });
+  });
+
+  it('a text over the bound is a too-long rejection, and surrounding whitespace never counts toward it', () => {
+    const atBound = 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH);
+    expect(chatSchemas.judgeChatMessageText(atBound)).toEqual({ ok: true, text: atBound });
+    expect(chatSchemas.judgeChatMessageText(` ${atBound} `)).toEqual({ ok: true, text: atBound });
+    expect(chatSchemas.judgeChatMessageText(`${atBound}x`)).toEqual({ ok: false, code: 'too-long' });
+  });
+
   it('a client message id is non-empty and bounded', () => {
     expect(ChatClientMessageIdSchema.safeParse('c'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH)).success).toBe(true);
     expect(ChatClientMessageIdSchema.safeParse('c'.repeat(CHAT_CLIENT_MESSAGE_ID_MAX_LENGTH + 1)).success).toBe(false);
@@ -200,6 +220,7 @@ describe('ChatSendRejectedPayloadSchema', () => {
       'flood',
       'slow-mode',
       'too-long',
+      'blank',
     ]);
     expect(CHAT_SEND_REJECTION_RETRYABLE).toEqual({
       'membership-pending': true,
@@ -210,6 +231,7 @@ describe('ChatSendRejectedPayloadSchema', () => {
       'deleted': false,
       'blocked-word': false,
       'too-long': false,
+      'blank': false,
     });
   });
 
@@ -217,6 +239,13 @@ describe('ChatSendRejectedPayloadSchema', () => {
     expect(CHAT_SEND_REJECTION_RETRYABLE['too-long']).toBe(false);
     expect(
       ChatSendRejectedPayloadSchema.safeParse({ clientMessageId: 'c-1', code: 'too-long', retryable: true }).success,
+    ).toBe(false);
+  });
+
+  it('a blank text is a terminal rejection — the same text can never be accepted', () => {
+    expect(CHAT_SEND_REJECTION_RETRYABLE.blank).toBe(false);
+    expect(
+      ChatSendRejectedPayloadSchema.safeParse({ clientMessageId: 'c-1', code: 'blank', retryable: true }).success,
     ).toBe(false);
   });
 

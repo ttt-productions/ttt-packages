@@ -3,8 +3,12 @@ import {
   documentIdSegmentSchema,
   squareStreetzPostIdSchema,
 } from './atoms.js';
-import { MentionSchema, SquareStreetzPostMentionsSchema, refineMentionCorrespondence } from '../media/atoms.js';
-import { MAX_POST_LENGTH } from '../constants/business.js';
+import {
+  MentionSchema,
+  SquareStreetzPostMentionsSchema,
+  SquareStreetzPostTextSchema,
+  refineMentionCorrespondence,
+} from '../media/atoms.js';
 
 export const LikeSquareStreetzPostInputSchema = z.object({
   postId: squareStreetzPostIdSchema,
@@ -39,7 +43,7 @@ export type AddToMentionHistoryInput = z.infer<typeof AddToMentionHistoryInputSc
 
 // Each listed mention's placeholder appears in the text exactly once.
 export const CreateSquareStreetzTextPostInputSchema = z.object({
-  textContent: z.string().min(1).max(MAX_POST_LENGTH),
+  textContent: SquareStreetzPostTextSchema,
   mentions: SquareStreetzPostMentionsSchema.optional(),
 }).strict().superRefine((input, ctx) => refineMentionCorrespondence(input.textContent, input.mentions, ctx));
 export type CreateSquareStreetzTextPostInput = z.infer<typeof CreateSquareStreetzTextPostInputSchema>;

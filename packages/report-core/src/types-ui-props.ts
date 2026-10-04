@@ -85,8 +85,6 @@ export interface ReportDialogProps extends ReportTargetRef {
   /** The signed-in reporter. Nothing is submitted without it; the dialog's draft is bound to it. */
   reporterUserId?: string;
   copy: ReportDialogCopy;
-  /** Whether a report reason or a `submit` action needs a comment. Default true. A `handOff` action never takes one. */
-  requireComment?: boolean;
   onSubmitSuccess: (success: ReportDialogSuccess) => void;
   /** Every failure, a cancelled hand-off (`AbortError`) included; the dialog stays open. */
   onSubmitError: (error: unknown) => void;
