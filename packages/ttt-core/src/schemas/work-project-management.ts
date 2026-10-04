@@ -222,8 +222,8 @@ export type GetWorkFileRealmShareStatesResponse = z.infer<typeof GetWorkFileReal
 // ---- what a Realm-file action changed ------------------------------------------------------
 // The gallery and the steward's queue are endless lists a client patches in place, never reloads
 // (FRONTEND-103); their rows are server projections the client cannot read, so every action that
-// changes a file's standing answers with the file's row in each list after it, built by the same
-// projection owners the reads use.
+// changes a file's standing answers with the file's row in each list after it whenever its
+// post-commit read succeeds, built by the same projection owners the reads use.
 
 /**
  * One file's rows after an action: its gallery row, its queue row, and its Work-side share state —
@@ -245,17 +245,20 @@ export const RealmFileListsChangeSchema = z.object({
 export type RealmFileListsChange = z.infer<typeof RealmFileListsChangeSchema>;
 
 /** The answer of every action that changes a file's Realm standing: request, withdraw, approve,
- *  decline, canon toggle, folder move, and the admin un-share. Non-strict (server → client). */
+ *  decline, canon toggle, folder move, and the admin un-share. `change` is present when the read
+ *  after the commit succeeded; a failed read never fails an action that already committed (ENG-009),
+ *  and the client keeps its loaded pages when it is absent. Non-strict (server → client). */
 export const RealmFileTransitionResultSchema = z.object({
   success: z.literal(true),
-  change: RealmFileListsChangeSchema,
+  change: RealmFileListsChangeSchema.optional(),
 });
 export type RealmFileTransitionResult = z.infer<typeof RealmFileTransitionResultSchema>;
 
-/** The answer of a Realm folder create or rename: the folder as the gallery shows it. */
+/** The answer of a Realm folder create or rename: the folder as the gallery shows it, present when
+ *  the read after the commit succeeded (ENG-009; the client keeps its pages when it is absent). */
 export const RealmFileFolderResultSchema = z.object({
   success: z.literal(true),
-  folder: RealmFileFolderProjectionSchema,
+  folder: RealmFileFolderProjectionSchema.optional(),
 });
 export type RealmFileFolderResult = z.infer<typeof RealmFileFolderResultSchema>;
 
