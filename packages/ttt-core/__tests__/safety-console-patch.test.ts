@@ -61,10 +61,10 @@ describe('the console patch an action answers with', () => {
   });
 });
 
-describe('every console action answers with its console patch', () => {
+describe('every console action answers with its console patch when it could read it', () => {
   const console = patch([]);
 
-  it('the six console actions each require the patch', () => {
+  it('the six console actions carry the patch when it was read, and still succeed without it', () => {
     const answers: [{ safeParse: (v: unknown) => { success: boolean } }, Record<string, unknown>][] = [
       [safety.DecideTakeItDownValidityResultSchema, { success: true, result: 'valid', alreadyDecided: false }],
       [safety.SetNciiMinorAssessmentResultSchema, { ok: true, caseId: 'n1', from: 'unknown', to: 'adult', servingDenied: false }],
@@ -75,7 +75,9 @@ describe('every console action answers with its console patch', () => {
     ];
     for (const [schema, answer] of answers) {
       expect(schema.safeParse({ ...answer, console }).success).toBe(true);
-      expect(schema.safeParse(answer).success).toBe(false);
+      // A failed patch read after the commit never fails the action: it answers without the patch.
+      expect(schema.safeParse(answer).success).toBe(true);
+      expect(schema.safeParse({ ...answer, console: { changes: [] } }).success).toBe(false);
     }
   });
 

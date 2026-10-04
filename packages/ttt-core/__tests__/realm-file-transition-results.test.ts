@@ -16,6 +16,7 @@ const galleryRow = {
   name: 'Map',
   realmFileFolderId: 'folder1',
   creatorUid: 'u1',
+  createdAt: 1_700_000_000_000,
 };
 
 const queueRow = {
@@ -83,5 +84,13 @@ describe('a Realm folder action answers with the folder', () => {
   it('delete answers the id of the folder it removed', () => {
     expect(wpm.DeleteRealmFileFolderResultSchema.parse({ success: true, realmFileFolderId: 'folder1' }).realmFileFolderId).toBe('folder1');
     expect(wpm.DeleteRealmFileFolderResultSchema.safeParse({ success: true }).success).toBe(false);
+  });
+});
+
+describe('a gallery row carries the order the gallery reads by', () => {
+  it('an approved row holds its asset createdAt, so it is placed among the loaded rows in order', () => {
+    expect(wpm.RealmSharedFileProjectionSchema.parse(galleryRow).createdAt).toBe(1_700_000_000_000);
+    const { createdAt: _omitted, ...withoutOrder } = galleryRow;
+    expect(wpm.RealmSharedFileProjectionSchema.safeParse(withoutOrder).success).toBe(false);
   });
 });

@@ -283,8 +283,9 @@ export const SafetyCaseConsolePatchSchema = z
   .strict();
 export type SafetyCaseConsolePatch = z.infer<typeof SafetyCaseConsolePatchSchema>;
 
-// The answers of the console's actions, each carrying its console patch. Non-strict (server →
-// client result posture).
+// The answers of the console's actions. Each carries its console patch when the read after the
+// commit succeeded; a failed read never fails an action that already committed (ENG-009), and the
+// client keeps its loaded pages when `console` is absent. Non-strict (server → client result posture).
 
 /** `decideTakeItDownValidity`. */
 export const DecideTakeItDownValidityResultSchema = z.object({
@@ -295,7 +296,7 @@ export const DecideTakeItDownValidityResultSchema = z.object({
   removalDeadlineAt: z.number().optional(),
   caseId: z.string().min(1).optional(),
   alreadyDecided: z.boolean(),
-  console: SafetyCaseConsolePatchSchema,
+  console: SafetyCaseConsolePatchSchema.optional(),
 });
 export type DecideTakeItDownValidityResult = z.infer<typeof DecideTakeItDownValidityResultSchema>;
 
@@ -309,7 +310,7 @@ export const SetNciiMinorAssessmentResultSchema = z.object({
   childSafetyCaseId: z.string().min(1).optional(),
   /** Whether this call denied serving on any asset. */
   servingDenied: z.boolean(),
-  console: SafetyCaseConsolePatchSchema,
+  console: SafetyCaseConsolePatchSchema.optional(),
 });
 export type SetNciiMinorAssessmentResult = z.infer<typeof SetNciiMinorAssessmentResultSchema>;
 
@@ -318,7 +319,7 @@ export const RefetchProtectedCaseContextResultSchema = z.object({
   resolved: z.boolean(),
   senderUid: z.string().min(1).optional(),
   reason: z.string().min(1).optional(),
-  console: SafetyCaseConsolePatchSchema,
+  console: SafetyCaseConsolePatchSchema.optional(),
 });
 export type RefetchProtectedCaseContextResult = z.infer<typeof RefetchProtectedCaseContextResultSchema>;
 
@@ -327,7 +328,7 @@ export const MarkNcmecPortalCompleteResultSchema = z.object({
   success: z.literal(true),
   state: z.literal('completed'),
   alreadyCompleted: z.boolean(),
-  console: SafetyCaseConsolePatchSchema,
+  console: SafetyCaseConsolePatchSchema.optional(),
 });
 export type MarkNcmecPortalCompleteResult = z.infer<typeof MarkNcmecPortalCompleteResultSchema>;
 
@@ -335,11 +336,12 @@ export type MarkNcmecPortalCompleteResult = z.infer<typeof MarkNcmecPortalComple
 export const ReopenSafetyCaseResultSchema = z.object({
   success: z.literal(true),
   reopened: z.boolean(),
-  console: SafetyCaseConsolePatchSchema,
+  console: SafetyCaseConsolePatchSchema.optional(),
 });
 export type ReopenSafetyCaseResult = z.infer<typeof ReopenSafetyCaseResultSchema>;
 
-/** The replay lanes behind a `failed` safety case — a performed replay of one answers the console patch. */
+/** The replay lanes behind a `failed` safety case — the only lanes whose performed replay may answer
+ *  the console patch (when the read after the commit succeeded). */
 export const SAFETY_CASE_REPLAY_LANES = SafetyCaseFailedJobRefSchema.shape.collection.options;
 
 const replayOutcomeShape = {
@@ -352,8 +354,9 @@ const replayOutcomeShape = {
 };
 
 /**
- * The `adminReplayDeadLetter` answer: the replayed target and its outcome. `console` is present
- * exactly on a performed (not dry-run) replay of a safety lane, the console's Restart. Declared
+ * The `adminReplayDeadLetter` answer: the replayed target and its outcome. `console` appears only on
+ * a performed (not dry-run) replay of a safety lane, the console's Restart, and only when the read
+ * after the commit succeeded. Declared
  * here, beside the console patch, because this module already imports ./admin.js.
  */
 export const AdminReplayDeadLetterResultSchema = z
@@ -364,7 +367,7 @@ export const AdminReplayDeadLetterResultSchema = z
   .superRefine((answer, ctx) => {
     const safetyLane = (SAFETY_CASE_REPLAY_LANES as readonly string[]).includes(answer.collection);
     const performed = answer.replayed === true && answer.dryRun !== true;
-    if ((answer.console !== undefined) !== (safetyLane && performed)) {
+    if (answer.console !== undefined && !(safetyLane && performed)) {
       ctx.addIssue({ code: 'custom', path: ['console'] });
     }
   });

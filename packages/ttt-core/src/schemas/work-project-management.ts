@@ -73,6 +73,9 @@ export const RealmSharedFileProjectionSchema = z.object({
    *  assignment, so an approved file without a folder cannot exist. */
   realmFileFolderId: realmFileFolderIdSchema,
   creatorUid: userIdSchema,
+  /** The asset's `createdAt` (epoch ms): the gallery reads newest first by it, then by
+   *  `mediaAssetId`, so a row entering the gallery is placed in that order. */
+  createdAt: z.number(),
   // For the per-file steward canon toggle + download (updateWorkFileRealmCanon takes these).
   workProjectId: workProjectIdSchema,
   workFileId: z.string(),

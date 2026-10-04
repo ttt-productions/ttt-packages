@@ -384,6 +384,7 @@ describe('gallery projection (APPROVED files only)', () => {
     creatorUid: 'creator-1',
     workProjectId: 'work-1',
     workFileId: 'file-1',
+    createdAt: 1_700_000_000_000,
   };
 
   it('accepts an approved file carrying its folder AND the work-file name', () => {

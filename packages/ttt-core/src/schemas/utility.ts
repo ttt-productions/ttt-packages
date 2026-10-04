@@ -9,6 +9,11 @@ import {
   hallItemIdSchema,
 } from './atoms.js';
 import { MAX_APPEAL_MESSAGE_LENGTH, MAX_FEEDBACK_SUGGESTION_LENGTH, FEEDBACK_TYPES } from '../constants/business.js';
+import {
+  MIN_CURATED_PROFANITY_TERM_LENGTH,
+  MAX_CURATED_PROFANITY_TERM_LENGTH,
+  MAX_CURATED_PROFANITY_TERMS_PER_REQUEST,
+} from '../constants/moderation.js';
 
 export const AcceptViolationDecisionInputSchema = z.object({
   violationId: violationIdSchema,
@@ -77,21 +82,31 @@ export type SeedDmcaPolicyInput = z.infer<typeof SeedDmcaPolicyInputSchema>;
  *  term with a line break is refused here rather than failing every later publish. */
 const curatedProfanityTermSchema = z
   .string()
-  .min(1)
-  .max(64)
+  .min(MIN_CURATED_PROFANITY_TERM_LENGTH)
+  .max(MAX_CURATED_PROFANITY_TERM_LENGTH)
   .regex(/^[^\r\n\u2028\u2029]*$/);
 
 /** Admin add/remove words on the self-owned curated profanity list (no external sync). */
 export const CurateProfanityListInputSchema = z
   .object({
-    add: z.array(curatedProfanityTermSchema).max(500).optional(),
-    remove: z.array(curatedProfanityTermSchema).max(500).optional(),
+    add: z.array(curatedProfanityTermSchema).max(MAX_CURATED_PROFANITY_TERMS_PER_REQUEST).optional(),
+    remove: z.array(curatedProfanityTermSchema).max(MAX_CURATED_PROFANITY_TERMS_PER_REQUEST).optional(),
   })
   .strict()
   .refine((v) => (v.add?.length ?? 0) + (v.remove?.length ?? 0) > 0, {
     message: 'Provide at least one word to add or remove.',
   });
 export type CurateProfanityListInput = z.infer<typeof CurateProfanityListInputSchema>;
+
+/** The `curateProfanityList` answer: the terms it added and removed, and the list's size after it.
+ *  Non-strict (server → client result posture). */
+export const CurateProfanityListResultSchema = z.object({
+  success: z.literal(true),
+  added: z.array(z.string()),
+  removed: z.array(z.string()),
+  wordCount: z.number().int().nonnegative(),
+});
+export type CurateProfanityListResult = z.infer<typeof CurateProfanityListResultSchema>;
 
 export const SubmitContentAppealInputSchema = z.object({
   violationId: violationIdSchema,

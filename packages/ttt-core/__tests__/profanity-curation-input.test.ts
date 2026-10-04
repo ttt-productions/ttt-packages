@@ -24,3 +24,23 @@ describe('CurateProfanityListInputSchema terms', () => {
     await expect(hashStringSet(['bad\nword'])).rejects.toThrow(RangeError);
   });
 });
+
+describe('the curation limits and answer', () => {
+  it('the term and batch bounds are the named limits', async () => {
+    const c = await import('../src/constants/moderation');
+    expect([c.MIN_CURATED_PROFANITY_TERM_LENGTH, c.MAX_CURATED_PROFANITY_TERM_LENGTH, c.MAX_CURATED_PROFANITY_TERMS_PER_REQUEST]).toEqual([1, 64, 500]);
+    const term = 'a'.repeat(c.MAX_CURATED_PROFANITY_TERM_LENGTH);
+    expect(CurateProfanityListInputSchema.safeParse({ add: [term] }).success).toBe(true);
+    expect(CurateProfanityListInputSchema.safeParse({ add: [`${term}a`] }).success).toBe(false);
+    const batch = Array.from({ length: c.MAX_CURATED_PROFANITY_TERMS_PER_REQUEST }, (_, i) => `w${i}`);
+    expect(CurateProfanityListInputSchema.safeParse({ add: batch }).success).toBe(true);
+    expect(CurateProfanityListInputSchema.safeParse({ add: [...batch, 'one-more'] }).success).toBe(false);
+  });
+
+  it('the callable answers what it added and removed and the list size', async () => {
+    const { CurateProfanityListResultSchema } = await import('../src/schemas/utility');
+    const answer = { success: true, added: ['a'], removed: [], wordCount: 12 };
+    expect(CurateProfanityListResultSchema.parse(answer)).toEqual(answer);
+    expect(CurateProfanityListResultSchema.safeParse({ ...answer, wordCount: -1 }).success).toBe(false);
+  });
+});

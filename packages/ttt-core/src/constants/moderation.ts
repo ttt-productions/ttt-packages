@@ -17,3 +17,10 @@ export const TEXT_MODERATION_MIN_LENGTH = 3;
  * firestore.rules and `startUpload` never writes it.
  */
 export const MODERATION_OVERRIDE_ADMIN_APPEAL_APPROVED = 'admin-appeal-approved';
+
+/** The length of one curated word-list term, inclusive. */
+export const MIN_CURATED_PROFANITY_TERM_LENGTH = 1;
+export const MAX_CURATED_PROFANITY_TERM_LENGTH = 64;
+
+/** The most terms one curation call may add, and the most it may remove. */
+export const MAX_CURATED_PROFANITY_TERMS_PER_REQUEST = 500;
