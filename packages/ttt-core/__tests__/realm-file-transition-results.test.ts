@@ -42,9 +42,9 @@ describe('a Realm-file action answers with the file in each list after it', () =
         folders: [{ realmFileFolderId: 'folder1', name: 'Maps', fileCount: 4 }],
       },
     });
-    expect(answer.change?.sharedFile?.realmFileFolderId).toBe('folder1');
-    expect(answer.change?.promotionRequest).toBeNull();
-    expect(answer.change?.folders[0]?.fileCount).toBe(4);
+    expect(answer.change.sharedFile?.realmFileFolderId).toBe('folder1');
+    expect(answer.change.promotionRequest).toBeNull();
+    expect(answer.change.folders?.[0]?.fileCount).toBe(4);
   });
 
   it('a request puts the file in the queue only, with the request the steward decides', () => {
@@ -58,7 +58,7 @@ describe('a Realm-file action answers with the file in each list after it', () =
         folders: [],
       },
     });
-    expect(answer.change?.promotionRequest?.realmFileShareRequestId).toBe('req1');
+    expect(answer.change.promotionRequest?.realmFileShareRequestId).toBe('req1');
   });
 
   it('every list is answered, even when the file is absent from it', () => {
@@ -96,8 +96,15 @@ describe('a gallery row carries the order the gallery reads by', () => {
 });
 
 describe('a committed Realm action never fails on its post-commit read', () => {
-  it('a transition answers success without the change when the read failed', () => {
-    expect(wpm.RealmFileTransitionResultSchema.safeParse({ success: true }).success).toBe(true);
+  it('the changed folders are omitted, never answered empty, when their count read failed', () => {
+    const change = { ...ids, sharedFile: null, promotionRequest: null, shareState: null };
+    const parsed = wpm.RealmFileTransitionResultSchema.parse({ success: true, change });
+    expect(parsed.change.folders).toBeUndefined();
+    expect(wpm.RealmFileListsChangeSchema.safeParse({ ...change, folders: [] }).success).toBe(true);
+  });
+
+  it('a transition always answers the change its transaction built', () => {
+    expect(wpm.RealmFileTransitionResultSchema.safeParse({ success: true }).success).toBe(false);
     expect(wpm.RealmFileTransitionResultSchema.safeParse({ success: true, change: { ...ids } }).success).toBe(false);
     expect(wpm.RealmFileTransitionResultSchema.safeParse({}).success).toBe(false);
   });

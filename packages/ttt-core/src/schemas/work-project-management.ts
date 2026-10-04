@@ -222,13 +222,15 @@ export type GetWorkFileRealmShareStatesResponse = z.infer<typeof GetWorkFileReal
 // ---- what a Realm-file action changed ------------------------------------------------------
 // The gallery and the steward's queue are endless lists a client patches in place, never reloads
 // (FRONTEND-103); their rows are server projections the client cannot read, so every action that
-// changes a file's standing answers with the file's row in each list after it whenever its
-// post-commit read succeeds, built by the same projection owners the reads use.
+// changes a file's standing answers with the file's row in each list after it, built inside the
+// action's own transaction by the same projection owners the reads use.
 
 /**
  * One file's rows after an action: its gallery row, its queue row, and its Work-side share state —
- * each `null` when the file is absent from that list — plus every folder whose server-computed
- * `fileCount` the action changed (an approval, a move, or an un-share), as the gallery shows it.
+ * each `null` when the file is absent from that list, built in the action's transaction — plus
+ * `folders`: every folder whose server-computed `fileCount` the action changed (an approval, a move,
+ * or an un-share), as the gallery shows it, read after the commit. `folders` is omitted when that
+ * read failed (the client keeps its folder entries), and is empty only when no count changed.
  * Each row is non-null only when the file passes that list's own read filters — `sharedFile` only
  * for an approved file whose serving status is `servable`, so an action on a hidden or quarantined
  * file never puts it back into a gallery the read would not show it in.
@@ -240,17 +242,17 @@ export const RealmFileListsChangeSchema = z.object({
   sharedFile: RealmSharedFileProjectionSchema.nullable(),
   promotionRequest: RealmFilePromotionQueueRowSchema.nullable(),
   shareState: WorkFileRealmShareStateSchema.nullable(),
-  folders: z.array(RealmFileFolderProjectionSchema),
+  folders: z.array(RealmFileFolderProjectionSchema).optional(),
 }).strict();
 export type RealmFileListsChange = z.infer<typeof RealmFileListsChangeSchema>;
 
 /** The answer of every action that changes a file's Realm standing: request, withdraw, approve,
- *  decline, canon toggle, folder move, and the admin un-share. `change` is present when the read
- *  after the commit succeeded; a failed read never fails an action that already committed (ENG-009),
- *  and the client keeps its loaded pages when it is absent. Non-strict (server → client). */
+ *  decline, canon toggle, folder move, and the admin un-share. `change` is always answered: its rows
+ *  come from the action's transaction; only its `folders` is read after the commit and may be
+ *  omitted (ENG-009). Non-strict (server → client). */
 export const RealmFileTransitionResultSchema = z.object({
   success: z.literal(true),
-  change: RealmFileListsChangeSchema.optional(),
+  change: RealmFileListsChangeSchema,
 });
 export type RealmFileTransitionResult = z.infer<typeof RealmFileTransitionResultSchema>;
 
