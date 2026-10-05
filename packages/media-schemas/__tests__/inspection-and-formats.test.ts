@@ -51,6 +51,14 @@ describe("MediaInspectionResultSchema", () => {
     ).toThrow();
   });
 
+  it("durationSec is optional and accepts only a positive finite number of seconds", () => {
+    expect(MediaInspectionResultSchema.parse(base)).not.toHaveProperty("durationSec");
+    expect(MediaInspectionResultSchema.parse({ ...base, durationSec: 1800.25 }).durationSec).toBe(1800.25);
+    for (const durationSec of [0, -1, Infinity, -Infinity, NaN, "12"]) {
+      expect(() => MediaInspectionResultSchema.parse({ ...base, durationSec }), String(durationSec)).toThrow();
+    }
+  });
+
   it("names every safety plan the classification table requires", () => {
     expect(MediaSafetyPlanSchema.options).toEqual([
       "still-image",

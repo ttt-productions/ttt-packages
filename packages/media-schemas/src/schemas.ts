@@ -113,10 +113,9 @@ export const MediaAcceptSchema = z
   .object({
     mimes: z.array(z.string()).optional(),
     kinds: z.array(MediaKindSchema).optional(),
-    /** Explicit enabled-format selection (canonical-upload-content-classification):
-     *  the picker projects these to `accept` tokens and the server accepts only an
-     *  inspected formatId in this list. When absent, legacy kinds/mimes behavior
-     *  applies unchanged. */
+    /** Explicit enabled-format selection: the picker projects these to `accept`
+     *  tokens and the server accepts only an inspected formatId in this list.
+     *  When absent, legacy kinds/mimes behavior applies unchanged. */
     formats: z.array(MediaFormatIdSchema).optional(),
   })
   .strict();
@@ -314,9 +313,8 @@ const MediaProcessingResultMetaSchema = z
 // Canonical content classification contracts (generic — no app policy)
 // =============================================================================
 //
-// These are the cross-boundary shapes for the server-owned media inspection
-// described in the consuming app's canonical-upload-content-classification
-// design. Three distinct facts, three contracts:
+// These are the cross-boundary shapes for the server-owned media inspection.
+// Three distinct facts, three contracts:
 //
 //   1. ClientMediaClaim  — what the USER DID (untrusted client context). Emitted
 //      by @ttt-productions/file-input from the concrete action (picker / camera
@@ -457,6 +455,11 @@ export const MediaInspectionResultSchema = z
       })
       .strict(),
     safetyPlan: MediaSafetyPlanSchema,
+    /** The file's length in seconds, measured from its packets — never the
+     *  length its header declares. Absent when the probe did not run or failed,
+     *  or the length could not be measured — a consumer that needs it must
+     *  fail closed. */
+    durationSec: z.number().positive().optional(),
     /** Bounded machine reason (e.g. 'ok', 'probe_timeout', 'tracks_incomplete',
      *  'unsupported_codec:theora', 'unrecognized_signature'). */
     reasonCode: z.string().min(1).max(80),
@@ -471,7 +474,7 @@ const mediaProcessingResultSharedShape = {
   warnings: z.array(z.string()).optional(),
   moderation: MediaModerationResultSchema.optional(),
   /** The canonical server content inspection for this input, when the caller
-   *  enabled it (canonical-upload-content-classification). */
+   *  enabled it. */
   inspection: MediaInspectionResultSchema.optional(),
 };
 

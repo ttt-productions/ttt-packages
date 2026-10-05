@@ -34,7 +34,7 @@ Owns the generic cross-boundary shapes for the canonical-upload-content-classifi
 `ClientMediaClaimSchema` (what the user DID — recorder/camera strong, picker advisory, never
 byte authority), `MediaInspectionResultSchema` + `MediaSafetyPlanSchema` + the bounded
 `NormalizedCodecIdSchema` (what the bytes ARE — produced only by media-processing-core's
-inspector), and the generic supported-format registry (`MediaFormatIdSchema` enum in
+inspector; its optional `durationSec` is the measured length in seconds, never the header's), and the generic supported-format registry (`MediaFormatIdSchema` enum in
 schemas.ts, catalog + `projectAcceptTokens` in format-registry.ts). `MediaAcceptSchema`
 gained the optional `formats` selection and `MediaProcessingResult` optionally carries the
 inspection. Policy (which formats an origin enables) lives in ttt-core, never here.

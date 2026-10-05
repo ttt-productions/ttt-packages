@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 
 export interface RunCmdResult {
+  /** The exit code; `-1` when the process was ended by a signal, so a child
+   *  killed partway (a crash, an outside kill) never reads as a clean exit. */
   code: number;
   stdout: string;
   stderr: string;
@@ -27,6 +29,10 @@ export interface RunFfmpegOptions {
 
 const MAX_CAPTURE_BYTES = 1024 * 1024; // 1MB per stream
 
+/** Wall-clock ceiling for an ffprobe call that opens a file and reads its
+ *  stream table (metadata only, never every packet). */
+export const DEFAULT_PROBE_TIMEOUT_MS = 20_000;
+
 let ffmpegChecked: boolean | null = null;
 let ffmpegVersion: string | null = null;
 
@@ -37,11 +43,14 @@ export function runCmd(
     cwd?: string;
     /** Hard wall-clock ceiling; on expiry the child is SIGKILLed and the
      *  result resolves with `timedOut: true`. A malformed/adversarial input
-     *  must never be able to wedge a warm instance (canonical-upload-content-
-     *  classification hardening, 2026-07-31). */
+     *  must never be able to wedge a warm instance. */
     timeoutMs?: number;
     /** Abort kills the child immediately (same SIGKILL path as the timeout). */
     signal?: AbortSignal;
+    /** Receives stdout one line at a time instead of capturing it, so a
+     *  listing of any length is read in bounded memory; `stdout` is then
+     *  empty. A single line over the capture cap sets `truncated`. */
+    onStdoutLine?: (line: string) => void;
   }
 ): Promise<RunCmdResult> {
   return new Promise((resolve, reject) => {
@@ -75,7 +84,26 @@ export function runCmd(
       else opts.signal.addEventListener("abort", onAbort, { once: true });
     }
 
+    const onLine = opts?.onStdoutLine;
+    let lineBuf = "";
+    // Decodes across chunk boundaries, so a multi-byte character split
+    // between two chunks reaches the line intact.
+    if (onLine) p.stdout.setEncoding("utf8");
     p.stdout.on("data", (d) => {
+      if (onLine) {
+        if (truncated) return;
+        const lines = (lineBuf + String(d)).split(/\r?\n/);
+        lineBuf = lines.pop() ?? "";
+        for (const line of [...lines, lineBuf]) {
+          if (line.length > MAX_CAPTURE_BYTES) {
+            truncated = true;
+            lineBuf = "";
+            return;
+          }
+        }
+        for (const line of lines) onLine(line);
+        return;
+      }
       if (stdout.length < MAX_CAPTURE_BYTES) stdout += String(d);
       else truncated = true;
     });
@@ -92,7 +120,8 @@ export function runCmd(
     p.on("close", (code) => {
       if (timer) clearTimeout(timer);
       if (opts?.signal) opts.signal.removeEventListener("abort", onAbort);
-      resolve({ code: code ?? 0, stdout, stderr, ...(timedOut ? { timedOut } : {}), ...(truncated ? { truncated } : {}) });
+      if (onLine && !truncated && lineBuf) onLine(lineBuf);
+      resolve({ code: code ?? -1, stdout, stderr, ...(timedOut ? { timedOut } : {}), ...(truncated ? { truncated } : {}) });
     });
   });
 }

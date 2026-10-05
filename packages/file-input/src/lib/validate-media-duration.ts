@@ -21,12 +21,11 @@ export async function validateMediaDuration(file: File, maxDurationSec: number):
         return;
       }
       // Chromium MediaRecorder blobs (recorded audio/video) report duration
-      // Infinity at loadedmetadata — `Infinity <= max` falsely rejected every
-      // recording (live 2026-07-19: a 5s clip red-texted as "over 60s").
-      // Resolve the REAL duration via the shared seek workaround; if it still
-      // cannot be determined, fail OPEN — recordings are hard-capped by the
-      // RecordDialog timer and the backend enforces duration again at
-      // processing (same rationale as the onerror fail-open below).
+      // Infinity at loadedmetadata, so `Infinity <= max` would reject every
+      // recording. Resolve the real duration via the shared seek workaround;
+      // if it still cannot be determined, let the file through — the server
+      // measures every file's length and refuses one over the limit or with
+      // no length at all.
       void resolveInfiniteDuration(el).then((duration) => {
         finish(duration === null ? true : duration <= maxDurationSec);
       });

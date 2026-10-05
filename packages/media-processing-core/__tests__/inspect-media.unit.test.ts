@@ -30,7 +30,8 @@ const decodeFails: NonNullable<InspectMediaDeps["decodeImage"]> = async () => nu
 const decodeStill: NonNullable<InspectMediaDeps["decodeImage"]> = async () => ({ frames: 1 });
 const decodeAnimated: NonNullable<InspectMediaDeps["decodeImage"]> = async () => ({ frames: 2 });
 
-const V = { ffprobeVersion: "ffprobe version test" };
+// No length is measurable unless a test injects one, so no test reaches the real ffmpeg.
+const V = { ffprobeVersion: "ffprobe version test", measureDuration: async () => undefined };
 
 describe("detectSignatureFamily", () => {
   it("routes the classic signatures", () => {
@@ -234,6 +235,87 @@ describe("inspectMedia classification table (injected deps)", () => {
     const r = await inspectMedia({ localPath: p, deps: V });
     expect(r.status).toBe("indeterminate");
     expect(r.reasonCode).toBe("unrecognized_signature");
+  });
+
+  it("carries the measured length as durationSec on every probed classification", async () => {
+    const p = await tempFileWith(EBML);
+    const measuring = (sec: number) => ({ ...V, measureDuration: async () => sec });
+    const video = await inspectMedia({
+      localPath: p,
+      deps: {
+        ...measuring(1800.25),
+        probe: probeReturning({ format: { format_name: "matroska,webm" }, streams: [{ codec_type: "video", codec_name: "vp9" }] }),
+      },
+    });
+    expect(video.canonicalKind).toBe("video");
+    expect(video.durationSec).toBe(1800.25);
+
+    const audio = await inspectMedia({
+      localPath: p,
+      deps: { ...measuring(12.5), probe: probeReturning({ streams: [{ codec_type: "audio", codec_name: "opus" }] }) },
+    });
+    expect(audio.canonicalKind).toBe("audio");
+    expect(audio.durationSec).toBe(12.5);
+
+    const fallback = await inspectMedia({
+      localPath: p,
+      deps: { ...measuring(7), probe: probeReturning({ streams: [{ codec_type: "data" }] }) },
+    });
+    expect(fallback.safetyPlan).toBe("strict-video-fallback");
+    expect(fallback.durationSec).toBe(7);
+  });
+
+  it("measures every file's length and never takes a declared container or stream duration", async () => {
+    const p = await tempFileWith(EBML);
+    const measured: string[] = [];
+    const measureDuration = async (localPath: string) => {
+      measured.push(localPath);
+      return 1801.432;
+    };
+    const r = await inspectMedia({
+      localPath: p,
+      deps: {
+        ...V,
+        measureDuration,
+        probe: probeReturning({
+          format: { format_name: "matroska,webm", duration: "10.008000" },
+          streams: [{ codec_type: "video", codec_name: "vp9", duration: "10.0" }],
+        }),
+      },
+    });
+    expect(r.durationSec).toBe(1801.432);
+    expect(measured).toEqual([p]);
+  });
+
+  it("omits durationSec when the length cannot be measured, whatever the container declares", async () => {
+    const p = await tempFileWith(EBML);
+    const r = await inspectMedia({
+      localPath: p,
+      deps: {
+        ...V,
+        probe: probeReturning({ format: { duration: "12.5" }, streams: [{ codec_type: "video", codec_name: "vp9", duration: "12.5" }] }),
+      },
+    });
+    expect(r.canonicalKind).toBe("video");
+    expect(r).not.toHaveProperty("durationSec");
+  });
+
+  it("omits durationSec when the probe fails and on image results", async () => {
+    const ebml = await tempFileWith(EBML);
+    const failed = await inspectMedia({ localPath: ebml, deps: { ...V, probe: async () => ({ ok: false, reason: "timeout" }) } });
+    expect(failed).not.toHaveProperty("durationSec");
+
+    const avif = await tempFileWith(ftyp("avif"));
+    const image = await inspectMedia({
+      localPath: avif,
+      deps: {
+        ...V,
+        probe: probeReturning({ format: { duration: "0.040000" }, streams: [{ codec_type: "video", codec_name: "av1" }] }),
+        decodeImage: decodeStill,
+      },
+    });
+    expect(image.canonicalKind).toBe("image");
+    expect(image).not.toHaveProperty("durationSec");
   });
 
   it("normalizes unknown codec names to the bounded 'other' — raw probe strings never escape", async () => {

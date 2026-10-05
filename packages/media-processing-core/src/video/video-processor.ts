@@ -3,6 +3,7 @@ import { mkdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { ensureFfmpegAvailable, runFfmpeg } from "./ffmpeg.js";
 import { probeVideo } from "./probe.js";
+import { unreadableLengthError } from "../duration/media-duration.js";
 import { safeOutputPathFor } from "../utils/safe-path.js";
 import type { ProcessMediaOptions } from "../types.js";
 import { TIMED_MEDIA_MAIN_OUTPUT_KEY, VIDEO_POSTER_OUTPUT_KEY } from "@ttt-productions/media-schemas";
@@ -106,7 +107,7 @@ export async function processVideo(
     const outDir = path.dirname(ctx.outputBasePath);
     await mkdir(outDir, { recursive: true });
 
-    const probe = await probeVideo(ctx.inputPath);
+    const probe = await probeVideo(ctx.inputPath, { signal: opts?.signal });
 
     if (opts?.signal?.aborted) {
       return { ok: false, mediaType: "video", error: { code: "processing_canceled", message: "Processing canceled." } };
@@ -114,7 +115,10 @@ export async function processVideo(
 
     // duration enforcement
     const maxDur = spec.maxDurationSec ?? spec.video?.maxDurationSec;
-    if (maxDur && probe.durationSec && probe.durationSec > maxDur) {
+    if (maxDur && probe.durationSec === undefined) {
+      return { ok: false, mediaType: "video", error: unreadableLengthError("video", maxDur) };
+    }
+    if (maxDur && probe.durationSec !== undefined && probe.durationSec > maxDur) {
       return {
         ok: false,
         mediaType: "video",
@@ -314,6 +318,9 @@ export async function processVideo(
       warnings: warnings.length ? warnings : undefined,
     };
   } catch (e: any) {
+    if (opts?.signal?.aborted) {
+      return { ok: false, mediaType: "video", error: { code: "processing_canceled", message: "Processing canceled." } };
+    }
     return {
       ok: false,
       mediaType: "video",

@@ -14,6 +14,7 @@ export * from "./io/types.js";
 export * from "./run-pipeline.js";
 
 export * from "./inspection/inspect-media.js";
+export * from "./duration/media-duration.js";
 
 export * from "./io/fs.js";
 export * from "./io/local-input.js";

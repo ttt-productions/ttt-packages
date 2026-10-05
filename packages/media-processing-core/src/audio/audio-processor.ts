@@ -4,6 +4,7 @@ import path from "node:path";
 import { safeOutputPathFor } from "../utils/safe-path.js";
 import { ensureFfmpegAvailable, runFfmpeg } from "../video/ffmpeg.js";
 import { probeAudio } from "./probe.js";
+import { unreadableLengthError } from "../duration/media-duration.js";
 import type { ProcessMediaOptions } from "../types.js";
 import { TIMED_MEDIA_MAIN_OUTPUT_KEY } from "@ttt-productions/media-schemas";
 
@@ -78,10 +79,17 @@ export async function processAudio(
     const outDir = path.dirname(ctx.outputBasePath);
     await mkdir(outDir, { recursive: true });
 
-    const probe = await probeAudio(ctx.inputPath);
+    const probe = await probeAudio(ctx.inputPath, { signal: opts?.signal });
+
+    if (opts?.signal?.aborted) {
+      return { ok: false, mediaType: "audio", error: { code: "processing_canceled", message: "Processing canceled." } };
+    }
 
     const maxDur = spec.maxDurationSec ?? spec.audio?.maxDurationSec;
-    if (maxDur && probe.durationSec && probe.durationSec > maxDur) {
+    if (maxDur && probe.durationSec === undefined) {
+      return { ok: false, mediaType: "audio", error: unreadableLengthError("audio", maxDur) };
+    }
+    if (maxDur && probe.durationSec !== undefined && probe.durationSec > maxDur) {
       return {
         ok: false,
         mediaType: "audio",
@@ -155,6 +163,9 @@ export async function processAudio(
       },
     };
   } catch (e: any) {
+    if (opts?.signal?.aborted) {
+      return { ok: false, mediaType: "audio", error: { code: "processing_canceled", message: "Processing canceled." } };
+    }
     return {
       ok: false,
       mediaType: "audio",

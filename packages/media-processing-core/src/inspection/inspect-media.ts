@@ -1,5 +1,5 @@
 // =============================================================================
-// Canonical media content inspection (canonical-upload-content-classification)
+// Canonical media content inspection
 // =============================================================================
 //
 // The ONE server-side classification authority. Consumes a LOCAL file (the
@@ -11,11 +11,11 @@
 // filename, extension, container brand, and payload-byte heuristics are never
 // consulted.
 //
-// Design (reviewed 2026-07-31; see the consuming app's
-// CODE_CHANGE_canonical_upload_content_classification.md):
+// Design:
 //   - family selection by a bounded 64 KiB SIGNATURE read (header only —
-//     semantic elements are NEVER searched for in arbitrary payload; that
-//     flat-scan heuristic caused the WebM audio misclassification twice);
+//     semantic elements are NEVER searched for in arbitrary payload: payload
+//     bytes can mimic container elements, so a flat scan misclassifies WebM
+//     audio as video);
 //   - shared A/V containers (EBML/ISO-BMFF/Ogg/AVI) classified by a hardened
 //     `ffprobe` stream table (libavformat's structural parsers), with timeout,
 //     kill-on-abort, output cap, and strict schema validation;
@@ -35,13 +35,13 @@ import {
   type NormalizedCodecId,
   type MediaFormatId,
 } from "@ttt-productions/media-schemas";
-import { runCmd } from "../video/ffmpeg.js";
+import { DEFAULT_PROBE_TIMEOUT_MS, runCmd } from "../video/ffmpeg.js";
+import { measureDurationSec, type MeasureDurationFn } from "../duration/media-duration.js";
 
 /** Bump on any classification-rule change (rides every decision event). */
-export const INSPECTOR_VERSION = "mpc-inspect-1";
+export const INSPECTOR_VERSION = "mpc-inspect-2";
 
 const SIGNATURE_READ_BYTES = 64 * 1024;
-const DEFAULT_PROBE_TIMEOUT_MS = 20_000;
 const PROBE_SIZE_BYTES = 4 * 1024 * 1024; // -probesize: metadata, not playback
 const ANALYZE_DURATION_US = 10 * 1000 * 1000;
 
@@ -55,8 +55,6 @@ const ProbeStreamSchema = z
       .object({ attached_pic: z.number().int().min(0).max(1).optional() })
       .loose()
       .optional(),
-    nb_frames: z.string().max(20).optional(),
-    duration: z.string().max(32).optional(),
   })
   .loose();
 
@@ -165,6 +163,9 @@ export interface InspectMediaDeps {
   /** Decode-prove an image; default uses sharp metadata. Returns frame count
    *  (pages) on success, null on decode failure. */
   decodeImage?: (localPath: string) => Promise<{ frames: number } | null>;
+  /** Measure the file's length; default reads its packet timestamps
+   *  (`measureDurationSec`). */
+  measureDuration?: MeasureDurationFn;
   /** Injected ffprobe version (default: cached `ffprobe -version` first line). */
   ffprobeVersion?: string;
 }
@@ -248,6 +249,7 @@ function baseResult(
     reasonCode: partial.reasonCode,
     ...(partial.canonicalKind ? { canonicalKind: partial.canonicalKind } : {}),
     ...(partial.formatId ? { formatId: partial.formatId } : {}),
+    ...(partial.durationSec !== undefined ? { durationSec: partial.durationSec } : {}),
   };
   return MediaInspectionResultSchema.parse(result);
 }
@@ -309,8 +311,8 @@ export async function inspectMedia(args: InspectMediaArgs): Promise<MediaInspect
 
     case "svg":
       // Scriptable XML "image" — structurally recognized, deliberately NOT a
-      // processable format until a sanitize/rasterize design exists (launch
-      // policy 2026-07-31). Never classified by decoder capability alone.
+      // processable format: it can carry script and no sanitize/rasterize step
+      // exists. Never classified by decoder capability alone.
       return baseResult(
         {
           status: "unsupported",
@@ -451,6 +453,9 @@ async function classifyAvContainer(
   }
 
   const codecs = { audio: [...audioCodecs], video: [...videoCodecs] };
+  const measure = args.deps?.measureDuration ?? measureDurationSec;
+  const durationSec = await measure(args.localPath, { signal: args.signal });
+  const duration = durationSec !== undefined ? { durationSec } : {};
 
   // classification table (fail-closed)
   if (counts.timedVideo > 0) {
@@ -462,6 +467,7 @@ async function classifyAvContainer(
         ...(formatId ? { formatId } : {}),
         streams: counts,
         codecs,
+        ...duration,
         safetyPlan: "video-frames",
         reasonCode: "ok",
       },
@@ -477,6 +483,7 @@ async function classifyAvContainer(
         ...(formatId ? { formatId } : {}),
         streams: counts,
         codecs,
+        ...duration,
         safetyPlan: counts.attachedPictures > 0 ? "audio-plus-artwork" : "audio-only",
         reasonCode: "ok",
       },
@@ -492,6 +499,7 @@ async function classifyAvContainer(
       ...(formatId ? { formatId } : {}),
       streams: counts,
       codecs,
+      ...duration,
       safetyPlan: "strict-video-fallback",
       reasonCode: sawUnknownType ? "unknown_stream_type" : "auxiliary_only",
     },

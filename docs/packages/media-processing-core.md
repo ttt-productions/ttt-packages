@@ -62,11 +62,26 @@ signature routing, hardened `ffprobe` stream tables (timeout/kill/output-cap/str
 for shared containers, sharp decode-proof for images (image-family ISO-BMFF resolved BEFORE
 the timed-video rule — AVIF probes as an AV1 video stream), bounded codec normalization, and
 the fail-closed table (anything unproven ⇒ indeterminate + strict-video-fallback; never
-audio). `runCmd` gained `timeoutMs`/`signal` (SIGKILL) + `timedOut`/`truncated` flags.
+audio). Every probed A/V classification carries `durationSec`, read by the one length
+rule below (never present on image results). `runCmd` gained `timeoutMs`/`signal` (SIGKILL) + `timedOut`/`truncated` flags.
 `runMediaPipeline` gained the `resolveAfterInspection` seam: inspect the generation-pinned
 temp input BEFORE moderation/processing, let the caller's policy adapter pick the spec (or
 reject typed), and carry the SAME inspection object on every result path so the finalizer
 hands it to the safety gate — one authority, no re-detection.
+
+## Media length
+
+`src/duration/media-duration.ts` is the one rule for a timed file's length, read by the
+inspection's `durationSec` and by both processors' probes, so they always agree. Every length is
+measured, never read from the header: a container's `format.duration` can claim a short length
+for a long file, and Chromium's MediaRecorder writes WebM with none. ffprobe lists every packet's
+timestamp and duration (demux only, no decode, about a second for a 920 MB, 30-minute file), read
+line by line in bounded memory; the length runs from the earliest packet start (pre-roll before
+zero excluded) to the latest packet end across the audio and non-cover-art video streams. The
+pass is bounded by a timeout, the caller's abort, and a per-line cap. A measure that fails, times
+out, is aborted, or finds no timed packet is no length. A video or audio processor whose spec caps length refuses a file with no length
+(`unsupported_format`, never `too_long`: the file is not known to be too long).
+
 ## Bounded-memory local-input primitives
 
 `src/io/local-input.ts`: `streamToTempFile` (hard byte cap, private temp dir,
