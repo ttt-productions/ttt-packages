@@ -274,6 +274,8 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   '_appConfig/privacyPolicy': NONE,
   '_appConfig/takeItDownPageCopy': NONE,
   '_appConfig/dmcaPolicy': NONE,
+  // A slot naming the erased member keeps the uid, which renders as Former Member.
+  '_appConfig/systemUidSlots': RETAIN,
   '_serverData/agePolicy': NONE,
   '_serverData/nciiPolicy': RETAIN,
   '_serverData/privilegedReviewerSecurity': NONE,
@@ -284,6 +286,7 @@ export const ERASURE_FATES_BY_COLLECTION_PATH = {
   '_systemData/reservedUsernames': NONE,
   '_systemData/blockedFranchiseNames': NONE,
   '_systemData/appMode': NONE,
+  '_systemData/systemVideoSlots': NONE,
 } as const satisfies { readonly [P in RegisteredCollectionPath]: ErasureFates };
 
 /** Every registered path whose declared fates include `fate`. */

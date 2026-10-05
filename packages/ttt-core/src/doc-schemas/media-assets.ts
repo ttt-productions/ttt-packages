@@ -44,6 +44,8 @@ export const MediaAssetOwnerTypeSchema = z.enum([
   // + `realmId` + `realmFileFolderId` on the work file's own asset).
   'realmFile',
   'safetyEvidence', // inert system sentinel — synthetic NCII-evidence assets (never an account surface)
+  // An admin video held by a system video slot; the owner id is the slot id.
+  'systemContent',
 ]);
 export type MediaAssetOwnerType = z.infer<typeof MediaAssetOwnerTypeSchema>;
 
@@ -313,6 +315,9 @@ export const MediaPublicationKindSchema = z.enum([
   // placeholder flip) kinds. Carries the typed `guildInvite` / `adminSupport`
   // MediaServingScope of the owning conversation.
   'conversationFile',
+  // Points a system video slot at its new video and retires the video it replaces, in one
+  // transaction.
+  'systemVideoSlot',
 ]);
 export type MediaPublicationKind = z.infer<typeof MediaPublicationKindSchema>;
 

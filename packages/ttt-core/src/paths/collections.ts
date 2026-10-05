@@ -411,6 +411,10 @@ export const SPECIAL_DOCS = {
   APP_CONFIG: 'app',
   // Charter→full app-mode marker doc (_systemData/appMode) that recordAppModeFlip writes.
   APP_MODE: 'appMode',
+  // The admin-managed system slots: video slots (_systemData/systemVideoSlots, signed-in) and
+  // account slots (_appConfig/systemUidSlots, public).
+  SYSTEM_VIDEO_SLOTS: 'systemVideoSlots',
+  SYSTEM_UID_SLOTS: 'systemUidSlots',
   FUTURE_PLANS: 'futurePlans',
   NOTIFICATION_SETTINGS: 'notificationSettings',
   // Hall viewing-state doc id under userProfiles/{uid}/privateData/ (hall-viewing-experience

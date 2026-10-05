@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FileOriginSchema } from "./file-origin.js";
+import { SystemAccountSlotIdSchema, SystemVideoSlotIdSchema } from "../system-slots/system-slots.js";
 
 // DomainEvent schemas for the admin/moderation domain — content violations,
 // threshold-library review decisions, admin dispatch, and appeals. Assembled
@@ -113,6 +114,31 @@ export const ViolationAppealSubmittedEventSchema = z
       .object({
         userId: z.string().min(1),
         violationId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
+// A system video slot's state changed: an upload took its lock, its new video was published, or
+// it was cleared.
+export const SystemSlotVideoUpdatedEventSchema = z
+  .object({
+    type: z.literal('systemSlot.videoUpdated'),
+    ids: z
+      .object({
+        slotId: SystemVideoSlotIdSchema,
+      })
+      .strict(),
+  })
+  .strict();
+
+// A system account slot (`uid` or `uidList`) was set or cleared.
+export const SystemSlotUidUpdatedEventSchema = z
+  .object({
+    type: z.literal('systemSlot.uidUpdated'),
+    ids: z
+      .object({
+        slotId: SystemAccountSlotIdSchema,
       })
       .strict(),
   })

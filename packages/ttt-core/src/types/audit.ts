@@ -163,6 +163,11 @@ export type AuditEventType =
   | 'system.orphanUploadsCleanedUp'
   | 'admin.profanityListSeeded'
   | 'admin.profanityListCurated'
+  // system slots: a slot's new video published (system actor), a video slot cleared, and an
+  // account slot set or cleared (admin actors)
+  | 'system.videoSlotPublished'
+  | 'admin.videoSlotCleared'
+  | 'admin.systemUidSlotUpdated'
   // social. Payload shape of the Square agreements acceptance:
   // SquareStreetzAgreementsAcceptedAuditPayload in ../schemas/users.ts.
   | 'social.squareStreetzAgreementsAccepted'

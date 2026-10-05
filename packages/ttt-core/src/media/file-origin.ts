@@ -28,6 +28,8 @@ export const FileOriginSchema = z.enum([
   // deliberately EXCLUDED (guildmates share files through Work Files).
   'conversation-file',
   'work-asset',
+  // An admin's video for a system video slot (system-slots/system-slots.ts) — full admins only.
+  'system-content',
   // NCII / TAKE IT DOWN evidence upload (App-Check, no login). Preserved byte-exact,
   // never transcoded, never served — lands in the admin-only nciiEvidence bucket.
   'ncii-evidence',

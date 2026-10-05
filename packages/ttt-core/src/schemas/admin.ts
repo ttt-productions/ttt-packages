@@ -36,6 +36,11 @@ import { MAX_MANIFEST_NCMEC_RECEIPTS } from '../doc-schemas/safety/evidence.js';
 import { RuleGroupSchema, RuleSubgroupSchema } from '../doc-schemas/content.js';
 import { AppModeSchema } from '../doc-schemas/system.js';
 import {
+  SystemUidListSlotIdSchema,
+  SystemUidSlotIdSchema,
+  SystemVideoSlotIdSchema,
+} from '../system-slots/system-slots.js';
+import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   HALL_CLEARABLE_TEXT_FIELD_NAMES,
 } from '../constants/business-content.js';
@@ -47,6 +52,7 @@ import {
   MAX_CONTENT_PAGE_SECTIONS,
   MAX_DMCA_CONTACT_BLOCKS,
   MAX_DMCA_CONTACT_ROWS,
+  MAX_SYSTEM_UID_LIST,
 } from '../constants/business.js';
 import {
   ACCOUNT_ACTION_REASON_INPUT,
@@ -264,6 +270,29 @@ export const RecordAppModeFlipResultSchema = z.object({
   previousMode: AppModeSchema.nullable(),
 });
 export type RecordAppModeFlipResult = z.infer<typeof RecordAppModeFlipResultSchema>;
+
+// --- System slots ---
+
+// clearSystemVideoSlot empties one video slot; the server refuses while the slot's upload is still
+// pending or processing.
+export const ClearSystemVideoSlotInputSchema = z.object({
+  slotId: SystemVideoSlotIdSchema,
+}).strict();
+export type ClearSystemVideoSlotInput = z.infer<typeof ClearSystemVideoSlotInputSchema>;
+
+// updateSystemUidSlot sets one account slot: a `uid` slot takes one account id (null clears it), a
+// `uidList` slot an ordered list (empty clears it). The value's shape must match the slot's kind.
+export const UpdateSystemUidSlotInputSchema = z.union([
+  z.object({
+    slotId: SystemUidSlotIdSchema,
+    value: userIdSchema.nullable(),
+  }).strict(),
+  z.object({
+    slotId: SystemUidListSlotIdSchema,
+    value: z.array(userIdSchema).max(MAX_SYSTEM_UID_LIST),
+  }).strict(),
+]);
+export type UpdateSystemUidSlotInput = z.infer<typeof UpdateSystemUidSlotInputSchema>;
 
 // --- Admin list mutations ---
 

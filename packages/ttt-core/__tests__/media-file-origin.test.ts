@@ -9,7 +9,7 @@ describe('FileOriginSchema', () => {
       'admin-audition-prompt', 'hallLibrary-cover-square',
       'hallLibrary-cover-poster', 'hallLibrary-cover-cinematic',
       'chapter-photo', 'tune-track-photo', 'tune-track-audio', 'television-episode-photo',
-      'television-episode-video', 'conversation-file', 'work-asset',
+      'television-episode-video', 'conversation-file', 'work-asset', 'system-content',
     ];
     for (const o of origins) {
       expect(FileOriginSchema.parse(o)).toBe(o);

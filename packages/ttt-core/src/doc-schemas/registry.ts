@@ -84,6 +84,7 @@ import {
   PublicDocumentReleaseSchema,
 } from './public-documents.js';
 import { AppConfigSchema, AdminListSchema, ProfanityListSchema, ReservedUsernamesSchema, BlockedFranchiseNamesSchema, AppModeMarkerSchema } from './system.js';
+import { SystemUidSlotsDocumentSchema, SystemVideoSlotsDocumentSchema } from './system-slots.js';
 import {
   ContentViolationSchema,
   ModerationCascadeManifestSchema,
@@ -462,6 +463,7 @@ export const COLLECTION_SCHEMAS = {
   '_appConfig/takeItDownPageCopy': TakeItDownPageCopySchema,
   // The /dmca page's current projection — a public document like the three above.
   '_appConfig/dmcaPolicy': DmcaPolicyDocumentSchema,
+  '_appConfig/systemUidSlots': SystemUidSlotsDocumentSchema,
 
   // ===== _serverData singletons (server-only — Cloud-Functions-only readers, BACKEND-108) =====
   '_serverData/agePolicy': AgePolicyConfigV1Schema,
@@ -480,6 +482,7 @@ export const COLLECTION_SCHEMAS = {
   '_systemData/reservedUsernames': ReservedUsernamesSchema,
   '_systemData/blockedFranchiseNames': BlockedFranchiseNamesSchema,
   '_systemData/appMode': AppModeMarkerSchema,
+  '_systemData/systemVideoSlots': SystemVideoSlotsDocumentSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;
 
 export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;

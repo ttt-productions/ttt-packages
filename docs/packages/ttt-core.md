@@ -501,6 +501,29 @@ TTT Productions application-data package.
   `adminClaims` (the admin-role claims after a roster change), or `registeredMemberClaim` (the last
   three strict, no `targetStatus`). The drain re-converges every Auth-side mirror of the uid from
   canonical docs whichever effect queued it.
+- **System slots** (`system-slots/`, root): `SYSTEM_SLOTS` is the one registry of the admin-managed
+  places the app shows a founder-recorded video (`video`) or names an account (`uid`) or an ordered
+  list of accounts (`uidList`) — `SystemSlotKindSchema`, the id unions and id schemas derived per
+  kind (`SystemVideoSlotIdSchema`, `SystemUidSlotIdSchema`, `SystemUidListSlotIdSchema`,
+  `SystemAccountSlotIdSchema`), and `getSystemSlot`. The Backstage Guide's videos are declared once,
+  `GUIDE_VIDEO_DEFINITIONS` (id + planned title, `GuideVideoId`); the registry derives a
+  `guide-<videoId>` video slot from each (`guideVideoSlotId`). The values live in two singletons
+  split by audience: `_systemData/systemVideoSlots` (`SystemVideoSlotsDocumentSchema` — per video
+  slot `{ assetId, uploadPendingMediaId, updatedAt }`, always written whole, plus `version`;
+  `EMPTY_SYSTEM_VIDEO_SLOTS_DOCUMENT` when absent) and the public `_appConfig/systemUidSlots`
+  (`SystemUidSlotsDocumentSchema` — each value's shape matches its slot's kind), with
+  `PATH_BUILDERS.systemVideoSlots()` / `systemUidSlots()`. A slot's video is uploaded through the
+  `system-content` origin (`SystemContentTargetInfoSchema`, `UploadSystemContentVariablesSchema`),
+  whose limits are fixed across modes at full-mode Hall Television's ceiling, and published as a
+  `systemContent`-owned asset through the `systemVideoSlot` publication kind. Changes ride the
+  `systemSlot.videoUpdated` / `systemSlot.uidUpdated` domain events; the clear callable takes
+  `ClearSystemVideoSlotInputSchema`, and the account-slot callable takes
+  `UpdateSystemUidSlotInputSchema` (a `uid` slot one account id or null, a `uidList` slot a list of
+  at most `MAX_SYSTEM_UID_LIST` — the same cap the stored doc holds).
+- **A display name's reservation key** (`utils/display-name-reservation`, root + `./utils`, beside
+  `workRealmNameReservationKey`): `displayNameReservationKey(displayName)` — the name uppercased — is
+  the one key rule for the `reservedDisplayNames/{key}` reservations and the
+  `_systemData/reservedUsernames` blocked-names list.
 - **The registered-member claim** (`REGISTERED_MEMBER_CLAIM` = `registeredMember`, root, beside
   `PUBLIC_DOCUMENTS_ACCEPTED_CLAIM`): `true` on an account whose registration finished. The
   member-content read rules require it, so a bare login that skipped the age step reads nothing;

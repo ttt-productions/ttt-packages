@@ -19,11 +19,13 @@ const REVIEWED_CLIENT_READABLE_SINGLETONS: Readonly<Record<string, string>> = {
   '_appConfig/privacyPolicy': 'the public Privacy page renders it signed out',
   '_appConfig/takeItDownPageCopy': 'the no-login Take It Down page renders it',
   '_appConfig/dmcaPolicy': 'the public DMCA page renders it signed out',
+  '_appConfig/systemUidSlots': 'the public acknowledgments page reads its founder and team slots signed out',
   '_systemData/adminList': 'the admin roster panel reads it from the client',
   '_systemData/profanityList': 'the admin word-list view reads it from the client',
   '_systemData/reservedUsernames': 'a word list — signed-in disclosure of the word lists is the deliberate posture',
   '_systemData/blockedFranchiseNames': 'a word list — signed-in disclosure of the word lists is the deliberate posture',
   '_systemData/appMode': 'the app-mode marker, a signed-in doc by BACKEND-108',
+  '_systemData/systemVideoSlots': 'every signed-in surface showing a system video slot reads it from the client',
 };
 
 const inClientReadableBucket = (path: string): boolean =>

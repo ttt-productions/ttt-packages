@@ -20,6 +20,7 @@ export * from './commissions.js';
 export * from './messaging.js';
 export * from './admin-dispatch-read-markers.js';
 export * from './system.js';
+export * from './system-slots.js';
 export * from './public-documents.js';
 export * from './legal-review-notice.js';
 export * from './moderation.js';

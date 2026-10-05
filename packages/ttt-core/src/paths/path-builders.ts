@@ -452,6 +452,12 @@ export const PATH_BUILDERS = {
   appModeMarker: (): [string, string] =>
     [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.APP_MODE],
 
+  systemVideoSlots: (): [string, string] =>
+    [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.SYSTEM_VIDEO_SLOTS],
+
+  systemUidSlots: (): [string, string] =>
+    [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.SYSTEM_UID_SLOTS],
+
   // Backend-only post-commit auth-effect reconcile queue entry, keyed by the affected uid.
   statusReconcileQueueEntry: (uid: string): [string, string] =>
     [COLLECTIONS.STATUS_RECONCILE_QUEUE, uid],

@@ -307,3 +307,6 @@ export function isAdminTaskResolvedByCheckin(taskType: string): boolean {
     ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE[taskType as AdminTaskType] === 'checkin'
   );
 }
+
+/** The most accounts one `uidList` system slot can name. */
+export const MAX_SYSTEM_UID_LIST = 25;

@@ -18,7 +18,8 @@ const MB = 1024 * 1024;
 
 // --- Raw-input caps (upload gate) ---
 const IMAGE_RAW_BYTES = 25 * MB; // 48MP phone HEIC/JPEG fits comfortably
-const VIDEO_RAW_BYTES = byMode(500 * MB, 1024 * MB);
+const FULL_VIDEO_RAW_BYTES = 1024 * MB;
+const VIDEO_RAW_BYTES = byMode(500 * MB, FULL_VIDEO_RAW_BYTES);
 const AUDIO_RAW_BYTES = byMode(100 * MB, 250 * MB);
 const CONVERSATION_FILE_RAW_BYTES = byMode(250 * MB, 500 * MB);
 // NCII take-it-down evidence: the NCII policy's per-file cap is the one owner. The scan trigger
@@ -29,13 +30,15 @@ const NCII_EVIDENCE_RAW_BYTES = DEFAULT_NCII_POLICY_CONFIG_V1.maxEvidenceFileByt
 // --- Output duration caps (seconds) ---
 const SHORT_VIDEO_DURATION_SEC = byMode(60, 180);
 const ADMIN_PROMPT_DURATION_SEC = byMode(120, 600);
-const TELEVISION_DURATION_SEC = byMode(300, 1800);
+const FULL_TELEVISION_DURATION_SEC = 1800;
+const TELEVISION_DURATION_SEC = byMode(300, FULL_TELEVISION_DURATION_SEC);
 const LONG_AUDIO_DURATION_SEC = byMode(600, 900);
 const CONVERSATION_FILE_AUDIO_DURATION_SEC = byMode(60, 180);
 
 // --- Output size caps (post-transcode) ---
 const SHORT_VIDEO_OUTPUT_BYTES = byMode(60 * MB, 300 * MB);
-const TELEVISION_OUTPUT_BYTES = byMode(200 * MB, 1024 * MB);
+const FULL_TELEVISION_OUTPUT_BYTES = 1024 * MB;
+const TELEVISION_OUTPUT_BYTES = byMode(200 * MB, FULL_TELEVISION_OUTPUT_BYTES);
 const AUDIO_OUTPUT_BYTES = byMode(20 * MB, 60 * MB);
 
 // --- Output resolutions (full mode unlocks 1080p on the big surfaces) ---
@@ -43,6 +46,13 @@ const WIDE_VIDEO_WIDTH = byMode(1280, 1920);
 const WIDE_VIDEO_HEIGHT = byMode(720, 1080);
 const ENTRY_VIDEO_WIDTH = byMode(360, 720);
 const ENTRY_VIDEO_HEIGHT = byMode(640, 1280);
+
+// --- System-content limits (admin videos for system slots) ---
+// Fixed across modes at full-mode Hall Television's ceiling: a technical ceiling, not a target
+// length for the recordings.
+const SYSTEM_CONTENT_DURATION_SEC = FULL_TELEVISION_DURATION_SEC;
+const SYSTEM_CONTENT_RAW_BYTES = FULL_VIDEO_RAW_BYTES;
+const SYSTEM_CONTENT_OUTPUT_BYTES = FULL_TELEVISION_OUTPUT_BYTES;
 
 // --- Client recording caps ---
 const RECORD_DURATION_SEC = SHORT_VIDEO_DURATION_SEC;
@@ -715,6 +725,33 @@ export const TTT_MEDIA_SPECS: Record<FileOrigin, MediaOriginSpec> = {
         audio: {
           maxDurationSec: SHORT_VIDEO_DURATION_SEC,
         },
+      },
+    },
+  },
+
+  // Admin video for a system slot: picked from the computer only, never recorded in the browser.
+  'system-content': {
+    kind: 'video',
+    accept: ACCEPT_VIDEO_ONLY,
+    maxBytes: SYSTEM_CONTENT_RAW_BYTES,
+    maxDurationSec: SYSTEM_CONTENT_DURATION_SEC,
+    requiredAspectRatio: 16 / 9,
+    videoOrientation: 'horizontal' as const,
+    client: {
+      allowPick: true,
+      allowCapturePhoto: false,
+      allowRecordVideo: false,
+      allowRecordAudio: false,
+    },
+    processing: {
+      video: {
+        kind: 'video',
+        requiredWidth: WIDE_VIDEO_WIDTH,
+        requiredHeight: WIDE_VIDEO_HEIGHT,
+        allowAutoFormat: true,
+        maxDurationSec: SYSTEM_CONTENT_DURATION_SEC,
+        maxOutputBytes: SYSTEM_CONTENT_OUTPUT_BYTES,
+        video: { scaleMode: 'fit', preset: 'veryfast', crf: 28 },
       },
     },
   },

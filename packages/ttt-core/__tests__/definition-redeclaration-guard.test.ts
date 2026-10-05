@@ -215,6 +215,13 @@ const GUARDED: Record<string, GuardedLiteral> = {
   changeRequestReview: { owners: ['ttt-core/src/constants/business-admin.ts'] },
   // ModerationCascadeChangedEntityType — the craft-skill tag mirror a hide reaches.
   craftSkillReference: { owners: ['ttt-core/src/doc-schemas/moderation.ts'] },
+  // SystemSlotKind — a slot naming an ordered list of accounts. Its siblings `video` and `uid`
+  // are too common to guard; consumers read a slot's kind through the registry's id schemas.
+  uidList: { owners: ['ttt-core/src/system-slots/system-slots.ts'] },
+  // SystemSlotId — the registry's hand-written video slot; the Guide slots derive from GuideVideoId.
+  'landing-hero': { owners: ['ttt-core/src/system-slots/system-slots.ts'] },
+  // GuideVideoId — a Guide video's identity, declared once in GUIDE_VIDEO_DEFINITIONS.
+  'ttt-in-five-minutes': { owners: ['ttt-core/src/system-slots/guide-videos.ts'] },
 };
 
 function walk(dir: string, out: string[]): void {

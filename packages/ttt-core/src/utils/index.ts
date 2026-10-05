@@ -13,4 +13,5 @@ export * from './pledge-refund-eligibility.js';
 export * from './work-file-folder.js';
 export * from './work-realm-eligibility.js';
 export * from './work-realm-name.js';
+export * from './display-name-reservation.js';
 export * from './work-publish-readiness.js';

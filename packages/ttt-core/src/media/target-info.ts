@@ -49,6 +49,7 @@ import {
   COMMISSION_TITLE_INPUT,
 } from "../constants/text-fields.js";
 import { textFieldSchema } from "../schemas/text-field.js";
+import { SystemVideoSlotIdSchema } from "../system-slots/system-slots.js";
 
 export const ProfilePictureTargetInfoSchema = z.object({}).strict();
 
@@ -342,6 +343,13 @@ export const WorkAssetTargetInfoSchema = z
   })
   .strict();
 
+// system-content: the system video slot the upload is for — a registry slot of kind `video`.
+export const SystemContentTargetInfoSchema = z
+  .object({
+    slotId: SystemVideoSlotIdSchema,
+  })
+  .strict();
+
 // ---- type aliases ----
 
 export type ProfilePictureTargetInfo = z.infer<typeof ProfilePictureTargetInfoSchema>;
@@ -363,6 +371,7 @@ export type TelevisionEpisodePhotoTargetInfo = z.infer<typeof TelevisionEpisodeP
 export type TelevisionEpisodeVideoTargetInfo = z.infer<typeof TelevisionEpisodeVideoTargetInfoSchema>;
 export type ConversationFileTargetInfo = z.infer<typeof ConversationFileTargetInfoSchema>;
 export type WorkAssetTargetInfo = z.infer<typeof WorkAssetTargetInfoSchema>;
+export type SystemContentTargetInfo = z.infer<typeof SystemContentTargetInfoSchema>;
 
 // ncii-evidence: ties the uploaded evidence to a take-it-down request by its
 // public reference. The processor attaches the evidence record to that request.
@@ -394,6 +403,7 @@ export type TargetInfoFor<O extends FileOrigin> =
   : O extends 'television-episode-video' ? TelevisionEpisodeVideoTargetInfo
   : O extends 'conversation-file' ? ConversationFileTargetInfo
   : O extends 'work-asset' ? WorkAssetTargetInfo
+  : O extends 'system-content' ? SystemContentTargetInfo
   : O extends 'ncii-evidence' ? NciiEvidenceTargetInfo
   : never;
 
@@ -425,6 +435,7 @@ export function parseTargetInfo<O extends FileOrigin>(
     case 'television-episode-video': return TelevisionEpisodeVideoTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'conversation-file': return ConversationFileTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'work-asset': return WorkAssetTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
+    case 'system-content': return SystemContentTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     case 'ncii-evidence': return NciiEvidenceTargetInfoSchema.parse(raw) as TargetInfoFor<O>;
     default: return assertNever(fileOrigin);
   }
