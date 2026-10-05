@@ -2,6 +2,7 @@ import { checkInputFormat, type InputFormatSpec } from "@ttt-productions/input-f
 
 interface CallerAttributes {
   value?: unknown
+  readOnly?: boolean
   "aria-required"?: boolean | "true" | "false"
   "aria-invalid"?: boolean | "true" | "false" | "grammar" | "spelling"
 }
@@ -17,8 +18,18 @@ interface CallerAttributes {
  * Only a controlled value is judged, and a text that is merely too short is not marked invalid
  * while it is being typed: an empty or half-typed required field is not yet an error, so "too
  * short" is left to the form's submit-time validation.
+ *
+ * A read-only control shows a stored value nobody can edit there, so it is never judged: it
+ * announces neither required nor invalid (a stored value may legitimately fail the typed format).
  */
 export function formatControlAttributes(spec: InputFormatSpec, props: CallerAttributes) {
+  if (props.readOnly) {
+    return {
+      maxLength: spec.max,
+      "aria-required": props["aria-required"],
+      "aria-invalid": props["aria-invalid"],
+    }
+  }
   const result = typeof props.value === "string" ? checkInputFormat(props.value, spec) : null
   const malformed = result !== null && !result.ok && result.issue !== "tooShort"
   return {

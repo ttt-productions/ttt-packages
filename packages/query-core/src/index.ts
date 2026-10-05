@@ -40,6 +40,7 @@ export type {
   FirestoreSearchOptions,
   SearchEqualityFilter,
 } from './search/types.js';
+export { FIRESTORE_SEARCH_MIN_LENGTH, isSearchableText } from './search/rule.js';
 
 // Domain-event invalidator (mechanism — consumers register their event registry)
 export {

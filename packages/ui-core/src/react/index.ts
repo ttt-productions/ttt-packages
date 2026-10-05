@@ -6,7 +6,7 @@ export type { SpinnerProps, SpinnerSize } from "./components/spinner.js";
 export { Spinner } from "./components/spinner.js";
 export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from "./components/card.js";
 export { Label } from "./components/label.js";
-export type { TextareaProps } from "./components/textarea.js";
+export type { TextareaProps, FreeTextTextareaProps, NonFreeTextTextareaProps, NonFreeTextareaEntry } from "./components/textarea.js";
 export { Textarea } from "./components/textarea.js";
 export { Skeleton } from "./components/skeleton.js";
 export { Dialog, DialogPortal, DialogOverlay, DialogClose, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "./components/dialog.js";

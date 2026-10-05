@@ -191,6 +191,44 @@ describe('ConsequenceDialog', () => {
       render(<ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 1, max: 280 })} />);
       expect(screen.getByRole('textbox')).toHaveAttribute('maxLength', '280');
     });
+
+    it("renders the caller's hint under the reason box, and the box is described by it", async () => {
+      const user = userEvent.setup();
+      const inputFormat = defineInputFormat({ format: 'none', min: 10, max: 2000 });
+      function HintHarness() {
+        const [value, setValue] = useState('');
+        return (
+          <ConsequenceDialog
+            open
+            onOpenChange={noop}
+            title="Reopen?"
+            reversibility="r"
+            reason={{
+              inputFormat,
+              label: 'Reason',
+              value,
+              onChange: setValue,
+              hint: (id) => (
+                <p id={id}>{value.trim().length > 0 && value.trim().length < 10 ? 'Too short.' : null}</p>
+              ),
+            }}
+            confirmLabel="Reopen"
+            onConfirm={noop}
+          />
+        );
+      }
+      render(<HintHarness />);
+      const box = screen.getByRole('textbox', { name: 'Reason' });
+      await user.type(box, 'short');
+      expect(box).toHaveAccessibleDescription('Too short.');
+      const hint = screen.getByText('Too short.');
+      expect(box.parentElement!.contains(hint)).toBe(true);
+    });
+
+    it('describes the reason box by nothing when no hint is given', () => {
+      render(<ReasonHarness inputFormat={defineInputFormat({ format: 'none', min: 1, max: 280 })} />);
+      expect(screen.getByRole('textbox')).not.toHaveAttribute('aria-describedby');
+    });
   });
 
   describe('typed-confirmation gate', () => {

@@ -95,6 +95,14 @@ describe('a free-text Input takes its bounds from its declaration', () => {
     expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'false');
   });
 
+  it('does not judge a read-only box: a stored value it shows is neither required nor invalid', () => {
+    render(<Input inputFormat={TITLE} value="Hidden: awaiting an update." readOnly />);
+    const box = screen.getByRole('textbox');
+    expect(box).toHaveAttribute('maxLength', '150');
+    expect(box).not.toHaveAttribute('aria-required');
+    expect(box).not.toHaveAttribute('aria-invalid');
+  });
+
   it('types its props so a free-text input needs a declaration and takes no length props', () => {
     const compileOnly = () => (
       <>

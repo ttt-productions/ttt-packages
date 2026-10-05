@@ -28,6 +28,11 @@ Generic TanStack Query package.
   `connecting` with no error from its very first render, and a retired listener's late
   callback never lands on the new one. Consumed by the TTT notification/badge tray to
   show a degraded indicator instead of a false "all caught up".
+- The generic debounced prefix-search hook `useFirestoreSearch`, its types
+  (`FirestoreSearchOptions`, `FirestoreSearchConfig`, `SearchEqualityFilter`), and its search
+  rule on the server-safe root (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`)
+- The domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`,
+  `predicate`, `applyInvalidations`, `serializeInvalidation`)
 
 ## `useFirestorePaginated` — one cache entry per page
 
@@ -84,8 +89,25 @@ isFetchingOlder, olderError, retry }` (`FirestoreLiveInfiniteResult`).
 - **`retry()`** resubscribes a failed listener with a fresh ladder (clearing `error`,
   keeping rows and the anchor) and re-reads a failed older page; `isFetchingOlder` is the
   older re-read's pending flag.
-- Generic search hook/types
-- Domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`, `predicate`, `applyInvalidations`, `serializeInvalidation`)
+
+## `useFirestoreSearch` — debounced prefix search
+
+`useFirestoreSearch(options)` (in `./react`) reads a caller-provided collection and lowercase
+field: the optional equality filters, then a prefix range on the field, ordered by it, up to
+`limit` rows (default 5). It returns a `UseQueryResult` keyed by the normalized text.
+
+- **Normalized text.** The typed text is lowercased and trimmed; a search runs only when
+  `isSearchableText(text)` holds (the normalized text has at least `FIRESTORE_SEARCH_MIN_LENGTH`
+  characters) and `enabled` is not false. A consumer that gates its own search, result panel, or
+  `SearchDropdown` reads those two names, never a restated minimum or an untrimmed length.
+- **Debounced.** The read follows the typed text after `debounceMs` (default 300).
+- **No answer while the debounce lags.** Until the debounced text equals the normalized typed
+  text, the result is not an answer for what is typed: `data` is undefined, `error` is null,
+  `status` is `pending`, and `isLoading` is true when the typed text will be searched (false —
+  idle — when it is too short or the search is disabled). A first search therefore reads as
+  searching, never as an empty answer, and a changed search never shows the previous text's
+  rows, nor its failure. A change of case or surrounding spaces is the same search and keeps its
+  answer. Every other field of the result (`refetch` included) is the query's own.
 
 ## Domain-event invalidation is awaitable
 
@@ -102,7 +124,7 @@ so it contributes nothing to wait on.
 
 ## Entry points
 
-- `.` — server-safe root: cache helpers (including the paginated-entry updaters and `paginatedPageKey`), Firestore types (including `PaginatedPage`) and `docWithId`, infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
+- `.` — server-safe root: the search rule (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`), cache helpers (including the paginated-entry updaters and `paginatedPageKey`), Firestore types (including `PaginatedPage`) and `docWithId`, infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
 - `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
 - `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, and the `createQueryClient` factory.
 - `./types` — Firestore option/type surface, including `FirestoreCountOptions` and `FirestoreLiveInfiniteOptions` (these two are not re-exported from root, unlike the other Firestore option types).
@@ -133,7 +155,7 @@ Consumers of one key that ask for different ladders combine by **union**, never 
 
 ## Boundary
 
-Concrete TTT query keys, search presets, and domain-event invalidation entries live in TTT app code or `ttt-core`. This package should not export TTT- or Q-Sports-branded presets.
+Concrete TTT query keys, search presets, and domain-event invalidation entries live in TTT app code or `ttt-core`. This package exports no application-branded presets.
 
 ## Search hook boundary for Realm / Work discovery
 

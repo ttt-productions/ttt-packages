@@ -83,6 +83,9 @@ export const MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH = 2000;
 /** Operator-facing INTERNAL reason/rationale (LE-loggable; account actions, case reopens). */
 export const MAX_INTERNAL_REASON_LENGTH = 2000;
 
+/** The optional reason an admin records when closing an account discovered to be under 13. */
+export const MAX_UNDER_13_CLOSE_REASON_LENGTH = 1000;
+
 /** The generic owner-readable (user-facing) reason — deliberately short, no detail leaks. */
 export const MAX_USER_FACING_REASON_LENGTH = 280;
 
@@ -121,6 +124,9 @@ export const MAX_BROADCAST_EXPLICIT_UIDS = 2000;
 // both the callable (functions operatorStepUp.ts) and the frontend hook import these.
 export const STEP_UP_ENROLL_REQUIRED = 'OPERATOR_STEP_UP_ENROLL_REQUIRED';
 export const STEP_UP_REQUIRED = 'OPERATOR_STEP_UP_REQUIRED';
+
+/** How many digits an operator step-up authenticator code has. */
+export const OPERATOR_STEP_UP_CODE_LENGTH = 6;
 
 /** The frozen report-time captured text snapshot (edit-to-evade guard; NO PII). */
 export const MAX_REPORT_SNAPSHOT_TEXT_LENGTH = 4000;

@@ -34,6 +34,7 @@ import {
 } from '../doc-schemas/media-assets.js';
 import { MAX_MANIFEST_NCMEC_RECEIPTS } from '../doc-schemas/safety/evidence.js';
 import { RuleGroupSchema, RuleSubgroupSchema } from '../doc-schemas/content.js';
+import { AppModeSchema } from '../doc-schemas/system.js';
 import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   HALL_CLEARABLE_TEXT_FIELD_NAMES,
@@ -54,6 +55,7 @@ import {
   ADMIN_DISPATCH_SUBJECT_INPUT,
   AGREEMENT_POINT_INPUT,
   ANNOUNCEMENT_MESSAGE_INPUT,
+  APP_MODE_FLIP_EVIDENCE_INPUT,
   APP_VERSION_INPUT,
   APPEAL_REVIEW_NOTES_INPUT,
   CLEAR_TEXT_REASON_INPUT,
@@ -245,6 +247,23 @@ export const UpdateAppConfigInputSchema = z.object({
   ),
 }).strict();
 export type UpdateAppConfigInput = z.infer<typeof UpdateAppConfigInputSchema>;
+
+// recordAppModeFlip records the deployed app mode; it never sets it, so the only input is the
+// admin's optional milestone evidence.
+export const RecordAppModeFlipInputSchema = z.object({
+  milestoneEvidence: textFieldSchema(APP_MODE_FLIP_EVIDENCE_INPUT).optional(),
+}).strict();
+export type RecordAppModeFlipInput = z.infer<typeof RecordAppModeFlipInputSchema>;
+
+// What recordAppModeFlip answers: whether this call recorded a change (false when the marker
+// already matched the deployed mode) and the mode before and after. Server → client: non-strict.
+export const RecordAppModeFlipResultSchema = z.object({
+  success: z.literal(true),
+  recorded: z.boolean(),
+  mode: AppModeSchema,
+  previousMode: AppModeSchema.nullable(),
+});
+export type RecordAppModeFlipResult = z.infer<typeof RecordAppModeFlipResultSchema>;
 
 // --- Admin list mutations ---
 

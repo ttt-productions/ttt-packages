@@ -71,6 +71,15 @@ describe('a Textarea takes its bounds from its declaration', () => {
     expect(screen.getByRole('textbox')).not.toHaveAttribute('aria-invalid');
   });
 
+  it('does not judge a read-only box: a stored value it shows is neither required nor invalid', () => {
+    render(
+      <Textarea inputFormat={defineInputFormat({ format: 'singleLine', min: 1, max: 100 })} value={'two\nlines'} readOnly />,
+    );
+    const box = screen.getByRole('textbox');
+    expect(box).not.toHaveAttribute('aria-required');
+    expect(box).not.toHaveAttribute('aria-invalid');
+  });
+
   it('types its props so it needs a declaration and takes no length props', () => {
     const compileOnly = () => (
       <>
@@ -82,6 +91,49 @@ describe('a Textarea takes its bounds from its declaration', () => {
         <Textarea inputFormat={{ format: 'none', min: 0, max: 10 }} />
         {/* @ts-expect-error required comes from the declaration's min */}
         <Textarea inputFormat={DESCRIPTION} required />
+      </>
+    );
+    expect(compileOnly).toBeTypeOf('function');
+  });
+});
+
+describe('a multi-line box that is not free text takes no input format', () => {
+  it('renders an identifier list with no format, and keeps its own native bounds', () => {
+    render(
+      <Textarea
+        textEntry="identifier"
+        aria-label="User ids"
+        maxLength={500}
+        value={'uidA\nuid/B'}
+        onChange={() => {}}
+      />,
+    );
+    const box = screen.getByRole('textbox', { name: 'User ids' });
+    expect(box).toHaveValue('uidA\nuid/B');
+    expect(box).toHaveAttribute('maxLength', '500');
+    expect(box).not.toHaveAttribute('aria-required');
+    expect(box).not.toHaveAttribute('aria-invalid');
+    expect(box).not.toHaveAttribute('textEntry');
+  });
+
+  it('a list box has no format of its own: no cap and no whole-box judgment', () => {
+    const longList = Array.from({ length: 40 }, (_, i) => `term${i}`).join('\n');
+    render(<Textarea textEntry="list" aria-label="Add words" value={longList} onChange={() => {}} />);
+    const box = screen.getByRole('textbox', { name: 'Add words' });
+    expect(box).toHaveValue(longList);
+    expect(box).not.toHaveAttribute('maxLength');
+    expect(box).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('types the non-free-text branch so it refuses a declaration', () => {
+    const compileOnly = () => (
+      <>
+        <Textarea textEntry="identifier" maxLength={500} required />
+        <Textarea textEntry="list" />
+        {/* @ts-expect-error a box that is not free text takes no declaration */}
+        <Textarea textEntry="list" inputFormat={DESCRIPTION} />
+        {/* @ts-expect-error only the named non-free-text entries exist */}
+        <Textarea textEntry="numeric" />
       </>
     );
     expect(compileOnly).toBeTypeOf('function');

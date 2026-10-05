@@ -7,6 +7,7 @@
 
 import { z } from 'zod';
 import type { DeliverySkipReason, DeliveryState } from '@ttt-productions/notification-core/server';
+import { NOTIFICATION_FANOUT_PRIORITIES } from '../constants/business-platform.js';
 
 /** Native-TTL Timestamp (set only at the resolved-success terminal). */
 const expireAtField = z.unknown().optional();
@@ -83,9 +84,8 @@ export const NotificationFanoutPhaseSchema = z.object({
   done: z.boolean(),
 });
 
-/** A fanout job's priority tier: 0, 1, or 2 (the lane the scheduler drains it from). */
-export const NotificationFanoutPrioritySchema = z.union([z.literal(0), z.literal(1), z.literal(2)]);
-export type NotificationFanoutPriority = z.infer<typeof NotificationFanoutPrioritySchema>;
+/** A fanout job's priority tier, one of `NOTIFICATION_FANOUT_PRIORITIES`. */
+export const NotificationFanoutPrioritySchema = z.literal(NOTIFICATION_FANOUT_PRIORITIES);
 
 const NotificationFanoutJobBaseSchema = z.object({
   jobId: z.string(),

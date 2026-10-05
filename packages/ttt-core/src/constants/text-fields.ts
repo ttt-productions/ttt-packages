@@ -67,6 +67,7 @@ import {
   MAX_SAFETY_ARTIFACT_DESCRIPTION_LENGTH,
   MAX_TAKE_IT_DOWN_COPY_LENGTH,
   MAX_THRESHOLD_REVIEW_NOTES_LENGTH,
+  MAX_UNDER_13_CLOSE_REASON_LENGTH,
   MAX_USER_FACING_REASON_DETAIL_LENGTH,
   MAX_USER_FACING_REASON_LENGTH,
   MIN_SAFETY_RATIONALE_LENGTH,
@@ -207,6 +208,10 @@ export const MAINTENANCE_MESSAGE_INPUT = defineInputFormat({ label: 'Maintenance
 /** The site announcement banner; empty clears it. */
 export const ANNOUNCEMENT_MESSAGE_INPUT = defineInputFormat({ label: 'Announcement', format: 'none', min: 0, max: MAX_ANNOUNCEMENT_MESSAGE_LENGTH });
 export const APP_VERSION_INPUT = defineInputFormat({ label: 'App version', format: 'none', min: 1, max: MAX_APP_VERSION_LENGTH });
+/** The optional milestone evidence an admin records with an app-mode flip. */
+export const APP_MODE_FLIP_EVIDENCE_INPUT = defineInputFormat({ label: 'Milestone evidence', format: 'none', min: 0, max: MAX_INTERNAL_REASON_LENGTH });
+/** The optional reason an admin records when closing an account discovered to be under 13. */
+export const CLOSE_UNDER_13_REASON_INPUT = defineInputFormat({ label: 'Reason', format: 'none', min: 0, max: MAX_UNDER_13_CLOSE_REASON_LENGTH });
 
 // --- The safety console ---
 

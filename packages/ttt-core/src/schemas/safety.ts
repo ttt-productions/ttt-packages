@@ -12,7 +12,11 @@
 // derive from the id atoms, so each is exactly one document-id segment (ARCH-106).
 
 import { z } from 'zod';
-import { MAX_REPORT_NARRATIVE_LENGTH, MAX_USER_FACING_REASON_LENGTH } from '../constants/business.js';
+import {
+  MAX_REPORT_NARRATIVE_LENGTH,
+  MAX_USER_FACING_REASON_LENGTH,
+  OPERATOR_STEP_UP_CODE_LENGTH,
+} from '../constants/business.js';
 import {
   ADMIN_TASK_RESOLUTION_INPUT,
   NCMEC_ARTIFACT_DESCRIPTION_INPUT,
@@ -568,12 +572,18 @@ export const MarkNcmecPortalCompleteInputSchema = z
 export type MarkNcmecPortalCompleteInput = z.infer<typeof MarkNcmecPortalCompleteInputSchema>;
 
 // ---------------------------------------------------------------------------
-// operatorStepUp — app-level TOTP step-up (confirm / verify a 6-digit code).
+// operatorStepUp — app-level TOTP step-up (confirm / verify an authenticator code).
 // ---------------------------------------------------------------------------
 
 export const OperatorStepUpCodeInputSchema = z
   .object({
-    code: z.string().trim().regex(/^\d{6}$/u, 'Enter the 6-digit code.'),
+    code: z
+      .string()
+      .trim()
+      .regex(
+        new RegExp(`^\\d{${OPERATOR_STEP_UP_CODE_LENGTH}}$`, 'u'),
+        `Enter the ${OPERATOR_STEP_UP_CODE_LENGTH}-digit code.`,
+      ),
   })
   .strict();
 export type OperatorStepUpCodeInput = z.infer<typeof OperatorStepUpCodeInputSchema>;

@@ -30,6 +30,12 @@ export interface ConsequenceDialogReason {
   value: string;
   onChange: (value: string) => void;
   rows?: number;
+  /**
+   * A line rendered directly under the reason box, such as why its current text is refused. It is
+   * called with the id the box names in its `aria-describedby`, and the element it renders carries
+   * that id. The caller owns the words; this component adds none.
+   */
+  hint?: (id: string) => React.ReactNode;
 }
 
 /**
@@ -141,6 +147,7 @@ export function ConsequenceDialog({
   const actualOpen = isControlled ? open : internalOpen;
 
   const reasonId = useId();
+  const reasonHintId = useId();
   const typedId = useId();
 
   const setOpenState = useCallback(
@@ -231,7 +238,9 @@ export function ConsequenceDialog({
               inputFormat={reason.inputFormat}
               rows={reason.rows ?? 3}
               disabled={pending}
+              aria-describedby={reason.hint ? reasonHintId : undefined}
             />
+            {reason.hint ? reason.hint(reasonHintId) : null}
           </div>
         ) : null}
 

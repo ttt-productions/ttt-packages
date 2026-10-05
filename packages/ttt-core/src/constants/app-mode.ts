@@ -12,7 +12,9 @@
 
 import type { WorkProjectType } from '../types/content.js';
 
-export type AppMode = 'charter' | 'full';
+/** The app's two modes: charter (the pre-funding limits) and full. */
+export const APP_MODES = ['charter', 'full'] as const;
+export type AppMode = (typeof APP_MODES)[number];
 
 /** The deployed mode. Changing this constant (and publishing) IS the flip. */
 export const APP_MODE: AppMode = 'charter';

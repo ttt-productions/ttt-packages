@@ -35,11 +35,17 @@ function Harness({ results, isLoading = false, error = null, label, initialValue
       onSelect={onSelect ?? (() => {})}
       onClear={onClear}
       label={label}
+      minChars={SEARCH_MIN}
+      isSearchable={isSearchable}
       emptyMessage="Nobody found"
       renderResult={(person) => <span>{person.name}</span>}
     />
   );
 }
+
+// The search rule a consumer passes from its search hook.
+const SEARCH_MIN = 3;
+const isSearchable = (text: string) => text.trim().length >= SEARCH_MIN;
 
 const PEOPLE: Person[] = [{ name: 'Ada' }, { name: 'Alan' }, { name: 'Grace' }];
 
@@ -88,6 +94,17 @@ describe('SearchDropdown keeps a settled search open', () => {
     const hint = screen.getByText('Type at least 3 characters to search');
     expect(input).toHaveAttribute('aria-describedby', hint.id);
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it('opens only for a value its search rule accepts: a short text padded with spaces stays below the minimum', async () => {
+    const user = userEvent.setup();
+    render(<Harness />);
+    const input = screen.getByRole('combobox');
+    await user.type(input, 'ab ');
+    expect(screen.getByText('Type at least 3 characters to search')).toBeInTheDocument();
+    expect(input).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    expect(screen.queryByText('Nobody found')).not.toBeInTheDocument();
   });
 });
 

@@ -7,6 +7,7 @@ import {
   MAX_APP_VERSION_LENGTH,
   MAX_MAINTENANCE_MESSAGE_LENGTH,
 } from '../constants/business-admin.js';
+import { APP_MODES } from '../constants/app-mode.js';
 import { PublicDocumentVersionBlockSchema } from './public-documents.js';
 
 // Its write rule is `mergeAppConfigUpdate` (../utils/app-config.ts): an update over the doc as
@@ -81,10 +82,13 @@ export const BlockedFranchiseNamesSchema = z.object({
 });
 export type BlockedFranchiseNames = z.infer<typeof BlockedFranchiseNamesSchema>;
 
+/** One of `APP_MODES`. */
+export const AppModeSchema = z.enum(APP_MODES);
+
 // _systemData/appMode — the charter→full mode marker that recordAppModeFlip writes.
 // `current` mirrors the deployed `APP_MODE` constant after a flip is recorded.
 export const AppModeMarkerSchema = z.object({
-  current: z.enum(['charter', 'full']),
+  current: AppModeSchema,
   updatedAt: z.number(),
 });
 export type AppModeMarker = z.infer<typeof AppModeMarkerSchema>;

@@ -41,8 +41,13 @@ export interface SearchDropdownProps<T> {
   disabled?: boolean;
   /** Icon to show in input (default: Search) */
   icon?: React.ReactNode;
-  /** Minimum characters before showing results (default: 3) */
-  minChars?: number;
+  /**
+   * The search rule of the hook behind the dropdown, passed from that hook rather than restated:
+   * `isSearchable(value)` decides whether the value is searched (and the dropdown opens), and
+   * `minChars` is the minimum the below-minimum hint names.
+   */
+  minChars: number;
+  isSearchable: (value: string) => boolean;
   /** Message to show when no results found */
   emptyMessage?: string;
   /** What assistive technology hears when results arrive (default: "1 result" / "N results"). */
@@ -70,6 +75,8 @@ export interface SearchDropdownProps<T> {
  *   isLoading={isLoading}
  *   error={error}
  *   renderError={(error) => <MyErrorState error={error} />}
+ *   minChars={SEARCH_MIN_LENGTH}
+ *   isSearchable={isSearchableText}
  *   onSelect={(user) => console.log(user)}
  *   placeholder="Search users..."
  *   renderResult={(user) => (
@@ -92,7 +99,8 @@ export function SearchDropdown<T>({
   className,
   disabled = false,
   icon = <Search className="h-4 w-4" />,
-  minChars = 3,
+  minChars,
+  isSearchable,
   emptyMessage = 'No results found',
   resultsAnnouncement = defaultResultsAnnouncement,
   renderResult,
@@ -112,7 +120,7 @@ export function SearchDropdown<T>({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const searchable = value.length >= minChars;
+  const searchable = isSearchable(value);
   const isOpen = searchable && dismissedFor !== value;
   const failed = error !== null && error !== undefined;
   const showOptions = isOpen && !failed && !isLoading && results.length > 0;

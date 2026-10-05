@@ -11,6 +11,8 @@ import {
   MAX_WORK_PROJECT_STAKE_SHARES,
   MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH,
 } from '../src/constants/business';
+import * as pagination from '../src/constants/pagination';
+import * as root from '../src/index';
 
 describe('TASK_PRIORITY', () => {
   it('CRITICAL is 4', () => {
@@ -150,35 +152,30 @@ describe('MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH', () => {
 
 
 describe('admin Dispatches browse page size', () => {
-  it("is 12 threads a page — the admin browse list's own size, apart from a member's own thread list", async () => {
-    const pagination = await import('../src/constants/pagination');
+  it("is 12 threads a page — the admin browse list's own size, apart from a member's own thread list", () => {
     expect(pagination.ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE).toBe(12);
     expect(pagination.ITEMS_PER_PAGE_ADMIN_DISPATCH_THREADS).toBe(10);
   });
 
-  it('is importable from the server-safe root, where the browse list reads it', async () => {
-    const root = await import('../src/index');
+  it('is importable from the server-safe root, where the browse list reads it', () => {
     expect(root.ITEMS_PER_PAGE_ADMIN_DISPATCH_BROWSE).toBe(12);
   });
 });
 
 describe('admin task browse page size', () => {
-  it('is 12 tasks a page, read from the server-safe root by the task browse list', async () => {
-    const root = await import('../src/index');
+  it('is 12 tasks a page, read from the server-safe root by the task browse list', () => {
     expect(root.ITEMS_PER_PAGE_ADMIN_TASK_BROWSE).toBe(12);
   });
 });
 
 describe('the tray Safety Cases count', () => {
-  it('shows an exact count up to 100 and "100+" once more than 100 cases are open', async () => {
-    const root = await import('../src/index');
+  it('shows an exact count up to 100 and "100+" once more than 100 cases are open', () => {
     expect(root.formatSafetyCaseTrayCount(99)).toBe('99');
     expect(root.formatSafetyCaseTrayCount(100)).toBe('100');
     expect(root.formatSafetyCaseTrayCount(101)).toBe('100+');
   });
 
-  it('reads one case past the cap, so 100 open cases are told apart from more', async () => {
-    const root = await import('../src/index');
+  it('reads one case past the cap, so 100 open cases are told apart from more', () => {
     expect(root.SAFETY_CASE_TRAY_READ_LIMIT).toBe(101);
   });
 });

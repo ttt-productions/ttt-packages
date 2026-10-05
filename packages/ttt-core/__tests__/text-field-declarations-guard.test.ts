@@ -79,7 +79,7 @@ const SELF_BOUNDED_ALLOWED: Record<string, { count: number; why: string }> = {
     count: 1,
     why: 'reasonUserFacing is a fixed owner-readable string, not typed text.',
   },
-  'src/schemas/safety.ts#OperatorStepUpCodeInputSchema': { count: 1, why: 'A 6-digit code — a numeric box, not free text.' },
+  'src/schemas/safety.ts#OperatorStepUpCodeInputSchema': { count: 1, why: 'An authenticator code of OPERATOR_STEP_UP_CODE_LENGTH digits — a numeric box, not free text.' },
   'src/schemas/safety.ts#SubmitReportInputSchema': {
     count: 1,
     why: 'narrative has no client sender; it is not a typed field.',

@@ -57,6 +57,9 @@ export const AGE_ADULT_FLOOR_YEARS = 18;
 /** The earliest birth year a date of birth may carry; an earlier year is not a real entry. */
 export const DATE_OF_BIRTH_MIN_YEAR = 1900;
 
+/** How many digits each typed part of a date of birth holds — the width of its box. */
+export const DATE_OF_BIRTH_PART_DIGITS = { month: 2, day: 2, year: 4 } as const;
+
 import { ACTIVE_LIMITS } from './app-mode.js';
 
 // --- User Profile Craft Skills ---

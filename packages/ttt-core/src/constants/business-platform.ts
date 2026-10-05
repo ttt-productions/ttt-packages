@@ -1,5 +1,5 @@
 // Platform-infrastructure business-rule constants — short links, Firestore
-// limits, and payment bounds.
+// limits, notification fanout tiers, and payment bounds.
 
 // --- Short Links ---
 
@@ -23,6 +23,12 @@ export const FIRESTORE_DOCUMENT_ID_MAX_BYTES = 1500;
 /** Firestore's published limit on an indexed field value, in UTF-8 bytes: a longer value is
  *  truncated in the index, so an equality query on it is not exact. */
 export const FIRESTORE_INDEXED_VALUE_MAX_BYTES = 1500;
+
+// --- Notification fanout ---
+
+/** A notification fanout job's priority tiers, most urgent first: 0 urgent, 1 normal, 2 bulk. */
+export const NOTIFICATION_FANOUT_PRIORITIES = [0, 1, 2] as const;
+export type NotificationFanoutPriority = (typeof NOTIFICATION_FANOUT_PRIORITIES)[number];
 
 // --- Payments ---
 
