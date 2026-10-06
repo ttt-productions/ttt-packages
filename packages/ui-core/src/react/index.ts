@@ -68,6 +68,9 @@ export type { EndOfListIndicatorProps } from "./components/end-of-list-indicator
 export { ScrollToTopButton } from "./components/scroll-to-top-button.js";
 export type { ScrollToTopButtonProps } from "./components/scroll-to-top-button.js";
 
+export { ShowMoreToggle } from "./components/show-more-toggle.js";
+export type { ShowMoreToggleProps } from "./components/show-more-toggle.js";
+
 export { ChunkErrorRecovery } from "./components/chunk-error-recovery.js";
 export type { ChunkErrorRecoveryProps } from "./components/chunk-error-recovery.js";
 

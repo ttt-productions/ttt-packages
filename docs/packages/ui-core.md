@@ -78,6 +78,15 @@ Two page-state hooks produce the control's `pagination` prop, and a surface whos
 
 Both hooks guard their step functions, so `onPageChange` fires only on a page change that actually happened.
 
+## Show more — `ShowMoreToggle`
+
+The one "show more" disclosure control. Every expandable section uses it, so the control looks and behaves the same everywhere and changes in one place.
+
+- **Look.** The small `outline` Button carrying the current label and a trailing `ChevronDown` that turns over (`rotate-180`) while the content is shown; the chevron is decorative (`aria-hidden`) and skips its turn under reduced motion.
+- **Controlled.** `expanded` and `onExpandedChange(next)` belong to the caller, who renders (or not) the content; the toggle holds no state of its own.
+- **Labels are the caller's.** `openLabel` shows while hidden, `closeLabel` while shown — the package has no copy of its own.
+- **Disclosure semantics.** `aria-expanded` follows `expanded`; `controls` names the shown element for `aria-controls`. Always `type="button"` unless the caller says otherwise, so it never submits a form.
+
 ## Return scroll — `useReturnScroll`
 
 Restores a list's window scroll offset when the user comes back to it after a REAL route change (a
