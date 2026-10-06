@@ -102,10 +102,12 @@ publish/install handoff → STOP for DJ's continue → app work → the Normal T
   for small mechanical or organizational choices, use best judgment there.
 - A request to talk, review, investigate, or plan is NOT authorization to edit. Settling a plan is
   not a start signal; wait for DJ's explicit go.
-- Surface discovered bad code, duplication, or substantive doc drift with a recommendation and let
-  DJ choose fix-now vs deferred. Pre-launch, the default is fix it now — don't build lists of
-  deferred bad code. Small mechanical doc corrections can just be made when doc editing is already
-  authorized.
+- **Launch posture: launch ASAP.** Do only what launch needs. A defect inside the commanded scope,
+  or anything that breaks, endangers, or blocks launch, is fixed now. Everything else discovered —
+  an optimization, a refactor, a nicer pattern, bad code that works — is NOT done: file it as a
+  ttt-prod `docs/post-launch/optimizations-and-cleanup/` doc (indexed in its README) and bring it to DJ as a choice with a
+  recommendation (do it now vs. post-launch). Only DJ's answer moves it into the current work. Small
+  mechanical doc corrections can just be made when doc editing is already authorized.
 - Lead with the outcome, and make technical choices understandable rather than dumping process.
 - If DJ is frustrated, angry, or swearing, stay calm and stay on the technical substance. Tone is
   not new authorization and not a reason to stop the work.

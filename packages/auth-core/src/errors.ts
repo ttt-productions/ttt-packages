@@ -112,6 +112,9 @@ const MAP: Record<string, { code: AuthErrorCode; message: string }> = {
   }
 };
 
+/** The copy for every auth failure no mapped code covers. */
+export const UNKNOWN_AUTH_ERROR_MESSAGE = "Authentication error. Please try again.";
+
 export function normalizeAuthError(err: unknown, details?: Record<string, unknown>): NormalizedAuthError {
   const firebaseCode = pickFirebaseCode(err);
 
@@ -125,15 +128,12 @@ export function normalizeAuthError(err: unknown, details?: Record<string, unknow
     };
   }
 
-  // best-effort message (don’t leak weird objects)
-  const msg =
-    typeof (err as any)?.message === "string"
-      ? (err as any).message
-      : "Authentication error. Please try again.";
-
+  // Never the error's own message: for an unclassified failure it is the SDK's internal diagnostic
+  // ("Firebase: Cloud function deadline exceeded. (auth/internal-error)."), not an answer the person
+  // can act on. The consumer reports the error itself to its monitoring.
   return {
     code: "AUTH_UNKNOWN",
-    message: msg,
+    message: UNKNOWN_AUTH_ERROR_MESSAGE,
     firebaseCode,
     details
   };

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeAuthError, getErrorMessage } from '../src/errors';
+import { normalizeAuthError, getErrorMessage, UNKNOWN_AUTH_ERROR_MESSAGE } from '../src/errors';
 
 describe('normalizeAuthError', () => {
   describe('known Firebase error codes', () => {
@@ -151,11 +151,22 @@ describe('normalizeAuthError', () => {
       expect(result.code).toBe('AUTH_UNKNOWN');
     });
 
-    it('uses message from Error object when code is unknown', () => {
-      const err = new Error('Custom error message');
-      const result = normalizeAuthError(err);
+    it('never passes an unclassified error\'s own message through to the person', () => {
+      const refused = Object.assign(
+        new Error('Firebase: Cloud function deadline exceeded. (auth/internal-error).'),
+        { code: 'auth/internal-error' }
+      );
+      const result = normalizeAuthError(refused);
       expect(result.code).toBe('AUTH_UNKNOWN');
-      expect(result.message).toBe('Custom error message');
+      expect(result.firebaseCode).toBe('auth/internal-error');
+      expect(result.message).toBe(UNKNOWN_AUTH_ERROR_MESSAGE);
+      expect(result.message).not.toMatch(/Firebase|deadline|internal-error/);
+    });
+
+    it('a plain Error with no auth code gets the same fixed copy', () => {
+      const result = normalizeAuthError(new Error('Custom error message'));
+      expect(result.code).toBe('AUTH_UNKNOWN');
+      expect(result.message).toBe(UNKNOWN_AUTH_ERROR_MESSAGE);
     });
 
     it('uses default message when err has no message property', () => {
@@ -231,9 +242,9 @@ describe('getErrorMessage', () => {
     );
   });
 
-  it('returns Error.message for unmapped errors', () => {
+  it('returns the fixed copy, never Error.message, for unmapped errors', () => {
     const msg = getErrorMessage(new Error('Something broke'));
-    expect(msg).toBe('Something broke');
+    expect(msg).toBe(UNKNOWN_AUTH_ERROR_MESSAGE);
   });
 
   it('returns default message for null', () => {
