@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
-import { render } from "@testing-library/react";
-import { MessageList } from "../src/ui/MessageList.js";
+import * as React from "react";
+import { render, fireEvent, screen } from "@testing-library/react";
+import { MessageList, type ChatScrollContainerProps } from "../src/ui/MessageList.js";
 
 // The scrollable region is the element carrying `overflow-y-auto`.
 function scrollRegion(container: HTMLElement): HTMLElement {
@@ -38,6 +39,38 @@ describe("MessageList — height modes", () => {
     );
     expect(scrollRegion(container).className).toContain("h-[600px]");
     expect(scrollRegion(container).className).not.toContain("h-[400px]");
+  });
+});
+
+describe("MessageList — a custom scroll container", () => {
+  function Surface({ ref, className, onScroll, children }: ChatScrollContainerProps) {
+    return (
+      <section ref={ref as React.Ref<HTMLElement>} data-surface="paper" className={className} onScroll={onScroll}>
+        {children}
+      </section>
+    );
+  }
+
+  it("renders the scrollable region through the consumer's component, with the list's class and content", () => {
+    const { container, getByText } = render(
+      <MessageList messages={[]} currentUserId="u1" isAdmin={false} scrollClassName="h-[600px]" scrollContainer={Surface} />,
+    );
+    const region = scrollRegion(container);
+    expect(region.tagName).toBe("SECTION");
+    expect(region).toHaveAttribute("data-surface", "paper");
+    expect(region.className).toContain("h-[600px]");
+    expect(region).toContainElement(getByText("No messages yet"));
+  });
+
+  it("hands the container the list's ref, so the list still drives its scroll position", () => {
+    const { container } = render(
+      <MessageList messages={[]} currentUserId="u1" isAdmin={false} scrollContainer={Surface} showScrollToBottom />,
+    );
+    const region = scrollRegion(container);
+    Object.defineProperty(region, "scrollHeight", { configurable: true, value: 900 });
+    region.scrollTop = 0;
+    fireEvent.click(screen.getByRole("button", { name: "Scroll to latest" }));
+    expect(region.scrollTop).toBe(900);
   });
 });
 

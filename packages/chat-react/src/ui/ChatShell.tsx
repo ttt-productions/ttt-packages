@@ -11,7 +11,7 @@ import { KeyboardAvoidingView } from "@ttt-productions/mobile-core/react";
 import { useChatMessages } from "../hooks/useChatMessages.js";
 import { useRealtimeChatMessages } from "../realtime/useRealtimeChatMessages.js";
 import type { RealtimeChatClient } from "../realtime/transport.js";
-import { MessageList } from "./MessageList.js";
+import { MessageList, type ChatScrollContainerProps } from "./MessageList.js";
 import { Composer } from "./Composer.js";
 import { ThreadActions } from "./menus.js";
 
@@ -82,6 +82,9 @@ export type ChatShellProps = {
   /** Advanced override for the scrollable region's class (forwarded to MessageList).
    *  Usually unnecessary — prefer `fillHeight`. */
   scrollClassName?: string;
+  /** Renders the scrollable message region (forwarded to MessageList) in place of the default div,
+   *  so the consumer can give it its own surface component. */
+  scrollContainer?: React.ComponentType<ChatScrollContainerProps>;
 };
 
 /** The resolved data a transport hook hands the presentational view. */
@@ -225,6 +228,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     composerDisabled,
     fillHeight = false,
     scrollClassName,
+    scrollContainer,
     renderLoadError,
     resolved,
   } = props;
@@ -387,6 +391,7 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           onAtBottomChange={setAtBottom}
           fillHeight={fillHeight}
           scrollClassName={scrollClassName}
+          scrollContainer={scrollContainer}
           handlers={handlers}
           onSenderClick={onSenderClick}
           onRetrySend={retrySend}

@@ -7,6 +7,24 @@ import type { MessageRendererRegistry } from "../types.js";
 import { Button, Spinner } from "@ttt-productions/ui-core/react";
 import { MessageItemDefault } from "./MessageItemDefault.js";
 
+/** What `MessageList` hands a custom scroll container: the element it must render as the scrollable
+ *  message region, with this ref, class, scroll handler, and children. */
+export type ChatScrollContainerProps = {
+  ref: React.Ref<HTMLDivElement>;
+  className: string;
+  onScroll: React.UIEventHandler<HTMLDivElement>;
+  children: React.ReactNode;
+};
+
+/** The default scroll container: a plain div. */
+function DefaultScrollContainer({ ref, className, onScroll, children }: ChatScrollContainerProps) {
+  return (
+    <div ref={ref} className={className} onScroll={onScroll}>
+      {children}
+    </div>
+  );
+}
+
 export function MessageList(props: {
   messages: ChatMessageV1[];
   currentUserId: string;
@@ -28,6 +46,10 @@ export function MessageList(props: {
    *  `h-[400px]` (fixed-height card) unless `fillHeight` is set, in which case it is
    *  `flex-1 min-h-0`. */
   scrollClassName?: string;
+  /** Renders the scrollable message region in place of the default div, so the consumer can give it
+   *  its own surface component. It must render one element carrying the given ref, class, scroll
+   *  handler, and children. */
+  scrollContainer?: React.ComponentType<ChatScrollContainerProps>;
   /** Fill the parent's height instead of a fixed `h-[400px]`. Makes the list a flex-col
    *  that flexes to fill its container, so a bounded-height page panel scrolls inside.
    *  The consuming layout must give MessageList's ancestor a bounded height (ChatShell's
@@ -58,6 +80,7 @@ export function MessageList(props: {
     onScrollToBottom,
     onAtBottomChange,
     scrollClassName,
+    scrollContainer: ScrollContainer = DefaultScrollContainer,
     fillHeight = false,
     handlers,
     onSenderClick,
@@ -167,7 +190,7 @@ export function MessageList(props: {
 
   return (
     <div className={outerClass}>
-      <div ref={scrollRef} className={`${scrollClass} overflow-y-auto p-4`} onScroll={onScroll}>
+      <ScrollContainer ref={scrollRef} className={`${scrollClass} overflow-y-auto p-4`} onScroll={onScroll}>
         {olderLoadFailed ? (
           <div className="mb-2">{olderLoadErrorRow}</div>
         ) : isFetchingOlder ? (
@@ -224,7 +247,7 @@ export function MessageList(props: {
             })}
           </div>
         )}
-      </div>
+      </ScrollContainer>
 
       {(unseenCount > 0 || showScrollToBottom) && (
         <Button

@@ -16,6 +16,12 @@ Chat **React UI** package — the React half of the chat split.
   internal scroll region, or a `fillHeight` mode that flexes to fill a
   bounded-height page panel (scrolling inside) instead of a fixed box. The
   consumer gives `ChatShell` a bounded-height parent.
+- The scrollable message region's surface is the consumer's: `scrollContainer`
+  (on `ChatShell` and `MessageList`) is a component rendered in place of the
+  default div. It receives `ChatScrollContainerProps` — the ref, class, scroll
+  handler, and children — and must render one element carrying all four, so the
+  list keeps driving its scroll position. The package knows nothing of the
+  surface it is given.
 - Message-text rendering (`MessageText`) — the ONE place every chat text surface
   (message bubbles) renders through. It renders the text
   **verbatim**: there is no mention/token grammar, no autocomplete dropdown, no

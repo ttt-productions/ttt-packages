@@ -87,6 +87,7 @@ export type {
 export type { ChatShellProps, ChatLoadFailure } from "./ui/ChatShell.js";
 export { ChatShell } from "./ui/ChatShell.js";
 export { MessageList } from "./ui/MessageList.js";
+export type { ChatScrollContainerProps } from "./ui/MessageList.js";
 export type { ComposerProps } from "./ui/Composer.js";
 export { Composer } from "./ui/Composer.js";
 export type { MessageItemDefaultProps } from "./ui/MessageItemDefault.js";
