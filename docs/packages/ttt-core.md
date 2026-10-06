@@ -437,8 +437,12 @@ TTT Productions application-data package.
 - **The pledge-totals formula** (`utils/pledge-totals`, root): `pledgePaymentTotalsOf(sums, pledgeCount)`
   builds every counter from the summed `PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS` (`amount`, `netAmount`,
   `refundedAmount`, `disputeLostAmount`) — `totalRefunded` is refunds plus funds a lost dispute
-  withdrew. Linear, so the Ops aggregate and the repair script apply it to ledger sums and the
-  webhook applies it to one pledge before and after an event; none restates a counter.
+  withdrew; `pledgeCount` is the number of pledges that still count. `isPledgePaymentCounted(pledge)`
+  is the one rule for that — a pledge counts while its `netAmount > 0`, so a full refund or a lost
+  dispute that takes all its money stops it counting — and the Supporter badge follows the same rule.
+  `pledgePaymentContributionOf(pledge)` is one pledge's share (its amounts, and 1 toward the count
+  while it counts); the webhook's increment is a pledge's contribution after an event minus before.
+  None restates a counter.
 - **Stored-enum display labels** (`constants/admin-labels`, root + `./constants`): what a screen shows for a stored enum
   value, one map per canonical union and keyed by it, so a new member fails the build until it has its text —
   `GUILD_INVITE_STATUS_LABELS`, `COMMISSION_PROPOSAL_STATUS_LABELS`, `HALL_SUB_ITEM_STATUS_LABELS`,

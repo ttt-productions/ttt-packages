@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS, pledgePaymentTotalsOf } from '../src/utils/pledge-totals';
+import {
+  PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS,
+  isPledgePaymentCounted,
+  pledgePaymentContributionOf,
+  pledgePaymentTotalsOf,
+} from '../src/utils/pledge-totals';
 import { PledgePaymentSchema } from '../src/doc-schemas/payments';
 import * as root from '../src/index';
 
@@ -22,9 +27,9 @@ describe('the pledge-totals formula', () => {
     });
   });
 
-  it('gives the ledger total as the sum of each pledge\'s contribution', () => {
-    const ledger = pledgePaymentTotalsOf(sum([refunded, disputeLost, untouched]), 3);
-    const contributions = [refunded, disputeLost, untouched].map((p) => pledgePaymentTotalsOf(p, 1));
+  it('gives the ledger total as the sum of each pledge\'s contribution — the lost dispute holds no money, so 2 pledges count', () => {
+    const ledger = pledgePaymentTotalsOf(sum([refunded, disputeLost, untouched]), 2);
+    const contributions = [refunded, disputeLost, untouched].map((p) => pledgePaymentContributionOf(p));
     expect(contributions.reduce((a, b) => ({
       netRaised: a.netRaised + b.netRaised,
       grossRaised: a.grossRaised + b.grossRaised,
@@ -49,5 +54,39 @@ describe('the pledge-totals formula', () => {
 
   it('is exported from the package root', () => {
     expect(root.pledgePaymentTotalsOf).toBe(pledgePaymentTotalsOf);
+    expect(root.isPledgePaymentCounted).toBe(isPledgePaymentCounted);
+    expect(root.pledgePaymentContributionOf).toBe(pledgePaymentContributionOf);
+  });
+});
+
+describe('which pledges count', () => {
+  it('a pledge counts while it holds money, and stops once its net is 0', () => {
+    expect(isPledgePaymentCounted(untouched)).toBe(true);
+    expect(isPledgePaymentCounted(refunded)).toBe(true); // partly refunded, money left
+    expect(isPledgePaymentCounted({ netAmount: 0 })).toBe(false); // fully refunded
+    expect(isPledgePaymentCounted(disputeLost)).toBe(false);
+  });
+
+  it('a full refund takes the pledge out of the count', () => {
+    const before = pledgePaymentContributionOf(untouched);
+    const after = pledgePaymentContributionOf({ ...untouched, refundedAmount: 500, netAmount: 0 });
+    expect(after.pledgeCount - before.pledgeCount).toBe(-1);
+    expect(after.netRaised - before.netRaised).toBe(-500);
+    expect(after.totalRefunded - before.totalRefunded).toBe(500);
+  });
+
+  it('a partial refund keeps the pledge in the count', () => {
+    const before = pledgePaymentContributionOf({ ...refunded, refundedAmount: 0, netAmount: 1000 });
+    expect(pledgePaymentContributionOf(refunded).pledgeCount - before.pledgeCount).toBe(0);
+  });
+
+  it('a lost dispute that takes all the money takes the pledge out of the count', () => {
+    const before = pledgePaymentContributionOf({ ...disputeLost, disputeLostAmount: 0, netAmount: 2500 });
+    expect(pledgePaymentContributionOf(disputeLost).pledgeCount - before.pledgeCount).toBe(-1);
+  });
+
+  it('a refund that fails puts the pledge back in the count', () => {
+    const refundedFully = pledgePaymentContributionOf({ ...untouched, refundedAmount: 500, netAmount: 0 });
+    expect(pledgePaymentContributionOf(untouched).pledgeCount - refundedFully.pledgeCount).toBe(1);
   });
 });
