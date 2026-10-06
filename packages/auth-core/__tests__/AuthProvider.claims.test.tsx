@@ -46,9 +46,16 @@ function resolveInitialRead(uid: string, owner: string) {
   next({ owner });
 }
 
+/** Firebase Auth's `currentUser` is the live signed-in user, the same one useAuthState reports. */
+const liveAuth = {
+  get currentUser() {
+    return currentUser;
+  },
+} as never;
+
 const wrapper = ({ children }: { children: ReactNode }) => (
   <AuthProvider<Claims>
-    config={{ auth: {} as never, parseClaims: (raw) => ({ owner: String(raw.owner ?? '') }), defaultClaims: { owner: '' } }}
+    config={{ auth: liveAuth, parseClaims: (raw) => ({ owner: String(raw.owner ?? '') }), defaultClaims: { owner: '' } }}
   >
     {children}
   </AuthProvider>
@@ -86,6 +93,31 @@ describe('AuthProvider claims belong to the current session', () => {
 
     expect(result.current.user).toBe(b.user);
     expect(result.current.claims.owner).toBe('B');
+  });
+
+  it('a refreshClaims taken before sign-in refreshes the account signed in when it is called', async () => {
+    // A registration's submit handler holds the callback from a signed-out render, creates the
+    // account, and then asks for the claims the server just set on it.
+    const { result, rerender } = renderHook(() => useAuth<Claims>(), { wrapper });
+    const refreshFromSignedOutRender = result.current.refreshClaims;
+
+    const created = makeUser('uid-new');
+    currentUser = created.user;
+    rerender();
+    await act(async () => resolveInitialRead('uid-new', 'pre-claim'));
+    await waitFor(() => expect(result.current.claims.owner).toBe('pre-claim'));
+
+    let refreshDone!: Promise<void>;
+    act(() => {
+      refreshDone = refreshFromSignedOutRender();
+    });
+    expect(created.user.getIdTokenResult).toHaveBeenCalledWith(true);
+    await act(async () => {
+      created.refreshes[0]({ owner: 'member' });
+      await refreshDone;
+    });
+
+    expect(result.current.claims.owner).toBe('member');
   });
 
   it('the first render after a direct switch shows no claims and is loading, never the previous account', async () => {

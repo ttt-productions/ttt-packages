@@ -115,13 +115,18 @@ export function AuthProvider<TClaims = Record<string, unknown>>(
 
   // --- refreshClaims ---
   const refreshClaims = useCallback(async () => {
-    if (!user) return;
+    // The LIVE signed-in user, never the one this render saw: a caller can hold this callback from
+    // before its own sign-in (a registration's submit handler creates the account and then asks for
+    // the claims the server just set), and a refresh of that render's `null` user would do nothing —
+    // leaving the new account on its pre-claim token until the hourly refresh.
+    const liveUser = configRef.current.auth.currentUser;
+    if (!liveUser) return;
     await readClaims(
-      user,
-      async () => ((await user.getIdTokenResult(true)).claims ?? {}) as Record<string, unknown>,
+      liveUser,
+      async () => ((await liveUser.getIdTokenResult(true)).claims ?? {}) as Record<string, unknown>,
       "refreshClaims",
     );
-  }, [user, readClaims]);
+  }, [readClaims]);
 
   // --- Derived at render: only the current session's claims are ever exposed ---
   const sessionClaims = user && resolved?.user === user ? resolved : null;
