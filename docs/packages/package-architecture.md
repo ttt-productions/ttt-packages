@@ -23,7 +23,7 @@ package may consume it.
   `input-format-core` (the named text-input formats, a field's format/min/max
   declaration, and the one check every text input and server bound runs; no
   dependencies at all), `firebase-helpers`, `chat-core`, `media-schemas`,
-  `mobile-core`, `monitoring-core`, `query-core`, `theme-core`, `rate-limit-core`,
+  `mobile-core`, `monitoring-core`, `theme-core`, `rate-limit-core`,
   `audit-core`, `moderation-core`, `auth-core`, `edge-protocol-core`
   (runtime-neutral signed-edge-call primitives plus the edge→origin provenance
   header contract; WebCrypto + zod only).
@@ -33,6 +33,8 @@ package may consume it.
   declaration and judgement), `report-core` (→ `input-format-core`; the report
   comment's check — its UI/query needs are optional peers), `media-processing-core`
   (→ `media-schemas`), `upload-core` (→ `firebase-helpers`, `media-schemas`),
+  `query-core` (→ `firebase-helpers`; its id-list batch loader splits by
+  `FIRESTORE_IN_FILTER_LIMIT`),
   `realtime-core` (→ `edge-protocol-core`; generic runtime-neutral realtime
   primitives), `notification-core` (no internal runtime deps; its UI/query needs are
   optional peers).
@@ -62,6 +64,7 @@ build and release order still honors them):
     media-viewer           -> media-schemas, ui-core
     media-processing-core  -> media-schemas
     upload-core            -> firebase-helpers, media-schemas
+    query-core             -> firebase-helpers
     upload-ui              -> file-input, media-schemas, ui-core, upload-core
     ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
                               input-format-core, media-schemas,

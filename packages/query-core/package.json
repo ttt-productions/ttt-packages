@@ -59,6 +59,9 @@
             "optional": true
         }
     },
+    "dependencies": {
+        "@ttt-productions/firebase-helpers": "*"
+    },
     "devDependencies": {
         "@tanstack/react-query": "^5.0.0",
         "@types/react": "^19.0.0",

@@ -58,7 +58,16 @@ export function useSubscriptionStatus(identity: string) {
     [identity],
   );
 
-  const restart = useCallback(() => {
+  // The identity the hook renders now. A `restart` captured under an earlier identity must not
+  // touch the current one's status, or every write the current listener makes would be dropped.
+  const renderedIdentity = useRef(identity);
+  useEffect(() => {
+    renderedIdentity.current = identity;
+  }, [identity]);
+
+  /** Re-opens the listener; false (and nothing changes) when this identity is no longer rendered. */
+  const restart = useCallback((): boolean => {
+    if (renderedIdentity.current !== identity) return false;
     setStatus((prev) => {
       const base = prev.identity === identity ? prev : freshStatus(identity);
       return {
@@ -69,6 +78,7 @@ export function useSubscriptionStatus(identity: string) {
         restarts: base.restarts + 1,
       };
     });
+    return true;
   }, [identity]);
 
   return {
@@ -105,19 +115,23 @@ export function useSubscribedResult<TData>(
 ): WithSourceState<UseQueryResult<TData, Error>> {
   const { error, sourceState, pendingRestart, restart } = status;
   const waiters = useRef<RefetchWaiter<TData>[]>([]);
-  const latest = useRef<QueryObserverResult<TData, Error> | null>(null);
+  const latest = useRef(query as QueryObserverResult<TData, Error>);
+  const mounted = useRef(true);
   const active = subscribe && enabled;
 
   const refetch = useCallback(
     (options?: RefetchOptions): Promise<QueryObserverResult<TData, Error>> => {
-      if (!active) return Promise.resolve((latest.current ?? query) as QueryObserverResult<TData, Error>);
+      // An unmounted hook, or a refetch captured under an identity the hook has left, re-opens
+      // nothing: it settles at once rather than waiting on a listener that will never report.
+      if (!active || !mounted.current) return Promise.resolve(latest.current);
       return new Promise((resolve, reject) => {
+        if (!restart()) {
+          resolve(latest.current);
+          return;
+        }
         waiters.current.push({ resolve, reject, throwOnError: options?.throwOnError === true });
-        restart();
       });
     },
-    // `query` is only the first-render fallback for `latest`; a new one must not remake the callback.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [active, restart],
   );
 
@@ -180,16 +194,15 @@ export function useSubscribedResult<TData>(
   });
 
   // A refetch still open when the hook unmounts resolves with the last result instead of hanging.
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
       const settled = waiters.current;
       waiters.current = [];
-      for (const waiter of settled) {
-        if (latest.current) waiter.resolve(latest.current);
-      }
-    },
-    [],
-  );
+      for (const waiter of settled) waiter.resolve(latest.current);
+    };
+  }, []);
 
   return { ...result, sourceState } as WithSourceState<UseQueryResult<TData, Error>>;
 }

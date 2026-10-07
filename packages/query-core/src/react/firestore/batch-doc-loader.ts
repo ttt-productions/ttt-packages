@@ -11,13 +11,14 @@ import {
   type Firestore,
 } from 'firebase/firestore';
 import type { QueryClient } from '@tanstack/react-query';
+import { chunk, FIRESTORE_IN_FILTER_LIMIT } from '@ttt-productions/firebase-helpers';
 
 /**
  * Coalescing document loader behind {@link useBatchFirestoreDocs}'s one-shot mode.
  *
  * Every id is its own observed React Query query, so without coalescing N ids would issue
  * N Firestore round-trips. The loader collects the ids enqueued in a single microtask and
- * dispatches them as `where(documentId(), 'in', chunk)` queries of at most 30 ids each
+ * dispatches them as `where(documentId(), 'in', chunk)` queries of at most `FIRESTORE_IN_FILTER_LIMIT` ids each
  * (`'batch'` transport), or as concurrent per-document gets (`'get'` transport — required
  * for collections whose rules gate reads on `resource.data`, where an unconstrained list
  * query is denied wholesale but per-document gets are evaluated per doc).
@@ -38,9 +39,6 @@ import type { QueryClient } from '@tanstack/react-query';
  * instance is part of the scope on purpose: two `db` instances sharing a collection path
  * must never share a request.
  */
-
-/** Firestore's hard cap on the number of values in an `in` filter. */
-export const FIRESTORE_IN_LIMIT = 30;
 
 /** Maximum `in`-query requests in flight at once, per loader scope. */
 export const MAX_CONCURRENT_BATCH_REQUESTS = 4;
@@ -141,9 +139,8 @@ function createDocLoader(db: Firestore, collectionPath: string): DocLoader {
     const batch = openBatch;
     openBatch = null;
     if (!batch || batch.size === 0) return;
-    const ids = [...batch.keys()];
-    for (let i = 0; i < ids.length; i += FIRESTORE_IN_LIMIT) {
-      void runChunk(ids.slice(i, i + FIRESTORE_IN_LIMIT), batch);
+    for (const ids of chunk([...batch.keys()], FIRESTORE_IN_FILTER_LIMIT)) {
+      void runChunk(ids, batch);
     }
   };
 

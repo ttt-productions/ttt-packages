@@ -65,7 +65,7 @@ export type BatchFirestoreDocsOptions = {
    * One-shot transport (default: `'batch'`).
    *
    * - `'batch'` — ids enqueued in the same microtask are coalesced into
-   *   `where(documentId(), 'in', …)` queries of at most 30 ids each. Fewest round-trips.
+   *   `where(documentId(), 'in', …)` queries of at most `FIRESTORE_IN_FILTER_LIMIT` (firebase-helpers) ids each. Fewest round-trips.
    * - `'get'` — one `getDoc` per id, run concurrently. Required for a collection whose
    *   Firestore rules gate reads on `resource.data`: an unconstrained id-list query is
    *   denied WHOLESALE there, while per-document gets are evaluated per document, so one

@@ -13,6 +13,7 @@ const h = vi.hoisted(() => ({
     unsubscribe: ReturnType<typeof vi.fn>;
   }>,
   getDoc: vi.fn(),
+  getDocs: vi.fn(),
 }));
 
 vi.mock('firebase/firestore', () => ({
@@ -25,7 +26,7 @@ vi.mock('firebase/firestore', () => ({
     return unsubscribe;
   },
   getDoc: h.getDoc,
-  getDocs: vi.fn(async () => ({ docs: [] })),
+  getDocs: h.getDocs,
 }));
 
 import { useFirestoreDoc } from '../src/react/firestore/use-firestore-doc.js';
@@ -56,10 +57,11 @@ const hooks = [
     name: 'useFirestoreDoc',
     render: (enabled = true) =>
       renderHook(
-        ({ on }: { on: boolean }) =>
-          useFirestoreDoc({ docPath: 'games/g1', queryKey: ['game', 'g1'], subscribe: true, enabled: on }),
-        { wrapper: makeWrapper(), initialProps: { on: enabled } },
+        ({ on, id }: { on: boolean; id: string }) =>
+          useFirestoreDoc({ docPath: `games/${id}`, queryKey: ['game', id], subscribe: true, enabled: on }),
+        { wrapper: makeWrapper(), initialProps: { on: enabled, id: 'g1' } },
       ),
+    oneShotReads: () => h.getDoc.mock.calls.length,
     snapshot: (value: number) => ({
       exists: () => true,
       id: 'g1',
@@ -72,10 +74,11 @@ const hooks = [
     name: 'useFirestoreCollection',
     render: (enabled = true) =>
       renderHook(
-        ({ on }: { on: boolean }) =>
-          useFirestoreCollection({ collectionPath: 'games', queryKey: ['games'], subscribe: true, enabled: on }),
-        { wrapper: makeWrapper(), initialProps: { on: enabled } },
+        ({ on, id }: { on: boolean; id: string }) =>
+          useFirestoreCollection({ collectionPath: `leagues/${id}/games`, queryKey: ['games', id], subscribe: true, enabled: on }),
+        { wrapper: makeWrapper(), initialProps: { on: enabled, id: 'g1' } },
       ),
+    oneShotReads: () => h.getDocs.mock.calls.length,
     snapshot: (value: number) => ({
       docs: [{ id: 'g1', data: () => ({ score: value }) }],
       metadata: { fromCache: false },
@@ -89,6 +92,8 @@ const last = () => h.listeners[h.listeners.length - 1];
 beforeEach(() => {
   h.listeners.length = 0;
   h.getDoc.mockReset();
+  h.getDocs.mockReset();
+  h.getDocs.mockResolvedValue({ docs: [] });
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
@@ -214,13 +219,61 @@ for (const hook of hooks) {
       expect(hook.read(result.current.data)).toBe(3);
     });
 
-    it('opens no listener for a disabled read', async () => {
+    it('opens no listener and reads nothing for a disabled read', async () => {
       const { result } = hook.render(false);
       await act(async () => {
         await result.current.refetch();
       });
       expect(h.listeners).toHaveLength(0);
+      expect(hook.oneShotReads()).toBe(0);
       expect(result.current.isFetching).toBe(false);
+    });
+
+    it('a refetch kept from an earlier read never stalls the current one', async () => {
+      const { result, rerender } = hook.render();
+      act(() => last().error(unavailable()));
+      const staleRefetch = result.current.refetch;
+
+      rerender({ on: true, id: 'g2' });
+      const current = last();
+      expect(h.listeners).toHaveLength(2);
+
+      await act(async () => {
+        await staleRefetch();
+      });
+      // The earlier read's refetch re-opens nothing, and the current read still reports.
+      expect(h.listeners).toHaveLength(2);
+      act(() => current.next(hook.snapshot(5)));
+      expect(result.current.sourceState).toBe('live');
+      expect(hook.read(result.current.data)).toBe(5);
+
+      const failure = unavailable();
+      act(() => current.error(failure));
+      expect(result.current.isError).toBe(true);
+      expect(result.current.error).toBe(failure);
+    });
+
+    it('a refetch after unmount settles at once and opens nothing', async () => {
+      const { result, unmount } = hook.render();
+      act(() => last().next(hook.snapshot(1)));
+      const refetch = result.current.refetch;
+      unmount();
+
+      const opened = h.listeners.length;
+      const settled = (await refetch()) as { data: unknown };
+      expect(h.listeners).toHaveLength(opened);
+      expect(hook.read(settled.data)).toBe(1);
+    });
+
+    it('a refetch open when the hook unmounts settles instead of hanging', async () => {
+      const { result, unmount } = hook.render();
+      act(() => last().error(unavailable()));
+      let settled: Promise<unknown> = Promise.resolve();
+      act(() => {
+        settled = result.current.refetch();
+      });
+      unmount();
+      await expect(settled).resolves.toBeDefined();
     });
   });
 }
