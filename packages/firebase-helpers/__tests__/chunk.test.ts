@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { chunk } from '../src/utils/chunk';
+import { chunk, FIRESTORE_IN_FILTER_LIMIT } from '../src/utils/chunk';
 
 describe('chunk', () => {
   it('returns empty array for empty input', () => {
@@ -45,5 +45,18 @@ describe('chunk', () => {
 
   it('works with size 2', () => {
     expect(chunk([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+  });
+});
+
+describe('FIRESTORE_IN_FILTER_LIMIT', () => {
+  it('is Firestore’s thirty-value cap on one in filter, exported from the server-safe root', async () => {
+    const root = await import('../src/index');
+    expect(root.FIRESTORE_IN_FILTER_LIMIT).toBe(30);
+  });
+
+  it('splits an id list into in-filter-sized reads', () => {
+    const ids = Array.from({ length: 61 }, (_, i) => `id${i}`);
+    const reads = chunk(ids, FIRESTORE_IN_FILTER_LIMIT);
+    expect(reads.map((read) => read.length)).toEqual([30, 30, 1]);
   });
 });

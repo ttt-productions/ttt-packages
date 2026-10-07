@@ -27,6 +27,8 @@ Consumer apps own brand-specific copy, imagery, and final token overrides. They 
 - `./styles.css` — base tokens and variables.
 - `./components.css` — shared component CSS patterns.
 
+**Install graph.** `react`, `react-dom`, and `next-themes` (which itself requires React) are optional peers, and theme-core has no runtime dependencies, so a server-only install — Cloud Functions reading `THEME_NAMES` — installs no React. An app that imports `./react` installs `next-themes` itself. `__tests__/server-install.test.ts` fails if anything theme-core declares as a dependency or required peer is or needs React, and the boundary suite's root-leak audit fails if the root reaches `next-themes`.
+
 `ThemeProvider` wraps `next-themes` with `attribute="class"` and hands it `THEME_NAMES`. Its `storageKey` is the app's (next-themes' own `theme` when the app passes none), and it publishes that key to the account sync. It warns in non-production builds if the consuming app hasn't defined the `REQUIRED_TOKENS` (`--brand-primary`, `--brand-secondary`, `--brand-accent`) or is still using the loud placeholder fallback — the concrete mechanism behind "consumer apps own final token overrides" above.
 
 ## Viewer settings

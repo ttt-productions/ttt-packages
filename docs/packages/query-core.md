@@ -28,6 +28,17 @@ Generic TanStack Query package.
   `connecting` with no error from its very first render, and a retired listener's late
   callback never lands on the new one. Consumed by the TTT notification/badge tray to
   show a degraded indicator instead of a false "all caught up".
+- **`refetch()` re-opens a subscribed read.** In subscribe mode, `useFirestoreDoc` /
+  `useFirestoreCollection` keep a listener error in their own state (the `permission-denied`
+  ladder spent, or at once for any other code), so the one-shot read cannot clear it. Their
+  `refetch()` there clears the listener error and re-opens the listener with a fresh
+  resubscribe ladder; the result reports fetching (`isFetching`, `fetchStatus: 'fetching'`)
+  until the re-opened listener's first snapshot or its next surfaced error, and the promise
+  settles then (resolving with that result, or rejecting with the error under
+  `throwOnError`). After a failure the restart reads `pending` with no data, so the failed
+  listener's last rows are never shown as current; a healthy listener's restart keeps its
+  data (`isRefetching`). This is the retry a failed subscribed read offers. A disabled read's
+  `refetch()` opens nothing; without `subscribe`, `refetch()` is the query's own one-shot re-read.
 - The generic debounced prefix-search hook `useFirestoreSearch`, its types
   (`FirestoreSearchOptions`, `FirestoreSearchConfig`, `SearchEqualityFilter`), and its search
   rule on the server-safe root (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`)
@@ -74,7 +85,16 @@ isFetchingOlder, olderError, retry }` (`FirestoreLiveInfiniteResult`).
   pages. A cached snapshot never fixes the anchor.
 - **Truthful `hasOlder`.** The anchoring snapshot's look-ahead row says whether anything
   older exists; older pages (`getDocs`, `startAfter`, one row past the page) carry the
-  same look-ahead. When older rows exist, the first older page loads by itself.
+  same look-ahead.
+- **Older rows only on request.** No older page is read until `fetchOlder()` asks: the
+  first call reads the page after the anchor, each later call the page after the last one
+  loaded. A list nobody scrolls back through costs only its live read.
+- **Order without re-sorting.** Both reads are ordered by `orderByField` descending in
+  Firestore and meet at the anchor without overlapping, so the merged list is the live rows
+  followed by the older pages, reversed for `sort: 'asc'` (the default) — a snapshot never
+  re-sorts the rows already loaded, and the ordering field may be any type Firestore orders
+  (a timestamp included). A row whose ordering value an edit moved into the live range is
+  shown once, as its live copy.
 - **Identity.** Rows, anchor, source state, and errors are tagged to the subscription
   identity (path, key, ordering, constraints, page size, enabled). A new identity renders
   empty, `isInitialLoading`, and `connecting` in its first render; the older-pages query

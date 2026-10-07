@@ -44,7 +44,7 @@ function mapMsg(
 
   // A stored `replyTo` (if any legacy doc still carries one) is deliberately NOT
   // mapped: chat has no reply-authoring affordance, so the UI has no reply
-  // renderer to feed (DJ ruling 2026-07-29).
+  // renderer to feed.
   return {
     messageId: data.id,
     threadId,
@@ -104,7 +104,6 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
       enabled: allowed,
       sort: "asc",
       select: (data) => mapMsg(data, threadId),
-      getSortValue: (data) => toMillis(data.createdAt) ?? 0,
     });
 
   const messages = React.useMemo(() => (allowed ? items : []), [allowed, items]);

@@ -45,7 +45,7 @@ function doc(id: string, createdAt: number) {
 function lastListener(): Listener {
   return h.listeners[h.listeners.length - 1];
 }
-function emit(listener: Listener, docs: Array<ReturnType<typeof doc>>, fromCache = false) {
+function emit(listener: Listener, docs: Array<{ id: string; data: () => Record<string, unknown> }>, fromCache = false) {
   act(() => listener.next({ docs, metadata: { fromCache } }));
 }
 function constraintOf(listener: Listener, key: string): unknown {
@@ -128,6 +128,9 @@ describe('useFirestoreLiveInfinite — reading', () => {
     expect(h.listeners).toHaveLength(2);
     expect(constraintOf(anchored, '__endAt')).toBe('b');
     expect(constraintOf(anchored, '__limit')).toBeUndefined();
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
     await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
 
     // Two new messages arrive. Nothing older drops out of view.
@@ -161,13 +164,12 @@ describe('useFirestoreLiveInfinite — reading', () => {
     expect(ids(result.current.items)).toEqual(['a', 'b']);
   });
 
-  it('applies select + getSortValue to map and order items', () => {
+  it('applies select to map items', () => {
     const { result } = renderHook(
       () =>
         useFirestoreLiveInfinite<{ key: string }>({
           ...baseOpts,
           select: (d) => ({ key: `k:${d.id}` }),
-          getSortValue: (d) => d.createdAt as number,
         }),
       { wrapper: makeWrapper() },
     );
@@ -182,6 +184,112 @@ describe('useFirestoreLiveInfinite — reading', () => {
     expect(h.listeners).toHaveLength(0);
     expect(result.current.items).toEqual([]);
     expect(result.current.isInitialLoading).toBe(false);
+  });
+});
+
+describe('useFirestoreLiveInfinite — older rows only on request', () => {
+  it('reads no older page until fetchOlder asks, though older rows exist', async () => {
+    h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 10)] });
+    const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
+      wrapper: makeWrapper(),
+    });
+    emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(h.getDocs).not.toHaveBeenCalled();
+    expect(result.current.hasOlder).toBe(true);
+    expect(result.current.isFetchingOlder).toBe(false);
+    expect(ids(result.current.items)).toEqual(['b', 'c']);
+
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
+    expect(h.getDocs).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
+    expect(result.current.hasOlder).toBe(false);
+  });
+
+  it('reads each further older page after the last one loaded, on request', async () => {
+    h.getDocs
+      .mockResolvedValueOnce({ docs: [doc('d', 40), doc('c', 30), doc('b', 20)] })
+      .mockResolvedValueOnce({ docs: [doc('b', 20), doc('a', 10)] });
+    const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
+      wrapper: makeWrapper(),
+    });
+    emit(h.listeners[0], [doc('f', 60), doc('e', 50), doc('d', 40)]);
+
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['c', 'd', 'e', 'f']));
+    expect(h.getDocs).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
+    expect(h.getDocs).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']));
+    expect(result.current.hasOlder).toBe(false);
+  });
+});
+
+describe('useFirestoreLiveInfinite — order', () => {
+  // Both reads are ordered by Firestore and meet at the anchor, so the merged list keeps the
+  // order they deliver: the hook never sorts rows itself.
+  it('lists rows in the order the reads deliver them, oldest first by default', async () => {
+    h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 999)] });
+    const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
+      wrapper: makeWrapper(),
+    });
+    // Ordering values that disagree with the delivered order prove nothing re-sorts them.
+    emit(h.listeners[0], [doc('c', 1), doc('b', 500), doc('a', 999)]);
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
+  });
+
+  it('lists rows newest first for sort desc', async () => {
+    h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 10)] });
+    const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts, sort: 'desc' }), {
+      wrapper: makeWrapper(),
+    });
+    emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
+    emit(lastListener(), [doc('d', 40), doc('c', 30), doc('b', 20)]);
+    expect(ids(result.current.items)).toEqual(['d', 'c', 'b', 'a']);
+  });
+
+  it('orders rows whose ordering field is not a number, such as a timestamp', () => {
+    const stamped = (id: string, seconds: number) => ({ id, data: () => ({ createdAt: { seconds } }) });
+    const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
+      wrapper: makeWrapper(),
+    });
+    emit(h.listeners[0], [stamped('b', 20), stamped('a', 10)]);
+    expect(ids(result.current.items)).toEqual(['a', 'b']);
+  });
+
+  it('shows a row that is in both reads once, as its live copy', async () => {
+    h.getDocs.mockResolvedValueOnce({ docs: [{ id: 'a', data: () => ({ createdAt: 10, v: 'old' }) }] });
+    const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
+      wrapper: makeWrapper(),
+    });
+    emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
+    act(() =>
+      lastListener().next({
+        docs: [{ id: 'a', data: () => ({ createdAt: 40, v: 'new' }) }, doc('c', 30), doc('b', 20)],
+        metadata: { fromCache: false },
+      }),
+    );
+    expect(ids(result.current.items)).toEqual(['b', 'c', 'a']);
+    expect((result.current.items[2] as unknown as { v: string }).v).toBe('new');
   });
 });
 
@@ -304,6 +412,9 @@ describe('useFirestoreLiveInfinite — failures', () => {
       wrapper: makeWrapper(),
     });
     emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
 
     await waitFor(() => expect(result.current.olderError).not.toBeNull());
     expect(result.current.hasOlder).toBe(true);
@@ -324,6 +435,9 @@ describe('useFirestoreLiveInfinite — failures', () => {
       wrapper: makeWrapper(),
     });
     emit(h.listeners[0], [doc('f', 60), doc('e', 50), doc('d', 40)]);
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
     await waitFor(() => expect(ids(result.current.items)).toEqual(['c', 'd', 'e', 'f']));
     expect(result.current.hasOlder).toBe(true);
 
@@ -367,6 +481,9 @@ describe('useFirestoreLiveInfinite — retries and switches keep to one read', (
       { wrapper: makeWrapper(), initialProps: { thread: 't1' } },
     );
     emit(lastListener(), [doc('c1', 30), doc('b1', 20), doc('a1', 10)]);
+    act(() => {
+      void result.current.fetchOlder();
+    });
     await waitFor(() => expect(h.getDocs).toHaveBeenCalled());
 
     rerender({ thread: 't2' });

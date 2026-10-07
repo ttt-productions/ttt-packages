@@ -26,6 +26,7 @@ const FORBIDDEN_EXACT = new Set<string>([
   'firebase/functions',
   '@tanstack/react-query',
   'lucide-react',
+  'next-themes',
 ]);
 
 /** Returns the forbidden specifier if `spec` is a client/runtime leak, else null. */

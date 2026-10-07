@@ -3,7 +3,7 @@
 // For every package whose root is supposed to be pure/server-safe, fail if its
 // built root entry (dist/index.js) transitively pulls a client/browser runtime
 // import (react, firebase/{app,auth,firestore,storage,functions}, next,
-// @tanstack/react-query, lucide-react, or any *.css).
+// @tanstack/react-query, lucide-react, next-themes, or any *.css).
 //
 // Drive: an explicit per-package allowlist (leak-config.ts). Type-only imports
 // are resolved as clean because we read built output (tsc erases them).

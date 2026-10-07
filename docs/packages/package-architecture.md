@@ -291,7 +291,7 @@ the rules above so they fail loudly:
 - `root-runtime-leak.test.ts` (check #1) — for every package marked `hard` in
   `leak-config.ts`, fails if the built root entry (`dist/index.js`)
   transitively pulls a client/browser runtime (`react`, `firebase/*`, `next`,
-  `@tanstack/react-query`, `lucide-react`, or any `*.css`). `media-processing-core`
+  `@tanstack/react-query`, `lucide-react`, `next-themes`, or any `*.css`). `media-processing-core`
   and `chat-react` are `exempt` (intentionally non-pure roots). It warns rather
   than fails when `dist/` is not built, so build the packages first.
 - `internal-star-range.test.ts` (check #2) — **report-only** audit of

@@ -158,9 +158,7 @@ export interface FirestoreLiveInfiniteOptions<T = DocumentData & { id: string }>
   enabled?: boolean;
   /** Map each raw doc (id included) to the item shape. Default: identity (WithId). */
   select?: (data: DocumentData & { id: string }) => T;
-  /** Numeric sort key from a raw doc (id included). Default: reads `orderByField` as a number. */
-  getSortValue?: (data: DocumentData & { id: string }) => number;
-  /** Output ordering of the merged list. Default 'asc' (oldest → newest). */
+  /** Output ordering of the merged list, by `orderByField` as Firestore orders it. Default 'asc' (oldest → newest). */
   sort?: 'asc' | 'desc';
 }
 

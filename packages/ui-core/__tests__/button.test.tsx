@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Button, buttonVariants } from '../src/react/components/button';
+import { Tabs, TabsList, TabsTrigger } from '../src/react/components/tabs';
 
 // ---------------------------------------------------------------------------
 // Variant + size class contract (table-driven, no render)
@@ -309,5 +310,51 @@ describe('<Button> — HTML attribute passthrough', () => {
     it('passes through `data-*` attributes', () => {
         render(<Button data-testid="custom-button">Tagged</Button>);
         expect(screen.getByTestId('custom-button')).toBeInTheDocument();
+    });
+});
+
+// An app styles every button's press from its own stylesheet through one stable class, so the
+// hook must reach every rendered shape of Button and nothing that merely looks like one.
+describe('<Button> — the ui-button hook class', () => {
+    const variants = ['default', 'destructive', 'success', 'outline', 'secondary', 'ghost', 'link', 'inverted'] as const;
+    const sizes = ['default', 'sm', 'lg', 'icon'] as const;
+
+    it('is on every variant and size', () => {
+        for (const variant of variants) {
+            for (const size of sizes) {
+                expect(buttonVariants({ variant, size }).split(/\s+/)).toContain('ui-button');
+            }
+        }
+    });
+
+    it('is on a rendered button, a pending button, and an asChild link', () => {
+        render(
+            <>
+                <Button>Plain</Button>
+                <Button pending>Saving</Button>
+                <Button asChild>
+                    <a href="/next">Next</a>
+                </Button>
+            </>,
+        );
+        expect(screen.getByRole('button', { name: 'Plain' })).toHaveClass('ui-button');
+        expect(screen.getByRole('button', { name: 'Saving' })).toHaveClass('ui-button');
+        expect(screen.getByRole('link', { name: 'Next' })).toHaveClass('ui-button');
+    });
+
+    it('survives a caller className', () => {
+        render(<Button className="w-full">Wide</Button>);
+        expect(screen.getByRole('button', { name: 'Wide' })).toHaveClass('ui-button', 'w-full');
+    });
+
+    it('is not on TabsTrigger, which shares the button utility string', () => {
+        render(
+            <Tabs defaultValue="one">
+                <TabsList>
+                    <TabsTrigger value="one">One</TabsTrigger>
+                </TabsList>
+            </Tabs>,
+        );
+        expect(screen.getByRole('tab', { name: 'One' })).not.toHaveClass('ui-button');
     });
 });

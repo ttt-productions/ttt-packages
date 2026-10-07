@@ -10,6 +10,7 @@ Generic Firebase helper package.
 - Admin SDK init helper on `./server`
 - Client Firebase init helper
 - Generic file-url helper `getFileNameFromUrl`
+- Firestore's `in`-filter cap, `FIRESTORE_IN_FILTER_LIMIT` (30 values in one `in`, `not-in`, or `array-contains-any` filter), beside `chunk`, which splits an id list into one read per chunk of that size. It is a Firestore platform limit, so every chunked `in` read in either app or a package splits by this one constant, never its own `30`.
 - Generic callable hook/client helpers on `./react`
 
 ## Boundary
@@ -79,7 +80,7 @@ Backend code should prefer `@ttt-productions/firebase-helpers/server` when it ne
 
 The root is pure/server-safe — pure path, timestamp, pagination, and batch helpers that never load a browser Firebase runtime. Client-only and Admin-only runtimes live behind explicit subpaths.
 
-- `.` — pure helpers (paths, timestamps, `getFileNameFromUrl`); server-safe. Pagination and batch are NOT on root — they live on `./firestore-client` (client SDK) and `./server` (Admin SDK batch), since both need a runtime `firebase/firestore` import.
+- `.` — pure helpers (paths, timestamps, `chunk` and `FIRESTORE_IN_FILTER_LIMIT`, `getFileNameFromUrl`); server-safe. Pagination and batch are NOT on root — they live on `./firestore-client` (client SDK) and `./server` (Admin SDK batch), since both need a runtime `firebase/firestore` import.
 - `./server` — Admin SDK init helper, server-only handles, and admin-SDK batch helpers.
 - `./react` — generic callable hook/client primitives.
 - `./client` — Firebase **client** app init helper (browser runtime).

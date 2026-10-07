@@ -5,7 +5,7 @@ import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-q
 import { doc, getDoc, onSnapshot, type DocumentData } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
-import { useSubscriptionStatus } from './subscription-status.js';
+import { useSubscribedResult, useSubscriptionStatus } from './subscription-status.js';
 import type {
   FirestoreDocOptions,
   WithId,
@@ -50,12 +50,8 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
 
   // Listener errors can't surface through useQuery (the queryFn is disabled while
   // subscribed), so they're tracked per subscription identity and merged into the result.
-  const {
-    error: subscriptionError,
-    sourceState,
-    reset: resetStatus,
-    update: updateStatus,
-  } = useSubscriptionStatus(JSON.stringify([docPath, queryKeyMemo, enabled, subscribe]));
+  const subscription = useSubscriptionStatus(JSON.stringify([docPath, queryKeyMemo, enabled, subscribe]));
+  const { reset: resetStatus, update: updateStatus, restarts } = subscription;
 
   // Set up realtime subscription
   useEffect(() => {
@@ -80,7 +76,7 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
         { includeMetadataChanges: true },
         (snapshot) => {
           attempt = 0;
-          updateStatus({ error: null });
+          updateStatus({ error: null, restart: null });
           if (snapshot.exists()) {
             const rawData = snapshot.data();
             // Include id in data passed to select, so it can be renamed/transformed
@@ -107,7 +103,7 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
             return;
           }
           console.error('[useFirestoreDoc] Subscription error:', error);
-          updateStatus({ error, sourceState: 'error' });
+          updateStatus({ error, sourceState: 'error', restart: null });
           queryClient.setQueryData(queryKey, undefined);
         }
       );
@@ -123,7 +119,7 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
     // Note: select intentionally excluded to prevent re-subscribing on every render if the caller
     // passes an inline function. queryKey is tracked via queryKeyMemo above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db, docPath, queryKeyMemo, enabled, subscribe, queryClient, resetStatus, updateStatus]);
+  }, [db, docPath, queryKeyMemo, enabled, subscribe, restarts, queryClient, resetStatus, updateStatus]);
 
   const query = useQuery({
     queryKey,
@@ -146,22 +142,5 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
     gcTime,
   });
 
-  // Merge a listener error into the result so subscribed consumers see a truthful
-  // isError/error/status instead of a forever-pending disabled query.
-  if (subscribe && subscriptionError) {
-    return {
-      ...query,
-      data: undefined,
-      error: subscriptionError,
-      isError: true,
-      isLoadingError: true,
-      isSuccess: false,
-      isPending: false,
-      isLoading: false,
-      status: 'error',
-      sourceState,
-    } as WithSourceState<UseQueryResult<WithId<T> | null, Error>>;
-  }
-
-  return { ...query, sourceState } as WithSourceState<UseQueryResult<WithId<T> | null, Error>>;
+  return useSubscribedResult(query, subscribe, enabled, subscription);
 }

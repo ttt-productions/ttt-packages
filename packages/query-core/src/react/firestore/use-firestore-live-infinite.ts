@@ -21,7 +21,7 @@ import type { FirestoreLiveInfiniteOptions, FirestoreSourceState } from '../../f
 const MAX_PAGE_SIZE = 100;
 
 export interface FirestoreLiveInfiniteResult<T> {
-  /** The current subscription identity's rows — live set plus loaded older pages, sorted per `sort`. */
+  /** The current subscription identity's rows — live set plus loaded older pages, ordered per `sort`. */
   items: T[];
   /** True until the current identity's first snapshot arrives, unless its listener has failed. */
   isInitialLoading: boolean;
@@ -29,7 +29,7 @@ export interface FirestoreLiveInfiniteResult<T> {
   sourceState: FirestoreSourceState;
   /** The listener's failure for the current identity; `null` while connecting, live, or offline. */
   error: Error | null;
-  /** Load the next older page. Never rejects — a failed read lands in `olderError`. */
+  /** Load the next older page; nothing older is read until this is called. Never rejects — a failed read lands in `olderError`. */
   fetchOlder: () => Promise<void>;
   /** Whether older rows exist that are not loaded yet (a one-doc look-ahead, never a full-page guess). */
   hasOlder: boolean;
@@ -41,7 +41,7 @@ export interface FirestoreLiveInfiniteResult<T> {
   retry: () => void;
 }
 
-type Entry<T> = { docId: string; sortValue: number; item: T };
+type Entry<T> = { docId: string; item: T };
 type Snap = QueryDocumentSnapshot<DocumentData>;
 
 interface WindowState<T> {
@@ -67,7 +67,7 @@ function freshWindow<T>(identity: string): WindowState<T> {
 }
 
 /**
- * A live list (newest rows realtime) with older rows paged in on demand, merged into
+ * A live list (newest rows realtime) with older rows paged in on request, merged into
  * one ordered list.
  *
  * Until the first server-confirmed snapshot that has rows, the listener reads the newest
@@ -76,7 +76,10 @@ function freshWindow<T>(identity: string): WindowState<T> {
  * it grows only with rows that arrive while the list is open, and every older page starts
  * after the anchor. Nothing can fall between the live set and the older pages, however
  * many rows arrive. Older pages carry the same one-row look-ahead, so `hasOlder` is false
- * exactly when nothing older exists.
+ * exactly when nothing older exists. No older page is read until `fetchOlder` asks for one.
+ *
+ * Both reads arrive newest first and meet at the anchor, so the merged list is their
+ * concatenation: a snapshot never re-sorts the rows already loaded.
  *
  * Everything read is tagged to its subscription identity (path, key, ordering,
  * constraints, page size, enabled): a new identity renders empty and connecting in its
@@ -94,30 +97,20 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
   pageSize: requestedPageSize = 20,
   enabled = true,
   select,
-  getSortValue,
   sort = 'asc',
 }: FirestoreLiveInfiniteOptions<T>): FirestoreLiveInfiniteResult<T> {
   const db = useFirestoreDb();
   const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);
 
-  // Latest-callback refs: an inline select/getSortValue must not re-subscribe
-  // the listener on every render.
+  // Latest-callback ref: an inline select must not re-subscribe the listener on every render.
   const selectRef = React.useRef(select);
   selectRef.current = select;
-  const getSortValueRef = React.useRef(getSortValue);
-  getSortValueRef.current = getSortValue;
 
-  const toEntry = React.useCallback(
-    (snap: Snap): Entry<T> => {
-      const dataWithId: DocumentData & { id: string } = { id: snap.id, ...snap.data() };
-      const item = selectRef.current ? selectRef.current(dataWithId) : (dataWithId as unknown as T);
-      const sortValue = getSortValueRef.current
-        ? getSortValueRef.current(dataWithId)
-        : (dataWithId[orderByField] as number);
-      return { docId: snap.id, sortValue, item };
-    },
-    [orderByField],
-  );
+  const toEntry = React.useCallback((snap: Snap): Entry<T> => {
+    const dataWithId: DocumentData & { id: string } = { id: snap.id, ...snap.data() };
+    const item = selectRef.current ? selectRef.current(dataWithId) : (dataWithId as unknown as T);
+    return { docId: snap.id, item };
+  }, []);
 
   // Constraint objects are fresh every render; their serialized form is the identity.
   const queryKeyMemo = JSON.stringify(queryKey);
@@ -259,9 +252,10 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
   const anchor = enabled ? current.anchor : null;
   const olderEnabled = anchor !== null && current.olderExists;
 
+  // Never fetched on its own: `fetchOlder` reads the first page (`refetch`) and each one after it.
   const older = useInfiniteQuery({
     queryKey: [...queryKey, 'older', identity, anchor?.id ?? null],
-    enabled: olderEnabled,
+    enabled: false,
     initialPageParam: undefined as Snap | undefined,
     queryFn: async ({ pageParam }) => {
       const cursor = pageParam ?? anchor;
@@ -324,18 +318,19 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
     }
   }, [listenerFailed, identity, olderError, olderFetching, olderPages, fetchNextPage, refetchOlder]);
 
+  const olderEntries = React.useMemo(() => (olderPages ?? []).flatMap((p) => p.entries), [olderPages]);
+
   const items = React.useMemo(() => {
     if (!enabled) return [];
-    const olderEntries = (olderPages ?? []).flatMap((p) => p.entries);
-    // Live entries win on overlap (they are the freshest copies).
-    const merged = new Map<string, Entry<T>>();
-    for (const entry of [...current.entries, ...olderEntries]) {
-      if (!merged.has(entry.docId)) merged.set(entry.docId, entry);
-    }
-    const arr = Array.from(merged.values());
-    arr.sort((a, b) => (sort === 'asc' ? a.sortValue - b.sortValue : b.sortValue - a.sortValue));
-    return arr.map((e) => e.item);
-  }, [enabled, olderPages, current.entries, sort]);
+    // A row edited so its ordering value moved into the live range is in both reads; its live
+    // copy is the fresh one.
+    const liveIds = new Set(current.entries.map((entry) => entry.docId));
+    const newestFirst = [
+      ...current.entries.map((entry) => entry.item),
+      ...olderEntries.filter((entry) => !liveIds.has(entry.docId)).map((entry) => entry.item),
+    ];
+    return sort === 'desc' ? newestFirst : newestFirst.reverse();
+  }, [enabled, olderEntries, current.entries, sort]);
 
   return {
     items,

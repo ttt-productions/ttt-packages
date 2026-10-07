@@ -7,8 +7,10 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils.js"
 import { Spinner } from "./spinner.js"
 
+// `ui-button` is the stable hook an app's own stylesheet keys a rule for every button on (a press
+// effect), so it never has to match this component's private utility string.
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-bold ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "ui-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-bold ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {

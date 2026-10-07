@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { useFirestoreDb } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
-import { useSubscriptionStatus } from './subscription-status.js';
+import { useSubscribedResult, useSubscriptionStatus } from './subscription-status.js';
 import type {
   FirestoreCollectionOptions,
   WithId,
@@ -58,14 +58,10 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
 
   // Listener errors can't surface through useQuery (the queryFn is disabled while
   // subscribed), so they're tracked per subscription identity and merged into the result.
-  const {
-    error: subscriptionError,
-    sourceState,
-    reset: resetStatus,
-    update: updateStatus,
-  } = useSubscriptionStatus(
+  const subscription = useSubscriptionStatus(
     JSON.stringify([collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe]),
   );
+  const { reset: resetStatus, update: updateStatus, restarts } = subscription;
 
   useEffect(() => {
     if (!subscribe || !enabled) return;
@@ -93,7 +89,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
         { includeMetadataChanges: true },
         (snapshot) => {
           attempt = 0;
-          updateStatus({ error: null });
+          updateStatus({ error: null, restart: null });
           const items = snapshot.docs.map((docSnap) => {
             const rawData = docSnap.data();
             const dataWithId = { id: docSnap.id, ...rawData };
@@ -118,7 +114,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
             return;
           }
           console.error('[useFirestoreCollection] Subscription error:', error);
-          updateStatus({ error, sourceState: 'error' });
+          updateStatus({ error, sourceState: 'error', restart: null });
           queryClient.setQueryData(queryKey, undefined);
         }
       );
@@ -134,7 +130,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     // queryKey & constraints are tracked via their stringified forms above; select is intentionally
     // excluded so an inline caller function doesn't force a re-subscribe on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db, collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe, queryClient, resetStatus, updateStatus]);
+  }, [db, collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe, restarts, queryClient, resetStatus, updateStatus]);
 
   const queryResult = useQuery({
     queryKey,
@@ -158,22 +154,5 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     gcTime,
   });
 
-  // Merge a listener error into the result so subscribed consumers see a truthful
-  // isError/error/status instead of a forever-pending disabled query.
-  if (subscribe && subscriptionError) {
-    return {
-      ...queryResult,
-      data: undefined,
-      error: subscriptionError,
-      isError: true,
-      isLoadingError: true,
-      isSuccess: false,
-      isPending: false,
-      isLoading: false,
-      status: 'error',
-      sourceState,
-    } as WithSourceState<UseQueryResult<WithId<T>[], Error>>;
-  }
-
-  return { ...queryResult, sourceState } as WithSourceState<UseQueryResult<WithId<T>[], Error>>;
+  return useSubscribedResult(queryResult, subscribe, enabled, subscription);
 }
