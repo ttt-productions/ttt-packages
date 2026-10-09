@@ -9,7 +9,7 @@ import {
   onSnapshot,
   type DocumentData,
 } from 'firebase/firestore';
-import { useFirestoreDb } from './context.js';
+import { useFirestoreDb, useListenerErrorReporter } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
 import { useSubscribedResult, useSubscriptionStatus } from './subscription-status.js';
 import type {
@@ -50,6 +50,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
 }: FirestoreCollectionOptions<T>): WithSourceState<UseQueryResult<WithId<T>[], Error>> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
+  const reportListenerError = useListenerErrorReporter();
 
   // STABILIZE DEPENDENCIES:
   // We stringify these because [where('a', '==', 'b')] !== [where('a', '==', 'b')] in JS.
@@ -113,9 +114,9 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
             retryTimer = setTimeout(start, delay);
             return;
           }
-          console.error('[useFirestoreCollection] Subscription error:', error);
           updateStatus({ error, sourceState: 'error', restart: null });
           queryClient.setQueryData(queryKey, undefined);
+          reportListenerError(error, { hook: 'useFirestoreCollection', queryKey, path: collectionPath });
         }
       );
     };
@@ -130,7 +131,7 @@ export function useFirestoreCollection<T extends DocumentData = DocumentData>({
     // queryKey & constraints are tracked via their stringified forms above; select is intentionally
     // excluded so an inline caller function doesn't force a re-subscribe on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db, collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe, restarts, queryClient, resetStatus, updateStatus]);
+  }, [db, collectionPath, queryKeyMemo, constraintsMemo, enabled, subscribe, restarts, queryClient, resetStatus, updateStatus, reportListenerError]);
 
   const queryResult = useQuery({
     queryKey,

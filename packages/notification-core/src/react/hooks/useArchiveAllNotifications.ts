@@ -5,6 +5,7 @@ import type {
   ArchiveAllPollResult,
   UseArchiveAllNotificationsOptions,
 } from '../../types.js';
+import { archiveRefreshKeys } from '../query-keys.js';
 
 const DEFAULT_POLL_INTERVAL_MS = 1500;
 const DEFAULT_MAX_POLLS = 120; // ~3 min at the default interval
@@ -50,15 +51,10 @@ export function useArchiveAllNotifications({
   getArchiveAllStatusFn,
   pollIntervalMs = DEFAULT_POLL_INTERVAL_MS,
   maxPolls = DEFAULT_MAX_POLLS,
+  queryKeys,
   invalidateKeys,
 }: UseArchiveAllNotificationsOptions) {
   const queryClient = useQueryClient();
-
-  const defaultInvalidateKeys = [
-    ['notifications', 'active', category, userId],
-    ['notifications', 'unread-count', category, userId],
-    ['notifications', 'history', category, userId],
-  ];
 
   return useMutation({
     // Server-owned archive-all: enqueue ONE job scoped to `category`, then poll its status until it
@@ -97,7 +93,7 @@ export function useArchiveAllNotifications({
       // Only a completed drain changed the active set; still invalidate on an incomplete drain since
       // SOME cards were archived. A hard enqueue/poll failure rejects the mutation (onError), so this
       // never runs for `failed`.
-      const keysToInvalidate = invalidateKeys ?? defaultInvalidateKeys;
+      const keysToInvalidate = invalidateKeys ?? archiveRefreshKeys(queryKeys, category, userId);
       keysToInvalidate.forEach((key) => {
         queryClient.invalidateQueries({ queryKey: [...key], exact: false });
       });

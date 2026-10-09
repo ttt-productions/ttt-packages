@@ -1,9 +1,9 @@
 'use client';
 
-import { useCallback } from 'react';
 import { Badge, ListPagination, Separator, Spinner } from '@ttt-productions/ui-core/react';
 import { useNotificationHistory } from '../hooks/useNotificationHistory.js';
 import { NotificationEmptyState } from './NotificationEmptyState.js';
+import { NotificationTypeIcon } from './notification-type-icon.js';
 import { formatRelativeTime } from './relative-time.js';
 import type { NotificationHistoryItem, NotificationHistoryListProps } from '../../types.js';
 
@@ -17,9 +17,11 @@ export function NotificationHistoryList({
   config,
   userId,
   category,
+  queryKeys,
   pageSize,
   staleTime,
   emptyText,
+  labels,
   renderError,
   title,
   renderRowAction,
@@ -42,6 +44,7 @@ export function NotificationHistoryList({
     category,
     pageSize,
     staleTime,
+    queryKeys,
   });
 
   const hasRows = !!notifications && notifications.length > 0;
@@ -49,11 +52,6 @@ export function NotificationHistoryList({
   // empty state is the answer for page 1 only.
   const showEmptyState =
     !isError && notifications !== undefined && notifications.length === 0 && page === 1;
-
-  const getTypeIcon = useCallback(
-    (type: string) => config.types[type]?.icon ?? '🔔',
-    [config],
-  );
 
   return (
     <div className="ntf-list ntf-list-history">
@@ -68,7 +66,7 @@ export function NotificationHistoryList({
       <div className="ntf-list-body">
         {isLoading ? (
           <div className="ntf-loading">
-            <Spinner size="md" label="Loading notifications" />
+            <Spinner size="md" label={labels?.loading ?? 'Loading notifications'} />
           </div>
         ) : (
           <>
@@ -78,7 +76,7 @@ export function NotificationHistoryList({
                   key={notification.archiveOccurrenceId}
                   className="ntf-item ntf-item-archived"
                 >
-                  <div className="ntf-item-icon">{getTypeIcon(notification.type)}</div>
+                  <NotificationTypeIcon config={config} type={notification.type} />
                   <div className="ntf-item-content">
                     <div className="ntf-item-title">{notification.title}</div>
                     <div className="ntf-item-message">{notification.message}</div>
@@ -119,7 +117,7 @@ export function NotificationHistoryList({
                 goToNextPage: nextPage,
               }}
               busy={isFetching}
-              className="ntf-list-footer mt-0"
+              className="ntf-list-footer"
             />
           </>
         )}

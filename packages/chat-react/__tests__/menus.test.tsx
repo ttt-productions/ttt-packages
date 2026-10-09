@@ -21,7 +21,7 @@ describe('chat moderation actions', () => {
       fireEvent.click(del);
     });
     expect(del).toHaveAttribute('aria-busy', 'true');
-    expect(del).toBeDisabled();
+    expect(del).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(del);
     expect(onDeleteMessage).toHaveBeenCalledTimes(1);
     expect(onDeleteMessage).toHaveBeenCalledWith('m1');

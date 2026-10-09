@@ -99,7 +99,7 @@ describe('MediaInput — validation window and progress', () => {
 
     const trigger = await screen.findByRole('button', { name: 'Choose file' });
     await waitFor(() => expect(trigger).toHaveAttribute('aria-busy', 'true'));
-    expect(trigger).toBeDisabled();
+    expect(trigger).toHaveAttribute('aria-disabled', 'true');
     expect(input).toBeDisabled();
 
     await act(async () => {

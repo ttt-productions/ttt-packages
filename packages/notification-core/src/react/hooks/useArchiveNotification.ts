@@ -6,6 +6,7 @@ import type {
   NotificationDoc,
   UseArchiveNotificationOptions,
 } from '../../types.js';
+import { archiveRefreshKeys } from '../query-keys.js';
 
 /**
  * Archive a single rendered notification through an app-supplied callable adapter.
@@ -19,20 +20,15 @@ export function useArchiveNotification({
   userId,
   category,
   archiveFn,
+  queryKeys,
   invalidateKeys,
 }: UseArchiveNotificationOptions) {
   const queryClient = useQueryClient();
 
-  const defaultInvalidateKeys = [
-    ['notifications', 'active', category, userId],
-    ['notifications', 'unread-count', category, userId],
-    ['notifications', 'history', category, userId],
-  ];
-
   return useMutation<NotificationArchiveResult, Error, NotificationDoc>({
     mutationFn: (notification: NotificationDoc) => archiveFn(notification),
     onSuccess: () => {
-      const keysToInvalidate = invalidateKeys ?? defaultInvalidateKeys;
+      const keysToInvalidate = invalidateKeys ?? archiveRefreshKeys(queryKeys, category, userId);
       keysToInvalidate.forEach((key) => {
         queryClient.invalidateQueries({ queryKey: [...key], exact: false });
       });

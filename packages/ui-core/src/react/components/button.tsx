@@ -6,11 +6,12 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "../../lib/utils.js"
 import { Spinner } from "./spinner.js"
+import { blockActivationKey, blockEvent } from "./pending-guard.js"
 
 // `ui-button` is the stable hook an app's own stylesheet keys a rule for every button on (a press
 // effect), so it never has to match this component's private utility string.
 const buttonVariants = cva(
-  "ui-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-bold ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "ui-button inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-bold ring-offset-background transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50",
   {
     variants: {
       variant: {
@@ -48,10 +49,12 @@ export interface ButtonProps
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
   /**
-   * Async work this button started is in flight. The button disables itself — so
-   * neither a repeat click nor an implicit form resubmit can fire — sets
+   * Async work this button started is in flight. The button ignores activation — a
+   * click, a key press, a form's implicit submit — sets `aria-disabled` and
    * `aria-busy`, and shows the canonical spinner: an icon button (`size="icon"`)
-   * swaps its icon for it; any other button shows it in place of its `icon`.
+   * swaps its icon for it; any other button shows it in place of its `icon`. It is
+   * never natively disabled for being pending, so the button the user just pressed
+   * keeps focus (FRONTEND-203).
    */
   pending?: boolean
   /** Leading icon, rendered before the label. While `pending`, the spinner takes its place. */
@@ -62,8 +65,20 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, pending = false, icon, disabled, children, ...props }, ref) => {
     const shared = {
       ...props,
-      ...(pending ? { "aria-busy": true, "data-pending": "" } : {}),
-      disabled: disabled || pending || undefined,
+      ...(pending
+        ? {
+            "aria-busy": true,
+            "aria-disabled": true,
+            "data-pending": "",
+            // Stopped before any handler runs — the caller's, an `asChild` child's own, or a Radix
+            // trigger's — so a click submits nothing, a link goes nowhere, and neither a pointer
+            // press nor an activation key opens what the button triggers.
+            onClickCapture: blockEvent,
+            onPointerDownCapture: blockEvent,
+            onKeyDownCapture: blockActivationKey,
+          }
+        : {}),
+      disabled: disabled || undefined,
       className: cn(buttonVariants({ variant, size, className })),
     }
     const spinner = <Spinner size={size === "lg" ? "sm" : "xs"} />

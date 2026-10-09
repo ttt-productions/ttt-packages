@@ -14,8 +14,8 @@ export interface ListPaginationProps {
    */
   pagination: ListPaginationState;
   /**
-   * Disables BOTH controls while the next page is in flight, without hiding the
-   * row. Server-paged surfaces pass their query's `isFetching`; a slice-paged
+   * Makes BOTH controls unavailable while the next page is in flight, without hiding
+   * the row. Server-paged surfaces pass their query's `isFetching`; a slice-paged
    * list has nothing to wait for and omits it.
    */
   busy?: boolean;
@@ -36,9 +36,11 @@ export interface ListPaginationProps {
  * which is exactly why there is one component and not two.
  *
  * It renders NOTHING when neither direction is available, so no call site
- * repeats a `totalPages > 1` / `page > 1 || hasMore` guard. Edge state is real
- * `disabled` on the buttons (announced, and unclickable), and the counter is a
- * `status` live region so a page change is announced to screen readers.
+ * repeats a `totalPages > 1` / `page > 1 || hasMore` guard. An unavailable control
+ * — an edge, or either control while a page loads — is `aria-disabled` and ignores
+ * activation (announced, and inert), but is never natively disabled: the control the
+ * user just pressed keeps focus when it becomes unavailable (FRONTEND-203). The
+ * counter is a `status` live region so a page change is announced to screen readers.
  */
 export function ListPagination({ pagination, busy = false, className }: ListPaginationProps) {
   const { currentPage, totalPages, canPreviousPage, canNextPage, goToPreviousPage, goToNextPage } =
@@ -54,6 +56,8 @@ export function ListPagination({ pagination, busy = false, className }: ListPagi
   }
   const previousPending = busy && clicked === "previous";
   const nextPending = busy && clicked === "next";
+  const previousUnavailable = busy || !canPreviousPage;
+  const nextUnavailable = busy || !canNextPage;
 
   // One visibility rule for both flavors. For a known total this is exactly
   // `totalPages > 1`: page state is clamped into `1..totalPages`, so a
@@ -66,13 +70,15 @@ export function ListPagination({ pagination, busy = false, className }: ListPagi
   return (
     <div className={cn("flex w-full items-center justify-between gap-4 mt-4", className)}>
       <Button
+        type="button"
         variant="outline"
         size="sm"
         onClick={() => {
+          if (previousUnavailable) return;
           setClicked("previous");
           goToPreviousPage();
         }}
-        disabled={busy || !canPreviousPage}
+        aria-disabled={previousUnavailable || undefined}
         pending={previousPending}
         icon={<ChevronLeft className="icon-xs" />}
         className="h-11 min-w-11"
@@ -83,13 +89,15 @@ export function ListPagination({ pagination, busy = false, className }: ListPagi
         {totalPages === undefined ? `Page ${currentPage}` : `${currentPage} of ${totalPages}`}
       </span>
       <Button
+        type="button"
         variant="outline"
         size="sm"
         onClick={() => {
+          if (nextUnavailable) return;
           setClicked("next");
           goToNextPage();
         }}
-        disabled={busy || !canNextPage}
+        aria-disabled={nextUnavailable || undefined}
         pending={nextPending}
         className="h-11 min-w-11"
       >

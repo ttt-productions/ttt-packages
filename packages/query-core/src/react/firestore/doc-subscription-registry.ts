@@ -97,6 +97,12 @@ export interface SubscribeDocParams {
   onUpdate: () => void;
   /** Called on listener error — and at once on joining a listener that has already errored. */
   onError?: (error: Error) => void;
+  /**
+   * The app's capture for the shared listener's error. Only the subscriber that opens the listener
+   * supplies it, and it is called once per error the listener surfaces — never again for a
+   * subscriber that joins the failed listener.
+   */
+  reportListenerError?: (error: Error) => void;
 }
 
 /**
@@ -105,7 +111,7 @@ export interface SubscribeDocParams {
  * detached only when the last subscriber for that id unsubscribes.
  */
 export function subscribeDoc(params: SubscribeDocParams): () => void {
-  const { queryClient, db, collectionPath, queryKeyPrefix, id, onUpdate, onError } = params;
+  const { queryClient, db, collectionPath, queryKeyPrefix, id, onUpdate, onError, reportListenerError } = params;
   const registry = getRegistry(queryClient);
   const key = registryKey(queryKeyPrefix, id);
 
@@ -133,6 +139,7 @@ export function subscribeDoc(params: SubscribeDocParams): () => void {
         created.error = error;
         queryClient.setQueryData([queryKeyPrefix, id], null, { updatedAt: Date.now() });
         for (const sub of [...subscribers]) sub.onError?.(error);
+        reportListenerError?.(error);
       },
     );
     entry = created;

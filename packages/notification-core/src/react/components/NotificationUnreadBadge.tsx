@@ -12,6 +12,7 @@ export function NotificationUnreadBadge({
   config,
   userId,
   category,
+  queryKeys,
   refetchInterval,
 }: NotificationUnreadBadgeProps) {
   const { count, hasMore } = useUnreadCount({
@@ -19,6 +20,7 @@ export function NotificationUnreadBadge({
     userId,
     category,
     refetchInterval,
+    queryKeys,
   });
 
   if (count === 0) return null;

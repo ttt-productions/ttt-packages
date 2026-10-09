@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { useState } from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { defineInputFormat, type DeclaredInputFormat } from '@ttt-productions/input-format-core';
 
@@ -270,7 +270,7 @@ describe('ConsequenceDialog', () => {
   });
 
   describe('pending model', () => {
-    it('stays open with a visible spinner and disabled buttons while onConfirm is pending, then closes on resolve', async () => {
+    it('stays open with a visible spinner, an inert confirm, and a disabled cancel while onConfirm is pending, then closes on resolve', async () => {
       const user = userEvent.setup();
       let resolveConfirm: (() => void) | undefined;
       const onConfirm = vi.fn(() => new Promise<void>((resolve) => { resolveConfirm = resolve; }));
@@ -290,11 +290,14 @@ describe('ConsequenceDialog', () => {
       await user.click(screen.getByRole('button', { name: 'Do it' }));
       expect(onConfirm).toHaveBeenCalledTimes(1);
 
-      // Visible Loader2 (spinner-xs), confirm + cancel disabled, dialog NOT closed yet.
+      // Visible spinner, the pressed confirm inert but still focused, cancel disabled, dialog NOT closed yet.
       expect(document.querySelector('.spinner-xs')).toBeInTheDocument();
       const confirm = screen.getByRole('button', { name: 'Do it' });
-      expect(confirm).toBeDisabled();
+      expect(confirm).toHaveAttribute('aria-disabled', 'true');
       expect(confirm).toHaveAttribute('aria-busy', 'true');
+      expect(confirm).toHaveFocus();
+      fireEvent.click(confirm);
+      expect(onConfirm).toHaveBeenCalledTimes(1);
       expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
       expect(onOpenChange).not.toHaveBeenCalled();
 

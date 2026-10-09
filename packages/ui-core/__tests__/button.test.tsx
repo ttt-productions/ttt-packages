@@ -181,10 +181,10 @@ describe('<Button> — disabled behavior', () => {
 });
 
 describe('<Button pending> — the in-progress contract', () => {
-    it('disables the button, marks it busy, and shows the canonical spinner', () => {
+    it('marks the button unavailable and busy, and shows the canonical spinner', () => {
         const { container } = render(<Button pending>Save</Button>);
         const btn = screen.getByRole('button', { name: 'Save' });
-        expect(btn).toBeDisabled();
+        expect(btn).toHaveAttribute('aria-disabled', 'true');
         expect(btn).toHaveAttribute('aria-busy', 'true');
         expect(btn).toHaveAttribute('data-pending');
         expect(container.querySelector('.spinner-xs')).toBeInTheDocument();
@@ -197,7 +197,35 @@ describe('<Button pending> — the in-progress contract', () => {
         expect(onClick).not.toHaveBeenCalled();
     });
 
-    it('cannot resubmit its form while pending (a disabled submit blocks implicit submission)', () => {
+    it('keeps focus on the pressed button when it turns pending', () => {
+        const { rerender } = render(<Button>Save</Button>);
+        const btn = screen.getByRole('button', { name: 'Save' });
+        btn.focus();
+        rerender(<Button pending>Save</Button>);
+        expect(btn).not.toBeDisabled();
+        expect(btn).toHaveFocus();
+    });
+
+    it('a pending asChild link runs neither its own click handler nor its navigation', () => {
+        const onClick = vi.fn();
+        render(
+            <Button asChild pending>
+                <a href="/next" onClick={onClick}>Next</a>
+            </Button>
+        );
+        const link = screen.getByRole('link', { name: 'Next' });
+        const notCancelled = fireEvent.click(link);
+        expect(onClick).not.toHaveBeenCalled();
+        expect(notCancelled).toBe(false);
+        expect(link).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('stays natively disabled when the caller disables it as well', () => {
+        render(<Button pending disabled>Save</Button>);
+        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    });
+
+    it('cannot resubmit its form while pending (the activation is cancelled)', () => {
         const onSubmit = vi.fn((e: React.FormEvent) => e.preventDefault());
         render(
             <form onSubmit={onSubmit}>
@@ -229,7 +257,7 @@ describe('<Button pending> — the in-progress contract', () => {
         );
         expect(screen.queryByTestId('x-icon')).toBeNull();
         expect(container.querySelector('.spinner-xs')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Clear notification' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: 'Clear notification' })).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('uses the next spinner size up on a large button', () => {

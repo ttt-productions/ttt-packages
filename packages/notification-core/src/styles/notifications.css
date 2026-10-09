@@ -62,14 +62,16 @@
 }
 
 /* === NOTIFICATION ITEM === */
+/* The row itself is inert — every affordance is a control in its action slot — so it wears no
+ * pointer cursor. Its hover tint helps the eye along a long list; it moves on theme-core's motion
+ * tokens, so an app's reduced-motion kill switch covers it. */
 .ntf-item {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
   padding: 0.75rem 1rem;
-  cursor: pointer;
   border-bottom: 1px solid hsl(var(--border) / 0.5);
-  transition: background-color 150ms ease;
+  transition: background-color var(--motion-fast) var(--motion-ease);
 }
 
 .ntf-item:hover {
@@ -125,11 +127,13 @@
   align-self: center;
 }
 
-/* Sibling action slot next to the archive control — consumer-supplied via
- * `renderRowAction`. Purely a layout/isolation wrapper; the consumer's node
- * supplies its own visual treatment. */
+/* The consumer's controls from `renderRowAction`. The slot may shrink beside the row's copy, up
+ * to half the row, so long control content (a subject link) clips inside it rather than widening
+ * the row; the consumer's node supplies its own visual treatment. */
 .ntf-item-row-action {
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 50%;
   align-self: center;
 }
 
@@ -166,33 +170,6 @@
   font-weight: 700;
   background-color: hsl(var(--destructive));
   color: hsl(var(--destructive-foreground));
-}
-
-.ntf-badge--hidden {
-  display: none;
-}
-
-/* === HISTORY LIST === */
-.ntf-history-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
-  opacity: 0.7;
-}
-
-.ntf-history-item:last-child {
-  border-bottom: none;
-}
-
-.ntf-history-item--clickable {
-  cursor: pointer;
-  transition: opacity 150ms ease;
-}
-
-.ntf-history-item--clickable:hover {
-  opacity: 1;
 }
 
 /* === LOADING STATE === */

@@ -213,11 +213,85 @@ describe('initMonitoring — init-time hooks and the startup window', () => {
         expect(sdkOptions.dsn).toBe(DSN);
     });
 
+    it.each([
+        ['sentry' as const, browserSdk],
+        ['sentry-node' as const, nodeSdk],
+    ])('passes ignoreErrors and transport into the %s SDK init', async (provider, sdk) => {
+        const { initMonitoring } = await import('../src/init');
+        const ignoreErrors = ['ResizeObserver loop limit exceeded', /^Failed to fetch$/];
+        const transport = vi.fn();
+        await initMonitoring({ provider, dsn: DSN, ignoreErrors, transport });
+
+        expect(sdk.init).toHaveBeenCalledTimes(1);
+        const sdkOptions = sdk.init.mock.calls[0][0];
+        expect(sdkOptions.ignoreErrors).toBe(ignoreErrors);
+        expect(sdkOptions.transport).toBe(transport);
+    });
+
+    it('offlineTransport: the browser init sends through the SDK offline transport over its own fetch transport', async () => {
+        const { initMonitoring } = await import('../src/init');
+        const fetchTransport = vi.fn();
+        const offline = vi.fn();
+        const makeBrowserOfflineTransport = vi.fn(() => offline);
+        Object.assign(browserSdk, { makeFetchTransport: fetchTransport, makeBrowserOfflineTransport });
+        try {
+            await initMonitoring({ provider: 'sentry', dsn: DSN, offlineTransport: true });
+            expect(makeBrowserOfflineTransport).toHaveBeenCalledWith(fetchTransport);
+            const sdkOptions = browserSdk.init.mock.calls[0][0];
+            expect(sdkOptions.transport).toBe(offline);
+            expect(sdkOptions).not.toHaveProperty('offlineTransport');
+        } finally {
+            delete (browserSdk as Record<string, unknown>).makeFetchTransport;
+            delete (browserSdk as Record<string, unknown>).makeBrowserOfflineTransport;
+        }
+    });
+
+    it('offlineTransport: an SDK without the browser transports fails the init instead of sending unqueued', async () => {
+        const { initMonitoring } = await import('../src/init');
+        Object.assign(browserSdk, { makeFetchTransport: undefined, makeBrowserOfflineTransport: undefined });
+        try {
+            await expect(initMonitoring({ provider: 'sentry', dsn: DSN, offlineTransport: true })).rejects.toThrow(/offlineTransport/);
+            expect(browserSdk.init).not.toHaveBeenCalled();
+        } finally {
+            delete (browserSdk as Record<string, unknown>).makeFetchTransport;
+            delete (browserSdk as Record<string, unknown>).makeBrowserOfflineTransport;
+        }
+    });
+
+    it('offlineTransport: refused beside transport, and on the Node provider', async () => {
+        const { initMonitoring } = await import('../src/init');
+        await expect(
+            initMonitoring({ provider: 'sentry', dsn: DSN, offlineTransport: true, transport: vi.fn() }),
+        ).rejects.toThrow(/cannot be combined with transport/);
+        await expect(initMonitoring({ provider: 'sentry-node', dsn: DSN, offlineTransport: true })).rejects.toThrow(
+            /browser option/,
+        );
+        expect(nodeSdk.init).not.toHaveBeenCalled();
+    });
+
+    it('re-initializes when only an ignoreErrors pattern changes', async () => {
+        const { initMonitoring } = await import('../src/init');
+        await initMonitoring({ provider: 'sentry-node', dsn: DSN, ignoreErrors: [/^Load failed$/] });
+        await initMonitoring({ provider: 'sentry-node', dsn: DSN, ignoreErrors: [/^Failed to fetch$/] });
+        await initMonitoring({ provider: 'sentry-node', dsn: DSN, ignoreErrors: [/^Failed to fetch$/i] });
+
+        expect(nodeSdk.init).toHaveBeenCalledTimes(3);
+        expect(nodeSdk.init.mock.calls[2][0].ignoreErrors[0].flags).toBe('i');
+    });
+
+    it('does not re-initialize for an equal ignoreErrors list', async () => {
+        const { initMonitoring } = await import('../src/init');
+        await initMonitoring({ provider: 'sentry-node', dsn: DSN, ignoreErrors: ['Load failed', /^Failed to fetch$/] });
+        await initMonitoring({ provider: 'sentry-node', dsn: DSN, ignoreErrors: ['Load failed', /^Failed to fetch$/] });
+
+        expect(nodeSdk.init).toHaveBeenCalledTimes(1);
+    });
+
     it('leaves out of the SDK init every hook the caller did not set', async () => {
         const { initMonitoring } = await import('../src/init');
         await initMonitoring({ provider: 'sentry-node', dsn: DSN });
         const sdkOptions = nodeSdk.init.mock.calls[0][0];
-        for (const key of ['beforeSend', 'beforeSendTransaction', 'defaultIntegrations', 'integrations', 'tracesSampleRate']) {
+        for (const key of ['beforeSend', 'beforeSendTransaction', 'defaultIntegrations', 'integrations', 'tracesSampleRate', 'ignoreErrors', 'transport']) {
             expect(sdkOptions).not.toHaveProperty(key);
         }
     });

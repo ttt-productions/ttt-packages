@@ -14,7 +14,7 @@ import {
   type DocumentData,
   type QueryDocumentSnapshot,
 } from 'firebase/firestore';
-import { useFirestoreDb } from './context.js';
+import { useFirestoreDb, useListenerErrorReporter } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
 import type { FirestoreLiveInfiniteOptions, FirestoreSourceState } from '../../firestore/types.js';
 
@@ -98,8 +98,11 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
   enabled = true,
   select,
   sort = 'asc',
+  staleTime,
+  gcTime,
 }: FirestoreLiveInfiniteOptions<T>): FirestoreLiveInfiniteResult<T> {
   const db = useFirestoreDb();
+  const reportListenerError = useListenerErrorReporter();
   const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);
 
   // Latest-callback ref: an inline select must not re-subscribe the listener on every render.
@@ -231,8 +234,8 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
             retryTimer = setTimeout(() => listen(currentAnchor), delay);
             return;
           }
-          console.error('[useFirestoreLiveInfinite] Subscription error:', error);
           update((prev) => ({ ...prev, sourceState: 'error', error }));
+          reportListenerError(error, { hook: 'useFirestoreLiveInfinite', queryKey, path: collectionPath });
         },
       );
     };
@@ -247,7 +250,7 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
     // `identity` carries collectionPath, queryKey, orderByField, constraints, pageSize, and
     // enabled; constraints are read from the render that produced it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db, identity, retryNonce, toEntry]);
+  }, [db, identity, retryNonce, toEntry, reportListenerError]);
 
   const anchor = enabled ? current.anchor : null;
   const olderEnabled = anchor !== null && current.olderExists;
@@ -279,6 +282,8 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
       };
     },
     getNextPageParam: (last) => last.nextCursor,
+    staleTime,
+    gcTime,
   });
 
   const {

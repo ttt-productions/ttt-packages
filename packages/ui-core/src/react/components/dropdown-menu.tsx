@@ -69,14 +69,22 @@ const DropdownMenuContent = React.forwardRef<
 ))
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
 
+// Every selection — a pointer, Enter, or Space — reaches the item as a click; stopping it in the
+// capture phase keeps the item's select (and an `asChild` link's navigation) from running.
+function blockActivation(event: React.MouseEvent<HTMLElement>) {
+  event.preventDefault()
+  event.stopPropagation()
+}
+
 const DropdownMenuItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
     inset?: boolean
     /**
-     * The action this item started is in flight: the item disables itself, sets
-     * `aria-busy`, and shows the spinner in place of its `icon`. Keeping the menu open
-     * meanwhile is the caller's `onSelect` (`event.preventDefault()`, close on settle).
+     * The action this item started is in flight: the item ignores selection, sets
+     * `aria-disabled` and `aria-busy`, and shows the spinner in place of its `icon`. It is
+     * never disabled for being pending, so it keeps focus (FRONTEND-203). Keeping the menu
+     * open meanwhile is the caller's `onSelect` (`event.preventDefault()`, close on settle).
      */
     pending?: boolean
     /** Leading icon. While `pending`, the spinner takes its place. */
@@ -86,13 +94,15 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center gap-2 rounded-xs px-2 py-1.5 text-sm outline-hidden transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 app-dropdown-item",
+      "relative flex cursor-default select-none items-center gap-2 rounded-xs px-2 py-1.5 text-sm outline-hidden transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 app-dropdown-item",
       inset && "pl-8",
       className
     )}
     {...props}
-    {...(pending ? { "aria-busy": true, "data-pending": "" } : {})}
-    disabled={disabled || pending || undefined}
+    {...(pending
+      ? { "aria-busy": true, "aria-disabled": true, "data-pending": "", onClickCapture: blockActivation }
+      : {})}
+    disabled={disabled || undefined}
   >
     {/* Direct siblings, never a fragment: under `asChild` Radix Slot finds the Slottable
         among its direct children and renders the icon/spinner inside the child element. */}

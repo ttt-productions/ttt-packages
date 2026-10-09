@@ -63,8 +63,9 @@ export interface NotificationDoc {
    * unseen. Generic field — no domain knowledge. Always present (initialized
    * to `0` on creation and reset to `0` on dedup-increment) so the unread
    * `count()` aggregation can match it with a `seenAt == 0` equality predicate.
-   * `seenAt` is a personal concept; shared notifications carry it for shape
-   * uniformity but their unread indicator is existence-based and ignores it.
+   * On a shared card it is the members' one shared seen state when the category
+   * declares `sharedSeenState`; otherwise the shared unread indicator is
+   * existence-based and ignores it.
    */
   seenAt: number;
 
@@ -126,6 +127,13 @@ export interface NotificationCategoryConfig {
   historyPath: (userId?: string) => string;
   /** 'personal' requires targetUserId, 'shared' = all members see everything */
   audienceType: 'personal' | 'shared';
+  /**
+   * Shared categories only: the members share one seen state, so a card any member marked seen
+   * (`seenAt` set) is seen for every member, and the unread count counts the cards no member has
+   * seen (`seenAt == 0`). Omitted, a shared category's unread indicator is existence-based: every
+   * active card counts. A personal category always counts its recipient's unseen cards.
+   */
+  sharedSeenState?: boolean;
 }
 
 /**
@@ -152,7 +160,7 @@ export interface NotificationTypeConfig {
   countCap?: number;
   /** Max latestActorIds array length (default 5) */
   actorCap?: number;
-  /** Icon/emoji for display (optional) */
+  /** Icon text (e.g. an emoji) shown on the type's rows; rows of a type without one show the package's bell. */
   icon?: string;
 }
 
@@ -188,11 +196,26 @@ export interface NotificationSystemConfig {
 // HOOK OPTION TYPES
 // ============================================================================
 
+/**
+ * The cache keys the notification hooks read and refresh under, so an app names them from its
+ * own key scope. Each method returns the key for one category and viewer: the active and history
+ * lists read beneath theirs (each page size under it) and an archive refreshes everything beneath
+ * all three. Omitted, the hooks use their own `['notifications', 'active' | 'history' |
+ * 'unread-count', category, userId]` keys.
+ */
+export interface NotificationQueryKeys {
+  active: (category: string, userId: string) => readonly unknown[];
+  history: (category: string, userId: string) => readonly unknown[];
+  unreadCount: (category: string, userId: string) => readonly unknown[];
+}
+
 export interface UseActiveNotificationsOptions {
   config: NotificationSystemConfig;
   userId: string;
   category: string;
   enabled?: boolean;
+  /** The app's cache keys (see {@link NotificationQueryKeys}); the package's own when omitted. */
+  queryKeys?: NotificationQueryKeys;
   pageSize?: number;
   /** Re-read the displayed page every `refetchInterval` ms while mounted (default 30s). */
   refetchInterval?: number;
@@ -219,6 +242,8 @@ export interface UseNotificationHistoryOptions {
   userId: string;
   category: string;
   enabled?: boolean;
+  /** The app's cache keys (see {@link NotificationQueryKeys}); the package's own when omitted. */
+  queryKeys?: NotificationQueryKeys;
   pageSize?: number;
   /** Read-freshness stale time in ms (archived rows are immutable; default 60s). */
   staleTime?: number;
@@ -229,6 +254,8 @@ export interface UseUnreadCountOptions {
   userId: string;
   category: string;
   enabled?: boolean;
+  /** The app's cache keys (see {@link NotificationQueryKeys}); the package's own when omitted. */
+  queryKeys?: NotificationQueryKeys;
   refetchInterval?: number;
   countLimit?: number;
 }
@@ -258,6 +285,9 @@ export interface UseArchiveNotificationOptions {
    * Firestore writes; it only invalidates the read keys on success.
    */
   archiveFn: NotificationArchiveFn;
+  /** The app's cache keys (see {@link NotificationQueryKeys}); the package's own when omitted. */
+  queryKeys?: NotificationQueryKeys;
+  /** Keys to refresh after an archive in place of the category's three keys. */
   invalidateKeys?: readonly unknown[][];
 }
 
@@ -356,6 +386,9 @@ export interface UseArchiveAllNotificationsOptions {
    * that never reaches a terminal state — default 120, i.e. ~3 min at the default interval).
    */
   maxPolls?: number;
+  /** The app's cache keys (see {@link NotificationQueryKeys}); the package's own when omitted. */
+  queryKeys?: NotificationQueryKeys;
+  /** Keys to refresh after an archive-all in place of the category's three keys. */
   invalidateKeys?: readonly unknown[][];
 }
 
@@ -371,8 +404,12 @@ export interface UseArchiveAllNotificationsOptions {
  * re-archived, so it is absent there).
  */
 export interface NotificationRowActions {
-  /** Archives this row; rejects when the archive fails. */
-  archive?: () => Promise<void>;
+  /**
+   * Archives this row and resolves the server's answer: `{ archived: false }` when it archived
+   * nothing (the card changed after it was rendered), so the app can say why the row stayed.
+   * Rejects when the archive fails.
+   */
+  archive?: () => Promise<NotificationArchiveResult>;
   /**
    * True while this row is archiving, including a category-wide Clear All. After an
    * archive the server confirmed, it stays true until the row leaves the active list.
@@ -390,6 +427,21 @@ export interface NotificationListErrorState {
   retry: () => void;
   retrying: boolean;
   hasRows: boolean;
+}
+
+/**
+ * The words a list shows of its own. Every key is optional; an omitted one keeps the package's
+ * English default.
+ */
+export interface NotificationListLabels {
+  /** The Clear All control (default "Clear All"). */
+  clearAll: string;
+  /** The Clear All control while its job runs (default "Clearing..."). */
+  clearing: string;
+  /** Shown when a Clear All ended with cards left (default "Some notifications remain — try again."). */
+  clearIncomplete: string;
+  /** The loading spinner's announced label (default "Loading notifications"). */
+  loading: string;
 }
 
 export interface NotificationListProps {
@@ -413,6 +465,8 @@ export interface NotificationListProps {
    * it to its status callable / job-doc read.
    */
   getArchiveAllStatusFn: (jobId: string) => Promise<ArchiveAllJobSnapshot>;
+  /** The app's cache keys (see {@link NotificationQueryKeys}); the package's own when omitted. */
+  queryKeys?: NotificationQueryKeys;
   /** Left-aligned title for the active-list header. */
   title?: ReactNode;
   onClearAll?: () => void;
@@ -422,6 +476,8 @@ export interface NotificationListProps {
   staleTime?: number;
   /** Empty-state text, shown only for an answered, empty first page. */
   emptyText?: string;
+  /** The list's own words; any omitted key keeps its English default. */
+  labels?: Partial<NotificationListLabels>;
   /** The failed-read state, shown before (never instead of) the pager. Copy is the app's. */
   renderError: (state: NotificationListErrorState) => ReactNode;
   /**
@@ -442,10 +498,14 @@ export interface NotificationHistoryListProps {
   config: NotificationSystemConfig;
   userId: string;
   category: string;
+  /** The app's cache keys (see {@link NotificationQueryKeys}); the package's own when omitted. */
+  queryKeys?: NotificationQueryKeys;
   pageSize?: number;
   staleTime?: number;
   /** Empty-state text, shown only for an answered, empty first page. */
   emptyText?: string;
+  /** The list's own words (only `loading` applies here); an omitted key keeps its English default. */
+  labels?: Partial<Pick<NotificationListLabels, 'loading'>>;
   /** The failed-read state, shown before (never instead of) the pager. Copy is the app's. */
   renderError: (state: NotificationListErrorState) => ReactNode;
   /** Left-aligned title for the read-only archived-list header. */
@@ -466,5 +526,7 @@ export interface NotificationUnreadBadgeProps {
   config: NotificationSystemConfig;
   userId: string;
   category: string;
+  /** The app's cache keys (see {@link NotificationQueryKeys}); the package's own when omitted. */
+  queryKeys?: NotificationQueryKeys;
   refetchInterval?: number;
 }

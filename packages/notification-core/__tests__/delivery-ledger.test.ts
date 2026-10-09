@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   createDeliveryLedger,
   applyAggregation,
@@ -39,22 +39,29 @@ function createMockFirestore() {
     limit: () => { throw new Error('not used'); },
     add: async (data: Record<string, unknown>) => { const id = `auto_${getCol(colPath).size}`; getCol(colPath).set(id, { ...data }); return makeDocRef(colPath, id); },
   });
+  // Doc ids whose transactional reads fail, as an unavailable backend would.
+  const failingReads = new Set<string>();
   const db: ServerFirestore = {
     collection: (p) => makeColRef(p) as never,
     doc: (path) => { const { colPath, id } = splitDoc(path); return makeDocRef(colPath, id); },
     batch: () => { throw new Error('not used'); },
     runTransaction: async (fn) => {
-      // Single-threaded test executor: reads/writes hit the store directly.
+      // Single-threaded test executor: reads hit the store directly; writes are buffered and
+      // applied only once the transaction function resolves, so a throw commits nothing.
+      const writes: Array<() => Promise<unknown>> = [];
       const tx = {
-        get: (ref: ServerDocRef) => ref.get(),
-        set: (ref: ServerDocRef, data: Record<string, unknown>) => { void ref.set(data); return tx; },
-        update: (ref: ServerDocRef, data: Record<string, unknown>) => { void ref.update(data); return tx; },
-        delete: (ref: ServerDocRef) => { void ref.delete(); return tx; },
+        get: (ref: ServerDocRef) =>
+          failingReads.has(ref.id) ? Promise.reject(new Error(`read of ${ref.id} failed`)) : ref.get(),
+        set: (ref: ServerDocRef, data: Record<string, unknown>) => { writes.push(() => ref.set(data)); return tx; },
+        update: (ref: ServerDocRef, data: Record<string, unknown>) => { writes.push(() => ref.update(data)); return tx; },
+        delete: (ref: ServerDocRef) => { writes.push(() => ref.delete()); return tx; },
       };
-      return fn(tx);
+      const result = await fn(tx);
+      for (const write of writes) await write();
+      return result;
     },
   };
-  return { db, store, getCol };
+  return { db, store, getCol, failingReads };
 }
 
 const config: NotificationSystemConfig = {
@@ -300,6 +307,139 @@ describe('createDeliveryLedger lifecycle', () => {
     const tally = await ledger.materializeMany(['a', 'b', 'missing'], { concurrency: 2 });
     expect(tally.materialized).toBe(2);
     expect(tally.missing).toBe(1);
+  });
+});
+
+describe('replay with an audit write', () => {
+  async function deadLettered() {
+    const mock = createMockFirestore();
+    const ledger = createDeliveryLedger(mock.db, config, ELIGIBLE);
+    await ledger.enqueue([row({ deliveryId: 'd1' })]);
+    await ledger.deadLetter('d1', new Error('infra'));
+    return { ...mock, ledger };
+  }
+
+  it('commits the audit write in the reset transaction, handing it the row as it stood', async () => {
+    const { ledger, db, getCol } = await deadLettered();
+    const seen: Array<Record<string, unknown>> = [];
+    const outcome = await ledger.replay('d1', {
+      auditWrite: (transaction, previous) => {
+        seen.push({ ...previous });
+        transaction.set(db.collection('auditEvents').doc('e1'), { type: 'replayed', deliveryId: previous.deliveryId });
+      },
+    });
+
+    expect(outcome).toBe('replayed');
+    expect(seen).toHaveLength(1);
+    expect(seen[0].state).toBe('deadLetter');
+    expect(seen[0].attemptCount).toBe(1);
+    expect(getCol('notificationDeliveries').get('d1')!.state).toBe('queued');
+    expect(getCol('auditEvents').get('e1')).toEqual({ type: 'replayed', deliveryId: 'd1' });
+  });
+
+  it('awaits an async audit writer before the transaction commits', async () => {
+    const { ledger, db, getCol } = await deadLettered();
+    await ledger.replay('d1', {
+      auditWrite: async (transaction) => {
+        await Promise.resolve();
+        transaction.set(db.collection('auditEvents').doc('e1'), { type: 'replayed' });
+      },
+    });
+    expect(getCol('auditEvents').get('e1')).toEqual({ type: 'replayed' });
+  });
+
+  it('writes nothing — neither the reset nor the audit — when the audit write fails', async () => {
+    const { ledger, getCol } = await deadLettered();
+    const before = { ...getCol('notificationDeliveries').get('d1')! };
+
+    await expect(
+      ledger.replay('d1', {
+        auditWrite: async () => {
+          throw new Error('audit write failed');
+        },
+      }),
+    ).rejects.toThrow('audit write failed');
+
+    expect(getCol('notificationDeliveries').get('d1')).toEqual(before);
+    expect(getCol('auditEvents').size).toBe(0);
+  });
+
+  it('records nothing for a row that is no longer dead-lettered or does not exist', async () => {
+    const { ledger, getCol } = await deadLettered();
+    await ledger.replay('d1');
+    const auditWrite = vi.fn();
+
+    expect(await ledger.replay('d1', { auditWrite })).toBe('not-dead-lettered');
+    expect(await ledger.replay('nope', { auditWrite })).toBe('missing');
+    expect(auditWrite).not.toHaveBeenCalled();
+    expect(getCol('notificationDeliveries').get('d1')!.state).toBe('queued');
+  });
+});
+
+describe('materializeMany isolates each row', () => {
+  it('a row whose failure cannot be recorded is reported, and the rest of the batch proceeds', async () => {
+    const { db, getCol, failingReads } = createMockFirestore();
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
+    await ledger.enqueue([
+      row({ deliveryId: 'a' }),
+      row({ deliveryId: 'bad', aggregationKey: 'agg-bad', payload: { actorId: 'a', metadata: { k: 'agg-bad' }, occurrenceAt: 1 } }),
+      row({ deliveryId: 'b', aggregationKey: 'agg2', payload: { actorId: 'a', metadata: { k: 'agg2' }, occurrenceAt: 1 } }),
+    ]);
+    failingReads.add('bad');
+    const onUnrecordedFailure = vi.fn();
+
+    const tally = await ledger.materializeMany(['a', 'bad', 'b'], { concurrency: 1, onUnrecordedFailure });
+
+    expect(tally.materialized).toBe(2);
+    expect(onUnrecordedFailure).toHaveBeenCalledTimes(1);
+    const [failedId, recordError, details] = onUnrecordedFailure.mock.calls[0];
+    expect(failedId).toBe('bad');
+    expect(recordError).toBeInstanceOf(Error);
+    expect(details.cause).toBeInstanceOf(Error);
+    const bad = getCol('notificationDeliveries').get('bad')!;
+    expect(bad.state).toBe('queued');
+    expect(bad.attemptCount).toBe(0);
+  });
+
+  it('hands over the recording failure with the materialize failure it was recording as its cause', async () => {
+    const { db } = createMockFirestore();
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
+    await ledger.enqueue([row({ deliveryId: 'bad' })]);
+    const materializeFailure = new Error('materialize failed');
+    const recordFailure = new Error('record failed');
+    const failures = [materializeFailure, recordFailure];
+    db.runTransaction = async () => {
+      throw failures.shift();
+    };
+    const onUnrecordedFailure = vi.fn();
+
+    await ledger.materializeMany(['bad'], { onUnrecordedFailure });
+
+    expect(onUnrecordedFailure).toHaveBeenCalledWith('bad', recordFailure, { cause: materializeFailure });
+  });
+
+  it('without a handler the unrecorded failure goes to the console, and a throwing handler does not fail the batch', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { db, failingReads } = createMockFirestore();
+      const ledger = createDeliveryLedger(db, config, ELIGIBLE);
+      await ledger.enqueue([row({ deliveryId: 'bad' }), row({ deliveryId: 'a', aggregationKey: 'agg2', payload: { actorId: 'a', metadata: { k: 'agg2' }, occurrenceAt: 1 } })]);
+      failingReads.add('bad');
+
+      await expect(ledger.materializeMany(['bad', 'a'], { concurrency: 1 })).resolves.toMatchObject({ materialized: 1 });
+      expect(errors).toHaveBeenCalled();
+
+      errors.mockClear();
+      const tally = await ledger.materializeMany(['bad'], {
+        onUnrecordedFailure: () => {
+          throw new Error('capture failed');
+        },
+      });
+      expect(tally.materialized).toBe(0);
+      expect(errors).toHaveBeenCalled();
+    } finally {
+      errors.mockRestore();
+    }
   });
 });
 

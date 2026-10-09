@@ -17,6 +17,9 @@ export type {
   EnqueueResult,
   EnqueueRowResult,
   MaterializeOutcome,
+  MaterializeManyOptions,
+  ReplayOutcome,
+  ReplayOptions,
 } from './delivery-ledger.js';
 
 // Observed-generation seen/archive protocol (notification redesign — P1)

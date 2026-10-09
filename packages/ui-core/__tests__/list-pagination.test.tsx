@@ -106,13 +106,13 @@ describe('usePagedList + ListPagination — edges', () => {
     const user = userEvent.setup();
     render(<SliceHarness items={makeItems(4)} pageSize={2} />);
 
-    expect(previous()).toBeDisabled();
-    expect(next()).toBeEnabled();
+    expect(previous()).toHaveAttribute('aria-disabled', 'true');
+    expect(next()).not.toHaveAttribute('aria-disabled');
 
     await user.click(next());
 
-    expect(previous()).toBeEnabled();
-    expect(next()).toBeDisabled();
+    expect(previous()).not.toHaveAttribute('aria-disabled');
+    expect(next()).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('renders no controls at all for a single page', () => {
@@ -144,7 +144,7 @@ describe('usePagedList + ListPagination — edges', () => {
 
     expect(screen.getByText('2 of 2')).toBeInTheDocument();
     expect(visibleRows()).toEqual(['item-4']);
-    expect(next()).toBeDisabled();
+    expect(next()).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('announces the page counter as a live status region', () => {
@@ -281,8 +281,8 @@ describe('useCursorPage + ListPagination — the real query flow', () => {
     expect(visibleRows()).toEqual(['item-1', 'item-2', 'item-3']);
     expect(screen.getByText('Page 1')).toBeInTheDocument();
     expect(screen.queryByText(/ of /)).not.toBeInTheDocument();
-    expect(previous()).toBeDisabled();
-    expect(next()).toBeEnabled();
+    expect(previous()).toHaveAttribute('aria-disabled', 'true');
+    expect(next()).not.toHaveAttribute('aria-disabled');
   });
 
   it('walks forward, the query answering with fresh rows and a fresh hasMore', async () => {
@@ -292,16 +292,16 @@ describe('useCursorPage + ListPagination — the real query flow', () => {
     await user.click(next());
     expect(screen.getByText('Page 2')).toBeInTheDocument();
     expect(visibleRows()).toEqual(['item-4', 'item-5', 'item-6']);
-    expect(previous()).toBeEnabled();
-    expect(next()).toBeEnabled();
+    expect(previous()).not.toHaveAttribute('aria-disabled');
+    expect(next()).not.toHaveAttribute('aria-disabled');
 
     // The query says page 3 is the last one — Next disables from the DATA, which
     // only exists after the page it describes has been requested.
     await user.click(next());
     expect(screen.getByText('Page 3')).toBeInTheDocument();
     expect(visibleRows()).toEqual(['item-7']);
-    expect(next()).toBeDisabled();
-    expect(previous()).toBeEnabled();
+    expect(next()).toHaveAttribute('aria-disabled', 'true');
+    expect(previous()).not.toHaveAttribute('aria-disabled');
   });
 
   it('walks back to the earlier page', async () => {
@@ -313,7 +313,7 @@ describe('useCursorPage + ListPagination — the real query flow', () => {
 
     expect(screen.getByText('Page 1')).toBeInTheDocument();
     expect(visibleRows()).toEqual(['item-1', 'item-2', 'item-3']);
-    expect(previous()).toBeDisabled();
+    expect(previous()).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('renders no controls at all when the first page is the only page', () => {
@@ -338,8 +338,8 @@ describe('useCursorPage + ListPagination — the real query flow', () => {
     rerender(<QueryHarness busy />);
 
     expect(screen.getByText('Page 2')).toBeInTheDocument();
-    expect(previous()).toBeDisabled();
-    expect(next()).toBeDisabled();
+    expect(previous()).toHaveAttribute('aria-disabled', 'true');
+    expect(next()).toHaveAttribute('aria-disabled', 'true');
   });
 });
 
@@ -441,7 +441,7 @@ describe('useCursorPage — returning to page 1 when the query inputs change', (
     await user.click(screen.getByRole('button', { name: 'Tag A' }));
     expect(visibleRows()).toEqual(['item-1', 'item-2', 'item-3']);
     expect(screen.getByText('Page 1')).toBeInTheDocument();
-    expect(previous()).toBeDisabled();
+    expect(previous()).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('treats reset() on page 1 as a no-op, so onPageChange does not fire', async () => {
@@ -557,17 +557,37 @@ describe('ListPagination — the clicked control spins while its page loads', ()
     rerender(<ListPagination pagination={state} busy />);
     expect(next()).toHaveAttribute('aria-busy', 'true');
     expect(previous()).not.toHaveAttribute('aria-busy');
-    expect(previous()).toBeDisabled();
+    expect(previous()).toHaveAttribute('aria-disabled', 'true');
 
     rerender(<ListPagination pagination={state} />);
     expect(next()).not.toHaveAttribute('aria-busy');
-    expect(next()).toBeEnabled();
+    expect(next()).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('keeps focus on the pressed control while its page loads and when it lands on an edge', async () => {
+    const user = userEvent.setup();
+    const goToNextPage = vi.fn();
+    const { rerender } = render(<ListPagination pagination={{ ...state, goToNextPage }} />);
+    await user.click(next());
+    expect(next()).toHaveFocus();
+
+    rerender(<ListPagination pagination={{ ...state, goToNextPage }} busy />);
+    expect(next()).not.toBeDisabled();
+    expect(next()).toHaveFocus();
+    await user.click(next());
+    expect(goToNextPage).toHaveBeenCalledTimes(1);
+
+    rerender(<ListPagination pagination={{ ...state, currentPage: 5, canNextPage: false, goToNextPage }} />);
+    expect(next()).toHaveAttribute('aria-disabled', 'true');
+    expect(next()).toHaveFocus();
+    await user.click(next());
+    expect(goToNextPage).toHaveBeenCalledTimes(1);
   });
 
   it('a busy list with no click behind it (a refetch) disables both controls but spins neither', () => {
     render(<ListPagination pagination={state} busy />);
-    expect(previous()).toBeDisabled();
-    expect(next()).toBeDisabled();
+    expect(previous()).toHaveAttribute('aria-disabled', 'true');
+    expect(next()).toHaveAttribute('aria-disabled', 'true');
     expect(previous()).not.toHaveAttribute('aria-busy');
     expect(next()).not.toHaveAttribute('aria-busy');
   });

@@ -511,3 +511,85 @@ describe('useFirestoreLiveInfinite — retries and switches keep to one read', (
     expect(result.current.sourceState).toBe('connecting');
   });
 });
+
+describe('useFirestoreLiveInfinite — listener errors reach the provider handler', () => {
+  function wrapperWith(onListenerError: (error: Error, details: unknown) => void) {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+    const Wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(
+        QueryClientProvider,
+        { client: qc },
+        React.createElement(FirestoreProvider, { db: {} as never, onListenerError, children }),
+      );
+    Wrapper.displayName = 'ReportingWrapper';
+    return Wrapper;
+  }
+
+  it('hands a surfaced listener error to the handler once, naming the read, and not to the console', () => {
+    const onListenerError = vi.fn();
+    renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), { wrapper: wrapperWith(onListenerError) });
+    const failure = Object.assign(new Error('unavailable'), { code: 'unavailable' });
+    act(() => lastListener().error(failure));
+
+    expect(onListenerError).toHaveBeenCalledTimes(1);
+    expect(onListenerError).toHaveBeenCalledWith(failure, {
+      hook: 'useFirestoreLiveInfinite',
+      queryKey: ['chat', 't1'],
+      path: 'chats/t1/messages',
+    });
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('hands a permission-denied error over only once the resubscribe ladder is spent', () => {
+    vi.useFakeTimers();
+    const onListenerError = vi.fn();
+    renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), { wrapper: wrapperWith(onListenerError) });
+    const denied = () => Object.assign(new Error('denied'), { code: 'permission-denied' });
+
+    for (const delay of [5_000, 15_000, 45_000]) {
+      act(() => lastListener().error(denied()));
+      expect(onListenerError).not.toHaveBeenCalled();
+      act(() => {
+        vi.advanceTimersByTime(delay);
+      });
+    }
+    act(() => lastListener().error(denied()));
+    expect(onListenerError).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes the error to the console when the app supplied no handler', () => {
+    renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), { wrapper: makeWrapper() });
+    const failure = Object.assign(new Error('unavailable'), { code: 'unavailable' });
+    act(() => lastListener().error(failure));
+    expect(console.error).toHaveBeenCalledWith('[useFirestoreLiveInfinite] Subscription error:', failure);
+  });
+});
+
+describe('useFirestoreLiveInfinite — the older pages take the caller cache tier', () => {
+  it('applies staleTime and gcTime to the older-pages query', async () => {
+    h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 10)] });
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const Wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(
+        QueryClientProvider,
+        { client: qc },
+        React.createElement(FirestoreProvider, { db: {} as never, children }),
+      );
+    Wrapper.displayName = 'TierWrapper';
+    const { result } = renderHook(
+      () => useFirestoreLiveInfinite({ ...baseOpts, staleTime: 123_000, gcTime: 456_000 }),
+      { wrapper: Wrapper },
+    );
+    emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
+
+    const older = qc.getQueryCache().findAll({ queryKey: ['chat', 't1', 'older'] });
+    expect(older.length).toBeGreaterThan(0);
+    for (const query of older) {
+      expect((query.options as { staleTime?: number }).staleTime).toBe(123_000);
+      expect(query.options.gcTime).toBe(456_000);
+    }
+  });
+});

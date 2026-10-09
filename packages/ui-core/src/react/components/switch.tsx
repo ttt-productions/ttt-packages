@@ -6,25 +6,36 @@ import * as SwitchPrimitives from "@radix-ui/react-switch"
 import { cn } from "../../lib/utils.js"
 import { Spinner } from "./spinner.js"
 
+// Stopped in the capture phase so neither the caller's click handler nor the switch's own
+// toggle runs while a change is in flight.
+function blockToggle(event: React.MouseEvent<HTMLButtonElement>) {
+  event.preventDefault()
+  event.stopPropagation()
+}
+
 const Switch = React.forwardRef<
   React.ElementRef<typeof SwitchPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root> & {
     /**
-     * The change this switch started is in flight: the switch disables itself, sets
-     * `aria-busy`, and spins inside its thumb. It keeps showing the COMMITTED state —
-     * the caller flips `checked` only once the write lands.
+     * The change this switch started is in flight: the switch ignores toggling, sets
+     * `aria-disabled` and `aria-busy`, and spins inside its thumb. It keeps showing the
+     * COMMITTED state — the caller flips `checked` only once the write lands. It is never
+     * natively disabled for being pending, so the switch the user just pressed keeps focus
+     * (FRONTEND-203).
      */
     pending?: boolean
   }
 >(({ className, pending = false, disabled, ...props }, ref) => (
   <SwitchPrimitives.Root
     className={cn(
-      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
+      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
       className
     )}
     {...props}
-    {...(pending ? { "aria-busy": true, "data-pending": "" } : {})}
-    disabled={disabled || pending || undefined}
+    {...(pending
+      ? { "aria-busy": true, "aria-disabled": true, "data-pending": "", onClickCapture: blockToggle }
+      : {})}
+    disabled={disabled || undefined}
     ref={ref}
   >
     <SwitchPrimitives.Thumb

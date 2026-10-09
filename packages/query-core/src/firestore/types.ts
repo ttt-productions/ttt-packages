@@ -160,6 +160,13 @@ export interface FirestoreLiveInfiniteOptions<T = DocumentData & { id: string }>
   select?: (data: DocumentData & { id: string }) => T;
   /** Output ordering of the merged list, by `orderByField` as Firestore orders it. Default 'asc' (oldest → newest). */
   sort?: 'asc' | 'desc';
+  /**
+   * How long the loaded older pages count as fresh (ms). The live window is a listener and is
+   * always current; this is the older pages' freshness tier. Omit for the query client's default.
+   */
+  staleTime?: number;
+  /** How long the older pages stay cached once no list shows them (ms). Omit for the query client's default. */
+  gcTime?: number;
 }
 
 /**

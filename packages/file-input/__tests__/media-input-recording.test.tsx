@@ -240,7 +240,7 @@ describe('RecordDialog', () => {
     const save = screen.getByRole('button', { name: /^save$/i });
     await user.click(save);
     expect(save).toHaveAttribute('aria-busy', 'true');
-    expect(save).toBeDisabled();
+    expect(save).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(save);
     expect(onRecorded).toHaveBeenCalledTimes(1);
 

@@ -75,8 +75,9 @@ export interface ConsequenceDialogProps {
   destructive?: boolean;
 
   /**
-   * Runs on confirm. May be async — while it is pending the dialog STAYS OPEN, both buttons disable,
-   * and the confirm button shows its pending spinner. Closes on resolve. If it rejects the dialog
+   * Runs on confirm. May be async — while it is pending the dialog STAYS OPEN: the confirm button
+   * is `aria-disabled`, keeps focus, ignores further presses, and shows its pending spinner, and
+   * only Cancel is natively disabled. Closes on resolve. If it rejects the dialog
    * stays open so the caller's own surface (error toast, TOTP step-up) can show and the operator can
    * retry or cancel. This component takes no Sentry/monitoring dependency — every error path
    * belongs to the caller's `onConfirm`.

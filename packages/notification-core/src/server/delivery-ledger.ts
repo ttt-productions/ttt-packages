@@ -109,14 +109,46 @@ export type MaterializeOutcome =
   | 'missing'
   | 'skipped-non-queued';
 
+export interface MaterializeManyOptions {
+  /** Rows materialized at once (default 10). */
+  concurrency?: number;
+  /**
+   * Called for a row whose materialize threw and whose failure could not then be recorded either —
+   * `error` is the recording's own failure and `details.cause` the materialize failure it was
+   * recording. The row stays as it was (queued, attempt count
+   * unchanged), so a later run selects it again; the rest of the batch proceeds. The app's capture
+   * goes here; without it the ledger writes the failure to `console.error`.
+   */
+  onUnrecordedFailure?: (deliveryId: string, error: unknown, details: { cause: unknown }) => void;
+}
+
+/** What `replay` did: reset a dead letter to `queued`, or found nothing to replay. */
+export type ReplayOutcome = 'replayed' | 'missing' | 'not-dead-lettered';
+
+export interface ReplayOptions {
+  /**
+   * Composes the caller's own writes — its audit event — into the replay's transaction, so they
+   * commit with the reset or not at all (BACKEND-202). Called only when the row is reset, after
+   * every read and after the reset write, with the row as the transaction read it (before the
+   * reset). It writes through `transaction` only and reads nothing. Awaited, so an async audit
+   * writer composes; a throw or rejection aborts the transaction and nothing commits.
+   */
+  auditWrite?: (transaction: ServerTransaction, row: Readonly<Record<string, unknown>>) => void | Promise<void>;
+}
+
 export interface DeliveryLedger {
   enqueue(rows: DeliveryRowInput[]): Promise<EnqueueResult>;
   materialize(deliveryId: string): Promise<MaterializeOutcome>;
-  /** Materialize many rows with bounded concurrency; transient throws record a retry/dead-letter outcome. */
-  materializeMany(deliveryIds: string[], options?: { concurrency?: number }): Promise<Record<MaterializeOutcome, number>>;
+  /**
+   * Materialize many rows with bounded concurrency. A row whose materialize throws has the failure
+   * recorded (a retry or a dead letter); each row is isolated, so one row's failure — even one
+   * whose recording also fails — never fails the batch or stops the rows behind it.
+   */
+  materializeMany(deliveryIds: string[], options?: MaterializeManyOptions): Promise<Record<MaterializeOutcome, number>>;
   recordTransientFailure(deliveryId: string, error: unknown): Promise<void>;
   deadLetter(deliveryId: string, error: unknown): Promise<void>;
-  replay(deliveryId: string): Promise<void>;
+  /** Resets a dead letter to `queued` with fresh attempts; any other row is left untouched. */
+  replay(deliveryId: string, options?: ReplayOptions): Promise<ReplayOutcome>;
 }
 
 /** gRPC ALREADY_EXISTS (6) — the create-if-absent duplicate signal. */
@@ -405,13 +437,13 @@ export function createDeliveryLedger(
     });
   }
 
-  async function replay(deliveryId: string): Promise<void> {
-    await db.runTransaction(async (tx) => {
+  async function replay(deliveryId: string, replayOptions?: ReplayOptions): Promise<ReplayOutcome> {
+    return db.runTransaction(async (tx) => {
       const dRef = deliveryRef(deliveryId);
       const dSnap = await tx.get(dRef);
-      if (!dSnap.exists) return;
+      if (!dSnap.exists) return 'missing';
       const d = (dSnap.data() ?? {}) as Record<string, unknown>;
-      if ((d.state as DeliveryState) !== 'deadLetter') return;
+      if ((d.state as DeliveryState) !== 'deadLetter') return 'not-dead-lettered';
       tx.update(dRef, {
         state: 'queued' as DeliveryState,
         attemptCount: 0,
@@ -420,12 +452,31 @@ export function createDeliveryLedger(
         deadLetteredAt: null,
         expireAt: null, // clear any TTL set on a prior terminal
       });
+      await replayOptions?.auditWrite?.(tx, d);
+      return 'replayed';
     });
+  }
+
+  function reportUnrecordedFailure(
+    options: MaterializeManyOptions | undefined,
+    deliveryId: string,
+    error: unknown,
+    cause: unknown,
+  ): void {
+    try {
+      if (options?.onUnrecordedFailure) {
+        options.onUnrecordedFailure(deliveryId, error, { cause });
+        return;
+      }
+    } catch (handlerError) {
+      console.error('[notification-core] onUnrecordedFailure threw for delivery', deliveryId, handlerError);
+    }
+    console.error('[notification-core] A delivery failure could not be recorded', deliveryId, error, { cause });
   }
 
   async function materializeMany(
     deliveryIds: string[],
-    options?: { concurrency?: number },
+    options?: MaterializeManyOptions,
   ): Promise<Record<MaterializeOutcome, number>> {
     const concurrency = Math.max(1, options?.concurrency ?? 10);
     const tally: Record<MaterializeOutcome, number> = {
@@ -443,7 +494,11 @@ export function createDeliveryLedger(
           const outcome = await materialize(id);
           tally[outcome] += 1;
         } catch (error) {
-          await recordTransientFailure(id, error);
+          try {
+            await recordTransientFailure(id, error);
+          } catch (recordError) {
+            reportUnrecordedFailure(options, id, recordError, error);
+          }
         }
       }
     }

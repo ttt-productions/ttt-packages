@@ -6,18 +6,22 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "../../lib/utils.js"
 import { Spinner } from "./spinner.js"
+import { blockActivationKey, blockEvent } from "./pending-guard.js"
 
 const Select = SelectPrimitive.Root
 const SelectGroup = SelectPrimitive.Group
 const SelectValue = SelectPrimitive.Value
 
+// A pending trigger opens on nothing: it opens on a pointer press or a key, and a closed
+// trigger's typeahead changes the value, so both are stopped before the trigger's own handlers.
 const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
     /**
-     * The change this select started is in flight: the trigger disables itself, sets
-     * `aria-busy`, and shows the spinner in place of its chevron. It keeps showing the
-     * COMMITTED value — the caller changes `value` only once the write lands.
+     * The change this select started is in flight: the trigger ignores opening and typeahead,
+     * sets `aria-disabled` and `aria-busy`, and shows the spinner in place of its chevron. It
+     * is never disabled for being pending, so it keeps focus (FRONTEND-203). It keeps showing
+     * the COMMITTED value — the caller changes `value` only once the write lands.
      */
     pending?: boolean
   }
@@ -25,12 +29,21 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      "flex h-10 w-full items-center justify-between rounded-md border-2 border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&>span]:line-clamp-1",
       className
     )}
     {...props}
-    {...(pending ? { "aria-busy": true, "data-pending": "" } : {})}
-    disabled={disabled || pending || undefined}
+    {...(pending
+      ? {
+          "aria-busy": true,
+          "aria-disabled": true,
+          "data-pending": "",
+          onPointerDownCapture: blockEvent,
+          onClickCapture: blockEvent,
+          onKeyDownCapture: blockActivationKey,
+        }
+      : {})}
+    disabled={disabled || undefined}
   >
     {children}
     {pending ? (

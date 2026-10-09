@@ -17,11 +17,15 @@ export function getMonitoringAdapter(): MonitoringAdapter {
 /**
  * Option equality for the re-init check. Functions (`beforeSend`, an integration's hooks)
  * compare by reference — a serialization would drop them and call two different hooks
- * equal; arrays and plain objects compare member by member.
+ * equal; a RegExp (an `ignoreErrors` entry) compares by its source and flags, since it has
+ * no enumerable members; arrays and plain objects compare member by member.
  */
 function sameOptionValue(a: unknown, b: unknown, seen: WeakSet<object>): boolean {
   if (Object.is(a, b)) return true;
   if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (a instanceof RegExp || b instanceof RegExp) {
+    return a instanceof RegExp && b instanceof RegExp && a.source === b.source && a.flags === b.flags;
+  }
   if (seen.has(a)) return false;
   seen.add(a);
   if (Array.isArray(a) || Array.isArray(b)) {
@@ -42,6 +46,14 @@ function assertCombinableOptions(options: MonitoringInitOptions): void {
     throw new Error(
       "[monitoring-core] keepDefaultIntegrations cannot be combined with defaultIntegrations: keepDefaultIntegrations already chooses which defaults run."
     );
+  }
+  if (options.offlineTransport && options.transport !== undefined) {
+    throw new Error(
+      "[monitoring-core] offlineTransport cannot be combined with transport: offlineTransport already chooses the transport."
+    );
+  }
+  if (options.offlineTransport && options.provider === "sentry-node") {
+    throw new Error("[monitoring-core] offlineTransport is a browser option: the Node SDK has no offline browser transport.");
   }
 }
 

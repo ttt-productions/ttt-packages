@@ -356,3 +356,214 @@ describe('NotificationList — archive answers, failed pages, and rendered rows'
     expect(onRenderedRowsChange).not.toHaveBeenCalled();
   });
 });
+
+describe('NotificationList — archive answer, focus, icons, keys, and pager class', () => {
+  const archiveMutateAsync = vi.fn();
+  const props = {
+    config: makeConfig(),
+    userId: 'u1',
+    category: 'user',
+    archiveFn: vi.fn(),
+    enqueueArchiveAllFn: vi.fn(),
+    getArchiveAllStatusFn: vi.fn(),
+    title: 'Notifications',
+    renderError: () => <div role="alert">read failed</div>,
+  };
+  const page = (rows: NotificationDoc[], over: Record<string, unknown> = {}) => ({
+    data: rows,
+    isLoading: false, isFetching: false, isError: false, error: null, refetch: vi.fn(),
+    page: 1, hasNextPage: false, hasPrevPage: false, nextPage: vi.fn(), prevPage: vi.fn(),
+    ...over,
+  });
+  const clearControl = (n: NotificationDoc, actions: NotificationRowActions) => (
+    <button aria-label={`clear-${n.id}`} onClick={() => { void actions.archive?.(); }}>x</button>
+  );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.useArchiveNotification.mockReturnValue({ mutateAsync: archiveMutateAsync });
+    mocks.useArchiveAllNotifications.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
+  });
+
+  it.each([true, false])('the row archive action resolves the server answer (archived: %s)', async (archived) => {
+    mocks.useActiveNotifications.mockReturnValue(page([makeNotification({ id: 'n1' })]));
+    archiveMutateAsync.mockResolvedValueOnce({ archived });
+    let captured: NotificationRowActions | undefined;
+    render(
+      <NotificationList
+        {...props}
+        renderRowAction={(_n, actions) => {
+          captured = actions;
+          return null;
+        }}
+      />,
+    );
+    let answer: unknown;
+    await act(async () => {
+      answer = await captured!.archive!();
+    });
+    expect(answer).toEqual({ archived });
+  });
+
+  it('moves focus to the next row control when the focused row leaves the list', () => {
+    const rows = [makeNotification({ id: 'n1' }), makeNotification({ id: 'n2' }), makeNotification({ id: 'n3' })];
+    mocks.useActiveNotifications.mockReturnValue(page(rows));
+    const view = render(<NotificationList {...props} renderRowAction={clearControl} />);
+    screen.getByLabelText('clear-n2').focus();
+
+    mocks.useActiveNotifications.mockReturnValue(page([rows[0], rows[2]]));
+    view.rerender(<NotificationList {...props} renderRowAction={clearControl} />);
+
+    expect(screen.getByLabelText('clear-n3')).toHaveFocus();
+  });
+
+  it('moves focus to the list itself when the focused row was the last one', () => {
+    const rows = [makeNotification({ id: 'n1' }), makeNotification({ id: 'n2' })];
+    mocks.useActiveNotifications.mockReturnValue(page(rows));
+    const view = render(<NotificationList {...props} renderRowAction={clearControl} />);
+    screen.getByLabelText('clear-n2').focus();
+
+    mocks.useActiveNotifications.mockReturnValue(page([rows[0]]));
+    view.rerender(<NotificationList {...props} renderRowAction={clearControl} />);
+
+    expect(screen.getByRole('group', { name: 'Notifications' })).toHaveFocus();
+  });
+
+  it('leaves focus alone when it had already moved out of the row that left', () => {
+    const rows = [makeNotification({ id: 'n1' }), makeNotification({ id: 'n2' })];
+    mocks.useActiveNotifications.mockReturnValue(page(rows));
+    const view = render(
+      <>
+        <button>elsewhere</button>
+        <NotificationList {...props} renderRowAction={clearControl} />
+      </>,
+    );
+    screen.getByLabelText('clear-n1').focus();
+    screen.getByRole('button', { name: 'elsewhere' }).focus();
+
+    mocks.useActiveNotifications.mockReturnValue(page([rows[1]]));
+    view.rerender(
+      <>
+        <button>elsewhere</button>
+        <NotificationList {...props} renderRowAction={clearControl} />
+      </>,
+    );
+
+    expect(screen.getByRole('button', { name: 'elsewhere' })).toHaveFocus();
+  });
+
+  it('draws the bell for a type with no icon of its own, and the type icon otherwise, both hidden from assistive tech', () => {
+    const config = makeConfig();
+    config.types.with_icon = {
+      category: 'user',
+      delivery: 'queued',
+      dedupKeyPattern: () => 'k',
+      titlePattern: () => 't',
+      messagePattern: () => 'm',
+      icon: '★',
+    };
+    mocks.useActiveNotifications.mockReturnValue(
+      page([makeNotification({ id: 'n1', type: 'no_icon' }), makeNotification({ id: 'n2', type: 'with_icon' })]),
+    );
+    const { container } = render(<NotificationList {...props} config={config} />);
+    const icons = container.querySelectorAll('.ntf-item-icon');
+
+    expect(icons[0].querySelector('svg.ntf-item-icon-glyph')).not.toBeNull();
+    expect(icons[0].textContent).toBe('');
+    expect(icons[1].textContent).toBe('★');
+    icons.forEach((icon) => expect(icon).toHaveAttribute('aria-hidden', 'true'));
+  });
+
+  it('renders its pager with the package class only — no utility class of its own', () => {
+    mocks.useActiveNotifications.mockReturnValue(page([makeNotification({ id: 'n1' })], { hasNextPage: true }));
+    const { container } = render(<NotificationList {...props} />);
+    const footer = container.querySelector('.ntf-list-footer')!;
+    expect(footer).not.toHaveClass('mt-0');
+  });
+
+  it('hands the app key factory to every hook it reads and archives through', () => {
+    const queryKeys = {
+      active: (c: string, u: string) => ['app', 'active', c, u],
+      history: (c: string, u: string) => ['app', 'history', c, u],
+      unreadCount: (c: string, u: string) => ['app', 'unread', c, u],
+    };
+    mocks.useActiveNotifications.mockReturnValue(page([]));
+    render(<NotificationList {...props} queryKeys={queryKeys} />);
+    expect(mocks.useActiveNotifications).toHaveBeenLastCalledWith(expect.objectContaining({ queryKeys }));
+    expect(mocks.useArchiveNotification).toHaveBeenLastCalledWith(expect.objectContaining({ queryKeys }));
+    expect(mocks.useArchiveAllNotifications).toHaveBeenLastCalledWith(expect.objectContaining({ queryKeys }));
+  });
+});
+
+describe('NotificationList — labels and Clear All focus', () => {
+  const props = {
+    config: makeConfig(),
+    userId: 'u1',
+    category: 'user',
+    archiveFn: vi.fn(),
+    enqueueArchiveAllFn: vi.fn(),
+    getArchiveAllStatusFn: vi.fn(),
+    renderError: () => <div role="alert">read failed</div>,
+  };
+  const page = (rows: NotificationDoc[], over: Record<string, unknown> = {}) => ({
+    data: rows,
+    isLoading: false, isFetching: false, isError: false, error: null, refetch: vi.fn(),
+    page: 1, hasNextPage: false, hasPrevPage: false, nextPage: vi.fn(), prevPage: vi.fn(),
+    ...over,
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.useArchiveNotification.mockReturnValue({ mutateAsync: vi.fn() });
+  });
+
+  it('shows the app labels in place of the English defaults', async () => {
+    const mutateAsync = vi.fn().mockResolvedValue({ complete: false });
+    mocks.useArchiveAllNotifications.mockReturnValue({ mutateAsync, isPending: false });
+    mocks.useActiveNotifications.mockReturnValue(page([makeNotification({ id: 'n1' })]));
+    const labels = { clearAll: 'Tout effacer', clearing: 'Effacement…', clearIncomplete: 'Il en reste.', loading: 'Chargement' };
+    render(<NotificationList {...props} labels={labels} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tout effacer' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Il en reste.'));
+  });
+
+  it('announces the loading spinner with the app label', () => {
+    mocks.useArchiveAllNotifications.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
+    mocks.useActiveNotifications.mockReturnValue(page([], { data: undefined, isLoading: true }));
+    render(<NotificationList {...props} labels={{ loading: 'Chargement' }} />);
+    expect(screen.getByRole('status')).toHaveTextContent('Chargement');
+  });
+
+  it('keeps the English defaults for labels the app leaves out', () => {
+    mocks.useArchiveAllNotifications.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
+    mocks.useActiveNotifications.mockReturnValue(page([makeNotification({ id: 'n1' })]));
+    render(<NotificationList {...props} labels={{ clearing: 'x' }} />);
+    expect(screen.getByRole('button', { name: 'Clear All' })).toBeInTheDocument();
+  });
+
+  it('keeps the English default for a label passed as undefined', () => {
+    mocks.useArchiveAllNotifications.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
+    mocks.useActiveNotifications.mockReturnValue(page([makeNotification({ id: 'n1' })]));
+    render(<NotificationList {...props} labels={{ clearAll: undefined }} />);
+    expect(screen.getByRole('button', { name: 'Clear All' })).toBeInTheDocument();
+  });
+
+  it('Clear All keeps focus when the list empties under it, and then clears nothing', () => {
+    const mutateAsync = vi.fn().mockResolvedValue({ complete: true });
+    mocks.useArchiveAllNotifications.mockReturnValue({ mutateAsync, isPending: false });
+    mocks.useActiveNotifications.mockReturnValue(page([makeNotification({ id: 'n1' })]));
+    const view = render(<NotificationList {...props} />);
+    const clearAll = screen.getByRole('button', { name: 'Clear All' });
+    clearAll.focus();
+
+    mocks.useActiveNotifications.mockReturnValue(page([]));
+    view.rerender(<NotificationList {...props} />);
+
+    expect(clearAll).not.toBeDisabled();
+    expect(clearAll).toHaveAttribute('aria-disabled', 'true');
+    expect(clearAll).toHaveFocus();
+    fireEvent.click(clearAll);
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+});

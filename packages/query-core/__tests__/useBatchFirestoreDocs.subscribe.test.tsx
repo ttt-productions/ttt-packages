@@ -76,6 +76,7 @@ vi.mock('firebase/firestore', () => ({
 
 import { useBatchFirestoreDocs } from '../src/react/firestore/useBatchFirestoreDocs.js';
 import { __activeListenerCount } from '../src/react/firestore/doc-subscription-registry.js';
+import { FirestoreProvider } from '../src/react/firestore/context.js';
 
 function emit(id: string, data: Record<string, unknown> | null) {
   act(() => {
@@ -360,5 +361,73 @@ describe('useBatchFirestoreDocs — subscribe mode', () => {
     await waitFor(() => expect(oneShot.result.current.isLoading).toBe(false));
     expect(oneShot.result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
     expect(subscribed.result.current.data.u1).toMatchObject({ displayName: 'FromListener' });
+  });
+});
+
+describe('useBatchFirestoreDocs — subscribe-mode listener errors reach the provider handler', () => {
+  function reportingWrapper(onListenerError?: (error: Error, details: unknown) => void) {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Infinity, staleTime: 0 } },
+    });
+    const db = {} as never;
+    const Wrapper = ({ children }: { children: React.ReactNode }) =>
+      React.createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        React.createElement(FirestoreProvider, { db, onListenerError, children }),
+      );
+    Wrapper.displayName = 'ReportingWrapper';
+    return Wrapper;
+  }
+
+  it('hands a listener error over once, naming the id it failed for, and not to the console', () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const onListenerError = vi.fn();
+      renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1', 'u2'] }), {
+        wrapper: reportingWrapper(onListenerError),
+      });
+      const failure = new Error('permission-denied');
+      emitError('u1', failure);
+
+      expect(onListenerError).toHaveBeenCalledTimes(1);
+      expect(onListenerError).toHaveBeenCalledWith(failure, {
+        hook: 'useBatchFirestoreDocs',
+        queryKey: ['publicUser', 'u1'],
+        path: 'publicUsers/u1',
+      });
+      expect(errors).not.toHaveBeenCalled();
+    } finally {
+      errors.mockRestore();
+    }
+  });
+
+  it('a second consumer of the failed listener receives the error but reports nothing again', () => {
+    const onListenerError = vi.fn();
+    const wrapper = reportingWrapper(onListenerError);
+    const first = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), { wrapper });
+    emitError('u1', new Error('permission-denied'));
+    expect(onListenerError).toHaveBeenCalledTimes(1);
+    first.rerender();
+    // A second hook in the same tree joins the shared, already-failed listener.
+    const shared = renderHook(
+      () => [useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] })],
+      { wrapper },
+    );
+    expect(shared.result.current[1].outcomes.u1?.status).toBeDefined();
+    expect(onListenerError).toHaveBeenCalledTimes(1);
+  });
+
+  it('without a handler (or a provider) the error goes to the console', () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const { Wrapper } = makeWrapper();
+      renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['u1'] }), { wrapper: Wrapper });
+      const failure = new Error('permission-denied');
+      emitError('u1', failure);
+      expect(errors).toHaveBeenCalledWith('[useBatchFirestoreDocs] Subscription error:', failure);
+    } finally {
+      errors.mockRestore();
+    }
   });
 });
