@@ -3,7 +3,6 @@
 import { where, type QueryConstraint } from 'firebase/firestore';
 import { useFirestoreCount } from '@ttt-productions/query-core/react';
 import type { UseUnreadCountOptions } from '../../types.js';
-import { resolveNotificationQueryKeys } from '../query-keys.js';
 
 const DEFAULT_REFETCH_INTERVAL = 30_000;
 const DEFAULT_COUNT_LIMIT = 99;
@@ -15,9 +14,7 @@ const DEFAULT_COUNT_LIMIT = 99;
  *
  * - **personal** categories count **unseen** active items (`seenAt == 0`),
  *   scoped to the caller (`targetUserId == uid`);
- * - **shared** categories that declare `sharedSeenState` count the items no
- *   member has seen (`seenAt == 0`) — the members share one seen state;
- * - other **shared** categories have no seen state, so the indicator is
+ * - **shared** categories have no per-admin seen state, so the indicator is
  *   existence-based — a count of all active items, with no `seenAt` predicate.
  *
  * The personal `seenAt == 0` predicate needs a composite index, captured as an
@@ -39,7 +36,6 @@ export function useUnreadCount({
   enabled = true,
   refetchInterval = DEFAULT_REFETCH_INTERVAL,
   countLimit = DEFAULT_COUNT_LIMIT,
-  queryKeys,
 }: UseUnreadCountOptions) {
   const categoryConfig = config.categories[category];
   if (!categoryConfig) {
@@ -49,30 +45,24 @@ export function useUnreadCount({
   const collectionPath = categoryConfig.activePath;
   const isPersonal = categoryConfig.audienceType === 'personal';
 
-  const constraints: QueryConstraint[] = isPersonal
-    ? userId
+  const constraints: QueryConstraint[] =
+    isPersonal && userId
       ? [where('targetUserId', '==', userId), where('seenAt', '==', 0)]
-      : []
-    : categoryConfig.sharedSeenState
-      ? [where('seenAt', '==', 0)]
       : [];
 
   const { data, ...rest } = useFirestoreCount({
     collectionPath,
-    queryKey: resolveNotificationQueryKeys(queryKeys).unreadCount(category, userId),
+    queryKey: ['notifications', 'unread-count', category, userId],
     constraints,
     enabled: enabled && !!userId,
     staleTime: refetchInterval,
     refetchInterval,
   });
 
-  // `count` reads 0 until the count has answered; `hasAnswer` says whether it has, so a consumer
-  // never shows that 0 as the answer (FRONTEND-206). A failed refresh keeps the last answer.
   const count = data ?? 0;
 
   return {
     count,
-    hasAnswer: data !== undefined,
     hasMore: count > countLimit,
     ...rest,
   };

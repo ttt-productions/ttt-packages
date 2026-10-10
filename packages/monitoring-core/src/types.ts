@@ -29,18 +29,6 @@ export type MonitoringInitOptions = {
   beforeSend?: BeforeSendHook;
   /** The SDK's `beforeSendTransaction` — the same hook for transaction events. */
   beforeSendTransaction?: BeforeSendHook;
-  /** Passed through to the SDK init: error messages the SDK drops before sending — a string
-   *  matches any message containing it, a RegExp is tested against the message. */
-  ignoreErrors?: Array<string | RegExp>;
-  /** Passed through to the SDK init: the transport factory the SDK sends events with (for
-   *  example the SDK's offline-queueing browser transport). Typed loosely: it is a
-   *  provider-specific pass-through. */
-  transport?: unknown;
-  /** Browser provider only: the adapter builds the SDK's offline-queueing browser transport over
-   *  its own fetch transport, so an event raised while the network is down is queued and sent
-   *  later — without the app naming the SDK. Cannot be combined with `transport`, and
-   *  `initMonitoring` rejects it on `sentry-node`. */
-  offlineTransport?: boolean;
 };
 
 export type MonitoringUser = {

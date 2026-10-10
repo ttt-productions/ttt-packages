@@ -2,9 +2,7 @@
 
 Generic active-to-history notification package. Two-tier model: active docs remain
 in the active collection until archived; personal unread state is tracked with
-`seenAt`. A shared category's indicator is existence-based unless the category declares
-`sharedSeenState`, in which case its members share one `seenAt` and the unread count
-counts the cards no member has seen.
+`seenAt`, while shared admin notification indicators stay existence-based.
 
 ## Owns
 
@@ -17,31 +15,17 @@ counts the cards no member has seen.
   interval; a text-only loading swap is never the async affordance. With nothing to
   clear it is `aria-disabled` and inert, never natively disabled, so a Clear All that
   empties the list keeps focus.
-- **Labels.** The words the lists show of their own — Clear All, its pending text, the
-  incomplete-clear notice, and the loading spinner's label — come from the optional `labels`
-  prop (`NotificationListLabels`: `clearAll`, `clearing`, `clearIncomplete`, `loading`; the
-  history list takes `loading` only). Each key omitted or passed as `undefined` keeps its English
-  default.
 - **Rows.** A row is inert — no pointer cursor, no click — and every affordance is a control
-  the app renders in its `renderRowAction` slot, which may shrink beside the row's copy (up to
-  half the row) so long content clips inside it. A row's hover tint moves on theme-core's motion
-  tokens. A row's type icon is the type's `icon` text, or a bell drawn in `currentColor` (styled
-  through `.ntf-item-icon`), and is hidden from assistive tech. The lists render no utility
-  class of their own; the pager carries `ntf-list-footer` beside ui-core's built-in classes.
+  the app renders in its `renderRowAction` slot. A row's hover tint moves on theme-core's
+  motion tokens.
 - **Focus when a row leaves.** When the row that holds focus leaves the active list (an archive
   the read has caught up with), focus moves to the first control in the action slot of the row
   that followed it, or — with no such row — to the list itself (`role="group"`, named by the
   title, `tabIndex={-1}`). Focus that had already moved elsewhere is left alone.
-- **Cache keys.** Every hook, and both lists and the badge, take an optional `queryKeys`
-  (`NotificationQueryKeys`: `active`, `history`, `unreadCount`, each `(category, userId) => key`)
-  so an app names the reads from its own key scope. The lists read beneath their key with the
-  page size under it; an archive and an archive-all refresh all three. Omitted, the keys are
-  `['notifications', 'active' | 'history' | 'unread-count', category, userId]`.
 - **Single-row archive.** The app's `archiveFn` (`NotificationArchiveFn`) receives the
   row exactly as the list rendered it (so the app sends what it observed — e.g. the
   row's activity generation) and resolves `{ archived: boolean }`, rejecting on
-  failure. The row's `actions.archive()` resolves that same answer, so the app can say why
-  a row stayed. A row's `isArchivePending` stays true after `{ archived: true }` until the
+  failure. A row's `isArchivePending` stays true after `{ archived: true }` until the
   authoritative active read drops the row; `{ archived: false }` (the server archived
   nothing — the card changed after it was rendered) and a rejection clear it at once.
 - **Read states.** While a list's first page loads it renders ui-core's `Spinner` as
@@ -56,13 +40,6 @@ counts the cards no member has seen.
 - **Rendered rows.** The active list calls `onRenderedRowsChange(rows)` with the rows on
   screen each time the displayed page's answered rows change — the rows the app marks
   seen, on any page.
-- **Unread count.** `useUnreadCount` returns the query's own state (`isLoading`, `isError`,
-  `error`, …) beside `count`, `hasMore`, and `hasAnswer`. `count` reads `0` until the count has
-  answered, so a consumer shows it only when `hasAnswer` is true (a failed refresh keeps the
-  last answer). It is a server-side `count()`: a personal category counts
-  its recipient's unseen cards (`targetUserId == uid`, `seenAt == 0`), a shared category with
-  `sharedSeenState` counts the cards no member has seen (`seenAt == 0`), and any other shared
-  category counts every active card.
 - **Freshness.** `useActiveNotifications` re-reads the displayed page every
   `refetchInterval` ms (default 30s) while mounted, and takes `staleTime` (default
   30s) as a separate setting; both are list props too. Paging is query-core's
@@ -81,13 +58,8 @@ counts the cards no member has seen.
   lifecycle. `materializeMany` isolates each row: a row whose materialize throws has its failure
   recorded, and a row whose recording also fails is handed to
   `options.onUnrecordedFailure(deliveryId, recordError, { cause })` — `cause` is the materialize
-  failure it was recording — (`console.error` without it) and left as it was for a later run — one row never fails the
-  batch. `replay(deliveryId, { auditWrite })` resets a dead letter to `queued` (fresh attempts,
-  `lastError` / `deadLetteredAt` / `expireAt` cleared to `null`) and answers `'replayed'`; a
-  missing or no-longer-dead-lettered row changes nothing and answers `'missing'` /
-  `'not-dead-lettered'`. `auditWrite(transaction, row)` composes the caller's audit event into
-  the reset's own transaction — called only on a reset, after every read, with the row as it
-  stood, and awaited — so the event commits with the reset or neither does. `expireAt` (a real Firestore `Timestamp` via the injected
+  failure it was recording — (`console.error` without it) and left as it was for a later run, so
+  one row never fails the batch. `expireAt` (a real Firestore `Timestamp` via the injected
   `config.timestampFromMillis`) is set ONLY at a terminal success (`materialized` or `skipped`) —
   a `queued` or `deadLetter` row is never TTL'd. The app owns the concrete collection name + the
   deterministic `deliveryId`/`eventId`/`aggregationKey` construction and passes fully-formed rows in.

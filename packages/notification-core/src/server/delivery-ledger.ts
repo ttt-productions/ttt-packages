@@ -122,20 +122,6 @@ export interface MaterializeManyOptions {
   onUnrecordedFailure?: (deliveryId: string, error: unknown, details: { cause: unknown }) => void;
 }
 
-/** What `replay` did: reset a dead letter to `queued`, or found nothing to replay. */
-export type ReplayOutcome = 'replayed' | 'missing' | 'not-dead-lettered';
-
-export interface ReplayOptions {
-  /**
-   * Composes the caller's own writes — its audit event — into the replay's transaction, so they
-   * commit with the reset or not at all (BACKEND-202). Called only when the row is reset, after
-   * every read and after the reset write, with the row as the transaction read it (before the
-   * reset). It writes through `transaction` only and reads nothing. Awaited, so an async audit
-   * writer composes; a throw or rejection aborts the transaction and nothing commits.
-   */
-  auditWrite?: (transaction: ServerTransaction, row: Readonly<Record<string, unknown>>) => void | Promise<void>;
-}
-
 export interface DeliveryLedger {
   enqueue(rows: DeliveryRowInput[]): Promise<EnqueueResult>;
   materialize(deliveryId: string): Promise<MaterializeOutcome>;
@@ -147,8 +133,7 @@ export interface DeliveryLedger {
   materializeMany(deliveryIds: string[], options?: MaterializeManyOptions): Promise<Record<MaterializeOutcome, number>>;
   recordTransientFailure(deliveryId: string, error: unknown): Promise<void>;
   deadLetter(deliveryId: string, error: unknown): Promise<void>;
-  /** Resets a dead letter to `queued` with fresh attempts; any other row is left untouched. */
-  replay(deliveryId: string, options?: ReplayOptions): Promise<ReplayOutcome>;
+  replay(deliveryId: string): Promise<void>;
 }
 
 /** gRPC ALREADY_EXISTS (6) — the create-if-absent duplicate signal. */
@@ -437,13 +422,13 @@ export function createDeliveryLedger(
     });
   }
 
-  async function replay(deliveryId: string, replayOptions?: ReplayOptions): Promise<ReplayOutcome> {
-    return db.runTransaction(async (tx) => {
+  async function replay(deliveryId: string): Promise<void> {
+    await db.runTransaction(async (tx) => {
       const dRef = deliveryRef(deliveryId);
       const dSnap = await tx.get(dRef);
-      if (!dSnap.exists) return 'missing';
+      if (!dSnap.exists) return;
       const d = (dSnap.data() ?? {}) as Record<string, unknown>;
-      if ((d.state as DeliveryState) !== 'deadLetter') return 'not-dead-lettered';
+      if ((d.state as DeliveryState) !== 'deadLetter') return;
       tx.update(dRef, {
         state: 'queued' as DeliveryState,
         attemptCount: 0,
@@ -452,8 +437,6 @@ export function createDeliveryLedger(
         deadLetteredAt: null,
         expireAt: null, // clear any TTL set on a prior terminal
       });
-      await replayOptions?.auditWrite?.(tx, d);
-      return 'replayed';
     });
   }
 

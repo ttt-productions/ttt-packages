@@ -141,20 +141,9 @@ The options reach the SDK's init as given; anything left out is left out:
   be combined with `defaultIntegrations`: `initMonitoring` rejects that pair before choosing a
   provider, so an emulator or Noop run refuses it the same as a deployed one.
 - `tracesSampleRate` — the provider's trace sampling.
-- `ignoreErrors` — the SDK's own ignore list: error messages it drops before sending (a string
-  matches any message containing it, a RegExp is tested against the message). The app owns the
-  list; this package ships none.
-- `offlineTransport: true` — browser provider only: the adapter builds the SDK's offline-queueing
-  browser transport over the SDK's own fetch transport, from the SDK it loaded, so an event raised
-  while the network is down is queued and sent later and the app names no SDK. `initMonitoring`
-  rejects it beside `transport` and on `sentry-node`; an SDK lacking the two transports fails the
-  init rather than sending unqueued.
-- `transport` — a raw transport factory passed through to the SDK, for an app that builds its own.
 
 A repeated `initMonitoring` with the same options is skipped; options compare value by value, and a
-function-valued option (a hook, a transport) compares by reference, so swapping a hook
-re-initializes. A RegExp compares by its source and flags, so changing an `ignoreErrors` pattern
-re-initializes too.
+function-valued option (a hook) compares by reference, so swapping a hook re-initializes.
 
 If the SDK fails to load or its `init` throws, `initMonitoring` rejects (the caller reports it), and
 every call that waits for the SDK reports itself on `console.error` as not delivered, naming the step

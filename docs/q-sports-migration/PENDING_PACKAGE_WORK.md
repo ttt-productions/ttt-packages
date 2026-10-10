@@ -33,6 +33,7 @@ Each entry is one `###` heading naming the change, then:
 
 ### notification-core: the React lists follow the apps' motion and class rules, take app keys, and count shared seen state
 
+- **Re-check:** deleted as done without being checked against ttt-prod or the code; restored until it is.
 - **Packages:** `notification-core` (`./react` and its stylesheet).
 - **What changes and why:** Q-Sports mounts `NotificationList` / `NotificationHistoryList` on its
   admin Dashboard (Unit 7) and meets four package-side gaps:
@@ -67,6 +68,7 @@ Each entry is one `###` heading naming the change, then:
 
 ### notification-core: `replay` takes an audit hook, and one row's failure never fails a batch
 
+- **Re-check:** deleted as done without being checked against ttt-prod or the code; restored until it is.
 - **Packages:** `notification-core` (`./server`).
 - **What changes and why:**
   - `ledger.replay` opens its own transaction, so an app cannot commit its audit event with the reset
@@ -93,6 +95,7 @@ Each entry is one `###` heading naming the change, then:
 
 ### query-core: a subscribed read's listener error reaches the app's query error reporter
 
+- **Re-check:** deleted as done without being checked against ttt-prod or the code; restored until it is.
 - **Packages:** `query-core` (`./react`).
 - **What changes and why:** Q-Sports ports ttt-prod's `QueryErrorReporter` as the one capture owner
   for failed reads (FRONTEND / QUALITY-101: one capture point, no per-hook capture). It subscribes to
@@ -116,6 +119,7 @@ Each entry is one `###` heading naming the change, then:
 
 ### query-core: `useFirestoreLiveInfinite`'s older pages take an app cache tier
 
+- **Re-check:** deleted as done without being checked against ttt-prod or the code; restored until it is.
 - **Packages:** `query-core` (`./react`).
 - **What changes and why:** the older-pages query inside `useFirestoreLiveInfinite` takes no
   `staleTime` / `gcTime`, so an app cannot put it on its declared freshness tier (FRONTEND-103).
@@ -130,6 +134,7 @@ Each entry is one `###` heading naming the change, then:
 
 ### ui-core: a pending `Switch` (and `Button`) stays focusable
 
+- **Re-check:** deleted as done without being checked against ttt-prod or the code; restored until it is.
 - **Packages:** `ui-core` (`./react`).
 - **What changes and why:** `Switch` with `pending` sets the native `disabled`, which blurs the control
   the user just pressed and drops focus to `<body>` (FRONTEND-203 in Q-Sports; the same accessibility
@@ -145,9 +150,9 @@ Each entry is one `###` heading naming the change, then:
   is never natively disabled, and cancels activation before any click handler runs. App tests
   that assert `toBeDisabled()` on a pending control now assert `aria-disabled="true"`.
 
-
 ### monitoring-core: the browser adapter passes through `ignoreErrors` and `transport`
 
+- **Re-check:** deleted as done without being checked against ttt-prod or the code; restored until it is.
 - **Packages:** `monitoring-core`.
 - **What changes and why:** `toSdkInitOptions` forwards only `tracesSampleRate`, `integrations`,
   `defaultIntegrations`, `beforeSend`, and `beforeSendTransaction`. Q-Sports needs its ignore list in
@@ -162,6 +167,7 @@ Each entry is one `###` heading naming the change, then:
 
 ### monitoring-core: the browser adapter builds the offline transport itself
 
+- **Re-check:** deleted as done without being checked against ttt-prod or the code; restored until it is.
 - **Packages:** `monitoring-core`.
 - **What changes and why:** a raw `transport` pass-through makes the browser policy import the
   monitoring SDK to build the offline transport, and the policy names no SDK (QUALITY-106). The
@@ -176,6 +182,7 @@ Each entry is one `###` heading naming the change, then:
 
 ### query-core: `useBatchFirestoreDocs` subscribe-mode listener errors reach the reporter
 
+- **Re-check:** deleted as done without being checked against ttt-prod or the code; restored until it is.
 - **Packages:** `query-core` (`./react`).
 - **What changes and why:** `useBatchFirestoreDocs` in `subscribe` mode kept each id's listener
   error in its outcomes and reported it nowhere, so a failed shared listener was invisible to the
@@ -191,6 +198,7 @@ Each entry is one `###` heading naming the change, then:
 
 ### ui-core: pagination, select, and menu-item controls stay focusable while unavailable
 
+- **Re-check:** deleted as done without being checked against ttt-prod or the code; restored until it is.
 - **Packages:** `ui-core` (`./react`).
 - **What changes and why:** `ListPagination` natively disabled both controls while a page loaded
   and at each edge, and a pending `SelectTrigger` or `DropdownMenuItem` disabled itself, so the
@@ -211,6 +219,7 @@ Each entry is one `###` heading naming the change, then:
 
 ### notification-core: Clear All keeps focus, the unread count says when it has answered, the lists' words are the app's
 
+- **Re-check:** deleted as done without being checked against ttt-prod or the code; restored until it is.
 - **Packages:** `notification-core` (`./react` and its stylesheet).
 - **What changes and why:** Clear All turned natively disabled when the list emptied under it, so
   focus dropped (FRONTEND-203); `useUnreadCount` returned `count: 0` before it had read anything,

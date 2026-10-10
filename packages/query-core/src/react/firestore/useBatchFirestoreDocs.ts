@@ -5,7 +5,6 @@ import { useQueries, useQueryClient } from '@tanstack/react-query';
 import type { Firestore } from 'firebase/firestore';
 import { isListenerOwned, listenerErrorOf, subscribeDoc } from './doc-subscription-registry.js';
 import { getDocLoader } from './batch-doc-loader.js';
-import { useListenerErrorReporter } from './context.js';
 import { ABSENT_RETRY_DELAYS_MS, trackAbsentDoc } from './absence-scheduler.js';
 import type { BatchFirestoreDocOutcome } from '../../firestore/types.js';
 
@@ -199,7 +198,6 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   absentRetryDelaysMs = ABSENT_RETRY_DELAYS_MS,
 }: BatchFirestoreDocsOptions): BatchFirestoreDocsResult<T> {
   const queryClient = useQueryClient();
-  const reportListenerError = useListenerErrorReporter();
 
   // Stabilize ids reference to prevent cascading re-renders
   const idsKey = JSON.stringify(ids);
@@ -271,18 +269,12 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
         },
         onError: (error) =>
           setSubscribeErrors((errors) => (errors[id] === error ? errors : { ...errors, [id]: error })),
-        reportListenerError: (error) =>
-          reportListenerError(error, {
-            hook: 'useBatchFirestoreDocs',
-            queryKey: [queryKeyPrefix, id],
-            path: `${collectionPath}/${id}`,
-          }),
       }),
     );
     return () => {
       for (const unsubscribe of unsubscribers) unsubscribe();
     };
-  }, [uniqueIds, subscribe, enabled, collectionPath, queryKeyPrefix, queryClient, db, reportListenerError]);
+  }, [uniqueIds, subscribe, enabled, collectionPath, queryKeyPrefix, queryClient, db]);
 
   // Bounded re-read ladder for ids that resolved absent. Registration is per cache key, so
   // overlapping consumers share one episode budget. The ladder is rebuilt from its own

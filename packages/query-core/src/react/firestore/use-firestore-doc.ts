@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { doc, getDoc, onSnapshot, type DocumentData } from 'firebase/firestore';
-import { useFirestoreDb, useListenerErrorReporter } from './context.js';
+import { useFirestoreDb } from './context.js';
 import { RESUBSCRIBE_DELAYS_MS, isPermissionDeniedError } from './resubscribe.js';
 import { useSubscribedResult, useSubscriptionStatus } from './subscription-status.js';
 import type {
@@ -46,7 +46,6 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
 }: FirestoreDocOptions<T>): WithSourceState<UseQueryResult<WithId<T> | null, Error>> {
   const db = useFirestoreDb();
   const queryClient = useQueryClient();
-  const reportListenerError = useListenerErrorReporter();
   const queryKeyMemo = JSON.stringify(queryKey);
 
   // Listener errors can't surface through useQuery (the queryFn is disabled while
@@ -103,9 +102,9 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
             retryTimer = setTimeout(start, delay);
             return;
           }
+          console.error('[useFirestoreDoc] Subscription error:', error);
           updateStatus({ error, sourceState: 'error', restart: null });
           queryClient.setQueryData(queryKey, undefined);
-          reportListenerError(error, { hook: 'useFirestoreDoc', queryKey, path: docPath });
         }
       );
     };
@@ -120,7 +119,7 @@ export function useFirestoreDoc<T extends DocumentData = DocumentData>({
     // Note: select intentionally excluded to prevent re-subscribing on every render if the caller
     // passes an inline function. queryKey is tracked via queryKeyMemo above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db, docPath, queryKeyMemo, enabled, subscribe, restarts, queryClient, resetStatus, updateStatus, reportListenerError]);
+  }, [db, docPath, queryKeyMemo, enabled, subscribe, restarts, queryClient, resetStatus, updateStatus]);
 
   const query = useQuery({
     queryKey,

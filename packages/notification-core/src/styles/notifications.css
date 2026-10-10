@@ -127,13 +127,11 @@
   align-self: center;
 }
 
-/* The consumer's controls from `renderRowAction`. The slot may shrink beside the row's copy, up
- * to half the row, so long control content (a subject link) clips inside it rather than widening
- * the row; the consumer's node supplies its own visual treatment. */
+/* Sibling action slot next to the archive control — consumer-supplied via
+ * `renderRowAction`. Purely a layout/isolation wrapper; the consumer's node
+ * supplies its own visual treatment. */
 .ntf-item-row-action {
-  flex-shrink: 1;
-  min-width: 0;
-  max-width: 50%;
+  flex-shrink: 0;
   align-self: center;
 }
 

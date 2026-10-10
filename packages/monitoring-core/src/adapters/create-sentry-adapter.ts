@@ -11,22 +11,7 @@ export type SentrySdkLike = {
   setTag: (k: string, v: string) => void;
   withScope?: (fn: (scope: any) => void) => void;
   addBreadcrumb?: (breadcrumb: Record<string, unknown>) => void;
-  /** The browser SDK's own transports, which `offlineTransport` composes. */
-  makeFetchTransport?: unknown;
-  makeBrowserOfflineTransport?: (makeTransport: unknown) => unknown;
 };
-
-/**
- * The SDK's offline-queueing browser transport over its own fetch transport, built from the SDK
- * the adapter loaded, so the app names no SDK to get it. An SDK without the two (the Node SDK)
- * cannot honour the option, and the init fails rather than silently sending without a queue.
- */
-function offlineBrowserTransport(S: SentrySdkLike): unknown {
-  if (typeof S.makeBrowserOfflineTransport !== "function" || typeof S.makeFetchTransport !== "function") {
-    throw new Error("[monitoring-core] offlineTransport needs the browser SDK's offline and fetch transports.");
-  }
-  return S.makeBrowserOfflineTransport(S.makeFetchTransport);
-}
 
 /** The options `S.init` receives: every pass-through the caller set, and nothing it left out. */
 export function toSdkInitOptions(options: MonitoringInitOptions): Record<string, unknown> {
@@ -42,8 +27,6 @@ export function toSdkInitOptions(options: MonitoringInitOptions): Record<string,
     "defaultIntegrations",
     "beforeSend",
     "beforeSendTransaction",
-    "ignoreErrors",
-    "transport",
   ] as const;
   for (const key of passThrough) {
     if (options[key] !== undefined) sdkOptions[key] = options[key];
@@ -148,7 +131,7 @@ export function createSentryAdapter(loadSdk: () => Promise<SentrySdkLike>): Moni
       initFailed = false;
       const ready = load().then((S) => {
         try {
-          S.init(options.offlineTransport ? { ...sdkOptions, transport: offlineBrowserTransport(S) } : sdkOptions);
+          S.init(sdkOptions);
         } catch (error) {
           initFailed = true;
           throw error;

@@ -7,7 +7,6 @@ import type {
   NotificationHistoryItem,
   UseNotificationHistoryOptions,
 } from '../../types.js';
-import { resolveNotificationQueryKeys } from '../query-keys.js';
 
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_STALE_TIME = 60_000;
@@ -33,7 +32,6 @@ export function useNotificationHistory({
   enabled = true,
   pageSize = DEFAULT_PAGE_SIZE,
   staleTime = DEFAULT_STALE_TIME,
-  queryKeys,
 }: UseNotificationHistoryOptions) {
   const categoryConfig = config.categories[category];
   if (!categoryConfig) {
@@ -46,7 +44,7 @@ export function useNotificationHistory({
 
   return useFirestorePaginated<NotificationHistoryItem>({
     collectionPath,
-    queryKey: [...resolveNotificationQueryKeys(queryKeys).history(category, userId), { pageSize }],
+    queryKey: ['notifications', 'history', category, userId, { pageSize }],
     constraints,
     pageSize,
     enabled: enabled && !!userId,

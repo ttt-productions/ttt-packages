@@ -39,24 +39,6 @@ Generic TanStack Query package.
   listener's last rows are never shown as current; a healthy listener's restart keeps its
   data (`isRefetching`). This is the retry a failed subscribed read offers. A disabled read's
   `refetch()` opens nothing; without `subscribe`, `refetch()` is the query's own one-shot re-read.
-- **A listener's surfaced error reaches the app's capture.** A subscribed read's listener error
-  lives in the hook's own state, never in the query cache, so a reporter that watches the cache
-  cannot see it. `<FirestoreProvider onListenerError={(error, details) => …}>`
-  (`FirestoreListenerErrorHandler`) receives every error a realtime listener surfaces —
-  `useFirestoreDoc` / `useFirestoreCollection` with `subscribe`, `useFirestoreLiveInfinite`'s
-  live window, and `useBatchFirestoreDocs`' shared per-id listeners in `subscribe` mode — with
-  `details` naming the read (`hook`, `queryKey`, `path`; for a batch id, `[queryKeyPrefix, id]` and
-  `collectionPath/id`). A shared batch listener reports once, through the consumer that opened it;
-  a consumer that joins it after it failed receives the error but reports nothing again. A batch
-  listener has no resubscribe ladder: it reports on its first error, `permission-denied`
-  included. The batch
-  hook takes its `db` as an option, so outside a `FirestoreProvider` its errors go to the console. It is called once per
-  surfaced error: after a `permission-denied` has spent its resubscribe ladder (never during it),
-  or at once for any other code; a `refetch()` / `retry()` whose re-opened listener fails again
-  surfaces, and hands over, a new error. The handler is read when the error arrives, so a new
-  handler never re-opens a listener. Without one, the hooks write the error to `console.error`.
-  A failed older page of `useFirestoreLiveInfinite` is an ordinary query error and reaches the
-  cache like any other read.
 - The generic debounced prefix-search hook `useFirestoreSearch`, its types
   (`FirestoreSearchOptions`, `FirestoreSearchConfig`, `SearchEqualityFilter`), and its search
   rule on the server-safe root (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`)
@@ -120,18 +102,13 @@ isFetchingOlder, olderError, retry }` (`FirestoreLiveInfiniteResult`).
 - **Listener failure.** A `permission-denied` listener error resubscribes on the
   `RESUBSCRIBE_DELAYS_MS` ladder (`sourceState: 'connecting'` meanwhile); once the ladder
   is spent, or at once for any other code, `error` is set, `sourceState` is `'error'`,
-  and the hook hands it to the provider's `onListenerError` (or `console.error` without one).
-  Rows already on screen are kept beside the error; with none, `isInitialLoading` is false.
-  A healthy snapshot clears `error`.
+  and the hook `console.error`s it. Rows already on screen are kept beside the error; with
+  none, `isInitialLoading` is false. A healthy snapshot clears `error`.
 - **Older-page failure.** `olderError` holds a failed older read (the loaded rows stay;
   `hasOlder` stays true) until an older read succeeds. `fetchOlder` never rejects.
 - **`retry()`** resubscribes a failed listener with a fresh ladder (clearing `error`,
   keeping rows and the anchor) and re-reads a failed older page; `isFetchingOlder` is the
   older re-read's pending flag.
-- **Older pages take the caller's cache tier.** `staleTime` and `gcTime` (the same cache
-  options the sibling hooks take) apply to the older-pages query, so an app puts them on its
-  declared freshness tier; omitted, they are the query client's defaults. The live window is a
-  listener and is always current.
 
 ## `useFirestoreSearch` — debounced prefix search
 

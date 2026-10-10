@@ -81,61 +81,6 @@ describe('useUnreadCount', () => {
     expect(opts.constraints).toHaveLength(0);
   });
 
-  it('counts the cards no member has seen for a shared category that shares one seen state', () => {
-    setCount(4);
-    const config = makeConfig();
-    config.categories.admin.sharedSeenState = true;
-    const { result } = renderHook(() => useUnreadCount({ config, userId: 'admin1', category: 'admin' }));
-
-    expect(result.current.count).toBe(4);
-    expect(mocks.whereFn).toHaveBeenCalledTimes(1);
-    expect(mocks.whereFn).toHaveBeenCalledWith('seenAt', '==', 0);
-    const opts = mocks.useFirestoreCount.mock.calls.at(-1)![0] as Record<string, unknown>;
-    expect(opts.collectionPath).toBe('activeAdminNotifications');
-    expect(opts.constraints).toHaveLength(1);
-  });
-
-  it('keys the count under the package key by default', () => {
-    renderHook(() => useUnreadCount({ config: makeConfig(), userId: 'u1', category: 'user' }));
-    const opts = mocks.useFirestoreCount.mock.calls.at(-1)![0] as Record<string, unknown>;
-    expect(opts.queryKey).toEqual(['notifications', 'unread-count', 'user', 'u1']);
-  });
-
-  it('keys the count under the app key when the app supplies its key factory', () => {
-    const queryKeys = {
-      active: (category: string, userId: string) => ['app', 'active', category, userId],
-      history: (category: string, userId: string) => ['app', 'history', category, userId],
-      unreadCount: (category: string, userId: string) => ['app', 'unread', category, userId],
-    };
-    renderHook(() => useUnreadCount({ config: makeConfig(), userId: 'u1', category: 'user', queryKeys }));
-    const opts = mocks.useFirestoreCount.mock.calls.at(-1)![0] as Record<string, unknown>;
-    expect(opts.queryKey).toEqual(['app', 'unread', 'user', 'u1']);
-  });
-
-  it('says it has no answer while the count is unread, so its 0 is not one', () => {
-    mocks.useFirestoreCount.mockReturnValue({ data: undefined, isLoading: true, isError: false, error: null } as never);
-    const { result } = renderHook(() => useUnreadCount({ config: makeConfig(), userId: 'u1', category: 'user' }));
-    expect(result.current.hasAnswer).toBe(false);
-    expect(result.current.isLoading).toBe(true);
-    expect(result.current.count).toBe(0);
-  });
-
-  it('says it has an answer once the count is read, an answered 0 included', () => {
-    setCount(0);
-    const { result } = renderHook(() => useUnreadCount({ config: makeConfig(), userId: 'u1', category: 'user' }));
-    expect(result.current.hasAnswer).toBe(true);
-    expect(result.current.count).toBe(0);
-  });
-
-  it('reports a failed first read as an error with no answer', () => {
-    const failure = new Error('denied');
-    mocks.useFirestoreCount.mockReturnValue({ data: undefined, isLoading: false, isError: true, error: failure } as never);
-    const { result } = renderHook(() => useUnreadCount({ config: makeConfig(), userId: 'u1', category: 'user' }));
-    expect(result.current.hasAnswer).toBe(false);
-    expect(result.current.isError).toBe(true);
-    expect(result.current.error).toBe(failure);
-  });
-
   it('reports hasMore when the count exceeds the cap', () => {
     setCount(150);
     const { result } = renderHook(() =>

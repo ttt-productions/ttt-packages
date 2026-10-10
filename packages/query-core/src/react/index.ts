@@ -10,11 +10,7 @@ export type { QueryProviderProps } from './provider.js';
 
 // Firestore Provider
 export { FirestoreProvider, useFirestoreDb } from './firestore/context.js';
-export type {
-  FirestoreProviderProps,
-  FirestoreListenerErrorHandler,
-  FirestoreListenerErrorDetails,
-} from './firestore/context.js';
+export type { FirestoreProviderProps } from './firestore/context.js';
 
 // Firestore Query Hooks
 export { useFirestoreDoc } from './firestore/use-firestore-doc.js';

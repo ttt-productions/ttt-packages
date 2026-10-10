@@ -6,21 +6,8 @@ import { useActiveNotifications } from '../hooks/useActiveNotifications.js';
 import { useArchiveNotification } from '../hooks/useArchiveNotification.js';
 import { useArchiveAllNotifications } from '../hooks/useArchiveAllNotifications.js';
 import { NotificationEmptyState } from './NotificationEmptyState.js';
-import { NotificationTypeIcon } from './notification-type-icon.js';
 import { formatRelativeTime } from './relative-time.js';
-import type {
-  NotificationArchiveResult,
-  NotificationDoc,
-  NotificationListLabels,
-  NotificationListProps,
-} from '../../types.js';
-
-const DEFAULT_LABELS: NotificationListLabels = {
-  clearAll: 'Clear All',
-  clearing: 'Clearing...',
-  clearIncomplete: 'Some notifications remain — try again.',
-  loading: 'Loading notifications',
-};
+import type { NotificationDoc, NotificationListProps } from '../../types.js';
 
 const FOCUSABLE =
   'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -35,13 +22,11 @@ export function NotificationList({
   archiveFn,
   enqueueArchiveAllFn,
   getArchiveAllStatusFn,
-  queryKeys,
   title,
   onClearAll,
   refetchInterval,
   staleTime,
   emptyText,
-  labels,
   renderError,
   onRenderedRowsChange,
   renderRowAction,
@@ -64,14 +49,12 @@ export function NotificationList({
     category,
     refetchInterval,
     staleTime,
-    queryKeys,
   });
 
   const archiveMutation = useArchiveNotification({
     userId,
     category,
     archiveFn,
-    queryKeys,
   });
 
   const archiveAllMutation = useArchiveAllNotifications({
@@ -79,7 +62,6 @@ export function NotificationList({
     category,
     enqueueArchiveAllFn,
     getArchiveAllStatusFn,
-    queryKeys,
   });
 
   // Surface a failed/incomplete clear instead of swallowing it. `onClearAll` (and the tray-closing
@@ -141,7 +123,7 @@ export function NotificationList({
     (nextControl ?? listRef.current)?.focus();
   }, [notifications, isLoading]);
 
-  const archiveOne = useCallback(async (notification: NotificationDoc): Promise<NotificationArchiveResult> => {
+  const archiveOne = useCallback(async (notification: NotificationDoc) => {
     const clearPending = () =>
       setPendingArchiveIds((current) => {
         const next = new Set(current);
@@ -158,7 +140,6 @@ export function NotificationList({
       // Nothing was archived (the card changed after it was rendered): the row stays
       // active, so it is not left looking like it is clearing.
       if (!result.archived) clearPending();
-      return result;
     } catch (archiveError) {
       clearPending();
       throw archiveError;
@@ -190,19 +171,20 @@ export function NotificationList({
     onClearAll?.();
   }, [archiveAllMutation, hasNotifications, notifications, onClearAll]);
 
+  const getTypeIcon = useCallback(
+    (type: string) => {
+      const typeConfig = config.types[type];
+      return typeConfig?.icon ?? '🔔';
+    },
+    [config],
+  );
+
   // A later page that came back empty keeps its pager so the user can step back; the
   // empty state is the answer for page 1 only.
   const showEmptyState =
     !isError && notifications !== undefined && notifications.length === 0 && page === 1;
   const isClearAllPending = archiveAllMutation.isPending || pendingClearAllIds.size > 0;
   const titleId = useId();
-  // Per key, so a label passed as `undefined` keeps its default rather than erasing it.
-  const words: NotificationListLabels = {
-    clearAll: labels?.clearAll ?? DEFAULT_LABELS.clearAll,
-    clearing: labels?.clearing ?? DEFAULT_LABELS.clearing,
-    clearIncomplete: labels?.clearIncomplete ?? DEFAULT_LABELS.clearIncomplete,
-    loading: labels?.loading ?? DEFAULT_LABELS.loading,
-  };
 
   return (
     <div
@@ -225,11 +207,11 @@ export function NotificationList({
           aria-disabled={!hasNotifications || undefined}
           pending={isClearAllPending}
         >
-          {isClearAllPending ? words.clearing : words.clearAll}
+          {isClearAllPending ? 'Clearing...' : 'Clear All'}
         </Button>
         {clearIncomplete && !isClearAllPending && (
           <div className="ntf-list-clear-error" role="status">
-            {words.clearIncomplete}
+            Some notifications remain — try again.
           </div>
         )}
       </div>
@@ -238,7 +220,7 @@ export function NotificationList({
       <div className="ntf-list-body">
       {isLoading ? (
         <div className="ntf-loading">
-          <Spinner size="md" label={words.loading} />
+          <Spinner size="md" label="Loading notifications" />
         </div>
       ) : (
         <>
@@ -259,7 +241,9 @@ export function NotificationList({
                 }
               }}
             >
-              <NotificationTypeIcon config={config} type={notification.type} />
+              <div className="ntf-item-icon">
+                {getTypeIcon(notification.type)}
+              </div>
               <div className="ntf-item-content">
                 <div className="ntf-item-title">{notification.title}</div>
                 <div className="ntf-item-message">{notification.message}</div>
@@ -303,7 +287,7 @@ export function NotificationList({
               goToNextPage: nextPage,
             }}
             busy={isFetching}
-            className="ntf-list-footer"
+            className="ntf-list-footer mt-0"
           />
         </>
       )}
