@@ -175,7 +175,8 @@ describe('StatusReconcileQueueEntrySchema (backend-only)', () => {
     enqueuedAt: 1,
     attemptCount: 0,
     targetStatus: 'suspended' as const,
-    reason: 'postCommitAuthEffectFailed' as const,
+    reason: 'statusChangePending' as const,
+    writeId: 'w1',
   };
 
   it('accepts a minimal entry and an entry with lastAttemptAt', () => {
@@ -185,6 +186,7 @@ describe('StatusReconcileQueueEntrySchema (backend-only)', () => {
 
   it('pins reason to the literal and constrains targetStatus', () => {
     expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, reason: 'other' }).success).toBe(false);
+    expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, reason: 'postCommitAuthEffectFailed' }).success).toBe(false);
     expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, targetStatus: 'deleted' }).success).toBe(false);
   });
 
@@ -193,6 +195,11 @@ describe('StatusReconcileQueueEntrySchema (backend-only)', () => {
     expect(parsed.authEffect).toBeUndefined();
     expect(StatusReconcileQueueAccountStatusEntrySchema.safeParse(valid).success).toBe(true);
     expect(StatusReconcileQueueEntrySchema.safeParse({ ...valid, authEffect: 'accountStatus' }).success).toBe(true);
+  });
+
+  it('an accountStatus entry requires the writeId that fences its removal', () => {
+    const { writeId: _omit, ...withoutWriteId } = valid;
+    expect(StatusReconcileQueueEntrySchema.safeParse(withoutWriteId).success).toBe(false);
   });
 
   it('an accountStatus entry still requires its targetStatus', () => {

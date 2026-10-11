@@ -2273,7 +2273,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| _(document)_ | `{ uid, enqueuedAt, lastAttemptAt, attemptCount, reason, authEffect, targetStatus } \| { uid, enqueuedAt, lastAttemptAt, attemptCount, reason, authEffect } \| { uid, enqueuedAt, lastAttemptAt, attemptCount, reason, authEffect } \| { uid, enqueuedAt, lastAttemptAt, attemptCount, reason, authEffect }` |  |
+| _(document)_ | `{ uid, enqueuedAt, lastAttemptAt, attemptCount, reason, authEffect, targetStatus, writeId } \| { uid, enqueuedAt, lastAttemptAt, attemptCount, reason, authEffect } \| { uid, enqueuedAt, lastAttemptAt, attemptCount, reason, authEffect } \| { uid, enqueuedAt, lastAttemptAt, attemptCount, reason, authEffect }` |  |
 
 ## `sweepState/{sweepName}`
 

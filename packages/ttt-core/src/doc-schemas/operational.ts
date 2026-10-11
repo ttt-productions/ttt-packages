@@ -66,7 +66,8 @@ export const ShortLinkSchema = z.object({
 export type ShortLink = z.infer<typeof ShortLinkSchema>;
 
 // statusReconcileQueue/{uid} — backend-only retry queue for post-commit Auth-effect reconciliation.
-// Written when a change committed to Firestore but its follow-on Auth effect failed; the drain
+// A status change writes its entry in the status transaction itself; the other effects are written
+// when a change committed to Firestore but its follow-on Auth effect failed. The drain
 // re-converges every Auth-side mirror of the uid from its canonical docs and deletes the entry on
 // success. Keyed by the affected uid (doc id == uid; one entry per uid, whichever effect queued
 // it); Admin-SDK-only. Timestamps are epoch-millis numbers (this repo never uses Firestore
@@ -97,11 +98,18 @@ const statusReconcileQueueEntryBase = {
   reason: z.literal('postCommitAuthEffectFailed'),
 };
 
-/** A failed status effect: the drain drives the account toward `targetStatus`. */
+/**
+ * A status change's Auth effect, owed until it lands. Written in the SAME transaction as the status
+ * change (so a committed status always has its entry), removed once the Auth effect lands. `writeId`
+ * names the status change that wrote it: a removal compares it, so finishing an older change never
+ * removes the entry a newer change wrote. The drain converges the account on its canonical status.
+ */
 export const StatusReconcileQueueAccountStatusEntrySchema = z.object({
   ...statusReconcileQueueEntryBase,
+  reason: z.literal('statusChangePending'),
   authEffect: z.literal('accountStatus' satisfies StatusReconcileQueueAuthEffect).optional(),
   targetStatus: UserAccountStatusSchema,
+  writeId: z.string(),
 });
 export type StatusReconcileQueueAccountStatusEntry = z.infer<typeof StatusReconcileQueueAccountStatusEntrySchema>;
 
