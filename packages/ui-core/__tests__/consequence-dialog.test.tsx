@@ -330,6 +330,47 @@ describe('ConsequenceDialog', () => {
     });
   });
 
+  describe('focus on close', () => {
+    function FocusHarness({ onCloseAutoFocus }: { onCloseAutoFocus?: (event: Event) => void }) {
+      return (
+        <>
+          <button type="button">Elsewhere</button>
+          <ConsequenceDialog
+            trigger={<button type="button">Delete game</button>}
+            title="Delete this game?"
+            reversibility="cannot be undone"
+            confirmLabel="Delete"
+            onConfirm={() => Promise.resolve()}
+            onCloseAutoFocus={onCloseAutoFocus}
+          />
+        </>
+      );
+    }
+
+    it('returns focus to the control that opened it once the confirmed action closes it', async () => {
+      const user = userEvent.setup();
+      render(<FocusHarness />);
+      await user.click(screen.getByRole('button', { name: 'Delete game' }));
+      await user.click(screen.getByRole('button', { name: 'Delete' }));
+      await waitFor(() => expect(screen.queryByText('Delete this game?')).not.toBeInTheDocument());
+      expect(screen.getByRole('button', { name: 'Delete game' })).toHaveFocus();
+    });
+
+    it('leaves focus where the caller moved it as it closes, instead of returning it to the opener', async () => {
+      const user = userEvent.setup();
+      const onCloseAutoFocus = vi.fn((event: Event) => {
+        event.preventDefault();
+        screen.getByRole('button', { name: 'Elsewhere' }).focus();
+      });
+      render(<FocusHarness onCloseAutoFocus={onCloseAutoFocus} />);
+      await user.click(screen.getByRole('button', { name: 'Delete game' }));
+      await user.click(screen.getByRole('button', { name: 'Delete' }));
+      await waitFor(() => expect(screen.queryByText('Delete this game?')).not.toBeInTheDocument());
+      expect(onCloseAutoFocus).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'Elsewhere' })).toHaveFocus();
+    });
+  });
+
   describe('destructive styling', () => {
     it('applies bg-destructive to the confirm button when destructive', () => {
       render(

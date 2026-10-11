@@ -60,6 +60,7 @@ Every in-progress indicator renders through ONE owner, so the spinner's look, si
 - **`ConsequenceDialog`** renders its confirm with `pending`; it stays open while the promise `onConfirm` returns is pending and after it rejects. `onConfirm` stays typed `void | Promise<void>` — a caller that wants the pending state returns the promise.
 - **`ConsequenceDialog` layout.** Each consequence slot (`immediateEffect` / `delayedEffect` / `reversibility`, labelled Immediately / Afterward / Reversibility) is a block row: the slot icon beside a column whose label sits on its own line directly above the slot text. The rows form the dialog's accessible description (the element its `aria-describedby` names), rendered as a `div` — never the primitive's default `<p>`, which cannot hold block rows, and never inline spans, on which theme-core's `stack-*` vertical spacing does nothing. The rows stay left-aligned at every width.
 - **`ConsequenceDialog` reason and typed confirmation.** The optional `reason` carries the caller's field declaration (`inputFormat`) beside its value and `onChange`; its `Textarea` takes that declaration, and confirm stays disabled until the value passes `checkInputFormat` (`min: 0` makes the reason optional). The optional `hint(id)` renders the caller's line directly under the reason box — such as why its text is refused — on an element carrying `id`, which the box names in `aria-describedby`; the dialog adds no words of its own. The `typedConfirmation` input is a `singleLine` field capped at the phrase's length, and confirm waits for an exact match of the phrase.
+- **`ConsequenceDialog` focus on close.** Closing returns focus to the control that opened the dialog. A confirmed action that removes that control says where focus goes through `onCloseAutoFocus(event)` — Radix's own close-focus hook, run as the dialog closes — moving focus there and calling `event.preventDefault()` so the return to the opener does not run (FRONTEND-203: focus always has a destination).
 - **`useAsyncAction(action, { onError })`** returns `{ run, pending }` for async work that is not a React Query mutation (a local media step, a sign-out, an awaited navigation). A repeat `run` while pending is ignored — the guard is a ref, so two clicks in one frame cannot both start — and `run` never rejects: errors go to the required `onError`. Server writes stay mutations.
 
 ## List pagination
@@ -78,6 +79,24 @@ Two page-state hooks produce the control's `pagination` prop, and a surface whos
 - `useCursorPage({ onPageChange, resetKey })` — the page number for a server/cursor feed, returning `{ currentPage, reset, paginationFor }`. It takes no data.
 
 Both hooks guard their step functions, so `onPageChange` fires only on a page change that actually happened.
+
+## Sortable column header — `SortableTableHead`
+
+The one column header that sorts its table (`./react`, beside `TableHead`). Durable contract:
+
+- **Props.** `label` (the column's full name, always spoken), optional `shortLabel` (shown while the
+  table is narrow), `direction` (`'asc' | 'desc' | null` — `SortDirection`), `onSort`, and
+  `className` (on the header cell). The caller owns the sort; the header holds no state.
+- **One name.** It renders `<th scope="col">` through `TableHead`, holding a `type="button"` that
+  calls `onSort`. The visible labels are `aria-hidden` beside one screen-reader label — "G, Goals"
+  with a short label, the label alone without — so the header and its button carry the same name
+  instead of the two visible labels run together.
+- **Sort state.** `aria-sort` is `ascending` / `descending` for the sorted column and absent
+  otherwise; the trailing arrow icon (decorative) shows the same three states.
+- **Width.** The short label gives way to the full one once the nearest size container is 56rem
+  wide; with no size container above it, the short label stays.
+- **Styling is ui-core's.** The header and button carry their own classes and the shared focus ring;
+  the caller's `className` aligns or sizes the cell.
 
 ## Show more — `ShowMoreToggle`
 

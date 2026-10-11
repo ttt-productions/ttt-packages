@@ -44,3 +44,7 @@ export { ABSENT_RETRY_DELAYS_MS } from './firestore/absence-scheduler.js';
 
 // Search Hook
 export { useFirestoreSearch } from './search/use-firestore-search.js';
+
+// Read retry state
+export { useReadRetryState } from './use-read-retry-state.js';
+export type { ReadRetrySource, ReadRetryState } from './use-read-retry-state.js';

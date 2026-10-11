@@ -42,6 +42,7 @@ Generic TanStack Query package.
 - The generic debounced prefix-search hook `useFirestoreSearch`, its types
   (`FirestoreSearchOptions`, `FirestoreSearchConfig`, `SearchEqualityFilter`), and its search
   rule on the server-safe root (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`)
+- The read failure-and-retry state, `useReadRetryState` (below)
 - The domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`,
   `predicate`, `applyInvalidations`, `serializeInvalidation`)
 
@@ -129,6 +130,28 @@ field: the optional equality filters, then a prefix range on the field, ordered 
   rows, nor its failure. A change of case or surrounding spaces is the same search and keeps its
   answer. Every other field of the result (`refetch` included) is the query's own.
 
+## `useReadRetryState` — a retry keeps its failure on screen
+
+TanStack Query v5 starts a fetch on a query that never succeeded by clearing its `error` and putting
+it back to `pending`, and a subscribed read's `refetch()` clears its listener error the same way. A
+retry state built from `isFetching && error` is therefore never true while the retry of a failed
+first read runs, and the surface's failure panel turns into a loading state under the retry the
+person pressed (FRONTEND-201). `useReadRetryState(source, queryKey)` (in `./react`) is the one owner
+of a read's failure-and-retry state:
+
+- **Input.** `source` is any read result carrying `error`, `isFetching`, `isLoading`, and optionally
+  `isPaused` (`ReadRetrySource`) — a `useQuery` result or any query-core read hook's result.
+  `queryKey` is the read's identity.
+- **The failure is held through its retry.** `error` is the read's current failure, or — while a
+  fetch after it is running or waiting for the network — the last failure the read showed. An answer
+  clears it; a new failure replaces it.
+- **The retry is reported as running.** `isRetrying` is true while a failure is shown and a fetch is
+  running or paused, so the pressed control shows pending until the retry settles.
+- **A retry is never loading.** `isLoading` is the read's own loading state with no failure shown,
+  so a surface that checks loading before failure keeps its failure panel up through the retry.
+- **The failure belongs to its key.** A read under another key never shows it; that key's first read
+  reads as loading.
+
 ## Domain-event invalidation is awaitable
 
 `applyInvalidations` — and the invalidator's `notify` / `notifyAll`, which delegate to it —
@@ -146,7 +169,7 @@ so it contributes nothing to wait on.
 
 - `.` — server-safe root: the search rule (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`), cache helpers (including the paginated-entry updaters and `paginatedPageKey`), Firestore types (including `PaginatedPage`) and `docWithId`, infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
 - `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
-- `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, and the `createQueryClient` factory.
+- `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, the read retry state (`useReadRetryState`), and the `createQueryClient` factory.
 - `./types` — Firestore option/type surface, including `FirestoreCountOptions` and `FirestoreLiveInfiniteOptions` (these two are not re-exported from root, unlike the other Firestore option types).
 
 Client peers (`react`, `react-dom`, `@tanstack/react-query`) are optional; they are needed only when importing `./react`. Its one internal runtime dependency is `firebase-helpers` (server-safe root only, for `chunk` and `FIRESTORE_IN_FILTER_LIMIT`), so a server-only install pulls no client runtime through it.

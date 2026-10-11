@@ -83,6 +83,13 @@ export interface ConsequenceDialogProps {
    * belongs to the caller's `onConfirm`.
    */
   onConfirm: () => void | Promise<void>;
+
+  /**
+   * Runs as the dialog closes, before Radix returns focus to the control that opened it. A confirmed
+   * action that removes that control moves focus to its own destination here and calls
+   * `event.preventDefault()`, so the restore does not pull focus back onto a control about to go.
+   */
+  onCloseAutoFocus?: (event: Event) => void;
 }
 
 const SLOT_ICON_CLASS = 'icon-xs mt-0.5 shrink-0 text-muted-foreground';
@@ -139,6 +146,7 @@ export function ConsequenceDialog({
   cancelLabel = 'Cancel',
   destructive = false,
   onConfirm,
+  onCloseAutoFocus,
 }: ConsequenceDialogProps) {
   const isControlled = open !== undefined;
   const [internalOpen, setInternalOpen] = useState(false);
@@ -201,6 +209,7 @@ export function ConsequenceDialog({
         onEscapeKeyDown={(e) => {
           if (pending) e.preventDefault();
         }}
+        onCloseAutoFocus={onCloseAutoFocus}
       >
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
