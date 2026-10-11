@@ -108,7 +108,8 @@ safety:
 - `./react` — React UI, hooks, providers, context.
 - `./contracts` — pure, dependency-light contracts/schemas (e.g.
   `report-core/contracts`, consumed by `ttt-core` and Cloud Functions).
-- `./browser` — browser upload runtime (`upload-core/browser`).
+- `./browser` — browser runtime with no React: the upload runtime (`upload-core/browser`) and the
+  reload-recovery watch (`ui-core/browser`).
 - `./styles` (or `*.css`) — CSS assets.
 
 ## Direction rules

@@ -7,12 +7,37 @@ Generic UI primitive package.
 - shadcn-style primitives and shared UI helpers
 - `cn`
 - Generic app-agnostic components such as relative time, end-of-list indicator, scroll-to-top button, and chunk error recovery
+- The reload-recovery notice for failures only a reload repairs (below)
 - The list-pagination BUTTONS control and its page-state hooks (see below)
 - Generic formatting helpers such as `formatLargeNumber`
 
 ## Boundary
 
-Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`. `lucide-react` is an optional peer: the app supplies the one copy every package renders icons from. Its one internal runtime dependency is `input-format-core` (Tier 1): text formats and their check live there, never here, so the server can run the same check without installing React.
+Feature-specific app components stay in the consuming app. Keep main entry server-safe; React UI lives behind `./react`, and browser runtime with no React behind `./browser`. `lucide-react` is an optional peer: the app supplies the one copy every package renders icons from. Its one internal runtime dependency is `input-format-core` (Tier 1): text formats and their check live there, never here, so the server can run the same check without installing React.
+
+## Reload recovery — `ReloadRecoveryNotice`
+
+Two failures leave a page that only a reload repairs: a code chunk the deployed build no longer
+serves, and WebKit dropping the page's IndexedDB connection when it reclaims a backgrounded tab. One
+mechanism shows them, across three entry points:
+
+- **Detection** (`.`): `isStorageDisconnectError(reason)` — an `UnknownError` whose message says the
+  connection to the Indexed Database server was lost, never any other `UnknownError`, quota,
+  blocked-storage, or network failure — and `isStaleChunkError(reason)` — a `ChunkLoadError`, or
+  "Failed to load chunk". `reloadRecoveryKindOf(reason)` names the kind (`RELOAD_RECOVERY_KINDS`).
+- **The watch** (`./browser`): `createReloadRecoveryWatch(target = window)`, started once at the app's
+  client entry before React mounts, listens to `error` and `unhandledrejection` and records the first
+  matching failure; a repeat, or the other failure after it, changes nothing. It never calls
+  `preventDefault`, so the app's monitoring still captures each event once, and it takes no
+  monitoring, Firebase, or routing dependency.
+- **The notice** (`./react`): `ReloadRecoveryNotice` renders nothing until the watch records a failure,
+  then one notice pinned to the top of the screen (`role="alert"`, hook class
+  `ui-reload-recovery-notice`) carrying the app's sentence for that failure and its Refresh control. It
+  has no close control. The page and every editor beneath it stay mounted and usable, and nothing
+  reloads by itself. Refresh runs the app's `onRefresh` — its own reload, guard first — and is pending
+  until it settles: a reload that proceeds keeps it pending until the page unloads, and a cancelled
+  guard settles it with the page, its input, and the notice as they were. A rejection goes to
+  `onRefreshError`. The app supplies every word: `messages` per kind and `refreshLabel`.
 
 ## Free-text inputs — `Input`, `Textarea`
 

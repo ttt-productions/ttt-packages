@@ -75,6 +75,9 @@ export type { ShowMoreToggleProps } from "./components/show-more-toggle.js";
 export { ChunkErrorRecovery } from "./components/chunk-error-recovery.js";
 export type { ChunkErrorRecoveryProps } from "./components/chunk-error-recovery.js";
 
+export { ReloadRecoveryNotice } from "./components/reload-recovery-notice.js";
+export type { ReloadRecoveryNoticeProps } from "./components/reload-recovery-notice.js";
+
 // List pagination — the one Previous / counter / Next control plus the page-state
 // hooks for its two flavors (known total, and cursor/`hasMore`).
 export { ListPagination } from "./components/list-pagination.js";
