@@ -132,6 +132,14 @@ export type BatchFirestoreDocsResult<T> = {
   outcomes: Record<string, BatchFirestoreDocOutcome<T>>;
 
   /**
+   * True while a read of an id whose last settled read failed is fetching or waiting for the
+   * network — a retry of a failure. A first load, and the absence ladder's re-read of an id that
+   * answered absent, never count. TanStack clears a never-answered id's error as its refetch
+   * starts, so this is the running flag a retry state (`useReadRetryState`) is built from.
+   */
+  failedReadsRunning: boolean;
+
+  /**
    * Refetch every requested id, cached ones included. A no-op in subscribe mode.
    */
   refetch: () => Promise<void>;
@@ -308,6 +316,7 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   let anyListenerError: Error | null = null;
   let oneShotLoading = false;
   let anyUnresolved = false;
+  let failedReadsRunning = false;
 
   for (let index = 0; index < uniqueIds.length; index += 1) {
     const id = uniqueIds[index];
@@ -319,6 +328,9 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
       (subscribe ? subscribeErrors[id] : undefined) ??
       listenerErrorOf(queryClient, queryKeyPrefix, id) ??
       undefined;
+    if (result && (result.isFetching || result.isPaused) && result.errorUpdatedAt > result.dataUpdatedAt) {
+      failedReadsRunning = true;
+    }
     if (result?.isError) {
       const error = result.error as Error;
       anyError ??= error;
@@ -374,6 +386,7 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
     isError: anyError !== null || anyListenerError !== null,
     error: anyError ?? anyListenerError,
     outcomes,
+    failedReadsRunning,
     refetch,
   };
 }

@@ -41,7 +41,7 @@ Generic TanStack Query package.
   `refetch()` opens nothing; without `subscribe`, `refetch()` is the query's own one-shot re-read.
 - The generic debounced prefix-search hook `useFirestoreSearch`, its types
   (`FirestoreSearchOptions`, `FirestoreSearchConfig`, `SearchEqualityFilter`), and its search
-  rule on the server-safe root (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`)
+  rule on the server-safe root (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`)
 - The read failure-and-retry state, `useReadRetryState` (below)
 - The domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`,
   `predicate`, `applyInvalidations`, `serializeInvalidation`)
@@ -117,7 +117,8 @@ isFetchingOlder, olderError, retry }` (`FirestoreLiveInfiniteResult`).
 field: the optional equality filters, then a prefix range on the field, ordered by it, up to
 `limit` rows (default 5). It returns a `UseQueryResult` keyed by the normalized text.
 
-- **Normalized text.** The typed text is lowercased and trimmed; a search runs only when
+- **Normalized text.** The typed text is lowercased and trimmed (`normalizeSearchText`, the text a
+  search is read and keyed for); a search runs only when
   `isSearchableText(text)` holds (the normalized text has at least `FIRESTORE_SEARCH_MIN_LENGTH`
   characters) and `enabled` is not false. A consumer that gates its own search, result panel, or
   `SearchDropdown` reads those two names, never a restated minimum or an untrimmed length.
@@ -167,7 +168,7 @@ so it contributes nothing to wait on.
 
 ## Entry points
 
-- `.` — server-safe root: the search rule (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`), cache helpers (including the paginated-entry updaters and `paginatedPageKey`), Firestore types (including `PaginatedPage`) and `docWithId`, infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
+- `.` — server-safe root: the search rule (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`), cache helpers (including the paginated-entry updaters and `paginatedPageKey`), Firestore types (including `PaginatedPage`) and `docWithId`, infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
 - `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
 - `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, the read retry state (`useReadRetryState`), and the `createQueryClient` factory.
 - `./types` — Firestore option/type surface, including `FirestoreCountOptions` and `FirestoreLiveInfiniteOptions` (these two are not re-exported from root, unlike the other Firestore option types).
@@ -191,6 +192,12 @@ The one-shot `queryFn` also yields to the shared listener: if a key became liste
 Consumers of one key that ask for different ladders combine by **union**, never by mount order: the key polls if ANY mounted consumer wants polling, on the LONGEST ladder among them, recomputed on every mount and unmount. A consumer passing `[]` therefore silences only re-reads nobody else asked for; when the last consumer that wanted polling unmounts, an episode already in progress continues on the new effective ladder's remaining rungs, or stops if that ladder is now empty.
 
 **Errors.** An id in an error state is excluded from `data` while `isError`/`error` stay truthful, so a previously cached document is never presented as currently readable after access to it fails. A denial is never converted into a null or missing result.
+
+**Failed reads' fetch state.** `failedReadsRunning` is true while a read of an id whose last settled
+read failed is fetching or waiting for the network — a retry of that failure. TanStack clears a
+never-answered id's error as its refetch starts, so this, not a count of fetching ids, is the running
+flag a lookup hands `useReadRetryState`; a first load and the absence ladder's re-read of an id that
+answered absent never count.
 
 **Per-id outcomes.** `data`, `isLoading`, `isError`, and `error` are the aggregate view: `error` is only the first failure, and an absent id and a failed id are both simply missing from `data`. `outcomes` (`Record<string, BatchFirestoreDocOutcome<T>>`, one entry per requested id after empty ids and duplicates are dropped) answers each id on its own: `{ status: 'loading' }` until the id has an answer, `{ status: 'present', data }`, `{ status: 'absent' }` for a read that found no document, or `{ status: 'failed', error }` with that id's own error — a failure is never `absent`, and a document cached before a failure reads `failed`, not `present`. On the `'get'` transport a rules denial is a `failed` id; whether a given collection's denial means "not there for this reader" is the consumer's decision, made from `error`. The map, and each entry whose answer did not change, keep their identity across renders. `BatchFirestoreDocOutcome` is exported (type-only) from the root, `./react`, and `./types`.
 
