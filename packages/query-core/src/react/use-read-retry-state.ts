@@ -28,6 +28,19 @@ interface HeldFailure<TError> {
 }
 
 /**
+ * One failure is its name, message, and `code`, not its object: a composite source that builds its
+ * error in render hands back a new object for the same failure every render, and holding each one
+ * as new would set state on every render without end.
+ */
+function sameFailure(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== 'object' || a === null || typeof b !== 'object' || b === null) return false;
+  const x = a as { name?: unknown; message?: unknown; code?: unknown };
+  const y = b as { name?: unknown; message?: unknown; code?: unknown };
+  return x.name === y.name && x.message === y.message && x.code === y.code;
+}
+
+/**
  * The failure and retry state of one read. TanStack Query clears the `error` of a query that never
  * succeeded and puts it back to `pending` the moment a refetch of it starts, so a retry state built
  * from `isFetching && error` is never true for a failed first read, and its failure panel turns into
@@ -46,7 +59,7 @@ export function useReadRetryState<TError = Error>(
 
   let next = held !== null && held.identity === identity ? held : null;
   if (live !== null) {
-    if (next === null || next.error !== live) next = { identity, error: live };
+    if (next === null || !sameFailure(next.error, live)) next = { identity, error: live };
   } else if (!running) {
     next = null;
   }

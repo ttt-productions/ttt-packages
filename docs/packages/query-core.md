@@ -145,7 +145,9 @@ of a read's failure-and-retry state:
   `queryKey` is the read's identity.
 - **The failure is held through its retry.** `error` is the read's current failure, or — while a
   fetch after it is running or waiting for the network — the last failure the read showed. An answer
-  clears it; a new failure replaces it.
+  clears it; a new failure replaces it. A failure is its name, message, and `code`, not its object:
+  a source that builds a new error for the same failure on every render (a composite making
+  `new Error(…)` in render) holds the one failure and never re-renders without end.
 - **The retry is reported as running.** `isRetrying` is true while a failure is shown and a fetch is
   running or paused, so the pressed control shows pending until the retry settles.
 - **A retry is never loading.** `isLoading` is the read's own loading state with no failure shown,

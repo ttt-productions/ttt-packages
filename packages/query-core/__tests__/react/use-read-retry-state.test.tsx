@@ -166,3 +166,47 @@ describe('useReadRetryState', () => {
     expect(result.current.state).toEqual({ error: null, isRetrying: false, isLoading: true });
   });
 });
+
+// A composite read builds its error in render, so every render hands the helper a new object.
+interface RebuiltProps {
+  code: string | null;
+  running: boolean;
+}
+
+function renderRebuiltSource(initialProps: RebuiltProps) {
+  return renderHook(
+    ({ code, running }: RebuiltProps) => {
+      const source = {
+        error: code === null ? null : Object.assign(new Error('combined read failed'), { code }),
+        isFetching: running,
+        isLoading: false,
+      };
+      return useReadRetryState(source, ['combined', 'a']);
+    },
+    { initialProps },
+  );
+}
+
+describe('useReadRetryState with a source that rebuilds its error each render', () => {
+  it('shows the failure and keeps it through a retry', () => {
+    const { result, rerender } = renderRebuiltSource({ code: 'unavailable', running: false });
+    expect(result.current.error).toMatchObject({ message: 'combined read failed', code: 'unavailable' });
+    expect(result.current.isRetrying).toBe(false);
+
+    rerender({ code: null, running: true });
+    expect(result.current.error).toMatchObject({ message: 'combined read failed', code: 'unavailable' });
+    expect(result.current.isRetrying).toBe(true);
+
+    rerender({ code: null, running: false });
+    expect(result.current).toEqual({ error: null, isRetrying: false, isLoading: false });
+  });
+
+  it('holds a rebuilt error with another code as a new failure', () => {
+    const { result, rerender } = renderRebuiltSource({ code: 'unavailable', running: false });
+    rerender({ code: 'permission-denied', running: false });
+
+    rerender({ code: null, running: true });
+    expect(result.current.error).toMatchObject({ code: 'permission-denied' });
+    expect(result.current.isRetrying).toBe(true);
+  });
+});
