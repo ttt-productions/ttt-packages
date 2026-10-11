@@ -80,6 +80,21 @@ Two page-state hooks produce the control's `pagination` prop, and a surface whos
 
 Both hooks guard their step functions, so `onPageChange` fires only on a page change that actually happened.
 
+## Overlay focus on close — `DialogContent`, `AlertDialogContent`, `SheetContent`
+
+Radix's modal content hands close focus to its trigger only, so an overlay opened from state (no
+trigger) would leave focus on the page. The three contents share one owner of close focus
+(FRONTEND-203: focus always has a destination):
+
+- **Back to the opener.** The element that held focus when the overlay opened (recorded as Radix
+  starts its open focus, before focus moves inside) gets focus again as it closes — on every close:
+  an action, Cancel, Escape, the close button, an outside click.
+- **The caller's say comes first.** A caller's `onCloseAutoFocus(event)` runs before the return; one
+  that calls `event.preventDefault()` has chosen the destination itself, and the return does not run.
+  A caller's `onOpenAutoFocus` still runs.
+- **A removed opener.** When the opener has left the page, Radix's own return to the trigger runs.
+  A surface whose action removes its opener says where focus goes through `onCloseAutoFocus`.
+
 ## Sortable column header — `SortableTableHead`
 
 The one column header that sorts its table (`./react`, beside `TableHead`). Durable contract:
