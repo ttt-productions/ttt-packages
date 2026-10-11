@@ -75,9 +75,11 @@ export async function archiveNotificationWithGeneration(
      * move. Invoked in the write phase ONLY on the successful 'archived' path —
      * never on replay/conflict/generation-mismatch/missing — so the audit is
      * written iff the archive actually happens. Honor reads-before-writes: do not
-     * read inside the hook.
+     * read inside the hook. The hook is awaited inside the transaction body, so a
+     * throw or a rejected promise fails the archive instead of committing it
+     * without its write.
      */
-    auditWrite?: (txn: ServerTransaction) => void;
+    auditWrite?: (txn: ServerTransaction) => void | Promise<void>;
   },
 ): Promise<ArchiveOutcome> {
   const {
@@ -128,7 +130,7 @@ export async function archiveNotificationWithGeneration(
     // Compose any caller-supplied write (e.g. an audit event) into THIS
     // transaction so it commits atomically with the archive. Only reached on the
     // successful path, after all reads, so reads-before-writes is preserved.
-    auditWrite?.(tx);
+    await auditWrite?.(tx);
     return 'archived';
   });
 }

@@ -78,7 +78,10 @@ in the active collection until archived; personal unread state is tracked with
   (stamps `seenAt` only if the card's opaque `activityGeneration` still matches the observed one)
   and `archiveNotificationWithGeneration` (deterministic history doc id ⇒ same-`payloadHash`
   replay returns the stored result and touches nothing, different-`payloadHash` ⇒ conflict;
-  first-seen archives only under the observed-generation precondition).
+  first-seen archives only under the observed-generation precondition). Its optional
+  `auditWrite` hook composes the app's audit write into the archive transaction, on the archived
+  path only, and is awaited there: a hook that throws or rejects fails the archive, so it never
+  commits without its write.
 - A type-scoped active-doc id: `buildActiveNotificationDocId` takes an optional `notificationType`
   so two types sharing an aggregation key never collapse onto one active doc (the legacy
   non-type-scoped id is kept byte-identical when the type is omitted).

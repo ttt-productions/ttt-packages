@@ -143,6 +143,51 @@ describe('archiveNotificationWithGeneration', () => {
     expect(getCol('audit').get('a1')).toMatchObject({ type: 'notification.adminArchived', handledBy: 'admin1' });
   });
 
+  it('awaits an async auditWrite hook before the archive resolves', async () => {
+    const { db, getCol, makeDocRef } = createMockFirestore();
+    getCol('active').set('c1', { activityGeneration: 'gen1' });
+
+    const auditWrite = async (txn: ServerTransaction) => {
+      await Promise.resolve();
+      txn.set(makeDocRef('audit', 'a1'), { type: 'notification.adminArchived' });
+    };
+
+    const outcome = await archiveNotificationWithGeneration(db, { ...baseParams(makeDocRef), auditWrite });
+
+    expect(outcome).toBe('archived');
+    expect(getCol('audit').has('a1')).toBe(true);
+  });
+
+  it('fails the archive transaction when the auditWrite hook rejects, so the archive never commits without its write', async () => {
+    const { db, getCol, makeDocRef } = createMockFirestore();
+    getCol('active').set('c1', { activityGeneration: 'gen1' });
+    const failure = new Error('Cannot use "undefined" as a Firestore value');
+
+    await expect(
+      archiveNotificationWithGeneration(db, {
+        ...baseParams(makeDocRef),
+        auditWrite: async () => {
+          throw failure;
+        },
+      }),
+    ).rejects.toBe(failure);
+  });
+
+  it('fails the archive transaction when the auditWrite hook throws synchronously', async () => {
+    const { db, getCol, makeDocRef } = createMockFirestore();
+    getCol('active').set('c1', { activityGeneration: 'gen1' });
+    const failure = new Error('Cannot use "undefined" as a Firestore value');
+
+    await expect(
+      archiveNotificationWithGeneration(db, {
+        ...baseParams(makeDocRef),
+        auditWrite: () => {
+          throw failure;
+        },
+      }),
+    ).rejects.toBe(failure);
+  });
+
   it('does NOT call the auditWrite hook on a conflict (no audit written for a non-archiving outcome)', async () => {
     const { db, getCol, makeDocRef } = createMockFirestore();
     getCol('history').set('h1', { payloadHash: 'DIFFERENT' });
