@@ -30,7 +30,6 @@ const caseListRow = {
   ncmecStatus: 'awaitingManualFiling',
   accountActionStatus: 'noAccountActionRequired',
   reportDisposition: 'undetermined',
-  reviewDueAt: 10,
   openHoldCount: 1,
   createdAt: 1,
   updatedAt: 2,

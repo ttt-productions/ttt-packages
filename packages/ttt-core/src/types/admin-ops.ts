@@ -23,8 +23,6 @@ export interface OpsSafetyClocks {
   activeNciiCases: number;
   /** Open statutory TAKE IT DOWN requests (`takeItDownRequests`). */
   activeTakeItDownRequests: number;
-  /** Earliest armed `reviewDue` monitor deadline across all lanes (epoch ms). */
-  earliestReviewDueAt?: number;
   /** Earliest armed CSAM `photoDnaContract` (72h match-reporting) deadline (epoch ms). */
   earliestPhotoDnaContractAt?: number;
   /** Earliest armed NCII / TAKE IT DOWN `nciiRemovalDeadline` (48h statutory removal) deadline

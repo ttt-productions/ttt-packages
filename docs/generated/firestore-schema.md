@@ -835,7 +835,6 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `ncmecStatus` | `'awaitingManualFiling' \| 'completed'` |  |
 | `accountActionStatus` | `'noAccountActionRequired' \| 'operatorDecisionPending' \| 'pending' \| 'resolved'` |  |
 | `reportDisposition` | `'undetermined' \| 'reportRequired' \| 'notRequired' \| 'correctedNoApparentViolation'` |  |
-| `reviewDueAt` | `number` |  |
 | `actualKnowledgeAt` | `number` | yes |
 | `reportState` | `'reportAsSoonAsReasonablyPossible' \| 'submissionInProgress' \| 'completed'` | yes |
 | `submissionCompletedAt` | `number` | yes |
@@ -2191,7 +2190,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `schemaVersion` | `1` |  |
 | `caseId` | `string` | yes |
 | `requestId` | `string` | yes |
-| `monitorKind` | `'reviewDue' \| 'photoDnaContract' \| 'actualKnowledgeUnreported' \| 'ncmecRetry' \| 'quarantineStall' \| 'evidenceStall' \| 'accountActionPending' \| 'nciiRemovalDeadline'` |  |
+| `monitorKind` | `'photoDnaContract' \| 'actualKnowledgeUnreported' \| 'ncmecRetry' \| 'quarantineStall' \| 'evidenceStall' \| 'accountActionPending' \| 'nciiRemovalDeadline'` |  |
 | `armedAt` | `number` |  |
 | `deadlineAt` | `number` |  |
 | `escalationLevel` | `number` |  |

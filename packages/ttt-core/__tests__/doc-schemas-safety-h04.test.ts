@@ -12,6 +12,7 @@ import {
   ChildSafetyCaseListV1Schema,
   ChildSafetyCaseV1Schema,
 } from '../src/doc-schemas/safety/case';
+import { SafetySlaMonitorKindSchema } from '../src/doc-schemas/safety/monitors';
 
 // ---------------------------------------------------------------------------
 // TargetLocatorV1 — guildChatMessage variant
@@ -96,7 +97,6 @@ const BASE_CASE_LIST_DOC = {
   ncmecStatus: 'awaitingManualFiling' as const,
   accountActionStatus: 'noAccountActionRequired' as const,
   reportDisposition: 'undetermined' as const,
-  reviewDueAt: 2000,
   openHoldCount: 1,
   createdAt: 1000,
   updatedAt: 1000,
@@ -245,5 +245,19 @@ describe('ChildSafetyCaseListV1 — testListDrill', () => {
       testListDrill: false,
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('ChildSafetyCaseListV1 — no initial-review deadline', () => {
+  it('a case needs only its creation time to order the queue — no review due date', () => {
+    expect(ChildSafetyCaseListV1Schema.safeParse(BASE_CASE_LIST_DOC).success).toBe(true);
+  });
+
+  it('rejects a case that still carries a review due date', () => {
+    expect(ChildSafetyCaseListV1Schema.safeParse({ ...BASE_CASE_LIST_DOC, reviewDueAt: 2000 }).success).toBe(false);
+  });
+
+  it('no monitor kind is an initial-review deadline', () => {
+    expect(SafetySlaMonitorKindSchema.safeParse('reviewDue').success).toBe(false);
   });
 });

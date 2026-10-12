@@ -42,7 +42,6 @@ import { z } from 'zod';
  * headline clock. Clocks + the urgent tab attach ONLY to PhotoDNA-hash detections
  * and cases reported as CSAM or NCII. */
 export const SafetySlaMonitorKindSchema = z.enum([
-  'reviewDue',
   'photoDnaContract',
   'actualKnowledgeUnreported',
   'ncmecRetry',

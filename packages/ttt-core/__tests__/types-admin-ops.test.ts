@@ -57,7 +57,7 @@ describe('OpsStatus snapshot shape (Mission Control landing)', () => {
       activeTakeItDownRequests: 3,
     };
     expectTypeOf(clocks).toMatchTypeOf<OpsSafetyClocks>();
-    expectTypeOf<OpsSafetyClocks['earliestReviewDueAt']>().toEqualTypeOf<number | undefined>();
+    expectTypeOf<OpsSafetyClocks>().not.toHaveProperty('earliestReviewDueAt');
     expectTypeOf<OpsSafetyClocks['earliestPhotoDnaContractAt']>().toEqualTypeOf<number | undefined>();
     expectTypeOf<OpsSafetyClocks['earliestNciiRemovalDeadlineAt']>().toEqualTypeOf<number | undefined>();
   });

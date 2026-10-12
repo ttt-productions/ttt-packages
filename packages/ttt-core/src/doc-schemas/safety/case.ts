@@ -241,7 +241,6 @@ export const ChildSafetyCaseListV1Schema = z.object({
   ncmecStatus: NcmecSubmissionStateSchema, // §A9 NcmecSubmissionState (no `notRequired`)
   accountActionStatus: ChildSafetyAccountActionStatusSchema,
   reportDisposition: ReportDispositionSchema, // §A9 case-level reporting determination
-  reviewDueAt: z.number(),
   actualKnowledgeAt: z.number().optional(),
   reportState: ChildSafetyReportStateSchema.optional(), // derived list-projection only
   submissionCompletedAt: z.number().optional(),
