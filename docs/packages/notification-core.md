@@ -59,7 +59,11 @@ in the active collection until archived; personal unread state is tracked with
   recorded, and a row whose recording also fails is handed to
   `options.onUnrecordedFailure(deliveryId, recordError, { cause })` — `cause` is the materialize
   failure it was recording — (`console.error` without it) and left as it was for a later run, so
-  one row never fails the batch. `expireAt` (a real Firestore `Timestamp` via the injected
+  one row never fails the batch. `replay(deliveryId, { auditWrite? })` re-queues a dead-lettered
+  row (`expireAt: null`) and answers `'replayed' | 'missing' | 'not-dead-lettered'`, writing
+  nothing on the last two; its optional `auditWrite` hook composes the caller's audit write into
+  the replay transaction on the replayed path only and is awaited there, so a hook that throws
+  fails the replay. `expireAt` (a real Firestore `Timestamp` via the injected
   `config.timestampFromMillis`) is set ONLY at a terminal success (`materialized` or `skipped`) —
   a `queued` or `deadLetter` row is never TTL'd. The app owns the concrete collection name + the
   deterministic `deliveryId`/`eventId`/`aggregationKey` construction and passes fully-formed rows in.

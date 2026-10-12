@@ -196,9 +196,11 @@ export type AuditEventType =
   | 'chat.moderationContextRead'
   // notification (admin-only). Actor mode is always adminReview / adminOverride.
   // Payload shapes: NotificationBroadcastSentAuditMetadata /
-  // NotificationAdminArchivedAuditMetadata in ../schemas/notification.ts.
+  // NotificationAdminArchivedAuditMetadata /
+  // NotificationAdminArchiveAllRequestedAuditMetadata in ../schemas/notification.ts.
   | 'notification.broadcastSent'
   | 'notification.adminArchived'
+  | 'notification.adminArchiveAllRequested'
   // workProject
   | 'workProject.released'
   | 'workProject.hidden'

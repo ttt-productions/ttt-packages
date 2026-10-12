@@ -3,7 +3,7 @@ export { processBatchHelper } from './processBatchHelper.js';
 export { NotificationPermissionError } from './errors.js';
 export { buildActiveNotificationDocId } from './activeNotificationId.js';
 
-// Delivery ledger (notification redesign — P1)
+// Delivery ledger
 export { createDeliveryLedger, applyAggregation } from './delivery-ledger.js';
 export type {
   DeliveryLedger,
@@ -18,9 +18,11 @@ export type {
   EnqueueRowResult,
   MaterializeOutcome,
   MaterializeManyOptions,
+  ReplayOutcome,
+  ReplayOptions,
 } from './delivery-ledger.js';
 
-// Observed-generation seen/archive protocol (notification redesign — P1)
+// Observed-generation seen/archive protocol
 export {
   markNotificationSeenWithGeneration,
   archiveNotificationWithGeneration,

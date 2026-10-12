@@ -291,13 +291,61 @@ describe('createDeliveryLedger lifecycle', () => {
     await ledger.enqueue([row({ deliveryId: 'd1' })]);
     await ledger.deadLetter('d1', new Error('infra'));
     expect(getCol('notificationDeliveries').get('d1')!.state).toBe('deadLetter');
-    await ledger.replay('d1');
+    expect(await ledger.replay('d1')).toBe('replayed');
     const d = getCol('notificationDeliveries').get('d1')!;
     expect(d.state).toBe('queued');
     expect(d.attemptCount).toBe(0);
     expect(d.lastError).toBeNull();
     expect(d.deadLetteredAt).toBeNull();
     expect(d.expireAt).toBeNull();
+  });
+
+  it('replay answers missing for an absent row and runs no audit hook', async () => {
+    const { db, getCol } = createMockFirestore();
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
+    const auditWrite = vi.fn();
+    expect(await ledger.replay('nope', { auditWrite })).toBe('missing');
+    expect(auditWrite).not.toHaveBeenCalled();
+    expect(getCol('notificationDeliveries').has('nope')).toBe(false);
+  });
+
+  it('replay answers not-dead-lettered for a queued row, leaves it unchanged, and runs no audit hook', async () => {
+    const { db, getCol } = createMockFirestore();
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
+    await ledger.enqueue([row({ deliveryId: 'q1' })]);
+    const before = { ...getCol('notificationDeliveries').get('q1')! };
+    const auditWrite = vi.fn();
+    expect(await ledger.replay('q1', { auditWrite })).toBe('not-dead-lettered');
+    expect(auditWrite).not.toHaveBeenCalled();
+    expect(getCol('notificationDeliveries').get('q1')).toEqual(before);
+  });
+
+  it('replay composes the audit hook into its transaction: the hook writes commit with the reset', async () => {
+    const { db, getCol } = createMockFirestore();
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
+    await ledger.enqueue([row({ deliveryId: 'd1' })]);
+    await ledger.deadLetter('d1', new Error('infra'));
+    const auditRef = db.doc('auditEvents/e1');
+    const outcome = await ledger.replay('d1', {
+      auditWrite: async (txn) => {
+        txn.set(auditRef, { type: 'replayed' });
+      },
+    });
+    expect(outcome).toBe('replayed');
+    expect(getCol('notificationDeliveries').get('d1')!.state).toBe('queued');
+    expect(getCol('auditEvents').get('e1')).toEqual({ type: 'replayed' });
+  });
+
+  it('a rejecting audit hook fails the replay and the row stays dead-lettered', async () => {
+    const { db, getCol } = createMockFirestore();
+    const ledger = createDeliveryLedger(db, config, ELIGIBLE);
+    await ledger.enqueue([row({ deliveryId: 'd1' })]);
+    await ledger.deadLetter('d1', new Error('infra'));
+    const before = { ...getCol('notificationDeliveries').get('d1')! };
+    await expect(
+      ledger.replay('d1', { auditWrite: async () => { throw new Error('audit failed'); } }),
+    ).rejects.toThrow('audit failed');
+    expect(getCol('notificationDeliveries').get('d1')).toEqual(before);
   });
 
   it('materializeMany tallies outcomes', async () => {
@@ -427,7 +475,7 @@ describe('recipient eligibility', () => {
     const afterFirst = { ...getCol('notificationDeliveries').get('dx')! };
 
     expect(await ledger.materialize('dx')).toBe('skipped-ineligible-recipient');
-    await ledger.replay('dx');
+    expect(await ledger.replay('dx')).toBe('not-dead-lettered');
 
     expect(getCol('notificationDeliveries').get('dx')).toEqual(afterFirst);
     expect(getCol('activeUserNotifications').size).toBe(0);

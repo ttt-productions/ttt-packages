@@ -122,6 +122,18 @@ export interface MaterializeManyOptions {
   onUnrecordedFailure?: (deliveryId: string, error: unknown, details: { cause: unknown }) => void;
 }
 
+/** What a `replay` did: re-queued the row, found no row, or found a row that is not dead-lettered. */
+export type ReplayOutcome = 'replayed' | 'missing' | 'not-dead-lettered';
+
+export interface ReplayOptions {
+  /**
+   * The caller's own write (its audit event), composed into the replay transaction and awaited
+   * there on the `replayed` path only. A hook that throws or rejects fails the replay, so the
+   * reset never commits without it.
+   */
+  auditWrite?: (txn: ServerTransaction) => void | Promise<void>;
+}
+
 export interface DeliveryLedger {
   enqueue(rows: DeliveryRowInput[]): Promise<EnqueueResult>;
   materialize(deliveryId: string): Promise<MaterializeOutcome>;
@@ -133,7 +145,8 @@ export interface DeliveryLedger {
   materializeMany(deliveryIds: string[], options?: MaterializeManyOptions): Promise<Record<MaterializeOutcome, number>>;
   recordTransientFailure(deliveryId: string, error: unknown): Promise<void>;
   deadLetter(deliveryId: string, error: unknown): Promise<void>;
-  replay(deliveryId: string): Promise<void>;
+  /** Re-queue a dead-lettered row. A missing or non-dead-lettered row is answered, never written. */
+  replay(deliveryId: string, options?: ReplayOptions): Promise<ReplayOutcome>;
 }
 
 /** gRPC ALREADY_EXISTS (6) — the create-if-absent duplicate signal. */
@@ -422,13 +435,13 @@ export function createDeliveryLedger(
     });
   }
 
-  async function replay(deliveryId: string): Promise<void> {
-    await db.runTransaction(async (tx) => {
+  async function replay(deliveryId: string, options?: ReplayOptions): Promise<ReplayOutcome> {
+    return db.runTransaction(async (tx): Promise<ReplayOutcome> => {
       const dRef = deliveryRef(deliveryId);
       const dSnap = await tx.get(dRef);
-      if (!dSnap.exists) return;
+      if (!dSnap.exists) return 'missing';
       const d = (dSnap.data() ?? {}) as Record<string, unknown>;
-      if ((d.state as DeliveryState) !== 'deadLetter') return;
+      if ((d.state as DeliveryState) !== 'deadLetter') return 'not-dead-lettered';
       tx.update(dRef, {
         state: 'queued' as DeliveryState,
         attemptCount: 0,
@@ -437,6 +450,8 @@ export function createDeliveryLedger(
         deadLetteredAt: null,
         expireAt: null, // clear any TTL set on a prior terminal
       });
+      await options?.auditWrite?.(tx);
+      return 'replayed';
     });
   }
 

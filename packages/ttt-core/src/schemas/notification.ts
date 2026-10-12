@@ -12,10 +12,10 @@
 // materializer. `validateNotificationMetadata` is the one check of a row's or job's `metadata`
 // against its type, for both lanes.
 //
-// The two notification audit-event payload shapes live here too (the
-// `AuditEventType` union members `notification.broadcastSent` /
-// `notification.adminArchived` are added in ../types/audit.ts; their actor is
-// always an admin mode — `adminReview` / `adminOverride`).
+// The notification audit-event payload shapes live here too (the `AuditEventType`
+// union members `notification.broadcastSent` / `notification.adminArchived` /
+// `notification.adminArchiveAllRequested` are added in ../types/audit.ts; their actor
+// is always an admin mode — `adminReview` / `adminOverride`).
 
 import { z } from 'zod';
 import {
@@ -568,4 +568,15 @@ export interface NotificationAdminArchivedAuditMetadata {
   /** Present for single-archive; absent for a category-wide `all` archive. */
   notificationId?: string;
   handledBy: string;
+}
+
+/**
+ * Payload of a `notification.adminArchiveAllRequested` audit event — written when an
+ * admin enqueues an admin-category archive-all job, in the same commit as the job. It
+ * is the event that carries the request's origin: the worker's per-card
+ * `notification.adminArchived` events run after the request ended and record none.
+ */
+export interface NotificationAdminArchiveAllRequestedAuditMetadata {
+  jobId: string;
+  requestId: string;
 }
