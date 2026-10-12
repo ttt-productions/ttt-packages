@@ -20,8 +20,8 @@ const Switch = React.forwardRef<
      * The change this switch started is in flight: the switch ignores toggling, sets
      * `aria-disabled` and `aria-busy`, and spins inside its thumb. It keeps showing the
      * COMMITTED state — the caller flips `checked` only once the write lands. It is never
-     * natively disabled for being pending, so the switch the user just pressed keeps focus
-     * (FRONTEND-203).
+     * natively disabled while pending (a `disabled` passed alongside applies once pending
+     * ends), so the switch the user just pressed keeps focus (FRONTEND-203).
      */
     pending?: boolean
   }
@@ -35,7 +35,7 @@ const Switch = React.forwardRef<
     {...(pending
       ? { "aria-busy": true, "aria-disabled": true, "data-pending": "", onClickCapture: blockToggle }
       : {})}
-    disabled={disabled || undefined}
+    disabled={(disabled && !pending) || undefined}
     ref={ref}
   >
     <SwitchPrimitives.Thumb

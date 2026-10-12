@@ -57,9 +57,19 @@ describe('Switch', () => {
     expect(root).toHaveAttribute('data-state', 'unchecked');
   });
 
-  it('pending and disabled: stays natively disabled', () => {
-    const { container } = render(<Switch pending disabled />);
-    expect((container.querySelector('button') as HTMLButtonElement).disabled).toBe(true);
+  it('pending and disabled: keeps focus and toggles nothing while pending, and disables once pending ends', () => {
+    const onCheckedChange = vi.fn();
+    const { container, rerender } = render(<Switch checked={false} onCheckedChange={onCheckedChange} />);
+    const root = container.querySelector('button') as HTMLButtonElement;
+    root.focus();
+    rerender(<Switch checked={false} onCheckedChange={onCheckedChange} pending disabled />);
+    expect(root.disabled).toBe(false);
+    expect(root).toHaveFocus();
+    expect(root).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(root);
+    expect(onCheckedChange).not.toHaveBeenCalled();
+    rerender(<Switch checked={false} onCheckedChange={onCheckedChange} disabled />);
+    expect(root.disabled).toBe(true);
   });
 
   it('not pending: toggles on a press', () => {

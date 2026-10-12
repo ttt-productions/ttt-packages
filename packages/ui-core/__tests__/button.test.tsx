@@ -220,9 +220,19 @@ describe('<Button pending> — the in-progress contract', () => {
         expect(link).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('stays natively disabled when the caller disables it as well', () => {
-        render(<Button pending disabled>Save</Button>);
-        expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    it('keeps focus while pending even when the caller also disables it, and disables once pending ends', () => {
+        const onClick = vi.fn();
+        const { rerender } = render(<Button onClick={onClick}>Save</Button>);
+        const btn = screen.getByRole('button', { name: 'Save' });
+        btn.focus();
+        rerender(<Button pending disabled onClick={onClick}>Save</Button>);
+        expect(btn).not.toBeDisabled();
+        expect(btn).toHaveFocus();
+        expect(btn).toHaveAttribute('aria-disabled', 'true');
+        fireEvent.click(btn);
+        expect(onClick).not.toHaveBeenCalled();
+        rerender(<Button disabled onClick={onClick}>Save</Button>);
+        expect(btn).toBeDisabled();
     });
 
     it('cannot resubmit its form while pending (the activation is cancelled)', () => {

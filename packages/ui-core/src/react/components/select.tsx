@@ -20,7 +20,8 @@ const SelectTrigger = React.forwardRef<
     /**
      * The change this select started is in flight: the trigger ignores opening and typeahead,
      * sets `aria-disabled` and `aria-busy`, and shows the spinner in place of its chevron. It
-     * is never disabled for being pending, so it keeps focus (FRONTEND-203). It keeps showing
+     * is never natively disabled while pending (a `disabled` passed alongside applies once
+     * pending ends), so it keeps focus (FRONTEND-203). It keeps showing
      * the COMMITTED value — the caller changes `value` only once the write lands.
      */
     pending?: boolean
@@ -43,7 +44,7 @@ const SelectTrigger = React.forwardRef<
           onKeyDownCapture: blockActivationKey,
         }
       : {})}
-    disabled={disabled || undefined}
+    disabled={(disabled && !pending) || undefined}
   >
     {children}
     {pending ? (

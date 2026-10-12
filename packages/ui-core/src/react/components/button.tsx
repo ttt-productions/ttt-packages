@@ -53,8 +53,9 @@ export interface ButtonProps
    * click, a key press, a form's implicit submit — sets `aria-disabled` and
    * `aria-busy`, and shows the canonical spinner: an icon button (`size="icon"`)
    * swaps its icon for it; any other button shows it in place of its `icon`. It is
-   * never natively disabled for being pending, so the button the user just pressed
-   * keeps focus (FRONTEND-203).
+   * never natively disabled while pending — a `disabled` passed alongside `pending`
+   * applies once pending ends — so the button the user just pressed keeps focus
+   * (FRONTEND-203).
    */
   pending?: boolean
   /** Leading icon, rendered before the label. While `pending`, the spinner takes its place. */
@@ -78,7 +79,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             onKeyDownCapture: blockActivationKey,
           }
         : {}),
-      disabled: disabled || undefined,
+      disabled: (disabled && !pending) || undefined,
       className: cn(buttonVariants({ variant, size, className })),
     }
     const spinner = <Spinner size={size === "lg" ? "sm" : "xs"} />

@@ -83,7 +83,8 @@ const DropdownMenuItem = React.forwardRef<
     /**
      * The action this item started is in flight: the item ignores selection, sets
      * `aria-disabled` and `aria-busy`, and shows the spinner in place of its `icon`. It is
-     * never disabled for being pending, so it keeps focus (FRONTEND-203). Keeping the menu
+     * never natively disabled while pending (a `disabled` passed alongside applies once pending
+     * ends), so it keeps focus (FRONTEND-203). Keeping the menu
      * open meanwhile is the caller's `onSelect` (`event.preventDefault()`, close on settle).
      */
     pending?: boolean
@@ -102,7 +103,7 @@ const DropdownMenuItem = React.forwardRef<
     {...(pending
       ? { "aria-busy": true, "aria-disabled": true, "data-pending": "", onClickCapture: blockActivation }
       : {})}
-    disabled={disabled || undefined}
+    disabled={(disabled && !pending) || undefined}
   >
     {/* Direct siblings, never a fragment: under `asChild` Radix Slot finds the Slottable
         among its direct children and renders the icon/spinner inside the child element. */}

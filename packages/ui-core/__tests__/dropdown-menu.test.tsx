@@ -8,13 +8,17 @@ import {
 } from '../src/react/components/dropdown-menu';
 import { Button } from '../src/react/components/button';
 
-function renderOpenMenu(item: React.ReactNode) {
-  return render(
+function menuWith(item: React.ReactNode) {
+  return (
     <DropdownMenu open modal={false}>
       <DropdownMenuTrigger>Actions</DropdownMenuTrigger>
       <DropdownMenuContent>{item}</DropdownMenuContent>
-    </DropdownMenu>,
+    </DropdownMenu>
   );
+}
+
+function renderOpenMenu(item: React.ReactNode) {
+  return render(menuWith(item));
 }
 
 describe('DropdownMenuItem', () => {
@@ -41,6 +45,20 @@ describe('DropdownMenuItem', () => {
     fireEvent.click(item);
     fireEvent.keyDown(item, { key: 'Enter' });
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('pending and disabled: stays an inert, focusable item while pending, and is disabled once pending ends', () => {
+    const onSelect = vi.fn();
+    const { rerender } = renderOpenMenu(
+      <DropdownMenuItem pending disabled onSelect={onSelect}>Hide this work</DropdownMenuItem>,
+    );
+    const item = screen.getByRole('menuitem', { name: 'Hide this work' });
+    expect(item).not.toHaveAttribute('data-disabled');
+    expect(item).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(item);
+    expect(onSelect).not.toHaveBeenCalled();
+    rerender(menuWith(<DropdownMenuItem disabled onSelect={onSelect}>Hide this work</DropdownMenuItem>));
+    expect(screen.getByRole('menuitem', { name: 'Hide this work' })).toHaveAttribute('data-disabled');
   });
 
   it('pending: stays in the menu focus order — ArrowDown from the item above lands on it', async () => {

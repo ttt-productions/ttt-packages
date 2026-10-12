@@ -2,10 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../src/react/components/select';
 
-function renderTrigger(pending?: boolean, onOpenChange = vi.fn()) {
+function renderTrigger(pending?: boolean, onOpenChange = vi.fn(), disabled?: boolean) {
   return render(
     <Select value="a" onOpenChange={onOpenChange}>
-      <SelectTrigger aria-label="Folder" pending={pending}>
+      <SelectTrigger aria-label="Folder" pending={pending} disabled={disabled}>
         <SelectValue placeholder="Pick one" />
       </SelectTrigger>
       <SelectContent>
@@ -40,6 +40,23 @@ describe('SelectTrigger', () => {
     fireEvent.keyDown(trigger, { key: 'b' });
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(trigger).toHaveAttribute('data-state', 'closed');
+  });
+
+  it('pending and disabled: is not natively disabled and opens on nothing while pending', () => {
+    const onOpenChange = vi.fn();
+    renderTrigger(true, onOpenChange, true);
+    const trigger = screen.getByRole('combobox', { name: 'Folder' });
+    trigger.focus();
+    expect(trigger).not.toBeDisabled();
+    expect(trigger).toHaveFocus();
+    expect(trigger).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.keyDown(trigger, { key: 'Enter' });
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it('disabled and not pending: is natively disabled', () => {
+    renderTrigger(false, vi.fn(), true);
+    expect(screen.getByRole('combobox', { name: 'Folder' })).toBeDisabled();
   });
 
   it('pending: lets Tab, Escape, function keys, and shortcuts through', () => {
