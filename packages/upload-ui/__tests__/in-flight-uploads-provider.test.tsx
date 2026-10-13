@@ -7,6 +7,7 @@ import {
   useUploadActivityState,
   useInFlightUpload,
   useUploadsSourceState,
+  useUploadsSourceRetry,
   type InFlightUploadsAdapter,
   type FirestoreSubscribeFn,
   type FirestoreLikeSnapshot,
@@ -457,6 +458,105 @@ describe('bounded resubscribe on listener error', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe('a restart after the listener failed (useUploadsSourceRetry)', () => {
+  const LADDER_MS = [1_000, 3_000, 10_000, 30_000];
+
+  function renderFailed() {
+    const adapter = makeAdapter();
+    const d = makeDriver();
+    let subscribeCount = 0;
+    const countingSubscribe: FirestoreSubscribeFn = (args) => {
+      subscribeCount += 1;
+      return d.subscribe(args);
+    };
+    const hook = renderHook(() => ({ state: useUploadsSourceState(), restart: useUploadsSourceRetry() }), {
+      wrapper: wrap(adapter, countingSubscribe),
+    });
+    const exhaustLadder = () => {
+      for (const ms of LADDER_MS) {
+        act(() => d.driveError(new Error('denied')));
+        act(() => {
+          vi.advanceTimersByTime(ms);
+        });
+      }
+      act(() => d.driveError(new Error('denied')));
+    };
+    exhaustLadder();
+    return { ...hook, d, exhaustLadder, subscriptions: () => subscribeCount };
+  }
+
+  it('subscribes again, stays error with retrying on until the restarted listener answers, then goes live', () => {
+    vi.useFakeTimers();
+    try {
+      const { result, d, subscriptions } = renderFailed();
+      expect(result.current.state).toBe('error');
+      expect(result.current.restart.retrying).toBe(false);
+      const before = subscriptions();
+
+      act(() => result.current.restart.retry());
+      expect(subscriptions()).toBe(before + 1);
+      // The failure stays the answer while the restart runs — never a loading state under the press.
+      expect(result.current.state).toBe('error');
+      expect(result.current.restart.retrying).toBe(true);
+
+      act(() => d.drive(metaSnapshot(false)));
+      expect(result.current.state).toBe('live');
+      expect(result.current.restart.retrying).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a restarted listener that errors again stays error through its ladder, then stops retrying', () => {
+    vi.useFakeTimers();
+    try {
+      const { result, d } = renderFailed();
+      act(() => result.current.restart.retry());
+      act(() => d.driveError(new Error('denied')));
+      // Mid-ladder: still the failure, still retrying — never `connecting`.
+      expect(result.current.state).toBe('error');
+      expect(result.current.restart.retrying).toBe(true);
+      act(() => {
+        vi.advanceTimersByTime(LADDER_MS[0]!);
+      });
+      act(() => d.driveError(new Error('denied')));
+      act(() => {
+        vi.advanceTimersByTime(LADDER_MS[1]!);
+      });
+      act(() => d.driveError(new Error('denied')));
+      act(() => {
+        vi.advanceTimersByTime(LADDER_MS[2]!);
+      });
+      act(() => d.driveError(new Error('denied')));
+      act(() => {
+        vi.advanceTimersByTime(LADDER_MS[3]!);
+      });
+      act(() => d.driveError(new Error('denied')));
+      expect(result.current.state).toBe('error');
+      expect(result.current.restart.retrying).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a restart answered from cache first is connecting, not offline', () => {
+    vi.useFakeTimers();
+    try {
+      const { result, d } = renderFailed();
+      act(() => result.current.restart.retry());
+      act(() => d.drive(metaSnapshot(true)));
+      expect(result.current.state).toBe('connecting');
+      expect(result.current.restart.retrying).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('throws outside the provider', () => {
+    expect(() => renderHook(() => useUploadsSourceRetry())).toThrow(/must be used within/);
   });
 });
 

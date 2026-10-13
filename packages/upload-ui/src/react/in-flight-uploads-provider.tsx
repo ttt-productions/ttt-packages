@@ -54,6 +54,7 @@ import { collection, onSnapshot, query, where } from 'firebase/firestore';
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -308,6 +309,20 @@ export type FirestoreLikeDocChange = {
 interface InFlightUploadsContextValue<TFileOrigin extends string = string> {
   uploads: Map<string, InFlightUpload<TFileOrigin>>;
   sourceState: UploadsSourceState;
+  retry: () => void;
+  retrying: boolean;
+}
+
+/** Restarting the uploads listener after it failed, and whether that restart is running. */
+export interface UploadsSourceRetry {
+  /**
+   * Tear the listener down and subscribe again on a fresh retry ladder. While the restart runs the
+   * source state stays as it was (an `error` stays `error`), so a failure shown on it stays on
+   * screen with its control pending.
+   */
+  retry: () => void;
+  /** A `retry` is running: true until the restarted listener answers or its ladder fails again. */
+  retrying: boolean;
 }
 
 const InFlightUploadsContext = createContext<InFlightUploadsContextValue | undefined>(undefined);
@@ -384,6 +399,10 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
 
   const [uploads, setUploads] = useState<Map<string, InFlightUpload<TFileOrigin>>>(new Map());
   const [sourceState, setSourceState] = useState<UploadsSourceState>('connecting');
+  const [restarts, setRestarts] = useState(0);
+  const [retrying, setRetrying] = useState(false);
+  /** Set by `retry` for the subscription the restart opens; that run keeps the source state. */
+  const restartRequestedRef = useRef(false);
   const seenTerminalIdsRef = useRef<Set<string>>(new Set());
   const statusByIdRef = useRef<Map<string, InFlightUploadStatus>>(new Map());
   const hasProcessedInitialSnapshotRef = useRef(false);
@@ -411,8 +430,15 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
     // the gap. A real identity change — including UID-A → UID-B with no
     // intermediate null user — starts clean; never rely on an intermediate
     // sign-out to clear refs between two authenticated UIDs.
+    // A restart the person asked for keeps the source state it had (a failure stays a failure
+    // until the restarted listener answers); every other run starts over as `connecting`.
+    let restarting = restartRequestedRef.current;
+    restartRequestedRef.current = false;
     setUploads(new Map());
-    setSourceState('connecting');
+    if (!restarting) {
+      setSourceState('connecting');
+      setRetrying(false);
+    }
     if (userId !== null && userId !== trackedUserIdRef.current) {
       seenTerminalIdsRef.current = new Set();
       statusByIdRef.current = new Map();
@@ -492,7 +518,12 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
       // Metadata-derived source state: stay `connecting` until a server-confirmed
       // snapshot, `offline` if only cached data arrives after being live.
       const fromCache = snapshot.metadata?.fromCache ?? false;
-      setSourceState((prev) => (fromCache ? (prev === 'connecting' ? 'connecting' : 'offline') : 'live'));
+      // A snapshot after a failed listener comes from a new subscription: not yet live, never offline.
+      setSourceState((prev) =>
+        fromCache ? (prev === 'connecting' || prev === 'error' ? 'connecting' : 'offline') : 'live',
+      );
+      restarting = false;
+      setRetrying(false);
 
       if (updates.length > 0) {
         setUploads((prev) => {
@@ -562,9 +593,10 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
           unsubscribe = undefined;
           if (disposed || attempt >= RESUBSCRIBE_DELAYS_MS.length) {
             setSourceState('error');
+            setRetrying(false);
             return;
           }
-          setSourceState('connecting');
+          if (!restarting) setSourceState('connecting');
           retryTimer = setTimeout(() => {
             if (disposed) return;
             attempt += 1;
@@ -583,11 +615,17 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
     // adapter is intentionally NOT in the deps array — adapter is read via
     // adapterRef on every snapshot, so identity changes don't re-subscribe.
 
-  }, [userId, subscribe]);
+  }, [userId, subscribe, restarts]);
+
+  const retry = useCallback(() => {
+    restartRequestedRef.current = true;
+    setRetrying(true);
+    setRestarts((count) => count + 1);
+  }, []);
 
   const value = useMemo<InFlightUploadsContextValue<TFileOrigin>>(
-    () => ({ uploads, sourceState }),
-    [uploads, sourceState],
+    () => ({ uploads, sourceState, retry, retrying }),
+    [uploads, sourceState, retry, retrying],
   );
 
   return (
@@ -635,6 +673,18 @@ export function useUploadsSourceState(): UploadsSourceState {
     throw new Error('useUploadsSourceState must be used within InFlightUploadsProvider');
   }
   return ctx.sourceState;
+}
+
+/**
+ * The uploads listener's restart — the Try again of a failure shown on `useUploadsSourceState` —
+ * and whether it is running.
+ */
+export function useUploadsSourceRetry(): UploadsSourceRetry {
+  const ctx = useContext(InFlightUploadsContext);
+  if (ctx === undefined) {
+    throw new Error('useUploadsSourceRetry must be used within InFlightUploadsProvider');
+  }
+  return { retry: ctx.retry, retrying: ctx.retrying };
 }
 
 // =============================================================================

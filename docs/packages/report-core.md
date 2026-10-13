@@ -75,6 +75,13 @@ package carries no product copy and no product routing:
   state belong to the reporter who created them: a different signed-in reporter reads them empty and
   closed (FRONTEND-108). With no reporter, `openReport` calls `onSignInRequired` and opens nothing.
 
+## The checked-out tasks read (`./react`)
+
+`useCheckedOutTasks(userId)` is a live list of the tasks an admin holds. Beside the listener's result
+it returns `retryState` (query-core `useReadRetryState`): the listener's failure held through its
+`refetch`, which restarts the listener and clears `error` while it reconnects — so a failure seat
+keeps its Try again on screen, pending, instead of turning into a loading state.
+
 ## The admin-task queue handlers (`./server`)
 
 Factories for the consuming app's queue callables. `createCheckoutTaskHandler`,

@@ -1,7 +1,7 @@
 'use client';
 
 import { where, orderBy } from 'firebase/firestore';
-import { useFirestoreCollection } from '@ttt-productions/query-core/react';
+import { useFirestoreCollection, useReadRetryState } from '@ttt-productions/query-core/react';
 import { useReportCoreContext } from '../context/ReportCoreProvider.js';
 import type { CheckedOutTask } from '../types.js';
 
@@ -12,13 +12,19 @@ import type { CheckedOutTask } from '../types.js';
  * list updates instantly on any change (including a backend lease-expiry status
  * flip) with no polling. The countdown UI ticks client-side over the cached
  * `expiresAt`, so it does not need the data layer to refetch.
+ *
+ * `retryState` holds the listener's failure through its `refetch` (which restarts the listener):
+ * the restart clears `error` while it reconnects, so a failure seat built from it would vanish under
+ * the Try again that started it. A subscribed collection never turns its own `isLoading` on, so
+ * loading is "no snapshot and no failure".
  */
 export function useCheckedOutTasks(userId: string | undefined) {
   const { config } = useReportCoreContext();
 
-  return useFirestoreCollection<CheckedOutTask>({
+  const queryKey = ['report-core', 'checkedOutTasks', userId];
+  const live = useFirestoreCollection<CheckedOutTask>({
     collectionPath: config.collections.adminTasks,
-    queryKey: ['report-core', 'checkedOutTasks', userId],
+    queryKey,
     constraints: userId
       ? [
           where('checkoutDetails.userId', '==', userId),
@@ -48,4 +54,8 @@ export function useCheckedOutTasks(userId: string | undefined) {
         lastUpdatedAt: data.lastUpdatedAt,
       }) as CheckedOutTask,
   });
+  const error = live.error ?? null;
+  const isLoading = !!userId && live.data === undefined && error === null;
+  const retryState = useReadRetryState({ error, isFetching: live.isFetching, isLoading }, queryKey);
+  return { ...live, retryState };
 }
