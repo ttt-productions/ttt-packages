@@ -15,13 +15,5 @@ export interface PublicUserSearchResult {
   status: UserAccountStatus;
 }
 
-/** The `lookupUserByEmailOrUid` callable's result — an EXACT single-account match a solo full
- * admin resolves by email, uid, or display name. Carries the owner-only email (an admin-gated
- * read of the account's privateData) and the admin-claim flag alongside the status tier. */
-export interface AdminUserLookupResult {
-  uid: string;
-  displayName: string;
-  email: string;
-  status: UserAccountStatus;
-  isAdmin?: boolean;
-}
+// The exact-match lookup's result shape is declared with its schema (schemas/users.ts).
+export type { AdminUserLookupResult, LookupUserByEmailOrUidResult } from '../schemas/users.js';

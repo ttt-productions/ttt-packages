@@ -43,15 +43,17 @@ describe('content-page doc schemas (content-pages migration)', () => {
   it('existing FuturePlans / RulesAndAgreements docs still parse WITHOUT version (pre-migration data)', () => {
     expect(FuturePlansDocumentSchema.safeParse({
       lastUpdated: 1751000000000,
+      groups: [],
       plans: [],
     }).success).toBe(true);
     expect(RulesAndAgreementsSchema.safeParse({
       rules: [],
-      agreements: {},
+      agreements: { points: [] },
     }).success).toBe(true);
     // ...and WITH version once the migration bumps them.
     expect(FuturePlansDocumentSchema.safeParse({
       lastUpdated: 1751000000000,
+      groups: [],
       plans: [],
       version: 3,
     }).success).toBe(true);

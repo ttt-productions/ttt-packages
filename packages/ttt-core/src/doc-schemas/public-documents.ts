@@ -55,8 +55,13 @@ export type PublicDocumentVersionRef = z.infer<typeof PublicDocumentVersionRefSc
 // existing page readers, the working copy, and the immutable version all share one shape.
 
 export const LegalPageContentSchema = LegalPageDocumentSchema.pick({ sections: true });
-export const RulesAndAgreementsContentSchema = RulesAndAgreementsSchema.pick({ rules: true, agreements: true });
-export const FuturePlansContentSchema = FuturePlansDocumentSchema.pick({ plans: true });
+export const RulesAndAgreementsContentSchema = RulesAndAgreementsSchema.pick({
+  intro: true,
+  groupIntentions: true,
+  rules: true,
+  agreements: true,
+});
+export const FuturePlansContentSchema = FuturePlansDocumentSchema.pick({ intro: true, groups: true, plans: true });
 export const TakeItDownPageCopyContentSchema = TakeItDownPageCopySchema.pick({ strings: true });
 export const DmcaPolicyContentSchema = DmcaPolicyDocumentSchema.pick({
   intro: true,

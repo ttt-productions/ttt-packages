@@ -5,7 +5,8 @@
 // it owns. Written as a bare merge, the first of them to run after the doc is gone (a fresh or
 // wiped environment) creates a doc WITHOUT the fields AppConfigSchema requires. The write rule
 // is `mergeAppConfigUpdate(existing, update)`: the writer's update on top of the doc it read,
-// with any field that doc lacks taken from DEFAULT_APP_CONFIG, validated as a whole.
+// with any field that doc lacks — and any lever it holds at a value its schema refuses — taken
+// from DEFAULT_APP_CONFIG, validated as a whole.
 //
 // READ. The stored doc is untrusted — an operator can console-edit any field into any shape —
 // and a config read must never take the product down by itself. The read rule is
@@ -15,9 +16,6 @@
 // snapshot reader and the client shell both read through these. The release-owned version block
 // has no default to fall back to, so its reader, `readPublicDocumentVersionBlock`, reports what it
 // found instead — absent, valid, or invalid — and each consumer applies its own policy.
-//
-// See docs/design/ttt-productions-version-gate.md (ttt-prod) § The `_appConfig/app` document and
-// § Operational levers.
 
 import { AppConfigSchema, type AppConfig } from '../doc-schemas/system.js';
 import type { PublicDocumentVersionBlock } from '../doc-schemas/public-documents.js';
@@ -105,22 +103,47 @@ function definedFields(fields: Readonly<Record<string, unknown>>): Record<string
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
 }
 
+/** A stored lever its AppConfigSchema field refused, with the raw value the doc held. */
+export interface AppConfigLeverRepair {
+  readonly lever: AppConfigLeverKey;
+  readonly storedValue: unknown;
+}
+
+/** The doc a writer writes, and every stored lever the merge had to repair to write it. */
+export interface AppConfigMerge {
+  readonly next: AppConfig;
+  readonly repairs: readonly AppConfigLeverRepair[];
+}
+
 /**
  * The complete `_appConfig/app` doc to write after applying `update` to `existing` (the doc as
  * read in the writer's transaction; `undefined` or `null` when it does not exist). The update's
  * fields win; `existing` supplies the rest; any field still missing comes from
  * DEFAULT_APP_CONFIG. An `undefined` update field changes nothing. Pure.
  *
- * Throws when the result would not parse under AppConfigSchema — an invalid update, or an
- * invalid field already on the doc — so nothing invalid is ever written over it.
+ * A stored lever its schema refuses never blocks a save — a console typo must not disable the
+ * maintenance kill switch: it is dropped, so the update's value replaces it when the update sends
+ * that lever and its DEFAULT_APP_CONFIG value (what every reader already falls back to) otherwise,
+ * and it is reported in `repairs`. The release-owned version block is not a lever and has no
+ * default, so a refused stored block is still refused.
+ *
+ * Throws when the result would not parse under AppConfigSchema — an invalid update, or a refused
+ * version block — so nothing invalid is ever written.
  */
 export function mergeAppConfigUpdate(
   existing: Readonly<Record<string, unknown>> | null | undefined,
   update: Readonly<Partial<AppConfig>>,
-): AppConfig {
+): AppConfigMerge {
+  const stored = definedFields(existing ?? {});
+  const repairs: AppConfigLeverRepair[] = [];
+  for (const lever of Object.keys(DEFAULT_APP_CONFIG) as AppConfigLeverKey[]) {
+    if (!(lever in stored) || AppConfigSchema.shape[lever].safeParse(stored[lever]).success) continue;
+    repairs.push({ lever, storedValue: stored[lever] });
+    delete stored[lever];
+  }
   const parsed = AppConfigSchema.safeParse({
     ...DEFAULT_APP_CONFIG,
-    ...definedFields(existing ?? {}),
+    ...stored,
     ...definedFields(update),
   });
   if (!parsed.success) {
@@ -130,7 +153,7 @@ export function mergeAppConfigUpdate(
       `_appConfig/app would not match AppConfigSchema after this update (${field}: ${issue?.message ?? 'invalid'}). Nothing should be written.`,
     );
   }
-  return parsed.data;
+  return { next: parsed.data, repairs };
 }
 
 /**

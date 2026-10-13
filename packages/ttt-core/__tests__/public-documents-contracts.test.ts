@@ -204,7 +204,7 @@ describe('working copy and release record', () => {
   it('a working copy records the version its edit started from (0 = never published)', () => {
     const draft = {
       documentId: RULES,
-      content: { rules: [], agreements: {} },
+      content: { rules: [], agreements: { points: [] } },
       baseVersion: 0,
       revision: 1,
       savedBy: 'admin-uid',

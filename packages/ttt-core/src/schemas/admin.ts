@@ -33,7 +33,8 @@ import {
   MediaServingStatusSchema,
 } from '../doc-schemas/media-assets.js';
 import { MAX_MANIFEST_NCMEC_RECEIPTS } from '../doc-schemas/safety/evidence.js';
-import { RuleGroupSchema, RuleSubgroupSchema } from '../doc-schemas/content.js';
+import { RuleGroupSchema } from '../doc-schemas/content.js';
+import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import { AppModeSchema } from '../doc-schemas/system.js';
 import {
   SystemUidListSlotIdSchema,
@@ -53,6 +54,10 @@ import {
   MAX_DMCA_CONTACT_BLOCKS,
   MAX_DMCA_CONTACT_ROWS,
   MAX_SYSTEM_UID_LIST,
+  MAX_FUTURE_PLAN_GROUPS,
+  MAX_FUTURE_PLANS,
+  MAX_PLATFORM_RULES,
+  MAX_AGREEMENT_POINTS,
 } from '../constants/business.js';
 import {
   ACCOUNT_ACTION_REASON_INPUT,
@@ -71,12 +76,15 @@ import {
   DMCA_CONTACT_LABEL_INPUT,
   DMCA_CONTACT_VALUE_INPUT,
   FUTURE_PLAN_DESCRIPTION_INPUT,
+  FUTURE_PLAN_GROUP_NAME_INPUT,
   FUTURE_PLAN_TITLE_INPUT,
   HIDE_REASON_INPUT,
   MAINTENANCE_MESSAGE_INPUT,
   MODERATION_ACTION_REASON_INPUT,
   PLATFORM_RULE_DESCRIPTION_INPUT,
   PLATFORM_RULE_TITLE_INPUT,
+  PUBLIC_DOCUMENT_INTENTION_INPUT,
+  PUBLIC_DOCUMENT_INTRO_INPUT,
   RETITLE_REASON_INPUT,
   SAFETY_INTERNAL_REASON_INPUT,
   TAKE_IT_DOWN_COPY_INPUT,
@@ -139,44 +147,72 @@ export type ReviewContentAppealResult = z.infer<typeof ReviewContentAppealResult
 // document, never a partial merge). The client never sends a version — the release publish
 // assigns it.
 
+const publicDocumentItemIdSchema = z.string().min(1).max(128);
+const publicDocumentIntroSchema = textFieldSchema(PUBLIC_DOCUMENT_INTRO_INPUT).optional();
+const publicDocumentIntentionSchema = textFieldSchema(PUBLIC_DOCUMENT_INTENTION_INPUT).optional();
+const appliesToTypeInputFields = {
+  workProjectType: z.enum(WORK_PROJECT_TYPE_KEYS).optional(),
+  hallWingType: z.enum(HALL_WING_TYPE_KEYS).optional(),
+};
+
+export const FuturePlanGroupInputSchema = z.object({
+  id: publicDocumentItemIdSchema,
+  name: textFieldSchema(FUTURE_PLAN_GROUP_NAME_INPUT),
+  order: z.number().int().min(0),
+  intention: publicDocumentIntentionSchema,
+}).strict();
+
 export const FuturePlanItemInputSchema = z.object({
-  id: z.string().min(1).max(128),
+  id: publicDocumentItemIdSchema,
   title: textFieldSchema(FUTURE_PLAN_TITLE_INPUT),
   description: textFieldSchema(FUTURE_PLAN_DESCRIPTION_INPUT),
+  groupId: publicDocumentItemIdSchema,
   order: z.number().int().min(0),
-  videoUrl: z.string().url().max(2048).optional(),
-  mediaType: z.enum(['video', 'image', 'audio', 'other']).optional(),
 }).strict();
 
 export const FuturePlansContentInputSchema = z.object({
-  plans: z.array(FuturePlanItemInputSchema).max(200),
-}).strict();
+  intro: publicDocumentIntroSchema,
+  groups: z.array(FuturePlanGroupInputSchema).max(MAX_FUTURE_PLAN_GROUPS),
+  plans: z.array(FuturePlanItemInputSchema).max(MAX_FUTURE_PLANS),
+}).strict().superRefine((content, ctx) => {
+  // A plan whose group is missing would never render, so every plan names a group the document holds.
+  const groupIds = new Set(content.groups.map((group) => group.id));
+  if (groupIds.size !== content.groups.length) {
+    ctx.addIssue({ code: 'custom', path: ['groups'], message: 'Each group needs its own id.' });
+  }
+  content.plans.forEach((plan, index) => {
+    if (!groupIds.has(plan.groupId)) {
+      ctx.addIssue({ code: 'custom', path: ['plans', index, 'groupId'], message: 'Every plan belongs to one of the groups.' });
+    }
+  });
+});
 export type FuturePlansContentInput = z.infer<typeof FuturePlansContentInputSchema>;
 
 export const PlatformRuleInputSchema = z.object({
-  id: z.string().min(1).max(128),
+  id: publicDocumentItemIdSchema,
   title: textFieldSchema(PLATFORM_RULE_TITLE_INPUT),
   description: textFieldSchema(PLATFORM_RULE_DESCRIPTION_INPUT),
-  videoUrl: z.string().url().max(2048).optional(),
-  group: RuleGroupSchema.optional(),
-  subgroup: RuleSubgroupSchema.optional(),
+  group: RuleGroupSchema,
+  ...appliesToTypeInputFields,
   order: z.number().int().min(0),
 }).strict();
 
-export const AgreementCategoryInputSchema = z.object({
-  points: z.array(textFieldSchema(AGREEMENT_POINT_INPUT)).max(200),
-  videoUrl: z.string().url().max(2048).optional(),
+export const AgreementPointInputSchema = z.object({
+  id: publicDocumentItemIdSchema,
+  text: textFieldSchema(AGREEMENT_POINT_INPUT),
+  ...appliesToTypeInputFields,
 }).strict();
 
-export const AgreementsInputSchema = z.object({
-  tales: AgreementCategoryInputSchema.optional(),
-  tunes: AgreementCategoryInputSchema.optional(),
-  television: AgreementCategoryInputSchema.optional(),
+export const ArtisanAgreementsInputSchema = z.object({
+  intention: publicDocumentIntentionSchema,
+  points: z.array(AgreementPointInputSchema).max(MAX_AGREEMENT_POINTS),
 }).strict();
 
 export const RulesAndAgreementsContentInputSchema = z.object({
-  rules: z.array(PlatformRuleInputSchema).max(500),
-  agreements: AgreementsInputSchema,
+  intro: publicDocumentIntroSchema,
+  groupIntentions: z.partialRecord(RuleGroupSchema, textFieldSchema(PUBLIC_DOCUMENT_INTENTION_INPUT)).optional(),
+  rules: z.array(PlatformRuleInputSchema).max(MAX_PLATFORM_RULES),
+  agreements: ArtisanAgreementsInputSchema,
 }).strict();
 export type RulesAndAgreementsContentInput = z.infer<typeof RulesAndAgreementsContentInputSchema>;
 

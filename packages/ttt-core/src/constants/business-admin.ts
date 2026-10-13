@@ -140,6 +140,15 @@ export const MAX_FUTURE_PLAN_DESCRIPTION_LENGTH = 4000;
 export const MAX_PLATFORM_RULE_TITLE_LENGTH = 200;
 export const MAX_PLATFORM_RULE_DESCRIPTION_LENGTH = 4000;
 export const MAX_AGREEMENT_POINT_LENGTH = 2000;
+/** A public document page's intro (Future Plans, Rules & Agreements). */
+export const MAX_PUBLIC_DOCUMENT_INTRO_LENGTH = 4000;
+/** A public document section's intention line (a Future Plans group, a rule group, Artisan Agreements). */
+export const MAX_PUBLIC_DOCUMENT_INTENTION_LENGTH = 1000;
+export const MAX_FUTURE_PLAN_GROUP_NAME_LENGTH = 200;
+export const MAX_FUTURE_PLAN_GROUPS = 50;
+export const MAX_FUTURE_PLANS = 200;
+export const MAX_PLATFORM_RULES = 500;
+export const MAX_AGREEMENT_POINTS = 200;
 export const MAX_CONTENT_PAGE_HEADING_LENGTH = 300;
 export const MAX_CONTENT_PAGE_BODY_LENGTH = 20000;
 /** Sections in one long-form content page (Terms, Privacy, the DMCA policy's process text). */

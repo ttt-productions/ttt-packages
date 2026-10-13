@@ -48,6 +48,10 @@ const NOT_CLIENT_SENT: Record<string, string> = {
 const NOT_A_PATH_SEGMENT: Record<string, string> = {
   'FuturePlanItemInputSchema.id': 'an item key inside a public document\'s stored content, never a path segment',
   'PlatformRuleInputSchema.id': 'an item key inside a public document\'s stored content, never a path segment',
+  'FuturePlanGroupInputSchema.id': 'an item key inside a public document\'s stored content, never a path segment',
+  'FuturePlanItemInputSchema.groupId':
+    'a reference to a group key inside the same public document\'s content, never a path segment',
+  'AgreementPointInputSchema.id': 'an item key inside a public document\'s stored content, never a path segment',
   'ContentPageSectionInputSchema.id': 'an item key inside a public document\'s stored content, never a path segment',
   'DmcaPolicyContentInputSchema.contactBlocks.id': 'an item key inside a public document\'s stored content, never a path segment',
   'DmcaPolicyContentInputSchema.contactBlocks.rows.id': 'an item key inside a public document\'s stored content, never a path segment',

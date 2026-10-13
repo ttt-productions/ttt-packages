@@ -388,7 +388,10 @@ TTT Productions application-data package.
   open, no banner, no throttle, and `appVersion` `''` — no version published, so VersionGate stays
   dormant until an operator sets a real one), and `mergeAppConfigUpdate(existing, update)`, the
   one write rule: the update over the doc as read, missing fields from the default, validated
-  whole against `AppConfigSchema` (it throws rather than return an invalid doc). A backend writer
+  whole against `AppConfigSchema` (it throws rather than return an invalid doc). A stored lever its
+  schema refuses never blocks a save: it is replaced by the update's value or its default and
+  reported in the result's `repairs` (with the raw stored value) so the writer can audit the
+  repair; a refused version block is still refused. A backend writer
   that writes its result can never leave a doc missing its required fields, even as the first
   write into a fresh or wiped environment. The release-owned version block has no default — it is
   absent until the first release.

@@ -269,18 +269,22 @@ describe('current projection and the unchanged-draft rule', () => {
     expect(projection).toEqual({ ...content, version: 4, lastUpdated: 99 });
     expect(PUBLIC_DOCUMENT_PROJECTION_SCHEMAS[TERMS].safeParse(projection).success).toBe(true);
 
-    const rules = buildPublicDocumentProjection<typeof RULES>({ rules: [], agreements: {} }, 2, 99);
+    const rules = buildPublicDocumentProjection<typeof RULES>({ rules: [], agreements: { points: [] } }, 2, 99);
     expect(PUBLIC_DOCUMENT_PROJECTION_SCHEMAS[RULES].parse(rules)).toEqual(rules);
   });
 
   it('content equality ignores field order and absent-vs-undefined, but not words', () => {
     const a: PublicDocumentContent<typeof PLANS> = {
-      plans: [{ id: 'p', title: 'T', description: 'D', order: 0 }],
+      groups: [{ id: 'g', name: 'G', order: 0 }],
+      plans: [{ id: 'p', title: 'T', description: 'D', groupId: 'g', order: 0 }],
     };
-    const reordered = { plans: [{ order: 0, description: 'D', title: 'T', id: 'p', videoUrl: undefined }] };
-    const edited = { plans: [{ id: 'p', title: 'T', description: 'D!', order: 0 }] };
+    const reordered = {
+      groups: [{ order: 0, name: 'G', id: 'g', intention: undefined }],
+      plans: [{ order: 0, groupId: 'g', description: 'D', title: 'T', id: 'p' }],
+    };
+    const edited = { ...a, plans: [{ id: 'p', title: 'T', description: 'D!', groupId: 'g', order: 0 }] };
     expect(publicDocumentContentEquals<typeof PLANS>(a, reordered)).toBe(true);
     expect(publicDocumentContentEquals<typeof PLANS>(a, edited)).toBe(false);
-    expect(publicDocumentContentEquals<typeof PLANS>(a, { plans: [...a.plans, ...a.plans] })).toBe(false);
+    expect(publicDocumentContentEquals<typeof PLANS>(a, { ...a, plans: [...a.plans, ...a.plans] })).toBe(false);
   });
 });

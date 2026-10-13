@@ -7,8 +7,9 @@ import {
   USER_FACING_REASON_OPTIONS,
   userFacingReasonLabel,
   FEEDBACK_TYPE_LABELS,
-  WORK_PROJECT_TYPE_RULE_GROUP_TITLE,
-  HALL_WING_TYPE_RULE_GROUP_TITLE,
+  RULE_GROUP_TITLES,
+  ARTISAN_AGREEMENTS_TITLE,
+  appliesToTypeLabel,
   CLEARABLE_TEXT_FIELD_LABELS,
   CLEARABLE_TEXT_FIELD_LABEL_OVERRIDES,
   clearableTextFieldLabel,
@@ -221,10 +222,33 @@ describe('clearableTextFieldLabel', () => {
   });
 });
 
-describe('rules-surface group titles', () => {
-  it('are the canonical headings both rules surfaces render', () => {
-    expect(WORK_PROJECT_TYPE_RULE_GROUP_TITLE).toBe('Work Type Rules');
-    expect(HALL_WING_TYPE_RULE_GROUP_TITLE).toBe('Hall Wing Rules');
+describe('Rules & Agreements section titles', () => {
+  it('are the headings the rules page and its editor render, one per fixed group', () => {
+    expect(RULE_GROUP_TITLES).toEqual({
+      generic: 'General Site Rules',
+      merchandising: 'Merchandising, Endorsements & Revenue Sharing',
+      hallWing: 'Hall Wing Rules',
+      workRealm: 'Realm Rules',
+    });
+    expect(ARTISAN_AGREEMENTS_TITLE).toBe('Artisan Agreements');
+  });
+});
+
+describe('appliesToTypeLabel', () => {
+  it('gives no label to an entry that applies to every type', () => {
+    expect(appliesToTypeLabel({})).toBeUndefined();
+  });
+
+  it('names the one Work type a rule is narrowed to', () => {
+    expect(appliesToTypeLabel({ workProjectType: 'Tales' })).toBe('Tales only');
+  });
+
+  it('names the one Hall wing a rule is narrowed to', () => {
+    expect(appliesToTypeLabel({ hallWingType: 'educational' })).toBe('Educational wing only');
+  });
+
+  it('names both when a rule is narrowed to a Work type and a wing', () => {
+    expect(appliesToTypeLabel({ workProjectType: 'Television', hallWingType: 'newsPolitical' })).toBe('Television, News/Political wing only');
   });
 });
 

@@ -36,6 +36,9 @@ import {
   MAX_ADMIN_DISPATCH_INITIAL_TEXT_LENGTH,
   MAX_ADMIN_DISPATCH_SUBJECT_LENGTH,
   MAX_AGREEMENT_POINT_LENGTH,
+  MAX_FUTURE_PLAN_GROUP_NAME_LENGTH,
+  MAX_PUBLIC_DOCUMENT_INTENTION_LENGTH,
+  MAX_PUBLIC_DOCUMENT_INTRO_LENGTH,
   MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
   MAX_APP_VERSION_LENGTH,
   MAX_APPEAL_MESSAGE_LENGTH,
@@ -229,6 +232,11 @@ export const FUTURE_PLAN_DESCRIPTION_INPUT = defineInputFormat({ label: 'Descrip
 export const PLATFORM_RULE_TITLE_INPUT = defineInputFormat({ label: 'Title', format: 'singleLine', min: 1, max: MAX_PLATFORM_RULE_TITLE_LENGTH, keepAsTyped: true });
 export const PLATFORM_RULE_DESCRIPTION_INPUT = defineInputFormat({ label: 'Description', format: 'none', min: 1, max: MAX_PLATFORM_RULE_DESCRIPTION_LENGTH, keepAsTyped: true });
 export const AGREEMENT_POINT_INPUT = defineInputFormat({ label: 'Agreement point', format: 'singleLine', min: 1, max: MAX_AGREEMENT_POINT_LENGTH, keepAsTyped: true });
+export const FUTURE_PLAN_GROUP_NAME_INPUT = defineInputFormat({ label: 'Group name', format: 'singleLine', min: 1, max: MAX_FUTURE_PLAN_GROUP_NAME_LENGTH, keepAsTyped: true });
+/** A Future Plans or Rules & Agreements page intro; blank-line-separated paragraphs. */
+export const PUBLIC_DOCUMENT_INTRO_INPUT = defineInputFormat({ label: 'Intro', format: 'none', min: 1, max: MAX_PUBLIC_DOCUMENT_INTRO_LENGTH, keepAsTyped: true });
+/** A section's intention line, shown under its heading. */
+export const PUBLIC_DOCUMENT_INTENTION_INPUT = defineInputFormat({ label: 'Intention', format: 'none', min: 1, max: MAX_PUBLIC_DOCUMENT_INTENTION_LENGTH, keepAsTyped: true });
 /** A legal page's section heading, and a DMCA contact block's heading. */
 export const CONTENT_PAGE_HEADING_INPUT = defineInputFormat({ label: 'Heading', format: 'singleLine', min: 1, max: MAX_CONTENT_PAGE_HEADING_LENGTH, keepAsTyped: true });
 /** A legal page's section body (empty is a bare divider heading), and the DMCA policy's intro. */

@@ -33,7 +33,9 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `lastUpdated` | `number` |  |
-| `plans` | `{ id, title, description, order, videoUrl, mediaType }[]` |  |
+| `intro` | `string` | yes |
+| `groups` | `{ id, name, order, intention }[]` |  |
+| `plans` | `{ id, title, description, groupId, order }[]` |  |
 | `version` | `number` | yes |
 
 ## `_appConfig/privacyPolicy`
@@ -48,8 +50,10 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 
 | Field | Type | Optional |
 | --- | --- | --- |
-| `rules` | `{ id, title, description, videoUrl, group, subgroup, order }[]` |  |
-| `agreements` | `{ tales, tunes, television }` |  |
+| `intro` | `string` | yes |
+| `groupIntentions` | `Record<string, string>` | yes |
+| `rules` | `{ id, title, description, group, workProjectType, hallWingType, order }[]` |  |
+| `agreements` | `{ intention, points }` |  |
 | `version` | `number` | yes |
 | `lastUpdated` | `number` | yes |
 

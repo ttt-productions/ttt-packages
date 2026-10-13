@@ -5,7 +5,7 @@
 // UI-only filter/view types remain in ../types/content.ts.
 
 import { z } from 'zod';
-import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
+import { HALL_WING_TYPE_KEYS, RULE_GROUP_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 import {
   ModerationDecisionNumberSchema,
   ModerationEdgeSyncOpSchema,
@@ -422,59 +422,81 @@ export type HallLibraryPreferences = z.infer<typeof HallLibraryPreferencesSchema
 
 // --- _config singleton docs ---
 
+// Public-document page text: an intro and an intention line hold plain text, blank-line-separated
+// paragraphs. A section's video is a system slot, never a field here.
+
+/** A Future Plans heading; every plan belongs to exactly one group. */
+export const FuturePlanGroupSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  order: z.number(),
+  intention: z.string().optional(),
+});
+export type FuturePlanGroup = z.infer<typeof FuturePlanGroupSchema>;
+
 export const FuturePlanItemSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
+  /** The `FuturePlanGroup.id` the plan sits under. */
+  groupId: z.string(),
+  /** Position within its group. */
   order: z.number(),
-  videoUrl: z.string().optional(),
-  mediaType: z.enum(['video', 'image', 'audio', 'other']).optional(),
 });
 export type FuturePlanItem = z.infer<typeof FuturePlanItemSchema>;
 
 export const FuturePlansDocumentSchema = z.object({
   lastUpdated: z.number(),
+  intro: z.string().optional(),
+  groups: z.array(FuturePlanGroupSchema),
   plans: z.array(FuturePlanItemSchema),
-  // Content version — bumped by the update callable on EVERY save (content-pages
-  // migration, DJ ruling 2026-07-06). Optional because pre-migration docs lack
-  // it; readers treat absence as version 1.
+  // Content version — bumped by every published release; readers treat absence as version 1.
   version: z.number().optional(),
 });
 export type FuturePlansDocument = z.infer<typeof FuturePlansDocumentSchema>;
 
-export const RuleGroupSchema = z.enum(['generic', 'workProjectType', 'hallWingType', 'workRealm', 'merchandising']);
-export type RuleGroup = z.infer<typeof RuleGroupSchema>;
+export const RuleGroupSchema = z.enum(RULE_GROUP_KEYS);
 
-export const RuleSubgroupSchema = z.enum(['Tales', 'Tunes', 'Television', 'entertainment', 'educational', 'newsPolitical']);
-export type RuleSubgroup = z.infer<typeof RuleSubgroupSchema>;
+/**
+ * Who a rule or agreement point applies to: an absent type applies to every type; a set type
+ * narrows it to that Work type or Hall wing only.
+ */
+const appliesToTypeFields = {
+  workProjectType: z.enum(WORK_PROJECT_TYPE_KEYS).optional(),
+  hallWingType: z.enum(HALL_WING_TYPE_KEYS).optional(),
+};
 
 export const RuleSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
-  videoUrl: z.string().optional(),
-  group: RuleGroupSchema.optional(),
-  subgroup: RuleSubgroupSchema.optional(),
+  group: RuleGroupSchema,
+  ...appliesToTypeFields,
   order: z.number(),
 });
 export type Rule = z.infer<typeof RuleSchema>;
 
-export const AgreementCategorySchema = z.object({
-  points: z.array(z.string()),
-  videoUrl: z.string().optional(),
+/** One Artisan Agreement point; the list's order is the page order. */
+export const AgreementPointSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  ...appliesToTypeFields,
 });
-export type AgreementCategory = z.infer<typeof AgreementCategorySchema>;
+export type AgreementPoint = z.infer<typeof AgreementPointSchema>;
+
+export const ArtisanAgreementsSchema = z.object({
+  intention: z.string().optional(),
+  points: z.array(AgreementPointSchema),
+});
+export type ArtisanAgreements = z.infer<typeof ArtisanAgreementsSchema>;
 
 export const RulesAndAgreementsSchema = z.object({
+  intro: z.string().optional(),
+  /** Each rule group's optional intention line, shown under its heading. */
+  groupIntentions: z.partialRecord(RuleGroupSchema, z.string()).optional(),
   rules: z.array(RuleSchema),
-  agreements: z.object({
-    tales: AgreementCategorySchema.optional(),
-    tunes: AgreementCategorySchema.optional(),
-    television: AgreementCategorySchema.optional(),
-  }),
-  // Content version — bumped by the update callable on EVERY save (content-pages
-  // migration, DJ ruling 2026-07-06). Optional because pre-migration docs lack
-  // it; readers treat absence as version 1.
+  agreements: ArtisanAgreementsSchema,
+  // Content version — bumped by every published release; readers treat absence as version 1.
   version: z.number().optional(),
   // Stamped by the release publish, like every other public document's current projection.
   lastUpdated: z.number().optional(),

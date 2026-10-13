@@ -34,16 +34,10 @@ const SCANNED_DIRS = ['src/schemas', 'src/doc-schemas', 'src/media', 'src/upload
  *  Every user/admin-facing TEXT field bound derives from a constants/ export; none are
  *  allowed here. Matches in comments count too — a stale number in a comment is drift. */
 const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
-  // Two extra 200s (2026-07-13): the dead-letter docId structural bound (nested-path
-  // ids) and the getDeadLetters per-ledger row cap — structural, not business limits.
-  // The former lone 32 (evidenceRefs) now derives from MAX_MANIFEST_NCMEC_RECEIPTS.
-  // The two legal-page section-count 300s now derive from MAX_CONTENT_PAGE_SECTIONS; the two
-  // extra 128s are the DMCA contact block/row opaque-id caps (same bound as every other
-  // public-document item id).
-  'src/schemas/admin.ts': [
-    1, 16, 16, 128, 128, 128, 128, 128, 128, 128, 128, 200, 200, 200, 200, 500,
-    2048, 2048, 2048,
-  ],
+  // The two 200s are the dead-letter docId structural bound (nested-path ids) and the
+  // getDeadLetters per-ledger row cap — structural, not business limits. The 128s are opaque-id
+  // caps, the public-document item id among them.
+  'src/schemas/admin.ts': [1, 16, 16, 128, 128, 128, 128, 128, 128, 128, 200, 200],
   // 200s = admin chat-moderation requestId/caseId opaque-id caps; 50s = the ≤50 before/after
   // context-window pagination bound (adminModerateChatMessage / adminReadChannelContext).
   'src/schemas/chat.ts': [20, 20, 50, 50, 64, 64, 200, 200, 200],

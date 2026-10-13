@@ -66,13 +66,13 @@ Test Flow).
   final `npm run test:quiet`.
 - After the gate is green, STOP and hand DJ ONLY the release command (`./scripts/release-multiple.sh …`,
   see Release gate above), in its own fenced `bash` block — no install commands.
-- DJ runs the publish and says so. The session then starts a 12-minute clock and checks npm every 30
+- DJ runs the publish and says so. The session then starts a 20-minute clock and checks npm every 30
   seconds until every released package's new version is the `@latest` on npm. Then the session runs
   the installs itself in the consuming app (the app in scope): at the app root and in every consuming
   folder that declares the package, `@latest`, never a pinned version, every install line ending with
   `--prefer-online` so npm re-checks the registry instead of answering `@latest` from its cached
   metadata right after a publish. It confirms each lockfile names the new version and continues the
-  app adoption with no further go. A version still missing from npm after 12 minutes = stop and tell
+  app adoption with no further go. A version still missing from npm after 20 minutes = stop and tell
   DJ which package. Never adopt against unpublished sibling source, and never install anything but
   the published version.
 - Never run ttt-packages work and consuming-app work at the same time, personally or through

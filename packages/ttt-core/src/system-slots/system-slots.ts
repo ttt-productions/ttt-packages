@@ -8,6 +8,8 @@
 import { z } from 'zod';
 import { GUIDE_VIDEO_DEFINITIONS, guideVideoSlotId } from './guide-videos.js';
 import { HELP_VIDEO_DEFINITIONS, helpVideoSlotId } from './help-videos.js';
+import { RULE_GROUP_KEYS, type RuleGroup } from '../types/content.js';
+import { ARTISAN_AGREEMENTS_TITLE, RULE_GROUP_TITLES } from '../constants/admin-labels.js';
 
 /** `video` holds one processed video; `uid` names one account; `uidList` names an ordered list. */
 export const SystemSlotKindSchema = z.enum(['video', 'uid', 'uidList']);
@@ -22,6 +24,8 @@ export const SYSTEM_SLOT_GROUPS = [
   { id: 'acknowledgmentsPage', label: 'Acknowledgments page' },
   { id: 'backstageGuide', label: 'Backstage Guide' },
   { id: 'helpComponents', label: 'Help components' },
+  { id: 'futurePlansPage', label: 'Future Plans page' },
+  { id: 'rulesPage', label: 'Rules & Agreements page' },
 ] as const;
 export type SystemSlotGroupId = (typeof SYSTEM_SLOT_GROUPS)[number]['id'];
 
@@ -61,6 +65,29 @@ const HELP_VIDEO_SLOTS = HELP_VIDEO_DEFINITIONS.map((help) => ({
   requiredVideo: false,
 }));
 
+/** The optional video under a fixed Rules & Agreements rule group's heading. */
+const RULE_GROUP_SLOT_SUFFIXES = {
+  generic: 'general',
+  merchandising: 'merchandising',
+  hallWing: 'hall-wing',
+  workRealm: 'realm',
+} as const satisfies Record<RuleGroup, string>;
+
+export function ruleGroupVideoSlotId<G extends RuleGroup>(
+  group: G,
+): `rules-${(typeof RULE_GROUP_SLOT_SUFFIXES)[G]}` {
+  return `rules-${RULE_GROUP_SLOT_SUFFIXES[group]}`;
+}
+
+const RULE_GROUP_VIDEO_SLOTS = RULE_GROUP_KEYS.map((group) => ({
+  id: ruleGroupVideoSlotId(group),
+  kind: 'video' as const,
+  label: RULE_GROUP_TITLES[group],
+  description: `The video under the ${RULE_GROUP_TITLES[group]} heading on the Rules & Agreements page.`,
+  group: 'rulesPage' as const,
+  requiredVideo: false,
+}));
+
 export const SYSTEM_SLOTS = [
   {
     id: 'founder',
@@ -86,6 +113,31 @@ export const SYSTEM_SLOTS = [
   },
   ...GUIDE_VIDEO_SLOTS,
   ...HELP_VIDEO_SLOTS,
+  {
+    id: 'future-plans-page',
+    kind: 'video',
+    label: 'Future Plans',
+    description: 'The video under the intro on the Future Plans page.',
+    group: 'futurePlansPage',
+    requiredVideo: false,
+  },
+  {
+    id: 'rules-page',
+    kind: 'video',
+    label: 'Rules & Agreements',
+    description: 'The video under the intro on the Rules & Agreements page.',
+    group: 'rulesPage',
+    requiredVideo: false,
+  },
+  ...RULE_GROUP_VIDEO_SLOTS,
+  {
+    id: 'rules-artisan-agreements',
+    kind: 'video',
+    label: ARTISAN_AGREEMENTS_TITLE,
+    description: 'The video under the Artisan Agreements heading on the Rules & Agreements page.',
+    group: 'rulesPage',
+    requiredVideo: false,
+  },
 ] as const satisfies readonly SystemSlotDefinition[];
 
 type SystemSlot = (typeof SYSTEM_SLOTS)[number];

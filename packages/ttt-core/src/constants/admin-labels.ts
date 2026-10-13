@@ -1,13 +1,11 @@
 // ============================================================================
 // ADMIN-SURFACE DISPLAY LABELS — the ONE home for business display copy keyed
-// by canonical ttt-core enums (ARCH-102, extended 2026-07-13). Consolidated from
-// the former component-local maps in ttt-prod (admin-user-management-view,
-// admin-announcements-view, guided-resolution-flow). Any client (web, phone,
-// TV, admin app) renders the same labels by importing these.
+// by canonical ttt-core enums (ARCH-102). Any client (web, phone, TV, admin app)
+// renders the same labels by importing these.
 //
 // A few entries here are copy for ADMIN-MANAGED content that a PUBLIC surface also
-// renders (the rules-page group titles at the bottom of this file). The organizing
-// principle is one declaration, not one consumer.
+// renders (the Rules & Agreements section titles). The organizing principle is one
+// declaration, not one consumer.
 // ============================================================================
 
 import type { UserAccountStatus } from '../doc-schemas/user.js';
@@ -26,7 +24,8 @@ import type { AdminDispatch } from '../doc-schemas/messaging.js';
 import type { CommissionProposalStatus } from '../schemas/commissions.js';
 import type { InviteSourceType } from '../schemas/work-project-management.js';
 import type { Audition } from '../doc-schemas/commissions.js';
-import type { WorkProjectType } from '../types/content.js';
+import type { HallWingType, RuleGroup, WorkProjectType } from '../types/content.js';
+import { HALL_WING_TYPES, WORK_PROJECT_TYPES } from './options.js';
 import type { HallSubItemStatus } from '../utils/hall-content.js';
 
 /** Moderation status labels (user-management view, status badges). */
@@ -201,15 +200,32 @@ export function userFacingReasonLabel(code: string | undefined): string | undefi
   return USER_FACING_REASON_OPTIONS.find((o) => o.code === code)?.label;
 }
 
-// --- Rules-surface group titles ---
-// The two rule-GROUP headings for the platform rules content (`Rule.group`
-// 'workProjectType' / 'hallWingType' — see schemas/admin.ts). BOTH the admin rules editor
-// and the public rules page render these, so they are declared once here instead of being
-// restated as literals on each surface (ENG-002). Copy uses the short settled terms Work /
-// Hall / Wing (ARCH-107).
+// --- Rules & Agreements section titles and type labels ---
+// The admin rules editor and the public rules page both render these (ENG-002).
 
-export const WORK_PROJECT_TYPE_RULE_GROUP_TITLE = 'Work Type Rules';
-export const HALL_WING_TYPE_RULE_GROUP_TITLE = 'Hall Wing Rules';
+/** Each fixed rule group's heading. */
+export const RULE_GROUP_TITLES: Record<RuleGroup, string> = {
+  generic: 'General Site Rules',
+  merchandising: 'Merchandising, Endorsements & Revenue Sharing',
+  hallWing: 'Hall Wing Rules',
+  workRealm: 'Realm Rules',
+};
+export const ARTISAN_AGREEMENTS_TITLE = 'Artisan Agreements';
+
+/**
+ * The label for a rule or agreement point narrowed to one type ("Tales only", "Educational wing
+ * only", "Tales, Educational wing only"); undefined when it applies to every type.
+ */
+export function appliesToTypeLabel(entry: {
+  workProjectType?: WorkProjectType;
+  hallWingType?: HallWingType;
+}): string | undefined {
+  const parts = [
+    entry.workProjectType && WORK_PROJECT_TYPES[entry.workProjectType].label,
+    entry.hallWingType && `${HALL_WING_TYPES[entry.hallWingType].label} wing`,
+  ].filter((part): part is string => Boolean(part));
+  return parts.length > 0 ? `${parts.join(', ')} only` : undefined;
+}
 
 // --- Stored-enum display labels ---
 // What a screen shows for a stored enum value, keyed by the canonical union so a new member fails

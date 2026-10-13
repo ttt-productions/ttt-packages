@@ -233,6 +233,18 @@ export const CheckDisplayNameAvailableInputSchema = z.object({
 }).strict();
 export type CheckDisplayNameAvailableInput = z.infer<typeof CheckDisplayNameAvailableInputSchema>;
 
+/** Why a display name cannot be had: another account holds it, it is reserved, or the word list
+ *  refuses it. */
+export const DISPLAY_NAME_UNAVAILABLE_REASONS = ['taken', 'reserved', 'disallowed'] as const;
+export const DisplayNameUnavailableReasonSchema = z.enum(DISPLAY_NAME_UNAVAILABLE_REASONS);
+export type DisplayNameUnavailableReason = z.infer<typeof DisplayNameUnavailableReasonSchema>;
+
+export const CheckDisplayNameAvailableResultSchema = z.object({
+  available: z.boolean(),
+  reason: DisplayNameUnavailableReasonSchema.optional(),
+});
+export type CheckDisplayNameAvailableResult = z.infer<typeof CheckDisplayNameAvailableResultSchema>;
+
 // Teen→adult upgrade: a transient DOB (never persisted) the callable re-derives adult
 // eligibility from server-side against a fresh attestation. Only the shape is validated
 // here; the age math + attestation binding live in the callable.
@@ -258,6 +270,42 @@ export const LookupUserByEmailOrUidInputSchema = z.object({
   query: z.string().trim().min(1).max(MAX_USER_SEARCH_QUERY_LENGTH),
 }).strict();
 export type LookupUserByEmailOrUidInput = z.infer<typeof LookupUserByEmailOrUidInputSchema>;
+
+/** A full email address — the exact-match lookup resolves it through Auth's email index. */
+export const USER_LOOKUP_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** A Firebase Auth uid: 28 letters and digits. */
+export const USER_LOOKUP_UID_PATTERN = /^[A-Za-z0-9]{28}$/;
+
+/** Which search an admin's user query runs: a full email or a uid is an exact lookup; anything
+ *  else is the display-name prefix search. */
+export type UserSearchKind = 'email' | 'uid' | 'name';
+
+/** The one routing of an admin user query — the User Management search box and the lookup
+ *  callable's choice of Auth method both read it. */
+export function detectUserSearchKind(query: string): UserSearchKind {
+  const trimmed = query.trim();
+  if (USER_LOOKUP_EMAIL_PATTERN.test(trimmed)) return 'email';
+  if (USER_LOOKUP_UID_PATTERN.test(trimmed)) return 'uid';
+  return 'name';
+}
+
+/** One account the exact-match lookup resolved. Carries the owner-only email (the lookup is
+ *  full-admin only) and the account's admin standing alongside its status tier. */
+export const AdminUserLookupResultSchema = z.object({
+  uid: z.string(),
+  displayName: z.string(),
+  email: z.string(),
+  status: UserAccountStatusSchema,
+  isAdmin: z.boolean().optional(),
+});
+export type AdminUserLookupResult = z.infer<typeof AdminUserLookupResultSchema>;
+
+/** The `lookupUserByEmailOrUid` callable's result: the single exact match, or `null` when no
+ *  account resolves. */
+export const LookupUserByEmailOrUidResultSchema = z.object({
+  user: AdminUserLookupResultSchema.nullable(),
+});
+export type LookupUserByEmailOrUidResult = z.infer<typeof LookupUserByEmailOrUidResultSchema>;
 
 // N3 account deletion — wire result contracts for the two user-facing callables (both take
 // no input). Previously declared independently in functions/src and src/hooks — one drifting

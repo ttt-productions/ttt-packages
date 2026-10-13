@@ -24,6 +24,10 @@ export type WorkProjectType = (typeof WORK_PROJECT_TYPE_KEYS)[number];
 /** WorkProjectType with 'All' filter option — for UI filtering only, not stored in Firestore */
 export type WorkProjectTypeFilter = WorkProjectType | 'All';
 
+/** The fixed Rules & Agreements rule groups, in page order. */
+export const RULE_GROUP_KEYS = ['generic', 'merchandising', 'hallWing', 'workRealm'] as const;
+export type RuleGroup = (typeof RULE_GROUP_KEYS)[number];
+
 export type { ItemsKey } from '../doc-schemas/content.js';
 
 // --- Threshold + Hall library items (shapes in ../doc-schemas/content.ts) ---
@@ -61,12 +65,12 @@ export type HallLibraryFilters = {
 
 // --- _config singleton docs (shapes in ../doc-schemas/content.ts) ---
 export type {
+  FuturePlanGroup,
   FuturePlanItem,
   FuturePlansDocument,
-  RuleGroup,
-  RuleSubgroup,
   Rule,
-  AgreementCategory,
+  AgreementPoint,
+  ArtisanAgreements,
   RulesAndAgreements,
 } from '../doc-schemas/content.js';
 
