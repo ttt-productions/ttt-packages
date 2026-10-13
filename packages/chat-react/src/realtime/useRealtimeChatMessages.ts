@@ -26,6 +26,8 @@ export type UseRealtimeChatMessagesResult = {
   isFetchingOlder: boolean;
   /** True once the first open has failed (see `ChannelClientState.initialLoadFailed`). */
   initialLoadFailed: boolean;
+  /** The channel is current (see `ChannelClientState.isSynced`): act on its terms only while true. */
+  isSynced: boolean;
   /** Retry the connection now — the first-open failure's Retry. */
   retry: () => void;
   /** Realtime extras (not present on the firestore result) — optional for the UI. */
@@ -118,6 +120,8 @@ export function useRealtimeChatMessages(client: RealtimeChatClient): UseRealtime
     // fall back into the opening state. `hasLoadedInitialData` encodes the full table.
     isInitialLoading: !state.hasLoadedInitialData,
     initialLoadFailed: state.initialLoadFailed,
+    // Current: open, loaded, and resynced since this socket opened (never sticky).
+    isSynced: state.isSynced,
     retry,
     messages: state.messages,
     fetchOlder,

@@ -4,8 +4,6 @@ import {
   canAccessGuildInviteConversation,
   canCancelGuildInvite,
   guildInvitePartyOf,
-  guildInviteViewerRoleOf,
-  canViewGuildInvite,
   isGuildInviteConversationLive,
   GUILD_INVITE_CONVERSATION_LIVE_STATUSES,
   type GuildChatAccessMember,
@@ -71,8 +69,8 @@ describe('one invite rule: the recipient, and the Work side — the sender and t
     }
   });
 
-  it('any other guildmate — a Stake Share Manager included — takes no part', () => {
-    expect(guildInvitePartyOf({ ...invite, uid: 'other', member: member({ guildStandings: ['StakeShareManager'] }) })).toBeNull();
+  it('any other guildmate — one whose standings handle no invites — takes no part', () => {
+    expect(guildInvitePartyOf({ ...invite, uid: 'other', member: member({ guildStandings: ['CommissionManager'] }) })).toBeNull();
     expect(guildInvitePartyOf({ ...invite, uid: 'other', member: member() })).toBeNull();
   });
 
@@ -105,13 +103,13 @@ describe('one invite rule: the recipient, and the Work side — the sender and t
 
 describe('who may cancel the Work invites', () => {
   it('any invite handler may cancel', () => {
-    for (const standing of ['StewardOwner', 'WorkProjectManager', 'InviteManager'] as const) {
+    for (const standing of ['StewardOwner', 'WorkProjectManager', 'InviteManager', 'StakeShareManager'] as const) {
       expect(canCancelGuildInvite(member({ guildStandings: [standing] }))).toBe(true);
     }
   });
 
   it('a sender who holds no handler standing may not — sending gives no cancel power', () => {
-    expect(canCancelGuildInvite(member({ guildStandings: ['StakeShareManager'] }))).toBe(false);
+    expect(canCancelGuildInvite(member({ guildStandings: ['CommissionManager'] }))).toBe(false);
     expect(canCancelGuildInvite(member())).toBe(false);
   });
 
@@ -122,34 +120,26 @@ describe('who may cancel the Work invites', () => {
   });
 });
 
-describe('who may open an invite: its parties, and a Stake Share Manager to change the offer', () => {
+describe('a Stake Share Manager is a full invite handler', () => {
   const invite = { senderUid: 'sender', recipientUid: 'recipient' };
+  const ssm = member({ guildStandings: ['StakeShareManager'] });
 
-  it('the parties open it on their own side', () => {
-    expect(guildInviteViewerRoleOf({ ...invite, uid: 'recipient', member: null })).toBe('recipient');
-    expect(guildInviteViewerRoleOf({ ...invite, uid: 'sender', member: null })).toBe('work');
-    expect(guildInviteViewerRoleOf({ ...invite, uid: 'h', member: member({ guildStandings: ['InviteManager'] }) })).toBe('work');
+  it("takes the Work's side of any invite — the conversation, agreeing, and cancelling", () => {
+    expect(guildInvitePartyOf({ ...invite, uid: 'ssm', member: ssm })).toBe('work');
+    expect(canAccessGuildInviteConversation({ ...invite, uid: 'ssm', member: ssm, status: 'pending' })).toBe(true);
+    expect(canCancelGuildInvite(ssm)).toBe(true);
   });
 
-  it('a Stake Share Manager opens it as a stake editor, never as a party', () => {
-    const ssm = member({ guildStandings: ['StakeShareManager'] });
-    expect(guildInviteViewerRoleOf({ ...invite, uid: 'ssm', member: ssm })).toBe('stakeEditor');
-    expect(canViewGuildInvite({ ...invite, uid: 'ssm', member: ssm })).toBe(true);
-    expect(guildInvitePartyOf({ ...invite, uid: 'ssm', member: ssm })).toBeNull();
-    expect(canCancelGuildInvite(ssm)).toBe(false);
-  });
-
-  it('a handler who also holds stake power stays a party', () => {
-    const both = member({ guildStandings: ['InviteManager', 'StakeShareManager'] });
-    expect(guildInviteViewerRoleOf({ ...invite, uid: 'both', member: both })).toBe('work');
-  });
-
-  it('nobody else opens it: another standing, a departed Stake Share Manager, the founding Work, or no member', () => {
-    expect(canViewGuildInvite({ ...invite, uid: 'o', member: member({ guildStandings: ['CommissionManager'] }) })).toBe(false);
-    expect(canViewGuildInvite({ ...invite, uid: 'o', member: member({ status: 'departed', guildStandings: ['StakeShareManager'] }) })).toBe(false);
+  it("is never the recipient's side, and the standing alone does not admit a departed holder or the founding Work", () => {
+    expect(guildInvitePartyOf({ ...invite, uid: 'ssm', member: ssm })).not.toBe('recipient');
+    expect(guildInvitePartyOf({ ...invite, uid: 'o', member: member({ status: 'departed', guildStandings: ['StakeShareManager'] }) })).toBeNull();
     expect(
-      canViewGuildInvite({ ...invite, uid: 'o', member: member({ holderType: FOUNDING_WORK_HOLDER_TYPE, guildStandings: ['StakeShareManager'] }) }),
-    ).toBe(false);
-    expect(canViewGuildInvite({ ...invite, uid: 'o', member: null })).toBe(false);
+      guildInvitePartyOf({ ...invite, uid: 'o', member: member({ holderType: FOUNDING_WORK_HOLDER_TYPE, guildStandings: ['StakeShareManager'] }) }),
+    ).toBeNull();
+  });
+
+  it('a standing that handles no invites takes no part', () => {
+    expect(guildInvitePartyOf({ ...invite, uid: 'o', member: member({ guildStandings: ['CommissionManager'] }) })).toBeNull();
+    expect(guildInvitePartyOf({ ...invite, uid: 'o', member: null })).toBeNull();
   });
 });

@@ -5,9 +5,10 @@ import type { UseRealtimeChatMessagesResult } from "../src/realtime/useRealtimeC
 
 // Drive the realtime data hook's result directly so we exercise the ChatShell
 // `isInitialLoading` branch deterministically. Two contracts are under test:
-//   F4.1 — the consumer's header + the three render-slots (renderAboveMessages /
-//     renderBelowMessages / renderFooter) MUST still render while the message list
-//     region is replaced (critical guild-invite agreement controls hang off them).
+//   The consumer's header + the three render-slots (renderAboveMessages /
+//     renderBelowMessages / renderFooter) still render while the message list region is
+//     replaced; whether a slot's actions may run is `onReadinessChange`'s answer
+//     (ChatShell.readiness.test.tsx).
 //   Initial-load — that region shows an honest "Opening chat…" indicator in a
 //     polite live region, and the reconnect banner must NOT compete with it.
 // `mock`-prefixed so vitest allows referencing it inside the hoisted factory.
@@ -56,7 +57,7 @@ beforeEach(() => {
 });
 
 describe("ChatShell — initial-loading state", () => {
-  it("renders the header + above/below/footer slots while the realtime socket is still connecting (F4.1)", () => {
+  it("renders the header + above/below/footer slots while the realtime socket is still connecting", () => {
     const { getByText, getByRole } = render(
       <ChatShell
         config={realtimeConfig()}
@@ -67,7 +68,6 @@ describe("ChatShell — initial-loading state", () => {
         renderFooter={() => <div>FINAL FOOTER</div>}
       />,
     );
-    // The critical agreement controls must be present even though the message list is loading.
     expect(getByText("INVITE HEADER")).toBeTruthy();
     expect(getByText("BINDING NOTICE")).toBeTruthy();
     expect(getByRole("button", { name: "Agree to Terms" })).toBeTruthy();

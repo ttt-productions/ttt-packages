@@ -257,15 +257,12 @@ TTT Productions application-data package.
   holder) of a channel that is not deleted, holding a required standing OR trade profession; an empty
   requirement admits every active Guildmate. `guildInvitePartyOf({ uid, senderUid, recipientUid, member })`
   — `recipient`, or `work` for the sender and for every active person Guildmate holding an invite-handling
-  standing (`GUILD_INVITE_HANDLER_GUILD_STANDING_IDS`: Steward, WorkProject Manager, Invite Manager), who
-  see the conversation, reply in it, and accept for the Work; `canAccessGuildInviteConversation` adds
+  standing (`GUILD_INVITE_HANDLER_GUILD_STANDING_IDS`: Steward, WorkProject Manager, Invite Manager,
+  Stake Share Manager), who see the conversation, reply in it, share its files, and agree for the Work; `canAccessGuildInviteConversation` adds
   that the invite is live (`GUILD_INVITE_CONVERSATION_LIVE_STATUSES`: `pending`, `accepted`);
   `canCancelGuildInvite(member)` — an active person Guildmate whose standings grant `guildInvite.revokeAny`
-  (a sender holding none cannot cancel). Opening an invite is wider than taking part in it:
-  `guildInviteViewerRoleOf` answers the party side, or `stakeEditor` for an active person Guildmate
-  whose standings grant `guildInvite.list` and `guildInvite.stakeShares.update` without handling invites (a Stake Share Manager) — who sees
-  the invite and its offer to change the offer, and takes no part in its conversation, files, the
-  Work's agreement, or a cancel; `canViewGuildInvite` is whether either applies. An invite records
+  (a sender holding none cannot cancel). Whoever may open an invite takes part in it: there is no
+  view-only role. An invite records
   who gave the Work's agreement (`senderConfirmedBy`, a uid, present while `senderConfirmed` is
   true), and the accept event's payload (`GuildInviteAcceptedAuditPayloadSchema`,
   `schemas/admin-dispatch-actions`) carries it beside the invite and its offer. A guild chat channel stores no member list: its
@@ -623,9 +620,8 @@ When adding a new invite source or commission-proposal lifecycle state, update t
 Every defined Work action is enforced by the server or absent from the catalog. The standing lists the
 rules read are declared once beside the catalog and each action's grant reads its list:
 `WORK_FILE_ADMIN_GUILD_STANDING_IDS` (the file-system administrators — every file action, and
-`isWorkFileAdmin`), `GUILD_INVITE_HANDLER_GUILD_STANDING_IDS` (`guildInvite.send` /
-`.revokeAny`), `GUILD_INVITE_VIEWER_GUILD_STANDING_IDS` (`guildInvite.list` — the handlers and the
-stake-power standings, derived from both lists: opening the Work's invites, not taking part), and `STAKE_SHARE_POWER_GUILD_STANDING_IDS` (`workProject.stakeShares.addActive`,
+`isWorkFileAdmin`), `GUILD_INVITE_HANDLER_GUILD_STANDING_IDS` (`guildInvite.send` / `.list` /
+`.revokeAny`), and `STAKE_SHARE_POWER_GUILD_STANDING_IDS` (`workProject.stakeShares.addActive`,
 `guildInvite.stakeShares.update` — so only the stake-power standings change stake amounts, an invite's
 offer included). `guildStandingsGrantAction(guildStandings, action)` is the one reading of a grant; the
 active-Guildmate floor stays the caller's check.

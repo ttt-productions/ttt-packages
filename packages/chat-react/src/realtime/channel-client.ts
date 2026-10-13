@@ -148,6 +148,15 @@ export interface ChannelClientState {
    * messages under the reconnect banner instead.
    */
   initialLoadFailed: boolean;
+  /**
+   * True while the channel is CURRENT: the socket is open, initial data has loaded, and the
+   * authoritative state has been re-applied since this socket opened — a non-resync resume
+   * snapshot, or the history page answering a resync. Cleared the moment the socket closes,
+   * reconnects, or is denied, and false again on every new socket until its resume lands, so a
+   * consumer that must act on the conversation's current terms (an agreement, an offer) waits for
+   * it. Unlike `hasLoadedInitialData` it is never sticky.
+   */
+  isSynced: boolean;
 }
 
 export interface ChannelClientConfig {
@@ -185,6 +194,7 @@ const INITIAL: ChannelClientState = {
   lastErrorCode: null,
   hasLoadedInitialData: false,
   initialLoadFailed: false,
+  isSynced: false,
 };
 
 /**
@@ -195,6 +205,9 @@ const INITIAL: ChannelClientState = {
  * of the wire contract with the worker runtime's send handler.
  */
 const MEMBERSHIP_PENDING_CODE = 'membership-pending';
+
+/** Why a history page was requested: to re-page after a resync, or for older messages. */
+type HistoryRequestKind = 'resync' | 'older';
 /** Fallback retry delay when the frame omits/breaks `retryAfterMs`. */
 const MEMBERSHIP_PENDING_DEFAULT_RETRY_MS = 2000;
 
@@ -254,6 +267,8 @@ export class ChannelClient {
    * can never judge a socket that does not exist. See {@link INBOUND_SILENCE_LIMIT_MS}.
    */
   private lastInboundAt: number | null = null;
+  // History requests sent on the current socket and not yet answered, oldest first.
+  private historyRequests: HistoryRequestKind[] = [];
   private typingTimers = new Map<string, ReturnType<TransportTimers['setTimeout']>>();
   private lastTypingSentAt = Number.NEGATIVE_INFINITY;
   private reconnectTimer: ReturnType<TransportTimers['setTimeout']> | null = null;
@@ -324,6 +339,8 @@ export class ChannelClient {
 
   private setState(patch: Partial<ChannelClientState>): void {
     this.state = { ...this.state, ...patch };
+    // Only an open socket can be current.
+    if (this.state.status !== 'open') this.state.isSynced = false;
     for (const fn of this.listeners) fn(this.state);
   }
 
@@ -471,7 +488,9 @@ export class ChannelClient {
     // Start the liveness clock at open — the first heartbeat window is measured
     // from here, not from a stale previous socket.
     this.lastInboundAt = this.timers.now();
-    this.setState({ status: 'open' });
+    // A new socket is current only once its resume lands.
+    this.historyRequests = [];
+    this.setState({ status: 'open', isSynced: false });
     this.diag?.(DIAG.SOCKET_OPEN, {
       attempt: this.connectAttempt,
       cause: this.reconnectCause,
@@ -1098,7 +1117,7 @@ export class ChannelClient {
       // A non-resync snapshot IS the first authoritative data (even an empty delta =
       // caught up) — end initial loading. A resync snapshot instead defers to the
       // re-paged first history page below, so it must NOT end it here.
-      if (!this.state.hasLoadedInitialData) this.setState(this.initialDataLoaded());
+      this.setState({ ...(this.state.hasLoadedInitialData ? {} : this.initialDataLoaded()), isSynced: true });
       return;
     }
 
@@ -1126,7 +1145,7 @@ export class ChannelClient {
       keptOptimistic: keptOptimistic.length,
     });
     this.setState({ messages: keptOptimistic, hasOlder: true, isFetchingOlder: false });
-    this.requestHistory(null);
+    this.requestHistory(null, 'resync');
   }
 
   /**
@@ -1245,6 +1264,9 @@ export class ChannelClient {
 
   private applyHistoryPage(rows: WireMessageRow[]): void {
     const cursorBefore = this.resumeSeq;
+    // The socket answers history requests in the order they were sent; the page answering a
+    // resync is the one that makes the channel current again.
+    const answersResync = this.historyRequests.shift() === 'resync';
     const mapped = rows.map((r) => this.renderRow(r));
     // Mirror mergeMessage's optimistic reconciliation: a history row carrying a
     // clientMessageId we still hold as an optimistic placeholder IS that send (the
@@ -1276,6 +1298,7 @@ export class ChannelClient {
       // load, so it ends initial loading. An older page arrives only after it, so this
       // never runs a second time.
       ...(this.state.hasLoadedInitialData ? {} : this.initialDataLoaded()),
+      ...(answersResync ? { isSynced: true } : {}),
     });
     if (!this.diag) return;
     const seqs = rows.map((r) => r.seq).filter((s): s is number => typeof s === 'number');
@@ -1402,11 +1425,12 @@ export class ChannelClient {
     const beforeSeq = oldest && typeof oldest.meta?.seq === 'number' ? (oldest.meta.seq as number) : null;
     this.setState({ isFetchingOlder: true });
     // Unsent (the socket is down): nothing will answer, so it is not in flight.
-    if (!this.requestHistory(beforeSeq)) this.setState({ isFetchingOlder: false });
+    if (!this.requestHistory(beforeSeq, 'older')) this.setState({ isFetchingOlder: false });
   }
 
-  private requestHistory(beforeSeq: number | null): boolean {
+  private requestHistory(beforeSeq: number | null, kind: HistoryRequestKind): boolean {
     const sent = this.sendFrame(CLIENT_FRAME.HISTORY, { beforeSeq, limit: HISTORY_PAGE_MAX });
+    if (sent) this.historyRequests.push(kind);
     this.diag?.(DIAG.HISTORY_REQUEST, { beforeSeq, limit: HISTORY_PAGE_MAX, sent });
     return sent;
   }

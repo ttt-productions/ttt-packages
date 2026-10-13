@@ -79,6 +79,14 @@ export type ChatShellProps = {
    *  full-height page panel doesn't grow unbounded or waste space on a fixed 400px box.
    *  The consumer must give ChatShell a bounded-height parent (e.g. an `h-full` panel). */
   fillHeight?: boolean;
+  /**
+   * Called with whether the conversation is READY — its access allowed, its initial data loaded
+   * with no failure, and (realtime) the channel current since its socket last opened — each time
+   * that changes, and with `false` when the shell unmounts. A consumer that lets someone act on
+   * what the conversation says (an agreement, an offer) offers and accepts that action only while
+   * it is true; reading the conversation needs no readiness.
+   */
+  onReadinessChange?: (ready: boolean) => void;
   /** Advanced override for the scrollable region's class (forwarded to MessageList).
    *  Usually unnecessary — prefer `fillHeight`. */
   scrollClassName?: string;
@@ -91,6 +99,8 @@ export type ChatShellProps = {
 type ResolvedChat = {
   allowed: boolean;
   isInitialLoading: boolean;
+  /** The transport's own readiness beyond loaded-and-allowed (realtime: the channel is current). */
+  transportCurrent: boolean;
   messages: ChatMessageV1[];
   fetchOlder: () => Promise<void>;
   hasOlder: boolean;
@@ -152,6 +162,7 @@ function FirestoreChatShell(props: ChatShellProps) {
       resolved={{
         allowed: r.allowed,
         isInitialLoading: r.isInitialLoading,
+        transportCurrent: true,
         messages: r.messages,
         fetchOlder: r.fetchOlder,
         hasOlder: r.hasOlder,
@@ -195,6 +206,7 @@ function RealtimeChatShell(props: ChatShellProps) {
         // The app's access fact AND the grant's: a terminal denial closes it either way.
         allowed: config.allowed && r.allowed,
         isInitialLoading: r.isInitialLoading,
+        transportCurrent: r.isSynced,
         messages: r.messages,
         fetchOlder: r.fetchOlder,
         hasOlder: r.hasOlder,
@@ -230,12 +242,23 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     scrollClassName,
     scrollContainer,
     renderLoadError,
+    onReadinessChange,
     resolved,
   } = props;
 
   const { allowed, isInitialLoading, messages, fetchOlder, hasOlder, isFetchingOlder, loadFailure, olderFailure, send, retrySend, readAck, status, typing, signalTyping } = resolved;
   // Nothing loaded and the read failed: the failure takes the list's place.
   const initialFailure = loadFailure?.scope === "initial" ? loadFailure : null;
+
+  const ready = allowed && !isInitialLoading && loadFailure === null && resolved.transportCurrent;
+  const readinessListener = React.useRef(onReadinessChange);
+  React.useEffect(() => {
+    readinessListener.current = onReadinessChange;
+  });
+  React.useEffect(() => {
+    readinessListener.current?.(ready);
+  }, [ready]);
+  React.useEffect(() => () => readinessListener.current?.(false), []);
 
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
   const [atBottom, setAtBottom] = React.useState(true);
@@ -304,9 +327,8 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     // parchment/skeleton box (which read as an empty chat) and NOT the reconnect banner
     // (which must not compete with the initial-opening message). Only the MessageList
     // region is replaced: the consumer's header + actions + the three render-slots +
-    // footer all still render, because a consumer that hangs critical controls off those
-    // slots (e.g. the guild-invite binding-agreement Agree/Decline/stake-share controls)
-    // must work whether or not realtime chat has connected yet (F4.1).
+    // footer still render, and `onReadinessChange` tells a consumer whose slots carry
+    // actions that the conversation is not ready to act on.
     return (
       <Card className={cardClassName}>
         {(header || handlers) && (

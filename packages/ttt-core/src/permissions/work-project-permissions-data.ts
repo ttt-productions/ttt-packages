@@ -89,12 +89,15 @@ export const WORK_FILE_ADMIN_GUILD_STANDING_IDS = [
 
 /**
  * A Work's invite handlers: they send the Work's invites, list them, cancel them, and take the
- * Work's side in every invite conversation — they see it, reply in it, and accept for the Work.
+ * Work's side in every invite conversation — they see it, reply in it, share files in it, and
+ * agree for the Work. A Stake Share Manager is one: it handles invites like an Invite Manager and
+ * also changes their offers.
  */
 export const GUILD_INVITE_HANDLER_GUILD_STANDING_IDS = [
   'StewardOwner',
   'WorkProjectManager',
   'InviteManager',
+  'StakeShareManager',
 ] as const satisfies readonly GuildStandingId[];
 
 /** The standings that change stake amounts — active Guildmates' stakes and pending invite offers. */
@@ -103,15 +106,6 @@ export const STAKE_SHARE_POWER_GUILD_STANDING_IDS = [
   'WorkProjectManager',
   'StakeShareManager',
 ] as const satisfies readonly GuildStandingId[];
-
-/**
- * The standings that open the Work's invites: the invite handlers, and the stake-power standings,
- * which open an invite to change its offer. Opening an invite is not taking part in it — the
- * conversation, its files, the Work's agreement, and cancelling stay the handlers'.
- */
-export const GUILD_INVITE_VIEWER_GUILD_STANDING_IDS: readonly GuildStandingId[] = [
-  ...new Set<GuildStandingId>([...GUILD_INVITE_HANDLER_GUILD_STANDING_IDS, ...STAKE_SHARE_POWER_GUILD_STANDING_IDS]),
-];
 
 export const WORK_PROJECT_ACTIONS = {
   'workProject.read': {
@@ -151,10 +145,8 @@ export const WORK_PROJECT_ACTIONS = {
   },
   'guildInvite.list': {
     label: 'List invites',
-    description:
-      "Open the Work's invites and see their state and offers. A stake-power standing opens an invite " +
-      'to change its offer; replying, agreeing for the Work, and cancelling stay with the invite handlers.',
-    grantedTo: GUILD_INVITE_VIEWER_GUILD_STANDING_IDS,
+    description: "Open the Work's invites and see their state and offers.",
+    grantedTo: GUILD_INVITE_HANDLER_GUILD_STANDING_IDS,
   },
   'guildInvite.revokeAny': {
     label: 'Revoke pending invites',

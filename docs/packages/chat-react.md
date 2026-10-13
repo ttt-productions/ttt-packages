@@ -167,6 +167,17 @@ suppresses the reconnect banner so it cannot compete; the header, actions,
 initial load, messages stay mounted through reconnects under the existing
 reconnect/disconnected banner.
 
+**Readiness — a channel that is current.** `ChannelClientState.isSynced` is true only while
+the socket is open, initial data has loaded, and the authoritative state has been re-applied
+since that socket opened: a non-resync resume snapshot, or the history page that answers a
+resync (history pages are answered in request order, so an older page asked for first never
+counts). It goes false the moment the socket closes, reconnects, or is denied, and stays false on
+a new socket until its resume lands — never sticky, no timers. `useRealtimeChatMessages` returns
+it, and `ChatShell` reports readiness through `onReadinessChange(ready)`: allowed, loaded with no
+failure, and (realtime) current; `false` again when the shell unmounts. Reading never waits on
+it; a consumer whose slots let someone act on what the conversation says offers and accepts that
+action only while it is true.
+
 **A first open that keeps failing.** Both clients carry `initialLoadFailed`. It turns
 true when there is still no initial data `CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS` (15 s, client
 policy) after the first attempt started — whether the attempts failed or one is hanging (a
