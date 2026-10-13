@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/ttt-core",
-    "version": "0.79.75",
+    "version": "0.79.76",
     "description": "Core types, Firestore path constants, and shared constants for TTT Productions",
     "repository": {
         "type": "git",
