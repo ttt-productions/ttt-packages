@@ -26,6 +26,17 @@ const mediaKindSchema = ContentMediaKindSchema;
 export const UserAccountStatusSchema = z.enum(['active', 'suspended', 'banned']);
 export type UserAccountStatus = z.infer<typeof UserAccountStatusSchema>;
 
+/** The status an account holds while no status decision has ever been written: a profile, or a
+ *  token, with no `status` is an active account. */
+export const ABSENT_USER_ACCOUNT_STATUS = 'active' as const satisfies UserAccountStatus;
+
+/** A stored `userProfiles.status` read as the account's status: absent is
+ *  `ABSENT_USER_ACCOUNT_STATUS`; any value outside `UserAccountStatusSchema` throws, so a
+ *  malformed status is never enforced, compared, or shown as if it were real. */
+export function parseUserAccountStatus(value: unknown): UserAccountStatus {
+  return value === undefined ? ABSENT_USER_ACCOUNT_STATUS : UserAccountStatusSchema.parse(value);
+}
+
 // Craft-skill kind — mandatory choice at upload, no default (see ttt-prod
 // docs/design/profile-and-craft-skills.md). 'original' = the artisan's own original creation;
 // 'mimicOnTtt' = a performance/recreation of work that originated in the TTT community
