@@ -103,6 +103,20 @@ export const GuildInviteCancelledEventSchema = z
   })
   .strict();
 
+// A guildmate left the Work — the leave callable's committed departure. Carries the departing
+// user, whose own Works lose this one; the Work's member-only reads are no longer theirs.
+export const WorkProjectGuildmateLeftEventSchema = z
+  .object({
+    type: z.literal('workProject.guildmateLeft'),
+    ids: z
+      .object({
+        workProjectId: z.string().min(1),
+        userId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
 export const AuditionPromptCreatedEventSchema = z
   .object({
     type: z.literal('audition.promptCreated'),

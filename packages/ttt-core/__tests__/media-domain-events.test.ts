@@ -357,3 +357,23 @@ describe('retired domain events', () => {
     ).toBe(true);
   });
 });
+
+describe('workProject.guildmateLeft (a committed departure from a Work)', () => {
+  it('accepts the departed Work and the departing user through the union', () => {
+    const event = { type: 'workProject.guildmateLeft', ids: { workProjectId: 'w1', userId: 'u1' } };
+    expect(DomainEventSchema.parse(event)).toEqual(event);
+  });
+
+  it('rejects a missing departing user', () => {
+    expect(DomainEventSchema.safeParse({ type: 'workProject.guildmateLeft', ids: { workProjectId: 'w1' } }).success).toBe(false);
+  });
+
+  it('rejects unknown id fields (strict)', () => {
+    expect(
+      DomainEventSchema.safeParse({
+        type: 'workProject.guildmateLeft',
+        ids: { workProjectId: 'w1', userId: 'u1', stakeShares: 0 },
+      }).success,
+    ).toBe(false);
+  });
+});

@@ -16,10 +16,10 @@ DJ's commands and written rules are absolute. The agent executes exactly what DJ
 
 ## Publish handoff
 
-- The user performs every version bump, publish, install, git, and push action.
+- The user performs every version bump, publish, git, and push action. Installs of a release the user has published are the agent's (below).
 - The only user-facing release command is `./scripts/release-multiple.sh <folder> [<folder> ...] <patch|minor|major>` with short folder names. Never hand the user `release-package.sh` directly.
 - Pre-launch, every release is `patch` — additive exports, fixes, and breaking changes alike; never hand off `minor` or `major` (`CLAUDE.md` § Version bump selection). A breaking change still requires confirming that no consumer relies on what it removes or alters before it ships as a patch.
-- After `npm run test:quiet` is green, stop with the exact release command and the install commands as ONE fenced `bash` block runnable from the `ttt-master-app` root (install at the root, `cd` into each other consuming folder — `functions`, `media-worker`, … — install there, end with `cd ..` back at the root; never separate per-folder blocks). Do not begin app adoption until the user explicitly continues.
+- After `npm run test:quiet` is green, stop with ONLY the exact release command in its own fenced `bash` block — no install commands. When the user says the publish is running, start a 12-minute clock and check npm every 30 seconds until every released package's new version is `@latest`; then run the installs yourself in the consuming app in scope (`@latest --prefer-online`, at the app root and in every consuming folder that declares the package), confirm each lockfile names the new version, and continue the app adoption with no further go. A version still missing after 12 minutes: stop and tell the user which package. Never install anything but the published version.
 
 ## Review agents
 

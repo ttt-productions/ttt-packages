@@ -72,8 +72,6 @@ export type { ScrollToTopButtonProps } from "./components/scroll-to-top-button.j
 export { ShowMoreToggle } from "./components/show-more-toggle.js";
 export type { ShowMoreToggleProps } from "./components/show-more-toggle.js";
 
-export { ChunkErrorRecovery } from "./components/chunk-error-recovery.js";
-export type { ChunkErrorRecoveryProps } from "./components/chunk-error-recovery.js";
 
 export { ReloadRecoveryNotice } from "./components/reload-recovery-notice.js";
 export type { ReloadRecoveryNoticeProps } from "./components/reload-recovery-notice.js";

@@ -6,7 +6,7 @@ Generic UI primitive package.
 
 - shadcn-style primitives and shared UI helpers
 - `cn`
-- Generic app-agnostic components such as relative time, end-of-list indicator, scroll-to-top button, and chunk error recovery
+- Generic app-agnostic components such as relative time, end-of-list indicator, and scroll-to-top button
 - The reload-recovery notice for failures only a reload repairs (below)
 - The list-pagination BUTTONS control and its page-state hooks (see below)
 - Generic formatting helpers such as `formatLargeNumber`

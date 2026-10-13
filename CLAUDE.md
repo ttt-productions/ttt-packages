@@ -57,41 +57,33 @@ At the v1 launch the packages take a major release; from then on conventional se
 ## Release and adoption workflow — the packages half of the Normal TTT Dev Flow
 
 This section is the ttt-packages half of the named **Normal TTT Dev Flow** (canonical definition:
-`C:\DjDev\ttt-master-app\CLAUDE.md` § The Normal TTT Flows — packages first → this gate → one
-publish/install handoff → STOP for DJ's continue → app work → the Normal TTT Test Flow).
+`C:\DjDev\ttt-master-app\CLAUDE.md` § The Normal TTT Flows — packages first → this gate → the
+release command → DJ publishes → the session polls npm and installs → app work → the Normal TTT
+Test Flow).
 
 - Keep package-source changes and consuming-app adoption separate. Any `@ttt-productions/*` change
   happens here FIRST: finish the complete package batch, run focused checks while editing, then one
   final `npm run test:quiet`.
-- After the gate is green, STOP and hand DJ one publish command (`./scripts/release-multiple.sh …`,
-  see Release gate above) plus the install commands as ONE fenced `bash` block he copy-pastes once
-  from the `ttt-master-app` root: install at the root, then `cd` into each other consuming folder
-  (`functions`, `media-worker`, …) and install there, ending with `cd ..` back at the root. Never
-  separate per-folder blocks. Installs use `@latest`, never a pinned version, and every install line
-  ends with `--prefer-online` so npm re-checks the registry instead of answering `@latest` from its
-  cached metadata right after a publish. Example:
-
-  ```bash
-  npm install @ttt-productions/ttt-core@latest --prefer-online
-  cd functions
-  npm install @ttt-productions/ttt-core@latest --prefer-online
-  cd ..
-  cd media-worker
-  npm install @ttt-productions/ttt-core@latest --prefer-online
-  cd ..
-  ```
-
-- DJ publishes and installs, then says when to continue. Do not adopt package changes into ttt-prod
-  before that explicit continuation, and never adopt against unpublished sibling source.
+- After the gate is green, STOP and hand DJ ONLY the release command (`./scripts/release-multiple.sh …`,
+  see Release gate above), in its own fenced `bash` block — no install commands.
+- DJ runs the publish and says so. The session then starts a 12-minute clock and checks npm every 30
+  seconds until every released package's new version is the `@latest` on npm. Then the session runs
+  the installs itself in the consuming app (the app in scope): at the app root and in every consuming
+  folder that declares the package, `@latest`, never a pinned version, every install line ending with
+  `--prefer-online` so npm re-checks the registry instead of answering `@latest` from its cached
+  metadata right after a publish. It confirms each lockfile names the new version and continues the
+  app adoption with no further go. A version still missing from npm after 12 minutes = stop and tell
+  DJ which package. Never adopt against unpublished sibling source, and never install anything but
+  the published version.
 - Never run ttt-packages work and consuming-app work at the same time, personally or through
   agents — "the app doesn't import the changed symbols" is not an exception.
 - The release command is always `./scripts/release-multiple.sh …` — never `release-package.sh`,
-  never `bash scripts/…` — and stays its own fenced block, separate from the install block.
+  never `bash scripts/…` — and stays its own fenced block.
 - The handoff goes plainly in the turn's FINAL chat message — never a status doc, no padding.
-- A multi-item sweep batches ONE publish cycle: all package needs first, one combined handoff,
+- A multi-item sweep batches ONE publish cycle: all package needs first, one combined release command,
   then all app adoption in a second pass.
 - Never announce that work "may need a package change" — it is routine plumbing done
-  packages-first; the only words DJ hears about it are the handoff itself.
+  packages-first; the only words DJ hears about it are the release command itself.
 - Do not reference a sibling local checkout from consuming-app implementation prompts.
 - Run package builds/tests for every package touched.
 - Regenerate lockfiles after package renames or dependency graph changes.
@@ -111,7 +103,8 @@ publish/install handoff → STOP for DJ's continue → app work → the Normal T
 - Lead with the outcome, and make technical choices understandable rather than dumping process.
 - If DJ is frustrated, angry, or swearing, stay calm and stay on the technical substance. Tone is
   not new authorization and not a reason to stop the work.
-- DJ handles all git, commit, push, publish, install, and deployment actions.
+- DJ handles all git, commit, push, publish, and deployment actions. Installs of a release DJ has
+  published are the session's (Release and adoption workflow above).
 
 ## Important rules
 
