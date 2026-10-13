@@ -51,7 +51,6 @@ import {
   ViolationAppealSubmittedEventSchema,
   AdminDisplayNameResetForcedEventSchema,
   HallContentChangeRequestApprovedEventSchema,
-  SystemSlotVideoUpdatedEventSchema,
   SystemSlotUidUpdatedEventSchema,
 } from "./domain-events-admin.js";
 
@@ -120,7 +119,6 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   AdminDisplayNameResetForcedEventSchema,
   WorkRealmDetailsUpdatedEventSchema,
   HallContentChangeRequestApprovedEventSchema,
-  SystemSlotVideoUpdatedEventSchema,
   SystemSlotUidUpdatedEventSchema,
 ]);
 

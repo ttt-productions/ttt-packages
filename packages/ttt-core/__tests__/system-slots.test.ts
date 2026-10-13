@@ -8,6 +8,11 @@ import {
   SystemUidSlotIdSchema,
   SystemUidListSlotIdSchema,
   getSystemSlot,
+  HELP_VIDEO_DEFINITIONS,
+  helpVideoSlotId,
+  SYSTEM_SLOT_GROUPS,
+  isRequiredVideoSlot,
+  systemSlotsByGroup,
 } from '../src/system-slots';
 import { SystemContentTargetInfoSchema, parseTargetInfo } from '../src/media/target-info';
 import { FileOriginSchema } from '../src/media/file-origin';
@@ -88,6 +93,72 @@ describe('the system-slot registry', () => {
   });
 });
 
+describe('the system-slot groups and required videos', () => {
+  const groupIds: readonly string[] = SYSTEM_SLOT_GROUPS.map((group) => group.id);
+
+  it('puts every slot in a declared group', () => {
+    for (const slot of SYSTEM_SLOTS) expect(groupIds, slot.id).toContain(slot.group);
+  });
+
+  it('declares every group once, with a name, and only groups a slot belongs to', () => {
+    expect(new Set(groupIds).size).toBe(groupIds.length);
+    for (const group of SYSTEM_SLOT_GROUPS) {
+      expect(group.label.trim().length, group.id).toBeGreaterThan(0);
+      expect(SYSTEM_SLOTS.some((slot) => slot.group === group.id), group.id).toBe(true);
+    }
+  });
+
+  it('declares on every video slot whether its place always shows a video', () => {
+    for (const slot of SYSTEM_SLOTS) {
+      if (slot.kind === 'video') expect(typeof slot.requiredVideo, slot.id).toBe('boolean');
+      else expect(slot, slot.id).not.toHaveProperty('requiredVideo');
+    }
+  });
+
+  it('requires a video on the landing hero and every Guide video; never on a Help placement', () => {
+    expect(isRequiredVideoSlot('landing-hero')).toBe(true);
+    for (const video of GUIDE_VIDEO_DEFINITIONS) expect(isRequiredVideoSlot(guideVideoSlotId(video.id)), video.id).toBe(true);
+    for (const help of HELP_VIDEO_DEFINITIONS) expect(isRequiredVideoSlot(helpVideoSlotId(help.id)), help.id).toBe(false);
+  });
+
+  it('lists the slots under their groups, in the groups\' order, every slot once', () => {
+    const grouped = systemSlotsByGroup();
+    expect(grouped.map((entry) => entry.group.id)).toEqual(groupIds);
+    expect(grouped.flatMap((entry) => entry.slots.map((slot) => slot.id)).sort()).toEqual(SYSTEM_SLOTS.map((slot) => slot.id).sort());
+    for (const entry of grouped) for (const slot of entry.slots) expect(slot.group).toBe(entry.group.id);
+  });
+});
+
+describe('the Help component video slots', () => {
+  it('derives one optional Help-components video slot per Help placement, titled and located from it', () => {
+    for (const help of HELP_VIDEO_DEFINITIONS) {
+      const slot = getSystemSlot(helpVideoSlotId(help.id));
+      expect(slot, help.id).toMatchObject({ kind: 'video', label: help.title, description: help.location, group: 'helpComponents', requiredVideo: false });
+    }
+  });
+
+  it('holds no Help slot that a Help placement does not declare', () => {
+    const declared = new Set<string>(HELP_VIDEO_DEFINITIONS.map((help) => helpVideoSlotId(help.id)));
+    const helpSlots = SYSTEM_SLOTS.filter((slot) => slot.id.startsWith('help-')).map((slot) => slot.id);
+    for (const id of helpSlots) expect(declared, id).toContain(id);
+  });
+
+  it('declares each Help placement once, with a kebab-case id, a title, and a location', () => {
+    const ids = HELP_VIDEO_DEFINITIONS.map((help) => help.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const help of HELP_VIDEO_DEFINITIONS) {
+      expect(help.id).toMatch(KEBAB_CASE);
+      expect(help.title.trim().length, help.id).toBeGreaterThan(0);
+      expect(help.location.trim().length, help.id).toBeGreaterThan(0);
+    }
+  });
+
+  it('builds a Help slot id from the placement id', () => {
+    expect(helpVideoSlotId('hall')).toBe('help-hall');
+    expect(SystemVideoSlotIdSchema.safeParse('help-hall').success).toBe(true);
+  });
+});
+
 describe('the system-content upload origin', () => {
   it('is a canonical file origin with a tray label', () => {
     expect(FileOriginSchema.parse('system-content')).toBe('system-content');
@@ -143,12 +214,8 @@ describe('ClearSystemVideoSlotInputSchema', () => {
 });
 
 describe('the system-slot domain events', () => {
-  it('carry a video slot on systemSlot.videoUpdated', () => {
-    const event = { type: 'systemSlot.videoUpdated', ids: { slotId: 'landing-hero' } };
-    expect(DomainEventSchema.parse(event)).toEqual(event);
-    expect(
-      DomainEventSchema.safeParse({ type: 'systemSlot.videoUpdated', ids: { slotId: 'founder' } }).success,
-    ).toBe(false);
+  it('carry no video-slot event: every signed-in tab reads the video slots live', () => {
+    expect(DomainEventSchema.safeParse({ type: 'systemSlot.videoUpdated', ids: { slotId: 'landing-hero' } }).success).toBe(false);
   });
 
   it('carry a uid or uid-list slot on systemSlot.uidUpdated', () => {

@@ -507,9 +507,14 @@ TTT Productions application-data package.
   places the app shows a founder-recorded video (`video`) or names an account (`uid`) or an ordered
   list of accounts (`uidList`) — `SystemSlotKindSchema`, the id unions and id schemas derived per
   kind (`SystemVideoSlotIdSchema`, `SystemUidSlotIdSchema`, `SystemUidListSlotIdSchema`,
-  `SystemAccountSlotIdSchema`), and `getSystemSlot`. The Backstage Guide's videos are declared once,
-  `GUIDE_VIDEO_DEFINITIONS` (id + planned title, `GuideVideoId`); the registry derives a
-  `guide-<videoId>` video slot from each (`guideVideoSlotId`). The values live in two singletons
+  `SystemAccountSlotIdSchema`), and `getSystemSlot`. Every slot names its `group` — where it appears,
+  from `SYSTEM_SLOT_GROUPS` (ordered, with the admin view's names; `systemSlotsByGroup`) — and every
+  video slot declares `requiredVideo` (`isRequiredVideoSlot`): a required slot's place always reserves
+  its box and shows the placard until a video exists; an optional one shows nothing until then. The
+  Backstage Guide's videos are declared once, `GUIDE_VIDEO_DEFINITIONS` (id + planned title,
+  `GuideVideoId`), and each derives a required `guide-<videoId>` slot (`guideVideoSlotId`); every Help
+  placement is declared once, `HELP_VIDEO_DEFINITIONS` (id + title + location, `HelpVideoId`), and each
+  derives an optional `help-<helpId>` slot (`helpVideoSlotId`). The values live in two singletons
   split by audience: `_systemData/systemVideoSlots` (`SystemVideoSlotsDocumentSchema` — per video
   slot `{ assetId, uploadPendingMediaId, updatedAt }`, always written whole, plus `version`;
   `EMPTY_SYSTEM_VIDEO_SLOTS_DOCUMENT` when absent) and the public `_appConfig/systemUidSlots`
@@ -517,8 +522,9 @@ TTT Productions application-data package.
   `PATH_BUILDERS.systemVideoSlots()` / `systemUidSlots()`. A slot's video is uploaded through the
   `system-content` origin (`SystemContentTargetInfoSchema`, `UploadSystemContentVariablesSchema`),
   whose limits are fixed across modes at full-mode Hall Television's ceiling, and published as a
-  `systemContent`-owned asset through the `systemVideoSlot` publication kind. Changes ride the
-  `systemSlot.videoUpdated` / `systemSlot.uidUpdated` domain events; the clear callable takes
+  `systemContent`-owned asset through the `systemVideoSlot` publication kind. Clients read the video
+  slots live, so a video change has no domain event; an account-slot change rides
+  `systemSlot.uidUpdated`. The clear callable takes
   `ClearSystemVideoSlotInputSchema`, and the account-slot callable takes
   `UpdateSystemUidSlotInputSchema` (a `uid` slot one account id or null, a `uidList` slot a list of
   at most `MAX_SYSTEM_UID_LIST` — the same cap the stored doc holds).
