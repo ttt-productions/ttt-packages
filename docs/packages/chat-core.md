@@ -18,7 +18,9 @@ Pure chat contracts and logic package. **No React, no Firebase.**
   `{ status: 'failed'; retry }`. The resolver reads the app's own cache during
   render; only `resolved` carries a name, and the UI renders the other three
   through the app's slot rather than inventing a name.
-- Message grouping helper (`isContinuation`) and `GROUP_GAP_SEC`. There is no
+- Message grouping helper (`isContinuation`) and `GROUP_GAP_SEC`. An app that shows its own
+  per-message fact on the sender line passes a `ChatMessageGroupKey`, so a change in that fact
+  breaks a same-sender group and the sender line shows again. There is no
   message-length constant here: the one send-text bound is
   `CHAT_MESSAGE_TEXT_MAX_LENGTH` in `chat-schemas`.
 

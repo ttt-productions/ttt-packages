@@ -67,6 +67,12 @@ export type ChatCoreConfig = {
   allowed: boolean;
   createdAtField?: string;         // default: "createdAt"
   pageSize?: number;
+  /**
+   * Firestore transport only: the app's own per-message facts, read from the stored message
+   * document and merged onto the mapped message's `meta`. The package never reads an app field
+   * itself; the app parses its own stored shape here and reads the result back from `meta`.
+   */
+  messageMeta?: (doc: Record<string, unknown>) => Record<string, unknown> | undefined;
 };
 
 // ============================================

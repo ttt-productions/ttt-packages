@@ -8,7 +8,7 @@
 //
 // A message also carries NO reply pointer: no chat surface has an authoring
 // affordance for replying to a specific message, so a `replyTo` contract here
-// would be unreachable machinery (DJ ruling 2026-07-29).
+// would be unreachable machinery.
 
 export type ChatId = string;
 
@@ -56,6 +56,12 @@ export type ModerationHandlers = {
 
 /** Max seconds between messages to be grouped as continuation */
 export const GROUP_GAP_SEC = 120;
+
+/**
+ * The app's own per-message grouping fact: two consecutive messages from one sender group only
+ * when their keys are equal. `undefined` is an ordinary key value like any other.
+ */
+export type ChatMessageGroupKey = (m: ChatMessageV1) => string | undefined;
 
 // ============================================
 // NAME RESOLUTION

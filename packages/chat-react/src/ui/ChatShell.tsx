@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
+import type { ChatMessageGroupKey, ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
 import type {
   ChatCoreConfig,
   MessageRendererRegistry,
@@ -70,6 +70,9 @@ export type ChatShellProps = {
 
   // Sender interaction
   onSenderClick?: (senderId: string) => void;
+  /** The app's per-message grouping fact and its sender-line adornment (forwarded to MessageList). */
+  messageGroupKey?: ChatMessageGroupKey;
+  renderSenderAdornment?: (m: ChatMessageV1) => React.ReactNode;
 
   // Disable
   composerDisabled?: boolean;
@@ -237,6 +240,8 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
     renderBelowMessages,
     renderFooter,
     onSenderClick,
+    messageGroupKey,
+    renderSenderAdornment,
     composerDisabled,
     fillHeight = false,
     scrollClassName,
@@ -416,6 +421,8 @@ function ChatShellView(props: ChatShellProps & { resolved: ResolvedChat }) {
           scrollContainer={scrollContainer}
           handlers={handlers}
           onSenderClick={onSenderClick}
+          messageGroupKey={messageGroupKey}
+          renderSenderAdornment={renderSenderAdornment}
           onRetrySend={retrySend}
           olderLoadErrorRow={olderFailure ? renderLoadError(olderFailure) : null}
         />

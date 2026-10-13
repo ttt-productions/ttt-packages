@@ -12,6 +12,7 @@ export type {
     ChatId,
     ChatThreadV1,
     ChatMessageV1,
+    ChatMessageGroupKey,
     ModerationHandlers,
     ChatNameResolver,
     ChatNameResolution,

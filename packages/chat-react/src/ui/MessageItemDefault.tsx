@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
 import { MessageText } from "./MessageText.js";
 import { cn } from "@ttt-productions/ui-core";
@@ -13,7 +14,7 @@ import { useSenderNameResolution } from "../context/ChatNameResolverContext.js";
 // conversation's Conversation Files surface, never in the timeline — there is no
 // attachment body here. There is no reply-quote body either: no chat surface has
 // an authoring affordance for replying to a specific message, so a quote
-// renderer would be unreachable machinery (DJ ruling 2026-07-29).
+// renderer would be unreachable machinery.
 
 // ============================================
 // Correlated send-rejection copy + retry policy
@@ -79,6 +80,8 @@ export type MessageItemDefaultProps = {
 
   // Sender interaction — the app resolves anything it needs about the sender from the id.
   onSenderClick?: (senderId: string) => void;
+  /** The app's adornment beside the sender name; shown with the sender line, never on a continuation. */
+  senderAdornment?: ReactNode;
 
   /** Retry a failed realtime send by its original clientMessageId (wired by
    *  ChatShell on the realtime transport; absent on firestore). Enables the
@@ -87,7 +90,7 @@ export type MessageItemDefaultProps = {
 };
 
 export function MessageItemDefault(props: MessageItemDefaultProps) {
-  const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick: senderClick, onRetrySend } = props;
+  const { m, currentUserId, isAdmin, handlers, isContinuation, onSenderClick: senderClick, senderAdornment, onRetrySend } = props;
   // Only a resolved name is a click target: the app's unresolved state (a Retry included) is never
   // nested inside a button.
   const nameResolved = useSenderNameResolution(m.senderId).status === "resolved";
@@ -143,6 +146,7 @@ export function MessageItemDefault(props: MessageItemDefaultProps) {
             >
               <SenderName senderId={m.senderId} />
             </span>
+            {senderAdornment}
             <span>·</span>
             <span>{new Date(m.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
           </div>

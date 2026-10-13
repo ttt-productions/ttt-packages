@@ -63,6 +63,12 @@ Chat **React UI** package — the React half of the chat split.
   Retry included) is never nested inside it. Both message hooks prewarm the senders and
   every server-written line's `referencedUids` (`ChatMessageV1.referencedUids`, mapped from
   the row), so the app resolves the accounts a system line names.
+- **App per-message facts.** On the Firestore transport, `ChatCoreConfig.messageMeta(doc)`
+  reads the app's own fields from the stored message and merges them onto the mapped
+  message's `meta`; the package never reads an app field itself. `ChatShell`'s
+  `renderSenderAdornment(m)` renders beside the sender name in `MessageItemDefault`, and
+  its `messageGroupKey` (chat-core `isContinuation`) breaks a same-sender group when that
+  fact changes, so a continuation never hides an adornment the previous message lacked.
 - The adapter config types (`ChatCoreConfig`) and the React render types
   (`MessageRenderer`, `MessageRendererRegistry`)
 - A discriminated **transport config** (chat-edge-rebuild P1): `ChatCoreConfig`

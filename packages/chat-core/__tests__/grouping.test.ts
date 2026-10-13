@@ -86,3 +86,28 @@ describe("isContinuation", () => {
     expect(isContinuation(prev, msg)).toBe(true);
   });
 });
+
+describe("isContinuation — the app's group key", () => {
+  const capacity = (m: ChatMessageV1) => (m.meta?.capacity as string | undefined);
+
+  it("breaks the group when the same sender's key changes inside the gap", () => {
+    const prev = makeMsg({ messageId: "m1", createdAt: 1_000_000 });
+    const msg = makeMsg({ messageId: "m2", createdAt: 1_000_000 + 30_000, meta: { capacity: "official" } });
+    expect(isContinuation(prev, msg, capacity)).toBe(false);
+    expect(isContinuation(msg, makeMsg({ messageId: "m3", createdAt: 1_000_000 + 40_000 }), capacity)).toBe(false);
+  });
+
+  it("keeps the group when both messages carry the same key", () => {
+    const prev = makeMsg({ messageId: "m1", createdAt: 1_000_000, meta: { capacity: "official" } });
+    const msg = makeMsg({ messageId: "m2", createdAt: 1_000_000 + 30_000, meta: { capacity: "official" } });
+    expect(isContinuation(prev, msg, capacity)).toBe(true);
+  });
+
+  it("never groups across senders or the gap because two keys match", () => {
+    const prev = makeMsg({ messageId: "m1", createdAt: 1_000_000 });
+    expect(isContinuation(prev, makeMsg({ messageId: "m2", senderId: "userB", createdAt: 1_000_001 }), capacity)).toBe(false);
+    expect(
+      isContinuation(prev, makeMsg({ messageId: "m3", createdAt: 1_000_000 + GROUP_GAP_SEC * 1000 + 1 }), capacity),
+    ).toBe(false);
+  });
+});

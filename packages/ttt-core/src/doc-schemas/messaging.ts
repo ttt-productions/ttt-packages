@@ -173,12 +173,20 @@ export type AdminDispatchContextRef = z.infer<typeof AdminDispatchContextRefSche
 export const AdminDispatchPartyKindSchema = z.enum(['user', 'workProject']);
 export type AdminDispatchPartyKind = z.infer<typeof AdminDispatchPartyKindSchema>;
 
-// Who a message on a support thread is from: the system, the admin team, or the member side (the
-// thread owner, or a member of the Work on a Work thread). No writer stores it; it is derived from
-// the sender and the thread's party when a message is shown.
-export const ADMIN_DISPATCH_SENDER_ROLES = ['user', 'admin', 'system'] as const;
-export const AdminDispatchSenderRoleSchema = z.enum(ADMIN_DISPATCH_SENDER_ROLES);
-export type AdminDispatchSenderRole = z.infer<typeof AdminDispatchSenderRoleSchema>;
+// The capacity a support-thread message was sent in, written by the backend in the message's
+// creation transaction from the verified actor — never from current claims, the roster, Work
+// membership, or a client field. `admin` marks a message sent with verified admin authority; an
+// ordinary message (a member, or an admin acting as a participant) stores no value at all.
+export const ChatMessageSentAsSchema = z.enum(['admin']);
+export type ChatMessageSentAs = z.infer<typeof ChatMessageSentAsSchema>;
+
+/**
+ * Whether a stored (or mapped) support-thread message was sent with verified admin authority. Reads
+ * only the recorded value: a missing or malformed one is an ordinary message, never a guess.
+ */
+export function isChatMessageSentAsAdmin(sentAs: unknown): boolean {
+  return ChatMessageSentAsSchema.safeParse(sentAs).success;
+}
 
 export const AdminDispatchSchema = z.object({
   adminDispatchId: z.string(),
@@ -217,8 +225,8 @@ export type AdminDispatch = z.infer<typeof AdminDispatchSchema>;
 // Per-message body for admin-support `conversationMessages` — the ONE chat surface still
 // transported through Firestore (guild channel + invite messages are realtime-only, served
 // by the chat Worker Durable Object). Written by runSendGuildChatMessage (senderId/text/
-// createdAt); the admin-dispatch INITIAL message
-// (runStartAdminSupportThread) additionally stores `messageId`. This is the STORED shape — a relaxed
+// createdAt, plus `sentAs` on an admin send); a thread's INITIAL message additionally stores
+// `messageId`. This is the STORED shape — a relaxed
 // @ttt-productions/chat-core ChatMessageV1: `messageId` is the doc id (only sometimes persisted) and
 // `threadId` is not stored.
 // A chat message carries NO file reference — files live in the conversation's
@@ -236,15 +244,13 @@ export const ChatMessageV1Schema = z.object({
   // admin-dispatch messages that don't carry it.
   guildInviteId: z.string().optional(),
   isSystemMessage: z.boolean().optional(),
+  sentAs: ChatMessageSentAsSchema.optional(),
   meta: z.record(z.string(), z.unknown()).optional(),
-  // NO moderation tombstone flag: the `hidden` field existed solely for the removed
-  // admin-work-message report type's single-doc flip, and admin correspondence is not
-  // reportable or moderatable at all (DJ ruling 2026-07-29). Nothing can write it, so
-  // the field is gone rather than left as unreachable schema surface.
-  // NO reply pointer, for the same reason: no chat surface has an authoring affordance
-  // for replying to a specific message (chat-react's MessageActions renders only
-  // Report/Delete; the composer's onSend takes text alone), so nothing could ever
-  // populate a `replyTo` (DJ ruling 2026-07-29). This object is deliberately NOT
+  // NO moderation tombstone flag: admin correspondence is not reportable or moderatable at
+  // all, so nothing can write one.
+  // NO reply pointer: no chat surface has an authoring affordance for replying to a specific
+  // message (chat-react's MessageActions renders only Report/Delete; the composer's onSend
+  // takes text alone), so nothing could ever populate a `replyTo`. This object is deliberately NOT
   // `.strict()`, so a legacy stored doc that still carries the key parses fine — the
   // value is stripped, never persisted forward, and no migration is required.
 });

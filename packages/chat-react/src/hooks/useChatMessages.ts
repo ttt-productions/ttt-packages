@@ -32,7 +32,8 @@ export type UseChatMessagesResult = {
 
 function mapMsg(
   data: DocumentData & { id: string },
-  threadId: string
+  threadId: string,
+  messageMeta: ChatCoreConfig["messageMeta"],
 ): ChatMessageV1 {
   const d = data as any;
 
@@ -45,6 +46,7 @@ function mapMsg(
   // A stored `replyTo` (if any legacy doc still carries one) is deliberately NOT
   // mapped: chat has no reply-authoring affordance, so the UI has no reply
   // renderer to feed.
+  const appMeta = messageMeta?.(data);
   return {
     messageId: data.id,
     threadId,
@@ -57,7 +59,7 @@ function mapMsg(
     // Moderation tombstone flag (backend-written) — carried through so renderers
     // can tombstone the content.
     hidden: d.hidden ?? undefined,
-    meta: d.meta,
+    meta: appMeta ? { ...d.meta, ...appMeta } : d.meta,
   };
 }
 
@@ -70,6 +72,7 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
     currentUserId,
     allowed,
     createdAtField = "createdAt",
+    messageMeta,
   } = config;
 
   const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);
@@ -103,7 +106,7 @@ export function useChatMessages(config: ChatCoreConfig): UseChatMessagesResult {
       pageSize,
       enabled: allowed,
       sort: "asc",
-      select: (data) => mapMsg(data, threadId),
+      select: (data) => mapMsg(data, threadId, messageMeta),
     });
 
   const messages = React.useMemo(() => (allowed ? items : []), [allowed, items]);

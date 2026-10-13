@@ -67,6 +67,27 @@ describe('useChatMessages', () => {
     });
   });
 
+  it("merges the app's own facts from the stored doc onto the message meta", () => {
+    const messageMeta = (doc: Record<string, unknown>) => (doc.sentAs === 'admin' ? { official: true } : undefined);
+    renderHook(() => useChatMessages(baseConfig({ messageMeta })));
+    const opts = mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as {
+      select: (d: Record<string, unknown>) => { meta?: Record<string, unknown> };
+    };
+    expect(opts.select({ id: 'm1', createdAt: 1, senderId: 's1', text: 'a', sentAs: 'admin', meta: { kept: 1 } }).meta)
+      .toEqual({ kept: 1, official: true });
+    expect(opts.select({ id: 'm2', createdAt: 2, senderId: 's1', text: 'b' }).meta).toBeUndefined();
+  });
+
+  it('never carries an app field it was not told to read', () => {
+    renderHook(() => useChatMessages(baseConfig()));
+    const opts = mocks.useFirestoreLiveInfinite.mock.calls.at(-1)![0] as {
+      select: (d: Record<string, unknown>) => Record<string, unknown>;
+    };
+    const mapped = opts.select({ id: 'm1', createdAt: 1, senderId: 's1', text: 'a', sentAs: 'admin' });
+    expect(mapped).not.toHaveProperty('sentAs');
+    expect(mapped.meta).toBeUndefined();
+  });
+
   it('reads nothing when the app says the user may not read the conversation', () => {
     const { result } = renderHook(() => useChatMessages(baseConfig({ allowed: false })));
     expect(result.current.allowed).toBe(false);

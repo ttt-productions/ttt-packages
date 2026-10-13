@@ -22,7 +22,7 @@ import type { ChildSafetyWorkStatus } from '../doc-schemas/safety/case.js';
 import type { BroadcastAudienceSelector } from '../schemas/notification.js';
 import type { DeadLetterCollection } from '../schemas/admin.js';
 import type { GuildInviteConversationStatus, ShortLinkTargetType } from '../schemas/atoms.js';
-import type { AdminDispatch, AdminDispatchSenderRole } from '../doc-schemas/messaging.js';
+import type { AdminDispatch } from '../doc-schemas/messaging.js';
 import type { CommissionProposalStatus } from '../schemas/commissions.js';
 import type { InviteSourceType } from '../schemas/work-project-management.js';
 import type { Audition } from '../doc-schemas/commissions.js';
@@ -278,12 +278,11 @@ export const ADMIN_DISPATCH_STATUS_LABELS: Record<AdminDispatch['status'], strin
   closed_unresolved: 'Closed',
 };
 
-/** Who a support-thread message is from, as the admin thread preview labels it. */
-export const ADMIN_DISPATCH_SENDER_ROLE_LABELS: Record<AdminDispatchSenderRole, string> = {
-  user: 'User',
-  admin: 'Admin',
-  system: 'System',
-};
+/** The marker beside the sender of a support-thread message sent with admin authority. */
+export const ADMIN_SENDER_MARKER_LABEL = 'Admin';
+
+/** The sender label on a support thread's system line (a close notice) in the admin preview. */
+export const ADMIN_DISPATCH_SYSTEM_SENDER_LABEL = 'System';
 
 /** Child-safety case work statuses (the safety case console's case rows and closed-case lookup). */
 export const CHILD_SAFETY_CASE_WORK_STATUS_LABELS: Record<ChildSafetyWorkStatus, string> = {

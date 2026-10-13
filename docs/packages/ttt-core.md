@@ -445,9 +445,10 @@ TTT Productions application-data package.
   `GUILD_INVITE_STATUS_LABELS`, `COMMISSION_PROPOSAL_STATUS_LABELS`, `HALL_SUB_ITEM_STATUS_LABELS`,
   `AUDITION_STATUS_LABELS`, `WORK_PROJECT_TYPE_LABELS`, `INVITE_SOURCE_TYPE_LABELS`, `SHORT_LINK_TARGET_TYPE_LABELS`
   (Audition / Audition entry / Commission / Hall entry), and `ADMIN_DISPATCH_STATUS_LABELS` (Open / User replied / Admin
-  replied / Resolved / Closed — one set of words on every support-thread screen), `ADMIN_DISPATCH_SENDER_ROLE_LABELS`
-  (User / Admin / System, keyed by `AdminDispatchSenderRole` from `doc-schemas/messaging` — who a support-thread
-  message is from, derived at render and never stored), and the safety case console's
+  replied / Resolved / Closed — one set of words on every support-thread screen), `ADMIN_SENDER_MARKER_LABEL` (the
+  Admin marker beside a support-thread message's sender, shown only when the message's stored `sentAs` —
+  `ChatMessageSentAsSchema` / `isChatMessageSentAsAdmin` in `doc-schemas/messaging`, written by the backend from the
+  verified actor — records admin authority) and `ADMIN_DISPATCH_SYSTEM_SENDER_LABEL`, and the safety case console's
   `CHILD_SAFETY_CASE_WORK_STATUS_LABELS` and `NCII_CASE_STATUS_LABELS`, beside the admin-surface maps in the same file. A screen renders the label, never the raw value.
 - **Analytics event names** (`constants/analytics`, root + `./constants`): `ANALYTICS_EVENT_NAMES` is the one declaration of the
   events the app logs — the page view, sign-up, the creator funnel, and the payment funnel — and `AnalyticsEventName` the type

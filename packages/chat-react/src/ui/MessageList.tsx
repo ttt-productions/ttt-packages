@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
+import type { ChatMessageGroupKey, ChatMessageV1, ModerationHandlers } from "@ttt-productions/chat-core";
 import { isContinuation } from "@ttt-productions/chat-core";
 import type { MessageRendererRegistry } from "../types.js";
 import { Button, Spinner } from "@ttt-productions/ui-core/react";
@@ -40,7 +40,7 @@ export function MessageList(props: {
   showScrollToBottom?: boolean;
   onScrollToBottom?: () => void;
   /** Reports whether the list is scrolled to the bottom so the consumer can advance
-   *  authoritative read state only when the latest message is actually in view (C-B6). */
+   *  authoritative read state only when the latest message is actually in view. */
   onAtBottomChange?: (atBottom: boolean) => void;
   /** Class for the scrollable message region. Overrides the default. The default is
    *  `h-[400px]` (fixed-height card) unless `fillHeight` is set, in which case it is
@@ -58,6 +58,11 @@ export function MessageList(props: {
 
   handlers?: ModerationHandlers;
   onSenderClick?: (senderId: string) => void;
+  /** The app's per-message grouping fact (chat-core `isContinuation`): a change in it breaks a
+   *  same-sender group, so the sender line — and its adornment — shows again. */
+  messageGroupKey?: ChatMessageGroupKey;
+  /** The app's adornment beside a message's sender name (default renderer only). */
+  renderSenderAdornment?: (m: ChatMessageV1) => React.ReactNode;
   /** Retry a failed realtime send by clientMessageId (realtime transport only). */
   onRetrySend?: (clientMessageId: string) => void;
   /**
@@ -84,6 +89,8 @@ export function MessageList(props: {
     fillHeight = false,
     handlers,
     onSenderClick,
+    messageGroupKey,
+    renderSenderAdornment,
     onRetrySend,
     olderLoadErrorRow,
   } = props;
@@ -212,7 +219,7 @@ export function MessageList(props: {
 
               const prevMsg = idx > 0 ? messages[idx - 1] : undefined;
               // Date separators always break grouping
-              const continuation = showDay ? false : isContinuation(prevMsg, m);
+              const continuation = showDay ? false : isContinuation(prevMsg, m, messageGroupKey);
 
               const byType =
                 m.type && messageRenderers?.[m.type] ? messageRenderers[m.type]!(m) : null;
@@ -227,6 +234,7 @@ export function MessageList(props: {
                     handlers={handlers}
                     isContinuation={continuation}
                     onSenderClick={onSenderClick}
+                    senderAdornment={renderSenderAdornment?.(m)}
                     onRetrySend={onRetrySend}
                   />
                 );

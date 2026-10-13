@@ -1817,6 +1817,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `type` | `string` | yes |
 | `guildInviteId` | `string` | yes |
 | `isSystemMessage` | `boolean` | yes |
+| `sentAs` | `'admin'` | yes |
 | `meta` | `Record<string, unknown>` | yes |
 
 ## `pendingAdminDispatches/{adminDispatchId}/dispatchReadMarkers/{uid}`
