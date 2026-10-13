@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { withRetryState } from './read-retry-state';
 import { render, screen, fireEvent } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
@@ -6,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/react/hooks/useNotificationHistory.js', () => ({
-  useNotificationHistory: mocks.useNotificationHistory,
+  useNotificationHistory: (...args: unknown[]) => withRetryState(mocks.useNotificationHistory(...args)),
 }));
 
 import { NotificationHistoryList } from '../src/react/components/NotificationHistoryList';
@@ -130,6 +131,19 @@ describe('NotificationHistoryList — failed and empty pages', () => {
     render(<NotificationHistoryList {...props} />);
     expect(screen.getByRole('alert')).toHaveTextContent('read failed');
     expect(screen.queryByText('No archived notifications')).toBeNull();
+  });
+
+  it('keeps the error slot, retrying, while a failed first page retries — never the spinner', () => {
+    const renderError = vi.fn(() => <div role="alert">read failed</div>);
+    mocks.useNotificationHistory.mockReturnValue({
+      data: undefined, isLoading: true, isFetching: true, isError: false, error: null,
+      page: 1, hasNextPage: false, hasPrevPage: false, nextPage: vi.fn(), prevPage: vi.fn(), refetch: vi.fn(),
+      retryState: { error: new Error('denied'), isRetrying: true, isLoading: false },
+    });
+    render(<NotificationHistoryList {...props} renderError={renderError} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('read failed');
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(renderError).toHaveBeenLastCalledWith(expect.objectContaining({ retrying: true, hasRows: false }));
   });
 
   it('keeps Previous on an empty later page and shows no empty state there', () => {

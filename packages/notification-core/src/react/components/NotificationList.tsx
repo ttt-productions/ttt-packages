@@ -33,10 +33,8 @@ export function NotificationList({
 }: NotificationListProps) {
   const {
     data: notifications,
-    isLoading,
     isFetching,
-    isError,
-    error,
+    retryState,
     refetch,
     page,
     hasNextPage,
@@ -106,7 +104,7 @@ export function NotificationList({
   const focusedRowId = useRef<string | null>(null);
   const renderedIds = useRef<readonly string[]>([]);
   useLayoutEffect(() => {
-    const ids = isLoading ? [] : (notifications ?? []).map((notification) => notification.id);
+    const ids = retryState.isLoading ? [] : (notifications ?? []).map((notification) => notification.id);
     const previousIds = renderedIds.current;
     renderedIds.current = ids;
     const leftId = focusedRowId.current;
@@ -121,7 +119,7 @@ export function NotificationList({
       .map((id) => rowRefs.current.get(id)?.querySelector('.ntf-item-row-action')?.querySelector<HTMLElement>(FOCUSABLE))
       .find((control) => control != null);
     (nextControl ?? listRef.current)?.focus();
-  }, [notifications, isLoading]);
+  }, [notifications, retryState.isLoading]);
 
   const archiveOne = useCallback(async (notification: NotificationDoc) => {
     const clearPending = () =>
@@ -182,7 +180,7 @@ export function NotificationList({
   // A later page that came back empty keeps its pager so the user can step back; the
   // empty state is the answer for page 1 only.
   const showEmptyState =
-    !isError && notifications !== undefined && notifications.length === 0 && page === 1;
+    retryState.error === null && notifications !== undefined && notifications.length === 0 && page === 1;
   const isClearAllPending = archiveAllMutation.isPending || pendingClearAllIds.size > 0;
   const titleId = useId();
 
@@ -218,7 +216,7 @@ export function NotificationList({
       <Separator />
 
       <div className="ntf-list-body">
-      {isLoading ? (
+      {retryState.isLoading ? (
         <div className="ntf-loading">
           <Spinner size="md" label="Loading notifications" />
         </div>
@@ -267,13 +265,13 @@ export function NotificationList({
               )}
             </div>
           ))}
-          {isError && error
+          {retryState.error !== null
             ? renderError({
-                error,
+                error: retryState.error,
                 retry: () => {
                   void refetch();
                 },
-                retrying: isFetching,
+                retrying: retryState.isRetrying,
                 hasRows: hasNotifications,
               })
             : null}

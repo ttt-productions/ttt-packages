@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { withRetryState } from './read-retry-state';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
@@ -8,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../src/react/hooks/useActiveNotifications.js', () => ({
-  useActiveNotifications: mocks.useActiveNotifications,
+  useActiveNotifications: (...args: unknown[]) => withRetryState(mocks.useActiveNotifications(...args)),
 }));
 vi.mock('../src/react/hooks/useArchiveNotification.js', () => ({
   useArchiveNotification: mocks.useArchiveNotification,
@@ -383,6 +384,19 @@ describe('NotificationList — focus keeps a destination', () => {
     vi.clearAllMocks();
     mocks.useArchiveNotification.mockReturnValue({ mutateAsync: archiveMutateAsync });
     mocks.useArchiveAllNotifications.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
+  });
+
+  it('keeps the error slot, retrying, while a failed first page retries — never the spinner', () => {
+    const renderError = vi.fn(() => <div role="alert">read failed</div>);
+    mocks.useActiveNotifications.mockReturnValue({
+      data: undefined, isLoading: true, isFetching: true, isError: false, error: null,
+      page: 1, hasNextPage: false, hasPrevPage: false, nextPage: vi.fn(), prevPage: vi.fn(), refetch: vi.fn(),
+      retryState: { error: new Error('denied'), isRetrying: true, isLoading: false },
+    });
+    render(<NotificationList {...props} renderError={renderError} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('read failed');
+    expect(screen.queryByRole('status')).toBeNull();
+    expect(renderError).toHaveBeenLastCalledWith(expect.objectContaining({ retrying: true, hasRows: false }));
   });
 
   it('moves focus to the next row control when the focused row leaves the list', () => {

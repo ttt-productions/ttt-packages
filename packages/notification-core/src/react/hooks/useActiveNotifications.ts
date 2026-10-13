@@ -1,6 +1,7 @@
 'use client';
 
-import { useFirestorePaginated } from '@ttt-productions/query-core/react';
+import { paginatedPageKey } from '@ttt-productions/query-core';
+import { useFirestorePaginated, useReadRetryState } from '@ttt-productions/query-core/react';
 import { orderBy, where, type QueryConstraint } from 'firebase/firestore';
 import type { NotificationDoc, UseActiveNotificationsOptions } from '../../types.js';
 
@@ -34,13 +35,17 @@ export function useActiveNotifications({
     orderBy('updatedAt', 'desc'),
   ];
 
-  return useFirestorePaginated<NotificationDoc>({
+  const queryKey = ['notifications', 'active', category, userId, { pageSize }];
+  const read = useFirestorePaginated<NotificationDoc>({
     collectionPath,
-    queryKey: ['notifications', 'active', category, userId, { pageSize }],
+    queryKey,
     constraints,
     pageSize,
     enabled: enabled && !!userId,
     refetchInterval,
     staleTime,
   });
+  // The displayed page's failure held through its retry: a refetch of a never-succeeded page clears
+  // `error` while it runs, so the list would drop its failure under the retry the person pressed.
+  return { ...read, retryState: useReadRetryState(read, paginatedPageKey(queryKey, read.page)) };
 }

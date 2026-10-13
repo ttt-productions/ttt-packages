@@ -32,8 +32,11 @@ in the active collection until archived; personal unread state is tracked with
   a status region. A failed read renders the app's required `renderError` slot
   (`NotificationListErrorState`: `error`, `retry` — re-reads the displayed page —
   `retrying`, and `hasRows` when an earlier read's rows are still shown above it);
-  it is never shown as the empty state. The empty state is the answer for an
-  answered, empty page 1 only. Both lists page with ui-core's `ListPagination`
+  it is never shown as the empty state. A failed page's failure is held through its
+  retry (both read hooks return query-core's `useReadRetryState` for the displayed
+  page as `retryState`), so a retry of a page that never loaded keeps the slot on
+  screen with `retrying` instead of turning back into the spinner. The empty state is
+  the answer for an answered, empty page 1 only. Both lists page with ui-core's `ListPagination`
   (Previous / counter / Next), which stays on a failed or empty later page so the
   user can step back; Next replaces the list, and the clicked control spins while
   its page loads. All copy in these slots is the app's.

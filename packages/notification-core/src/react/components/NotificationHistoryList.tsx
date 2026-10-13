@@ -26,10 +26,8 @@ export function NotificationHistoryList({
 }: NotificationHistoryListProps) {
   const {
     data: notifications,
-    isLoading,
     isFetching,
-    isError,
-    error,
+    retryState,
     refetch,
     page,
     hasNextPage,
@@ -48,7 +46,7 @@ export function NotificationHistoryList({
   // A later page that came back empty keeps its pager so the user can step back; the
   // empty state is the answer for page 1 only.
   const showEmptyState =
-    !isError && notifications !== undefined && notifications.length === 0 && page === 1;
+    retryState.error === null && notifications !== undefined && notifications.length === 0 && page === 1;
 
   const getTypeIcon = useCallback(
     (type: string) => config.types[type]?.icon ?? '🔔',
@@ -66,7 +64,7 @@ export function NotificationHistoryList({
         </>
       )}
       <div className="ntf-list-body">
-        {isLoading ? (
+        {retryState.isLoading ? (
           <div className="ntf-loading">
             <Spinner size="md" label="Loading notifications" />
           </div>
@@ -99,13 +97,13 @@ export function NotificationHistoryList({
                 </div>
               );
             })}
-            {isError && error
+            {retryState.error !== null
               ? renderError({
-                  error,
+                  error: retryState.error,
                   retry: () => {
                     void refetch();
                   },
-                  retrying: isFetching,
+                  retrying: retryState.isRetrying,
                   hasRows,
                 })
               : null}

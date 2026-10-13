@@ -10,8 +10,9 @@ vi.mock('firebase/firestore', () => ({
   orderBy: mocks.orderByFn,
 }));
 
-vi.mock('@ttt-productions/query-core/react', () => ({
+vi.mock('@ttt-productions/query-core/react', async (importOriginal) => ({
   useFirestorePaginated: mocks.useFirestorePaginated,
+  useReadRetryState: (await importOriginal<typeof import('@ttt-productions/query-core/react')>()).useReadRetryState,
 }));
 
 import { useNotificationHistory } from '../src/react/hooks/useNotificationHistory';
