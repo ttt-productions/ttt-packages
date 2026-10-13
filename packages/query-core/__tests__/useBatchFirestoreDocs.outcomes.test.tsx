@@ -140,10 +140,10 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
     expect(result.current.outcomes).toEqual({
       w1: { status: 'present', data: { id: 'w1', title: 'One' } },
       ghost: { status: 'absent' },
-      hiddenA: { status: 'failed', error: deniedA },
-      hiddenB: { status: 'failed', error: deniedB },
+      hiddenA: { status: 'failed', error: deniedA, retrying: false },
+      hiddenB: { status: 'failed', error: deniedB, retrying: false },
     });
-    expect(result.current.outcomes.hiddenB).toEqual({ status: 'failed', error: deniedB });
+    expect(result.current.outcomes.hiddenB).toEqual({ status: 'failed', error: deniedB, retrying: false });
     expect((result.current.outcomes.hiddenB as { error: Error }).error).toBe(deniedB);
     expect(result.current.data).toEqual({ w1: { id: 'w1', title: 'One' } });
     expect(result.current.isError).toBe(true);
@@ -182,7 +182,7 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
       await result.current.refetch();
     });
 
-    await waitFor(() => expect(result.current.outcomes.w1).toEqual({ status: 'failed', error: denied }));
+    await waitFor(() => expect(result.current.outcomes.w1).toEqual({ status: 'failed', error: denied, retrying: false }));
     expect(result.current.data).toEqual({});
   });
 
@@ -196,8 +196,8 @@ describe('useBatchFirestoreDocs outcomes — one-shot reads', () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.outcomes).toEqual({
-      w1: { status: 'failed', error: unavailable },
-      w2: { status: 'failed', error: unavailable },
+      w1: { status: 'failed', error: unavailable, retrying: false },
+      w2: { status: 'failed', error: unavailable, retrying: false },
     });
   });
 
@@ -244,7 +244,7 @@ describe('useBatchFirestoreDocs outcomes — subscribe mode', () => {
     emit('ghost', null);
 
     expect(result.current.outcomes).toEqual({
-      hidden: { status: 'failed', error: denied },
+      hidden: { status: 'failed', error: denied, retrying: false },
       w1: { status: 'present', data: { id: 'w1', title: 'One' } },
       ghost: { status: 'absent' },
     });
@@ -280,7 +280,7 @@ describe('useBatchFirestoreDocs outcomes — subscribe mode', () => {
       wrapper: Wrapper,
     });
 
-    expect(late.result.current.outcomes.hidden).toEqual({ status: 'failed', error: denied });
+    expect(late.result.current.outcomes.hidden).toEqual({ status: 'failed', error: denied, retrying: false });
     expect(late.result.current.isError).toBe(true);
   });
 
@@ -307,7 +307,7 @@ describe('useBatchFirestoreDocs outcomes — a one-shot reader beside a failed l
 
     const oneShot = renderHook(() => useBatchFirestoreDocs({ ...baseOpts, ids: ['w1'] }), { wrapper: Wrapper });
 
-    expect(oneShot.result.current.outcomes.w1).toEqual({ status: 'failed', error: denied });
+    expect(oneShot.result.current.outcomes.w1).toEqual({ status: 'failed', error: denied, retrying: false });
     expect(oneShot.result.current.isError).toBe(true);
   });
 
@@ -324,7 +324,7 @@ describe('useBatchFirestoreDocs outcomes — a one-shot reader beside a failed l
       await oneShot.result.current.refetch();
     });
 
-    await waitFor(() => expect(oneShot.result.current.outcomes.w1).toEqual({ status: 'failed', error: denied }));
+    await waitFor(() => expect(oneShot.result.current.outcomes.w1).toEqual({ status: 'failed', error: denied, retrying: false }));
   });
 
   it('reads the document for itself once the failed listener has no subscriber left', async () => {

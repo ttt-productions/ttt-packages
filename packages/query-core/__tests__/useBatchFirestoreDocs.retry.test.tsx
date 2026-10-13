@@ -121,3 +121,38 @@ describe('useBatchFirestoreDocs — failedReadsRunning', () => {
     expect(result.current.failedReadsRunning).toBe(false);
   });
 });
+
+describe('useBatchFirestoreDocs — a failed id through its retry', () => {
+  it('stays failed with its own error and retrying, never loading, until the retry answers', async () => {
+    const { result } = renderLookup(['a', 'b']);
+    await waitingFor('a');
+    await waitingFor('b');
+    const denied = new Error('denied');
+    await act(async () => {
+      answer('a', denied);
+      answer('b', 'present');
+    });
+    await waitFor(() => expect(result.current.outcomes.a).toEqual({ status: 'failed', error: denied, retrying: false }));
+
+    act(() => void result.current.refetch());
+    await waitingFor('a');
+    expect(result.current.outcomes.a).toEqual({ status: 'failed', error: denied, retrying: true });
+    expect(result.current.outcomes.b).toMatchObject({ status: 'present' });
+
+    await act(async () => answer('a', 'present'));
+    await waitFor(() => expect(result.current.outcomes.a).toMatchObject({ status: 'present' }));
+  });
+
+  it('replaces the held failure with the retry\'s own failure', async () => {
+    const { result } = renderLookup(['a']);
+    await waitingFor('a');
+    await act(async () => answer('a', new Error('denied')));
+    await waitFor(() => expect(result.current.outcomes.a).toMatchObject({ status: 'failed' }));
+
+    act(() => void result.current.refetch());
+    await waitingFor('a');
+    const again = new Error('denied again');
+    await act(async () => answer('a', again));
+    await waitFor(() => expect(result.current.outcomes.a).toEqual({ status: 'failed', error: again, retrying: false }));
+  });
+});

@@ -7,6 +7,7 @@ import { isListenerOwned, listenerErrorOf, subscribeDoc } from './doc-subscripti
 import { getDocLoader } from './batch-doc-loader.js';
 import { ABSENT_RETRY_DELAYS_MS, trackAbsentDoc } from './absence-scheduler.js';
 import type { BatchFirestoreDocOutcome } from '../../firestore/types.js';
+import { useReadRetryStates, type ReadRetrySource } from '../use-read-retry-state.js';
 
 /** Transport used to resolve an id in one-shot mode. */
 export type BatchFirestoreDocsTransport = 'batch' | 'get';
@@ -146,12 +147,16 @@ export type BatchFirestoreDocsResult<T> = {
 };
 
 const LOADING_OUTCOME = { status: 'loading' } as const;
+const IDLE_SOURCE: ReadRetrySource<Error> = { error: null, isFetching: false, isLoading: false };
 const ABSENT_OUTCOME = { status: 'absent' } as const;
 
 function sameOutcome<T>(a: BatchFirestoreDocOutcome<T>, b: BatchFirestoreDocOutcome<T>): boolean {
   if (a.status !== b.status) return false;
   if (a.status === 'present') return a.data === (b as { data: T }).data;
-  if (a.status === 'failed') return a.error === (b as { error: Error }).error;
+  if (a.status === 'failed') {
+    const other = b as { error: Error; retrying: boolean };
+    return a.error === other.error && a.retrying === other.retrying;
+  }
   return true;
 }
 
@@ -310,6 +315,15 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
   const committedDataRef = useRef<Record<string, T>>({});
   const committedOutcomesRef = useRef<Record<string, BatchFirestoreDocOutcome<T>>>({});
 
+  // Each id's one-shot failure is held through its retry: TanStack clears a never-answered
+  // read's error as its refetch starts, which would turn the id's failure into `loading`.
+  const retryStates = useReadRetryStates(
+    uniqueIds.map((id, index) => ({
+      source: (results[index] ?? IDLE_SOURCE) as ReadRetrySource<Error>,
+      queryKey: [queryKeyPrefix, id],
+    })),
+  );
+
   const nextData: Record<string, T> = {};
   const nextOutcomes: Record<string, BatchFirestoreDocOutcome<T>> = {};
   let anyError: Error | null = null;
@@ -331,17 +345,17 @@ export function useBatchFirestoreDocs<T extends Record<string, any>>({
     if (result && (result.isFetching || result.isPaused) && result.errorUpdatedAt > result.dataUpdatedAt) {
       failedReadsRunning = true;
     }
-    if (result?.isError) {
-      const error = result.error as Error;
-      anyError ??= error;
-      outcome = { status: 'failed', error };
+    const retryState = retryStates[index];
+    if (result?.isError) anyError ??= result.error as Error;
+    if (retryState && retryState.error !== null) {
+      outcome = { status: 'failed', error: retryState.error, retrying: retryState.isRetrying };
     } else if (result) {
       if (result.isLoading) oneShotLoading = true;
       const value = result.data as T | null | undefined;
       if (value === undefined) anyUnresolved = true;
       if (listenerError) {
         anyListenerError ??= listenerError;
-        outcome = { status: 'failed', error: listenerError };
+        outcome = { status: 'failed', error: listenerError, retrying: false };
       } else if (value === null) {
         outcome = ABSENT_OUTCOME;
       } else if (value !== undefined) {

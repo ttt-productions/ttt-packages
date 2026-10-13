@@ -37,12 +37,14 @@ export type WithSourceState<R> = R & { sourceState: FirestoreSourceState };
  *   A failure is never reported as `absent`, and a document cached before the failure is
  *   not reported as `present`. What a failure means for a given collection (a rules denial
  *   that stands for "not there for this reader", say) is the consumer's to decide from `error`.
+ * - A failed id stays `failed` through a retry of it, with the failure it showed and `retrying`
+ *   true while the retry runs; an answer replaces it, a new failure replaces its `error`.
  */
 export type BatchFirestoreDocOutcome<T> =
   | { status: 'loading' }
   | { status: 'present'; data: T }
   | { status: 'absent' }
-  | { status: 'failed'; error: Error };
+  | { status: 'failed'; error: Error; retrying: boolean };
 
 /**
  * Extract document data with ID from a QueryDocumentSnapshot.

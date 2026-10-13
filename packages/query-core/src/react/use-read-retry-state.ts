@@ -23,7 +23,6 @@ export interface ReadRetryState<TError = Error> {
 }
 
 interface HeldFailure<TError> {
-  identity: string;
   error: TError;
 }
 
@@ -40,6 +39,63 @@ function sameFailure(a: unknown, b: unknown): boolean {
   return x.name === y.name && x.message === y.message && x.code === y.code;
 }
 
+/** One read a keyed retry state follows: its result and its identity. */
+export interface ReadRetryEntry<TError = Error> {
+  source: ReadRetrySource<TError>;
+  queryKey: QueryKey;
+}
+
+/** The failure a read holds next, given what it held: its live failure, or the held one while it runs. */
+function nextHeldFailure<TError>(
+  held: HeldFailure<TError> | undefined,
+  source: ReadRetrySource<TError>,
+): HeldFailure<TError> | undefined {
+  const live = source.error ?? null;
+  if (live !== null) return held !== undefined && sameFailure(held.error, live) ? held : { error: live };
+  const running = source.isFetching || source.isPaused === true;
+  return running ? held : undefined;
+}
+
+function toRetryState<TError>(source: ReadRetrySource<TError>, held: HeldFailure<TError> | undefined): ReadRetryState<TError> {
+  const error = source.error ?? held?.error ?? null;
+  return {
+    error,
+    isRetrying: error !== null && (source.isFetching || source.isPaused === true),
+    isLoading: error === null && source.isLoading,
+  };
+}
+
+/**
+ * The failure and retry state of each of several reads, in entry order — the keyed form of
+ * `useReadRetryState` for a set whose size changes between renders (a `useQueries` list, a batch
+ * of per-id reads). Each read's failure is held under its own `queryKey`, so one read's retry
+ * never shows another's failure, and a read that leaves the set drops what it held.
+ */
+export function useReadRetryStates<TError = Error>(
+  entries: readonly ReadRetryEntry<TError>[],
+): ReadRetryState<TError>[] {
+  const [held, setHeld] = useState<Readonly<Record<string, HeldFailure<TError>>>>({});
+
+  const next: Record<string, HeldFailure<TError>> = {};
+  const states = entries.map(({ source, queryKey }) => {
+    const identity = hashKey(queryKey);
+    const failure = nextHeldFailure(held[identity], source);
+    if (failure !== undefined) next[identity] = failure;
+    return toRetryState(source, failure);
+  });
+  // Render-phase adjustment: the held failures follow the reads without an effect's extra render.
+  if (!sameHeld(held, next)) setHeld(next);
+  return states;
+}
+
+function sameHeld<TError>(
+  a: Readonly<Record<string, HeldFailure<TError>>>,
+  b: Readonly<Record<string, HeldFailure<TError>>>,
+): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
+}
+
 /**
  * The failure and retry state of one read. TanStack Query clears the `error` of a query that never
  * succeeded and puts it back to `pending` the moment a refetch of it starts, so a retry state built
@@ -52,24 +108,5 @@ export function useReadRetryState<TError = Error>(
   source: ReadRetrySource<TError>,
   queryKey: QueryKey,
 ): ReadRetryState<TError> {
-  const identity = hashKey(queryKey);
-  const live = source.error ?? null;
-  const running = source.isFetching || source.isPaused === true;
-  const [held, setHeld] = useState<HeldFailure<TError> | null>(null);
-
-  let next = held !== null && held.identity === identity ? held : null;
-  if (live !== null) {
-    if (next === null || !sameFailure(next.error, live)) next = { identity, error: live };
-  } else if (!running) {
-    next = null;
-  }
-  // Render-phase adjustment: the held failure follows the read without an effect's extra render.
-  if (next !== held) setHeld(next);
-
-  const error = live ?? next?.error ?? null;
-  return {
-    error,
-    isRetrying: error !== null && running,
-    isLoading: error === null && source.isLoading,
-  };
+  return useReadRetryStates([{ source, queryKey }])[0]!;
 }
