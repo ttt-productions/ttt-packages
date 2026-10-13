@@ -127,6 +127,12 @@ describe('the system-slot groups and required videos', () => {
     expect(grouped.flatMap((entry) => entry.slots.map((slot) => slot.id)).sort()).toEqual(SYSTEM_SLOTS.map((slot) => slot.id).sort());
     for (const entry of grouped) for (const slot of entry.slots) expect(slot.group).toBe(entry.group.id);
   });
+
+  it('keeps each grouped slot typed as its registry entry, so its id stays a slot id of its kind', () => {
+    const slot = systemSlotsByGroup()[0].slots[0];
+    expectTypeOf(slot.id).toEqualTypeOf<(typeof SYSTEM_SLOTS)[number]['id']>();
+    expectTypeOf(slot).toEqualTypeOf<(typeof SYSTEM_SLOTS)[number]>();
+  });
 });
 
 describe('the Help component video slots', () => {

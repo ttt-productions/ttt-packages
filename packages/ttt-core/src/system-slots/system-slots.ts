@@ -124,7 +124,7 @@ export function isRequiredVideoSlot(slotId: SystemVideoSlotId): boolean {
 }
 
 /** The registry's slots under each group, in the groups' order; a group no slot belongs to is left out. */
-export function systemSlotsByGroup(): Array<{ group: (typeof SYSTEM_SLOT_GROUPS)[number]; slots: SystemSlotDefinition[] }> {
+export function systemSlotsByGroup(): Array<{ group: (typeof SYSTEM_SLOT_GROUPS)[number]; slots: SystemSlot[] }> {
   return SYSTEM_SLOT_GROUPS.map((group) => ({
     group,
     slots: SYSTEM_SLOTS.filter((slot) => slot.group === group.id),
