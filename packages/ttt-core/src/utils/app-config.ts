@@ -6,7 +6,8 @@
 // wiped environment) creates a doc WITHOUT the fields AppConfigSchema requires. The write rule
 // is `mergeAppConfigUpdate(existing, update)`: the writer's update on top of the doc it read,
 // with any field that doc lacks — and any lever it holds at a value its schema refuses — taken
-// from DEFAULT_APP_CONFIG, validated as a whole.
+// from DEFAULT_APP_CONFIG, validated as a whole. A stored version block that does not parse is
+// never written over and never dropped: the writer leaves it as it is (see AppConfigMerge).
 //
 // READ. The stored doc is untrusted — an operator can console-edit any field into any shape —
 // and a config read must never take the product down by itself. The read rule is
@@ -109,26 +110,39 @@ export interface AppConfigLeverRepair {
   readonly storedValue: unknown;
 }
 
-/** The doc a writer writes, and every stored lever the merge had to repair to write it. */
+/**
+ * The doc a writer writes, every stored lever the merge had to repair to write it, and whether the
+ * stored version block must be left as it is.
+ */
 export interface AppConfigMerge {
   readonly next: AppConfig;
   readonly repairs: readonly AppConfigLeverRepair[];
+  /**
+   * True when the stored version block does not parse and the update does not replace it. `next`
+   * then holds no block, and the writer must write `next` as a MERGE (never a full overwrite), so
+   * the stored block is kept as it is — the read side keeps reporting it `invalid` (failing closed
+   * and alerting) instead of it disappearing and reading as "nothing released".
+   */
+  readonly keepsStoredVersionBlock: boolean;
 }
 
 /**
- * The complete `_appConfig/app` doc to write after applying `update` to `existing` (the doc as
- * read in the writer's transaction; `undefined` or `null` when it does not exist). The update's
- * fields win; `existing` supplies the rest; any field still missing comes from
- * DEFAULT_APP_CONFIG. An `undefined` update field changes nothing. Pure.
+ * The `_appConfig/app` doc to write after applying `update` to `existing` (the doc as read in the
+ * writer's transaction; `undefined` or `null` when it does not exist). The update's fields win;
+ * `existing` supplies the rest; any field still missing comes from DEFAULT_APP_CONFIG. An
+ * `undefined` update field changes nothing. Pure.
  *
- * A stored lever its schema refuses never blocks a save — a console typo must not disable the
- * maintenance kill switch: it is dropped, so the update's value replaces it when the update sends
- * that lever and its DEFAULT_APP_CONFIG value (what every reader already falls back to) otherwise,
- * and it is reported in `repairs`. The release-owned version block is not a lever and has no
- * default, so a refused stored block is still refused.
+ * A stored value its schema refuses never blocks a save — a console typo must not disable the
+ * maintenance kill switch:
+ * - a refused LEVER is dropped, so the update's value replaces it when the update sends that lever
+ *   and its DEFAULT_APP_CONFIG value (what every reader already falls back to) otherwise; it is
+ *   reported in `repairs`;
+ * - a refused version block has no default and must never read as "nothing released", so when the
+ *   update does not send a block it is left untouched (`keepsStoredVersionBlock`); an update that
+ *   sends a block replaces it.
  *
- * Throws when the result would not parse under AppConfigSchema — an invalid update, or a refused
- * version block — so nothing invalid is ever written.
+ * Throws when the update itself would not parse under AppConfigSchema, so nothing invalid is ever
+ * written.
  */
 export function mergeAppConfigUpdate(
   existing: Readonly<Record<string, unknown>> | null | undefined,
@@ -141,11 +155,13 @@ export function mergeAppConfigUpdate(
     repairs.push({ lever, storedValue: stored[lever] });
     delete stored[lever];
   }
-  const parsed = AppConfigSchema.safeParse({
-    ...DEFAULT_APP_CONFIG,
-    ...stored,
-    ...definedFields(update),
-  });
+  const sent = definedFields(update);
+  const keepsStoredVersionBlock =
+    'publicDocumentVersions' in stored &&
+    !('publicDocumentVersions' in sent) &&
+    !AppConfigSchema.shape.publicDocumentVersions.safeParse(stored.publicDocumentVersions).success;
+  if (keepsStoredVersionBlock) delete stored.publicDocumentVersions;
+  const parsed = AppConfigSchema.safeParse({ ...DEFAULT_APP_CONFIG, ...stored, ...sent });
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     const field = issue?.path.join('.') || 'document';
@@ -153,7 +169,7 @@ export function mergeAppConfigUpdate(
       `_appConfig/app would not match AppConfigSchema after this update (${field}: ${issue?.message ?? 'invalid'}). Nothing should be written.`,
     );
   }
-  return { next: parsed.data, repairs };
+  return { next: parsed.data, repairs, keepsStoredVersionBlock };
 }
 
 /**

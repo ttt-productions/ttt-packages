@@ -129,8 +129,23 @@ describe('mergeAppConfigUpdate — the one rule for writing _appConfig/app', () 
     expect(mergeAppConfigUpdate({ appVersion: '1.0.0' }, { maintenanceMode: true }).repairs).toEqual([]);
   });
 
-  it('still refuses a refused stored version block — it has no default to fall back to', () => {
-    expect(() => mergeAppConfigUpdate({ publicDocumentVersions: 'v2' }, { maintenanceMode: true })).toThrow(/publicDocumentVersions/);
+  it('turns maintenance on over a refused stored version block, leaving the block for the writer to keep as it is', () => {
+    const { next, keepsStoredVersionBlock } = mergeAppConfigUpdate({ publicDocumentVersions: 'v2' }, { maintenanceMode: true });
+    expect(keepsStoredVersionBlock).toBe(true);
+    expect(next).toEqual({ ...DEFAULT_APP_CONFIG, maintenanceMode: true });
+    expect('publicDocumentVersions' in next).toBe(false);
+  });
+
+  it('an update that sends a version block replaces a refused stored one', () => {
+    const { next, keepsStoredVersionBlock } = mergeAppConfigUpdate({ publicDocumentVersions: 'v2' }, { publicDocumentVersions: block });
+    expect(keepsStoredVersionBlock).toBe(false);
+    expect(next.publicDocumentVersions).toEqual(block);
+  });
+
+  it('a valid stored version block is carried in the written doc, never left to a merge', () => {
+    const { next, keepsStoredVersionBlock } = mergeAppConfigUpdate({ publicDocumentVersions: block }, { maintenanceMode: true });
+    expect(keepsStoredVersionBlock).toBe(false);
+    expect(next.publicDocumentVersions).toEqual(block);
   });
 
   it('writes a maintenance message up to its cap, and refuses one over it', () => {

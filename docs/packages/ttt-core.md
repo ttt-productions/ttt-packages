@@ -391,7 +391,9 @@ TTT Productions application-data package.
   whole against `AppConfigSchema` (it throws rather than return an invalid doc). A stored lever its
   schema refuses never blocks a save: it is replaced by the update's value or its default and
   reported in the result's `repairs` (with the raw stored value) so the writer can audit the
-  repair; a refused version block is still refused. A backend writer
+  repair. A refused stored version block has no default and must never read as "nothing
+  released", so unless the update replaces it the merge leaves it out and sets
+  `keepsStoredVersionBlock` — the writer then writes as a merge, keeping the stored block as it is. A backend writer
   that writes its result can never leave a doc missing its required fields, even as the first
   write into a fresh or wiped environment. The release-owned version block has no default — it is
   absent until the first release.
