@@ -177,6 +177,17 @@ export function useSubscribedResult<TData>(
       fetchStatus: 'fetching',
       refetch,
     } as UseQueryResult<TData, Error>;
+  } else if (active && query.isPending) {
+    // The listener has not delivered its first snapshot. The query underneath is disabled in
+    // subscribe mode, so it reports pending but not loading; the read IS loading, exactly like a
+    // one-shot read's first fetch — never an answered absence.
+    result = {
+      ...query,
+      isLoading: true,
+      isFetching: true,
+      fetchStatus: 'fetching',
+      refetch,
+    } as UseQueryResult<TData, Error>;
   } else {
     result = { ...query, refetch } as UseQueryResult<TData, Error>;
   }

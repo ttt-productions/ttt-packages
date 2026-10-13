@@ -15,8 +15,7 @@ import type { CheckedOutTask } from '../types.js';
  *
  * `retryState` holds the listener's failure through its `refetch` (which restarts the listener):
  * the restart clears `error` while it reconnects, so a failure seat built from it would vanish under
- * the Try again that started it. A subscribed collection never turns its own `isLoading` on, so
- * loading is "no snapshot and no failure".
+ * the Try again that started it.
  */
 export function useCheckedOutTasks(userId: string | undefined) {
   const { config } = useReportCoreContext();
@@ -54,8 +53,5 @@ export function useCheckedOutTasks(userId: string | undefined) {
         lastUpdatedAt: data.lastUpdatedAt,
       }) as CheckedOutTask,
   });
-  const error = live.error ?? null;
-  const isLoading = !!userId && live.data === undefined && error === null;
-  const retryState = useReadRetryState({ error, isFetching: live.isFetching, isLoading }, queryKey);
-  return { ...live, retryState };
+  return { ...live, retryState: useReadRetryState(live, queryKey) };
 }

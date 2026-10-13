@@ -542,14 +542,82 @@ describe('a restart after the listener failed (useUploadsSourceRetry)', () => {
     }
   });
 
-  it('a restart answered from cache first is connecting, not offline', () => {
+  it('a cached snapshot during the restart keeps the failure and the retry running; the server answer ends it', () => {
     vi.useFakeTimers();
     try {
       const { result, d } = renderFailed();
       act(() => result.current.restart.retry());
       act(() => d.drive(metaSnapshot(true)));
+      expect(result.current.state).toBe('error');
+      expect(result.current.restart.retrying).toBe(true);
+
+      // The server refuses again: still the failure, still retrying — never a loading state.
+      act(() => d.driveError(new Error('denied')));
+      expect(result.current.state).toBe('error');
+      expect(result.current.restart.retrying).toBe(true);
+      act(() => {
+        vi.advanceTimersByTime(LADDER_MS[0]!);
+      });
+
+      act(() => d.drive(metaSnapshot(false)));
+      expect(result.current.state).toBe('live');
+      expect(result.current.restart.retrying).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a restart that lands with a switch of account starts the new account over — connecting, not retrying', () => {
+    let currentUserId: string | null = 'userA';
+    const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
+    const d = makeDriver();
+    vi.useFakeTimers();
+    try {
+      const { result, rerender } = renderHook(
+        () => ({ state: useUploadsSourceState(), restart: useUploadsSourceRetry() }),
+        { wrapper: wrap(adapter, d.subscribe) },
+      );
+      for (const ms of LADDER_MS) {
+        act(() => d.driveError(new Error('denied')));
+        act(() => {
+          vi.advanceTimersByTime(ms);
+        });
+      }
+      act(() => d.driveError(new Error('denied')));
+      expect(result.current.state).toBe('error');
+
+      act(() => {
+        result.current.restart.retry();
+        currentUserId = 'userB';
+      });
+      rerender();
       expect(result.current.state).toBe('connecting');
       expect(result.current.restart.retrying).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a restart that lands with a sign-out never leaves the retry running', () => {
+    let currentUserId: string | null = 'userA';
+    const adapter = makeAdapter({ getCurrentUserId: () => currentUserId });
+    const d = makeDriver();
+    vi.useFakeTimers();
+    try {
+      const { result, rerender } = renderHook(() => useUploadsSourceRetry(), { wrapper: wrap(adapter, d.subscribe) });
+      for (const ms of LADDER_MS) {
+        act(() => d.driveError(new Error('denied')));
+        act(() => {
+          vi.advanceTimersByTime(ms);
+        });
+      }
+      act(() => d.driveError(new Error('denied')));
+      act(() => {
+        result.current.retry();
+        currentUserId = null;
+      });
+      rerender();
+      expect(result.current.retrying).toBe(false);
     } finally {
       vi.useRealTimers();
     }

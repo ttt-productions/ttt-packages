@@ -46,8 +46,9 @@ beforeEach(() => {
 });
 
 describe('useCheckedOutTasks — the failure held through its restart', () => {
-  it('is loading before the first snapshot — the subscribed query itself never says isLoading', () => {
-    mocks.useFirestoreCollection.mockReturnValue({ data: undefined, isLoading: false, isFetching: false, error: null } as never);
+  it('is loading before the first snapshot', () => {
+    // query-core's subscribed result before its first snapshot: loading and fetching, no data.
+    mocks.useFirestoreCollection.mockReturnValue({ data: undefined, isLoading: true, isFetching: true, error: null } as never);
     const { result } = renderHook(() => useCheckedOutTasks('admin-1'), { wrapper });
     expect(result.current.retryState).toEqual({ error: null, isRetrying: false, isLoading: true });
   });

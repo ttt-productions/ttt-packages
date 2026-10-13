@@ -28,6 +28,11 @@ Generic TanStack Query package.
   `connecting` with no error from its very first render, and a retired listener's late
   callback never lands on the new one. Consumed by the TTT notification/badge tray to
   show a degraded indicator instead of a false "all caught up".
+- **A subscribed read is loading until its first snapshot.** The query underneath is disabled in
+  subscribe mode, so on its own it reads `pending` but not loading; the result reports
+  `isLoading` and `isFetching` (`fetchStatus: 'fetching'`) until the listener's first snapshot or
+  its error, as a one-shot read's first fetch does — a consumer deciding from `isLoading` never
+  renders an unanswered read as an absence. A disabled read stays idle.
 - **`refetch()` re-opens a subscribed read.** In subscribe mode, `useFirestoreDoc` /
   `useFirestoreCollection` keep a listener error in their own state (the `permission-denied`
   ladder spent, or at once for any other code), so the one-shot read cannot clear it. Their

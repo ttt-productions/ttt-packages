@@ -432,7 +432,9 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
     // sign-out to clear refs between two authenticated UIDs.
     // A restart the person asked for keeps the source state it had (a failure stays a failure
     // until the restarted listener answers); every other run starts over as `connecting`.
-    let restarting = restartRequestedRef.current;
+    // A restart belongs to the identity it was asked for: one that lands with a sign-out or a switch
+    // of account is an ordinary new subscription, which starts over.
+    let restarting = restartRequestedRef.current && userId !== null && userId === trackedUserIdRef.current;
     restartRequestedRef.current = false;
     setUploads(new Map());
     if (!restarting) {
@@ -518,12 +520,16 @@ export function InFlightUploadsProvider<TFileOrigin extends string = string>(
       // Metadata-derived source state: stay `connecting` until a server-confirmed
       // snapshot, `offline` if only cached data arrives after being live.
       const fromCache = snapshot.metadata?.fromCache ?? false;
-      // A snapshot after a failed listener comes from a new subscription: not yet live, never offline.
-      setSourceState((prev) =>
-        fromCache ? (prev === 'connecting' || prev === 'error' ? 'connecting' : 'offline') : 'live',
-      );
-      restarting = false;
-      setRetrying(false);
+      // A restart ends on the server's answer: a cached snapshot during it keeps the failure on screen
+      // (the server may refuse again). Otherwise a snapshot after a failed listener comes from a new
+      // subscription: not yet live, never offline.
+      if (!(restarting && fromCache)) {
+        setSourceState((prev) =>
+          fromCache ? (prev === 'connecting' || prev === 'error' ? 'connecting' : 'offline') : 'live',
+        );
+        restarting = false;
+        setRetrying(false);
+      }
 
       if (updates.length > 0) {
         setUploads((prev) => {
