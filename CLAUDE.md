@@ -58,12 +58,23 @@ command above. With the new package built and `npm run test:quiet` green, hand D
    (its own fenced `bash` block). It publishes the package's current `package.json` version. That
    manual tarball skips CI's `pin-internal-deps` step, so its internal `@ttt-productions/*` ranges are
    the source's `"*"`; step 3 replaces it as `@latest`, and nothing installs it in between.
-2. On npmjs.com, DJ opens the new package → **Settings** → **Trusted Publisher** → **GitHub Actions**,
-   enters organization `ttt-productions`, repository `ttt-packages`, workflow filename `publish.yml`,
-   leaves the environment blank, and saves.
+2. On npmjs.com, DJ opens the new package → **Settings** → **Trusted Publisher**, and under
+   **Select your publisher** clicks **GitHub Actions**. He fills in:
+   - **Organization or user:** `ttt-productions`
+   - **Repository:** `ttt-packages`
+   - **Workflow filename:** `publish.yml`
+   - **Environment name:** left blank
+   - **Allowed actions:** allow direct publishing with `npm publish`. `publish.yml` publishes with
+     `npm publish`, and a publisher allowed only `npm stage publish` (the always-on default) fails
+     every release. **Allow npm dist-tag** stays off.
+
+   Then he saves. npm does not check the setup when it is saved; a mistake shows only as a failed
+   publish in step 3. The setup expires unless a publish through it succeeds within 2 days, so step 3
+   follows right away.
 3. DJ runs the normal release command, `./scripts/release-multiple.sh <folder> patch`, with the new
    package's folder (alongside any other package in the batch). That release is the version
-   consumers install.
+   consumers install. If its `publish.yml` run fails at `npm publish`, the trusted-publisher fields in
+   step 2 are the first thing to check.
 
 The session waits for DJ to say step 3 is published, then follows the Release and adoption workflow
 below.
