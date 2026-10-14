@@ -12,7 +12,7 @@ describe('buildSafeEvent — allowlist', () => {
       safeCode: 'CS-DENY',
       traceId: 't-abc',
       // forbidden extras that must NOT survive:
-      evidenceUrl: 'https://storage.googleapis.com/ttt-prod-ncii-evidence/x',
+      evidenceUrl: 'https://storage.googleapis.com/app-ncii-evidence/x',
       reporterIp: '203.0.113.7',
       detectorHash: 'a'.repeat(64),
       ncmecCredential: 'ncmec-key-abcdef0123456789',

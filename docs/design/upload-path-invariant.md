@@ -1,30 +1,32 @@
 # Upload path invariant
 
-This doc describes the durable upload path shape used by TTT upload surfaces and the shared upload packages.
+The durable upload path shape the shared upload packages rely on, and who owns each part of it.
 
-## Current package ownership
+## Package ownership
 
 - `media-schemas` owns generic media shapes and the neutral `MediaOriginSpec` shape.
-- `ttt-core` owns concrete `FileOrigin`, concrete `TTT_MEDIA_SPECS`, upload target-info schemas, `StartUploadRequestSchema`, and `parseTargetInfo`.
 - `upload-core` owns the low-level browser upload primitive.
 - `upload-ui` owns guarded upload UX and is the only feature-level caller of the low-level primitive.
-- TTT app/backend code owns concrete storage path builders and the path-equality check that enforces this invariant (`startUpload`'s `storagePath !== expectedPath` comparison — application code, not a `firestore.rules` expression).
+- Each consuming app owns its concrete origin ids and origin registry (in its application-data
+  package), its upload target-info and start-upload schemas, its concrete storage path builders, and
+  the server-side path-equality check that enforces this invariant.
 
 ## Invariant
 
-Every upload path is built from an app-approved origin id and app-owned path builder. Generic packages must treat the origin id as opaque. They may validate a file against a `MediaOriginSpec`, but they must not know the TTT `FileOrigin` enum or the concrete registry.
+Every upload path is built from an app-approved origin id and an app-owned path builder. Generic
+packages treat the origin id as opaque: they may validate a file against a `MediaOriginSpec`, but
+they never know an app's origin enum or its concrete registry.
 
-For TTT, upload `targetInfo` is also not authoritative for identity. Backends derive identity-bearing fields such as `createdBy`, `userId`, `actorId`, owner/admin fields, and notification recipients from the authenticated caller, `pendingMedia.userId`, or an explicitly checked admin/system context. A client-supplied target-info field can provide domain copy and typed ids, but it cannot be the source of truth for who performed or owns the write.
+Upload target info is never authoritative for identity. The app's backend derives identity-bearing
+fields (creator, owner, actor, notification recipients) from the authenticated caller, the pending
+upload record, or an explicitly checked admin/system context. A client-supplied target-info field may
+carry domain copy and typed ids, never the source of truth for who performed or owns the write.
 
-For TTT, the allowed origin ids must stay aligned across:
-
-- `ttt-core` `FileOrigin`
-- `ttt-core` `TTT_MEDIA_SPECS`
-- backend `startUpload` / processor dispatch (`resolve-processor-kind.ts`) — pinned in sync with `FileOrigin` by `functions/src/media/uploadPathInvariant.test.ts`
-- `storage.rules` (`uploadMaxBytes` origin switch — unknown origins fail closed to 0 bytes)
-- `startUpload`'s path-equality check (`storagePath !== expectedPath`) — `firestore.rules` itself carries no fileOrigin allowlist or path enforcement anymore; that check moved into application code
-- app upload form/shell wiring
+Each app keeps its allowed origin ids aligned across its own origin registry, its upload processor
+dispatch, its storage rules, its server-side path-equality check (an exact `storagePath` match, never
+a prefix), and its upload form wiring — that alignment is the app's rule, not the packages'.
 
 ## Package rule
 
-Do not add a TTT origin to a generic package. Add it to `ttt-core`, update the backend processor/rules, and pass the selected `MediaOriginSpec` into the generic UI package at the app boundary.
+Never add an app's origin to a generic package. The app adds it to its own registry and backend, then
+passes the selected `MediaOriginSpec` into the generic UI package at its boundary.

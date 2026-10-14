@@ -31,16 +31,14 @@ Pure chat contracts and logic package. **No React, no Firebase.**
 packages, so a Cloud Function, script, or future native/TV client can consume
 the contracts without dragging in the frontend tree.
 
-`chat-core` does not import `ttt-core`.
+`chat-core` does not import an application-data package.
 
 ## Not owned — chat message text is PLAIN text
 
 There is no mention/token grammar in chat: no parser, no serializer, no
 `@`-token wire format, and no mention provider or autocomplete contract. Chat
-message text is stored and rendered verbatim. Mentions are a **Square posts**
-concept owned by the consuming app (`ttt-core`'s `Mention` / `MentionType`
-atoms and the app's own implementation) — chat never had a product reason for
-them, so the machinery is gone rather than dormant.
+message text is stored and rendered verbatim. Mentions are a concept owned by the consuming app (its data package's mention
+atoms and its own implementation) — chat never had a product reason for them, so the machinery is gone rather than dormant.
 
 ## Not owned — no reply-to pointer
 

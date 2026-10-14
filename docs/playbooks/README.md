@@ -11,9 +11,9 @@ findings here.
 - Each playbook follows: **Purpose** / **When to run** / **Audit steps**
   (numbered, with grep/command snippets) / **Common failure patterns** /
   **Output / Pass-fail criteria**.
-- A run's findings go in `docs/audits/<topic>-<date>.md`, not back into the
-  playbook. Delete that audit file once everything in it is resolved — playbooks
-  persist, audit outputs are transient.
+- A run's report goes in the app-in-scope's `docs/work/raw-findings/playbook-runs/`
+  as one `<playbook-name>-run.md`, never back into the playbook. It is deleted once
+  everything in it is resolved — playbooks persist, run reports are transient.
 - If a step later gets enforced by a CI script, keep the step but annotate it
   "enforced in CI by `<script>`."
 

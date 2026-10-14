@@ -78,7 +78,7 @@ Chat **React UI** package — the React half of the chat split.
   neutral `ChatConversationRef`). On the `realtime` transport the DO grant is the
   data-access authority.
 - The **realtime (Cloudflare Durable Object) transport CLIENT** (`src/realtime/`)
-  — the client half of the `ttt-master-app/chat-worker` wire protocol. See the
+  — the client half of the consuming app's chat Worker wire protocol. See the
   "Realtime transport" section below. The FIRESTORE transport stays the unchanged
   default (admin-support threads stay firestore permanently).
 - Moderation actions (`MessageActions` / `ThreadActions`): a promise-returning
@@ -95,7 +95,7 @@ Chat **React UI** package — the React half of the chat split.
 The realtime transport is the client for the chat Worker's Durable Objects
 (Contract A connection + Contract C wire protocol). It is GENERIC — it imports
 the generic [`@ttt-productions/realtime-core`](./realtime-core.md) primitives
-(reconnect/resume controller, versioned-apply) and NEVER imports `ttt-core` or
+(reconnect/resume controller, versioned-apply) and NEVER imports an application-data package or
 the chat Worker. The canonical wire contract (`{ v, type, payload }` frame
 version, `CLIENT_KINDS` / `SERVER_KINDS`, close codes, the neutral conversation
 reference `ChatConversationRef`, grant scope/audience, the send and mark-read
@@ -366,8 +366,8 @@ mounts no picker, no media renderer, and no upload spec.
 optional peers. The realtime transport uses a global `WebSocket` (overridable via
 an injected `socketFactory`).
 
-`chat-react` does not import `ttt-core`, does not hardcode TTT origins, and does
-not build TTT storage paths — it runs no upload path at all, so there is no chat
+`chat-react` imports no application-data package, hardcodes no app origins, and
+builds no app storage paths — it runs no upload path at all, so there is no chat
 upload adapter to pass. It also owns no mention machinery: mentions belong to the
 app's Square-posts surface, not to chat.
 

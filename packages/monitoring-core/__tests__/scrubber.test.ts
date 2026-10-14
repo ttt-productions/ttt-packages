@@ -10,8 +10,8 @@ import {
 
 // --- Synthetic FORBIDDEN canary values (all fake — never real) ---------------
 const FAKE_EVIDENCE_URL =
-  'https://storage.googleapis.com/ttt-prod-ncii-evidence/case_9f/abcd1234';
-const FAKE_EVIDENCE_PREFIX = 'https://storage.googleapis.com/ttt-prod-ncii-evidence/';
+  'https://storage.googleapis.com/app-ncii-evidence/case_9f/abcd1234';
+const FAKE_EVIDENCE_PREFIX = 'https://storage.googleapis.com/app-ncii-evidence/';
 const FAKE_IPV4 = '203.0.113.42';
 const FAKE_IPV6 = '2001:0db8:85a3:0000:0000:8a2e:0370:7334';
 const FAKE_DETECTOR_HASH = 'a'.repeat(64); // 64 hex chars — detector-hash shape

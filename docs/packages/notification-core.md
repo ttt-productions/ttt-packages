@@ -113,7 +113,7 @@ stored doc. The package does not own a name resolver.
 
 ## Boundary
 
-This package stays generic and does not import `ttt-core`. App-specific
+This package stays generic and does not import an application-data package. App-specific
 categories, type configs, dedup-key/title/message patterns, routes, and copy are
 supplied through `NotificationSystemConfig`.
 

@@ -4,6 +4,12 @@ Documentation for the `@ttt-productions/*` shared monorepo.
 
 ## Folders
 
+### `development-preferences.md`
+How an AI works with DJ, in every conversation and every repo — identical in ttt-prod, Q-Sports and ttt-packages. Required reading; nothing in it is restated elsewhere.
+
+### `engineering-rules/`
+ttt-packages' own rulebook: how generic package code must be created and changed, with stable rule IDs. Mandatory reading for every package task — its `README.md` routes the rest. It names no consuming app; an application-data package follows its own app's rulebook.
+
 ### `packages/`
 Per-package reference documentation. One file per package describes what that package owns, what it must not own, and which entry points are public. Read these when using or changing a package.
 

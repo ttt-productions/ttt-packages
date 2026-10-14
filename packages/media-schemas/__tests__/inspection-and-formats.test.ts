@@ -28,7 +28,7 @@ describe("ClientMediaClaimSchema", () => {
 
 describe("MediaInspectionResultSchema", () => {
   const base = {
-    inspectorVersion: "ttt-inspect-v1",
+    inspectorVersion: "app-inspect-v1",
     status: "definitive",
     canonicalKind: "audio",
     formatId: "webm",

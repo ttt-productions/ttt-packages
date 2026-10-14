@@ -1,7 +1,7 @@
 # @ttt-productions/realtime-core
 
 Runtime-neutral, **GENERIC** realtime primitives (Tier 1 — depends only on
-`edge-protocol-core`). Zero TTT specifics: it owns no Firestore collection name,
+`edge-protocol-core`). Zero app specifics: it owns no Firestore collection name,
 selector, domain-action catalog, or report/case/audit type. The chat realtime
 layer (and any future realtime consumer) supplies its own domain types, secrets,
 collections, and storage runtime. WebCrypto + zod only — runs in Node 24,
@@ -38,7 +38,7 @@ Cloudflare Workers, and browsers.
 
 The concrete Cloudflare Durable Object runtime (the chat Worker), the actual
 SQLite DDL, the domain message kinds, and the signing secrets are app-level
-(`ttt-master-app/chat-worker`), built against these interfaces — they are NOT in
+(the consuming app's chat Worker), built against these interfaces — they are NOT in
 this package. The state-machine/allocator/apply logic here is pure and unit-tested.
 
 `@ttt-productions/chat-react` is also a direct, architecturally-sanctioned
@@ -51,5 +51,5 @@ transport, not just the server-side DO Worker.
 
 ## Boundary-guard
 
-This package must never import `ttt-core`, `chat-*`, or `media-*`. Its only
+This package must never import an application-data package, `chat-*`, or `media-*`. Its only
 internal dependency is `edge-protocol-core`.

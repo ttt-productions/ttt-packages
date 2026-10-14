@@ -89,8 +89,8 @@ describe('createReleaseTaskHandler', () => {
 
   it('IDEMPOTENT: missing task doc → success no-op (no write, no audit event)', async () => {
     // A task can be legitimately GONE rather than never-held: an auto-resolving
-    // writer deletes the adminTasks doc inside its own resolving transaction
-    // (BACKEND-207), so an admin on a stale work view releases a task that was
+    // writer deletes the adminTasks doc inside its own resolving transaction,
+    // so an admin on a stale work view releases a task that was
     // correctly deleted. That is a designed terminal state — nothing is held, so
     // the caller's goal state already holds.
     const { db, updates, sets } = createMockDb(null);

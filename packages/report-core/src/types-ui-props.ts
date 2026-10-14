@@ -97,7 +97,7 @@ export interface ReportButtonProps
   triggerLabel: string;
   /** Called instead of opening the dialog when no reporter is signed in. */
   onSignInRequired?: () => void;
-  /** ui-core Button variant. Default "ghost" (neutral — FRONTEND-006). */
+  /** ui-core Button variant. Default "ghost" (neutral — destructive red belongs only to a confirmation dialog). */
   triggerButtonVariant?: string;
   /** ui-core Button size. Default "icon". */
   triggerButtonSize?: string;

@@ -90,14 +90,9 @@ For packages with `/server`, also confirm the server dist exists and does not im
 
 When adding a new `src/react/index.ts` barrel, prefer starting the barrel with `"use client";` and keep that directive off the server-safe main barrel. If adopting this as a hard requirement for an existing package, sweep the current package first; several older React files rely on leaf-module boundaries rather than a barrel-level directive.
 
-### 7. Ambient shim cleanup in consumers
+### 7. Main-barrel changes that consumers' shims depend on
 
-Search consuming repos for package-specific ambient shims created to work around NodeNext export resolution:
-
-    find ../ttt-prod/functions/src -name "*.d.ts" -maxdepth 2 -print
-    grep -RIn "declare module '@ttt-productions/\|declare module \"@ttt-productions/" ../ttt-prod/functions/src --include='*.d.ts'
-
-These shims are workarounds, not architecture. After a package's main-barrel surface changes, re-evaluate the corresponding shim for deletion by removing it locally and running the consuming app's typecheck plus Functions build. Restore it only if either fails.
+A consuming app may carry an ambient `.d.ts` shim for a package export it could not resolve; each app's own playbooks audit those shims. This package's side: when a package's main-barrel surface changes, its change note says so, so each consuming app re-evaluates any shim it holds for that package.
 
 ### Peer-dependency install safety (client peers must be optional)
 
@@ -113,13 +108,14 @@ Optional peers are not auto-installed. So any client peer marked `optional` that
 
 ### 8. Audit output
 
-Generate `docs/audits/REACT_LEAK_AUDIT.md` only while there are active findings. Include:
+The run report is one `REACT_LEAK_AUDIT_PLAYBOOK-run.md` in the app in scope's
+`docs/work/raw-findings/playbook-runs/` (`README.md` in this folder). Include:
 
 - A summary table with one row per package: package name, version, has React code, main is server-safe, `/react` subpath exists, action needed.
 - Per-violator detail sections with the offending re-export lines from `src/index.ts` and the current `package.json` exports field.
 - A refactor-order recommendation in dependency order.
 
-After the audit table is acted on and every violator is resolved, delete `docs/audits/REACT_LEAK_AUDIT.md`. The playbook is permanent; audit outputs are transient.
+After the audit table is acted on and every violator is resolved, delete the run report. The playbook is permanent; run reports are transient.
 
 ## Common failure patterns
 
@@ -135,9 +131,9 @@ After the audit table is acted on and every violator is resolved, delete `docs/a
 
 ## Output / Pass-fail criteria
 
-**PASS** when every package in `packages/` is COMPLIANT or N/A, every package with React surface exposes it through `/react`, package-to-package imports use the correct subpath, built `dist/index.js` files contain zero React imports, stale ambient shims have been re-evaluated in consuming repos, and `docs/audits/REACT_LEAK_AUDIT.md` is absent because there is nothing left to track.
+**PASS** when every package in `packages/` is COMPLIANT or N/A, every package with React surface exposes it through `/react`, package-to-package imports use the correct subpath, built `dist/index.js` files contain zero React imports, every main-barrel surface change is noted for consumers, and no run report is open because there is nothing left to track.
 
-**FAIL** if any package's main entry imports React directly, re-exports a React-touching file, re-exports from `./react`, lacks the public subpath needed by consumers, or lets another package import React surface from its main barrel. Each FAIL is logged in `docs/audits/REACT_LEAK_AUDIT.md` with the specific offending lines, and the package's next release is blocked until resolved.
+**FAIL** if any package's main entry imports React directly, re-exports a React-touching file, re-exports from `./react`, lacks the public subpath needed by consumers, or lets another package import React surface from its main barrel. Each FAIL is logged in the run report with the specific offending lines, and the package's next release is blocked until resolved.
 
 ## Automation fallback
 

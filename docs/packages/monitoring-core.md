@@ -66,8 +66,8 @@ Ownership of the pattern set is split, and both halves are always in play:
   breadcrumbs, and session replay. Values are deliberately over-redacted rather than shaped to a
   specific encoding, so an unexpected value loses too much instead of leaking a tail.
 - **The consuming app injects its product-specific patterns** through the `patterns` option
-  (ARCH-201 / QUALITY-102 — no app data package import here). For TTT that set is
-  `TTT_FORBIDDEN_TELEMETRY_PATTERNS` in `ttt-core`, scoped to the CSAM/NCII subsystem.
+  (ARCH-201 / QUALITY-102 — no app data package import here); each app keeps that set
+  in its own data package.
 
 The two sets **merge**: app patterns are added to the defaults, never substituted for them.
 `includeDefaults: false` is the only way to drop the generic half, and no production init uses it —
@@ -116,8 +116,7 @@ rewrites an event in place and returns it (so it composes with the scrubber as o
 
 The package owns the mechanism only (ARCH-201): which keys are diagnostic is the caller's — `diagnosticKeys`, matched
 exactly, and `diagnosticKeySuffixes`, matched at the end of a key that starts with a lowercase letter (`Id` admits
-`caseId`, never `Id` alone; an empty list admits nothing). For TTT those lists are `TTT_TELEMETRY_CONTENT_POLICY` in
-`ttt-core`. The module imports no SDK and no Node API, so any runtime — Node, browser, or edge — can apply it.
+`caseId`, never `Id` alone; an empty list admits nothing). Each app keeps those lists in its own data package. The module imports no SDK and no Node API, so any runtime — Node, browser, or edge — can apply it.
 
 ## Initialization
 

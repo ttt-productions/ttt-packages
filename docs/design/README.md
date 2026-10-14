@@ -15,8 +15,8 @@ lives in `docs/packages/<name>.md`, not here.
 - These files are the source of truth for cross-cutting rules. `CLAUDE.md` and
   the package docs may carry one-line pointers, but the prose lives here.
 
-## Where TTT discovery contracts belong
+## Where app discovery contracts belong
 
-Shared Realm/Work discovery contracts belong in `ttt-core`; generic query
-mechanics belong in `query-core`. Never bake TTT-specific collection names or
-search presets into a generic package.
+An app's discovery contracts (what it searches and how) belong in that app's
+application-data package; generic query mechanics belong in `query-core`. Never
+bake an app's collection names or search presets into a generic package.

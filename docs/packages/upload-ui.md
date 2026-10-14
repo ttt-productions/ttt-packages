@@ -13,16 +13,16 @@ Guarded upload UI/mechanism package, and the app's one navigation and leave guar
 
 ## Boundary
 
-`upload-ui` owns mechanism and UI state, not TTT policy. The receive-side provider is adapter-driven: app code supplies the user id, Firestore/pending-media subscription details, parser/schema, domain-event notification callback, toast/rejection/error callbacks, success copy, and clear-activity mutation.
+`upload-ui` owns mechanism and UI state, not app policy. The receive-side provider is adapter-driven: app code supplies the user id, Firestore/pending-media subscription details, parser/schema, domain-event notification callback, toast/rejection/error callbacks, success copy, and clear-activity mutation.
 
-The deferred form shell receives a neutral `MediaOriginSpec`. TTT chooses the concrete spec from `ttt-core` at the app boundary.
+The deferred form shell receives a neutral `MediaOriginSpec`. The consuming app chooses the concrete spec from its own registry at its boundary.
 
 ## Does not own
 
 - Low-level Firebase Storage upload primitive (`upload-core` owns that)
-- TTT file origins or `TTT_MEDIA_SPECS`
-- TTT pending-media schema
-- TTT toast/rejection copy
+- An app's file origins or media registry
+- An app's pending-media schema
+- An app's toast/rejection copy
 
 
 ## Entry points
@@ -59,7 +59,7 @@ While an upload or unsaved work is registered the guard warns on every way out: 
 ## Neutral content-type threading
 
 `GuardedUploadArgs.allowNeutralContentType` threads the upload-core opt-in through the one
-guarded upload path (no TTT policy here — the app's policy adapter decides when to set it).
+guarded upload path (no app policy here — the app's policy adapter decides when to set it).
 
 ## Deferred-shell claim threading
 

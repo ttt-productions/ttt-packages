@@ -1,6 +1,6 @@
 # Display Identity Invariant: uid-only references in cross-boundary types
 
-For TTT Productions package contracts, display identity (display names, profile images, handles) is **not** denormalized into shared cross-boundary document shapes. Shared types reference users by uid only. Apps resolve display identity from their own identity source.
+For `@ttt-productions/*` package contracts, display identity (display names, profile images, handles) is **not** denormalized into shared cross-boundary document shapes. Shared types reference users by uid only. Apps resolve display identity from their own identity source.
 
 ## Rule
 
@@ -14,18 +14,16 @@ Shared cross-boundary types — anything defined in `@ttt-productions/*` package
 
 Display name, profile image URL, handle, and any other user-presentation fields are **NOT** included in the shared type.
 
-Apps resolve display identity from their own identity source:
-- ttt-prod uses backend-mirrored `publicUsers/{uid}` documents.
-- Q-Sports uses its own user records.
+Each consuming app resolves display identity from its own identity source (a mirrored public-user document, its own user records, or whatever it chooses); the packages never know which.
 
-This applies to: public content, chat messages, report payloads, admin-task queue entries, commission postings, audition listings, work documents, library entries.
+This applies to every shared payload a package defines: chat messages, notifications, report payloads, admin-task queue entries, and any other cross-boundary document.
 
 ## Why
 
-- **One source of truth.** When a user changes their display name, exactly one document needs to update (`publicUsers/{uid}` in ttt-prod). Every consumer reading from that source automatically reflects the change.
+- **One source of truth.** When a user changes their display name, exactly one document needs to update — the app's identity source. Every consumer reading from that source automatically reflects the change.
 - **No fan-out write storm.** Denormalizing display name into chat messages, report payloads, and work documents means a name change requires updating thousands of documents. We had this bug shape pre-launch and the fix is "don't store the name."
 - **No drift between producer and consumer.** A snapshot stored at write time goes stale. A live read from the identity source is always current. Snapshots are acceptable only for audit/historical records where the point IS to capture the state at the time of action.
-- **Cross-app reusability.** Q-Sports doesn't have `publicUsers/`. By keeping shared types uid-only, the same `chat-core` / `notification-core` / `report-core` packages work in both apps with each app providing its own resolver.
+- **Cross-app reusability.** Apps store identity differently. By keeping shared types uid-only, the same `chat-core` / `notification-core` / `report-core` packages work in every app, each app providing its own resolver.
 
 ## Where it applies
 
@@ -34,8 +32,7 @@ This applies to: public content, chat messages, report payloads, admin-task queu
 - Notifications (`@ttt-productions/notification-core`): `targetUserId` (recipient) and `latestActorIds` (a capped array of actor uids), never names.
 - Reports (`@ttt-productions/report-core`): the reporter's identity comes from the authenticated caller, never a client-supplied field; `reportedUserId` is an optional, non-authoritative hint the server always re-derives — never display info.
 - Admin task queue entries: uid references for actor and subject (`userId`, `adminUserId`).
-- TTT-specific types in `@ttt-productions/ttt-core`: uid references. Work stewardship uses two aligned uid-only signals: the authoritative `StewardOwner` guild standing on a guildmate document (what report routing trusts), and a cached `workStewardUid` field on `PublicWorkProject` (what search filters, ownership checks, and UI attribution read) — never a work `ownedBy` field.
-- Mentions (`@ttt-productions/ttt-core`'s `Mention` type, embedded in Square Streetz posts/comments): `{ type, id, placeholder }` with `text` always written empty; display surfaces resolve the current name by id at render time.
+- An application-data package's own types follow its app's rules (ARCH-207); its app's design docs say how they reference users.
 
 ## What it forbids
 
@@ -47,8 +44,8 @@ This applies to: public content, chat messages, report payloads, admin-task queu
 
 ## What it allows
 
-- **Audit/historical records** could keep a frozen display-name snapshot in principle — a record whose whole purpose is to preserve who-did-what at the time of action, even if names change later, would be a legitimate audit-only exception (and would NOT be a shared cross-boundary type). In practice, ttt-prod's `auditEvents` collection does not do this today: `TTTAuditActor` (`@ttt-productions/ttt-core`) is uid-only (`{ uid, isAdmin, actorMode, systemRole }`); display names are resolved at read time from `publicUsers` like everywhere else. See `docs/design/audit-events-and-actor-context.md` for the actor shape.
-- **App-internal denormalization** where the app has decided to denormalize for its own reasons. ttt-prod's `publicUsers` mirror IS denormalization — but it's the resolver source, not the consumer. The rule is that shared types don't carry the denormalized data; apps can structure their own internal storage however they want.
+- **Audit/historical records** could keep a frozen display-name snapshot in principle — a record whose whole purpose is to preserve who-did-what at the time of action, even if names change later, would be a legitimate audit-only exception (and would NOT be a shared cross-boundary type). `audit-core`'s generic actor shape is uid-only either way; an app that wants a snapshot keeps it in its own audit types.
+- **App-internal denormalization** where the app has decided to denormalize for its own reasons. A mirrored public-user document IS denormalization — but it is the resolver source, not the consumer. The rule is that shared types don't carry the denormalized data; apps can structure their own internal storage however they want.
 
 ## When to revisit
 

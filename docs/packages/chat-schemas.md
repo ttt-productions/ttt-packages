@@ -63,7 +63,7 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
     `ChatMessageRevisionKindSchema` (`delete`, `moderate`, `edit`, `restore`): what a revision
     does to a message. A message's effective state is its highest revision's kind, so a later
     `restore` supersedes an earlier `moderate` or `delete`. The room stores them and sends them on
-    a `revision` frame and on each row; chat-react and ttt-core's context-read answer type with them.
+    a `revision` frame and on each row; chat-react and the consuming app's context-read answer type with them.
   - **The channel socket's client frame payloads**, which the Worker parses before acting
     and the client sends: `ChatSendPayloadSchema` (`clientMessageId` + `text`; the text
     is judged with `judgeChatMessageText` after the parse, so a blank or over-long text gets a
@@ -139,7 +139,7 @@ Pure schema package for chat data that must be safe to import from UI, backend, 
 
 ## Boundary
 
-This package is intentionally tiny. Its one internal `@ttt-productions/*` dependency is `input-format-core` — itself dependency-free and server-safe — so the message text is judged by the same check every other text input runs, and the chat Worker reaches that check through this package without installing anything else. It exists so `ttt-core`, Cloud Functions, the chat Worker, and the chat React client can compose chat validation, cleanup, or wire behavior without importing `chat-core`'s React/upload dependency graph.
+This package is intentionally tiny. Its one internal `@ttt-productions/*` dependency is `input-format-core` — itself dependency-free and server-safe — so the message text is judged by the same check every other text input runs, and the chat Worker reaches that check through this package without installing anything else. It exists so an app's data package, its Cloud Functions, its chat Worker, and the chat React client can compose chat validation, cleanup, or wire behavior without importing `chat-core`'s React/upload dependency graph.
 
 ## Does not own
 
@@ -147,12 +147,12 @@ This package is intentionally tiny. Its one internal `@ttt-productions/*` depend
 - Composer behavior
 - Upload logic
 - **Any attachment/file contract.** Chat is text-only: a file belongs to the
-  CONVERSATION (`ttt-core`'s `ConversationFileSchema` / `ConversationFileRef`),
-  never to a message. A chat message schema that accepts an `attachment` field is
+  CONVERSATION (a conversation-files contract the consuming app owns), never to a
+  message. A chat message schema that accepts an `attachment` field is
   a regression — the package contract test asserts against it.
-- TTT-specific callable schemas
+- App-specific callable schemas
 - **Any mention/token contract.** Chat message text is plain text; mentions are a
-  Square-posts concept owned by `ttt-core` and the app, never a chat one.
+  concept the consuming app owns, never a chat one.
 - **Any reply-to contract.** There is no `ReplyToSchema`, `ReplyTo` type, or
   preview-length bound. No chat surface has an authoring affordance for replying
   to a specific message (`chat-react`'s `MessageActions` renders only

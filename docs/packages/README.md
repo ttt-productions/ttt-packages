@@ -21,5 +21,5 @@ per-package docs each cover a single package.
   bullet leads with the real export subpath. A boundary test fails the build if a
   documented subpath is not an actual export, so keep these honest.
 
-Generic packages stay app-agnostic; `ttt-core` is the one TTT-specific
-application-data package, and its doc is correspondingly larger.
+Generic packages stay app-agnostic. An application-data package belongs to one
+app, follows that app's rulebook (ARCH-207), and its doc is correspondingly larger.

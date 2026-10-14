@@ -3,8 +3,8 @@ import * as chatSchemas from '../src/index.js';
 
 describe('chat message schemas are text-only (Conversation Files replaced attachments)', () => {
   it('exports no chat-attachment schema, type helper, or constant', () => {
-    // Chat carries text; files belong to the conversation's Conversation Files
-    // list (ttt-core), never to a message. A re-introduced attachment export is
+    // Chat carries text; files belong to the conversation's files list, which the
+    // consuming app owns, never to a message. A re-introduced attachment export is
     // the regression this asserts against.
     const exported = Object.keys(chatSchemas);
     expect(exported).not.toContain('ChatAttachmentSchema');

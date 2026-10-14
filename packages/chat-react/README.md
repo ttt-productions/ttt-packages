@@ -26,8 +26,8 @@ are optional peers — provided by the consuming app.
 
 ## Boundary
 
-`chat-react` does not import `ttt-core`, does not hardcode TTT origins, and does
-not build TTT storage paths — it runs no upload path at all. It owns no mention
-machinery either: mentions belong to the app's Square-posts surface, not to chat.
+`chat-react` imports no application-data package, hardcodes no app origins, and
+builds no app storage paths — it runs no upload path at all. It owns no mention
+machinery either: mentions belong to the consuming app, not to chat.
 And it owns no reply-to machinery: every send path takes text alone, because the
 product has no affordance for replying to a specific message.

@@ -28,4 +28,4 @@ The `onDegraded` hook is invoked inside the fail-open path and its throws are sw
 
 ## Boundary
 
-TTT wrappers own feature limit maps, app-specific copy, secret names, and callable-specific behavior. This package should not know about launch policy, collection names, or user-facing TTT text.
+The consuming app's wrappers own feature limit maps, app-specific copy, secret names, and callable-specific behavior. This package should not know about launch policy, collection names, or user-facing app text.

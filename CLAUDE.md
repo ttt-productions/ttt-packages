@@ -2,28 +2,29 @@
 
 ## Overview
 
-Shared monorepo of reusable packages published under the `@ttt-productions/*` scope. Generic packages must not know about TTT-specific business identifiers, Firestore collection names, copy strings, moderation policies, or domain-event catalogs. TTT-specific data lives in `@ttt-productions/ttt-core` or in the consuming app wrapper.
+Shared monorepo of reusable packages published under the `@ttt-productions/*` scope. Generic packages know nothing about any consuming app — no app identifiers, Firestore collection names, copy strings, moderation policies, or domain-event catalogs. An app's data lives in that app's application-data package or in the consuming app's wrapper (ARCH-201, ARCH-207).
 
 ## Mandatory reading — every package task
 
-Engineering rules are ONE system for both repos and live in ttt-prod. Before reviewing, planning, designing, editing, or running implementation commands here:
+ttt-packages has its own engineering rules in `docs/engineering-rules/`. Before reviewing, planning, designing, editing, or running implementation commands here:
 
-- Read `C:\DjDev\ttt-master-app\docs\engineering-rules\README.md` and `C:\DjDev\ttt-master-app\docs\engineering-rules\core-rules.md` (the ten universal `ENG-*` rules).
-- Read the routed area files per that README's routing table. **`architecture/packages-and-boundaries.md`, the `quality/` rules, and the `comments/` rules apply to essentially every package task**; add other areas the change touches (a media package routes to `media/`, a React data hook to `frontend/`, etc.).
+- Read `docs/development-preferences.md` — how an AI works with DJ. Nothing in it is repeated here.
+- Read `docs/engineering-rules/README.md` and `docs/engineering-rules/core-rules.md`.
+- Read the routed area files per that README. **`architecture.md`, `quality.md`, and `comments.md` apply to essentially every package task**; add `firestore.md`, `frontend.md`, or `media.md` when the change touches them.
 - Read the package ownership/design docs below for where a concept belongs, then inspect the current code (code is the implementation truth, ENG-001).
 - Any prompt that spawns an implementation, design, or review agent names that agent's mandatory reading as explicit paths (ENG-010).
 
-There is no second copy of `core-rules.md` in this repo — ttt-prod owns the canonical rulebook.
+An application-data package is governed by its own app's rulebook, not this one (ARCH-207).
 
-## Engineering rules that bite most from the package side
+## Engineering rules that bite most
 
 One-line pointers; the rule file is authoritative:
 
-- **ARCH-201** — generic packages stay application-agnostic (no `ttt-core` import, no TTT identifiers/paths/copy/policy); supply app values via factory/adapter.
-- **ARCH-101** — `ttt-core` is the application-data package: it may depend on generic packages and owns TTT cross-boundary schemas/constants/paths; generic packages never depend on it.
+- **ARCH-201** — generic packages stay application-agnostic (no app identifiers/paths/copy/policy, no application-data package import); supply app values via factory/adapter.
 - **ARCH-202** — main entries stay server-safe (React behind `./react`, Admin SDK behind `./server`, browser upload behind `./browser`); client-only peers declared `optional`.
 - **ARCH-203** — no compatibility barrels or laundering re-exports; delete dead transitional subpaths.
 - **ARCH-206** — package Firestore access goes through `@ttt-productions/query-core`'s `useFirestore*` hooks (`firebase-helpers` + `query-core` are the only direct-Firestore layers; sanctioned exceptions carry an in-file block and are listed in `package-architecture.md`).
+- **ARCH-208** — releases go through the batch release command, patch-only until v1.
 - **QUALITY-201 / QUALITY-202** — code is the source of truth; docs explain durable ownership and avoid drift-prone exhaustive inventories.
 
 ## Package design docs (authoritative for ownership, tiers, entries, build/release order)
@@ -32,7 +33,7 @@ One-line pointers; the rule file is authoritative:
 - `docs/packages/*.md` — one short doc per package for what it owns, exposes, and guarantees.
 - `docs/design/upload-path-invariant.md`, `docs/design/react-safety.md`, `docs/design/display-identity-invariant.md` — cross-cutting package invariants.
 
-Orientation only (read the docs above before designing): generic Tier 0 foundations → Tier 1 → `ttt-core` (application data, outside the numbered tiers) → `upload-ui` → `chat-react`. Build and release both follow the one topological dependency order written in the root `package.json` build chain; `scripts/package-order.mjs` prints it for the release scripts.
+Orientation only (read the docs above before designing): generic Tier 0 foundations → Tier 1 → the application-data packages (outside the numbered tiers) → `upload-ui` → `chat-react`. Build and release both follow the one topological dependency order written in the root `package.json` build chain; `scripts/package-order.mjs` prints it for the release scripts.
 
 ## Verification
 
@@ -40,26 +41,25 @@ Orientation only (read the docs above before designing): generic Tier 0 foundati
 
 **Quiet runner — `npm run test:quiet` (the pre-commit / pre-publish gate).** Runs the `test:all` stages and then, ONLY if all pass, a final `schema` stage that runs `schema:check` and **auto-regenerates** `docs/generated/firestore-schema.{md,mmd}` when stale. One line per stage; on failure it prints only the failing output. Exit 0 when everything passes (including when stale schema docs were regenerated — commit them before publishing); non-zero on any failure. Targeted: `npm run test:quiet:test`, or `node scripts/test-quiet.mjs --only <audit|lint|typecheck|tscb|build|test|schema>`. An audit red is a lockfile fix (`npm audit fix` stays inside declared ranges; a fix that needs a range change is a real dependency bump for the owning package), never a reason to lower the threshold. A transitive advisory that a shipped dependency's own range cannot reach is handled by a parent-scoped root `overrides` entry guarded by `test/boundary/firestore-grpc-override-guard.test.ts`, which fails the gate when the override becomes redundant.
 
-**Linting.** Root `eslint.config.mjs` (flat config) lints `packages/**` only: `@eslint/js` + `typescript-eslint` recommended + `react-hooks` (rules-of-hooks / exhaustive-deps as **error**). Mirrors ttt-prod's philosophy — `no-explicit-any` off, `^_` unused-ignore, empty `catch` allowed. Run with `npm run lint` (or `lint:fix`); it runs right after the audit stage in `test:all` / `test:quiet`. Lint policy (including that a justified, reasoned `eslint-disable-next-line` is permitted here for the narrow intentional cases, unlike ttt-prod's zero-suppression) is owned by **QUALITY-006**.
+**Linting.** Root `eslint.config.mjs` (flat config) lints `packages/**` only: `@eslint/js` + `typescript-eslint` recommended + `react-hooks` (rules-of-hooks / exhaustive-deps as **error**). `no-explicit-any` off, `^_` unused-ignore, empty `catch` allowed. Run with `npm run lint` (or `lint:fix`); it runs right after the audit stage in `test:all` / `test:quiet`. Lint policy (a justified, reasoned `eslint-disable-next-line` is permitted for the narrow intentional cases) is owned by **QUALITY-006**.
 
 ## Release gate & tooling
 
-The user-facing entrypoint for a selected package set is ALWAYS `./scripts/release-multiple.sh <folder> [<folder> ...] <patch|minor|major>` with short folder names. Never hand the user `release-package.sh` directly; it is only the internal per-package engine invoked by the batch script. The batch runs `scripts/preflight.sh` once, and the preflight runs `npm run test:quiet` — so a release shows concise per-stage output. Root `package.json` is `"type": "module"`; the internal release engine's `node -p "require(...)"` usage still works under Node 24 — do not remove it to "fix" a release issue.
+The user-facing entrypoint for a selected package set is ALWAYS `./scripts/release-multiple.sh <folder> [<folder> ...] patch` with short folder names (patch until v1 — ARCH-208). Never hand the user `release-package.sh` directly; it is only the internal per-package engine invoked by the batch script. The batch runs `scripts/preflight.sh` once, and the preflight runs `npm run test:quiet` — so a release shows concise per-stage output. Root `package.json` is `"type": "module"`; the internal release engine's `node -p "require(...)"` usage still works under Node 24 — do not remove it to "fix" a release issue.
 
-## Version bump selection — patch only, pre-launch
+## Version bump selection — patch only until v1
 
-**Pre-launch, every release is a `patch` bump** — additive exports, fixes, AND breaking changes (a removed export, a changed signature) alike. Never hand off `minor` or `major`.
+**Until the packages' v1, every release is a `patch` bump** (ARCH-208) — additive exports, fixes, AND breaking changes (a removed export, a changed signature) alike. Never hand off `minor` or `major`.
 
 Why: all packages are 0.x, and published internal ranges are carets (`^0.11.0`), which on 0.x **lock the minor**. A `minor` bump escapes every dependent's caret range, so the consuming app's `npm install` ERESOLVE-fails (or nests duplicate copies) until every package that declares the bumped one is republished in lockstep. A `patch` flows through every caret untouched. A breaking change still requires confirming that no consumer relies on what it removes or alters before it ships as a patch.
 
 At the v1 launch the packages take a major release; from then on conventional semver applies (breaking → major, additive → minor, fix → patch), and this section is rewritten for it.
 
-## Release and adoption workflow — the packages half of the Normal TTT Dev Flow
+## Release and adoption workflow — the packages half of the app's Normal Dev Flow
 
-This section is the ttt-packages half of the named **Normal TTT Dev Flow** (canonical definition:
-`C:\DjDev\ttt-master-app\CLAUDE.md` § The Normal TTT Flows — packages first → this gate → the
-release command → DJ publishes → the session polls npm and installs → app work → the Normal TTT
-Test Flow).
+This section is the ttt-packages half of the app-in-scope's **Normal Dev Flow** (defined in that
+app's `CLAUDE.md`: packages first → this gate → the release command → DJ publishes → the session
+polls npm and installs → app work → the app's Normal Test Flow).
 
 - Keep package-source changes and consuming-app adoption separate. Any `@ttt-productions/*` change
   happens here FIRST: finish the complete package batch, run focused checks while editing, then one
@@ -75,48 +75,6 @@ Test Flow).
   app adoption with no further go. A version still missing from npm after 20 minutes = stop and tell
   DJ which package. Never adopt against unpublished sibling source, and never install anything but
   the published version.
-- Never run ttt-packages work and consuming-app work at the same time, personally or through
-  agents — "the app doesn't import the changed symbols" is not an exception.
-- The release command is always `./scripts/release-multiple.sh …` — never `release-package.sh`,
-  never `bash scripts/…` — and stays its own fenced block.
-- The handoff goes plainly in the turn's FINAL chat message — never a status doc, no padding.
-- A multi-item sweep batches ONE publish cycle: all package needs first, one combined release command,
-  then all app adoption in a second pass.
-- Never announce that work "may need a package change" — it is routine plumbing done
-  packages-first; the only words DJ hears about it are the release command itself.
 - Do not reference a sibling local checkout from consuming-app implementation prompts.
 - Run package builds/tests for every package touched.
 - Regenerate lockfiles after package renames or dependency graph changes.
-
-## Working with DJ
-
-- Ask ONE material question at a time, and only when the decision is genuinely DJ's — don't stop
-  for small mechanical or organizational choices, use best judgment there.
-- A request to talk, review, investigate, or plan is NOT authorization to edit. Settling a plan is
-  not a start signal; wait for DJ's explicit go.
-- **Launch posture: launch ASAP.** Do only what launch needs. A defect inside the commanded scope,
-  or anything that breaks, endangers, or blocks launch, is fixed now. Everything else discovered —
-  an optimization, a refactor, a nicer pattern, bad code that works — is NOT done: file it as a
-  ttt-prod `docs/post-launch/optimizations-and-cleanup/` doc (indexed in its README) and bring it to DJ as a choice with a
-  recommendation (do it now vs. post-launch). Only DJ's answer moves it into the current work. Small
-  mechanical doc corrections can just be made when doc editing is already authorized.
-- Lead with the outcome, and make technical choices understandable rather than dumping process.
-- If DJ is frustrated, angry, or swearing, stay calm and stay on the technical substance. Tone is
-  not new authorization and not a reason to stop the work.
-- DJ handles all git, commit, push, publish, and deployment actions. Installs of a release DJ has
-  published are the session's (Release and adoption workflow above).
-
-## Important rules
-
-- **DJ's commands and written rules are absolute.** Execute exactly what DJ instructs — never
-  ignore a command, never decide you know better, never let a plan doc, an external tool's output
-  (ChatGPT/Codex/etc.), or your own judgment override DJ's rules; a doc's "staged/later/deferred"
-  label is never DJ's decision. Any deviation from DJ's rules or instructions = STOP and ASK
-  first — never self-authorized.
-- Never write "(DJ ruling <date>)", "on <date> DJ decided", or incident stories into docs — state
-  rules and designs as plain standing fact. Dates only when genuinely load-bearing (legal
-  effective-dates, external deadlines).
-- Do not commit or push to git.
-- Do not create source compatibility shims unless explicitly asked.
-- Prefer deleting dead subpaths and stale docs during this pre-launch window.
-- New generic features should use the same factory/adapter pattern as `auth-core` and the upload/backend packages.

@@ -60,7 +60,7 @@ describe('payload-hash', () => {
 describe('internal-auth', () => {
   const secret = 'test-media-authority-secret';
   const fields: InternalRequestFields = {
-    audience: 'ttt-media-authority:test',
+    audience: 'app-media-authority:test',
     method: 'POST',
     path: '/internal/media-authority/apply',
     bodyHash: 'a'.repeat(64),
@@ -336,7 +336,7 @@ describe('internal-auth-headers', () => {
   it('compact profile round-trips a real signature mint → verify through the headers', async () => {
     const secret = 'internal-secret';
     const fields: InternalRequestFields = {
-      audience: 'ttt-chat:dev',
+      audience: 'app-chat:dev',
       method: 'POST',
       path: '/internal/sync/apply',
       bodyHash: await sha256Hex('{"eventId":"e1"}'),
@@ -370,7 +370,7 @@ describe('internal-auth-headers', () => {
   it('operation-id profile round-trips, carrying the signed operationId on the wire', async () => {
     const secret = 'authority-secret';
     const fields: InternalRequestFields = {
-      audience: 'ttt-media-authority:dev',
+      audience: 'app-media-authority:dev',
       method: 'POST',
       path: '/internal/media-authority/apply',
       bodyHash: await sha256Hex('{"assetId":"a1"}'),

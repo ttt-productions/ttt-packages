@@ -3,8 +3,7 @@
  *
  * Runtime validation schemas for the generic notification document shapes whose
  * TypeScript types live in `./types.ts`. notification-core OWNS these shapes, so
- * it owns their schemas too — the consuming app (e.g. `@ttt-productions/ttt-core`)
- * composes these rather than hand-mirroring them, so the schema can never drift
+ * it owns their schemas too — the consuming app's data package composes these rather than hand-mirroring them, so the schema can never drift
  * from the type.
  *
  * The interfaces in `./types.ts` remain the documented public type API. Each

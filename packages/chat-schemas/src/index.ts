@@ -31,8 +31,8 @@ export * from './room-address.js';
  */
 
 // Chat is TEXT-ONLY. There is deliberately no attachment shape here: a file is
-// associated with a CONVERSATION (the Conversation Files list owned by
-// `@ttt-productions/ttt-core`), never embedded in, sequenced with, or mutated
+// associated with a CONVERSATION (a conversation files list the consuming app
+// owns), never embedded in, sequenced with, or mutated
 // through a chat message. A chat message schema that accepts an `attachment`
 // field is a regression — see the contract test in `__tests__/schemas.test.ts`.
 //

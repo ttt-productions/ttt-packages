@@ -26,7 +26,7 @@ Generic TanStack Query package.
   error callback. The source state and the listener error belong to the subscription
   identity (path, key, constraints, enabled) that produced them: a new identity reads
   `connecting` with no error from its very first render, and a retired listener's late
-  callback never lands on the new one. Consumed by the TTT notification/badge tray to
+  callback never lands on the new one. Consumed by an app's notification/badge tray, for example, to
   show a degraded indicator instead of a false "all caught up".
 - **A subscribed read is loading until its first snapshot.** The query underneath is disabled in
   subscribe mode, so on its own it reads `pending` but not loading; the result reports
@@ -217,10 +217,10 @@ answered absent never count.
 
 ## Boundary
 
-Concrete TTT query keys, search presets, and domain-event invalidation entries live in TTT app code or `ttt-core`. This package exports no application-branded presets.
+Concrete query keys, search presets, and domain-event invalidation entries live in the consuming app or its data package. This package exports no application-branded presets.
 
 ## Search hook boundary for Realm / Work discovery
 
-`query-core` may provide generic Firestore prefix-search utilities, but it must not hard-code TTT collection names or presets. TTT-specific search configs for `publicUsers`, `publicWorkProjects`, and `workRealms` live in `ttt-core` or the consuming app.
+`query-core` may provide generic Firestore prefix-search utilities, but it must not hard-code any app's collection names or presets. App-specific search configs live in the consuming app or its data package.
 
-If the generic search hook is extended for the Realm/discovery launch slice, keep the API generic: equality filters plus lowercase prefix search over a caller-provided collection and field. Do not add TTT-specific branches such as `useWorkRealmSearch` inside `query-core`.
+If the generic search hook is extended, keep the API generic: equality filters plus lowercase prefix search over a caller-provided collection and field. Never add an app-specific search hook inside `query-core`.

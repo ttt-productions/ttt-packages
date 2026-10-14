@@ -75,11 +75,11 @@ and Cloudflare Workers/DOs. Tier 0 (zero internal deps).
 
 Deliberately **domain-neutral**: it never names chat or media, never imports a
 chat- or media-shaped package, and holds no state. Each consumer supplies its own
-secret + audience (e.g. the media authority's `MEDIA_AUTHORITY_SYNC_SECRET` +
-audience `ttt-media-authority:{env}`). The media serving authority and the chat
+secret + audience (e.g. a media authority's sync secret and its own
+`<name>:{env}` audience). The media serving authority and the chat
 realtime layer (chat-sync writer, chat-grant minting, chat-worker auth) both
-consume it today. Concrete domain schemas and collection names live in
-`ttt-core`, never here.
+consume it today. Concrete domain schemas and collection names live in the
+consuming app's data package, never here.
 
 The `x-ttt-*` header names are the one `ttt`-branded surface: they are literal
 wire strings two independently deployed runtimes must agree on, which is a named

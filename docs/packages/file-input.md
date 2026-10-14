@@ -11,7 +11,7 @@ Generic file, image, video, and audio input package.
 
 ## Boundary
 
-The package consumes generic media shapes from `media-schemas`; it does not know `FileOrigin` or `TTT_MEDIA_SPECS`. TTT passes concrete specs from `ttt-core` at the app boundary.
+The package consumes generic media shapes from `media-schemas`; it does not know any app's origin enum or media registry. The consuming app passes concrete specs from its own registry at its boundary.
 
 `MediaInput` and the recording preview render through `@ttt-productions/media-viewer` (`MediaPreview`) — the package's one intra-Tier-1 dependency, so picked and recorded files use the same canonical viewer. Selected-file UI uses semantic labels such as `Audio selected`; original filenames remain upload metadata and are never displayed by this package.
 
@@ -27,7 +27,7 @@ icon-only clear button is named by `clearLabel` (default "Clear selected file", 
 other built-in labels, which a consumer may replace), and the record dialog's Video/Audio toggles
 announce the selected kind with `aria-pressed`. No
 secondary control carries a red hover or a red variant — red belongs only to a dialog's confirm
-action (FRONTEND-006); the dialogs' Close/Cancel buttons are `outline`.
+action (destructive red belongs only to a confirmation dialog); the dialogs' Close/Cancel buttons are `outline`.
 
 ## In-progress feedback
 

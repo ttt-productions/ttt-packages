@@ -14,7 +14,7 @@ Generic media display package.
 
 ## Boundary
 
-The package does not own upload, moderation, or TTT-specific media origins. It does not know about Cloudflare Workers, `x-ttt-deny` headers, Firebase session cookies, or any TTT business concept. All domain-specific behavior is injected via a `MediaDiagnosticAdapter`.
+The package does not own upload, moderation, or any app's media origins. It does not know about Cloudflare Workers, an app's deny headers, Firebase session cookies, or any app business concept. All domain-specific behavior is injected via a `MediaDiagnosticAdapter`.
 
 ## Sizing contract — the parent owns the size
 
@@ -105,11 +105,11 @@ import { MediaPreview } from "@ttt-productions/media-viewer/react";
 import type { MediaDiagnosticAdapter } from "@ttt-productions/media-viewer";
 
 // App implements the adapter; package remains generic.
-const tttAdapter: MediaDiagnosticAdapter = {
+const appAdapter: MediaDiagnosticAdapter = {
   probe: async (url) => {
     try {
       const res = await fetch(url, { method: "HEAD", credentials: "include", cache: "no-store" });
-      const deny = res.headers.get("x-ttt-deny");
+      const deny = res.headers.get("x-app-deny");
       if (res.status === 401 || res.status === 403) return { kind: "auth" };
       if (deny && ["blocked", "not-servable", "no-variant", "no-object"].includes(deny))
         return { kind: "hard" };
@@ -125,7 +125,7 @@ const tttAdapter: MediaDiagnosticAdapter = {
 <MediaPreview
   url={buildMediaAssetUrl(assetId, "thumb")}
   type="image"
-  recoveryAdapter={tttAdapter}
+  recoveryAdapter={appAdapter}
   assetStatusHint={publicationState === "live" ? "live" : "finalizing"}
 />
 ```
@@ -141,7 +141,7 @@ import { useMediaRecovery } from "@ttt-productions/media-viewer/react";
 
 const { recoveryState, onMediaError, onMediaLoad, manualRetry } = useMediaRecovery({
   url: mediaUrl,
-  adapter: tttAdapter,
+  adapter: appAdapter,
   isElementVisible: visible, // from the element's own observer; omitted = visible
   statusHint: "live",
   onRemount: () => setRemountKey(k => k + 1),

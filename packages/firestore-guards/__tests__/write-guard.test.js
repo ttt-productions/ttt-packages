@@ -568,7 +568,7 @@ describe('MUST FAIL — casts and hand-built paths on a write', () => {
     expect(kindsOf(result).filter((kind) => kind === VIOLATION_KINDS.PAYLOAD_CAST).length).toBeGreaterThan(0);
   });
 
-  it('fires on a hand-built document path feeding a write (ARCH-104)', () => {
+  it('fires on a hand-built document path feeding a write', () => {
     const result = analyze(`${PREAMBLE}
       export async function writeIt(uid: string) {
         await db.collection(COLLECTIONS.PUBLIC_USERS).doc(uid).set({ uid }, { merge: true });

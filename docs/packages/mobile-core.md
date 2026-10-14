@@ -13,4 +13,4 @@ Generic mobile/browser behavior package.
 
 ## Boundary
 
-CSS variable/class names should be neutral or configurable, not TTT-branded.
+CSS variable/class names should be neutral or configurable, never app-branded.

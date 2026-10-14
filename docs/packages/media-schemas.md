@@ -24,9 +24,9 @@ Generic media schema and helper package. This replaces the old `media-contracts`
 
 ## Boundary
 
-`media-schemas` does not know TTT origins, TTT target-info schemas, TTT domain events, TTT atoms, or TTT media registry values. The concrete TTT pending-media schema is composed in `ttt-core` from this package's generic factory.
+`media-schemas` does not know any app's origins, target-info schemas, domain events, atoms, or media registry values. An app's concrete pending-media schema is composed in its data package from this package's generic factory.
 
-Concrete TTT media values live in `ttt-core`, not here: `FileOrigin`, `TTT_MEDIA_SPECS`, the upload-request/response schemas, `parseTargetInfo` and target-info schemas, `DomainEvent` variants, and TTT atoms such as `Mention` and `MentionType`.
+Concrete media values live in the consuming app's data package, not here: its origin enum and media registry, its upload-request/response schemas, its target-info parsing, its domain-event variants, and its own atoms.
 
 ## Canonical content classification contracts
 
@@ -37,7 +37,7 @@ byte authority), `MediaInspectionResultSchema` + `MediaSafetyPlanSchema` + the b
 inspector; its optional `durationSec` is the measured length in seconds, never the header's), and the generic supported-format registry (`MediaFormatIdSchema` enum in
 schemas.ts, catalog + `projectAcceptTokens` in format-registry.ts). `MediaAcceptSchema`
 gained the optional `formats` selection and `MediaProcessingResult` optionally carries the
-inspection. Policy (which formats an origin enables) lives in ttt-core, never here.
+inspection. Policy (which formats an origin enables) lives in the app's registry, never here.
 
 ## Pending-media lifecycle decisions (pure)
 

@@ -3324,7 +3324,7 @@ export function analyzeFiles({
 
       // COLLECTION_REFS.x(...) — the canonical COLLECTION path builder. Its result is a
       // collection, so `…doc()` mints an auto-id and `…doc(id)` addresses one document of
-      // it; neither is a hand-built path (BACKEND-115).
+      // it; neither is a hand-built path.
       if (
         ts.isCallExpression(node) &&
         ts.isPropertyAccessExpression(node.expression) &&
@@ -3396,7 +3396,7 @@ export function analyzeFiles({
           if (method === 'collection') {
             // A collection reference is not itself a document path: minting an auto-id
             // (`collection(COLLECTIONS.X).doc().id`) and building a collection for a query
-            // are explicitly NOT ARCH-104 violations. A canonical COLLECTION_REFS argument
+            // are explicitly NOT hand-built paths. A canonical COLLECTION_REFS argument
             // names SEVERAL segments, so it is expanded rather than collapsed to one.
             const canonical = collectionArgumentSegments(node.arguments[0], state, depth);
             if (canonical?.length) return { segments: [...baseSegments, ...canonical] };
@@ -4811,7 +4811,7 @@ export function analyzeFiles({
         // A renamed *import binding* is still that immutable export;
         // a local alias is deliberately not followed, because it can be reassigned or
         // wrap the schema. `safeParse()` returns a result wrapper; transforms/open
-        // schemas are deliberately opaque rather than a way around BACKEND-115.
+        // schemas are deliberately opaque rather than a way around the declared-fields check.
         if (
           ts.isPropertyAccessExpression(callee) &&
           callee.name.text === 'parse' &&
@@ -6702,7 +6702,7 @@ export function evaluate({
         violations.push({
           kind: VIOLATION_KINDS.HAND_BUILT_PATH,
           at: write.at,
-          detail: 'document path assembled by hand — use PATH_BUILDERS (ARCH-104)',
+          detail: 'document path assembled by hand — use PATH_BUILDERS',
           snippet: write.snippet,
         });
       }

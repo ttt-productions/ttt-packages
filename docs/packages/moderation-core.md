@@ -22,4 +22,4 @@ Generic moderation adapter package.
 
 ## Boundary
 
-TTT wrappers own collection paths, word-list location, violation logging, storage relocation, rejection behavior, and user-facing copy.
+The consuming app's wrappers own collection paths, word-list location, violation logging, storage relocation, rejection behavior, and user-facing copy.

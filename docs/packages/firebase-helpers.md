@@ -15,7 +15,7 @@ Generic Firebase helper package.
 
 ## Boundary
 
-TTT config, Firebase project values, toast behavior, monitoring behavior, and callable names live in app wrappers. `firebase-helpers/react` exposes generic primitives; the consuming app decides how errors are surfaced.
+App config, Firebase project values, toast behavior, monitoring behavior, and callable names live in app wrappers. `firebase-helpers/react` exposes generic primitives; the consuming app decides how errors are surfaced.
 
 ## Callable invocation contract
 

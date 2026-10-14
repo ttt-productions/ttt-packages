@@ -12,7 +12,7 @@ Cloud Functions and schema-only consumers must not import module graphs that pul
 
 ## Current examples
 
-- `chat-schemas` is pure and safe for `ttt-core` and backend/schema composition.
+- `chat-schemas` is pure and safe for application-data packages and backend/schema composition.
 - `chat-core` main entry is pure (no React, no Firebase reachable from it) — its React UI was extracted into a fully separate sibling package, `chat-react` (own `.` and `./styles` entries), rather than living behind a `./react` subpath on `chat-core` itself.
 - `upload-core` exposes browser upload runtime behind `./browser`; guarded UI is split across `upload-ui/react/upload`, `upload-ui/react/guard`, and `upload-ui/react/tray`.
 - `firebase-helpers/server` is the correct import for Admin SDK helpers.
@@ -29,4 +29,4 @@ Server-safe entrypoints are not enough on their own. A package can still force R
 
 Rule: every client-only peer must be declared `optional` via `peerDependenciesMeta`. Client-only peers are the ones needed solely by a `./react` (or `./browser`) surface: `react`, `react-dom`, `@tanstack/react-query`, React-ecosystem libraries (`lucide-react`, `next-themes`, `react-hook-form`, `@hookform/resolvers`, `react-intersection-observer`), the client `firebase` SDK, and the React-oriented internal packages (`@ttt-productions/ui-core`, `@ttt-productions/query-core`). A consumer that imports a `./react` subpath installs these directly; a consumer that imports only a server-safe surface must never be forced to. Internal infrastructure peers that are themselves server-safe (such as `@ttt-productions/firebase-helpers`) stay required.
 
-Consumers enforce the other side of this: a server-only install (for example `ttt-prod/functions`) is checked to contain none of these client packages in its lockfile. See the consuming app's dependency-audit playbook.
+Consumers enforce the other side of this: a server-only install (for example an app's Cloud Functions folder) is checked to contain none of these client packages in its lockfile. See the consuming app's dependency-audit playbook.

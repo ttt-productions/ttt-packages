@@ -19,8 +19,8 @@ Generic report-filing UI and admin-task queue package.
   type-only here, so importing them pulls in no React.
 - `./contracts` — pure, dependency-light surface: `AdminTask` and `ADMIN_TASK_STATUS` (admin-task
   status — there is no `Report` type or report-status constant in this package), plus the pure Zod
-  wire schemas. No React, no server, no Admin SDK reachable from it. **Pure consumers (`ttt-core`,
-  Cloud Functions) import from `./contracts`** instead of the broad root.
+  wire schemas. No React, no server, no Admin SDK reachable from it. **Pure consumers (an app's data package,
+  its Cloud Functions) import from `./contracts`** instead of the broad root.
 - `./react` — `ReportCoreProvider` / `useReportCoreContext`, the report dialog, the queue hooks, and
   `CountdownTimer` / `PriorityBadge`.
 - `./server` — the queue handler factories.
@@ -43,7 +43,7 @@ package carries no product copy and no product routing:
   and button text of all three views; the two descriptions are functions of the item's display name
   (`config.reportableItems[itemType].displayName`, else the type id) and, for the upgrade, the reason.
   `ReportButton` takes its trigger's accessible name as `triggerLabel` and renders a neutral `ghost`
-  trigger by default (red belongs only to a dialog's confirm — FRONTEND-006).
+  trigger by default (red belongs only to a dialog's confirm).
 - **Every outcome is handled, on the first submit and on the upgrade confirm alike.** `filed` and
   `upgraded` close the dialog and reach `onSubmitSuccess(result)`; `alreadyReported` shows the
   already-reported view; `upgradeAvailable` shows the upgrade view, whose confirm re-calls the callable
@@ -106,8 +106,8 @@ matching `HttpsError` code.
   and writes nothing (no extension, no audit). Another admin's live lock is refused.
 - **The app's claim guard.** `createCheckoutTaskHandler` and `createCheckoutNextImportantHandler`
   take an optional `assertTaskClaimable: TaskClaimGuard` — the app's check that a task may be
-  claimed right now (for TTT, that its report group is not owned by an automated action or already
-  resolved). It runs inside the claim transaction, after the status guard and the reads of the task
+  claimed right now (for example, that its report group is not owned by an automated action or
+  already resolved). It runs inside the claim transaction, after the status guard and the reads of the task
   and its `originalPath` document, and before any write or audit: it receives `{ taskDocId,
   taskData, originalData, transaction }` (`originalData` is `null` when that document is gone), may
   read more through `transaction`, and answers `{ claimable: true }` or `{ claimable: false,
@@ -124,5 +124,5 @@ matching `HttpsError` code.
 
 The consuming app owns the concrete `AdminTaskType` union, which task types a domain resolver owns,
 every string the dialog shows, the report comment's declaration, and any app-specific report routing
-(e.g. TTT's protected-category hand-off). `report-core` does not import `ttt-core`; its one internal
+(e.g. a protected-category hand-off). `report-core` does not import an application-data package; its one internal
 runtime dependency is `input-format-core`, whose check judges the comment.

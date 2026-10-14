@@ -42,7 +42,7 @@ function makeR2(fetchImpl: typeof fetch) {
     accountId: 'acct',
     accessKeyId: 'AKID',
     secretAccessKey: 'SECRET',
-    bucket: 'ttt-media-test',
+    bucket: 'app-media-test',
     fetchImpl,
   });
 }
@@ -63,7 +63,7 @@ describe('createR2ObjectStore', () => {
 
     const req = fetchMock.mock.calls[0][0];
     expect(req.method).toBe('PUT');
-    expect(req.url).toBe('https://acct.r2.cloudflarestorage.com/ttt-media-test/mediaAssets/asset1/main');
+    expect(req.url).toBe('https://acct.r2.cloudflarestorage.com/app-media-test/mediaAssets/asset1/main');
     expect(req.headers.get('content-type')).toBe('video/mp4');
     expect(req.headers.get('authorization')).toMatch(/AWS4-HMAC-SHA256/);
   });
@@ -98,7 +98,7 @@ describe('createR2ObjectStore', () => {
     expect(error).toBeInstanceOf(R2StorageError);
     expect(error).toMatchObject({
       operation: 'delete',
-      bucket: 'ttt-media-test',
+      bucket: 'app-media-test',
       key: 'mediaAssets/asset9/main',
       attempts: 1,
       status: 500,
@@ -624,7 +624,7 @@ describe('createFirebaseEmulatorObjectStore', () => {
     const gcs = makeGcsFake();
     const source = gcs.write('mediaAssets/a/main', { bytes: 'img', contentType: 'image/webp', metadata: {} });
 
-    await createFirebaseEmulatorObjectStore({ bucket: gcs.bucket, downloadToken: 'ttt-emulator-media-token' }).copy({
+    await createFirebaseEmulatorObjectStore({ bucket: gcs.bucket, downloadToken: 'app-emulator-media-token' }).copy({
       fromKey: 'mediaAssets/a/main',
       toKey: 'mediaAssets/b/main',
     });
@@ -632,7 +632,7 @@ describe('createFirebaseEmulatorObjectStore', () => {
     expect(gcs.objects.get('mediaAssets/b/main')?.metadata).toEqual({
       'copy-source': encodeURIComponent('mediaAssets/a/main'),
       'copy-source-version': source.generation,
-      firebaseStorageDownloadTokens: 'ttt-emulator-media-token',
+      firebaseStorageDownloadTokens: 'app-emulator-media-token',
     });
     expect(gcs.calls.map((c) => c.op)).toEqual(['getMetadata', 'copy']);
   });
@@ -640,7 +640,7 @@ describe('createFirebaseEmulatorObjectStore', () => {
   it('deleteCopy recognizes its own copy beside the fixed download token', async () => {
     const gcs = makeGcsFake();
     gcs.write('mediaAssets/a/main', { bytes: 'img', contentType: 'image/webp', metadata: {} });
-    const store = createFirebaseEmulatorObjectStore({ bucket: gcs.bucket, downloadToken: 'ttt-emulator-media-token' });
+    const store = createFirebaseEmulatorObjectStore({ bucket: gcs.bucket, downloadToken: 'app-emulator-media-token' });
     await store.copy({ fromKey: 'mediaAssets/a/main', toKey: 'mediaAssets/b/main' });
 
     await expect(store.deleteCopy({ fromKey: 'mediaAssets/a/main', toKey: 'mediaAssets/b/main' })).resolves.toBe('deleted');
@@ -650,13 +650,13 @@ describe('createFirebaseEmulatorObjectStore', () => {
   it('putFile uploads with the FIXED download token attached', async () => {
     const localPath = await makeLocalFile('pic.jpg');
     const { bucket, upload } = makeBucketMock();
-    const store = createFirebaseEmulatorObjectStore({ bucket, downloadToken: 'ttt-emulator-media-token' });
+    const store = createFirebaseEmulatorObjectStore({ bucket, downloadToken: 'app-emulator-media-token' });
 
     const result = await store.putFile({ localPath, key: 'mediaAssets/asset1/full' });
     expect(result.key).toBe('mediaAssets/asset1/full');
     const [, opts] = upload.mock.calls[0] as unknown as [string, any];
     expect(opts.destination).toBe('mediaAssets/asset1/full');
-    expect(opts.metadata.metadata.firebaseStorageDownloadTokens).toBe('ttt-emulator-media-token');
+    expect(opts.metadata.metadata.firebaseStorageDownloadTokens).toBe('app-emulator-media-token');
   });
 
   it('delete swallows not-found errors', async () => {
@@ -740,7 +740,7 @@ function makeR2WithSeams(fetchImpl: typeof fetch, seams: SeamOverrides = {}) {
     accountId: 'acct',
     accessKeyId: 'AKID',
     secretAccessKey: 'SECRET',
-    bucket: 'ttt-media-test',
+    bucket: 'app-media-test',
     fetchImpl,
     ...seams,
   });
@@ -992,7 +992,7 @@ describe('createR2ObjectStore — bounded transient retry', () => {
       destinationNoneMatch: h['cf-copy-destination-if-none-match'],
     });
     expect(conditions(puts[0].headers)).toEqual({
-      source: '/ttt-media-test/mediaAssets/a/main',
+      source: '/app-media-test/mediaAssets/a/main',
       sourceMatch: r2.objects.get('mediaAssets/a/main')?.etag,
       destinationNoneMatch: '*',
     });
@@ -1071,7 +1071,7 @@ describe('createR2ObjectStore — bounded transient retry', () => {
   it('an R2StorageError message names the S3 error code but never the bucket, the key, or a body that echoes them', async () => {
     const body =
       '<?xml version="1.0"?><Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message>' +
-      '<Key>mediaAssets/asset9/main</Key><BucketName>ttt-media-test</BucketName></Error>';
+      '<Key>mediaAssets/asset9/main</Key><BucketName>app-media-test</BucketName></Error>';
     const fetchMock = fetchSequence([() => new Response(body, { status: 404 })]);
     const dest = path.join(await mkdtemp(path.join(tmpdir(), 'r2-read-')), 'out.bin');
 
@@ -1080,7 +1080,7 @@ describe('createR2ObjectStore — bounded transient retry', () => {
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(R2StorageError);
-    expect(error).toMatchObject({ bucket: 'ttt-media-test', key: 'mediaAssets/asset9/main', status: 404 });
+    expect(error).toMatchObject({ bucket: 'app-media-test', key: 'mediaAssets/asset9/main', status: 404 });
     expect((error as R2StorageError).responseText).toContain('<Key>mediaAssets/asset9/main</Key>');
     expect((error as Error).message).toBe('R2 readToFile failed after 1 attempt(s): status 404 NoSuchKey');
     expect(isObjectNotFoundError(error)).toBe(true);
@@ -1247,7 +1247,7 @@ describe('R2 copy: never overwrites, idempotent, one call', () => {
       'x-amz-meta-copy-source-version': encodeURIComponent(`${source.etag} ${source.lastModified} ${R2_STAGED.body.length}`),
     };
     expect(r2.requests[1].headers).toMatchObject({
-      'x-amz-copy-source': `/ttt-media-test/${R2_SOURCE.split('/').map(encodeURIComponent).join('/')}`,
+      'x-amz-copy-source': `/app-media-test/${R2_SOURCE.split('/').map(encodeURIComponent).join('/')}`,
       'x-amz-copy-source-if-match': source.etag,
       'cf-copy-destination-if-none-match': '*',
       'x-amz-metadata-directive': 'REPLACE',
@@ -1394,7 +1394,7 @@ describe('R2 copy: never overwrites, idempotent, one call', () => {
       .catch((e: unknown) => e);
 
     expect(error).toBeInstanceOf(UnreadableStorageObjectMetadataError);
-    expect(error).toMatchObject({ bucket: 'ttt-media-test', key: R2_SOURCE, field: 'etag' });
+    expect(error).toMatchObject({ bucket: 'app-media-test', key: R2_SOURCE, field: 'etag' });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });

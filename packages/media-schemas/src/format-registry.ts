@@ -10,7 +10,7 @@ import type { MediaKind } from "./types.js";
 // advertises them". Entries here are WEB FACTS (containers, their MIME aliases,
 // their extensions) — not product policy. POLICY (which formats an origin
 // accepts) is a per-origin `formats: MediaFormatId[]` selection owned by the
-// application's origin registry (`TTT_MEDIA_SPECS` in @ttt-productions/ttt-core).
+// consuming application's origin registry.
 //
 // Contract (canonical-upload-content-classification design):
 //   - the app's origin specs SELECT allowed format ids;
