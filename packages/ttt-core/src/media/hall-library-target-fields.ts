@@ -3,6 +3,8 @@ import {
   HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE,
   type HallContentSubItemSurface,
 } from '../constants/hall-content-routing.js';
+import { WORK_SECTION_PATHS_BY_TYPE, type WorkSectionPaths } from '../paths/work-section-paths.js';
+import { WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
 
 // Server-side mapping from hallLibrary/sub-item fileOrigin to the doc field
 // that receives the processed media-asset reference (never a URL — see
@@ -77,13 +79,40 @@ export const HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN = {
   'television-episode-video': HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE.Television.subItemSurface,
 } as const satisfies Record<HallLibrarySubItemFileOrigin, HallLibrarySubItemSurface>;
 
-/** True when this origin is valid for the addressed working sub-item surface. */
-export function isHallLibrarySubItemOriginForSurface(
-  origin: HallLibrarySubItemFileOrigin,
-  surface: HallLibrarySubItemSurface,
-): boolean {
-  return HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN[origin] === surface;
+/** Where one sub-item upload lands: the working surface it addresses, the canonical builder of
+ *  that surface's sub-item document, and the field it fills. */
+export interface HallLibrarySubItemMediaSlot {
+  readonly surface: HallLibrarySubItemSurface;
+  readonly ownerDoc: WorkSectionPaths['subItem'];
+  readonly field: HallLibrarySubItemTargetField;
 }
+
+function subItemBuilderForSurface(surface: HallLibrarySubItemSurface): WorkSectionPaths['subItem'] {
+  const workType = WORK_PROJECT_TYPE_KEYS.find(
+    (type) => HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[type].subItemSurface === surface,
+  );
+  if (!workType) throw new Error(`no Work type owns the sub-item surface ${surface}`);
+  return WORK_SECTION_PATHS_BY_TYPE[workType].subItem;
+}
+
+/**
+ * One entry per sub-item upload origin, derived from the routing and field maps above: a writer
+ * takes the document it writes AND the field it fills from the same lookup, so the two cannot name
+ * different origins, and a job whose addressed surface is not its entry's surface is refused.
+ */
+export const HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS: Readonly<Record<HallLibrarySubItemFileOrigin, HallLibrarySubItemMediaSlot>> =
+  Object.freeze(
+    Object.fromEntries(
+      (Object.keys(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN) as HallLibrarySubItemFileOrigin[]).map((origin) => [
+        origin,
+        Object.freeze({
+          surface: HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN[origin],
+          ownerDoc: subItemBuilderForSurface(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN[origin]),
+          field: HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS[origin],
+        }),
+      ]),
+    ) as Record<HallLibrarySubItemFileOrigin, HallLibrarySubItemMediaSlot>,
+  );
 
 /** True when the origin writes a cover field on the hall parent / Work section doc. */
 export function isHallLibraryCoverFileOrigin(

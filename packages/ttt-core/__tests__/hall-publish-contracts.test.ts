@@ -45,10 +45,11 @@ import {
   HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS,
   HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN,
   isHallLibraryCoverFileOrigin,
-  isHallLibrarySubItemOriginForSurface,
+  HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS,
   isHallLibrarySubItemFileOrigin,
 } from '../src/media/hall-library-target-fields';
 import { WORK_PROJECT_TYPE_KEYS } from '../src/types/content';
+import { WORK_SECTION_PATHS_BY_TYPE } from '../src/paths/work-section-paths';
 import {
   unmetHallSubItemRequirements,
   isHallSubItemPublishable,
@@ -337,18 +338,22 @@ describe('the hall-library target-field map splits by write level', () => {
         .toBe(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[workType].subItemSurface);
     }
 
-    const surfaces = Object.values(HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE).map(
-      (routing) => routing.subItemSurface,
-    );
-    for (const origin of Object.keys(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN) as Array<
-      keyof typeof HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN
+  });
+
+  it('one media slot per sub-item origin names its surface, the sub-item document of the Work type that owns that surface, and its field', () => {
+    expect(Object.keys(HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS).sort()).toEqual(Object.keys(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS).sort());
+    for (const [origin, slot] of Object.entries(HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS) as Array<
+      [keyof typeof HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS, (typeof HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS)[keyof typeof HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS]]
     >) {
-      for (const surface of surfaces) {
-        expect(isHallLibrarySubItemOriginForSurface(origin, surface)).toBe(
-          HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN[origin] === surface,
-        );
-      }
+      expect(slot.surface).toBe(HALL_LIBRARY_SUB_ITEM_SURFACE_BY_ORIGIN[origin]);
+      expect(slot.field).toBe(HALL_LIBRARY_SUB_ITEM_TARGET_FIELDS[origin]);
+      const owner = WORK_PROJECT_TYPE_KEYS.find((type) => HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE[type].subItemSurface === slot.surface);
+      expect(owner).toBeDefined();
+      expect(slot.ownerDoc('wp', 'section', 'item')).toEqual(WORK_SECTION_PATHS_BY_TYPE[owner!].subItem('wp', 'section', 'item'));
     }
+    expect(HALL_LIBRARY_SUB_ITEM_MEDIA_SLOTS['tune-track-audio'].ownerDoc('wp', 'tune', 'track')).toEqual(
+      ['allWorkProjects', 'wp', 'workProjectTunes', 'tune', 'tuneTracks', 'track'],
+    );
   });
 
   it('the type guards answer for exactly their own subset', () => {

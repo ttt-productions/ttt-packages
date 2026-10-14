@@ -26,7 +26,9 @@ package may consume it.
   `mobile-core`, `monitoring-core`, `theme-core`, `rate-limit-core`,
   `audit-core`, `moderation-core`, `auth-core`, `edge-protocol-core`
   (runtime-neutral signed-edge-call primitives plus the edge→origin provenance
-  header contract; WebCrypto + zod only).
+  header contract; WebCrypto + zod only), `firestore-guards` (the static Firestore
+  write guard and test-code path checker an app runs in its gate; its root is pure
+  analysis over in-memory sources, its `./node` subpath reads the file system).
 - **Tier 1 — depend on Tier 0 only:**
   `ui-core` (→ `input-format-core`; its free-text inputs take a field
   declaration), `chat-schemas` (→ `input-format-core`; the chat message text's
