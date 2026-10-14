@@ -54,6 +54,7 @@ export const PACKAGE_LEAK_RULES: PackageLeakRule[] = [
 
   // Application data — server-safe root.
   { dir: 'ttt-core', mode: 'hard' },
+  { dir: 'q-core', mode: 'hard' },
 
   // Intentionally server-only; root is not a browser-safe surface.
   { dir: 'media-processing-core', mode: 'exempt' },

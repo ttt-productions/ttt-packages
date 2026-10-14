@@ -168,7 +168,8 @@ usable by every app.
 v1, every bump is `patch` — additive changes, fixes, and breaking changes alike — because published
 internal ranges are 0.x carets, which lock the minor. A breaking change still confirms no consumer
 relies on what it removes or alters before it ships. The package gate (`npm run test:quiet`) is green
-before any release.
+before any release. A package's very first publish is not a release: it is the one-time setup in
+`CLAUDE.md` § First-time publish of a new package, after which every release is the batch command.
 
 **Why.** A `minor` bump escapes every dependent's caret range, so consumers fail to install until
 every dependent package republishes in lockstep.

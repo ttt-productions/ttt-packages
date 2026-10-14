@@ -47,6 +47,27 @@ Orientation only (read the docs above before designing): generic Tier 0 foundati
 
 The user-facing entrypoint for a selected package set is ALWAYS `./scripts/release-multiple.sh <folder> [<folder> ...] patch` with short folder names (patch until v1 — ARCH-208). Never hand the user `release-package.sh` directly; it is only the internal per-package engine invoked by the batch script. The batch runs `scripts/preflight.sh` once, and the preflight runs `npm run test:quiet` — so a release shows concise per-stage output. Root `package.json` is `"type": "module"`; the internal release engine's `node -p "require(...)"` usage still works under Node 24 — do not remove it to "fix" a release issue.
 
+## First-time publish of a new package
+
+Publishing runs through npm Trusted Publishing (`.github/workflows/publish.yml`), and npm attaches a
+trusted publisher only to a package that already exists. So a package that has never been on npm
+gets one manual first publish; it is setup, not a release, and every publish after it is the release
+command above. With the new package built and `npm run test:quiet` green, hand DJ the steps in order:
+
+1. From the ttt-packages root, DJ runs `npm publish --access public --workspace @ttt-productions/<folder>`
+   (its own fenced `bash` block). It publishes the package's current `package.json` version. That
+   manual tarball skips CI's `pin-internal-deps` step, so its internal `@ttt-productions/*` ranges are
+   the source's `"*"`; step 3 replaces it as `@latest`, and nothing installs it in between.
+2. On npmjs.com, DJ opens the new package → **Settings** → **Trusted Publisher** → **GitHub Actions**,
+   enters organization `ttt-productions`, repository `ttt-packages`, workflow filename `publish.yml`,
+   leaves the environment blank, and saves.
+3. DJ runs the normal release command, `./scripts/release-multiple.sh <folder> patch`, with the new
+   package's folder (alongside any other package in the batch). That release is the version
+   consumers install.
+
+The session waits for DJ to say step 3 is published, then follows the Release and adoption workflow
+below.
+
 ## Version bump selection — patch only until v1
 
 **Until the packages' v1, every release is a `patch` bump** (ARCH-208) — additive exports, fixes, AND breaking changes (a removed export, a changed signature) alike. Never hand off `minor` or `major`.

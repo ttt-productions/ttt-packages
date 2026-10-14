@@ -1,0 +1,24 @@
+// Callable wire contracts — inputs and results. Subpath-only: not re-exported from the root barrel.
+// A step that adds or converts a callable adds its `<Verb><Noun>InputSchema` / `ResultSchema` here.
+
+export * from './atoms.js';
+export * from './awards.js';
+export * from './hardware-loan-contracts.js';
+export * from './account-settings.js';
+export * from './admin-notifications.js';
+export * from './admin-stats.js';
+export * from './dead-letters.js';
+export * from './app-config.js';
+export * from './game-locations.js';
+export * from './leagues.js';
+export * from './pictures.js';
+export * from './schedules.js';
+export * from './scoring.js';
+export * from './signed-waivers.js';
+export * from './stats.js';
+export * from './team-joining.js';
+export * from './teams.js';
+export * from './uploads.js';
+export * from './users.js';
+export * from './waiver-templates.js';
+export * from './migration-console.js';

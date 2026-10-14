@@ -1,0 +1,96 @@
+{
+    "name": "@ttt-productions/q-core",
+    "version": "0.1.0",
+    "description": "Core types, Firestore path constants, zod schemas, and shared constants for Q-Sports",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/q-core"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./types": {
+            "types": "./dist/types/index.d.ts",
+            "default": "./dist/types/index.js"
+        },
+        "./paths": {
+            "types": "./dist/paths/index.d.ts",
+            "default": "./dist/paths/index.js"
+        },
+        "./constants": {
+            "types": "./dist/constants/index.d.ts",
+            "default": "./dist/constants/index.js"
+        },
+        "./constants/business": {
+            "types": "./dist/constants/business.d.ts",
+            "default": "./dist/constants/business.js"
+        },
+        "./constants/sports": {
+            "types": "./dist/constants/sports.d.ts",
+            "default": "./dist/constants/sports.js"
+        },
+        "./constants/storage-keys": {
+            "types": "./dist/constants/storage-keys.d.ts",
+            "default": "./dist/constants/storage-keys.js"
+        },
+        "./utils": {
+            "types": "./dist/utils/index.d.ts",
+            "default": "./dist/utils/index.js"
+        },
+        "./ids": {
+            "types": "./dist/ids/index.d.ts",
+            "default": "./dist/ids/index.js"
+        },
+        "./domain-events": {
+            "types": "./dist/domain-events/index.d.ts",
+            "default": "./dist/domain-events/index.js"
+        },
+        "./media": {
+            "types": "./dist/media/index.d.ts",
+            "default": "./dist/media/index.js"
+        },
+        "./schemas": {
+            "types": "./dist/schemas/index.d.ts",
+            "default": "./dist/schemas/index.js"
+        },
+        "./doc-schemas": {
+            "types": "./dist/doc-schemas/index.d.ts",
+            "default": "./dist/doc-schemas/index.js"
+        },
+        "./sports": {
+            "types": "./dist/sports/index.d.ts",
+            "default": "./dist/sports/index.js"
+        },
+        "./notifications": {
+            "types": "./dist/notifications/index.d.ts",
+            "default": "./dist/notifications/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build",
+        "test": "vitest run"
+    },
+    "dependencies": {
+        "@ttt-productions/input-format-core": "*",
+        "@ttt-productions/media-schemas": "*",
+        "@ttt-productions/notification-core": "*",
+        "@ttt-productions/theme-core": "*",
+        "zod": "^4.4.3"
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+}

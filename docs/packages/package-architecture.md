@@ -9,15 +9,16 @@ exports live in each package's `package.json`, and the wiring lives in the root
 `package.json` build chain and `scripts/`.
 
 Generic packages never know about TTT-specific identifiers, Firestore collection
-names, copy, moderation policy, or domain-event catalogs — that lives in
-`@ttt-productions/ttt-core` or in the consuming app.
+names, copy, moderation policy, or domain-event catalogs — that lives in the app's
+application-data package (`@ttt-productions/ttt-core`, `@ttt-productions/q-core`) or in the
+consuming app.
 
 ## Tier model
 
 Tiers are a reading aid for the dependency graph; the real constraint is
-"dependencies build and release before their dependents." `ttt-core` is the
-application-data package: it may consume generic packages, but no generic
-package may consume it.
+"dependencies build and release before their dependents." `ttt-core` and `q-core`
+are the application-data packages: each may consume generic packages, but no generic
+package may consume either.
 
 - **Tier 0 — generic foundations (zero internal runtime deps):**
   `input-format-core` (the named text-input formats, a field's format/min/max
@@ -53,7 +54,9 @@ package may consume it.
   edge.
 - **Application data:** `ttt-core` (→ `audit-core`, `chat-schemas`,
   `edge-protocol-core`, `input-format-core`, `media-schemas`, `notification-core`,
-  `report-core`).
+  `report-core`) for ttt-prod, and `q-core` (→ `input-format-core`, `media-schemas`,
+  `notification-core`, `theme-core`) for Q-Sports. Each is governed by its own app's
+  rulebook (ARCH-207), and neither imports the other.
 
 The internal runtime-dependency edges (peer and dev edges are left out here; the
 build and release order still honors them):
@@ -71,6 +74,8 @@ build and release order still honors them):
     ttt-core               -> audit-core, chat-schemas, edge-protocol-core,
                               input-format-core, media-schemas,
                               notification-core, report-core
+    q-core                 -> input-format-core, media-schemas,
+                              notification-core, theme-core
     chat-react             -> chat-core, chat-schemas, realtime-core,
                               ui-core, upload-ui, mobile-core, firebase-helpers
 
@@ -116,7 +121,7 @@ safety:
 
 ## Direction rules
 
-- Generic packages must not import `ttt-core`. If a generic package needs
+- Generic packages must not import `ttt-core` or `q-core`. If a generic package needs
   app-specific values, it exposes a factory, adapter, callback, schema factory,
   or configuration object (the `auth-core` / upload / backend pattern).
 - Pure schema packages (`chat-schemas`, `media-schemas`) stay pure Zod/TS. Their
