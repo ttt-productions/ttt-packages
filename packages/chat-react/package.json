@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/chat-react",
-    "version": "0.13.14",
+    "version": "0.13.15",
     "description": "Chat React UI, hooks, and Firebase-client adapter for TTT Productions apps (realtime newest window + infinite older pagination)",
     "repository": {
         "type": "git",
