@@ -40,11 +40,6 @@ import {
   PublishedTuneTrackSchema,
   PublishedTelevisionEpisodeSchema,
   HallContentChangeRequestSchema,
-  FuturePlansDocumentSchema,
-  RulesAndAgreementsSchema,
-  LegalPageDocumentSchema,
-  TakeItDownPageCopySchema,
-  DmcaPolicyDocumentSchema,
   HallLibraryPreferencesSchema,
 } from './content.js';
 import {
@@ -82,6 +77,7 @@ import {
   PublicDocumentVersionSchema,
   PublicDocumentDraftSchema,
   PublicDocumentReleaseSchema,
+  PUBLIC_DOCUMENT_PROJECTIONS,
 } from './public-documents.js';
 import { AppConfigSchema, AdminListSchema, ProfanityListSchema, ReservedUsernamesSchema, BlockedFranchiseNamesSchema, AppModeMarkerSchema } from './system.js';
 import { SystemUidSlotsDocumentSchema, SystemVideoSlotsDocumentSchema } from './system-slots.js';
@@ -453,16 +449,14 @@ export const COLLECTION_SCHEMAS = {
 
   // ===== _appConfig singletons (public) =====
   '_appConfig/app': AppConfigSchema,
-  '_appConfig/futurePlans': FuturePlansDocumentSchema,
-  '_appConfig/rulesAndAgreements': RulesAndAgreementsSchema,
-  // Content-pages migration (DJ ruling 2026-07-06): /terms, /privacy, and the
-  // /take-it-down page copy render exclusively from these (all public pages —
-  // take-it-down is a NO-LOGIN page, so its copy doc must be publicly readable).
-  '_appConfig/termsOfService': LegalPageDocumentSchema,
-  '_appConfig/privacyPolicy': LegalPageDocumentSchema,
-  '_appConfig/takeItDownPageCopy': TakeItDownPageCopySchema,
-  // The /dmca page's current projection — a public document like the three above.
-  '_appConfig/dmcaPolicy': DmcaPolicyDocumentSchema,
+  // The public documents' current projections. Every one is a public page; take-it-down is a
+  // NO-LOGIN page, so its copy doc must be publicly readable.
+  '_appConfig/futurePlans': PUBLIC_DOCUMENT_PROJECTIONS.futurePlans.schema,
+  '_appConfig/rulesAndAgreements': PUBLIC_DOCUMENT_PROJECTIONS.rulesAndAgreements.schema,
+  '_appConfig/termsOfService': PUBLIC_DOCUMENT_PROJECTIONS.termsOfService.schema,
+  '_appConfig/privacyPolicy': PUBLIC_DOCUMENT_PROJECTIONS.privacyPolicy.schema,
+  '_appConfig/takeItDownPageCopy': PUBLIC_DOCUMENT_PROJECTIONS.takeItDownPageCopy.schema,
+  '_appConfig/dmcaPolicy': PUBLIC_DOCUMENT_PROJECTIONS.dmcaPolicy.schema,
   '_appConfig/systemUidSlots': SystemUidSlotsDocumentSchema,
 
   // ===== _serverData singletons (server-only — Cloud-Functions-only readers, BACKEND-108) =====

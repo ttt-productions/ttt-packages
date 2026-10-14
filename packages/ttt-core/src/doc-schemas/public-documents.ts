@@ -17,6 +17,7 @@
 
 import { z } from 'zod';
 import { SPECIAL_DOCS } from '../paths/collections.js';
+import { PATH_BUILDERS } from '../paths/path-builders.js';
 import { PUBLIC_DOCUMENT_IDS, type PublicDocumentId } from '../constants/public-documents.js';
 import {
   LegalPageDocumentSchema,
@@ -84,15 +85,23 @@ export type PublicDocumentContent<D extends PublicDocumentId = PublicDocumentId>
   (typeof PUBLIC_DOCUMENT_CONTENT_SCHEMAS)[D]
 >;
 
-/** Each document's current-projection schema (`_appConfig/{documentId}`). */
-export const PUBLIC_DOCUMENT_PROJECTION_SCHEMAS = {
-  [SPECIAL_DOCS.TERMS_PAGE]: LegalPageDocumentSchema,
-  [SPECIAL_DOCS.PRIVACY_PAGE]: LegalPageDocumentSchema,
-  [SPECIAL_DOCS.RULES_AND_AGREEMENTS]: RulesAndAgreementsSchema,
-  [SPECIAL_DOCS.FUTURE_PLANS]: FuturePlansDocumentSchema,
-  [SPECIAL_DOCS.DMCA_POLICY]: DmcaPolicyDocumentSchema,
-  [SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY]: TakeItDownPageCopySchema,
-} as const satisfies Record<PublicDocumentId, z.ZodType>;
+function projection<const D extends PublicDocumentId, const S extends z.ZodType>(documentId: D, schema: S) {
+  return { path: (): [string, string] => PATH_BUILDERS.publicDocumentProjection(documentId), schema };
+}
+
+/**
+ * Each document's current projection (`_appConfig/{documentId}`): its path and its schema in one
+ * entry, so a writer that looks the document up once writes that document with that document's
+ * schema. COLLECTION_SCHEMAS registers each projection's schema from here.
+ */
+export const PUBLIC_DOCUMENT_PROJECTIONS = {
+  [SPECIAL_DOCS.TERMS_PAGE]: projection(SPECIAL_DOCS.TERMS_PAGE, LegalPageDocumentSchema),
+  [SPECIAL_DOCS.PRIVACY_PAGE]: projection(SPECIAL_DOCS.PRIVACY_PAGE, LegalPageDocumentSchema),
+  [SPECIAL_DOCS.RULES_AND_AGREEMENTS]: projection(SPECIAL_DOCS.RULES_AND_AGREEMENTS, RulesAndAgreementsSchema),
+  [SPECIAL_DOCS.FUTURE_PLANS]: projection(SPECIAL_DOCS.FUTURE_PLANS, FuturePlansDocumentSchema),
+  [SPECIAL_DOCS.DMCA_POLICY]: projection(SPECIAL_DOCS.DMCA_POLICY, DmcaPolicyDocumentSchema),
+  [SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY]: projection(SPECIAL_DOCS.TAKE_IT_DOWN_PAGE_COPY, TakeItDownPageCopySchema),
+} as const satisfies { [D in PublicDocumentId]: { path: () => [string, string]; schema: z.ZodType } };
 
 /**
  * The current projection the publish writes for document `D`: its content plus the version and

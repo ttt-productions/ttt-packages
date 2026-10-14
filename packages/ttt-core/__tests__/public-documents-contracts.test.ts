@@ -19,7 +19,7 @@ import {
   PublicDocumentVersionBlockSchema,
   PublicDocumentAcceptanceSchema,
   PUBLIC_DOCUMENT_CONTENT_SCHEMAS,
-  PUBLIC_DOCUMENT_PROJECTION_SCHEMAS,
+  PUBLIC_DOCUMENT_PROJECTIONS,
   type PublicDocumentVersion,
   type PublicDocumentProjection,
 } from '../src/doc-schemas/public-documents';
@@ -116,10 +116,21 @@ describe('public document identity', () => {
     expect(root.PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT).toBe(PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT);
   });
 
-  it('has a content and a projection schema for every document', () => {
+  it('has a content schema and a current projection for every document', () => {
     for (const id of PUBLIC_DOCUMENT_IDS) {
       expect(PUBLIC_DOCUMENT_CONTENT_SCHEMAS[id], id).toBeDefined();
-      expect(PUBLIC_DOCUMENT_PROJECTION_SCHEMAS[id], id).toBeDefined();
+      expect(PUBLIC_DOCUMENT_PROJECTIONS[id], id).toBeDefined();
+    }
+  });
+
+  it("addresses each document's own projection, registered under that path with that schema", () => {
+    // A writer that looks a document up once writes that document's _appConfig doc with that
+    // document's schema; a mixed-up entry would write one page's content over another's.
+    for (const id of PUBLIC_DOCUMENT_IDS) {
+      const entry = PUBLIC_DOCUMENT_PROJECTIONS[id];
+      expect(entry.path(), id).toEqual([COLLECTIONS.APP_CONFIG, id]);
+      expect(entry.path(), id).toEqual(PATH_BUILDERS.publicDocumentProjection(id));
+      expect(COLLECTION_SCHEMAS[entry.path().join('/') as keyof typeof COLLECTION_SCHEMAS], id).toBe(entry.schema);
     }
   });
 });

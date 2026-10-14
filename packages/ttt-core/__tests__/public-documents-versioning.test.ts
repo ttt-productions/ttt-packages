@@ -17,7 +17,7 @@ import {
 import {
   PublicDocumentVersionBlockSchema,
   PublicDocumentAcceptanceSchema,
-  PUBLIC_DOCUMENT_PROJECTION_SCHEMAS,
+  PUBLIC_DOCUMENT_PROJECTIONS,
   type PublicDocumentContent,
   type PublicDocumentVersionBlock,
 } from '../src/doc-schemas/public-documents';
@@ -267,10 +267,10 @@ describe('current projection and the unchanged-draft rule', () => {
     };
     const projection = buildPublicDocumentProjection<typeof TERMS>(content, 4, 99);
     expect(projection).toEqual({ ...content, version: 4, lastUpdated: 99 });
-    expect(PUBLIC_DOCUMENT_PROJECTION_SCHEMAS[TERMS].safeParse(projection).success).toBe(true);
+    expect(PUBLIC_DOCUMENT_PROJECTIONS[TERMS].schema.safeParse(projection).success).toBe(true);
 
     const rules = buildPublicDocumentProjection<typeof RULES>({ rules: [], agreements: { points: [] } }, 2, 99);
-    expect(PUBLIC_DOCUMENT_PROJECTION_SCHEMAS[RULES].parse(rules)).toEqual(rules);
+    expect(PUBLIC_DOCUMENT_PROJECTIONS[RULES].schema.parse(rules)).toEqual(rules);
   });
 
   it('content equality ignores field order and absent-vs-undefined, but not words', () => {

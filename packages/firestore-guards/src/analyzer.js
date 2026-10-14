@@ -837,11 +837,16 @@ export function buildRegistry({
   // could be reassigned or wrap a transform, so it intentionally remains unreadable.
   const canonicalParseKeys = new Map();
   const canonicalParseSchema = new Map();
+  // The reverse lookup, for a schema reached as a VALUE inside a core const map rather than
+  // through its import binding: it is canonical only when it is the very object a core export
+  // names, so a map entry's schema pairs with its template exactly as an imported one does.
+  const canonicalParseName = new Map();
   for (const [name, schema] of Object.entries(canonicalSchemas)) {
     const keys = closedCanonicalKeys(schema);
     if (keys && keys.keys.size) {
       canonicalParseKeys.set(name, keys);
       canonicalParseSchema.set(name, schema);
+      if (!canonicalParseName.has(schema)) canonicalParseName.set(schema, name);
     }
   }
 
@@ -890,6 +895,7 @@ export function buildRegistry({
     coreConstMap,
     canonicalParseKeys,
     canonicalParseSchema,
+    canonicalParseName,
   };
 }
 
@@ -4800,8 +4806,9 @@ export function analyzeFiles({
       if (ts.isCallExpression(node)) {
         const callee = stripWrappers(node.expression);
         const label = ts.isIdentifier(callee) ? callee.text : callee.getText(source).slice(0, 40);
-        // A `.parse()` output is readable only for a direct, closed canonical core
-        // schema import. A renamed *import binding* is still that immutable export;
+        // A `.parse()` output is readable only for a closed canonical core schema: a
+        // direct import, or a core const map entry's schema that a core export names.
+        // A renamed *import binding* is still that immutable export;
         // a local alias is deliberately not followed, because it can be reassigned or
         // wrap the schema. `safeParse()` returns a result wrapper; transforms/open
         // schemas are deliberately opaque rather than a way around BACKEND-115.
@@ -4819,6 +4826,30 @@ export function analyzeFiles({
             if (canonical) {
               for (const key of canonical.keys) keys.add(isUpdate ? key.split('.')[0] : key);
               parseSources.add(imported.imported);
+              return;
+            }
+          }
+          // `MAP[selector].schema.parse(x)`, the lookup written in place or named once in a
+          // `const`: a core const map whose entries carry each document's schema beside its
+          // path. Every entry the lookup can produce must hold a closed canonical schema that
+          // a core export names; one entry that does not makes the payload opaque. When the
+          // write's target reads the same `const` lookup, the entries are narrowed one at a
+          // time, so each document is diffed against its own entry's schema.
+          if (ts.isPropertyAccessExpression(schema)) {
+            const base = constLookup(stripParens(schema.expression), facts);
+            const entries = ts.isElementAccessExpression(base) ? coreMapEntries(base, facts, source) : null;
+            const names = entries?.map((entry) =>
+              entry && typeof entry === 'object' && !Array.isArray(entry)
+                ? registry.canonicalParseName.get(entry[schema.name.text])
+                : undefined,
+            );
+            if (names?.length && names.every(Boolean)) {
+              for (const name of names) {
+                for (const key of registry.canonicalParseKeys.get(name).keys) {
+                  keys.add(isUpdate ? key.split('.')[0] : key);
+                }
+                parseSources.add(name);
+              }
               return;
             }
           }

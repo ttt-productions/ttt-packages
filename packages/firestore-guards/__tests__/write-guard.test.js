@@ -3551,3 +3551,74 @@ describe('a V1 source document accepts only a removal', () => {
     expect(detailsOf(result)).not.toContain('is a V1 source document');
   });
 });
+
+describe("a core map entry's schema parse, read with that entry's path", () => {
+  const PAGE_PREAMBLE = `
+    import { toPath } from '@fixture/core';
+    import { CONFIG_PAGE_DOCUMENTS, UNNAMED_SCHEMA_PAGE_DOCUMENTS } from '@fixture/core/doc-schemas';
+    const db = getFirestore();
+  `;
+
+  it("checks each page document against its own entry's schema", () => {
+    // The landing page and the rules page declare different fields, and `_appConfig/app` declares
+    // neither: one lookup supplies both the path and the schema, so each page is written with its
+    // own schema's output and never against the other page or the app document.
+    const result = analyze(`${PAGE_PREAMBLE}
+      export function publish(tx: FirebaseFirestore.Transaction, id: 'landingPage' | 'rulesPage', input: unknown) {
+        const page = CONFIG_PAGE_DOCUMENTS[id];
+        tx.set(db.doc(toPath(page.path())), page.schema.parse(input));
+      }
+    `);
+    expect(result.writes).toHaveLength(1);
+    expect(result.violations).toEqual([]);
+  });
+
+  it('still reports a field the parse output does not carry', () => {
+    const result = analyze(`${PAGE_PREAMBLE}
+      export function publish(tx: FirebaseFirestore.Transaction, id: 'landingPage' | 'rulesPage', input: unknown) {
+        const page = CONFIG_PAGE_DOCUMENTS[id];
+        tx.set(db.doc(toPath(page.path())), { ...page.schema.parse(input), pageUndeclared: 1 });
+      }
+    `);
+    expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
+    expect(detailsOf(result)).toContain('pageUndeclared');
+  });
+
+  it("diffs a document whose schema is none of the map's against every entry's fields", () => {
+    // The parse output pairs only with a template bound to one of the map's schemas; the app
+    // document is bound to neither, so both pages' fields are reported there.
+    const result = analyze(`${PAGE_PREAMBLE}
+      import { PATH_BUILDERS } from '@fixture/core';
+      export function publish(tx: FirebaseFirestore.Transaction, id: 'landingPage' | 'rulesPage', input: unknown) {
+        const page = CONFIG_PAGE_DOCUMENTS[id];
+        tx.set(db.doc(toPath(PATH_BUILDERS.appConfig())), page.schema.parse(input));
+      }
+    `);
+    expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
+    expect(detailsOf(result)).toContain("'heroTitle' is not declared by _appConfig/app");
+    expect(detailsOf(result)).toContain("'rulesText' is not declared by _appConfig/app");
+  });
+
+  it('treats an entry whose schema no core export names as unreadable', () => {
+    const result = analyze(`${PAGE_PREAMBLE}
+      export function publish(tx: FirebaseFirestore.Transaction, id: 'landingPage' | 'rulesPage', input: unknown) {
+        const page = UNNAMED_SCHEMA_PAGE_DOCUMENTS[id];
+        tx.set(db.doc(toPath(page.path())), page.schema.parse(input));
+      }
+    `);
+    expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNREADABLE_PAYLOAD);
+    expect(detailsOf(result)).toContain('payload parsed by a non-canonical or open schema');
+  });
+
+  it('treats a local map of the same shape as unreadable', () => {
+    const result = analyze(`${PAGE_PREAMBLE}
+      import { RulesPageSchema } from '@fixture/core/doc-schemas';
+      const LOCAL_PAGES = { landingPage: { schema: RulesPageSchema }, rulesPage: { schema: RulesPageSchema } };
+      export function publish(tx: FirebaseFirestore.Transaction, id: 'landingPage' | 'rulesPage', input: unknown) {
+        const page = CONFIG_PAGE_DOCUMENTS[id];
+        tx.set(db.doc(toPath(page.path())), LOCAL_PAGES[id].schema.parse(input));
+      }
+    `);
+    expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNREADABLE_PAYLOAD);
+  });
+});
