@@ -53,6 +53,8 @@ packages/*/*.tsbuildinfo
 packages/*/src/**/*.js
 packages/*/src/**/*.d.ts
 packages/*/src/**/*.map
+# firestore-guards is authored in JavaScript: its src/*.js files ARE its source
+!packages/firestore-guards/src/**/*.js
 ttt-packages-*.zip
 
 # --- Microsoft PhotoDNA SDK / CSAM hashing material — CONFIDENTIAL, NEVER COMMIT ---
