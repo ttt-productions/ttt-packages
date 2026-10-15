@@ -46,7 +46,7 @@ const RESET = '\x1b[0m';
 //   typecheck  -> npm run typecheck       (per-workspace tsc --noEmit; skips __tests__)
 //   tscb       -> npx tsc -b --noEmit     (project refs; the ONLY step that type-checks __tests__)
 //   build      -> npm run build           (every package, topo order)
-//   test       -> npx vitest run          (the test suite)
+//   test       -> npm run test            (the test suite: `vitest run` on the threads pool)
 //   schema     -> generate-schema-docs.mjs --check, auto-regenerating the docs if they are stale
 const argv = process.argv.slice(2);
 
@@ -297,9 +297,13 @@ async function stagePlain(name, cmd, args, cwd) {
 async function stageVitest(name, extraArgs, cwd) {
     printStart(name);
     const t0 = performance.now();
+    // Through the root `test` script, the one place the suite's pool is chosen: `threads`, because the
+    // `forks` pool hands each worker its transformed modules as files written then renamed into the run's
+    // temp folder, and on Windows that rename fails (`EPERM`) whenever another process — a worker still
+    // reading the file, or a virus scanner — holds it, which fails a random test.
     const { code, stdout, stderr } = await runCmd(
-        'npx',
-        ['vitest', 'run', '--reporter=json', ...extraArgs],
+        'npm',
+        ['run', '--silent', 'test', '--', '--reporter=json', ...extraArgs],
         { cwd }
     );
     const elapsed = performance.now() - t0;
