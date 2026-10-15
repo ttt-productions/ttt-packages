@@ -11,6 +11,7 @@ import {
   MIGRATION_ACTION_IDS,
   MIGRATION_ACTION_ID_KEYS,
   MIGRATION_CUTOVER_MANIFEST,
+  MIGRATION_STEP_BY_ID,
   STATS_BEACON_ACTION_KEYS,
   TELEMETRY_CONTENT_POLICY,
   migrationActionCallableName,
@@ -58,6 +59,20 @@ describe('the action ids', () => {
   it('give every executable step a callable name no other step shares', () => {
     const names = MIGRATION_CUTOVER_MANIFEST.flatMap((step) => (step.kind === 'executable' ? [step.callable] : []));
     expect(new Set(names).size).toBe(names.length);
+  });
+});
+
+describe('the steps that read another step’s copy', () => {
+  const dependsOn = (id: (typeof MIGRATION_ACTION_IDS)[keyof typeof MIGRATION_ACTION_IDS]) => MIGRATION_STEP_BY_ID.get(id)?.dependsOn ?? [];
+
+  it('carry a membership, an invitation, or a join request only after the teams are copied, since one whose team was not copied is left behind', () => {
+    for (const id of [MIGRATION_ACTION_IDS.copyTeamMemberships, MIGRATION_ACTION_IDS.copyTeamInvitations, MIGRATION_ACTION_IDS.copyTeamJoinRequests]) {
+      expect(dependsOn(id)).toContain(MIGRATION_ACTION_IDS.copyLeagueTeams);
+    }
+  });
+
+  it('verify the public identities only after the profiles are copied, since each card shows its profile’s featured badges', () => {
+    expect(dependsOn(MIGRATION_ACTION_IDS.verifyPublicUsers)).toContain(MIGRATION_ACTION_IDS.copyUserProfiles);
   });
 });
 

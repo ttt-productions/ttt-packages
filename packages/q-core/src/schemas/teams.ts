@@ -244,8 +244,9 @@ export const DeleteTeamGhostPlayerInputSchema = z
 export type DeleteTeamGhostPlayerInput = z.infer<typeof DeleteTeamGhostPlayerInputSchema>;
 
 // `complete` is false when the call ran out of time part-way: the ghost's games stay held and the
-// same call finishes the removal. `publicUserDeleted` is false when something else still names the
-// ghost, so its name stays until that reference goes.
+// same call finishes the removal. `finishedGameEntriesRemoved` is the whole removal's count so far,
+// never one call's share, so a later response replaces an earlier one. `publicUserDeleted` is false
+// when something else still names the ghost, so its name stays until that reference goes.
 export const DeleteTeamGhostPlayerResultSchema = z
   .object({
     leagueId: leagueIdSchema,
