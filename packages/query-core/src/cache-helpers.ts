@@ -1,4 +1,4 @@
-import type { QueryClient, QueryKey } from '@tanstack/react-query';
+import type { InfiniteData, QueryClient, QueryKey } from '@tanstack/react-query';
 import type { PaginatedPage } from './firestore/types.js';
 
 /** Invalidate everything that matches a key prefix. */
@@ -80,4 +80,58 @@ export function prependToFirstPaginatedPage<T>(
   const value = client.getQueryData<PaginatedPage<T>>(key);
   if (!isPaginatedPage(value)) return;
   client.setQueryData<PaginatedPage<T>>(key, { ...value, items: [item, ...value.items] });
+}
+
+/** How `placeRowInPages` reads and writes one infinite list's pages. */
+export interface PagedRows<P, T> {
+  rowsOf: (page: P) => readonly T[];
+  withRows: (page: P, rows: T[]) => P;
+  /** True when `candidate` is the row being placed (its id). */
+  isRow: (candidate: T) => boolean;
+  /** True when `a` comes before `b` in the list's own order. */
+  sortsBefore: (a: T, b: T) => boolean;
+  /** True when this page is not the last one the source holds (a next page exists). */
+  hasMoreAfter: (page: P) => boolean;
+}
+
+/**
+ * Place, move, or drop ONE row in a cached infinite list's loaded pages, in place: the row leaves
+ * wherever it sits and, when `belongs`, joins at its position in the list's own order. A row that
+ * sorts after every loaded row is added only when no further page exists; otherwise the next page
+ * read returns it, so placing it here would list it twice. Every other row, every page, and every
+ * cursor stays put; a list the row neither left nor joined is returned as it was. Never a reset to the
+ * first page.
+ */
+export function placeRowInPages<P, T, TParam = unknown>(
+  data: InfiniteData<P, TParam> | undefined,
+  row: T,
+  belongs: boolean,
+  how: PagedRows<P, T>,
+): InfiniteData<P, TParam> | undefined {
+  if (!data || data.pages.length === 0) return data;
+  let changed = false;
+  const rows = data.pages.map((page) => {
+    const kept = how.rowsOf(page).filter((candidate) => !how.isRow(candidate));
+    if (kept.length !== how.rowsOf(page).length) changed = true;
+    return kept;
+  });
+  if (belongs) {
+    let placed = false;
+    for (const pageRows of rows) {
+      const index = pageRows.findIndex((candidate) => how.sortsBefore(row, candidate));
+      if (index !== -1) {
+        pageRows.splice(index, 0, row);
+        placed = true;
+        break;
+      }
+    }
+    const lastIndex = data.pages.length - 1;
+    if (!placed && !how.hasMoreAfter(data.pages[lastIndex])) {
+      rows[lastIndex].push(row);
+      placed = true;
+    }
+    changed = changed || placed;
+  }
+  if (!changed) return data;
+  return { ...data, pages: data.pages.map((page, i) => how.withRows(page, rows[i])) };
 }

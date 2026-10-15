@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { QueryClient } from '@tanstack/react-query';
-import { invalidateByPrefix, removeByPrefix, updateQueryData } from '../src/cache-helpers';
+import { invalidateByPrefix, placeRowInPages, removeByPrefix, updateQueryData, type PagedRows } from '../src/cache-helpers';
 
 function makeClient() {
     return new QueryClient({
@@ -134,5 +134,60 @@ describe('updateQueryData', () => {
         updateQueryData<number>(client, ['a'], (prev) => (prev ?? 0) + 10);
         expect(client.getQueryData(['a'])).toBe(11);
         expect(client.getQueryData(['b'])).toBe(2);
+    });
+});
+
+describe('placeRowInPages', () => {
+    interface Row { id: string; rank: number }
+    interface Page { rows: Row[]; next: string | null }
+    const row = (id: string, rank: number): Row => ({ id, rank });
+    const data = (...pages: Page[]) => ({ pages, pageParams: pages.map((_, i) => (i === 0 ? null : `cursor-${i}`)) });
+    const how = (id: string): PagedRows<Page, Row> => ({
+        rowsOf: (page) => page.rows,
+        withRows: (page, rows) => ({ ...page, rows }),
+        isRow: (candidate) => candidate.id === id,
+        // The list's order: rank ascending, then id.
+        sortsBefore: (a, b) => a.rank < b.rank || (a.rank === b.rank && a.id < b.id),
+        hasMoreAfter: (page) => page.next !== null,
+    });
+    const ids = (result: ReturnType<typeof data> | undefined) => result?.pages.map((page) => page.rows.map((r) => r.id));
+
+    it('places a new row at its position in the list order, keeping every other row, page, and cursor', () => {
+        const before = data({ rows: [row('a', 1), row('c', 3)], next: 'c' }, { rows: [row('e', 5)], next: null });
+        const after = placeRowInPages(before, row('b', 2), true, how('b'));
+        expect(ids(after)).toEqual([['a', 'b', 'c'], ['e']]);
+        expect(after?.pages.map((page) => page.next)).toEqual(['c', null]);
+        expect(after?.pageParams).toEqual(before.pageParams);
+    });
+
+    it('moves a row that changed to its new position', () => {
+        const before = data({ rows: [row('a', 1), row('b', 2)], next: 'b' }, { rows: [row('c', 3), row('d', 4)], next: null });
+        expect(ids(placeRowInPages(before, row('a', 3.5), true, how('a')))).toEqual([['b'], ['c', 'a', 'd']]);
+    });
+
+    it('drops a row that no longer belongs, and leaves the rest', () => {
+        const before = data({ rows: [row('a', 1), row('b', 2)], next: 'b' }, { rows: [row('c', 3)], next: null });
+        expect(ids(placeRowInPages(before, row('b', 2), false, how('b')))).toEqual([['a'], ['c']]);
+    });
+
+    it('leaves a row that sorts past every loaded row to the next page read while one is left', () => {
+        const before = data({ rows: [row('a', 1), row('b', 2)], next: 'b' });
+        expect(placeRowInPages(before, row('z', 9), true, how('z'))).toBe(before);
+    });
+
+    it('adds a row that sorts past every loaded row at the end when no page is left', () => {
+        const before = data({ rows: [row('a', 1)], next: 'a' }, { rows: [row('b', 2)], next: null });
+        expect(ids(placeRowInPages(before, row('z', 9), true, how('z')))).toEqual([['a'], ['b', 'z']]);
+    });
+
+    it('returns the list as it was when the row neither left nor joined it', () => {
+        const before = data({ rows: [row('a', 1)], next: null });
+        expect(placeRowInPages(before, row('q', 0), false, how('q'))).toBe(before);
+    });
+
+    it('does nothing to a list with no loaded pages', () => {
+        expect(placeRowInPages<Page, Row>(undefined, row('a', 1), true, how('a'))).toBeUndefined();
+        const empty = data();
+        expect(placeRowInPages(empty, row('a', 1), true, how('a'))).toBe(empty);
     });
 });

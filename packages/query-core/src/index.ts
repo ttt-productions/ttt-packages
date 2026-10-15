@@ -9,7 +9,9 @@ export {
   paginatedPageKey,
   mapPaginatedItems,
   prependToFirstPaginatedPage,
+  placeRowInPages,
 } from './cache-helpers.js';
+export type { PagedRows } from './cache-helpers.js';
 
 // Firestore Types & Pure Helpers
 export type {

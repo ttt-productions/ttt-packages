@@ -57,6 +57,9 @@ Generic TanStack Query package.
   (`FirestoreSearchOptions`, `FirestoreSearchConfig`, `SearchEqualityFilter`), and its search
   rule on the server-safe root (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`)
 - The read failure-and-retry state, `useReadRetryState` (below)
+- `placeRowInPages` (root entry, with its `PagedRows` adapter): places, moves, or drops one row in a
+  cached infinite list's loaded pages at its position in the list's own order, keeping every other
+  row, page, and cursor — so an action updates a paged list without reloading it
 - The domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`,
   `predicate`, `applyInvalidations`, `serializeInvalidation`)
 
