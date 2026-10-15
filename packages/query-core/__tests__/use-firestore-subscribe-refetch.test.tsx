@@ -104,12 +104,12 @@ afterEach(() => {
 
 for (const hook of hooks) {
   describe(`${hook.name} — refetch() in subscribe mode re-opens the listener`, () => {
-    it('clears a listener error, opens a new listener, and reports fetching until its first snapshot', async () => {
+    it('re-opens a listener that failed before it answered, reporting pending with no data until its first snapshot', async () => {
       const { result } = hook.render();
-      act(() => last().next(hook.snapshot(1)));
       const failed = last();
       act(() => failed.error(unavailable()));
       expect(result.current.isError).toBe(true);
+      expect(result.current.data).toBeUndefined();
 
       let settled: Promise<unknown> = Promise.resolve();
       act(() => {
@@ -123,13 +123,53 @@ for (const hook of hooks) {
       expect(result.current.isFetching).toBe(true);
       expect(result.current.fetchStatus).toBe('fetching');
       expect(result.current.isPending).toBe(true);
-      // The failed listener's last rows are not shown as current while the read re-opens.
       expect(result.current.data).toBeUndefined();
       expect(result.current.sourceState).toBe('connecting');
 
       act(() => last().next(hook.snapshot(2)));
       expect(result.current.isFetching).toBe(false);
       expect(result.current.isSuccess).toBe(true);
+      expect(hook.read(result.current.data)).toBe(2);
+
+      const resolved = (await settled) as { isSuccess: boolean; data: unknown };
+      expect(resolved.isSuccess).toBe(true);
+      expect(hook.read(resolved.data)).toBe(2);
+    });
+
+    it('holds the last snapshot beside the failure of a listener that had answered, and through its restart', async () => {
+      const { result } = hook.render();
+      act(() => last().next(hook.snapshot(1)));
+      const failed = last();
+      const failure = unavailable();
+      act(() => failed.error(failure));
+
+      // The rows stay, flagged as not current: the read failed after it answered.
+      expect(hook.read(result.current.data)).toBe(1);
+      expect(result.current.isError).toBe(true);
+      expect(result.current.error).toBe(failure);
+      expect(result.current.status).toBe('error');
+      expect(result.current.isRefetchError).toBe(true);
+      expect(result.current.isLoadingError).toBe(false);
+
+      let settled: Promise<unknown> = Promise.resolve();
+      act(() => {
+        settled = result.current.refetch();
+      });
+
+      expect(h.listeners).toHaveLength(2);
+      expect(last()).not.toBe(failed);
+      // While the listener re-opens the held rows and the failure both stay, as a one-shot refetch keeps them.
+      expect(hook.read(result.current.data)).toBe(1);
+      expect(result.current.error).toBe(failure);
+      expect(result.current.isFetching).toBe(true);
+      expect(result.current.isRefetching).toBe(true);
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.sourceState).toBe('connecting');
+
+      act(() => last().next(hook.snapshot(2)));
+      expect(result.current.isFetching).toBe(false);
+      expect(result.current.isSuccess).toBe(true);
+      expect(result.current.error).toBeNull();
       expect(hook.read(result.current.data)).toBe(2);
       expect(result.current.sourceState).toBe('live');
 

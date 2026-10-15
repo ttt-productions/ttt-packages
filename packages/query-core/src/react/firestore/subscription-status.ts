@@ -6,8 +6,10 @@ import type { FirestoreSourceState, WithSourceState } from '../../firestore/type
 
 /** A restart a subscribed result's `refetch()` asked for, open until the listener's first snapshot or its next error. */
 interface PendingRestart {
-  /** The listener had failed: its last data is not shown as current while the restart is open. */
+  /** The listener had failed when the restart was asked for. */
   fromError: boolean;
+  /** That failure, kept beside the held data while the restart is open, as a one-shot refetch keeps it. */
+  failure: Error | null;
 }
 
 interface SubscriptionStatus {
@@ -74,7 +76,10 @@ export function useSubscriptionStatus(identity: string) {
         ...base,
         error: null,
         sourceState: 'connecting',
-        restart: { fromError: base.error !== null || base.restart?.fromError === true },
+        restart: {
+          fromError: base.error !== null || base.restart?.fromError === true,
+          failure: base.error ?? base.restart?.failure ?? null,
+        },
         restarts: base.restarts + 1,
       };
     });
@@ -104,8 +109,13 @@ interface RefetchWaiter<TData> {
  * The subscribed hooks' result: the query's own result, with the listener's error and source
  * state merged in. In subscribe mode `refetch()` re-opens the listener (clearing its error, with a
  * fresh resubscribe ladder) and resolves once the re-opened listener delivers its first snapshot or
- * surfaces its next error; until then the result reports fetching. A restart after a failure shows
- * no data until that snapshot: the failed listener's last rows are not presented as current.
+ * surfaces its next error; until then the result reports fetching.
+ *
+ * A listener that fails after it answered keeps its last snapshot as `data` beside the failure, the
+ * way a one-shot read that fails a refetch keeps its data: `status: 'error'` and `isRefetchError`
+ * say the rows are not current, and a consumer can keep what it showed instead of tearing it down.
+ * A restart from that failure keeps both — the held data and the failure — until the re-opened
+ * listener answers. A listener that failed before it ever answered has no data to hold.
  */
 export function useSubscribedResult<TData>(
   query: UseQueryResult<TData, Error>,
@@ -139,16 +149,34 @@ export function useSubscribedResult<TData>(
   if (!subscribe) {
     result = query;
   } else if (error) {
+    const held = query.data !== undefined;
     result = {
       ...query,
-      data: undefined,
+      data: query.data,
       error,
       isError: true,
-      isLoadingError: true,
+      isLoadingError: !held,
+      isRefetchError: held,
       isSuccess: false,
       isPending: false,
       isLoading: false,
       status: 'error',
+      refetch,
+    } as UseQueryResult<TData, Error>;
+  } else if (pendingRestart?.fromError && query.data !== undefined) {
+    result = {
+      ...query,
+      error: pendingRestart.failure,
+      isError: pendingRestart.failure !== null,
+      isLoadingError: false,
+      isRefetchError: pendingRestart.failure !== null,
+      isSuccess: false,
+      isPending: false,
+      isLoading: false,
+      isFetching: true,
+      isRefetching: true,
+      status: pendingRestart.failure !== null ? 'error' : query.status,
+      fetchStatus: 'fetching',
       refetch,
     } as UseQueryResult<TData, Error>;
   } else if (pendingRestart?.fromError) {

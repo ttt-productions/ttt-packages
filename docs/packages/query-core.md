@@ -40,9 +40,15 @@ Generic TanStack Query package.
   resubscribe ladder; the result reports fetching (`isFetching`, `fetchStatus: 'fetching'`)
   until the re-opened listener's first snapshot or its next surfaced error, and the promise
   settles then (resolving with that result, or rejecting with the error under
-  `throwOnError`). After a failure the restart reads `pending` with no data, so the failed
-  listener's last rows are never shown as current; a healthy listener's restart keeps its
-  data (`isRefetching`). This is the retry a failed subscribed read offers. A disabled read's
+  `throwOnError`). This is the retry a failed subscribed read offers; a healthy listener's restart
+  keeps its data (`isRefetching`).
+- **A subscribed read that fails after it answered keeps its last snapshot.** The result holds that
+  snapshot as `data` beside the listener's failure, as a one-shot read that fails a refetch keeps its
+  data: `status: 'error'` with `isRefetchError` says the rows are not current, so a consumer keeps what
+  it showed — and anything open over it — with the failure beside it instead of tearing it down. A
+  restart from that failure keeps both, the held data and the failure, reporting `isRefetching` until
+  the re-opened listener answers. A listener that failed before it ever answered has nothing to hold:
+  it reads `isLoadingError` with no data, and its restart reads `pending` with no data. A disabled read's
   `refetch()` opens nothing; without `subscribe`, `refetch()` is the query's own one-shot re-read.
 - The generic debounced prefix-search hook `useFirestoreSearch`, its types
   (`FirestoreSearchOptions`, `FirestoreSearchConfig`, `SearchEqualityFilter`), and its search
