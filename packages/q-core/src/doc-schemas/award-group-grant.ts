@@ -59,6 +59,19 @@ export const AwardGroupGrantSchema = z
   });
 export type AwardGroupGrant = z.infer<typeof AwardGroupGrantSchema>;
 
+/**
+ * Whether a request opens a new decision on an award for a group, given the group's latest decision
+ * (`null` when it has none): a grant opens unless the latest is a grant, and a take-back opens only
+ * when it is. A request the latest decision already settles opens nothing. The server applies it in
+ * the transaction that opens the decision; the admin surface offers only the request it opens.
+ */
+export function awardGroupGrantOpens(
+  latest: Pick<AwardGroupGrant, 'action'> | null,
+  action: AwardGroupGrant['action'],
+): boolean {
+  return action === 'grant' ? latest?.action !== 'grant' : latest?.action === 'grant';
+}
+
 // `awardGroupGrants/{grantId}/awardGroupGrantPeople/{userId}` — one person a grant decision reached,
 // recorded before their profile changed. `heldBefore` says they already held the award, so the grant
 // gave them nothing. `revoked` turns true once a revoke has dealt with them; `revokeSkipped` says why

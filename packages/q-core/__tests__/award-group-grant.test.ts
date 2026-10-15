@@ -3,7 +3,12 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildAwardGroupGrantId, buildAwardGroupGrantTargetKey } from '../src/ids/award-grant-ids';
-import { AwardGroupGrantPersonSchema, AwardGroupGrantSchema, COLLECTION_SCHEMAS } from '../src/doc-schemas';
+import {
+  AwardGroupGrantPersonSchema,
+  AwardGroupGrantSchema,
+  COLLECTION_SCHEMAS,
+  awardGroupGrantOpens,
+} from '../src/doc-schemas';
 import {
   AdminGetAwardGroupGrantStatusInputSchema,
   AdminGetAwardGroupGrantStatusResultSchema,
@@ -83,6 +88,23 @@ describe('a group grant decision', () => {
       `awardGroupGrants/${grant.grantId}/awardGroupGrantPeople/u1`,
     );
     expect(COLLECTION_SCHEMAS['awardGroupGrants/{grantId}/awardGroupGrantPeople/{userId}']).toBe(AwardGroupGrantPersonSchema);
+  });
+});
+
+describe('which request opens a new decision', () => {
+  it('opens a grant when the group has no decision yet, and no take-back', () => {
+    expect(awardGroupGrantOpens(null, 'grant')).toBe(true);
+    expect(awardGroupGrantOpens(null, 'revoke')).toBe(false);
+  });
+
+  it('opens only a take-back after a grant, whether that grant is finished or still under way', () => {
+    expect(awardGroupGrantOpens({ action: 'grant' }, 'grant')).toBe(false);
+    expect(awardGroupGrantOpens({ action: 'grant' }, 'revoke')).toBe(true);
+  });
+
+  it('opens only a grant after a take-back', () => {
+    expect(awardGroupGrantOpens({ action: 'revoke' }, 'grant')).toBe(true);
+    expect(awardGroupGrantOpens({ action: 'revoke' }, 'revoke')).toBe(false);
   });
 });
 
