@@ -196,6 +196,9 @@ export const RegisterUserResultSchema = z.discriminatedUnion('status', [
   // replay). Refresh the token: the `docsAccepted` claim was set after the commit.
   z.object({ status: z.literal('registered') }),
   PublicDocumentsRefreshRequiredResultSchema,
+  // The orphan-registration cleanup claimed this login for deletion after its grace window, so the
+  // registration cannot finish on it; nothing is written and the person signs up again.
+  z.object({ status: z.literal('registrationExpired') }),
 ]);
 export type RegisterUserResult = z.infer<typeof RegisterUserResultSchema>;
 

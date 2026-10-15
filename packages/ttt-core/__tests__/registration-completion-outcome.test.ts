@@ -17,6 +17,7 @@ const PRODUCED_OUTCOMES = [
   'sessionHashMismatch',
   'attestationSignatureInvalid',
   'policyVersionRejected',
+  'registrationExpired',
 ] as const;
 
 describe('RegistrationCompletionOutcomeSchema', () => {
@@ -33,5 +34,13 @@ describe('RegistrationCompletionOutcomeSchema', () => {
   it('is the outcome a completion result carries', () => {
     expect(RegistrationCompletionResultV1Schema.safeParse({ outcome: 'completed', uid: 'u1' }).success).toBe(true);
     expect(RegistrationCompletionResultV1Schema.safeParse({ outcome: 'privateDataConflict' }).success).toBe(false);
+  });
+});
+
+describe('RegisterUserResultSchema', () => {
+  it('answers a registration on a login the orphan cleanup claimed with registrationExpired', async () => {
+    const { RegisterUserResultSchema } = await import('../src/schemas/users');
+    expect(RegisterUserResultSchema.safeParse({ status: 'registrationExpired' }).success).toBe(true);
+    expect(RegisterUserResultSchema.safeParse({ status: 'registered' }).success).toBe(true);
   });
 });

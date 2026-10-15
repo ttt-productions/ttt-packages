@@ -392,8 +392,9 @@ export type SafetyReviewerCapability = z.infer<typeof SafetyReviewerCapabilitySc
 // ===========================================================================
 // Registration-completion outcome — the DOMAIN result of completing a registration,
 // never a raw gRPC or infrastructure code. The completion route decides from it whether
-// the age fields stand, the person re-does the age step, or the same attestation is
-// retried; no outcome deletes the login.
+// the age fields stand, the person re-does the age step, the same attestation is retried,
+// or — `registrationExpired` — the orphan cleanup has already claimed this login for deletion
+// and the person must sign up again; no outcome deletes the login itself.
 // ===========================================================================
 
 export const RegistrationCompletionOutcomeSchema = z.enum([
@@ -406,6 +407,7 @@ export const RegistrationCompletionOutcomeSchema = z.enum([
   'sessionHashMismatch',
   'attestationSignatureInvalid',
   'policyVersionRejected',
+  'registrationExpired',
 ]);
 export type RegistrationCompletionOutcome = z.infer<typeof RegistrationCompletionOutcomeSchema>;
 
