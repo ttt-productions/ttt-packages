@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
@@ -31,6 +31,7 @@ vi.mock('firebase/firestore', () => ({
 import { useFirestoreDoc } from '../src/react/firestore/use-firestore-doc.js';
 import { useFirestoreCollection } from '../src/react/firestore/use-firestore-collection.js';
 import { FirestoreProvider } from '../src/react/firestore/context.js';
+import { RESUBSCRIBE_DELAYS_MS } from '../src/react/firestore/resubscribe.js';
 
 beforeEach(() => {
   docCaps.length = 0;
@@ -38,6 +39,26 @@ beforeEach(() => {
   onSnapshotMock.mockClear();
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+const unavailable = () => Object.assign(new Error('unavailable'), { code: 'unavailable' });
+const permissionDenied = () => Object.assign(new Error('denied'), { code: 'permission-denied' });
+
+/** Fails the latest listener with a denial until the resubscribe ladder is spent and the denial surfaces. */
+function denyUntilSurfaced(caps: Array<{ error: (e: Error) => void }>): Error {
+  for (const delay of RESUBSCRIBE_DELAYS_MS) {
+    act(() => caps[caps.length - 1].error(permissionDenied()));
+    act(() => {
+      vi.advanceTimersByTime(delay);
+    });
+  }
+  const denial = permissionDenied();
+  act(() => caps[caps.length - 1].error(denial));
+  return denial;
+}
 
 function makeWrapper() {
   const queryClient = new QueryClient({
@@ -87,6 +108,36 @@ describe('useFirestoreDoc — subscribe:true listener errors', () => {
     expect(result.current.isError).toBe(false);
     expect(result.current.error).toBeNull();
     expect(result.current.data).toMatchObject({ id: 'u1', displayName: 'Alice' });
+  });
+
+  it('keeps the last snapshot beside a failure after it answered', () => {
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useFirestoreDoc({ docPath: 'users/u1', queryKey: ['user', 'u1'], subscribe: true }),
+      { wrapper: Wrapper },
+    );
+    act(() => docCaps[0].next({ exists: () => true, id: 'u1', data: () => ({ displayName: 'Alice' }) }));
+    act(() => docCaps[0].error(unavailable()));
+
+    expect(result.current.isRefetchError).toBe(true);
+    expect(result.current.data).toMatchObject({ id: 'u1', displayName: 'Alice' });
+  });
+
+  it('drops the last snapshot when the listener is denied after it answered', () => {
+    vi.useFakeTimers();
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useFirestoreDoc({ docPath: 'users/u1', queryKey: ['user', 'u1'], subscribe: true }),
+      { wrapper: Wrapper },
+    );
+    act(() => docCaps[0].next({ exists: () => true, id: 'u1', data: () => ({ displayName: 'Alice' }) }));
+    const denial = denyUntilSurfaced(docCaps);
+
+    expect(result.current.error).toBe(denial);
+    expect(result.current.status).toBe('error');
+    expect(result.current.isLoadingError).toBe(true);
+    expect(result.current.isRefetchError).toBe(false);
+    expect(result.current.data).toBeUndefined();
   });
 
   it('still resolves a missing doc as null (no error)', async () => {
@@ -141,5 +192,37 @@ describe('useFirestoreCollection — subscribe:true listener errors', () => {
     expect(result.current.isError).toBe(false);
     expect(result.current.error).toBeNull();
     expect(result.current.data).toEqual([{ id: 'i1', name: 'thing' }]);
+  });
+
+  it('keeps the last snapshot beside a failure after it answered', () => {
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
+      { wrapper: Wrapper },
+    );
+    act(() => colCaps[0].next({ docs: [{ id: 'i1', data: () => ({ name: 'thing' }) }] }));
+    act(() => colCaps[0].error(unavailable()));
+
+    expect(result.current.isRefetchError).toBe(true);
+    expect(result.current.data).toEqual([{ id: 'i1', name: 'thing' }]);
+  });
+
+  it('drops the last snapshot when the listener is denied after it answered', () => {
+    vi.useFakeTimers();
+    const { Wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () =>
+        useFirestoreCollection({ collectionPath: 'items', queryKey: ['items'], subscribe: true }),
+      { wrapper: Wrapper },
+    );
+    act(() => colCaps[0].next({ docs: [{ id: 'i1', data: () => ({ name: 'thing' }) }] }));
+    const denial = denyUntilSurfaced(colCaps);
+
+    expect(result.current.error).toBe(denial);
+    expect(result.current.status).toBe('error');
+    expect(result.current.isLoadingError).toBe(true);
+    expect(result.current.isRefetchError).toBe(false);
+    expect(result.current.data).toBeUndefined();
   });
 });

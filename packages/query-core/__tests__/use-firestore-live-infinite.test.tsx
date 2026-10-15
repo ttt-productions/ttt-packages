@@ -406,6 +406,47 @@ describe('useFirestoreLiveInfinite — failures', () => {
     expect(result.current.sourceState).toBe('error');
   });
 
+  it('drops every loaded row when a denial surfaces, and a retry reads the list afresh', async () => {
+    h.getDocs.mockResolvedValueOnce({ docs: [doc('a', 10)] });
+    const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {
+      wrapper: makeWrapper(),
+    });
+    emit(h.listeners[0], [doc('c', 30), doc('b', 20), doc('a', 10)]);
+    await act(async () => {
+      await result.current.fetchOlder();
+    });
+    await waitFor(() => expect(ids(result.current.items)).toEqual(['a', 'b', 'c']));
+
+    vi.useFakeTimers();
+    const denied = () => Object.assign(new Error('denied'), { code: 'permission-denied' });
+    for (const delay of [5_000, 15_000, 45_000]) {
+      act(() => lastListener().error(denied()));
+      act(() => {
+        vi.advanceTimersByTime(delay);
+      });
+    }
+    const denial = denied();
+    act(() => lastListener().error(denial));
+
+    // Access was lost: neither the live rows nor the older page stay readable.
+    expect(result.current.error).toBe(denial);
+    expect(result.current.sourceState).toBe('error');
+    expect(result.current.items).toEqual([]);
+    expect(result.current.hasOlder).toBe(false);
+    expect(result.current.isInitialLoading).toBe(false);
+
+    act(() => result.current.retry());
+    const fresh = lastListener();
+    expect(constraintOf(fresh, '__endAt')).toBeUndefined();
+    expect(constraintOf(fresh, '__limit')).toBe(3);
+    expect(result.current.items).toEqual([]);
+    expect(result.current.isInitialLoading).toBe(true);
+
+    emit(fresh, [doc('c', 30), doc('b', 20), doc('a', 10)]);
+    expect(ids(result.current.items)).toEqual(['b', 'c']);
+    expect(result.current.hasOlder).toBe(true);
+  });
+
   it('reports a failed older page beside the loaded rows, and retry re-reads it', async () => {
     h.getDocs.mockRejectedValueOnce(new Error('older failed'));
     const { result } = renderHook(() => useFirestoreLiveInfinite({ ...baseOpts }), {

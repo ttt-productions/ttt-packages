@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import {
   collection,
   query,
@@ -87,7 +87,9 @@ function freshWindow<T>(identity: string): WindowState<T> {
  *
  * A `permission-denied` listener error resubscribes on the `RESUBSCRIBE_DELAYS_MS` ladder
  * before surfacing; any other listener error surfaces at once. Rows already shown are
- * kept beside the error. `db` comes from `<FirestoreProvider>`.
+ * kept beside the error — except beside a surfaced `permission-denied`: the reader lost
+ * access, so the live rows, the anchor, and the loaded older pages are all dropped, and a
+ * retry reads the list afresh. `db` comes from `<FirestoreProvider>`.
  */
 export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
   collectionPath,
@@ -100,6 +102,7 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
   sort = 'asc',
 }: FirestoreLiveInfiniteOptions<T>): FirestoreLiveInfiniteResult<T> {
   const db = useFirestoreDb();
+  const queryClient = useQueryClient();
   const pageSize = Math.min(requestedPageSize, MAX_PAGE_SIZE);
 
   // Latest-callback ref: an inline select must not re-subscribe the listener on every render.
@@ -232,6 +235,12 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
             return;
           }
           console.error('[useFirestoreLiveInfinite] Subscription error:', error);
+          if (isPermissionDeniedError(error)) {
+            currentAnchor = null;
+            queryClient.removeQueries({ queryKey: [...queryKey, 'older', identity] });
+            update(() => ({ ...freshWindow<T>(identity), sourceState: 'error', error }));
+            return;
+          }
           update((prev) => ({ ...prev, sourceState: 'error', error }));
         },
       );
@@ -247,7 +256,7 @@ export function useFirestoreLiveInfinite<T = DocumentData & { id: string }>({
     // `identity` carries collectionPath, queryKey, orderByField, constraints, pageSize, and
     // enabled; constraints are read from the render that produced it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [db, identity, retryNonce, toEntry]);
+  }, [db, identity, retryNonce, toEntry, queryClient]);
 
   const anchor = enabled ? current.anchor : null;
   const olderEnabled = anchor !== null && current.olderExists;

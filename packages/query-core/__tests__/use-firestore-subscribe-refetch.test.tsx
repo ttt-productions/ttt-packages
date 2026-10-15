@@ -178,6 +178,42 @@ for (const hook of hooks) {
       expect(hook.read(resolved.data)).toBe(2);
     });
 
+    it('holds nothing after a denial of a listener that had answered, nor through its restart', async () => {
+      vi.useFakeTimers();
+      const { result } = hook.render();
+      act(() => last().next(hook.snapshot(1)));
+      for (const delay of RESUBSCRIBE_DELAYS_MS) {
+        act(() => last().error(permissionDenied()));
+        act(() => {
+          vi.advanceTimersByTime(delay);
+        });
+      }
+      const denial = permissionDenied();
+      act(() => last().error(denial));
+
+      // Access was lost: the snapshot the reader may no longer read is not handed back.
+      expect(result.current.data).toBeUndefined();
+      expect(result.current.error).toBe(denial);
+      expect(result.current.status).toBe('error');
+      expect(result.current.isLoadingError).toBe(true);
+      expect(result.current.isRefetchError).toBe(false);
+
+      let settled: Promise<unknown> = Promise.resolve();
+      act(() => {
+        settled = result.current.refetch();
+      });
+      expect(result.current.data).toBeUndefined();
+      expect(result.current.error).toBeNull();
+      expect(result.current.isPending).toBe(true);
+      expect(result.current.isFetching).toBe(true);
+
+      act(() => last().next(hook.snapshot(2)));
+      expect(result.current.isSuccess).toBe(true);
+      expect(hook.read(result.current.data)).toBe(2);
+      const resolved = (await settled) as { isSuccess: boolean };
+      expect(resolved.isSuccess).toBe(true);
+    });
+
     it('reports the next error when the re-opened listener fails too, and settles the refetch', async () => {
       const { result } = hook.render();
       act(() => last().error(unavailable()));

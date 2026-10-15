@@ -48,7 +48,10 @@ Generic TanStack Query package.
   it showed — and anything open over it — with the failure beside it instead of tearing it down. A
   restart from that failure keeps both, the held data and the failure, reporting `isRefetching` until
   the re-opened listener answers. A listener that failed before it ever answered has nothing to hold:
-  it reads `isLoadingError` with no data, and its restart reads `pending` with no data. A disabled read's
+  it reads `isLoadingError` with no data, and its restart reads `pending` with no data. A `permission-denied`
+  failure (surfaced once the resubscribe ladder is spent) holds nothing either: the reader lost access,
+  and a snapshot it may no longer read is never presented as readable, so it and its restart read as a
+  failure before any answer. A disabled read's
   `refetch()` opens nothing; without `subscribe`, `refetch()` is the query's own one-shot re-read.
 - The generic debounced prefix-search hook `useFirestoreSearch`, its types
   (`FirestoreSearchOptions`, `FirestoreSearchConfig`, `SearchEqualityFilter`), and its search
@@ -115,11 +118,13 @@ isFetchingOlder, olderError, retry }` (`FirestoreLiveInfiniteResult`).
   `RESUBSCRIBE_DELAYS_MS` ladder (`sourceState: 'connecting'` meanwhile); once the ladder
   is spent, or at once for any other code, `error` is set, `sourceState` is `'error'`,
   and the hook `console.error`s it. Rows already on screen are kept beside the error; with
-  none, `isInitialLoading` is false. A healthy snapshot clears `error`.
+  none, `isInitialLoading` is false. A surfaced `permission-denied` keeps nothing: the reader
+  lost access, so the live rows, the anchor, and the loaded older pages are dropped, and
+  `retry()` reads the list afresh. A healthy snapshot clears `error`.
 - **Older-page failure.** `olderError` holds a failed older read (the loaded rows stay;
   `hasOlder` stays true) until an older read succeeds. `fetchOlder` never rejects.
 - **`retry()`** resubscribes a failed listener with a fresh ladder (clearing `error`,
-  keeping rows and the anchor) and re-reads a failed older page; `isFetchingOlder` is the
+  keeping whatever rows and anchor the failure kept) and re-reads a failed older page; `isFetchingOlder` is the
   older re-read's pending flag.
 
 ## `useFirestoreSearch` — debounced prefix search

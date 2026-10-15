@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { QueryObserverResult, RefetchOptions, UseQueryResult } from '@tanstack/react-query';
 import type { FirestoreSourceState, WithSourceState } from '../../firestore/types.js';
+import { isPermissionDeniedError } from './resubscribe.js';
 
 /** A restart a subscribed result's `refetch()` asked for, open until the listener's first snapshot or its next error. */
 interface PendingRestart {
@@ -116,6 +117,10 @@ interface RefetchWaiter<TData> {
  * say the rows are not current, and a consumer can keep what it showed instead of tearing it down.
  * A restart from that failure keeps both — the held data and the failure — until the re-opened
  * listener answers. A listener that failed before it ever answered has no data to hold.
+ *
+ * A `permission-denied` failure holds nothing: the reader lost access, and a snapshot it may no
+ * longer read is never presented as readable. It reads like a failure before any answer, and so
+ * does its restart.
  */
 export function useSubscribedResult<TData>(
   query: UseQueryResult<TData, Error>,
@@ -145,14 +150,17 @@ export function useSubscribedResult<TData>(
     [active, restart],
   );
 
+  const denied = isPermissionDeniedError(error ?? pendingRestart?.failure);
+  const holdable = query.data !== undefined && !denied;
+
   let result: UseQueryResult<TData, Error>;
   if (!subscribe) {
     result = query;
   } else if (error) {
-    const held = query.data !== undefined;
+    const held = holdable;
     result = {
       ...query,
-      data: query.data,
+      data: held ? query.data : undefined,
       error,
       isError: true,
       isLoadingError: !held,
@@ -163,7 +171,7 @@ export function useSubscribedResult<TData>(
       status: 'error',
       refetch,
     } as UseQueryResult<TData, Error>;
-  } else if (pendingRestart?.fromError && query.data !== undefined) {
+  } else if (pendingRestart?.fromError && holdable) {
     result = {
       ...query,
       error: pendingRestart.failure,
