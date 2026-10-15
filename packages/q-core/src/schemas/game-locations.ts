@@ -25,7 +25,8 @@ export const gameLocationSubLocationsSchema = z
 // An empty memo means the venue has none.
 export const gameLocationMemoSchema = textFieldSchema(GAME_LOCATION_MEMO_INPUT_FORMAT);
 
-// The venue's own fields, whole: an edit sends every one of them as the admin wants it to read.
+// The venue's own fields. A create sends all of them; an edit sends only the ones the admin
+// changed, so saving one never rewrites another with what this editor last read.
 const gameLocationFieldsShape = {
   name: gameLocationNameSchema,
   streetAddress: gameLocationStreetAddressSchema,
@@ -41,8 +42,18 @@ export const AdminCreateGameLocationResultSchema = z
 export type AdminCreateGameLocationResult = z.infer<typeof AdminCreateGameLocationResultSchema>;
 
 export const AdminUpdateGameLocationInputSchema = z
-  .object({ gameLocationId: gameLocationIdSchema, ...gameLocationFieldsShape })
-  .strict();
+  .object({
+    gameLocationId: gameLocationIdSchema,
+    name: gameLocationNameSchema.optional(),
+    streetAddress: gameLocationStreetAddressSchema.optional(),
+    subLocations: gameLocationSubLocationsSchema.optional(),
+    memo: gameLocationMemoSchema.optional(),
+  })
+  .strict()
+  .refine(
+    ({ gameLocationId: _gameLocationId, ...fields }) => Object.values(fields).some((value) => value !== undefined),
+    { message: 'Change at least one field.' },
+  );
 export type AdminUpdateGameLocationInput = z.infer<typeof AdminUpdateGameLocationInputSchema>;
 export const AdminUpdateGameLocationResultSchema = z
   .object({ gameLocationId: gameLocationIdSchema })

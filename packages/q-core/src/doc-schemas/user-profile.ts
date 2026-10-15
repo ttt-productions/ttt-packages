@@ -44,6 +44,11 @@ export const UserPrivateDataSchema = z.object({
   // When this login's registration started (`createRegistrationStart`); `registerUser` refuses
   // without it. Absent on an account copied from V1, which registered before the step existed.
   registrationStartedAt: epochMsSchema.optional(),
+  // When the orphan-registration cleanup decided to delete this uid's login. Written in the
+  // cleanup's eligibility transaction BEFORE the Auth delete, and both registration steps answer
+  // `registrationExpired` in their own transactions while it is present, so no registration
+  // completes into a login that is about to be deleted. Backend-only.
+  orphanDeletionClaimedAt: epochMsSchema.optional(),
   // Pre-fills the contact phone when this user creates a team.
   defaultContactPhone: textFieldSchema(CONTACT_PHONE_INPUT_FORMAT).optional(),
   // The account's copy of the viewer's settings, synced with the device's. Absent means the

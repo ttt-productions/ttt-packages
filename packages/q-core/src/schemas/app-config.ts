@@ -35,14 +35,18 @@ export const UpdateAppConfigResultSchema = z
   .strict();
 export type UpdateAppConfigResult = z.infer<typeof UpdateAppConfigResultSchema>;
 
-// An admin edits the landing page copy on `_appConfig/landingPage`. Both fields are sent together,
-// as the editor saves them. The landing gallery is not part of this: only the picture core writes it.
+// An admin edits the landing page copy on `_appConfig/landingPage`. The editor sends only the
+// fields the admin changed, so saving one never rewrites the other with what this editor last read.
+// The landing gallery is not part of this: only the picture core writes it.
 export const AdminUpdateLandingPageInputSchema = z
   .object({
-    heroTitle: textFieldSchema(LANDING_HERO_TITLE_INPUT_FORMAT),
-    aboutCompany: textFieldSchema(LANDING_ABOUT_TEXT_INPUT_FORMAT),
+    heroTitle: textFieldSchema(LANDING_HERO_TITLE_INPUT_FORMAT).optional(),
+    aboutCompany: textFieldSchema(LANDING_ABOUT_TEXT_INPUT_FORMAT).optional(),
   })
-  .strict();
+  .strict()
+  .refine((input) => Object.values(input).some((value) => value !== undefined), {
+    message: 'Change at least one field.',
+  });
 export type AdminUpdateLandingPageInput = z.infer<typeof AdminUpdateLandingPageInputSchema>;
 
 // The copy as committed, so the caller can apply it to its cached landing document.

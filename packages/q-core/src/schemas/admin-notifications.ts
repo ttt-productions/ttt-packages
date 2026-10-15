@@ -50,13 +50,15 @@ export const AdminGetNotificationArchiveAllStatusInputSchema = z
   .object({ jobId: notificationArchiveAllJobIdSchema })
   .strict();
 export type AdminGetNotificationArchiveAllStatusInput = z.infer<typeof AdminGetNotificationArchiveAllStatusInputSchema>;
-// notification-core's archive-all snapshot: the job's state, the category it drains, and how many
-// cards it has archived. A job that ran out of attempts with cards left reads as `incomplete`.
+// notification-core's archive-all snapshot: the job's state, the category it drains, how many
+// cards it has archived, and — on a completed job that left cards behind — how many it could not.
+// A job that ran out of attempts with cards left reads as `incomplete`.
 export const AdminGetNotificationArchiveAllStatusResultSchema = z
   .object({
     state: z.enum(NOTIFICATION_ARCHIVE_ALL_JOB_STATE_KEYS),
     category: z.literal(ADMIN_NOTIFICATION_CATEGORY),
     archived: countSchema,
+    notArchived: countSchema.optional(),
     error: z.string().optional(),
   })
   .strict();

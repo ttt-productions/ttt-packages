@@ -229,10 +229,10 @@ export const WAIVER_TEMPLATE_TEXT_INPUT_FORMAT = defineInputFormat({
   keepAsTyped: true,
 });
 
-/** The landing page's hero title: trimmed, one line, required. */
+/** The landing page's hero title: trimmed, one line; blank shows the default heading. */
 export const LANDING_HERO_TITLE_INPUT_FORMAT = defineInputFormat({
   format: 'singleLine',
-  min: 1,
+  min: 0,
   max: MAX_LANDING_HERO_TITLE_LENGTH,
 });
 

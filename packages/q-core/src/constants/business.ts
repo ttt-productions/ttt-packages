@@ -92,3 +92,32 @@ export const LEAGUE_TIME_ZONE = 'America/New_York';
 // A scorer's note on one person in a game ("red shirt", "#9").
 export const MAX_GAME_MEMO_LENGTH = 30;
 
+
+// How a refusal at a count cap reads: the thing that is full, its limit, and what it holds.
+export const countCapReachedMessage = (subject: string, limit: number, noun: string): string =>
+  `${subject} already has the maximum of ${limit} ${noun}.`;
+
+// A team's size. Every way onto a team is refused at this many active members, inside the
+// admission's transaction, so a game's roster can always be seeded and checked in one read.
+export const MAX_ACTIVE_TEAM_MEMBERS = 100;
+export const TEAM_FULL_MESSAGE = countCapReachedMessage('This team', MAX_ACTIVE_TEAM_MEMBERS, 'members');
+// The memberships one game-roster seed reads for a team: every membership is active, so the cap.
+export const MAX_ROSTER_SEED_MEMBERSHIPS_PER_TEAM = MAX_ACTIVE_TEAM_MEMBERS;
+// Departed players a team's side of an open game may keep beside its members: a player who recorded
+// stats in the game keeps their entry after leaving the team.
+export const MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM = 20;
+// The entries one team's side of a game may hold, so a reconcile or finalize reads them in one page.
+export const MAX_ROSTER_ENTRIES_PER_TEAM = MAX_ACTIVE_TEAM_MEMBERS + MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM;
+
+// A league's size. Standings, schedules, and rankings need a league's complete set of teams and
+// games, so creation is refused at these caps rather than any read being cut short. The team cap is
+// also the most teams one mode switch rewrites in its one transaction.
+export const MAX_TEAMS_PER_LEAGUE = 498;
+export const MAX_GAMES_PER_LEAGUE = 1000;
+export const LEAGUE_TEAMS_FULL_MESSAGE = countCapReachedMessage('This league', MAX_TEAMS_PER_LEAGUE, 'teams');
+export const LEAGUE_GAMES_FULL_MESSAGE = countCapReachedMessage('This league', MAX_GAMES_PER_LEAGUE, 'games');
+
+// A game's stat log. A write that would take a game's `statEventSequence` past it is refused with
+// nothing written, which also bounds the game's live play-by-play.
+export const MAX_STAT_EVENTS_PER_GAME = 5000;
+export const GAME_STAT_LOG_FULL_MESSAGE = countCapReachedMessage('This game', MAX_STAT_EVENTS_PER_GAME, 'recorded stats');

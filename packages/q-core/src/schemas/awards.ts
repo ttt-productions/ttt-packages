@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import { MAX_AWARD_GRANT_TARGETS } from '../constants/business.js';
 import { awardIdSchema } from '../doc-schemas/catalogs.js';
-import { AWARD_GRANT_SKIP_REASON_KEYS } from '../types/unions.js';
+import { AWARD_GRANT_SKIP_REASON_KEYS, FEATURED_AWARD_SLOT_KEYS } from '../types/unions.js';
 import { leagueIdSchema, teamIdSchema, userIdSchema } from './atoms.js';
 
 const targetList = <T extends z.ZodTypeAny>(atom: T) => z.array(atom).max(MAX_AWARD_GRANT_TARGETS).optional();
@@ -68,14 +68,15 @@ export const AdminDeleteAwardDefinitionResultSchema = z
 export type AdminDeleteAwardDefinitionResult = z.infer<typeof AdminDeleteAwardDefinitionResultSchema>;
 
 // The signed-in account chooses which of its own awards to show beside its name: a primary and a
-// secondary badge, each an award it holds, or `null` for none. No user id is ever sent.
-export const UpdateFeaturedAwardsInputSchema = z
-  .object({ primaryAwardId: awardIdSchema.nullable(), secondaryAwardId: awardIdSchema.nullable() })
-  .strict()
-  .refine(
-    (input) => input.primaryAwardId === null || input.primaryAwardId !== input.secondaryAwardId,
-    { message: 'Choose two different awards.', path: ['secondaryAwardId'] },
-  );
+// secondary badge, each an award it holds, or none. The input is the one change the person made —
+// set a slot, clear a slot, or swap the two — and the core applies it to the pair as stored, so a
+// change to one slot never writes back a stale value of the other. No user id is ever sent.
+const featuredAwardSlotSchema = z.enum(FEATURED_AWARD_SLOT_KEYS);
+export const UpdateFeaturedAwardsInputSchema = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('set'), slot: featuredAwardSlotSchema, awardId: awardIdSchema }).strict(),
+  z.object({ action: z.literal('clear'), slot: featuredAwardSlotSchema }).strict(),
+  z.object({ action: z.literal('swap') }).strict(),
+]);
 export type UpdateFeaturedAwardsInput = z.infer<typeof UpdateFeaturedAwardsInputSchema>;
 
 export const UpdateFeaturedAwardsResultSchema = z

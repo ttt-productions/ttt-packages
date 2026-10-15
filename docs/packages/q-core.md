@@ -24,6 +24,7 @@ system model lives in Q-Sports' `docs/design/`.
 - `./constants`, plus `./constants/business`, `./constants/sports`, `./constants/storage-keys` —
   constant catalogs split by domain
 - `./schemas` — callable input and wire schemas
+- `./upload-variables` — the browser upload mutations' variables schemas, parsed first by each hook
 - `./doc-schemas` — the whole-app Firestore document-schema registry (`COLLECTION_SCHEMAS`)
 - `./sports` — the sport registry and adapters
 - `./notifications` — the admin-notification configuration

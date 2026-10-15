@@ -113,6 +113,11 @@ export const MigrationConsoleLockSchema = z.strictObject({
   operationId: migrationOperationIdSchema,
   heldByUserId: userIdSchema,
   expiresAt: epochMsSchema,
+  // Present while one page of the run is in flight: the moment its claim was stamped, and that
+  // page's fencing token. Only the page holding this exact token records its result or releases the
+  // lock; any other page, the same run's included, is refused while it stands. A lock stored
+  // without one has no page in flight.
+  pageClaimedAt: epochMsSchema.optional(),
 });
 export type MigrationConsoleLock = z.infer<typeof MigrationConsoleLockSchema>;
 

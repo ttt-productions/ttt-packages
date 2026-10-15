@@ -25,10 +25,13 @@ export const AdminCreateWaiverTemplateResultSchema = z
 export type AdminCreateWaiverTemplateResult = z.infer<typeof AdminCreateWaiverTemplateResultSchema>;
 
 // The template's whole wording as the admin wants it to read. Wording that differs from the current
-// version publishes the next version; the same wording changes nothing.
+// version publishes the next version; the same wording changes nothing. `expectedVersion` is the
+// version the editor loaded: a save whose base is no longer current is refused, so a publication
+// never brings back wording another admin has since replaced.
 export const AdminUpdateWaiverTemplateInputSchema = z
   .object({
     waiverTemplateId: waiverTemplateIdSchema,
+    expectedVersion: waiverTemplateVersionNumberSchema,
     title: waiverTemplateTitleSchema,
     waiverText: waiverTemplateTextSchema,
   })

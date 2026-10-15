@@ -9,12 +9,14 @@ import { DomainEventSchema } from '../src/domain-events';
 import { buildGameDeletionOperationId, buildGhostLinkOperationId } from '../src/ids/stats-operation-ids';
 import {
   AdminDeleteLeagueTeamInputSchema,
+  AdminLinkClosedLeagueGhostPlayerInputSchema,
   AdminUpdateLeagueTeamCaptainInputSchema,
   AdminUpdateLeagueTeamContactInputSchema,
   AdminUpdateLeagueTeamNameInputSchema,
   AdminUpdateLeagueTeamTypeInputSchema,
   DeleteTeamGhostPlayerInputSchema,
   DeleteTeamMembershipInputSchema,
+  LinkGhostPlayerInputSchema,
   UpdateTeamMembershipRoleInputSchema,
 } from '../src/schemas';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
@@ -113,9 +115,9 @@ describe("a ghost's one operation", () => {
     ).toBe(false);
   });
 
-  // A link rewrites completed records and records why; a never-played removal is not a repair
-  // (BACKEND-212).
-  it('carries a reason on a link, and none on a removal', () => {
+  // A link is chosen and confirmed, and its audit event records what it did; neither action takes a
+  // reason (BACKEND-212).
+  it('takes no reason on a link or a removal, and still reads an operation stored with one', () => {
     const removal = {
       kind: 'ghostPlayerStats',
       scope: { action: 'removal', teamId: 'team-1', ghostUserId: GHOST },
@@ -126,12 +128,20 @@ describe("a ghost's one operation", () => {
       counts: { read: 0, changed: 0, skipped: 0 },
     };
     const link = { ...removal, scope: { action: 'link', teamId: 'team-1', ghostUserId: GHOST, userId: 'real-1' } };
+    expect(StatsOperationSchema.safeParse(link).success).toBe(true);
     // A removal stored while removals still took a reason parses, with the reason dropped on read.
     const storedWithReason = StatsOperationSchema.safeParse({ ...removal, reason: REASON });
     expect(storedWithReason.success).toBe(true);
     expect(storedWithReason.data).not.toHaveProperty('reason');
-    expect(StatsOperationSchema.safeParse(link).success).toBe(false);
+    // A link stored while links still took a reason parses, so the link it records still resumes.
     expect(StatsOperationSchema.safeParse({ ...link, reason: REASON }).success).toBe(true);
+  });
+
+  it('a link names the team, the ghost, and the account, and refuses a reason', () => {
+    const input = { teamId: 'team-1', ghostUserId: GHOST, userId: 'real-1' };
+    expect(LinkGhostPlayerInputSchema.safeParse(input).success).toBe(true);
+    expect(LinkGhostPlayerInputSchema.safeParse({ ...input, reason: REASON }).success).toBe(false);
+    expect(AdminLinkClosedLeagueGhostPlayerInputSchema.safeParse({ ...input, reason: REASON }).success).toBe(false);
   });
 });
 

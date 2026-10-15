@@ -1,12 +1,11 @@
 // The `_appConfig/app` singleton at rest, and the one rule each for writing it and reading it.
 //
 // WRITE. `mergeAppConfigUpdate(existing, update)`: the writer's update on top of the document it
-// read, any field that document lacks taken from DEFAULT_APP_CONFIG, the whole result validated.
-// A writer that runs first on a fresh environment therefore still writes a complete, valid
-// document rather than a partial one. A stored field that does not parse — a hand edit in the
-// console — is never written over by a save that does not send it: the merge refuses, and the
-// writer answers with the field, so the operator corrects it at the source. A save that sends the
-// field replaces it.
+// read, any field that document lacks — and any lever it holds at a value its schema refuses —
+// taken from DEFAULT_APP_CONFIG, the whole result validated. A writer that runs first on a fresh
+// environment therefore still writes a complete, valid document rather than a partial one, and a
+// hand edit in the console that broke one lever never blocks a save of another: the merge resets it
+// and reports the repair with the value it replaced, which the writer records.
 //
 // READ. The stored document is untrusted — an operator can edit any field in the console into any
 // shape — and a config read must never take the product down by itself. `readAppConfigLever`
@@ -95,24 +94,43 @@ function definedFields(fields: Readonly<Record<string, unknown>>): Record<string
   return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined));
 }
 
+/** A stored lever its schema field refused, with the raw value the document held. */
+export interface AppConfigLeverRepair {
+  readonly lever: AppConfigLeverKey;
+  readonly storedValue: unknown;
+}
+
+/** The document a writer writes, and every stored lever the merge had to repair to write it. */
+export interface AppConfigMerge {
+  readonly next: AppConfig;
+  readonly repairs: readonly AppConfigLeverRepair[];
+}
+
 /**
  * The complete `_appConfig/app` document to write after applying `update` to `existing` (the
  * document as read in the writer's transaction; `null` or `undefined` when it does not exist). The
  * update's fields win, `existing` supplies the rest, and any field still missing comes from
  * DEFAULT_APP_CONFIG. An `undefined` update field changes nothing. Pure.
  *
- * Throws when the result would not parse — the update itself, or a stored field the update does not
- * replace — so an invalid document is never written.
+ * A stored lever its schema refuses never blocks a save — a console typo must not disable the
+ * maintenance switch. It is dropped, so the update's value replaces it when the update sends that
+ * lever and its DEFAULT_APP_CONFIG value (what every reader already falls back to) otherwise, and it
+ * is reported in `repairs`. A valid stored lever is carried as it is.
+ *
+ * Throws when the update itself would not parse, so an invalid document is never written.
  */
 export function mergeAppConfigUpdate(
   existing: Readonly<Record<string, unknown>> | null | undefined,
   update: Readonly<Partial<AppConfig>>,
-): AppConfig {
-  const parsed = AppConfigSchema.safeParse({
-    ...DEFAULT_APP_CONFIG,
-    ...definedFields(existing ?? {}),
-    ...definedFields(update),
-  });
+): AppConfigMerge {
+  const stored = definedFields(existing ?? {});
+  const repairs: AppConfigLeverRepair[] = [];
+  for (const lever of APP_CONFIG_LEVER_KEYS) {
+    if (!(lever in stored) || AppConfigSchema.shape[lever].safeParse(stored[lever]).success) continue;
+    repairs.push({ lever, storedValue: stored[lever] });
+    delete stored[lever];
+  }
+  const parsed = AppConfigSchema.safeParse({ ...DEFAULT_APP_CONFIG, ...stored, ...definedFields(update) });
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     const field = issue?.path.join('.') || 'document';
@@ -120,7 +138,7 @@ export function mergeAppConfigUpdate(
       `_appConfig/app would not match its schema after this update (${field}: ${issue?.message ?? 'invalid'}). Nothing should be written.`,
     );
   }
-  return parsed.data;
+  return { next: parsed.data, repairs };
 }
 
 /**

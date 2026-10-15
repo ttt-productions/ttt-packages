@@ -23,6 +23,9 @@ export const GalleryPictureSchema = z.object({
   // A fractional sort key: a move rewrites only the moved picture's key, strictly between its new
   // neighbours, and a gallery's first page is read ordered by it.
   position: z.string().min(1),
+  // Set only on a picture the migration carried from V1: its position in the V1 source list, which
+  // places a later-finishing carried picture among its carried neighbours in V1's order.
+  sourceIndex: countSchema.optional(),
   createdAt: epochMsSchema,
 });
 export type GalleryPicture = z.infer<typeof GalleryPictureSchema>;

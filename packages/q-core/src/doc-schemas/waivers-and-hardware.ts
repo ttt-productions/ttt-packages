@@ -40,19 +40,28 @@ export const SignedWaiverSchema = z
     witnessUserId: userIdSchema.optional(),
     witnessAuthority: waiverWitnessAuthoritySchema.optional(),
     subjectDisplayNameSnapshot: z.string().optional(),
+    // A V1 witnessed waiver recorded the witness's name as it was at signing, and never the authority
+    // or the ghost's name; the copy keeps that name as a named snapshot (ARCH-103) and guesses neither.
+    witnessDisplayNameSnapshot: z.string().optional(),
   })
   .refine(
     (waiver) => {
-      const witnessFields = [
-        waiver.teamId,
-        waiver.witnessUserId,
-        waiver.witnessAuthority,
-        waiver.subjectDisplayNameSnapshot,
-      ];
-      const present = witnessFields.filter((field) => field !== undefined).length;
-      return present === 0 || present === witnessFields.length;
+      const full = [waiver.teamId, waiver.witnessUserId, waiver.witnessAuthority, waiver.subjectDisplayNameSnapshot];
+      const legacy = [waiver.teamId, waiver.witnessUserId, waiver.witnessDisplayNameSnapshot];
+      const present = (fields: readonly unknown[]) => fields.filter((field) => field !== undefined).length;
+      if (present([...full, waiver.witnessDisplayNameSnapshot]) === 0) return true;
+      if (present(full) === full.length) return waiver.witnessDisplayNameSnapshot === undefined;
+      return (
+        present(legacy) === legacy.length &&
+        waiver.witnessAuthority === undefined &&
+        waiver.subjectDisplayNameSnapshot === undefined
+      );
     },
-    { message: "A ghost's waiver carries its team, witness, authority, and name together, or none of them.", path: ['witnessUserId'] },
+    {
+      message:
+        "A ghost's waiver carries its team, witness, authority, and name together; or, copied from V1, its team, witness, and the witness's recorded name; or none of them.",
+      path: ['witnessUserId'],
+    },
   );
 export type SignedWaiver = z.infer<typeof SignedWaiverSchema>;
 

@@ -67,13 +67,24 @@ describe('the award catalog', () => {
     expect(UserProfileSchema.shape.secondaryAwardId.safeParse('').success).toBe(false);
   });
 
-  it('features two different awards or none, and never names the account', () => {
-    expect(UpdateFeaturedAwardsInputSchema.safeParse({ primaryAwardId: 'a1', secondaryAwardId: 'a2' }).success).toBe(true);
-    expect(UpdateFeaturedAwardsInputSchema.safeParse({ primaryAwardId: null, secondaryAwardId: null }).success).toBe(true);
-    expect(UpdateFeaturedAwardsInputSchema.safeParse({ primaryAwardId: 'a1', secondaryAwardId: 'a1' }).success).toBe(false);
-    expect(
-      UpdateFeaturedAwardsInputSchema.safeParse({ primaryAwardId: 'a1', secondaryAwardId: null, userId: 'u2' }).success,
-    ).toBe(false);
+  it('takes the one change the person made to a featured slot: set, clear, or swap', () => {
+    expect(UpdateFeaturedAwardsInputSchema.safeParse({ action: 'set', slot: 'primary', awardId: 'a1' }).success).toBe(true);
+    expect(UpdateFeaturedAwardsInputSchema.safeParse({ action: 'set', slot: 'secondary', awardId: 'a2' }).success).toBe(true);
+    expect(UpdateFeaturedAwardsInputSchema.safeParse({ action: 'clear', slot: 'secondary' }).success).toBe(true);
+    expect(UpdateFeaturedAwardsInputSchema.safeParse({ action: 'swap' }).success).toBe(true);
+  });
+
+  it('never takes the whole pair, an unknown slot or intent, or a field another intent carries', () => {
+    expect(UpdateFeaturedAwardsInputSchema.safeParse({ primaryAwardId: 'a1', secondaryAwardId: 'a2' }).success).toBe(false);
+    expect(UpdateFeaturedAwardsInputSchema.safeParse({ action: 'set', slot: 'tertiary', awardId: 'a1' }).success).toBe(false);
+    expect(UpdateFeaturedAwardsInputSchema.safeParse({ action: 'replace', slot: 'primary', awardId: 'a1' }).success).toBe(false);
+    expect(UpdateFeaturedAwardsInputSchema.safeParse({ action: 'set', slot: 'primary' }).success).toBe(false);
+    expect(UpdateFeaturedAwardsInputSchema.safeParse({ action: 'clear', slot: 'primary', awardId: 'a1' }).success).toBe(false);
+    expect(UpdateFeaturedAwardsInputSchema.safeParse({ action: 'swap', slot: 'primary' }).success).toBe(false);
+  });
+
+  it('never names the account', () => {
+    expect(UpdateFeaturedAwardsInputSchema.safeParse({ action: 'swap', userId: 'u2' }).success).toBe(false);
   });
 });
 

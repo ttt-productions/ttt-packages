@@ -126,12 +126,19 @@ describe('the admin dashboard counts', () => {
 });
 
 describe('waiver templates', () => {
-  const template = { title: 'Season waiver', waiverText: 'Terms.', version: 2, createdAt: 1, updatedAt: 2 };
+  const template = { title: 'Season waiver', waiverText: 'Terms.', version: 2, createdAt: 1, updatedAt: 2, retired: false };
 
   it('carry the current version number and an optional retirement', () => {
     expect(WaiverTemplateSchema.safeParse(template).success).toBe(true);
-    expect(WaiverTemplateSchema.safeParse({ ...template, retiredAt: 3 }).success).toBe(true);
+    expect(WaiverTemplateSchema.safeParse({ ...template, retired: true, retiredAt: 3 }).success).toBe(true);
     expect(WaiverTemplateSchema.safeParse({ ...template, version: 0 }).success).toBe(false);
+  });
+
+  it('say whether they are retired, so the offered ones are a query filter, true exactly when retired', () => {
+    const { retired: _retired, ...withoutFlag } = template;
+    expect(WaiverTemplateSchema.safeParse(withoutFlag).success).toBe(false);
+    expect(WaiverTemplateSchema.safeParse({ ...template, retiredAt: 3 }).success).toBe(false);
+    expect(WaiverTemplateSchema.safeParse({ ...template, retired: true }).success).toBe(false);
   });
 
   it('carry the time a league last chose the template, apart from when the template changed', () => {
@@ -157,10 +164,19 @@ describe('waiver templates', () => {
     expect(
       AdminUpdateWaiverTemplateInputSchema.safeParse({
         waiverTemplateId: 'w1',
+        expectedVersion: 1,
         title: 'Waiver',
         waiverText: 'x'.repeat(MAX_WAIVER_TEMPLATE_TEXT_LENGTH + 1),
       }).success,
     ).toBe(false);
+  });
+
+  it('take, with new wording, the version the editor loaded, so a stale base can be refused', () => {
+    const save = { waiverTemplateId: 'w1', expectedVersion: 2, title: 'Waiver', waiverText: 'Terms.' };
+    expect(AdminUpdateWaiverTemplateInputSchema.safeParse(save).success).toBe(true);
+    const { expectedVersion: _loaded, ...withoutBase } = save;
+    expect(AdminUpdateWaiverTemplateInputSchema.safeParse(withoutBase).success).toBe(false);
+    expect(AdminUpdateWaiverTemplateInputSchema.safeParse({ ...save, expectedVersion: 0 }).success).toBe(false);
   });
 
   it("keep a waiver's title and wording exactly as typed, since a player signs those words", () => {
@@ -192,6 +208,16 @@ describe('game locations', () => {
     expect(AdminCreateGameLocationInputSchema.parse({ ...fields, name: '  Northside  ' }).name).toBe('Northside');
     expect(AdminCreateGameLocationInputSchema.safeParse({ ...fields, memo: 'x'.repeat(MAX_GAME_LOCATION_MEMO_LENGTH + 1) }).success).toBe(false);
     expect(AdminUpdateGameLocationInputSchema.safeParse({ ...fields, gameLocationId: 'loc-1', pictureId: PICTURE_ID }).success).toBe(false);
+  });
+
+  it('edit only the fields the admin changed, at least one, and nothing undeclared', () => {
+    const edit = (changed: object) => AdminUpdateGameLocationInputSchema.safeParse({ gameLocationId: 'loc-1', ...changed }).success;
+    expect(edit({ memo: 'Park on the street.' })).toBe(true);
+    expect(edit({ name: 'Northside', subLocations: ['Court 1', 'Court 2'] })).toBe(true);
+    expect(edit(fields)).toBe(true);
+    expect(edit({})).toBe(false);
+    expect(edit({ capacity: 40 })).toBe(false);
+    expect(AdminUpdateGameLocationInputSchema.safeParse({ memo: 'x' }).success).toBe(false);
   });
 
   it('refuse a line break in a one-line field, and allow one in the memo', () => {

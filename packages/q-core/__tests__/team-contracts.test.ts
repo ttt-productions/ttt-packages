@@ -17,7 +17,7 @@ import {
   SignedWaiverSchema,
 } from '../src/doc-schemas';
 import { DomainEventSchema } from '../src/domain-events';
-import { buildGhostUserId, isGhostUserId } from '../src/ids/minted-ids';
+import { buildGhostUserId, buildGhostUserIdForRequest, isGhostUserId } from '../src/ids/minted-ids';
 import { buildTeamMembershipId, parseTeamMembershipId } from '../src/ids/compound-ids';
 import { COLLECTIONS } from '../src/paths/collections';
 import { PATH_BUILDERS } from '../src/paths/path-builders';
@@ -288,17 +288,17 @@ describe('team creation input', () => {
 
 describe('ghost add input', () => {
   it('validates the ghost name on the server and takes no ghost id or creator', () => {
-    expect(CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', displayName: 'Red Shirt' }).success).toBe(true);
+    expect(CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', requestId: 'r1', displayName: 'Red Shirt' }).success).toBe(true);
     expect(
-      CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', displayName: 'a'.repeat(MIN_DISPLAY_NAME_LENGTH - 1) })
+      CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', requestId: 'r1', displayName: 'a'.repeat(MIN_DISPLAY_NAME_LENGTH - 1) })
         .success,
     ).toBe(false);
     expect(
-      CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', displayName: 'a'.repeat(MAX_DISPLAY_NAME_LENGTH + 1) })
+      CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', requestId: 'r1', displayName: 'a'.repeat(MAX_DISPLAY_NAME_LENGTH + 1) })
         .success,
     ).toBe(false);
     for (const smuggled of [{ ghostUserId: 'ghost_1_a' }, { createdBy: 'u1' }, { leagueId: 'l1' }]) {
-      expect(CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', displayName: 'Red Shirt', ...smuggled }).success).toBe(
+      expect(CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't', requestId: 'r1', displayName: 'Red Shirt', ...smuggled }).success).toBe(
         false,
       );
     }
@@ -306,9 +306,19 @@ describe('ghost add input', () => {
 
   it('names the game and one of its teams at the game door', () => {
     expect(
-      CreateGameGhostPlayerInputSchema.safeParse({ gameId: 'g', teamId: 't', displayName: 'Red Shirt' }).success,
+      CreateGameGhostPlayerInputSchema.safeParse({ gameId: 'g', teamId: 't', displayName: 'Red Shirt', requestId: 'r1' }).success,
     ).toBe(true);
-    expect(CreateGameGhostPlayerInputSchema.safeParse({ gameId: 'g', displayName: 'Red Shirt' }).success).toBe(false);
+    expect(CreateGameGhostPlayerInputSchema.safeParse({ gameId: 'g', displayName: 'Red Shirt', requestId: 'r1' }).success).toBe(false);
+  });
+
+  it('carries the request id the client minted for this add, one document-id segment, at both doors', () => {
+    const add = { teamId: 't', displayName: 'Red Shirt' };
+    expect(CreateTeamGhostPlayerInputSchema.safeParse(add).success).toBe(false);
+    for (const requestId of ['', 'a/b', '..', 'x'.repeat(1500)]) {
+      expect(CreateTeamGhostPlayerInputSchema.safeParse({ ...add, requestId }).success).toBe(false);
+      expect(CreateGameGhostPlayerInputSchema.safeParse({ ...add, gameId: 'g', requestId }).success).toBe(false);
+    }
+    expect(CreateGameGhostPlayerInputSchema.safeParse({ ...add, gameId: 'g' }).success).toBe(false);
   });
 
   it("answers with the ghost and where its roster work stood", () => {
@@ -326,6 +336,14 @@ describe('ghost add input', () => {
 });
 
 describe('ghost identity', () => {
+  it('derives one ghost per add request: a retry of the request names the same ghost, another request another', () => {
+    const ghost = buildGhostUserIdForRequest('7f3e2a10-1b2c-4d5e-8f90-a1b2c3d4e5f6');
+    expect(isGhostUserId(ghost)).toBe(true);
+    expect(buildGhostUserIdForRequest('7f3e2a10-1b2c-4d5e-8f90-a1b2c3d4e5f6')).toBe(ghost);
+    expect(buildGhostUserIdForRequest('0c9d8e7f-6a5b-4c3d-9e2f-1a0b9c8d7e6f')).not.toBe(ghost);
+    expect(ghost).not.toBe(buildGhostUserId(NOW, '7f3e2a10-1b2c-4d5e-8f90-a1b2c3d4e5f6'));
+  });
+
   it('mints one ghost id format, whose parts the membership parser keeps whole', () => {
     const ghost = buildGhostUserId(NOW, 'a1b2c3');
     expect(isGhostUserId(ghost)).toBe(true);
@@ -529,6 +547,23 @@ describe('signed waivers', () => {
     expect(SignedWaiverSchema.safeParse({ ...own, ...ghostWitness }).success).toBe(true);
     const { witnessAuthority: _authority, ...partial } = ghostWitness;
     expect(SignedWaiverSchema.safeParse({ ...own, ...partial }).success).toBe(false);
+  });
+
+  it('keeps a V1 witnessed waiver as a legacy witness: team, witness, and the name V1 recorded, nothing guessed', () => {
+    const legacyWitness = { teamId: 'T', witnessUserId: 'captain-1', witnessDisplayNameSnapshot: 'Pat Captain' };
+    expect(SignedWaiverSchema.safeParse({ ...own, ...legacyWitness }).success).toBe(true);
+    const { teamId: _team, ...withoutTeam } = legacyWitness;
+    expect(SignedWaiverSchema.safeParse({ ...own, ...withoutTeam }).success).toBe(false);
+    expect(SignedWaiverSchema.safeParse({ ...own, witnessDisplayNameSnapshot: 'Pat Captain' }).success).toBe(false);
+  });
+
+  it('refuses a witness that mixes the legacy and the full form', () => {
+    expect(SignedWaiverSchema.safeParse({ ...own, ...ghostWitness, witnessDisplayNameSnapshot: 'Pat Captain' }).success).toBe(false);
+    const mixed = { teamId: 'T', witnessUserId: 'captain-1', witnessDisplayNameSnapshot: 'Pat Captain', witnessAuthority: 'captain' };
+    expect(SignedWaiverSchema.safeParse({ ...own, ...mixed }).success).toBe(false);
+    expect(
+      SignedWaiverSchema.safeParse({ ...own, teamId: 'T', witnessUserId: 'captain-1', witnessDisplayNameSnapshot: 'Pat', subjectDisplayNameSnapshot: 'Red Shirt' }).success,
+    ).toBe(false);
   });
 
   it('records the authority a witness signed under from the four declared', () => {

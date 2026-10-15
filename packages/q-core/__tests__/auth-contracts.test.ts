@@ -22,8 +22,10 @@ import {
   AdminUpdateUserStatusResultSchema,
   CheckDisplayNameAvailableInputSchema,
   CheckDisplayNameAvailableResultSchema,
+  CreateRegistrationStartResultSchema,
   detectUserSearchKind,
   RegisterUserInputSchema,
+  RegisterUserResultSchema,
   UpdateAdminListInputSchema,
   UpdateDisplayNameInputSchema,
 } from '../src/schemas/users';
@@ -172,6 +174,32 @@ describe('callable input schemas', () => {
       UpdateDisplayNameInputSchema.safeParse({ userId: 'u1', newDisplayName: 'New Name', displayName_lowercase: 'x' })
         .success,
     ).toBe(false);
+  });
+});
+
+describe("the orphan cleanup's deletion claim", () => {
+  const privateData = { email: 'jane@example.com', updatedAt: NOW };
+
+  it('the private record stores the epoch-ms moment the cleanup claimed the uid, and is unclaimed without it', () => {
+    expect(UserPrivateDataSchema.parse({ ...privateData, orphanDeletionClaimedAt: NOW }).orphanDeletionClaimedAt).toBe(NOW);
+    expect(UserPrivateDataSchema.parse(privateData).orphanDeletionClaimedAt).toBeUndefined();
+  });
+
+  it('refuses a claim that is not a whole non-negative epoch-ms value', () => {
+    expect(UserPrivateDataSchema.safeParse({ ...privateData, orphanDeletionClaimedAt: -1 }).success).toBe(false);
+    expect(UserPrivateDataSchema.safeParse({ ...privateData, orphanDeletionClaimedAt: 1.5 }).success).toBe(false);
+  });
+
+  it('starting a registration on a claimed login answers registrationExpired', () => {
+    expect(CreateRegistrationStartResultSchema.safeParse({ outcome: 'registrationExpired' }).success).toBe(true);
+    expect(CreateRegistrationStartResultSchema.safeParse({ outcome: 'started' }).success).toBe(true);
+  });
+
+  it('registering on a claimed login answers registrationExpired, carrying no account', () => {
+    expect(RegisterUserResultSchema.safeParse({ status: 'registrationExpired' }).success).toBe(true);
+    expect(RegisterUserResultSchema.safeParse({ status: 'registrationExpired', userId: 'u1' }).success).toBe(false);
+    expect(RegisterUserResultSchema.safeParse({ status: 'registered', userId: 'u1', displayName: 'Jane Doe' }).success).toBe(true);
+    expect(RegisterUserResultSchema.safeParse({ userId: 'u1', displayName: 'Jane Doe' }).success).toBe(false);
   });
 });
 

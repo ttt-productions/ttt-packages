@@ -23,6 +23,7 @@ import {
   parseNotificationArchiveAllJobId,
 } from '../src/ids/notification-ids';
 import {
+  archiveAllPartialOutcomeMessage,
   ADMIN_NOTIFICATION_DEFINITIONS,
   NOTIFICATION_SYSTEM_CONFIG,
   leagueFreeAgentSignedUpNotification,
@@ -382,6 +383,29 @@ describe('the document shapes', () => {
     expect(NotificationArchiveAllJobSchema.safeParse({ ...job, state: 'running' }).success).toBe(false);
   });
 
+  it('records how many cards the completing drain left in the list, and reads a job without the count', () => {
+    const job = {
+      jobId: buildNotificationArchiveAllJobId('admin-1', REQUEST_ID),
+      userId: 'admin-1',
+      category: ADMIN_NOTIFICATION_CATEGORY,
+      state: 'in-progress',
+      revision: 0,
+      archived: 0,
+      error: null,
+      attemptCount: 0,
+      nextAttemptAt: NOW,
+      deadLettered: false,
+      createdAt: NOW,
+      updatedAt: NOW,
+      completedAt: null,
+      deadLetteredAt: null,
+    };
+    const complete = { ...job, state: 'complete', completedAt: NOW, expireAt: fakeTimestamp(NOW), archived: 3 };
+    expect(NotificationArchiveAllJobSchema.parse({ ...complete, notArchived: 2 }).notArchived).toBe(2);
+    expect(NotificationArchiveAllJobSchema.parse(complete).notArchived).toBeUndefined();
+    expect(NotificationArchiveAllJobSchema.safeParse({ ...complete, notArchived: -1 }).success).toBe(false);
+  });
+
 });
 
 describe('the callable contracts', () => {
@@ -409,6 +433,17 @@ describe('the callable contracts', () => {
     expect(
       AdminGetNotificationArchiveAllStatusResultSchema.safeParse({ state: 'complete', category: 'admin', archived: 4 }).success,
     ).toBe(true);
+  });
+
+  it('reports with a completed job the cards it could not archive', () => {
+    const status = { state: 'complete', category: 'admin', archived: 4 };
+    expect(AdminGetNotificationArchiveAllStatusResultSchema.safeParse({ ...status, notArchived: 1 }).success).toBe(true);
+    expect(AdminGetNotificationArchiveAllStatusResultSchema.safeParse({ ...status, notArchived: -1 }).success).toBe(false);
+  });
+
+  it('says how many were archived and how many are still in the list, one card read as one', () => {
+    expect(archiveAllPartialOutcomeMessage(10, 2)).toBe("Archived 10. 2 couldn't be archived and are still in the list.");
+    expect(archiveAllPartialOutcomeMessage(3, 1)).toBe("Archived 3. 1 couldn't be archived and is still in the list.");
   });
 });
 

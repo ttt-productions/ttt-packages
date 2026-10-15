@@ -258,9 +258,9 @@ describe("a person's display name, a ghost's included", () => {
   });
 
   it("is the ghost add's name: a name split over two lines, or two characters once trimmed, is refused", () => {
-    expect(CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't1', displayName: 'Ghost\nOne' }).success).toBe(false);
-    expect(CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't1', displayName: '  Jo  ' }).success).toBe(false);
-    expect(CreateTeamGhostPlayerInputSchema.parse({ teamId: 't1', displayName: '  Ghost One  ' }).displayName).toBe(
+    expect(CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't1', requestId: 'r1', displayName: 'Ghost\nOne' }).success).toBe(false);
+    expect(CreateTeamGhostPlayerInputSchema.safeParse({ teamId: 't1', requestId: 'r1', displayName: '  Jo  ' }).success).toBe(false);
+    expect(CreateTeamGhostPlayerInputSchema.parse({ teamId: 't1', requestId: 'r1', displayName: '  Ghost One  ' }).displayName).toBe(
       'Ghost One',
     );
   });
@@ -416,7 +416,7 @@ describe("the admin forms' text fields", () => {
     { name: "a schedule week's name", declaration: SCHEDULE_WEEK_TITLE_INPUT_FORMAT, expected: { format: 'singleLine', min: 1, max: MAX_SCHEDULE_WEEK_TITLE_LENGTH }, wire: weekTitle },
     { name: "a waiver template's title", declaration: WAIVER_TEMPLATE_TITLE_INPUT_FORMAT, expected: { format: 'singleLine', min: 1, max: MAX_WAIVER_TEMPLATE_TITLE_LENGTH, keepAsTyped: true }, wire: waiverTitle },
     { name: "a waiver template's wording", declaration: WAIVER_TEMPLATE_TEXT_INPUT_FORMAT, expected: { format: 'none', min: 1, max: MAX_WAIVER_TEMPLATE_TEXT_LENGTH, keepAsTyped: true }, wire: waiverText },
-    { name: "the landing page's hero title", declaration: LANDING_HERO_TITLE_INPUT_FORMAT, expected: { format: 'singleLine', min: 1, max: MAX_LANDING_HERO_TITLE_LENGTH }, wire: heroTitle },
+    { name: "the landing page's hero title", declaration: LANDING_HERO_TITLE_INPUT_FORMAT, expected: { format: 'singleLine', min: 0, max: MAX_LANDING_HERO_TITLE_LENGTH }, wire: heroTitle },
     { name: "the landing page's about text", declaration: LANDING_ABOUT_TEXT_INPUT_FORMAT, expected: { format: 'none', min: 0, max: MAX_LANDING_ABOUT_TEXT_LENGTH }, wire: aboutText },
     { name: 'the maintenance message', declaration: MAINTENANCE_MESSAGE_INPUT_FORMAT, expected: { format: 'none', min: 0, max: MAX_MAINTENANCE_MESSAGE_LENGTH }, wire: lever('maintenanceMessage') },
     { name: 'the announcement', declaration: ANNOUNCEMENT_MESSAGE_INPUT_FORMAT, expected: { format: 'none', min: 0, max: MAX_ANNOUNCEMENT_MESSAGE_LENGTH }, wire: lever('announcementMessage') },

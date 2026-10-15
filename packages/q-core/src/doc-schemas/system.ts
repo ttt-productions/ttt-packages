@@ -13,6 +13,7 @@ import { MAX_STATS_VALIDATION_DISCREPANCIES } from '../constants/sports.js';
 import { GallerySummarySchema } from './gallery.js';
 import {
   countSchema,
+  documentIdSegmentSchema,
   epochMsSchema,
   gameIdSchema,
   leagueIdSchema,
@@ -56,6 +57,9 @@ export type LandingPageConfig = z.infer<typeof LandingPageConfigSchema>;
 // earlier write.
 export const StatsBeaconSchema = z.object({
   updatedAt: epochMsSchema,
+  // A fresh document id minted by every write, so two commits in the same millisecond still move
+  // the beacon. Absent on a beacon stored before writes carried one.
+  changeId: documentIdSegmentSchema.optional(),
   action: statsBeaconActionSchema,
   leagueId: leagueIdSchema.optional(),
   gameId: gameIdSchema.optional(),

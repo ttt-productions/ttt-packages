@@ -153,6 +153,10 @@ export const NotificationArchiveAllJobSchema = z.object({
   // Moves on every claim, so an overlapping run that claimed an older revision cannot settle the job.
   revision: countSchema,
   archived: countSchema,
+  // The cards the COMPLETING drain could not archive — each failed on its own and is still in the
+  // list. Set (never summed) when the job completes, because that drain walked the whole active set
+  // once. Optional, never defaulted: absent until a job completes with cards left behind, read as 0.
+  notArchived: countSchema.optional(),
   error: z.string().nullable(),
   attemptCount: countSchema,
   nextAttemptAt: epochMsSchema,

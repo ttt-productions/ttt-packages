@@ -7,8 +7,9 @@ import {
   leagueJoinWarningActedOnSchema,
   leagueJoinWarningFindingSchema,
 } from '../utils/league-join-warning.js';
-import { membershipRosterSyncStatusSchema } from '../doc-schemas/atoms.js';
-import { isGhostUserId } from '../ids/minted-ids.js';
+import { documentIdSegmentSchema, membershipRosterSyncStatusSchema } from '../doc-schemas/atoms.js';
+import { buildGhostUserIdForRequest, isGhostUserId } from '../ids/minted-ids.js';
+import { isDocumentIdSegment } from '../paths/utils.js';
 import { GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS } from '../types/stats.js';
 import { MEMBER_ASSIGNABLE_TEAM_ROLES } from '../types/unions.js';
 import {
@@ -17,7 +18,6 @@ import {
   displayNameSchema,
   gameIdSchema,
   leagueIdSchema,
-  repairReasonSchema,
   teamIconSchema,
   teamIdSchema,
   teamNameSchema,
@@ -57,16 +57,29 @@ export type CreateLeagueTeamResult = z.infer<typeof CreateLeagueTeamResultSchema
 // Ghost add — one core behind two doors. The team page door (`createTeamGhostPlayer` /
 // `adminCreateTeamGhostPlayer`) needs authority over the team; the game page door
 // (`createGameGhostPlayer` / `adminCreateGameGhostPlayer`) needs scoring authority over the game
-// and adds to one of its two teams. The ghost id is always minted by the server.
+// and adds to one of its two teams. The ghost id is derived by the server from the add's
+// `requestId`, which the client mints once when the add starts and re-sends on every retry, so a
+// retry after an unknown outcome is recognised as the same add (`buildGhostUserIdForRequest`).
 // ---------------------------------------------------------------------------------------------
 
+// One document-id segment (ARCH-106), short enough that the ghost id derived from it is one too.
+export const ghostCreateRequestIdSchema = documentIdSegmentSchema.refine(
+  (requestId) => isDocumentIdSegment(buildGhostUserIdForRequest(requestId)),
+  'Not a ghost add request id.',
+);
+
 export const CreateTeamGhostPlayerInputSchema = z
-  .object({ teamId: teamIdSchema, displayName: displayNameSchema })
+  .object({ teamId: teamIdSchema, displayName: displayNameSchema, requestId: ghostCreateRequestIdSchema })
   .strict();
 export type CreateTeamGhostPlayerInput = z.infer<typeof CreateTeamGhostPlayerInputSchema>;
 
 export const CreateGameGhostPlayerInputSchema = z
-  .object({ gameId: gameIdSchema, teamId: teamIdSchema, displayName: displayNameSchema })
+  .object({
+    gameId: gameIdSchema,
+    teamId: teamIdSchema,
+    displayName: displayNameSchema,
+    requestId: ghostCreateRequestIdSchema,
+  })
   .strict();
 export type CreateGameGhostPlayerInput = z.infer<typeof CreateGameGhostPlayerInputSchema>;
 
@@ -131,8 +144,9 @@ export type AdminRetryLeagueTeamRosterSyncResult = z.infer<typeof AdminRetryLeag
 
 // ---------------------------------------------------------------------------------------------
 // Linking a ghost to a real account — `linkGhostPlayerToUser` in a league that is not closed, and
-// `adminLinkClosedLeagueGhostPlayer` in a closed one. Both are admin-only, act on one team, and take
-// a reason, because a link rewrites completed records (BACKEND-212). The ghost and the account are
+// `adminLinkClosedLeagueGhostPlayer` in a closed one. Both are admin-only and act on one team. A link
+// takes no reason: the admin chooses the account and confirms, and the link's audit event records
+// who linked which ghost to whom and what moved (BACKEND-212). The ghost and the account are
 // ids the core checks itself, so a ghost id named as the account, or a real id named as the ghost,
 // is refused with a failure record rather than at the parse. Every name the link records is read
 // server-side, never sent.
@@ -143,7 +157,6 @@ export const LinkGhostPlayerInputSchema = z
     teamId: teamIdSchema,
     ghostUserId: userIdSchema,
     userId: userIdSchema,
-    reason: repairReasonSchema,
   })
   .strict();
 export type LinkGhostPlayerInput = z.infer<typeof LinkGhostPlayerInputSchema>;

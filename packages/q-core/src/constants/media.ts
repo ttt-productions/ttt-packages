@@ -29,6 +29,11 @@ export const PICTURE_RETIREMENT_PAGE_SIZE = 50;
 export const GALLERY_RETIREMENT_PICTURES_PER_RUN = 100;
 export const STAGING_LIST_PAGE_SIZE = 1000;
 export const MAX_STAGING_DELETES_PER_RUN = 500;
+// The most staged objects one abandoned-staging pass examines before it stops and saves its
+// position. Kept objects (young, with a live row, unreadable) cost nothing against the delete cap, so
+// this is what bounds a pass over a long kept stretch; two listing pages keep the pass well inside
+// the sweep's timeout beside its other passes, and the next run resumes after the last one examined.
+export const MAX_STAGING_EXAMINED_PER_RUN = 2 * STAGING_LIST_PAGE_SIZE;
 
 // How many times the migration console's picture carry enqueues one source before reporting it as refused by the
 // pipeline.

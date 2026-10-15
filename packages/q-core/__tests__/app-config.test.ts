@@ -106,14 +106,14 @@ describe('readAppConfigLever — the one read rule', () => {
 
 describe('mergeAppConfigUpdate — the one write rule', () => {
   it('writes a missing document whole, from the defaults', () => {
-    expect(mergeAppConfigUpdate(undefined, { maintenanceMode: true })).toEqual({
+    expect(mergeAppConfigUpdate(undefined, { maintenanceMode: true }).next).toEqual({
       ...DEFAULT_APP_CONFIG,
       maintenanceMode: true,
     });
   });
 
   it('heals a partial document: its missing fields come from the defaults and its own values stay', () => {
-    expect(mergeAppConfigUpdate({ appVersion: '1.4.0' }, { registrationEnabled: false })).toEqual({
+    expect(mergeAppConfigUpdate({ appVersion: '1.4.0' }, { registrationEnabled: false }).next).toEqual({
       ...DEFAULT_APP_CONFIG,
       appVersion: '1.4.0',
       registrationEnabled: false,
@@ -121,29 +121,37 @@ describe('mergeAppConfigUpdate — the one write rule', () => {
   });
 
   it('changes nothing for a field the update leaves undefined', () => {
-    expect(mergeAppConfigUpdate(COMPLETE, { appVersion: '2.0.2', maintenanceMode: undefined })).toEqual({
+    expect(mergeAppConfigUpdate(COMPLETE, { appVersion: '2.0.2', maintenanceMode: undefined }).next).toEqual({
       ...COMPLETE,
       appVersion: '2.0.2',
     });
   });
 
-  it('replaces an invalid stored field with the value the update sends for that lever', () => {
-    expect(mergeAppConfigUpdate({ ...COMPLETE, maintenanceMode: 'yes' }, { maintenanceMode: false })).toEqual(COMPLETE);
-    expect(mergeAppConfigUpdate({ ...COMPLETE, maintenanceMode: 'yes' }, { maintenanceMode: true })).toEqual({
-      ...COMPLETE,
-      maintenanceMode: true,
-    });
+  it('turns maintenance on over a refused stored version, resetting the unsent version to its default and reporting it', () => {
+    const refusedVersion = 'v'.repeat(MAX_APP_VERSION_LENGTH + 1);
+    const { next, repairs } = mergeAppConfigUpdate({ ...COMPLETE, appVersion: refusedVersion }, { maintenanceMode: true });
+    expect(next).toEqual({ ...COMPLETE, appVersion: DEFAULT_APP_CONFIG.appVersion, maintenanceMode: true });
+    expect(repairs).toEqual([{ lever: 'appVersion', storedValue: refusedVersion }]);
   });
 
-  it('refuses an update that leaves an invalid stored field in place, naming it, so it is never written over', () => {
-    expect(() => mergeAppConfigUpdate({ ...COMPLETE, maintenanceMode: 'yes' }, { appVersion: '3' })).toThrow(/maintenanceMode/);
-    const refusedVersion = { ...COMPLETE, appVersion: 'v'.repeat(MAX_APP_VERSION_LENGTH + 1) };
-    expect(() => mergeAppConfigUpdate(refusedVersion, { maintenanceMode: true })).toThrow(/appVersion/);
+  it('replaces a refused stored lever with the value the update sends, and still reports the repair', () => {
+    const { next, repairs } = mergeAppConfigUpdate({ ...COMPLETE, maintenanceMode: 'yes' }, { maintenanceMode: true });
+    expect(next).toEqual({ ...COMPLETE, maintenanceMode: true });
+    expect(repairs).toEqual([{ lever: 'maintenanceMode', storedValue: 'yes' }]);
+  });
+
+  it('reports no repair, and normalizes nothing, when every stored lever is valid', () => {
+    const { next, repairs } = mergeAppConfigUpdate(COMPLETE, { maintenanceMode: true });
+    expect(repairs).toEqual([]);
+    expect(next).toEqual({ ...COMPLETE, maintenanceMode: true });
   });
 
   it('refuses an update that would not parse, so an invalid document is never written', () => {
     expect(() =>
       mergeAppConfigUpdate(COMPLETE, { maintenanceMessage: 'm'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH + 1) }),
+    ).toThrow(/maintenanceMessage/);
+    expect(() =>
+      mergeAppConfigUpdate({ ...COMPLETE, appVersion: 7 }, { maintenanceMessage: 'm'.repeat(MAX_MAINTENANCE_MESSAGE_LENGTH + 1) }),
     ).toThrow(/maintenanceMessage/);
   });
 });
@@ -266,21 +274,23 @@ describe('the landing page copy', () => {
     expect(Object.keys(LandingPageConfigSchema.shape)).not.toContain('images');
   });
 
-  it('is edited as both fields together, the title required and each within its cap', () => {
+  it('is edited one field at a time: a save sends only the fields the admin changed', () => {
+    expect(AdminUpdateLandingPageInputSchema.safeParse({ heroTitle: 'Welcome' }).success).toBe(true);
+    expect(AdminUpdateLandingPageInputSchema.safeParse({ aboutCompany: 'We play.' }).success).toBe(true);
     expect(AdminUpdateLandingPageInputSchema.safeParse({ heroTitle: 'Welcome', aboutCompany: '' }).success).toBe(true);
-    expect(AdminUpdateLandingPageInputSchema.safeParse({ heroTitle: 'Welcome' }).success).toBe(false);
-    expect(AdminUpdateLandingPageInputSchema.safeParse({ heroTitle: '  ', aboutCompany: 'x' }).success).toBe(false);
+    expect(AdminUpdateLandingPageInputSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('saves a cleared title as blank, so the default heading shows', () => {
+    expect(AdminUpdateLandingPageInputSchema.parse({ heroTitle: '' }).heroTitle).toBe('');
+    expect(AdminUpdateLandingPageInputSchema.parse({ heroTitle: '   ' }).heroTitle).toBe('');
+  });
+
+  it('keeps each field within its cap', () => {
+    expect(AdminUpdateLandingPageInputSchema.safeParse({ heroTitle: 't'.repeat(MAX_LANDING_HERO_TITLE_LENGTH) }).success).toBe(true);
+    expect(AdminUpdateLandingPageInputSchema.safeParse({ heroTitle: 't'.repeat(MAX_LANDING_HERO_TITLE_LENGTH + 1) }).success).toBe(false);
     expect(
-      AdminUpdateLandingPageInputSchema.safeParse({
-        heroTitle: 't'.repeat(MAX_LANDING_HERO_TITLE_LENGTH + 1),
-        aboutCompany: '',
-      }).success,
-    ).toBe(false);
-    expect(
-      AdminUpdateLandingPageInputSchema.safeParse({
-        heroTitle: 'Welcome',
-        aboutCompany: 'a'.repeat(MAX_LANDING_ABOUT_TEXT_LENGTH + 1),
-      }).success,
+      AdminUpdateLandingPageInputSchema.safeParse({ aboutCompany: 'a'.repeat(MAX_LANDING_ABOUT_TEXT_LENGTH + 1) }).success,
     ).toBe(false);
   });
 
@@ -303,6 +313,15 @@ describe('the landing page copy', () => {
 });
 
 describe('the stats beacon', () => {
+  it('carries the change id each write mints, and reads a beacon stored without one', () => {
+    expect(StatsBeaconSchema.parse({ updatedAt: 5, action: 'finalize', changeId: 'aB3dE5gH7jK9mN1pQ3sT' }).changeId).toBe(
+      'aB3dE5gH7jK9mN1pQ3sT',
+    );
+    expect(StatsBeaconSchema.parse({ updatedAt: 5, action: 'finalize' }).changeId).toBeUndefined();
+    expect(StatsBeaconSchema.safeParse({ updatedAt: 5, action: 'finalize', changeId: '' }).success).toBe(false);
+    expect(StatsBeaconSchema.safeParse({ updatedAt: 5, action: 'finalize', changeId: 'a/b' }).success).toBe(false);
+  });
+
   it('holds the action and, when one game or league changed, its scope ids', () => {
     expect(StatsBeaconSchema.safeParse({ updatedAt: 5, action: 'recalculate' }).success).toBe(true);
     expect(

@@ -12,6 +12,7 @@ import { createPendingMediaSchemas } from '@ttt-productions/media-schemas';
 import { DomainEventSchema } from '../domain-events/domain-events.js';
 import { FILE_ORIGIN_KEYS, PICTURE_ORIGIN_KEYS } from '../media/file-origins.js';
 import { AWARD_DEFINITION_OWNER_KIND } from '../types/picture-owners.js';
+import { countSchema } from './atoms.js';
 import { awardNameSchema } from './catalogs.js';
 import { pictureOwnerKindSchema } from './gallery.js';
 
@@ -37,6 +38,9 @@ export const PendingMediaTargetSchema = z
     // The object a carried picture was read from. Written only by the migration console's picture
     // carry, never from a callable's input; a carried picture fills only an empty slot.
     carriedFrom: StorageObjectRefSchema.optional(),
+    // A carried picture's position in its V1 source list, so the carried gallery keeps V1's order
+    // and V1's first image stays the featured one. Only beside `carriedFrom`.
+    sourceIndex: countSchema.optional(),
     // A badge upload that creates its award: the award's name, which the publication writes with
     // the award. The owner's id is then the upload's staging id.
     newAwardName: awardNameSchema.optional(),
@@ -45,6 +49,10 @@ export const PendingMediaTargetSchema = z
   .refine((target) => target.newAwardName === undefined || target.owner.kind === AWARD_DEFINITION_OWNER_KIND, {
     message: 'Only a badge upload creates an award.',
     path: ['newAwardName'],
+  })
+  .refine((target) => target.sourceIndex === undefined || target.carriedFrom !== undefined, {
+    message: 'Only a carried picture has a source position.',
+    path: ['sourceIndex'],
   });
 export type PendingMediaTarget = z.infer<typeof PendingMediaTargetSchema>;
 

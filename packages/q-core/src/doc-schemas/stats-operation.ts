@@ -142,9 +142,9 @@ export const StatsDestinationChangeSchema = z.strictObject({
 export type StatsDestinationChange = z.infer<typeof StatsDestinationChangeSchema>;
 
 // The ghost's one operation records the account a link chose, or the removal, so a call naming a
-// different account — or a removal against a link — is refused, and the same call resumes. A link
-// rewrites completed records, so it carries its reason; a never-played ghost's removal is not a
-// repair and carries none (BACKEND-212).
+// different account — or a removal against a link — is refused, and the same call resumes. Neither
+// takes a reason: a link is chosen and confirmed, and its audit event records who linked which ghost
+// to whom and what moved (BACKEND-212).
 export const GhostPlayerStatsOperationSchema = z
   .strictObject({
     ...operationBase,
@@ -162,7 +162,9 @@ export const GhostPlayerStatsOperationSchema = z
         ghostUserId: userIdSchema,
       }),
     ]),
-    // A link's reason; a removal carries none (one stored by an earlier removal is dropped on read).
+    // A reason stored by a link or a removal recorded while they still took one; no operation
+    // writes one now. A removal's is dropped on read; a link's is kept, so its stored operation
+    // still resumes.
     reason: repairReasonSchema.optional(),
     // A removal's finished-game entries, in the order it removed them; absent on a link.
     removedFinishedGameEntries: z.array(GhostRemovedFinishedEntrySchema).optional(),
@@ -173,13 +175,6 @@ export const GhostPlayerStatsOperationSchema = z
     // What a completed link did with the team's memberships, so a call after completion answers it.
     membershipOutcome: z.enum(GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS).optional(),
   })
-  .superRefine((operation, ctx) => {
-    if (operation.scope.action === 'link' && operation.reason === undefined) {
-      ctx.addIssue({ code: 'custom', path: ['reason'], message: 'A ghost link records its reason.' });
-    }
-  })
-  // A removal recorded while removals still took a reason keeps it on disk; it is dropped on read
-  // rather than failing the document, and no removal writes one now.
   .overwrite((operation) => {
     if (operation.scope.action !== 'removal' || operation.reason === undefined) return operation;
     const { reason: _reason, ...withoutReason } = operation;

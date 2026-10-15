@@ -15,7 +15,13 @@ import {
   TELEMETRY_CONTENT_POLICY,
   migrationActionCallableName,
 } from '../src';
-import { MigrationActionRunSchema, MigrationConsoleSchema, migrationActionIdSchema } from '../src/doc-schemas';
+import {
+  AuditEventSchema,
+  MigrationActionRunSchema,
+  MigrationConsoleLockSchema,
+  MigrationConsoleSchema,
+  migrationActionIdSchema,
+} from '../src/doc-schemas';
 import {
   AdminResolveUnrosteredStatLineInputSchema,
   RecordMigrationCheckpointInputSchema,
@@ -115,6 +121,15 @@ describe('the console\'s records', () => {
     expect(MigrationConsoleSchema.safeParse({ destinationState: 'paused', lock: null, updatedAt: 0 }).success).toBe(false);
   });
 
+  it('a lock carries the claim token of the page in flight, and a lock stored without one still reads', () => {
+    const lock = { actionId: MIGRATION_ACTION_IDS.copyUserProfiles, operationId: 'op-1', heldByUserId: 'uid-admin', expiresAt: 10 };
+    expect(MigrationConsoleLockSchema.safeParse(lock).success).toBe(true);
+    expect(MigrationConsoleLockSchema.safeParse({ ...lock, pageClaimedAt: 5 }).success).toBe(true);
+    expect(MigrationConsoleLockSchema.safeParse({ ...lock, pageClaimedAt: -1 }).success).toBe(false);
+    expect(MigrationConsoleLockSchema.safeParse({ ...lock, pageClaimedAt: 1.5 }).success).toBe(false);
+    expect(MigrationConsoleSchema.safeParse({ destinationState: 'preCutover', lock: { ...lock, pageClaimedAt: 5 }, updatedAt: 0 }).success).toBe(true);
+  });
+
   it('a run keeps no more findings than its bound', () => {
     const run = {
       operationId: 'op-1',
@@ -144,6 +159,33 @@ describe('the console\'s records', () => {
         run: { ...run, findings: run.findings.slice(0, MAX_MIGRATION_RUN_FINDINGS) },
       }).success,
     ).toBe(true);
+  });
+});
+
+describe('the console\'s audit vocabulary', () => {
+  it('an action core records the documents it wrote and removed as its own event, committed with them', () => {
+    const event = {
+      id: 'a1',
+      type: 'migrationAction.writesCommitted',
+      schemaVersion: 1,
+      actor: { uid: 'uid-admin', isAdmin: true, actorMode: 'adminReview', systemRole: 'admin' },
+      target: null,
+      timestamp: 1,
+      ip: null,
+      userAgent: null,
+      region: null,
+      metadata: {
+        actionId: MIGRATION_ACTION_IDS.deleteV1LeagueGames,
+        operationId: 'op-1',
+        writtenIds: [],
+        removedIds: ['g1', 'g2'],
+      },
+      result: 'success',
+      failureReason: null,
+      correlationId: null,
+    };
+    expect(AuditEventSchema.safeParse(event).success).toBe(true);
+    expect(AuditEventSchema.safeParse({ ...event, type: 'migrationAction.pageRun' }).success).toBe(true);
   });
 });
 

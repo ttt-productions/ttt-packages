@@ -8,6 +8,7 @@ export * from './scoring.js';
 export * from './scoring-display.js';
 export * from './bulk-entry.js';
 export * from './replay.js';
+export * from './ledger-continuity.js';
 export * from './store-driver.js';
 export * from './contribution.js';
 export * from './finalized-record.js';

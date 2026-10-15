@@ -14,6 +14,13 @@ export function buildGhostUserId(nowMs: number, suffix: string): string {
   return `${GHOST_USER_ID_PREFIX}${nowMs}_${suffix}`;
 }
 
+// The ghost a ghost-add request creates: derived from the request id the client mints once per add
+// and re-sends on every retry, so a retry names the same ghost instead of creating a second one. Its
+// `req_` part never reads as a clock reading, so it cannot collide with a `buildGhostUserId` id.
+export function buildGhostUserIdForRequest(requestId: string): string {
+  return `${GHOST_USER_ID_PREFIX}req_${requestId}`;
+}
+
 // A new game's id, `{timestamp}_{suffix}`. A copied game keeps the id it was stored under.
 export function buildSportGameId(nowMs: number, suffix: string): string {
   return `${nowMs}_${suffix}`;

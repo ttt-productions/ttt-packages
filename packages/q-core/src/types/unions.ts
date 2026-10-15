@@ -161,6 +161,10 @@ export type HardwareLoanContractStatus = (typeof HARDWARE_LOAN_CONTRACT_STATUS_K
 export const AWARD_GRANT_SKIP_REASON_KEYS = ['noProfile', 'ghost'] as const;
 export type AwardGrantSkipReason = (typeof AWARD_GRANT_SKIP_REASON_KEYS)[number];
 
+// The two badges an account shows beside its name.
+export const FEATURED_AWARD_SLOT_KEYS = ['primary', 'secondary'] as const;
+export type FeaturedAwardSlot = (typeof FEATURED_AWARD_SLOT_KEYS)[number];
+
 export const PENDING_HARDWARE_LOAN_CONTRACT_STATUS = 'pending' as const satisfies HardwareLoanContractStatus;
 export const LOANED_HARDWARE_LOAN_CONTRACT_STATUS = 'loaned' as const satisfies HardwareLoanContractStatus;
 export const RETURNED_HARDWARE_LOAN_CONTRACT_STATUS = 'returned' as const satisfies HardwareLoanContractStatus;
@@ -344,8 +348,12 @@ export type PictureVariantKey = (typeof PICTURE_VARIANT_KEYS)[number];
 // What a stats check found, game tier first — a game's own numbers are the cause of the aggregate
 // findings, so Fix stats repairs games before it rebuilds what they feed.
 export const GAME_TIER_DISCREPANCY_KIND_KEYS = [
+  // A game whose document the check could not read: nothing else about it could be checked.
+  'gameUnreadable',
   'invalidEvent',
   'eventSequenceMismatch',
+  // A game whose events do not hold exactly the sequences 1..n: a gap or a duplicate.
+  'eventSequenceGap',
   'rollupMismatch',
   'scoreMirrorMismatch',
   'unrosteredStatLine',

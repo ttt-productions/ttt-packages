@@ -60,6 +60,10 @@
             "types": "./dist/media/index.d.ts",
             "default": "./dist/media/index.js"
         },
+        "./upload-variables": {
+            "types": "./dist/upload-variables/index.d.ts",
+            "default": "./dist/upload-variables/index.js"
+        },
         "./schemas": {
             "types": "./dist/schemas/index.d.ts",
             "default": "./dist/schemas/index.js"

@@ -133,9 +133,12 @@ export const AUDIT_EVENT_TYPE_KEYS = [
   // or a refused attempt at one — with the reason the operator gave
   'system.manualIntervention',
   // The migration console — one page of a cutover action run, with what it read, wrote, and found;
-  // a product control's run recorded once its evidence checked; an operator checkpoint recorded with
-  // its evidence; and the cutover, after which the product owns every destination
+  // the documents an action core wrote and removed, committed in the same batch or transaction as
+  // those writes (its action id, operation id, and document ids only — BACKEND-203); a product
+  // control's run recorded once its evidence checked; an operator checkpoint recorded with its
+  // evidence; and the cutover, after which the product owns every destination
   'migrationAction.pageRun',
+  'migrationAction.writesCommitted',
   'migrationAction.controlRecorded',
   'migrationAction.checkpointRecorded',
   'migrationConsole.cutoverRecorded',

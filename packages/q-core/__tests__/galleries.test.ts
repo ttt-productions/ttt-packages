@@ -14,6 +14,7 @@ import {
   GallerySummarySchema,
   LandingPageConfigSchema,
   LeagueTeamSchema,
+  PendingMediaTargetSchema,
   SportLeagueSchema,
 } from '../src/doc-schemas';
 
@@ -67,8 +68,15 @@ describe('galleryPictures documents', () => {
     expect(GalleryPictureSchema.safeParse({ ...PICTURE, createdAt: '2026-01-01' }).success).toBe(false);
   });
 
+  it('a carried picture keeps its V1 source position, and a picture stored without one still reads', () => {
+    expect(GalleryPictureSchema.parse({ ...PICTURE, sourceIndex: 0 }).sourceIndex).toBe(0);
+    expect(GalleryPictureSchema.parse(PICTURE).sourceIndex).toBeUndefined();
+    expect(GalleryPictureSchema.safeParse({ ...PICTURE, sourceIndex: -1 }).success).toBe(false);
+    expect(GalleryPictureSchema.safeParse({ ...PICTURE, sourceIndex: 1.5 }).success).toBe(false);
+  });
+
   it('store no URL', () => {
-    expect(Object.keys(GalleryPictureSchema.shape).sort()).toEqual(['createdAt', 'ownerId', 'ownerKind', 'position']);
+    expect(Object.keys(GalleryPictureSchema.shape).sort()).toEqual(['createdAt', 'ownerId', 'ownerKind', 'position', 'sourceIndex']);
   });
 });
 
@@ -101,5 +109,20 @@ describe('the gallery summary on its owner', () => {
       expect(field.safeParse({ count: 1, featuredPictureId: PICTURE_ID_1, updatedAt: 1 }).success).toBe(true);
       expect(field.safeParse({ count: 1, updatedAt: 1 }).success).toBe(false);
     }
+  });
+});
+
+describe('the carry provenance of a pending picture', () => {
+  const owner = { kind: 'sportLeague', id: 'league-1' };
+  const carriedFrom = { bucket: 'v1-bucket', path: 'leagues/league-1/a.jpg' };
+
+  it('records the source position beside the object it was carried from', () => {
+    expect(PendingMediaTargetSchema.safeParse({ owner, carriedFrom, sourceIndex: 2 }).success).toBe(true);
+    expect(PendingMediaTargetSchema.safeParse({ owner, carriedFrom }).success).toBe(true);
+    expect(PendingMediaTargetSchema.safeParse({ owner, carriedFrom, sourceIndex: -1 }).success).toBe(false);
+  });
+
+  it('gives a source position only to a carried picture', () => {
+    expect(PendingMediaTargetSchema.safeParse({ owner, sourceIndex: 0 }).success).toBe(false);
   });
 });

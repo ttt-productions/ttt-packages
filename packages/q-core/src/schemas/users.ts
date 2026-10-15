@@ -15,7 +15,13 @@ export const RegisterUserInputSchema = z
   })
   .strict();
 export type RegisterUserInput = z.infer<typeof RegisterUserInputSchema>;
-export const RegisterUserResultSchema = z.object({ userId: userIdSchema, displayName: z.string() }).strict();
+export const RegisterUserResultSchema = z.discriminatedUnion('status', [
+  // The account is registered (or already was — an idempotent replay).
+  z.object({ status: z.literal('registered'), userId: userIdSchema, displayName: z.string() }).strict(),
+  // The orphan-registration cleanup claimed this login for deletion, so the registration cannot
+  // finish on it; nothing is written and the person signs up again.
+  z.object({ status: z.literal('registrationExpired') }).strict(),
+]);
 export type RegisterUserResult = z.infer<typeof RegisterUserResultSchema>;
 
 // The register form's check before the login is created: is the name free? It runs before any
@@ -143,8 +149,9 @@ export const ADMIN_STANDING_BAN_REFUSAL_REASON = 'adminStandingTarget';
 export const CreateRegistrationStartInputSchema = z.object({}).strict();
 export type CreateRegistrationStartInput = z.infer<typeof CreateRegistrationStartInputSchema>;
 // `started` wrote both records; `alreadyStarted` found the registration already started and wrote
-// nothing — a retry, or a resume after a later step failed.
-export const REGISTRATION_START_OUTCOMES = ['started', 'alreadyStarted'] as const;
+// nothing — a retry, or a resume after a later step failed; `registrationExpired` found the login
+// claimed by the orphan-registration cleanup and wrote nothing — the person signs up again.
+export const REGISTRATION_START_OUTCOMES = ['started', 'alreadyStarted', 'registrationExpired'] as const;
 export type RegistrationStartOutcome = (typeof REGISTRATION_START_OUTCOMES)[number];
 export const CreateRegistrationStartResultSchema = z
   .object({ outcome: z.enum(REGISTRATION_START_OUTCOMES) })
