@@ -315,6 +315,11 @@ export const UserPrivateDataSchema = z.object({
   // restricted to the owner's view. Set true while a child-safety/NCII action is
   // pending against the account; the app gates the user accordingly.
   safetyLocked: z.boolean().optional(),
+  // Epoch ms when the orphan-registration cleanup decided to delete this uid's login. Written in the
+  // cleanup's eligibility transaction BEFORE the Auth delete, and every registration step refuses in
+  // its own transaction while it is present, so no registration can complete into a login that is
+  // about to be deleted. Backend-only.
+  orphanDeletionClaimedAt: z.number().int().nonnegative().optional(),
   // Counts the owner's Craft publishes and deletes. Each one reads this doc and writes the next
   // value inside its own transaction, so two publishes that both counted a free Craft slot write
   // the same document and conflict instead of both landing past the cap (BACKEND-116). Absent

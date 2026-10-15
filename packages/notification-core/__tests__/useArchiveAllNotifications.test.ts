@@ -45,7 +45,29 @@ describe('useArchiveAllNotifications (server-owned job status poller)', () => {
     // Polls the returned jobId until terminal.
     expect(getArchiveAllStatusFn).toHaveBeenCalledTimes(3);
     expect(getArchiveAllStatusFn).toHaveBeenLastCalledWith('job-1');
-    expect(out).toEqual({ status: 'complete', category: 'user', archived: 450, complete: true });
+    expect(out).toEqual({ status: 'complete', category: 'user', archived: 450, notArchived: 0, complete: true });
+  });
+
+  it('carries the cards a complete drain left in the list', async () => {
+    const enqueueArchiveAllFn = vi.fn().mockResolvedValue({ jobId: 'job-5' });
+    const getArchiveAllStatusFn = vi
+      .fn<(jobId: string) => Promise<ArchiveAllJobSnapshot>>()
+      .mockResolvedValue({ state: 'complete', category: 'user', archived: 48, notArchived: 2 });
+
+    const { result } = renderHook(
+      () =>
+        useArchiveAllNotifications({
+          userId: 'u1',
+          category: 'user',
+          enqueueArchiveAllFn,
+          getArchiveAllStatusFn,
+          ...FAST,
+        }),
+      { wrapper: makeWrapper() },
+    );
+
+    const out = await result.current.mutateAsync();
+    expect(out).toEqual({ status: 'complete', category: 'user', archived: 48, notArchived: 2, complete: true });
   });
 
   it('resolves incomplete (not throw) when the job reports an incomplete drain', async () => {
@@ -67,7 +89,7 @@ describe('useArchiveAllNotifications (server-owned job status poller)', () => {
     );
 
     const out = await result.current.mutateAsync();
-    expect(out).toEqual({ status: 'incomplete', category: 'admin', archived: 12, complete: false });
+    expect(out).toEqual({ status: 'incomplete', category: 'admin', archived: 12, notArchived: 0, complete: false });
   });
 
   it('resolves failed (not throw) when the job reports failure, carrying the error', async () => {
@@ -93,6 +115,7 @@ describe('useArchiveAllNotifications (server-owned job status poller)', () => {
       status: 'failed',
       category: 'user',
       archived: 3,
+      notArchived: 0,
       complete: false,
       error: 'dead-lettered',
     });
@@ -118,7 +141,7 @@ describe('useArchiveAllNotifications (server-owned job status poller)', () => {
 
     const out = await result.current.mutateAsync();
     expect(getArchiveAllStatusFn).toHaveBeenCalledTimes(FAST.maxPolls);
-    expect(out).toEqual({ status: 'incomplete', category: 'user', archived: 7, complete: false });
+    expect(out).toEqual({ status: 'incomplete', category: 'user', archived: 7, notArchived: 0, complete: false });
   });
 
   it('rejects the mutation when the enqueue adapter throws (hard failure)', async () => {

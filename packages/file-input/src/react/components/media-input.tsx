@@ -759,6 +759,7 @@ export const MediaInput = forwardRef<MediaInputHandle, MediaInputProps>(function
           shape={cropSpec.shape ?? "rect"}
           outputWidth={cropSpec.outputWidth}
           outputHeight={cropSpec.outputHeight}
+          encoding={{ format: cropSpec.format, quality: cropSpec.quality }}
           onCropComplete={onCropComplete}
         />
       )}

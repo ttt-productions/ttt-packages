@@ -124,6 +124,36 @@ describe('getCroppedImg', () => {
     ).rejects.toThrow(/Canvas to Blob conversion failed/);
   });
 
+  it('encodes at the format and quality the crop spec declares', async () => {
+    stubImage(1000, 1000);
+    const { canvases } = stubCanvas({});
+    await getCroppedImg('blob:x', { x: 0, y: 0, width: 100, height: 100 }, 0, undefined, 512, 512, {
+      format: 'jpeg',
+      quality: 85,
+    });
+    const [, type, quality] = canvases[1].toBlob.mock.calls[0];
+    expect(type).toBe('image/jpeg');
+    expect(quality).toBeCloseTo(0.85);
+  });
+
+  it('encodes a declared lossless format as that format, not JPEG', async () => {
+    stubImage(1000, 1000);
+    const { canvases } = stubCanvas({});
+    await getCroppedImg('blob:x', { x: 0, y: 0, width: 100, height: 100 }, 0, undefined, 256, 256, {
+      format: 'png',
+    });
+    expect(canvases[1].toBlob.mock.calls[0][1]).toBe('image/png');
+  });
+
+  it('encodes JPEG at quality 80 when the spec declares no format or quality', async () => {
+    stubImage(1000, 1000);
+    const { canvases } = stubCanvas({});
+    await getCroppedImg('blob:x', { x: 0, y: 0, width: 100, height: 100 });
+    const [, type, quality] = canvases[1].toBlob.mock.calls[0];
+    expect(type).toBe('image/jpeg');
+    expect(quality).toBeCloseTo(0.8);
+  });
+
   it('applies rotation to the working canvas', async () => {
     stubImage(1000, 1000);
     const ctx = makeFakeCtx();

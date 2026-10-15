@@ -77,13 +77,26 @@ export function useArchiveAllNotifications({
         lastArchived = snap.archived ?? 0;
 
         if (snap.state === 'complete') {
-          return { status: 'complete', category, archived: lastArchived, complete: true };
+          return {
+            status: 'complete',
+            category,
+            archived: lastArchived,
+            notArchived: snap.notArchived ?? 0,
+            complete: true,
+          };
         }
         if (snap.state === 'incomplete') {
-          return { status: 'incomplete', category, archived: lastArchived, complete: false };
+          return { status: 'incomplete', category, archived: lastArchived, notArchived: 0, complete: false };
         }
         if (snap.state === 'failed') {
-          return { status: 'failed', category, archived: lastArchived, complete: false, error: snap.error };
+          return {
+            status: 'failed',
+            category,
+            archived: lastArchived,
+            notArchived: 0,
+            complete: false,
+            error: snap.error,
+          };
         }
 
         // Still in-progress — wait before the next poll unless this was the last allowed poll.
@@ -91,7 +104,7 @@ export function useArchiveAllNotifications({
       }
 
       // Guard: the job never reached a terminal state within the poll budget — report incomplete.
-      return { status: 'incomplete', category, archived: lastArchived, complete: false };
+      return { status: 'incomplete', category, archived: lastArchived, notArchived: 0, complete: false };
     },
     onSuccess: (result) => {
       // Only a completed drain changed the active set; still invalidate on an incomplete drain since

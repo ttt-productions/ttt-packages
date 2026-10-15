@@ -315,6 +315,12 @@ export interface ArchiveAllJobSnapshot {
   category: string;
   /** Cards archived so far (monotonic); optional progress for the UI. */
   archived?: number;
+  /**
+   * On a `complete` job: cards the drain could not archive, which are still in the list. A job
+   * completes once it has walked the whole category, so a card that keeps failing on its own does
+   * not hold the rest of the category back.
+   */
+  notArchived?: number;
   /** Human-readable failure reason when `state === 'failed'` (optional). */
   error?: string;
 }
@@ -328,6 +334,8 @@ export interface ArchiveAllPollResult {
   status: Extract<ArchiveAllJobStatus, 'complete' | 'incomplete' | 'failed'>;
   category: string;
   archived: number;
+  /** Cards a complete drain left in the list (each failed on its own); 0 otherwise. */
+  notArchived: number;
   complete: boolean;
   error?: string;
 }
@@ -415,7 +423,12 @@ export interface NotificationListProps {
   getArchiveAllStatusFn: (jobId: string) => Promise<ArchiveAllJobSnapshot>;
   /** Left-aligned title for the active-list header. */
   title?: ReactNode;
-  onClearAll?: () => void;
+  /**
+   * Fires with the terminal result ONLY when the archive-all job completed — the whole category was
+   * walked. A complete result can still carry `notArchived > 0` (cards that each failed and stay in
+   * the list); the copy for that is the app's.
+   */
+  onClearAll?: (result: ArchiveAllPollResult) => void;
   /** Re-read the displayed page every `refetchInterval` ms while mounted (default 30s). */
   refetchInterval?: number;
   /** How long a read page counts as fresh, in ms (default 30s). */

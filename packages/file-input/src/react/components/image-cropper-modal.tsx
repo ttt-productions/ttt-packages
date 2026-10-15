@@ -5,7 +5,7 @@ import Cropper, { type Area } from "react-easy-crop";
  
 const CropperComponent = Cropper as unknown as React.ComponentType<any>;
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription, Slider, useAsyncAction } from "@ttt-productions/ui-core/react";
-import { getCroppedImg } from "../../lib/image-utils.js";
+import { getCroppedImg, type CropEncoding } from "../../lib/image-utils.js";
 
 export interface ImageCropperModalProps {
   isOpen: boolean;
@@ -15,11 +15,12 @@ export interface ImageCropperModalProps {
   shape: "rect" | "round";
   outputWidth: number;
   outputHeight: number;
+  encoding?: CropEncoding;
   onCropComplete: (croppedBlob: Blob | null) => void;
 }
 
 export function ImageCropperModal(props: ImageCropperModalProps) {
-  const { isOpen, onClose, imageSrc, aspectRatio, shape, outputWidth, outputHeight, onCropComplete } = props;
+  const { isOpen, onClose, imageSrc, aspectRatio, shape, outputWidth, outputHeight, encoding, onCropComplete } = props;
 
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -34,7 +35,7 @@ export function ImageCropperModal(props: ImageCropperModalProps) {
   const confirm = useAsyncAction(
     async () => {
       if (!imageSrc || !croppedAreaPixels) return;
-      const blob = await getCroppedImg(imageSrc, croppedAreaPixels, 0, { horizontal: false, vertical: false }, outputWidth, outputHeight);
+      const blob = await getCroppedImg(imageSrc, croppedAreaPixels, 0, { horizontal: false, vertical: false }, outputWidth, outputHeight, encoding);
       onCropComplete(blob);
       onClose();
     },

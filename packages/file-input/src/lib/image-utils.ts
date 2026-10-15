@@ -1,4 +1,11 @@
 import type { Area } from "react-easy-crop";
+import { MEDIA_FORMATS, type MediaCropSpec } from "@ttt-productions/media-schemas";
+
+/** How a crop is encoded; the fields an origin's crop spec declares. */
+export type CropEncoding = Pick<MediaCropSpec, "format" | "quality">;
+
+const DEFAULT_CROP_FORMAT: NonNullable<MediaCropSpec["format"]> = "jpeg";
+const DEFAULT_CROP_QUALITY = 80;
 
 const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
@@ -27,7 +34,8 @@ export async function getCroppedImg(
   rotation = 0,
   flip = { horizontal: false, vertical: false },
   outputWidth?: number,
-  outputHeight?: number
+  outputHeight?: number,
+  encoding: CropEncoding = {}
 ): Promise<Blob | null> {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
@@ -65,11 +73,16 @@ export async function getCroppedImg(
     croppedCanvas.height
   );
 
+  // This is the first lossy encode the image gets, so it uses the origin's declared format and
+  // quality; a browser that cannot encode the format returns PNG, and the blob's type says so.
+  const mime = MEDIA_FORMATS[encoding.format ?? DEFAULT_CROP_FORMAT].mimes.all![0];
+  const quality = (encoding.quality ?? DEFAULT_CROP_QUALITY) / 100;
+
   return new Promise((resolve, reject) => {
     croppedCanvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("Canvas to Blob conversion failed"))),
-      "image/jpeg",
-      0.8
+      mime,
+      quality
     );
   });
 }

@@ -9,6 +9,19 @@ import { NotificationEmptyState } from './NotificationEmptyState.js';
 import { formatRelativeTime } from './relative-time.js';
 import type { NotificationDoc, NotificationListProps } from '../../types.js';
 
+/** Pending archives keyed by card id, holding the activity generation the archive was sent for. */
+type PendingArchives = ReadonlyMap<string, string | undefined>;
+
+const NO_PENDING: PendingArchives = new Map();
+
+/**
+ * An archive belongs to the card generation it was sent for. A card relit on the same id gets a new
+ * generation, which the archive never covered, so it is not pending for that card.
+ */
+function isPendingFor(pending: PendingArchives, notification: NotificationDoc): boolean {
+  return pending.has(notification.id) && pending.get(notification.id) === notification.activityGeneration;
+}
+
 const FOCUSABLE =
   'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -68,12 +81,8 @@ export function NotificationList({
   // with an explicit terminal result (`complete` | `incomplete` | `failed`) and only rejects on a
   // hard enqueue/poll throw.
   const [clearIncomplete, setClearIncomplete] = useState(false);
-  const [pendingArchiveIds, setPendingArchiveIds] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  );
-  const [pendingClearAllIds, setPendingClearAllIds] = useState<ReadonlySet<string>>(
-    () => new Set(),
-  );
+  const [pendingArchives, setPendingArchives] = useState<PendingArchives>(NO_PENDING);
+  const [pendingClearAll, setPendingClearAll] = useState<PendingArchives>(NO_PENDING);
 
   const renderedRowsRef = useRef(onRenderedRowsChange);
   renderedRowsRef.current = onRenderedRowsChange;
@@ -83,16 +92,23 @@ export function NotificationList({
 
   // An archive the server confirmed stays visibly pending until the authoritative
   // active-notification query removes the row: the callable's answer alone does not
-  // prove the read has caught up.
+  // prove the read has caught up. A row the read lists at a newer generation was relit
+  // after the archive, so the archive no longer holds it.
   useEffect(() => {
     if (!notifications) return;
-    const activeIds = new Set(notifications.map((notification) => notification.id));
-    const keepActive = (current: ReadonlySet<string>) => {
-      const next = new Set([...current].filter((id) => activeIds.has(id)));
+    const activeGenerations = new Map(
+      notifications.map((notification) => [notification.id, notification.activityGeneration]),
+    );
+    const keepActive = (current: PendingArchives): PendingArchives => {
+      const next = new Map(
+        [...current].filter(
+          ([id, generation]) => activeGenerations.has(id) && activeGenerations.get(id) === generation,
+        ),
+      );
       return next.size === current.size ? current : next;
     };
-    setPendingArchiveIds(keepActive);
-    setPendingClearAllIds(keepActive);
+    setPendingArchives(keepActive);
+    setPendingClearAll(keepActive);
   }, [notifications]);
 
   // A row that leaves the list while focus is inside it takes the focused control with it, so focus
@@ -122,17 +138,15 @@ export function NotificationList({
   }, [notifications, retryState.isLoading]);
 
   const archiveOne = useCallback(async (notification: NotificationDoc) => {
+    const generation = notification.activityGeneration;
     const clearPending = () =>
-      setPendingArchiveIds((current) => {
-        const next = new Set(current);
+      setPendingArchives((current) => {
+        if (!current.has(notification.id) || current.get(notification.id) !== generation) return current;
+        const next = new Map(current);
         next.delete(notification.id);
         return next;
       });
-    setPendingArchiveIds((current) => {
-      const next = new Set(current);
-      next.add(notification.id);
-      return next;
-    });
+    setPendingArchives((current) => new Map(current).set(notification.id, generation));
     try {
       const result = await archiveMutation.mutateAsync(notification);
       // Nothing was archived (the card changed after it was rendered): the row stays
@@ -149,24 +163,29 @@ export function NotificationList({
   const handleClearAll = useCallback(async () => {
     if (!hasNotifications) return;
     setClearIncomplete(false);
-    setPendingClearAllIds(new Set((notifications ?? []).map((notification) => notification.id)));
+    setPendingClearAll(
+      new Map((notifications ?? []).map((notification) => [notification.id, notification.activityGeneration])),
+    );
     let result;
     try {
       result = await archiveAllMutation.mutateAsync();
     } catch {
       // Hard failure (enqueue/poll threw): do not fire onClearAll; surface the retry affordance.
-      setPendingClearAllIds(new Set());
+      setPendingClearAll(NO_PENDING);
       setClearIncomplete(true);
       return;
     }
     if (!result.complete) {
       // Job terminated without fully draining the category (incomplete/failed) — keep the
       // notifications and prompt a retry.
-      setPendingClearAllIds(new Set());
+      setPendingClearAll(NO_PENDING);
       setClearIncomplete(true);
       return;
     }
-    onClearAll?.();
+    // The cards a complete drain left behind stay in the list and never leave the read, so their
+    // pending is released here rather than waiting on a read that will keep listing them.
+    if (result.notArchived > 0) setPendingClearAll(NO_PENDING);
+    onClearAll?.(result);
   }, [archiveAllMutation, hasNotifications, notifications, onClearAll]);
 
   const getTypeIcon = useCallback(
@@ -181,7 +200,8 @@ export function NotificationList({
   // empty state is the answer for page 1 only.
   const showEmptyState =
     retryState.error === null && notifications !== undefined && notifications.length === 0 && page === 1;
-  const isClearAllPending = archiveAllMutation.isPending || pendingClearAllIds.size > 0;
+  const isClearAllPending =
+    archiveAllMutation.isPending || (notifications ?? []).some((notification) => isPendingFor(pendingClearAll, notification));
   const titleId = useId();
 
   return (
@@ -259,7 +279,7 @@ export function NotificationList({
                   {renderRowAction(notification, {
                     archive: () => archiveOne(notification),
                     isArchivePending:
-                      pendingClearAllIds.has(notification.id) || pendingArchiveIds.has(notification.id),
+                      isPendingFor(pendingClearAll, notification) || isPendingFor(pendingArchives, notification),
                   })}
                 </div>
               )}

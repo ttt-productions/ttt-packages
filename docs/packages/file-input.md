@@ -17,6 +17,8 @@ The package consumes generic media shapes from `media-schemas`; it does not know
 
 `MediaInput` exposes an additive imperative handle (`MediaInputHandle`) via `ref`: `openSelection()` activates the SAME trigger semantics as a human click — one enabled action runs directly through the canonical selection path (honoring `onBeforeSelect`, validation, and crop), multiple actions open the choice dropdown — and no-ops while `disabled`/`isLoading`. It never touches the hidden input directly, so none of the trigger gates are bypassed. Consumers use it to re-open the picker from an external control (e.g. a chat "Attach again" action).
 
+The crop is the image's first lossy encode, so `MediaInput` encodes it at the `format` and `quality` its crop spec (`imageCrop`, or `cropOverride`) declares; an undeclared format is JPEG and an undeclared quality is 80.
+
 ## Inside a consumer's form
 
 The pickers are rendered inside consumers' forms (e.g. a deferred-upload form shell), and ui-core's
@@ -35,7 +37,7 @@ Every async step shows pending for its whole window and ignores a repeat, so no 
 
 - The trigger is `pending` while a picked, captured, or recorded file is validated (type, meta, duration, dimensions, crop), and the hidden picker cannot reopen meanwhile.
 - Crop Confirm, Capture, Flip, and record Start/Save run through `useAsyncAction`; their dialogs cannot be dismissed mid-step.
-- Camera/microphone acquisition shows a labeled spinner over the preview; Start and the kind toggles stay disabled until it settles. A device that finishes starting after a teardown (close, kind switch, re-record) is stopped, never attached.
+- Camera/microphone acquisition shows a labeled spinner over the preview; Start and the kind toggles stay disabled until it settles. A camera or microphone that finishes starting after a teardown is stopped, never attached — in the photo dialog (close, unmount, a newer acquisition such as Flip) and the record dialog (close, kind switch, re-record) alike.
 - The upload percent bar judges the size of the file the input emitted, so it works when the consumer passes `selectedFile={null}` after hand-off.
 
 ## Client claim + neutral pass-through

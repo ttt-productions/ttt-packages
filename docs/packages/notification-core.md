@@ -28,6 +28,15 @@ in the active collection until archived; personal unread state is tracked with
   failure. A row's `isArchivePending` stays true after `{ archived: true }` until the
   authoritative active read drops the row; `{ archived: false }` (the server archived
   nothing — the card changed after it was rendered) and a rejection clear it at once.
+  A pending archive — single-row or Clear All — belongs to the activity generation it was
+  sent for: a read that lists the same id at a newer generation (the card was relit) releases
+  it, so the relit card's Archive control is available again.
+- **Clear All.** `useArchiveAllNotifications` enqueues the app's server job and polls its
+  `ArchiveAllJobSnapshot` to a terminal state. `onClearAll` fires with the terminal
+  `ArchiveAllPollResult` only when the job completed — it walked the whole category. A complete
+  result can carry `notArchived > 0`: cards that each failed and stay listed, so their Clear All
+  pending is released at once and the copy for them is the app's. An incomplete or failed drain
+  never fires `onClearAll`; the list shows its own "Some notifications remain — try again."
 - **Read states.** While a list's first page loads it renders ui-core's `Spinner` as
   a status region. A failed read renders the app's required `renderError` slot
   (`NotificationListErrorState`: `error`, `retry` — re-reads the displayed page —

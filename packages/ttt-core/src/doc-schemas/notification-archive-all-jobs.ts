@@ -50,6 +50,12 @@ export const NotificationArchiveAllJobSchema = z
     revision: z.number().int().nonnegative(),
     /** Monotonic count of cards archived so far. */
     archived: z.number().int().nonnegative(),
+    /**
+     * Cards the completing drain could not archive — each failed on its own and is still in the list.
+     * Set (never summed) when the job completes, because that drain walked the whole active set once.
+     * Absent until a job completes with cards left behind (read as 0).
+     */
+    notArchived: z.number().int().nonnegative().optional(),
     /** Human-readable failure reason (only on `failed`). */
     error: z.string().nullable(),
     // ── retry / dead-letter bookkeeping (mirrors the fanout ledger) ──

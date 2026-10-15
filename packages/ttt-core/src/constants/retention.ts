@@ -49,6 +49,13 @@ export const ORPHAN_UPLOAD_DELETE_CAP = 500;
 /** Page size for listing orphan uploads. */
 export const ORPHAN_UPLOAD_LIST_PAGE_SIZE = 1000;
 
+/**
+ * Per-run cap on staging objects examined. Kept objects (young, active, archived, held) cost nothing
+ * against the delete cap, so this is what bounds a pass over a long kept stretch; two listing pages
+ * keep a pass well inside the sweep's function timeout, and the next run resumes after the last one.
+ */
+export const ORPHAN_UPLOAD_EXAMINED_CAP = 2 * ORPHAN_UPLOAD_LIST_PAGE_SIZE;
+
 // --- Frontend in-flight upload listeners ---
 
 /** Maximum lookback window for the in-flight upload listener (24 hours). */

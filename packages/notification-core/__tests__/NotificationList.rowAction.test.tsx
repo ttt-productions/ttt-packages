@@ -231,6 +231,115 @@ describe('NotificationList — renderRowAction (inert row + exposed archive)', (
     await waitFor(() => expect(screen.queryByLabelText('pending-n1')).toBeNull());
   });
 
+  it('releases an archived card relit at a new generation before the read caught up', async () => {
+    mocks.useActiveNotifications.mockReturnValue({
+      data: [makeNotification({ id: 'n1', activityGeneration: 'g1' }), makeNotification({ id: 'n2' })],
+      isLoading: false,
+      hasNextPage: false,
+      nextPage: vi.fn(),
+    });
+    const renderRowAction = (notification: NotificationDoc, actions: NotificationRowActions) => (
+      <button
+        aria-label={`${actions.isArchivePending ? 'pending' : 'clear'}-${notification.id}`}
+        onClick={() => { void actions.archive?.(); }}
+      >
+        {actions.isArchivePending ? 'Pending' : 'Clear'}
+      </button>
+    );
+    const view = render(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
+
+    fireEvent.click(screen.getByLabelText('clear-n1'));
+    await waitFor(() => expect(screen.getByLabelText('pending-n1')).toBeInTheDocument());
+
+    // The same generation still listed: the archive has not been read back yet.
+    view.rerender(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
+    expect(screen.getByLabelText('pending-n1')).toBeInTheDocument();
+
+    mocks.useActiveNotifications.mockReturnValue({
+      data: [makeNotification({ id: 'n1', activityGeneration: 'g2' }), makeNotification({ id: 'n2' })],
+      isLoading: false,
+      hasNextPage: false,
+      nextPage: vi.fn(),
+    });
+    view.rerender(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
+    expect(screen.getByLabelText('clear-n1')).toBeInTheDocument();
+  });
+
+  it('releases a Clear All row relit at a new generation and keeps the rest pending', async () => {
+    let resolveClearAll: (value: { complete: boolean }) => void = () => {};
+    mocks.useActiveNotifications.mockReturnValue({
+      data: [
+        makeNotification({ id: 'n1', activityGeneration: 'g1' }),
+        makeNotification({ id: 'n2', activityGeneration: 'g1' }),
+      ],
+      isLoading: false,
+      hasNextPage: false,
+      nextPage: vi.fn(),
+    });
+    mocks.useArchiveAllNotifications.mockReturnValue({
+      mutateAsync: vi.fn(
+        () => new Promise<{ complete: boolean }>((resolve) => { resolveClearAll = resolve; }),
+      ),
+      isPending: false,
+    });
+    const renderRowAction = (notification: NotificationDoc, actions: NotificationRowActions) => (
+      <span data-testid={`pending-${notification.id}`}>{String(actions.isArchivePending)}</span>
+    );
+    const view = render(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
+    fireEvent.click(screen.getByText('Clear All'));
+    await waitFor(() => expect(screen.getByTestId('pending-n1')).toHaveTextContent('true'));
+    await act(async () => { resolveClearAll({ complete: true }); });
+
+    mocks.useActiveNotifications.mockReturnValue({
+      data: [
+        makeNotification({ id: 'n1', activityGeneration: 'g2' }),
+        makeNotification({ id: 'n2', activityGeneration: 'g1' }),
+      ],
+      isLoading: false,
+      hasNextPage: false,
+      nextPage: vi.fn(),
+    });
+    view.rerender(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
+    expect(screen.getByTestId('pending-n1')).toHaveTextContent('false');
+    expect(screen.getByTestId('pending-n2')).toHaveTextContent('true');
+
+    mocks.useActiveNotifications.mockReturnValue({
+      data: [makeNotification({ id: 'n1', activityGeneration: 'g2' })],
+      isLoading: false,
+      hasNextPage: false,
+      nextPage: vi.fn(),
+    });
+    view.rerender(<NotificationList {...baseProps} renderRowAction={renderRowAction} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Clear All' })).toBeInTheDocument());
+    expect(screen.getByTestId('pending-n1')).toHaveTextContent('false');
+  });
+
+  it('hands a complete result to onClearAll and stops Clearing when cards were left in the list', async () => {
+    const result = { status: 'complete' as const, category: 'user', archived: 1, notArchived: 1, complete: true };
+    mocks.useArchiveAllNotifications.mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(result),
+      isPending: false,
+    });
+    const onClearAll = vi.fn();
+    const renderRowAction = (notification: NotificationDoc, actions: NotificationRowActions) => (
+      <span data-testid={`pending-${notification.id}`}>{String(actions.isArchivePending)}</span>
+    );
+    const view = render(<NotificationList {...baseProps} onClearAll={onClearAll} renderRowAction={renderRowAction} />);
+    await act(async () => { fireEvent.click(screen.getByText('Clear All')); });
+    expect(onClearAll).toHaveBeenCalledWith(result);
+
+    // n2 was archived and has left the read; n1 failed on its own and stays listed.
+    mocks.useActiveNotifications.mockReturnValue({
+      data: [makeNotification({ id: 'n1' })],
+      isLoading: false,
+      hasNextPage: false,
+      nextPage: vi.fn(),
+    });
+    view.rerender(<NotificationList {...baseProps} onClearAll={onClearAll} renderRowAction={renderRowAction} />);
+    expect(screen.getByTestId('pending-n1')).toHaveTextContent('false');
+    expect(screen.getByRole('button', { name: 'Clear All' })).toBeInTheDocument();
+  });
+
   it('stops a row spinner on archive failure while the row remains active', async () => {
     let rejectArchive: (error: Error) => void = () => {};
     archiveMutateAsync.mockImplementationOnce(

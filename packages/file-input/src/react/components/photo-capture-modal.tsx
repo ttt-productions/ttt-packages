@@ -26,11 +26,16 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // Bumped by every teardown. A camera that finishes starting after a teardown (dialog closed,
+  // unmounted, superseded by Flip) belongs to nobody: its tracks are stopped, never attached,
+  // or the camera would stay on with no dialog left to turn it off.
+  const acquireGenRef = useRef(0);
   const [activeFacing, setActiveFacing] = useState(facingMode);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const stopStream = useCallback(() => {
+    acquireGenRef.current += 1;
     const s = streamRef.current;
     streamRef.current = null;
     if (s) s.getTracks().forEach((t) => t.stop());
@@ -41,20 +46,26 @@ export function PhotoCaptureModal(props: PhotoCaptureModalProps) {
     async (facing: "user" | "environment") => {
       stopStream();
       setError(null);
+      const gen = acquireGenRef.current;
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facing },
           audio: false,
         });
+        if (gen !== acquireGenRef.current) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
         streamRef.current = stream;
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
-          setReady(true);
+          if (gen === acquireGenRef.current) setReady(true);
         }
       } catch (e) {
+        if (gen !== acquireGenRef.current) return;
         const msg = e instanceof Error ? e.message : "Camera access denied.";
         setError(msg);
       }

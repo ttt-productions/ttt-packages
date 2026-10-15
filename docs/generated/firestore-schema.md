@@ -1678,6 +1678,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `state` | `'in-progress' \| 'complete' \| 'incomplete' \| 'failed'` |  |
 | `revision` | `number` |  |
 | `archived` | `number` |  |
+| `notArchived` | `number` | yes |
 | `error` | `string \| null` |  |
 | `attemptCount` | `number` |  |
 | `nextAttemptAt` | `number` |  |
@@ -2535,6 +2536,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `statusReason` | `string` | yes |
 | `statusReasonAt` | `number` | yes |
 | `safetyLocked` | `boolean` | yes |
+| `orphanDeletionClaimedAt` | `number` | yes |
 | `craftSkillChangeMarker` | `number` | yes |
 | `accountType` | `'teen' \| 'adult'` |  |
 | `is18Plus` | `boolean` |  |
