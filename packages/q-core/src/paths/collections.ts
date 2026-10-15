@@ -50,6 +50,9 @@ export const COLLECTIONS = {
 
   // Awards and derived stats
   AWARD_DEFINITIONS: 'awardDefinitions',
+  // One decision on one award for one group — a team, or a whole league — granted or taken back a
+  // page of people at a time, id `buildAwardGroupGrantId`. Backend-only.
+  AWARD_GROUP_GRANTS: 'awardGroupGrants',
   SPORT_HALL_OF_FAME: 'sportHallOfFame',
   STATS_VALIDATION_REPORTS: 'statsValidationReports',
   // One logical run of a stats action: its status, its resume position, and the hold it places on
@@ -113,6 +116,12 @@ export const SPORT_GAME_SUBCOLLECTIONS = {
 export const WAIVER_TEMPLATE_SUBCOLLECTIONS = {
   // One immutable document per published wording, id `buildWaiverTemplateVersionId(version)`.
   WAIVER_TEMPLATE_VERSIONS: 'waiverTemplateVersions',
+} as const;
+
+/** Subcollections of `awardGroupGrants/{grantId}`. */
+export const AWARD_GROUP_GRANT_SUBCOLLECTIONS = {
+  // One document per person the grant reached, id = the userId, recorded before their profile changed.
+  AWARD_GROUP_GRANT_PEOPLE: 'awardGroupGrantPeople',
 } as const;
 
 /** Static document IDs for fixed-ID documents. */

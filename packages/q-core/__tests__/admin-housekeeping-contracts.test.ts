@@ -51,7 +51,11 @@ describe('the award catalog', () => {
   });
 
   it('takes a grant change that names someone, never one account both granted and revoked, and bounded lists', () => {
-    expect(AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', grantTeamIds: ['t1'] }).success).toBe(true);
+    expect(AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', grantUserIds: ['u1'] }).success).toBe(true);
+    expect(AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', revokeUserIds: ['u1'] }).success).toBe(true);
+    // A team or a league is granted through its own paged decision, never inside a named-account change.
+    expect(AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', grantTeamIds: ['t1'] }).success).toBe(false);
+    expect(AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', grantLeagueIds: ['l1'] }).success).toBe(false);
     expect(AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1' }).success).toBe(false);
     expect(AdminUpdateAwardGrantsInputSchema.safeParse({ awardId: 'a1', grantUserIds: [] }).success).toBe(false);
     expect(

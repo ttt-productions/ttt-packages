@@ -8,6 +8,7 @@
 // is assembled here through its one builder in ../ids — never at a call site.
 
 import {
+  AWARD_GROUP_GRANT_SUBCOLLECTIONS,
   COLLECTIONS,
   SPORT_GAME_SUBCOLLECTIONS,
   SPECIAL_DOCS,
@@ -137,6 +138,18 @@ export const PATH_BUILDERS = {
 
   // Awards and derived stats
   awardDefinition: (awardId: string): [string, string] => [COLLECTIONS.AWARD_DEFINITIONS, awardId],
+  awardGroupGrant: (grantId: string): [string, string] => [COLLECTIONS.AWARD_GROUP_GRANTS, grantId],
+  awardGroupGrantPerson: (grantId: string, userId: string): [string, string, string, string] => [
+    COLLECTIONS.AWARD_GROUP_GRANTS,
+    grantId,
+    AWARD_GROUP_GRANT_SUBCOLLECTIONS.AWARD_GROUP_GRANT_PEOPLE,
+    userId,
+  ],
+  awardGroupGrantPeople: (grantId: string): [string, string, string] => [
+    COLLECTIONS.AWARD_GROUP_GRANTS,
+    grantId,
+    AWARD_GROUP_GRANT_SUBCOLLECTIONS.AWARD_GROUP_GRANT_PEOPLE,
+  ],
   sportHallOfFame: (sportKey: SportKey): [string, string] => [COLLECTIONS.SPORT_HALL_OF_FAME, sportKey],
   statsValidationReport: (reportId: string): [string, string] => [
     COLLECTIONS.STATS_VALIDATION_REPORTS,

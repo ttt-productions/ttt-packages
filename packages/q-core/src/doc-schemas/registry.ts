@@ -15,6 +15,7 @@ import {
   NotificationDeliverySchema,
 } from './admin-notifications.js';
 import { AwardDefinitionSchema } from './catalogs.js';
+import { AwardGroupGrantPersonSchema, AwardGroupGrantSchema } from './award-group-grant.js';
 import { GameLocationSchema } from './game-location.js';
 import { GalleryPictureSchema } from './gallery.js';
 import { PendingMediaSchema } from './pending-media.js';
@@ -80,6 +81,8 @@ export const COLLECTION_SCHEMAS = {
   'hardwareLoanContracts/{contractId}': HardwareLoanContractSchema,
 
   'awardDefinitions/{awardId}': AwardDefinitionSchema,
+  'awardGroupGrants/{grantId}': AwardGroupGrantSchema,
+  'awardGroupGrants/{grantId}/awardGroupGrantPeople/{userId}': AwardGroupGrantPersonSchema,
   'sportHallOfFame/{sportKey}': SportHallOfFameSchema,
   'statsValidationReports/{reportId}': StatsValidationReportSchema,
   'statsOperations/{operationId}': StatsOperationSchema,
@@ -118,6 +121,8 @@ export const COLLECTION_DOC_ID_FIELDS = {
   'adminNotificationHistory/{historyId}': 'archiveOccurrenceId',
   'notificationDeliveries/{deliveryId}': 'deliveryId',
   'notificationArchiveAllJobs/{jobId}': 'jobId',
+  'awardGroupGrants/{grantId}': 'grantId',
+  'awardGroupGrants/{grantId}/awardGroupGrantPeople/{userId}': 'userId',
   'migrationActionRuns/{actionId}': 'actionId',
 } as const satisfies Partial<Record<RegisteredCollectionPath, string>>;
 

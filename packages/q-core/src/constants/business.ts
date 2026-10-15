@@ -17,9 +17,6 @@ export const MIN_LEAGUE_TITLE_LENGTH = 3;
 export const MAX_LEAGUE_TITLE_LENGTH = 100;
 export const MIN_LEAGUE_DESCRIPTION_LENGTH = 10;
 export const MAX_LEAGUE_DESCRIPTION_LENGTH = 5000;
-// How many teams in a pool reach the playoffs. The cap only bounds the input: no league comes near
-// it, and a cutoff above a pool's team count simply admits every team.
-export const MAX_PLAYOFF_CUTOFF = 100;
 // The equipment a referee can be loaned. The catalog is this constant: adding an item is a code
 // change, and a contract records each item's id and name as it was loaned.
 export const HARDWARE_CATALOG = [
@@ -36,11 +33,12 @@ export const HARDWARE_CATALOG_ITEM_IDS = HARDWARE_CATALOG.map((item) => item.id)
 export const MIN_AWARD_NAME_LENGTH = 3;
 export const MAX_AWARD_NAME_LENGTH = 60;
 
-// The most people one award grant may reach once its teams and leagues are resolved to their active
-// members: every grant of one call commits in one transaction, beside its audit events.
-export const MAX_AWARD_GRANT_RECIPIENTS = 200;
-// The most users, teams, or leagues one award grant call may name in each list.
+// The most accounts one award grant call may name in each list.
 export const MAX_AWARD_GRANT_TARGETS = 20;
+// The people one page of a team's or league's award grant reaches. A group grant has no limit on
+// people; each page commits on its own, and a person takes at most four writes in it — the profile,
+// its public mirror, the person's record on the grant, and the audit event — beside the grant record.
+export const AWARD_GROUP_GRANT_PAGE_SIZE = 100;
 
 // The reason an admin gives for a repair action — a backfill, a recalculation, a reopen — recorded on
 // its audit event (BACKEND-212).
@@ -81,10 +79,8 @@ export const MAX_GAME_LOCATION_SUB_LOCATIONS = 50;
 export const MAX_GAME_LOCATION_SUB_LOCATION_LENGTH = 60;
 export const MAX_GAME_LOCATION_MEMO_LENGTH = 500;
 
-// A week of the schedule: its title, and the games one save creates with it — each seeded with its
-// teams' rosters in the same transaction, so a larger week is saved in parts.
+// A week of the schedule's title.
 export const MAX_SCHEDULE_WEEK_TITLE_LENGTH = 100;
-export const MAX_SCHEDULE_WEEK_GAMES = 20;
 
 // The timezone a game's `dayKey` (its local calendar date) is computed in.
 export const LEAGUE_TIME_ZONE = 'America/New_York';
@@ -97,27 +93,57 @@ export const MAX_GAME_MEMO_LENGTH = 30;
 export const countCapReachedMessage = (subject: string, limit: number, noun: string): string =>
   `${subject} already has the maximum of ${limit} ${noun}.`;
 
-// A team's size. Every way onto a team is refused at this many active members, inside the
-// admission's transaction, so a game's roster can always be seeded and checked in one read.
-export const MAX_ACTIVE_TEAM_MEMBERS = 100;
-export const TEAM_FULL_MESSAGE = countCapReachedMessage('This team', MAX_ACTIVE_TEAM_MEMBERS, 'members');
+// The capacity limits: how many players, teams, games and stats Q-Sports holds. Each is enforced
+// where the thing is created, inside that creation's transaction, so every read of a whole set fits
+// one bound and every internal bound sized from one derives from it here.
+
+// A team's size, ghost players included. Every way onto a team is refused at this many active
+// members, so a game's roster can always be seeded and checked in one read.
+export const MAX_ACTIVE_TEAM_MEMBERS = 30;
+export const TEAM_FULL_MESSAGE = countCapReachedMessage('This team', MAX_ACTIVE_TEAM_MEMBERS, 'players');
 // The memberships one game-roster seed reads for a team: every membership is active, so the cap.
 export const MAX_ROSTER_SEED_MEMBERSHIPS_PER_TEAM = MAX_ACTIVE_TEAM_MEMBERS;
 // Departed players a team's side of an open game may keep beside its members: a player who recorded
 // stats in the game keeps their entry after leaving the team.
-export const MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM = 20;
+export const MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM = 10;
 // The entries one team's side of a game may hold, so a reconcile or finalize reads them in one page.
 export const MAX_ROSTER_ENTRIES_PER_TEAM = MAX_ACTIVE_TEAM_MEMBERS + MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM;
 
 // A league's size. Standings, schedules, and rankings need a league's complete set of teams and
-// games, so creation is refused at these caps rather than any read being cut short. The team cap is
-// also the most teams one mode switch rewrites in its one transaction.
-export const MAX_TEAMS_PER_LEAGUE = 498;
-export const MAX_GAMES_PER_LEAGUE = 1000;
+// games, so creation is refused at these caps rather than any read being cut short. A team's games
+// are its league's, so the game cap bounds them too.
+export const MAX_TEAMS_PER_LEAGUE = 40;
+export const MAX_GAMES_PER_LEAGUE = 250;
 export const LEAGUE_TEAMS_FULL_MESSAGE = countCapReachedMessage('This league', MAX_TEAMS_PER_LEAGUE, 'teams');
 export const LEAGUE_GAMES_FULL_MESSAGE = countCapReachedMessage('This league', MAX_GAMES_PER_LEAGUE, 'games');
 
+// The most games one week of the schedule holds, counting the games it already has: creating a week
+// or adding a game to one is refused past it.
+export const MAX_SCHEDULE_WEEK_GAMES = 20;
+export const SCHEDULE_WEEK_FULL_MESSAGE = countCapReachedMessage('This week', MAX_SCHEDULE_WEEK_GAMES, 'games');
+
+// How many teams in a pool reach the playoffs: at most every team a league can hold. A cutoff above a
+// pool's team count simply admits every team.
+export const MAX_PLAYOFF_CUTOFF = MAX_TEAMS_PER_LEAGUE;
+
 // A game's stat log. A write that would take a game's `statEventSequence` past it is refused with
 // nothing written, which also bounds the game's live play-by-play.
-export const MAX_STAT_EVENTS_PER_GAME = 5000;
+export const MAX_STAT_EVENTS_PER_GAME = 1000;
 export const GAME_STAT_LOG_FULL_MESSAGE = countCapReachedMessage('This game', MAX_STAT_EVENTS_PER_GAME, 'recorded stats');
+
+// Every capacity limit as an admin reads it, in the order the Limits card lists them. Each value is
+// the constant the server enforces, so the card and every refusal name the same number.
+export const CAPACITY_LIMITS = [
+  { key: 'teamPlayers', label: 'Players on a team, ghost players included', limit: MAX_ACTIVE_TEAM_MEMBERS },
+  {
+    key: 'gameSidePeople',
+    label: `People on one side of one game: ${MAX_ACTIVE_TEAM_MEMBERS} players plus ${MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM} who left the team after recording stats in it`,
+    limit: MAX_ROSTER_ENTRIES_PER_TEAM,
+  },
+  { key: 'leagueTeams', label: 'Teams in a league', limit: MAX_TEAMS_PER_LEAGUE },
+  { key: 'leagueGames', label: "Games in a league, so also a team's games", limit: MAX_GAMES_PER_LEAGUE },
+  { key: 'weekGames', label: 'Games in one week of the schedule', limit: MAX_SCHEDULE_WEEK_GAMES },
+  { key: 'gameStats', label: 'Stats recorded in one game', limit: MAX_STAT_EVENTS_PER_GAME },
+  { key: 'playoffCutoff', label: "Teams reaching the playoffs, at most the league's team limit", limit: MAX_PLAYOFF_CUTOFF },
+] as const satisfies readonly { key: string; label: string; limit: number }[];
+export type CapacityLimitKey = (typeof CAPACITY_LIMITS)[number]['key'];

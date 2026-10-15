@@ -25,6 +25,7 @@ export const COLLECTION_REFS = {
   signedWaivers: (): [string] => [COLLECTIONS.SIGNED_WAIVERS],
   hardwareLoanContracts: (): [string] => [COLLECTIONS.HARDWARE_LOAN_CONTRACTS],
   awardDefinitions: (): [string] => [COLLECTIONS.AWARD_DEFINITIONS],
+  awardGroupGrants: (): [string] => [COLLECTIONS.AWARD_GROUP_GRANTS],
   statsValidationReports: (): [string] => [COLLECTIONS.STATS_VALIDATION_REPORTS],
   statsOperations: (): [string] => [COLLECTIONS.STATS_OPERATIONS],
   migrationActionRuns: (): [string] => [COLLECTIONS.MIGRATION_ACTION_RUNS],

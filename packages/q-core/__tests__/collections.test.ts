@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
+  AWARD_GROUP_GRANT_SUBCOLLECTIONS,
   COLLECTIONS,
   SPORT_GAME_SUBCOLLECTIONS,
   SPECIAL_DOCS,
@@ -16,6 +17,7 @@ const NAME_MAPS: Array<[string, Record<string, string>]> = [
   ['USER_PROFILE_SUBCOLLECTIONS', USER_PROFILE_SUBCOLLECTIONS],
   ['SPORT_GAME_SUBCOLLECTIONS', SPORT_GAME_SUBCOLLECTIONS],
   ['WAIVER_TEMPLATE_SUBCOLLECTIONS', WAIVER_TEMPLATE_SUBCOLLECTIONS],
+  ['AWARD_GROUP_GRANT_SUBCOLLECTIONS', AWARD_GROUP_GRANT_SUBCOLLECTIONS],
 ];
 
 describe('compound camelCase collection names', () => {
@@ -103,6 +105,7 @@ describe('path builders', () => {
     expect(PATH_BUILDERS.waiverTemplateVersions('w1')).toEqual(
       PATH_BUILDERS.waiverTemplateVersion('w1', 1).slice(0, 3),
     );
+    expect(PATH_BUILDERS.awardGroupGrantPeople('g1')).toEqual(PATH_BUILDERS.awardGroupGrantPerson('g1', 'u1').slice(0, 3));
   });
 });
 
@@ -120,5 +123,6 @@ describe('collection refs and groups', () => {
   it('collection groups derive from the subcollection constants', () => {
     expect(COLLECTION_GROUPS.GAME_ROSTER_PLAYERS).toBe(SPORT_GAME_SUBCOLLECTIONS.GAME_ROSTER_PLAYERS);
     expect(COLLECTION_GROUPS.GAME_STAT_EVENTS).toBe(SPORT_GAME_SUBCOLLECTIONS.GAME_STAT_EVENTS);
+    expect(COLLECTION_GROUPS.AWARD_GROUP_GRANT_PEOPLE).toBe(AWARD_GROUP_GRANT_SUBCOLLECTIONS.AWARD_GROUP_GRANT_PEOPLE);
   });
 });

@@ -156,14 +156,32 @@ export const CANCELLED_TEAM_JOIN_REQUEST_STATUS = 'cancelled' as const satisfies
 
 export const HARDWARE_LOAN_CONTRACT_STATUS_KEYS = ['pending', 'loaned', 'returned'] as const;
 export type HardwareLoanContractStatus = (typeof HARDWARE_LOAN_CONTRACT_STATUS_KEYS)[number];
-// Why an award grant passed over an account its teams or leagues named: it has no profile, or it is
-// a ghost, which holds no account.
+// Why an award grant passed over an account it named: it has no profile, or it is a ghost, which
+// holds no account.
 export const AWARD_GRANT_SKIP_REASON_KEYS = ['noProfile', 'ghost'] as const;
 export type AwardGrantSkipReason = (typeof AWARD_GRANT_SKIP_REASON_KEYS)[number];
 
 // The two badges an account shows beside its name.
 export const FEATURED_AWARD_SLOT_KEYS = ['primary', 'secondary'] as const;
 export type FeaturedAwardSlot = (typeof FEATURED_AWARD_SLOT_KEYS)[number];
+
+// The groups an award is granted to all at once: every active member of a team, or of a league.
+export const AWARD_GROUP_TYPE_KEYS = ['team', 'league'] as const;
+export type AwardGroupType = (typeof AWARD_GROUP_TYPE_KEYS)[number];
+
+// A decision on one award for one group: grant it to the group's people, or take back what the
+// group's grants gave.
+export const AWARD_GROUP_GRANT_ACTION_KEYS = ['grant', 'revoke'] as const;
+export type AwardGroupGrantAction = (typeof AWARD_GROUP_GRANT_ACTION_KEYS)[number];
+
+// A decision is `pending` until every page of it is done, then `complete`.
+export const AWARD_GROUP_GRANT_STATUS_KEYS = ['pending', 'complete'] as const;
+export type AwardGroupGrantStatus = (typeof AWARD_GROUP_GRANT_STATUS_KEYS)[number];
+
+// Why taking a group's award back left one person holding it: they held it before the grant reached
+// them, or another group's grant still holds it for them.
+export const AWARD_GROUP_REVOKE_SKIP_KEYS = ['heldBefore', 'heldByAnotherGrant'] as const;
+export type AwardGroupRevokeSkip = (typeof AWARD_GROUP_REVOKE_SKIP_KEYS)[number];
 
 export const PENDING_HARDWARE_LOAN_CONTRACT_STATUS = 'pending' as const satisfies HardwareLoanContractStatus;
 export const LOANED_HARDWARE_LOAN_CONTRACT_STATUS = 'loaned' as const satisfies HardwareLoanContractStatus;
