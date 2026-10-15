@@ -4,7 +4,13 @@
  * The `sweepState/{sweepName}` document ids: one per scheduled pass that keeps a rolling cursor
  * (`SweepStateSchema`), so each pass owns exactly one document and its cursor is never shared.
  */
-export const SWEEP_STATE_NAMES = ['reconcilePublicUsers', 'orphanRegistrationCleanup', 'reconcileAccountStatus'] as const;
+export const SWEEP_STATE_NAMES = [
+  'reconcilePublicUsers',
+  'orphanRegistrationCleanup',
+  'reconcileAccountStatus',
+  'pictureRetirement',
+  'stalePendingMedia',
+] as const;
 export type SweepStateName = (typeof SWEEP_STATE_NAMES)[number];
 
 /**

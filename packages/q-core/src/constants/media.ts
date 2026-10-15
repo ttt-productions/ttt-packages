@@ -35,6 +35,15 @@ export const MAX_STAGING_DELETES_PER_RUN = 500;
 // the sweep's timeout beside its other passes, and the next run resumes after the last one examined.
 export const MAX_STAGING_EXAMINED_PER_RUN = 2 * STAGING_LIST_PAGE_SIZE;
 
+// Deferral backoff for the sweep's picture-retirement and stale-upload passes. A row a pass keeps or
+// fails on leaves its scan window as a sweep-state `deferred` entry, next due
+// `min(BASE × 2^(n−1), MAX)` from now with `n` its attempt count: 15 and 30 minutes, 1, 2, 4, 8 and
+// 16 hours, then a day from there on. The base is the sweep's 15-minute cadence, since any shorter
+// delay is simply the next run; the cap bounds how long a released reference or a recovered failure
+// waits to be noticed.
+export const MEDIA_SWEEP_BACKOFF_BASE_MS = 15 * MINUTE_MS;
+export const MEDIA_SWEEP_BACKOFF_MAX_MS = 24 * HOUR_MS;
+
 // How many times the migration console's picture carry enqueues one source before reporting it as refused by the
 // pipeline.
 export const MAX_V1_PICTURE_CARRY_ATTEMPTS = 3;

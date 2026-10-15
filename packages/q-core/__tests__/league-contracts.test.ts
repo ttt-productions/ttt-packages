@@ -75,6 +75,18 @@ describe('the stored league', () => {
     expect(SportLeagueSchema.safeParse({ ...storedLeague, waiverTemplateId: 'w1' }).success).toBe(false);
   });
 
+  it('reads a league with no team or game created yet, and one whose creations advanced its revisions', () => {
+    expect(SportLeagueSchema.safeParse(storedLeague).success).toBe(true);
+    expect(SportLeagueSchema.safeParse({ ...storedLeague, teamRevision: 3, gameRevision: 12 }).success).toBe(true);
+  });
+
+  it('holds its team and game revisions as counts', () => {
+    for (const field of ['teamRevision', 'gameRevision'] as const) {
+      expect(SportLeagueSchema.safeParse({ ...storedLeague, [field]: -1 }).success).toBe(false);
+      expect(SportLeagueSchema.safeParse({ ...storedLeague, [field]: 1.5 }).success).toBe(false);
+    }
+  });
+
   it('refuses the empty-string "no waiver" sentinel', () => {
     expect(SportLeagueSchema.safeParse({ ...storedLeague, waiverTemplateId: '' }).success).toBe(false);
     expect(

@@ -74,6 +74,15 @@ export const SportLeagueSchema = z
     // The league's picture gallery summary — absent is an empty gallery. Only the picture core
     // writes it; the league callables and the copy action never do.
     pictures: GallerySummarySchema.optional(),
+    // Advanced by every team created in the league; absent until the first. Only its changing
+    // matters: team creation counts the league's teams in its transaction against
+    // MAX_TEAMS_PER_LEAGUE, and a query does not lock against an insert — so each creation writes this
+    // document, and two creations at the cap conflict instead of both passing (BACKEND-116).
+    teamRevision: countSchema.optional(),
+    // Advanced by every game created in the league, a schedule week's included; absent until the
+    // first. Only its changing matters, the same way: game creation counts the league's games in its
+    // transaction against MAX_GAMES_PER_LEAGUE.
+    gameRevision: countSchema.optional(),
     createdAt: epochMsSchema,
     updatedAt: epochMsSchema,
   })
