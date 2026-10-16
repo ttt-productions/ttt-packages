@@ -232,6 +232,12 @@ export type WaiverWitnessAuthority = (typeof WAIVER_WITNESS_AUTHORITY_KEYS)[numb
 export const WAIVER_SIGNING_REFUSAL_KEYS = ['waiverChanged'] as const;
 export type WaiverSigningRefusal = (typeof WAIVER_SIGNING_REFUSAL_KEYS)[number];
 
+// Why a waiver-template publication was refused, named in its details so the editor answers it:
+// `templateVersionChanged` when the version the editor loaded is no longer the template's current
+// one, so the editor keeps the admin's draft and shows the newer wording before publishing again.
+export const WAIVER_TEMPLATE_EDIT_REFUSAL_KEYS = ['templateVersionChanged'] as const;
+export type WaiverTemplateEditRefusal = (typeof WAIVER_TEMPLATE_EDIT_REFUSAL_KEYS)[number];
+
 // The icon a team picks at creation; the persisted value is the icon component's name.
 export const TEAM_ICON_KEYS = [
   'Shield',
