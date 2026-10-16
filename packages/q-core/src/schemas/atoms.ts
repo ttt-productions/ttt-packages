@@ -2,6 +2,7 @@
 // document atoms — one declaration, re-exported here so a callable schema file imports its atoms from
 // one place.
 
+import { z } from 'zod';
 import {
   CONTACT_PHONE_INPUT_FORMAT,
   DISPLAY_NAME_INPUT_FORMAT,
@@ -30,6 +31,11 @@ export {
   teamTypeSchema,
   userIdSchema,
 } from '../doc-schemas/atoms.js';
+
+// Which entry of a member/admin twin pair of callables an action calls: the member entry, which
+// re-reads the caller's team membership, or the admin entry, which re-reads the role roster.
+export const actingEntrySchema = z.enum(['member', 'admin']);
+export type ActingEntry = z.infer<typeof actingEntrySchema>;
 
 export const teamInvitationIdSchema = documentIdSegmentSchema;
 export const teamJoinRequestIdSchema = documentIdSegmentSchema;
