@@ -145,6 +145,8 @@ export type GameStatsRepairOutcome = (typeof GAME_STATS_REPAIR_OUTCOME_KEYS)[num
 
 // Why a game repair in Fix stats was refused, in the refusal's details, so the form says what to do:
 //   eventUnreadable     an event document no longer parses or replays — fix it in the console first
+//   eventSequenceGap    the events do not hold exactly the sequences 1..n — a gap or a repeat — which
+//                       a repair never renumbers: fix the event documents in the console first
 //   sourcesDisagree     the record, the stored rollup, and the events all disagree: no one of them
 //                       says what finalize applied
 //   scoreAmbiguous      keep-stored: the team line's score and the score mirror were both edited, to
@@ -156,6 +158,7 @@ export type GameStatsRepairOutcome = (typeof GAME_STATS_REPAIR_OUTCOME_KEYS)[num
 //   gameTooLarge        the repair would not fit in one commit
 export const GAME_REPAIR_REFUSAL_KEYS = [
   'eventUnreadable',
+  'eventSequenceGap',
   'sourcesDisagree',
   'scoreAmbiguous',
   'fieldNotCorrectable',

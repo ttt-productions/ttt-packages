@@ -107,6 +107,8 @@ export const STATS_MIGRATION_CORRECTION_REASON =
 // What an admin reads when Fix stats refuses a game repair.
 export const GAME_REPAIR_REFUSAL_COPY = {
   eventUnreadable: "One of this game's recorded stats can no longer be read. Fix the event in the console, then repair the game.",
+  eventSequenceGap:
+    "This game's recorded stats are numbered with a gap or a repeat. Fix the event documents in the console, then restore the game.",
   sourcesDisagree:
     "This game's record, its stored numbers, and its recorded stats all disagree, so nothing says what was applied. Fix the game in the console first.",
   scoreAmbiguous:
