@@ -137,6 +137,16 @@ export const GAME_STAT_LOG_FULL_MESSAGE = countCapReachedMessage('This game', MA
 export const MAX_GAME_LOCATIONS = 30;
 export const GAME_LOCATIONS_FULL_MESSAGE = countCapReachedMessage('Q-Sports', MAX_GAME_LOCATIONS, 'locations');
 
+// The waiver templates a league can be given: every template not retired. The offered list and the
+// league form's picker read the whole set, so creating a template is refused at this many; retiring one
+// frees its place. A retired template is kept for what names it and never counts.
+export const MAX_OFFERED_WAIVER_TEMPLATES = 30;
+export const WAIVER_TEMPLATES_FULL_MESSAGE = countCapReachedMessage(
+  'Q-Sports',
+  MAX_OFFERED_WAIVER_TEMPLATES,
+  'waiver templates offered to leagues',
+);
+
 // Every capacity limit as an admin reads it, in the order the Limits card lists them. Each value is
 // the constant the server enforces, so the card and every refusal name the same number.
 export const CAPACITY_LIMITS = [
@@ -152,5 +162,6 @@ export const CAPACITY_LIMITS = [
   { key: 'gameStats', label: 'Stats recorded in one game', limit: MAX_STAT_EVENTS_PER_GAME },
   { key: 'playoffCutoff', label: "Teams reaching the playoffs, at most the league's team limit", limit: MAX_PLAYOFF_CUTOFF },
   { key: 'gameLocations', label: "Game locations, each venue's courts or sheets counted as part of it", limit: MAX_GAME_LOCATIONS },
+  { key: 'offeredWaiverTemplates', label: 'Waiver templates offered to leagues, retired ones not counted', limit: MAX_OFFERED_WAIVER_TEMPLATES },
 ] as const satisfies readonly { key: string; label: string; limit: number }[];
 export type CapacityLimitKey = (typeof CAPACITY_LIMITS)[number]['key'];

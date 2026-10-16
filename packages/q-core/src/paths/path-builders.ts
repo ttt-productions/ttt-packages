@@ -187,4 +187,5 @@ export const PATH_BUILDERS = {
   adminList: (): [string, string] => [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.ADMIN_LIST],
   migrationConsole: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.MIGRATION_CONSOLE],
   gameLocationRegistry: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.GAME_LOCATION_REGISTRY],
+  waiverTemplateRegistry: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.WAIVER_TEMPLATE_REGISTRY],
 } as const;

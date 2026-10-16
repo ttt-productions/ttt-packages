@@ -143,4 +143,7 @@ export const SPECIAL_DOCS = {
   MIGRATION_CONSOLE: 'migrationConsole',
   // The fence every venue creation writes, so two creations at MAX_GAME_LOCATIONS conflict.
   GAME_LOCATION_REGISTRY: 'gameLocationRegistry',
+  // The fence every waiver-template creation writes, so two creations at MAX_OFFERED_WAIVER_TEMPLATES
+  // conflict.
+  WAIVER_TEMPLATE_REGISTRY: 'waiverTemplateRegistry',
 } as const;

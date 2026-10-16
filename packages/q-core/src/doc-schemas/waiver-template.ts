@@ -6,7 +6,7 @@
 // copy of what the signer saw (`SignedWaiverSchema`).
 
 import { z } from 'zod';
-import { documentIdSegmentSchema, epochMsSchema, userIdSchema } from './atoms.js';
+import { countSchema, documentIdSegmentSchema, epochMsSchema, userIdSchema } from './atoms.js';
 
 export const waiverTemplateIdSchema = documentIdSegmentSchema;
 export const waiverTemplateVersionNumberSchema = z.number().int().min(1);
@@ -38,6 +38,16 @@ export const WaiverTemplateSchema = z
     path: ['retired'],
   });
 export type WaiverTemplate = z.infer<typeof WaiverTemplateSchema>;
+
+// `_serverData/waiverTemplateRegistry` — the fence of the offered-template cap. Template creation counts
+// the templates not retired in its transaction against MAX_OFFERED_WAIVER_TEMPLATES, and a query does
+// not lock against an insert, so each creation advances `templateRevision` here: two creations at the
+// cap conflict instead of both passing (BACKEND-116). Only its changing matters; absent until the first
+// creation.
+export const WaiverTemplateRegistrySchema = z.strictObject({
+  templateRevision: countSchema,
+});
+export type WaiverTemplateRegistry = z.infer<typeof WaiverTemplateRegistrySchema>;
 
 // `waiverTemplates/{waiverTemplateId}/waiverTemplateVersions/{versionId}` — one published version,
 // created once and never changed.

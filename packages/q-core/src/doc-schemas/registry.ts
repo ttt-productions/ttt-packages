@@ -49,7 +49,7 @@ import {
 } from './team-membership.js';
 import { HistoricalStatsSchema, UserPrivateDataSchema, UserProfileSchema } from './user-profile.js';
 import { HardwareLoanContractSchema, SignedWaiverSchema } from './waivers-and-hardware.js';
-import { WaiverTemplateSchema, WaiverTemplateVersionSchema } from './waiver-template.js';
+import { WaiverTemplateRegistrySchema, WaiverTemplateSchema, WaiverTemplateVersionSchema } from './waiver-template.js';
 
 export const COLLECTION_SCHEMAS = {
   'userProfiles/{userId}': UserProfileSchema,
@@ -104,6 +104,7 @@ export const COLLECTION_SCHEMAS = {
   '_systemData/adminList': AdminListSchema,
   '_serverData/migrationConsole': MigrationConsoleSchema,
   '_serverData/gameLocationRegistry': GameLocationRegistrySchema,
+  '_serverData/waiverTemplateRegistry': WaiverTemplateRegistrySchema,
   'migrationActionRuns/{actionId}': MigrationActionRunSchema,
   'sweepState/{sweepName}': SweepStateSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;

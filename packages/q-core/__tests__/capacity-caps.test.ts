@@ -7,6 +7,8 @@ import {
   AWARD_GROUP_GRANT_PAGE_SIZE,
   CAPACITY_LIMITS,
   GAME_LOCATIONS_FULL_MESSAGE,
+  MAX_OFFERED_WAIVER_TEMPLATES,
+  WAIVER_TEMPLATES_FULL_MESSAGE,
   GAME_STAT_LOG_FULL_MESSAGE,
   LEAGUE_GAMES_FULL_MESSAGE,
   LEAGUE_TEAMS_FULL_MESSAGE,
@@ -26,6 +28,7 @@ import {
   countCapReachedMessage,
 } from '../src/constants/business';
 import { GameLocationRegistrySchema } from '../src/doc-schemas/game-location';
+import { WaiverTemplateRegistrySchema } from '../src/doc-schemas/waiver-template';
 import { PATH_BUILDERS } from '../src/paths/path-builders';
 
 // The most writes one Firestore transaction commits.
@@ -100,6 +103,21 @@ describe('Q-Sports holds at most 30 game locations', () => {
   });
 });
 
+describe('Q-Sports offers leagues at most 30 waiver templates', () => {
+  it('declares the cap and says the offered templates are full', () => {
+    expect(MAX_OFFERED_WAIVER_TEMPLATES).toBe(30);
+    expect(WAIVER_TEMPLATES_FULL_MESSAGE).toBe(
+      'Q-Sports already has the maximum of 30 waiver templates offered to leagues.',
+    );
+  });
+
+  it('fences template creation on one server-only document holding only its revision', () => {
+    expect(PATH_BUILDERS.waiverTemplateRegistry()).toEqual(['_serverData', 'waiverTemplateRegistry']);
+    expect(WaiverTemplateRegistrySchema.parse({ templateRevision: 2 })).toEqual({ templateRevision: 2 });
+    expect(WaiverTemplateRegistrySchema.safeParse({ templateRevision: 2, count: 2 }).success).toBe(false);
+  });
+});
+
 describe('a group award grant page', () => {
   it('commits within one transaction: four writes a person beside the grant record', () => {
     expect(AWARD_GROUP_GRANT_PAGE_SIZE * 4 + 1).toBeLessThanOrEqual(TRANSACTION_WRITES);
@@ -123,6 +141,7 @@ describe('the capacity limits an admin reads', () => {
       gameStats: MAX_STAT_EVENTS_PER_GAME,
       playoffCutoff: MAX_PLAYOFF_CUTOFF,
       gameLocations: MAX_GAME_LOCATIONS,
+      offeredWaiverTemplates: MAX_OFFERED_WAIVER_TEMPLATES,
     });
   });
 
