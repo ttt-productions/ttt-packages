@@ -10,7 +10,7 @@ import {
 import { documentIdSegmentSchema, membershipRosterSyncStatusSchema } from '../doc-schemas/atoms.js';
 import { buildGhostUserIdForRequest, isGhostUserId } from '../ids/minted-ids.js';
 import { isDocumentIdSegment } from '../paths/utils.js';
-import { GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS } from '../types/stats.js';
+import { GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS, GHOST_REMOVAL_REFUSAL_KEYS } from '../types/stats.js';
 import { MEMBER_ASSIGNABLE_TEAM_ROLES } from '../types/unions.js';
 import {
   contactPhoneSchema,
@@ -259,6 +259,14 @@ export const DeleteTeamGhostPlayerResultSchema = z
   .strict();
 export type DeleteTeamGhostPlayerResult = z.infer<typeof DeleteTeamGhostPlayerResultSchema>;
 
+// The details of a ghost removal's designed refusal: its reason, and — for a refusal that stops a
+// removal already under way — `finishedGameEntriesRemoved`, the removal's count so far, as the result
+// counts it. Those entries stay removed.
+export const GhostRemovalRefusalDetailsSchema = z
+  .object({ reason: z.enum(GHOST_REMOVAL_REFUSAL_KEYS), finishedGameEntriesRemoved: countSchema.optional() })
+  .strict();
+export type GhostRemovalRefusalDetails = z.infer<typeof GhostRemovalRefusalDetailsSchema>;
+
 // `adminUpdateLeagueTeamCaptain`: make a member of the team its captain. Every other captain the team
 // holds becomes a player.
 export const AdminUpdateLeagueTeamCaptainInputSchema = z
@@ -321,3 +329,14 @@ export const AdminDeleteLeagueTeamResultSchema = z
   })
   .strict();
 export type AdminDeleteLeagueTeamResult = z.infer<typeof AdminDeleteLeagueTeamResultSchema>;
+
+// Why a team's deletion was refused, in the refusal's details: the team has played — a completed
+// game, or a stat in one of its games — whether that is found before anything is deleted or only as a
+// later game is reached. `deletedGameCount` is the unplayed games this request had already deleted
+// when it found the play, 0 when it found it first; those games stay deleted.
+export const LEAGUE_TEAM_DELETE_REFUSAL_KEYS = ['teamHasPlayed'] as const;
+export type LeagueTeamDeleteRefusal = (typeof LEAGUE_TEAM_DELETE_REFUSAL_KEYS)[number];
+export const LeagueTeamDeleteRefusalDetailsSchema = z
+  .object({ reason: z.enum(LEAGUE_TEAM_DELETE_REFUSAL_KEYS), deletedGameCount: countSchema })
+  .strict();
+export type LeagueTeamDeleteRefusalDetails = z.infer<typeof LeagueTeamDeleteRefusalDetailsSchema>;

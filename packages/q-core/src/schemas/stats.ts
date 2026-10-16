@@ -211,8 +211,35 @@ export const GameStatsCorrectionSchema = z
   .strict();
 export type GameStatsCorrection = z.infer<typeof GameStatsCorrectionSchema>;
 
+// A list of roster entries a repair replaced, as the game stored it and as the repair rebuilds it.
+const replacedEntryListSchema = z
+  .object({ stored: z.array(gameRosterPlayerIdSchema), rebuilt: z.array(gameRosterPlayerIdSchema) })
+  .strict();
+
+// Every value of the game document a repair changed, each with the value the game stored and the
+// value the repair writes — never the whole document (BACKEND-212). `lines` holds each changed field
+// of a team or player line (`lineKey` the team id or the roster entry id), `scores` each team whose
+// score mirror changed, and the lists, the event counter and `recordRewritten` appear only when the
+// repair changes them; `recordRewritten` names the finalized record's page counts before and after,
+// without copying the record.
+export const GameRepairChangesSchema = z
+  .object({
+    lines: z.array(
+      z.object({ lineKey: z.string().min(1), field: z.string().min(1), stored: z.number(), rebuilt: z.number() }).strict(),
+    ),
+    scores: z.array(z.object({ teamId: teamIdSchema, stored: z.number(), rebuilt: z.number() }).strict()),
+    absentRosterPlayerIds: replacedEntryListSchema.optional(),
+    nonScoringRosterPlayerIds: replacedEntryListSchema.optional(),
+    statEventSequence: z.object({ stored: countSchema, rebuilt: countSchema }).strict().optional(),
+    recordRewritten: z.object({ pagesBefore: countSchema, pagesAfter: countSchema }).strict().optional(),
+  })
+  .strict();
+export type GameRepairChanges = z.infer<typeof GameRepairChangesSchema>;
+
 // What a game repair did: `reconciled` it changed the game; `unchanged` there was nothing to change;
 // `alreadyApplied` the operation had already committed and this call is its acknowledged retry.
+// `gameChanges` is what it changed on the game document, or on a dry run would change; empty lists
+// for any other outcome.
 export const GameStatsRepairResultSchema = z
   .object({
     gameId: gameIdSchema,
@@ -222,6 +249,7 @@ export const GameStatsRepairResultSchema = z
     outcome: z.enum(GAME_STATS_REPAIR_OUTCOME_KEYS),
     corrections: z.array(GameStatsCorrectionSchema),
     gameChanged: z.boolean(),
+    gameChanges: GameRepairChangesSchema,
     destinationChanges: z.array(StatsDestinationChangeSchema),
   })
   .strict();
