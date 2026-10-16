@@ -2445,6 +2445,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `attestNoCredits` | `true` |  |
 | `attestNoBegging` | `true` |  |
 | `attestHumanMadeOriginal` | `true` |  |
+| `attestPublishStewardship` | `true` |  |
 | `attestedAt` | `number` |  |
 | `legalReviewNotice` | `{ revision, acknowledgedAt }` | yes |
 | `confirmedNoBegging` | `true` | yes |

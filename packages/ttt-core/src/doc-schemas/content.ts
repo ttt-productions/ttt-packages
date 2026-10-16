@@ -150,12 +150,13 @@ export const ThresholdItemSchema = z.object({
   // (REAL_PEOPLE_DISCLAIMER_MESSAGE) — there is no free-text disclaimer anywhere.
   hasRealPeople: z.boolean(),
   // Submission attestations — REQUIRED. The submit core refuses a submission unless the artisan
-  // ticks all four, then stores each as the literal `true` with the moment they were given. A
+  // ticks all five, then stores each as the literal `true` with the moment they were given. A
   // threshold item without them is not a valid submission.
   attestConsistentFormat: z.literal(true),
   attestNoCredits: z.literal(true),
   attestNoBegging: z.literal(true),
   attestHumanMadeOriginal: z.literal(true),
+  attestPublishStewardship: z.literal(true),
   attestedAt: z.number(),
   // The founder legal-review notice acknowledgment given with the attestations, written in the
   // same submission transaction. Present while the notice is active (the submit core refuses a

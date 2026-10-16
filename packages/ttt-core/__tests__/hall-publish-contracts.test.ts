@@ -229,6 +229,7 @@ describe('threshold item parked-publication state', () => {
     attestNoCredits: true,
     attestNoBegging: true,
     attestHumanMadeOriginal: true,
+    attestPublishStewardship: true,
     attestedAt: 1,
   };
 

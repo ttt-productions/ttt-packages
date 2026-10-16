@@ -432,27 +432,6 @@ button .spinner-xl {
 /* =========================================================
     DETAILS (nested accordions)
     ========================================================= */
-.details-summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  list-style: none;
-  padding: 1rem;
-  border-radius: 0.5rem;
-  border-width: 2px;
-  border-color: hsl(var(--border));
-  background-color: hsl(var(--card));
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
-.details-summary:hover {
-  border-color: hsl(var(--primary));
-  background-color: hsl(var(--primary) / 0.05);
-}
-
 .details-icon-container {
   padding: 0.5rem;
   border-radius: 0.5rem;

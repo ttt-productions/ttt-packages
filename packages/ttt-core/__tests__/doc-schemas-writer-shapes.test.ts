@@ -138,17 +138,17 @@ describe('contentViolations.pendingFile — the row AS CLAIMED', () => {
 });
 
 describe('thresholdItems — submission attestations and reviewer confirmations', () => {
-  const attestations = { attestConsistentFormat: true, attestNoCredits: true, attestNoBegging: true, attestHumanMadeOriginal: true, attestedAt: 3 } as const;
+  const attestations = { attestConsistentFormat: true, attestNoCredits: true, attestNoBegging: true, attestHumanMadeOriginal: true, attestPublishStewardship: true, attestedAt: 3 } as const;
   const item = { thresholdItemId: 't1', hallItemId: 'h1', workProjectId: 'w1', workProjectType: 'Tales', itemId: 'c1', itemsKey: 'chapters', order: 1, hallWingType: 'entertainment', submittedAt: 1, reviewStatus: 'pending', hasRealPeople: false, ...attestations };
 
   it('declares every field the submit and approve writers store', () => {
     const keys = Object.keys(ThresholdItemSchema.shape);
-    for (const k of ['attestConsistentFormat', 'attestNoCredits', 'attestNoBegging', 'attestHumanMadeOriginal', 'attestedAt', 'confirmedNoBegging', 'confirmedNoCredits', 'confirmedConsistentFormat', 'confirmedRealPeopleAttestation']) {
+    for (const k of ['attestConsistentFormat', 'attestNoCredits', 'attestNoBegging', 'attestHumanMadeOriginal', 'attestPublishStewardship', 'attestedAt', 'confirmedNoBegging', 'confirmedNoCredits', 'confirmedConsistentFormat', 'confirmedRealPeopleAttestation']) {
       expect(keys).toContain(k);
     }
   });
 
-  it('REQUIRES all four attestations and attestedAt — a submission without them is not valid', () => {
+  it('REQUIRES every attestation and attestedAt — a submission without them is not valid', () => {
     expect(ThresholdItemSchema.safeParse(item).success).toBe(true);
     for (const k of Object.keys(attestations)) {
       const { [k]: _omitted, ...missingOne } = item as Record<string, unknown>;
@@ -159,6 +159,7 @@ describe('thresholdItems — submission attestations and reviewer confirmations'
   it('stores an attestation or a confirmation only as the literal true', () => {
     expect(ThresholdItemSchema.safeParse({ ...item, reviewStatus: 'approved', confirmedNoBegging: true, confirmedNoCredits: true, confirmedConsistentFormat: true, confirmedRealPeopleAttestation: true }).success).toBe(true);
     expect(ThresholdItemSchema.safeParse({ ...item, attestNoBegging: false }).success).toBe(false);
+    expect(ThresholdItemSchema.safeParse({ ...item, attestPublishStewardship: false }).success).toBe(false);
     expect(ThresholdItemSchema.safeParse({ ...item, confirmedNoCredits: false }).success).toBe(false);
   });
 });
