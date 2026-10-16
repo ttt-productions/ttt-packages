@@ -9,3 +9,4 @@ export * from './app-routes.js';
 export * from './team-member-actions.js';
 export * from './league-mode.js';
 export * from './league-joining.js';
+export * from './format.js';
