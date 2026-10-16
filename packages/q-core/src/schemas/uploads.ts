@@ -6,8 +6,8 @@
 
 import { z } from 'zod';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
-import { MAX_STAGING_UPLOAD_PATH_LENGTH } from '../constants/media.js';
-import { leagueIdSchema, stagingIdSchema, teamIdSchema } from '../doc-schemas/atoms.js';
+import { MAX_STAGING_UPLOAD_PATH_LENGTH, MAX_UPLOADS_MARKED_SEEN_PER_CALL } from '../constants/media.js';
+import { countSchema, leagueIdSchema, stagingIdSchema, teamIdSchema } from '../doc-schemas/atoms.js';
 import { awardIdSchema, awardNameSchema } from '../doc-schemas/catalogs.js';
 import { gameLocationIdSchema } from '../doc-schemas/game-location.js';
 import { pictureOriginSchema } from '../doc-schemas/pending-media.js';
@@ -121,3 +121,23 @@ export const AdminStartUploadResultSchema = z
   })
   .strict();
 export type AdminStartUploadResult = z.infer<typeof AdminStartUploadResultSchema>;
+
+// The admin's upload tray. Each call names only which uploads; the callable decides from the stored
+// rows that each is the caller's own and finished. Tray state, never a sensitive action.
+
+// Marks the caller's finished uploads seen when the tray's Uploads view opens. An id that is not the
+// caller's, not finished, already seen, or gone is skipped, so one stale id never fails the batch.
+export const AdminMarkUploadsSeenInputSchema = z
+  .object({
+    pendingMediaIds: z.array(stagingIdSchema).min(1).max(MAX_UPLOADS_MARKED_SEEN_PER_CALL),
+  })
+  .strict();
+export type AdminMarkUploadsSeenInput = z.infer<typeof AdminMarkUploadsSeenInputSchema>;
+export const AdminMarkUploadsSeenResultSchema = z.object({ marked: countSchema }).strict();
+export type AdminMarkUploadsSeenResult = z.infer<typeof AdminMarkUploadsSeenResultSchema>;
+
+// Clears one of the caller's finished uploads from the tray.
+export const AdminClearUploadActivityInputSchema = z.object({ pendingMediaId: stagingIdSchema }).strict();
+export type AdminClearUploadActivityInput = z.infer<typeof AdminClearUploadActivityInputSchema>;
+export const AdminClearUploadActivityResultSchema = z.object({ cleared: z.literal(true) }).strict();
+export type AdminClearUploadActivityResult = z.infer<typeof AdminClearUploadActivityResultSchema>;

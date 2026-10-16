@@ -50,3 +50,11 @@ export const MAX_V1_PICTURE_CARRY_ATTEMPTS = 3;
 
 // The longest staging path a callable accepts: `uploads/{origin}/{uid}/{uuid}` is far shorter.
 export const MAX_STAGING_UPLOAD_PATH_LENGTH = 300;
+
+// How far back an admin's upload tray follows their uploads: only rows accepted within this window are
+// listened to. Every unfinished upload is inside it, since the sweep fails one still unfinished after
+// `STALE_PENDING_MEDIA_AGE_MS`.
+export const UPLOAD_TRAY_WINDOW_MS = 24 * HOUR_MS;
+
+// The most uploads one call marks seen in the tray: the finished rows the tray shows at once.
+export const MAX_UPLOADS_MARKED_SEEN_PER_CALL = 200;

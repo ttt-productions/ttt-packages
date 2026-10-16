@@ -11,7 +11,10 @@ import {
   PICTURE_ORIGIN_KEYS,
   PICTURE_UPLOAD_MAX_BYTES,
   PICTURE_VARIANT_KEYS,
+  MAX_UPLOADS_MARKED_SEEN_PER_CALL,
   SIGNATURE_ORIGIN_KEYS,
+  STALE_PENDING_MEDIA_AGE_MS,
+  UPLOAD_TRAY_WINDOW_MS,
   SPECIAL_DOCS,
   STAGING_UPLOAD_PREFIX,
   buildGalleryRetirementId,
@@ -33,7 +36,11 @@ import {
   PictureRetirementSchema,
 } from '../src/doc-schemas';
 import {
+  AdminClearUploadActivityInputSchema,
+  AdminClearUploadActivityResultSchema,
   AdminDeletePictureInputSchema,
+  AdminMarkUploadsSeenInputSchema,
+  AdminMarkUploadsSeenResultSchema,
   AdminMovePictureInputSchema,
   AdminStartUploadInputSchema,
   AdminUpdateFeaturedPictureInputSchema,
@@ -390,5 +397,36 @@ describe('picture domain events', () => {
     expect(
       DomainEventSchema.safeParse({ type: 'leagueTeam.updated', ids: { leagueId: 'l1', teamId: 't1' } }).success,
     ).toBe(true);
+  });
+});
+
+describe('the upload tray callables', () => {
+  it('follow every unfinished upload: the tray window outlasts the age at which the sweep fails one', () => {
+    expect(UPLOAD_TRAY_WINDOW_MS).toBeGreaterThan(STALE_PENDING_MEDIA_AGE_MS);
+  });
+
+  it('mark between one and the per-call bound of uploads seen, each by its staging id', () => {
+    expect(AdminMarkUploadsSeenInputSchema.safeParse({ pendingMediaIds: [STAGING_ID] }).success).toBe(true);
+    expect(AdminMarkUploadsSeenInputSchema.safeParse({ pendingMediaIds: [] }).success).toBe(false);
+    expect(
+      AdminMarkUploadsSeenInputSchema.safeParse({
+        pendingMediaIds: Array.from({ length: MAX_UPLOADS_MARKED_SEEN_PER_CALL + 1 }, () => STAGING_ID),
+      }).success,
+    ).toBe(false);
+    expect(AdminMarkUploadsSeenResultSchema.safeParse({ marked: 0 }).success).toBe(true);
+  });
+
+  it('clear one upload by its staging id', () => {
+    expect(AdminClearUploadActivityInputSchema.safeParse({ pendingMediaId: STAGING_ID }).success).toBe(true);
+    expect(AdminClearUploadActivityResultSchema.safeParse({ cleared: true }).success).toBe(true);
+  });
+
+  it('refuse a malformed id and any field beyond the ids, so the caller names nothing else', () => {
+    for (const malformed of ['a/b', STAGING_ID.toUpperCase(), '']) {
+      expect(AdminMarkUploadsSeenInputSchema.safeParse({ pendingMediaIds: [malformed] }).success).toBe(false);
+      expect(AdminClearUploadActivityInputSchema.safeParse({ pendingMediaId: malformed }).success).toBe(false);
+    }
+    expect(AdminMarkUploadsSeenInputSchema.safeParse({ pendingMediaIds: [STAGING_ID], userId: UID }).success).toBe(false);
+    expect(AdminClearUploadActivityInputSchema.safeParse({ pendingMediaId: STAGING_ID, userId: UID }).success).toBe(false);
   });
 });
