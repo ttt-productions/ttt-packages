@@ -118,10 +118,15 @@ const Toast = React.forwardRef<React.ElementRef<typeof ToastPrimitives.Root>, To
             // focus, and window-blur — but this CSS bar does not. When the bar
             // empties we must dismiss regardless of Radix's paused timer, so the
             // toast never lingers after the countdown visibly reaches zero.
-            // Radix's `duration` above remains a motion-independent backstop
-            // (e.g. under prefers-reduced-motion where this event may not fire).
+            // Only a bar that ran its course counts as empty: a reduced-motion
+            // stylesheet that collapses every animation to near zero ends this one
+            // at once, and closing then would hide the toast before anyone reads
+            // it. Radix's `duration` above is the motion-independent timer that
+            // closes the toast in that case.
             onAnimationEnd={(e) => {
-              if (e.animationName === "toast-progress") onOpenChange?.(false);
+              if (e.animationName !== "toast-progress") return;
+              if (e.elapsedTime * 1000 < effectiveDuration / 2) return;
+              onOpenChange?.(false);
             }}
           />
         ) : null}
