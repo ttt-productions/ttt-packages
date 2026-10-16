@@ -41,8 +41,8 @@ describe('the media sweep deferral backoff', () => {
 });
 
 describe('the sweep-state documents', () => {
-  it('gives the picture-retirement and stale-upload passes a position each, never shared', () => {
-    expect(SWEEP_STATE_NAMES).toEqual(expect.arrayContaining(['pictureRetirement', 'stalePendingMedia']));
+  it('gives the picture-retirement, stale-upload, and abandoned-staging passes a position each, never shared', () => {
+    expect(SWEEP_STATE_NAMES).toEqual(expect.arrayContaining(['pictureRetirement', 'stalePendingMedia', 'abandonedStaging']));
     expect(new Set(SWEEP_STATE_NAMES).size).toBe(SWEEP_STATE_NAMES.length);
   });
 });
