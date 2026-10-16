@@ -3,7 +3,7 @@
 // venue is deleted.
 
 import { z } from 'zod';
-import { documentIdSegmentSchema, epochMsSchema } from './atoms.js';
+import { countSchema, documentIdSegmentSchema, epochMsSchema } from './atoms.js';
 import { pictureIdSchema } from './gallery.js';
 
 export const gameLocationIdSchema = documentIdSegmentSchema;
@@ -22,3 +22,12 @@ export const GameLocationSchema = z.object({
   updatedAt: epochMsSchema,
 });
 export type GameLocation = z.infer<typeof GameLocationSchema>;
+
+// `_serverData/gameLocationRegistry` — the fence of the venue cap. Venue creation counts the venues
+// in its transaction against MAX_GAME_LOCATIONS, and a query does not lock against an insert, so each
+// creation advances `locationRevision` here: two creations at the cap conflict instead of both
+// passing (BACKEND-116). Only its changing matters; absent until the first creation.
+export const GameLocationRegistrySchema = z.strictObject({
+  locationRevision: countSchema,
+});
+export type GameLocationRegistry = z.infer<typeof GameLocationRegistrySchema>;

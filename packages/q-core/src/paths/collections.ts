@@ -141,4 +141,6 @@ export const SPECIAL_DOCS = {
   // The migration console: the cutover marker and the lock that keeps two actions from running at
   // once.
   MIGRATION_CONSOLE: 'migrationConsole',
+  // The fence every venue creation writes, so two creations at MAX_GAME_LOCATIONS conflict.
+  GAME_LOCATION_REGISTRY: 'gameLocationRegistry',
 } as const;

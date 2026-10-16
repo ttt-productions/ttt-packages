@@ -6,11 +6,14 @@ import { describe, it, expect } from 'vitest';
 import {
   AWARD_GROUP_GRANT_PAGE_SIZE,
   CAPACITY_LIMITS,
+  GAME_LOCATIONS_FULL_MESSAGE,
   GAME_STAT_LOG_FULL_MESSAGE,
   LEAGUE_GAMES_FULL_MESSAGE,
   LEAGUE_TEAMS_FULL_MESSAGE,
   MAX_ACTIVE_TEAM_MEMBERS,
   MAX_DEPARTED_ROSTER_ENTRIES_PER_TEAM,
+  MAX_GAME_LOCATIONS,
+  MAX_GAME_LOCATION_SUB_LOCATIONS,
   MAX_GAMES_PER_LEAGUE,
   MAX_PLAYOFF_CUTOFF,
   MAX_ROSTER_ENTRIES_PER_TEAM,
@@ -22,6 +25,8 @@ import {
   TEAM_FULL_MESSAGE,
   countCapReachedMessage,
 } from '../src/constants/business';
+import { GameLocationRegistrySchema } from '../src/doc-schemas/game-location';
+import { PATH_BUILDERS } from '../src/paths/path-builders';
 
 // The most writes one Firestore transaction commits.
 const TRANSACTION_WRITES = 500;
@@ -80,6 +85,21 @@ describe('a game holds at most 1,000 stat events', () => {
   });
 });
 
+describe('Q-Sports holds at most 30 game locations', () => {
+  it('declares the cap apart from the courts or sheets inside each venue, and says the venues are full', () => {
+    expect(MAX_GAME_LOCATIONS).toBe(30);
+    expect(MAX_GAME_LOCATION_SUB_LOCATIONS).toBe(50);
+    expect(GAME_LOCATIONS_FULL_MESSAGE).toBe('Q-Sports already has the maximum of 30 locations.');
+  });
+
+  it('fences venue creation on one server-only document holding only its revision', () => {
+    expect(PATH_BUILDERS.gameLocationRegistry()).toEqual(['_serverData', 'gameLocationRegistry']);
+    expect(GameLocationRegistrySchema.parse({ locationRevision: 3 })).toEqual({ locationRevision: 3 });
+    expect(GameLocationRegistrySchema.safeParse({ locationRevision: 3, count: 3 }).success).toBe(false);
+    expect(GameLocationRegistrySchema.safeParse({ locationRevision: -1 }).success).toBe(false);
+  });
+});
+
 describe('a group award grant page', () => {
   it('commits within one transaction: four writes a person beside the grant record', () => {
     expect(AWARD_GROUP_GRANT_PAGE_SIZE * 4 + 1).toBeLessThanOrEqual(TRANSACTION_WRITES);
@@ -102,6 +122,7 @@ describe('the capacity limits an admin reads', () => {
       weekGames: MAX_SCHEDULE_WEEK_GAMES,
       gameStats: MAX_STAT_EVENTS_PER_GAME,
       playoffCutoff: MAX_PLAYOFF_CUTOFF,
+      gameLocations: MAX_GAME_LOCATIONS,
     });
   });
 

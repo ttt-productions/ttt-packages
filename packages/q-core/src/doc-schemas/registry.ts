@@ -16,7 +16,7 @@ import {
 } from './admin-notifications.js';
 import { AwardDefinitionSchema } from './catalogs.js';
 import { AwardGroupGrantPersonSchema, AwardGroupGrantSchema } from './award-group-grant.js';
-import { GameLocationSchema } from './game-location.js';
+import { GameLocationRegistrySchema, GameLocationSchema } from './game-location.js';
 import { GalleryPictureSchema } from './gallery.js';
 import { PendingMediaSchema } from './pending-media.js';
 import { PictureRetirementSchema } from './picture-retirement.js';
@@ -103,6 +103,7 @@ export const COLLECTION_SCHEMAS = {
   '_appConfig/statsBeacon': StatsBeaconSchema,
   '_systemData/adminList': AdminListSchema,
   '_serverData/migrationConsole': MigrationConsoleSchema,
+  '_serverData/gameLocationRegistry': GameLocationRegistrySchema,
   'migrationActionRuns/{actionId}': MigrationActionRunSchema,
   'sweepState/{sweepName}': SweepStateSchema,
 } as const satisfies Record<string, z.ZodTypeAny>;

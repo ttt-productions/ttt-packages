@@ -131,6 +131,12 @@ export const MAX_PLAYOFF_CUTOFF = MAX_TEAMS_PER_LEAGUE;
 export const MAX_STAT_EVENTS_PER_GAME = 1000;
 export const GAME_STAT_LOG_FULL_MESSAGE = countCapReachedMessage('This game', MAX_STAT_EVENTS_PER_GAME, 'recorded stats');
 
+// The venues games are played at. Every venue picker and the public locations page read the whole set,
+// so creating a venue is refused at this many. A venue's courts, sheets, or rooms are part of it and
+// count toward MAX_GAME_LOCATION_SUB_LOCATIONS, never toward this.
+export const MAX_GAME_LOCATIONS = 30;
+export const GAME_LOCATIONS_FULL_MESSAGE = countCapReachedMessage('Q-Sports', MAX_GAME_LOCATIONS, 'locations');
+
 // Every capacity limit as an admin reads it, in the order the Limits card lists them. Each value is
 // the constant the server enforces, so the card and every refusal name the same number.
 export const CAPACITY_LIMITS = [
@@ -145,5 +151,6 @@ export const CAPACITY_LIMITS = [
   { key: 'weekGames', label: 'Games in one week of the schedule', limit: MAX_SCHEDULE_WEEK_GAMES },
   { key: 'gameStats', label: 'Stats recorded in one game', limit: MAX_STAT_EVENTS_PER_GAME },
   { key: 'playoffCutoff', label: "Teams reaching the playoffs, at most the league's team limit", limit: MAX_PLAYOFF_CUTOFF },
+  { key: 'gameLocations', label: "Game locations, each venue's courts or sheets counted as part of it", limit: MAX_GAME_LOCATIONS },
 ] as const satisfies readonly { key: string; label: string; limit: number }[];
 export type CapacityLimitKey = (typeof CAPACITY_LIMITS)[number]['key'];

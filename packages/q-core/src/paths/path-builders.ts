@@ -186,4 +186,5 @@ export const PATH_BUILDERS = {
   statsBeacon: (): [string, string] => [COLLECTIONS.APP_CONFIG, SPECIAL_DOCS.STATS_BEACON],
   adminList: (): [string, string] => [COLLECTIONS.SYSTEM_DATA, SPECIAL_DOCS.ADMIN_LIST],
   migrationConsole: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.MIGRATION_CONSOLE],
+  gameLocationRegistry: (): [string, string] => [COLLECTIONS.SERVER_DATA, SPECIAL_DOCS.GAME_LOCATION_REGISTRY],
 } as const;
