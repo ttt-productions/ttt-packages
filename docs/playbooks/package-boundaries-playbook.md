@@ -70,6 +70,33 @@ block and the package-architecture.md entry in the same change. A hit that only 
 constraint-builder or type-only import — is not a violation.
 **Status:** PASS · FAIL · NOT RUN · BLOCKED
 
+### 4. Repository checks read through the one guard reader
+**Rules:** ENG-002, ARCH-201. `@ttt-productions/repo-guards` owns reading a repository for checks: one
+walker, one scope policy, one comment stripper. The boundary suite reads through it too.
+```bash
+rg -n "readdirSync|readdir\(|opendirSync" test/boundary packages/*/src -g '*.ts' -g '*.js' \
+  | rg -v "packages/repo-guards/src"
+rg -n -i "\bttt-prod\b|ttt-master|q-sports|ttt-core|q-core" packages/repo-guards/src
+```
+**Expected:** the first prints nothing outside the guard package (whose own guards name these calls as
+the patterns they ban); a check that walks a tree itself is the finding — read it through
+`createRepoReader`. The second prints nothing: the guard package names no app, and an app's paths,
+names, and exceptions arrive as its facts.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
+### 5. A callable is declared through the shared callable factories
+**Rules:** ENG-002, ENG-003. `@ttt-productions/firebase-helpers/react`'s `createCallables` is the one
+factory set for a callable hook (action, reader, invoker, resumable); the SDK's callable primitives
+stay inside firebase-helpers.
+```bash
+rg -n "^[^/*]*\bhttpsCallable(FromURL)?\(" packages/*/src -g '*.ts' -g '*.tsx' | rg -v "packages/firebase-helpers/"
+rg -n "useMutation\(" packages/*/src -g '*.ts' -g '*.tsx' | rg -i "callable"
+```
+**Expected:** the first prints nothing. The second prints only `firebase-helpers`' own factories; a
+package building its own callable mutation hook is the finding — it takes a hook built by
+`createCallables` from the app instead.
+**Status:** PASS · FAIL · NOT RUN · BLOCKED
+
 ## Common failure patterns
 
 - An app's collection name, origin id, or copy string added to a generic package "just for now".

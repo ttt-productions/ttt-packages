@@ -518,19 +518,13 @@ export const COLLECTION_DOC_ID_FIELDS = {
  * enforced and nothing is silently uncovered; the registry test fails if a NEW unlisted collection
  * appears. These are the only remaining gaps after the schema-registry binding pass:
  *
- *  - userMetadata: `userProfiles/{uid}/userMetadata/notificationSettings` — a firestore.rules
- *    match and `PATH_BUILDERS.userMetadata` exist, but there is no live reader/writer and no
- *    notification-settings type anywhere yet. Bind once that shape is implemented.
  *  - feedbackDenylist: `_serverData/feedbackLists/feedbackDenylist/{deniedWord}` — Console-managed
  *    (no callable writes it) and submitFeedback reads it via `.exists` only, so there is no field
  *    contract to author a schema from. The doc id is the denied word; the body is unused.
- *  - ncmecSubmissionAttempts: see the inline reason below.
  */
-export const PENDING_COLLECTIONS: readonly string[] = [
-  'userMetadata',
-  'feedbackDenylist',
-  // Per-submission NCMEC transmission attempts. The segment exists only in firestore.rules
-  // today and has no writer or reader yet; the constant is registered so the name has one
-  // owner. Bind once the attempt-record shape is implemented.
-  'ncmecSubmissionAttempts',
-] as const;
+export const PENDING_COLLECTION_PATHS = {
+  feedbackDenylist: '_serverData/feedbackLists/feedbackDenylist/{deniedWord}',
+} as const;
+
+/** The pending collections' names, derived from their paths. */
+export const PENDING_COLLECTIONS: readonly string[] = Object.keys(PENDING_COLLECTION_PATHS);

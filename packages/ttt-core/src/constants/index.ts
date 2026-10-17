@@ -11,6 +11,7 @@ export * from './craft-skill-statements.js';
 export * from './publish-attestations.js';
 export * from './pledge-and-bouquet-copy.js';
 export * from './public-documents.js';
+export * from './admin-claims.js';
 export * from './legal-review-notice-state.js';
 export * from './legal-review-notice.js';
 export * from './safety-confirmation-phrases.js';

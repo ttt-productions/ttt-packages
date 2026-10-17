@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { REPO_ROOT } from './leak-utils';
+import { workspacePackages } from './workspace';
 
 // scripts/package-order.mjs prints the one dependency-safe package order — the root package.json
 // build chain — and every build and release walks it. A package built before an internal package it
@@ -14,9 +15,9 @@ const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies'
 
 type Manifest = { name: string } & Partial<Record<(typeof DEPENDENCY_FIELDS)[number], Record<string, string>>>;
 
-const packagesDir = join(REPO_ROOT, 'packages');
-const folders = readdirSync(packagesDir).filter((dir) => existsSync(join(packagesDir, dir, 'package.json')));
-const manifest = (dir: string) => JSON.parse(readFileSync(join(packagesDir, dir, 'package.json'), 'utf8')) as Manifest;
+const manifests = new Map(workspacePackages<Manifest>().map(({ dir, manifest }) => [dir, manifest]));
+const folders = [...manifests.keys()];
+const manifest = (dir: string) => manifests.get(dir) as Manifest;
 const order = execFileSync(process.execPath, [join(REPO_ROOT, 'scripts', 'package-order.mjs')], { encoding: 'utf8' })
   .split(/\r?\n/)
   .filter((line) => line.length > 0);

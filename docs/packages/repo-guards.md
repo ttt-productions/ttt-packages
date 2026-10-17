@@ -1,0 +1,65 @@
+# @ttt-productions/repo-guards
+
+The one guard suite every app runs in its gate. One reader of the repository, every generic guard,
+and the three shapes an app builds its business guards on. An app supplies facts — its roots, its
+aliases, its owner files, its reviewed exceptions — never logic.
+
+## Owns
+
+- **The reader** — one scope policy for every guard: the roots an app declares by role (`app`,
+  `functions`, `e2e`, `hostedE2e`, `scripts`, `coreDist`, and each named Worker tree), the file
+  kinds (code, declarations, stylesheets, rules files, config — env files by any name included —,
+  markdown, shell scripts), what counts as test code
+  (a `.test.` / `.spec.` name, a `__tests__` folder, an end-to-end root, or a declared test-code path
+  or name marker), and what is never read (dependency, build, and dot folders by name; anything
+  else only by a reviewed repo-relative path). Every file is read, comment-stripped (code,
+  stylesheets, rules files), and parsed once per run and shared by every guard. The reader also reads
+  an installed package's shipped files under any folder's `node_modules`, and a file outside the
+  checkout by absolute path (a sibling repository).
+- **The suite** — one entry that checks an app's whole config and then registers every generic
+  guard and every business guard as tests.
+- **The generic guards** — each a single behavior: where two apps' copies differed, the guard
+  carries the stronger logic of both. The guards themselves are the list; this doc never restates
+  it.
+- **The three shapes** — owner-only, reviewed allowlist, and declared literal.
+- **Hand-run reports** — what they list is a judgment call, never a gate failure: the duplicate
+  exports report, the unused index-member report, and the Firestore write guard's coverage table.
+- **The registry seed writer and Zod introspection**, which an app's test tooling and audit
+  scripts use beside the guards.
+
+## Contract shape
+
+- `.` — pure: `ownerOnly`, `reviewedAllowlist`, `declaredLiteral`, `matchPattern`, `sampleHits`, the
+  `Guard` / `Finding` / `Sample` / `GuardContext` types, `formatFindings`, and `viewOfText`.
+- `./node` — the reader: `createRepoReader(layout)`, `layoutProblems(layout)`, the layout types, and
+  the scope policy (`isTestPath`, `kindOfFile`).
+- `./suite` — `registerGuardSuite(config)`, called once at the top of an app's one guard test file;
+  needs `vitest` (an optional peer) and runs under Node.
+- `./reports` — the hand-run reports.
+- `./seed` — `createRegistrySeedWriter`, `registeredSchemaForPath`.
+- `./zod-shape` — `kindOf`, `unwrap`, `objectShape`, `arrayElement`, `compositeMembers`, `knownKeys`.
+
+## Guarantees
+
+- **No guard is skipped silently.** Every generic guard needs its facts in the config, or — only
+  where the guard allows it — an `{ absent: why }`. A missing, unknown, or malformed entry fails the
+  config before any guard runs.
+- **Fails closed.** A folder the reader cannot read throws naming it; a root a guard needs that the
+  layout does not declare throws; an exclusion, owner, or allowlist entry that no longer matches is
+  stale and fails; a guard whose scan reaches no file fails as vacuous; every declared root's anchor
+  file must be reached by its walk.
+- **A guard that cannot run here says why.** Only a guard whose input lies outside the checkout (a
+  sibling repository CI never checks out) can skip, and the suite shows it SKIPPED with its reason —
+  never passed.
+- **Comments never reach a guard.** `code` is the file with every comment blanked and every index
+  and line kept, read from the parse so a `//` in a string, template, regular expression, or JSX text
+  stays.
+- **A business guard proves its matcher.** Each shape requires must-fail and must-pass samples, and
+  the suite runs them beside the guard.
+- **Failures are in words.** A failure states what the check requires and how it is fixed; it never
+  cites a rule ID.
+
+## Boundary
+
+The package names no app, folder, file, collection, or product. Each app owns its one guard-config
+folder and its one suite test file; its business guards stay in the app, built on the shapes.

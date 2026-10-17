@@ -56,6 +56,7 @@ export {
 export type {
   DomainEventInvalidator,
   DomainEventInvalidationRegistry,
+  CacheAction,
   CacheInvalidation,
   RefetchType,
 } from "./domain-events/index.js";

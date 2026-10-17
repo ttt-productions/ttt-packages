@@ -35,7 +35,7 @@ export const PACKAGE_LEAK_RULES: PackageLeakRule[] = [
   { dir: 'theme-core', mode: 'hard' },
   { dir: 'ui-core', mode: 'hard' },
   { dir: 'rate-limit-core', mode: 'hard' },
-  { dir: 'firestore-guards', mode: 'hard' },
+  { dir: 'repo-guards', mode: 'hard' },
   { dir: 'audit-core', mode: 'hard' },
   { dir: 'moderation-core', mode: 'hard' },
   { dir: 'edge-protocol-core', mode: 'hard' },

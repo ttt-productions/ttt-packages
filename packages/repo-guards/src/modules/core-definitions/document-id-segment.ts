@@ -1,0 +1,190 @@
+// Document-id segments: an id a client sends becomes a Firestore path segment, so every id the
+// core's wire contracts accept must be exactly one segment. A "/" addresses another document or a
+// subcollection, an empty id addresses the collection, and "." / ".." / the reserved `__name__`
+// form are not document ids. The guard probes the core's own schemas, loaded by the app.
+
+import type { Finding } from '../../guard.js';
+import type { GenericGuardDefinition } from '../../config.js';
+import { coreBuild, loaderProblems, reviewedProblems, stringListProblems, type Loader } from './shared.js';
+
+type SchemaModules = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+
+export interface DocumentIdSegmentFacts {
+  /** The core modules that hold the wire contracts clients send, by any name. */
+  wireModules: Loader<SchemaModules>;
+  /** Export-name endings that mark a wire contract a client sends (`InputSchema`, `RequestSchema`, …). */
+  wireInputNameSuffixes: readonly string[];
+  /** The export-name ending of an id atom (`IdSchema`). */
+  idAtomNameSuffix: string;
+  /** Wire contracts and id atoms the guard must find, so a renamed export cannot empty its scan. */
+  requiredWireInputs: readonly string[];
+  requiredIdAtoms: readonly string[];
+  /** Wire contracts matching the naming that no client composes, each with its why. */
+  notClientSent: ReadonlyArray<{ schema: string; why: string }>;
+  /** Id-named fields that are not a document id, keyed `<nearest exported schema>.<field path>`. */
+  notAPathSegment: ReadonlyArray<{ field: string; why: string }>;
+  /** Exported schemas that by design reference more than one segment, each with its why. */
+  multiSegmentReferences: ReadonlyArray<{ schema: string; why: string }>;
+}
+
+export const NOT_ONE_SEGMENT: readonly string[] = Object.freeze(['', 'a/b', '/a', 'a/', '.', '..', '__reserved__']);
+const PLAIN_ID = 'abc123XYZ';
+const ID_FIELD_NAME = /^(id|uid)$|(Id|Ids|Uid|Uids)$/;
+const WRAPPERS = new Set(['optional', 'nullable', 'default', 'prefault', 'readonly', 'catch', 'nonoptional']);
+
+type Def = { type: string } & Record<string, unknown>;
+type Parseable = { safeParse: (value: unknown) => { success: boolean } };
+
+const defOf = (schema: unknown): Def | undefined => (schema as { _zod?: { def?: Def } } | undefined)?._zod?.def;
+const isParseable = (value: unknown): value is Parseable => typeof (value as Parseable | undefined)?.safeParse === 'function';
+
+/** The schema a field's value is checked by: wrappers and arrays unwrapped to the element. */
+function leafOf(schema: unknown): unknown {
+  let current = schema;
+  for (let def = defOf(current); def; def = defOf(current)) {
+    if (WRAPPERS.has(def.type)) current = def.innerType;
+    else if (def.type === 'array') current = def.element;
+    else if (def.type === 'pipe') current = def.in;
+    else break;
+  }
+  return current;
+}
+
+/** Every id-named field under `root` that admits a value which is not one segment. */
+export function nonSegmentIdFields(
+  root: unknown,
+  rootName: string,
+  exportedNames: ReadonlyMap<unknown, string>,
+  multiSegment: ReadonlySet<unknown>,
+): string[] {
+  const found = new Set<string>();
+  const visiting = new Set<unknown>();
+  const visit = (schema: unknown, path: string) => {
+    const def = defOf(schema);
+    if (!def || visiting.has(schema)) return;
+    const at = (schema === root ? undefined : exportedNames.get(schema)) ?? path;
+    visiting.add(schema);
+    if (def.type === 'object') {
+      for (const [key, field] of Object.entries(def.shape as Record<string, unknown>)) {
+        const fieldPath = `${at}.${key}`;
+        const leaf = leafOf(field);
+        if (ID_FIELD_NAME.test(key) && !multiSegment.has(leaf) && isParseable(leaf)) {
+          if (NOT_ONE_SEGMENT.some((value) => leaf.safeParse(value).success)) found.add(fieldPath);
+        }
+        visit(field, fieldPath);
+      }
+    } else if (WRAPPERS.has(def.type)) visit(def.innerType, at);
+    else if (def.type === 'array') visit(def.element, at);
+    else if (def.type === 'union') for (const option of def.options as unknown[]) visit(option, at);
+    else if (def.type === 'intersection') {
+      visit(def.left, at);
+      visit(def.right, at);
+    } else if (def.type === 'pipe') visit(def.in, at);
+    else if (def.type === 'lazy') visit((def.getter as () => unknown)(), at);
+    visiting.delete(schema);
+  };
+  visit(root, rootName);
+  return [...found];
+}
+
+const entry = (name: string) => `(core) ${name}`;
+
+async function exportsOf(facts: DocumentIdSegmentFacts) {
+  const modules = await facts.wireModules();
+  const exported = new Map<string, unknown>();
+  const names = new Map<unknown, string>();
+  for (const module of Object.values(modules)) {
+    for (const [name, value] of Object.entries(module)) {
+      if (!defOf(value)) continue;
+      if (!exported.has(name)) exported.set(name, value);
+      if (!names.has(value)) names.set(value, name);
+    }
+  }
+  return { exported, names };
+}
+
+export const documentIdSegmentGuard: GenericGuardDefinition<DocumentIdSegmentFacts> = {
+  id: 'documentIdSegments',
+  absentWhen: 'the app stores nothing in Firestore',
+  factProblems(facts) {
+    const problems: string[] = [];
+    loaderProblems(facts?.wireModules, 'wireModules', problems);
+    stringListProblems(facts?.wireInputNameSuffixes, 'wireInputNameSuffixes', problems);
+    if (typeof facts?.idAtomNameSuffix !== 'string' || !facts.idAtomNameSuffix.trim()) problems.push('idAtomNameSuffix is missing');
+    stringListProblems(facts?.requiredWireInputs, 'requiredWireInputs', problems);
+    stringListProblems(facts?.requiredIdAtoms, 'requiredIdAtoms', problems);
+    reviewedProblems(facts?.notClientSent, 'notClientSent', 'schema', problems);
+    reviewedProblems(facts?.notAPathSegment, 'notAPathSegment', 'field', problems);
+    reviewedProblems(facts?.multiSegmentReferences, 'multiSegmentReferences', 'schema', problems);
+    return problems;
+  },
+  build(facts) {
+    const isWireInput = (name: string) => facts.wireInputNameSuffixes.some((s) => name.endsWith(s));
+    return [
+      {
+        title: 'every core id atom admits exactly one document-id segment',
+        description:
+          'Every id atom the core exports refuses an empty id, a "/", "." and "..", and the reserved __name__ form, ' +
+          'and accepts a plain id — so an id a client sends can only ever name one document. Build the atom on the ' +
+          "core's one-segment id schema.",
+        async run(context) {
+          const findings: Finding[] = [];
+          coreBuild(context, findings);
+          const { exported } = await exportsOf(facts);
+          const atoms = [...exported].filter(([name, value]) => name.endsWith(facts.idAtomNameSuffix) && isParseable(value));
+          for (const name of facts.requiredIdAtoms) {
+            if (!atoms.some(([n]) => n === name)) findings.push({ file: entry(name), detail: 'a required id atom was not found among the wire modules' });
+          }
+          for (const [name, atom] of atoms as Array<[string, Parseable]>) {
+            const admitted = NOT_ONE_SEGMENT.filter((value) => atom.safeParse(value).success);
+            if (admitted.length) findings.push({ file: entry(name), detail: `admits ${admitted.map((v) => JSON.stringify(v)).join(', ')}` });
+            if (defOf(atom)?.type !== 'enum' && !atom.safeParse(PLAIN_ID).success) {
+              findings.push({ file: entry(name), detail: `refuses the plain id ${JSON.stringify(PLAIN_ID)}` });
+            }
+          }
+          return findings;
+        },
+      },
+      {
+        title: 'every id field a client sends is one document-id segment',
+        description:
+          'An id-named field (id, uid, or ending Id / Ids / Uid / Uids) in any wire contract a client sends refuses ' +
+          'every value that is not one document-id segment, whether it derives from an id atom or is declared inline. ' +
+          'Use an id atom. A field that is not a document id is a reviewed entry with its why; a reviewed entry whose ' +
+          'field is gone or now one segment is stale.',
+        async run(context) {
+          const findings: Finding[] = [];
+          coreBuild(context, findings);
+          const { exported, names } = await exportsOf(facts);
+          const multiSegment = new Set<unknown>();
+          for (const { schema } of facts.multiSegmentReferences) {
+            const value = exported.get(schema);
+            if (value === undefined) findings.push({ file: entry(schema), detail: 'stale multi-segment reference: the core exports no such schema' });
+            else multiSegment.add(value);
+          }
+          const excluded = new Set(facts.notClientSent.map((e) => e.schema));
+          const wireInputs = [...exported].filter(([name]) => isWireInput(name));
+          for (const schema of excluded) {
+            if (!wireInputs.some(([name]) => name === schema)) findings.push({ file: entry(schema), detail: 'stale not-client-sent entry: no such wire contract' });
+          }
+          for (const name of facts.requiredWireInputs) {
+            if (!wireInputs.some(([n]) => n === name)) findings.push({ file: entry(name), detail: 'a required wire contract was not found among the wire modules' });
+          }
+          const offenders = new Set<string>();
+          for (const [name, schema] of wireInputs) {
+            if (excluded.has(name)) continue;
+            for (const field of nonSegmentIdFields(schema, name, names, multiSegment)) offenders.add(field);
+          }
+          const reviewed = new Set(facts.notAPathSegment.map((e) => e.field));
+          for (const field of [...offenders].sort()) {
+            if (!reviewed.has(field)) findings.push({ file: entry(field), detail: 'admits a value that is not one document-id segment' });
+          }
+          for (const field of reviewed) {
+            if (!offenders.has(field)) findings.push({ file: entry(field), detail: 'stale reviewed entry: the field is gone or now one segment' });
+          }
+          return findings;
+        },
+      },
+    ];
+  },
+};

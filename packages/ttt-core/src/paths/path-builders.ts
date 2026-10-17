@@ -48,12 +48,8 @@ export const PATH_BUILDERS = {
   userPrivateData: (userId: string): [string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PRIVATE_DATA, userId],
 
-  userMetadata: (userId: string): [string, string, string, string] =>
-    [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.USER_METADATA, SPECIAL_DOCS.NOTIFICATION_SETTINGS],
-
-  // Per-user Hall viewing-state doc (hall-viewing-experience Area 2, ruled 2026-07-04):
-  // userProfiles/{uid}/privateData/hallLibraryPreferences. Fixed-id privateData subdoc,
-  // same shape as userMetadata above.
+  // Per-user Hall viewing-state doc: userProfiles/{uid}/privateData/hallLibraryPreferences, a
+  // fixed-id privateData subdoc.
   hallLibraryPreferences: (userId: string): [string, string, string, string] =>
     [COLLECTIONS.USER_PROFILES, userId, USER_SUBCOLLECTIONS.PRIVATE_DATA, SPECIAL_DOCS.HALL_LIBRARY_PREFERENCES],
 
@@ -508,11 +504,6 @@ export const PATH_BUILDERS = {
 
   childSafetyNcmecSubmissionFile: (caseId: string, submissionId: string, fileId: string): [string, string, string, string, string, string] =>
     [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSION_FILES, fileId],
-
-  // Per-submission NCMEC transmission attempt. Previously a `firestore.rules`-only segment
-  // with no ttt-core constant; the segment now has a single owner (NCMEC_SUBMISSION_ATTEMPTS).
-  childSafetyNcmecSubmissionAttempt: (caseId: string, submissionId: string, attemptId: string): [string, string, string, string, string, string] =>
-    [COLLECTIONS.CHILD_SAFETY_CASES, caseId, NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS, submissionId, NESTED_SUBCOLLECTIONS.NCMEC_SUBMISSION_ATTEMPTS, attemptId],
 
   // The submission's single immutable completion-proof record. Fixed doc id — one proof per
   // submission, written create-if-absent in the same transaction that marks the submission

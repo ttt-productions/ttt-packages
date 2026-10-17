@@ -1,4 +1,4 @@
-// Check #2 — Internal "*" range audit (REPORT-ONLY against source manifests).
+// Internal "*" range audit (REPORT-ONLY against source manifests).
 //
 // Scans dependencies, peerDependencies, and devDependencies of every package
 // manifest for `@ttt-productions/*: "*"`.
@@ -10,21 +10,15 @@
 // check only REPORTS against source and never fails.
 
 import { describe, it } from 'vitest';
-import { readdirSync, readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { REPO_ROOT } from './leak-utils';
+import { workspacePackages } from './workspace';
 
 const DEP_FIELDS = ['dependencies', 'peerDependencies', 'devDependencies'] as const;
 
 describe('boundary: internal "*" range audit (report-only)', () => {
   it('reports any @ttt-productions/* "*" ranges in source manifests', () => {
-    const pkgsDir = join(REPO_ROOT, 'packages');
     const found: string[] = [];
 
-    for (const folder of readdirSync(pkgsDir)) {
-      const pj = join(pkgsDir, folder, 'package.json');
-      if (!existsSync(pj)) continue;
-      const json = JSON.parse(readFileSync(pj, 'utf8'));
+    for (const { manifest: json } of workspacePackages<Record<string, any>>()) {
       for (const field of DEP_FIELDS) {
         const deps = json[field] as Record<string, string> | undefined;
         if (!deps) continue;

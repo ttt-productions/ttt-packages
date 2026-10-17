@@ -61,7 +61,8 @@ Generic TanStack Query package.
   cached infinite list's loaded pages at its position in the list's own order, keeping every other
   row, page, and cursor — so an action updates a paged list without reloading it
 - The domain-event invalidator mechanism (`createDomainEventInvalidator`, `exact`, `prefix`,
-  `predicate`, `applyInvalidations`, `serializeInvalidation`)
+  `predicate`, `applyInvalidations`, `serializeInvalidation`) — the one place an app refreshes,
+  removes, or resets cached reads in answer to something that happened
 
 ## `useFirestorePaginated` — one cache entry per page
 
@@ -178,6 +179,19 @@ of a read's failure-and-retry state:
   `{ source, queryKey }` (`ReadRetryEntry`), the states come back in entry order, each failure is
   held under its own key, and a read that leaves the set drops what it held. `useReadRetryState` is
   this with one entry.
+
+## What a registry entry does
+
+Each entry (`exact`, `prefix`, `predicate`) carries an `action`:
+
+- `'refresh'` (the default) marks the matched queries stale and refetches them per `refetchType`.
+- `'remove'` cancels the matched queries and drops them from the cache: the data no longer
+  exists, or a held answer must not be served again. A read already in flight cannot put a
+  removed answer back.
+- `'reset'` returns the matched queries to their initial state and refetches the active ones from
+  scratch; its promise settles once those fresh reads land.
+
+A refresh and a remove of the same key are different entries and never deduplicated together.
 
 ## Domain-event invalidation is awaitable
 

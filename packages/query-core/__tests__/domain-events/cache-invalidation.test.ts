@@ -544,3 +544,68 @@ describe('applyInvalidations — awaitable refresh', () => {
     await expect(applyInvalidations(client, [])).resolves.toBeUndefined();
   });
 });
+
+describe('applyInvalidations — remove and reset entries', () => {
+  it('a remove entry drops the matched query from the cache, and a read in flight never puts it back', async () => {
+    const client = makeClient();
+    const key = ['violation', 'v1'];
+    const read = deferred<string>();
+    const unsubscribe = observe(client, key, sequencedQueryFn([read]));
+    await flush();
+
+    await applyInvalidations(client, [exact(key, { action: 'remove' })]);
+    expect(client.getQueryCache().find({ queryKey: key, exact: true })).toBeUndefined();
+
+    read.resolve('the deleted record');
+    await flush();
+    expect(client.getQueryData(key)).toBeUndefined();
+    unsubscribe();
+  });
+
+  it('a remove entry leaves every query it does not match', async () => {
+    const client = makeClient();
+    client.setQueryData(['violation', 'v1'], 'one');
+    client.setQueryData(['violation', 'v2'], 'two');
+    await applyInvalidations(client, [exact(['violation', 'v1'], { action: 'remove' })]);
+    expect(client.getQueryData(['violation', 'v1'])).toBeUndefined();
+    expect(client.getQueryData(['violation', 'v2'])).toBe('two');
+  });
+
+  it('a reset entry returns the query to its initial state and settles once the fresh read lands', async () => {
+    const client = makeClient();
+    const key = ['feed', 'newest'];
+    const first = deferred<string>();
+    const second = deferred<string>();
+    const queryFn = sequencedQueryFn([first, second]);
+    const unsubscribe = observe(client, key, queryFn);
+    first.resolve('old page');
+    await flush();
+    expect(client.getQueryData(key)).toBe('old page');
+
+    let settled = false;
+    const done = applyInvalidations(client, [prefix(['feed'], { action: 'reset' })]).then(() => {
+      settled = true;
+    });
+    await flush();
+    expect(client.getQueryData(key)).toBeUndefined();
+    expect(settled).toBe(false);
+
+    second.resolve('fresh page');
+    await done;
+    expect(client.getQueryData(key)).toBe('fresh page');
+    expect(queryFn).toHaveBeenCalledTimes(2);
+    unsubscribe();
+  });
+
+  it('a remove and a refresh of the same key are two entries, never merged as duplicates', () => {
+    expect(serializeInvalidation(exact(['users', '1'], { action: 'remove' }))).toBe('remove:exact:["users","1"]');
+    expect(serializeInvalidation(predicate('refused', () => true, { action: 'reset' }))).toBe('reset:predicate:refused');
+    expect(serializeInvalidation(exact(['users', '1'], { action: 'refresh' }))).toBe('exact:["users","1"]');
+    const client = makeClient();
+    const invalidate = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
+    const remove = vi.spyOn(client, 'removeQueries');
+    applyInvalidations(client, [exact(['users', '1']), exact(['users', '1'], { action: 'remove' })]);
+    expect(invalidate).toHaveBeenCalledTimes(1);
+    expect(remove).toHaveBeenCalledTimes(1);
+  });
+});

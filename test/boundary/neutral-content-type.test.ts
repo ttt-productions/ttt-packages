@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
-import { REPO_ROOT } from './leak-utils';
+import { packageSource, packagesTree } from './workspace';
 
 // ENG-002 — the neutral content type ("the picker could not tell what this file is")
 // has ONE declaration: media-schemas' NEUTRAL_CONTENT_TYPE. The picker (file-input),
@@ -21,35 +19,24 @@ const OTHER_CONCEPTS: Readonly<Record<string, string>> = {
     "CHAT_PARKED_DELIVERY_REPORT_CONTENT_TYPE — a signed chat report's wire body type (raw bytes the receiver must not parse before verifying), not a file's type; chat-schemas is a pure schema package that depends on no other schema package",
 };
 
-function listSource(dir: string): string[] {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir).flatMap((entry) => {
-    const path = join(dir, entry);
-    if (statSync(path).isDirectory()) return listSource(path);
-    return /\.(ts|tsx)$/.test(entry) && !entry.endsWith('.d.ts') ? [path] : [];
-  });
-}
-
-const packagesDir = join(REPO_ROOT, 'packages');
-const sourceFiles = readdirSync(packagesDir).flatMap((pkg) => listSource(join(packagesDir, pkg, 'src')));
-const rel = (file: string) => relative(REPO_ROOT, file).split(sep).join('/');
-const countLiterals = (file: string) => (readFileSync(join(REPO_ROOT, file), 'utf8').match(LITERALS) ?? []).length;
+const sourceFiles = packageSource(['code']);
+const countLiterals = (file: string) => (packagesTree.file(file).code.match(LITERALS) ?? []).length;
 
 describe('boundary: one neutral content type', () => {
   it('declares it exactly once, in media-schemas', () => {
-    expect(LITERAL.test(readFileSync(join(REPO_ROOT, DECLARATION), 'utf8'))).toBe(true);
+    expect(LITERAL.test(packagesTree.file(DECLARATION).code)).toBe(true);
   });
 
   it('re-types the literal nowhere else in package source', () => {
     const copies = sourceFiles
-      .map(rel)
+      .map((file) => file.path)
       .filter((file) => file !== DECLARATION)
       .filter((file) => countLiterals(file) > (file in OTHER_CONCEPTS ? 1 : 0));
     expect(copies, `import NEUTRAL_CONTENT_TYPE from @ttt-productions/media-schemas instead:\n  ${copies.join('\n  ')}`).toEqual([]);
   });
 
   it('keeps no stale entry for another concept: each still declares the value it is listed for, exactly once', () => {
-    const stale = Object.keys(OTHER_CONCEPTS).filter((file) => !existsSync(join(REPO_ROOT, file)) || countLiterals(file) !== 1);
+    const stale = Object.keys(OTHER_CONCEPTS).filter((file) => !packagesTree.exists(file) || countLiterals(file) !== 1);
     expect(stale).toEqual([]);
   });
 });

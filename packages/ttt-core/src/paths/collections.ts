@@ -178,7 +178,6 @@ export const COLLECTIONS = {
 export const USER_SUBCOLLECTIONS = {
   PROFILE_CRAFT_SKILLS: 'profileCraftSkills',
   PRIVATE_DATA: 'privateData',
-  USER_METADATA: 'userMetadata',
   USER_LIKES: 'userLikes',
   MENTION_HISTORY: 'mentionHistory',
   AUDITION_VOTES: 'auditionVotes',
@@ -334,10 +333,6 @@ export const NESTED_SUBCOLLECTIONS = {
   CHILD_SAFETY_CASE_CROSSOVER_ITEMS: 'childSafetyCaseCrossoverItems',
   CHILD_SAFETY_NCMEC_SUBMISSIONS: 'ncmecSubmissions',
   CHILD_SAFETY_NCMEC_SUBMISSION_FILES: 'ncmecSubmissionFiles',
-  // Per-submission NCMEC transmission attempts
-  // (childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecSubmissionAttempts/{attemptId}).
-  // Rules-only until now — registered here so the segment has a single owner.
-  NCMEC_SUBMISSION_ATTEMPTS: 'ncmecSubmissionAttempts',
   CHILD_SAFETY_LEGAL_PROCESS: 'legalProcess',
   // Immutable portal-filed NCMEC artifacts recorded on the case by the two step-up-gated
   // operator callables — the receipt artifact that gates `markNcmecPortalComplete`
@@ -416,9 +411,7 @@ export const SPECIAL_DOCS = {
   SYSTEM_VIDEO_SLOTS: 'systemVideoSlots',
   SYSTEM_UID_SLOTS: 'systemUidSlots',
   FUTURE_PLANS: 'futurePlans',
-  NOTIFICATION_SETTINGS: 'notificationSettings',
-  // Hall viewing-state doc id under userProfiles/{uid}/privateData/ (hall-viewing-experience
-  // Area 2, ruled 2026-07-04). Mirrors the NOTIFICATION_SETTINGS fixed-id privateData pattern.
+  // The Hall viewing-state doc id under userProfiles/{uid}/privateData/.
   HALL_LIBRARY_PREFERENCES: 'hallLibraryPreferences',
   PROFANITY_LIST: 'profanityList',
   RESERVED_USERNAMES: 'reservedUsernames',

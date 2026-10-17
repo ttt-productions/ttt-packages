@@ -1,0 +1,75 @@
+{
+    "name": "@ttt-productions/repo-guards",
+    "version": "0.1.0",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/repo-guards"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./node": {
+            "types": "./dist/node/index.d.ts",
+            "default": "./dist/node/index.js"
+        },
+        "./suite": {
+            "types": "./dist/suite/index.d.ts",
+            "default": "./dist/suite/index.js"
+        },
+        "./reports": {
+            "types": "./dist/reports/index.d.ts",
+            "default": "./dist/reports/index.js"
+        },
+        "./seed": {
+            "types": "./dist/seed/index.d.ts",
+            "default": "./dist/seed/index.js"
+        },
+        "./zod-shape": {
+            "types": "./dist/zod-shape/index.d.ts",
+            "default": "./dist/zod-shape/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build"
+    },
+    "dependencies": {
+        "semver": "^7.7.0",
+        "yaml": "^2.9.1"
+    },
+    "peerDependencies": {
+        "typescript": ">=5.0.0",
+        "vitest": ">=4.0.0"
+    },
+    "peerDependenciesMeta": {
+        "vitest": {
+            "optional": true
+        }
+    },
+    "devDependencies": {
+        "@types/node": "^24.13.6",
+        "typescript": "^6.0.3",
+        "vitest": "^4.1.11",
+        "zod": "^4.4.3",
+        "@types/semver": "^7.7.0"
+    },
+    "engines": {
+        "node": ">=22",
+        "npm": ">=10"
+    },
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+}

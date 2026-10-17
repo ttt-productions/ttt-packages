@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
-import { REPO_ROOT } from './leak-utils';
+import { filesOf, packagesTree, workspacePackages } from './workspace';
 
 // A package tarball carries its compiled `dist` plus any stylesheet folder a `./styles` export points
 // into, never TypeScript source: the maps already embed their sources. prepublishOnly cleans before
@@ -17,18 +15,8 @@ interface Manifest {
   scripts?: Record<string, string>;
 }
 
-function listFiles(path: string): string[] {
-  if (!statSync(path).isDirectory()) return [path];
-  return readdirSync(path).flatMap((entry) => listFiles(join(path, entry)));
-}
-
-const packagesDir = join(REPO_ROOT, 'packages');
-const packages = readdirSync(packagesDir)
-  .filter((dir) => existsSync(join(packagesDir, dir, 'package.json')))
-  .map((dir) => ({
-    dir,
-    manifest: JSON.parse(readFileSync(join(packagesDir, dir, 'package.json'), 'utf8')) as Manifest,
-  }));
+const packages = workspacePackages<Manifest>();
+const typeScriptFiles = filesOf(packagesTree, ['code', 'declarations']).filter((file) => TS_SOURCE.test(file.path));
 
 describe('boundary: every package publishes a clean build and no source', () => {
   it('finds the workspace packages', () => {
@@ -51,9 +39,9 @@ describe('boundary: every package publishes a clean build and no source', () => 
         ...files
           .filter((entry) => entry !== 'dist')
           .flatMap((entry) => {
-            const path = join(packagesDir, dir, entry);
-            if (!existsSync(path)) return [`${dir}: files entry "${entry}" matches nothing on disk`];
-            return listFiles(path).some((file) => TS_SOURCE.test(file))
+            const path = `packages/${dir}/${entry}`;
+            if (!packagesTree.exists(path)) return [`${dir}: files entry "${entry}" matches nothing on disk`];
+            return typeScriptFiles.some((file) => file.path === path || file.path.startsWith(`${path}/`))
               ? [`${dir}: files entry "${entry}" ships TypeScript source`]
               : [];
           }),

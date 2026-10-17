@@ -30,15 +30,6 @@ describe('PATH_BUILDERS', () => {
       expect(result[3]).toBe('userA');
     });
 
-    it('userMetadata returns 4-segment tuple with notificationSettings doc', () => {
-      const result = PATH_BUILDERS.userMetadata('userA');
-      expect(result).toHaveLength(4);
-      expect(result[0]).toBe(COLLECTIONS.USER_PROFILES);
-      expect(result[1]).toBe('userA');
-      expect(result[2]).toBe(USER_SUBCOLLECTIONS.USER_METADATA);
-      expect(result[3]).toBe(SPECIAL_DOCS.NOTIFICATION_SETTINGS);
-    });
-
     it('followEdge returns a 2-segment tuple with a deterministic composite id', () => {
       const result = PATH_BUILDERS.followEdge('userA', 'workProject', 'wp1');
       expect(result).toHaveLength(2);
@@ -587,17 +578,6 @@ describe('PATH_BUILDERS', () => {
   describe('Backend-only operator paths', () => {
     it('operatorStepUp returns 2-segment tuple keyed by uid', () => {
       expect(PATH_BUILDERS.operatorStepUp('op-1')).toEqual([COLLECTIONS.OPERATOR_STEP_UP, 'op-1']);
-    });
-
-    it('childSafetyNcmecSubmissionAttempt returns the 6-segment attempt tuple', () => {
-      expect(PATH_BUILDERS.childSafetyNcmecSubmissionAttempt('c1', 's1', 'a1')).toEqual([
-        COLLECTIONS.CHILD_SAFETY_CASES,
-        'c1',
-        NESTED_SUBCOLLECTIONS.CHILD_SAFETY_NCMEC_SUBMISSIONS,
-        's1',
-        NESTED_SUBCOLLECTIONS.NCMEC_SUBMISSION_ATTEMPTS,
-        'a1',
-      ]);
     });
 
     it('childSafetyPortalReceiptArtifact returns the 4-segment artifact tuple, with its collection parent', () => {

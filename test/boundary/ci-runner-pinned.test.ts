@@ -1,15 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
-import { REPO_ROOT } from './leak-utils';
+import { filesOf, workflowsTree } from './workspace';
 
 // GitHub moves a `-latest` runner label to a new OS image on its own schedule, so every job on one
 // silently starts running on an image nobody has verified. Workflows name an explicit image, which
 // makes a runner OS change a deliberate edit. This guard reads each `runs-on` value as written, so a
 // label supplied through an expression such as a matrix variable is not seen.
 
-const WORKFLOWS_DIR = join(REPO_ROOT, '.github', 'workflows');
-const WORKFLOW_FILE = /\.ya?ml$/;
+const WORKFLOW_FILE = /^\.github\/workflows\/[^/]+\.ya?ml$/;
 const RUNS_ON = /^(\s*)(['"]?)runs-on\2\s*:(.*)$/;
 const LATEST_LABEL = /-latest$/;
 
@@ -41,12 +38,7 @@ function latestRunsOn(source: string): number[] {
 }
 
 const job = (body: string) => `jobs:\n  build:\n${body}\n    steps:\n      - run: npm ci\n`;
-const rel = (file: string) => relative(REPO_ROOT, file).split(sep).join('/');
-const workflowFiles = existsSync(WORKFLOWS_DIR)
-  ? readdirSync(WORKFLOWS_DIR)
-      .filter((name) => WORKFLOW_FILE.test(name))
-      .map((name) => join(WORKFLOWS_DIR, name))
-  : [];
+const workflowFiles = filesOf(workflowsTree, ['config']).filter((file) => WORKFLOW_FILE.test(file.path));
 
 describe('boundary: CI jobs run on a pinned runner image', () => {
   it('flags a -latest label written inline, quoted, in a flow list, in a block list, or under labels', () => {
@@ -72,9 +64,7 @@ describe('boundary: CI jobs run on a pinned runner image', () => {
   });
 
   it('pins every workflow job to an explicit runner image', () => {
-    const offenders = workflowFiles.flatMap((file) =>
-      latestRunsOn(readFileSync(file, 'utf8')).map((line) => `${rel(file)}:${line}`),
-    );
+    const offenders = workflowFiles.flatMap((file) => latestRunsOn(file.text).map((line) => `${file.path}:${line}`));
     expect(
       offenders,
       `name an explicit runner image (such as ubuntu-24.04) instead of a -latest label:\n  ${offenders.join('\n  ')}`,

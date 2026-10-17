@@ -1,57 +1,55 @@
-// Check #4 — Published JavaScript sourcemaps are self-contained.
+// Published JavaScript sourcemaps are self-contained.
 //
 // Package tarballs generally publish dist without src. Every emitted .js.map
 // therefore needs sourcesContent so consumers do not resolve missing source
-// paths or lose the original TypeScript in stack traces.
+// paths or lose the original TypeScript in stack traces. Every module under a
+// package's `src` compiles to `dist`, so the map each one must have is named by
+// its source path.
 
 import { describe, expect, it } from 'vitest';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { REPO_ROOT } from './leak-utils';
+import { packageOf, packageSource, packagesTree, workspacePackages } from './workspace';
 
 interface SourceMap {
   sources?: unknown;
   sourcesContent?: unknown;
 }
 
-function listJavaScriptSourceMaps(dir: string): string[] {
-  const maps: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    const path = join(dir, entry);
-    if (statSync(path).isDirectory()) {
-      maps.push(...listJavaScriptSourceMaps(path));
-    } else if (entry.endsWith('.js.map')) {
-      maps.push(path);
-    }
-  }
-  return maps;
+/** The map the compiler emits for a source module: `src/a/b.ts` → `dist/a/b.js.map`. */
+const mapOf = (source: string) =>
+  source.replace(/^(packages\/[^/]+)\/src\//, '$1/dist/').replace(/\.([cm]?)[jt]sx?$/, (_, kind: string) => `.${kind}js.map`);
+
+const sourcesByPackage = new Map<string, string[]>();
+for (const { path } of packageSource(['code'])) {
+  const dir = packageOf(path);
+  sourcesByPackage.set(dir, [...(sourcesByPackage.get(dir) ?? []), path]);
 }
 
 describe('boundary: published sourcemaps', () => {
-  const packagesDir = join(REPO_ROOT, 'packages');
-
-  for (const packageDir of readdirSync(packagesDir)) {
-    const manifestPath = join(packagesDir, packageDir, 'package.json');
-    if (!existsSync(manifestPath)) continue;
-
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: string };
-    const packageName = manifest.name ?? packageDir;
+  for (const { dir, manifest } of workspacePackages<{ name?: string }>()) {
+    const packageName = manifest.name ?? dir;
 
     it(`${packageName} embeds every JavaScript sourcemap source`, () => {
-      const distDir = join(packagesDir, packageDir, 'dist');
-      if (!existsSync(distDir)) {
+      if (!packagesTree.exists(`packages/${dir}/dist`)) {
         console.warn(
           `[boundary] ${packageName}: dist not built; skipping sourcemap audit. Build the package first.`,
         );
         return;
       }
 
-      const maps = listJavaScriptSourceMaps(distDir);
-      expect(maps, `${packageName} emitted no JavaScript sourcemaps`).not.toHaveLength(0);
+      const maps = (sourcesByPackage.get(dir) ?? []).map(mapOf);
+      expect(maps, `${packageName} compiles no JavaScript module`).not.toHaveLength(0);
 
       const violations: string[] = [];
       for (const mapPath of maps) {
-        const map = JSON.parse(readFileSync(mapPath, 'utf8')) as SourceMap;
+        const file = join(REPO_ROOT, mapPath);
+        if (!existsSync(file)) {
+          violations.push(`${mapPath} (missing — rebuild the package, or its build stopped emitting maps)`);
+          continue;
+        }
+        const map = JSON.parse(readFileSync(file, 'utf8')) as SourceMap;
         const sources = Array.isArray(map.sources) ? map.sources : [];
         const sourcesContent = Array.isArray(map.sourcesContent) ? map.sourcesContent : [];
         const hasEverySource =
@@ -59,9 +57,7 @@ describe('boundary: published sourcemaps', () => {
           sourcesContent.length === sources.length &&
           sourcesContent.every((source) => typeof source === 'string');
 
-        if (!hasEverySource) {
-          violations.push(relative(REPO_ROOT, mapPath).replace(/\\/g, '/'));
-        }
+        if (!hasEverySource) violations.push(mapPath);
       }
 
       expect(
