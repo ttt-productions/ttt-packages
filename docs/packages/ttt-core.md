@@ -39,6 +39,12 @@ TTT Productions application-data package.
   payloads carry. Its values are typed against that union rather than read off its schema, so the
   paths module stays free of zod at runtime. A stored or untrusted work type is checked with the
   existing `workProjectTypeSchema` (`./schemas`) — there is no second work-type guard.
+- The published Hall sub-item per work type: `PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE` (`utils/hall-content`,
+  root) binds each `WorkProjectType` to the subcollection its published sub-item is stored in (read
+  from `HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE`) and the schema it is stored as. A writer looks the
+  work type up once and takes both from that entry, so one kind's shape can never land in another
+  kind's subcollection, and the write guard proves the pairing entry by entry. A test pins every
+  entry's schema to the one `COLLECTION_SCHEMAS` binds to its subcollection.
 - TTT atoms such as `Mention` and `MentionType`
 - TTT moderation constants
 - **Telemetry** (`constants/safety-telemetry-patterns`, `constants/telemetry-content-policy`, root + `./constants`):

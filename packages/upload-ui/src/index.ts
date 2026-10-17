@@ -1,6 +1,4 @@
-// Server-safe entry. React code lives at `@ttt-productions/upload-ui/react/guard`, `/react/upload`, and `/react/tray`.
-// This file is intentionally empty; the package's public surface is exposed via
-// the `./react/guard`, `./react/upload`, and `./react/tray` subpaths. Keeping main
-// empty preserves the server-safe contract (no React imports leak through
-// `import x from '@ttt-productions/upload-ui'`).
-export { };
+// Server-safe entry: no React. React code lives at `@ttt-productions/upload-ui/react/guard`,
+// `/react/upload`, and `/react/tray`.
+export { formatFileSize, createUploadDisplayFormatters } from "./upload-display.js";
+export type { UploadDisplayCopy, UploadDisplayConfig, UploadDisplayFormatters } from "./upload-display.js";

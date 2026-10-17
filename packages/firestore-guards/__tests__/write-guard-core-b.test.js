@@ -111,7 +111,63 @@ describe('computed keys drawn from a canonical core const map', () => {
 });
 
 describe('a discriminated path written with a discriminated payload', () => {
-  const publish = (extra) => `${PREAMBLE}
+  // A target and a payload chosen by one decision are paired only where the guard can prove it.
+  // One core map entry carrying each kind's subcollection AND its schema, read once by both sides,
+  // is that proof: every kind becomes its own branch, its document diffed against its own schema.
+  const throughOneEntry = (payload) => `${PREAMBLE}
+    import { PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE } from '@fixture/core-b';
+    export function writeIt(
+      tx: FirebaseFirestore.Transaction,
+      hallItemId: string,
+      itemId: string,
+      workProjectType: string,
+      carried: unknown,
+    ) {
+      const published = PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE[workProjectType];
+      const ref = db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, published.subcollection, itemId)));
+      ${payload}
+    }
+  `;
+
+  it("pairs each kind's document with its own entry's schema through one map entry", () => {
+    const result = analyze(throughOneEntry('tx.set(ref, published.schema.parse(carried));'));
+    expect(result.violations).toEqual([]);
+    expect(result.writes[0].correlatedBranches.map((branch) => branch.templates)).toEqual([
+      ['hallItems/{hallItemId}/hallItemTales/{itemId}'],
+      ['hallItems/{hallItemId}/hallItemTunes/{itemId}'],
+      ['hallItems/{hallItemId}/hallItemTelevision/{itemId}'],
+    ]);
+  });
+
+  it("pairs a safeParse result's data the same way", () => {
+    const result = analyze(throughOneEntry(`
+      const parsed = published.schema.safeParse(carried);
+      if (!parsed.success) throw new Error('unpublishable');
+      tx.set(ref, parsed.data);
+    `));
+    expect(result.violations).toEqual([]);
+  });
+
+  it('MUST FAIL — still fires when the payload is NOT purely the entry schema output', () => {
+    const result = analyze(throughOneEntry('tx.set(ref, { ...published.schema.parse(carried), pairingUndeclared: 1 });'));
+    expect(detailsOf(result)).toContain('pairingUndeclared');
+  });
+
+  it('MUST FAIL — the entry picks the path while a fixed schema picks the payload', () => {
+    const result = analyze(`${PREAMBLE}
+      import { PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE, PublishedTuneTrackSchema } from '@fixture/core-b';
+      export function writeIt(tx: FirebaseFirestore.Transaction, hallItemId: string, itemId: string, workProjectType: string, carried: unknown) {
+        const published = PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE[workProjectType];
+        tx.set(db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, published.subcollection, itemId))), PublishedTuneTrackSchema.parse(carried));
+      }
+    `);
+    expect(detailsOf(result)).toContain("'audioAssetId' is not declared by hallItems/{hallItemId}/hallItemTales/{itemId}");
+  });
+
+  // The same choice made twice — a subcollection map on one side, a switch over the same kind on
+  // the other — proves nothing: the switch could hand any kind any schema. Every candidate
+  // document is diffed against every key the payload can carry.
+  const twoPlaces = (cases) => `${PREAMBLE}
     import {
       HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE,
       PublishedChapterSchema,
@@ -120,12 +176,7 @@ describe('a discriminated path written with a discriminated payload', () => {
     } from '@fixture/core-b';
     function buildSubItem(workProjectType: string, carried: unknown) {
       switch (workProjectType) {
-        case 'Tales':
-          return { data: PublishedChapterSchema.parse(carried) };
-        case 'Tunes':
-          return { data: PublishedTuneTrackSchema.parse(carried) };
-        default:
-          return { data: PublishedTelevisionEpisodeSchema.parse(carried) };
+        ${cases}
       }
     }
     export function writeIt(
@@ -137,23 +188,48 @@ describe('a discriminated path written with a discriminated payload', () => {
     ) {
       const subcollection = HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE[workProjectType];
       const ref = db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, subcollection, itemId)));
-      const built = buildSubItem(workProjectType, carried);
-      tx.set(ref, ${extra});
+      tx.set(ref, buildSubItem(workProjectType, carried).data);
     }
   `;
 
-  it('pairs each candidate template with the canonical schema whose parse produced the payload', () => {
-    // The path and the payload are the SAME choice made twice. Diffing the union of all
-    // three branches' keys against all three templates would report `content` as undeclared
-    // on a tune — and the only way to satisfy that would be to unroll the discrimination,
-    // which is the defect the guard exists to prevent.
-    const result = analyze(publish('built.data'));
-    expect(result.violations).toEqual([]);
+  it('MUST FAIL — the same selector read in two places is not a proven pairing', () => {
+    const result = analyze(twoPlaces(`
+      case 'Tales':
+        return { data: PublishedChapterSchema.parse(carried) };
+      case 'Tunes':
+        return { data: PublishedTuneTrackSchema.parse(carried) };
+      default:
+        return { data: PublishedTelevisionEpisodeSchema.parse(carried) };
+    `));
+    expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
+    expect(detailsOf(result)).toContain("'content' is not declared by");
   });
 
-  it('still fires when the payload is NOT purely those parse outputs', () => {
-    const result = analyze(publish("{ ...built.data, pairingUndeclared: 1 }"));
-    expect(detailsOf(result)).toContain('pairingUndeclared');
+  it('MUST FAIL — crossed branches, each kind handed another kind\'s schema', () => {
+    const result = analyze(twoPlaces(`
+      case 'Tales':
+        return { data: PublishedTuneTrackSchema.parse(carried) };
+      case 'Tunes':
+        return { data: PublishedTelevisionEpisodeSchema.parse(carried) };
+      default:
+        return { data: PublishedChapterSchema.parse(carried) };
+    `));
+    expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
+  });
+
+  it('MUST FAIL — independent selectors over the same set of documents', () => {
+    const result = analyze(`${PREAMBLE}
+      import {
+        HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE,
+        PublishedChapterSchema,
+        PublishedTuneTrackSchema,
+      } from '@fixture/core-b';
+      export function writeIt(tx: FirebaseFirestore.Transaction, hallItemId: string, itemId: string, pathKind: string, shapeIsTale: boolean, carried: unknown) {
+        const ref = db.doc(toPath(PATH_BUILDERS.hallItemType(hallItemId, HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE[pathKind], itemId)));
+        tx.set(ref, shapeIsTale ? PublishedChapterSchema.parse(carried) : PublishedTuneTrackSchema.parse(carried));
+      }
+    `);
+    expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNDECLARED_FIELD);
   });
 });
 

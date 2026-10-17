@@ -2,6 +2,8 @@
 // write guard observes: its path-constant maps, path builders, collection references, and owner
 // maps. Test data for this package's own tests; nothing here is a definition any app imports.
 
+import { PublishedChapterSchema, PublishedTuneTrackSchema, PublishedTelevisionEpisodeSchema } from './doc-schemas.js';
+
 export const COLLECTIONS = Object.freeze({
   "USER_PROFILES": "userProfiles",
   "PUBLIC_USERS": "publicUsers",
@@ -468,3 +470,9 @@ export const COLLECTION_REFS = Object.freeze({
 
 /** Segments to a slash path. */
 export const toPath = (segments) => segments.join('/');
+
+export const PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE = Object.freeze({
+  "Tales": Object.freeze({ subcollection: "hallItemTales", schema: PublishedChapterSchema }),
+  "Tunes": Object.freeze({ subcollection: "hallItemTunes", schema: PublishedTuneTrackSchema }),
+  "Television": Object.freeze({ subcollection: "hallItemTelevision", schema: PublishedTelevisionEpisodeSchema }),
+});

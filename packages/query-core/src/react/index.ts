@@ -48,3 +48,14 @@ export { useFirestoreSearch } from './search/use-firestore-search.js';
 // Read retry state
 export { useReadRetryState, useReadRetryStates } from './use-read-retry-state.js';
 export type { ReadRetryEntry, ReadRetrySource, ReadRetryState } from './use-read-retry-state.js';
+
+// Authoritative pending for interactive mutations: in-flight state and duplicate guards read from
+// the shared MutationCache under the app's stable mutation keys.
+export {
+  usePendingMutationVariables,
+  pendingMutationVariables,
+  usePendingMutationTargets,
+  hasPendingMutation,
+  duplicateSubmissionError,
+  useDuplicateGuardedMutation,
+} from './pending-mutations.js';

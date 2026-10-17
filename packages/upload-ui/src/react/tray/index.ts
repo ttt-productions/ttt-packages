@@ -29,6 +29,7 @@ export {
 } from '../use-clear-upload-activity.js';
 export {
   useMarkUploadActivitySeen,
+  MarkUploadActivitySeenError,
   type MarkUploadActivitySeenOptions,
 } from '../use-mark-upload-activity-seen.js';
 export {

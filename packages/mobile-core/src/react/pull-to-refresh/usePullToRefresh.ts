@@ -117,7 +117,7 @@ export function usePullToRefresh(opts: PullToRefreshOptions): PullToRefreshResul
 
   const style: CSSProperties = {
     transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
-    transition: pullingRef.current ? "none" : "transform 0.3s ease-out",
+    transition: pullingRef.current ? "none" : "transform var(--motion-slow) var(--motion-ease)",
   };
 
   return {

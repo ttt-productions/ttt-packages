@@ -69,6 +69,9 @@ export type { EndOfListIndicatorProps } from "./components/end-of-list-indicator
 export { ScrollToTopButton } from "./components/scroll-to-top-button.js";
 export type { ScrollToTopButtonProps } from "./components/scroll-to-top-button.js";
 
+export { ActionRow } from "./components/action-row.js";
+export type { ActionRowProps, ActionRowButtonProps, ActionRowLinkProps, ActionRowLinkTargetProps } from "./components/action-row.js";
+
 export { ShowMoreToggle } from "./components/show-more-toggle.js";
 export type { ShowMoreToggleProps } from "./components/show-more-toggle.js";
 

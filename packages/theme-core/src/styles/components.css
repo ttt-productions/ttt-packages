@@ -436,8 +436,8 @@ button .spinner-xl {
   padding: 0.5rem;
   border-radius: 0.5rem;
   transition-property: color, background-color;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+  transition-timing-function: var(--motion-ease);
+  transition-duration: var(--motion-fast);
   background-color: hsl(var(--primary) / 0.10);
   color: hsl(var(--primary));
 }

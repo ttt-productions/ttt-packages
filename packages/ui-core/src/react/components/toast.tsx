@@ -25,13 +25,13 @@ function ToastKeyframes() {
 const toastVariants = cva(
   cn(
     // base
-    "pointer-events-auto relative flex w-full items-start justify-between gap-2 overflow-hidden rounded-md border bg-background p-4 text-foreground elevation-raised transition-all",
+    "pointer-events-auto relative flex w-full items-start justify-between gap-2 overflow-hidden rounded-md border bg-background p-4 text-foreground elevation-raised duration-[var(--motion-base)] ease-[var(--motion-ease)]",
     // radix state/animation
     "data-[state=open]:animate-in data-[state=closed]:animate-out",
     "data-[state=closed]:fade-out-80 data-[state=open]:fade-in-80",
     "data-[state=closed]:slide-out-to-top-full data-[state=open]:slide-in-from-top-full",
     "data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)]",
-    "data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-[transform_200ms_ease-out]",
+    "data-[swipe=cancel]:translate-x-0 data-[swipe=cancel]:transition-transform",
     "data-[swipe=end]:animate-out data-[swipe=end]:slide-out-to-right-full"
   ),
   {

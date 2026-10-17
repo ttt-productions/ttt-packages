@@ -27,13 +27,21 @@ The deferred form shell receives a neutral `MediaOriginSpec`. The consuming app 
 
 ## Entry points
 
-The package main entry (`@ttt-productions/upload-ui`) is intentionally server-safe and empty. React runtime exports are deliberately split by concern:
+The package main entry (`@ttt-productions/upload-ui`) is server-safe — no React — and holds only the upload row display formatters (below). React runtime exports are deliberately split by concern:
 
 - `./react/upload` — local upload helper and deferred form shell.
 - `./react/guard` — local upload guard, guarded links, and guarded navigation.
 - `./react/tray` — global upload activity subscriber and clear helpers.
 
 There is no catch-all `./react` subpath; import the specific concern.
+
+## Upload row display — size, kind, and time
+
+The root holds the one copy of what an upload row shows besides its title. `formatFileSize(bytes)` gives `850 B` / `24 KB` / `1.2 MB` / `3 GB` (`null` for a missing, negative, or non-finite count). `createUploadDisplayFormatters({ copy, relativeTimeCutoffMs, locale })` returns `formatUploadTimestamp(createdAtMs, nowMs)` and `getFileTypeLabel(contentType)`; the app builds them once. Every word (`UploadDisplayCopy`), the relative-time cutoff, and the locale are the app's — they live in its application-data package beside its origin row labels. Within the cutoff a time reads as just now, minutes, or hours ago; past it, as the clock time today, yesterday plus the clock time, or the short date plus the clock time. Today and yesterday are local calendar days — yesterday is the previous date, never "24 hours back", so a day that crosses a daylight-saving change is still one day.
+
+## Mark-seen sends at most the app's per-call cap
+
+`useMarkUploadActivitySeen({ markFn, maxIdsPerCall, onError })` takes every unseen id to mark and sends them to `markFn` in sequential calls of at most `maxIdsPerCall` — the app's callable cap — so a large set is never refused whole. A failed call does not stop the rest; its ids stay unseen. When any call failed, the mutation fails with `MarkUploadActivitySeenError` (the first failure, `unmarkedIds`), and `onError` receives that failure and the unmarked ids once.
 
 ## Clear-activity mutation joins the shared pending layer
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
@@ -69,6 +69,68 @@ describe('AuthProvider readyGate', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(onError).toHaveBeenCalledWith(boom, 'readyGate');
+  });
+
+  describe('a restored session while the gate is closed', () => {
+    const restoredUser = { uid: 'restored-uid' } as never;
+
+    afterEach(() => {
+      mockUseAuthState.mockReturnValue({ user: null, loading: false });
+    });
+
+    function deferredGate() {
+      let settle!: { open: () => void; fail: (err: unknown) => void };
+      const gate = () =>
+        new Promise<void>((resolve, reject) => {
+          settle = { open: resolve, fail: reject };
+        });
+      return { gate, settle: () => settle };
+    }
+
+    it('exposes no user, no authentication and the default claims until the gate opens', async () => {
+      mockUseAuthState.mockReturnValue({ user: restoredUser, loading: false });
+      const { gate, settle } = deferredGate();
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: makeWrapper(
+          makeConfig({
+            readyGate: gate,
+            parseClaims: () => ({ admin: true }),
+            defaultClaims: { admin: false },
+          }),
+        ),
+      });
+
+      await waitFor(() => expect(result.current.claimsLoading).toBe(false));
+      expect(result.current.user).toBeNull();
+      expect(result.current.isAuthenticated).toBe(false);
+      expect(result.current.claims).toEqual({ admin: false });
+      expect(result.current.loading).toBe(true);
+
+      await act(async () => {
+        settle().open();
+      });
+      await waitFor(() => expect(result.current.user).toBe(restoredUser));
+      expect(result.current.isAuthenticated).toBe(true);
+      expect(result.current.claims).toEqual({ admin: true });
+      expect(result.current.loading).toBe(false);
+    });
+
+    it('exposes the user once a rejected gate fails open, never before', async () => {
+      mockUseAuthState.mockReturnValue({ user: restoredUser, loading: false });
+      const { gate, settle } = deferredGate();
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: makeWrapper(makeConfig({ readyGate: gate, onError: vi.fn() })),
+      });
+
+      await waitFor(() => expect(result.current.claimsLoading).toBe(false));
+      expect(result.current.user).toBeNull();
+
+      await act(async () => {
+        settle().fail(new Error('attestation unavailable'));
+      });
+      await waitFor(() => expect(result.current.user).toBe(restoredUser));
+      expect(result.current.isAuthenticated).toBe(true);
+    });
   });
 
   it('a synchronously-throwing gate also fails open', async () => {

@@ -130,23 +130,28 @@ export function AuthProvider<TClaims = Record<string, unknown>>(
 
   // --- Derived at render: only the current session's claims are ever exposed ---
   const sessionClaims = user && resolved?.user === user ? resolved : null;
-  const claims = sessionClaims ? sessionClaims.claims : config.defaultClaims;
   const claimsLoading = authLoading || (user !== null && sessionClaims === null);
+
+  // While the gate is closed a restored session is held back from consumers: a uid-keyed
+  // subscription opened before the gate's readiness signal is rejected once and dies, so no
+  // consumer may see a uid (or that session's claims) until the gate opens or fails open.
+  const exposedUser = gateOpen ? user : null;
+  const claims = exposedUser && sessionClaims ? sessionClaims.claims : config.defaultClaims;
 
   // --- Context value ---
   const loading = authLoading || claimsLoading || !gateOpen;
 
   const value = useMemo<AuthContextValue<TClaims>>(
     () => ({
-      user,
+      user: exposedUser,
       claims,
       loading,
       authLoading,
       claimsLoading,
-      isAuthenticated: !!user,
+      isAuthenticated: !!exposedUser,
       refreshClaims,
     }),
-    [user, claims, loading, authLoading, claimsLoading, refreshClaims],
+    [exposedUser, claims, loading, authLoading, claimsLoading, refreshClaims],
   );
 
   return (

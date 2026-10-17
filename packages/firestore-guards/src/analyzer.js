@@ -2244,6 +2244,16 @@ export function analyzeFiles({
         const key = `${node.expression.getText(source)}.${node.name.text}`;
         const value = registry.constantValue.get(key);
         if (value) return LIT(value);
+        // `slot.subcollection` off `const slot = MAP[kind]`, a core const map: a literal only
+        // while the lookup reads ONE entry — a literal selector, or the case split a write
+        // makes when its target and payload read the same lookup. Several entries stay unknown.
+        const base = constLookup(stripParens(node.expression), facts);
+        if (ts.isElementAccessExpression(base)) {
+          const entries = coreMapEntries(base, facts, source);
+          const entry = entries?.length === 1 ? entries[0] : null;
+          const segment = entry && typeof entry === 'object' && !Array.isArray(entry) ? entry[node.name.text] : null;
+          if (typeof segment === 'string' && segment) return LIT(segment);
+        }
       }
       if (ts.isIdentifier(node) && facts.stringConsts.has(node.text)) return LIT(facts.stringConsts.get(node.text));
       return ANY;
@@ -3155,11 +3165,14 @@ export function analyzeFiles({
       return templates.size && templates.size <= MAX_CANDIDATES ? { templates } : null;
     }
 
-    /** Is this expression the canonical `COLLECTION_REFS` export (possibly renamed)? */
+    /**
+     * Is this expression the core's own `COLLECTION_REFS` — imported from the core, under any local
+     * name? A local or foreign object that merely shares the name refers to whatever its own
+     * functions return, so it is never read as the canonical registry (the `isCoreBuilders` rule).
+     */
     function isCollectionRefsBase(expr) {
       const node = stripWrappers(expr);
       if (!ts.isIdentifier(node)) return false;
-      if (node.text === 'COLLECTION_REFS') return true;
       const imported = facts.imports.get(node.text);
       return Boolean(
         imported?.imported === 'COLLECTION_REFS' && isCoreImport(facts, imported),
@@ -4330,8 +4343,6 @@ export function analyzeFiles({
      * every key came from one. A payload that IS a registered schema's parse output is
      * verified for the template that schema is bound to, by construction.
      */
-    const parseSources = new Set();
-    let onlyParseSources = true;
     let opaque = null;
 
     const noteLiteral = (key, valueNode) => {
@@ -4580,7 +4591,6 @@ export function analyzeFiles({
         return;
       }
       if (ts.isObjectLiteralExpression(node)) {
-        onlyParseSources = false;
         readObject(node, depth, facts, resolver);
         return;
       }
@@ -4664,14 +4674,30 @@ export function analyzeFiles({
             }
             schema = stripWrappers(schema.expression.expression);
           }
+          // `slot.schema.safeParse(x).data` off `const slot = MAP[kind]`, a core const map whose
+          // entries carry each document's schema: every entry the lookup can produce must hold a
+          // closed canonical schema a core export names, exactly as the `.parse()` reader asks.
+          if (picked === null && ts.isPropertyAccessExpression(schema)) {
+            const base = constLookup(stripParens(schema.expression), facts);
+            const entries = ts.isElementAccessExpression(base) ? coreMapEntries(base, facts, source) : null;
+            const names = entries?.map((entry) =>
+              entry && typeof entry === 'object' && !Array.isArray(entry)
+                ? registry.canonicalParseName.get(entry[schema.name.text])
+                : undefined,
+            );
+            if (!names?.length || !names.every(Boolean)) return null;
+            const keys = new Set();
+            for (const name of names) for (const key of registry.canonicalParseKeys.get(name).keys) keys.add(key);
+            return { keys };
+          }
           if (!ts.isIdentifier(schema)) return null;
           const imported = facts.imports.get(schema.text);
           if (!isCoreImport(facts, imported)) return null;
           const found = registry.canonicalParseKeys.get(imported.imported);
           if (!found) return null;
-          if (picked === null) return { ...found, source: imported.imported };
+          if (picked === null) return found;
           if (!picked.length || picked.some((key) => !found.keys.has(key))) return null;
-          return { keys: new Set(picked), source: null };
+          return { keys: new Set(picked) };
         };
         // `<CanonicalSchema>.parse(input).data` — a NESTED field of a closed canonical
         // core schema's parse output, merge-set as the document patch. The nested
@@ -4714,8 +4740,6 @@ export function analyzeFiles({
         const canonical = canonicalSafeParseKeys(node) ?? canonicalNestedKeys(node);
         if (canonical) {
           for (const key of canonical.keys) keys.add(isUpdate ? key.split('.')[0] : key);
-          if (canonical.source) parseSources.add(canonical.source);
-          else onlyParseSources = false;
           return;
         }
         const properties = resolver.staticPropertyCandidates(node.expression, node.name.text);
@@ -4825,7 +4849,6 @@ export function analyzeFiles({
               registry.canonicalParseKeys.get(imported.imported);
             if (canonical) {
               for (const key of canonical.keys) keys.add(isUpdate ? key.split('.')[0] : key);
-              parseSources.add(imported.imported);
               return;
             }
           }
@@ -4848,12 +4871,10 @@ export function analyzeFiles({
                 for (const key of registry.canonicalParseKeys.get(name).keys) {
                   keys.add(isUpdate ? key.split('.')[0] : key);
                 }
-                parseSources.add(name);
               }
               return;
             }
           }
-          onlyParseSources = false;
           opaque ??= 'payload parsed by a non-canonical or open schema';
           return;
         }
@@ -4879,7 +4900,6 @@ export function analyzeFiles({
               for (const key of declared.keys) found.add(key);
             }
             if (readable) {
-              onlyParseSources = false;
               for (const key of found) keys.add(isUpdate ? key.split('.')[0] : key);
               return;
             }
@@ -4906,7 +4926,6 @@ export function analyzeFiles({
         ) {
           const names = fromEntriesKeys(node.arguments[0], facts, resolver, isUpdate);
           if (names) {
-            onlyParseSources = false;
             for (const name of names) keys.add(isUpdate ? name.split('.')[0] : name);
           } else {
             opaque ??= 'payload built by Object.fromEntries()';
@@ -4985,7 +5004,6 @@ export function analyzeFiles({
       casts,
       opaque,
       literals,
-      parseSources: onlyParseSources && parseSources.size ? parseSources : null,
     };
   }
 
@@ -5005,8 +5023,6 @@ export function analyzeFiles({
     const casts = [];
     const literals = new Map();
     let opaque = null;
-    let parseSources = new Set();
-    let everyReturnParsed = true;
     for (const returned of returns) {
       const read = payloadKeys(value.facts, resolver, returned, isUpdate);
       for (const key of read.keys) keys.add(key);
@@ -5016,11 +5032,8 @@ export function analyzeFiles({
         if (!literals.has(key)) literals.set(key, new Set());
         for (const literal of values) literals.get(key).add(literal);
       }
-      if (read.parseSources) for (const parseSource of read.parseSources) parseSources.add(parseSource);
-      else everyReturnParsed = false;
     }
-    if (!everyReturnParsed || !parseSources.size) parseSources = null;
-    return { keys, casts, opaque, literals, parseSources };
+    return { keys, casts, opaque, literals };
   }
 
   /** fnKey -> { keys:Set, opaque } for functions that RETURN a payload object literal. */
@@ -6015,7 +6028,6 @@ export function analyzeFiles({
             casts: [],
             opaque: null,
             literals: new Map(),
-            parseSources: null,
           },
         };
       }
@@ -6045,7 +6057,6 @@ export function analyzeFiles({
               casts: read.casts,
               opaque: read.opaque,
               literals: read.literals,
-              parseSources: read.parseSources,
             });
           } finally {
             narrowedEntries.delete(entryBinding.access);
@@ -6082,7 +6093,6 @@ export function analyzeFiles({
             casts: read.casts,
             opaque: read.opaque,
             literals: read.literals,
-            parseSources: read.parseSources,
           });
         }
         if (readable && correlated.length) return { correlated };
@@ -6093,7 +6103,6 @@ export function analyzeFiles({
       let casts = [];
       let opaque = null;
       let literals = new Map();
-      let parseSources = null;
       if (classified.fieldPathArgs) {
         for (let i = 0; i < classified.fieldPathArgs.length; i += 2) {
           const argument = stripWrappers(classified.fieldPathArgs[i]);
@@ -6106,7 +6115,6 @@ export function analyzeFiles({
         casts = read.casts;
         opaque = read.opaque;
         literals = read.literals;
-        parseSources = read.parseSources;
       }
       return {
         single: {
@@ -6118,7 +6126,6 @@ export function analyzeFiles({
           casts,
           opaque,
           literals,
-          parseSources,
         },
       };
     };
@@ -6151,7 +6158,6 @@ export function analyzeFiles({
       casts: base.casts,
       opaque: base.opaque,
       literals: base.literals,
-      parseSources: base.parseSources,
       correlatedBranches,
     };
   }
@@ -6546,34 +6552,6 @@ export function enumerateWriteCallSites(files) {
 // Violations + coverage
 // ---------------------------------------------------------------------------
 
-/**
- * Pair each candidate template with the ONE canonical parse output that produced this
- * payload, when the payload is nothing but canonical parse outputs and every candidate
- * template's registry schema is one of them (by object identity — a same-shaped copy is
- * not the same binding). Returns template -> that schema's declared keys, or null when the
- * pairing is not statically provable, in which case the ordinary any-template rule applies.
- */
-function pairTemplatesToParseSources(registry, branch) {
-  const sources = branch.parseSources;
-  if (!sources?.size || !registry.canonicalParseSchema) return null;
-  if (branch.templates.length < 2 || sources.size < 2) return null;
-  const paired = new Map();
-  for (const template of branch.templates) {
-    const bound = registry.schemaFor(template);
-    if (!bound) return null;
-    let match = null;
-    for (const name of sources) {
-      if (registry.canonicalParseSchema.get(name) === bound) {
-        match = registry.canonicalParseKeys.get(name);
-        break;
-      }
-    }
-    if (!match) return null;
-    paired.set(template, match);
-  }
-  return paired;
-}
-
 /** Which tree a repo-relative path belongs to. */
 function treeOf(relPath, trees) {
   for (const tree of trees) if (relPath === tree || relPath.startsWith(`${tree}/`)) return tree;
@@ -6682,7 +6660,6 @@ export function evaluate({
       casts: write.casts,
       opaque: write.opaque,
       literals: write.literals,
-      parseSources: write.parseSources,
     }];
     let branchDiffable = true;
 
@@ -6727,56 +6704,11 @@ export function evaluate({
             });
           }
         }
-        // A template whose declared keys cannot be READ diffs the payload against nothing.
-        // Skipping it silently would count a write as "payload fully read" while checking it
-        // against a ZodPreprocess wrapper. It is its own reported condition.
-        // A payload that IS the parse output of canonical schemas, written to templates the
-        // registry binds to exactly those schemas, pairs BY CONSTRUCTION: a discriminated
-        // path (`MAP[kind]`) and a discriminated payload (the matching
-        // member schema's parse) are the same choice made twice.
-        // Checking each template against the whole union instead would demand the writer
-        // unroll one of them, which is the defect this guard exists to prevent.
-        // When every candidate template's registry schema IS one of the canonical schemas
-        // this payload is the parse output of, each template is diffed against ITS OWN
-        // paired schema instead of against the union of all three branches — diffing the
-        // union would report the other branches' fields as undeclared, and the only way
-        // to "fix" that would be to unroll the discrimination. The diff still HAPPENS:
-        // counting a paired write as verified without running one is what made the
-        // VERIFIED column a claim rather than a measurement.
-        const paired = pairTemplatesToParseSources(registry, branch);
-        if (paired) {
-          let pairedClean = true;
-          for (const [template, produced] of paired) {
-            const declared = registry.declaredFor(template);
-            if (!declared || declared.open) {
-              pairedClean = false;
-              violations.push({
-                kind: VIOLATION_KINDS.UNDIFFABLE_TEMPLATE,
-                at: write.at,
-                detail: `'${template}' has no readable declared keys, so the paired parse output was diffed against nothing`,
-                templates: [template],
-                snippet: write.snippet,
-              });
-              continue;
-            }
-            for (const key of produced.keys) {
-              if (declared.keys.has(key)) continue;
-              pairedClean = false;
-              if (excuse(VIOLATION_KINDS.UNDECLARED_FIELD, write, key)) continue;
-              violations.push({
-                kind: VIOLATION_KINDS.UNDECLARED_FIELD,
-                at: write.at,
-                detail: `'${key}' is not declared by ${template}`,
-                field: key,
-                templates: [template],
-                snippet: write.snippet,
-              });
-            }
-          }
-          branchDiffable = branchDiffable && pairedClean;
-          continue;
-        }
-
+        // A target and a payload chosen by one decision are paired only where the analysis PROVES
+        // it: a same-carrier pair, or a core map entry both sides read, each split into one
+        // branch per possibility before it reaches here. Two independent choices over the same
+        // set of documents prove nothing, so every candidate template is diffed against every
+        // key the payload can carry.
         const diffable = new Map();
         for (const template of branch.templates) {
           const narrowed = narrowedDeclaredKeys(registry.schemaFor(template), branch.literals);

@@ -1,5 +1,5 @@
 // Pure hall-content rules shared by the member surfaces and the backend cores that own the
-// writes. Server-safe: constants and plain functions only.
+// writes. Server-safe: constants, canonical schemas, and plain functions only.
 
 import { checkTextField, type TextFieldDeclaration } from './text-field.js';
 import {
@@ -9,7 +9,26 @@ import {
 } from '../constants/business-content.js';
 import { HALL_CONTENT_CHANGE_REQUEST_INPUTS } from '../constants/text-fields.js';
 import type { WorkProjectType } from '../types/content.js';
-import type { FullChapter, FullTelevisionEpisode, FullTuneTrack } from '../doc-schemas/content.js';
+import {
+  PublishedChapterSchema,
+  PublishedTelevisionEpisodeSchema,
+  PublishedTuneTrackSchema,
+  type FullChapter,
+  type FullTelevisionEpisode,
+  type FullTuneTrack,
+} from '../doc-schemas/content.js';
+import { HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE } from '../paths/collections.js';
+
+/**
+ * Each work type's published Hall sub-item: the subcollection it is stored in and the schema it is
+ * stored as, declared together. A writer looks its work type up once and takes both from the one
+ * entry, so one kind's shape can never be stored in another kind's subcollection.
+ */
+export const PUBLISHED_HALL_SUB_ITEM_BY_WORK_TYPE = {
+  Tales: { subcollection: HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tales, schema: PublishedChapterSchema },
+  Tunes: { subcollection: HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Tunes, schema: PublishedTuneTrackSchema },
+  Television: { subcollection: HALL_ITEM_SUBCOLLECTION_BY_WORK_TYPE.Television, schema: PublishedTelevisionEpisodeSchema },
+} as const satisfies Record<WorkProjectType, { subcollection: string; schema: unknown }>;
 
 /** A published hall-content surface whose text a change request or the moderation
  *  text-clear remedy can target. */

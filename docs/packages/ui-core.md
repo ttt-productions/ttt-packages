@@ -138,6 +138,14 @@ The one column header that sorts its table (`./react`, beside `TableHead`). Dura
 - **Styling is ui-core's.** The header and button carry their own classes and the shared focus ring;
   the caller's `className` aligns or sizes the cell.
 
+## Clickable row — `ActionRow`
+
+The one whole-row action whose row can still hold controls of its own (a Retry inside a linked card). A row is never one `<button>` or `<a>`, because a control inside it would be nested in it.
+
+- **A sibling target.** The row's target is laid over the row and named by the row's content (`aria-labelledby`). The content sits above it and passes pointer events through to it everywhere except on its own links, buttons and form controls. The target comes first in tab order, then any control inside the row.
+- **Button or link.** The button form takes `onClick`, `disabled` and `busy` (`aria-busy`); a disabled row runs nothing and its content dims. The link form takes `renderLink(target)`: the app renders its own guarded in-app link and spreads `target` (`className`, `aria-labelledby`) onto it, with no children.
+- **Look.** The row paints `bg-accent` on hover through the target, timed by the motion tokens; `className` lays out the content. `ui-action-row` is the row's hook class.
+
 ## Show more — `ShowMoreToggle`
 
 The one "show more" disclosure control. Every expandable section uses it, so the control looks and behaves the same everywhere and changes in one place.

@@ -1500,6 +1500,48 @@ describe('COLLECTION_REFS auto-id and preset-id references', () => {
     expect(detailsOf(result)).toContain('indexedFormUndeclared');
     expect(detailsOf(result)).toContain('sportGames/{gameId}');
   });
+
+  it('MUST FAIL — a local object named COLLECTION_REFS is never the canonical registry', () => {
+    const result = analyze(`
+      import { toPath } from '@fixture/core';
+      const db = getFirestore();
+      const COLLECTION_REFS = { auditEvents: () => ['anyCollection'] };
+      export async function writeIt() {
+        const ref = db.collection(toPath(COLLECTION_REFS.auditEvents())).doc();
+        await ref.set({ localRefsUndeclared: true });
+      }
+    `);
+    expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
+    expect(detailsOf(result)).not.toContain('auditEvents/{');
+  });
+
+  it('MUST FAIL — a COLLECTION_REFS imported from another module is never the canonical registry', () => {
+    const result = analyze(`
+      import { toPath } from '@fixture/core';
+      import { COLLECTION_REFS } from './look-alike';
+      const db = getFirestore();
+      export async function writeIt() {
+        const ref = db.collection(toPath(COLLECTION_REFS.auditEvents())).doc();
+        await ref.set({ foreignRefsUndeclared: true });
+      }
+    `);
+    expect(kindsOf(result)).toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
+    expect(detailsOf(result)).not.toContain('auditEvents/{');
+  });
+
+  it('reads the canonical registry under a renamed import', () => {
+    const result = analyze(`
+      import { COLLECTION_REFS as REFS, toPath } from '@fixture/core';
+      const db = getFirestore();
+      export async function writeIt() {
+        const ref = db.collection(toPath(REFS.auditEvents())).doc();
+        await ref.set({ renamedRefsUndeclared: true });
+      }
+    `);
+    expect(kindsOf(result)).not.toContain(VIOLATION_KINDS.UNRESOLVED_TARGET);
+    expect(detailsOf(result)).toContain('renamedRefsUndeclared');
+    expect(detailsOf(result)).toContain('auditEvents');
+  });
 });
 
 describe('computed keys drawn from a canonical core const map', () => {

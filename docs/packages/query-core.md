@@ -192,11 +192,21 @@ pending until the refreshed data is in the cache. The promise never rejects —
 query, never as a failure of the committed action. `refetchType: 'none'` issues no refetch,
 so it contributes nothing to wait on.
 
+## Interactive mutation pending — read from the shared MutationCache
+
+An interactive mutation's pending state belongs to the mutation, never to the control that started it. The app registers each action under one stable `mutationKey` it declares, carries the action's target in the mutation's variables, and reads pending through these mechanics (`./react`):
+
+- `usePendingMutationVariables(key)` — the variables of every pending mutation under `key` (prefix-matched), live; `usePendingMutationTargets(key, targetOf)` — the same as a set of target strings, so a list reads every row's pending through one call.
+- `pendingMutationVariables(queryClient, key)` and `hasPendingMutation(queryClient, key, matches?)` — the same read, once, for a duplicate guard.
+- `useDuplicateGuardedMutation(mutation, isDuplicate, what)` — wraps `mutate` / `mutateAsync` so a submission whose target is already pending is dropped by `mutate` and refused by `mutateAsync` with `duplicateSubmissionError(what)`, an `AbortError` callers treat as "nothing happened". `isDuplicate` has a stable identity (module level).
+
+Together they give three guarantees a control's own `isPending` cannot: an in-flight request survives its control unmounting, a remounted control still shows it pending, and a second submission for the same target is refused while the first runs. The keys, the variable shapes, and what counts as the same target are the app's; the package holds no family.
+
 ## Entry points
 
 - `.` — server-safe root: the search rule (`FIRESTORE_SEARCH_MIN_LENGTH`, `isSearchableText`, `normalizeSearchText`), cache helpers (including the paginated-entry updaters and `paginatedPageKey`), Firestore types (including `PaginatedPage`) and `docWithId`, infinite-data helpers, search types, the `STALE_TIMES` presets, and the domain-event invalidator mechanism. No React or react-query in the runtime graph.
 - `./keys` — pure, dependency-free query-key builders (`keys`, `createKeyScope`, `QueryKey`). Safe for any runtime, including backend code that produces invalidation key arrays.
-- `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, the read retry state (`useReadRetryState`, `useReadRetryStates`), and the `createQueryClient` factory.
+- `./react` — React/TanStack runtime: provider, Firestore hooks, search hook, the read retry state (`useReadRetryState`, `useReadRetryStates`), the interactive mutation pending mechanics, and the `createQueryClient` factory.
 - `./types` — Firestore option/type surface, including `FirestoreCountOptions` and `FirestoreLiveInfiniteOptions` (these two are not re-exported from root, unlike the other Firestore option types).
 
 Client peers (`react`, `react-dom`, `@tanstack/react-query`) are optional; they are needed only when importing `./react`. Its one internal runtime dependency is `firebase-helpers` (server-safe root only, for `chunk` and `FIRESTORE_IN_FILTER_LIMIT`), so a server-only install pulls no client runtime through it.

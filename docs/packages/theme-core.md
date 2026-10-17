@@ -11,7 +11,11 @@ Generic theme and CSS-token package.
 - The motion tokens' defaults — the whole FRONTEND-204 family: `--motion-fast` (150ms), `--motion-base` (200ms), `--motion-slow` (250ms), and `--motion-ease`
   (an ease-out cubic), declared theme-invariant in `contract.css`'s `:root`, so every
   transition that reads them, in a package or the app (FRONTEND-204), resolves in every theme. An app may override any of them
-  from its own later-loading token layer; it does not restate them
+  from its own later-loading token layer; it does not restate them. No package class string or
+  stylesheet carries a raw duration, delay or easing, a hand-written `transition-[…]`, `transition-all`
+  or a bare `transition`; Tailwind timing reads a token (`duration-[var(--motion-base)]`,
+  `ease-[var(--motion-ease)]`). A looping indicator's own animation (a spinner, a pulse) is not a
+  change of state and keeps its clock. `__tests__/motion-tokens.test.ts` enforces it across every package
 - Component/theme CSS entrypoints
 - Breakpoints and theme helpers
 - Generic theme switcher React component

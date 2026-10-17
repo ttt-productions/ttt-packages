@@ -9,6 +9,7 @@ Generic server-side media processing package.
 - Temp workspace and processing adapter utilities
 - The final-media object stores and the object-store `MediaIO` adapter on `./server` (see below)
 - The Admin-SDK pending-media pipeline mechanics on `./server`: the crash-safe claim, the compare-and-set finalizer, and the staged-object reads (see below)
+- The one Firebase download-token remover on `./server`: `hasDownloadToken(objectMetadata)` reads whether an object's custom metadata still carries the `firebaseStorageDownloadTokens` entry the Storage client writes on upload, and `removeDownloadToken(file)` deletes that one key (a null custom-metadata value), leaving every other entry. An app that serves no object through a download token removes it when the server takes the object over
 
 ## Boundary
 

@@ -52,7 +52,7 @@ function SpinnerIndicator({ progress, isRefreshing, prefix }: { progress: number
         strokeDasharray={circumference}
         strokeDashoffset={isRefreshing ? circumference * 0.25 : dashOffset}
         strokeLinecap="round"
-        style={{ transition: isRefreshing ? "none" : "stroke-dashoffset 0.1s ease-out" }}
+        style={{ transition: isRefreshing ? "none" : "stroke-dashoffset var(--motion-fast) var(--motion-ease)" }}
         transform="rotate(-90 12 12)"
       />
     </svg>
@@ -102,7 +102,7 @@ export function PullToRefreshContainer({ onRefresh, disabled, className, childre
             justifyContent: "center",
             transform: `translateY(${showIndicator ? pullDistance - INDICATOR_SIZE - 8 : -INDICATOR_SIZE - 8}px)`,
             opacity: indicatorOpacity,
-            transition: pullDistance > 0 && !isRefreshing ? "none" : "transform 0.3s ease-out, opacity 0.3s ease-out",
+            transition: pullDistance > 0 && !isRefreshing ? "none" : "transform var(--motion-slow) var(--motion-ease), opacity var(--motion-slow) var(--motion-ease)",
             pointerEvents: "none",
             zIndex: 10,
             color: "hsl(var(--foreground))",

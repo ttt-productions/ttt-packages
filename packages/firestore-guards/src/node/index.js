@@ -12,24 +12,42 @@ const DECLARATION_FILE = /\.d\.ts$/;
 const toRel = (repoRoot, full) => path.relative(repoRoot, full).split(path.sep).join('/');
 
 /**
+ * A directory's entries, or a thrown error naming the exact directory. A folder the guard was
+ * told to read that cannot be read is never an empty folder: its writes would go unanalyzed and
+ * the run would still pass. Only a root declared optional may be absent, and only absent — an
+ * optional root that exists but cannot be read fails like any other.
+ *
+ * @param {string} dir absolute directory
+ * @param {string} label what the directory is, for the error
+ * @param {{ optionalRoot?: boolean }} [options]
+ * @returns {import('node:fs').Dirent[] | null} null for an absent optional root
+ */
+function readDirectory(dir, label, { optionalRoot = false } = {}) {
+  try {
+    return fs.readdirSync(dir, { withFileTypes: true });
+  } catch (err) {
+    if (optionalRoot && err?.code === 'ENOENT') return null;
+    throw new Error(`firestore-guards: cannot read ${label} ${dir} (${err?.code ?? err?.message ?? err})`, { cause: err });
+  }
+}
+
+/**
  * Every non-test source file under `root`, repo-root-relative and forward-slashed.
- * Test trees and dependency/build directories are never source.
+ * Test trees and dependency/build directories are never source. The root and every directory
+ * under it must be readable, or this throws naming the directory; an `optional` root may be
+ * absent (no files), never unreadable. A readable empty tree is valid.
  *
  * @param {string} repoRoot
  * @param {string} root repo-relative folder to walk
- * @param {{ excludePaths?: string[] }} [options]
+ * @param {{ excludePaths?: string[], optional?: boolean }} [options]
  * @returns {string[]}
  */
-export function collectSourceFiles(repoRoot, root, { excludePaths = [] } = {}) {
+export function collectSourceFiles(repoRoot, root, { excludePaths = [], optional = false } = {}) {
   const excluded = new Set(excludePaths);
   const results = [];
-  const walk = (dir) => {
-    let entries;
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+  const walk = (dir, isRoot) => {
+    const entries = readDirectory(dir, 'writer tree', { optionalRoot: isRoot && optional });
+    if (!entries) return;
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
       const rel = toRel(repoRoot, full);
@@ -40,7 +58,7 @@ export function collectSourceFiles(repoRoot, root, { excludePaths = [] } = {}) {
         if (entry.name === 'node_modules' || entry.name === 'dist') continue;
         if (entry.name.startsWith('.')) continue;
         if (excluded.has(rel)) continue;
-        walk(full);
+        walk(full, false);
       } else if (
         SOURCE_EXT.test(entry.name) &&
         !TEST_FILE.test(entry.name) &&
@@ -52,13 +70,14 @@ export function collectSourceFiles(repoRoot, root, { excludePaths = [] } = {}) {
       }
     }
   };
-  walk(path.join(repoRoot, root));
+  walk(path.join(repoRoot, root), true);
   return results.sort();
 }
 
 /**
  * The reader `analyzeFiles` takes for installed packages' type declarations: every shipped
- * `.d.ts` file under `node_modules/<packageName>` of `repoRoot`.
+ * `.d.ts` file under `node_modules/<packageName>` of `repoRoot`. A package that is not installed
+ * declares nothing; an installed one whose folders or declaration files cannot be read throws.
  *
  * @param {string} repoRoot
  * @returns {(packageName: string) => Array<{ file: string, text: string }>}
@@ -69,12 +88,8 @@ export function nodePackageDeclarations(repoRoot) {
     const files = [];
     const walk = (dir, depth) => {
       if (depth > 6) return;
-      let entries;
-      try {
-        entries = fs.readdirSync(dir, { withFileTypes: true });
-      } catch {
-        return;
-      }
+      const entries = readDirectory(dir, `installed package ${packageName}`, { optionalRoot: depth === 0 });
+      if (!entries) return;
       for (const entry of entries) {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) {
@@ -82,11 +97,7 @@ export function nodePackageDeclarations(repoRoot) {
           continue;
         }
         if (!DECLARATION_FILE.test(entry.name)) continue;
-        try {
-          files.push({ file: full, text: fs.readFileSync(full, 'utf8') });
-        } catch {
-          // An unreadable declaration file simply contributes nothing.
-        }
+        files.push({ file: full, text: fs.readFileSync(full, 'utf8') });
       }
     };
     walk(root, 0);
@@ -99,7 +110,10 @@ export function nodePackageDeclarations(repoRoot) {
  *
  * @param {object} options
  * @param {string} options.repoRoot
- * @param {string[]} options.trees repo-relative roots to sweep for writes
+ * @param {string[]} options.trees repo-relative roots to sweep for writes; each must exist and
+ *   be readable throughout
+ * @param {string[]} [options.optionalTrees] roots swept the same way when present, and allowed
+ *   to be absent
  * @param {object} options.registry from loadRegistry()
  * @param {object} options.profile from createGuardProfile()
  * @param {string[]} [options.libraryTrees] repo-relative roots read for what they declare and
@@ -107,12 +121,27 @@ export function nodePackageDeclarations(repoRoot) {
  * @param {Array} [options.exceptions] the reviewed exception list
  * @param {Array<string | { path: string }>} [options.excludePaths] repo-relative paths never scanned
  */
-export function runGuard({ repoRoot, trees, registry, profile, libraryTrees, exceptions = [], excludePaths = [] }) {
+export function runGuard({
+  repoRoot,
+  trees,
+  optionalTrees = [],
+  registry,
+  profile,
+  libraryTrees,
+  exceptions = [],
+  excludePaths = [],
+}) {
   const paths = excludePaths.map((entry) => (typeof entry === 'string' ? entry : entry.path));
   const read = (rel) => fs.readFileSync(path.join(repoRoot, rel), 'utf8');
   const files = [];
-  for (const tree of trees) {
-    for (const rel of collectSourceFiles(repoRoot, tree, { excludePaths: paths })) files.push(parseFile(rel, read(rel)));
+  const swept = [
+    ...trees.map((tree) => ({ tree, optional: false })),
+    ...optionalTrees.map((tree) => ({ tree, optional: true })),
+  ];
+  for (const { tree, optional } of swept) {
+    for (const rel of collectSourceFiles(repoRoot, tree, { excludePaths: paths, optional })) {
+      files.push(parseFile(rel, read(rel)));
+    }
   }
   const libraryFiles = [];
   for (const tree of libraryTrees ?? (profile.coreLibraryRoot ? [profile.coreLibraryRoot] : [])) {
@@ -130,7 +159,7 @@ export function runGuard({ repoRoot, trees, registry, profile, libraryTrees, exc
     writes,
     registry,
     exceptions,
-    trees,
+    trees: [...trees, ...optionalTrees],
     notFirestore,
     unclassified,
     packageBuilderUses,
@@ -145,33 +174,30 @@ export function runGuard({ repoRoot, trees, registry, profile, libraryTrees, exc
 /**
  * Every test-code file under the given roots, read: a file whose name says it is a test, or any
  * file under a test tree — a folder named `__tests__`, one of `testTrees`, or a root passed with
- * `whole: true`.
+ * `whole: true`. Every root and directory under it must be readable, or this throws naming the
+ * directory; a root passed with `optional: true` may be absent.
  *
  * @param {string} repoRoot
- * @param {Array<{ root: string, whole?: boolean }>} roots repo-relative roots
+ * @param {Array<{ root: string, whole?: boolean, optional?: boolean }>} roots repo-relative roots
  * @param {{ testTrees?: string[] }} [options] repo-relative folders whose every file is test code
  * @returns {Array<{ path: string, content: string }>}
  */
 export function collectTestCode(repoRoot, roots, { testTrees = [] } = {}) {
   const trees = new Set(testTrees);
   const results = [];
-  const walk = (dir, inTestTree) => {
-    let entries;
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+  const walk = (dir, inTestTree, optionalRoot) => {
+    const entries = readDirectory(dir, 'test-code tree', { optionalRoot });
+    if (!entries) return;
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name.startsWith('.')) continue;
-        walk(full, inTestTree || entry.name === '__tests__' || trees.has(toRel(repoRoot, full)));
+        walk(full, inTestTree || entry.name === '__tests__' || trees.has(toRel(repoRoot, full)), false);
       } else if (SOURCE_EXT.test(entry.name) && !DECLARATION_FILE.test(entry.name) && (inTestTree || TEST_FILE.test(entry.name))) {
         results.push({ path: toRel(repoRoot, full), content: fs.readFileSync(full, 'utf8') });
       }
     }
   };
-  for (const { root, whole = false } of roots) walk(path.join(repoRoot, root), whole);
+  for (const { root, whole = false, optional = false } of roots) walk(path.join(repoRoot, root), whole, optional);
   return results.sort((a, b) => a.path.localeCompare(b.path));
 }
