@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { userIdSchema, calendarDateSchema } from './atoms.js';
 import { MAX_ARTISAN_LOCATION_LENGTH, MAX_USER_SEARCH_QUERY_LENGTH } from '../constants/business.js';
-import { ACCOUNT_ACTION_REASON_INPUT, ARTISAN_REGION_INPUT, USERNAME_INPUT } from '../constants/text-fields.js';
+import {
+  ACCOUNT_ACTION_REASON_INPUT,
+  ARTISAN_REGION_INPUT,
+  CLOSE_UNDER_13_REASON_INPUT,
+  USERNAME_INPUT,
+} from '../constants/text-fields.js';
 import { textFieldSchema } from './text-field.js';
 import { UserAccountStatusSchema } from '../doc-schemas/user.js';
 import { PublicDocumentVersionOrNoneSchema } from '../doc-schemas/public-documents.js';
@@ -58,8 +63,7 @@ export type SquareStreetzAgreementsAcceptedAuditPayload = z.infer<typeof SquareS
 
 // One-time acknowledgement gate before a user may download Hall content for personal
 // offline use (final wording owned by the legal-and-content step). No payload — the
-// callable records the timestamp in the caller's privateData. See
-// docs/design/media-assets-and-protected-serving.md (Hall/Library downloads).
+// callable records the timestamp in the caller's privateData.
 export const AcceptHallDownloadAcknowledgementInputSchema = z.object({}).strict();
 export type AcceptHallDownloadAcknowledgementInput = z.infer<typeof AcceptHallDownloadAcknowledgementInputSchema>;
 
@@ -68,13 +72,12 @@ export type AcceptHallDownloadAcknowledgementInput = z.infer<typeof AcceptHallDo
 // artisanCreator.grantedToUser audit event (immutable, timestamped, with IP/UA) so it is provable.
 export const BecomeArtisanCreatorInputSchema = z.object({
   ageAttested: z.literal(true),
-  // "I confirm I am a person located in the United States" — required for now (only U.S. persons
-  // may become artisans). Mirrors ageAttested: the callable rejects when absent and records the
+  // "I confirm I am a person located in the United States" — only U.S. persons may become
+  // artisans. Mirrors ageAttested: the callable rejects when absent and records the
   // attestation timestamp (privateData.usPersonAttestedAt) + the grant audit event.
   usPersonAttested: z.literal(true),
-  // [Q21.5 REVISED — DJ 2026-07-06] The artisan's date of birth — the ONLY point in the system
-  // where a DOB is collected for persistence (registration/upgrade derive the bracket and store
-  // nothing). The dialog copy tells the user this must be THEIR birthday: when the payout system
+  // The artisan's date of birth — the ONLY point in the system where a DOB is collected for
+  // persistence (registration/upgrade derive the bracket and store nothing). The dialog copy tells the user this must be THEIR birthday: when the payout system
   // ships, it has to match their payout (KYC) identity. The callable re-derives 18+ server-side
   // from this value; an under-18 derivation rejects (failure audit, nothing stored). Stored as
   // privateData attestedDateOfBirth + attestedDobSource 'artisanOnboarding'.
@@ -221,6 +224,15 @@ export const ForceDisplayNameResetInputSchema = z.object({
 }).strict();
 export type ForceDisplayNameResetInput = z.infer<typeof ForceDisplayNameResetInputSchema>;
 
+// An admin closes an existing account found to belong to someone under 13 (COPPA). Strict, so it
+// never accepts a date of birth or any other new personal information about the child. The reason
+// is nullish because the Firebase callable client sends an omitted argument as null.
+export const CloseAccountUnder13InputSchema = z.object({
+  userId: userIdSchema,
+  reason: textFieldSchema(CLOSE_UNDER_13_REASON_INPUT).nullish(),
+}).strict();
+export type CloseAccountUnder13Input = z.infer<typeof CloseAccountUnder13InputSchema>;
+
 // User completes a forced display-name reset by choosing a new name. Only honored while
 // the caller's userProfiles doc has `displayNameResetRequired === true`.
 export const SetMyDisplayNameInputSchema = z.object({
@@ -310,9 +322,8 @@ export const LookupUserByEmailOrUidResultSchema = z.object({
 });
 export type LookupUserByEmailOrUidResult = z.infer<typeof LookupUserByEmailOrUidResultSchema>;
 
-// N3 account deletion — wire result contracts for the two user-facing callables (both take
-// no input). Previously declared independently in functions/src and src/hooks — one drifting
-// pair per callable. Non-strict (server → client result posture).
+// Account deletion — wire result contracts for the two user-facing callables (both take no
+// input). Non-strict (server → client result posture).
 export const RequestAccountDeletionResultSchema = z.object({
   success: z.literal(true),
   /** When the scheduled scrub will run (requestedAt + the grace window), epoch ms. */

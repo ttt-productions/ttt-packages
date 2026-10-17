@@ -107,8 +107,17 @@ describe('a dependency override exists exactly while it is needed', () => {
 
   it('refuses an override whose affected range is no semver range, or which carries no why', () => {
     expect(dependencyOverrideGuard.factProblems({ overrides: [{ ...o, affected: 'nope', manifest: 'package.json', installedUnder: '', why: '' }] })).toEqual([
-      'overrides entry @firebase/firestore → @grpc/grpc-js carries no why',
-      "overrides entry @firebase/firestore → @grpc/grpc-js's affected is not a semver range",
+      'overrides entry package.json: @firebase/firestore → @grpc/grpc-js carries no why',
+      "overrides entry package.json: @firebase/firestore → @grpc/grpc-js's affected is not a semver range",
+    ]);
+  });
+
+  it('accepts one parent → child override in each manifest that carries it, and refuses a manifest listing it twice', () => {
+    const sharp = { parent: 'miniflare', child: 'sharp', affected: '<0.35.5', installedUnder: '', why: 'the parent pins an affected sharp' };
+    const inEach = ['worker-a/package.json', 'worker-b/package.json'].map((manifest) => ({ ...sharp, manifest }));
+    expect(dependencyOverrideGuard.factProblems({ overrides: inEach })).toEqual([]);
+    expect(dependencyOverrideGuard.factProblems({ overrides: [inEach[0], inEach[0]] })).toEqual([
+      'overrides lists worker-a/package.json: miniflare → sharp twice',
     ]);
   });
 });

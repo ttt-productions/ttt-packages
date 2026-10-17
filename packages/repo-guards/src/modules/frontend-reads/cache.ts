@@ -546,7 +546,10 @@ export const domainEventRegistryGuard: GenericGuardDefinition<DomainEventRegistr
         `Every variant of the core's domain-event schema has an entry in the registry in ${facts.registry.path}, and the entry answers, ` +
         'for every shape of its ids (each optional id present and absent), a list of invalidations that are each an exact or prefix ' +
         'target with a non-empty key, or a predicate with a description and a matcher.',
-      async run() {
+      async run(context) {
+        // The loaded registry is judged, but the file the facts name must be the one it comes from.
+        if (!context.reader.exists(facts.registry.path)) return [{ file: facts.registry.path, detail: 'the registry file does not exist' }];
+        context.file(facts.registry.path);
         const registry = (await facts.registry.load()) ?? {};
         const schema = (await facts.eventSchema()) as ZodLike;
         const variants = (schema?.options ?? []) as ZodLike[];

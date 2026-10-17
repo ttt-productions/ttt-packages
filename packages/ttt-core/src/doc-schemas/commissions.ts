@@ -97,13 +97,17 @@ export type CreateCommissionProposalTextResult = z.infer<typeof CreateCommission
 export const AuditionTypeSchema = z.enum(['platformAudition', 'sponsoredAudition', 'workAudition']);
 export type AuditionType = z.infer<typeof AuditionTypeSchema>;
 
+/** How an audition takes entries: anyone may reply (`open`), or the creating Work posts the options (`curated`). */
+export const AuditionModeSchema = z.enum(['open', 'curated']);
+export type AuditionMode = z.infer<typeof AuditionModeSchema>;
+
 export const AuditionSchema = z.object({
   auditionId: z.string(),
   type: AuditionTypeSchema,
   title: z.string(),
   description: z.string(),
   videoAssetId: z.string(),
-  // Auditions are VIDEO ONLY (DJ ruling). Paired with the required videoAssetId (both
+  // Auditions are VIDEO ONLY. Paired with the required videoAssetId (both
   // always present — the MEDIA-101 shape, not a required-asset/optional-kind mismatch),
   // derived from the ONE canonical stored-kind union narrowed to video — never an inline
   // re-declared union (ARCH-102).
@@ -118,7 +122,7 @@ export const AuditionSchema = z.object({
   // Curated vs open. 'open' (default when absent — existing auditions): anyone may post reply
   // entries AND vote. 'curated': the creating work posts the option entries itself (min 2, max 8,
   // each `isCreatorOption: true`) and users may ONLY vote — community reply entries are rejected.
-  mode: z.enum(['open', 'curated']).optional(),
+  mode: AuditionModeSchema.optional(),
   // Curated atomic-reveal state (only meaningful when mode === 'curated'). The prompt + all N option
   // videos upload as ONE fixed batch; the audition stays non-votable + off the public board until the
   // WHOLE batch is live and every video passed moderation:
@@ -160,7 +164,7 @@ export const AuditionEntrySchema = z.object({
   auditionId: z.string(),
   workProjectId: z.string().optional(),
   videoAssetId: z.string(),
-  // Audition entries are VIDEO ONLY (DJ ruling) — same video-only pairing as the audition
+  // Audition entries are VIDEO ONLY — same video-only pairing as the audition
   // prompt above; derived from the canonical stored-kind union narrowed to video.
   mediaType: ContentMediaKindSchema.extract(['video']),
   createdBy: userRefSchema,

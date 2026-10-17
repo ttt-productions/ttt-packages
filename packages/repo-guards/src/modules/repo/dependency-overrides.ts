@@ -44,8 +44,9 @@ export const dependencyOverrideGuard: GenericGuardDefinition<DependencyOverrideF
     const problems: string[] = [];
     reviewedProblems(facts?.overrides, 'overrides', problems, {
       key: 'parent',
-      id: (o) => (isText(o.child) ? `${o.parent} → ${o.child}` : undefined),
-      idNames: 'child',
+      // One override per manifest: each manifest that installs the parent carries its own copy.
+      id: (o) => (isText(o.child) && isText(o.manifest) ? `${o.manifest}: ${o.parent} → ${o.child}` : undefined),
+      idNames: 'manifest or child',
       nonEmpty: true,
       extra(o, label) {
         textProblem(o.manifest, `${label}'s manifest`, problems);

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AuditionModeSchema } from '../doc-schemas/commissions.js';
 import { workProjectIdSchema, stakeSharesOfferedSchema } from '../schemas/atoms.js';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
@@ -29,7 +30,7 @@ export const CreateWorkProjectAuditionVariablesSchema = z.object({
   // Curated vs open (default 'open' when absent). 'curated' → the creating work posts the option
   // videos itself and users may ONLY vote. The strict schema is why this MUST live on the variables
   // (MEDIA-005: the hook parses variables strictly, so the mode cannot ride in targetInfo).
-  mode: z.enum(['open', 'curated']).optional(),
+  mode: AuditionModeSchema.optional(),
   // Curated only: the fixed number of creator option videos (2..8) being uploaded as one batch, so
   // the server knows when the whole atomic batch has landed. Required by the callable when mode
   // === 'curated'; ignored for open auditions.

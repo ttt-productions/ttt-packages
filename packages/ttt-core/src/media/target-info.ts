@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { AuditionModeSchema } from "../doc-schemas/commissions.js";
 import {
   workProjectIdSchema,
   commissionListingIdSchema,
@@ -65,8 +66,6 @@ export const ProfilePictureTargetInfoSchema = z.object({}).strict();
  * refinement below, so a client-sent payload is fully re-validated server-side.
  * `attestation.agreedAt` is shape-validated here; the SERVER re-stamps it at `startUpload`
  * (MEDIA-004 — never trust a client timestamp on a rights-consent record).
- *
- * See ttt-prod docs/design/profile-and-craft-skills.md § "The three-kind system".
  */
 const craftSkillUploadAttestationShape = {
   kind: CraftSkillKindSchema,
@@ -201,7 +200,7 @@ export const AuditionPromptTargetInfoSchema = z
     // Curated vs open audition. Absent ⇒ 'open' (community replies + votes). 'curated' ⇒ the
     // creating work posts the option entries itself and users may ONLY vote (the create/reply
     // callable derives each option entry's isCreatorOption server-side and rejects community replies).
-    mode: z.enum(['open', 'curated']).optional(),
+    mode: AuditionModeSchema.optional(),
     // Curated ONLY: the fixed number of creator option videos (2..8) in the atomic batch, carried from
     // the Create click through targetInfo so the create core sets it on the Audition doc and the reveal
     // coordinator knows when ALL options have landed. Required by the create core when mode==='curated'.
@@ -229,7 +228,7 @@ const adminAuditionPromptFields = {
   entriesCloseAt: AuditionDeadlineSchema,
   auditionCloseAt: AuditionDeadlineSchema,
   // Curated vs open (see AuditionPromptTargetInfoSchema.mode). Absent ⇒ 'open'.
-  mode: z.enum(['open', 'curated']).optional(),
+  mode: AuditionModeSchema.optional(),
   // Curated ONLY: fixed number of option videos (2..8) in the atomic batch (see
   // AuditionPromptTargetInfoSchema.expectedOptionCount). Required by the create core when curated.
   expectedOptionCount: z.number().int().min(MIN_CURATED_AUDITION_OPTIONS).max(MAX_CURATED_AUDITION_OPTIONS).optional(),
@@ -337,7 +336,7 @@ export const ConversationFileTargetInfoSchema = ConversationFileRefSchema;
 export const WorkAssetTargetInfoSchema = z
   .object({
     workProjectId: workProjectIdSchema,
-    // The folder the file is uploaded INTO (S7 folder system). Custom folders gate
+    // The folder the file is uploaded INTO. Custom folders gate
     // upload by trade profession; the default folder accepts any active guildmate.
     folderId: workFileFolderIdSchema,
   })

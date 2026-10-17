@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AuditionModeSchema } from '../doc-schemas/commissions.js';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import {
@@ -23,7 +24,7 @@ const adminAuditionVariableFields = {
   auditionCloseAt: AuditionDeadlineSchema,
   // Curated vs open (default 'open' when absent). 'curated' → the admin posts the option videos and
   // users may ONLY vote. Must live on the variables (MEDIA-005 strict-parse), not targetInfo.
-  mode: z.enum(['open', 'curated']).optional(),
+  mode: AuditionModeSchema.optional(),
   // Curated only: the fixed number of option videos (2..8) uploaded as one atomic batch. Required by
   // the callable when mode === 'curated'; ignored for open auditions.
   expectedOptionCount: z.number().int().min(MIN_CURATED_AUDITION_OPTIONS).max(MAX_CURATED_AUDITION_OPTIONS).optional(),

@@ -104,8 +104,8 @@ export const GetContentViolationInputSchema = z.object({
 }).strict();
 export type GetContentViolationInput = z.infer<typeof GetContentViolationInputSchema>;
 
-// `taskType` was removed — the server derives it from the task doc; the client copy was
-// ignored (and forgeable). Callers pass only the task id + the extension window.
+// No task type: the server derives it from the task doc, since a client-sent one could be forged.
+// Callers pass only the task id + the extension window.
 export const MarkWorkLaterInputSchema = z.object({
   taskId: taskIdSchema,
   extendHours: z.union([z.literal(24), z.literal(48)]),
@@ -223,7 +223,7 @@ export const ContentPageSectionInputSchema = z.object({
   // Empty body is LEGAL: a bare divider heading (e.g. terms "Part 1 — Our
   // Intention") is real content. The input schema must accept everything the
   // stored ContentPageSectionSchema accepts, or a faithfully-seeded doc becomes
-  // unsaveable in the admin editor (found by adversarial review 2026-07-06).
+  // unsaveable in the admin editor.
   body: textFieldSchema(CONTENT_PAGE_BODY_INPUT),
   order: z.number().int().min(0),
 }).strict();
@@ -431,8 +431,7 @@ export type ReportedMediaAsset = z.infer<typeof ReportedMediaAssetSchema>;
 export const GetReportedContentDetailResultSchema = z.object({
   itemType: z.string().min(1),
   reportedItemId: reportTargetItemIdSchema,
-  /** First non-empty display-text field (legacy single-field snapshot; textFields is the
-   *  complete labeled set). */
+  /** First non-empty display-text field; textFields is the complete labeled set. */
   textSnapshot: z.string().nullable(),
   textFields: z.array(ReportedTextFieldSchema),
   mediaAssets: z.array(ReportedMediaAssetSchema),
@@ -516,12 +515,17 @@ export const RestoreWorkRealmInputSchema = z.object({
 }).strict();
 export type RestoreWorkRealmInput = z.infer<typeof RestoreWorkRealmInputSchema>;
 
-// The `requireWorkProjectRetitle` / `requireWorkRealmRetitle` callables share this base
-// `{ reason }` shape and each `.extend(...)` it with its own id field at parse time.
-export const RequireRetitleInputSchema = z.object({
+export const RequireWorkProjectRetitleInputSchema = z.object({
   reason: textFieldSchema(RETITLE_REASON_INPUT),
+  workProjectId: workProjectIdSchema,
 }).strict();
-export type RequireRetitleInput = z.infer<typeof RequireRetitleInputSchema>;
+export type RequireWorkProjectRetitleInput = z.infer<typeof RequireWorkProjectRetitleInputSchema>;
+
+export const RequireWorkRealmRetitleInputSchema = z.object({
+  reason: textFieldSchema(RETITLE_REASON_INPUT),
+  workRealmId: workRealmIdSchema,
+}).strict();
+export type RequireWorkRealmRetitleInput = z.infer<typeof RequireWorkRealmRetitleInputSchema>;
 
 // --- Page-level "Clear text (moderation)" callables (per-field extension of the retitle family) ---
 

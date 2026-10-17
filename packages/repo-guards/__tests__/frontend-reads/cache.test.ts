@@ -12,6 +12,9 @@ import {
   type QueryCacheFacts,
 } from '../../src/modules/frontend-reads/cache.js';
 import { runDefinition } from './run.js';
+import { runGuard } from '../../src/suite/run.js';
+import { createRepoReader } from '../../src/reader/reader.js';
+import { tempRepo } from '../helpers/temp-repo.js';
 
 const KEYS = 'src/lib/query-keys.ts';
 const REGISTRY = 'src/lib/registry.ts';
@@ -407,5 +410,22 @@ describe('the domain-event registry: produced, registered, well formed, and awai
       'eventSchema needs a loader function',
       'notifiers is empty',
     ]);
+  });
+
+  it('the variant check reads the registry file, so the suite counts it as having read the repository, and fails without it', async () => {
+    const variantGuard = domainEventRegistryGuard.build(facts())[1];
+    const suiteRun = async (files: Record<string, string>) => {
+      const repo = tempRepo({ 'src/anchor.ts': 'export {};', ...files });
+      try {
+        await runGuard(variantGuard, createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/anchor.ts' } } }));
+        return null;
+      } catch (err) {
+        return (err as Error).message;
+      } finally {
+        repo.remove();
+      }
+    };
+    expect(await suiteRun({ [REGISTRY]: 'export const REGISTRY = {};' })).toBeNull();
+    expect(await suiteRun({})).toMatch(/^every core domain-event variant has a registry entry/);
   });
 });

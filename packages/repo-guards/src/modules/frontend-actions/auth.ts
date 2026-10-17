@@ -14,7 +14,9 @@ import { memberOrBareCalls, throughNamespace } from './text.js';
 
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 
-const declares = (code: string, name: string) => new RegExp(`\\b(?:function|const|let)\\s+${escapeRegExp(name)}\\b`).test(code);
+/** The keywords that declare a name a module can export: a function, a binding, or a class. */
+const DECLARATION_KEYWORDS = '(?:function|const|let|class)';
+const declares = (code: string, name: string) => new RegExp(`\\b${DECLARATION_KEYWORDS}\\s+${escapeRegExp(name)}\\b`).test(code);
 
 // ---------------------------------------------------------------------------------------------
 // Client auth boundary: one derivation of identity and claims, and one auth context and accessor.
@@ -291,7 +293,7 @@ export const signOutLivenessGuard: GenericGuardDefinition<SignOutLivenessFacts> 
     return problems;
   },
   build(facts) {
-    const redeclared = new RegExp(`\\b(?:function|const)\\s+(?:${facts.ownerExports.map(escapeRegExp).join('|')})\\b`, 'g');
+    const redeclared = new RegExp(`\\b${DECLARATION_KEYWORDS}\\s+(?:${facts.ownerExports.map(escapeRegExp).join('|')})\\b`, 'g');
     const negatedSkip = new RegExp(`!\\s*${escapeRegExp(facts.authAccessor)}\\(\\)\\s*\\??\\.\\s*currentUser`, 'g');
     return [
       {

@@ -34,7 +34,7 @@ import { WORK_PROJECT_SPECIFIC_GENRES } from '../constants/options.js';
 
 // Canonical per-type genre enums. `WORK_PROJECT_SPECIFIC_GENRES.<type>` is a readonly
 // tuple of the exact genre strings the UI offers; the schema is the cross-boundary
-// contract, so a crafted callable can no longer put arbitrary/unmoderated text (or an
+// contract, so a crafted callable cannot put arbitrary/unmoderated text (or an
 // unbounded array of distinct strings) onto the public hall parent.
 const TALE_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Tales as unknown as [string, ...string[]];
 const TUNE_GENRE_VALUES = WORK_PROJECT_SPECIFIC_GENRES.Tunes as unknown as [string, ...string[]];
@@ -61,38 +61,44 @@ export const CreateTuneTrackInputSchema = z.object({
 }).strict();
 export type CreateTuneTrackInput = z.infer<typeof CreateTuneTrackInputSchema>;
 
+// The reviewer's checklist. Each confirmation is optional so a `needs_revision` decision validates;
+// the review core requires every one `true` on an `approved` decision, and `teachesSomething` only
+// when the item is in the educational wing. `confirmedRealPeopleAttestation` confirms the author's
+// real-people attestation sits in the right position for the content reviewed — a wrong position is
+// a needs-revision send-back, never an admin edit. Nullish rather than optional: the Firebase
+// callable client sends an omitted argument as null, and null reads as absent.
 export const ReviewThresholdItemInputSchema = z.object({
   thresholdItemId: thresholdItemIdSchema,
   decision: z.enum(['approved', 'needs_revision']),
   adminNotes: textFieldSchema(THRESHOLD_REVIEW_NOTES_INPUT).nullable().optional(),
-  // Reviewer checklist confirmations, recorded on the review (mirrors `teachesSomething`).
-  // Optional here so a `needs_revision` decision still validates; the callable REQUIRES all
-  // true on an `approved` decision. First two: no-begging-for-bouquets, no-credits-in-content.
-  confirmedNoBegging: z.boolean().optional(),
-  confirmedNoCredits: z.boolean().optional(),
-  // Reviewer verified the AUTHOR's real-people/parody attestation sits in the correct
-  // position for the content they reviewed — checked if the work depicts real people,
-  // unchecked if it does not (R3, DJ 2026-07-12). A wrong position is a needs-revision
-  // send-back, never an admin edit.
-  confirmedRealPeopleAttestation: z.boolean().optional(),
+  confirmedNoBegging: z.boolean().nullish(),
+  confirmedNoCredits: z.boolean().nullish(),
+  confirmedRealPeopleAttestation: z.boolean().nullish(),
+  teachesSomething: z.boolean().nullish(),
+  confirmedConsistentFormat: z.boolean().nullish(),
 }).strict();
 export type ReviewThresholdItemInput = z.infer<typeof ReviewThresholdItemInputSchema>;
 
+// `depictsRealPeople` is the author's attestation that the Work depicts real people (parody,
+// satire, commentary); it is stored on the threshold item as `hasRealPeople` and, when true, the
+// published surfaces show the one standard disclaimer — there is no free-text disclaimer.
+// `legalReviewNoticeAcknowledged` is required by the submit core while the founder notice is
+// active. The five `attest*` flags are the submitter's agreements — the same kind of thing in every
+// item, no credits in the content, no asking viewers for bouquets, entirely human-made and
+// original, and that submitting locks the Work and a published Work stays in the Hall under TTT's
+// stewardship. The submit core requires each `true` and records them on every threshold item.
+// Nullish rather than optional: the Firebase callable client sends an omitted argument as null.
 export const SubmitForThresholdLibraryReviewInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   workProjectType: workProjectTypeSchema,
   selectedItemIds: z.array(hallSubItemIdSchema).min(1).max(MAX_HALL_LIBRARY_SUBMIT_BATCH),
-  // AUTHOR attestation (R3, 2026-07-12): the submitting artisan attests this work
-  // depicts real people (parody / satire / commentary). Stored on the threshold
-  // item as `hasRealPeople`; the reviewer sees it READ-ONLY. When true, published
-  // surfaces render the ONE standard platform disclaimer
-  // (REAL_PEOPLE_DISCLAIMER_MESSAGE) — no free-text disclaimer input exists.
   depictsRealPeople: z.boolean(),
-  // The founder legal-review notice checkbox in the publish attestations, directly above Submit
-  // for Approval — required on every submission while the notice is active (the submit core
-  // refuses without it then and persists the receipt on each threshold item). Omitted, or null,
-  // while the notice is off.
   legalReviewNoticeAcknowledged: LegalReviewNoticeAcknowledgedInputSchema,
+  attestConsistentFormat: z.boolean().nullish(),
+  attestNoCredits: z.boolean().nullish(),
+  attestNoBegging: z.boolean().nullish(),
+  attestHumanMadeOriginal: z.boolean().nullish(),
+  attestPublishStewardship: z.boolean().nullish(),
 }).strict();
 export type SubmitForThresholdLibraryReviewInput = z.infer<typeof SubmitForThresholdLibraryReviewInputSchema>;
 
@@ -104,7 +110,7 @@ export const WithdrawFromThresholdLibraryReviewInputSchema = z.object({
 export type WithdrawFromThresholdLibraryReviewInput = z.infer<typeof WithdrawFromThresholdLibraryReviewInputSchema>;
 
 // Published change request (text-only at launch): the member proposes new values for TEXT
-// fields on a PUBLISHED surface — one pipeline, three grains (R1, 2026-07-12):
+// fields on a PUBLISHED surface — one pipeline, three grains:
 //  - hall grains: `hallItemId` set (+ `workProjectType`); the hall parent detail when
 //    `subItemId` is absent, else the chapter/track/episode sub-item.
 //  - realm grain: `workRealmId` set; targets the `workRealms/{id}` doc once the realm
@@ -228,7 +234,7 @@ export const UpdateTuneWorkGenresInputSchema = z.object({
 }).strict();
 export type UpdateTuneWorkGenresInput = z.infer<typeof UpdateTuneWorkGenresInputSchema>;
 
-// --- Per-user Hall viewing-state doc (hall-viewing-experience Area 2, ruled 2026-07-04) ---
+// --- Per-user Hall viewing-state doc ---
 // One core (`runX`) owns the single privateData doc per ARCH-001; writes are CALLABLE-ONLY —
 // no direct client Firestore writes anywhere in this system. Every list on the doc is capped
 // (HALL_LIBRARY_PREFS_CAPS in ../constants/business.js); cap enforcement is the backend
@@ -240,7 +246,7 @@ export const UpdateHallWorkHiddenInputSchema = z.object({
 }).strict();
 export type UpdateHallWorkHiddenInput = z.infer<typeof UpdateHallWorkHiddenInputSchema>;
 
-// "Inked" save-for-later watchlist toggle (My Playbill Area 7) — deliberately separate from
+// "Inked" save-for-later watchlist toggle (My Playbill) — deliberately separate from
 // follows (Inked is private organization; follow is semi-public with a counter + notifications).
 export const UpdateHallInkedWorkInputSchema = z.object({
   hallItemId: hallItemIdSchema,

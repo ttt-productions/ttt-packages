@@ -3,6 +3,10 @@ import { COLLECTION_GROUPS } from '../src/paths/collection-groups';
 import { USER_SUBCOLLECTIONS, NESTED_SUBCOLLECTIONS } from '../src/paths/collections';
 
 describe('COLLECTION_GROUPS', () => {
+  it("declares the support threads' read markers, which the per-member read and the erasure query as one group", () => {
+    expect(COLLECTION_GROUPS.DISPATCH_READ_MARKERS).toBe(NESTED_SUBCOLLECTIONS.DISPATCH_READ_MARKERS);
+  });
+
   it('PROFILE_CRAFT_SKILLS maps to USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS', () => {
     expect(COLLECTION_GROUPS.PROFILE_CRAFT_SKILLS).toBe(USER_SUBCOLLECTIONS.PROFILE_CRAFT_SKILLS);
   });
@@ -55,6 +59,7 @@ describe('COLLECTION_GROUPS', () => {
       'CONVERSATION_MESSAGES',
       'TAGGED_CRAFT_SKILLS',
       'USER_SUGGESTIONS',
+      'DISPATCH_READ_MARKERS',
     ];
     for (const key of expectedKeys) {
       expect(COLLECTION_GROUPS).toHaveProperty(key);

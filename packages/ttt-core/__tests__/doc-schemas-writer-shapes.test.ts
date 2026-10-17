@@ -306,7 +306,7 @@ describe('second registry completion batch', () => {
 
     const fanout = {
       jobId: 'event-1:admin_announcement', schemaVersion: 1, notificationType: 'admin_announcement', eventId: 'event-1',
-      priority: 1 as const, payload: {}, phases: [{ selector: {}, cursor: null, done: false }], phaseIndex: 0,
+      priority: 1 as const, payload: {}, phases: [{ selector: { kind: 'allActiveUsers' }, cursor: null, done: false }], phaseIndex: 0,
       revision: 0, status: 'pending' as const, attemptCount: 0, nextAttemptAt: 1, lastError: null,
       createdAt: 1, updatedAt: 1, completedAt: null, deadLetteredAt: null,
       requestId: 'request-1', actorUid: 'admin-1', payloadHash: 'hash-1',

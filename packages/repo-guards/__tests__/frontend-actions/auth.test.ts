@@ -247,6 +247,15 @@ describe('sign-out liveness owner', () => {
     ).toEqual(['src/a.ts:1 re-declares isStillSignedIn', 'src/a.ts:2 re-declares assertStillSignedIn', 'src/b.ts:1 hand-rolls a negated currentUser skip guard']);
   });
 
+  it('reads an exported class as declared by the owner, and flags the class declared again elsewhere', async () => {
+    const withClass = { ...facts, ownerExports: [...facts.ownerExports, 'SessionEndedError'] };
+    const owner = { 'src/lib/still-signed-in.ts': `${base['src/lib/still-signed-in.ts']}\nexport class SessionEndedError extends Error {}` };
+    expect(await findingsOf(signOutLivenessGuard, withClass, owner)).toEqual([]);
+    expect(await findingsOf(signOutLivenessGuard, withClass, { ...owner, 'src/a.ts': 'class SessionEndedError extends Error {}' })).toEqual([
+      'src/a.ts:1 re-declares SessionEndedError',
+    ]);
+  });
+
   it('flags an owner that no longer declares an export', async () => {
     expect(await findingsOf(signOutLivenessGuard, facts, { 'src/lib/still-signed-in.ts': 'export function assertStillSignedIn() {}' })).toEqual([
       'src/lib/still-signed-in.ts the owner no longer declares isStillSignedIn',

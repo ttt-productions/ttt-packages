@@ -77,7 +77,7 @@ describe('every guard refuses an entry listed twice', () => {
       }),
     ).toEqual(['deliberateOverDeclarations lists x.ts#e twice']);
     const override = { parent: 'p', child: 'c', affected: '<2', manifest: 'package.json', installedUnder: '', why: 'w' };
-    expect(dependencyOverrideGuard.factProblems({ overrides: [override, override] })).toEqual(['overrides lists p → c twice']);
+    expect(dependencyOverrideGuard.factProblems({ overrides: [override, override] })).toEqual(['overrides lists package.json: p → c twice']);
     expect(importPathGuard.factProblems({ importAliases: {}, exceptions: [{ file: 'a.ts', why: 'w' }, { file: 'a.ts', why: 'w' }] })).toEqual([
       'exceptions lists a.ts twice',
     ]);

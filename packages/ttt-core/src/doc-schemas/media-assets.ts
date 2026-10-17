@@ -3,7 +3,6 @@
 // media ONLY by `*AssetId` fields — never URLs. Serving authority is the
 // gateway Worker (cookie/grant + KV blocklist); this doc is the server-side
 // truth the edge records derive from. NO client reads, NO client writes.
-// See ttt-prod docs/design/media-assets-and-protected-serving.md.
 
 import { z } from 'zod';
 import { StructuredErrorSchema } from '@ttt-productions/edge-protocol-core';
@@ -34,8 +33,7 @@ export const MediaAssetOwnerTypeSchema = z.enum([
   'audition',
   'auditionEntry',
   // A file in a conversation's flat Conversation Files list (guild-invite or
-  // admin-support). Replaces the removed `guildChatAttachment` owner type — chat
-  // messages no longer own media.
+  // admin-support). Chat messages own no media.
   'conversationFile',
   // Realm shared files are the deliberate MUTATE-IN-PLACE exception: a promoted work file
   // keeps its ONE `workFile`-owned asset doc and flips tier in place, so no asset is ever
@@ -49,7 +47,7 @@ export const MediaAssetOwnerTypeSchema = z.enum([
 ]);
 export type MediaAssetOwnerType = z.infer<typeof MediaAssetOwnerTypeSchema>;
 
-// ===== Media origin lineage (Appendix A0) =====
+// ===== Media origin lineage =====
 // One canonical lineage used by media, CSAM, and safety. Embedded on every
 // media asset + every copy.
 
@@ -78,12 +76,10 @@ export const MEDIA_VARIANT_KEYS = [
 export const MediaVariantKeySchema = z.enum(MEDIA_VARIANT_KEYS);
 export type MediaVariantKey = z.infer<typeof MediaVariantKeySchema>;
 
-/** Why this asset was created from its source (A0).
+/** Why this asset was created from its source.
  *
- * `chat_derivative` was REMOVED with the chat-attachment architecture: chat is
- * text-only and owns no media, so no copy can be made "for a chat message". A
- * Conversation File is an ORIGINAL (`original`), never a chat derivative; nothing
- * ever set the retired value. */
+ * Chat is text-only and owns no media, so no copy is ever made for a chat message. A
+ * Conversation File is an ORIGINAL (`original`), never a derivative. */
 export const MediaCopyReasonSchema = z.enum([
   'original',
   'variant',
@@ -96,7 +92,7 @@ export const MediaCopyReasonSchema = z.enum([
 export type MediaCopyReason = z.infer<typeof MediaCopyReasonSchema>;
 
 /**
- * Canonical media origin lineage (Appendix A0). A copy INHERITS
+ * Canonical media origin lineage. A copy INHERITS
  * rootIngestId/rootAssetId/originatingUploaderUid/originatingUploadEventId/
  * originalUploadCreatedAt/rootSha256/originalSha256 unchanged; it sets its own
  * sourceAssetId/variantSha256s/copyReason/copyActorUid/currentOwner*. Client
@@ -111,10 +107,10 @@ export const MediaOriginLineageV1Schema = z.object({
   rootAssetId: z.string().min(1), // first asset created from that ingest
   sourceAssetId: z.string().min(1).optional(), // immediate parent copied from (absent on the root)
   originatingUploaderUid: z.string().min(1), // set server-side at first accepted ingest; IMMUTABLE; inherited
-  // May be '' for a legacy copy synthesized from a pre-rollout source with no known upload event.
+  // May be '' for a copy synthesized from a source with no known upload event.
   originatingUploadEventId: z.string(),
   originalUploadCreatedAt: z.number(),
-  // '' until content hashing backfills the real sha256 (Phase 5 PhotoDNA / evidence capture).
+  // '' until content hashing fills in the real sha256.
   // NOT z.string().min(1): the media pipeline does not compute a content hash at finalize yet,
   // so a freshly-ingested asset legitimately carries an empty rootSha256 until it is hashed.
   rootSha256: z.string(),
@@ -233,8 +229,6 @@ export const RealmFileActiveStatusSchema = z.enum(REALM_FILE_ACTIVE_STATUS_VALUE
 export type RealmFileActiveStatus = z.infer<typeof RealmFileActiveStatusSchema>;
 
 // ===== Serving authority (Durable Object) + publication gating =====
-// See ttt-prod docs/design/media-assets-and-protected-serving.md (the design owner
-// for the Durable Object serving authority and publication gating).
 
 /** Whether the canonical serving record has been applied to the DO authority. */
 export const MediaAuthoritySyncStateSchema = z.enum(['pending', 'applied', 'deadLetter']);
@@ -418,8 +412,7 @@ export const MediaAssetSchema = z.object({
   legalHold: z.boolean(),
   originalDeletedAt: z.number().optional(),
 
-  // T&S provenance lineage (Appendix A0). Additive/optional so assets written
-  // before the lineage rollout still parse; set server-side at first accepted
+  // T&S provenance lineage. Optional so an asset that carries no lineage still parses; set server-side at first accepted
   // ingest, inherited unchanged by every copy/variant. Never client-supplied.
   originLineage: MediaOriginLineageV1Schema.optional(),
 
@@ -449,8 +442,8 @@ export const MediaAssetSchema = z.object({
   realmFileShareRequestedByUid: z.string().min(1).optional(),
   realmFileShareRequestedAt: z.number().optional(),
 
-  // Serving authority + publication gating. Additive/optional so assets
-  // written before the authority build still parse: absent authorityVersion ⇒
+  // Serving authority + publication gating. Optional so an asset with no
+  // authority state still parses: absent authorityVersion ⇒
   // 0/never-applied, absent publicationState ⇒ 'unpublished'. Every
   // serving-record mutation increments authorityVersion in an authoritative txn.
   authorityVersion: z.number().int().nonnegative().optional(),
@@ -461,7 +454,7 @@ export const MediaAssetSchema = z.object({
   authorityAppliedAt: z.number().optional(),
   publishedAt: z.number().optional(),
   lastAuthorityError: StructuredErrorSchema.optional(),
-  // Authority-sync retry ledger (M1): the scheduled worker bumps attemptCount + sets a backoff
+  // Authority-sync retry ledger: the scheduled worker bumps attemptCount + sets a backoff
   // nextAttemptAt on a transient apply failure, and dead-letters (authoritySyncState='deadLetter')
   // past a threshold. Absent ⇒ 0 attempts / immediately due.
   authoritySyncAttemptCount: z.number().int().nonnegative().optional(),
@@ -548,6 +541,28 @@ export const MediaAssetSchema = z.object({
   }
 });
 export type MediaAsset = z.infer<typeof MediaAssetSchema>;
+
+// Field projections of an asset doc for readers that need only a few of its fields. Each composes
+// the canonical field schemas and strips every other key, and none runs MediaAssetSchema's
+// whole-doc refinement, so a doc with unrelated stored fields still yields the fields read.
+
+/** What the Hall-media orphan reaper's asset phase reads of a candidate asset. */
+export const MediaAssetReapCandidateSchema = z.object({
+  mediaAssetId: MediaAssetSchema.shape.mediaAssetId,
+  ownerId: MediaAssetSchema.shape.ownerId,
+  createdAt: MediaAssetSchema.shape.createdAt,
+  publicationState: MediaAssetSchema.shape.publicationState,
+  retirement: MediaAssetSchema.shape.retirement,
+});
+export type MediaAssetReapCandidate = z.infer<typeof MediaAssetReapCandidateSchema>;
+
+/** What a copy's safety-hold check reads of its source asset. */
+export const MediaAssetCopySourceHoldFieldsSchema = z.object({
+  mediaAssetId: MediaAssetSchema.shape.mediaAssetId,
+  originLineage: MediaAssetSchema.shape.originLineage,
+  legalHold: MediaAssetSchema.shape.legalHold,
+});
+export type MediaAssetCopySourceHoldFields = z.infer<typeof MediaAssetCopySourceHoldFieldsSchema>;
 
 /**
  * Where an asset stands on retirement — the one reading a caller that must not delete a record

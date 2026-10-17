@@ -133,7 +133,7 @@ describe('notification ledger schemas parse representative docs', () => {
   it('NotificationFanoutJob', () => {
     expect(NotificationFanoutJobSchema.safeParse({
       jobId: 'rg1:content_report', schemaVersion: 1, notificationType: 'followed_content_published', eventId: 't1', priority: 2,
-      payload: {}, phases: [{ selector: {}, cursor: null, done: false }], phaseIndex: 0, revision: 0, status: 'pending', attemptCount: 0,
+      payload: {}, phases: [{ selector: { kind: 'workFollowers', workProjectId: 'w1' }, cursor: null, done: false }], phaseIndex: 0, revision: 0, status: 'pending', attemptCount: 0,
       nextAttemptAt: 1, lastError: null, createdAt: 1, updatedAt: 1, completedAt: null, deadLetteredAt: null,
     }).success).toBe(true);
   });
