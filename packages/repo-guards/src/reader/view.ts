@@ -3,6 +3,7 @@
 
 import ts from 'typescript';
 import { kindOfFile, type FileKind, type RootRole } from './layout.js';
+import { moduleImports, type ModuleImport } from '../support/imports.js';
 import { stripCodeComments, stripRulesComments, stripStylesheetComments } from './strip-comments.js';
 
 /**
@@ -26,6 +27,12 @@ export interface FileView {
   readonly code: string;
   /** The parsed file, for code and declarations. */
   readonly sourceFile: ts.SourceFile;
+  /**
+   * Every place the file names a module, read from its parse in source order: imports, re-exports,
+   * dynamic `import()`, `require()`, test-runner mocks, and type-position imports, with the names
+   * each binds. Code and declarations only; any other kind throws, as `sourceFile` does.
+   */
+  readonly imports: readonly ModuleImport[];
   /** The 1-based line of an index into `text` or `code`. */
   lineOf(index: number): number;
 }
@@ -85,6 +92,9 @@ export function buildView(input: {
     },
     get sourceFile() {
       return parse();
+    },
+    get imports() {
+      return moduleImports(parse());
     },
     lineOf(index: number) {
       const starts = (lineStarts ??= lineStartsOf(readText()));

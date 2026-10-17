@@ -225,6 +225,6 @@ describe('the Firestore rules mirror the core exactly', () => {
           valueLists: [{ function: 'isLeader', values: ['captain'] as never }],
         }),
       ),
-    ).toEqual(['comparedFields: status is listed twice', 'valueLists isLeader values needs a loader function']);
+    ).toEqual(['comparedFields lists status twice', "valueLists entry isLeader's values needs a loader function"]);
   });
 });

@@ -243,12 +243,12 @@ describe('facts', () => {
         indirectConsumers: [{ secrets: [], definer: 'd.ts', chokepoints: ['go now'], reachingExports: [], why: 'w' }],
       }),
     ).toEqual([
-      'entryFactories names no entry-point factory',
-      'pinned secret A names no binder (drop the entry instead)',
-      'pinned binder x.ts of B carries no why',
-      'deliberate over-declaration x.ts#e carries no why',
-      'indirect consumer d.ts names no secret',
-      'indirect consumer d.ts: chokepoint go now is not a name',
+      'entryFactories is empty',
+      'pinnedBinders.A is empty',
+      'pinnedBinders.B entry x.ts carries no why',
+      'deliberateOverDeclarations entry x.ts#e carries no why',
+      "indirectConsumers entry d.ts's secrets is empty",
+      "indirectConsumers entry d.ts's chokepoint go now must be an identifier",
     ]);
   });
 });

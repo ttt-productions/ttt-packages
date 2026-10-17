@@ -94,7 +94,7 @@ describe('the facts', () => {
       'reviewedMaxLiterals entry a.js needs its reviewed values, each a whole number',
       'reviewedMaxLiterals entry b.js carries no why',
       'reviewedMaxLiterals entry b.js needs its reviewed values, each a whole number',
-      'reviewedMaxLiterals entry b.js is listed twice',
+      'reviewedMaxLiterals lists b.js twice',
     ]);
   });
 });

@@ -5,7 +5,8 @@
 
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../config.js';
-import { coreBuild, loaderProblems, reviewedProblems, stringListProblems, type Loader } from './shared.js';
+import { namesProblem, reviewedProblems, loaderProblem, type Loader, textProblem } from '../../support/facts.js';
+import { coreBuild } from './shared.js';
 
 type SchemaModules = Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 
@@ -108,14 +109,14 @@ export const documentIdSegmentGuard: GenericGuardDefinition<DocumentIdSegmentFac
   absentWhen: 'the app stores nothing in Firestore',
   factProblems(facts) {
     const problems: string[] = [];
-    loaderProblems(facts?.wireModules, 'wireModules', problems);
-    stringListProblems(facts?.wireInputNameSuffixes, 'wireInputNameSuffixes', problems);
-    if (typeof facts?.idAtomNameSuffix !== 'string' || !facts.idAtomNameSuffix.trim()) problems.push('idAtomNameSuffix is missing');
-    stringListProblems(facts?.requiredWireInputs, 'requiredWireInputs', problems);
-    stringListProblems(facts?.requiredIdAtoms, 'requiredIdAtoms', problems);
-    reviewedProblems(facts?.notClientSent, 'notClientSent', 'schema', problems);
-    reviewedProblems(facts?.notAPathSegment, 'notAPathSegment', 'field', problems);
-    reviewedProblems(facts?.multiSegmentReferences, 'multiSegmentReferences', 'schema', problems);
+    loaderProblem(facts?.wireModules, 'wireModules', problems);
+    namesProblem(facts?.wireInputNameSuffixes, 'wireInputNameSuffixes', problems);
+    textProblem(facts?.idAtomNameSuffix, 'idAtomNameSuffix', problems);
+    namesProblem(facts?.requiredWireInputs, 'requiredWireInputs', problems);
+    namesProblem(facts?.requiredIdAtoms, 'requiredIdAtoms', problems);
+    reviewedProblems(facts?.notClientSent, 'notClientSent', problems, { key: 'schema' });
+    reviewedProblems(facts?.notAPathSegment, 'notAPathSegment', problems, { key: 'field' });
+    reviewedProblems(facts?.multiSegmentReferences, 'multiSegmentReferences', problems, { key: 'schema' });
     return problems;
   },
   build(facts) {

@@ -219,6 +219,6 @@ describe("the rules read the core's claim names, and every role helper checks it
           roleHelpers: [op, op, { function: 'isReviewer', claim: 'reviewer' as never, rosterField: () => 'reviewers' }],
         }),
       ),
-    ).toEqual(['roleHelpers: isOperator is listed twice', 'roleHelpers isReviewer claim needs a loader function']);
+    ).toEqual(['roleHelpers lists isOperator twice', "roleHelpers entry isReviewer's claim needs a loader function"]);
   });
 });

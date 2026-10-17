@@ -9,6 +9,7 @@
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
 import { effectiveMigrations, environmentResources, migrationLists, readTables, topLevelResources, type Table } from './wrangler-toml.js';
+import { isText, namesProblem, objectProblem, reviewedProblems, textProblem } from '../../support/facts.js';
 
 export interface WorkerConfigFacts {
   /** Every Worker's wrangler.toml, repo-relative. */
@@ -87,19 +88,17 @@ export const workerConfigGuard: GenericGuardDefinition<WorkerConfigFacts> = {
   absentOnlyWithoutRoot: 'workers',
   factProblems(facts) {
     const problems: string[] = [];
-    if (!facts || typeof facts !== 'object') return ['the facts are missing'];
-    if (!Array.isArray(facts.configFiles) || !facts.configFiles.length) problems.push('configFiles names no wrangler.toml');
-    else if (new Set(facts.configFiles).size !== facts.configFiles.length) problems.push('a config file is listed twice');
-    if (typeof facts.productionEnvironment !== 'string' || !facts.productionEnvironment.trim()) problems.push('productionEnvironment is empty');
-    if (!Array.isArray(facts.productionDestructiveMigrations)) {
-      problems.push('productionDestructiveMigrations is missing (an app with none declares [])');
-    } else {
-      for (const entry of facts.productionDestructiveMigrations) {
-        if (!entry?.configFile || !entry.tag || !entry.key || !entry.contents) problems.push('a production destructive migration entry is incomplete');
-        else if (!facts.configFiles?.includes(entry.configFile)) problems.push(`production destructive migration ${entry.tag} names ${entry.configFile}, which is not a config file`);
-        if (entry && !entry.why?.trim()) problems.push(`production destructive migration ${entry.tag} carries no why`);
-      }
-    }
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    namesProblem(facts.configFiles, 'configFiles', problems);
+    textProblem(facts.productionEnvironment, 'productionEnvironment', problems);
+    reviewedProblems(facts.productionDestructiveMigrations, 'productionDestructiveMigrations', problems, {
+      key: 'configFile',
+      id: (e) => (isText(e.tag) && isText(e.key) && isText(e.contents) ? `${e.configFile} ${e.tag}` : undefined),
+      idNames: 'tag, key, and contents',
+      extra(entry, label) {
+        if (Array.isArray(facts.configFiles) && !facts.configFiles.includes(entry.configFile as string)) problems.push(`${label} names a file that is not a config file`);
+      },
+    });
     return problems;
   },
   build(facts) {

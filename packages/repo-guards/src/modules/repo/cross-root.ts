@@ -6,18 +6,16 @@
 
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
-import { declaredRoots, type RepoLayout, type RootRole } from '../../reader/layout.js';
+import { declaredRoots, type RepoLayout, type Reviewed, type RootRole } from '../../reader/layout.js';
 import type { Scope } from '../../reader/reader.js';
+import { normalizePath, resolveRelative } from '../../support/paths.js';
+import { escapeRegExp, isUnder } from '../../support/text.js';
 import { parseJsonc } from './jsonc.js';
-import { escapesRepository, isUnder, moduleSpecifiers, resolveRelative } from './specifiers.js';
+import { moduleSpecifiers } from './specifiers.js';
+import { namesProblem, objectProblem, pathProblem, reviewedProblems, takesNoFacts, textProblem } from '../../support/facts.js';
 
 const CODE_ROLES: readonly RootRole[] = ['app', 'functions', 'e2e', 'hostedE2e', 'scripts', 'workers'];
 const isRole = (value: unknown): value is RootRole => typeof value === 'string' && (CODE_ROLES as readonly string[]).includes(value);
-
-function noFacts(facts: unknown): string[] {
-  if (!facts || typeof facts !== 'object') return ['the facts are missing (this guard takes {})'];
-  return Object.keys(facts).length ? ['this guard takes no facts ({})'] : [];
-}
 
 // ---------------------------------------------------------------------------------------------
 // Roots that are separate projects never import one another.
@@ -33,7 +31,7 @@ export interface IsolatedRootsFacts {
 /** The repo-relative path a specifier names, through a relative walk or an alias; null for a package. */
 export function targetOf(fromPath: string, spec: string, aliases: Readonly<Record<string, string>>): string | null {
   const relative = resolveRelative(fromPath, spec);
-  if (relative !== null) return relative;
+  if (relative !== null) return relative.path;
   for (const [prefix, folder] of Object.entries(aliases)) {
     if (spec.startsWith(prefix)) return `${folder.replace(/\/$/, '')}/${spec.slice(prefix.length)}`;
   }
@@ -45,14 +43,13 @@ export const isolatedRootsGuard: GenericGuardDefinition<IsolatedRootsFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!facts || typeof facts !== 'object') return ['the facts are missing'];
-    if (!Array.isArray(facts.isolatedRoots) || facts.isolatedRoots.length < 1) problems.push('isolatedRoots names no root');
-    else {
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    namesProblem(facts.isolatedRoots, 'isolatedRoots', problems);
+    if (Array.isArray(facts.isolatedRoots)) {
       for (const role of facts.isolatedRoots) if (!isRole(role)) problems.push(`isolatedRoots names ${String(role)}, which is not a code root role`);
-      if (new Set(facts.isolatedRoots).size !== facts.isolatedRoots.length) problems.push('isolatedRoots lists a role twice');
-      if (facts.isolatedRoots.length < 2 && !facts.isolatedRoots.includes('workers')) problems.push('isolatedRoots needs at least two roots to keep apart');
+      if (facts.isolatedRoots.length === 1 && !facts.isolatedRoots.includes('workers')) problems.push('isolatedRoots needs at least two roots to keep apart');
     }
-    if (!facts.importAliases || typeof facts.importAliases !== 'object') problems.push('importAliases is missing (an app with no alias declares {})');
+    objectProblem(facts.importAliases, 'importAliases', problems);
     return problems;
   },
   build(facts) {
@@ -93,18 +90,6 @@ export interface TsconfigAliasFacts {
   tsconfigs: ReadonlyArray<{ file: string; root: string }>;
 }
 
-function normalise(path: string): string | null {
-  const parts: string[] = [];
-  for (const segment of path.split('/')) {
-    if (segment === '' || segment === '.') continue;
-    if (segment === '..') {
-      if (!parts.length) return null;
-      parts.pop();
-    } else parts.push(segment);
-  }
-  return parts.join('/');
-}
-
 /** Each alias target a tsconfig's `paths` declares that lands outside `rootPath`. */
 export function aliasesOutsideRoot(tsconfigFile: string, text: string, rootPath: string): string[] {
   const config = parseJsonc(text) as { compilerOptions?: { baseUrl?: string; paths?: Record<string, unknown> } };
@@ -114,7 +99,8 @@ export function aliasesOutsideRoot(tsconfigFile: string, text: string, rootPath:
   const out: string[] = [];
   for (const [alias, targets] of Object.entries(paths)) {
     for (const target of Array.isArray(targets) ? targets : [targets]) {
-      const resolved = typeof target === 'string' ? normalise(`${dir}/${base}/${target.replace(/\*.*$/, '')}`) : null;
+      const normalized = typeof target === 'string' ? normalizePath(`${dir}/${base}/${target.replace(/\*.*$/, '')}`) : null;
+      const resolved = normalized && !normalized.escapes ? normalized.path : null;
       if (resolved === null || !isUnder(resolved || '.', rootPath)) out.push(`${alias} → ${String(target)}`);
     }
   }
@@ -126,9 +112,14 @@ export const tsconfigAliasGuard: GenericGuardDefinition<TsconfigAliasFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!facts || typeof facts !== 'object') return ['the facts are missing'];
-    if (!Array.isArray(facts.tsconfigs) || !facts.tsconfigs.length) problems.push('tsconfigs names no tsconfig');
-    else for (const t of facts.tsconfigs) if (!t?.file || !t.root) problems.push('a tsconfig entry needs its file and root');
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    if (!Array.isArray(facts.tsconfigs)) problems.push('tsconfigs is missing');
+    else if (!facts.tsconfigs.length) problems.push('tsconfigs is empty');
+    else
+      for (const t of facts.tsconfigs) {
+        pathProblem(t?.file, 'a tsconfig entry\'s file', problems);
+        textProblem(t?.root, `tsconfig ${String(t?.file)}'s root`, problems);
+      }
     return problems;
   },
   build(facts) {
@@ -176,13 +167,11 @@ export interface EntryPointFacts {
   /** Roots that ship to a browser (no server-only package entry, no Admin SDK). */
   clientRoots: readonly RootRole[];
   /** Folders or files inside a client root that run only on a server, each with its why. */
-  serverOnlyPaths: ReadonlyArray<{ path: string; why: string }>;
+  serverOnlyPaths: readonly Reviewed[];
 }
 
-const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 export function bannedEntryPoints(packageScope: string) {
-  const scope = escape(packageScope.replace(/\/$/, ''));
+  const scope = escapeRegExp(packageScope.replace(/\/$/, ''));
   return {
     server: [
       { re: new RegExp(`^${scope}/[^/]+/(?:react|browser|styles|client)(?:/|$)`), why: 'client-only package entry point' },
@@ -201,18 +190,17 @@ export const entryPointGuard: GenericGuardDefinition<EntryPointFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!facts || typeof facts !== 'object') return ['the facts are missing'];
+    if (!objectProblem(facts, 'facts', problems)) return problems;
     if (typeof facts.packageScope !== 'string' || !/^@[a-z0-9][\w.-]*$/.test(facts.packageScope)) problems.push('packageScope is not an npm scope (@name)');
     for (const key of ['serverRoots', 'clientRoots'] as const) {
-      if (!Array.isArray(facts[key])) problems.push(`${key} is missing`);
-      else for (const role of facts[key]) if (!isRole(role)) problems.push(`${key} names ${String(role)}, which is not a code root role`);
+      namesProblem(facts[key], key, problems, { nonEmpty: false });
+      for (const role of Array.isArray(facts[key]) ? facts[key] : []) if (!isRole(role)) problems.push(`${key} names ${String(role)}, which is not a code root role`);
     }
     if (Array.isArray(facts.serverRoots) && Array.isArray(facts.clientRoots)) {
       if (!facts.serverRoots.length && !facts.clientRoots.length) problems.push('neither serverRoots nor clientRoots names a root');
       for (const role of facts.serverRoots) if (facts.clientRoots.includes(role)) problems.push(`${role} is both a server and a client root`);
     }
-    if (!Array.isArray(facts.serverOnlyPaths)) problems.push('serverOnlyPaths is missing (an app with none declares [])');
-    else for (const p of facts.serverOnlyPaths) if (!p?.path || !p.why?.trim()) problems.push(`server-only path ${p?.path ?? '(none)'} needs its path and why`);
+    reviewedProblems(facts.serverOnlyPaths, 'serverOnlyPaths', problems);
     return problems;
   },
   build(facts) {
@@ -307,7 +295,7 @@ export type NoOutsideCheckoutFacts = Readonly<Record<string, never>>;
 export const noOutsideCheckoutGuard: GenericGuardDefinition<NoOutsideCheckoutFacts> = {
   id: 'noOutsideCheckout',
   absentWhen: false,
-  factProblems: noFacts,
+  factProblems: takesNoFacts,
   build() {
     return [
       {
@@ -321,7 +309,7 @@ export const noOutsideCheckoutGuard: GenericGuardDefinition<NoOutsideCheckoutFac
           const findings: Finding[] = [];
           for (const file of context.files(OUTSIDE_SCOPE)) {
             for (const { spec, line } of moduleSpecifiers(file)) {
-              if (resolveRelative(file.path, spec) !== null && escapesRepository(file.path, spec)) {
+              if (resolveRelative(file.path, spec)?.escapes) {
                 findings.push({ file: file.path, line, detail: `imports from outside the repository: ${spec}` });
               }
             }

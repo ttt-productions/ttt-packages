@@ -6,6 +6,7 @@
 import semver from 'semver';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
+import { isText, reviewedProblems, textProblem } from '../../support/facts.js';
 
 export interface DependencyOverride {
   /** The manifest holding the parent-scoped `overrides` entry, repo-relative. */
@@ -41,13 +42,17 @@ export const dependencyOverrideGuard: GenericGuardDefinition<DependencyOverrideF
   absentWhen: 'the app carries no dependency override',
   factProblems(facts) {
     const problems: string[] = [];
-    if (!Array.isArray(facts?.overrides) || !facts.overrides.length) return ['overrides names no override'];
-    for (const o of facts.overrides) {
-      const label = `${o?.parent} → ${o?.child}`;
-      if (!o?.manifest || !o.parent || !o.child || typeof o.installedUnder !== 'string') problems.push(`${label} needs its manifest, installedUnder, parent, and child`);
-      if (!o?.affected || semver.validRange(o.affected) === null) problems.push(`${label}: affected is not a semver range`);
-      if (!o?.why?.trim()) problems.push(`${label} carries no why`);
-    }
+    reviewedProblems(facts?.overrides, 'overrides', problems, {
+      key: 'parent',
+      id: (o) => (isText(o.child) ? `${o.parent} → ${o.child}` : undefined),
+      idNames: 'child',
+      nonEmpty: true,
+      extra(o, label) {
+        textProblem(o.manifest, `${label}'s manifest`, problems);
+        if (typeof o.installedUnder !== 'string') problems.push(`${label}'s installedUnder is missing ('' for the repository root)`);
+        if (!isText(o.affected) || semver.validRange(o.affected) === null) problems.push(`${label}'s affected is not a semver range`);
+      },
+    });
     return problems;
   },
   build(facts) {

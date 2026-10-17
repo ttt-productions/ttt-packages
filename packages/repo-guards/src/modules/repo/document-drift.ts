@@ -6,6 +6,7 @@
 import path from 'node:path';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Guard } from '../../guard.js';
+import { isText, pathProblem, textProblem } from '../../support/facts.js';
 
 export interface DocumentDriftFacts {
   /** The shared document, repo-relative (the same path in every copy). */
@@ -28,14 +29,15 @@ export const documentDriftGuard: GenericGuardDefinition<DocumentDriftFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (typeof facts?.file !== 'string' || !facts.file.trim()) problems.push('file names no document');
-    if (!Array.isArray(facts?.copies) || !facts.copies.length) problems.push('copies names no sibling checkout');
+    pathProblem(facts?.file, 'file', problems);
+    if (!Array.isArray(facts?.copies) || !facts.copies.length) problems.push(Array.isArray(facts?.copies) ? 'copies is empty' : 'copies is missing');
     else {
       const names = new Set<string>();
       for (const copy of facts.copies) {
-        if (!copy?.name?.trim() || !copy?.checkout?.trim()) problems.push('a copy needs its name and its checkout folder');
-        else if (names.has(copy.name)) problems.push(`copy ${copy.name} is listed twice`);
+        if (!isText(copy?.name)) problems.push('an entry of copies names no name');
+        else if (names.has(copy.name)) problems.push(`copies lists ${copy.name} twice`);
         else names.add(copy.name);
+        if (isText(copy?.name)) textProblem(copy.checkout, `copies entry ${copy.name}'s checkout`, problems);
       }
     }
     return problems;

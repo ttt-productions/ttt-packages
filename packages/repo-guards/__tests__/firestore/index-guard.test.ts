@@ -106,8 +106,8 @@ describe('every filtered collection-group query is index-backed', () => {
     expect(collectionGroupIndexGuard.factProblems({ unresolvable: [{ file: 'a.ts', argument: '', why: '' }] } as never)).toEqual([
       'indexesFile is missing',
       'coreExports needs a loader function',
-      'unresolvable: a.ts carries no why',
-      'unresolvable: a.ts names no argument',
+      'unresolvable entry a.ts names no argument',
+      'unresolvable entry a.ts carries no why',
     ]);
   });
 });

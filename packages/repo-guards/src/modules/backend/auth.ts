@@ -6,28 +6,17 @@ import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
+import type { Reviewed } from '../../reader/layout.js';
 import type { FileView } from '../../reader/view.js';
 import { ownerOnly, reviewedAllowlist, type Hit, type Matcher } from '../../shapes/shapes.js';
+import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
+import { namesProblem, reviewedProblems, takesNoFacts, textProblem } from '../../support/facts.js';
+import { MODULE_LOADS, moduleImports } from '../../support/imports.js';
+import { escapeRegExp, isUnder } from '../../support/text.js';
 import { declarationFactProblems, readDeclarations, type CallableDeclarationFacts } from '../frontend-actions/declarations.js';
-import {
-  calleeName,
-  forEachNode,
-  isUnder,
-  lineOfNode,
-  moduleSpecifiers,
-  namesProblem,
-  reviewedProblems,
-  serverZoneContext,
-  serverZoneProblems,
-  staleServerFolders,
-  textProblem,
-  type ReviewedFile,
-  type ServerZone,
-} from './shared.js';
+import { serverZoneContext, serverZoneProblems, staleServerFolders, type ServerZone } from './shared.js';
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
-
-const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // ---------------------------------------------------------------------------------------------
 // The admin claim is read only by its resolver.
@@ -36,7 +25,7 @@ export interface AdminClaimFacts {
   /** The token claims that say a caller is an admin (`isAdmin`). */
   claimKeys: readonly string[];
   /** The modules that may read the claim — the resolver, and metadata-only copies — each with its why. */
-  readers: readonly ReviewedFile[];
+  readers: readonly Reviewed[];
   /** Server code in the app root, held to the same rule as the Functions tree. */
   appServerZone: ServerZone;
 }
@@ -68,8 +57,7 @@ export const adminClaimGuard: GenericGuardDefinition<AdminClaimFacts> = {
   factProblems(facts) {
     const problems: string[] = [];
     namesProblem(facts?.claimKeys, 'claimKeys', problems);
-    reviewedProblems(facts?.readers, 'readers', problems);
-    if (Array.isArray(facts?.readers) && !facts.readers.length) problems.push('readers is empty: name the resolver that answers the admin question');
+    reviewedProblems(facts?.readers, 'readers', problems, { nonEmpty: true });
     serverZoneProblems(facts?.appServerZone, 'appServerZone', problems);
     return problems;
   },
@@ -161,7 +149,7 @@ const BLOCKING_BUILDERS = new Set(['beforeCreate', 'beforeSignIn', 'beforeEmail'
 /** Every registration of a sign-up, sign-in, email, or SMS blocking function. */
 export function blockingFunctionSites(file: FileView): Array<{ node: ts.Node; detail: string }> {
   const out: Array<{ node: ts.Node; detail: string }> = [];
-  for (const { spec, node } of moduleSpecifiers(file)) if (BLOCKING_MODULE.test(spec)) out.push({ node, detail: `imports ${spec}` });
+  for (const { spec, node } of moduleImports(file.sourceFile, MODULE_LOADS)) if (BLOCKING_MODULE.test(spec)) out.push({ node, detail: `imports ${spec}` });
   forEachNode(file.sourceFile, (node) => {
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && BLOCKING_BUILDERS.has(node.expression.name.text)) {
       out.push({ node, detail: `registers ${node.expression.name.text}` });
@@ -173,9 +161,7 @@ export function blockingFunctionSites(file: FileView): Array<{ node: ts.Node; de
 export const noBlockingFunctionGuard: GenericGuardDefinition<NoBlockingFunctionFacts> = {
   id: 'noAuthBlockingFunction',
   absentWhen: false,
-  factProblems(facts) {
-    return facts && typeof facts === 'object' && !Object.keys(facts).length ? [] : ['this guard takes no facts: declare {}'];
-  },
+  factProblems: takesNoFacts,
   build() {
     return [
       {
@@ -277,9 +263,9 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
     namesProblem(facts?.consumingFolders, 'consumingFolders', problems, { nonEmpty: false });
     textProblem(facts?.adminAuth?.call, 'adminAuth.call', problems);
     textProblem(facts?.adminAuth?.option, 'adminAuth.option', problems);
-    reviewedProblems(facts?.consumptionExempt, 'consumptionExempt', problems, 'callable');
+    reviewedProblems(facts?.consumptionExempt, 'consumptionExempt', problems, { key: 'callable' });
     declarationFactProblems(facts?.clientDeclarations, 'clientDeclarations', problems);
-    reviewedProblems(facts?.noClientDeclaration, 'noClientDeclaration', problems, 'callable');
+    reviewedProblems(facts?.noClientDeclaration, 'noClientDeclaration', problems, { key: 'callable' });
     return problems;
   },
   build(facts) {

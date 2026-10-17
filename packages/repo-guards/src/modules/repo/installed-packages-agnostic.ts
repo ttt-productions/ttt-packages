@@ -5,6 +5,7 @@
 
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
+import { isText, namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
 
 export interface InstalledPackagesAgnosticFacts {
   /** The package scope the generic packages share (`@acme/`). */
@@ -30,21 +31,19 @@ export const installedPackagesAgnosticGuard: GenericGuardDefinition<InstalledPac
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!facts?.packageScope?.endsWith('/')) problems.push('packageScope must end in / (`@acme/`)');
-    if (!facts?.corePackage?.trim()) problems.push('corePackage is missing');
-    if (!Array.isArray(facts?.manifestFolders) || !facts.manifestFolders.length) problems.push('manifestFolders names no folder');
-    if (!Array.isArray(facts?.productNames) || !facts.productNames.length) problems.push('productNames names no product');
-    else {
-      for (const source of facts.productNames) {
-        try {
-          new RegExp(source);
-        } catch {
-          problems.push(`product name ${source} is not a regular expression`);
-        }
+    if (!isText(facts?.packageScope) || !facts.packageScope.endsWith('/')) problems.push('packageScope must end in / (`@acme/`)');
+    textProblem(facts?.corePackage, 'corePackage', problems);
+    if (!Array.isArray(facts?.manifestFolders) || !facts.manifestFolders.length) problems.push('manifestFolders is empty');
+    else if (facts.manifestFolders.some((f) => typeof f !== 'string')) problems.push('manifestFolders holds an entry that is not a folder');
+    namesProblem(facts?.productNames, 'productNames', problems);
+    for (const source of Array.isArray(facts?.productNames) ? facts.productNames : []) {
+      try {
+        new RegExp(source);
+      } catch {
+        problems.push(`product name ${source} is not a regular expression`);
       }
     }
-    if (!Array.isArray(facts?.wireTokens)) problems.push('wireTokens is missing (declare [] when there is none)');
-    else for (const t of facts.wireTokens) if (!t?.token || !t.why?.trim()) problems.push(`wire token ${String(t?.token)} needs its token and why`);
+    reviewedProblems(facts?.wireTokens, 'wireTokens', problems, { key: 'token' });
     return problems;
   },
   build(facts) {

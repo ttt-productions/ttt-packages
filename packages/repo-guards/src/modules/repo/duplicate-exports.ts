@@ -7,6 +7,7 @@
 import ts from 'typescript';
 import type { RepoReader, Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
+import { moduleImports } from '../../support/imports.js';
 
 export interface DuplicateExportFacts {
   /**
@@ -27,13 +28,11 @@ export function definedExports(file: FileView): { values: Set<string>; types: Se
   const values = new Set<string>();
   const types = new Set<string>();
   const imported = new Set<string>();
-  for (const stmt of sf.statements) {
-    if (!ts.isImportDeclaration(stmt) || !stmt.importClause) continue;
-    const clause = stmt.importClause;
-    if (clause.name) imported.add(clause.name.text);
-    const b = clause.namedBindings;
-    if (b && ts.isNamespaceImport(b)) imported.add(b.name.text);
-    else if (b && ts.isNamedImports(b)) for (const el of b.elements) imported.add(el.name.text);
+  for (const site of moduleImports(sf, ['import'])) {
+    if (!site.topLevel) continue;
+    if (site.defaultName) imported.add(site.defaultName);
+    if (site.namespace) imported.add(site.namespace);
+    for (const { local } of site.named) imported.add(local);
   }
   const addBinding = (name: ts.BindingName, bucket: Set<string>) => {
     if (ts.isIdentifier(name)) bucket.add(name.text);

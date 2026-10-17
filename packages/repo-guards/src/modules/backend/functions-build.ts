@@ -7,7 +7,12 @@ import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
-import { calleeName, calleePath, forEachNode, lineOfNode, namesModule, namesProblem, reviewedProblems, textProblem, type ReviewedFile } from './shared.js';
+import type { Reviewed } from '../../reader/layout.js';
+import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
+import { namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import { moduleImports, namesModule } from '../../support/imports.js';
+import { resolveRelative } from '../../support/paths.js';
+import { calleePath } from './shared.js';
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
 
@@ -185,7 +190,7 @@ export interface LazyLoaderFacts {
   /** The Functions test runner configs, which never make every test concurrent. */
   testRunnerConfigs: readonly string[];
   /** Test files that overlap imports on purpose (the loader's own premise test), each with its why. */
-  testExceptions: readonly ReviewedFile[];
+  testExceptions: readonly Reviewed[];
 }
 
 const isDynamicImport = (node: ts.Node): node is ts.CallExpression => ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword;
@@ -312,28 +317,20 @@ export interface LightFunctionFacts {
   /** Packages a light closure never imports statically, with any subpath that is light, each with its why. */
   heavyPackages: ReadonlyArray<{ specifier: string; lightSubpaths: readonly string[]; why: string }>;
   /** Functions modules a light closure never reaches statically, each with its why. */
-  heavyFiles: readonly ReviewedFile[];
+  heavyFiles: readonly Reviewed[];
 }
 
 /** A file's static runtime import edges: no `import()` (the lazy path), no `import type` / `export type`. */
 export function staticEdges(file: FileView): string[] {
-  const out: string[] = [];
-  for (const stmt of file.sourceFile.statements) {
-    if (ts.isImportDeclaration(stmt) && ts.isStringLiteral(stmt.moduleSpecifier) && !stmt.importClause?.isTypeOnly) out.push(stmt.moduleSpecifier.text);
-    if (ts.isExportDeclaration(stmt) && stmt.moduleSpecifier && ts.isStringLiteral(stmt.moduleSpecifier) && !stmt.isTypeOnly) out.push(stmt.moduleSpecifier.text);
-  }
-  return out;
+  return moduleImports(file.sourceFile, ['import', 'export'])
+    .filter((site) => site.topLevel && !site.typeOnly)
+    .map((site) => site.spec);
 }
 
 /** The repo-relative file a relative specifier names among `known`, or null. */
-export function resolveRelative(fromPath: string, spec: string, known: ReadonlySet<string>): string | null {
-  const parts = fromPath.split('/').slice(0, -1);
-  for (const segment of spec.split('/')) {
-    if (segment === '' || segment === '.') continue;
-    if (segment === '..') parts.pop();
-    else parts.push(segment);
-  }
-  const base = parts.join('/');
+export function resolveModule(fromPath: string, spec: string, known: ReadonlySet<string>): string | null {
+  const base = resolveRelative(fromPath, spec)?.path;
+  if (base === undefined) return null;
   const stem = base.replace(/\.[cm]?jsx?$/, '');
   const candidates = [base, `${stem}.ts`, `${stem}.tsx`, `${stem}.mts`, `${stem}.cts`, `${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`];
   return candidates.find((c) => known.has(c)) ?? null;
@@ -365,7 +362,7 @@ export const lightFunctionGuard: GenericGuardDefinition<LightFunctionFacts> = {
     const problems: string[] = [];
     textProblem(facts?.entryIndex, 'entryIndex', problems);
     namesProblem(facts?.lightFunctions, 'lightFunctions', problems);
-    reviewedProblems(facts?.heavyPackages, 'heavyPackages', problems, 'specifier');
+    reviewedProblems(facts?.heavyPackages, 'heavyPackages', problems, { key: 'specifier' });
     for (const p of facts?.heavyPackages ?? []) if (!Array.isArray(p?.lightSubpaths)) problems.push(`heavy package ${String(p?.specifier)} needs lightSubpaths (declare [] when none)`);
     reviewedProblems(facts?.heavyFiles, 'heavyFiles', problems);
     if (!facts?.heavyPackages?.length && !facts?.heavyFiles?.length) problems.push('neither heavyPackages nor heavyFiles names anything, so the guard checks nothing');
@@ -394,7 +391,7 @@ export const lightFunctionGuard: GenericGuardDefinition<LightFunctionFacts> = {
             for (const spec of staticEdges(file)) {
               if (!spec.startsWith('.')) external.push(spec);
               else {
-                const target = resolveRelative(file.path, spec, known);
+                const target = resolveModule(file.path, spec, known);
                 if (target) internal.push(target);
                 else findings.push({ file: file.path, detail: `cannot resolve ${spec}, so the closure through it is unread` });
               }
@@ -406,7 +403,7 @@ export const lightFunctionGuard: GenericGuardDefinition<LightFunctionFacts> = {
           const { names } = exportsOf(files.find((f) => f.path === facts.entryIndex)!);
           for (const fn of facts.lightFunctions) {
             const from = names.get(fn);
-            const start = from ? resolveRelative(facts.entryIndex, from, known) : null;
+            const start = from ? resolveModule(facts.entryIndex, from, known) : null;
             if (!start) {
               findings.push({ file: facts.entryIndex, detail: `light function ${fn} is not re-exported from a Functions module` });
               continue;

@@ -5,9 +5,7 @@ import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
-
-/** A value an app reads from its core package at run time, loaded inside the guard's run. */
-export type Loader<T> = () => T | Promise<T>;
+import { isUnder } from '../../support/text.js';
 
 /** The installed core build's compiled modules. */
 export const CORE_CODE: Scope = { roots: ['coreDist'], kinds: ['code'], tests: false };
@@ -37,7 +35,7 @@ export function moduleOf(path: string): string {
 export function filesIn(files: readonly FileView[], folders: readonly string[], findings: Finding[]): FileView[] {
   const out: FileView[] = [];
   for (const folder of folders) {
-    const inside = files.filter((f) => f.path.startsWith(`${folder}/`));
+    const inside = files.filter((f) => isUnder(f.path, folder));
     if (!inside.length) findings.push({ file: folder, detail: 'the folder holds no compiled module of the core build (moved, or outside the core build root)' });
     out.push(...inside);
   }
@@ -69,50 +67,6 @@ export function declarationNameOf(statement: ts.Node): string {
     return statement.name.text;
   }
   return '<module>';
-}
-
-/** The 1-based line a node starts on. */
-export const lineOfNode = (file: FileView, node: ts.Node): number =>
-  file.sourceFile.getLineAndCharacterOfPosition(node.getStart(file.sourceFile)).line + 1;
-
-export function stringListProblems(value: unknown, what: string, problems: string[], { nonEmpty = true } = {}): void {
-  if (!Array.isArray(value)) problems.push(`${what} is missing${nonEmpty ? '' : ' (declare [] when there is none)'}`);
-  else if (nonEmpty && !value.length) problems.push(`${what} is empty`);
-  else for (const entry of value) if (typeof entry !== 'string' || !entry.trim()) problems.push(`${what} holds an empty entry`);
-}
-
-export function loaderProblems(value: unknown, what: string, problems: string[]): void {
-  if (typeof value !== 'function') problems.push(`${what} needs a loader that reads it from the core package`);
-}
-
-/**
- * Reviewed entries: each names its subject under `key` and carries a why. Duplicates are refused,
- * since two entries for one subject would let one of them go stale unseen.
- */
-export function reviewedProblems(
-  value: unknown,
-  what: string,
-  key: string,
-  problems: string[],
-  extra?: (entry: Record<string, unknown>, label: string) => void,
-): void {
-  if (!Array.isArray(value)) {
-    problems.push(`${what} is missing (declare [] when there is none)`);
-    return;
-  }
-  const seen = new Set<string>();
-  for (const entry of value as Array<Record<string, unknown>>) {
-    const subject = entry?.[key];
-    if (typeof subject !== 'string' || !subject.trim()) {
-      problems.push(`an entry of ${what} names no ${key}`);
-      continue;
-    }
-    const label = `${what} entry ${subject}`;
-    if (seen.has(subject)) problems.push(`${label} is listed twice`);
-    seen.add(subject);
-    if (typeof entry.why !== 'string' || !entry.why.trim()) problems.push(`${label} carries no why`);
-    extra?.(entry, label);
-  }
 }
 
 /** A positive whole number, as a reviewed count must be. */

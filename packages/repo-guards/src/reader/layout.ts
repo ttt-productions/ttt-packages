@@ -61,6 +61,11 @@ export interface RepoLayout {
    * is a Firestore or a Storage rules file by the service it declares.
    */
   rulesFiles?: readonly string[];
+  /**
+   * The deploy config (`firebase.json`), repo-relative, when the app has one: every rules file it
+   * deploys must be one of `rulesFiles`, so no deployed rules file goes unchecked.
+   */
+  firebaseConfig?: string;
   /** Folders or files that hold test code beside a `__tests__` folder or a test-named file. */
   testCodePaths?: readonly Reviewed[];
   /** File-name markers that make a file test code (`.test-helper.`), each with its why. */

@@ -87,7 +87,7 @@ describe('no swallowed read or write', () => {
         notReadOrWrite: [{ pattern: '^rm' as never, why: 'x' } as never, { file: '', pattern: /^rm/, why: 'x' }],
         tryCatchSites: [{ file: 'functions/src/lease.ts', function: '', why: 'x' }],
       }),
-    ).toEqual(['an entry of notReadOrWrite names nothing', 'an entry of notReadOrWrite names nothing', 'an entry of tryCatchSites names nothing']);
+    ).toEqual(['an entry of notReadOrWrite names no file', 'an entry of notReadOrWrite names no file', 'tryCatchSites entry functions/src/lease.ts names no function']);
   });
 });
 
@@ -211,7 +211,7 @@ describe('a scheduled handler isolates its passes', () => {
 
   it('refuses an entry that names fewer than two units', () => {
     expect(scheduledPassGuard.factProblems({ dependentUnits: [{ file: 'functions/src/a.ts', units: ['one'], why: 'x' }] })).toEqual([
-      'an entry of dependentUnits names nothing',
+      'dependentUnits entry functions/src/a.ts names no second unit',
     ]);
   });
 });

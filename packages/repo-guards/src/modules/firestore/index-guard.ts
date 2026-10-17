@@ -7,7 +7,9 @@ import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
-import { calleeName, eachNode, isPlainString, lineOfNode, literalBindings, requireLoader, requireName, reviewedListProblems, unwrap } from './support.js';
+import { calleeName, forEachNode, isPlainString, lineOfNode, unwrap } from '../../support/ast.js';
+import { loaderProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import { literalBindings } from './support.js';
 
 export interface CollectionGroupIndexFacts {
   /** The repo-relative index declaration file (`firestore.indexes.json`). */
@@ -55,7 +57,7 @@ export function collectionGroupSites(file: FileView, core: Record<string, unknow
     return null;
   };
   const sites: GroupSite[] = [];
-  eachNode(source, (node) => {
+  forEachNode(source, (node) => {
     if (!ts.isCallExpression(node) || calleeName(node) !== 'collectionGroup') return;
     const callee = node.expression;
     let groupArg: ts.Expression | undefined;
@@ -110,11 +112,14 @@ export const collectionGroupIndexGuard: GenericGuardDefinition<CollectionGroupIn
   id: 'firestoreCollectionGroupIndexes',
   absentWhen: 'the app stores nothing in Firestore',
   factProblems(facts) {
-    const problems = [...requireName(facts?.indexesFile, 'indexesFile'), ...requireLoader(facts?.coreExports, 'coreExports')];
-    problems.push(...reviewedListProblems(facts?.unresolvable, 'unresolvable', 'file'));
-    for (const e of facts?.unresolvable ?? []) {
-      if (typeof e?.argument !== 'string' || !e.argument.trim()) problems.push(`unresolvable: ${e?.file} names no argument`);
-    }
+    const problems: string[] = [];
+    textProblem(facts?.indexesFile, 'indexesFile', problems);
+    loaderProblem(facts?.coreExports, 'coreExports', problems);
+    reviewedProblems(facts?.unresolvable, 'unresolvable', problems, {
+      key: 'file',
+      id: (e) => (typeof e.argument === 'string' && e.argument.trim() ? `${e.file} ${e.argument}` : undefined),
+      idNames: 'argument',
+    });
     return problems;
   },
   build(facts) {

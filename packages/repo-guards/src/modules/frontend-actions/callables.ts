@@ -2,47 +2,30 @@
 // copy owner, callable names written only in their declarations, one toast and one capture per
 // failure, and reads that live in hooks and go through readers.
 
-import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { reviewedAllowlist, type AllowlistEntry, type Hit } from '../../shapes/shapes.js';
+import { allowlistProblems, namesProblem, objectProblem, textProblem } from '../../support/facts.js';
+import { fromStatements, moduleImports, namesModule } from '../../support/imports.js';
+import { escapeRegExp, isUnder } from '../../support/text.js';
 import { CALLABLE_KINDS, declarationFactProblems, readDeclarations, type CallableDeclarationFacts, type CallableKind } from './declarations.js';
 import {
   balancedArgs,
-  bindingNames,
   callArgs,
-  escapeRegExp,
   exportBlocks,
   exportedName,
   handlersFor,
-  isModuleOrSubpath,
-  isUnder,
   localDeclarations,
   memberOrBareCalls,
-  moduleStatements,
-  namedImports,
-  namesProblem,
-  objectProblem,
-  textProblem,
   throughNamespace,
   tryCatchPairs,
 } from './text.js';
+import { forEachNode, isPlainString } from '../../support/ast.js';
 
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 const REACT_HOOK = 'use[A-Z]\\w*';
-
-const allowlistProblems = (entries: unknown, problems: string[]) => {
-  if (!Array.isArray(entries)) {
-    problems.push('allowlist is missing (declare [] when there is none)');
-    return;
-  }
-  for (const entry of entries as AllowlistEntry[]) {
-    if (!entry?.path) problems.push('an allowlist entry names no file');
-    else if (typeof entry.why !== 'string' || !entry.why.trim()) problems.push(`allowlist entry ${entry.path} carries no why`);
-  }
-};
 
 /** Runs a shape-built guard and adds the findings of an extra check to it. */
 const withExtraCheck = (guard: Guard, extra: (context: GuardContext) => Finding[]): Guard => ({
@@ -98,7 +81,7 @@ export const callableErrorCopyGuard: GenericGuardDefinition<CallableErrorCopyFac
       textProblem(facts.owner.file, 'owner.file', problems);
       textProblem(facts.owner.exportName, 'owner.exportName', problems);
     }
-    allowlistProblems(facts?.allowlist, problems);
+    allowlistProblems(facts?.allowlist, 'allowlist', problems);
     return problems;
   },
   build(facts) {
@@ -150,16 +133,17 @@ export interface CallableTransportFacts {
 }
 
 /** Each reach of a transport symbol: imported, through a namespace, or called bare or as a member (`sdk.f(`). */
-function transportHits(code: string, transport: { module: string; symbols: readonly string[] }): Hit[] {
+function transportHits(file: FileView, transport: { module: string; symbols: readonly string[] }): Hit[] {
+  const { code, sourceFile } = file;
   const hits: Hit[] = [];
   const namespaces: string[] = [];
-  for (const statement of moduleStatements(code)) {
-    if (!isModuleOrSubpath(statement.module, transport.module)) continue;
-    const namespace = /\*\s+as\s+([A-Za-z_$][\w$]*)/.exec(statement.clause);
-    if (namespace) namespaces.push(namespace[1]);
-    const named = /\{([\s\S]*)\}/.exec(statement.clause)?.[1] ?? '';
+  for (const site of fromStatements(sourceFile)) {
+    if (!namesModule(site.spec, transport.module)) continue;
+    if (site.namespace) namespaces.push(site.namespace);
     for (const symbol of transport.symbols) {
-      if (new RegExp(`\\b${escapeRegExp(symbol)}\\b`).test(named)) hits.push({ index: statement.index, detail: `imports ${symbol} from ${statement.module}` });
+      if (site.named.some((n) => n.imported === symbol || n.local === symbol)) {
+        hits.push({ index: site.node.getStart(sourceFile), detail: `imports ${symbol} from ${site.spec}` });
+      }
     }
   }
   for (const namespace of namespaces) {
@@ -202,7 +186,7 @@ export const callableTransportGuard: GenericGuardDefinition<CallableTransportFac
           const held = new Set<string>();
           for (const file of context.files(APP_CODE)) {
             for (const transport of facts.transports) {
-              const hits = transportHits(file.code, transport);
+              const hits = transportHits(file, transport);
               if (!hits.length) continue;
               if (file.path === transport.owner) held.add(transport.owner);
               else for (const hit of hits) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: `outside its owner ${transport.owner}: ${hit.detail}` });
@@ -291,13 +275,11 @@ export interface CallableNameFacts {
 export function callableNameHits(file: FileView, names: ReadonlyMap<string, string>): Hit[] {
   const hits: Hit[] = [];
   const sf = file.sourceFile;
-  const visit = (node: ts.Node) => {
-    if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && names.has(node.text)) {
+  forEachNode(sf, (node) => {
+    if (isPlainString(node) && names.has(node.text)) {
       hits.push({ index: node.getStart(sf), detail: `names the callable ${node.text}: call its declared hook ${names.get(node.text)}` });
     }
-    ts.forEachChild(node, visit);
-  };
-  visit(sf);
+  });
   return hits;
 }
 
@@ -307,7 +289,7 @@ export const callableNameGuard: GenericGuardDefinition<CallableNameFacts> = {
   factProblems(facts) {
     const problems: string[] = [];
     declarationFactProblems(facts?.declarations, 'declarations', problems);
-    allowlistProblems(facts?.allowlist, problems);
+    allowlistProblems(facts?.allowlist, 'allowlist', problems);
     return problems;
   },
   build(facts) {
@@ -325,16 +307,22 @@ export const callableNameGuard: GenericGuardDefinition<CallableNameFacts> = {
           const names = new Map(declared.filter((d) => d.callable !== null).map((d) => [d.callable!, d.hook]));
           const modules = new Set(facts.declarations.modules);
           const reviewed = new Map(facts.allowlist.map((e) => [e.path, e]));
-          const held = new Set<string>();
+          const held = new Map<string, number>();
           for (const file of context.files(APP_CODE)) {
             if (modules.has(file.path)) continue;
             const hits = callableNameHits(file, names);
             if (!hits.length) continue;
-            if (reviewed.has(file.path)) held.add(file.path);
-            else for (const hit of hits) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail! });
+            const entry = reviewed.get(file.path);
+            const allowed = entry ? (entry.count ?? hits.length) : 0;
+            if (entry) held.set(file.path, hits.length);
+            for (const hit of hits.slice(allowed)) {
+              findings.push({ file: file.path, line: file.lineOf(hit.index), detail: entry ? `more than the ${allowed} reviewed: ${hit.detail}` : hit.detail! });
+            }
           }
           for (const entry of facts.allowlist) {
-            if (!held.has(entry.path)) findings.push({ file: entry.path, detail: 'stale entry: the file no longer holds a callable name (or is gone)' });
+            const found = held.get(entry.path) ?? 0;
+            if (!found) findings.push({ file: entry.path, detail: 'stale entry: the file no longer holds a callable name (or is gone)' });
+            else if (entry.count !== undefined && found < entry.count) findings.push({ file: entry.path, detail: `stale count: reviewed ${entry.count}, found ${found}` });
           }
           return findings;
         },
@@ -547,16 +535,16 @@ export function wrappingHooks(files: ReadonlyArray<{ path: string; code: string 
 
 /** Every place a file surfaces a rejection a toasting hook it holds has already toasted. */
 export function doubleSurfaces(
-  file: { path: string; code: string },
+  file: FileView,
   toasting: ToastingHooks,
   wrappers: ToastingHooks,
   facts: Pick<DoubleSurfaceFacts, 'toastCall' | 'nonCallableLegGuards' | 'appImportPrefixes'>,
 ): Array<{ index: number; detail: string }> {
   const code = file.code;
   const imported = new Set<string>();
-  for (const clause of namedImports(code)) {
-    const fromApp = clause.module.startsWith('.') || facts.appImportPrefixes.some((p) => clause.module.startsWith(p));
-    if (fromApp) for (const binding of clause.names) imported.add(bindingNames(binding).local);
+  for (const site of moduleImports(file.sourceFile, ['import'])) {
+    const fromApp = site.spec.startsWith('.') || facts.appImportPrefixes.some((p) => site.spec.startsWith(p));
+    if (fromApp) for (const name of site.named) imported.add(name.local);
   }
   const visible = new Map<string, string>(toasting);
   for (const [hook, origin] of wrappers) if (origin !== file.path && imported.has(hook)) visible.set(hook, origin);
@@ -673,7 +661,7 @@ export const errorInternalsGuard: GenericGuardDefinition<ErrorInternalsFacts> = 
     const problems: string[] = [];
     namesProblem(facts?.renderRoots, 'renderRoots', problems);
     namesProblem(facts?.captureCalls, 'captureCalls', problems, { nonEmpty: false });
-    allowlistProblems(facts?.allowlist, problems);
+    allowlistProblems(facts?.allowlist, 'allowlist', problems);
     return problems;
   },
   build(facts) {

@@ -49,7 +49,7 @@ import {
   type UnusedServiceFacts,
 } from './monitoring.js';
 
-export type { ReviewedFile, ServerZone } from './shared.js';
+export type { ServerZone } from './shared.js';
 
 /** The facts each guard in this area needs, by its id. */
 export interface BackendGuardFacts {

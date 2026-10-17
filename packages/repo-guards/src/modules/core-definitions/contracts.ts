@@ -9,7 +9,11 @@ import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../config.js';
 import { ROOT_ROLES, type RootRole } from '../../reader/layout.js';
 import type { FileView } from '../../reader/view.js';
-import { APP_SOURCE, lineOfNode } from './shared.js';
+import { lineOfNode } from '../../support/ast.js';
+import { namesProblem, textProblem } from '../../support/facts.js';
+import { moduleImports } from '../../support/imports.js';
+import { escapeRegExp } from '../../support/text.js';
+import { APP_SOURCE } from './shared.js';
 
 export interface CoreContractFacts {
   /** The app's core package specifier (`@scope/name`), as a publish-avoidance reason names it. */
@@ -41,6 +45,9 @@ const BUILDS_NOTHING: ReadonlySet<string> = new Set([
   'safeDecode',
 ]);
 
+/** zod's namespaces of schema builders: `z.coerce.*` and `z.iso.*` each build a schema. */
+const BUILDER_GROUPS: ReadonlySet<string> = new Set(['coerce', 'iso']);
+
 /**
  * The names a file binds zod under: `z` (by convention, wherever it comes from), every namespace or
  * default import of a zod module, and each named import of one, by its local name with the name zod
@@ -49,20 +56,14 @@ const BUILDS_NOTHING: ReadonlySet<string> = new Set([
 function zodBindings(sf: ts.SourceFile): { namespaces: Set<string>; named: Map<string, string> } {
   const namespaces = new Set(['z']);
   const named = new Map<string, string>();
-  for (const statement of sf.statements) {
-    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || !ZOD_MODULE.test(statement.moduleSpecifier.text)) continue;
-    const clause = statement.importClause;
-    if (!clause || clause.isTypeOnly) continue;
-    if (clause.name) namespaces.add(clause.name.text);
-    const bindings = clause.namedBindings;
-    if (bindings && ts.isNamespaceImport(bindings)) namespaces.add(bindings.name.text);
-    else if (bindings) {
-      for (const element of bindings.elements) {
-        if (element.isTypeOnly) continue;
-        const exported = (element.propertyName ?? element.name).text;
-        if (exported === 'z') namespaces.add(element.name.text);
-        else named.set(element.name.text, exported);
-      }
+  for (const site of moduleImports(sf, ['import'])) {
+    if (!site.topLevel || site.sideEffect || site.typeOnly || !ZOD_MODULE.test(site.spec)) continue;
+    if (site.defaultName) namespaces.add(site.defaultName);
+    if (site.namespace) namespaces.add(site.namespace);
+    for (const name of site.named) {
+      if (name.typeOnly) continue;
+      if (name.imported === 'z') namespaces.add(name.local);
+      else named.set(name.local, name.imported);
     }
   }
   return { namespaces, named };
@@ -80,6 +81,14 @@ export function zodSchemaBuilds(file: FileView): Finding[] {
   const builder = (callee: ts.Expression): string | null => {
     if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression) && namespaces.has(callee.expression.text)) {
       return `${callee.expression.text}.${callee.name.text}`;
+    }
+    // zod's builder groups: `z.coerce.number()`, `z.iso.date()`, and the same groups imported by name.
+    if (ts.isPropertyAccessExpression(callee)) {
+      const group = callee.expression;
+      const viaNamespace =
+        ts.isPropertyAccessExpression(group) && ts.isIdentifier(group.expression) && namespaces.has(group.expression.text) && BUILDER_GROUPS.has(group.name.text);
+      const viaName = ts.isIdentifier(group) && BUILDER_GROUPS.has(named.get(group.text) ?? '');
+      if (viaNamespace || viaName) return `${group.getText(file.sourceFile)}.${callee.name.text}`;
     }
     if (ts.isIdentifier(callee) && named.has(callee.text)) return callee.text;
     return null;
@@ -102,8 +111,6 @@ export function zodSchemaBuilds(file: FileView): Finding[] {
   visit(file.sourceFile);
   return findings;
 }
-
-const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * The justification itself, wherever it is written — a comment is where it usually sits: avoiding,
@@ -132,12 +139,10 @@ export const coreContractsGuard: GenericGuardDefinition<CoreContractFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (typeof facts?.corePackage !== 'string' || !facts.corePackage.trim()) problems.push('corePackage is missing');
-    if (!Array.isArray(facts?.backendRoots) || !facts.backendRoots.length) problems.push('backendRoots is missing or empty');
-    else {
-      for (const role of facts.backendRoots) {
-        if (!ROOT_ROLES.includes(role) || role === 'coreDist') problems.push(`backendRoots names ${String(role)}, which is no source root role`);
-      }
+    textProblem(facts?.corePackage, 'corePackage', problems);
+    namesProblem(facts?.backendRoots, 'backendRoots', problems);
+    for (const role of Array.isArray(facts?.backendRoots) ? facts.backendRoots : []) {
+      if (!ROOT_ROLES.includes(role) || role === 'coreDist') problems.push(`backendRoots names ${String(role)}, which is no source root role`);
     }
     return problems;
   },

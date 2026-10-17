@@ -8,7 +8,7 @@ import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { reviewedAllowlist, type AllowlistEntry, type Hit, type Matcher } from '../../shapes/shapes.js';
 import { cssBlocks, selectorsOf, subjectCompound } from './css.js';
-import { requireAllowlist, requireObject, requirePath } from './facts.js';
+import { allowlistProblems, objectProblem, pathProblem } from '../../support/facts.js';
 import { bareToken, codeStrings, tokensOf } from './source.js';
 import { loadedStylesheets } from './stylesheets.js';
 
@@ -62,7 +62,7 @@ export const colorLiteralsGuard: GenericGuardDefinition<ColorLiteralFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (requireObject(facts, problems)) requireAllowlist(facts.exceptions, 'exceptions', problems);
+    if (objectProblem(facts, 'facts', problems)) allowlistProblems(facts.exceptions, 'exceptions', problems);
     return problems;
   },
   build(facts) {
@@ -120,7 +120,7 @@ export const scaleClassesGuard: GenericGuardDefinition<EntryStylesheetFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (requireObject(facts, problems)) requirePath(facts.entryStylesheet, 'entryStylesheet', problems);
+    if (objectProblem(facts, 'facts', problems)) pathProblem(facts.entryStylesheet, 'entryStylesheet', problems);
     return problems;
   },
   build(facts): Guard[] {
@@ -162,7 +162,7 @@ export const statusForegroundGuard: GenericGuardDefinition<Record<string, never>
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    requireObject(facts, problems);
+    objectProblem(facts, 'facts', problems);
     return problems;
   },
   build() {
@@ -220,7 +220,7 @@ export const shadowOwnershipGuard: GenericGuardDefinition<Record<string, never>>
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    requireObject(facts, problems);
+    objectProblem(facts, 'facts', problems);
     return problems;
   },
   build() {
@@ -271,7 +271,7 @@ export const stackRowsGuard: GenericGuardDefinition<Record<string, never>> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    requireObject(facts, problems);
+    objectProblem(facts, 'facts', problems);
     return problems;
   },
   build() {
@@ -330,7 +330,7 @@ export const unavailableAffordanceGuard: GenericGuardDefinition<Record<string, n
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    requireObject(facts, problems);
+    objectProblem(facts, 'facts', problems);
     return problems;
   },
   build() {

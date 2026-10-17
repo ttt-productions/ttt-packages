@@ -9,28 +9,12 @@ import type { Reviewed } from '../../reader/layout.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { matchPattern, ownerOnly, reviewedAllowlist, type AllowlistEntry, type Hit } from '../../shapes/shapes.js';
-import {
-  escapeRegExp,
-  isModuleOrSubpath,
-  isUnder,
-  moduleStatements,
-  namesProblem,
-  reviewedProblems,
-  textProblem,
-} from './text.js';
+import { allowlistProblems, namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import { fromStatements, namesModule } from '../../support/imports.js';
+import { escapeRegExp, isUnder } from '../../support/text.js';
+import { isPlainString } from '../../support/ast.js';
 
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
-
-const allowlistProblems = (entries: unknown, what: string, problems: string[]) => {
-  if (!Array.isArray(entries)) {
-    problems.push(`${what} is missing (declare [] when there is none)`);
-    return;
-  }
-  for (const entry of entries as AllowlistEntry[]) {
-    if (!entry?.path) problems.push(`an entry of ${what} names no file`);
-    else if (typeof entry.why !== 'string' || !entry.why.trim()) problems.push(`${what} entry ${entry.path} carries no why`);
-  }
-};
 
 /** A dotted code spelling (`A.b`) as a pattern that allows whitespace around each dot. */
 const dottedPattern = (spelling: string) => spelling.split('.').map((part) => escapeRegExp(part.trim())).join('\\s*\\.\\s*');
@@ -193,17 +177,17 @@ export interface MediaRendererFacts {
 const RAW_IMAGE = /<img\b|from\s*['"]next\/image['"]|\bbackgroundImage\s*:|background(?:-image)?\s*:\s*url\(/g;
 
 /** Each import of a renderer's names (or of anything, for `all`) from its module or a subpath. */
-export function rendererImports(code: string, renderer: MediaRendererFacts['renderers'][number]): Hit[] {
+export function rendererImports(file: FileView, renderer: MediaRendererFacts['renderers'][number]): Hit[] {
   const hits: Hit[] = [];
-  for (const statement of moduleStatements(code)) {
-    if (!isModuleOrSubpath(statement.module, renderer.module)) continue;
+  for (const site of fromStatements(file.sourceFile)) {
+    if (!namesModule(site.spec, renderer.module)) continue;
+    const index = site.node.getStart(file.sourceFile);
     if (renderer.imports === 'all') {
-      hits.push({ index: statement.index, detail: `imports from ${statement.module}` });
+      hits.push({ index, detail: `imports from ${site.spec}` });
       continue;
     }
-    const named = /\{([\s\S]*)\}/.exec(statement.clause)?.[1] ?? '';
     for (const name of renderer.imports) {
-      if (new RegExp(`(?:^|[\\s,{])(?:type\\s+)?${escapeRegExp(name)}\\b`).test(named)) hits.push({ index: statement.index, detail: `imports ${name} from ${statement.module}` });
+      if (site.named.some((n) => n.imported === name || n.local === name)) hits.push({ index, detail: `imports ${name} from ${site.spec}` });
     }
   }
   return hits;
@@ -249,7 +233,7 @@ export const mediaRendererGuard: GenericGuardDefinition<MediaRendererFacts> = {
           const held = new Set<string>();
           for (const file of context.files(APP_CODE)) {
             for (const renderer of facts.renderers) {
-              const hits = rendererImports(file.code, renderer);
+              const hits = rendererImports(file, renderer);
               if (!hits.length) continue;
               if (file.path === renderer.owner) held.add(renderer.owner);
               else for (const hit of hits) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: `outside its renderer owner ${renderer.owner}: ${hit.detail}` });
@@ -279,7 +263,7 @@ export function mimePrefixClassifications(file: FileView): Hit[] {
   const sf = file.sourceFile;
   const hits: Hit[] = [];
   const visit = (node: ts.Node) => {
-    if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && MIME_PREFIX.test(node.text)) {
+    if (isPlainString(node) && MIME_PREFIX.test(node.text)) {
       hits.push({ index: node.getStart(sf), detail: `'${node.text}'` });
     }
     if (ts.isRegularExpressionLiteral(node) && MIME_PREFIX_REGEX.test(node.text)) hits.push({ index: node.getStart(sf), detail: node.text });

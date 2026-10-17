@@ -13,15 +13,17 @@ aliases, its owner files, its reviewed exceptions — never logic.
   markdown, shell scripts), what counts as test code
   (a `.test.` / `.spec.` name, a `__tests__` folder, an end-to-end root, or a declared test-code path
   or name marker), and what is never read (dependency, build, and dot folders by name; anything
-  else only by a reviewed repo-relative path; a symbolic link is neither followed nor skipped — the
-  walk fails naming it). Every file is read, comment-stripped (code, stylesheets, rules files), and
+  else only by a reviewed repo-relative path; a symbolic link named like a skipped folder is skipped
+  with it, and any other symbolic link is neither followed nor skipped — the walk fails naming it). Every file is read, comment-stripped (code, stylesheets, rules files), and
   parsed once per run and shared by every guard. The reader also reads an installed package's
   shipped files under any folder's `node_modules` (each labelled an installed file of that package),
   and a file outside the checkout by absolute path (a sibling repository).
 - **The rules files** — the layout's `rulesFiles` is the one list of every rules file the app
   deploys. Each is a Firestore or a Storage rules file by the service it declares (a file that
   declares neither, or both, fails the layout), and every rules guard reads every listed file of its
-  kind; no guard names a rules file of its own.
+  kind; no guard names a rules file of its own. When the layout names the deploy config
+  (`firebaseConfig`, the app's `firebase.json`), every rules file it deploys must be listed, or the
+  layout fails.
 - **The suite** — one entry that checks an app's whole config and then registers every generic
   guard and every business guard as tests.
 - **The generic guards** — each a single behavior: where two apps' copies differed, the guard
@@ -36,7 +38,12 @@ aliases, its owner files, its reviewed exceptions — never logic.
 ## Contract shape
 
 - `.` — pure: `ownerOnly`, `reviewedAllowlist`, `declaredLiteral`, `matchPattern`, `sampleHits`, the
-  `Guard` / `Finding` / `Sample` / `GuardContext` types, `formatFindings`, and `viewOfText`.
+  `Guard` / `Finding` / `Sample` / `GuardContext` types, `formatFindings`, and `viewOfText`. A
+  `FileView` carries the file's `imports`: every place its code names a module (imports,
+  re-exports, `import()`, `require()`, test-runner mocks, type-position imports) with the names each
+  binds, read once from its parse. Only code and declarations have imports; reading them on any
+  other kind of file throws. `MODULE_LOADS` names the import kinds that load a module at run time,
+  with the `ImportKind`, `ImportedName`, and `ModuleImport` types.
 - `./node` — the reader: `createRepoReader(layout)`, `layoutProblems(layout)`, the layout types, and
   the scope policy (`isTestPath`, `kindOfFile`).
 - `./suite` — `registerGuardSuite(config)`, called once at the top of an app's one guard test file;

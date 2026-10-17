@@ -51,7 +51,7 @@ describe('the import-path guard over the reader', () => {
 
   it('refuses facts with an exception that carries no why', () => {
     expect(importPathGuard.factProblems({ importAliases: {}, exceptions: [{ file: 'functions/src/index.ts', why: '' }] })).toEqual([
-      'exception functions/src/index.ts carries no why',
+      'exceptions entry functions/src/index.ts carries no why',
     ]);
   });
 });

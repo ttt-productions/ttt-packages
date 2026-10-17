@@ -6,12 +6,11 @@ import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
+import { identifierProblem, loaderProblem, namesProblem, pathProblem, reviewedProblems, type Loader } from '../../support/facts.js';
+import { escapeRegExp, isUnder } from '../../support/text.js';
 
 /** The app's production code: every guard in this area reads the client tree, tests left out. */
 export const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
-
-/** A loader the app writes with a literal specifier; the package never imports app code itself. */
-export type Loader<T> = () => T | Promise<T>;
 
 /** The app's query-key module: where it is, and a loader of its exports. */
 export interface KeyModuleFacts {
@@ -26,99 +25,47 @@ export interface ReviewedCall {
   why: string;
 }
 
-/** A reviewed file: the file and why it is allowed. */
-export interface ReviewedFile {
-  path: string;
-  why: string;
-}
-
 // ---------------------------------------------------------------------------------------------
-// Fact checks. Each returns problems in words; an empty list means the fact is usable.
+// Fact checks. Each pushes its problems, in words; none pushed means the fact is usable.
 // ---------------------------------------------------------------------------------------------
 
-const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
-
-export function pathProblems(value: unknown, what: string): string[] {
-  if (typeof value !== 'string' || !value.trim()) return [`${what} is missing`];
-  if (value.startsWith('/') || value.includes('\\') || /^[A-Za-z]:/.test(value)) return [`${what} (${value}) must be repo-relative and forward-slashed`];
-  if (value.endsWith('/')) return [`${what} (${value}) must not end with a slash`];
-  return [];
+/** A list of identifiers: a list of names whose every entry is an identifier. */
+export function identifierListProblem(value: unknown, what: string, problems: string[], { nonEmpty }: { nonEmpty: boolean }): void {
+  namesProblem(value, what, problems, { nonEmpty });
+  if (Array.isArray(value)) value.forEach((v, i) => typeof v === 'string' && v.trim() && identifierProblem(v, `${what}[${i}]`, problems));
 }
 
-export function identifierProblems(value: unknown, what: string): string[] {
-  return typeof value === 'string' && IDENTIFIER.test(value) ? [] : [`${what} must be an identifier`];
+/** A required list of repo-relative paths. */
+export function pathListProblem(value: unknown, what: string, problems: string[]): void {
+  namesProblem(value, what, problems);
+  if (Array.isArray(value)) value.forEach((v, i) => typeof v === 'string' && v.trim() && pathProblem(v, `${what}[${i}]`, problems));
 }
 
-export function identifierListProblems(value: unknown, what: string, { allowEmpty }: { allowEmpty: boolean }): string[] {
-  if (!Array.isArray(value)) return [`${what} is missing (an app with none declares [])`];
-  if (!allowEmpty && !value.length) return [`${what} names nothing`];
-  const problems = value.flatMap((v, i) => identifierProblems(v, `${what}[${i}]`));
-  if (new Set(value).size !== value.length) problems.push(`${what} lists a name twice`);
-  return problems;
-}
-
-export function pathListProblems(value: unknown, what: string): string[] {
-  if (!Array.isArray(value) || !value.length) return [`${what} names no path`];
-  const problems = value.flatMap((v, i) => pathProblems(v, `${what}[${i}]`));
-  if (new Set(value).size !== value.length) problems.push(`${what} lists a path twice`);
-  return problems;
-}
-
-export function loaderProblems(value: unknown, what: string): string[] {
-  return typeof value === 'function' ? [] : [`${what} needs a loader the app writes (() => import(...))`];
-}
-
-export function keyModuleProblems(value: unknown, what = 'keyModule'): string[] {
+export function keyModuleProblem(value: unknown, problems: string[], what = 'keyModule'): void {
   const facts = value as KeyModuleFacts | undefined;
-  if (!facts || typeof facts !== 'object') return [`${what} is missing`];
-  return [...pathProblems(facts.path, `${what}.path`), ...loaderProblems(facts.load, `${what}.load`)];
+  if (!facts || typeof facts !== 'object') {
+    problems.push(`${what} is missing`);
+    return;
+  }
+  pathProblem(facts.path, `${what}.path`, problems);
+  loaderProblem(facts.load, `${what}.load`, problems);
 }
 
-export function reviewedFileProblems(value: unknown, what: string): string[] {
-  if (!Array.isArray(value)) return [`${what} is missing (an app with none declares [])`];
-  const problems: string[] = [];
-  const seen = new Set<string>();
-  for (const entry of value as ReviewedFile[]) {
-    const p = pathProblems(entry?.path, `a ${what} entry's path`);
-    if (p.length) {
-      problems.push(...p);
-      continue;
-    }
-    if (seen.has(entry.path)) problems.push(`${what} lists ${entry.path} twice`);
-    seen.add(entry.path);
-    if (typeof entry.why !== 'string' || !entry.why.trim()) problems.push(`${what} entry ${entry.path} carries no why`);
-  }
-  return problems;
-}
-
-export function reviewedCallProblems(value: unknown, what: string): string[] {
-  if (!Array.isArray(value)) return [`${what} is missing (an app with none declares [])`];
-  const problems: string[] = [];
-  const seen = new Set<string>();
-  for (const entry of value as ReviewedCall[]) {
-    const p = pathProblems(entry?.path, `a ${what} entry's path`);
-    if (p.length) {
-      problems.push(...p);
-      continue;
-    }
-    if (typeof entry.call !== 'string' || !entry.call.trim()) {
-      problems.push(`${what} entry ${entry.path} names no call`);
-      continue;
-    }
-    if (collapse(entry.call) !== entry.call) problems.push(`${what} entry ${entry.path}: write the call whitespace-collapsed (${collapse(entry.call)})`);
-    const id = `${entry.path} ${entry.call}`;
-    if (seen.has(id)) problems.push(`${what} lists ${id} twice`);
-    seen.add(id);
-    if (typeof entry.why !== 'string' || !entry.why.trim()) problems.push(`${what} entry ${entry.path} carries no why`);
-  }
-  return problems;
+/** Reviewed calls: each names its file and the call's whitespace-collapsed text, with its why. */
+export function reviewedCallProblem(value: unknown, what: string, problems: string[]): void {
+  reviewedProblems(value, what, problems, {
+    id: (e) => (typeof e.call === 'string' && e.call.trim() ? `${e.path} ${e.call}` : undefined),
+    idNames: 'call',
+    extra(entry, label) {
+      const call = entry.call;
+      if (typeof call === 'string' && call.trim() && collapse(call) !== call) problems.push(`${label}: write the call whitespace-collapsed (${collapse(call)})`);
+    },
+  });
 }
 
 // ---------------------------------------------------------------------------------------------
 // Reading.
 // ---------------------------------------------------------------------------------------------
-
-export const isUnder = (path: string, tree: string) => path === tree || path.startsWith(`${tree}/`);
 
 /** The app's production files under one of the trees, and a finding for each tree that holds none. */
 export function filesUnder(context: GuardContext, trees: readonly string[]): { files: FileView[]; findings: Finding[] } {
@@ -135,13 +82,6 @@ export function requiredFile(context: GuardContext, path: string, role: string):
   if (!context.reader.exists(path)) return { file: null, findings: [{ file: path, detail: `${role} no longer exists` }] };
   return { file: context.file(path), findings: [] };
 }
-
-export function walk(node: ts.Node, visit: (n: ts.Node) => void): void {
-  visit(node);
-  ts.forEachChild(node, (child) => walk(child, visit));
-}
-
-export const lineOfNode = (sf: ts.SourceFile, node: ts.Node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
 
 /** `use` followed by an uppercase letter — the name rules-of-hooks treats as a hook. */
 export const isHookName = (name: string) => /^use[A-Z][\w$]*$/.test(name);
@@ -160,7 +100,6 @@ export function callSpan(code: string, start: number, open: number): string {
 export const collapse = (text: string) =>
   text.replace(/\s+/g, ' ').replace(/,(\s*[)\]}])/g, '$1').replace(/\(\s/g, '(').replace(/\s\)/g, ')');
 
-export const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** An alternation of names for a regular expression, or a pattern that matches nothing. */
 export const alternation = (names: readonly string[]) => (names.length ? names.map(escapeRegExp).join('|') : '(?!)');

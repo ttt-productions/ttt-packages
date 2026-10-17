@@ -8,20 +8,16 @@ import ts from 'typescript';
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Scope } from '../../reader/reader.js';
+import type { Reviewed } from '../../reader/layout.js';
 import type { FileView } from '../../reader/view.js';
+import { calleeName, forEachNode, isPlainString, lineOfNode, unwrap } from '../../support/ast.js';
+import { namesProblem, reviewedProblems, takesNoFacts } from '../../support/facts.js';
+import { escapeRegExp } from '../../support/text.js';
 import {
   bannedGuard,
-  calleeName,
-  eachNode,
   findingsOf,
   isMemberOf,
-  isPlainString,
-  lineOfNode,
   literalBindings,
-  nameListProblems,
-  noFactProblems,
-  reviewedListProblems,
-  unwrap,
   type NoFacts,
   type NodeHit,
 } from './support.js';
@@ -62,7 +58,7 @@ export function literalSegmentHits(file: FileView): NodeHit[] {
     return null;
   };
   const hits: NodeHit[] = [];
-  eachNode(source, (node) => {
+  forEachNode(source, (node) => {
     if (!ts.isCallExpression(node)) return;
     const accessor = accessorPathArguments(node);
     if (!accessor) return;
@@ -83,7 +79,7 @@ export function literalSegmentHits(file: FileView): NodeHit[] {
 export const literalSegmentGuard: GenericGuardDefinition<NoFacts> = {
   id: 'firestoreLiteralSegments',
   absentWhen: 'the app stores nothing in Firestore',
-  factProblems: noFactProblems,
+  factProblems: takesNoFacts,
   build() {
     return [
       bannedGuard({
@@ -107,7 +103,7 @@ export interface PathAssemblyFacts {
   /** Path joiners that take a segment array (`toPath`); an array literal holding an owner member is assembly. */
   segmentArrayJoiners: readonly string[];
   /** Files reviewed to assemble a path by hand, each with its why. An entry with no assembly left is stale. */
-  reviewedSites: ReadonlyArray<{ path: string; why: string }>;
+  reviewedSites: readonly Reviewed[];
 }
 
 const hasSlash = (node: ts.Expression) => isPlainString(node) && node.text.includes('/');
@@ -131,7 +127,7 @@ export function pathAssemblyHits(file: FileView, facts: Pick<PathAssemblyFacts, 
     const at = node.getStart(file.sourceFile);
     if (!hits.has(at)) hits.set(at, { node, detail });
   };
-  eachNode(file.sourceFile, (node) => {
+  forEachNode(file.sourceFile, (node) => {
     if (ts.isCallExpression(node)) {
       const accessor = accessorPathArguments(node);
       for (const raw of accessor?.args ?? []) {
@@ -174,11 +170,11 @@ export const pathAssemblyGuard: GenericGuardDefinition<PathAssemblyFacts> = {
   id: 'firestorePathAssembly',
   absentWhen: 'the app stores nothing in Firestore',
   factProblems(facts) {
-    return [
-      ...nameListProblems(facts?.ownerConstants, 'ownerConstants'),
-      ...nameListProblems(facts?.segmentArrayJoiners, 'segmentArrayJoiners', { nonEmpty: false }),
-      ...reviewedListProblems(facts?.reviewedSites, 'reviewedSites', 'path'),
-    ];
+    const problems: string[] = [];
+    namesProblem(facts?.ownerConstants, 'ownerConstants', problems);
+    namesProblem(facts?.segmentArrayJoiners, 'segmentArrayJoiners', problems, { nonEmpty: false });
+    reviewedProblems(facts?.reviewedSites, 'reviewedSites', problems);
+    return problems;
   },
   build(facts) {
     const reviewed = new Map(facts.reviewedSites.map((s) => [s.path, s]));
@@ -219,8 +215,6 @@ export interface RetiredSegmentFacts {
   reviewedMatches: ReadonlyArray<{ file: string; contains: string; why: string }>;
 }
 
-const escapeForRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 /**
  * Every retired name in path position in one file: `/name/`, `/name` closing a literal, or the
  * whole group id of a collectionGroup call. Each hit carries the literal's source text, which a
@@ -229,7 +223,7 @@ const escapeForRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, 
 export function retiredSegmentHits(file: FileView, names: readonly string[]): Array<NodeHit & { name: string; text: string }> {
   const source = file.sourceFile;
   const retired = new Set(names);
-  const alternation = names.map(escapeForRegExp).join('|');
+  const alternation = names.map(escapeRegExp).join('|');
   const inside = new RegExp(`/(${alternation})(?=/)`, 'g');
   const closing = new RegExp(`/(${alternation})$`);
   const hits: Array<NodeHit & { name: string; text: string }> = [];
@@ -242,7 +236,7 @@ export function retiredSegmentHits(file: FileView, names: readonly string[]): Ar
     }
     for (const name of found) hits.push({ node, name, text: node.getText(source), detail: '' });
   };
-  eachNode(source, (node) => {
+  forEachNode(source, (node) => {
     if (isPlainString(node)) scan(node, [{ text: node.text, closes: true }]);
     else if (ts.isTemplateExpression(node)) {
       scan(node, [
@@ -263,10 +257,12 @@ export const retiredSegmentGuard: GenericGuardDefinition<RetiredSegmentFacts> = 
   id: 'firestoreRetiredSegments',
   absentWhen: 'the app has retired no Firestore segment name',
   factProblems(facts) {
-    const problems = reviewedListProblems(facts?.reviewedMatches, 'reviewedMatches', 'file');
-    for (const entry of facts?.reviewedMatches ?? []) {
-      if (typeof entry?.contains !== 'string' || !entry.contains) problems.push(`reviewedMatches: ${entry?.file} names no text it contains`);
-    }
+    const problems: string[] = [];
+    reviewedProblems(facts?.reviewedMatches, 'reviewedMatches', problems, {
+      key: 'file',
+      id: (e) => (typeof e.contains === 'string' && e.contains ? `${e.file} ${e.contains}` : undefined),
+      idNames: 'text it contains',
+    });
     if (!Array.isArray(facts?.segments) || !facts.segments.length) return [...problems, 'segments is empty (declare the guard absent instead)'];
     const names = facts.segments.map((s) => s?.name);
     for (const s of facts.segments) {

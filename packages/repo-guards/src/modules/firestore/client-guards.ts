@@ -6,15 +6,16 @@
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Scope } from '../../reader/reader.js';
+import type { Reviewed } from '../../reader/layout.js';
 import type { FileView } from '../../reader/view.js';
 import { reviewedAllowlist, type Hit } from '../../shapes/shapes.js';
-import { eachNode, nameListProblems, reviewedListProblems } from './support.js';
+import { forEachNode } from '../../support/ast.js';
+import { namesProblem, reviewedProblems } from '../../support/facts.js';
+import { moduleImports } from '../../support/imports.js';
+import { isUnder } from '../../support/text.js';
 
 const FIRESTORE_SDK = /^firebase\/firestore(?:\/|$)/;
 const APP_SOURCE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
-
-const importedFrom = (node: ts.ImportDeclaration) =>
-  ts.isStringLiteral(node.moduleSpecifier) ? node.moduleSpecifier.text : '';
 
 /**
  * Every live-subscription declaration in one file: a `subscribe` option whose value is anything but a
@@ -26,19 +27,14 @@ export function liveSubscriptionHits(file: FileView): Hit[] {
   const source = file.sourceFile;
   const snapshotNames = new Set(['onSnapshot']);
   const namespaces = new Set<string>();
-  for (const statement of source.statements) {
-    if (!ts.isImportDeclaration(statement) || !FIRESTORE_SDK.test(importedFrom(statement))) continue;
-    const bindings = statement.importClause?.namedBindings;
-    if (bindings && ts.isNamespaceImport(bindings)) namespaces.add(bindings.name.text);
-    if (bindings && ts.isNamedImports(bindings)) {
-      for (const element of bindings.elements) {
-        if ((element.propertyName ?? element.name).text === 'onSnapshot') snapshotNames.add(element.name.text);
-      }
-    }
+  for (const site of moduleImports(source, ['import'])) {
+    if (!site.topLevel || !FIRESTORE_SDK.test(site.spec)) continue;
+    if (site.namespace) namespaces.add(site.namespace);
+    for (const name of site.named) if (name.imported === 'onSnapshot') snapshotNames.add(name.local);
   }
   const hits: Hit[] = [];
   const at = (node: ts.Node, detail: string) => hits.push({ index: node.getStart(source), detail });
-  eachNode(source, (node) => {
+  forEachNode(source, (node) => {
     if (ts.isPropertyAssignment(node) && ts.isObjectLiteralExpression(node.parent)) {
       const key = ts.isIdentifier(node.name) || ts.isStringLiteral(node.name) ? node.name.text : null;
       if (key === 'subscribe' && node.initializer.kind !== ts.SyntaxKind.FalseKeyword) at(node, `subscribe: ${node.initializer.getText(source)}`);
@@ -55,14 +51,16 @@ export function liveSubscriptionHits(file: FileView): Hit[] {
 
 export interface LiveSubscriptionFacts {
   /** App files reviewed to open a live Firestore subscription, each with why it needs real-time delivery. */
-  allowlist: ReadonlyArray<{ path: string; why: string }>;
+  allowlist: readonly Reviewed[];
 }
 
 export const liveSubscriptionGuard: GenericGuardDefinition<LiveSubscriptionFacts> = {
   id: 'firestoreLiveSubscriptions',
   absentWhen: 'the app stores nothing in Firestore',
   factProblems(facts) {
-    return reviewedListProblems(facts?.allowlist, 'allowlist', 'path');
+    const problems: string[] = [];
+    reviewedProblems(facts?.allowlist, 'allowlist', problems);
+    return problems;
   },
   build(facts) {
     return [
@@ -102,40 +100,25 @@ export interface FirestoreRuntimeInUiFacts {
   /** Repo-relative folders that hold components and routes (`src/components`, `src/app`). */
   uiFolders: readonly string[];
   /** Root providers reviewed to read Firestore directly, each with its why. */
-  sanctioned: ReadonlyArray<{ path: string; why: string }>;
+  sanctioned: readonly Reviewed[];
 }
 
 /** Every runtime (not type-only) import of the Firestore SDK in one file. */
 export function firestoreRuntimeImports(file: FileView): Hit[] {
   const source = file.sourceFile;
   const hits: Hit[] = [];
-  eachNode(source, (node) => {
-    if (ts.isImportDeclaration(node) && FIRESTORE_SDK.test(importedFrom(node))) {
-      const clause = node.importClause;
-      const bindings = clause?.namedBindings;
+  for (const site of moduleImports(source, ['import', 'export', 'dynamic'])) {
+    if (!FIRESTORE_SDK.test(site.spec)) continue;
+    const at = site.node.getStart(source);
+    if (site.kind === 'import') {
       const typeOnly =
-        !!clause &&
-        (clause.isTypeOnly ||
-          (!clause.name && !!bindings && ts.isNamedImports(bindings) && bindings.elements.length > 0 && bindings.elements.every((e) => e.isTypeOnly)));
-      if (!typeOnly) hits.push({ index: node.getStart(source), detail: `import from '${importedFrom(node)}'` });
-    } else if (
-      ts.isExportDeclaration(node) &&
-      !node.isTypeOnly &&
-      node.moduleSpecifier &&
-      ts.isStringLiteral(node.moduleSpecifier) &&
-      FIRESTORE_SDK.test(node.moduleSpecifier.text)
-    ) {
-      hits.push({ index: node.getStart(source), detail: `re-export from '${node.moduleSpecifier.text}'` });
-    } else if (
-      ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments[0] &&
-      ts.isStringLiteral(node.arguments[0]) &&
-      FIRESTORE_SDK.test(node.arguments[0].text)
-    ) {
-      hits.push({ index: node.getStart(source), detail: `import('${node.arguments[0].text}')` });
-    }
-  });
+        !site.sideEffect &&
+        (site.typeOnly || (!site.defaultName && !site.namespace && site.named.length > 0 && site.named.every((n) => n.typeOnly)));
+      if (!typeOnly) hits.push({ index: at, detail: `import from '${site.spec}'` });
+    } else if (site.kind === 'export') {
+      if (!site.typeOnly) hits.push({ index: at, detail: `re-export from '${site.spec}'` });
+    } else hits.push({ index: at, detail: `import('${site.spec}')` });
+  }
   return hits;
 }
 
@@ -143,10 +126,13 @@ export const firestoreRuntimeInUiGuard: GenericGuardDefinition<FirestoreRuntimeI
   id: 'firestoreRuntimeInUi',
   absentWhen: 'the app stores nothing in Firestore',
   factProblems(facts) {
-    return [...nameListProblems(facts?.uiFolders, 'uiFolders'), ...reviewedListProblems(facts?.sanctioned, 'sanctioned', 'path')];
+    const problems: string[] = [];
+    namesProblem(facts?.uiFolders, 'uiFolders', problems);
+    reviewedProblems(facts?.sanctioned, 'sanctioned', problems);
+    return problems;
   },
   build(facts) {
-    const inUi = (path: string) => facts.uiFolders.some((folder) => path.startsWith(`${folder.replace(/\/$/, '')}/`));
+    const inUi = (path: string) => facts.uiFolders.some((folder) => isUnder(path, folder));
     return [
       reviewedAllowlist({
         title: 'no component or route imports the Firestore runtime',

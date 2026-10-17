@@ -59,9 +59,9 @@ describe('a document kept identical across sibling repositories', () => {
   });
 
   it('refuses facts with no document, no copy, or a copy listed twice', () => {
-    expect(documentDriftGuard.factProblems({ file: '', copies: [] })).toEqual(['file names no document', 'copies names no sibling checkout']);
+    expect(documentDriftGuard.factProblems({ file: '', copies: [] })).toEqual(['file is missing', 'copies is empty']);
     expect(
       documentDriftGuard.factProblems({ file: DOC, copies: [{ name: 'a', checkout: '../a' }, { name: 'a', checkout: '../b' }] }),
-    ).toEqual(['copy a is listed twice']);
+    ).toEqual(['copies lists a twice']);
   });
 });

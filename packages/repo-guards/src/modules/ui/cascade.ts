@@ -2,7 +2,7 @@
 // class-rendering package scanned by Tailwind, a semantic text class that survives the
 // same-named Tailwind utility, and the theme token blocks.
 
-import path from 'node:path';
+import { dirnameOf, normalizePath } from '../../support/paths.js';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
@@ -16,16 +16,15 @@ import {
   subjectCompound,
   topLevelStatements,
 } from './css.js';
-import { isText, requireNames, requireObject, requirePath } from './facts.js';
-import { moduleSpecifiers } from './source.js';
+import { isText, namesProblem, objectProblem, pathProblem } from '../../support/facts.js';
+import { MODULE_LOADS, moduleImports } from '../../support/imports.js';
 import { APP_CODE, type EntryStylesheetFacts } from './styling.js';
 import { installedManifest, loadedStylesheets, type LoadedSheet } from './stylesheets.js';
 
-const posix = path.posix;
 
 function entryProblems(facts: unknown): string[] {
   const problems: string[] = [];
-  if (requireObject(facts, problems)) requirePath(facts.entryStylesheet, 'entryStylesheet', problems);
+  if (objectProblem(facts, 'facts', problems)) pathProblem(facts.entryStylesheet, 'entryStylesheet', problems);
   return problems;
 }
 
@@ -60,9 +59,9 @@ export const stylesheetEntryGuard: GenericGuardDefinition<StylesheetEntryFacts> 
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!requireObject(facts, problems)) return problems;
-    requirePath(facts.layoutModule, 'layoutModule', problems);
-    requirePath(facts.entryStylesheet, 'entryStylesheet', problems);
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    pathProblem(facts.layoutModule, 'layoutModule', problems);
+    pathProblem(facts.entryStylesheet, 'entryStylesheet', problems);
     if (!Array.isArray(facts.pinnedOrder) || !facts.pinnedOrder.length) problems.push('pinnedOrder is missing or empty');
     else if (!facts.pinnedOrder.every(isText)) problems.push('pinnedOrder holds an empty or non-text statement');
     return problems;
@@ -79,9 +78,10 @@ export const stylesheetEntryGuard: GenericGuardDefinition<StylesheetEntryFacts> 
           const findings: Finding[] = [];
           let canonical = 0;
           for (const file of context.files(APP_CODE)) {
-            for (const { spec, index } of moduleSpecifiers(file)) {
+            for (const { spec, specifier } of moduleImports(file.sourceFile, MODULE_LOADS)) {
+              const index = specifier.getStart(file.sourceFile);
               if (!namesStylesheet(spec)) continue;
-              const resolved = spec.startsWith('.') ? posix.normalize(posix.join(posix.dirname(file.path), spec)) : spec;
+              const resolved = spec.startsWith('.') ? normalizePath(`${dirnameOf(file.path)}/${spec}`).path : spec;
               if (file.path === facts.layoutModule && resolved === facts.entryStylesheet) canonical += 1;
               else findings.push({ file: file.path, line: file.lineOf(index), detail: `imports the stylesheet ${spec}` });
             }
@@ -174,7 +174,7 @@ export function sourceRoots(sheet: FileView): string[] {
     const m = /^@source\s+["']([^"']+)["']$/.exec(statement.text);
     if (!m) continue;
     const literal = m[1].split(/[*{[?!]/)[0];
-    out.push(posix.normalize(posix.join(posix.dirname(sheet.path), literal)).replace(/\/$/, ''));
+    out.push(normalizePath(`${dirnameOf(sheet.path)}/${literal}`).path);
   }
   return out;
 }
@@ -184,10 +184,10 @@ export const tailwindSourcesGuard: GenericGuardDefinition<TailwindSourceFacts> =
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!requireObject(facts, problems)) return problems;
-    requirePath(facts.entryStylesheet, 'entryStylesheet', problems);
-    requirePath(facts.manifest, 'manifest', problems);
-    requireNames(facts.packageScopes, 'packageScopes', problems, { nonEmpty: true });
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    pathProblem(facts.entryStylesheet, 'entryStylesheet', problems);
+    pathProblem(facts.manifest, 'manifest', problems);
+    namesProblem(facts.packageScopes, 'packageScopes', problems);
     return problems;
   },
   build(facts): Guard[] {
@@ -417,9 +417,9 @@ export const themeTokensGuard: GenericGuardDefinition<ThemeTokenFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!requireObject(facts, problems)) return problems;
-    requirePath(facts.entryStylesheet, 'entryStylesheet', problems);
-    requirePath(facts.tokenSheet, 'tokenSheet', problems);
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    pathProblem(facts.entryStylesheet, 'entryStylesheet', problems);
+    pathProblem(facts.tokenSheet, 'tokenSheet', problems);
     return problems;
   },
   build(facts): Guard[] {

@@ -20,6 +20,8 @@ import {
   type RootRole,
   type RulesService,
 } from './layout.js';
+import { isText, reviewedProblems } from '../support/facts.js';
+import { dirnameOf, normalizePath } from '../support/paths.js';
 import { stripRulesComments } from './strip-comments.js';
 import { buildView, type FileRole, type FileView } from './view.js';
 
@@ -71,6 +73,38 @@ function symbolicLinkError(rel: string): Error {
   return new Error(`repo-guards: ${rel} is a symbolic link, which the reader neither follows nor skips — replace it with what it points at, or exclude it by path`);
 }
 
+/**
+ * A link skipped by its name, as the folder it names would be — a dependency, build, or dot folder —
+ * so a linked dependency tree is skipped like a real one. A link with a dot name a guard reads as a
+ * file is no such folder, and fails like any other link.
+ */
+const skippedByName = (name: string) => SKIPPED_FOLDER_NAMES.has(name) || (name.startsWith('.') && kindOfFile(name) === null);
+
+/** Each rules file the deploy config deploys that the layout's `rulesFiles` does not list, in words. */
+function deployedRulesProblems(layout: RepoLayout, onDisk: (rel: string) => boolean): string[] {
+  const config = layout.firebaseConfig!;
+  if (!isText(config)) return ['firebaseConfig is missing'];
+  if (!onDisk(config)) return [`firebaseConfig ${config} does not exist`];
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(fs.readFileSync(path.join(layout.repoRoot, config), 'utf8')) as Record<string, unknown>;
+  } catch (err) {
+    return [`firebaseConfig ${config} cannot be read as JSON (${(err as Error).message})`];
+  }
+  const listed = new Set(layout.rulesFiles ?? []);
+  const problems: string[] = [];
+  for (const service of ['firestore', 'storage']) {
+    const entries = parsed[service];
+    for (const entry of Array.isArray(entries) ? entries : entries ? [entries] : []) {
+      const rules = (entry as { rules?: unknown })?.rules;
+      if (typeof rules !== 'string') continue;
+      const deployed = normalizePath(`${dirnameOf(config)}/${rules}`).path;
+      if (!listed.has(deployed)) problems.push(`${config} deploys the ${service} rules file ${deployed}, which rulesFiles does not list`);
+    }
+  }
+  return problems;
+}
+
 /** Every problem with a layout, in words. An empty list means the layout can be read. */
 export function layoutProblems(layout: RepoLayout): string[] {
   const problems: string[] = [];
@@ -106,21 +140,13 @@ export function layoutProblems(layout: RepoLayout): string[] {
       problems.push(`rules file ${file} declares neither service cloud.firestore nor service firebase.storage, or both`);
     }
   }
-  const reviewed: Array<[string, ReadonlyArray<{ path: string; why: string }>]> = [
-    ['exclusion', layout.exclusions ?? []],
-    ['test-code path', layout.testCodePaths ?? []],
-  ];
-  for (const [label, entries] of reviewed) {
-    for (const entry of entries) {
-      if (!entry?.path) problems.push(`a ${label} names no path`);
-      else if (!entry.why?.trim()) problems.push(`${label} ${entry.path} carries no why`);
-      else if (!onDisk(entry.path)) problems.push(`${label} ${entry.path} no longer exists`);
-    }
-  }
-  for (const entry of layout.testCodeNameMarkers ?? []) {
-    if (!entry?.marker) problems.push('a test-code name marker is empty');
-    else if (!entry.why?.trim()) problems.push(`test-code name marker ${entry.marker} carries no why`);
-  }
+  if (layout.firebaseConfig !== undefined) problems.push(...deployedRulesProblems(layout, onDisk));
+  const stillThere = (entry: Record<string, unknown>, label: string) => {
+    if (isText(entry.path) && !onDisk(entry.path)) problems.push(`${label} no longer exists`);
+  };
+  if (layout.exclusions !== undefined) reviewedProblems(layout.exclusions, 'exclusions', problems, { extra: stillThere });
+  if (layout.testCodePaths !== undefined) reviewedProblems(layout.testCodePaths, 'testCodePaths', problems, { extra: stillThere });
+  if (layout.testCodeNameMarkers !== undefined) reviewedProblems(layout.testCodeNameMarkers, 'testCodeNameMarkers', problems, { key: 'marker' });
   for (const { anchor, path: rootPath } of declaredRoots(layout).map(({ root }) => root)) {
     for (const { path: excluded } of layout.exclusions ?? []) {
       if (isUnderRoot(anchor, excluded)) problems.push(`anchor ${anchor} is excluded by ${excluded}`);
@@ -177,9 +203,9 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
         const full = path.join(dir, entry.name);
         const rel = toPosix(path.relative(repoRoot, full));
         if (excluded.has(rel)) continue;
+        if (entry.isDirectory() ? entry.name.startsWith('.') || SKIPPED_FOLDER_NAMES.has(entry.name) : entry.isSymbolicLink() && skippedByName(entry.name)) continue;
         if (entry.isSymbolicLink()) throw symbolicLinkError(rel);
         if (entry.isDirectory()) {
-          if (entry.name.startsWith('.') || SKIPPED_FOLDER_NAMES.has(entry.name)) continue;
           walk(full);
         } else if (entry.isFile()) {
           const kind = kindOfFile(entry.name);
@@ -264,9 +290,10 @@ export function createRepoReader(layout: RepoLayout): RepoReader {
         }
         for (const entry of entries) {
           const rel = `${dir}/${entry.name}`;
+          if ((entry.isDirectory() || entry.isSymbolicLink()) && entry.name === 'node_modules') continue;
           if (entry.isSymbolicLink()) throw symbolicLinkError(rel);
           if (entry.isDirectory()) {
-            if (entry.name !== 'node_modules') walk(rel);
+            walk(rel);
           } else if (entry.isFile()) {
             const kind = kindOfFile(entry.name);
             const owner = roleOf(rel);

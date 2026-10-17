@@ -1,12 +1,7 @@
 // Text-scanning helpers the client-action guards share. Each works on a file's comment-stripped
 // `code`, so an index it returns is also an index into the file's text and reports its real line.
 
-import type { Reviewed } from '../../reader/layout.js';
-
-export const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/** True when `path` is the folder or file `prefix`, or sits under it. */
-export const isUnder = (path: string, prefix: string) => path === prefix || path.startsWith(`${prefix.replace(/\/$/, '')}/`);
+import { escapeRegExp } from '../../support/text.js';
 
 /** The text between the `(` at `open` and its balanced `)`. */
 export function balancedArgs(source: string, open: number): string {
@@ -154,70 +149,3 @@ export function throughNamespace(code: string, index: number, namespaces: readon
   const before = code.slice(Math.max(0, index - 200), index);
   return namespaces.some((ns) => new RegExp(`(?<![\\w$])${escapeRegExp(ns)}\\s*\\.\\s*$`).test(before));
 }
-
-/** Named import clauses with their module and where each statement starts. */
-export function namedImports(code: string): Array<{ names: string[]; typeOnly: boolean; module: string; index: number }> {
-  const out: Array<{ names: string[]; typeOnly: boolean; module: string; index: number }> = [];
-  const re = /\bimport\s+(type\s+)?(?:[\w$]+\s*,\s*)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g;
-  for (let m = re.exec(code); m; m = re.exec(code)) {
-    out.push({ names: m[2].split(',').map((s) => s.trim()).filter(Boolean), typeOnly: !!m[1], module: m[3], index: m.index });
-  }
-  return out;
-}
-
-/** `import`/`export … from '…'` statements: their clause, module, and start. */
-export function moduleStatements(code: string): Array<{ clause: string; module: string; index: number }> {
-  const out: Array<{ clause: string; module: string; index: number }> = [];
-  const re = /\b(?:import|export)\b([^;]*?)\bfrom\s*['"]([^'"]+)['"]/g;
-  for (let m = re.exec(code); m; m = re.exec(code)) out.push({ clause: m[1], module: m[2], index: m.index });
-  return out;
-}
-
-/** True when `specifier` is `module` itself or one of its subpaths. */
-export const isModuleOrSubpath = (specifier: string, module: string) => specifier === module || specifier.startsWith(`${module}/`);
-
-/** A binding's imported name and local name (`a as b` → a, b), with a per-binding `type` dropped. */
-export function bindingNames(binding: string): { imported: string; local: string; typeOnly: boolean } {
-  const typeOnly = /^type\s+/.test(binding);
-  const bare = binding.replace(/^type\s+/, '');
-  const [imported, local] = bare.split(/\s+as\s+/).map((s) => s.trim());
-  return { imported, local: local ?? imported, typeOnly };
-}
-
-/** Problems with a list of reviewed entries: each names a path and carries a why. */
-export function reviewedProblems(entries: unknown, what: string, problems: string[]) {
-  if (!Array.isArray(entries)) {
-    problems.push(`${what} is missing (declare [] when there is none)`);
-    return;
-  }
-  const seen = new Set<string>();
-  for (const entry of entries as Reviewed[]) {
-    if (!entry?.path) problems.push(`an entry of ${what} names no path`);
-    else {
-      if (seen.has(entry.path)) problems.push(`${what} lists ${entry.path} twice`);
-      seen.add(entry.path);
-      if (typeof entry.why !== 'string' || !entry.why.trim()) problems.push(`${what} entry ${entry.path} carries no why`);
-    }
-  }
-}
-
-/** Problems with a required text fact. */
-export function textProblem(value: unknown, what: string, problems: string[]) {
-  if (typeof value !== 'string' || !value.trim()) problems.push(`${what} is missing`);
-}
-
-/** Problems with a required list of names. */
-export function namesProblem(value: unknown, what: string, problems: string[], { nonEmpty = true } = {}) {
-  if (!Array.isArray(value)) problems.push(`${what} is missing${nonEmpty ? '' : ' (declare [] when there is none)'}`);
-  else if (nonEmpty && !value.length) problems.push(`${what} is empty`);
-  else if (value.some((v) => typeof v !== 'string' || !v.trim())) problems.push(`${what} holds an empty name`);
-}
-
-/** Problems with an object fact. */
-export const objectProblem = (value: unknown, what: string, problems: string[]) => {
-  if (!value || typeof value !== 'object') {
-    problems.push(`${what} is missing`);
-    return false;
-  }
-  return true;
-};

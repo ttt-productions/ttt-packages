@@ -6,7 +6,10 @@ import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
-import { APP_CODE, declaredObjects, escapeRegExp, identifierListProblems, lineOfNode, pathProblems, requiredFile, walk } from './shared.js';
+import { forEachNode, lineOfNode } from '../../support/ast.js';
+import { escapeRegExp } from '../../support/text.js';
+import { pathProblem } from '../../support/facts.js';
+import { APP_CODE, declaredObjects, identifierListProblem, requiredFile } from './shared.js';
 
 // =============================================================================================
 // Query keys: one owner, no hand-typed keys or prefixes, no alias builders, no second key object.
@@ -96,7 +99,7 @@ export function keyBuilders(file: FileView): KeyBuilder[] {
         name: prop.name.text,
         params: fn.parameters.map((p) => p.name.getText(sf)),
         body: file.code.slice(body.getStart(sf), body.getEnd()),
-        line: lineOfNode(sf, prop),
+        line: lineOfNode(file, prop),
         delegatesTo,
       });
     }
@@ -136,7 +139,11 @@ export function aliasBuilders(builders: readonly KeyBuilder[]): Array<{ line: nu
 export const queryKeysGuard: GenericGuardDefinition<QueryKeyFacts> = {
   id: 'queryKeys',
   absentWhen: false,
-  factProblems: (facts) => pathProblems(facts?.keyModule, 'keyModule'),
+  factProblems(facts) {
+    const problems: string[] = [];
+    pathProblem(facts?.keyModule, 'keyModule', problems);
+    return problems;
+  },
   build: (facts) => [
     {
       title: 'every query key is a named builder in the one query-key module',
@@ -198,10 +205,10 @@ export function keyMethodsWithoutUid(file: FileView, facts: AuthScopedKeyFacts):
       const first = node.initializer.parameters[0];
       const uid = first && ts.isIdentifier(first.name) && uidNames.has(first.name.text) ? first.name.text : null;
       let used = false;
-      if (uid) walk(node.initializer.body, (n) => {
+      if (uid) forEachNode(node.initializer.body, (n) => {
         if (ts.isIdentifier(n) && n.text === uid) used = true;
       });
-      if (!uid || !used) hits.push({ line: lineOfNode(sf, node), detail: `${owner}.${node.name.text} ${uid ? 'leaves the uid out of the key' : 'does not take the uid first'}` });
+      if (!uid || !used) hits.push({ line: lineOfNode(file, node), detail: `${owner}.${node.name.text} ${uid ? 'leaves the uid out of the key' : 'does not take the uid first'}` });
     }
     ts.forEachChild(node, (child) => visit(child, owner));
   };
@@ -212,11 +219,13 @@ export function keyMethodsWithoutUid(file: FileView, facts: AuthScopedKeyFacts):
 export const authScopedKeysGuard: GenericGuardDefinition<AuthScopedKeyFacts> = {
   id: 'authScopedKeys',
   absentWhen: false,
-  factProblems: (facts) => [
-    ...pathProblems(facts?.keyModule, 'keyModule'),
-    ...identifierListProblems(facts?.authScopedPrefixes, 'authScopedPrefixes', { allowEmpty: false }),
-    ...identifierListProblems(facts?.uidParamNames, 'uidParamNames', { allowEmpty: false }),
-  ],
+  factProblems(facts) {
+    const problems: string[] = [];
+    pathProblem(facts?.keyModule, 'keyModule', problems);
+    identifierListProblem(facts?.authScopedPrefixes, 'authScopedPrefixes', problems, { nonEmpty: true });
+    identifierListProblem(facts?.uidParamNames, 'uidParamNames', problems, { nonEmpty: true });
+    return problems;
+  },
   build: (facts) => [
     {
       title: "a key for the signed-in account's own data takes the uid",

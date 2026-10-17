@@ -3,6 +3,7 @@ import { join, sep } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createRepoReader, layoutProblems } from '../../src/reader/reader.js';
 import { kindOfFile, type RepoLayout } from '../../src/reader/layout.js';
+import { viewOfText } from '../../src/reader/view.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 
 let repo: TempRepo;
@@ -202,8 +203,8 @@ describe('MUST FAIL — a layout that cannot be read whole', () => {
         "root functions's anchor functions/src/gone.ts does not exist",
         'root scripts (scripts) does not exist',
         'rules file missing.rules does not exist',
-        'exclusion src/gone no longer exists',
-        'exclusion src/generated carries no why',
+        'exclusions entry src/gone no longer exists',
+        'exclusions entry src/generated carries no why',
       ]),
     );
   });
@@ -225,7 +226,7 @@ describe('MUST FAIL — a layout that cannot be read whole', () => {
   });
 
   it('refuses to build a reader over a layout with any problem', () => {
-    expect(() => createRepoReader({ ...layout, exclusions: [{ path: 'src/gone', why: 'stale' }] })).toThrow(/exclusion src\/gone no longer exists/);
+    expect(() => createRepoReader({ ...layout, exclusions: [{ path: 'src/gone', why: 'stale' }] })).toThrow(/exclusions entry src\/gone no longer exists/);
   });
 });
 
@@ -268,6 +269,16 @@ describe('MUST FAIL — a symbolic link in a walked tree', () => {
     linkAt(join(repo.root, `src${sep}lib`), 'linked');
     const reader = createRepoReader(layout);
     expect(() => reader.files({ roots: ['app'], kinds: ['code'], tests: false })).toThrow('src/lib/linked is a symbolic link');
+  });
+
+  it('skips a link named like a dependency folder, as the folder itself is skipped', () => {
+    linkAt(join(repo.root, `src${sep}lib`), 'node_modules');
+    expect(() => createRepoReader(layout).files({ roots: ['app'], kinds: ['code'], tests: false })).not.toThrow();
+  });
+
+  it('skips a link named like a dot folder', () => {
+    linkAt(join(repo.root, 'src'), '.cache');
+    expect(() => createRepoReader(layout).files({ roots: ['app'], kinds: ['code'], tests: false })).not.toThrow();
   });
 
   it("throws naming a link inside an installed package's files", () => {
@@ -330,5 +341,52 @@ describe('comments never reach a guard', () => {
     const view = createRepoReader(layout).file('src/styles/commented.css');
     expect(view.code).not.toContain('hsl(');
     expect(view.code).toContain("'/* kept */'");
+  });
+});
+
+describe('a file view names the modules its code loads', () => {
+  it('reads every import form from the parse, with the names each binds, and never one in a string or comment', () => {
+    const view = viewOfText(
+      'src/a.ts',
+      [
+        "import type { A } from './types';",
+        "import def, { b as local } from 'pkg';",
+        "// import { hidden } from 'commented';",
+        "export * as ns from './ns';",
+        "const lazy = () => import('./lazy');",
+        "const text = \"import x from 'in-a-string'\";",
+      ].join('\n'),
+    );
+    expect(view.imports.map(({ spec, kind, typeOnly, defaultName, namespace, named }) => ({ spec, kind, typeOnly, defaultName, namespace, named }))).toEqual([
+      { spec: './types', kind: 'import', typeOnly: true, defaultName: null, namespace: null, named: [{ imported: 'A', local: 'A', typeOnly: false }] },
+      { spec: 'pkg', kind: 'import', typeOnly: false, defaultName: 'def', namespace: null, named: [{ imported: 'b', local: 'local', typeOnly: false }] },
+      { spec: './ns', kind: 'export', typeOnly: false, defaultName: null, namespace: 'ns', named: [] },
+      { spec: './lazy', kind: 'dynamic', typeOnly: false, defaultName: null, namespace: null, named: [] },
+    ]);
+  });
+
+  it('fails closed on a file that is not code', () => {
+    expect(() => viewOfText('src/a.css', "@import 'x.css';").imports).toThrow(/is stylesheet, not code/);
+  });
+});
+
+describe('MUST FAIL — a rules file the deploy config deploys that the layout does not list', () => {
+  it('names each deployed rules file missing from rulesFiles, and passes when every one is listed', () => {
+    const own = tempRepo({
+      'src/index.ts': 'export {};',
+      'firestore.rules': "rules_version = '2';\nservice cloud.firestore { match /databases/{d}/documents {} }",
+      'storage.rules': "rules_version = '2';\nservice firebase.storage { match /b/{bucket}/o {} }",
+      'firebase.json': JSON.stringify({ firestore: { rules: 'firestore.rules' }, storage: [{ bucket: 'b', rules: 'storage.rules' }] }),
+    });
+    try {
+      const base: RepoLayout = { repoRoot: own.root, roots: { app: { path: 'src', anchor: 'src/index.ts' } }, firebaseConfig: 'firebase.json' };
+      expect(layoutProblems({ ...base, rulesFiles: ['firestore.rules'] })).toEqual([
+        'firebase.json deploys the storage rules file storage.rules, which rulesFiles does not list',
+      ]);
+      expect(layoutProblems({ ...base, rulesFiles: ['firestore.rules', 'storage.rules'] })).toEqual([]);
+      expect(layoutProblems({ ...base, rulesFiles: [], firebaseConfig: 'gone.json' })).toEqual(['firebaseConfig gone.json does not exist']);
+    } finally {
+      own.remove();
+    }
   });
 });

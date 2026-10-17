@@ -163,7 +163,14 @@ describe('the facts', () => {
       'wireFolders is empty',
       'declarationsFile is missing',
       "selfBounded entry a.js#A's count must be a positive whole number",
-      'declarations needs a loader that reads it from the core package',
+      'declarations needs a loader function',
+    ]);
+  });
+
+  it('refuses a folder or suffix listed twice', () => {
+    expect(textFieldDeclarationsGuard.factProblems({ ...facts(), wireFolders: ['w', 'w'], wireInputNameSuffixes: ['Input', 'Input'] })).toEqual([
+      'wireFolders lists w twice',
+      'wireInputNameSuffixes lists Input twice',
     ]);
   });
 });

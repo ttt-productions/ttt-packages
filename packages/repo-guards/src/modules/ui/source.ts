@@ -1,8 +1,9 @@
-// Reading code for the UI guards through its one parse: the strings a file writes, the modules it
-// names, and the JSX elements it renders.
+// Reading code for the UI guards through its one parse: the strings a file writes, the JSX elements
+// it renders, and the names it exports.
 
 import ts from 'typescript';
 import type { FileView } from '../../reader/view.js';
+import { isPlainString } from '../../support/ast.js';
 
 /** A string the code writes: a quoted string, a template without substitutions, or a template's text parts joined by a space. */
 export interface CodeString {
@@ -15,7 +16,7 @@ export function codeStrings(file: FileView): CodeString[] {
   const out: CodeString[] = [];
   const sf = file.sourceFile;
   const visit = (node: ts.Node): void => {
-    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+    if (isPlainString(node)) {
       out.push({ text: node.text, index: node.getStart(sf) });
       return;
     }
@@ -33,25 +34,6 @@ export const tokensOf = (text: string): string[] => text.split(/\s+/).filter(Boo
 
 /** A token without its variant prefixes (`md:hover:stack-2` → `stack-2`). */
 export const bareToken = (token: string): string => token.replace(/^(?:[\w-]+:|\[[^\]]+\]:)+/, '');
-
-/** Every module a file names: import / export `from`, a side-effect import, `import()`, and `require()`. */
-export function moduleSpecifiers(file: FileView): Array<{ spec: string; index: number }> {
-  const out: Array<{ spec: string; index: number }> = [];
-  const sf = file.sourceFile;
-  const take = (node: ts.Expression | undefined) => {
-    if (node && ts.isStringLiteralLike(node)) out.push({ spec: node.text, index: node.getStart(sf) });
-  };
-  const visit = (node: ts.Node): void => {
-    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) take(node.moduleSpecifier);
-    else if (ts.isCallExpression(node)) {
-      const callee = node.expression;
-      if (callee.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(callee) && callee.text === 'require')) take(node.arguments[0]);
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(sf);
-  return out;
-}
 
 /** One JSX element: its tag name and the span of the whole element, children included. */
 export interface JsxElementSpan {
@@ -88,6 +70,3 @@ export function exportedNames(file: FileView): Set<string> {
   }
   return out;
 }
-
-/** Escapes a name for use inside a regular expression. */
-export const escapeRegExp = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -5,6 +5,7 @@ import type { Finding, GuardContext } from '../../guard.js';
 import type { RepoReader, Scope } from '../../reader/reader.js';
 import { isTestPath } from '../../reader/layout.js';
 import type { GenericGuardDefinition } from '../../config.js';
+import { objectProblem, reviewedProblems } from '../../support/facts.js';
 import { analyzeImportPaths, createImportPathProfile, findUnusedIndexMembers } from './analyzer.js';
 
 export interface ImportPathFacts {
@@ -40,14 +41,8 @@ export const importPathGuard: GenericGuardDefinition<ImportPathFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!facts || typeof facts.importAliases !== 'object') problems.push('importAliases is missing (an app with no alias declares {})');
-    if (!Array.isArray(facts?.exceptions)) problems.push('exceptions is missing (an app with none declares [])');
-    else {
-      for (const e of facts.exceptions) {
-        if (!e?.file) problems.push('an exception names no file');
-        else if (!e.why?.trim()) problems.push(`exception ${e.file} carries no why`);
-      }
-    }
+    objectProblem(facts?.importAliases, 'importAliases', problems);
+    reviewedProblems(facts?.exceptions, 'exceptions', problems, { key: 'file' });
     return problems;
   },
   build(facts) {

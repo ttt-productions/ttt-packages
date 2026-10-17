@@ -139,7 +139,7 @@ describe('the facts', () => {
         notAPathSegment: [{ field: 'X.id', why: '' }],
       }),
     ).toEqual([
-      'wireModules needs a loader that reads it from the core package',
+      'wireModules needs a loader function',
       'wireInputNameSuffixes is empty',
       'idAtomNameSuffix is missing',
       'requiredIdAtoms is empty',

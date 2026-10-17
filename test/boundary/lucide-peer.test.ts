@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { importsOf, packageOf, packageSource, workspacePackages } from './workspace';
+import { MODULE_LOADS } from '@ttt-productions/repo-guards';
+import { packageOf, packageSource, workspacePackages } from './workspace';
 
 // lucide-react is a client-only React library (ARCH-202). A package that renders lucide
 // icons never bundles its own copy: it declares lucide as an OPTIONAL peer, so the
@@ -18,7 +19,7 @@ interface Manifest {
 
 const lucideImporters = new Set(
   packageSource(['code'])
-    .filter((file) => importsOf(file).some(({ specifier }) => specifier === LUCIDE))
+    .filter((file) => file.imports.some(({ kind, spec }) => MODULE_LOADS.includes(kind) && spec === LUCIDE))
     .map((file) => packageOf(file.path)),
 );
 

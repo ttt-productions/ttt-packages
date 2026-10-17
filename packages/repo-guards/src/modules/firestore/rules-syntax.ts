@@ -3,9 +3,6 @@
 // Every reader works on the comment-blanked code the reader hands out, so indexes and lines stay the
 // file's own.
 
-/** A value an app's core declares, loaded when the guard runs. */
-export type Loaded<T> = () => T | Promise<T>;
-
 /** The code with every quoted string's contents blanked, so braces and parens in a string are never structure. */
 export function maskStrings(code: string): string {
   const chars = code.split('');
@@ -166,9 +163,9 @@ export const isVariable = (segment: string) => /^\{[^{}]*\}$/.test(segment);
 export const isRecursive = (segment: string) => /^\{[^{}=]*=\*\*\}$/.test(segment);
 
 /** A path with every variable written as `{}`, so two spellings of one path compare equal. */
-export const normalizePath = (segments: readonly string[]) => segments.map((s) => (isVariable(s) ? '{}' : s)).join('/');
+export const wildcardPath = (segments: readonly string[]) => segments.map((s) => (isVariable(s) ? '{}' : s)).join('/');
 
 /** `a/{b}/c` → its segments, normalized; the form every declared path is compared in. */
-export const normalizeDeclared = (path: string) => normalizePath(splitPath(path));
+export const normalizeDeclared = (path: string) => wildcardPath(splitPath(path));
 
 export { splitPath };

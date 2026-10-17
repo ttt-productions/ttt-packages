@@ -8,20 +8,17 @@ import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { FileView } from '../../reader/view.js';
+import { lineOfNode } from '../../support/ast.js';
+import { namesProblem, reviewedProblems, loaderProblem, type Loader, textProblem } from '../../support/facts.js';
 import {
   CORE_CODE,
   coreBuild,
   filesIn,
   isCount,
-  lineOfNode,
-  loaderProblems,
-  reviewedProblems,
-  stringListProblems,
   topLevelDeclaration,
-  type Loader,
 } from './shared.js';
 
-type Reviewed = ReadonlyArray<{ file: string; declaration: string; count: number; why: string }>;
+type ReviewedCounts = ReadonlyArray<{ file: string; declaration: string; count: number; why: string }>;
 type FieldSchema = { safeParse: (value: unknown) => { success: boolean; data?: unknown } };
 
 export interface TextFieldDeclarationFacts {
@@ -32,9 +29,9 @@ export interface TextFieldDeclarationFacts {
   /** Export-name endings that mark a wire input declaration (`InputSchema`, `RequestSchema`, …). */
   wireInputNameSuffixes: readonly string[];
   /** Wire `z.string()` chains that trim or bound themselves, per `module#declaration`: text no person types. */
-  selfBounded: Reviewed;
+  selfBounded: ReviewedCounts;
   /** Free-text-named wire `z.string()` properties that are not typed text, per `module#declaration`. */
-  undeclaredFreeText: Reviewed;
+  undeclaredFreeText: ReviewedCounts;
   /** The declarations that keep their text as typed, each with why. */
   keepAsTyped: ReadonlyArray<{ declaration: string; why: string }>;
   /** The declarations module's exports. */
@@ -120,7 +117,7 @@ export function undeclaredFreeText(file: FileView, isWireInput: (declaration: st
 }
 
 /** Sites against reviewed `module#declaration` counts: an excess site fails, a short count is stale. */
-function compareReviewed(sites: readonly Site[], reviewed: Reviewed, what: string): Finding[] {
+function compareReviewed(sites: readonly Site[], reviewed: ReviewedCounts, what: string): Finding[] {
   const findings: Finding[] = [];
   const byKey = new Map<string, Site[]>();
   for (const site of sites) byKey.set(site.key, [...(byKey.get(site.key) ?? []), site]);
@@ -142,32 +139,28 @@ const textDeclarations = (exports: Readonly<Record<string, unknown>>) =>
   Object.entries(exports).filter((e): e is [string, Declaration] => typeof e[1] === 'object' && e[1] !== null && 'format' in e[1]);
 
 const reviewedCountProblems = (value: unknown, what: string, problems: string[]) =>
-  reviewedProblems(
-    Array.isArray(value) ? value.map((e) => ({ ...e, key: `${e?.file}#${e?.declaration}` })) : value,
-    what,
-    'key',
-    problems,
-    (entry, label) => {
-      if (typeof entry.file !== 'string' || !entry.file || typeof entry.declaration !== 'string' || !entry.declaration) {
-        problems.push(`${label} needs both its module and its declaration`);
-      }
+  reviewedProblems(value, what, problems, {
+    key: 'file',
+    id: (e) => (typeof e.declaration === 'string' && e.declaration.trim() ? `${e.file}#${e.declaration}` : undefined),
+    idNames: 'declaration',
+    extra(entry, label) {
       if (!isCount(entry.count)) problems.push(`${label}'s count must be a positive whole number`);
     },
-  );
+  });
 
 export const textFieldDeclarationsGuard: GenericGuardDefinition<TextFieldDeclarationFacts> = {
   id: 'textFieldDeclarations',
   absentWhen: "the app's core declares no text field through input-format-core",
   factProblems(facts) {
     const problems: string[] = [];
-    stringListProblems(facts?.wireFolders, 'wireFolders', problems);
-    if (typeof facts?.declarationsFile !== 'string' || !facts.declarationsFile.trim()) problems.push('declarationsFile is missing');
-    stringListProblems(facts?.wireInputNameSuffixes, 'wireInputNameSuffixes', problems);
+    namesProblem(facts?.wireFolders, 'wireFolders', problems);
+    textProblem(facts?.declarationsFile, 'declarationsFile', problems);
+    namesProblem(facts?.wireInputNameSuffixes, 'wireInputNameSuffixes', problems);
     reviewedCountProblems(facts?.selfBounded, 'selfBounded', problems);
     reviewedCountProblems(facts?.undeclaredFreeText, 'undeclaredFreeText', problems);
-    reviewedProblems(facts?.keepAsTyped, 'keepAsTyped', 'declaration', problems);
-    loaderProblems(facts?.declarations, 'declarations', problems);
-    loaderProblems(facts?.fieldSchema, 'fieldSchema', problems);
+    reviewedProblems(facts?.keepAsTyped, 'keepAsTyped', problems, { key: 'declaration' });
+    loaderProblem(facts?.declarations, 'declarations', problems);
+    loaderProblem(facts?.fieldSchema, 'fieldSchema', problems);
     return problems;
   },
   build(facts) {

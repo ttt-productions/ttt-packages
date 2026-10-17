@@ -10,22 +10,22 @@ import {
   enclosingFunction,
   expandedBody,
   normalizeDeclared,
-  normalizePath,
+  wildcardPath,
   rulesFunctions,
-  type Loaded,
 } from './rules-syntax.js';
-import { requireLoader, requireName } from './support.js';
+import { loaderListProblem, loaderProblem, type Loader } from '../../support/facts.js';
+import { escapeRegExp } from '../../support/text.js';
 
 export interface RulesClaimFacts {
   /** Every custom claim name the core declares. */
-  claims: Loaded<readonly string[]>;
+  claims: Loader<readonly string[]>;
   /**
    * Each role helper: the one claim it checks, and the roster list its caller's uid must be on. Every
    * rules file that declares a function of the helper's name is held to it; at least one must.
    */
-  roleHelpers: ReadonlyArray<{ function: string; claim: Loaded<string>; rosterField: Loaded<string> }>;
+  roleHelpers: ReadonlyArray<{ function: string; claim: Loader<string>; rosterField: Loader<string> }>;
   /** The live roster document's path, as the core builds it (`collection/docId`). */
-  rosterPath: Loaded<string>;
+  rosterPath: Loader<string>;
 }
 
 /**
@@ -54,8 +54,6 @@ export function claimReads(text: string): Array<{ index: number; claim: string }
 /** Every document read call in a text: `get(…)` / `exists(…)` (and their `After` forms), either service. */
 const DOCUMENT_READ = /(?:\bfirestore\s*\.\s*|(?<![.\w$]))(?:get|getAfter|exists|existsAfter)\s*\(/g;
 
-const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 /** Every way one role helper's expanded body breaks the claim-and-roster pairing, one line each. */
 export function roleHelperProblems(
   body: string,
@@ -71,16 +69,16 @@ export function roleHelperProblems(
   const reads = [...body.matchAll(DOCUMENT_READ)];
   const paths = documentPathLiterals(body);
   const roster = normalizeDeclared(rosterPath);
-  const onRoster = paths.filter((p) => normalizePath(p.segments) === roster);
+  const onRoster = paths.filter((p) => wildcardPath(p.segments) === roster);
   for (const p of paths) {
-    if (normalizePath(p.segments) !== roster) problems.push(`${name} reads the document ${p.segments.join('/')}; a role helper reads only the roster ${rosterPath}`);
+    if (wildcardPath(p.segments) !== roster) problems.push(`${name} reads the document ${p.segments.join('/')}; a role helper reads only the roster ${rosterPath}`);
   }
   const unnamed = reads.filter((m) => !/^\s*\/databases\//.test(body.slice((m.index as number) + m[0].length)));
   if (unnamed.length) problems.push(`${name} reads a document through a path the check cannot name; it reads the roster by its own path`);
   if (!onRoster.length) problems.push(`${name} does not read the live roster ${rosterPath}`);
   else {
-    const field = escape(helper.rosterField);
-    const pathText = onRoster.map((p) => escape(p.text)).join('|');
+    const field = escapeRegExp(helper.rosterField);
+    const pathText = onRoster.map((p) => escapeRegExp(p.text)).join('|');
     const member = new RegExp(
       `request\\s*\\.\\s*auth\\s*\\.\\s*uid\\s+in\\s+(?:firestore\\s*\\.\\s*)?get\\s*\\(\\s*(?:${pathText})\\s*\\)\\s*\\.\\s*data\\s*\\.\\s*(?:get\\s*\\(\\s*['"]${field}['"]|${field}\\b)`,
     );
@@ -95,16 +93,9 @@ export const rulesClaimGuard: GenericGuardDefinition<RulesClaimFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    problems.push(...requireLoader(facts?.claims, 'claims'), ...requireLoader(facts?.rosterPath, 'rosterPath'));
-    if (!Array.isArray(facts?.roleHelpers)) problems.push('roleHelpers is missing (declare [] when there is none)');
-    const bound = new Set<string>();
-    for (const h of facts?.roleHelpers ?? []) {
-      problems.push(...requireName(h?.function, 'a role helper function'));
-      problems.push(...requireLoader(h?.claim, `roleHelpers ${String(h?.function)} claim`));
-      problems.push(...requireLoader(h?.rosterField, `roleHelpers ${String(h?.function)} rosterField`));
-      if (bound.has(h?.function)) problems.push(`roleHelpers: ${h.function} is listed twice`);
-      bound.add(h?.function);
-    }
+    loaderProblem(facts?.claims, 'claims', problems);
+    loaderProblem(facts?.rosterPath, 'rosterPath', problems);
+    loaderListProblem(facts?.roleHelpers, 'roleHelpers', 'function', ['claim', 'rosterField'], problems);
     return problems;
   },
   build(facts) {

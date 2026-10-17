@@ -43,8 +43,7 @@ export const COLLECTIONS = {
   GUILD_INVITE_CONVERSATIONS: 'guildInviteConversations',
   STAKE_SHARE_AUDIT_EVENTS: 'stakeShareAuditEvents',
   MODERATION_CASCADE_MANIFESTS: 'moderationCascadeManifests',
-  // Backend-only append-only audit ledger (audit-core shape; auditEvents/{eventId}). Was a
-  // rules-only name written through a literal until the constant landed here.
+  // Backend-only append-only audit ledger (audit-core shape; auditEvents/{eventId}).
   AUDIT_EVENTS: 'auditEvents',
 
   // Notification system

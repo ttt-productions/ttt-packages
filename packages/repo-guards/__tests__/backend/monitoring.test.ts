@@ -152,7 +152,7 @@ describe('telemetry tag keys', () => {
   });
 
   it('refuses a policy that is not a loader', () => {
-    expect(telemetryTagGuard.factProblems({ ...tagFacts, policy: undefined as never })).toEqual(['policy needs a loader of the telemetry content policy']);
+    expect(telemetryTagGuard.factProblems({ ...tagFacts, policy: undefined as never })).toEqual(['policy needs a loader function']);
   });
 });
 
@@ -220,6 +220,6 @@ describe('a service the product does not use is named nowhere', () => {
 
   it('refuses a service name that is not one word and an empty service list', () => {
     expect(unusedServiceGuard.factProblems({ ...serviceFacts, services: [{ name: 'pay svc', why: 'x' }] })).toEqual(['service pay svc is not one word']);
-    expect(unusedServiceGuard.factProblems({ ...serviceFacts, services: [] })).toEqual(['services is empty, so the guard checks nothing']);
+    expect(unusedServiceGuard.factProblems({ ...serviceFacts, services: [] })).toEqual(['services is empty']);
   });
 });

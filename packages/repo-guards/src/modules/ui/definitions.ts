@@ -2,10 +2,10 @@
 // label maps, non-free-text boxes are reviewed, and schema bounds derive from named limits.
 
 import type { GenericGuardDefinition } from '../../config.js';
+import { allowlistProblems, namesProblem, objectProblem } from '../../support/facts.js';
 import type { Scope } from '../../reader/reader.js';
 import { matchPattern, reviewedAllowlist, type AllowlistEntry, type Hit, type Matcher } from '../../shapes/shapes.js';
-import { requireAllowlist, requireNames, requireObject } from './facts.js';
-import { escapeRegExp } from './source.js';
+import { escapeRegExp } from '../../support/text.js';
 import { APP_CODE } from './styling.js';
 
 const tsx = (text: string) => ({ path: 'sample.tsx', text });
@@ -29,9 +29,9 @@ export const enumLabelsGuard: GenericGuardDefinition<EnumLabelFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!requireObject(facts, problems)) return problems;
-    requireNames(facts.fieldNames, 'fieldNames', problems, { nonEmpty: true });
-    requireAllowlist(facts.exceptions, 'exceptions', problems);
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    namesProblem(facts.fieldNames, 'fieldNames', problems);
+    allowlistProblems(facts.exceptions, 'exceptions', problems);
     return problems;
   },
   build(facts) {
@@ -67,7 +67,7 @@ export const textEntryGuard: GenericGuardDefinition<TextEntryFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (requireObject(facts, problems)) requireAllowlist(facts.reviewed, 'reviewed', problems, { countRequired: true });
+    if (objectProblem(facts, 'facts', problems)) allowlistProblems(facts.reviewed, 'reviewed', problems, { countRequired: true });
     return problems;
   },
   build(facts) {
@@ -117,7 +117,7 @@ export const schemaBoundsGuard: GenericGuardDefinition<SchemaBoundFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (requireObject(facts, problems)) requireAllowlist(facts.exceptions, 'exceptions', problems);
+    if (objectProblem(facts, 'facts', problems)) allowlistProblems(facts.exceptions, 'exceptions', problems);
     return problems;
   },
   build(facts) {

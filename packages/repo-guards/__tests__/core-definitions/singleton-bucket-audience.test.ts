@@ -64,6 +64,6 @@ describe('singleton bucket audience', () => {
         pathBuilders: undefined as never,
         reviewed: [{ path: '_open/app', why: '' }],
       }),
-    ).toEqual(['pathBuilders needs a loader that reads it from the core package', 'reviewed entry _open/app carries no why']);
+    ).toEqual(['pathBuilders needs a loader function', 'reviewed entry _open/app carries no why']);
   });
 });

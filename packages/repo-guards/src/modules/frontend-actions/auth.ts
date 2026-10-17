@@ -6,20 +6,11 @@ import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, Guard } from '../../guard.js';
 import type { Reviewed } from '../../reader/layout.js';
 import type { Scope } from '../../reader/reader.js';
-import {
-  bindingNames,
-  escapeRegExp,
-  isModuleOrSubpath,
-  isUnder,
-  memberOrBareCalls,
-  moduleStatements,
-  namedImports,
-  namesProblem,
-  objectProblem,
-  reviewedProblems,
-  textProblem,
-  throughNamespace,
-} from './text.js';
+import type { FileView } from '../../reader/view.js';
+import { namesProblem, objectProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import { fromStatements, moduleImports, namesModule } from '../../support/imports.js';
+import { escapeRegExp, isUnder } from '../../support/text.js';
+import { memberOrBareCalls, throughNamespace } from './text.js';
 
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 
@@ -48,20 +39,18 @@ export interface ClientAuthBoundaryFacts {
  * matched bare or as a member (`auth.onAuthStateChanged(cb)`, `getAuth().onIdTokenChanged(cb)`),
  * since the SDK hands out the same derivations as instance methods.
  */
-export function boundaryDerivations(code: string, facts: Pick<ClientAuthBoundaryFacts, 'derivationSymbols' | 'authSourceModules'>): Array<{ index: number; detail: string }> {
+export function boundaryDerivations(file: FileView, facts: Pick<ClientAuthBoundaryFacts, 'derivationSymbols' | 'authSourceModules'>): Array<{ index: number; detail: string }> {
+  const { code, sourceFile } = file;
   const out: Array<{ index: number; detail: string }> = [];
-  for (const clause of namedImports(code)) {
-    if (clause.typeOnly) continue;
-    for (const binding of clause.names) {
-      const { imported, typeOnly } = bindingNames(binding);
-      if (!typeOnly && facts.derivationSymbols.includes(imported)) out.push({ index: clause.index, detail: `imports ${imported}` });
+  for (const site of moduleImports(sourceFile, ['import'])) {
+    if (site.typeOnly) continue;
+    for (const { imported, typeOnly } of site.named) {
+      if (!typeOnly && facts.derivationSymbols.includes(imported)) out.push({ index: site.node.getStart(sourceFile), detail: `imports ${imported}` });
     }
   }
   const namespaces: string[] = [];
-  for (const statement of moduleStatements(code)) {
-    if (!facts.authSourceModules.some((m) => isModuleOrSubpath(statement.module, m))) continue;
-    const namespace = /\*\s+as\s+([A-Za-z_$][\w$]*)/.exec(statement.clause);
-    if (namespace) namespaces.push(namespace[1]);
+  for (const site of fromStatements(sourceFile)) {
+    if (site.namespace && facts.authSourceModules.some((m) => namesModule(site.spec, m))) namespaces.push(site.namespace);
   }
   for (const namespace of namespaces) {
     for (const symbol of facts.derivationSymbols) {
@@ -132,7 +121,7 @@ export const clientAuthBoundaryGuard: GenericGuardDefinition<ClientAuthBoundaryF
           for (const file of context.files(APP_CODE)) {
             const inBoundary = facts.boundaryModules.some((m) => m.path === file.path);
             const hits = [
-              ...(inBoundary ? [] : boundaryDerivations(file.code, facts)),
+              ...(inBoundary ? [] : boundaryDerivations(file, facts)),
               ...secondAuthAccessors(file.path, file.code, facts),
             ];
             for (const hit of hits) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail });
@@ -215,8 +204,8 @@ export const bannedAuthCallGuard: GenericGuardDefinition<BannedAuthCallFacts> = 
 export interface AuthFailureCaptureFacts {
   /** The function every auth failure is reported through. */
   reporter: string;
-  /** Sources that leave the report to the code that catches their failure, each with why and the file that reports (null when the why names the callers). */
-  reportedElsewhere: ReadonlyArray<{ path: string; why: string; reportedBy: string | null }>;
+  /** Sources that leave the report to the code that catches their failure, each with why and the file that reports it. */
+  reportedElsewhere: ReadonlyArray<{ path: string; why: string; reportedBy: string }>;
 }
 
 /** The Firebase Auth operations that reach the service and can fail. */
@@ -224,14 +213,11 @@ const FAILING_AUTH_OPERATION =
   /^(?:createUserWithEmailAndPassword|signInWith\w+|signOut|sendPasswordResetEmail|confirmPasswordReset|verifyPasswordResetCode|checkActionCode|applyActionCode|sendEmailVerification|reauthenticateWith\w+|updatePassword|updateEmail|verifyBeforeUpdateEmail|linkWith\w+|deleteUser)$/;
 
 /** The failing operations a source imports as values from the Firebase Auth SDK. */
-export function failingAuthImports(code: string): string[] {
+export function failingAuthImports(file: FileView): string[] {
   const names: string[] = [];
-  for (const clause of namedImports(code)) {
-    if (clause.typeOnly || clause.module !== 'firebase/auth') continue;
-    for (const binding of clause.names) {
-      const { imported, typeOnly } = bindingNames(binding);
-      if (!typeOnly && FAILING_AUTH_OPERATION.test(imported)) names.push(imported);
-    }
+  for (const site of moduleImports(file.sourceFile, ['import'])) {
+    if (site.typeOnly || site.spec !== 'firebase/auth') continue;
+    for (const { imported, typeOnly } of site.named) if (!typeOnly && FAILING_AUTH_OPERATION.test(imported)) names.push(imported);
   }
   return names;
 }
@@ -244,8 +230,8 @@ export const authFailureCaptureGuard: GenericGuardDefinition<AuthFailureCaptureF
     textProblem(facts?.reporter, 'reporter', problems);
     reviewedProblems(facts?.reportedElsewhere, 'reportedElsewhere', problems);
     for (const e of Array.isArray(facts?.reportedElsewhere) ? facts.reportedElsewhere : []) {
-      if (e && e.reportedBy !== null && (typeof e.reportedBy !== 'string' || !e.reportedBy.trim())) {
-        problems.push(`reportedElsewhere entry ${e.path} names no reportedBy file (null when its why names the callers)`);
+      if (e && (typeof e.reportedBy !== 'string' || !e.reportedBy.trim())) {
+        problems.push(`reportedElsewhere entry ${e.path} names no reportedBy file (the file that reports its failures)`);
       }
     }
     return problems;
@@ -262,7 +248,7 @@ export const authFailureCaptureGuard: GenericGuardDefinition<AuthFailureCaptureF
           'a failing operation, now reports itself, or whose reporter no longer reports is stale.',
         run(context) {
           const findings: Finding[] = [];
-          const callers = context.files(APP_CODE).map((f) => ({ file: f, ops: failingAuthImports(f.code) })).filter((c) => c.ops.length);
+          const callers = context.files(APP_CODE).map((f) => ({ file: f, ops: failingAuthImports(f) })).filter((c) => c.ops.length);
           if (!callers.length) findings.push({ file: '(app)', detail: 'no source imports a failing Firebase Auth operation — the scan found no auth surface' });
           const reviewed = new Map(facts.reportedElsewhere.map((e) => [e.path, e]));
           for (const { file, ops } of callers) {
@@ -272,10 +258,8 @@ export const authFailureCaptureGuard: GenericGuardDefinition<AuthFailureCaptureF
             const caller = callers.find((c) => c.file.path === entry.path);
             if (!caller) findings.push({ file: entry.path, detail: 'stale entry: it no longer calls a failing auth operation' });
             else if (reports.test(caller.file.code)) findings.push({ file: entry.path, detail: 'stale entry: it reports its own failures now' });
-            if (entry.reportedBy !== null) {
-              if (!context.reader.exists(entry.reportedBy)) findings.push({ file: entry.reportedBy, detail: `the reporter named for ${entry.path} no longer exists` });
-              else if (!reports.test(context.file(entry.reportedBy).code)) findings.push({ file: entry.reportedBy, detail: `the reporter named for ${entry.path} no longer reports` });
-            }
+            if (!context.reader.exists(entry.reportedBy)) findings.push({ file: entry.reportedBy, detail: `the reporter named for ${entry.path} no longer exists` });
+            else if (!reports.test(context.file(entry.reportedBy).code)) findings.push({ file: entry.reportedBy, detail: `the reporter named for ${entry.path} no longer reports` });
           }
           return findings;
         },

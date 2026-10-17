@@ -110,6 +110,14 @@ describe("a read's retry state comes from its one owner, never the live fetching
     ]);
   });
 
+  it('reads the flags from the parse: a flag named inside a string is no read, one read across lines is', async () => {
+    const findings = await runOne(readRetryStateGuard, facts, {
+      'src/a.ts': "return { isRetrying: label === 'isFetching' };",
+      'src/b.ts': ['const {', '  isFetching:', '    busy,', '} = q;', 'return { isRetrying: busy };'].join('\n'),
+    });
+    expect(findings).toEqual([{ file: 'src/b.ts', line: 5, detail: 'retry state from a fetching flag: busy' }]);
+  });
+
   it('flags a fetching flag reached through a renamed destructure or a chain of bindings', async () => {
     const findings = await runOne(readRetryStateGuard, facts, {
       'src/a.ts': 'const { data, isFetching: busy } = q;\nreturn { isRetrying: busy };',
@@ -209,7 +217,7 @@ describe('a hook never returns a default its consumers cannot tell from data', (
   it('refuses facts with no hooks tree, an absolute tree, or no collapser list', () => {
     expect(hookReadDefaultGuard.factProblems({ hooksTree: '/src/hooks', readCollapsers: undefined as never })).toEqual([
       'hooksTree (/src/hooks) must be repo-relative and forward-slashed',
-      'readCollapsers is missing (an app with none declares [])',
+      'readCollapsers is missing (declare [] when there is none)',
     ]);
   });
 });
@@ -294,7 +302,7 @@ describe('a render surface that defaults a read binds its failure', () => {
         ],
       }),
     ).toEqual([
-      'surfaceTrees names no path',
+      'surfaceTrees is empty',
       'allowlist entry src/a.tsx carries no why',
       'allowlist entry src/b.tsx names no gate (the file and the code that hold its surface back until the read answered)',
       "allowlist entry src/c.tsx's gate file (/abs/page.tsx) must be repo-relative and forward-slashed",

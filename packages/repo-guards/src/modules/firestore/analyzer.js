@@ -26,23 +26,13 @@
 // extra transaction-shaped handle types, and removal-only tables. This module is pure — it reads
 // no file; the repository reader hands it every file and every installed package it reads.
 import ts from 'typescript';
+import { unwrap as unwrapNode } from '../../support/ast.js';
+import { moduleImports } from '../../support/imports.js';
+import { dirnameOf, normalizePath } from '../../support/paths.js';
+import { escapeRegExp } from '../../support/text.js';
 
-/** posix `join` + normalization over repo-relative paths. */
-function joinPosix(...parts) {
-  const out = [];
-  for (const segment of parts.filter(Boolean).join('/').split('/')) {
-    if (!segment || segment === '.') continue;
-    if (segment === '..' && out.length && out[out.length - 1] !== '..') out.pop();
-    else out.push(segment);
-  }
-  return out.join('/') || '.';
-}
-
-/** posix `dirname` over repo-relative paths. */
-function dirnamePosix(relPath) {
-  const index = relPath.lastIndexOf('/');
-  return index < 0 ? '.' : relPath.slice(0, index) || '.';
-}
+/** Joins repo-relative path parts and resolves them; the repository root is `.`. */
+const joinPosix = (...parts) => normalizePath(parts.filter(Boolean).join('/')).path || '.';
 
 /**
  * The normalized guard profile: what the analyzer knows about the consuming app.
@@ -82,7 +72,7 @@ export function createGuardProfile({
     transactionType: new RegExp(`\\b(${typeNames.join('|')})\\b`),
     removalOnlyTables: Object.freeze(removalOnlyTables.map((table) => Object.freeze({ ...table }))),
     handleModule: new RegExp(
-      ['firebase', 'firestore', ...handleModulePrefixes.map((prefix) => `^${prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)].join('|'),
+      ['firebase', 'firestore', ...handleModulePrefixes.map((prefix) => `^${escapeRegExp(prefix)}`)].join('|'),
       'i',
     ),
   });
@@ -1308,48 +1298,6 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
   };
 
   const index = (node) => {
-    if (ts.isImportDeclaration(node) && node.importClause && ts.isStringLiteralLike(node.moduleSpecifier)) {
-      const specifier = node.moduleSpecifier.text;
-      const bindings = node.importClause.namedBindings;
-      if (bindings && ts.isNamedImports(bindings)) {
-        for (const element of bindings.elements) {
-          facts.imports.set(element.name.text, {
-            module: specifier,
-            imported: element.propertyName ? element.propertyName.text : element.name.text,
-          });
-        }
-      }
-      // DEFAULT and NAMESPACE imports are bindings too: without them `import Sdk from 'sdk'`
-      // would look like an unknown local name, so nothing it produced could be recognised as
-      // coming from another package.
-      if (node.importClause.name) {
-        facts.imports.set(node.importClause.name.text, { module: specifier, imported: 'default' });
-      }
-      if (bindings && ts.isNamespaceImport(bindings)) {
-        facts.imports.set(bindings.name.text, { module: specifier, imported: '*' });
-      }
-    }
-    // `export { x } from '<pkg>'` — a local file that only forwards a package export.
-    if (
-      ts.isExportDeclaration(node) &&
-      node.moduleSpecifier &&
-      ts.isStringLiteralLike(node.moduleSpecifier) &&
-      node.exportClause &&
-      ts.isNamedExports(node.exportClause)
-    ) {
-      for (const element of node.exportClause.elements) {
-        facts.reExports.set(element.name.text, node.moduleSpecifier.text);
-      }
-    }
-    if (
-      ts.isExportDeclaration(node) &&
-      node.moduleSpecifier &&
-      ts.isStringLiteralLike(node.moduleSpecifier) &&
-      !node.exportClause &&
-      !node.isTypeOnly
-    ) {
-      facts.starExports.push(node.moduleSpecifier.text);
-    }
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
       if (node.initializer) {
         push(facts.varDecls, node.name.text, {
@@ -1603,6 +1551,20 @@ export function parseFile(relPath, text, { library = false, sourceFile = null } 
     ts.forEachChild(node, index);
   };
   index(source);
+  for (const site of moduleImports(source, ['import', 'export'])) {
+    if (site.kind === 'import' && !site.sideEffect) {
+      for (const { imported, local } of site.named) facts.imports.set(local, { module: site.spec, imported });
+      // DEFAULT and NAMESPACE imports are bindings too: without them `import Sdk from 'sdk'`
+      // would look like an unknown local name, so nothing it produced could be recognised as
+      // coming from another package.
+      if (site.defaultName) facts.imports.set(site.defaultName, { module: site.spec, imported: 'default' });
+      if (site.namespace) facts.imports.set(site.namespace, { module: site.spec, imported: '*' });
+    } else if (site.kind === 'export') {
+      // `export { x } from '<pkg>'` — a local file that only forwards a package export.
+      for (const { local } of site.named) facts.reExports.set(local, site.spec);
+      if (site.star && !site.namespace && !site.typeOnly) facts.starExports.push(site.spec);
+    }
+  }
 
   return facts;
 }
@@ -1705,7 +1667,7 @@ export function analyzeFiles({
   function resolveImport(fromPath, specifier) {
     let base;
     if (specifier.startsWith('.')) {
-      base = joinPosix(dirnamePosix(fromPath), specifier);
+      base = joinPosix(dirnameOf(fromPath), specifier);
     } else if (CORE_LIBRARY_ROOT && (specifier === CORE_PACKAGE || specifier.startsWith(`${CORE_PACKAGE}/`))) {
       // Each export entry of the core package is a folder (or file) of the same name under its
       // library root, the entry point itself being `index`.
@@ -1987,7 +1949,7 @@ export function analyzeFiles({
     if (!imported) return false;
     if (imported.module === CORE_PACKAGE || imported.module.startsWith(`${CORE_PACKAGE}/`)) return true;
     if (!facts.library || !imported.module.startsWith('.')) return false;
-    return Boolean(CORE_LIBRARY_ROOT) && joinPosix(dirnamePosix(facts.relPath), imported.module).startsWith(`${CORE_LIBRARY_ROOT}/`);
+    return Boolean(CORE_LIBRARY_ROOT) && joinPosix(dirnameOf(facts.relPath), imported.module).startsWith(`${CORE_LIBRARY_ROOT}/`);
   }
 
   /**
@@ -6412,17 +6374,6 @@ export function enumerateWriteCallSites(files) {
   };
   const STRUCTURAL_DEPTH = 8;
 
-  const unwrap = (value) => {
-    let current = value;
-    while (
-      current &&
-      (ts.isParenthesizedExpression(current) || ts.isAsExpression(current) ||
-        ts.isTypeAssertionExpression(current) || ts.isNonNullExpression(current) ||
-        ts.isSatisfiesExpression?.(current))
-    ) current = current.expression;
-    return current;
-  };
-
   const sites = [];
   for (const facts of files) {
     const { source } = facts;
@@ -6436,9 +6387,9 @@ export function enumerateWriteCallSites(files) {
     /** A function value pulled off an object by reflection carries no readable name. */
     const reflective = (expr, depth = 0) => {
       if (!expr || depth > STRUCTURAL_DEPTH) return false;
-      const node = unwrap(expr);
+      const node = unwrapNode(expr);
       if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
-        const owner = unwrap(node.expression.expression);
+        const owner = unwrapNode(node.expression.expression);
         if (ts.isIdentifier(owner) && (REFLECTIVE[owner.text] ?? []).includes(node.expression.name.text)) {
           return true;
         }
@@ -6453,7 +6404,7 @@ export function enumerateWriteCallSites(files) {
     /** Positive evidence the receiver is an ordinary container, not a Firestore handle. */
     const plainReceiver = (expr, depth = 0) => {
       if (!expr || depth > STRUCTURAL_DEPTH) return null;
-      const node = unwrap(expr);
+      const node = unwrapNode(expr);
       if (ts.isObjectLiteralExpression(node)) return 'an object literal';
       if (ts.isArrayLiteralExpression(node)) return 'an array literal';
       if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && PLAIN_CONTAINERS.includes(node.expression.text)) {
@@ -6492,7 +6443,7 @@ export function enumerateWriteCallSites(files) {
     const invoked = (expr, args, depth = 0) => {
       if (!expr) return null;
       if (depth > STRUCTURAL_DEPTH) return { method: null, receiver: null };
-      const node = unwrap(expr);
+      const node = unwrapNode(expr);
       if (ts.isPropertyAccessExpression(node)) {
         const name = node.name.text;
         if (WRITE_NAMES.includes(name)) return { method: name, receiver: node.expression };
@@ -6508,7 +6459,7 @@ export function enumerateWriteCallSites(files) {
         return reflective(node, depth + 1) ? { method: null, receiver: args?.[0] ?? null } : null;
       }
       if (ts.isElementAccessExpression(node)) {
-        const selector = node.argumentExpression ? unwrap(node.argumentExpression) : null;
+        const selector = node.argumentExpression ? unwrapNode(node.argumentExpression) : null;
         if (selector && ts.isStringLiteralLike(selector)) {
           return WRITE_NAMES.includes(selector.text) ? { method: selector.text, receiver: node.expression } : null;
         }
@@ -6523,13 +6474,13 @@ export function enumerateWriteCallSites(files) {
 
     const walk = (node) => {
       if (ts.isCallExpression(node)) {
-        const callee = unwrap(node.expression);
+        const callee = unwrapNode(node.expression);
         const args = [...node.arguments];
         let found = null;
         if (
           ts.isPropertyAccessExpression(callee) &&
-          ts.isIdentifier(unwrap(callee.expression)) &&
-          unwrap(callee.expression).text === 'Reflect' &&
+          ts.isIdentifier(unwrapNode(callee.expression)) &&
+          unwrapNode(callee.expression).text === 'Reflect' &&
           callee.name.text === 'apply' &&
           args.length
         ) {

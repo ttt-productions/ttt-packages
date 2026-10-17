@@ -8,6 +8,8 @@ import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
+import { escapeRegExp } from '../../support/text.js';
+import { identifierProblem, isText, objectProblem, reviewedProblems } from '../../support/facts.js';
 
 export interface WorkerBoundedBodyFacts {
   /** The bounded body reader's function name. */
@@ -32,8 +34,6 @@ export function rawRequestBodyReads(file: FileView): Array<{ line: number; state
 }
 
 const SCOPE: Scope = { roots: ['workers'], kinds: ['code'], tests: false };
-const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
-const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export const workerBoundedBodyGuard: GenericGuardDefinition<WorkerBoundedBodyFacts> = {
   id: 'workerBoundedBody',
@@ -41,21 +41,18 @@ export const workerBoundedBodyGuard: GenericGuardDefinition<WorkerBoundedBodyFac
   absentOnlyWithoutRoot: 'workers',
   factProblems(facts) {
     const problems: string[] = [];
-    if (!facts || typeof facts !== 'object') return ['the facts are missing'];
-    if (typeof facts.boundedReader !== 'string' || !IDENTIFIER.test(facts.boundedReader)) problems.push('boundedReader is not a function name');
-    if (!Array.isArray(facts.boundedEndpoints) || !facts.boundedEndpoints.length) problems.push('boundedEndpoints names no endpoint');
-    else for (const e of facts.boundedEndpoints) if (!e?.file || !e.why?.trim()) problems.push(`bounded endpoint ${e?.file ?? '(no file)'} needs its file and why`);
-    if (!Array.isArray(facts.passThroughStreams)) problems.push('passThroughStreams is missing (an app with none declares [])');
-    else {
-      for (const p of facts.passThroughStreams) {
-        if (!p?.file || !p.statement?.trim()) problems.push('a pass-through stream needs its file and statement');
-        else if (!p.why?.trim()) problems.push(`pass-through stream in ${p.file} carries no why`);
-      }
-    }
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    identifierProblem(facts.boundedReader, 'boundedReader', problems);
+    reviewedProblems(facts.boundedEndpoints, 'boundedEndpoints', problems, { key: 'file', nonEmpty: true });
+    reviewedProblems(facts.passThroughStreams, 'passThroughStreams', problems, {
+      key: 'file',
+      id: (p) => (isText(p.statement) ? `${p.file} ${p.statement}` : undefined),
+      idNames: 'statement',
+    });
     return problems;
   },
   build(facts) {
-    const boundedCall = new RegExp(`\\b${escape(facts.boundedReader)}\\s*\\(\\s*(?:request|req)\\b[^)]*\\bmaxBytes\\b`);
+    const boundedCall = new RegExp(`\\b${escapeRegExp(facts.boundedReader)}\\s*\\(\\s*(?:request|req)\\b[^)]*\\bmaxBytes\\b`);
     return [
       {
         title: 'Worker request bodies are read only through the bounded reader',

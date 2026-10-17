@@ -112,7 +112,7 @@ describe('randomUUID appears only at reviewed sites that mint no document id', (
 
   it('refuses a missing site list and a site with no why', () => {
     expect(randomUuidGuard.factProblems({} as never)).toEqual(['reviewedSites is missing (declare [] when there is none)']);
-    expect(randomUuidGuard.factProblems({ reviewedSites: [{ path: 'a.ts', why: '' }] })).toEqual(['reviewedSites: a.ts carries no why']);
+    expect(randomUuidGuard.factProblems({ reviewedSites: [{ path: 'a.ts', why: '' }] })).toEqual(['reviewedSites entry a.ts carries no why']);
   });
 });
 

@@ -7,7 +7,9 @@ import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
-import { calleeName, calleePath, forEachNode, lineOfNode, namesProblem, reviewedProblems, textProblem } from './shared.js';
+import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
+import { namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import { calleePath } from './shared.js';
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
 
@@ -96,15 +98,21 @@ export const swallowedReadWriteGuard: GenericGuardDefinition<SwallowedReadWriteF
     const problems: string[] = [];
     namesProblem(facts?.captureCalls, 'captureCalls', problems);
     namesProblem(facts?.failureExits, 'failureExits', problems, { nonEmpty: false });
-    reviewedProblems(facts?.notReadOrWrite, 'notReadOrWrite', problems, (e) =>
-      typeof e.file === 'string' && e.file && e.pattern instanceof RegExp ? `${e.file} ${String(e.pattern)}` : undefined,
-    );
-    reviewedProblems(facts?.catchSites, 'catchSites', problems, (e) =>
-      typeof e.file === 'string' && typeof e.receiver === 'string' && e.receiver ? `${e.file} ${e.receiver}` : undefined,
-    );
-    reviewedProblems(facts?.tryCatchSites, 'tryCatchSites', problems, (e) =>
-      typeof e.file === 'string' && typeof e.function === 'string' && e.function ? `${e.file} ${e.function}` : undefined,
-    );
+    reviewedProblems(facts?.notReadOrWrite, 'notReadOrWrite', problems, {
+      key: 'file',
+      id: (e) => (e.pattern instanceof RegExp ? `${e.file} ${String(e.pattern)}` : undefined),
+      idNames: 'pattern',
+    });
+    reviewedProblems(facts?.catchSites, 'catchSites', problems, {
+      key: 'file',
+      id: (e) => (typeof e.receiver === 'string' && e.receiver ? `${e.file} ${e.receiver}` : undefined),
+      idNames: 'receiver',
+    });
+    reviewedProblems(facts?.tryCatchSites, 'tryCatchSites', problems, {
+      key: 'file',
+      id: (e) => (typeof e.function === 'string' && e.function ? `${e.file} ${e.function}` : undefined),
+      idNames: 'function',
+    });
     return problems;
   },
   build(facts) {
@@ -309,7 +317,7 @@ export const postCommitCaptureGuard: GenericGuardDefinition<PostCommitCaptureFac
     const problems: string[] = [];
     textProblem(facts?.marker, 'marker', problems);
     namesProblem(facts?.captureCalls, 'captureCalls', problems);
-    reviewedProblems(facts?.helpers, 'helpers', problems, 'name');
+    reviewedProblems(facts?.helpers, 'helpers', problems, { key: 'name' });
     for (const helper of facts?.helpers ?? []) if (!helper?.file) problems.push(`helper ${String(helper?.name)} names no file`);
     return problems;
   },
@@ -420,9 +428,11 @@ export const scheduledPassGuard: GenericGuardDefinition<ScheduledPassFacts> = {
   absentWhen: 'the app runs no scheduled functions',
   factProblems(facts) {
     const problems: string[] = [];
-    reviewedProblems(facts?.dependentUnits, 'dependentUnits', problems, (e) =>
-      typeof e.file === 'string' && Array.isArray(e.units) && e.units.length > 1 ? `${e.file} ${(e.units as string[]).join(', ')}` : undefined,
-    );
+    reviewedProblems(facts?.dependentUnits, 'dependentUnits', problems, {
+      key: 'file',
+      id: (e) => (Array.isArray(e.units) && e.units.length > 1 ? `${e.file} ${(e.units as string[]).join(', ')}` : undefined),
+      idNames: 'second unit',
+    });
     return problems;
   },
   build(facts) {

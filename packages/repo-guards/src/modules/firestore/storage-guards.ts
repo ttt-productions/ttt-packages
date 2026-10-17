@@ -8,18 +8,16 @@ import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
-import { nameListProblems, requireLoader, requireName, reviewedListProblems } from './support.js';
-
-type Loaded<T> = () => T | Promise<T>;
+import { listProblem, loaderProblem, namesProblem, reviewedProblems, textProblem, type Loader } from '../../support/facts.js';
 
 /** Every Storage rules file the layout lists is read; the facts name no file of their own. */
 export interface StorageUploadOriginFacts {
   /** The rules function answering an origin's raw upload cap (`function <name>(origin)`). */
   capFunction: string;
   /** Every declared origin and its raw upload cap in bytes, from the core. */
-  originCaps: Loaded<Readonly<Record<string, number>>>;
+  originCaps: Loader<Readonly<Record<string, number>>>;
   /** Rules functions that return a quoted origin list, each with the origins the core puts on it. */
-  originLists: ReadonlyArray<{ function: string; origins: Loaded<readonly string[]> }>;
+  originLists: ReadonlyArray<{ function: string; origins: Loader<readonly string[]> }>;
   /** Content-type conditions a rules function must state, each as its exact expression. */
   contentTypeLanes: ReadonlyArray<{ function: string; expression: string }>;
   /** The staging `match` path, as written after `match /` (`uploads/{origin}/{userId}/{fileId}`). */
@@ -102,18 +100,19 @@ export const storageUploadOriginGuard: GenericGuardDefinition<StorageUploadOrigi
   id: 'storageUploadOrigins',
   absentWhen: 'the app takes no client upload into Cloud Storage',
   factProblems(facts) {
-    const problems = [
-      ...requireName(facts?.capFunction, 'capFunction'),
-      ...requireLoader(facts?.originCaps, 'originCaps'),
-      ...requireName(facts?.stagingPath, 'stagingPath'),
-    ];
-    if (!Array.isArray(facts?.originLists)) problems.push('originLists is missing (declare [] when there is none)');
+    const problems: string[] = [];
+    textProblem(facts?.capFunction, 'capFunction', problems);
+    loaderProblem(facts?.originCaps, 'originCaps', problems);
+    textProblem(facts?.stagingPath, 'stagingPath', problems);
+    listProblem(facts?.originLists, 'originLists', problems, { nonEmpty: false });
     for (const l of facts?.originLists ?? []) {
-      problems.push(...requireName(l?.function, 'an origin list function'), ...requireLoader(l?.origins, `originLists ${String(l?.function)}`));
+      textProblem(l?.function, 'an origin list function', problems);
+      loaderProblem(l?.origins, `originLists ${String(l?.function)}`, problems);
     }
-    if (!Array.isArray(facts?.contentTypeLanes)) problems.push('contentTypeLanes is missing (declare [] when there is none)');
+    listProblem(facts?.contentTypeLanes, 'contentTypeLanes', problems, { nonEmpty: false });
     for (const l of facts?.contentTypeLanes ?? []) {
-      problems.push(...requireName(l?.function, 'a content-type lane function'), ...requireName(l?.expression, `contentTypeLanes ${String(l?.function)}'s expression`));
+      textProblem(l?.function, 'a content-type lane function', problems);
+      textProblem(l?.expression, `contentTypeLanes ${String(l?.function)}'s expression`, problems);
     }
     return problems;
   },
@@ -196,14 +195,16 @@ export const storageObjectMetadataGuard: GenericGuardDefinition<StorageObjectMet
   id: 'storageObjectMetadata',
   absentWhen: 'the app reads no Cloud Storage object metadata',
   factProblems(facts) {
-    return [
-      ...nameListProblems(facts?.generationReaders, 'generationReaders'),
-      ...nameListProblems(facts?.sizeReaders, 'sizeReaders'),
-      ...nameListProblems(facts?.packageContracts, 'packageContracts', { nonEmpty: false }),
-      ...nameListProblems(facts?.readerAnchors, 'readerAnchors'),
-      ...reviewedListProblems(facts?.exceptions, 'exceptions', 'path'),
-      ...(facts?.exceptions ?? []).flatMap((e) => (typeof e?.shape === 'string' && e.shape.trim() ? [] : [`exceptions: ${e?.path} names no shape`])),
-    ];
+    const problems: string[] = [];
+    namesProblem(facts?.generationReaders, 'generationReaders', problems);
+    namesProblem(facts?.sizeReaders, 'sizeReaders', problems);
+    namesProblem(facts?.packageContracts, 'packageContracts', problems, { nonEmpty: false });
+    namesProblem(facts?.readerAnchors, 'readerAnchors', problems);
+    reviewedProblems(facts?.exceptions, 'exceptions', problems, {
+      id: (e) => (typeof e.shape === 'string' && e.shape.trim() ? `${e.path} ${e.shape}` : undefined),
+      idNames: 'shape',
+    });
+    return problems;
   },
   build(facts) {
     const helperCall = new RegExp(`\\b(?:${alternationOf([...facts.generationReaders, ...facts.sizeReaders])})\\s*\\(`);

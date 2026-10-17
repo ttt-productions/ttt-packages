@@ -5,8 +5,11 @@
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, Guard } from '../../guard.js';
 import { ownerOnly, reviewedAllowlist, type AllowlistEntry, type Hit, type Matcher } from '../../shapes/shapes.js';
-import { isText, requireAllowlist, requireNames, requireObject, requirePath, requirePathOrNull } from './facts.js';
-import { escapeRegExp, exportedNames, jsxElements, moduleSpecifiers } from './source.js';
+import { allowlistProblems, isText, namesProblem, objectProblem, pathProblem } from '../../support/facts.js';
+import { MODULE_LOADS, moduleImports } from '../../support/imports.js';
+import { escapeRegExp } from '../../support/text.js';
+import { requirePathOrNull } from './facts.js';
+import { exportedNames, jsxElements } from './source.js';
 import { APP_CODE, APP_STYLES } from './styling.js';
 
 const tsx = (text: string) => ({ path: 'sample.tsx', text });
@@ -21,19 +24,29 @@ const codeHits = (patterns: readonly RegExp[]): Matcher => (file) => {
   return hits.sort((a, b) => a.index - b.index);
 };
 
-/** `import { … } from '<module>'` statements that name one of `names`. */
+/** `import { … } from '<module>'` statements that name one of `names`; `modulePattern` matches the whole specifier. */
 const namedImports = (modulePattern: string, names: readonly string[]): Matcher => (file) => {
+  if (file.kind !== 'code' && file.kind !== 'declarations') return [];
+  const module = new RegExp(`^(?:${modulePattern})$`);
+  const sf = file.sourceFile;
   const hits: Hit[] = [];
-  const re = new RegExp(String.raw`import\s*(?:type\s*)?\{([^}]*)\}\s*from\s*['"]${modulePattern}['"]`, 'g');
-  const wanted = new RegExp(String.raw`\b(?:${names.map(escapeRegExp).join('|')})\b`);
-  for (const m of file.code.matchAll(re)) if (wanted.test(m[1])) hits.push({ index: m.index ?? 0, detail: m[0].replace(/\s+/g, ' ') });
+  for (const site of moduleImports(sf, ['import'])) {
+    if (site.defaultName || site.namespace || !site.named.length || !module.test(site.spec)) continue;
+    if (!site.named.some((n) => names.includes(n.imported) || names.includes(n.local))) continue;
+    const index = site.node.getStart(sf);
+    hits.push({ index, detail: file.code.slice(index, site.specifier.getEnd()).replace(/\s+/g, ' ') });
+  }
   return hits;
 };
 
 // ---- navigation only through the helper --------------------------------------------------------
 
 export const rawLinkImports: Matcher = (file) =>
-  file.kind === 'code' ? moduleSpecifiers(file).filter((s) => s.spec === 'next/link').map((s) => ({ index: s.index, detail: `import of ${s.spec}` })) : [];
+  file.kind === 'code'
+    ? moduleImports(file.sourceFile, MODULE_LOADS)
+        .filter((s) => s.spec === 'next/link')
+        .map((s) => ({ index: s.specifier.getStart(file.sourceFile), detail: `import of ${s.spec}` }))
+    : [];
 
 export const routerUses: Matcher = (file) => [
   ...namedImports(String.raw`next\/(?:navigation|router)`, ['useRouter'])(file),
@@ -67,9 +80,9 @@ export const navigationGuard: GenericGuardDefinition<NavigationFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!requireObject(facts, problems)) return problems;
-    requirePath(facts.helper, 'helper', problems);
-    requireNames(facts.helperExports, 'helperExports', problems, { nonEmpty: true });
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    pathProblem(facts.helper, 'helper', problems);
+    namesProblem(facts.helperExports, 'helperExports', problems);
     requirePathOrNull(facts.guardedNavigationOwner, 'guardedNavigationOwner', problems);
     return problems;
   },
@@ -166,13 +179,13 @@ export const loadingFeedbackGuard: GenericGuardDefinition<LoadingFeedbackFacts> 
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!requireObject(facts, problems)) return problems;
+    if (!objectProblem(facts, 'facts', problems)) return problems;
     requirePathOrNull(facts.pullToRefreshWrapper, 'pullToRefreshWrapper', problems);
     if (!Array.isArray(facts.hookWideFlags)) problems.push('hookWideFlags is missing (declare [] when there is none)');
     else {
       for (const entry of facts.hookWideFlags as HookWideFlag[]) {
         if (!isText(entry?.hook) || !isText(entry?.flag)) problems.push('a hookWideFlags entry needs its hook and flag');
-        else requireAllowlist(entry.readers, `hookWideFlags ${entry.hook}().${entry.flag} readers`, problems);
+        else allowlistProblems(entry.readers, `hookWideFlags ${entry.hook}().${entry.flag} readers`, problems);
       }
     }
     return problems;
@@ -285,7 +298,7 @@ export const showMoreGuard: GenericGuardDefinition<ShowMoreFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (requireObject(facts, problems)) requirePath(facts.toggle, 'toggle', problems);
+    if (objectProblem(facts, 'facts', problems)) pathProblem(facts.toggle, 'toggle', problems);
     return problems;
   },
   build(facts) {
@@ -332,7 +345,7 @@ export const pendingNameSeatGuard: GenericGuardDefinition<PendingNameSeatFacts> 
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (requireObject(facts, problems)) requirePath(facts.seat, 'seat', problems);
+    if (objectProblem(facts, 'facts', problems)) pathProblem(facts.seat, 'seat', problems);
     return problems;
   },
   build(facts) {
@@ -383,9 +396,9 @@ export const layoutOrderGuard: GenericGuardDefinition<LayoutOrderFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!requireObject(facts, problems)) return problems;
-    requirePath(facts.layoutModule, 'layoutModule', problems);
-    requireNames(facts.mountedOnce, 'mountedOnce', problems);
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    pathProblem(facts.layoutModule, 'layoutModule', problems);
+    namesProblem(facts.mountedOnce, 'mountedOnce', problems, { nonEmpty: false });
     pairProblems(facts.wraps, 'wraps', ['outer', 'inner'], problems);
     pairProblems(facts.outside, 'outside', ['element', 'container'], problems);
     pairProblems(facts.precedes, 'precedes', ['first', 'then'], problems);

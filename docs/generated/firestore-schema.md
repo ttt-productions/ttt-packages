@@ -2604,6 +2604,4 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 
 Bound in a future pass (shape needs reverse-engineering from the backend write site, or removal per the terminology doc). Listed so coverage is explicit:
 
-- `userMetadata`
 - `feedbackDenylist`
-- `ncmecSubmissionAttempts`

@@ -9,6 +9,8 @@
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, Guard } from '../../guard.js';
 import { ownerOnly } from '../../shapes/shapes.js';
+import { escapeRegExp } from '../../support/text.js';
+import { namesProblem, objectProblem, reviewedProblems } from '../../support/facts.js';
 
 export interface LocalOnlyVariablesFacts {
   /** Deployed environments' config files, repo-relative (each must exist). */
@@ -20,7 +22,6 @@ export interface LocalOnlyVariablesFacts {
 }
 
 const VARIABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
-const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * A config's text with every whole-line `#` comment removed — what the deployment declares. A
@@ -38,13 +39,13 @@ export function deployedMentions(text: string, names: readonly string[]): Array<
   const lines = declarationsOf(text).split('\n');
   const out: Array<{ name: string; line: number }> = [];
   lines.forEach((line, index) => {
-    for (const name of names) if (new RegExp(`\\b${escape(name)}\\b`).test(line)) out.push({ name, line: index + 1 });
+    for (const name of names) if (new RegExp(`\\b${escapeRegExp(name)}\\b`).test(line)) out.push({ name, line: index + 1 });
   });
   return out;
 }
 
 function readerGuard(entry: LocalOnlyVariablesFacts['readers'][number]): Guard {
-  const pattern = new RegExp(`\\b(?:${entry.names.map(escape).join('|')})\\b`, 'g');
+  const pattern = new RegExp(`\\b(?:${entry.names.map(escapeRegExp).join('|')})\\b`, 'g');
   const [first] = entry.names;
   return ownerOnly({
     title: `only ${entry.owner} reads ${entry.names.join(', ')}`,
@@ -66,31 +67,28 @@ export const localOnlyVariablesGuard: GenericGuardDefinition<LocalOnlyVariablesF
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!facts || typeof facts !== 'object') return ['the facts are missing'];
-    if (!Array.isArray(facts.deployedConfigs) || !facts.deployedConfigs.length) problems.push('deployedConfigs names no deployed config file');
-    if (!Array.isArray(facts.neverDeployed) || !facts.neverDeployed.length) problems.push('neverDeployed names no variable');
-    else {
-      for (const entry of facts.neverDeployed) {
-        if (!entry?.name || !VARIABLE_NAME.test(entry.name)) problems.push(`neverDeployed holds an entry that names no variable (${String(entry?.name)})`);
-        else if (!entry.why?.trim()) problems.push(`neverDeployed ${entry.name} carries no why`);
-      }
-    }
-    if (!Array.isArray(facts.readers)) problems.push('readers is missing (an app with no owned variable declares [])');
-    else {
-      const owned = new Set<string>();
-      for (const entry of facts.readers) {
-        if (!entry?.owner) problems.push('a reader names no owner file');
-        else if (!entry.why?.trim()) problems.push(`reader ${entry.owner} carries no why`);
-        if (!Array.isArray(entry?.names) || !entry.names.length) problems.push(`reader ${entry?.owner} names no variable`);
-        else {
-          for (const name of entry.names) {
-            if (!VARIABLE_NAME.test(name)) problems.push(`reader ${entry.owner} names ${name}, which is not a variable name`);
-            if (owned.has(name)) problems.push(`${name} is given two owners`);
-            owned.add(name);
-          }
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    namesProblem(facts.deployedConfigs, 'deployedConfigs', problems);
+    reviewedProblems(facts.neverDeployed, 'neverDeployed', problems, {
+      key: 'name',
+      nonEmpty: true,
+      extra(entry, label) {
+        if (!VARIABLE_NAME.test(String(entry.name))) problems.push(`${label} is not a variable name`);
+      },
+    });
+    const owned = new Set<string>();
+    reviewedProblems(facts.readers, 'readers', problems, {
+      key: 'owner',
+      extra(entry, label) {
+        namesProblem(entry.names, `${label}'s names`, problems);
+        for (const name of Array.isArray(entry.names) ? (entry.names as unknown[]) : []) {
+          if (typeof name !== 'string') continue;
+          if (!VARIABLE_NAME.test(name)) problems.push(`${label} names ${name}, which is not a variable name`);
+          if (owned.has(name)) problems.push(`${name} is given two owners`);
+          owned.add(name);
         }
-      }
-    }
+      },
+    });
     return problems;
   },
   build(facts) {

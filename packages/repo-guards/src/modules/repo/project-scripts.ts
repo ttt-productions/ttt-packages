@@ -8,6 +8,8 @@ import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
+import { escapeRegExp } from '../../support/text.js';
+import { namesProblem, objectProblem } from '../../support/facts.js';
 
 export interface ProjectScriptFacts {
   /** The app's real project ids — none may be written into a privileged script. */
@@ -20,7 +22,6 @@ const PRIVILEGED_CLIENT =
   /from\s+['"]firebase-admin(?:\/[^'"]*)?['"]|import\(\s*['"]firebase-admin(?:\/[^'"]*)?['"]\s*\)|require\(\s*['"]firebase-admin|\binitializeApp\s*\(/;
 const PROJECT_ID_KEY = /\bprojectId\s*:\s*['"`]/g;
 const PATH_LITERAL = /\.\s*(?:collection|collectionGroup|doc)\(\s*(?:'[^'\n]*'|"[^"\n]*"|`[^`$\n]*`)\s*\)/g;
-const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export const isPrivilegedScript = (file: FileView) => PRIVILEGED_CLIENT.test(file.code);
 
@@ -28,7 +29,7 @@ export const isPrivilegedScript = (file: FileView) => PRIVILEGED_CLIENT.test(fil
 export function projectScriptFindings(file: FileView, projectIds: readonly string[]): Finding[] {
   if (!isPrivilegedScript(file)) return [];
   const findings: Finding[] = [];
-  const ids = new RegExp(`['"\`](?:${projectIds.map(escape).join('|')})['"\`]`, 'g');
+  const ids = new RegExp(`['"\`](?:${projectIds.map(escapeRegExp).join('|')})['"\`]`, 'g');
   const lines = new Set<number>();
   for (const pattern of [ids, PROJECT_ID_KEY]) {
     for (const m of file.code.matchAll(pattern)) {
@@ -51,10 +52,9 @@ export const projectScriptGuard: GenericGuardDefinition<ProjectScriptFacts> = {
   absentWhen: 'the app has no script that brings up the Admin SDK against a real project',
   factProblems(facts) {
     const problems: string[] = [];
-    if (!facts || typeof facts !== 'object') return ['the facts are missing'];
-    if (!Array.isArray(facts.projectIds) || !facts.projectIds.length) problems.push('projectIds names no project');
-    else for (const id of facts.projectIds) if (typeof id !== 'string' || !id.trim()) problems.push('a project id is empty');
-    if (!Array.isArray(facts.privilegedScripts) || !facts.privilegedScripts.length) problems.push('privilegedScripts names no script');
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    namesProblem(facts.projectIds, 'projectIds', problems);
+    namesProblem(facts.privilegedScripts, 'privilegedScripts', problems);
     return problems;
   },
   build(facts) {

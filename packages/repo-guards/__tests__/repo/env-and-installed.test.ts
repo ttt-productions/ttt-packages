@@ -58,8 +58,8 @@ describe('the env files a deploy delivers carry public values only', () => {
 
   it('refuses a public key with no why, and one listed twice', () => {
     expect(envPublicValuesGuard.factProblems({ files: ['temp.env.dev'], publicKeys: [{ key: 'A', why: '' }, { key: 'A', why: 'x' }] })).toEqual([
-      'public key A carries no why',
-      'public key A is listed twice',
+      'publicKeys entry A carries no why',
+      'publicKeys lists A twice',
     ]);
   });
 });
@@ -110,6 +110,6 @@ describe('no installed generic package reaches the core package or names the pro
   it('refuses a scope without its slash, a product name that is no pattern, and a wire token with no why', () => {
     expect(
       installedPackagesAgnosticGuard.factProblems({ ...facts, packageScope: '@acme', productNames: ['('], wireTokens: [{ token: 't', why: '' }] }),
-    ).toEqual(['packageScope must end in / (`@acme/`)', 'product name ( is not a regular expression', 'wire token t needs its token and why']);
+    ).toEqual(['packageScope must end in / (`@acme/`)', 'product name ( is not a regular expression', 'wireTokens entry t carries no why']);
   });
 });

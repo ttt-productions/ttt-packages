@@ -97,7 +97,7 @@ describe('one audit writer', () => {
       'collection handle AUDIT_EVENTS is not OWNER.member',
       'readers entry functions/src/audit/write.ts carries no why',
       'the writer is listed as a reader',
-      'personActor.modes is empty, so the guard checks nothing',
+      'personActor.modes is empty',
       'appServerZone is missing (an app with no server code in its app root declares { folders: [], serverModules: [] })',
     ]);
   });
@@ -200,7 +200,7 @@ describe('no handler chained onto a failure-audit entry point', () => {
   });
 
   it('refuses an empty entry-point list', () => {
-    expect(failureAuditGuard.factProblems({ failureEntryPoints: [] })).toEqual(['failureEntryPoints is empty, so the guard checks nothing']);
+    expect(failureAuditGuard.factProblems({ failureEntryPoints: [] })).toEqual(['failureEntryPoints is empty']);
   });
 });
 
@@ -234,6 +234,15 @@ describe('no fire-and-forget work and no swallowed audit write', () => {
     ]);
   });
 
+  it('FLAGS a void-ed call behind a non-null assertion', async () => {
+    repo = backendRepo({
+      'functions/src/child.ts': 'void main();',
+      'functions/src/work.ts': ['void queue.flush()!;', 'await writeAuditEventAs(a, d);', 'await writeAuditEvent(d);'].join('\n'),
+    });
+    const [guard] = fireAndForgetGuard.build(facts);
+    expect(await repo.run(guard!)).toEqual([{ file: 'functions/src/work.ts', line: 1, detail: 'fire-and-forget: void queue.flush()!' }]);
+  });
+
   it('FLAGS a reviewed void site with no void-ed call left, and an audit write called nowhere', async () => {
     repo = backendRepo({ 'functions/src/child.ts': 'await main();', 'functions/src/work.ts': 'await writeAuditEventAs(a, d);' });
     const [guard] = fireAndForgetGuard.build(facts);
@@ -246,6 +255,21 @@ describe('no fire-and-forget work and no swallowed audit write', () => {
   it('refuses a void site without a why', () => {
     expect(fireAndForgetGuard.factProblems({ auditWrites: [], voidSites: [{ path: 'functions/src/child.ts', why: '' }] })).toEqual([
       'voidSites entry functions/src/child.ts carries no why',
+    ]);
+  });
+
+  it('refuses a void site whose path is not repo-relative or ends in a slash', () => {
+    expect(
+      fireAndForgetGuard.factProblems({
+        auditWrites: [],
+        voidSites: [
+          { path: 'C:/repo/functions/src/a.ts', why: 'w' },
+          { path: 'functions/src/', why: 'w' },
+        ],
+      }),
+    ).toEqual([
+      'voidSites entry C:/repo/functions/src/a.ts (C:/repo/functions/src/a.ts) must be repo-relative and forward-slashed',
+      'voidSites entry functions/src/ (functions/src/) must not end with a slash',
     ]);
   });
 });

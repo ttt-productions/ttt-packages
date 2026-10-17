@@ -37,6 +37,12 @@ const f = fixture({
     'const message = err instanceof ZodError ? prettifyError(err) : null;',
     'const unrelated = record(1);',
   ].join('\n'),
+  'functions/src/callables/groups.ts': [
+    "import { coerce } from 'zod';",
+    'const Count = z.coerce.number();',
+    'const Day = z.iso.date();',
+    'const Flag = coerce.boolean();',
+  ].join('\n'),
   'functions/src/callables/build.test.ts': 'const Fixture = z.object({});',
   'src/forms/local.ts': "const FormSchema = z.object({ draft: z.string() });\n// Declared here to avoid a core publish.",
   'src/lib/limits.ts': 'const LIMIT = 5; // avoids the publish\n/* Kept local, saving a package release. */\nconst B = 1; // skip a @fx/core release',
@@ -52,6 +58,9 @@ describe('backend zod schemas', () => {
       'functions/src/callables/build.ts:3 — builds a zod schema: z.string(…)',
       'functions/src/callables/build.ts:4 — builds a zod schema: z.enum(…)',
       'functions/src/callables/build.ts:5 — constructs a zod schema: new z.ZodObject(…)',
+      'functions/src/callables/groups.ts:2 — builds a zod schema: z.coerce.number(…)',
+      'functions/src/callables/groups.ts:3 — builds a zod schema: z.iso.date(…)',
+      'functions/src/callables/groups.ts:4 — builds a zod schema: coerce.boolean(…)',
       'functions/src/callables/named.ts:4 — builds a zod schema: object(…)',
       'functions/src/callables/named.ts:4 — builds a zod schema: text(…)',
       'functions/src/callables/named.ts:5 — builds a zod schema: zod.number(…)',
@@ -74,7 +83,7 @@ describe('the facts', () => {
   it('refuses a missing core package, no backend root, and a role that is no source root', () => {
     expect(coreContractsGuard.factProblems({ corePackage: '', backendRoots: [] })).toEqual([
       'corePackage is missing',
-      'backendRoots is missing or empty',
+      'backendRoots is empty',
     ]);
     expect(coreContractsGuard.factProblems({ corePackage: '@fx/core', backendRoots: ['coreDist', 'server' as never] })).toEqual([
       'backendRoots names coreDist, which is no source root role',

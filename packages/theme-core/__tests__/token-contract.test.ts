@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
+import { viewOfText, type FileView } from '@ttt-productions/repo-guards';
+import { createRepoReader } from '@ttt-productions/repo-guards/node';
 
 // theme-core's token layer is the contract every shared recipe and ui-core
 // component reads. These guards pin the PROPERTIES, not today's token list:
@@ -16,9 +17,9 @@ import ts from 'typescript';
 //  - no package stylesheet carries a raw colour literal (values live in theme-core's
 //    token declarations), and every package stylesheet reads only resolvable tokens;
 //  - every black-drop-shadow token is redeclared for the dark canvases.
+// Each check judges only what a package RENDERS — class lists, JSX attribute values, inline
+// styles, stylesheet rules. A pattern a guard matches or a sample string it reads renders nothing.
 
-const packagesDir = path.resolve(__dirname, '../..');
-const THEME_CORE_SRC = path.join(packagesDir, 'theme-core', 'src');
 const DARK_CANVAS_BLOCKS = ['.dark', '.high-contrast'] as const;
 
 // Variables set at runtime on individual elements by a library. theme-core cannot
@@ -27,24 +28,17 @@ const RUNTIME_VARIABLES: ReadonlyArray<{ pattern: RegExp; setBy: string }> = [
   { pattern: /^--radix-/, setBy: 'Radix primitives, on their own elements (trigger size, swipe offset)' },
 ];
 
-// --- source + CSS reading ----------------------------------------------------------
+// --- reading every package through the repo-guards reader ----------------------------
 
-function sourceFiles(dir: string, extensions: readonly string[]): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) return sourceFiles(full, extensions);
-    return extensions.some((ext) => entry.name.endsWith(ext)) ? [full] : [];
-  });
-}
+const reader = createRepoReader({
+  repoRoot: path.resolve(__dirname, '../../..'),
+  roots: { app: { path: 'packages', anchor: 'packages/theme-core/src/styles/tokens.css' } },
+});
+const PACKAGE_SOURCE = /^packages\/[^/]+\/src\//;
+const packageFiles = reader.files({ roots: ['app'], kinds: ['code', 'stylesheet'], tests: false }).filter((file) => PACKAGE_SOURCE.test(file.path));
 
-function read(file: string): string {
-  const src = readFileSync(file, 'utf8');
-  return file.endsWith('.css') ? src.replace(/\/\*[\s\S]*?\*\//g, '') : src;
-}
-
-function where(file: string): string {
-  return path.relative(packagesDir, file);
-}
+/** A file's path under `packages/`. */
+const where = (file: FileView): string => file.path.slice('packages/'.length);
 
 interface CssRule {
   file: string;
@@ -52,10 +46,10 @@ interface CssRule {
   declarations: Array<[property: string, value: string]>;
 }
 
-/** Innermost rule blocks (a rule nested in @media is returned with its own selector). */
-function cssRules(file: string): CssRule[] {
-  return [...read(file).matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => ({
-    file: path.basename(file),
+/** Innermost rule blocks of a stylesheet's comment-free code (a rule nested in @media keeps its own selector). */
+function cssRules(file: FileView): CssRule[] {
+  return [...file.code.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map(([, selector, body]) => ({
+    file: path.posix.basename(file.path),
     selector: selector.trim(),
     declarations: body
       .split(';')
@@ -68,21 +62,13 @@ function cssRules(file: string): CssRule[] {
   }));
 }
 
-const themeStylesheets = sourceFiles(path.join(THEME_CORE_SRC, 'styles'), ['.css']);
+const isStylesheet = (file: FileView) => file.kind === 'stylesheet';
+const themeStylesheets = packageFiles.filter((file) => isStylesheet(file) && file.path.startsWith('packages/theme-core/'));
 const themeRules = themeStylesheets.flatMap(cssRules);
 
 // Every OTHER package's shipped stylesheet (report-core, media-viewer, chat-react, …): they
 // read theme-core tokens too, never an app-defined variable or a raw colour.
-const packageStylesheets = readdirSync(packagesDir)
-  .filter((pkg) => pkg !== 'theme-core')
-  .flatMap((pkg) => {
-    const src = path.join(packagesDir, pkg, 'src');
-    try {
-      return sourceFiles(src, ['.css']);
-    } catch {
-      return [];
-    }
-  });
+const packageStylesheets = packageFiles.filter((file) => isStylesheet(file) && !file.path.startsWith('packages/theme-core/'));
 const packageStyleRules = packageStylesheets.flatMap(cssRules);
 
 function blockDeclarations(selector: string): Map<string, string> {
@@ -112,10 +98,10 @@ const PALETTE =
 // prefix (sizes, sides, alignment, styles).
 const NOT_A_RAW_COLOUR =
   /^(transparent|current|inherit|\d+(\.\d+)?|px|xs|sm|base|md|lg|\d?xl|[xytblrse]|left|center|right|justify|start|end|wrap|nowrap|balance|pretty|ellipsis|clip|solid|dashed|dotted|double|wavy|hidden|none|collapse|separate|inset|auto|offset-\d+|from-font|fixed|local|scroll|cover|contain|repeat|no-repeat|repeat-[xy]|clip-\w+|origin-\w+|gradient-[\w-]+)$/;
-// A literal colour in source: hex in a class/style/string position, or a colour
-// function whose first argument is a number rather than var(...).
+// A literal colour in a rendered string: hex at the start of a value or arbitrary value, or a
+// colour function whose first argument is a number rather than var(...).
 const SOURCE_COLOUR_LITERAL =
-  /(?<=[\s"'`(:[,])#[0-9a-fA-F]{3,8}(?![\w-])|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb)\(\s*[-\d.]/g;
+  /(?<=^|[\s"'`(:[,])#[0-9a-fA-F]{3,8}(?![\w-])|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb)\(\s*[-\d.]/g;
 // A raw colour in a stylesheet value: hex, a colour function with a numeric argument, or
 // a black/white keyword.
 const STYLESHEET_COLOUR_LITERAL = /#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb)\(\s*[-\d.]|\b(white|black)\b/i;
@@ -145,24 +131,10 @@ const SCALE_CLASS = /(?<=^|[\s:!])((?:stack|icon|spinner)-[\w-]+)(?=$|\s)/g;
 
 // Every package's component source: raw colours and shadow utilities are banned in all of
 // them, not just ui-core (file-input, chat-react, media-viewer, … render with the same tokens).
-const packageSources = readdirSync(packagesDir).flatMap((pkg) => {
-  try {
-    return sourceFiles(path.join(packagesDir, pkg, 'src'), ['.ts', '.tsx']);
-  } catch {
-    return [];
-  }
-});
-
-/** Every package's TS/TSX source plus every stylesheet (theme-core's and the other packages'). */
-const allPackageFiles = [...packageSources, ...themeStylesheets, ...packageStylesheets];
+const packageSources = packageFiles.filter((file) => file.kind === 'code');
 
 const CLASS_HELPERS = new Set(['cn', 'cva', 'clsx', 'cx', 'twMerge']);
 const CLASS_NAME = /(?:^|[a-z])(?:Class|ClassName|Classes)$|^[A-Z_]*CLASS(?:ES)?$|^className$/;
-
-function parseSource(file: string): ts.SourceFile {
-  const kind = file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-  return ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, kind);
-}
 
 /** Every string literal and template chunk under `node`, appended to `out`. */
 function collectStrings(node: ts.Node, out: string[]): void {
@@ -173,38 +145,79 @@ function collectStrings(node: ts.Node, out: string[]): void {
 }
 
 /**
- * The strings a file uses as CLASS LISTS: a `className` / `*ClassName` JSX attribute, an
- * argument of cn / cva / clsx / cx / twMerge, or a variable or property named as a class
- * string (`triggerClass`, `SIZE_CLASS`). Parsed with the TypeScript compiler, so prose
- * in comments and CSS text in style strings (`"stroke-dashoffset 0.1s"`) never count.
+ * The values `node` applies as a CLASS LIST: a `className` / `*ClassName` JSX attribute, the
+ * arguments of cn / cva / clsx / cx / twMerge, or a variable or property named as a class string
+ * (`triggerClass`, `SIZE_CLASS`).
  */
-function classStrings(file: string): string[] {
-  const sf = parseSource(file);
+function classListValues(node: ts.Node, sf: ts.SourceFile): readonly ts.Node[] | undefined {
+  if (ts.isJsxAttribute(node)) return node.initializer && CLASS_NAME.test(node.name.getText(sf)) ? [node.initializer] : undefined;
+  if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && CLASS_HELPERS.has(node.expression.text)) return node.arguments;
+  if ((ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node)) && node.initializer && CLASS_NAME.test(node.name.getText(sf))) {
+    return [node.initializer];
+  }
+  return undefined;
+}
+
+const isStyleType = (type: ts.TypeNode | undefined, sf: ts.SourceFile) => !!type && /(?:^|\.)CSSProperties$/.test(type.getText(sf));
+/** `el.style`: the DOM inline-style object. */
+const isDomStyle = (expression: ts.Expression) => ts.isPropertyAccessExpression(expression) && expression.name.text === 'style';
+
+/**
+ * The values `node` applies as an INLINE STYLE outside a JSX attribute: an object typed
+ * `CSSProperties` (declared, or cast with `as` / `satisfies`), a write to a DOM element's
+ * `style` property, or a `style.setProperty(…)` call.
+ */
+function inlineStyleValues(node: ts.Node, sf: ts.SourceFile): readonly ts.Node[] | undefined {
+  if (ts.isVariableDeclaration(node) && node.initializer && isStyleType(node.type, sf)) return [node.initializer];
+  if ((ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) && isStyleType(node.type, sf)) return [node.expression];
+  if (
+    ts.isBinaryExpression(node) &&
+    node.operatorToken.kind === ts.SyntaxKind.EqualsToken &&
+    ts.isPropertyAccessExpression(node.left) &&
+    isDomStyle(node.left.expression)
+  ) {
+    return [node.right];
+  }
+  if (
+    ts.isCallExpression(node) &&
+    ts.isPropertyAccessExpression(node.expression) &&
+    node.expression.name.text === 'setProperty' &&
+    isDomStyle(node.expression.expression)
+  ) {
+    return node.arguments;
+  }
+  return undefined;
+}
+
+/** The strings under every node `select` picks out of a code file, read from its one parse. */
+function stringsAt(file: FileView, select: (node: ts.Node, sf: ts.SourceFile) => readonly ts.Node[] | undefined): string[] {
+  if (file.kind !== 'code') return [];
+  const sf = file.sourceFile;
   const out: string[] = [];
-  const collect = (node: ts.Node) => collectStrings(node, out);
   const visit = (node: ts.Node): void => {
-    if (ts.isJsxAttribute(node) && node.initializer && CLASS_NAME.test(node.name.getText(sf))) return collect(node.initializer);
-    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && CLASS_HELPERS.has(node.expression.text)) {
-      return node.arguments.forEach(collect);
-    }
-    if ((ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node)) && node.initializer && CLASS_NAME.test(node.name.getText(sf))) {
-      return collect(node.initializer);
-    }
+    const values = select(node, sf);
+    if (values) return values.forEach((value) => collectStrings(value, out));
     ts.forEachChild(node, visit);
   };
   visit(sf);
   return out;
 }
 
+/** The strings a code file uses as class lists — never prose, CSS text in a style string, or a sample a guard reads. */
+const classStrings = (file: FileView): string[] => stringsAt(file, classListValues);
+
 /**
- * Every string in a source file — class lists, style strings, template chunks — parsed with
- * the TypeScript compiler, so prose in comments never counts.
+ * Every string a code file RENDERS: its class lists, every JSX attribute value (an SVG `fill`
+ * included), and its inline styles. A string handed to anything else — a pattern, a guard's
+ * sample, a message — renders nothing.
  */
-function sourceStrings(file: string): string[] {
-  const out: string[] = [];
-  collectStrings(parseSource(file), out);
-  return out;
-}
+const renderedStrings = (file: FileView): string[] =>
+  stringsAt(file, (node, sf) =>
+    ts.isJsxAttribute(node) ? (node.initializer ? [node.initializer] : []) : (classListValues(node, sf) ?? inlineStyleValues(node, sf)),
+  );
+
+/** What a file renders, as text: a stylesheet's comment-free code, or a code file's rendered strings. */
+const renderedTexts = (file: FileView): string[] => (isStylesheet(file) ? [file.code] : renderedStrings(file));
 
 /**
  * The raw colours hidden in var() fallbacks inside source strings. A Tailwind arbitrary value
@@ -217,26 +230,46 @@ function sourceFallbackColours(text: string): string[] {
     .filter(isRawColour);
 }
 
-/** Colour-prefixed utilities in the class lists of `files`, minus the theme-core recipe classes. */
-function classListColourUtilities(files: readonly string[]): Array<{ where: string; utility: string; name: string }> {
-  return files.flatMap((file) =>
-    classStrings(file)
-      .flatMap((list) => [...list.matchAll(COLOUR_UTILITY)].map(([, utility]) => utility))
-      .filter((utility) => !themeClasses.has(utility))
-      .map((utility) => ({ where: where(file), utility, name: COLOUR_PREFIX.exec(utility)?.[1] ?? '' }))
-      .filter(({ name }) => name !== ''),
-  );
+/** Colour-prefixed utilities in a file's class lists, minus the theme-core recipe classes. */
+function classListColourUtilities(file: FileView): Array<{ utility: string; name: string }> {
+  return classStrings(file)
+    .flatMap((list) => [...list.matchAll(COLOUR_UTILITY)].map(([, utility]) => utility))
+    .filter((utility) => !themeClasses.has(utility))
+    .map((utility) => ({ utility, name: COLOUR_PREFIX.exec(utility)?.[1] ?? '' }))
+    .filter(({ name }) => name !== '');
 }
 
-/** Colour-prefixed utilities in `files`, minus the theme-core recipe classes. */
-function colourUtilities(files: readonly string[]): Array<{ where: string; utility: string; name: string }> {
-  return files.flatMap((file) =>
-    [...read(file).matchAll(COLOUR_UTILITY)]
-      .map(([, utility]) => utility)
-      .filter((utility) => !themeClasses.has(utility))
-      .map((utility) => ({ where: where(file), utility, name: COLOUR_PREFIX.exec(utility)?.[1] ?? '' }))
-      .filter(({ name }) => name !== ''),
-  );
+/** Every variable a file renders without a fallback that does not resolve in every theme. */
+function unresolvedVariables(file: FileView): string[] {
+  return renderedTexts(file)
+    .flatMap((text) => [...text.matchAll(/var\(\s*(--[\w-]+)\s*([,)])/g)])
+    .filter(([, , next]) => next === ')')
+    .map(([, name]) => name)
+    .filter((name) => !rootTokens.has(name) && !RUNTIME_VARIABLES.some((v) => v.pattern.test(name)));
+}
+
+/** Every raw colour a code file renders: a palette utility in a class list, a colour literal, or a colour in a var() fallback. */
+function rawColours(file: FileView): string[] {
+  const palette = classListColourUtilities(file)
+    .filter(({ name }) => PALETTE.test(name))
+    .map(({ utility }) => utility);
+  const rendered = renderedStrings(file);
+  const literals = rendered.flatMap((text) => [...text.matchAll(SOURCE_COLOUR_LITERAL)].map((m) => m[0]));
+  // A var() fallback is a second, hidden value, and a bare HSL triplet in one slips past
+  // SOURCE_COLOUR_LITERAL (it is only a colour inside hsl()).
+  const fallbacks = rendered.flatMap((text) => sourceFallbackColours(text).map((colour) => `raw colour "${colour}" in a var() fallback`));
+  return [...palette, ...literals, ...fallbacks];
+}
+
+/** Every Tailwind shadow utility, and every elevation hook theme-core does not declare, in a file's class lists. */
+function shadowClasses(file: FileView): string[] {
+  const lists = classStrings(file);
+  const utilities = lists.flatMap((list) => [...list.matchAll(SHADOW_UTILITY)].map((m) => m[1]));
+  const undeclaredHooks = lists
+    .flatMap((list) => [...list.matchAll(ELEVATION_HOOK)].map((m) => m[1]))
+    .filter((hook) => !themeClasses.has(hook))
+    .map((hook) => `.${hook}`);
+  return [...utilities, ...undeclaredHooks];
 }
 
 // --- status fill / foreground pairing -------------------------------------------------
@@ -305,16 +338,44 @@ const TEXTLESS_STATUS_FILLS: ReadonlyArray<{ file: string; selector: string; why
 // --- guards --------------------------------------------------------------------------
 
 describe('theme-core token contract', () => {
+  it('reads every package through the one reader walk', () => {
+    expect(packageSources.length).toBeGreaterThan(100);
+    expect(themeStylesheets.map((file) => file.path)).toContain('packages/theme-core/src/styles/tokens.css');
+  });
+
+  it('judges what a file renders — class lists, JSX attribute values, inline styles, stylesheet rules — and never a string it only names', () => {
+    const rendered = (file: string, text: string) => renderedTexts(viewOfText(file, text)).join(' | ');
+    expect(rendered('a.tsx', 'export const a = <i className="bg-white" />;')).toBe('bg-white');
+    expect(rendered('b.tsx', "export const b = <i className={cn('shadow-md', busy && 'ring-1')} />;")).toBe('shadow-md | ring-1');
+    expect(rendered('c.ts', "export const triggerClass = 'text-black';")).toBe('text-black');
+    expect(rendered('d.tsx', 'export const d = <svg><path fill="#fff" /></svg>;')).toBe('#fff');
+    expect(rendered('e.tsx', "export const e = <i style={{ color: 'var(--e)' }} />;")).toBe('var(--e)');
+    expect(rendered('f.ts', "const style: CSSProperties = { transition: 'opacity var(--f)' };")).toBe('opacity var(--f)');
+    expect(rendered('g.ts', "const g = { color: 'var(--g)' } as React.CSSProperties;")).toBe('var(--g)');
+    expect(rendered('h.ts', "el.style.color = 'rgb(0 0 0)';")).toBe('rgb(0 0 0)');
+    expect(rendered('i.ts', "el.style.setProperty('--i', 'var(--j)');")).toBe('--i | var(--j)');
+    expect(rendered('j.css', '/* var(--prose) */ .j { color: hsl(var(--j)); }')).toContain('.j { color: hsl(var(--j)); }');
+    expect(rendered('j.css', '/* var(--prose) */ .j { color: hsl(var(--j)); }')).not.toContain('--prose');
+
+    const named = [
+      "const flags = [tsx('<p className=\"bg-white shadow-md\" style={{ color: \"#fff\" }} />')];",
+      'const pattern = /bg-white|var\\(--x\\)/;',
+      '// className="text-black" in prose',
+      "const sample = css('.a { color: var(--token); box-shadow: 0 0 4px red; }');",
+      "throw new Error('a colour such as #fff belongs in a token');",
+    ].join('\n');
+    expect(renderedTexts(viewOfText('k.ts', named))).toEqual([]);
+  });
+
   it('every variable read without a fallback, in any package source or stylesheet, resolves in every theme', () => {
-    const files = allPackageFiles;
-    const unresolved = files.flatMap((file) =>
-      [...read(file).matchAll(/var\(\s*(--[\w-]+)\s*([,)])/g)]
-        .filter(([, , next]) => next === ')')
-        .map(([, name]) => name)
-        .filter((name) => !rootTokens.has(name) && !RUNTIME_VARIABLES.some((v) => v.pattern.test(name)))
-        .map((name) => `${where(file)}: ${name}`),
-    );
+    const unresolved = packageFiles.flatMap((file) => unresolvedVariables(file).map((name) => `${where(file)}: ${name}`));
     expect(unresolved).toEqual([]);
+  });
+
+  it('flags a rendered variable no theme declares, and passes a declared, fallback-carrying, or runtime-set one', () => {
+    expect(unresolvedVariables(viewOfText('a.tsx', "export const a = <i style={{ color: 'hsl(var(--nope))' }} />;"))).toEqual(['--nope']);
+    expect(unresolvedVariables(viewOfText('b.css', '.b { color: var(--nope); }'))).toEqual(['--nope']);
+    expect(unresolvedVariables(viewOfText('c.tsx', "export const c = <i className=\"text-[hsl(var(--foreground))]\" style={{ width: 'var(--radix-x)', top: 'var(--nope, 0)' }} />;"))).toEqual([]);
   });
 
   // Semantic colour tokens are HSL TRIPLETS ("240 5% 88%"): only hsl(var(--x)) makes a
@@ -356,42 +417,54 @@ describe('theme-core token contract', () => {
       return /^\s*--[\w-]+\s*:\s*$/.test(text.slice(lineStart + 1, index));
     };
 
-    const bareReads = allPackageFiles.flatMap((file) => {
-      const text = read(file);
-      return [...text.matchAll(/var\(\s*(--[\w-]+)/g)]
-        .filter((m) => triplets.has(m[1]))
-        .filter((m) => {
-          const fn = enclosingColourFunction(text, m.index!);
-          return fn === undefined ? !isTokenDerivation(text, m.index!) : fn !== 'hsl' && fn !== 'hsla';
-        })
-        .map((m) => `${where(file)}: ${m[1]} read outside hsl()`);
-    });
+    const bareReads = packageFiles.flatMap((file) =>
+      renderedTexts(file).flatMap((text) =>
+        [...text.matchAll(/var\(\s*(--[\w-]+)/g)]
+          .filter((m) => triplets.has(m[1]))
+          .filter((m) => {
+            const fn = enclosingColourFunction(text, m.index!);
+            return fn === undefined ? !isTokenDerivation(text, m.index!) : fn !== 'hsl' && fn !== 'hsla';
+          })
+          .map((m) => `${where(file)}: ${m[1]} read outside hsl()`),
+      ),
+    );
     expect(bareReads).toEqual([]);
   });
 
   it('every semantic Tailwind colour utility any package renders maps to a declared token', () => {
-    const unmapped = classListColourUtilities(packageSources)
-      .filter(({ name }) => !NOT_A_RAW_COLOUR.test(name) && !PALETTE.test(name))
-      .filter(({ name }) => !rootTokens.has(`--${name}`))
-      .map(({ where: at, utility, name }) => `${at}: ${utility} (--${name})`);
+    const unmapped = packageSources.flatMap((file) =>
+      classListColourUtilities(file)
+        .filter(({ name }) => !NOT_A_RAW_COLOUR.test(name) && !PALETTE.test(name))
+        .filter(({ name }) => !rootTokens.has(`--${name}`))
+        .map(({ utility, name }) => `${where(file)}: ${utility} (--${name})`),
+    );
     expect(unmapped).toEqual([]);
   });
 
   it('no package renders a raw colour: no palette/black/white utility and no colour literal', () => {
-    const paletteUtilities = colourUtilities(packageSources)
-      .filter(({ name }) => PALETTE.test(name))
-      .map(({ where: at, utility }) => `${at}: ${utility}`);
-    const literals = packageSources.flatMap((file) =>
-      [...read(file).matchAll(SOURCE_COLOUR_LITERAL)].map((m) => `${where(file)}: ${m[0]}`),
-    );
-    // A var() fallback is a second, hidden value, and a bare HSL triplet in one slips past
-    // SOURCE_COLOUR_LITERAL (it is only a colour inside hsl()).
-    const fallbacks = packageSources.flatMap((file) =>
-      sourceStrings(file).flatMap((text) =>
-        sourceFallbackColours(text).map((colour) => `${where(file)}: raw colour "${colour}" in a var() fallback`),
-      ),
-    );
-    expect([...paletteUtilities, ...literals, ...fallbacks]).toEqual([]);
+    const raw = packageSources.flatMap((file) => rawColours(file).map((colour) => `${where(file)}: ${colour}`));
+    expect(raw).toEqual([]);
+  });
+
+  it('flags every raw colour a file renders, and none it only names', () => {
+    const flagged = [
+      viewOfText('a.tsx', 'export const a = <p className="text-gray-500" />;'),
+      viewOfText('b.tsx', "export const b = <p className={cn('bg-white')} />;"),
+      viewOfText('c.tsx', 'export const c = <svg><path fill="#fff" /></svg>;'),
+      viewOfText('d.tsx', "export const d = <p style={{ boxShadow: '0 0 4px rgba(0, 0, 0, 0.2)' }} />;"),
+      viewOfText('e.ts', "export const e: CSSProperties = { color: 'hsl(210 40% 98%)' };"),
+      viewOfText('f.tsx', 'export const f = <p className="bg-[hsl(var(--muted,_220_14%_96%))]" />;'),
+      viewOfText('g.ts', "el.style.background = '#000';"),
+    ];
+    for (const file of flagged) expect(rawColours(file), file.path).toHaveLength(1);
+
+    const passed = [
+      viewOfText('h.ts', "export const samples = { flags: [tsx('<p className=\"text-gray-500 bg-white\" style={{ color: \"#fff\" }} />')] };"),
+      viewOfText('i.ts', 'export const COLOR = /#(?:[0-9a-fA-F]{3})\\b|\\b(?:hsla?|rgba?)\\(\\s*\\d/;'),
+      viewOfText('j.tsx', '// <p className="text-black" style={{ color: "#fff" }} />\nexport const j = <p className="bg-background text-foreground" />;'),
+      viewOfText('k.tsx', 'export const k = <a href="/" className="text-[hsl(var(--primary))]" />;'),
+    ];
+    for (const file of passed) expect(rawColours(file), file.path).toEqual([]);
   });
 
   it('the source fallback check decodes Tailwind arbitrary values and catches every raw-colour form', () => {
@@ -405,16 +478,16 @@ describe('theme-core token contract', () => {
   });
 
   it('no package carries a Tailwind shadow utility, and every elevation hook rendered is a theme-core recipe', () => {
-    const utilities = packageSources.flatMap((file) =>
-      [...read(file).matchAll(SHADOW_UTILITY)].map((m) => `${where(file)}: ${m[1]}`),
-    );
-    const undefinedHooks = packageSources.flatMap((file) =>
-      [...read(file).matchAll(ELEVATION_HOOK)]
-        .map((m) => m[1])
-        .filter((hook) => !themeClasses.has(hook))
-        .map((hook) => `${where(file)}: .${hook}`),
-    );
-    expect([...utilities, ...undefinedHooks]).toEqual([]);
+    const offRecipe = packageSources.flatMap((file) => shadowClasses(file).map((name) => `${where(file)}: ${name}`));
+    expect(offRecipe).toEqual([]);
+  });
+
+  it('flags a shadow utility or undeclared elevation hook in a class list, and passes a declared hook or a named one', () => {
+    expect(shadowClasses(viewOfText('a.tsx', 'export const a = <div className="rounded shadow-md" />;'))).toEqual(['shadow-md']);
+    expect(shadowClasses(viewOfText('b.tsx', "export const b = <div className={cn('hover:drop-shadow-sm')} />;"))).toEqual(['drop-shadow-sm']);
+    expect(shadowClasses(viewOfText('c.tsx', 'export const c = <div className="elevation-floating" />;'))).toEqual(['.elevation-floating']);
+    expect(shadowClasses(viewOfText('d.tsx', 'export const d = <div className="elevation-raised card-border" />;'))).toEqual([]);
+    expect(shadowClasses(viewOfText('e.ts', "export const samples = [tsx('<div className=\"shadow-md\" />'), css('.a { box-shadow: none; }')];"))).toEqual([]);
   });
 
   it('every theme-core scale class a package renders (stack-*, icon-*, spinner-*) is declared by theme-core', () => {

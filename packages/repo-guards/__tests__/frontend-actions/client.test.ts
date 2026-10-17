@@ -81,6 +81,21 @@ describe('browser storage through the guarded helper', () => {
   it('refuses a missing helper', () => {
     expect(browserStorageGuard.factProblems({ helper: '', allowlist: [] })).toEqual(['helper is missing']);
   });
+
+  it('refuses an allowlist entry with a count that is not a positive whole number, or an absolute path', () => {
+    expect(
+      browserStorageGuard.factProblems({
+        helper: 'src/lib/storage.ts',
+        allowlist: [
+          { path: 'src/a.ts', why: 'w', count: 0 },
+          { path: '/src/b.ts', why: 'w' },
+        ],
+      }),
+    ).toEqual([
+      "allowlist entry src/a.ts's count must be a positive whole number",
+      'allowlist entry /src/b.ts (/src/b.ts) must be repo-relative and forward-slashed',
+    ]);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------

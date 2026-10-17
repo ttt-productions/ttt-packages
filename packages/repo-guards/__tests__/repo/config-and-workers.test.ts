@@ -114,7 +114,7 @@ describe('local-only variables', () => {
           { owner: 'b.ts', names: ['X'], why: '' },
         ],
       }),
-    ).toEqual(['deployedConfigs names no deployed config file', 'neverDeployed X carries no why', 'reader b.ts carries no why', 'X is given two owners']);
+    ).toEqual(['deployedConfigs is empty', 'neverDeployed entry X carries no why', 'readers entry b.ts carries no why', 'X is given two owners']);
   });
 });
 
@@ -251,10 +251,10 @@ describe("each Worker's environments keep their bindings and migrations apart", 
         productionDestructiveMigrations: [{ configFile: 'x.toml', tag: 'v1', key: 'deleted_classes', contents: '[]', why: '' }],
       }),
     ).toEqual([
-      'configFiles names no wrangler.toml',
-      'productionEnvironment is empty',
-      'production destructive migration v1 names x.toml, which is not a config file',
-      'production destructive migration v1 carries no why',
+      'configFiles is empty',
+      'productionEnvironment is missing',
+      'productionDestructiveMigrations entry x.toml v1 carries no why',
+      'productionDestructiveMigrations entry x.toml v1 names a file that is not a config file',
     ]);
   });
 });
@@ -321,6 +321,6 @@ describe('Worker request bodies are read only through the bounded reader', () =>
   it('refuses facts with no bounded endpoint or an unexplained pass-through', () => {
     expect(
       workerBoundedBodyGuard.factProblems({ boundedReader: 'read body', boundedEndpoints: [], passThroughStreams: [{ file: 'a.ts', statement: 'x', why: '' }] }),
-    ).toEqual(['boundedReader is not a function name', 'boundedEndpoints names no endpoint', 'pass-through stream in a.ts carries no why']);
+    ).toEqual(['boundedReader must be an identifier', 'boundedEndpoints is empty', 'passThroughStreams entry a.ts x carries no why']);
   });
 });

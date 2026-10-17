@@ -10,14 +10,13 @@ import {
   isVariable,
   matchBlocks,
   normalizeDeclared,
-  normalizePath,
+  wildcardPath,
   rulesFunctions,
-  type Loaded,
   type MatchBlock,
   type RulesFunction,
 } from './rules-syntax.js';
 import { closerOf, fieldOf, loneString, operandAfter, operandBefore, tokenize, type Token } from './rules-tokens.js';
-import { requireLoader, requireName } from './support.js';
+import { loaderListProblem, loaderProblem, type Loader } from '../../support/facts.js';
 
 /** Every Firestore rules file the layout lists is read; the facts name no file of their own. */
 export interface RulesMirrorFacts {
@@ -26,15 +25,15 @@ export interface RulesMirrorFacts {
    * parent document and a parent's fixed id written as itself: `users`, `users/{userId}/settings`,
    * `feed/active/posts`.
    */
-  collections: Loaded<readonly string[]>;
+  collections: Loader<readonly string[]>;
   /** Every collection group the core declares (a `{path=**}` block's collection). */
-  collectionGroups: Loaded<readonly string[]>;
+  collectionGroups: Loader<readonly string[]>;
   /** Every fixed document the core declares, as its full path: `config/app`, `users/{userId}/meta/settings`. */
-  fixedDocuments: Loaded<readonly string[]>;
+  fixedDocuments: Loader<readonly string[]>;
   /** Each stored field the rules compare to a quoted value, with every value the core declares for it. */
-  comparedFields: ReadonlyArray<{ field: string; values: Loaded<readonly string[]> }>;
+  comparedFields: ReadonlyArray<{ field: string; values: Loader<readonly string[]> }>;
   /** Each rules function that spells one list of declared values (a role or standing list), with that list. */
-  valueLists: ReadonlyArray<{ function: string; values: Loaded<readonly string[]> }>;
+  valueLists: ReadonlyArray<{ function: string; values: Loader<readonly string[]> }>;
 }
 
 /** The Firestore service root every collection block sits under. */
@@ -89,15 +88,15 @@ function blockFindings(code: string, declared: Declared, at: (index: number) => 
       findings.push({ file, line, detail: `the block ${shown} ends on a collection, not a document` });
       continue;
     }
-    const collection = normalizePath(segments.slice(0, -1));
+    const collection = wildcardPath(segments.slice(0, -1));
     if (!declared.collections.has(collection)) {
       findings.push({ file, line, detail: `the block ${shown} names the collection ${collection}, which the core does not declare` });
       continue;
     }
     covered.add(collection);
     const leaf = segments[segments.length - 1];
-    if (!isVariable(leaf) && !declared.fixed.has(normalizePath(segments))) {
-      findings.push({ file, line, detail: `the block ${shown} names the fixed document ${normalizePath(segments)}, which the core does not declare` });
+    if (!isVariable(leaf) && !declared.fixed.has(wildcardPath(segments))) {
+      findings.push({ file, line, detail: `the block ${shown} names the fixed document ${wildcardPath(segments)}, which the core does not declare` });
     }
   }
   for (const collection of [...declared.collections].sort()) {
@@ -117,13 +116,13 @@ function readFindings(code: string, declared: Declared, at: (index: number) => n
       continue;
     }
     const docPath = segments.length % 2 === 0;
-    const collection = normalizePath(docPath ? segments.slice(0, -1) : segments);
+    const collection = wildcardPath(docPath ? segments.slice(0, -1) : segments);
     if (!declared.collections.has(collection)) {
       findings.push({ file, line, detail: `the read ${p.text} names the collection ${collection}, which the core does not declare` });
       continue;
     }
-    if (docPath && segments[segments.length - 1] !== '{}' && !declared.fixed.has(normalizePath(segments))) {
-      findings.push({ file, line, detail: `the read ${p.text} names the fixed document ${normalizePath(segments)}, which the core does not declare` });
+    if (docPath && segments[segments.length - 1] !== '{}' && !declared.fixed.has(wildcardPath(segments))) {
+      findings.push({ file, line, detail: `the read ${p.text} names the fixed document ${wildcardPath(segments)}, which the core does not declare` });
     }
   }
   return findings;
@@ -307,24 +306,12 @@ export const rulesMirrorGuard: GenericGuardDefinition<RulesMirrorFacts> = {
   id: 'rulesMirrorCore',
   absentWhen: false,
   factProblems(facts) {
-    const problems = [
-      ...requireLoader(facts?.collections, 'collections'),
-      ...requireLoader(facts?.collectionGroups, 'collectionGroups'),
-      ...requireLoader(facts?.fixedDocuments, 'fixedDocuments'),
-    ];
-    for (const [key, name] of [['comparedFields', 'field'], ['valueLists', 'function']] as const) {
-      const list = facts?.[key] as ReadonlyArray<Record<string, unknown>> | undefined;
-      if (!Array.isArray(list)) {
-        problems.push(`${key} is missing (declare [] when there is none)`);
-        continue;
-      }
-      const seen = new Set<unknown>();
-      for (const entry of list) {
-        problems.push(...requireName(entry?.[name], `a ${key} ${name}`), ...requireLoader(entry?.values, `${key} ${String(entry?.[name])} values`));
-        if (seen.has(entry?.[name])) problems.push(`${key}: ${String(entry?.[name])} is listed twice`);
-        seen.add(entry?.[name]);
-      }
-    }
+    const problems: string[] = [];
+    loaderProblem(facts?.collections, 'collections', problems);
+    loaderProblem(facts?.collectionGroups, 'collectionGroups', problems);
+    loaderProblem(facts?.fixedDocuments, 'fixedDocuments', problems);
+    loaderListProblem(facts?.comparedFields, 'comparedFields', 'field', ['values'], problems);
+    loaderListProblem(facts?.valueLists, 'valueLists', 'function', ['values'], problems);
     return problems;
   },
   build(facts) {

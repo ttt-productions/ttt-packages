@@ -7,6 +7,7 @@ import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
+import { takesNoFacts } from '../../support/facts.js';
 
 const DIRECTORY_READS = new Set(['readdirSync', 'readdir', 'opendirSync', 'opendir']);
 
@@ -78,10 +79,7 @@ export type WalkerReadFailureFacts = Readonly<Record<string, never>>;
 export const walkerReadFailureGuard: GenericGuardDefinition<WalkerReadFailureFacts> = {
   id: 'walkerReadFailure',
   absentWhen: false,
-  factProblems(facts) {
-    if (!facts || typeof facts !== 'object') return ['the facts are missing (this guard takes {})'];
-    return Object.keys(facts).length ? ['this guard takes no facts ({})'] : [];
-  },
+  factProblems: takesNoFacts,
   build() {
     return [
       {

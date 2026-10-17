@@ -7,22 +7,17 @@ import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
 import { matchPattern, ownerOnly, reviewedAllowlist, type Hit } from '../../shapes/shapes.js';
+import type { Reviewed } from '../../reader/layout.js';
+import { forEachNode, lineOfNode } from '../../support/ast.js';
+import { identifierProblem, pathProblem, reviewedProblems } from '../../support/facts.js';
+import { escapeRegExp, isUnder } from '../../support/text.js';
 import {
   APP_CODE,
-  alternation,
-  escapeRegExp,
   filesUnder,
-  identifierListProblems,
-  identifierProblems,
+  identifierListProblem,
   isHookName,
-  isUnder,
-  lineOfNode,
-  pathListProblems,
-  pathProblems,
+  pathListProblem,
   requiredFile,
-  reviewedFileProblems,
-  walk,
-  type ReviewedFile,
 } from './shared.js';
 
 /**
@@ -43,11 +38,11 @@ export interface FailureSeat {
 
 function seatProblems(seat: FailureSeat | undefined): string[] {
   if (!seat || typeof seat !== 'object') return ['seat is missing'];
-  return [
-    ...identifierProblems(seat.component, 'seat.component'),
-    ...identifierProblems(seat.retryProp, 'seat.retryProp'),
-    ...identifierProblems(seat.pendingProp, 'seat.pendingProp'),
-  ];
+  const problems: string[] = [];
+  identifierProblem(seat.component, 'seat.component', problems);
+  identifierProblem(seat.retryProp, 'seat.retryProp', problems);
+  identifierProblem(seat.pendingProp, 'seat.pendingProp', problems);
+  return problems;
 }
 
 // =============================================================================================
@@ -66,11 +61,13 @@ export interface ReadStateOwnerFacts {
 export const readStateOwnerGuard: GenericGuardDefinition<ReadStateOwnerFacts> = {
   id: 'readStateOwner',
   absentWhen: false,
-  factProblems: (facts) => [
-    ...pathProblems(facts?.module, 'module'),
-    ...identifierProblems(facts?.seatComponent, 'seatComponent'),
-    ...identifierProblems(facts?.laterPageRetry, 'laterPageRetry'),
-  ],
+  factProblems(facts) {
+    const problems: string[] = [];
+    pathProblem(facts?.module, 'module', problems);
+    identifierProblem(facts?.seatComponent, 'seatComponent', problems);
+    identifierProblem(facts?.laterPageRetry, 'laterPageRetry', problems);
+    return problems;
+  },
   build: (facts) => [
     ownerOnly({
       title: 'read failures render only through the read-state module',
@@ -105,29 +102,26 @@ const LIVE_FLAG_PAIRS: ReadonlyArray<{ name: string; re: RegExp }> = [
   { name: 'isFetching && failure flag', re: new RegExp(`${FETCHING}\\s*&&\\s*${FAILURE_FLAG}`) },
 ];
 
-const FETCHING_FLAG_NAMES = String.raw`is(?:Re)?[Ff]etching|fetchingCount|useIsFetching|fetchStatus|sourceState`;
-const FETCHING_FLAG = new RegExp(String.raw`\b(?:${FETCHING_FLAG_NAMES})\b`);
+/** The names a fetching flag goes by. */
+const FETCHING_FLAG = /^(?:is(?:Re)?[Ff]etching|fetchingCount|useIsFetching|fetchStatus|sourceState)$/;
+
+const fieldName = (name: ts.Node): string | null => (ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : null);
 
 /** Every retry state a source builds — a field, a prop, or a binding — with the expression it is built from. */
-function retryStateExpressions(code: string, fields: readonly string[]): Array<{ index: number; expression: string }> {
-  const start = new RegExp(`\\b(?:${alternation(fields)})\\s*(=\\{|:|=(?!=))`, 'g');
-  const found: Array<{ index: number; expression: string }> = [];
-  for (let match = start.exec(code); match; match = start.exec(code)) {
-    const jsx = match[1] === '={';
-    const begin = match.index + match[0].length;
-    let depth = jsx ? 1 : 0;
-    let i = begin;
-    for (; i < code.length; i += 1) {
-      const c = code[i];
-      if (c === '(' || c === '[' || c === '{') depth += 1;
-      else if (c === ')' || c === ']' || c === '}') {
-        if (depth === 0) break;
-        depth -= 1;
-        if (jsx && depth === 0) break;
-      } else if (depth === 0 && (c === ',' || c === ';' || (c === '\n' && code.slice(begin, i).trim() !== ''))) break;
+function retryStateExpressions(file: FileView, fields: readonly string[]): Array<{ index: number; expression: ts.Expression }> {
+  const sf = file.sourceFile;
+  const wanted = new Set(fields);
+  const found: Array<{ index: number; expression: ts.Expression }> = [];
+  const add = (name: ts.Node, expression: ts.Expression | undefined) => {
+    if (expression && wanted.has(fieldName(name) ?? '')) found.push({ index: name.getStart(sf), expression });
+  };
+  forEachNode(sf, (node) => {
+    if (ts.isPropertyAssignment(node) || ts.isVariableDeclaration(node)) add(node.name, node.initializer);
+    else if (ts.isJsxAttribute(node) && node.initializer && ts.isJsxExpression(node.initializer)) add(node.name, node.initializer.expression);
+    else if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.EqualsToken) {
+      add(ts.isPropertyAccessExpression(node.left) ? node.left.name : node.left, node.right);
     }
-    found.push({ index: match.index, expression: code.slice(begin, i).trim() });
-  }
+  });
   return found;
 }
 
@@ -136,19 +130,35 @@ function retryStateExpressions(code: string, fields: readonly string[]): Array<{
  * from one — a plain binding (`const busy = q.isFetching`), a renamed destructure
  * (`const { isFetching: busy } = q`), or a chain of such bindings.
  */
-function readsFetchingFlag(expression: string, code: string, seen: Set<string> = new Set()): boolean {
-  if (FETCHING_FLAG.test(expression)) return true;
-  const bare = [...expression.matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)\b(?!\s*[.(])/g)].map((m) => m[1]);
-  return bare.some((name) => {
+function readsFetchingFlag(expression: ts.Node, file: FileView, seen: Set<string> = new Set()): boolean {
+  let reads = false;
+  const bound: string[] = [];
+  forEachNode(expression, (node) => {
+    if (!ts.isIdentifier(node) || reads) return;
+    if (FETCHING_FLAG.test(node.text)) reads = true;
+    const parent = node.parent;
+    const receiverOrCallee =
+      (ts.isPropertyAccessExpression(parent) && (parent.expression === node || parent.name === node)) || (ts.isCallExpression(parent) && parent.expression === node);
+    if (!receiverOrCallee) bound.push(node.text);
+  });
+  if (reads) return true;
+  return bound.some((name) => {
     if (seen.has(name)) return false;
     seen.add(name);
-    const n = escapeRegExp(name);
-    const renamed = new RegExp(String.raw`\{[^{}]*\b(?:${FETCHING_FLAG_NAMES})\s*:\s*${n}\b[^{}]*\}\s*=(?!=)`);
-    if (renamed.test(code)) return true;
-    const declared = new RegExp(String.raw`\b(?:const|let|var)\s+${n}\s*=\s*([^;\n]+)`).exec(code);
+    let declared: ts.Expression | undefined;
+    let renamed = false;
+    forEachNode(file.sourceFile, (node) => {
+      if (ts.isBindingElement(node) && ts.isIdentifier(node.name) && node.name.text === name && node.propertyName && FETCHING_FLAG.test(fieldName(node.propertyName) ?? '')) {
+        renamed = true;
+      } else if (!declared && ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === name && node.initializer) {
+        declared = node.initializer;
+      }
+    });
+    if (renamed) return true;
     if (!declared) return false;
-    const value = declared[1].trim();
-    return !RETRY_STATE_HELPERS.some((helper) => value.startsWith(`${helper}(`)) && readsFetchingFlag(value, code, seen);
+    const value = declared;
+    const fromHelper = ts.isCallExpression(value) && ts.isIdentifier(value.expression) && (RETRY_STATE_HELPERS as readonly string[]).includes(value.expression.text);
+    return !fromHelper && readsFetchingFlag(value, file, seen);
   });
 }
 
@@ -164,10 +174,10 @@ export function liveFlagRetryStates(file: FileView, seat: FailureSeat): Hit[] {
     }
     offset += line.length + 1;
   }
-  for (const { index, expression } of retryStateExpressions(code, [RETRY_STATE_FIELD, HELD_ANSWER_FIELD, seat.pendingProp])) {
-    if (!readsFetchingFlag(expression, code)) continue;
+  for (const { index, expression } of retryStateExpressions(file, [RETRY_STATE_FIELD, HELD_ANSWER_FIELD, seat.pendingProp])) {
+    if (!readsFetchingFlag(expression, file)) continue;
     const line = file.lineOf(index);
-    if (!hits.has(line)) hits.set(line, { index, detail: `retry state from a fetching flag: ${expression.replace(/\s+/g, ' ').slice(0, 120)}` });
+    if (!hits.has(line)) hits.set(line, { index, detail: `retry state from a fetching flag: ${expression.getText(file.sourceFile).replace(/\s+/g, ' ').slice(0, 120)}` });
   }
   return [...hits.values()].sort((a, b) => a.index - b.index);
 }
@@ -186,7 +196,7 @@ const isHookFunction = (node: ts.Node, sf: ts.SourceFile): boolean => {
 export function failedAnswersWithoutRetrying(file: FileView): Hit[] {
   const sf = file.sourceFile;
   const hits: Hit[] = [];
-  walk(sf, (node) => {
+  forEachNode(sf, (node) => {
     if (!ts.isObjectLiteralExpression(node)) return;
     const named = (name: string) =>
       node.properties.find((p) => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && p.name.getText(sf) === name);
@@ -275,7 +285,7 @@ function enclosingFunction(node: ts.Node): ts.Node | undefined {
 /** Whether `scope` reads `<receiver>.error` / `.isError` / `.status`, or hands `receiver` to the held retry state. */
 function readsFailureOf(scope: ts.Node, receiver: string, sf: ts.SourceFile): boolean {
   let found = false;
-  walk(scope, (n) => {
+  forEachNode(scope, (n) => {
     if (ts.isPropertyAccessExpression(n) && FAILURE_FIELDS.has(n.name.text) && n.expression.getText(sf) === receiver) found = true;
     if (ts.isCallExpression(n) && n.expression.getText(sf) === RETRY_STATE_HELPERS[0] && n.arguments[0]?.getText(sf) === receiver) found = true;
   });
@@ -314,7 +324,7 @@ function returnedExpressions(body: ts.ConciseBody): ts.Expression[] {
 
 function readsData(node: ts.Node): boolean {
   let found = false;
-  walk(node, (n) => {
+  forEachNode(node, (n) => {
     if (ts.isPropertyAccessExpression(n) && n.name.text === 'data') found = true;
   });
   return found;
@@ -344,7 +354,7 @@ export function hookReadDefaults(file: FileView, collapsers: readonly string[]):
   const sf = file.sourceFile;
   const names = new Set(collapsers);
   const hits: Array<{ line: number; detail: string }> = [];
-  walk(sf, (node) => {
+  forEachNode(sf, (node) => {
     if (
       ts.isBinaryExpression(node) &&
       (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken || node.operatorToken.kind === ts.SyntaxKind.BarBarToken) &&
@@ -354,7 +364,7 @@ export function hookReadDefaults(file: FileView, collapsers: readonly string[]):
     ) {
       const scope = enclosingFunction(node);
       if (!scope || !readsFailureOf(scope, node.left.expression.getText(sf), sf)) {
-        hits.push({ line: lineOfNode(sf, node), detail: `a defaulted read with no failure beside it: ${node.getText(sf)}` });
+        hits.push({ line: lineOfNode(file, node), detail: `a defaulted read with no failure beside it: ${node.getText(sf)}` });
       }
     }
     if (ts.isVariableDeclaration(node) && node.initializer && ts.isObjectBindingPattern(node.name)) {
@@ -364,13 +374,13 @@ export function hookReadDefaults(file: FileView, collapsers: readonly string[]):
         const elements = node.name.elements;
         const defaultsData = elements.some((el) => keyOf(el) === 'data' && el.initializer !== undefined);
         const carriesFailure = elements.some((el) => el.dotDotDotToken || FAILURE_FIELDS.has(keyOf(el)));
-        if (defaultsData && !carriesFailure) hits.push({ line: lineOfNode(sf, node), detail: `a defaulted read with no failure beside it: ${node.name.getText(sf)}` });
+        if (defaultsData && !carriesFailure) hits.push({ line: lineOfNode(file, node), detail: `a defaulted read with no failure beside it: ${node.name.getText(sf)}` });
       }
     }
     const hook = exportedHookBody(node, sf);
     if (hook) {
       for (const returned of returnedExpressions(hook.body)) {
-        if (collapsesReadToBoolean(returned, sf, names)) hits.push({ line: lineOfNode(sf, returned), detail: `${hook.name} returns a boolean from a read` });
+        if (collapsesReadToBoolean(returned, sf, names)) hits.push({ line: lineOfNode(file, returned), detail: `${hook.name} returns a boolean from a read` });
       }
     }
   });
@@ -380,10 +390,12 @@ export function hookReadDefaults(file: FileView, collapsers: readonly string[]):
 export const hookReadDefaultGuard: GenericGuardDefinition<HookReadDefaultFacts> = {
   id: 'hookReadDefault',
   absentWhen: false,
-  factProblems: (facts) => [
-    ...pathProblems(facts?.hooksTree, 'hooksTree'),
-    ...identifierListProblems(facts?.readCollapsers, 'readCollapsers', { allowEmpty: true }),
-  ],
+  factProblems(facts) {
+    const problems: string[] = [];
+    pathProblem(facts?.hooksTree, 'hooksTree', problems);
+    identifierListProblem(facts?.readCollapsers, 'readCollapsers', problems, { nonEmpty: false });
+    return problems;
+  },
   build: (facts) => [
     {
       title: 'a hook never returns a default its consumers cannot tell from data',
@@ -416,7 +428,7 @@ export interface DefaultedReadBindingFacts {
    * one that renders it) and the gate's code as written there. A gate that is gone leaves the default
    * unguarded, so the entry fails.
    */
-  allowlist: ReadonlyArray<ReviewedFile & { gate: ReadGate }>;
+  allowlist: ReadonlyArray<Reviewed & { gate: ReadGate }>;
 }
 
 /** Where a reviewed default's read is known to have answered: a file, and the code there that waits for it. */
@@ -434,7 +446,7 @@ function gateProblems(allowlist: unknown): string[] {
     const what = `allowlist entry ${String(entry?.path)}`;
     if (!entry?.gate || typeof entry.gate !== 'object') problems.push(`${what} names no gate (the file and the code that hold its surface back until the read answered)`);
     else {
-      problems.push(...pathProblems(entry.gate.file, `${what}'s gate file`));
+      pathProblem(entry.gate.file, `${what}'s gate file`, problems);
       if (typeof entry.gate.code !== 'string' || !entry.gate.code.trim()) problems.push(`${what}'s gate names no code`);
     }
   }
@@ -458,7 +470,7 @@ export function unguardedDataDefaults(file: FileView, heldFailureFields: readonl
   const sf = file.sourceFile;
   const failureBindings = new Set([...FAILURE_FIELDS, ...heldFailureFields]);
   const hits: Hit[] = [];
-  walk(sf, (node) => {
+  forEachNode(sf, (node) => {
     if (!ts.isVariableDeclaration(node) || !node.initializer || !ts.isObjectBindingPattern(node.name)) return;
     let init: ts.Expression = node.initializer;
     if (ts.isAwaitExpression(init)) init = init.expression;
@@ -478,12 +490,13 @@ export function unguardedDataDefaults(file: FileView, heldFailureFields: readonl
 export const defaultedReadBindingGuard: GenericGuardDefinition<DefaultedReadBindingFacts> = {
   id: 'defaultedReadBinding',
   absentWhen: false,
-  factProblems: (facts) => [
-    ...pathListProblems(facts?.surfaceTrees, 'surfaceTrees'),
-    ...identifierListProblems(facts?.heldFailureFields, 'heldFailureFields', { allowEmpty: true }),
-    ...reviewedFileProblems(facts?.allowlist, 'allowlist'),
-    ...gateProblems(facts?.allowlist),
-  ],
+  factProblems(facts) {
+    const problems: string[] = [];
+    pathListProblem(facts?.surfaceTrees, 'surfaceTrees', problems);
+    identifierListProblem(facts?.heldFailureFields, 'heldFailureFields', problems, { nonEmpty: false });
+    reviewedProblems(facts?.allowlist, 'allowlist', problems);
+    return [...problems, ...gateProblems(facts?.allowlist)];
+  },
   build: (facts) => {
     const held = facts.heldFailureFields.length ? ` / ${facts.heldFailureFields.join(' / ')}` : '';
     const guard = reviewedAllowlist({
@@ -545,16 +558,15 @@ export const laterPageFailureGuard: GenericGuardDefinition<LaterPageFailureFacts
   id: 'laterPageFailure',
   absentWhen: false,
   factProblems(facts) {
-    const problems = [
-      ...pathProblems(facts?.hooksTree, 'hooksTree'),
-      ...pathProblems(facts?.readStateModule, 'readStateModule'),
-      ...identifierProblems(facts?.handOffProp, 'handOffProp'),
-    ];
+    const problems: string[] = [];
+    pathProblem(facts?.hooksTree, 'hooksTree', problems);
+    pathProblem(facts?.readStateModule, 'readStateModule', problems);
+    identifierProblem(facts?.handOffProp, 'handOffProp', problems);
     if (!Array.isArray(facts?.listRoutes) || !facts.listRoutes.length) problems.push('listRoutes names no component');
     else
       facts.listRoutes.forEach((r, i) => {
-        problems.push(...identifierProblems(r?.component, `listRoutes[${i}].component`));
-        if (r?.prop !== undefined) problems.push(...identifierProblems(r.prop, `listRoutes[${i}].prop`));
+        identifierProblem(r?.component, `listRoutes[${i}].component`, problems);
+        if (r?.prop !== undefined) identifierProblem(r.prop, `listRoutes[${i}].prop`, problems);
       });
     return problems;
   },
@@ -587,7 +599,7 @@ export interface ReadFailureCopyFacts {
   /** The one component that builds every read-failure sentence. */
   owner: string;
   /** Files that carry such a sentence for a reason other than copy shown to a person, each with its why. */
-  allowlist: readonly ReviewedFile[];
+  allowlist: readonly Reviewed[];
 }
 
 /** A hand-written read-failure sentence, in any casing, around any read verb. */
@@ -598,7 +610,9 @@ export const readFailureCopyGuard: GenericGuardDefinition<ReadFailureCopyFacts> 
   id: 'readFailureCopy',
   absentWhen: false,
   factProblems(facts) {
-    const problems = [...pathProblems(facts?.owner, 'owner'), ...reviewedFileProblems(facts?.allowlist, 'allowlist')];
+    const problems: string[] = [];
+    pathProblem(facts?.owner, 'owner', problems);
+    reviewedProblems(facts?.allowlist, 'allowlist', problems);
     if (Array.isArray(facts?.allowlist) && facts.allowlist.some((e) => e?.path === facts.owner)) problems.push('the owner is listed in the allowlist');
     return problems;
   },

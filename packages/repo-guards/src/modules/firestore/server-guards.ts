@@ -7,15 +7,18 @@
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Scope } from '../../reader/reader.js';
+import type { Reviewed } from '../../reader/layout.js';
 import type { FileView } from '../../reader/view.js';
 import { matchPattern, reviewedAllowlist } from '../../shapes/shapes.js';
-import { bannedGuard, calleeName, eachNode, noFactProblems, reviewedListProblems, type NoFacts, type NodeHit } from './support.js';
+import { calleeName, forEachNode } from '../../support/ast.js';
+import { reviewedProblems, takesNoFacts } from '../../support/facts.js';
+import { bannedGuard, type NoFacts, type NodeHit } from './support.js';
 
 /** Every non-transactional read inside an inline `runTransaction` callback in one file. */
 export function strayTransactionReads(file: FileView): NodeHit[] {
   const source = file.sourceFile;
   const hits: NodeHit[] = [];
-  eachNode(source, (node) => {
+  forEachNode(source, (node) => {
     if (!ts.isCallExpression(node) || calleeName(node) !== 'runTransaction') return;
     const callback = node.arguments.find((arg) => ts.isArrowFunction(arg) || ts.isFunctionExpression(arg)) as
       | ts.ArrowFunction
@@ -41,7 +44,7 @@ export function strayTransactionReads(file: FileView): NodeHit[] {
 export const transactionReadGuard: GenericGuardDefinition<NoFacts> = {
   id: 'firestoreTransactionReads',
   absentWhen: 'the app stores nothing in Firestore',
-  factProblems: noFactProblems,
+  factProblems: takesNoFacts,
   build() {
     return [
       bannedGuard({
@@ -66,7 +69,7 @@ function isNegative(arg: ts.Expression): boolean {
 /** Every `….increment(<negative amount>)` in one file. */
 export function negativeIncrements(file: FileView): NodeHit[] {
   const hits: NodeHit[] = [];
-  eachNode(file.sourceFile, (node) => {
+  forEachNode(file.sourceFile, (node) => {
     if (
       ts.isCallExpression(node) &&
       ts.isPropertyAccessExpression(node.expression) &&
@@ -83,7 +86,7 @@ export function negativeIncrements(file: FileView): NodeHit[] {
 export const counterDecrementGuard: GenericGuardDefinition<NoFacts> = {
   id: 'firestoreCounterDecrements',
   absentWhen: 'the app stores nothing in Firestore',
-  factProblems: noFactProblems,
+  factProblems: takesNoFacts,
   build() {
     return [
       bannedGuard({
@@ -102,14 +105,16 @@ export const counterDecrementGuard: GenericGuardDefinition<NoFacts> = {
 
 export interface RandomUuidFacts {
   /** Server files reviewed to use randomUUID for something that is not a document id, each with its why. */
-  reviewedSites: ReadonlyArray<{ path: string; why: string }>;
+  reviewedSites: readonly Reviewed[];
 }
 
 export const randomUuidGuard: GenericGuardDefinition<RandomUuidFacts> = {
   id: 'firestoreRandomUuidSites',
   absentWhen: 'the app stores nothing in Firestore',
   factProblems(facts) {
-    return reviewedListProblems(facts?.reviewedSites, 'reviewedSites', 'path');
+    const problems: string[] = [];
+    reviewedProblems(facts?.reviewedSites, 'reviewedSites', problems);
+    return problems;
   },
   build(facts) {
     return [
@@ -138,7 +143,7 @@ const TIMESTAMP_NOW_SCOPE: Scope = { roots: ['app', 'functions'], optionalRoots:
 /** Every `Timestamp.now(…)` (any receiver chain ending in `Timestamp`) in one file. */
 export function timestampNowCalls(file: FileView): NodeHit[] {
   const hits: NodeHit[] = [];
-  eachNode(file.sourceFile, (node) => {
+  forEachNode(file.sourceFile, (node) => {
     if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression) || node.expression.name.text !== 'now') return;
     const receiver = node.expression.expression;
     const name = ts.isIdentifier(receiver) ? receiver.text : ts.isPropertyAccessExpression(receiver) ? receiver.name.text : null;
@@ -150,7 +155,7 @@ export function timestampNowCalls(file: FileView): NodeHit[] {
 export const timestampNowGuard: GenericGuardDefinition<NoFacts> = {
   id: 'firestoreTimestampNow',
   absentWhen: 'the app stores nothing in Firestore',
-  factProblems: noFactProblems,
+  factProblems: takesNoFacts,
   build() {
     return [
       bannedGuard({

@@ -10,15 +10,9 @@ import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { FileView } from '../../reader/view.js';
-import {
-  APP_SOURCE,
-  CORE_CODE_AND_DECLARATIONS,
-  declarationNameOf,
-  lineOfNode,
-  moduleOf,
-  reviewedProblems,
-  stringListProblems,
-} from './shared.js';
+import { isPlainString, lineOfNode } from '../../support/ast.js';
+import { isText, namesProblem, reviewedProblems } from '../../support/facts.js';
+import { APP_SOURCE, CORE_CODE_AND_DECLARATIONS, declarationNameOf, moduleOf } from './shared.js';
 
 export interface GuardedLiteral {
   /** The member's text, as its union declares it. */
@@ -44,9 +38,6 @@ export interface CodeLiteral {
   line: number;
 }
 
-const isWholeString = (node: ts.Node): node is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
-  ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
-
 /**
  * Every whole string literal written in a file's code (an interpolated template builds a string and
  * declares nothing). In a type declaration file only the type aliases and interfaces count: the
@@ -60,7 +51,7 @@ export function codeLiterals(file: FileView): CodeLiteral[] {
     if (declarations && !ts.isTypeAliasDeclaration(statement) && !ts.isInterfaceDeclaration(statement)) continue;
     const declaration = declarationNameOf(statement);
     const visit = (node: ts.Node): void => {
-      if (isWholeString(node)) found.push({ value: node.text, declaration, line: lineOfNode(file, node) });
+      if (isPlainString(node)) found.push({ value: node.text, declaration, line: lineOfNode(file, node) });
       ts.forEachChild(node, visit);
     };
     visit(statement);
@@ -158,7 +149,7 @@ export function redeclaredConstants(file: FileView, constants: ReadonlySet<strin
 }
 
 const stringMembers = (nodes: readonly ts.Node[]) =>
-  nodes.flatMap((n) => (isWholeString(n) ? [n.text] : ts.isLiteralTypeNode(n) && isWholeString(n.literal) ? [n.literal.text] : []));
+  nodes.flatMap((n) => (isPlainString(n) ? [n.text] : ts.isLiteralTypeNode(n) && isPlainString(n.literal) ? [n.literal.text] : []));
 
 const unwrapValue = (node: ts.Node): ts.Node => {
   let current = node;
@@ -210,7 +201,7 @@ export function restatedUnions(file: FileView, unions: ReadonlyArray<{ name: str
     else if (isZodEnum(node)) {
       const [first] = node.arguments;
       if (first && ts.isArrayLiteralExpression(first)) report(node, stringMembers(first.elements));
-    } else if (ts.isArrayLiteralExpression(node) && node.elements.every(isWholeString) && isBound(node)) {
+    } else if (ts.isArrayLiteralExpression(node) && node.elements.every(isPlainString) && isBound(node)) {
       report(node, stringMembers(node.elements));
     }
     ts.forEachChild(node, visit);
@@ -224,30 +215,16 @@ export const definitionRedeclarationGuard: GenericGuardDefinition<DefinitionRede
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!Array.isArray(facts?.guardedLiterals) || !facts.guardedLiterals.length) {
-      problems.push('guardedLiterals is missing or empty — name the most distinctive member of each canonical union');
-      return problems;
-    }
-    const seen = new Set<string>();
-    for (const g of facts.guardedLiterals) {
-      if (typeof g?.literal !== 'string' || !g.literal) {
-        problems.push('a guarded literal is empty');
-        continue;
-      }
-      if (seen.has(g.literal)) problems.push(`guarded literal '${g.literal}' is listed twice`);
-      seen.add(g.literal);
-      stringListProblems(g.owners, `the owners of '${g.literal}'`, problems);
-      reviewedProblems(
-        Array.isArray(g.allowed) ? g.allowed.map((a: GuardedLiteral['allowed'][number]) => ({ ...a, key: `${a?.file}#${a?.declaration}` })) : g.allowed,
-        `the allowed uses of '${g.literal}'`,
-        'key',
-        problems,
-        (entry, label) => {
-          if (typeof entry.file !== 'string' || !entry.file || typeof entry.declaration !== 'string' || !entry.declaration) {
-            problems.push(`${label} needs both its module and its declaration`);
-          }
-        },
-      );
+    const guarded = facts?.guardedLiterals;
+    namesProblem(Array.isArray(guarded) ? guarded.map((g) => g?.literal) : guarded, 'guardedLiterals', problems);
+    for (const g of Array.isArray(guarded) ? guarded : []) {
+      if (!isText(g?.literal)) continue;
+      namesProblem(g.owners, `the owners of '${g.literal}'`, problems);
+      reviewedProblems(g.allowed, `the allowed uses of '${g.literal}'`, problems, {
+        key: 'file',
+        id: (e) => (typeof e.declaration === 'string' && e.declaration.trim() ? `${e.file}#${e.declaration}` : undefined),
+        idNames: 'declaration',
+      });
     }
     return problems;
   },

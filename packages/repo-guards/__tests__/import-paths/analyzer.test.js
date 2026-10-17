@@ -22,7 +22,7 @@ const KIT = {
 
 describe('createImportPathProfile', () => {
   it('refuses an exception with no justification', () => {
-    expect(() => createImportPathProfile({ exceptions: [{ file: 'functions/src/index.ts', why: ' ' }] })).toThrow(/justification/);
+    expect(() => createImportPathProfile({ exceptions: [{ file: 'functions/src/index.ts', why: ' ' }] })).toThrow(/carries no why/);
   });
 
   it('refuses an exception listed twice', () => {

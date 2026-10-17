@@ -1,7 +1,7 @@
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 import { viewOfText, type FileView } from '@ttt-productions/repo-guards';
-import { importsOf, packageSource } from './workspace';
+import { packageSource } from './workspace';
 
 // One spinner. Every in-progress indicator renders through ui-core's `Spinner` (directly, or via a
 // control's `pending` prop), so its look, size scale, and in-button color rule have one change point.
@@ -47,7 +47,7 @@ function appliedSpinClass(file: FileView): number[] {
   }
   const sf = file.sourceFile;
   const lines: number[] = [];
-  const at = (node: ts.Node) => sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1;
+  const at = (node: ts.Node) => file.lineOf(node.getStart(sf));
   const visit = (node: ts.Node): void => {
     if (ts.isJsxAttribute(node) && ['className', 'class'].includes(node.name.getText(sf)) && node.initializer) {
       // The whole attribute is one application, a class helper inside it included.
@@ -62,16 +62,22 @@ function appliedSpinClass(file: FileView): number[] {
   return lines;
 }
 
+/** True when a file imports or re-exports lucide's spinner icon, under any of its names. */
+const namesSpinnerIcon = (file: FileView): boolean =>
+  file.imports.some(
+    ({ kind, spec, named }) => (kind === 'import' || kind === 'export') && spec === 'lucide-react' && named.some((n) => SPINNER_ICONS.includes(n.imported)),
+  );
+
 describe('boundary: canonical spinner', () => {
   it('scans a plausible number of package source files', () => {
     expect(sourceFiles.length).toBeGreaterThan(100);
   });
 
-  it('allows the spinner icon only inside ui-core Spinner, under any of its names', () => {
+  it('allows the spinner icon only inside ui-core Spinner, imported or re-exported under any of its names', () => {
     const allowed = 'packages/ui-core/src/react/components/spinner.tsx';
     const violations = sourceFiles
       .filter((file) => file.kind === 'code')
-      .filter((file) => importsOf(file).some(({ specifier, names }) => specifier === 'lucide-react' && names.some((n) => SPINNER_ICONS.includes(n))))
+      .filter(namesSpinnerIcon)
       .map((file) => file.path)
       .filter((file) => file !== allowed);
 
@@ -88,6 +94,12 @@ describe('boundary: canonical spinner', () => {
       violations,
       `animate-spin applied as a class — render <Spinner> instead:\n  ${violations.join('\n  ')}`,
     ).toEqual([]);
+  });
+
+  it('finds the spinner icon imported, aliased, or re-exported, and nothing else lucide exports', () => {
+    expect(namesSpinnerIcon(viewOfText('a.tsx', "import { Loader2 as Busy } from 'lucide-react';"))).toBe(true);
+    expect(namesSpinnerIcon(viewOfText('b.ts', "export { Loader2Icon } from 'lucide-react';"))).toBe(true);
+    expect(namesSpinnerIcon(viewOfText('c.tsx', "import { RefreshCw } from 'lucide-react';"))).toBe(false);
   });
 
   it('finds the class wherever it is applied, and nowhere it is only named', () => {

@@ -53,6 +53,11 @@ describe('no typed path segment reaches a Firestore accessor', () => {
     expect(await run(guard, { 'src/clean.ts': clean, 'functions/src/clean.ts': clean })).toEqual([]);
   });
 
+  it('FLAGS a literal behind a type assertion', async () => {
+    const findings = await run(guard, { 'functions/src/asserted.ts': 'const a = db.collection(<string>"jobs");' });
+    expect(at(findings)).toEqual(['functions/src/asserted.ts:1']);
+  });
+
   it('FLAGS a literal on the Admin SDK in every quote, multiline, and as a collection group id', async () => {
     const findings = await run(guard, {
       'functions/src/admin.ts': [
@@ -203,8 +208,8 @@ describe('no Firestore path is assembled by hand', () => {
 
   it('refuses missing owner constants, a missing joiner list, and a reviewed site with no why', () => {
     expect(pathAssemblyGuard.factProblems({ segmentArrayJoiners: [], reviewedSites: [{ path: 'a.ts', why: ' ' }] } as never)).toEqual([
-      'ownerConstants is missing (declare [] when there is none)',
-      'reviewedSites: a.ts carries no why',
+      'ownerConstants is missing',
+      'reviewedSites entry a.ts carries no why',
     ]);
     expect(pathAssemblyGuard.factProblems({ ownerConstants: [], reviewedSites: [] } as never)).toEqual([
       'ownerConstants is empty',
@@ -281,8 +286,8 @@ describe('no retired Firestore segment survives in a path string', () => {
         reviewedMatches: [{ file: 'src/a.ts', contains: '', why: '' }],
       }),
     ).toEqual([
-      'reviewedMatches: src/a.ts carries no why',
-      'reviewedMatches: src/a.ts names no text it contains',
+      'reviewedMatches entry src/a.ts names no text it contains',
+      'reviewedMatches entry src/a.ts carries no why',
       'segments: tales names no replacement',
       'segments: a/b is not a segment name',
     ]);

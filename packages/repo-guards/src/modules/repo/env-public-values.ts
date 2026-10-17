@@ -4,6 +4,7 @@
 
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
+import { namesProblem, reviewedProblems } from '../../support/facts.js';
 
 export interface EnvPublicValuesFacts {
   /** The committed env files a deploy delivers, repo-relative. */
@@ -52,17 +53,8 @@ export const envPublicValuesGuard: GenericGuardDefinition<EnvPublicValuesFacts> 
   absentWhen: 'the app commits no env file a deploy delivers',
   factProblems(facts) {
     const problems: string[] = [];
-    if (!Array.isArray(facts?.files) || !facts.files.length) problems.push('files names no env file');
-    if (!Array.isArray(facts?.publicKeys) || !facts.publicKeys.length) problems.push('publicKeys declares no key');
-    else {
-      const keys = new Set<string>();
-      for (const entry of facts.publicKeys) {
-        if (!entry?.key?.trim()) problems.push('a public key entry names no key');
-        else if (keys.has(entry.key)) problems.push(`public key ${entry.key} is listed twice`);
-        else if (!entry.why?.trim()) problems.push(`public key ${entry.key} carries no why`);
-        keys.add(entry?.key);
-      }
-    }
+    namesProblem(facts?.files, 'files', problems);
+    reviewedProblems(facts?.publicKeys, 'publicKeys', problems, { key: 'key', nonEmpty: true });
     return problems;
   },
   build(facts) {

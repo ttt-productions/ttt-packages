@@ -7,30 +7,27 @@ import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
+import { identifierProblem, loaderProblem, pathProblem, reviewedProblems, type Loader } from '../../support/facts.js';
+import { escapeRegExp } from '../../support/text.js';
 import {
   APP_CODE,
   alternation,
   callSpan,
   collapse,
-  escapeRegExp,
   familyOf,
   filesUnder,
-  identifierListProblems,
-  identifierProblems,
+  identifierListProblem,
   infiniteKeyFamilies,
   isPrefix,
-  keyModuleProblems,
+  keyModuleProblem,
   loadKeyObjects,
-  loaderProblems,
-  pathListProblems,
-  pathProblems,
+  pathListProblem,
   reachesInfinite,
   requiredFile,
-  reviewedCallProblems,
+  reviewedCallProblem,
   sampleKey,
   type KeyBuilders,
   type KeyModuleFacts,
-  type Loader,
   type ReviewedCall,
 } from './shared.js';
 
@@ -193,18 +190,20 @@ export function registryTargetProblems(input: {
   return problems;
 }
 
-function registryProblems(value: unknown): string[] {
+function registryProblem(value: unknown, problems: string[]): void {
   const facts = value as RegistryFacts | undefined;
-  if (!facts || typeof facts !== 'object') return ['registry is missing'];
-  return pathProblems(facts.path, 'registry.path');
+  if (!facts || typeof facts !== 'object') problems.push('registry is missing');
+  else pathProblem(facts.path, 'registry.path', problems);
 }
 
-const cacheInvalidationProblems = (facts: CacheInvalidationFacts) => [
-  ...registryProblems(facts?.registry),
-  ...keyModuleProblems(facts?.keyModule),
-  ...pathListProblems(facts?.readTrees, 'readTrees'),
-  ...identifierProblems(facts?.familySuffix, 'familySuffix'),
-];
+const cacheInvalidationProblems = (facts: CacheInvalidationFacts) => {
+  const problems: string[] = [];
+  registryProblem(facts?.registry, problems);
+  keyModuleProblem(facts?.keyModule, problems);
+  pathListProblem(facts?.readTrees, 'readTrees', problems);
+  identifierProblem(facts?.familySuffix, 'familySuffix', problems);
+  return problems;
+};
 
 const cacheInvalidationGuards = (facts: CacheInvalidationFacts, owned: OwnedElsewhere): Guard[] => [
     {
@@ -339,16 +338,17 @@ export function refreshHandoffMisuses(files: readonly FileView[], handoffs: List
 }
 
 const listResetProblems = (facts: ListResetFacts) => {
-  const problems = [
-    ...keyModuleProblems(facts?.keyModule),
-    ...identifierProblems(facts?.familySuffix, 'familySuffix'),
-    ...identifierProblems(facts?.loadedPagesPredicate, 'loadedPagesPredicate'),
-    ...reviewedCallProblems(facts?.memberRefreshes, 'memberRefreshes'),
-  ];
-  if (!Array.isArray(facts?.refreshHandoffs)) problems.push('refreshHandoffs is missing (an app with none declares [])');
+  const problems: string[] = [];
+  keyModuleProblem(facts?.keyModule, problems);
+  identifierProblem(facts?.familySuffix, 'familySuffix', problems);
+  identifierProblem(facts?.loadedPagesPredicate, 'loadedPagesPredicate', problems);
+  reviewedCallProblem(facts?.memberRefreshes, 'memberRefreshes', problems);
+  if (!Array.isArray(facts?.refreshHandoffs)) problems.push('refreshHandoffs is missing (declare [] when there is none)');
   else
     facts.refreshHandoffs.forEach((h, i) => {
-      problems.push(...identifierProblems(h?.hook, `refreshHandoffs[${i}].hook`), ...identifierProblems(h?.control, `refreshHandoffs[${i}].control`), ...identifierProblems(h?.prop, `refreshHandoffs[${i}].prop`));
+      identifierProblem(h?.hook, `refreshHandoffs[${i}].hook`, problems);
+      identifierProblem(h?.control, `refreshHandoffs[${i}].control`, problems);
+      identifierProblem(h?.prop, `refreshHandoffs[${i}].prop`, problems);
     });
   return problems;
 };
@@ -399,13 +399,9 @@ export function wholeCacheDrops(file: FileView): Array<{ index: number; text: st
 
 const sessionRetirementPart = {
   factProblems(facts: SessionRetirementFacts) {
-    const problems = pathProblems(facts?.owner, 'owner');
-    if (!Array.isArray(facts?.predicateRetirements)) problems.push('predicateRetirements is missing (an app with none declares [])');
-    else
-      facts.predicateRetirements.forEach((r, i) => {
-        if (typeof r?.trigger !== 'string' || !r.trigger.trim()) problems.push(`predicateRetirements[${i}] names no trigger`);
-        else if (typeof r.why !== 'string' || !r.why.trim()) problems.push(`predicateRetirements[${i}] (${r.trigger}) carries no why`);
-      });
+    const problems: string[] = [];
+    pathProblem(facts?.owner, 'owner', problems);
+    reviewedProblems(facts?.predicateRetirements, 'predicateRetirements', problems, { key: 'trigger' });
     return problems;
   },
   build: (facts: SessionRetirementFacts): Guard[] => [
@@ -517,12 +513,11 @@ export const domainEventRegistryGuard: GenericGuardDefinition<DomainEventRegistr
   id: 'domainEventRegistry',
   absentWhen: false,
   factProblems(facts) {
-    const problems = [
-      ...registryProblems(facts?.registry),
-      ...loaderProblems(facts?.registry?.load, 'registry.load'),
-      ...loaderProblems(facts?.eventSchema, 'eventSchema'),
-      ...identifierListProblems(facts?.notifiers, 'notifiers', { allowEmpty: false }),
-    ];
+    const problems: string[] = [];
+    registryProblem(facts?.registry, problems);
+    loaderProblem(facts?.registry?.load, 'registry.load', problems);
+    loaderProblem(facts?.eventSchema, 'eventSchema', problems);
+    identifierListProblem(facts?.notifiers, 'notifiers', problems, { nonEmpty: true });
     return problems;
   },
   build: (facts) => [

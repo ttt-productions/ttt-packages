@@ -8,6 +8,7 @@ import type { Finding } from '../../guard.js';
 import type { RepoReader } from '../../reader/reader.js';
 import type { RootRole } from '../../reader/layout.js';
 import type { GenericGuardDefinition } from '../../config.js';
+import { listProblem, loaderProblem, namesProblem, objectProblem, reviewedProblems, textProblem, type Loader } from '../../support/facts.js';
 import {
   analyzeFiles,
   createGuardProfile,
@@ -19,8 +20,6 @@ import {
 } from './analyzer.js';
 import { findHandTypedFirestorePaths } from './test-paths.js';
 
-type Loader = () => Promise<Record<string, unknown>>;
-
 export interface WriteGuardFacts {
   /** The app's core package specifier. Its installed build is the layout's `coreDist` root. */
   corePackage: string;
@@ -31,7 +30,7 @@ export interface WriteGuardFacts {
   handleModulePrefixes: readonly string[];
   removalOnlyTables: ReadonlyArray<{ exportName: string; module: string; label: string }>;
   /** The core's entry points, as loaders the app writes with literal specifiers. */
-  registrySources: { core: Loader; docSchemas: Loader; subpaths?: Readonly<Record<string, Loader>> };
+  registrySources: { core: Loader<Record<string, unknown>>; docSchemas: Loader<Record<string, unknown>>; subpaths?: Readonly<Record<string, Loader<Record<string, unknown>>>> };
   /** The core's path-constant maps the guard resolves names through. */
   constantMapNames: readonly string[];
   /** The roots that can write a document. */
@@ -99,30 +98,26 @@ function rootPaths(reader: RepoReader, role: RootRole): string[] {
   return root ? [root.path] : [];
 }
 
-const listProblems = (value: unknown, what: string, problems: string[], { nonEmpty = false } = {}) => {
-  if (!Array.isArray(value)) problems.push(`${what} is missing (declare [] when there is none)`);
-  else if (nonEmpty && !value.length) problems.push(`${what} is empty`);
-};
-
 export const writeGuard: GenericGuardDefinition<WriteGuardFacts> = {
   id: 'firestoreWrites',
   absentWhen: 'the app stores nothing in Firestore',
   factProblems(facts) {
     const problems: string[] = [];
-    if (!facts?.corePackage) problems.push('corePackage is missing');
-    if (!facts || typeof facts.importAliases !== 'object') problems.push('importAliases is missing');
-    listProblems(facts?.transactionTypeNames, 'transactionTypeNames', problems);
-    listProblems(facts?.handleModulePrefixes, 'handleModulePrefixes', problems);
-    listProblems(facts?.removalOnlyTables, 'removalOnlyTables', problems);
-    listProblems(facts?.constantMapNames, 'constantMapNames', problems, { nonEmpty: true });
-    listProblems(facts?.writerRoots, 'writerRoots', problems, { nonEmpty: true });
-    listProblems(facts?.writerAnchors, 'writerAnchors', problems, { nonEmpty: true });
-    listProblems(facts?.exceptions, 'exceptions', problems);
-    if (typeof facts?.registrySources?.core !== 'function' || typeof facts?.registrySources?.docSchemas !== 'function') {
-      problems.push('registrySources needs the core and docSchemas loaders');
-    }
-    for (const e of facts?.exceptions ?? []) {
-      if (typeof e?.why !== 'string' || !e.why.trim()) problems.push(`an exception for ${String(e?.file)} carries no why`);
+    textProblem(facts?.corePackage, 'corePackage', problems);
+    objectProblem(facts?.importAliases, 'importAliases', problems);
+    namesProblem(facts?.transactionTypeNames, 'transactionTypeNames', problems, { nonEmpty: false });
+    namesProblem(facts?.handleModulePrefixes, 'handleModulePrefixes', problems, { nonEmpty: false });
+    listProblem(facts?.removalOnlyTables, 'removalOnlyTables', problems, { nonEmpty: false });
+    namesProblem(facts?.constantMapNames, 'constantMapNames', problems);
+    namesProblem(facts?.writerRoots, 'writerRoots', problems);
+    namesProblem(facts?.writerAnchors, 'writerAnchors', problems);
+    reviewedProblems(facts?.exceptions, 'exceptions', problems, {
+      key: 'file',
+      id: (e) => `${e.file} ${JSON.stringify(Object.entries(e).filter(([k]) => k !== 'file' && k !== 'why'))}`,
+    });
+    if (objectProblem(facts?.registrySources, 'registrySources', problems)) {
+      loaderProblem(facts.registrySources.core, 'registrySources.core', problems);
+      loaderProblem(facts.registrySources.docSchemas, 'registrySources.docSchemas', problems);
     }
     return problems;
   },

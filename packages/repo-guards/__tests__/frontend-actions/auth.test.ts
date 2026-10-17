@@ -156,7 +156,7 @@ describe('auth failure capture', () => {
     reporter: 'reportAuthFailure',
     reportedElsewhere: [
       { path: 'src/auth/verify-action.tsx', why: 'runs inside the one-shot hook, which reports', reportedBy: 'src/auth/use-one-shot.ts' },
-      { path: 'src/hooks/use-forced-sign-out.ts', why: 'rethrows; every caller catches and reports', reportedBy: null },
+      { path: 'src/hooks/use-forced-sign-out.ts', why: 'rethrows; its one caller catches and reports', reportedBy: 'src/auth/sign-out-button.tsx' },
     ],
   };
   const base = {
@@ -164,6 +164,7 @@ describe('auth failure capture', () => {
     'src/auth/verify-action.tsx': "import { applyActionCode } from 'firebase/auth';\nexport const run = () => applyActionCode(a, c);",
     'src/auth/use-one-shot.ts': 'export function useOneShot(p) { p.catch((e) => reportAuthFailure(e)); }',
     'src/hooks/use-forced-sign-out.ts': "import { signOut, type User } from 'firebase/auth';\nexport const out = () => signOut(a);",
+    'src/auth/sign-out-button.tsx': "import { out } from '../hooks/use-forced-sign-out';\nexport const click = () => out().catch((e) => reportAuthFailure(e));",
     'src/types.ts': "import type { User } from 'firebase/auth';",
   };
 
@@ -201,10 +202,26 @@ describe('auth failure capture', () => {
     ]);
   });
 
-  it('refuses a missing reporter and an entry with an empty reportedBy', () => {
-    expect(authFailureCaptureGuard.factProblems({ reporter: '', reportedElsewhere: [{ path: 'a.ts', why: 'w', reportedBy: '' }] })).toEqual([
+  it('refuses a missing reporter and an entry that names no reporting file', () => {
+    expect(
+      authFailureCaptureGuard.factProblems({
+        reporter: '',
+        reportedElsewhere: [
+          { path: 'a.ts', why: 'w', reportedBy: '' },
+          { path: 'b.ts', why: 'w', reportedBy: null as never },
+        ],
+      }),
+    ).toEqual([
       'reporter is missing',
-      'reportedElsewhere entry a.ts names no reportedBy file (null when its why names the callers)',
+      'reportedElsewhere entry a.ts names no reportedBy file (the file that reports its failures)',
+      'reportedElsewhere entry b.ts names no reportedBy file (the file that reports its failures)',
+    ]);
+  });
+
+  it('flags a reviewed entry whose reporting file is gone', async () => {
+    const { 'src/auth/sign-out-button.tsx': _gone, ...rest } = base;
+    expect(await findingsOf(authFailureCaptureGuard, facts, rest)).toEqual([
+      'src/auth/sign-out-button.tsx the reporter named for src/hooks/use-forced-sign-out.ts no longer exists',
     ]);
   });
 });
@@ -238,6 +255,12 @@ describe('sign-out liveness owner', () => {
 
   it('refuses no owner exports', () => {
     expect(signOutLivenessGuard.factProblems({ ...facts, ownerExports: [] })).toEqual(['ownerExports is empty']);
+  });
+
+  it('refuses an owner export listed twice', () => {
+    expect(signOutLivenessGuard.factProblems({ ...facts, ownerExports: ['isStillSignedIn', 'isStillSignedIn'] })).toEqual([
+      'ownerExports lists isStillSignedIn twice',
+    ]);
   });
 });
 

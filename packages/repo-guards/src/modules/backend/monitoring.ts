@@ -8,13 +8,15 @@ import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, Guard } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
-import { calleeName, forEachNode, lineOfNode, moduleSpecifiers, namesModule, namesProblem, reviewedProblems, textProblem, type ReviewedFile } from './shared.js';
+import type { Reviewed } from '../../reader/layout.js';
+import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
+import { loaderProblem, namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import { MODULE_LOADS, moduleImports, namesModule } from '../../support/imports.js';
+import { escapeRegExp } from '../../support/text.js';
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 const APP_AND_FUNCTIONS_CODE: Scope = { roots: ['app', 'functions'], kinds: ['code'], tests: false };
-
-const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** A pattern for a call to `name` (`a.b` matches `a . b (`), never a longer name ending in it. */
 function callPattern(name: string): RegExp {
@@ -50,7 +52,7 @@ export interface MonitoringFacts {
   /** The provider SDK's own init call (`Vendor.init`). */
   providerInitCall: string;
   /** The files that start the provider SDK, each with its why; one that no longer starts it is stale. */
-  sdkInitFiles: readonly ReviewedFile[];
+  sdkInitFiles: readonly Reviewed[];
   /** The Functions test seam that records captures; tests use it instead of mocking the package. */
   functionsTestRecorder: string;
 }
@@ -73,36 +75,23 @@ export function unmonitoredEntryPoint(file: FileView, facts: Pick<MonitoringFact
   const shapes = ENTRY_POINT_SHAPES.filter(({ re }) => re.test(file.code)).map(({ shape }) => shape);
   if (!shapes.length) return [];
   if (facts.callableExits.some((exit) => callPattern(exit).test(file.code))) return [];
-  const importsMonitoring = moduleSpecifiers(file).some(({ spec, typeOnly }) => !typeOnly && namesModule(spec, facts.monitoringPackage));
+  const importsMonitoring = moduleImports(file.sourceFile, MODULE_LOADS).some(({ spec, typeOnly }) => !typeOnly && namesModule(spec, facts.monitoringPackage));
   const captures = facts.captureCalls.some((capture) => new RegExp(`\\b${escapeRegExp(capture)}\\s*\\(`).test(file.code));
   return importsMonitoring && captures ? [] : shapes;
 }
 
 /** Every import of a provider SDK package. */
 export function providerSdkImports(file: FileView, sdks: readonly string[]): Array<{ node: ts.Node; spec: string }> {
-  return moduleSpecifiers(file)
+  return moduleImports(file.sourceFile, MODULE_LOADS)
     .filter(({ spec }) => sdks.some((sdk) => namesModule(spec, sdk)))
     .map(({ node, spec }) => ({ node, spec }));
 }
 
 /** Every `vi.mock` / `vi.doMock` of a package. */
 export function packageMocks(file: FileView, pkg: string): ts.Node[] {
-  const hits: ts.Node[] = [];
-  forEachNode(file.sourceFile, (node) => {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      ts.isIdentifier(node.expression.expression) &&
-      node.expression.expression.text === 'vi' &&
-      (node.expression.name.text === 'mock' || node.expression.name.text === 'doMock') &&
-      node.arguments[0] !== undefined &&
-      ts.isStringLiteralLike(node.arguments[0]) &&
-      namesModule(node.arguments[0].text, pkg)
-    ) {
-      hits.push(node);
-    }
-  });
-  return hits;
+  return moduleImports(file.sourceFile, ['mock'])
+    .filter(({ callee, spec }) => (callee === 'vi.mock' || callee === 'vi.doMock') && namesModule(spec, pkg))
+    .map(({ node }) => node);
 }
 
 /** True when a file renders `<Element />` (or `<Element>…`). */
@@ -276,8 +265,8 @@ export const telemetryTagGuard: GenericGuardDefinition<TelemetryTagFacts> = {
   absentWhen: 'the app declares no telemetry content policy',
   factProblems(facts) {
     const problems: string[] = [];
-    if (typeof facts?.policy !== 'function') problems.push('policy needs a loader of the telemetry content policy');
-    reviewedProblems(facts?.flagKeys, 'flagKeys', problems, 'key');
+    loaderProblem(facts?.policy, 'policy', problems);
+    reviewedProblems(facts?.flagKeys, 'flagKeys', problems, { key: 'key' });
     textProblem(facts?.tagKeyMapSuffix, 'tagKeyMapSuffix', problems);
     return problems;
   },
@@ -400,10 +389,9 @@ export const unusedServiceGuard: GenericGuardDefinition<UnusedServiceFacts> = {
   absentWhen: 'the app has no external service it must keep out of the product',
   factProblems(facts) {
     const problems: string[] = [];
-    reviewedProblems(facts?.services, 'services', problems, 'name');
-    if (Array.isArray(facts?.services) && !facts.services.length) problems.push('services is empty, so the guard checks nothing');
+    reviewedProblems(facts?.services, 'services', problems, { key: 'name', nonEmpty: true });
     for (const s of facts?.services ?? []) if (typeof s?.name === 'string' && !/^[A-Za-z][A-Za-z0-9]*$/.test(s.name)) problems.push(`service ${s.name} is not one word`);
-    reviewedProblems(facts?.collisions, 'collisions', problems, 'text');
+    reviewedProblems(facts?.collisions, 'collisions', problems, { key: 'text' });
     namesProblem(facts?.namedFiles, 'namedFiles', problems, { nonEmpty: false });
     return problems;
   },

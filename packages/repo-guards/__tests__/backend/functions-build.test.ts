@@ -163,7 +163,7 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
   });
 
   it('refuses facts with no runner config', () => {
-    expect(lazyLoaderGuard.factProblems({ ...facts, testRunnerConfigs: [] })).toEqual(['testRunnerConfigs is empty, so the guard checks nothing']);
+    expect(lazyLoaderGuard.factProblems({ ...facts, testRunnerConfigs: [] })).toEqual(['testRunnerConfigs is empty']);
   });
 });
 

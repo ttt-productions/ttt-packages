@@ -108,7 +108,7 @@ describe('roots that are separate projects never import one another', () => {
     ]);
     expect(isolatedRootsGuard.factProblems({ isolatedRoots: ['app'], importAliases: undefined as never })).toEqual([
       'isolatedRoots needs at least two roots to keep apart',
-      'importAliases is missing (an app with no alias declares {})',
+      'importAliases is missing',
     ]);
   });
 });
@@ -148,7 +148,7 @@ describe('every tsconfig path alias resolves inside its own root', () => {
   });
 
   it('refuses facts with no tsconfig', () => {
-    expect(tsconfigAliasGuard.factProblems({ tsconfigs: [] })).toEqual(['tsconfigs names no tsconfig']);
+    expect(tsconfigAliasGuard.factProblems({ tsconfigs: [] })).toEqual(['tsconfigs is empty']);
   });
 });
 
@@ -216,7 +216,7 @@ describe('each package is imported from the entry point matching the runtime', (
   it('refuses facts with no scope, a root on both sides, or an unexplained server-only path', () => {
     expect(
       entryPointGuard.factProblems({ packageScope: 'scope', serverRoots: ['app'], clientRoots: ['app'], serverOnlyPaths: [{ path: 'src/x', why: '' }] }),
-    ).toEqual(['packageScope is not an npm scope (@name)', 'app is both a server and a client root', 'server-only path src/x needs its path and why']);
+    ).toEqual(['packageScope is not an npm scope (@name)', 'app is both a server and a client root', 'serverOnlyPaths entry src/x carries no why']);
   });
 });
 
@@ -308,8 +308,8 @@ describe('scripts that reach a real project take it as an argument', () => {
 
   it('refuses facts with no project id or no known privileged script', () => {
     expect(projectScriptGuard.factProblems({ projectIds: [], privilegedScripts: [] })).toEqual([
-      'projectIds names no project',
-      'privilegedScripts names no script',
+      'projectIds is empty',
+      'privilegedScripts is empty',
     ]);
   });
 });

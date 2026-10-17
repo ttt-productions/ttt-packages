@@ -318,9 +318,11 @@ the rules above so they fail loudly:
   `chat-core/react` reference after the concept moves.
 - `canonical-audio-renderer.test.ts` — fails if a raw `<audio>` element appears in
   package source outside media-viewer's `AudioViewer` (one audio renderer).
-- `canonical-spinner.test.ts` — fails if the `Loader2` icon is imported anywhere
-  but ui-core's `Spinner`, or if the `animate-spin` utility appears in package
-  source (theme-core's `spinner-*` classes own the animation).
+- `canonical-spinner.test.ts` — fails if lucide's spinner icon (`Loader2` under
+  any of its aliases) is imported anywhere but ui-core's `Spinner`, or if package
+  source applies the `animate-spin` utility as a class — in a `className` / `class`
+  attribute, a `cn` / `clsx` argument, an `@apply`, or a stylesheet rule
+  (theme-core's `spinner-*` classes own the animation).
 - `lucide-peer.test.ts` — fails if any package takes `lucide-react` as a hard
   dependency, if a package that imports it does not declare it as an optional peer
   (with a devDependency to build and test alone), if a package whose source never

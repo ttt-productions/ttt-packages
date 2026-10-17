@@ -65,7 +65,7 @@ describe('every live Firestore subscription is on the reviewed list', () => {
 
   it('refuses a missing list and an entry with no why', () => {
     expect(liveSubscriptionGuard.factProblems({} as never)).toEqual(['allowlist is missing (declare [] when there is none)']);
-    expect(liveSubscriptionGuard.factProblems({ allowlist: [{ path: 'a.ts', why: ' ' }] })).toEqual(['allowlist: a.ts carries no why']);
+    expect(liveSubscriptionGuard.factProblems({ allowlist: [{ path: 'a.ts', why: ' ' }] })).toEqual(['allowlist entry a.ts carries no why']);
   });
 });
 
@@ -113,8 +113,8 @@ describe('no component or route imports the Firestore runtime', () => {
 
   it('refuses missing UI folders and a sanctioned entry with no why', () => {
     expect(firestoreRuntimeInUiGuard.factProblems({ sanctioned: [{ path: 'a.tsx', why: '' }] } as never)).toEqual([
-      'uiFolders is missing (declare [] when there is none)',
-      'sanctioned: a.tsx carries no why',
+      'uiFolders is missing',
+      'sanctioned entry a.tsx carries no why',
     ]);
   });
 });

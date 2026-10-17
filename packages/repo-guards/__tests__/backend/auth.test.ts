@@ -65,7 +65,7 @@ describe('the admin claim is read only by its resolver', () => {
   });
 
   it('refuses facts that name no resolver', () => {
-    expect(adminClaimGuard.factProblems({ ...facts, readers: [] })).toEqual(['readers is empty: name the resolver that answers the admin question']);
+    expect(adminClaimGuard.factProblems({ ...facts, readers: [] })).toEqual(['readers is empty']);
   });
 });
 
@@ -124,9 +124,15 @@ describe('no sign-in waits on a blocking function', () => {
     ]);
   });
 
+  it('FLAGS the identity module loaded through import-equals', async () => {
+    repo = backendRepo({ 'functions/src/auth.ts': "import identity = require('firebase-functions/v2/identity');" });
+    const [guard] = noBlockingFunctionGuard.build({});
+    expect(await repo.run(guard!)).toEqual([{ file: 'functions/src/auth.ts', line: 1, detail: 'imports firebase-functions/v2/identity' }]);
+  });
+
   it('takes no facts', () => {
     expect(noBlockingFunctionGuard.factProblems({})).toEqual([]);
-    expect(noBlockingFunctionGuard.factProblems({ extra: 1 } as never)).toEqual(['this guard takes no facts: declare {}']);
+    expect(noBlockingFunctionGuard.factProblems({ extra: 1 } as never)).toEqual(['this guard takes no facts: declare it with {}']);
   });
 });
 

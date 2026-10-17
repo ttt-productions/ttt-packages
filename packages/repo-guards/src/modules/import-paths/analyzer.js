@@ -20,6 +20,10 @@
 // not a boundary, so it is a separate report (`findUnusedIndexMembers`), never a violation.
 
 import ts from 'typescript';
+import { moduleImports } from '../../support/imports.js';
+import { reviewedProblems } from '../../support/facts.js';
+import { dirnameOf, normalizePath } from '../../support/paths.js';
+import { isUnder } from '../../support/text.js';
 
 /** Every violation kind the guard reports. */
 export const IMPORT_PATH_VIOLATION_KINDS = Object.freeze([
@@ -40,26 +44,6 @@ const EMITTED_TO_SOURCE = Object.freeze({
   '.mjs': ['.mts'],
   '.cjs': ['.cts'],
 });
-const MOCK_CALLEES = new Set([
-  'vi.mock', 'vi.doMock', 'vi.unmock', 'vi.doUnmock', 'vi.importActual', 'vi.importMock',
-  'jest.mock', 'jest.doMock', 'jest.unmock', 'jest.requireActual', 'jest.requireMock',
-]);
-
-const posixDirname = (p) => {
-  const i = p.lastIndexOf('/');
-  return i === -1 ? '' : p.slice(0, i);
-};
-
-/** `a/./b/../c` → `a/c`; a path that climbs above the repo root keeps its leading `..`. */
-function normalize(p) {
-  const out = [];
-  for (const seg of p.split('/')) {
-    if (seg === '' || seg === '.') continue;
-    if (seg === '..' && out.length && out[out.length - 1] !== '..') out.pop();
-    else out.push(seg);
-  }
-  return out.join('/');
-}
 
 const extensionOf = (p) => {
   const base = p.slice(p.lastIndexOf('/') + 1);
@@ -89,17 +73,9 @@ export function createImportPathProfile({
   codeExtensions = DEFAULT_CODE_EXTENSIONS,
   isTestFile = defaultIsTestFile,
 } = {}) {
-  const seen = new Set();
-  for (const entry of exceptions) {
-    if (!entry || typeof entry.file !== 'string' || !entry.file) {
-      throw new Error('repo-guards: every exception names its file');
-    }
-    if (typeof entry.why !== 'string' || !entry.why.trim()) {
-      throw new Error(`repo-guards: exception ${entry.file} carries no justification`);
-    }
-    if (seen.has(entry.file)) throw new Error(`repo-guards: exception ${entry.file} is listed twice`);
-    seen.add(entry.file);
-  }
+  const problems = [];
+  reviewedProblems(exceptions, 'exceptions', problems, { key: 'file' });
+  if (problems.length) throw new Error(`repo-guards: the import-path exceptions are malformed: ${problems.join('; ')}`);
   for (const [prefix, target] of Object.entries(importAliases)) {
     if (!prefix || typeof target !== 'string') {
       throw new Error(`repo-guards: alias ${JSON.stringify(prefix)} needs a target folder`);
@@ -125,14 +101,6 @@ const hasExportModifier = (node) =>
   ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 const hasDefaultModifier = (node) =>
   ts.canHaveModifiers(node) && (ts.getModifiers(node) ?? []).some((m) => m.kind === ts.SyntaxKind.DefaultKeyword);
-
-function calleeName(expr) {
-  if (ts.isIdentifier(expr)) return expr.text;
-  if (ts.isPropertyAccessExpression(expr) && ts.isIdentifier(expr.expression)) {
-    return `${expr.expression.text}.${expr.name.text}`;
-  }
-  return null;
-}
 
 /** The names a dynamic import or `require` reads, when the code says; `'*'` when it does not. */
 function namesReadFromCall(call) {
@@ -172,53 +140,44 @@ export function parseModule(path, text, sourceFile = null) {
   const ownExports = new Set();
   const importedBindings = new Map();
 
-  for (const stmt of sf.statements) {
-    if (ts.isImportDeclaration(stmt) && ts.isStringLiteral(stmt.moduleSpecifier)) {
-      const spec = stmt.moduleSpecifier.text;
-      const clause = stmt.importClause;
+  const sites = moduleImports(sf);
+  for (const site of sites) {
+    if (!site.topLevel) continue;
+    const { spec } = site;
+    if (site.kind === 'import') {
       const names = [];
-      let namespace = false;
-      if (clause?.name) {
+      if (site.defaultName) {
         names.push('default');
-        importedBindings.set(clause.name.text, { spec, imported: 'default' });
+        importedBindings.set(site.defaultName, { spec, imported: 'default' });
       }
-      const b = clause?.namedBindings;
-      if (b && ts.isNamespaceImport(b)) {
-        namespace = true;
-        importedBindings.set(b.name.text, { spec, imported: '*' });
-      } else if (b && ts.isNamedImports(b)) {
-        for (const el of b.elements) {
-          const imported = (el.propertyName ?? el.name).text;
-          names.push(imported);
-          importedBindings.set(el.name.text, { spec, imported });
-        }
+      if (site.namespace) importedBindings.set(site.namespace, { spec, imported: '*' });
+      for (const { imported, local } of site.named) {
+        names.push(imported);
+        importedBindings.set(local, { spec, imported });
       }
-      imports.push({ spec, kind: 'static', names: namespace ? '*' : names });
-    } else if (ts.isImportEqualsDeclaration(stmt) && ts.isExternalModuleReference(stmt.moduleReference)
-      && ts.isStringLiteral(stmt.moduleReference.expression)) {
-      imports.push({ spec: stmt.moduleReference.expression.text, kind: 'static', names: '*' });
+      imports.push({ spec, kind: 'static', names: site.namespace ? '*' : names });
+    } else if (site.kind === 'importEquals') {
+      imports.push({ spec, kind: 'static', names: '*' });
     }
   }
 
+  const exportFrom = new Map(sites.filter((site) => site.kind === 'export' && site.topLevel).map((site) => [site.node, site]));
   for (const stmt of sf.statements) {
     if (ts.isExportDeclaration(stmt)) {
-      const spec = stmt.moduleSpecifier && ts.isStringLiteral(stmt.moduleSpecifier) ? stmt.moduleSpecifier.text : null;
+      const site = exportFrom.get(stmt);
       const clause = stmt.exportClause;
-      if (spec) {
-        if (!clause) {
-          reExports.push({ spec, name: '*', imported: '*', form: 'star' });
-          imports.push({ spec, kind: 'export-from', names: '*' });
-        } else if (ts.isNamespaceExport(clause)) {
-          reExports.push({ spec, name: clause.name.text, imported: '*', form: 'namespace' });
+      if (site) {
+        const { spec } = site;
+        if (site.star) {
+          reExports.push(site.namespace
+            ? { spec, name: site.namespace, imported: '*', form: 'namespace' }
+            : { spec, name: '*', imported: '*', form: 'star' });
           imports.push({ spec, kind: 'export-from', names: '*' });
         } else {
-          const names = [];
-          for (const el of clause.elements) {
-            const imported = (el.propertyName ?? el.name).text;
-            names.push(imported);
-            reExports.push({ spec, name: el.name.text, imported, form: el.propertyName ? 'aliased' : 'named' });
+          for (const { imported, local } of site.named) {
+            reExports.push({ spec, name: local, imported, form: imported === local ? 'named' : 'aliased' });
           }
-          imports.push({ spec, kind: 'export-from', names });
+          imports.push({ spec, kind: 'export-from', names: site.named.map((n) => n.imported) });
         }
       } else if (clause && ts.isNamedExports(clause)) {
         for (const el of clause.elements) {
@@ -251,24 +210,15 @@ export function parseModule(path, text, sourceFile = null) {
     }
   }
 
-  const visit = (node) => {
-    if (ts.isCallExpression(node) && node.arguments.length && ts.isStringLiteralLike(node.arguments[0])) {
-      const spec = node.arguments[0].text;
-      if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
-        imports.push({ spec, kind: 'dynamic', names: namesReadFromCall(node) });
-      } else {
-        const callee = calleeName(node.expression);
-        if (callee === 'require') imports.push({ spec, kind: 'dynamic', names: namesReadFromCall(node) });
-        else if (callee && MOCK_CALLEES.has(callee)) imports.push({ spec, kind: 'mock', names: '*' });
-      }
-    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+  for (const { kind, node, spec } of sites) {
+    if (kind === 'dynamic' || kind === 'require') imports.push({ spec, kind: 'dynamic', names: namesReadFromCall(node) });
+    else if (kind === 'mock') imports.push({ spec, kind: 'mock', names: '*' });
+    else if (kind === 'importType') {
       const q = node.qualifier;
       const first = q ? (ts.isIdentifier(q) ? q.text : q.left && ts.isIdentifier(q.left) ? q.left.text : null) : null;
-      imports.push({ spec: node.argument.literal.text, kind: 'static', names: first ? [first] : '*' });
+      imports.push({ spec, kind: 'static', names: first ? [first] : '*' });
     }
-    ts.forEachChild(node, visit);
-  };
-  visit(sf);
+  }
 
   return { imports, reExports, ownExports };
 }
@@ -279,7 +229,8 @@ function isIndexFile(path, profile) {
   return base.slice(0, base.length - ext.length) === 'index' && profile.codeExtensions.includes(ext);
 }
 
-const isUnder = (path, dir) => dir === '' || path.startsWith(`${dir}/`);
+/** Under a folder, the repository root (`''`) holding everything. */
+const within = (path, dir) => dir === '' || isUnder(path, dir);
 
 /**
  * The guard over an in-memory module set.
@@ -304,7 +255,7 @@ export function analyzeImportPaths({ files, roots, profile }) {
 
   for (const [path, mod] of model.modules) {
     const exception = model.exceptionFiles.has(path);
-    const index = model.indexDirs.get(posixDirname(path)) === path;
+    const index = model.indexDirs.get(dirnameOf(path)) === path;
 
     for (const re of mod.parsed.reExports) {
       const target = model.resolve(path, re.spec);
@@ -313,8 +264,8 @@ export function analyzeImportPaths({ files, roots, profile }) {
       const shown = re.form === 'star' ? `* from '${re.spec}'` : `${re.imported === re.name ? re.name : `${re.imported} as ${re.name}`} from '${re.spec}'`;
       if (!index) {
         add('reexport-outside-index', path, `${re.form} re-export of ${shown}`);
-      } else if (target.kind !== 'file' || !isUnder(target.path, posixDirname(path))) {
-        add('index-forwards-outside-folder', path, `forwards ${shown}, which is outside ${posixDirname(path) || 'the repo root'}/`);
+      } else if (target.kind !== 'file' || !within(target.path, dirnameOf(path))) {
+        add('index-forwards-outside-folder', path, `forwards ${shown}, which is outside ${dirnameOf(path) || 'the repo root'}/`);
       }
     }
 
@@ -361,7 +312,7 @@ export function findUnusedIndexMembers({ files, roots, profile }) {
       if (edge.kind === 'mock') continue;
       const target = model.resolve(path, edge.spec);
       if (target.kind !== 'file' || !used.has(target.path)) continue;
-      if (isUnder(path, posixDirname(target.path))) continue;
+      if (within(path, dirnameOf(target.path))) continue;
       const set = used.get(target.path);
       if (edge.names === '*') set.add('*');
       else for (const n of edge.names) set.add(n);
@@ -387,12 +338,12 @@ function buildModel(files, roots, profile) {
   const indexDirs = new Map();
   for (const path of modules.keys()) {
     if (isIndexFile(path, profile) && !exceptionFiles.has(path)) {
-      const dir = posixDirname(path);
+      const dir = dirnameOf(path);
       if (indexDirs.has(dir)) throw new Error(`repo-guards: ${dir}/ has two index modules (${indexDirs.get(dir)}, ${path})`);
       indexDirs.set(dir, path);
     }
   }
-  const normalizedRoots = roots.map((r) => normalize(r));
+  const normalizedRoots = roots.map((r) => normalizePath(r).path);
   const aliases = Object.entries(profile.importAliases).sort((a, b) => b[0].length - a[0].length);
 
   const resolveCache = new Map();
@@ -402,12 +353,12 @@ function buildModel(files, roots, profile) {
     let base = null;
     for (const [prefix, target] of aliases) {
       if (spec === prefix.replace(/\/$/, '') || spec.startsWith(prefix)) {
-        base = normalize(`${target}/${spec.slice(prefix.length)}`);
+        base = normalizePath(`${target}/${spec.slice(prefix.length)}`).path;
         break;
       }
     }
     if (base === null && (spec === '.' || spec === '..' || spec.startsWith('./') || spec.startsWith('../'))) {
-      base = normalize(`${posixDirname(from)}/${spec}`);
+      base = normalizePath(`${dirnameOf(from)}/${spec}`).path;
     }
     let result;
     if (base === null) {
@@ -418,7 +369,7 @@ function buildModel(files, roots, profile) {
       else {
         const ext = extensionOf(base);
         if (ext && !profile.codeExtensions.includes(ext)) result = { kind: 'asset' };
-        else if (normalizedRoots.some((r) => isUnder(base, r) || base === r)) result = { kind: 'unresolved', base };
+        else if (normalizedRoots.some((r) => within(base, r) || base === r)) result = { kind: 'unresolved', base };
         else result = { kind: 'outside' };
       }
     }
@@ -440,17 +391,17 @@ function buildModel(files, roots, profile) {
   /** Every index whose folder holds `target` but not `from`, innermost first; `target` is never its own crossing. */
   function indexesCrossed(from, target) {
     const out = [];
-    for (let dir = posixDirname(target); ; dir = posixDirname(dir)) {
+    for (let dir = dirnameOf(target); ; dir = dirnameOf(dir)) {
       const indexPath = indexDirs.get(dir);
-      if (indexPath && !isUnder(from, dir) && indexPath !== target) out.push(indexPath);
-      if (isUnder(from, dir) || dir === '') break;
+      if (indexPath && !within(from, dir) && indexPath !== target) out.push(indexPath);
+      if (within(from, dir) || dir === '') break;
     }
     return out;
   }
   /** The folder whose index `target` is, when that folder also contains `from`. */
   function ownIndexCrossing(from, target) {
-    const dir = posixDirname(target);
-    return indexDirs.get(dir) === target && isUnder(from, dir) && from !== target ? dir : null;
+    const dir = dirnameOf(target);
+    return indexDirs.get(dir) === target && within(from, dir) && from !== target ? dir : null;
   }
 
   const exportCache = new Map();
@@ -483,7 +434,7 @@ function buildModel(files, roots, profile) {
         if (!wanted || re.form === 'star' || re.form === 'namespace') {
           if (!wanted || [...wanted].some((n) => exportedNames(target).has(n))) return true;
         } else if (wanted.has(re.imported)) return true;
-      } else if (indexDirs.get(posixDirname(t.path)) === t.path && isUnder(target, posixDirname(t.path))) {
+      } else if (indexDirs.get(dirnameOf(t.path)) === t.path && within(target, dirnameOf(t.path))) {
         if (forwardsFrom(t.path, target, names, seen)) return true;
       }
     }

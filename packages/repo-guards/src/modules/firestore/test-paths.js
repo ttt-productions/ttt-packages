@@ -6,10 +6,10 @@
 // not a literal that begins with one.
 
 import ts from 'typescript';
+import { isPlainString } from '../../support/ast.js';
+import { escapeRegExp } from '../../support/text.js';
 
 const SEGMENT_CALLS = new Set(['doc', 'collection', 'collectionGroup']);
-
-const escapeForRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const scriptKindOf = (file) =>
   file.endsWith('.tsx')
@@ -37,14 +37,14 @@ export function findHandTypedFirestorePaths(files, { collectionNames }) {
   const names = [...new Set(collectionNames)].filter((name) => typeof name === 'string' && name);
   if (!names.length) throw new Error('repo-guards: findHandTypedFirestorePaths needs the core collection names');
   const declared = new Set(names);
-  const handTypedPath = new RegExp(`^(?:${names.map(escapeForRegExp).join('|')})/`);
+  const handTypedPath = new RegExp(`^(?:${names.map(escapeRegExp).join('|')})/`);
   const offenders = [];
   for (const { path, content, sourceFile } of files) {
     // A file the reader already parsed is never parsed a second time.
     const source = sourceFile ?? ts.createSourceFile(path, content, ts.ScriptTarget.Latest, true, scriptKindOf(path));
     const report = (node) => offenders.push(`${path}:${source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1}`);
     const visit = (node) => {
-      const plain = ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
+      const plain = isPlainString(node);
       const opening = plain ? node.text : ts.isTemplateExpression(node) ? node.head.text : null;
       if (opening !== null && handTypedPath.test(opening)) {
         report(node);

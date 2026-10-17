@@ -8,8 +8,10 @@
 //   declared literal   declared values are banned, owned by their declaring files, or each covered
 
 import type { Finding, Guard, GuardContext, Sample } from '../guard.js';
+import type { Reviewed } from '../reader/layout.js';
 import type { Scope } from '../reader/reader.js';
 import { viewOfText, type FileView } from '../reader/view.js';
+import { allowlistProblems, textProblem } from '../support/facts.js';
 
 /** One match inside a file: where it starts (an index into `text`/`code`) and what it is. */
 export interface Hit {
@@ -43,13 +45,9 @@ export function matchPattern(pattern: RegExp, detail?: (match: RegExpExecArray) 
   };
 }
 
-function requireText(value: unknown, what: string, problems: string[]) {
-  if (typeof value !== 'string' || !value.trim()) problems.push(`${what} is empty`);
-}
-
 function baseProblems(shape: ShapeBase, problems: string[]) {
-  requireText(shape.title, 'the title', problems);
-  requireText(shape.description, `${shape.title}: the description`, problems);
+  textProblem(shape.title, 'the title', problems);
+  textProblem(shape.description, `${shape.title}: the description`, problems);
   if (!shape.scope?.roots?.length || !shape.scope?.kinds?.length) problems.push(`${shape.title}: the scope names no root or kind`);
   if (!shape.samples?.flags?.length) problems.push(`${shape.title}: no must-fail sample — a matcher that catches nothing passes everything`);
   if (!shape.samples?.passes?.length) problems.push(`${shape.title}: no must-pass sample`);
@@ -109,9 +107,7 @@ export function ownerOnly(shape: ShapeBase & { match: Matcher; owners: readonly 
 }
 
 /** One reviewed file: why it may hold the pattern, and optionally exactly how many times. */
-export interface AllowlistEntry {
-  path: string;
-  why: string;
+export interface AllowlistEntry extends Reviewed {
   count?: number;
 }
 
@@ -123,18 +119,7 @@ export function reviewedAllowlist(shape: ShapeBase & { match: Matcher; allowlist
   const problems: string[] = [];
   baseProblems(shape, problems);
   if (typeof shape.match !== 'function') problems.push(`${shape.title}: no matcher`);
-  const seen = new Set<string>();
-  for (const entry of shape.allowlist ?? []) {
-    if (!entry?.path) problems.push(`${shape.title}: an allowlist entry names no file`);
-    else {
-      if (seen.has(entry.path)) problems.push(`${shape.title}: ${entry.path} is listed twice`);
-      seen.add(entry.path);
-      requireText(entry.why, `${shape.title}: ${entry.path}'s why`, problems);
-      if (entry.count !== undefined && !(Number.isInteger(entry.count) && entry.count > 0)) {
-        problems.push(`${shape.title}: ${entry.path}'s count must be a positive whole number`);
-      }
-    }
-  }
+  allowlistProblems(shape.allowlist, `${shape.title}: allowlist`, problems);
   if (problems.length) fail(shape.title, problems);
   const entries = new Map(shape.allowlist.map((e) => [e.path, e]));
   return withSamples(shape, shape.match, (context) => {

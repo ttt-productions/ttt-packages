@@ -68,7 +68,7 @@ describe('the local gate mirrors every check the release workflow runs', () => {
   it('refuses a pattern that is no regular expression, and a missing map loader', () => {
     expect(ciParityGuard.factProblems({ workflow: 'w.yml', verifyJobPattern: '(', selfMirrored: 'x', parity: undefined as never })).toEqual([
       'verifyJobPattern is not a regular expression',
-      'parity needs a loader of the app parity map',
+      'parity needs a loader function',
     ]);
   });
 });
@@ -107,8 +107,8 @@ describe('a dependency override exists exactly while it is needed', () => {
 
   it('refuses an override whose affected range is no semver range, or which carries no why', () => {
     expect(dependencyOverrideGuard.factProblems({ overrides: [{ ...o, affected: 'nope', manifest: 'package.json', installedUnder: '', why: '' }] })).toEqual([
-      '@firebase/firestore → @grpc/grpc-js: affected is not a semver range',
-      '@firebase/firestore → @grpc/grpc-js carries no why',
+      'overrides entry @firebase/firestore → @grpc/grpc-js carries no why',
+      "overrides entry @firebase/firestore → @grpc/grpc-js's affected is not a semver range",
     ]);
   });
 });

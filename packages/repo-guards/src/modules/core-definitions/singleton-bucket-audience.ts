@@ -5,7 +5,9 @@
 
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../config.js';
-import { coreBuild, loaderProblems, reviewedProblems, type Loader } from './shared.js';
+import type { Reviewed } from '../../reader/layout.js';
+import { reviewedProblems, loaderProblem, type Loader } from '../../support/facts.js';
+import { coreBuild } from './shared.js';
 
 type PathBuilder = (...args: never[]) => readonly string[];
 
@@ -17,7 +19,7 @@ export interface SingletonBucketAudienceFacts {
   /** The core's path builders; a builder that takes no argument names a singleton. */
   pathBuilders: Loader<Readonly<Record<string, PathBuilder>>>;
   /** Each client-readable singleton, with the reader that needs its collection's audience. */
-  reviewed: ReadonlyArray<{ path: string; why: string }>;
+  reviewed: readonly Reviewed[];
 }
 
 export const singletonBucketAudienceGuard: GenericGuardDefinition<SingletonBucketAudienceFacts> = {
@@ -25,10 +27,10 @@ export const singletonBucketAudienceGuard: GenericGuardDefinition<SingletonBucke
   absentWhen: 'the app keeps no document in a collection its clients can read',
   factProblems(facts) {
     const problems: string[] = [];
-    loaderProblems(facts?.clientReadableBuckets, 'clientReadableBuckets', problems);
-    loaderProblems(facts?.registeredDocumentPaths, 'registeredDocumentPaths', problems);
-    loaderProblems(facts?.pathBuilders, 'pathBuilders', problems);
-    reviewedProblems(facts?.reviewed, 'reviewed', 'path', problems);
+    loaderProblem(facts?.clientReadableBuckets, 'clientReadableBuckets', problems);
+    loaderProblem(facts?.registeredDocumentPaths, 'registeredDocumentPaths', problems);
+    loaderProblem(facts?.pathBuilders, 'pathBuilders', problems);
+    reviewedProblems(facts?.reviewed, 'reviewed', problems, { key: 'path' });
     return problems;
   },
   build(facts) {

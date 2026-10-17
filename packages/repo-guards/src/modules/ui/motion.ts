@@ -5,7 +5,8 @@ import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, Guard } from '../../guard.js';
 import { matchPattern, ownerOnly, reviewedAllowlist, type Hit, type Matcher } from '../../shapes/shapes.js';
 import { cssBlocks } from './css.js';
-import { requireObject, requirePath, requirePathOrNull } from './facts.js';
+import { requirePathOrNull } from './facts.js';
+import { objectProblem, pathProblem } from '../../support/facts.js';
 import { APP_CODE, APP_STYLES } from './styling.js';
 
 export interface MotionFacts {
@@ -51,9 +52,9 @@ export const motionGuard: GenericGuardDefinition<MotionFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!requireObject(facts, problems)) return problems;
-    requirePath(facts.entryStylesheet, 'entryStylesheet', problems);
-    requirePath(facts.motionHelper, 'motionHelper', problems);
+    if (!objectProblem(facts, 'facts', problems)) return problems;
+    pathProblem(facts.entryStylesheet, 'entryStylesheet', problems);
+    pathProblem(facts.motionHelper, 'motionHelper', problems);
     requirePathOrNull(facts.focusedInputKeeperAdapter, 'focusedInputKeeperAdapter', problems);
     return problems;
   },

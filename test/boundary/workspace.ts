@@ -3,7 +3,6 @@
 // folders skipped; an unreadable folder fails). A test reads only the files these hand it, or a named
 // build output or manifest file.
 
-import ts from 'typescript';
 import type { FileView } from '@ttt-productions/repo-guards';
 import { createRepoReader, type FileKind, type RepoReader } from '@ttt-productions/repo-guards/node';
 import { REPO_ROOT } from './leak-utils';
@@ -45,30 +44,4 @@ export function workspacePackages<M = Record<string, unknown>>(): Array<Workspac
   return filesOf(packagesTree, ['config'])
     .filter((file) => MANIFEST.test(file.path))
     .map((file) => ({ dir: packageOf(file.path), manifest: JSON.parse(file.text) as M }));
-}
-
-/**
- * Every module a code file loads — an import or re-export, a dynamic `import()`, or a `require()` —
- * with the names a static import binds. Read from the parse, so a specifier inside a string or a
- * comment is not an import.
- */
-export function importsOf(file: FileView): Array<{ specifier: string; names: string[] }> {
-  const found: Array<{ specifier: string; names: string[] }> = [];
-  const visit = (node: ts.Node): void => {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
-      const bindings = ts.isImportDeclaration(node) ? node.importClause?.namedBindings : undefined;
-      const names = bindings && ts.isNamedImports(bindings) ? bindings.elements.map((e) => (e.propertyName ?? e.name).text) : [];
-      found.push({ specifier: node.moduleSpecifier.text, names });
-    } else if (
-      ts.isCallExpression(node) &&
-      (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
-      node.arguments[0] &&
-      ts.isStringLiteralLike(node.arguments[0])
-    ) {
-      found.push({ specifier: node.arguments[0].text, names: [] });
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(file.sourceFile);
-  return found;
 }

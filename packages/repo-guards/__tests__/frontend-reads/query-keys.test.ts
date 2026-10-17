@@ -137,8 +137,8 @@ describe("a key for the signed-in account's own data takes the uid", () => {
 
   it('refuses facts with no auth-scoped prefix or uid name', () => {
     expect(authScopedKeysGuard.factProblems({ keyModule: KEYS, authScopedPrefixes: [], uidParamNames: ['uid', 'uid'] })).toEqual([
-      'authScopedPrefixes names nothing',
-      'uidParamNames lists a name twice',
+      'authScopedPrefixes is empty',
+      'uidParamNames lists uid twice',
     ]);
   });
 });

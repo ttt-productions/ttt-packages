@@ -6,21 +6,12 @@ import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
+import type { Reviewed } from '../../reader/layout.js';
 import { ownerOnly, reviewedAllowlist, type Hit, type Matcher } from '../../shapes/shapes.js';
-import {
-  calleeName,
-  forEachNode,
-  lineOfNode,
-  namesProblem,
-  reviewedProblems,
-  serverZoneContext,
-  serverZoneProblems,
-  staleServerFolders,
-  textProblem,
-  unwrap,
-  type ReviewedFile,
-  type ServerZone,
-} from './shared.js';
+import { calleeName, forEachNode, isPlainString, lineOfNode, unwrap } from '../../support/ast.js';
+import { namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
+import { MODULE_LOADS, moduleImports, namesModule } from '../../support/imports.js';
+import { serverZoneContext, serverZoneProblems, staleServerFolders, type ServerZone } from './shared.js';
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
 
@@ -37,7 +28,7 @@ export interface AuditWriterFacts {
   /** Packages that write audit documents themselves; only the writer imports them. */
   writerPackages: readonly string[];
   /** Modules that name the collection to READ it, never to write; a stale entry fails. */
-  readers: readonly ReviewedFile[];
+  readers: readonly Reviewed[];
   /** The one module that builds a person-actor, the field that says an actor's mode, and the person modes. */
   personActor: { constructors: string; modeField: string; modes: readonly string[] };
   /** Server code in the app root, held to the same rules as the Functions tree. */
@@ -58,25 +49,18 @@ export function auditCollectionMatcher(facts: Pick<AuditWriterFacts, 'collection
   return (file) => {
     const hits: Hit[] = [];
     const sf = file.sourceFile;
+    const loads = new Map(moduleImports(sf, MODULE_LOADS).map((site) => [site.node, site.spec]));
     forEachNode(sf, (node) => {
       if (ts.isPropertyAccessExpression(node) && handles.has(`${node.expression.getText(sf)}.${node.name.text}`)) {
         hits.push({ index: node.getStart(sf), detail: node.getText(sf) });
       }
-      const specifier =
-        (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)
-          ? node.moduleSpecifier.text
-          : ts.isCallExpression(node) &&
-              (node.expression.kind === ts.SyntaxKind.ImportKeyword || (ts.isIdentifier(node.expression) && node.expression.text === 'require')) &&
-              node.arguments[0] &&
-              ts.isStringLiteralLike(node.arguments[0])
-            ? node.arguments[0].text
-            : undefined;
-      if (specifier !== undefined && facts.writerPackages.some((p) => specifier === p || specifier.startsWith(`${p}/`))) {
+      const specifier = loads.get(node);
+      if (specifier !== undefined && facts.writerPackages.some((p) => namesModule(specifier, p))) {
         hits.push({ index: node.getStart(sf), detail: `imports ${specifier}` });
         return;
       }
       const isSpecifier = !!node.parent && (ts.isImportDeclaration(node.parent) || ts.isExportDeclaration(node.parent));
-      if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && !isSpecifier && namesCollection(node.text)) {
+      if (isPlainString(node) && !isSpecifier && namesCollection(node.text)) {
         hits.push({ index: node.getStart(sf), detail: `'${node.text}'` });
       }
       if (ts.isTemplateExpression(node) && namesCollection(node.head.text)) {
@@ -236,7 +220,7 @@ export const auditPayloadGuard: GenericGuardDefinition<AuditPayloadFacts> = {
     namesProblem(facts?.entryPoints, 'entryPoints', problems);
     textProblem(facts?.payloadKey, 'payloadKey', problems);
     namesProblem(facts?.forwardedPayloadKeys, 'forwardedPayloadKeys', problems, { nonEmpty: false });
-    reviewedProblems(facts?.operatorCopy, 'operatorCopy', problems, 'site');
+    reviewedProblems(facts?.operatorCopy, 'operatorCopy', problems, { key: 'site' });
     for (const entry of facts?.operatorCopy ?? []) {
       if (typeof entry?.site === 'string' && !/^[^#]+#[^#]+$/.test(entry.site)) problems.push(`operatorCopy site ${entry.site} is not file#key`);
     }
@@ -339,7 +323,7 @@ export interface FireAndForgetFacts {
   /** The audit writer's success entry points, whose failure is never swallowed by a `.catch`. */
   auditWrites: readonly string[];
   /** Files whose `void`-ed calls are reviewed, each with its why; a file that no longer has one is stale. */
-  voidSites: readonly ReviewedFile[];
+  voidSites: readonly Reviewed[];
 }
 
 /** Every `void`-ed call, every `.catch` chained onto an audit write, and every audit write call. */

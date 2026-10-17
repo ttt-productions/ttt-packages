@@ -93,8 +93,8 @@ describe('reviewed allowlist', () => {
   });
 
   it('refuses to build with an entry that carries no why, a duplicate, or a bad count', () => {
-    expect(() => guard([{ path: 'src/ui/legacy.tsx', why: ' ' }])).toThrow(/src\/ui\/legacy.tsx's why is empty/);
-    expect(() => guard([{ path: 'a', why: 'x' }, { path: 'a', why: 'y' }])).toThrow(/a is listed twice/);
+    expect(() => guard([{ path: 'src/ui/legacy.tsx', why: ' ' }])).toThrow(/allowlist entry src\/ui\/legacy.tsx carries no why/);
+    expect(() => guard([{ path: 'a', why: 'x' }, { path: 'a', why: 'y' }])).toThrow(/allowlist lists a twice/);
     expect(() => guard([{ path: 'a', why: 'x', count: 0 }])).toThrow(/count must be a positive whole number/);
   });
 });

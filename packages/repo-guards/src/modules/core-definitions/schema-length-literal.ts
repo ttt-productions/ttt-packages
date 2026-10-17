@@ -6,7 +6,8 @@
 import type { Finding } from '../../guard.js';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { FileView } from '../../reader/view.js';
-import { CORE_CODE, filesIn, reviewedProblems, stringListProblems } from './shared.js';
+import { namesProblem, reviewedProblems } from '../../support/facts.js';
+import { CORE_CODE, filesIn } from './shared.js';
 
 export interface SchemaLengthLiteralFacts {
   /** The core build folders that hold schemas (repo-relative). */
@@ -30,12 +31,15 @@ export const schemaLengthLiteralGuard: GenericGuardDefinition<SchemaLengthLitera
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    stringListProblems(facts?.schemaFolders, 'schemaFolders', problems);
-    reviewedProblems(facts?.reviewedMaxLiterals, 'reviewedMaxLiterals', 'file', problems, (entry, label) => {
-      const values = entry.values;
-      if (!Array.isArray(values) || !values.length || !values.every((v) => Number.isInteger(v) && (v as number) >= 0)) {
-        problems.push(`${label} needs its reviewed values, each a whole number`);
-      }
+    namesProblem(facts?.schemaFolders, 'schemaFolders', problems);
+    reviewedProblems(facts?.reviewedMaxLiterals, 'reviewedMaxLiterals', problems, {
+      key: 'file',
+      extra(entry, label) {
+        const values = entry.values;
+        if (!Array.isArray(values) || !values.length || !values.every((v) => Number.isInteger(v) && (v as number) >= 0)) {
+          problems.push(`${label} needs its reviewed values, each a whole number`);
+        }
+      },
     });
     return problems;
   },

@@ -290,12 +290,12 @@ describe('the query-cache facts', () => {
       ),
     ).toEqual(
       expect.arrayContaining([
-        'keyModule.load needs a loader the app writes (() => import(...))',
+        'keyModule.load needs a loader function',
         'familySuffix must be an identifier',
         'loadedPagesPredicate must be an identifier',
         'refreshHandoffs[0].control must be an identifier',
-        'memberRefreshes entry src/a.ts: write the call whitespace-collapsed (resetQueries({ queryKey }))',
-        'predicateRetirements[0] (leave) carries no why',
+        'memberRefreshes entry src/a.ts resetQueries( { queryKey } ): write the call whitespace-collapsed (resetQueries({ queryKey }))',
+        'predicateRetirements entry leave carries no why',
       ]),
     );
     expect(queryCacheGuard.factProblems(facts({ sessionOwner: '' })).some((p) => p.startsWith('sessionOwner'))).toBe(true);
@@ -403,9 +403,9 @@ describe('the domain-event registry: produced, registered, well formed, and awai
     expect(
       domainEventRegistryGuard.factProblems({ registry: { path: REGISTRY } as never, eventSchema: undefined as never, notifiers: [] }),
     ).toEqual([
-      'registry.load needs a loader the app writes (() => import(...))',
-      'eventSchema needs a loader the app writes (() => import(...))',
-      'notifiers names nothing',
+      'registry.load needs a loader function',
+      'eventSchema needs a loader function',
+      'notifiers is empty',
     ]);
   });
 });

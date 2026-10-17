@@ -186,7 +186,7 @@ describe('app modules and core unions', () => {
 describe('the facts', () => {
   it('refuses a missing member list, a member listed twice, a member with no owner, and an allowance with no why', () => {
     expect(definitionRedeclarationGuard.factProblems({ guardedLiterals: [] })).toEqual([
-      'guardedLiterals is missing or empty — name the most distinctive member of each canonical union',
+      'guardedLiterals is empty',
     ]);
     expect(
       definitionRedeclarationGuard.factProblems({
@@ -196,9 +196,9 @@ describe('the facts', () => {
         ],
       }),
     ).toEqual([
+      'guardedLiterals lists alphaKind twice',
       "the owners of 'alphaKind' is empty",
       "the allowed uses of 'alphaKind' entry x.js#X carries no why",
-      "guarded literal 'alphaKind' is listed twice",
     ]);
   });
 });

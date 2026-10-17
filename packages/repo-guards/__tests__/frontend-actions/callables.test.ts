@@ -181,6 +181,14 @@ describe("a callable's name is written only in its declaration", () => {
     ]);
   });
 
+  it('holds a reviewed file to its reviewed count: one more is flagged, one fewer is stale', async () => {
+    const counted = { declarations, allowlist: [{ path: 'src/lib/labels.ts', why: 'an audit label that shares the word', count: 1 }] };
+    expect(await findingsOf(callableNameGuard, counted, { ...base, 'src/lib/labels.ts': "export const AUDIT = { saveThing: 'saveThing', getThing: 'getThing' };" })).toEqual([
+      'src/lib/labels.ts:1 more than the 1 reviewed: names the callable getThing: call its declared hook useGetThing',
+    ]);
+    expect(await findingsOf(callableNameGuard, { ...counted, allowlist: [{ ...counted.allowlist[0], count: 2 }] }, base)).toEqual(['src/lib/labels.ts stale count: reviewed 2, found 1']);
+  });
+
   it('flags a reviewed file that no longer holds a callable name', async () => {
     expect(await run({ 'src/lib/labels.ts': 'export const AUDIT = {};' })).toEqual([
       'src/lib/labels.ts stale entry: the file no longer holds a callable name (or is gone)',

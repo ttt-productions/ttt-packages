@@ -6,6 +6,7 @@
 import { parse as parseYaml } from 'yaml';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
+import { isText, loaderProblem, textProblem } from '../../support/facts.js';
 
 type ParityEntry = { stage: string; partial?: string } | { ciOnly: string };
 
@@ -48,16 +49,19 @@ export const ciParityGuard: GenericGuardDefinition<CiParityFacts> = {
   absentWhen: 'the app has no release workflow that verifies before it deploys',
   factProblems(facts) {
     const problems: string[] = [];
-    if (!facts?.workflow?.trim()) problems.push('workflow is missing');
+    textProblem(facts?.workflow, 'workflow', problems);
     for (const key of ['verifyJobPattern', 'selfMirrored'] as const) {
+      if (!isText(facts?.[key])) {
+        problems.push(`${key} is missing`);
+        continue;
+      }
       try {
-        new RegExp(facts?.[key] ?? '');
-        if (!facts?.[key]) problems.push(`${key} is missing`);
+        new RegExp(facts[key]);
       } catch {
         problems.push(`${key} is not a regular expression`);
       }
     }
-    if (typeof facts?.parity !== 'function') problems.push('parity needs a loader of the app parity map');
+    loaderProblem(facts?.parity, 'parity', problems);
     return problems;
   },
   build(facts) {

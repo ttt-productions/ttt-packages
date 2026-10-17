@@ -233,11 +233,11 @@ describe("a stored object's generation and size are read only through the packag
 
   it('refuses missing helper names, a missing anchor list, and an exception with no shape or why', () => {
     expect(storageObjectMetadataGuard.factProblems({ packageContracts: [], exceptions: [{ path: 'a.ts', shape: '', why: '' }] } as never)).toEqual([
-      'generationReaders is missing (declare [] when there is none)',
-      'sizeReaders is missing (declare [] when there is none)',
-      'readerAnchors is missing (declare [] when there is none)',
-      'exceptions: a.ts carries no why',
-      'exceptions: a.ts names no shape',
+      'generationReaders is missing',
+      'sizeReaders is missing',
+      'readerAnchors is missing',
+      'exceptions entry a.ts names no shape',
+      'exceptions entry a.ts carries no why',
     ]);
   });
 });

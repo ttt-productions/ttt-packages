@@ -65,7 +65,7 @@ describe('no child process gets an args array together with a shell', () => {
   });
 
   it('takes no facts', () => {
-    expect(shellSafeGuard.factProblems({ roots: [] } as never)).toEqual(['this guard takes no facts ({})']);
+    expect(shellSafeGuard.factProblems({ roots: [] } as never)).toEqual(['this guard takes no facts: declare it with {}']);
   });
 });
 

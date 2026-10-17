@@ -2,10 +2,10 @@
 // cascade order, each with the cascade layer it joins. A class only some unloaded sheet declares
 // renders nothing, so the guards that ask "is this defined" or "which rule wins" read this set.
 
-import path from 'node:path';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
 import { parseImport, topLevelStatements } from './css.js';
+import { dirnameOf, normalizePath } from '../../support/paths.js';
 
 export interface LoadedSheet {
   file: FileView;
@@ -15,7 +15,6 @@ export interface LoadedSheet {
   fromPackage: boolean;
 }
 
-const posix = path.posix;
 
 /** Reads an installed package's manifest, or null when it is not installed. */
 export function installedManifest(context: GuardContext, name: string): Record<string, unknown> | null {
@@ -46,7 +45,7 @@ function pickStyleTarget(entry: unknown): string | null {
 
 /** Where a stylesheet `@import` lands, repo-relative, or null when it cannot be resolved. */
 export function resolveStylesheetImport(context: GuardContext, fromSheet: string, spec: string): string | null {
-  if (spec.startsWith('./') || spec.startsWith('../')) return posix.normalize(posix.join(posix.dirname(fromSheet), spec));
+  if (spec.startsWith('./') || spec.startsWith('../')) return normalizePath(`${dirnameOf(fromSheet)}/${spec}`).path;
   if (/^[a-z]+:/i.test(spec) || spec.startsWith('/')) return null;
   const { name, subpath } = splitBareSpecifier(spec);
   const manifest = installedManifest(context, name);
@@ -64,7 +63,7 @@ export function resolveStylesheetImport(context: GuardContext, fromSheet: string
   } else {
     target = subpath;
   }
-  return target ? posix.normalize(posix.join(base, target)) : null;
+  return target ? normalizePath(`${base}/${target}`).path : null;
 }
 
 /**
