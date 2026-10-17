@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { pendingMediaIdSchema } from './atoms.js';
+import { MAX_UPLOADS_MARKED_SEEN_PER_CALL } from '../media/upload-tray-display.js';
 
 // Clears a single finished (completed/failed/rejected) upload from the File-status
 // tray. The callable derives ownership + terminal-status from the stored pendingMedia
@@ -17,7 +18,7 @@ export type ClearUploadActivityRequest = z.infer<typeof ClearUploadActivityReque
 // ownership/terminal/already-seen filtering.
 export const MarkUploadsSeenRequestSchema = z
   .object({
-    pendingMediaIds: z.array(pendingMediaIdSchema).min(1).max(200),
+    pendingMediaIds: z.array(pendingMediaIdSchema).min(1).max(MAX_UPLOADS_MARKED_SEEN_PER_CALL),
   })
   .strict();
 export type MarkUploadsSeenRequest = z.infer<typeof MarkUploadsSeenRequestSchema>;

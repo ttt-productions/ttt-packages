@@ -51,7 +51,6 @@ const ALLOWED_MAX_LITERALS: Record<string, number[]> = {
   // 200 = the opaque-id cap on the safety-case-by-id lookup's caseId.
   'src/schemas/safety.ts': [200],
   'src/schemas/social.ts': [128, 128],
-  'src/schemas/uploads.ts': [200],
   'src/schemas/users.ts': [12, 31],
   'src/schemas/utility.ts': [64, 128],
   'src/doc-schemas/ncii/holds.ts': [16],

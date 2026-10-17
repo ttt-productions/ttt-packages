@@ -3,7 +3,9 @@ import {
   fileOriginRowLabel,
   UPLOAD_ROW_DISPLAY_COPY,
   UPLOAD_ROW_RELATIVE_TIME_CUTOFF_MS,
+  MAX_UPLOADS_MARKED_SEEN_PER_CALL,
 } from '../src/media/upload-tray-display.js';
+import { MarkUploadsSeenRequestSchema } from '../src/schemas/uploads.js';
 import { FileOriginSchema } from '../src/media/file-origin.js';
 import { AdminAuditionPromptTargetInfoSchema } from '../src/media/target-info.js';
 
@@ -38,5 +40,14 @@ describe('upload row display copy', () => {
 
   it('keeps a row relative for six hours', () => {
     expect(UPLOAD_ROW_RELATIVE_TIME_CUTOFF_MS).toBe(6 * 60 * 60 * 1000);
+  });
+});
+
+describe('MAX_UPLOADS_MARKED_SEEN_PER_CALL', () => {
+  const ids = (count: number) => Array.from({ length: count }, (_, i) => `pm${i}`);
+
+  it('is the mark-seen wire cap: a full call is accepted and one more id is refused', () => {
+    expect(MarkUploadsSeenRequestSchema.safeParse({ pendingMediaIds: ids(MAX_UPLOADS_MARKED_SEEN_PER_CALL) }).success).toBe(true);
+    expect(MarkUploadsSeenRequestSchema.safeParse({ pendingMediaIds: ids(MAX_UPLOADS_MARKED_SEEN_PER_CALL + 1) }).success).toBe(false);
   });
 });

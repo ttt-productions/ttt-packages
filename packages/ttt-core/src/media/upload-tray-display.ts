@@ -52,3 +52,10 @@ export const UPLOAD_ROW_DISPLAY_COPY = {
   dateAt: (date: string, time: string) => `${date}, ${time}`,
   fileType: { image: 'Image', video: 'Video', audio: 'Audio', other: 'File' },
 } as const;
+
+// =============================================================================
+// Marking rows seen
+// =============================================================================
+
+/** The most uploads one `markUploadsSeen` call marks seen; a larger unseen set goes in calls of this size. */
+export const MAX_UPLOADS_MARKED_SEEN_PER_CALL = 200;
