@@ -110,6 +110,47 @@ describe("a read's retry state comes from its one owner, never the live fetching
     ]);
   });
 
+  it('flags a fetching flag reached through a renamed destructure or a chain of bindings', async () => {
+    const findings = await runOne(readRetryStateGuard, facts, {
+      'src/a.ts': 'const { data, isFetching: busy } = q;\nreturn { isRetrying: busy };',
+      'src/b.ts': 'const { fetchStatus: phase } = q;\nconst running = phase === "fetching";\nconst shown = running;\nreturn { retrying: shown };',
+    });
+    expect(findings).toEqual([
+      { file: 'src/a.ts', line: 2, detail: 'retry state from a fetching flag: busy' },
+      { file: 'src/b.ts', line: 4, detail: 'retry state from a fetching flag: shown' },
+    ]);
+  });
+
+  it("passes a status-answering hook's failed answer that hands out its held retry state, and failed statuses that are no read's answer", async () => {
+    const findings = await runOne(readRetryStateGuard, facts, {
+      'src/hooks/use-permission.ts': [
+        'export function usePermission(id) {',
+        '  const held = useReadRetryState(read, key);',
+        '  return useMemo(() => {',
+        "    if (held.error) return { status: 'failed', error: held.error, retry, retrying: held.isRetrying };",
+        "    if (other.isError) return { status: 'failed', error: other.error, retry: other.retry, retrying: other.retrying };",
+        "    if (lookup) return { ...lookup.outcome, status: 'failed', error };",
+        "    return { status: 'answered', allowed: true };",
+        '  }, [held]);',
+        '}',
+      ].join('\n'),
+      'src/lib/upload-merge.ts': "export function merge(live) { return { status: 'failed', error: live.error, failedAt: live.failedAt }; }",
+      'src/hooks/use-job.ts': "export const useJob = () => ({ status: 'failed', failedAt: 1 });",
+    });
+    expect(findings).toEqual([]);
+  });
+
+  it("flags a status-answering hook's failed answer with no held retry state, in a hook declared either way", async () => {
+    const findings = await runOne(readRetryStateGuard, facts, {
+      'src/hooks/use-a.ts': "export function useA() {\n  return useMemo(() => ({ status: 'failed', error: read.error, retry }), [read]);\n}",
+      'src/hooks/use-b.ts': "export const useB = () => {\n  if (read.isError) return { status: 'failed', error: read.error };\n  return { status: 'pending' };\n};",
+    });
+    expect(findings).toEqual([
+      { file: 'src/hooks/use-a.ts', line: 2, detail: "a failed answer with no retrying: { status: 'failed', error: read.error, retry }" },
+      { file: 'src/hooks/use-b.ts', line: 2, detail: "a failed answer with no retrying: { status: 'failed', error: read.error }" },
+    ]);
+  });
+
   it('flags a seat given a retry with nothing to show it running', async () => {
     const findings = await runOne(readRetryStateGuard, facts, { 'src/a.tsx': 'const x = 1;\n<Seat thing="names" onRetry={retry} />' });
     expect(findings).toEqual([{ file: 'src/a.tsx', line: 2, detail: '<Seat onRetry=…> without retrying' }]);
@@ -177,8 +218,16 @@ describe('a render surface that defaults a read binds its failure', () => {
   const facts: DefaultedReadBindingFacts = {
     surfaceTrees: ['src/components'],
     heldFailureFields: ['held'],
-    allowlist: [{ path: 'src/components/known.tsx', why: 'renders only after the same read has answered' }],
+    allowlist: [
+      {
+        path: 'src/components/known.tsx',
+        why: 'mounted only by the page, which renders it once the same read has answered',
+        gate: { file: 'src/components/page.tsx', code: 'if (rows.data === undefined) return <Pending />;' },
+      },
+    ],
   };
+  /** The page that mounts the reviewed surface once its read answered — the gate, across a line break. */
+  const PAGE = 'export function Page() {\n  const rows = useRows(id);\n  if (rows.data === undefined)\n    return <Pending />;\n  return <Known />;\n}';
 
   it('passes a bound, held, spread, undefaulted, non-hook, or reviewed default, and a default outside the surfaces', async () => {
     const findings = await runOne(defaultedReadBindingGuard, facts, {
@@ -190,6 +239,7 @@ describe('a render surface that defaults a read binds its failure', () => {
         'const { data: e = [] } = buildRows();',
       ].join('\n'),
       'src/components/known.tsx': 'const { data: rows = [] } = useRows(id);',
+      'src/components/page.tsx': PAGE,
       'src/hooks/use-rows.ts': 'const { data: rows = [] } = useRows(id);',
     });
     expect(findings).toEqual([]);
@@ -198,6 +248,7 @@ describe('a render surface that defaults a read binds its failure', () => {
   it('flags a default with no failure bound', async () => {
     const findings = await runOne(defaultedReadBindingGuard, facts, {
       'src/components/known.tsx': 'const { data: rows = [] } = useRows(id);',
+      'src/components/page.tsx': PAGE,
       'src/components/a.tsx': 'const { data: rows = [] } = useRows(id);',
       'src/components/b.tsx': 'const x = 1;\nconst { data: row = null, isLoading } = useRow(id);',
     });
@@ -208,8 +259,22 @@ describe('a render surface that defaults a read binds its failure', () => {
   });
 
   it('flags a reviewed file that no longer defaults a read', async () => {
-    expect(await runOne(defaultedReadBindingGuard, facts, { 'src/components/known.tsx': 'export {};' })).toEqual([
+    expect(await runOne(defaultedReadBindingGuard, facts, { 'src/components/known.tsx': 'export {};', 'src/components/page.tsx': PAGE })).toEqual([
       { file: 'src/components/known.tsx', detail: 'stale entry: the file no longer holds the pattern (or is gone, or is outside the scope)' },
+    ]);
+  });
+
+  it('flags a reviewed default whose gate is gone: the gate removed from its file, or the file deleted', async () => {
+    const known = { 'src/components/known.tsx': 'const { data: rows = [] } = useRows(id);' };
+    const ungated = 'export function Page() {\n  const rows = useRows(id);\n  return <Known />;\n}';
+    expect(await runOne(defaultedReadBindingGuard, facts, { ...known, 'src/components/page.tsx': ungated })).toEqual([
+      {
+        file: 'src/components/page.tsx',
+        detail: 'the gate src/components/known.tsx relies on is gone: no longer holds if (rows.data === undefined) return <Pending />;',
+      },
+    ]);
+    expect(await runOne(defaultedReadBindingGuard, facts, known)).toEqual([
+      { file: 'src/components/page.tsx', detail: 'the gate src/components/known.tsx relies on is gone: the file no longer exists' },
     ]);
   });
 
@@ -217,10 +282,23 @@ describe('a render surface that defaults a read binds its failure', () => {
     for (const guard of defaultedReadBindingGuard.build(facts)) expect(() => checkSamples(guard)).not.toThrow();
   });
 
-  it('refuses facts with no surface tree or an entry with no why', () => {
-    expect(defaultedReadBindingGuard.factProblems({ surfaceTrees: [], heldFailureFields: [], allowlist: [{ path: 'src/a.tsx', why: ' ' }] })).toEqual([
+  it('refuses facts with no surface tree, an entry with no why, and an entry with no gate or an incomplete one', () => {
+    expect(
+      defaultedReadBindingGuard.factProblems({
+        surfaceTrees: [],
+        heldFailureFields: [],
+        allowlist: [
+          { path: 'src/a.tsx', why: ' ', gate: { file: 'src/page.tsx', code: 'if (!read.data) return null;' } },
+          { path: 'src/b.tsx', why: 'mounted after its read answered' } as never,
+          { path: 'src/c.tsx', why: 'mounted after its read answered', gate: { file: '/abs/page.tsx', code: ' ' } },
+        ],
+      }),
+    ).toEqual([
       'surfaceTrees names no path',
       'allowlist entry src/a.tsx carries no why',
+      'allowlist entry src/b.tsx names no gate (the file and the code that hold its surface back until the read answered)',
+      "allowlist entry src/c.tsx's gate file (/abs/page.tsx) must be repo-relative and forward-slashed",
+      "allowlist entry src/c.tsx's gate names no code",
     ]);
   });
 });

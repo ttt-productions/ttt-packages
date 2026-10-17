@@ -1,5 +1,5 @@
 // The authority guards: the admin claim read only by its resolver, one request-origin reader, no
-// blocking function, and every callable's App Check posture.
+// blocking function, every callable's App Check posture, and the client's limited-use declarations.
 
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -135,6 +135,11 @@ describe('every callable declares its App Check posture', () => {
     consumingFolders: ['functions/src/payments'],
     adminAuth: { call: 'assertAuth', option: 'admin' },
     consumptionExempt: [{ callable: 'adminLiveScore', why: 'live scoring is latency-sensitive and high-volume' }],
+    clientDeclarations: {
+      modules: ['src/lib/remote.ts'],
+      factories: { action: 'defineAction', reader: 'defineReader', invoker: 'defineInvoker', resumable: 'defineResumable' },
+    },
+    noClientDeclaration: [{ callable: 'adminRetrySync', why: 'no screen calls the retry; an operator runs it by hand' }],
   };
   const clean = {
     'functions/src/payments/pay.ts': 'export const pay = onCall({ region: R, enforceAppCheck: true, consumeAppCheckToken: true }, handler);',
@@ -218,5 +223,83 @@ describe('every callable declares its App Check posture', () => {
 
   it('refuses facts without the admin auth call', () => {
     expect(appCheckGuard.factProblems({ ...facts, adminAuth: { call: '', option: 'admin' } })).toEqual(['adminAuth.call is missing']);
+  });
+
+  describe("the client half: a consuming callable's declaration presents a limited-use token", () => {
+    const server = {
+      ...clean,
+      'functions/src/admin/retry.ts':
+        'export const adminRetrySync = onCall({ enforceAppCheck: true, consumeAppCheckToken: true }, async (request) => { await assertAuth(request, { admin: {} }); });',
+    };
+    const client = (...declarations: string[]) => ({ ...server, 'src/lib/remote.ts': declarations.join('\n') });
+    const runClient = async (files: Record<string, string>, f: AppCheckFacts = facts) => {
+      repo = backendRepo(files);
+      const [, guard] = appCheckGuard.build(f);
+      return repo.run(guard!);
+    };
+
+    it('passes when every consuming callable is declared limited-use, the rest are not, and the undeclared one is reviewed', async () => {
+      expect(
+        await runClient(
+          client(
+            'export const usePay = defineAction("pay", { limitedUseAppCheck: true });',
+            'export const useAdminTool = defineAction<In, Out>("adminTool", { limitedUseAppCheck: true });',
+            'export const useAdminCopyA = defineResumable("adminCopyA", mergeCopies, { limitedUseAppCheck: true });',
+            'export const useAdminLiveScore = defineAction("adminLiveScore");',
+            'export const useMember = defineReader("member");',
+          ),
+        ),
+      ).toEqual([]);
+    });
+
+    it('flags a consuming callable declared without the token or not declared, and a limited-use declaration of an exempt, non-consuming, or missing callable', async () => {
+      expect(
+        await runClient(
+          client(
+            'export const usePay = defineAction("pay");',
+            'export const useAdminLiveScore = defineAction("adminLiveScore", { limitedUseAppCheck: true });',
+            'export const useMember = defineReader("member", { limitedUseAppCheck: true });',
+            'export const useGone = defineInvoker("goneThing", { limitedUseAppCheck: true });',
+            'export const useAdminTool = defineAction("adminTool", { limitedUseAppCheck: true });',
+          ),
+        ),
+      ).toEqual([
+        { file: 'functions/src/factory.ts', line: 4, detail: 'adminCopyA consumes its token, but no client declaration names it' },
+        { file: 'src/lib/remote.ts', line: 1, detail: 'usePay declares pay, which consumes its token, without limitedUseAppCheck: true' },
+        { file: 'src/lib/remote.ts', line: 2, detail: 'useAdminLiveScore declares adminLiveScore limited-use, but it is exempt from consumption' },
+        { file: 'src/lib/remote.ts', line: 3, detail: 'useMember declares member limited-use, but it does not consume its token' },
+        { file: 'src/lib/remote.ts', line: 4, detail: 'useGone declares goneThing limited-use, but no callable of that name exists' },
+      ]);
+    });
+
+    it('flags a reviewed undeclared callable that a declaration now names, and one that is not a consuming callable', async () => {
+      const files = client(
+        'export const usePay = defineAction("pay", { limitedUseAppCheck: true });',
+        'export const useAdminTool = defineAction("adminTool", { limitedUseAppCheck: true });',
+        'export const useAdminCopyA = defineAction("adminCopyA", { limitedUseAppCheck: true });',
+        'export const useAdminRetrySync = defineAction("adminRetrySync", { limitedUseAppCheck: true });',
+      );
+      expect(
+        await runClient(files, { ...facts, noClientDeclaration: [...facts.noClientDeclaration, { callable: 'member', why: 'x' }] }),
+      ).toEqual([
+        { file: '(noClientDeclaration)', detail: 'stale entry: a client declaration names adminRetrySync now' },
+        { file: '(noClientDeclaration)', detail: 'stale entry: member is not a consuming callable' },
+      ]);
+    });
+
+    it('flags a declarations module it cannot read', async () => {
+      expect(await runClient(server)).toEqual([
+        { file: 'src/lib/remote.ts', detail: 'the callable declarations module no longer exists' },
+        { file: 'functions/src/admin/tool.ts', line: 1, detail: 'adminTool consumes its token, but no client declaration names it' },
+        { file: 'functions/src/factory.ts', line: 4, detail: 'adminCopyA consumes its token, but no client declaration names it' },
+        { file: 'functions/src/payments/pay.ts', line: 1, detail: 'pay consumes its token, but no client declaration names it' },
+      ]);
+    });
+
+    it('refuses missing declarations and an undeclared entry with no why', () => {
+      expect(
+        appCheckGuard.factProblems({ ...facts, clientDeclarations: undefined as never, noClientDeclaration: [{ callable: 'a', why: '' }] }),
+      ).toEqual(['clientDeclarations is missing', 'noClientDeclaration entry a carries no why']);
+    });
   });
 });

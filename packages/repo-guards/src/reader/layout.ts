@@ -28,9 +28,9 @@ export const ROOT_ROLES: readonly RootRole[] = Object.freeze([
 ]);
 
 /**
- * One root. `anchor` is a long-lived file under it that every scan of the root must reach: a walk
- * that stopped descending reports nothing and would read as a clean tree, and the anchor is what
- * makes that visible.
+ * One root: a folder, or `.` for the whole repository. `anchor` is a long-lived file under it that
+ * every scan of the root must reach: a walk that stopped descending reports nothing and would read as
+ * a clean tree, and the anchor is what makes that visible.
  */
 export interface RootDeclaration {
   path: string;
@@ -56,7 +56,10 @@ export interface RepoLayout {
     coreDist?: RootDeclaration;
     workers?: Readonly<Record<string, RootDeclaration>>;
   };
-  /** Firestore / Storage rules files, repo-relative. */
+  /**
+   * Every rules file the app deploys, repo-relative: the one list every rules guard reads. Each file
+   * is a Firestore or a Storage rules file by the service it declares.
+   */
   rulesFiles?: readonly string[];
   /** Folders or files that hold test code beside a `__tests__` folder or a test-named file. */
   testCodePaths?: readonly Reviewed[];
@@ -64,6 +67,31 @@ export interface RepoLayout {
   testCodeNameMarkers?: ReadonlyArray<{ marker: string; why: string }>;
   /** Folders or files never read. An entry that no longer exists is stale and fails. */
   exclusions?: readonly Reviewed[];
+}
+
+/** The repository root as a root path. */
+export const REPOSITORY_ROOT = '.';
+
+/** Whether a repo-relative path is the root path or lies under it. */
+export function isUnderRoot(path: string, rootPath: string): boolean {
+  return rootPath === REPOSITORY_ROOT || path === rootPath || path.startsWith(`${rootPath}/`);
+}
+
+/** The service a rules file is written for. */
+export type RulesService = 'firestore' | 'storage';
+
+const RULES_SERVICES: ReadonlyArray<{ service: RulesService; declaration: RegExp }> = [
+  { service: 'firestore', declaration: /\bservice\s+cloud\.firestore\b/ },
+  { service: 'storage', declaration: /\bservice\s+firebase\.storage\b/ },
+];
+
+/**
+ * The service a rules file declares, read from its comment-blanked code, or null when it declares
+ * neither or both — such a file cannot be handed to the right guards.
+ */
+export function rulesServiceOf(code: string): RulesService | null {
+  const declared = RULES_SERVICES.filter(({ declaration }) => declaration.test(code));
+  return declared.length === 1 ? declared[0].service : null;
 }
 
 /** Dependency, build, and dot folders are skipped by name at every depth; nothing else is. */
@@ -102,7 +130,7 @@ const TEST_NAME = /\.(test|spec)\.[^/]+$/;
 export function isTestPath(layout: RepoLayout, path: string): boolean {
   const name = path.slice(path.lastIndexOf('/') + 1);
   for (const root of [layout.roots.e2e, layout.roots.hostedE2e]) {
-    if (root && (path === root.path || path.startsWith(`${root.path}/`))) return true;
+    if (root && isUnderRoot(path, root.path)) return true;
   }
   if (TEST_NAME.test(name)) return true;
   if (path.split('/').includes('__tests__')) return true;

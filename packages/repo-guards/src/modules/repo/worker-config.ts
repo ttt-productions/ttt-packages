@@ -84,6 +84,7 @@ export function workerConfigFindings(
 export const workerConfigGuard: GenericGuardDefinition<WorkerConfigFacts> = {
   id: 'workerConfigIsolation',
   absentWhen: 'the app deploys no Cloudflare Worker',
+  absentOnlyWithoutRoot: 'workers',
   factProblems(facts) {
     const problems: string[] = [];
     if (!facts || typeof facts !== 'object') return ['the facts are missing'];

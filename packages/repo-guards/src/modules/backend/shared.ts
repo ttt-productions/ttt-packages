@@ -162,5 +162,6 @@ export function serverZoneContext(context: GuardContext, zone: ServerZone): Guar
     reader: context.reader,
     file: (relPath) => context.file(relPath),
     files: (scope: Scope) => context.files(scope).filter((file) => file.role !== 'app' || inServerZone(file, zone)),
+    rulesFiles: (service) => context.rulesFiles(service),
   };
 }

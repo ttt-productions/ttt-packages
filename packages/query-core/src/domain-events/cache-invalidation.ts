@@ -90,7 +90,7 @@ function cancelPendingInitialReads(queryClient: QueryClient, filters: QueryFilte
  * has settled — i.e. once the refetches those invalidations triggered have
  * landed. The dispatch itself stays synchronous (every cancellation and
  * invalidation is issued before this function returns), so a fire-and-forget
- * caller keeps the prior behavior exactly, while a mutation `onSuccess` that
+ * caller can ignore the promise, while a mutation `onSuccess` that
  * RETURNS or awaits the promise stays pending until the refreshed data is in
  * the cache. The promise never rejects: `invalidateQueries` refetches without
  * `throwOnError`, so a failed refetch surfaces on its own query, never as a
@@ -127,8 +127,9 @@ export function applyInvalidations(
     const action: CacheAction = inv.action ?? "refresh";
 
     if (action === "remove") {
-      // Cancelled first, so a read already in flight cannot land after the removal and put the
-      // dropped answer back.
+      // Removing a query abandons its read in flight silently, so that read never puts the dropped
+      // answer back, but a screen still watching it would go on showing it as fetching. Cancelled
+      // first, the read ends visibly and the watcher reads idle.
       void queryClient.cancelQueries(filters);
       queryClient.removeQueries(filters);
       continue;

@@ -1,5 +1,5 @@
-// The rules read only the core's claim names, and every role helper checks its claim AND the live
-// roster document, reading no other document.
+// Every rules file the layout lists reads only the core's claim names, and every role helper checks
+// its claim AND the live roster document, reading no other document.
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { rulesClaimGuard, type RulesClaimFacts } from '../../src/modules/firestore/rules-claim-guard.js';
@@ -11,10 +11,6 @@ let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
 
 const facts = (over: Partial<RulesClaimFacts> = {}): RulesClaimFacts => ({
-  rulesFiles: [
-    { path: 'firestore.rules', roleHelpers: ['isOperator', 'isStaff'] },
-    { path: 'storage.rules', roleHelpers: ['isOperator'] },
-  ],
   claims: () => ['operator', 'reviewer', 'member'],
   roleHelpers: [
     { function: 'isOperator', claim: () => 'operator', rosterField: () => 'operators' },
@@ -61,9 +57,13 @@ const STORAGE = [
   '}',
 ].join('\n');
 
-async function run(files: Record<string, string>, f = facts({ roleHelpers: facts().roleHelpers.slice(0, 2) })) {
+async function run(
+  files: Record<string, string>,
+  f = facts({ roleHelpers: facts().roleHelpers.slice(0, 2) }),
+  rulesFiles: readonly string[] = ['firestore.rules', 'storage.rules'],
+) {
   repo = tempRepo({ 'src/anchor.ts': 'export {};', 'firestore.rules': FIRESTORE, 'storage.rules': STORAGE, ...files });
-  const reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/anchor.ts' } } });
+  const reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/anchor.ts' } }, rulesFiles });
   const [guard] = rulesClaimGuard.build(f);
   return guard.run(contextOf(reader));
 }
@@ -130,12 +130,7 @@ describe("the rules read the core's claim names, and every role helper checks it
         ),
         'storage.rules': STORAGE.replace('isOperator()', 'false'),
       },
-      facts({
-        rulesFiles: [
-          { path: 'firestore.rules', roleHelpers: ['isOperator', 'isStaff', 'isReviewer'] },
-          { path: 'storage.rules', roleHelpers: [] },
-        ],
-      }),
+      facts(),
     );
     expect(findings.filter((f) => f.file === 'firestore.rules' && f.line !== undefined && !f.detail.startsWith('reads the role claim'))).toEqual([
       { file: 'firestore.rules', line: 3, detail: 'isOperator() reads the claims [reviewer]; it checks exactly the claim operator' },
@@ -180,12 +175,26 @@ describe("the rules read the core's claim names, and every role helper checks it
     ]);
   });
 
-  it('FLAGS a role helper a rules file no longer declares', async () => {
+  it('FLAGS a rules file that reads a role claim in a function that is not its role helper', async () => {
     const findings = await run({ 'storage.rules': STORAGE.replace('function isOperator()', 'function isAdmin()') });
     expect(findings).toEqual([
       { file: 'storage.rules', line: 6, detail: 'reads the role claim operator outside its role helper (isOperator, isStaff), skipping the roster' },
-      { file: 'storage.rules', detail: 'declares no isOperator() role helper' },
     ]);
+  });
+
+  it('FLAGS a bound role helper that no listed rules file declares', async () => {
+    const findings = await run({}, facts());
+    expect(findings).toEqual([{ file: '(config)', detail: 'no listed rules file declares the role helper isReviewer()' }]);
+  });
+
+  it("reads every rules file the layout lists, of either service, and none it does not list", async () => {
+    const extra = (claim: string) => rules(`    function isGate() { return request.auth.token.${claim} == true; }`);
+    const findings = await run(
+      { 'admin.rules': extra('auditor'), 'unlisted.rules': extra('stranger') },
+      undefined,
+      ['firestore.rules', 'storage.rules', 'admin.rules'],
+    );
+    expect(findings).toEqual([{ file: 'admin.rules', line: 3, detail: 'reads the claim auditor, which the core does not declare' }]);
   });
 
   it('reports a role helper bound to a claim the core does not declare, and a core that declares no claim', async () => {
@@ -197,9 +206,8 @@ describe("the rules read the core's claim names, and every role helper checks it
     ]);
   });
 
-  it('refuses missing facts, an unbound or unused role helper, and a helper bound twice', () => {
+  it('refuses missing facts, a helper with no claim loader, and a helper bound twice', () => {
     expect(rulesClaimGuard.factProblems({} as never)).toEqual([
-      'rulesFiles is missing or empty',
       'claims needs a loader function',
       'rosterPath needs a loader function',
       'roleHelpers is missing (declare [] when there is none)',
@@ -208,15 +216,9 @@ describe("the rules read the core's claim names, and every role helper checks it
     expect(
       rulesClaimGuard.factProblems(
         facts({
-          rulesFiles: [{ path: 'firestore.rules', roleHelpers: ['isOperator', 'isStaff'] }],
           roleHelpers: [op, op, { function: 'isReviewer', claim: 'reviewer' as never, rosterField: () => 'reviewers' }],
         }),
       ),
-    ).toEqual([
-      'roleHelpers: isOperator is listed twice',
-      'roleHelpers isReviewer claim needs a loader function',
-      'role helper isStaff is named by a rules file but bound to no claim in roleHelpers',
-      'roleHelpers: isReviewer is declared by no rules file',
-    ]);
+    ).toEqual(['roleHelpers: isOperator is listed twice', 'roleHelpers isReviewer claim needs a loader function']);
   });
 });

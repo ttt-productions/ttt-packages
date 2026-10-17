@@ -1,10 +1,10 @@
-// The rules files read only the custom claims the core declares, and every role helper checks its
-// claim AND the live roster document: the token answers fast, the roster makes a removed role lose
-// access at once instead of when the stale token expires.
+// Every rules file the layout lists — Firestore and Storage alike — reads only the custom claims the
+// core declares, and every role helper checks its claim AND the live roster document: the token
+// answers fast, the roster makes a removed role lose access at once instead of when the stale token
+// expires.
 
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding } from '../../guard.js';
-import type { FileView } from '../../reader/view.js';
 import {
   documentPathLiterals,
   enclosingFunction,
@@ -14,14 +14,15 @@ import {
   rulesFunctions,
   type Loaded,
 } from './rules-syntax.js';
-import { nameListProblems, requireLoader, requireName } from './support.js';
+import { requireLoader, requireName } from './support.js';
 
 export interface RulesClaimFacts {
-  /** Every rules file the app deploys, each with the role helpers it declares (none: `[]`). */
-  rulesFiles: ReadonlyArray<{ path: string; roleHelpers: readonly string[] }>;
   /** Every custom claim name the core declares. */
   claims: Loaded<readonly string[]>;
-  /** Each role helper: the one claim it checks, and the roster list its caller's uid must be on. */
+  /**
+   * Each role helper: the one claim it checks, and the roster list its caller's uid must be on. Every
+   * rules file that declares a function of the helper's name is held to it; at least one must.
+   */
   roleHelpers: ReadonlyArray<{ function: string; claim: Loaded<string>; rosterField: Loaded<string> }>;
   /** The live roster document's path, as the core builds it (`collection/docId`). */
   rosterPath: Loaded<string>;
@@ -94,11 +95,6 @@ export const rulesClaimGuard: GenericGuardDefinition<RulesClaimFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    if (!Array.isArray(facts?.rulesFiles) || !facts.rulesFiles.length) problems.push('rulesFiles is missing or empty');
-    for (const file of facts?.rulesFiles ?? []) {
-      problems.push(...requireName(file?.path, 'a rules file path'));
-      problems.push(...nameListProblems(file?.roleHelpers, `${String(file?.path)} roleHelpers`, { nonEmpty: false }));
-    }
     problems.push(...requireLoader(facts?.claims, 'claims'), ...requireLoader(facts?.rosterPath, 'rosterPath'));
     if (!Array.isArray(facts?.roleHelpers)) problems.push('roleHelpers is missing (declare [] when there is none)');
     const bound = new Set<string>();
@@ -109,9 +105,6 @@ export const rulesClaimGuard: GenericGuardDefinition<RulesClaimFacts> = {
       if (bound.has(h?.function)) problems.push(`roleHelpers: ${h.function} is listed twice`);
       bound.add(h?.function);
     }
-    const declaredIn = new Set((facts?.rulesFiles ?? []).flatMap((f) => (Array.isArray(f?.roleHelpers) ? f.roleHelpers : [])));
-    for (const name of declaredIn) if (!bound.has(name)) problems.push(`role helper ${name} is named by a rules file but bound to no claim in roleHelpers`);
-    for (const name of bound) if (name && !declaredIn.has(name)) problems.push(`roleHelpers: ${name} is declared by no rules file`);
     return problems;
   },
   build(facts) {
@@ -119,9 +112,10 @@ export const rulesClaimGuard: GenericGuardDefinition<RulesClaimFacts> = {
       {
         title: "the rules read the core's claim names, and every role helper checks its claim and the live roster",
         description:
-          'A rules file cannot import the core, so every custom claim it reads (request.auth.token.<name> or ' +
+          'A rules file cannot import the core, so every custom claim a listed rules file reads (request.auth.token.<name> or ' +
           ".get('<name>', …)) must be a claim name the core declares; a renamed claim the rules missed denies " +
-          'everyone silently. Every role helper reads exactly its one declared claim AND tests the caller\'s uid against ' +
+          'everyone silently. Every role helper is declared by at least one listed rules file, and wherever it is ' +
+          'declared it reads exactly its one declared claim AND tests the caller\'s uid against ' +
           'its list on the live roster document, with both required (no ||), so a removed role loses access at once ' +
           'rather than when the stale token expires; it reads no other document. A role claim is read only inside its ' +
           'role helpers — an inline check would skip the roster. Fix: change the rules to the core\'s names and the ' +
@@ -142,8 +136,8 @@ export const rulesClaimGuard: GenericGuardDefinition<RulesClaimFacts> = {
           for (const h of helpers) {
             if (!declared.has(h.claim)) findings.push({ file: '(config)', detail: `role helper ${h.function} is bound to ${h.claim}, a claim the core does not declare` });
           }
-          for (const entry of facts.rulesFiles) {
-            const file: FileView = context.file(entry.path);
+          const declaredSomewhere = new Set<string>();
+          for (const file of context.rulesFiles()) {
             const code = file.code;
             const functions = rulesFunctions(code);
             for (const read of claimReads(code)) {
@@ -155,22 +149,21 @@ export const rulesClaimGuard: GenericGuardDefinition<RulesClaimFacts> = {
               }
               const owners = roleClaims.get(read.claim);
               const inside = enclosingFunction(functions, read.index);
-              if (owners && !(inside && owners.has(inside.name) && entry.roleHelpers.includes(inside.name))) {
+              if (owners && !(inside && owners.has(inside.name))) {
                 findings.push({ file: file.path, line, detail: `reads the role claim ${read.claim} outside its role helper (${[...owners].join(', ')}), skipping the roster` });
               }
             }
-            for (const name of entry.roleHelpers) {
-              const fn = functions.get(name);
-              const helper = helpers.find((h) => h.function === name);
-              if (!fn) {
-                findings.push({ file: file.path, detail: `declares no ${name}() role helper` });
-                continue;
-              }
-              if (!helper) continue;
-              for (const detail of roleHelperProblems(expandedBody(name, functions), helper, rosterPath)) {
+            for (const helper of helpers) {
+              const fn = functions.get(helper.function);
+              if (!fn) continue;
+              declaredSomewhere.add(helper.function);
+              for (const detail of roleHelperProblems(expandedBody(helper.function, functions), helper, rosterPath)) {
                 findings.push({ file: file.path, line: file.lineOf(fn.index), detail });
               }
             }
+          }
+          for (const h of helpers) {
+            if (!declaredSomewhere.has(h.function)) findings.push({ file: '(config)', detail: `no listed rules file declares the role helper ${h.function}()` });
           }
           return findings;
         },

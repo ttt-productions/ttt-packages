@@ -16,11 +16,13 @@ import {
 } from './auth.js';
 import {
   callableErrorCopyGuard,
+  callableNameGuard,
   callableReadGuard,
   callableTransportGuard,
   doubleSurfaceGuard,
   errorInternalsGuard,
   type CallableErrorCopyFacts,
+  type CallableNameFacts,
   type CallableReadFacts,
   type CallableTransportFacts,
   type DoubleSurfaceFacts,
@@ -48,6 +50,7 @@ import {
 /** The facts each guard in this area needs, by its id. */
 export interface FrontendActionsGuardFacts {
   callableErrorCopy: CallableErrorCopyFacts;
+  callableNames: CallableNameFacts;
   callableReads: CallableReadFacts;
   callableTransport: CallableTransportFacts;
   callableDoubleSurface: DoubleSurfaceFacts;
@@ -69,6 +72,7 @@ export interface FrontendActionsGuardFacts {
 
 export const FRONTEND_ACTIONS_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
   callableErrorCopyGuard,
+  callableNameGuard,
   callableReadGuard,
   callableTransportGuard,
   doubleSurfaceGuard,

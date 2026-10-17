@@ -25,9 +25,14 @@ import {
   type ReviewedFile,
 } from './shared.js';
 
-/** query-core's held retry state: the hooks that hold a read's failure through its retry, and its field. */
+/**
+ * query-core's held retry state: the hooks that hold a read's failure through its retry, the field
+ * their state carries, and the field a held answer hands on (a lookup's failed outcome, and the failed
+ * answer of a hook that answers with a status).
+ */
 const RETRY_STATE_HELPERS = ['useReadRetryState', 'useReadRetryStates'] as const;
 const RETRY_STATE_FIELD = 'isRetrying';
+const HELD_ANSWER_FIELD = 'retrying';
 
 /** The app's one failure seat: the component, the prop it takes a retry on, and the prop that shows it running. */
 export interface FailureSeat {
@@ -100,7 +105,8 @@ const LIVE_FLAG_PAIRS: ReadonlyArray<{ name: string; re: RegExp }> = [
   { name: 'isFetching && failure flag', re: new RegExp(`${FETCHING}\\s*&&\\s*${FAILURE_FLAG}`) },
 ];
 
-const FETCHING_FLAG = /\bis(?:Re)?[Ff]etching\b|\bfetchingCount\b|\buseIsFetching\b|\bfetchStatus\b|\bsourceState\b/;
+const FETCHING_FLAG_NAMES = String.raw`is(?:Re)?[Ff]etching|fetchingCount|useIsFetching|fetchStatus|sourceState`;
+const FETCHING_FLAG = new RegExp(String.raw`\b(?:${FETCHING_FLAG_NAMES})\b`);
 
 /** Every retry state a source builds — a field, a prop, or a binding — with the expression it is built from. */
 function retryStateExpressions(code: string, fields: readonly string[]): Array<{ index: number; expression: string }> {
@@ -125,15 +131,24 @@ function retryStateExpressions(code: string, fields: readonly string[]): Array<{
   return found;
 }
 
-/** Whether an expression reads a fetching flag directly, or through a binding the same source declares from one. */
-function readsFetchingFlag(expression: string, code: string): boolean {
+/**
+ * Whether an expression reads a fetching flag directly, or through a binding the same source declares
+ * from one — a plain binding (`const busy = q.isFetching`), a renamed destructure
+ * (`const { isFetching: busy } = q`), or a chain of such bindings.
+ */
+function readsFetchingFlag(expression: string, code: string, seen: Set<string> = new Set()): boolean {
   if (FETCHING_FLAG.test(expression)) return true;
   const bare = [...expression.matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)\b(?!\s*[.(])/g)].map((m) => m[1]);
   return bare.some((name) => {
-    const declared = new RegExp(`\\b(?:const|let|var)\\s+${escapeRegExp(name)}\\s*=\\s*([^;\\n]+)`).exec(code);
+    if (seen.has(name)) return false;
+    seen.add(name);
+    const n = escapeRegExp(name);
+    const renamed = new RegExp(String.raw`\{[^{}]*\b(?:${FETCHING_FLAG_NAMES})\s*:\s*${n}\b[^{}]*\}\s*=(?!=)`);
+    if (renamed.test(code)) return true;
+    const declared = new RegExp(String.raw`\b(?:const|let|var)\s+${n}\s*=\s*([^;\n]+)`).exec(code);
     if (!declared) return false;
     const value = declared[1].trim();
-    return !RETRY_STATE_HELPERS.some((helper) => value.startsWith(`${helper}(`)) && FETCHING_FLAG.test(value);
+    return !RETRY_STATE_HELPERS.some((helper) => value.startsWith(`${helper}(`)) && readsFetchingFlag(value, code, seen);
   });
 }
 
@@ -149,12 +164,40 @@ export function liveFlagRetryStates(file: FileView, seat: FailureSeat): Hit[] {
     }
     offset += line.length + 1;
   }
-  for (const { index, expression } of retryStateExpressions(code, [RETRY_STATE_FIELD, seat.pendingProp])) {
+  for (const { index, expression } of retryStateExpressions(code, [RETRY_STATE_FIELD, HELD_ANSWER_FIELD, seat.pendingProp])) {
     if (!readsFetchingFlag(expression, code)) continue;
     const line = file.lineOf(index);
     if (!hits.has(line)) hits.set(line, { index, detail: `retry state from a fetching flag: ${expression.replace(/\s+/g, ' ').slice(0, 120)}` });
   }
   return [...hits.values()].sort((a, b) => a.index - b.index);
+}
+
+const isHookFunction = (node: ts.Node, sf: ts.SourceFile): boolean => {
+  if ((ts.isFunctionDeclaration(node) || ts.isFunctionExpression(node)) && node.name) return isHookName(node.name.text);
+  if ((ts.isArrowFunction(node) || ts.isFunctionExpression(node)) && ts.isVariableDeclaration(node.parent)) return isHookName(node.parent.name.getText(sf));
+  return false;
+};
+
+/**
+ * Each failed answer a hook that answers with a status hands out without its held retry state: an
+ * object literal inside a hook with `status: 'failed'` and the read's `error`, but no `retrying` (a
+ * spread supplies it). Without it the answer's Try again cannot show its retry running.
+ */
+export function failedAnswersWithoutRetrying(file: FileView): Hit[] {
+  const sf = file.sourceFile;
+  const hits: Hit[] = [];
+  walk(sf, (node) => {
+    if (!ts.isObjectLiteralExpression(node)) return;
+    const named = (name: string) =>
+      node.properties.find((p) => (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) && p.name.getText(sf) === name);
+    const status = named('status');
+    if (!status || !ts.isPropertyAssignment(status) || !ts.isStringLiteralLike(status.initializer) || status.initializer.text !== 'failed') return;
+    if (!named('error') || named(HELD_ANSWER_FIELD) || node.properties.some(ts.isSpreadAssignment)) return;
+    let inHook = false;
+    for (let p: ts.Node | undefined = node.parent; p && !inHook; p = p.parent) inHook = isHookFunction(p, sf);
+    if (inHook) hits.push({ index: node.getStart(sf), detail: `a failed answer with no ${HELD_ANSWER_FIELD}: ${node.getText(sf).replace(/\s+/g, ' ').slice(0, 120)}` });
+  });
+  return hits;
 }
 
 /** Each seat given a retry but not the prop that shows the retry running. A spread supplies both. */
@@ -181,12 +224,15 @@ export const readRetryStateGuard: GenericGuardDefinition<ReadRetryStateFacts> = 
         "TanStack Query puts a query that never succeeded back to pending and clears its error the moment a refetch starts, so a retry " +
         "state built from isFetching / isRefetching / fetchStatus with isError or error reads false for the retry of a failed first read, " +
         `and the failure turns into a loading state under the pressed retry. Hold the failure with query-core's ${RETRY_STATE_HELPERS.join(' / ')} ` +
-        `(exposed from the read's hook) and pass its ${RETRY_STATE_FIELD}; and every <${facts.seat.component}> given ${facts.seat.retryProp} ` +
-        `also takes ${facts.seat.pendingProp}, so the pressed retry shows it is running.`,
+        `(exposed from the read's hook) and pass its ${RETRY_STATE_FIELD}; a lookup hands out its held ${HELD_ANSWER_FIELD}, and a hook ` +
+        `that answers with a status gives its failed answer the held ${HELD_ANSWER_FIELD} beside the error, never one built from a ` +
+        `fetching flag; and every <${facts.seat.component}> given ${facts.seat.retryProp} also takes ${facts.seat.pendingProp}, so the ` +
+        'pressed retry shows it is running.',
       run(context: GuardContext): Finding[] {
         const findings: Finding[] = [];
         for (const file of context.files(APP_CODE)) {
-          for (const hit of [...liveFlagRetryStates(file, facts.seat), ...seatRetriesWithoutPending(file, facts.seat)]) {
+          const hits = [...liveFlagRetryStates(file, facts.seat), ...seatRetriesWithoutPending(file, facts.seat), ...failedAnswersWithoutRetrying(file)];
+          for (const hit of hits) {
             findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail ?? '' });
           }
         }
@@ -364,8 +410,47 @@ export interface DefaultedReadBindingFacts {
   surfaceTrees: readonly string[];
   /** Fields beyond error / isError / status that carry a read's failure (a held retry state); [] for none. */
   heldFailureFields: readonly string[];
-  /** Files whose defaulted read is known to have answered before it renders, each with its why. */
-  allowlist: readonly ReviewedFile[];
+  /**
+   * Files whose defaulted read is known to have answered before it renders, each with its why and the
+   * gate that holds the surface back until then: the file the gate is in (the surface itself or the
+   * one that renders it) and the gate's code as written there. A gate that is gone leaves the default
+   * unguarded, so the entry fails.
+   */
+  allowlist: ReadonlyArray<ReviewedFile & { gate: ReadGate }>;
+}
+
+/** Where a reviewed default's read is known to have answered: a file, and the code there that waits for it. */
+export interface ReadGate {
+  file: string;
+  code: string;
+}
+
+const squashed = (text: string) => text.replace(/\s+/g, ' ').trim();
+
+function gateProblems(allowlist: unknown): string[] {
+  if (!Array.isArray(allowlist)) return [];
+  const problems: string[] = [];
+  for (const entry of allowlist as Array<{ path?: string; gate?: Partial<ReadGate> }>) {
+    const what = `allowlist entry ${String(entry?.path)}`;
+    if (!entry?.gate || typeof entry.gate !== 'object') problems.push(`${what} names no gate (the file and the code that hold its surface back until the read answered)`);
+    else {
+      problems.push(...pathProblems(entry.gate.file, `${what}'s gate file`));
+      if (typeof entry.gate.code !== 'string' || !entry.gate.code.trim()) problems.push(`${what}'s gate names no code`);
+    }
+  }
+  return problems;
+}
+
+/** Each reviewed default whose gate is gone: its file no longer exists, or no longer holds the gate's code. */
+function missingGates(context: GuardContext, allowlist: DefaultedReadBindingFacts['allowlist']): Finding[] {
+  const findings: Finding[] = [];
+  for (const { path, gate } of allowlist) {
+    if (!context.reader.exists(gate.file)) findings.push({ file: gate.file, detail: `the gate ${path} relies on is gone: the file no longer exists` });
+    else if (!squashed(context.file(gate.file).code).includes(squashed(gate.code))) {
+      findings.push({ file: gate.file, detail: `the gate ${path} relies on is gone: no longer holds ${squashed(gate.code)}` });
+    }
+  }
+  return findings;
 }
 
 /** Destructures of a hook call that default `data` but bind no failure field. */
@@ -397,25 +482,26 @@ export const defaultedReadBindingGuard: GenericGuardDefinition<DefaultedReadBind
     ...pathListProblems(facts?.surfaceTrees, 'surfaceTrees'),
     ...identifierListProblems(facts?.heldFailureFields, 'heldFailureFields', { allowEmpty: true }),
     ...reviewedFileProblems(facts?.allowlist, 'allowlist'),
+    ...gateProblems(facts?.allowlist),
   ],
   build: (facts) => {
     const held = facts.heldFailureFields.length ? ` / ${facts.heldFailureFields.join(' / ')}` : '';
-    return [
-      reviewedAllowlist({
-        title: 'a render surface that defaults a read binds its failure',
-        description:
-          `A render surface (${facts.surfaceTrees.join(', ')}) that defaults a read's data (const { data: rows = [] } = useRows()) binds ` +
-          `that same read's failure (error / isError / status${held}) in the same destructure, and renders the pending and failed states ` +
-          'before the default is used; otherwise a failed read renders as an empty list, a zero, or a negative answer that decides a control.',
-        scope: APP_CODE,
-        match: (file) => (facts.surfaceTrees.some((tree) => isUnder(file.path, tree)) ? unguardedDataDefaults(file, facts.heldFailureFields) : []),
-        allowlist: facts.allowlist,
-        samples: {
-          flags: [{ path: `${facts.surfaceTrees[0]}/sample.tsx`, text: 'const { data: rows = [] } = useRows(id);' }],
-          passes: [{ path: `${facts.surfaceTrees[0]}/sample.tsx`, text: 'const { data: rows = [], isError } = useRows(id);' }],
-        },
-      }),
-    ];
+    const guard = reviewedAllowlist({
+      title: 'a render surface that defaults a read binds its failure',
+      description:
+        `A render surface (${facts.surfaceTrees.join(', ')}) that defaults a read's data (const { data: rows = [] } = useRows()) binds ` +
+        `that same read's failure (error / isError / status${held}) in the same destructure, and renders the pending and failed states ` +
+        'before the default is used; otherwise a failed read renders as an empty list, a zero, or a negative answer that decides a control. ' +
+        'A reviewed default names the gate that holds its surface back until the read answered, and that gate must still be there.',
+      scope: APP_CODE,
+      match: (file) => (facts.surfaceTrees.some((tree) => isUnder(file.path, tree)) ? unguardedDataDefaults(file, facts.heldFailureFields) : []),
+      allowlist: facts.allowlist,
+      samples: {
+        flags: [{ path: `${facts.surfaceTrees[0]}/sample.tsx`, text: 'const { data: rows = [] } = useRows(id);' }],
+        passes: [{ path: `${facts.surfaceTrees[0]}/sample.tsx`, text: 'const { data: rows = [], isError } = useRows(id);' }],
+      },
+    });
+    return [{ ...guard, run: async (context) => [...(await guard.run(context)), ...missingGates(context, facts.allowlist)] }];
   },
 };
 

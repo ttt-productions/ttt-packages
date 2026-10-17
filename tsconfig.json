@@ -9,10 +9,6 @@
       "moduleResolution": "bundler",
       "jsx": "react-jsx",
       "strict": true,
-      // The guard package's analyzers are JavaScript with JSDoc; reading them for their types lets
-      // its TypeScript modules and tests type-check against them. JavaScript itself is not checked.
-      "allowJs": true,
-      "checkJs": false,
       "esModuleInterop": true,
       "skipLibCheck": true,
       "forceConsistentCasingInFileNames": true,
@@ -28,5 +24,9 @@
       "noFallthroughCasesInSwitch": true,
       "noEmit": false
     },
-    "exclude": ["node_modules", "dist", "build", "**/dist", "**/node_modules"]
+    "exclude": ["node_modules", "dist", "build"],
+    // `tsc -b` from here type-checks the two projects below and compiles nothing of its own; each
+    // package's config extends this file for its compiler options and names its own files.
+    "files": [],
+    "references": [{ "path": "./tsconfig.workspace.json" }, { "path": "./packages/repo-guards/tsconfig.test.json" }]
   }

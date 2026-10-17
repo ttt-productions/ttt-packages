@@ -1,6 +1,6 @@
 // The authority guards over server code: the admin claim is read only by its resolver, a request's
-// origin is read in one place, no sign-in waits on a blocking function, and every callable declares
-// its App Check posture.
+// origin is read in one place, no sign-in waits on a blocking function, every callable declares
+// its App Check posture, and the client presents a limited-use token exactly where it is consumed.
 
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../config.js';
@@ -8,6 +8,7 @@ import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { ownerOnly, reviewedAllowlist, type Hit, type Matcher } from '../../shapes/shapes.js';
+import { declarationFactProblems, readDeclarations, type CallableDeclarationFacts } from '../frontend-actions/declarations.js';
 import {
   calleeName,
   forEachNode,
@@ -204,6 +205,10 @@ export interface AppCheckFacts {
   adminAuth: { call: string; option: string };
   /** Callables that keep the cached token although they would consume, by exported name, each with its why. */
   consumptionExempt: ReadonlyArray<{ callable: string; why: string }>;
+  /** The app's callable declarations, which present the token the server consumes. */
+  clientDeclarations: CallableDeclarationFacts;
+  /** Consuming callables no client declaration names (no client calls them), each with its why. */
+  noClientDeclaration: ReadonlyArray<{ callable: string; why: string }>;
 }
 
 interface Callable {
@@ -273,6 +278,8 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
     textProblem(facts?.adminAuth?.call, 'adminAuth.call', problems);
     textProblem(facts?.adminAuth?.option, 'adminAuth.option', problems);
     reviewedProblems(facts?.consumptionExempt, 'consumptionExempt', problems, 'callable');
+    declarationFactProblems(facts?.clientDeclarations, 'clientDeclarations', problems);
+    reviewedProblems(facts?.noClientDeclaration, 'noClientDeclaration', problems, 'callable');
     return problems;
   },
   build(facts) {
@@ -321,6 +328,51 @@ export const appCheckGuard: GenericGuardDefinition<AppCheckFacts> = {
         return findings;
       },
     };
-    return [posture];
+    const client: Guard = {
+      title: "a consuming callable's client declaration presents a limited-use token",
+      description:
+        'Every callable whose options declare `consumeAppCheckToken: true` has a client declaration in ' +
+        `${facts.clientDeclarations.modules.join(', ')} carrying \`limitedUseAppCheck: true\`, so the token the server ` +
+        'spends is a single-use one rather than the cached token every other call reuses. A declaration carrying it names ' +
+        'a callable that consumes: one that names no callable, or a callable that keeps the cached token (an exempt one ' +
+        'included), mints a token per call for nothing. A consuming callable no client calls is a reviewed entry with ' +
+        'its why; an entry that is no longer a consuming callable, or that a declaration now names, is stale.',
+      run(context) {
+        const { declared, findings } = readDeclarations(context, facts.clientDeclarations);
+        const servers = new Map<string, { consumes: boolean; file: string; line: number }>();
+        for (const file of context.files(FUNCTIONS_CODE)) {
+          for (const callable of callablesOf(file)) {
+            servers.set(callable.name, { consumes: declaresTrue(callable.options, 'consumeAppCheckToken'), file: file.path, line: lineOfNode(file, callable.node) });
+          }
+        }
+        if (!servers.size) findings.push({ file: '(functions)', detail: 'no onCall found, so the guard checks nothing' });
+        const byName = new Map(declared.filter((d) => d.callable !== null).map((d) => [d.callable!, d]));
+        const exempt = new Set(facts.consumptionExempt.map((e) => e.callable));
+        const undeclared = new Set(facts.noClientDeclaration.map((e) => e.callable));
+        for (const [name, server] of servers) {
+          if (!server.consumes) continue;
+          const declaration = byName.get(name);
+          if (!declaration) {
+            if (!undeclared.has(name)) findings.push({ file: server.file, line: server.line, detail: `${name} consumes its token, but no client declaration names it` });
+          } else if (!declaration.limitedUse) {
+            findings.push({ file: declaration.file, line: declaration.line, detail: `${declaration.hook} declares ${name}, which consumes its token, without limitedUseAppCheck: true` });
+          }
+        }
+        for (const declaration of declared) {
+          if (!declaration.limitedUse || declaration.callable === null) continue;
+          const server = servers.get(declaration.callable);
+          const where = { file: declaration.file, line: declaration.line };
+          if (!server) findings.push({ ...where, detail: `${declaration.hook} declares ${declaration.callable} limited-use, but no callable of that name exists` });
+          else if (exempt.has(declaration.callable)) findings.push({ ...where, detail: `${declaration.hook} declares ${declaration.callable} limited-use, but it is exempt from consumption` });
+          else if (!server.consumes) findings.push({ ...where, detail: `${declaration.hook} declares ${declaration.callable} limited-use, but it does not consume its token` });
+        }
+        for (const name of undeclared) {
+          if (byName.has(name)) findings.push({ file: '(noClientDeclaration)', detail: `stale entry: a client declaration names ${name} now` });
+          else if (!servers.get(name)?.consumes) findings.push({ file: '(noClientDeclaration)', detail: `stale entry: ${name} is not a consuming callable` });
+        }
+        return findings;
+      },
+    };
+    return [posture, client];
   },
 };

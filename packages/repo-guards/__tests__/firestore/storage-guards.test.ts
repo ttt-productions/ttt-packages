@@ -18,7 +18,6 @@ afterEach(() => repo?.remove());
 
 const MB = 1024 * 1024;
 const uploadFacts = (over: Partial<StorageUploadOriginFacts> = {}): StorageUploadOriginFacts => ({
-  rulesFile: 'storage.rules',
   capFunction: 'uploadMaxBytes',
   originCaps: () => ({ 'league-picture': 10 * MB, 'waiver-signature': 1 * MB }),
   originLists: [
@@ -57,9 +56,27 @@ const CANONICAL = [
 describe('the Storage rules restate the upload-origin registry exactly', () => {
   it('PASSES rules built from the registry, comments and line breaks included', async () => {
     repo = tempRepo({ 'src/anchor.ts': 'export {};', 'storage.rules': CANONICAL });
-    const reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/anchor.ts' } } });
+    const reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/anchor.ts' } }, rulesFiles: ['storage.rules'] });
     const [guard] = storageUploadOriginGuard.build(uploadFacts());
     expect(await guard.run(contextOf(reader))).toEqual([]);
+  });
+
+  it('reads every Storage rules file the layout lists, and never a Firestore rules file', async () => {
+    repo = tempRepo({
+      'src/anchor.ts': 'export {};',
+      'storage.rules': CANONICAL,
+      'media.rules': CANONICAL.replace('allow update, delete: if false;', 'allow update: if false;'),
+      'firestore.rules': 'service cloud.firestore { match /databases/{database}/documents { } }',
+    });
+    const reader = createRepoReader({
+      repoRoot: repo.root,
+      roots: { app: { path: 'src', anchor: 'src/anchor.ts' } },
+      rulesFiles: ['firestore.rules', 'storage.rules', 'media.rules'],
+    });
+    const [guard] = storageUploadOriginGuard.build(uploadFacts());
+    expect(await guard.run(contextOf(reader))).toEqual([
+      { file: 'media.rules', detail: 'the staging block does not refuse delete (allow delete: if false)' },
+    ]);
   });
 
   it('FLAGS a drifted cap, an undeclared origin, a missing origin, no zero fallback, a drifted list, a missing lane, and an overwritable staging block', async () => {
@@ -104,7 +121,6 @@ describe('the Storage rules restate the upload-origin registry exactly', () => {
 
   it('refuses missing names and loaders, and lists that are not declared', () => {
     expect(storageUploadOriginGuard.factProblems({} as never)).toEqual([
-      'rulesFile is missing',
       'capFunction is missing',
       'originCaps needs a loader function',
       'stagingPath is missing',

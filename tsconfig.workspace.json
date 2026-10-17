@@ -1,0 +1,12 @@
+{
+  // Every TypeScript file in the workspace outside repo-guards, type-checked by the root `tsc -b`
+  // (the one step that checks tests). repo-guards checks its source and tests in its own project,
+  // which alone reads JavaScript for its types.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.cache/tsc-workspace/tsconfig.workspace.tsbuildinfo"
+  },
+  "include": ["**/*"],
+  "exclude": ["node_modules", "dist", "build", "packages/repo-guards"]
+}

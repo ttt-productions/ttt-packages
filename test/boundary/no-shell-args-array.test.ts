@@ -1,38 +1,23 @@
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { createRepoReader, type RepoLayout } from '@ttt-productions/repo-guards/node';
+import { GENERIC_GUARDS, registerSuiteOf } from '@ttt-productions/repo-guards/suite';
 import { REPO_ROOT } from './leak-utils';
-import { createRepoReader } from '../../packages/repo-guards/src/reader/reader.js';
-import { shellSafeGuard } from '../../packages/repo-guards/src/modules/repo/shell-safe.js';
 
-// The shared shell-safety guard run over this repository's own source through the one reader: no
-// child process gets an args array together with a shell. The guard's own must-fail and must-pass
-// cases are proven in its package's tests.
+// The shared shell-safety guard — no child process gets an args array together with a shell — run
+// over this repository through the suite entry, exactly as an app's suite runs it: the reader's
+// reach check, and the guard failing when a scope it reads reaches no file. The whole repository is
+// one root, so packages, scripts, this suite, and the root config files are all read. The guard's
+// own must-fail and must-pass cases are proven in its package's tests.
 
-const reader = createRepoReader({
-  repoRoot: REPO_ROOT,
-  roots: {
-    app: { path: 'packages', anchor: 'packages/repo-guards/src/index.ts' },
-    scripts: { path: 'scripts', anchor: 'scripts/test-quiet.mjs' },
-  },
-});
+const layout: RepoLayout = { repoRoot: REPO_ROOT, roots: { app: { path: '.', anchor: 'scripts/test-quiet.mjs' } } };
 
-describe('boundary: no child process gets an args array together with a shell', () => {
-  const [guard] = shellSafeGuard.build({});
-
-  it('the reader reaches every declared root', () => {
-    expect(reader.unreachedAnchors()).toEqual([]);
-  });
-
-  it('finds no such call in any package or script source file', async () => {
-    const findings = await guard.run({ reader, files: (scope) => reader.files(scope), file: (p) => reader.file(p) });
-    const offenders = findings.map((f) => `${f.file}:${f.line}`);
-    expect(offenders, `${guard.description}\n  ${offenders.join('\n  ')}`).toEqual([]);
-  });
-});
+registerSuiteOf(
+  { layout, generic: { shellSafeChildProcesses: {} }, business: [] },
+  GENERIC_GUARDS.filter((definition) => definition.id === 'shellSafeChildProcesses'),
+);
 
 describe('boundary: the quiet runner hands its shell only shell-safe tokens', () => {
-  const source = readFileSync(join(REPO_ROOT, 'scripts', 'test-quiet.mjs'), 'utf8');
+  const source = createRepoReader(layout).file('scripts/test-quiet.mjs').text;
   const declared = /^const SHELL_SAFE_TOKEN = \/(.+)\/([a-z]*);\s*$/m.exec(source);
   const safe = (token: string) => (declared ? new RegExp(declared[1], declared[2]).test(token) : false);
 

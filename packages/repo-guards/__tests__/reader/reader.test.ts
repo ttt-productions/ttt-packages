@@ -29,7 +29,8 @@ beforeAll(() => {
     'functions/src/run.spec.ts': 'export {};',
     'e2e/helpers/seed.ts': 'export {};',
     'chat-worker/src/index.ts': 'export {};',
-    'firestore.rules': 'rules_version = "2";',
+    'firestore.rules': 'rules_version = "2";\nservice cloud.firestore { match /databases/{database}/documents { } }',
+    'storage.rules': 'service firebase.storage { match /b/{bucket}/o { } }',
     'node_modules/@scope/kit/dist/index.d.ts': 'export declare const a: 1;',
     'node_modules/@scope/kit/dist/lib/deep.d.ts': 'export type B = 2;',
     'node_modules/@scope/kit/dist/index.js': 'export const a = 1;',
@@ -43,7 +44,7 @@ beforeAll(() => {
       e2e: { path: 'e2e', anchor: 'e2e/helpers/seed.ts' },
       workers: { 'chat-worker': { path: 'chat-worker', anchor: 'chat-worker/src/index.ts' } },
     },
-    rulesFiles: ['firestore.rules'],
+    rulesFiles: ['firestore.rules', 'storage.rules'],
     testCodePaths: [{ path: 'src/test', why: 'the frontend suite setup and mocks' }],
     testCodeNameMarkers: [{ marker: '.test-helper.', why: 'a test helper beside the code it serves' }],
     exclusions: [{ path: 'src/generated', why: 'generated output' }],
@@ -109,7 +110,32 @@ describe('the scope policy', () => {
   it('reads one named file, and throws for one that does not exist', () => {
     const reader = createRepoReader(layout);
     expect(reader.file('firestore.rules').kind).toBe('rules');
-    expect(() => reader.file('storage.rules')).toThrow(/storage.rules does not exist/);
+    expect(() => reader.file('other.rules')).toThrow(/other.rules does not exist/);
+  });
+
+  it('hands out the listed rules files by the service each declares, or all of them', () => {
+    const reader = createRepoReader(layout);
+    expect(paths(reader.rulesFiles('firestore'))).toEqual(['firestore.rules']);
+    expect(paths(reader.rulesFiles('storage'))).toEqual(['storage.rules']);
+    expect(paths(reader.rulesFiles())).toEqual(['firestore.rules', 'storage.rules']);
+  });
+
+  it('labels a file by what it is: its root, an installed package, or a named file outside every root', () => {
+    const reader = createRepoReader(layout);
+    const [shipped] = reader.installedFiles('@scope/kit', { kinds: ['code'] });
+    expect([shipped.role, shipped.rootName]).toEqual(['installed', '@scope/kit']);
+    const named = reader.file('firestore.rules');
+    expect([named.role, named.rootName]).toEqual(['repository', '(repository)']);
+    const inRoot = reader.file('src/lib/owner.ts');
+    expect([inRoot.role, inRoot.rootName]).toEqual(['app', 'app']);
+  });
+
+  it('reads the whole repository as one root when the root is .', () => {
+    const reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: '.', anchor: 'src/lib/owner.ts' } } });
+    expect(reader.unreachedAnchors()).toEqual([]);
+    const read = paths(reader.files({ roots: ['app'], kinds: ['code'], tests: true }));
+    expect(read).toEqual(expect.arrayContaining(['src/lib/owner.ts', 'functions/src/index.ts', 'chat-worker/src/index.ts', 'e2e/helpers/seed.ts']));
+    expect(read.some((p) => p.includes('node_modules/'))).toBe(false);
   });
 
   it("reads an installed package's shipped files of the asked kinds, its own dependencies left out, under any folder", () => {
@@ -132,6 +158,13 @@ describe('the scope policy', () => {
     expect(reader.readOutside(join(repo.root, 'firestore.rules'))).toContain('rules_version');
     expect(reader.readOutside(join(repo.root, 'no-such-file.md'))).toBeNull();
     expect(() => reader.readOutside('relative/path.md')).toThrow(/not an absolute path/);
+  });
+
+  it('tells whether a folder or file outside the checkout exists', () => {
+    const reader = createRepoReader(layout);
+    expect(reader.existsOutside(join(repo.root, 'functions'))).toBe(true);
+    expect(reader.existsOutside(join(repo.root, 'no-such-folder'))).toBe(false);
+    expect(() => reader.existsOutside('relative')).toThrow(/not an absolute path/);
   });
 
   it('knows env files by any name, and shell scripts', () => {
@@ -157,7 +190,7 @@ describe('MUST FAIL — a layout that cannot be read whole', () => {
         functions: { path: 'functions/src', anchor: 'functions/src/gone.ts' },
         scripts: { path: 'scripts', anchor: 'scripts/run.mjs' },
       },
-      rulesFiles: ['storage.rules'],
+      rulesFiles: ['missing.rules'],
       exclusions: [
         { path: 'src/gone', why: 'stale' },
         { path: 'src/generated', why: ' ' },
@@ -168,11 +201,21 @@ describe('MUST FAIL — a layout that cannot be read whole', () => {
         "root app's anchor functions/src/index.ts is not under src",
         "root functions's anchor functions/src/gone.ts does not exist",
         'root scripts (scripts) does not exist',
-        'rules file storage.rules does not exist',
+        'rules file missing.rules does not exist',
         'exclusion src/gone no longer exists',
         'exclusion src/generated carries no why',
       ]),
     );
+  });
+
+  it('refuses a rules file that declares neither service, or both, and one listed twice', () => {
+    repo.write('neither.rules', "rules_version = '2';\n// service cloud.firestore, in prose only");
+    repo.write('both.rules', 'service cloud.firestore { }\nservice firebase.storage { }');
+    expect(layoutProblems({ ...layout, rulesFiles: ['neither.rules', 'both.rules', 'firestore.rules', 'firestore.rules'] })).toEqual([
+      'rulesFiles lists a file twice',
+      'rules file neither.rules declares neither service cloud.firestore nor service firebase.storage, or both',
+      'rules file both.rules declares neither service cloud.firestore nor service firebase.storage, or both',
+    ]);
   });
 
   it('refuses an anchor that an exclusion hides', () => {
@@ -200,6 +243,37 @@ describe('MUST FAIL — a folder that cannot be read', () => {
     }) as typeof fs.readdirSync);
     const reader = createRepoReader(layout);
     expect(() => reader.files({ roots: ['app'], kinds: ['code'], tests: false })).toThrow('cannot read folder src/lib (EACCES)');
+  });
+});
+
+// A symbolic link is neither followed (it can leave the repository or loop) nor skipped (what it
+// points at would go unchecked while every guard passes): the run fails naming it.
+describe('MUST FAIL — a symbolic link in a walked tree', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const linkAt = (folder: string, name: string) => {
+    const real = fs.readdirSync;
+    vi.spyOn(fs, 'readdirSync').mockImplementation(((dir: fs.PathLike, ...rest: unknown[]) => {
+      const entries = (real as (...a: unknown[]) => fs.Dirent[]).call(fs, dir, ...rest);
+      if (String(dir) !== folder) return entries;
+      const link = Object.assign(Object.create(fs.Dirent.prototype), { name, parentPath: folder, path: folder });
+      link.isSymbolicLink = () => true;
+      link.isDirectory = () => false;
+      link.isFile = () => false;
+      return [...entries, link];
+    }) as typeof fs.readdirSync);
+  };
+
+  it('throws naming a link under a root', () => {
+    linkAt(join(repo.root, `src${sep}lib`), 'linked');
+    const reader = createRepoReader(layout);
+    expect(() => reader.files({ roots: ['app'], kinds: ['code'], tests: false })).toThrow('src/lib/linked is a symbolic link');
+  });
+
+  it("throws naming a link inside an installed package's files", () => {
+    linkAt(join(repo.root, 'node_modules/@scope/kit/dist'), 'linked.js');
+    const reader = createRepoReader(layout);
+    expect(() => reader.installedFiles('@scope/kit', { kinds: ['code'] })).toThrow('node_modules/@scope/kit/dist/linked.js is a symbolic link');
   });
 });
 
@@ -233,7 +307,7 @@ describe('comments never reach a guard', () => {
 
   it('blanks rules-file comments and keeps quoted text and request paths', () => {
     repo.write(
-      'firestore.rules',
+      'commented.rules',
       [
         "match /users/{uid} { // admins read the live roster",
         '  /* a block',
@@ -242,7 +316,7 @@ describe('comments never reach a guard', () => {
         '}',
       ].join('\n'),
     );
-    const view = createRepoReader(layout).file('firestore.rules');
+    const view = createRepoReader(layout).file('commented.rules');
     expect(view.code).not.toContain('live roster');
     expect(view.code).not.toContain('a block');
     expect(view.code).toContain("'//not-a-comment'");

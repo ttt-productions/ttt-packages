@@ -19,8 +19,8 @@ describe('no swallowed read or write', () => {
     captureCalls: ['captureException', 'captureMessage'],
     failureExits: ['exitCallableCatch'],
     notReadOrWrite: [
-      { pattern: /^rm\(/, why: 'a scratch file delete changes no record' },
-      { pattern: /^res\.(json|text)\(\)$/, why: 'an HTTP body read for an error message' },
+      { file: 'functions/src/work.ts', pattern: /^rm\(/, why: 'a scratch file delete changes no record' },
+      { file: 'functions/src/work.ts', pattern: /^res\.(json|text)\(\)$/, why: 'an HTTP body read for an error message' },
     ],
     catchSites: [{ file: 'functions/src/init.ts', receiver: 'initMonitoring(', why: "monitoring's own init failure cannot be captured by monitoring" }],
     tryCatchSites: [{ file: 'functions/src/lease.ts', function: 'leaseStillHeld', why: 'a failed lease read answers not held (fail closed)' }],
@@ -55,6 +55,17 @@ describe('no swallowed read or write', () => {
     ]);
   });
 
+  it('FLAGS a reviewed shape caught in a file it is not bound to', async () => {
+    repo = backendRepo({
+      'functions/src/work.ts': 'async function j() { await rm(tmp, { force: true }).catch(() => undefined); const b = await res.json().catch(() => null); }',
+      'functions/src/other.ts': 'async function m() { await rm(record).catch(() => undefined); }',
+      'functions/src/init.ts': 'initMonitoring(opts).catch((err) => logger.error(err));',
+      'functions/src/lease.ts': 'async function leaseStillHeld() { try { return (await ref.get()).exists; } catch { return false; } }',
+    });
+    const [guard] = swallowedReadWriteGuard.build(facts);
+    expect(await repo.run(guard!)).toEqual([{ file: 'functions/src/other.ts', line: 1, detail: '.catch on rm(record) neither rethrows nor captures' }]);
+  });
+
   it('FLAGS every reviewed shape and site that matches nothing', async () => {
     repo = backendRepo({
       'functions/src/init.ts': 'initMonitoring(opts).catch((err) => captureException(err));',
@@ -62,21 +73,21 @@ describe('no swallowed read or write', () => {
     });
     const [guard] = swallowedReadWriteGuard.build(facts);
     expect(await repo.run(guard!)).toEqual([
-      { file: '(notReadOrWrite)', detail: 'stale shape /^rm\\(/: no caught expression matches it' },
-      { file: '(notReadOrWrite)', detail: 'stale shape /^res\\.(json|text)\\(\\)$/: no caught expression matches it' },
+      { file: 'functions/src/work.ts', detail: 'stale shape /^rm\\(/: no caught expression in this file matches it' },
+      { file: 'functions/src/work.ts', detail: 'stale shape /^res\\.(json|text)\\(\\)$/: no caught expression in this file matches it' },
       { file: 'functions/src/init.ts', detail: 'stale catch site: no swallowing .catch on initMonitoring(' },
       { file: 'functions/src/lease.ts', detail: 'stale try/catch site: leaseStillHeld keeps no failure' },
     ]);
   });
 
-  it('refuses a try/catch site with no function and a shape that is not a pattern', () => {
+  it('refuses a try/catch site with no function, a shape that is not a pattern, and a shape bound to no file', () => {
     expect(
       swallowedReadWriteGuard.factProblems({
         ...facts,
-        notReadOrWrite: [{ pattern: '^rm' as never, why: 'x' }],
+        notReadOrWrite: [{ pattern: '^rm' as never, why: 'x' } as never, { file: '', pattern: /^rm/, why: 'x' }],
         tryCatchSites: [{ file: 'functions/src/lease.ts', function: '', why: 'x' }],
       }),
-    ).toEqual(['an entry of notReadOrWrite names nothing', 'an entry of tryCatchSites names nothing']);
+    ).toEqual(['an entry of notReadOrWrite names nothing', 'an entry of notReadOrWrite names nothing', 'an entry of tryCatchSites names nothing']);
   });
 });
 

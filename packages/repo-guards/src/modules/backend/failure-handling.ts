@@ -33,8 +33,11 @@ export interface SwallowedReadWriteFacts {
   captureCalls: readonly string[];
   /** App calls that surface a failure themselves (a callable's one exit that rethrows it). */
   failureExits: readonly string[];
-  /** Caught promises that are never a database read or write, matched against the caught expression. */
-  notReadOrWrite: ReadonlyArray<{ pattern: RegExp; why: string }>;
+  /**
+   * Caught promises that are never a database read or write, each bound to the file it is caught in
+   * and matched against the caught expression there.
+   */
+  notReadOrWrite: ReadonlyArray<{ file: string; pattern: RegExp; why: string }>;
   /** `.catch` sites reviewed by file and the start of the caught expression. */
   catchSites: ReadonlyArray<{ file: string; receiver: string; why: string }>;
   /** `try`/`catch` sites reviewed by file and enclosing function. */
@@ -93,7 +96,9 @@ export const swallowedReadWriteGuard: GenericGuardDefinition<SwallowedReadWriteF
     const problems: string[] = [];
     namesProblem(facts?.captureCalls, 'captureCalls', problems);
     namesProblem(facts?.failureExits, 'failureExits', problems, { nonEmpty: false });
-    reviewedProblems(facts?.notReadOrWrite, 'notReadOrWrite', problems, (e) => (e.pattern instanceof RegExp ? String(e.pattern) : undefined));
+    reviewedProblems(facts?.notReadOrWrite, 'notReadOrWrite', problems, (e) =>
+      typeof e.file === 'string' && e.file && e.pattern instanceof RegExp ? `${e.file} ${String(e.pattern)}` : undefined,
+    );
     reviewedProblems(facts?.catchSites, 'catchSites', problems, (e) =>
       typeof e.file === 'string' && typeof e.receiver === 'string' && e.receiver ? `${e.file} ${e.receiver}` : undefined,
     );
@@ -111,18 +116,20 @@ export const swallowedReadWriteGuard: GenericGuardDefinition<SwallowedReadWriteF
           'into success. Every `.catch(handler)` rethrows, rejects, or captures; every `try`/`catch` around a read or write ' +
           'rethrows, captures, or records the failure through an awaited call (a terminal row, a retry ledger). A handler ' +
           'that falls back to a value still captures. A caught promise that is never a read or write, and a site that keeps ' +
-          'its failure on purpose, is a reviewed entry with its why; an entry that matches nothing is stale.',
+          'its failure on purpose, is a reviewed entry bound to its file with its why; an entry that matches nothing in its file is stale.',
         run(context) {
           const findings: Finding[] = [];
-          const usedShapes = new Set<RegExp>();
+          const usedShapes = new Set<(typeof facts.notReadOrWrite)[number]>();
           const usedCatch = new Set<string>();
           const usedTry = new Set<string>();
           for (const file of context.files(FUNCTIONS_CODE)) {
             const { catches, tries } = swallowedFailures(file, facts);
             for (const { node, receiver } of catches) {
-              const shape = facts.notReadOrWrite.find((s) => new RegExp(s.pattern.source, s.pattern.flags.replace('g', '')).test(receiver));
+              const shape = facts.notReadOrWrite.find(
+                (s) => s.file === file.path && new RegExp(s.pattern.source, s.pattern.flags.replace('g', '')).test(receiver),
+              );
               if (shape) {
-                usedShapes.add(shape.pattern);
+                usedShapes.add(shape);
                 continue;
               }
               const site = facts.catchSites.find((s) => s.file === file.path && receiver.startsWith(s.receiver));
@@ -135,7 +142,9 @@ export const swallowedReadWriteGuard: GenericGuardDefinition<SwallowedReadWriteF
               else findings.push({ file: file.path, line: lineOfNode(file, node), detail: `try/catch around a read or write in ${fn} neither rethrows, captures, nor records the failure` });
             }
           }
-          for (const s of facts.notReadOrWrite) if (!usedShapes.has(s.pattern)) findings.push({ file: '(notReadOrWrite)', detail: `stale shape ${String(s.pattern)}: no caught expression matches it` });
+          for (const s of facts.notReadOrWrite) {
+            if (!usedShapes.has(s)) findings.push({ file: s.file, detail: `stale shape ${String(s.pattern)}: no caught expression in this file matches it` });
+          }
           for (const s of facts.catchSites) if (!usedCatch.has(`${s.file} ${s.receiver}`)) findings.push({ file: s.file, detail: `stale catch site: no swallowing .catch on ${s.receiver}` });
           for (const s of facts.tryCatchSites) if (!usedTry.has(`${s.file} ${s.function}`)) findings.push({ file: s.file, detail: `stale try/catch site: ${s.function} keeps no failure` });
           return findings;

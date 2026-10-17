@@ -315,7 +315,6 @@ describe('the domain-event registry: produced, registered, well formed, and awai
     registry: { path: REGISTRY, load: () => registry },
     eventSchema: () => schema,
     notifiers: ['notifyThing'],
-    noProducerYet: [],
     ...overrides,
   });
   const producers = {
@@ -338,21 +337,13 @@ describe('the domain-event registry: produced, registered, well formed, and awai
     expect(findings).toEqual([[], [], []]);
   });
 
-  it('flags a registered event with no producer (the registry and test code are no evidence), and a waiting entry that went stale', async () => {
-    const [produced] = await runDefinition(
-      domainEventRegistryGuard,
-      facts({ noProducerYet: [{ event: 'thing.changed', why: 'producer lands later' }, { event: 'thing.old', why: 'retired' }] }),
-      {
-        [REGISTRY]: producers[REGISTRY],
-        'src/hooks/use-thing.ts': producers['src/hooks/use-thing.ts'],
-        'src/hooks/use-thing.test.ts': "emit('thing.gone');",
-      },
-    );
-    expect(produced).toEqual([
-      { file: REGISTRY, detail: 'thing.gone: no producer in the app' },
-      { file: '(noProducerYet)', detail: 'stale entry: thing.changed has a producer now' },
-      { file: '(noProducerYet)', detail: 'stale entry: thing.old is no longer registered' },
-    ]);
+  it('flags a registered event with no producer, with no way to park it — the registry and test code are no evidence', async () => {
+    const [produced] = await runDefinition(domainEventRegistryGuard, facts({ noProducerYet: [{ event: 'thing.gone', why: 'producer lands later' }] } as never), {
+      [REGISTRY]: producers[REGISTRY],
+      'src/hooks/use-thing.ts': producers['src/hooks/use-thing.ts'],
+      'src/hooks/use-thing.test.ts': "emit('thing.gone');",
+    });
+    expect(produced).toEqual([{ file: REGISTRY, detail: 'thing.gone: no producer in the app' }]);
   });
 
   it('flags a variant with no entry, and entries whose answer is malformed for some shape of their ids', async () => {
@@ -371,6 +362,23 @@ describe('the domain-event registry: produced, registered, well formed, and awai
     const odd = { ...good, 'thing.gone': () => [{ kind: 'predicate', match: () => true }, { kind: 'other' }] };
     const [, second] = await runDefinition(domainEventRegistryGuard, facts({}, odd), producers);
     expect(second).toEqual([{ file: REGISTRY, detail: 'thing.gone: a predicate invalidation with no description or matcher' }]);
+  });
+
+  it("flags an entry whose action or refetchType query-core does not carry, and a remove or reset that carries a refetchType", async () => {
+    const answers = (inv: Record<string, unknown>) => ({ ...good, 'thing.gone': () => [inv] });
+    const flagged = async (inv: Record<string, unknown>) => (await runDefinition(domainEventRegistryGuard, facts({}, answers(inv)), producers))[1];
+    expect(await flagged({ kind: 'exact', queryKey: ['t'], action: 'drop' })).toEqual([{ file: REGISTRY, detail: 'thing.gone: a exact invalidation with unknown action drop' }]);
+    expect(await flagged({ kind: 'prefix', queryKey: ['t'], refetchType: 'some' })).toEqual([{ file: REGISTRY, detail: 'thing.gone: a prefix invalidation with unknown refetchType some' }]);
+    expect(await flagged({ kind: 'exact', queryKey: ['t'], action: 'remove', refetchType: 'all' })).toEqual([
+      { file: REGISTRY, detail: 'thing.gone: a remove invalidation with a refetchType, which only a refresh takes' },
+    ]);
+    for (const inv of [
+      { kind: 'exact', queryKey: ['t'], action: 'remove', refetchType: undefined },
+      { kind: 'prefix', queryKey: ['t'], action: 'reset' },
+      { kind: 'predicate', description: 'all', match: () => true, action: 'refresh', refetchType: 'none' },
+    ]) {
+      expect(await flagged(inv)).toEqual([]);
+    }
   });
 
   it('flags a schema loader that answers no union', async () => {
@@ -393,7 +401,7 @@ describe('the domain-event registry: produced, registered, well formed, and awai
 
   it('refuses facts with no registry loader, no schema loader, or no notifier', () => {
     expect(
-      domainEventRegistryGuard.factProblems({ registry: { path: REGISTRY } as never, eventSchema: undefined as never, notifiers: [], noProducerYet: [] }),
+      domainEventRegistryGuard.factProblems({ registry: { path: REGISTRY } as never, eventSchema: undefined as never, notifiers: [] }),
     ).toEqual([
       'registry.load needs a loader the app writes (() => import(...))',
       'eventSchema needs a loader the app writes (() => import(...))',

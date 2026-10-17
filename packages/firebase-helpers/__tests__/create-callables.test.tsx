@@ -159,7 +159,7 @@ describe('createCallables — action', () => {
     expect(onError.mock.calls[0]?.[0]).toBe(error);
   });
 
-  it('with captureFaults false leaves the failure capture to the caller', async () => {
+  it('with captureFaults false captures the failure nowhere, leaving it to the caller', async () => {
     const error = fault();
     mockCallable(throwing(error));
     const policy = makePolicy();
@@ -173,7 +173,7 @@ describe('createCallables — action', () => {
     });
 
     expect(policy.captureFault).not.toHaveBeenCalled();
-    expect(policy.captureRecoveredFallback).toHaveBeenCalledTimes(1);
+    expect(policy.captureRecoveredFallback).not.toHaveBeenCalled();
     expect(policy.onActionError).toHaveBeenCalledTimes(1);
   });
 });
@@ -238,7 +238,7 @@ describe('createCallables — reader', () => {
     await expect(result.current({ q: 'x' })).resolves.toEqual({ rows: [1] });
   });
 
-  it('a failure rejects without a toast and without a fault capture', async () => {
+  it('a failure rejects without a toast and is never captured here', async () => {
     const error = fault();
     mockCallable(throwing(error));
     const policy = makePolicy();
@@ -248,13 +248,72 @@ describe('createCallables — reader', () => {
     await expect(result.current()).rejects.toBe(error);
 
     expect(policy.captureFault).not.toHaveBeenCalled();
-    expect(policy.captureRecoveredFallback).toHaveBeenCalledTimes(1);
+    expect(policy.captureRecoveredFallback).not.toHaveBeenCalled();
     expect(policy.onActionError).toHaveBeenCalledTimes(1);
     expect(policy.onActionError).toHaveBeenCalledWith(error, {
       showErrorToast: false,
       answeredRefusals: [],
       isAnswerSurfacedByCaller: undefined,
     });
+  });
+});
+
+describe('createCallables — recovered limited-use fallback', () => {
+  beforeEach(() => vi.mocked(httpsCallable).mockReset());
+
+  const throttled = () => fault('appCheck/throttled');
+  const FALLBACK_REPORT = { functionName: 'sensitiveRead', timeoutMs: TIMEOUT_MS, limitedUseAppCheckFallback: true };
+
+  it('a reader whose throttled limited-use call recovers hands that report, and only it, to captureRecoveredFallback', async () => {
+    const error = throttled();
+    mockCallable(throwing(error), { rows: [] });
+    const policy = makePolicy();
+    const useRead = createCallables(policy).createCallableReader<void, unknown>('sensitiveRead', {
+      limitedUseAppCheck: true,
+    });
+    const { result } = renderHook(() => useRead());
+
+    await expect(result.current()).resolves.toEqual({ rows: [] });
+
+    expect(policy.captureRecoveredFallback).toHaveBeenCalledTimes(1);
+    expect(policy.captureRecoveredFallback).toHaveBeenCalledWith(error, FALLBACK_REPORT);
+    expect(policy.captureFault).not.toHaveBeenCalled();
+    expect(policy.onActionError).not.toHaveBeenCalled();
+  });
+
+  it('a reader whose fallback retry fails too hands over the recovered report but never the failure', async () => {
+    const throttle = throttled();
+    const retryFailure = fault('functions/unavailable');
+    mockCallable(throwing(throttle), throwing(retryFailure));
+    const policy = makePolicy();
+    const useRead = createCallables(policy).createCallableReader<void, unknown>('sensitiveRead', {
+      limitedUseAppCheck: true,
+    });
+    const { result } = renderHook(() => useRead());
+
+    await expect(result.current()).rejects.toBe(retryFailure);
+
+    expect(policy.captureRecoveredFallback).toHaveBeenCalledTimes(1);
+    expect(policy.captureRecoveredFallback).toHaveBeenCalledWith(throttle, FALLBACK_REPORT);
+    expect(policy.captureFault).not.toHaveBeenCalled();
+  });
+
+  it('an action that owns its capture hands the recovered report to captureFault', async () => {
+    const error = throttled();
+    mockCallable(throwing(error), { ok: true });
+    const policy = makePolicy();
+    const useAction = createCallables(policy).createCallableHook<void, unknown>('sensitiveRead', {
+      limitedUseAppCheck: true,
+    });
+    const { result } = renderHook(() => useAction(), { wrapper: wrapperFor(retryingClient()) });
+
+    await act(async () => {
+      await result.current.mutateAsync();
+    });
+
+    expect(policy.captureFault).toHaveBeenCalledTimes(1);
+    expect(policy.captureFault).toHaveBeenCalledWith(error, FALLBACK_REPORT);
+    expect(policy.captureRecoveredFallback).not.toHaveBeenCalled();
   });
 });
 
@@ -348,6 +407,27 @@ describe('createCallables — resumable', () => {
     expect(outcome).toEqual({ complete: false, removed: 5, interruption: error });
     expect(policy.onActionError).toHaveBeenCalledTimes(1);
     expect(policy.captureFault).toHaveBeenCalledTimes(1);
+  });
+
+  it('a merge that throws rejects the request instead of settling as an interruption', async () => {
+    const mergeFault = new Error('merge broke');
+    const invoke = mockCallable({ complete: false, removed: 2 }, { complete: true, removed: 3 });
+    const policy = makePolicy();
+    const useResumable = createCallables(policy).createResumableCallableHook<{ id: string }, Progress>(
+      'removeAll',
+      () => {
+        throw mergeFault;
+      },
+    );
+    const { result } = renderHook(() => useResumable(), { wrapper: wrapperFor(retryingClient()) });
+
+    await act(async () => {
+      await expect(result.current.mutateAsync({ id: 'g' })).rejects.toBe(mergeFault);
+    });
+
+    expect(invoke).toHaveBeenCalledTimes(2);
+    expect(policy.onActionError).not.toHaveBeenCalled();
+    expect(policy.captureFault).not.toHaveBeenCalled();
   });
 
   it('a first call failing rejects the request and is not retried', async () => {

@@ -116,7 +116,9 @@ export const navigationGuard: GenericGuardDefinition<NavigationFacts> = {
 
 // ---- pending feedback through the shared primitives ---------------------------------------------
 
-export const spinnerIconImports = namedImports('lucide-react', ['Loader2', 'LoaderCircle']);
+/** lucide's spinner icon under every name it exports it as. */
+const SPINNER_ICONS = ['Loader2', 'Loader2Icon', 'LucideLoader2', 'LoaderCircle', 'LoaderCircleIcon', 'LucideLoaderCircle'];
+export const spinnerIconImports = namedImports('lucide-react', SPINNER_ICONS);
 export const handSpunCode = codeHits([/\banimate-spin\b/]);
 export const handSpunStyles: Matcher = (file) =>
   file.kind === 'stylesheet' ? codeHits([/\banimate-spin\b|animation(?:-name)?\s*:[^;]*\bspin\b|@keyframes\s+spin\b/])(file) : [];
@@ -186,11 +188,19 @@ export const loadingFeedbackGuard: GenericGuardDefinition<LoadingFeedbackFacts> 
     return [
       reviewedAllowlist({
         title: 'app code imports no hand-placed spinner icon',
-        description: `${PENDING_FIX} A Loader2 / LoaderCircle icon is a second spinner recipe.`,
+        description: `${PENDING_FIX} lucide's spinner icon, under any name it exports it as (${SPINNER_ICONS.join(', ')}), is a second spinner recipe.`,
         scope: APP_CODE,
         match: spinnerIconImports,
         allowlist: [],
-        samples: { flags: [tsx("import { Loader2, X } from 'lucide-react';"), tsx("import { LoaderCircle } from 'lucide-react';")], passes: [tsx("import { RefreshCw } from 'lucide-react';")] },
+        samples: {
+          flags: [
+            tsx("import { Loader2, X } from 'lucide-react';"),
+            tsx("import { LoaderCircle } from 'lucide-react';"),
+            tsx("import { Loader2Icon } from 'lucide-react';"),
+            tsx("import { LucideLoader2 as Spin } from 'lucide-react';"),
+          ],
+          passes: [tsx("import { RefreshCw } from 'lucide-react';"), tsx("import { Loader } from 'lucide-react';")],
+        },
       }),
       reviewedAllowlist({
         title: 'app code hand-spins nothing',
@@ -294,7 +304,7 @@ export const showMoreGuard: GenericGuardDefinition<ShowMoreFacts> = {
             tsx("<button type=\"button\" onClick={() => setExpanded((p) => !p)} aria-expanded={expanded}>\n  {expanded ? 'Show less' : 'Show more'}\n</button>"),
             tsx('<Button aria-expanded={open} onClick={toggle}>Read more</Button>'),
             tsx('<button aria-expanded={open}>Chapters<ChevronRight className="icon-xs" /></button>'),
-            tsx('<details>\n<summary>Tales</summary>\n</details>'),
+            tsx('<details>\n<summary>Notes</summary>\n</details>'),
           ],
           passes: [
             tsx(`<${facts.toggle} expanded={open} onExpandedChange={setOpen} openLabel="Show more" closeLabel="Show less" />`),

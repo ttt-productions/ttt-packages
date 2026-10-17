@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useRef } from "react";
 import { useMutation, type UseMutationOptions, type UseMutationResult } from "@tanstack/react-query";
 import { callCallable, type FunctionsProvider } from "../client/call-callable.js";
+import { isRecoveredFallbackReport } from "../client/recovered-fallback.js";
 import type { ExpectedCallableAnswerCode } from "../utils/expected-callable-answers.js";
 
 /**
@@ -53,8 +54,8 @@ export interface CallablePolicy {
   captureFault: (error: unknown, context: CallableCaptureContext) => void;
   /**
    * The capture for a call whose failure another layer captures (a reader, or `captureFaults:
-   * false`). It receives the same reports and keeps only the recovered-fallback one, which no
-   * other layer ever sees because that call succeeded.
+   * false`). It receives only the recovered-fallback report, which no other layer ever sees
+   * because that call succeeded; a failure of such a call never reaches it.
    */
   captureRecoveredFallback: (error: unknown, context: CallableCaptureContext) => void;
   /** The app's surface for a failed call, given the call site's routing. */
@@ -169,9 +170,8 @@ export function createCallables(policy: CallablePolicy): Callables {
           input,
           {
             captureException: (error, context) => {
-              const capture =
-                optionsRef.current.captureFaults === false ? policy.captureRecoveredFallback : policy.captureFault;
-              capture(error, context);
+              if (optionsRef.current.captureFaults !== false) policy.captureFault(error, context);
+              else if (isRecoveredFallbackReport(context)) policy.captureRecoveredFallback(error, context);
             },
             onError: (error) => {
               const { showErrorToast = true, answeredRefusals = [], isAnswerSurfacedByCaller } = optionsRef.current;
@@ -230,12 +230,17 @@ export function createCallables(policy: CallablePolicy): Callables {
             async (input: TInput): Promise<ResumableOutcome<TResult>> => {
               let progress = await call<TInput, TResult>(input);
               for (let calls = 1; !progress.complete && calls < MAX_RESUMABLE_CALLS; calls += 1) {
+                // Only the call is caught: a failed call after the first is an interruption the
+                // policy has already surfaced, while a `merge` that throws is a fault in the app's
+                // own code and rejects the request.
+                let later: TResult;
                 try {
-                  progress = merge(progress, await call<TInput, TResult>(input));
+                  later = await call<TInput, TResult>(input);
                 } catch (error) {
                   const interruption = error instanceof Error ? error : new Error(String(error));
                   return { ...progress, complete: false, interruption };
                 }
+                progress = merge(progress, later);
               }
               return { ...progress, interruption: null };
             },

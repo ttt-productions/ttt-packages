@@ -546,19 +546,28 @@ describe('applyInvalidations — awaitable refresh', () => {
 });
 
 describe('applyInvalidations — remove and reset entries', () => {
-  it('a remove entry drops the matched query from the cache, and a read in flight never puts it back', async () => {
+  it('a remove entry drops the matched query from the cache; a read in flight never puts it back, and a screen watching it is not left fetching', async () => {
     const client = makeClient();
     const key = ['violation', 'v1'];
     const read = deferred<string>();
-    const unsubscribe = observe(client, key, sequencedQueryFn([read]));
+    const observer = new QueryObserver(client, { queryKey: key, queryFn: sequencedQueryFn([read]), retry: false, gcTime: Infinity });
+    const shown: Array<{ data: string | undefined; fetchStatus: string }> = [];
+    const unsubscribe = observer.subscribe((result) => shown.push({ data: result.data, fetchStatus: result.fetchStatus }));
     await flush();
+    expect(observer.getCurrentResult().fetchStatus).toBe('fetching');
 
     await applyInvalidations(client, [exact(key, { action: 'remove' })]);
     expect(client.getQueryCache().find({ queryKey: key, exact: true })).toBeUndefined();
+    // The abandoned read is over: the screen still watching it stops showing it as running.
+    expect(observer.getCurrentResult().fetchStatus).toBe('idle');
 
+    // The read that started before the removal answers afterwards: neither the cache nor the
+    // screen may hold the removed answer.
     read.resolve('the deleted record');
     await flush();
     expect(client.getQueryData(key)).toBeUndefined();
+    expect(shown.map((s) => s.data)).not.toContain('the deleted record');
+    expect(observer.getCurrentResult()).toMatchObject({ data: undefined, fetchStatus: 'idle' });
     unsubscribe();
   });
 

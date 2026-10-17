@@ -13,7 +13,6 @@ let repo: TempRepo | undefined;
 afterEach(() => repo?.remove());
 
 const facts = (over: Partial<RulesMirrorFacts> = {}): RulesMirrorFacts => ({
-  rulesFile: 'firestore.rules',
   collections: () => ['config', 'members', 'members/{memberId}/settings', 'teams', 'teams/{teamId}/players', 'feed/live/posts', 'feed', 'lists', 'lists/{listId}/entries'],
   collectionGroups: () => ['players'],
   fixedDocuments: () => ['config/app', 'members/{memberId}/settings/prefs', 'feed/live', 'feed/trending'],
@@ -63,9 +62,29 @@ const check = (text: string, f = facts()) => rulesMirrorFindings(viewOfText('fir
 describe('the Firestore rules mirror the core exactly', () => {
   it('PASSES a rules file built from the declarations, read through the repository', async () => {
     repo = tempRepo({ 'src/anchor.ts': 'export {};', 'firestore.rules': CANONICAL });
-    const reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/anchor.ts' } } });
+    const reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/anchor.ts' } }, rulesFiles: ['firestore.rules'] });
     const [guard] = rulesMirrorGuard.build(facts());
     expect(await guard.run(contextOf(reader))).toEqual([]);
+  });
+
+  it('reads every Firestore rules file the layout lists, and never a Storage rules file', async () => {
+    const storage = "service firebase.storage { match /b/{bucket}/o { match /{anyFolder}/{fileId} { allow read: if true; } } }";
+    repo = tempRepo({
+      'src/anchor.ts': 'export {};',
+      'firestore.rules': CANONICAL,
+      'second.rules': CANONICAL.replace('match /entries/{entryId}', 'match /{listName}/{entryId}'),
+      'storage.rules': storage,
+    });
+    const reader = createRepoReader({
+      repoRoot: repo.root,
+      roots: { app: { path: 'src', anchor: 'src/anchor.ts' } },
+      rulesFiles: ['firestore.rules', 'second.rules', 'storage.rules'],
+    });
+    const [guard] = rulesMirrorGuard.build(facts());
+    expect(await guard.run(contextOf(reader))).toEqual([
+      { file: 'second.rules', line: 22, detail: 'the block /lists/{listId}/{listName}/{entryId} matches any collection name with {listName}; give each declared collection its own block' },
+      { file: 'second.rules', detail: 'no match block of its own for the declared collection lists/{}/entries' },
+    ]);
   });
 
   it('FLAGS a wildcard collection-name segment, nested under a parent or written in one path', async () => {
@@ -193,7 +212,6 @@ describe('the Firestore rules mirror the core exactly', () => {
 
   it('refuses missing loaders and lists, an entry with no loader, and an entry listed twice', () => {
     expect(rulesMirrorGuard.factProblems({} as never)).toEqual([
-      'rulesFile is missing',
       'collections needs a loader function',
       'collectionGroups needs a loader function',
       'fixedDocuments needs a loader function',

@@ -7,6 +7,7 @@ import {
 } from "firebase/functions";
 
 import { isAppCheckThrottleError } from "../utils/app-check-throttle.js";
+import { RECOVERED_FALLBACK_MARKER } from "./recovered-fallback.js";
 
 export interface CallCallableCallbacks {
   /**
@@ -76,7 +77,7 @@ export interface CallCallableTransport {
    * at that point.
    *
    * Defaults to false (absent): the SDK option is omitted entirely unless this
-   * is `true`, so existing callers are byte-for-byte unaffected.
+   * is `true`.
    */
   limitedUseAppCheck?: boolean;
 }
@@ -247,7 +248,7 @@ export async function callCallable<TRequest = unknown, TResponse = unknown>(
       callbacks?.captureException?.(error, {
         functionName,
         timeoutMs,
-        limitedUseAppCheckFallback: true,
+        [RECOVERED_FALLBACK_MARKER]: true,
       });
       result = await attempt(false);
     }
@@ -255,7 +256,7 @@ export async function callCallable<TRequest = unknown, TResponse = unknown>(
   } catch (error) {
     // Telemetry gets bounded metadata only — never the request payload.
     callbacks?.captureException?.(error, { functionName, timeoutMs });
-    // Caller-local handling keeps the payload (existing contract).
+    // Caller-local handling keeps the payload.
     callbacks?.onError?.(error, { functionName, requestData: data });
     throw error;
   } finally {

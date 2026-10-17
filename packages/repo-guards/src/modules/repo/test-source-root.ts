@@ -36,6 +36,7 @@ export type TestSourceRootFacts = Readonly<Record<string, never>>;
 export const testSourceRootGuard: GenericGuardDefinition<TestSourceRootFacts> = {
   id: 'testSourceRoot',
   absentWhen: 'the app has no Cloud Functions tree',
+  absentOnlyWithoutRoot: 'functions',
   factProblems(facts) {
     if (!facts || typeof facts !== 'object') return ['the facts are missing (this guard takes {})'];
     return Object.keys(facts).length ? ['this guard takes no facts ({})'] : [];

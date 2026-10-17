@@ -38,6 +38,7 @@ const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 export const workerBoundedBodyGuard: GenericGuardDefinition<WorkerBoundedBodyFacts> = {
   id: 'workerBoundedBody',
   absentWhen: 'the app deploys no Cloudflare Worker',
+  absentOnlyWithoutRoot: 'workers',
   factProblems(facts) {
     const problems: string[] = [];
     if (!facts || typeof facts !== 'object') return ['the facts are missing'];

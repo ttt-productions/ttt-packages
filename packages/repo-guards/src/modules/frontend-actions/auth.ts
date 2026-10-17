@@ -11,12 +11,14 @@ import {
   escapeRegExp,
   isModuleOrSubpath,
   isUnder,
+  memberOrBareCalls,
   moduleStatements,
   namedImports,
   namesProblem,
   objectProblem,
   reviewedProblems,
   textProblem,
+  throughNamespace,
 } from './text.js';
 
 const APP_CODE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
@@ -41,7 +43,11 @@ export interface ClientAuthBoundaryFacts {
   authContextVocabulary: readonly string[];
 }
 
-/** Each place outside the boundary that derives identity, claims, or auth loading itself. */
+/**
+ * Each place outside the boundary that derives identity, claims, or auth loading itself. A call is
+ * matched bare or as a member (`auth.onAuthStateChanged(cb)`, `getAuth().onIdTokenChanged(cb)`),
+ * since the SDK hands out the same derivations as instance methods.
+ */
 export function boundaryDerivations(code: string, facts: Pick<ClientAuthBoundaryFacts, 'derivationSymbols' | 'authSourceModules'>): Array<{ index: number; detail: string }> {
   const out: Array<{ index: number; detail: string }> = [];
   for (const clause of namedImports(code)) {
@@ -64,8 +70,8 @@ export function boundaryDerivations(code: string, facts: Pick<ClientAuthBoundary
     }
   }
   for (const symbol of facts.derivationSymbols) {
-    const m = new RegExp(`(?<![\\w$.])${escapeRegExp(symbol)}\\s*\\(`).exec(code);
-    if (m) out.push({ index: m.index, detail: `calls ${symbol}(` });
+    const call = memberOrBareCalls(code, symbol).find((index) => !throughNamespace(code, index, namespaces));
+    if (call !== undefined) out.push({ index: call, detail: `calls ${symbol}(` });
   }
   return out;
 }

@@ -5,12 +5,18 @@ import ts from 'typescript';
 import { kindOfFile, type FileKind, type RootRole } from './layout.js';
 import { stripCodeComments, stripRulesComments, stripStylesheetComments } from './strip-comments.js';
 
+/**
+ * What a file is to the reader: a declared root's role, a file an installed package ships, or a
+ * named file outside every root.
+ */
+export type FileRole = RootRole | 'installed' | 'repository';
+
 /** One file as every guard sees it. Each view is built once per reader and shared. */
 export interface FileView {
   /** Repo-relative, forward-slashed. */
   readonly path: string;
-  readonly role: RootRole;
-  /** The root's name: the role itself, or a Worker tree's declared name. */
+  readonly role: FileRole;
+  /** The root's name: the role itself, a Worker tree's declared name, or an installed package's name. */
   readonly rootName: string;
   readonly kind: FileKind;
   readonly isTest: boolean;
@@ -40,7 +46,7 @@ function lineStartsOf(text: string): number[] {
 /** A file view over a loader: text, stripped code, and the parse are each produced once, on first use. */
 export function buildView(input: {
   path: string;
-  role: RootRole;
+  role: FileRole;
   rootName: string;
   kind: FileKind;
   isTest: boolean;

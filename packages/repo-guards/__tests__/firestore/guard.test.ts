@@ -3,6 +3,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { GuardContext } from '../../src/guard.js';
+import { contextOf } from '../helpers/context.js';
 import { runWriteGuard, testPathGuard, writeGuard, type WriteGuardFacts } from '../../src/modules/firestore/guard.js';
 import { createRepoReader, type RepoReader } from '../../src/reader/reader.js';
 import type { RepoLayout } from '../../src/reader/layout.js';
@@ -38,7 +39,7 @@ beforeAll(() => {
 });
 afterAll(() => repo.remove());
 
-const context = (): GuardContext => ({ reader, files: (s) => reader.files(s), file: (p) => reader.file(p) });
+const context = (): GuardContext => contextOf(reader);
 
 const facts = (overrides: Partial<WriteGuardFacts> = {}): WriteGuardFacts => ({
   corePackage: '@fixture/core',

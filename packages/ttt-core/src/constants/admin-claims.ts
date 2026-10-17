@@ -6,5 +6,9 @@
  */
 export const ADMIN_CLAIM = 'isAdmin';
 
-/** The custom claim a junior admin account carries (value `true`), re-checked like `ADMIN_CLAIM`. */
+/**
+ * The custom claim a junior admin account carries (value `true`), synced from the live admin
+ * roster's junior admin list. No rules file reads it, and the backend grants it nothing while junior
+ * admin is switched off there.
+ */
 export const JR_ADMIN_CLAIM = 'isJrAdmin';

@@ -3,6 +3,7 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { GuardContext } from '../../src/guard.js';
+import { contextOf } from '../helpers/context.js';
 import { importPathGuard, unusedIndexMembers } from '../../src/modules/import-paths/guard.js';
 import { createRepoReader, type RepoReader } from '../../src/reader/reader.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
@@ -31,7 +32,7 @@ beforeAll(() => {
 });
 afterAll(() => repo.remove());
 
-const context = (): GuardContext => ({ reader, files: (s) => reader.files(s), file: (p) => reader.file(p) });
+const context = (): GuardContext => contextOf(reader);
 const facts = { importAliases: { '@/': 'src/' }, exceptions: [] };
 
 describe('the import-path guard over the reader', () => {

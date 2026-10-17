@@ -127,7 +127,7 @@ import {
   UserSuggestionSchema,
   StatusReconcileQueueEntrySchema,
 } from './operational.js';
-// ===== Trust & Safety — report spine (§A1) =====
+// ===== Trust & Safety — report spine =====
 import {
   ProtectedReportRootV1Schema,
   ReportPublicProjectionV1Schema,
@@ -137,7 +137,7 @@ import {
   NarrativeRecordV1Schema,
 } from './safety/report.js';
 import { SafetyCaseAlertV1Schema } from './safety/case-alert.js';
-// ===== Trust & Safety — child-safety case spine (§A1b, §A2) =====
+// ===== Trust & Safety — child-safety case spine =====
 import {
   ChildSafetyCaseListV1Schema,
   ChildSafetyCaseV1Schema,
@@ -179,7 +179,7 @@ import {
   SafetyMonitorHeartbeatV1Schema,
 } from './safety/monitors.js';
 import { AgeAttestationNonceV1Schema, AgePolicyConfigV1Schema } from './safety/age.js';
-// ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
+// ===== Trust & Safety — NCII / TAKE IT DOWN =====
 import { NciiAllegationV1Schema } from './ncii/allegations.js';
 import {
   TakeItDownRequestRootV1Schema,
@@ -293,7 +293,7 @@ export const COLLECTION_SCHEMAS = {
   'auditionBoard/{auditionId}/auditionEntries/{auditionEntryId}': AuditionEntrySchema,
 
   // ===== Moderation / Reports / Admin =====
-  // The report spine (§A1): the restricted root, its public projection subdoc, and the
+  // The report spine: the restricted root, its public projection subdoc, and the
   // dedup/count group. The root + projection are written by the app's submitReport
   // callable; the group is maintained by an app-side trigger.
   'contentReports/{reportId}': ProtectedReportRootV1Schema,
@@ -362,7 +362,7 @@ export const COLLECTION_SCHEMAS = {
   'publicDocumentDrafts/{documentId}': PublicDocumentDraftSchema,
   'publicDocumentReleases/{releaseId}': PublicDocumentReleaseSchema,
 
-  // ===== Trust & Safety — child-safety case spine (§A1b, §A2) =====
+  // ===== Trust & Safety — child-safety case spine =====
   'childSafetyCaseList/{caseId}': ChildSafetyCaseListV1Schema,
   'activeSafetyCaseAlerts/{caseId}': SafetyCaseAlertV1Schema,
   'childSafetyCases/{caseId}': ChildSafetyCaseV1Schema,
@@ -374,7 +374,7 @@ export const COLLECTION_SCHEMAS = {
   'childSafetyCases/{caseId}/childSafetyCaseCrossoverItems/{mediaAssetId}': ChildSafetyCrossoverItemV1Schema,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}': ChildSafetyNcmecSubmissionV1Schema,
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecSubmissionFiles/{fileId}': ChildSafetyNcmecSubmissionFileV1Schema,
-  // [H-05] the submission's single immutable completion-proof record (fixed doc id). Backend-only,
+  // The submission's single immutable completion-proof record (fixed doc id). Backend-only,
   // so its shape lives in doc-schemas/backend-state.ts alongside the portal artifacts.
   'childSafetyCases/{caseId}/ncmecSubmissions/{submissionId}/ncmecCompletionProof/record': NcmecCompletionProofRecordV1Schema,
   'childSafetyCases/{caseId}/legalProcess/{eventId}': ChildSafetyLegalProcessEventV1Schema,
@@ -384,15 +384,15 @@ export const COLLECTION_SCHEMAS = {
   'childSafetyCases/{caseId}/ncmecPortalCorrections/{correctionId}': NcmecPortalCorrectionRecordV1Schema,
   'childSafetyOwningAliases/{aliasId}': ChildSafetyOwningAliasV1Schema,
 
-  // ===== Trust & Safety — holds + resource commands (§A3) =====
+  // ===== Trust & Safety — holds + resource commands =====
   'safetyHoldRefs/{holdRefId}': SafetyHoldRefV1Schema,
   'safetyHoldResources/{resourceKeyHash}': SafetyHoldResourceV1Schema,
   'safetyResourceCommands/{commandDocId}': SafetyResourceCommandV1Schema,
   'safetyResourceCommands/{commandDocId}/authorizedRequests/{requestId}': SafetyResourceCommandAuthorizedRequestV1Schema,
   'safetyResourceCommands/{commandDocId}/bypassRefs/{refId}': SafetyResourceCommandBypassRefV1Schema,
 
-  // ===== Trust & Safety — evidence + provenance (§A4, §A6) =====
-  // SafetyEvidenceManifestV1Schema is a refined ZodObject (superRefine for the H5
+  // ===== Trust & Safety — evidence + provenance =====
+  // SafetyEvidenceManifestV1Schema is a refined ZodObject (superRefine for the
   // sourceKind invariant); the schema-doc generator unwraps the effect to introspect
   // its shape, so binding the refined schema here is correct.
   'safetyEvidenceManifests/{manifestId}': SafetyEvidenceManifestV1Schema,
@@ -401,17 +401,17 @@ export const COLLECTION_SCHEMAS = {
   'safetyEvidenceJobs/{jobId}/safetyEvidenceJobDisposition/{locationId}': SafetyEvidenceDispositionV1Schema,
   'eventProvenance/{eventId}': EventProvenanceV1Schema,
 
-  // ===== Trust & Safety — sagas + closure (§A5) =====
+  // ===== Trust & Safety — sagas + closure =====
   'quarantineSagaJobs/{caseId}': QuarantineSagaJobV1Schema,
   'quarantineSagaJobs/{caseId}/relatedAssets/{assetId}': QuarantineSagaRelatedAssetV1Schema,
   'ncmecSubmissionJobs/{ncmecJobId}': NcmecSubmissionJobV1Schema,
   'accountActionCommands/{accountActionCommandId}': AccountActionCommandV1Schema,
 
-  // ===== Trust & Safety — SLA monitors + heartbeat (§A8) =====
+  // ===== Trust & Safety — SLA monitors + heartbeat =====
   'safetySlaMonitors/{monitorId}': SafetySlaMonitorV1Schema,
   'safetyMonitorHeartbeat/global': SafetyMonitorHeartbeatV1Schema,
 
-  // ===== Trust & Safety — age attestation nonces (§A7) =====
+  // ===== Trust & Safety — age attestation nonces =====
   'ageAttestationNonces/{nonceHash}': AgeAttestationNonceV1Schema,
 
   // ===== Trust & Safety — operator step-up + reconciler cursors (backend-only) =====
@@ -421,7 +421,7 @@ export const COLLECTION_SCHEMAS = {
   // ===== Scheduled user sweeps — durable cadence/cursor state (backend-only) =====
   'sweepState/{sweepName}': SweepStateSchema,
 
-  // ===== Trust & Safety — NCII / TAKE IT DOWN (§A11) =====
+  // ===== Trust & Safety — NCII / TAKE IT DOWN =====
   'nciiAllegations/{allegationId}': NciiAllegationV1Schema,
   'takeItDownRequests/{requestId}': TakeItDownRequestRootV1Schema,
   'takeItDownRequests/{requestId}/privateDetails/requester': TakeItDownRequesterPrivateV1Schema,
@@ -440,7 +440,7 @@ export const COLLECTION_SCHEMAS = {
   'nciiCases/{caseId}/blockedHashes/{hashId}': NciiBlockedHashV1Schema,
   'nciiCases/{caseId}/closureEvents/{eventId}': NciiCaseClosureEventV1Schema,
   'nciiRetainedEvidenceInventory/{inventoryId}': NciiRetainedEvidenceInventoryV1Schema,
-  // [H-01] dead-letter sink for inventory rows that could not be written to the primary
+  // The dead-letter sink for inventory rows that could not be written to the primary
   // nciiRetainedEvidenceInventory collection. Stores the same document shape.
   'nciiInventoryDeadLetter/{inventoryId}': NciiRetainedEvidenceInventoryV1Schema,
   'nciiTemporaryHolds/{holdId}': NciiTemporaryHoldV1Schema,
@@ -463,10 +463,9 @@ export const COLLECTION_SCHEMAS = {
   '_serverData/agePolicy': AgePolicyConfigV1Schema,
   '_serverData/nciiPolicy': NciiPolicyConfigV1Schema,
   '_serverData/privilegedReviewerSecurity': PrivilegedReviewerSecurityProfileV1Schema,
-  // The submitFeedback alias map — moved off the anonymously-readable top-level
-  // `feedbackAliases` collection into the server-only bucket (BACKEND-108). The sibling
-  // `feedbackDenylist` subcollection has no field contract (`.exists`-only) — see
-  // PENDING_COLLECTIONS.
+  // The submitFeedback alias map, in the server-only bucket so no client can read it
+  // (BACKEND-108). The sibling `feedbackDenylist` subcollection has no field contract
+  // (`.exists`-only) — see PENDING_COLLECTION_PATHS.
   '_serverData/feedbackLists/feedbackAliases/{aliasId}': FeedbackAliasSchema,
   // The scheduled sweeps' scan cursors — each read only by the function that owns it.
 
@@ -487,8 +486,8 @@ export type RegisteredCollectionPath = keyof typeof COLLECTION_SCHEMAS;
  * never persisted — the write callables store the body via `Omit<…, '<field>'>`. The bound
  * schema models the (correct) consumer/read shape, where the field is required, so a raw
  * stored doc is "missing" it. The drift-check injects `{ [field]: doc.id, ...data }` before
- * validating, generalizing the one-off `AdminTaskDocSchema` stored-shape workaround into a
- * single mechanism so real-callable drift-checks don't false-flag every doc-id collection.
+ * validating, one mechanism for every doc-id collection, so a drift-check of real data does not
+ * flag every such document as missing its id field.
  * The schema-doc generator ignores this map. Keys are compiler-checked against the registry.
  */
 export const COLLECTION_DOC_ID_FIELDS = {
@@ -514,15 +513,14 @@ export const COLLECTION_DOC_ID_FIELDS = {
 
 /**
  * Collections that exist (in COLLECTIONS / *_SUBCOLLECTIONS or firestore.rules) but are
- * intentionally NOT bound to a schema, each with a reason. Listed EXPLICITLY so completeness is
- * enforced and nothing is silently uncovered; the registry test fails if a NEW unlisted collection
- * appears. These are the only remaining gaps after the schema-registry binding pass:
- *
- *  - feedbackDenylist: `_serverData/feedbackLists/feedbackDenylist/{deniedWord}` — Console-managed
- *    (no callable writes it) and submitFeedback reads it via `.exists` only, so there is no field
- *    contract to author a schema from. The doc id is the denied word; the body is unused.
+ * intentionally NOT bound to a schema, each by name with its path and the reason beside it. Listed
+ * EXPLICITLY so completeness is enforced and nothing is silently uncovered; the registry test fails
+ * if a NEW unlisted collection appears.
  */
 export const PENDING_COLLECTION_PATHS = {
+  // Console-managed (no callable writes it), and submitFeedback reads it with `.exists` only, so
+  // there is no field contract to author a schema from: the doc id is the denied word and the body
+  // is unused.
   feedbackDenylist: '_serverData/feedbackLists/feedbackDenylist/{deniedWord}',
 } as const;
 

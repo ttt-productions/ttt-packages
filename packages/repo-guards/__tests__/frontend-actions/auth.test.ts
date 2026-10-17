@@ -23,7 +23,7 @@ describe('client auth boundary', () => {
       { path: 'src/hooks/use-auth.ts', why: 'the one accessor' },
     ],
     accessor: { file: 'src/hooks/use-auth.ts', name: 'useAuth' },
-    derivationSymbols: ['useAuthState', 'parseClaims', 'onAuthStateChanged'],
+    derivationSymbols: ['useAuthState', 'parseClaims', 'onAuthStateChanged', 'onIdTokenChanged'],
     authSourceModules: ['firebase/auth', '@kit/auth'],
     authContextVocabulary: ['claimsLoading', 'isAuthenticated'],
   };
@@ -58,6 +58,20 @@ describe('client auth boundary', () => {
       'src/b.ts:1 imports parseClaims',
       'src/c.ts:2 reaches core.useAuthState',
       'src/d.ts:1 calls onAuthStateChanged(',
+    ]);
+  });
+
+  it('flags a derivation called as a member of an auth instance or of a call that returns one', async () => {
+    expect(
+      await run({
+        'src/e.ts': 'const stop = auth.onAuthStateChanged((u) => set(u));',
+        'src/f.ts': 'const w = 1;\ngetAuth().onIdTokenChanged(cb);',
+        'src/g.ts': "import * as core from '@kit/auth/react';\nconst s = core.useAuthState();",
+      }),
+    ).toEqual([
+      'src/e.ts:1 calls onAuthStateChanged(',
+      'src/f.ts:2 calls onIdTokenChanged(',
+      'src/g.ts:2 reaches core.useAuthState',
     ]);
   });
 

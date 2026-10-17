@@ -1,16 +1,18 @@
 // The guards over how the client reaches a callable and surfaces its failure: one transport, one
-// copy owner, one toast and one capture per failure, and reads that live in hooks.
+// copy owner, callable names written only in their declarations, one toast and one capture per
+// failure, and reads that live in hooks and go through readers.
 
+import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { reviewedAllowlist, type AllowlistEntry, type Hit } from '../../shapes/shapes.js';
+import { CALLABLE_KINDS, declarationFactProblems, readDeclarations, type CallableDeclarationFacts, type CallableKind } from './declarations.js';
 import {
   balancedArgs,
   bindingNames,
   callArgs,
-  catchBodies,
   escapeRegExp,
   exportBlocks,
   exportedName,
@@ -18,11 +20,13 @@ import {
   isModuleOrSubpath,
   isUnder,
   localDeclarations,
+  memberOrBareCalls,
   moduleStatements,
   namedImports,
   namesProblem,
   objectProblem,
   textProblem,
+  throughNamespace,
   tryCatchPairs,
 } from './text.js';
 
@@ -145,6 +149,7 @@ export interface CallableTransportFacts {
   transports: ReadonlyArray<{ module: string; symbols: readonly string[]; owner: string }>;
 }
 
+/** Each reach of a transport symbol: imported, through a namespace, or called bare or as a member (`sdk.f(`). */
 function transportHits(code: string, transport: { module: string; symbols: readonly string[] }): Hit[] {
   const hits: Hit[] = [];
   const namespaces: string[] = [];
@@ -164,8 +169,9 @@ function transportHits(code: string, transport: { module: string; symbols: reado
     }
   }
   for (const symbol of transport.symbols) {
-    const re = new RegExp(`(?<![\\w$.])${escapeRegExp(symbol)}\\s*\\(`, 'g');
-    for (let m = re.exec(code); m; m = re.exec(code)) hits.push({ index: m.index, detail: `calls ${symbol}(` });
+    for (const index of memberOrBareCalls(code, symbol)) {
+      if (!throughNamespace(code, index, namespaces)) hits.push({ index, detail: `calls ${symbol}(` });
+    }
   }
   return hits;
 }
@@ -214,59 +220,137 @@ export const callableTransportGuard: GenericGuardDefinition<CallableTransportFac
 };
 
 // ---------------------------------------------------------------------------------------------
-// The two ways an app can hand a component a callable, shared by the read and double-surface guards.
+// The declared hooks a component holds, shared by the name, read, and double-surface guards.
 
-/** A hook that returns an invoke function, configured per call with options. */
-export interface CallableWrapper {
-  /** The hook (`useX`). */
+/** The call-site option that turns a declared hook's error toast off. */
+const TOAST_OPTION = 'showErrorToast';
+/** The call-site option naming the answers a caller surfaces itself. */
+const ANSWER_OPTION = 'isAnswerSurfacedByCaller';
+/** The members of an action's result that start it. */
+const ACTION_MEMBERS = ['mutate', 'mutateAsync'];
+
+/** One place a file binds a hook's result: the local name, how it is invoked, and the hook's arguments. */
+interface HookBinding {
+  /** The local name, as a finding shows it. */
+  name: string;
+  /** The names a call through this binding is written as (`b.mutate`, `b.mutateAsync`, `b`). */
+  calls: readonly string[];
   hook: string;
-  /** The member of its result that invokes a callable. */
-  invokeMember: string;
-  /** The option that, set to `false`, turns the wrapper's error toast off. */
-  toastOption: string;
-  /** The option that, set to `false`, turns the wrapper's error capture off. */
-  captureOption: string;
+  args: string;
+  index: number;
 }
 
-/** A module that exports one named hook per callable, each built by a factory of a known kind. */
-export interface CallableFactoryModule {
-  module: string;
-  /** A reader turns the toast and capture off; a mutation hook and an invoker keep both. */
-  factories: ReadonlyArray<{ name: string; kind: 'reader' | 'mutation' | 'invoker' }>;
+/** Every binding of one of `hooks` in `code`: a whole result, or an action's start members destructured. */
+function hookBindings(code: string, hooks: ReadonlySet<string>): HookBinding[] {
+  const out: HookBinding[] = [];
+  const whole = new RegExp(`(?:const|let|var)\\s+([\\w$]+)\\s*=\\s*(${REACT_HOOK})\\s*(?:<[^()]*?>)?\\s*\\(`, 'g');
+  for (let m = whole.exec(code); m; m = whole.exec(code)) {
+    if (!hooks.has(m[2])) continue;
+    const args = balancedArgs(code, m.index + m[0].length - 1);
+    out.push({ name: m[1], calls: [...ACTION_MEMBERS.map((member) => `${m![1]}.${member}`), m[1]], hook: m[2], args, index: m.index });
+  }
+  const destructured = new RegExp(`(?:const|let|var)\\s*\\{([^}]*)\\}\\s*=\\s*(${REACT_HOOK})\\s*(?:<[^()]*?>)?\\s*\\(`, 'g');
+  for (let m = destructured.exec(code); m; m = destructured.exec(code)) {
+    if (!hooks.has(m[2])) continue;
+    const args = balancedArgs(code, m.index + m[0].length - 1);
+    for (const part of m[1].split(',')) {
+      const [key, alias] = part.split(':').map((p) => p.trim());
+      if (!ACTION_MEMBERS.includes(key)) continue;
+      const local = alias || key;
+      if (/^[\w$]+$/.test(local)) out.push({ name: local, calls: [local], hook: m[2], args, index: m.index });
+    }
+  }
+  return out;
 }
 
-type FactoryKind = CallableFactoryModule['factories'][number]['kind'];
+/** A hook's options text for its argument, a same-file constant resolved; null when it cannot be seen. */
+function resolveOptions(args: string, code: string): string | null {
+  const trimmed = args.trim();
+  if (trimmed === '' || trimmed.startsWith('{')) return trimmed;
+  if (!/^\w+$/.test(trimmed)) return null;
+  const decl = new RegExp(`(?:const|let|var)\\s+${trimmed}\\s*(?::[^=]+)?=\\s*(\\{[^}]*\\})`).exec(code);
+  return decl ? decl[1] : null;
+}
 
-const wrapperProblems = (value: unknown, what: string, problems: string[], keys: readonly string[]) => {
-  if (!objectProblem(value, what, problems)) return;
-  for (const key of keys) textProblem((value as Record<string, unknown>)[key], `${what}.${key}`, problems);
+/** True unless the call site visibly turns the declared hook's error toast off. */
+const toastIsOn = (args: string, code: string) => {
+  const options = resolveOptions(args, code);
+  return options === null || !new RegExp(`\\b${TOAST_OPTION}\\s*:\\s*false\\b`).test(options);
 };
 
-/** The hooks each factory module builds, with the kind of each, and each factory that builds nothing. */
-function factoryHookKinds(code: string, module: CallableFactoryModule) {
-  const kinds = new Map<string, FactoryKind>();
-  const used = new Set<string>();
-  const names = module.factories.map((f) => escapeRegExp(f.name)).join('|');
-  const re = new RegExp(`export\\s+const\\s+(${REACT_HOOK})\\s*=\\s*(${names})\\b`, 'g');
-  for (let m = re.exec(code); m; m = re.exec(code)) {
-    const factory = module.factories.find((f) => f.name === m![2])!;
-    kinds.set(m[1], factory.kind);
-    used.add(factory.name);
-  }
-  return { kinds, unused: module.factories.filter((f) => !used.has(f.name)).map((f) => f.name) };
+// ---------------------------------------------------------------------------------------------
+// Callable names: a callable's name is written only in its declaration.
+
+export interface CallableNameFacts {
+  declarations: CallableDeclarationFacts;
+  /** Files that hold a string equal to a callable's name for another reason, each with why. */
+  allowlist: readonly AllowlistEntry[];
 }
 
+/** Each string literal in a file whose text is one of `names`. */
+export function callableNameHits(file: FileView, names: ReadonlyMap<string, string>): Hit[] {
+  const hits: Hit[] = [];
+  const sf = file.sourceFile;
+  const visit = (node: ts.Node) => {
+    if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && names.has(node.text)) {
+      hits.push({ index: node.getStart(sf), detail: `names the callable ${node.text}: call its declared hook ${names.get(node.text)}` });
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return hits;
+}
+
+export const callableNameGuard: GenericGuardDefinition<CallableNameFacts> = {
+  id: 'callableNames',
+  absentWhen: false,
+  factProblems(facts) {
+    const problems: string[] = [];
+    declarationFactProblems(facts?.declarations, 'declarations', problems);
+    allowlistProblems(facts?.allowlist, problems);
+    return problems;
+  },
+  build(facts) {
+    return [
+      {
+        title: "a callable's name is written only in its declaration",
+        description:
+          `Each callable is declared once, in ${facts.declarations.modules.join(', ')}, as a named hook built by one of the ` +
+          `callable factories (${CALLABLE_KINDS.map((k) => facts.declarations.factories[k]).join(', ')}), with its name ` +
+          'as a string literal. No other app source writes that name: call the declared hook, so a renamed or removed ' +
+          'callable fails to compile in one place instead of failing when clicked. A file that holds the same string ' +
+          'for another reason is a reviewed allowlist entry with its why; an entry whose file no longer holds it is stale.',
+        run(context) {
+          const { declared, findings } = readDeclarations(context, facts.declarations);
+          const names = new Map(declared.filter((d) => d.callable !== null).map((d) => [d.callable!, d.hook]));
+          const modules = new Set(facts.declarations.modules);
+          const reviewed = new Map(facts.allowlist.map((e) => [e.path, e]));
+          const held = new Set<string>();
+          for (const file of context.files(APP_CODE)) {
+            if (modules.has(file.path)) continue;
+            const hits = callableNameHits(file, names);
+            if (!hits.length) continue;
+            if (reviewed.has(file.path)) held.add(file.path);
+            else for (const hit of hits) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail! });
+          }
+          for (const entry of facts.allowlist) {
+            if (!held.has(entry.path)) findings.push({ file: entry.path, detail: 'stale entry: the file no longer holds a callable name (or is gone)' });
+          }
+          return findings;
+        },
+      },
+    ];
+  },
+};
+
 // ---------------------------------------------------------------------------------------------
-// Callable-backed reads: live in the hooks folder, keep neither the wrapper toast nor its capture,
-// and hand their failure to the read-failure surface.
+// Callable-backed reads: live in the hooks folder, go through a reader, and hand their failure to
+// the read-failure surface.
 
 export interface CallableReadFacts {
+  declarations: CallableDeclarationFacts;
   /** The folder every read hook lives in. */
   hooksRoot: string;
-  /** Wrapper hooks the app reaches callables through (declare [] when there is none). */
-  wrappers: readonly CallableWrapper[];
-  /** Factory modules the app reaches callables through (declare [] when there is none). */
-  factoryModules: readonly CallableFactoryModule[];
   /** The component that renders a read failure, and the prop it takes the read's error through. */
   readFailureSurface: { component: string; errorProp: string };
   /** Hooks the detector must find a callable-backed read in — proof it still recognizes the reads. */
@@ -275,11 +359,12 @@ export interface CallableReadFacts {
 
 interface CallableRead {
   path: string;
-  hook: string;
+  /** The exported hook or component the read is in. */
+  where: string;
   binding: string;
+  hook: string;
+  kind: CallableKind;
   index: number;
-  toastOn: boolean | null;
-  captureOn: boolean | null;
 }
 
 /** Each React Query read call's argument text, with where the call starts. */
@@ -307,75 +392,23 @@ function readQueryCalls(block: string): Array<{ args: string; index: number }> {
   return out;
 }
 
-/** A wrapper's options text for its argument, a same-file constant resolved; null when it cannot be seen. */
-function resolveOptions(args: string, code: string): string | null {
-  const trimmed = args.trim();
-  if (trimmed === '' || trimmed.startsWith('{')) return trimmed;
-  if (!/^\w+$/.test(trimmed)) return null;
-  const decl = new RegExp(`(?:const|let|var)\\s+${trimmed}\\s*(?::[^=]+)?=\\s*(\\{[^}]*\\})`).exec(code);
-  return decl ? decl[1] : null;
-}
-
-const optionOff = (options: string, option: string) => new RegExp(`\\b${escapeRegExp(option)}\\s*:\\s*false\\b`).test(options);
-
-function callableReadsIn(file: { path: string; code: string }, facts: CallableReadFacts, kinds: ReadonlyMap<string, FactoryKind>): CallableRead[] {
+/** Every React Query read that reaches a declared hook, directly or through a block-local helper. */
+export function callableReadsIn(file: { path: string; code: string }, kinds: ReadonlyMap<string, CallableKind>): CallableRead[] {
   const reads: CallableRead[] = [];
+  const hooks = new Set(kinds.keys());
   for (const block of exportBlocks(file.code)) {
     const text = block.text;
-    const hook = exportedName(text) ?? new RegExp(`\\bfunction\\s+(${REACT_HOOK})`).exec(text)?.[1] ?? '(module scope)';
-    const bindings: Array<{ name: string; ref: RegExp; toastOn: boolean | null; captureOn: boolean | null }> = [];
-    for (const wrapper of facts.wrappers) {
-      const hookName = escapeRegExp(wrapper.hook);
-      const state = (args: string) => {
-        const options = resolveOptions(args, file.code);
-        return options === null
-          ? { toastOn: null, captureOn: null }
-          : { toastOn: !optionOff(options, wrapper.toastOption), captureOn: !optionOff(options, wrapper.captureOption) };
-      };
-      const destructured = new RegExp(`(?:const|let|var)\\s*\\{([^}]*)\\}\\s*=\\s*${hookName}\\s*\\(`, 'g');
-      for (let m = destructured.exec(text); m; m = destructured.exec(text)) {
-        const s = state(balancedArgs(text, m.index + m[0].length - 1));
-        for (const part of m[1].split(',')) {
-          const [key, alias] = part.split(':').map((p) => p.trim());
-          if (key !== wrapper.invokeMember) continue;
-          const local = alias || key;
-          bindings.push({ name: local, ref: new RegExp(`\\b${escapeRegExp(local)}\\b`), ...s });
-        }
-      }
-      const whole = new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*${hookName}\\s*\\(`, 'g');
-      for (let m = whole.exec(text); m; m = whole.exec(text)) {
-        const s = state(balancedArgs(text, m.index + m[0].length - 1));
-        bindings.push({ name: `${m[1]}.${wrapper.invokeMember}`, ref: new RegExp(`\\b${m[1]}\\s*\\.\\s*${escapeRegExp(wrapper.invokeMember)}\\b`), ...s });
-      }
-    }
-    if (kinds.size) {
-      const whole = new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*(${REACT_HOOK})\\s*\\(`, 'g');
-      for (let m = whole.exec(text); m; m = whole.exec(text)) {
-        const kind = kinds.get(m[2]);
-        if (!kind) continue;
-        const on = kind !== 'reader';
-        if (kind === 'mutation') bindings.push({ name: `${m[1]}.mutateAsync`, ref: new RegExp(`\\b${m[1]}\\s*\\.\\s*mutate(?:Async)?\\b`), toastOn: on, captureOn: on });
-        else bindings.push({ name: m[1], ref: new RegExp(`\\b${m[1]}\\b`), toastOn: on, captureOn: on });
-      }
-      const destructured = new RegExp(`(?:const|let|var)\\s*\\{([^}]*)\\}\\s*=\\s*(${REACT_HOOK})\\s*\\(`, 'g');
-      for (let m = destructured.exec(text); m; m = destructured.exec(text)) {
-        if (kinds.get(m[2]) !== 'mutation') continue;
-        for (const part of m[1].split(',')) {
-          const [key, alias] = part.split(':').map((p) => p.trim());
-          if (key !== 'mutateAsync' && key !== 'mutate') continue;
-          const local = alias || key;
-          bindings.push({ name: local, ref: new RegExp(`\\b${escapeRegExp(local)}\\b`), toastOn: true, captureOn: true });
-        }
-      }
-    }
+    const bindings = hookBindings(text, hooks);
     if (!bindings.length) continue;
+    const where = exportedName(text) ?? new RegExp(`\\bfunction\\s+(${REACT_HOOK})`).exec(text)?.[1] ?? '(module scope)';
     const decls = localDeclarations(text);
     for (const call of readQueryCalls(text)) {
       for (const binding of bindings) {
-        const direct = binding.ref.test(call.args);
-        const viaHelper = [...decls].some(([name, decl]) => new RegExp(`\\b${escapeRegExp(name)}\\b`).test(call.args) && binding.ref.test(decl));
+        const ref = new RegExp(`(?<![\\w$.])${escapeRegExp(binding.name)}\\b`);
+        const direct = ref.test(call.args);
+        const viaHelper = [...decls].some(([name, decl]) => name !== binding.name && new RegExp(`\\b${escapeRegExp(name)}\\b`).test(call.args) && ref.test(decl));
         if (direct || viaHelper) {
-          reads.push({ path: file.path, hook, binding: binding.name, index: block.start + call.index, toastOn: binding.toastOn, captureOn: binding.captureOn });
+          reads.push({ path: file.path, where, binding: binding.name, hook: binding.hook, kind: kinds.get(binding.hook)!, index: block.start + call.index });
         }
       }
     }
@@ -383,12 +416,13 @@ function callableReadsIn(file: { path: string; code: string }, facts: CallableRe
   return reads;
 }
 
-/** Every finding about one read: where it lives and what it keeps. */
+/** Every finding about one read: where it lives, and the kind it reads through. */
 export function callableReadFindings(read: CallableRead, hooksRoot: string): string[] {
-  const where = `${read.hook} (${read.binding})`;
-  if (!isUnder(read.path, hooksRoot)) return [`${where} is a callable read outside ${hooksRoot}`];
-  if (read.toastOn === null) return [`${where} passes wrapper options that are not statically visible`];
-  return [...(read.toastOn ? [`${where} keeps the wrapper toast`] : []), ...(read.captureOn ? [`${where} keeps the wrapper capture`] : [])];
+  const where = `${read.where} (${read.binding})`;
+  return [
+    ...(isUnder(read.path, hooksRoot) ? [] : [`${where} is a callable read outside ${hooksRoot}`]),
+    ...(read.kind === 'reader' ? [] : [`${where} reads through ${read.hook}, a declared ${read.kind}: declare the callable as a reader`]),
+  ];
 }
 
 /** Each read-failure element rendering a read hook's failure without being handed the read's error. */
@@ -430,63 +464,41 @@ export const callableReadGuard: GenericGuardDefinition<CallableReadFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
+    declarationFactProblems(facts?.declarations, 'declarations', problems);
     textProblem(facts?.hooksRoot, 'hooksRoot', problems);
-    if (!Array.isArray(facts?.wrappers)) problems.push('wrappers is missing (declare [] when there is none)');
-    else facts.wrappers.forEach((w, i) => wrapperProblems(w, `wrappers[${i}]`, problems, ['hook', 'invokeMember', 'toastOption', 'captureOption']));
-    if (!Array.isArray(facts?.factoryModules)) problems.push('factoryModules is missing (declare [] when there is none)');
-    else {
-      for (const m of facts.factoryModules) {
-        textProblem(m?.module, 'a factory module', problems);
-        if (!Array.isArray(m?.factories) || !m.factories.length) problems.push(`factory module ${String(m?.module)} names no factory`);
-        else {
-          for (const f of m.factories) {
-            textProblem(f?.name, `a factory of ${m.module}`, problems);
-            if (!['reader', 'mutation', 'invoker'].includes(f?.kind)) problems.push(`factory ${String(f?.name)} has no kind (reader, mutation, or invoker)`);
-          }
-        }
-      }
+    if (objectProblem(facts?.readFailureSurface, 'readFailureSurface', problems)) {
+      textProblem(facts.readFailureSurface.component, 'readFailureSurface.component', problems);
+      textProblem(facts.readFailureSurface.errorProp, 'readFailureSurface.errorProp', problems);
     }
-    if (Array.isArray(facts?.wrappers) && Array.isArray(facts?.factoryModules) && !facts.wrappers.length && !facts.factoryModules.length) {
-      problems.push('the app declares no way to reach a callable (no wrapper and no factory module)');
-    }
-    wrapperProblems(facts?.readFailureSurface, 'readFailureSurface', problems, ['component', 'errorProp']);
     namesProblem(facts?.anchorReads, 'anchorReads', problems);
     return problems;
   },
   build(facts) {
+    const reader = facts.declarations.factories.reader;
     return [
       {
-        title: 'a callable-backed read lives in a hook and keeps neither the wrapper toast nor its capture',
+        title: 'a callable-backed read lives in a hook and goes through a reader',
         description:
-          `A React Query read that reaches a callable lives in ${facts.hooksRoot}, and the callable it reaches turns the ` +
-          `wrapper's error toast and its capture off — a read failure renders through ${facts.readFailureSurface.component} ` +
-          'and the query layer captures it once. Pass the opt-out options visibly (inline or a same-file constant), or ' +
-          `reach the callable through a reader. Every ${facts.readFailureSurface.component} that renders a callable-backed ` +
-          `read's failure is handed that read's error through \`${facts.readFailureSurface.errorProp}\`, so an answer the ` +
+          `A React Query read that reaches a callable lives in ${facts.hooksRoot} and calls a hook declared with ` +
+          `\`${reader}\`: a reader shows no toast and captures nothing, because the read's failure renders through ` +
+          `${facts.readFailureSurface.component} and the query layer captures it once. An action, a resumable action, ` +
+          `or an invoker inside a read toasts and captures that failure a second time — declare the callable with ` +
+          `\`${reader}\` instead. Every ${facts.readFailureSurface.component} that renders a callable-backed read's ` +
+          `failure is handed that read's error through \`${facts.readFailureSurface.errorProp}\`, so an answer the ` +
           'server refused renders as that answer, never as a load failure.',
         run(context) {
-          const findings: Finding[] = [];
-          const kinds = new Map<string, FactoryKind>();
-          const moduleFiles = new Set<string>();
-          for (const module of facts.factoryModules) {
-            moduleFiles.add(module.module);
-            if (!context.reader.exists(module.module)) {
-              findings.push({ file: module.module, detail: 'the callable factory module no longer exists' });
-              continue;
-            }
-            const read = factoryHookKinds(context.file(module.module).code, module);
-            for (const [hook, kind] of read.kinds) kinds.set(hook, kind);
-            for (const name of read.unused) findings.push({ file: module.module, detail: `stale factory: ${name} builds no exported hook` });
-          }
-          const files = context.files(APP_CODE).filter((f) => !moduleFiles.has(f.path));
-          const reads = files.flatMap((file) => callableReadsIn(file, facts, kinds));
+          const { declared, findings } = readDeclarations(context, facts.declarations);
+          const kinds = new Map(declared.map((d) => [d.hook, d.kind]));
+          const modules = new Set(facts.declarations.modules);
+          const files = context.files(APP_CODE).filter((f) => !modules.has(f.path));
+          const reads = files.flatMap((file) => callableReadsIn(file, kinds));
           const byFile = new Map(files.map((f) => [f.path, f]));
           for (const read of reads) {
             for (const detail of callableReadFindings(read, facts.hooksRoot)) {
               findings.push({ file: read.path, line: byFile.get(read.path)!.lineOf(read.index), detail });
             }
           }
-          const readHooks = [...new Set(reads.map((r) => r.hook))];
+          const readHooks = [...new Set(reads.map((r) => r.where))];
           for (const anchor of facts.anchorReads) {
             if (!readHooks.includes(anchor)) findings.push({ file: '(anchorReads)', detail: `no callable-backed read found in ${anchor} — the detector no longer recognizes it, or the anchor is stale` });
           }
@@ -504,113 +516,79 @@ export const callableReadGuard: GenericGuardDefinition<CallableReadFacts> = {
 };
 
 // ---------------------------------------------------------------------------------------------
-// Double surface: one callable rejection is toasted once — by the wrapper, or by the caller.
+// Double surface: a declared action's rejection is surfaced once — by its toast, or by the caller.
 
 export interface DoubleSurfaceFacts {
-  /** The wrapper hook, its invoke member, its toast option, and the option naming answers the caller surfaces itself. */
-  wrapper: { hook: string; invokeMember: string; toastOption: string; answerOption: string };
+  declarations: CallableDeclarationFacts;
   /** The function that raises a toast. */
   toastCall: string;
-  /** The toast variants that mark a failure toast. */
-  destructiveVariants: readonly string[];
-  /** Predicates that gate a local toast to a leg the wrapper cannot see. */
+  /** Predicates that gate a local toast to a leg the declared hook's toast cannot see. */
   nonCallableLegGuards: readonly string[];
   /** Import specifier prefixes that reach app source (relative imports always do). */
   appImportPrefixes: readonly string[];
-  /** Hooks the guard must find keeping the wrapper toast — proof the pairing still sees them. */
-  anchorHooks: readonly string[];
 }
 
-/** True when a text calls the wrapper with its error toast still on (a bare call, or options with no opt-out). */
-const wrapperToastIsOn = (text: string, wrapper: DoubleSurfaceFacts['wrapper']) =>
-  new RegExp(`${escapeRegExp(wrapper.hook)}\\(\\s*(?:\\)|\\{(?![^}]*${escapeRegExp(wrapper.toastOption)}\\s*:\\s*false)[^}]*\\})`).test(text);
+/** Where a declared hook or an app hook over one comes from, for a finding. */
+type ToastingHooks = ReadonlyMap<string, string>;
 
-/** Every export block that keeps the wrapper toast and toasts the same rejection again. */
-export function sameFileDoubleSurfaces(code: string, facts: DoubleSurfaceFacts): Array<{ index: number; detail: string }> {
-  const out: Array<{ index: number; detail: string }> = [];
-  if (!code.includes(`${facts.wrapper.hook}(`)) return out;
-  const toast = new RegExp(`\\b${escapeRegExp(facts.toastCall)}\\s*\\(`);
-  const variants = facts.destructiveVariants.map(escapeRegExp).join('|');
-  const failureVariant = new RegExp(`variant:\\s*['"](?:${variants})['"]`);
-  const gated = (text: string) => facts.nonCallableLegGuards.some((g) => new RegExp(`\\b${escapeRegExp(g)}\\b`).test(text));
-  for (const block of exportBlocks(code)) {
-    const text = block.text;
-    if (!wrapperToastIsOn(text, facts.wrapper)) continue;
-    const name = exportedName(text) ?? '(module scope)';
-    const onError = text.indexOf('onError');
-    if (onError >= 0 && failureVariant.test(text) && !gated(text)) {
-      out.push({ index: block.start + onError, detail: `${name} keeps the wrapper toast and toasts the failure again in onError` });
-    }
-    const answer = new RegExp(`\\b${escapeRegExp(facts.wrapper.answerOption)}\\s*:\\s*(\\w+)`).exec(text)?.[1];
-    for (const { body, index } of catchBodies(text)) {
-      if (!toast.test(body) || gated(body)) continue;
-      if (answer && new RegExp(`\\b${answer}\\s*\\(`).test(body)) continue;
-      out.push({ index: block.start + index, detail: `${name} keeps the wrapper toast and toasts the failure again in a catch` });
-    }
-  }
-  return out;
-}
-
-/** Exported hooks whose block keeps the wrapper toast on, so each already surfaces every rejection. */
-export function wrapperToastingHooks(files: ReadonlyArray<{ path: string; code: string }>, wrapper: DoubleSurfaceFacts['wrapper']): Map<string, string> {
+/** Exported app hooks that hold a toasting declared hook with its toast on, so each toasts every rejection. */
+export function wrappingHooks(files: ReadonlyArray<{ path: string; code: string }>, declared: ToastingHooks): Map<string, string> {
   const hooks = new Map<string, string>();
+  const names = new Set(declared.keys());
   for (const file of files) {
-    if (!file.code.includes(`${wrapper.hook}(`)) continue;
     for (const block of exportBlocks(file.code)) {
-      if (!wrapperToastIsOn(block.text, wrapper)) continue;
       const name = new RegExp(`export\\s+(?:async\\s+)?(?:function|const)\\s+(${REACT_HOOK})`).exec(block.text)?.[1];
-      if (name) hooks.set(name, file.path);
+      if (!name || names.has(name)) continue;
+      if (hookBindings(block.text, names).some((b) => toastIsOn(b.args, file.code))) hooks.set(name, file.path);
     }
   }
   return hooks;
 }
 
-const ACTION_MEMBERS = new Set(['mutate', 'mutateAsync', 'refetch']);
-
-/** Every call site that toasts a rejection an imported wrapper-toasting hook already toasted. */
-export function crossFileDoubleSurfaces(
+/** Every place a file surfaces a rejection a toasting hook it holds has already toasted. */
+export function doubleSurfaces(
   file: { path: string; code: string },
-  hooks: ReadonlyMap<string, string>,
-  facts: DoubleSurfaceFacts,
+  toasting: ToastingHooks,
+  wrappers: ToastingHooks,
+  facts: Pick<DoubleSurfaceFacts, 'toastCall' | 'nonCallableLegGuards' | 'appImportPrefixes'>,
 ): Array<{ index: number; detail: string }> {
-  const out: Array<{ index: number; detail: string }> = [];
   const code = file.code;
   const imported = new Set<string>();
   for (const clause of namedImports(code)) {
     const fromApp = clause.module.startsWith('.') || facts.appImportPrefixes.some((p) => clause.module.startsWith(p));
     if (fromApp) for (const binding of clause.names) imported.add(bindingNames(binding).local);
   }
+  const visible = new Map<string, string>(toasting);
+  for (const [hook, origin] of wrappers) if (origin !== file.path && imported.has(hook)) visible.set(hook, origin);
   const toast = new RegExp(`\\b${escapeRegExp(facts.toastCall)}\\s*\\(`);
-  const gated = (text: string) => facts.nonCallableLegGuards.some((g) => new RegExp(`\\b${escapeRegExp(g)}\\b`).test(text));
-  const actionMembers = new Set([...ACTION_MEMBERS, facts.wrapper.invokeMember]);
+  const out: Array<{ index: number; detail: string }> = [];
   const seen = new Set<string>();
   const report = (index: number, detail: string) => {
-    if (seen.has(detail)) return;
-    seen.add(detail);
+    if (seen.has(`${index}:${detail}`)) return;
+    seen.add(`${index}:${detail}`);
     out.push({ index, detail });
   };
-  for (const [hook, hookFile] of hooks) {
-    if (file.path === hookFile || !imported.has(hook)) continue;
-    const bindings = new Set<string>();
-    for (const m of code.matchAll(new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*${escapeRegExp(hook)}\\s*\\(`, 'g'))) bindings.add(m[1]);
-    for (const m of code.matchAll(new RegExp(`(?:const|let|var)\\s*\\{([^}]*)\\}\\s*=\\s*${escapeRegExp(hook)}\\s*\\(`, 'g'))) {
-      for (const part of m[1].split(',')) {
-        const [key, alias] = part.split(':').map((s) => s.trim());
-        if (!actionMembers.has(key)) continue;
-        const local = alias || key;
-        if (/^\w+$/.test(local)) bindings.add(local);
+  for (const binding of hookBindings(code, new Set(visible.keys()))) {
+    if (!wrappers.has(binding.hook) && !toastIsOn(binding.args, code)) continue;
+    const answer = new RegExp(`\\b${ANSWER_OPTION}\\s*:\\s*([\\w$]+)`).exec(binding.args)?.[1];
+    const gated = (text: string) =>
+      facts.nonCallableLegGuards.some((g) => new RegExp(`\\b${escapeRegExp(g)}\\b`).test(text)) ||
+      (!!answer && new RegExp(`\\b${escapeRegExp(answer)}\\s*\\(`).test(text));
+    const surfaces = (handler: string) => toast.test(handler) && !gated(handler);
+    const who = `${binding.name} (${binding.hook}, ${visible.get(binding.hook)})`;
+    if (handlersFor(binding.args, 'onError').some(surfaces)) report(binding.index, `${who} toasts again in the onError it hands the hook`);
+    for (const name of binding.calls) {
+      for (const call of callArgs(code, name)) {
+        if (handlersFor(call.args, 'onError').some(surfaces)) report(call.index, `${who} toasts again in its onError`);
       }
     }
-    for (const binding of bindings) {
-      const calls = [...callArgs(code, `${binding}.mutate`), ...callArgs(code, `${binding}.mutateAsync`), ...callArgs(code, binding)];
-      for (const call of calls) {
-        for (const handler of handlersFor(call.args, 'onError')) {
-          if (toast.test(handler) && !gated(handler)) report(call.index, `${binding} (${hook}, ${hookFile}) toasts again in its onError`);
-        }
-      }
-      for (const pair of tryCatchPairs(code)) {
-        if (!new RegExp(`\\b${escapeRegExp(binding)}\\b`).test(pair.tryBody)) continue;
-        if (toast.test(pair.catchBody) && !gated(pair.catchBody)) report(pair.index, `${binding} (${hook}, ${hookFile}) toasts again in a catch`);
+    const ref = new RegExp(`(?<![\\w$.])${escapeRegExp(binding.name)}\\b`);
+    for (const pair of tryCatchPairs(code)) {
+      if (ref.test(pair.tryBody) && surfaces(pair.catchBody)) report(pair.index, `${who} toasts again in a catch`);
+    }
+    for (const mutation of callArgs(code, 'useMutation')) {
+      if (ref.test(mutation.args) && handlersFor(mutation.args, 'onError').some(surfaces)) {
+        report(mutation.index, `${who} toasts again in the onError of the mutation that calls it`);
       }
     }
   }
@@ -622,12 +600,10 @@ export const doubleSurfaceGuard: GenericGuardDefinition<DoubleSurfaceFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems: string[] = [];
-    wrapperProblems(facts?.wrapper, 'wrapper', problems, ['hook', 'invokeMember', 'toastOption', 'answerOption']);
+    declarationFactProblems(facts?.declarations, 'declarations', problems);
     textProblem(facts?.toastCall, 'toastCall', problems);
-    namesProblem(facts?.destructiveVariants, 'destructiveVariants', problems);
     namesProblem(facts?.nonCallableLegGuards, 'nonCallableLegGuards', problems);
     namesProblem(facts?.appImportPrefixes, 'appImportPrefixes', problems, { nonEmpty: false });
-    namesProblem(facts?.anchorHooks, 'anchorHooks', problems);
     return problems;
   },
   build(facts) {
@@ -635,24 +611,25 @@ export const doubleSurfaceGuard: GenericGuardDefinition<DoubleSurfaceFacts> = {
       {
         title: 'one callable rejection surfaces exactly once',
         description:
-          `A hook that calls \`${facts.wrapper.hook}\` with its error toast on already toasts every rejection, so nothing ` +
-          `toasts that rejection again — not the hook's own onError or catch, and not a call site that imports the hook. ` +
-          `Fix one of: pass \`{ ${facts.wrapper.toastOption}: false }\` and own the only copy; drop the local toast and ` +
-          `let the wrapper own the surface (an empty catch keeps any finally reset); or gate the local toast on a ` +
-          `predicate that sees only the leg the wrapper cannot (${facts.nonCallableLegGuards.join(', ')}). A catch ` +
-          `toast gated on the wrapper's own \`${facts.wrapper.answerOption}\` predicate is that answer's only surface.`,
+          'A hook declared as an action, a resumable action, or an invoker shows the shared error toast for every ' +
+          `rejection unless its call site passes \`{ ${TOAST_OPTION}: false }\`, and so does an app hook built over one. ` +
+          `While that toast is on, nothing toasts the same rejection again — not an onError handed to the hook or to ` +
+          'its mutate call, not a catch around it, and not the onError of a mutation that calls it. Fix one of: pass ' +
+          `\`{ ${TOAST_OPTION}: false }\` and own the only surface; drop the local toast (an empty catch keeps any ` +
+          'finally reset); or gate the local toast on a predicate that sees only the leg the shared toast cannot ' +
+          `(${facts.nonCallableLegGuards.join(', ')}), or on the predicate the call site hands \`${ANSWER_OPTION}\`, ` +
+          "which makes the caller that answer's only surface.",
         run(context) {
-          const files = context.files(APP_CODE);
-          const findings: Finding[] = [];
-          for (const file of files) {
-            for (const hit of sameFileDoubleSurfaces(file.code, facts)) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail });
+          const { declared, findings } = readDeclarations(context, facts.declarations);
+          const toasting = new Map(declared.filter((d) => d.kind !== 'reader').map((d) => [d.hook, d.file]));
+          if (!toasting.size && !findings.length) {
+            findings.push({ file: '(declarations)', detail: 'no action, resumable action, or invoker is declared, so the check sees no toasting hook' });
           }
-          const hooks = wrapperToastingHooks(files, facts.wrapper);
-          for (const anchor of facts.anchorHooks) {
-            if (!hooks.has(anchor)) findings.push({ file: '(anchorHooks)', detail: `${anchor} is not found keeping the wrapper toast — the pairing no longer sees it, or the anchor is stale` });
-          }
+          const modules = new Set(facts.declarations.modules);
+          const files = context.files(APP_CODE).filter((f) => !modules.has(f.path));
+          const wrappers = wrappingHooks(files, toasting);
           for (const file of files) {
-            for (const hit of crossFileDoubleSurfaces(file, hooks, facts)) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail });
+            for (const hit of doubleSurfaces(file, toasting, wrappers, facts)) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail });
           }
           return findings;
         },
@@ -707,7 +684,7 @@ export const errorInternalsGuard: GenericGuardDefinition<ErrorInternalsFacts> = 
         "`String(error)` — in JSX, a template hole, or a prop. A thrown error's text leaks infrastructure detail and " +
         'tells the user nothing they can act on: render a fixed title naming what failed and a next-step sentence. ' +
         'Error internals belong in logging and monitoring capture, which this check leaves alone, as it does an ' +
-        'object property value (a toast description owned by the callable wrapper).',
+        'object property value (a toast description, which the callable policy owns).',
       scope: APP_CODE,
       match: (file) =>
         facts.renderRoots.some((root) => isUnder(file.path, root)) ? lineHits(file, (line) => errorInternalsOnLine(line, facts.captureCalls)) : [],

@@ -7,15 +7,21 @@ aliases, its owner files, its reviewed exceptions — never logic.
 ## Owns
 
 - **The reader** — one scope policy for every guard: the roots an app declares by role (`app`,
-  `functions`, `e2e`, `hostedE2e`, `scripts`, `coreDist`, and each named Worker tree), the file
+  `functions`, `e2e`, `hostedE2e`, `scripts`, `coreDist`, and each named Worker tree; a root may be
+  the whole repository, `.`), the file
   kinds (code, declarations, stylesheets, rules files, config — env files by any name included —,
   markdown, shell scripts), what counts as test code
   (a `.test.` / `.spec.` name, a `__tests__` folder, an end-to-end root, or a declared test-code path
   or name marker), and what is never read (dependency, build, and dot folders by name; anything
-  else only by a reviewed repo-relative path). Every file is read, comment-stripped (code,
-  stylesheets, rules files), and parsed once per run and shared by every guard. The reader also reads
-  an installed package's shipped files under any folder's `node_modules`, and a file outside the
-  checkout by absolute path (a sibling repository).
+  else only by a reviewed repo-relative path; a symbolic link is neither followed nor skipped — the
+  walk fails naming it). Every file is read, comment-stripped (code, stylesheets, rules files), and
+  parsed once per run and shared by every guard. The reader also reads an installed package's
+  shipped files under any folder's `node_modules` (each labelled an installed file of that package),
+  and a file outside the checkout by absolute path (a sibling repository).
+- **The rules files** — the layout's `rulesFiles` is the one list of every rules file the app
+  deploys. Each is a Firestore or a Storage rules file by the service it declares (a file that
+  declares neither, or both, fails the layout), and every rules guard reads every listed file of its
+  kind; no guard names a rules file of its own.
 - **The suite** — one entry that checks an app's whole config and then registers every generic
   guard and every business guard as tests.
 - **The generic guards** — each a single behavior: where two apps' copies differed, the guard
@@ -34,7 +40,9 @@ aliases, its owner files, its reviewed exceptions — never logic.
 - `./node` — the reader: `createRepoReader(layout)`, `layoutProblems(layout)`, the layout types, and
   the scope policy (`isTestPath`, `kindOfFile`).
 - `./suite` — `registerGuardSuite(config)`, called once at the top of an app's one guard test file;
-  needs `vitest` (an optional peer) and runs under Node.
+  needs `vitest` (an optional peer) and runs under Node. A repository that is no app (this
+  monorepo's boundary suite) runs the generic guards that apply to it through
+  `registerSuiteOf(config, definitions)`, picking them from `GENERIC_GUARDS` by id.
 - `./reports` — the hand-run reports.
 - `./seed` — `createRegistrySeedWriter`, `registeredSchemaForPath`.
 - `./zod-shape` — `kindOf`, `unwrap`, `objectShape`, `arrayElement`, `compositeMembers`, `knownKeys`.
@@ -42,15 +50,17 @@ aliases, its owner files, its reviewed exceptions — never logic.
 ## Guarantees
 
 - **No guard is skipped silently.** Every generic guard needs its facts in the config, or — only
-  where the guard allows it — an `{ absent: why }`. A missing, unknown, or malformed entry fails the
-  config before any guard runs.
+  where the guard allows it — an `{ absent: why }`. A guard over the Functions tree or the Worker
+  trees may be declared absent only when the layout declares no such root. A missing, unknown, or
+  malformed entry fails the config before any guard runs.
 - **Fails closed.** A folder the reader cannot read throws naming it; a root a guard needs that the
   layout does not declare throws; an exclusion, owner, or allowlist entry that no longer matches is
-  stale and fails; a guard whose scan reaches no file fails as vacuous; every declared root's anchor
-  file must be reached by its walk.
+  stale and fails; a guard fails as vacuous when any scope it reads reaches no file, even beside a
+  named file it also read; every declared root's anchor file must be reached by its walk.
 - **A guard that cannot run here says why.** Only a guard whose input lies outside the checkout (a
-  sibling repository CI never checks out) can skip, and the suite shows it SKIPPED with its reason —
-  never passed.
+  sibling repository CI never checks out) can skip, only when that checkout is absent, and the suite
+  shows it SKIPPED with its reason — never passed. A sibling checkout that is there but lacks its
+  copy fails.
 - **Comments never reach a guard.** `code` is the file with every comment blanked and every index
   and line kept, read from the parse so a `//` in a string, template, regular expression, or JSX text
   stays.

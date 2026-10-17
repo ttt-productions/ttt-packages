@@ -10,6 +10,13 @@ import type { RepoLayout } from '../reader/layout.js';
 import { GENERIC_GUARDS, type GenericGuardFacts } from '../registry.js';
 import { checkSamples, runGuard } from './run.js';
 
+/**
+ * Every generic guard the suite registers. A repository that is no app (a package monorepo) runs
+ * the ones that apply to it through `registerSuiteOf`, by id, exactly as the suite runs them.
+ */
+export { GENERIC_GUARDS };
+export type { GenericGuardDefinition };
+
 export interface GuardSuiteConfig {
   layout: RepoLayout;
   generic: GenericGuardFacts;

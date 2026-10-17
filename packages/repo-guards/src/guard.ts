@@ -1,6 +1,7 @@
 // What a guard is: a named check over the files the reader hands it. Generic guards and an app's
 // business guards are the same thing to the suite.
 
+import type { RulesService } from './reader/layout.js';
 import type { RepoReader, Scope } from './reader/reader.js';
 import type { FileView } from './reader/view.js';
 
@@ -12,11 +13,16 @@ export interface Finding {
   detail: string;
 }
 
-/** What a guard run reads through. Every file it reads is counted, so a vacuous run fails. */
+/**
+ * What a guard run reads through. Every scope a guard reads is counted on its own, so a run whose
+ * scope reached no file fails as vacuous even when it also read a named file.
+ */
 export interface GuardContext {
   readonly reader: RepoReader;
   files(scope: Scope): FileView[];
   file(relPath: string): FileView;
+  /** Every rules file the layout lists, or those written for one service: a scope like any other. */
+  rulesFiles(service?: RulesService): FileView[];
 }
 
 /** A must-fail or must-pass input for a guard's matcher. A bare string is the text of `sample.ts`. */

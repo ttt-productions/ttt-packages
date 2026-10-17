@@ -7,9 +7,10 @@
 //                     so an import or a mention proves nothing. An entry whose options cannot be
 //                     resolved statically (a spread, a non-literal) is held to every `secrets` array in
 //                     its module; consumption at module scope is held to the same module-wide set.
-//   pinned binders    Every bound secret, and the exact entry modules binding it, is pinned in the
-//                     app's facts. A new binder, a lost binder, or a bound secret the facts do not
-//                     name fails, forcing review of exactly the change that matters.
+//   pinned binders    Each safety-critical secret the facts pin is bound by exactly its pinned entry
+//                     modules: a new binder or a lost binder of a pinned secret fails, forcing review
+//                     of exactly the change that matters. Every other secret is held by the direct
+//                     binding check alone.
 //   over-declaration  An entry declaring a secret nothing in its static or lazy import closure
 //                     consumes is needless exposure. The closure over-approximates reachability, so
 //                     the check is sound only in this negative direction; a secret read by an
@@ -504,6 +505,7 @@ const IDENTIFIER = /^[A-Za-z_$][\w$]*$/;
 export const secretBindingGuard: GenericGuardDefinition<SecretBindingFacts> = {
   id: 'secretBindings',
   absentWhen: 'the app has no Cloud Functions tree',
+  absentOnlyWithoutRoot: 'functions',
   factProblems(facts) {
     const problems: string[] = [];
     if (!facts || typeof facts !== 'object') return ['the facts are missing'];

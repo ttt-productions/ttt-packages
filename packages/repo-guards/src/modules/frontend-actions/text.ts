@@ -144,6 +144,17 @@ export function localDeclarations(block: string): Map<string, string> {
   return decls;
 }
 
+/** Where each call of `symbol` starts, bare (`f(`) or as a member (`x.f(`, `g().f(`). */
+export function memberOrBareCalls(code: string, symbol: string): number[] {
+  return [...code.matchAll(new RegExp(`(?<![\\w$])${escapeRegExp(symbol)}\\s*\\(`, 'g'))].map((m) => m.index!);
+}
+
+/** True when the name at `index` is reached through one of `namespaces` (`ns.name`). */
+export function throughNamespace(code: string, index: number, namespaces: readonly string[]): boolean {
+  const before = code.slice(Math.max(0, index - 200), index);
+  return namespaces.some((ns) => new RegExp(`(?<![\\w$])${escapeRegExp(ns)}\\s*\\.\\s*$`).test(before));
+}
+
 /** Named import clauses with their module and where each statement starts. */
 export function namedImports(code: string): Array<{ names: string[]; typeOnly: boolean; module: string; index: number }> {
   const out: Array<{ names: string[]; typeOnly: boolean; module: string; index: number }> = [];

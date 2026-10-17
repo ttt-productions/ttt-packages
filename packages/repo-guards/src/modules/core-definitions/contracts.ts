@@ -18,21 +18,84 @@ export interface CoreContractFacts {
   backendRoots: readonly RootRole[];
 }
 
-const isZod = (node: ts.Node) => ts.isIdentifier(node) && node.text === 'z';
+const ZOD_MODULE = /^zod(?:\/|$)/;
 
 /**
- * Every zod schema a file builds in place: a builder called on `z` (`z.object(…)`, `z.string()`) or
- * a schema class constructed. `z.ZodError` checks and type positions (`z.infer`, `z.ZodType`) build
- * nothing.
+ * zod's functions that build no schema: the error formatters, the global config, JSON Schema output,
+ * and the top-level parse functions, which only run a schema built elsewhere.
+ */
+const BUILDS_NOTHING: ReadonlySet<string> = new Set([
+  'prettifyError',
+  'treeifyError',
+  'flattenError',
+  'formatError',
+  'config',
+  'toJSONSchema',
+  'parse',
+  'safeParse',
+  'parseAsync',
+  'safeParseAsync',
+  'encode',
+  'decode',
+  'safeEncode',
+  'safeDecode',
+]);
+
+/**
+ * The names a file binds zod under: `z` (by convention, wherever it comes from), every namespace or
+ * default import of a zod module, and each named import of one, by its local name with the name zod
+ * exports it as.
+ */
+function zodBindings(sf: ts.SourceFile): { namespaces: Set<string>; named: Map<string, string> } {
+  const namespaces = new Set(['z']);
+  const named = new Map<string, string>();
+  for (const statement of sf.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || !ZOD_MODULE.test(statement.moduleSpecifier.text)) continue;
+    const clause = statement.importClause;
+    if (!clause || clause.isTypeOnly) continue;
+    if (clause.name) namespaces.add(clause.name.text);
+    const bindings = clause.namedBindings;
+    if (bindings && ts.isNamespaceImport(bindings)) namespaces.add(bindings.name.text);
+    else if (bindings) {
+      for (const element of bindings.elements) {
+        if (element.isTypeOnly) continue;
+        const exported = (element.propertyName ?? element.name).text;
+        if (exported === 'z') namespaces.add(element.name.text);
+        else named.set(element.name.text, exported);
+      }
+    }
+  }
+  return { namespaces, named };
+}
+
+/**
+ * Every zod schema a file builds in place: a builder called on zod (`z.object(…)`, `zod.string()`), a
+ * builder imported by name (`object(…)` from `zod`), or a schema class constructed. `z.ZodError`
+ * checks, type positions (`z.infer`, `z.ZodType`), and the functions that build nothing (an error
+ * formatter, a parse of a schema built elsewhere) are allowed.
  */
 export function zodSchemaBuilds(file: FileView): Finding[] {
   const findings: Finding[] = [];
+  const { namespaces, named } = zodBindings(file.sourceFile);
+  const builder = (callee: ts.Expression): string | null => {
+    if (ts.isPropertyAccessExpression(callee) && ts.isIdentifier(callee.expression) && namespaces.has(callee.expression.text)) {
+      return `${callee.expression.text}.${callee.name.text}`;
+    }
+    if (ts.isIdentifier(callee) && named.has(callee.text)) return callee.text;
+    return null;
+  };
+  const exportedName = (callee: ts.Expression): string =>
+    ts.isPropertyAccessExpression(callee) ? callee.name.text : (named.get((callee as ts.Identifier).text) ?? '');
   const visit = (node: ts.Node): void => {
-    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && isZod(node.expression.expression)) {
-      const name = node.expression.name.text;
-      if (/^[a-z]/.test(name)) findings.push({ file: file.path, line: lineOfNode(file, node), detail: `builds a zod schema: z.${name}(…)` });
-    } else if (ts.isNewExpression(node) && ts.isPropertyAccessExpression(node.expression) && isZod(node.expression.expression)) {
-      findings.push({ file: file.path, line: lineOfNode(file, node), detail: `constructs a zod schema: new z.${node.expression.name.text}(…)` });
+    if (ts.isCallExpression(node)) {
+      const name = builder(node.expression);
+      const exported = exportedName(node.expression);
+      if (name && /^[a-z]/.test(exported) && !BUILDS_NOTHING.has(exported)) {
+        findings.push({ file: file.path, line: lineOfNode(file, node), detail: `builds a zod schema: ${name}(…)` });
+      }
+    } else if (ts.isNewExpression(node)) {
+      const name = builder(node.expression);
+      if (name && !/Error$/.test(exportedName(node.expression))) findings.push({ file: file.path, line: lineOfNode(file, node), detail: `constructs a zod schema: new ${name}(…)` });
     }
     ts.forEachChild(node, visit);
   };
@@ -84,8 +147,10 @@ export const coreContractsGuard: GenericGuardDefinition<CoreContractFacts> = {
         title: 'no backend module builds a zod schema of its own',
         description:
           'Every callable input and every document the backend parses is a schema the core package declares, so a ' +
-          'backend module imports it instead of building one. Using zod for types (z.infer, z.ZodType) or for an ' +
-          'instanceof z.ZodError check builds nothing and is allowed. Move the schema into the core, released first.',
+          'backend module imports it instead of building one — on z, on any zod namespace, or through a builder ' +
+          'imported by name. Using zod for types (z.infer, z.ZodType), for an instanceof z.ZodError check, to format ' +
+          'an error (z.prettifyError), or to parse with a core schema builds nothing and is allowed. Move the schema ' +
+          'into the core, released first.',
         timeoutMs: 120_000,
         run(context) {
           return context.files({ roots: facts.backendRoots, kinds: ['code'], tests: false }).flatMap(zodSchemaBuilds);

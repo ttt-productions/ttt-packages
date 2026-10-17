@@ -450,8 +450,6 @@ export interface DomainEventRegistryFacts {
   eventSchema: Loader<unknown>;
   /** The app's functions that dispatch a domain event and return the refresh's promise. */
   notifiers: readonly string[];
-  /** Registered events whose producer has not landed yet, each with its why; [] for none. */
-  noProducerYet: ReadonlyArray<{ event: string; why: string }>;
 }
 
 type ZodLike = { def?: any; _def?: any; shape?: Record<string, ZodLike>; options?: unknown[]; value?: unknown };
@@ -477,6 +475,10 @@ export function syntheticIds(idsSchema: ZodLike): Array<Record<string, unknown>>
   return [{ ...baseline }, ...optional.map((key) => Object.fromEntries(Object.entries(baseline).filter(([k]) => k !== key)))];
 }
 
+/** What a query-core registry entry may do to the reads it matches, and how a refresh refetches. */
+const CACHE_ACTIONS: ReadonlySet<unknown> = new Set([undefined, 'refresh', 'remove', 'reset']);
+const REFETCH_TYPES: ReadonlySet<unknown> = new Set([undefined, 'active', 'all', 'none']);
+
 /** Why a builder's answer is not a list of well-formed invalidations, or null. */
 export function malformedInvalidations(answer: unknown): string | null {
   if (!Array.isArray(answer)) return 'does not answer a list of invalidations';
@@ -486,6 +488,11 @@ export function malformedInvalidations(answer: unknown): string | null {
     } else if (inv?.kind === 'predicate') {
       if (typeof inv.description !== 'string' || !inv.description || typeof inv.match !== 'function') return 'a predicate invalidation with no description or matcher';
     } else return `an invalidation of unknown kind ${String(inv?.kind)}`;
+    if (!CACHE_ACTIONS.has(inv.action)) return `a ${inv.kind} invalidation with unknown action ${String(inv.action)}`;
+    if (!REFETCH_TYPES.has(inv.refetchType)) return `a ${inv.kind} invalidation with unknown refetchType ${String(inv.refetchType)}`;
+    if ((inv.action === 'remove' || inv.action === 'reset') && inv.refetchType !== undefined) {
+      return `a ${inv.action} invalidation with a refetchType, which only a refresh takes`;
+    }
   }
   return null;
 }
@@ -516,12 +523,6 @@ export const domainEventRegistryGuard: GenericGuardDefinition<DomainEventRegistr
       ...loaderProblems(facts?.eventSchema, 'eventSchema'),
       ...identifierListProblems(facts?.notifiers, 'notifiers', { allowEmpty: false }),
     ];
-    if (!Array.isArray(facts?.noProducerYet)) problems.push('noProducerYet is missing (an app with none declares [])');
-    else
-      facts.noProducerYet.forEach((e, i) => {
-        if (typeof e?.event !== 'string' || !e.event) problems.push(`noProducerYet[${i}] names no event`);
-        else if (typeof e.why !== 'string' || !e.why.trim()) problems.push(`noProducerYet entry ${e.event} carries no why`);
-      });
     return problems;
   },
   build: (facts) => [
@@ -530,7 +531,7 @@ export const domainEventRegistryGuard: GenericGuardDefinition<DomainEventRegistr
       description:
         `Every event type the registry in ${facts.registry.path} handles is emitted somewhere in the app's own code (its quoted type ` +
         "outside the registry, in the client or functions tree); the core's schema holds every variant by construction, so it is no " +
-        'evidence. Restore the producer, or list the event with its why until its producer lands.',
+        'evidence. Restore the producer, or delete the event from the core and the registry.',
       async run(context) {
         const registry = (await facts.registry.load()) ?? {};
         const findings: Finding[] = [];
@@ -540,12 +541,7 @@ export const domainEventRegistryGuard: GenericGuardDefinition<DomainEventRegistr
           .map((f) => f.code)
           .join('\n');
         const produced = (type: string) => haystack.includes(`'${type}'`) || haystack.includes(`"${type}"`);
-        const waiting = new Map(facts.noProducerYet.map((e) => [e.event, e]));
-        for (const type of Object.keys(registry)) if (!produced(type) && !waiting.has(type)) findings.push({ file: facts.registry.path, detail: `${type}: no producer in the app` });
-        for (const [type] of waiting) {
-          if (!(type in registry)) findings.push({ file: '(noProducerYet)', detail: `stale entry: ${type} is no longer registered` });
-          else if (produced(type)) findings.push({ file: '(noProducerYet)', detail: `stale entry: ${type} has a producer now` });
-        }
+        for (const type of Object.keys(registry)) if (!produced(type)) findings.push({ file: facts.registry.path, detail: `${type}: no producer in the app` });
         return findings;
       },
     },

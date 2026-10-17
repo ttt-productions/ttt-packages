@@ -22,6 +22,20 @@ const f = fixture({
     'const schema: z.ZodType = InputSchema;',
     'type Input = z.infer<typeof InputSchema>;',
     '// z.object({}) in prose',
+    'const pretty = z.prettifyError(err);',
+    'const tree = z.treeifyError(err);',
+    'const flat = z.flattenError(err);',
+    'const parsed = z.safeParse(InputSchema, data);',
+    'throw new z.ZodError([]);',
+  ].join('\n'),
+  'functions/src/callables/named.ts': [
+    "import { object, string as text, prettifyError, ZodError } from 'zod';",
+    "import * as zod from 'zod/v4';",
+    "import type { infer as Infer } from 'zod';",
+    'const Input = object({ id: text() });',
+    'const Name = zod.number();',
+    'const message = err instanceof ZodError ? prettifyError(err) : null;',
+    'const unrelated = record(1);',
   ].join('\n'),
   'functions/src/callables/build.test.ts': 'const Fixture = z.object({});',
   'src/forms/local.ts': "const FormSchema = z.object({ draft: z.string() });\n// Declared here to avoid a core publish.",
@@ -31,13 +45,16 @@ const f = fixture({
 afterAll(() => f.repo.remove());
 
 describe('backend zod schemas', () => {
-  it('FLAGS every schema a backend module builds or constructs, and leaves zod types, error checks, prose, tests, and the client root alone', async () => {
+  it('FLAGS every schema a backend module builds or constructs — on z, on any zod namespace, or through a named import — and leaves zod types, error checks and formatters, parses, prose, tests, and the client root alone', async () => {
     expect(lines(await f.run(zodBuilds))).toEqual([
       'functions/src/callables/build.ts:2 — builds a zod schema: z.object(…)',
       'functions/src/callables/build.ts:2 — builds a zod schema: z.string(…)',
       'functions/src/callables/build.ts:3 — builds a zod schema: z.string(…)',
       'functions/src/callables/build.ts:4 — builds a zod schema: z.enum(…)',
       'functions/src/callables/build.ts:5 — constructs a zod schema: new z.ZodObject(…)',
+      'functions/src/callables/named.ts:4 — builds a zod schema: object(…)',
+      'functions/src/callables/named.ts:4 — builds a zod schema: text(…)',
+      'functions/src/callables/named.ts:5 — builds a zod schema: zod.number(…)',
     ]);
   });
 });

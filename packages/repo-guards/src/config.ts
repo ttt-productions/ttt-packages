@@ -4,7 +4,7 @@
 
 import type { Guard } from './guard.js';
 import { layoutProblems } from './reader/reader.js';
-import type { RepoLayout } from './reader/layout.js';
+import { declaredRoots, type RepoLayout, type RootRole } from './reader/layout.js';
 
 /** An app's statement that a generic guard does not apply to it, and why. */
 export interface Absent {
@@ -17,6 +17,11 @@ export interface GenericGuardDefinition<Facts> {
   id: string;
   /** When an app may declare the guard absent (a feature it does not have), or false when never. */
   absentWhen: string | false;
+  /**
+   * The root whose tree the guard checks, when the absence it allows is that tree's: such a guard may
+   * be declared absent only when the layout declares no root of this role.
+   */
+  absentOnlyWithoutRoot?: RootRole;
   factProblems(facts: Facts): string[];
   build(facts: Facts): Guard[];
 }
@@ -44,6 +49,9 @@ export function configProblems(
     if (isAbsent(value)) {
       if (!definition.absentWhen) problems.push(`generic.${definition.id} cannot be declared absent: every app runs it`);
       else if (!value.absent.trim()) problems.push(`generic.${definition.id} is declared absent with no why`);
+      else if (definition.absentOnlyWithoutRoot && config.layout?.roots && declaredRoots(config.layout).some((r) => r.role === definition.absentOnlyWithoutRoot)) {
+        problems.push(`generic.${definition.id} is declared absent, but the layout declares a ${definition.absentOnlyWithoutRoot} root for it to check`);
+      }
       continue;
     }
     for (const problem of definition.factProblems(value as never)) problems.push(`generic.${definition.id}: ${problem}`);

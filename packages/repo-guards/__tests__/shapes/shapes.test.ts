@@ -4,6 +4,7 @@ import { createRepoReader, type Scope } from '../../src/reader/reader.js';
 import type { RepoLayout } from '../../src/reader/layout.js';
 import { declaredLiteral, matchPattern, ownerOnly, reviewedAllowlist, sampleHits } from '../../src/shapes/shapes.js';
 import { checkSamples } from '../../src/suite/run.js';
+import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 
 let repo: TempRepo;
@@ -26,8 +27,7 @@ afterAll(() => repo.remove());
 
 const SCOPE: Scope = { roots: ['app'], kinds: ['code'], tests: false };
 const context = (): GuardContext => {
-  const reader = createRepoReader(layout);
-  return { reader, files: (s) => reader.files(s), file: (p) => reader.file(p) };
+  return contextOf(createRepoReader(layout));
 };
 const readConfig = matchPattern(/\breadConfig\(/);
 const samples = { flags: ["readConfig('app')"], passes: ['// readConfig( in a comment'] };

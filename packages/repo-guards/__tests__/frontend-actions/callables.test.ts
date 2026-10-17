@@ -1,9 +1,11 @@
-// The callable guards: one copy owner, one transport owner, reads that live in hooks and keep
-// neither the wrapper toast nor its capture, one surface per rejection, and no rendered error internals.
+// The callable guards: one copy owner, one transport owner, callable names written only in their
+// declarations, reads that live in hooks and go through readers, one surface per rejection, and no
+// rendered error internals.
 
 import { describe, expect, it } from 'vitest';
 import {
   callableErrorCopyGuard,
+  callableNameGuard,
   callableReadGuard,
   callableTransportGuard,
   doubleSurfaceGuard,
@@ -11,6 +13,7 @@ import {
   type CallableReadFacts,
   type DoubleSurfaceFacts,
 } from '../../src/modules/frontend-actions/callables.js';
+import type { CallableDeclarationFacts } from '../../src/modules/frontend-actions/declarations.js';
 import { findingsOf, samplesProve } from './run.js';
 
 const lines = (...l: string[]) => l.join('\n');
@@ -107,6 +110,19 @@ describe('callable transport through its owner', () => {
     ]);
   });
 
+  it('flags a member call of a transport symbol, and reports a namespace reach once', async () => {
+    const files = {
+      ...base,
+      'src/f.ts': lines("const call = sdk.httpsCallable(functions, 'go');", 'const fns2 = loadSdk().getFunctions(app);'),
+      'src/g.ts': lines("import * as fns from 'firebase/functions';", 'const f = fns.getFunctions(app);'),
+    };
+    expect(await findingsOf(callableTransportGuard, facts, files)).toEqual([
+      'src/f.ts:1 outside its owner src/lib/fb.ts: calls httpsCallable(',
+      'src/f.ts:2 outside its owner src/lib/fb.ts: calls getFunctions(',
+      'src/g.ts:2 outside its owner src/lib/fb.ts: reaches fns.getFunctions',
+    ]);
+  });
+
   it('flags an owner that no longer names its transport, and one that is gone', async () => {
     const { ['src/lib/policy.ts']: _gone, ...rest } = base;
     expect(await findingsOf(callableTransportGuard, facts, { ...rest, 'src/lib/fb.ts': 'export {};' })).toEqual([
@@ -125,66 +141,127 @@ describe('callable transport through its owner', () => {
 });
 
 // ---------------------------------------------------------------------------------------------
+// The declarations every callable guard below reads: one module, one factory per kind.
+
+const declarations: CallableDeclarationFacts = {
+  modules: ['src/lib/remote.ts'],
+  factories: { action: 'defineAction', reader: 'defineReader', invoker: 'defineInvoker', resumable: 'defineResumable' },
+};
+const DECLARATIONS = lines(
+  'const { defineAction, defineReader, defineInvoker, defineResumable } = makeRemote(POLICY);',
+  'export const useGetThing = defineReader<In, Out>("getThing");',
+  'export const useSaveThing =',
+  '  defineAction<In, Out>("saveThing", { limitedUseAppCheck: true });',
+  "export const useArchiveThing = defineInvoker<In, Out>('archiveThing');",
+  'export const usePurgeThings = defineResumable<In, Out>("purgeThings", mergePages);',
+);
+
+describe("a callable's name is written only in its declaration", () => {
+  const facts = { declarations, allowlist: [{ path: 'src/lib/labels.ts', why: 'an audit label that shares the word' }] };
+  const base = {
+    'src/lib/remote.ts': DECLARATIONS,
+    'src/lib/labels.ts': "export const AUDIT = { saveThing: 'saveThing' };",
+    'src/components/card.tsx': "const save = useSaveThing();\nconst label = 'save thing';\nconst key = ['things', id];",
+  };
+  const run = (files: Record<string, string>, f = facts) => findingsOf(callableNameGuard, f, { ...base, ...files });
+
+  it('passes the declarations module, a reviewed file, and strings that are no callable name', async () => {
+    expect(await run({})).toEqual([]);
+  });
+
+  it('flags a callable name written outside its declaration, in a quote, a template, or a property key', async () => {
+    expect(
+      await run({
+        'src/components/raw.tsx': lines("send('getThing', {});", 'const n = `purgeThings`;', "const map = { 'archiveThing': 1 };"),
+      }),
+    ).toEqual([
+      'src/components/raw.tsx:1 names the callable getThing: call its declared hook useGetThing',
+      'src/components/raw.tsx:2 names the callable purgeThings: call its declared hook usePurgeThings',
+      'src/components/raw.tsx:3 names the callable archiveThing: call its declared hook useArchiveThing',
+    ]);
+  });
+
+  it('flags a reviewed file that no longer holds a callable name', async () => {
+    expect(await run({ 'src/lib/labels.ts': 'export const AUDIT = {};' })).toEqual([
+      'src/lib/labels.ts stale entry: the file no longer holds a callable name (or is gone)',
+    ]);
+  });
+
+  it('flags every declaration it cannot read: not an exported hook, built by another function, named through an expression, unreadable options, declared twice', async () => {
+    const module = lines(
+      DECLARATIONS,
+      'const useHidden = defineAction("hiddenThing");',
+      'export const useOther = makeOther("otherThing");',
+      'export const useByConstant = defineAction(THING_NAME);',
+      'export const useOpaque = defineReader("opaqueThing", OPTIONS);',
+      'export const useSaveAgain = defineAction("saveThing");',
+    );
+    expect(await run({ 'src/lib/remote.ts': module })).toEqual([
+      'src/lib/remote.ts:7 a defineAction call that is not an exported named hook (`export const useX = defineAction(…)`)',
+      'src/lib/remote.ts:8 useOther is built by none of the declared factories (defineAction, defineReader, defineInvoker, defineResumable)',
+      'src/lib/remote.ts:9 useByConstant names its callable through an expression this check cannot read: write the name as a string literal',
+      "src/lib/remote.ts:10 useOpaque's declaration options are not an object literal, so its App Check posture cannot be read",
+      'src/lib/remote.ts:11 useSaveAgain declares saveThing a second time (first as useSaveThing)',
+    ]);
+  });
+
+  it('flags a declarations module that is gone or declares nothing', async () => {
+    expect(await run({ 'src/lib/remote.ts': 'export const nothing = 1;', 'src/lib/labels.ts': 'export {};' }, { declarations, allowlist: [] })).toEqual([
+      'src/lib/remote.ts stale declarations module: it declares no callable',
+    ]);
+    expect(await findingsOf(callableNameGuard, { declarations, allowlist: [] }, {})).toEqual(['src/lib/remote.ts the callable declarations module no longer exists']);
+  });
+
+  it('refuses no modules, a kind with no factory, one factory for two kinds, and an entry with no why', () => {
+    expect(
+      callableNameGuard.factProblems({
+        declarations: { modules: [], factories: { action: 'a', reader: 'a', invoker: 'i', resumable: '' } },
+        allowlist: [{ path: 'x.ts', why: ' ' }],
+      }),
+    ).toEqual([
+      'declarations.modules is empty',
+      'declarations.factories.resumable is missing',
+      'declarations.factories names one factory for two kinds',
+      'allowlist entry x.ts carries no why',
+    ]);
+    expect(callableNameGuard.factProblems({ allowlist: [] } as never)).toEqual(['declarations is missing']);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
 describe('callable-backed reads', () => {
   const facts: CallableReadFacts = {
+    declarations,
     hooksRoot: 'src/hooks',
-    wrappers: [{ hook: 'useFunctions', invokeMember: 'callFunction', toastOption: 'showErrorToast', captureOption: 'captureErrors' }],
-    factoryModules: [
-      {
-        module: 'src/lib/callables.ts',
-        factories: [
-          { name: 'createReader', kind: 'reader' },
-          { name: 'createHook', kind: 'mutation' },
-          { name: 'createInvoker', kind: 'invoker' },
-        ],
-      },
-    ],
     readFailureSurface: { component: 'LoadErrorState', errorProp: 'error' },
     anchorReads: ['useAnchorRead'],
   };
   const base = {
-    'src/lib/callables.ts': lines(
-      'export const useGetThing = createReader<In, Out>("getThing");',
-      'export const useSaveThing =',
-      '  createHook<In, Out>("saveThing");',
-      'export const useArchiveThing = createInvoker<In, Out>("archiveThing");',
-    ),
+    'src/lib/remote.ts': DECLARATIONS,
     'src/hooks/use-anchor.ts': lines(
       'export function useAnchorRead(id: string) {',
-      '  const { callFunction } = useFunctions({ showErrorToast: false, captureErrors: false });',
-      "  return useQuery({ queryKey: k(id), queryFn: () => callFunction('getAnchor', { id }) });",
+      '  const getThing = useGetThing();',
+      '  return useQuery({ queryKey: k(id), queryFn: () => getThing({ id }) });',
       '}',
     ),
   };
   const hook = (body: string) => findingsOf(callableReadGuard, facts, { ...base, 'src/hooks/use-thing.ts': body });
 
-  it('passes opted-out reads, a reader read, a mutation, and a Firestore read beside a mutation-only callable', async () => {
+  it('passes a reader read, a reader through a block-local helper, an action in a mutation, and a store read beside an action', async () => {
     const files = {
       ...base,
-      'src/hooks/use-const.ts': lines(
-        'const READ = { showErrorToast: false, captureErrors: false } as const;',
-        'export function useConst() {',
-        '  const { callFunction } = useFunctions(READ);',
-        "  return useQuery({ queryKey: k(), queryFn: () => callFunction('x', {}) });",
-        '}',
-      ),
-      'src/hooks/use-reader.ts': lines(
-        'export function useReaderRead(id: string) {',
+      'src/hooks/use-helper.ts': lines(
+        'export function useHelperRead(id: string) {',
         '  const readThing = useGetThing();',
         '  const load = async () => (await readThing({ id })).items;',
-        '  return useQuery({ queryKey: k(id), queryFn: load });',
+        '  return useInfiniteQuery<Page, Error, Page, ReturnType<typeof keys.list>, Cursor | null>({ queryKey: k(id), queryFn: load });',
         '}',
       ),
       'src/hooks/use-write.ts': lines(
-        'export function useDoThing() {',
-        '  const { callFunction } = useFunctions();',
-        "  return useMutation({ mutationFn: (v: V) => callFunction('doThing', v) });",
-        '}',
         'export function useManager(id: string) {',
-        '  const { callFunction } = useFunctions();',
+        '  const save = useSaveThing();',
         "  const read = useQuery({ queryKey: k(id), queryFn: () => getDoc(doc(db, 'things', id)) });",
-        "  const write = useMutation({ mutationFn: () => callFunction('save', { id }) });",
-        '  return { read, write };',
+        '  return { read, save };',
         '}',
       ),
       'src/components/view.tsx': lines(
@@ -204,89 +281,47 @@ describe('callable-backed reads', () => {
     expect(await findingsOf(callableReadGuard, facts, files)).toEqual([]);
   });
 
-  it('flags a bare wrapper read: it keeps the toast and the capture', async () => {
-    expect(
-      await hook(lines('export function useThing(id: string) {', '  const { callFunction } = useFunctions();', "  return useQuery<Thing[], Error>({ queryKey: k(id), queryFn: () => callFunction('get', { id }) });", '}')),
-    ).toEqual(['src/hooks/use-thing.ts:3 useThing (callFunction) keeps the wrapper toast', 'src/hooks/use-thing.ts:3 useThing (callFunction) keeps the wrapper capture']);
-  });
-
-  it('flags a toast-only opt-out: the capture is still doubled', async () => {
-    expect(
-      await hook(lines('export function useThing() {', '  const { callFunction } = useFunctions({ showErrorToast: false });', "  return useQuery({ queryKey: k(), queryFn: () => callFunction('get', {}) });", '}')),
-    ).toEqual(['src/hooks/use-thing.ts:3 useThing (callFunction) keeps the wrapper capture']);
-  });
-
-  it('flags options it cannot see, and a same-file constant that keeps the defaults', async () => {
-    expect(
-      await hook(lines('export function useThing() {', '  const { callFunction } = useFunctions(importedOptions);', "  return useQuery({ queryKey: k(), queryFn: () => callFunction('get', {}) });", '}')),
-    ).toEqual(['src/hooks/use-thing.ts:3 useThing (callFunction) passes wrapper options that are not statically visible']);
-    expect(
-      await hook(
-        lines('const OPTS = { limitedUseAppCheck: true } as const;', 'export function useThing() {', '  const { callFunction } = useFunctions(OPTS);', "  return useQuery({ queryKey: k(), queryFn: () => callFunction('get', {}) });", '}'),
-      ),
-    ).toEqual(['src/hooks/use-thing.ts:4 useThing (callFunction) keeps the wrapper toast', 'src/hooks/use-thing.ts:4 useThing (callFunction) keeps the wrapper capture']);
-  });
-
-  it('flags an aliased binding, a whole-result binding, a block-local helper, and an infinite read with nested generics', async () => {
-    expect(
-      await hook(lines('export function useThing() {', '  const { callFunction: callAdmin } = useFunctions({ showErrorToast: false });', "  return useQuery({ queryKey: k(), queryFn: () => callAdmin('get', {}) });", '}')),
-    ).toEqual(['src/hooks/use-thing.ts:3 useThing (callAdmin) keeps the wrapper capture']);
-    expect(
-      await hook(lines('export function useThing() {', '  const fns = useFunctions({ captureErrors: false });', "  return useQuery({ queryKey: k(), queryFn: () => fns.callFunction('get', {}) });", '}')),
-    ).toEqual(['src/hooks/use-thing.ts:3 useThing (fns.callFunction) keeps the wrapper toast']);
-    expect(
-      await hook(
-        lines(
-          'export function useThing(id: string) {',
-          '  const { callFunction } = useFunctions();',
-          '  const load = async () => {',
-          "    const res = await callFunction('get', { id });",
-          '    return res.items;',
-          '  };',
-          '  return useQuery({ queryKey: k(id), queryFn: load });',
-          '}',
-        ),
-      ),
-    ).toHaveLength(2);
-    expect(
-      await hook(
-        lines(
-          'export function useThing(size = 100) {',
-          '  const { callFunction } = useFunctions({ limitedUseAppCheck: true });',
-          '  return useInfiniteQuery<Page, Error, Page, ReturnType<typeof keys.list>, Cursor | null>({',
-          "    queryKey: keys.list(size), queryFn: ({ pageParam }) => callFunction<R, Page>('list', { pageParam }),",
-          '    initialPageParam: null, getNextPageParam: (last): Cursor | null => last.next,',
-          '  });',
-          '}',
-        ),
-      ),
-    ).toEqual(['src/hooks/use-thing.ts:3 useThing (callFunction) keeps the wrapper toast', 'src/hooks/use-thing.ts:3 useThing (callFunction) keeps the wrapper capture']);
-  });
-
-  it('flags a read through a mutation hook, a destructured mutation call, and an invoker', async () => {
+  it('flags a read through an action, whole or destructured, even with its toast turned off', async () => {
     expect(
       await hook(lines('export function useThing(id: string) {', '  const save = useSaveThing({ showErrorToast: false });', '  return useQuery({ queryKey: k(id), queryFn: () => save.mutateAsync({ id }) });', '}')),
-    ).toEqual(['src/hooks/use-thing.ts:3 useThing (save.mutateAsync) keeps the wrapper toast', 'src/hooks/use-thing.ts:3 useThing (save.mutateAsync) keeps the wrapper capture']);
+    ).toEqual(['src/hooks/use-thing.ts:3 useThing (save) reads through useSaveThing, a declared action: declare the callable as a reader']);
     expect(
       await hook(lines('export function useThing() {', '  const { mutateAsync: fetchThing } = useSaveThing();', '  return useQuery({ queryKey: k(), queryFn: () => fetchThing({}) });', '}')),
-    ).toEqual(['src/hooks/use-thing.ts:3 useThing (fetchThing) keeps the wrapper toast', 'src/hooks/use-thing.ts:3 useThing (fetchThing) keeps the wrapper capture']);
+    ).toEqual(['src/hooks/use-thing.ts:3 useThing (fetchThing) reads through useSaveThing, a declared action: declare the callable as a reader']);
+  });
+
+  it('flags a read through an invoker and through a resumable action, directly and through a helper', async () => {
     expect(
       await hook(lines('export function useThing() {', '  const archive = useArchiveThing();', '  return useQuery({ queryKey: k(), queryFn: () => archive({}) });', '}')),
-    ).toEqual(['src/hooks/use-thing.ts:3 useThing (archive) keeps the wrapper toast', 'src/hooks/use-thing.ts:3 useThing (archive) keeps the wrapper capture']);
+    ).toEqual(['src/hooks/use-thing.ts:3 useThing (archive) reads through useArchiveThing, a declared invoker: declare the callable as a reader']);
+    expect(
+      await hook(
+        lines(
+          'export function useThing() {',
+          '  const purge = usePurgeThings();',
+          '  const load = async () => {',
+          '    const res = await purge.mutateAsync({});',
+          '    return res.removed;',
+          '  };',
+          '  return useQuery({ queryKey: k(), queryFn: load });',
+          '}',
+        ),
+      ),
+    ).toEqual(['src/hooks/use-thing.ts:7 useThing (purge) reads through usePurgeThings, a declared resumable: declare the callable as a reader']);
   });
 
   it('flags a callable read in a component or a page, even through a reader', async () => {
     const component = lines(
       'const Redirector = () => {',
-      '  const { callFunction } = useFunctions({ showErrorToast: false, captureErrors: false });',
-      "  const { data } = useQuery<string, Error>({ queryKey: k(), queryFn: () => callFunction('track', {}) });",
+      '  const track = useGetThing();',
+      "  const { data } = useQuery<string, Error>({ queryKey: k(), queryFn: () => track({}) });",
       '  return null;',
       '};',
     );
     const page = lines('export default function Page() {', '  const read = useGetThing();', '  const q = useQuery({ queryKey: k(), queryFn: () => read({}) });', '  return null;', '}');
     expect(await findingsOf(callableReadGuard, facts, { ...base, 'src/components/redirector.tsx': component, 'src/app/page.tsx': page })).toEqual([
       'src/app/page.tsx:3 Page (read) is a callable read outside src/hooks',
-      'src/components/redirector.tsx:3 (module scope) (callFunction) is a callable read outside src/hooks',
+      'src/components/redirector.tsx:3 (module scope) (track) is a callable read outside src/hooks',
     ]);
   });
 
@@ -303,150 +338,136 @@ describe('callable-backed reads', () => {
     ]);
   });
 
-  it('flags an anchor read the detector no longer finds, a factory that builds nothing, and a missing factory module', async () => {
-    const files = { ...base, 'src/hooks/use-anchor.ts': 'export function useAnchorRead() { return null; }', 'src/lib/callables.ts': 'export const useGetThing = createReader("x");' };
-    expect(await findingsOf(callableReadGuard, facts, files)).toEqual([
-      'src/lib/callables.ts stale factory: createHook builds no exported hook',
-      'src/lib/callables.ts stale factory: createInvoker builds no exported hook',
+  it('flags an anchor read the detector no longer finds, and declarations it cannot read', async () => {
+    expect(await findingsOf(callableReadGuard, facts, { ...base, 'src/hooks/use-anchor.ts': 'export function useAnchorRead() { return null; }' })).toEqual([
       '(anchorReads) no callable-backed read found in useAnchorRead — the detector no longer recognizes it, or the anchor is stale',
     ]);
-    const { ['src/lib/callables.ts']: _gone, ...noModule } = base;
-    expect(await findingsOf(callableReadGuard, facts, noModule)).toEqual(['src/lib/callables.ts the callable factory module no longer exists']);
+    const { ['src/lib/remote.ts']: _gone, ...noModule } = base;
+    expect(await findingsOf(callableReadGuard, facts, noModule)).toEqual([
+      'src/lib/remote.ts the callable declarations module no longer exists',
+      '(anchorReads) no callable-backed read found in useAnchorRead — the detector no longer recognizes it, or the anchor is stale',
+    ]);
   });
 
-  it('refuses an app with no way to reach a callable, a factory with no kind, and a missing surface or anchor', () => {
+  it('refuses missing declarations, a missing surface prop, and no anchors', () => {
     expect(
-      callableReadGuard.factProblems({ ...facts, wrappers: [], factoryModules: [], readFailureSurface: { component: 'L', errorProp: '' }, anchorReads: [] }),
-    ).toEqual(['the app declares no way to reach a callable (no wrapper and no factory module)', 'readFailureSurface.errorProp is missing', 'anchorReads is empty']);
-    expect(
-      callableReadGuard.factProblems({ ...facts, factoryModules: [{ module: 'm.ts', factories: [{ name: 'f', kind: 'other' as never }] }] }),
-    ).toEqual(['factory f has no kind (reader, mutation, or invoker)']);
-    expect(callableReadGuard.factProblems({ ...facts, wrappers: [{ hook: 'useF', invokeMember: '', toastOption: 't', captureOption: 'c' }] })).toEqual([
-      'wrappers[0].invokeMember is missing',
-    ]);
+      callableReadGuard.factProblems({ ...facts, declarations: undefined as never, readFailureSurface: { component: 'L', errorProp: '' }, anchorReads: [] }),
+    ).toEqual(['declarations is missing', 'readFailureSurface.errorProp is missing', 'anchorReads is empty']);
   });
 });
 
 // ---------------------------------------------------------------------------------------------
 describe('one surface per callable rejection', () => {
   const facts: DoubleSurfaceFacts = {
-    wrapper: { hook: 'useFunctions', invokeMember: 'callFunction', toastOption: 'showErrorToast', answerOption: 'isAnswerSurfacedByCaller' },
+    declarations,
     toastCall: 'toast',
-    destructiveVariants: ['destructive', 'error'],
     nonCallableLegGuards: ['isCallableRejection'],
     appImportPrefixes: ['@/'],
-    anchorHooks: ['useThing'],
   };
   const base = {
-    'src/hooks/use-thing.ts': lines(
-      'export function useThing() {',
-      '  const { callFunction } = useFunctions();',
-      "  return useMutation({ mutationFn: (v: V) => callFunction('doThing', v) });",
+    'src/lib/remote.ts': DECLARATIONS,
+    'src/hooks/use-flow.ts': lines(
+      "import { useSaveThing } from '@/lib/remote';",
+      'export function useSaveFlow() {',
+      '  const save = useSaveThing();',
+      '  return save;',
       '}',
-      'export function useQuiet() {',
-      '  const { callFunction } = useFunctions({ showErrorToast: false });',
-      "  return useMutation({ mutationFn: (v: V) => callFunction('quiet', v) });",
+      'export function useQuietFlow() {',
+      '  const save = useSaveThing({ showErrorToast: false });',
+      '  return save;',
       '}',
     ),
   };
   const view = (body: string) => findingsOf(doubleSurfaceGuard, facts, { ...base, 'src/components/card.tsx': body });
 
-  it('passes a wrapper-owned surface, a gated local toast, a success toast, an unrelated toast, and an opted-out hook', async () => {
+  it('passes the shared toast alone, a toast-off call site that owns the surface, gated local toasts, a success toast, and a reader', async () => {
     const card = lines(
-      "import { useThing, useQuiet } from '@/hooks/use-thing';",
+      "import { useQuietFlow } from '@/hooks/use-flow';",
       'function Card() {',
-      '  const thing = useThing();',
-      '  const quiet = useQuiet();',
+      '  const save = useSaveThing();',
+      '  const quiet = useSaveThing({ showErrorToast: false, onError: () => toast({ title: "Not saved" }) });',
+      '  const flow = useQuietFlow();',
+      '  const busy = useSaveThing({ isAnswerSurfacedByCaller: isBusy });',
+      '  const read = useGetThing();',
       '  const run = async () => {',
-      '    try { await thing.mutateAsync({ id: 1 }); } catch { } finally { setBusy(false); }',
+      '    try { await save.mutateAsync({ id: 1 }); } catch { } finally { setBusy(false); }',
+      "    try { await busy.mutateAsync({}); } catch (e) { if (isBusy(e)) toast({ title: 'Busy' }); }",
+      "    try { await read({}); } catch { toast({ title: 'Could not load' }); }",
       '  };',
       '  const copy = () => { try { navigator.clipboard.writeText("x"); } catch { toast({ title: "Copy failed" }); } };',
-      "  quiet.mutate({}, { onError: () => toast({ title: 'Failed', variant: 'destructive' }) });",
-      '  thing.mutate({}, { onSuccess: () => toast({ title: "Saved" }), onError: (e) => { if (!isCallableRejection(e)) toast({ title: "Offline" }); } });',
+      "  flow.mutate({}, { onError: () => toast({ title: 'Failed' }) });",
+      '  save.mutate({}, { onSuccess: () => toast({ title: "Saved" }), onError: (e) => { if (!isCallableRejection(e)) toast({ title: "Offline" }); } });',
       '}',
     );
     expect(await view(card)).toEqual([]);
   });
 
-  it('flags a hook that keeps the wrapper toast and toasts again in its onError', async () => {
-    const hooks = lines(
-      'export function useThing() {',
-      '  const { callFunction } = useFunctions({ limitedUseAppCheck: true });',
-      '  return useMutation({',
-      "    mutationFn: () => callFunction('x', {}),",
-      "    onError: () => toast({ title: 'Failed', variant: 'destructive' }),",
-      '  });',
-      '}',
-    );
-    expect(await findingsOf(doubleSurfaceGuard, facts, { 'src/hooks/use-thing.ts': hooks })).toEqual([
-      'src/hooks/use-thing.ts:5 useThing keeps the wrapper toast and toasts the failure again in onError',
+  it('flags a toast in the onError handed to a declared hook while its toast is on', async () => {
+    expect(await view(lines('function Card() {', "  const save = useSaveThing({ onError: () => toast({ title: 'Failed' }) });", '}'))).toEqual([
+      'src/components/card.tsx:2 save (useSaveThing, src/lib/remote.ts) toasts again in the onError it hands the hook',
     ]);
   });
 
-  it("flags a catch toast beside a toasting wrapper, unless it is gated on the wrapper's caller-answer predicate", async () => {
-    const hooks = lines(
-      'export function useThing() {',
-      '  const { callFunction } = useFunctions({ isAnswerSurfacedByCaller: isBusy });',
-      '  const go = async () => {',
-      "    try { await callFunction('x', {}); } catch (e) { if (isBusy(e)) toast({ title: 'Busy' }); }",
-      "    try { await callFunction('y', {}); } catch { toast({ title: 'No tasks' }); }",
-      '  };',
-      '  return go;',
-      '}',
-    );
-    expect(await findingsOf(doubleSurfaceGuard, facts, { 'src/hooks/use-thing.ts': hooks })).toEqual([
-      'src/hooks/use-thing.ts:5 useThing keeps the wrapper toast and toasts the failure again in a catch',
-    ]);
-  });
-
-  it('flags a call site that toasts again in onError, in a catch, and through a destructured mutate', async () => {
+  it('flags a toast in a mutate onError, a destructured mutate onError, and a catch around mutateAsync', async () => {
     expect(
       await view(
         lines(
-          "import { useThing } from '@/hooks/use-thing';",
           'function Card() {',
-          '  const refetch = useThing();',
-          "  return <B onClick={() => refetch.mutate({}, { onError: () => toast({ title: 'Failed', variant: 'destructive' }) })} />;",
-          '}',
-        ),
-      ),
-    ).toEqual(['src/components/card.tsx:4 refetch (useThing, src/hooks/use-thing.ts) toasts again in its onError']);
-    expect(
-      await view(
-        lines(
-          "import { useThing } from '../hooks/use-thing';",
-          'function Card() {',
-          '  const thing = useThing();',
-          '  const run = async () => {',
-          "    try { await thing.mutateAsync({}); } catch { toast({ title: 'Checkout failed' }); }",
+          '  const save = useSaveThing();',
+          '  const { mutate: purge } = usePurgeThings();',
+          "  const a = () => save.mutate({}, { onError: () => toast({ title: 'Failed' }) });",
+          "  const b = () => purge({}, { onError: () => toast({ title: 'Failed' }) });",
+          '  const c = async () => {',
+          "    try { await save.mutateAsync({}); } catch { toast({ title: 'Checkout failed' }); }",
           '  };',
           '}',
         ),
       ),
-    ).toEqual(['src/components/card.tsx:5 thing (useThing, src/hooks/use-thing.ts) toasts again in a catch']);
-    expect(
-      await view(
-        lines(
-          "import { useThing } from '@/hooks/use-thing';",
-          'function Card() {',
-          '  const { mutate: doThing } = useThing();',
-          "  return <B onClick={() => doThing({}, { onError: () => toast({ title: 'Failed' }) })} />;",
-          '}',
-        ),
-      ),
-    ).toEqual(['src/components/card.tsx:4 doThing (useThing, src/hooks/use-thing.ts) toasts again in its onError']);
-  });
-
-  it('flags an anchor hook the pairing no longer sees keeping the wrapper toast', async () => {
-    expect(await findingsOf(doubleSurfaceGuard, { ...facts, anchorHooks: ['useQuiet'] }, base)).toEqual([
-      '(anchorHooks) useQuiet is not found keeping the wrapper toast — the pairing no longer sees it, or the anchor is stale',
+    ).toEqual([
+      'src/components/card.tsx:4 save (useSaveThing, src/lib/remote.ts) toasts again in its onError',
+      'src/components/card.tsx:7 save (useSaveThing, src/lib/remote.ts) toasts again in a catch',
+      'src/components/card.tsx:5 purge (usePurgeThings, src/lib/remote.ts) toasts again in its onError',
     ]);
   });
 
-  it('refuses a wrapper with no answer option and no anchors', () => {
-    expect(doubleSurfaceGuard.factProblems({ ...facts, wrapper: { ...facts.wrapper, answerOption: '' }, anchorHooks: [] })).toEqual([
-      'wrapper.answerOption is missing',
-      'anchorHooks is empty',
+  it('flags an invoker driven by a mutation that toasts its failure again', async () => {
+    const hooks = lines(
+      'export function useArchiveFlow() {',
+      '  const archive = useArchiveThing();',
+      "  return useMutation({ mutationFn: (v: V) => archive(v), onError: () => toast({ title: 'Failed', variant: 'destructive' }) });",
+      '}',
+    );
+    expect(await findingsOf(doubleSurfaceGuard, facts, { ...base, 'src/hooks/use-archive.ts': hooks })).toEqual([
+      'src/hooks/use-archive.ts:3 archive (useArchiveThing, src/lib/remote.ts) toasts again in the onError of the mutation that calls it',
+    ]);
+  });
+
+  it('flags a call site that toasts again through an app hook built over a toasting declared hook', async () => {
+    expect(
+      await view(
+        lines(
+          "import { useSaveFlow } from '@/hooks/use-flow';",
+          'function Card() {',
+          '  const flow = useSaveFlow();',
+          "  return <B onClick={() => flow.mutate({}, { onError: () => toast({ title: 'Failed' }) })} />;",
+          '}',
+        ),
+      ),
+    ).toEqual(['src/components/card.tsx:4 flow (useSaveFlow, src/hooks/use-flow.ts) toasts again in its onError']);
+  });
+
+  it('treats call-site options it cannot see as keeping the toast on', async () => {
+    expect(
+      await view(lines('function Card() {', '  const save = useSaveThing(importedOptions);', "  const a = () => save.mutate({}, { onError: () => toast({ title: 'Failed' }) });", '}')),
+    ).toEqual(['src/components/card.tsx:3 save (useSaveThing, src/lib/remote.ts) toasts again in its onError']);
+  });
+
+  it('flags declarations it cannot read, and refuses missing declarations and no leg guards', async () => {
+    const { ['src/lib/remote.ts']: _gone, ...noModule } = base;
+    expect(await findingsOf(doubleSurfaceGuard, facts, noModule)).toEqual(['src/lib/remote.ts the callable declarations module no longer exists']);
+    expect(doubleSurfaceGuard.factProblems({ ...facts, declarations: undefined as never, nonCallableLegGuards: [] })).toEqual([
+      'declarations is missing',
+      'nonCallableLegGuards is empty',
     ]);
   });
 });

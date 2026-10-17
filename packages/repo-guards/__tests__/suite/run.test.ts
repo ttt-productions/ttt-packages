@@ -7,8 +7,8 @@ import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 let repo: TempRepo;
 let reader: RepoReader;
 beforeAll(() => {
-  repo = tempRepo({ 'src/index.ts': 'export {};' });
-  reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/index.ts' } } });
+  repo = tempRepo({ 'src/index.ts': 'export {};', 'config.json': '{}', 'store.rules': 'service firebase.storage { }' });
+  reader = createRepoReader({ repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/index.ts' } }, rulesFiles: ['store.rules'] });
 });
 afterAll(() => repo.remove());
 
@@ -23,13 +23,41 @@ describe('running one guard', () => {
     await expect(runGuard(clean, reader)).resolves.toBeUndefined();
   });
 
+  it('passes a guard that reads only one named file', async () => {
+    const named = guard((c) => {
+      c.file('config.json');
+      return [];
+    });
+    await expect(runGuard(named, reader)).resolves.toBeUndefined();
+  });
+
   it('MUST FAIL — a guard that read no file checked nothing', async () => {
-    await expect(runGuard(guard(() => []), reader)).rejects.toThrow(/read no file, so it checked nothing/);
-    const emptyScope = guard((c) => {
+    await expect(runGuard(guard(() => []), reader)).rejects.toThrow('a guard: the guard read no file, so it checked nothing');
+  });
+
+  it('MUST FAIL — a scope that reached no file is vacuous, even beside a named file and a scope that reached one', async () => {
+    const emptyBesideOthers = guard((c) => {
+      c.file('config.json');
+      c.files({ roots: ['app'], kinds: ['code'], tests: false });
       c.files({ roots: ['app'], kinds: ['markdown'], tests: false });
       return [];
     });
-    await expect(runGuard(emptyScope, reader)).rejects.toThrow(/read no file/);
+    await expect(runGuard(emptyBesideOthers, reader)).rejects.toThrow(
+      'a guard: its scope reached no file, so it checked nothing there: markdown files under app (tests left out)',
+    );
+  });
+
+  it('MUST FAIL — rules files of a service the layout lists none of are a vacuous scope', async () => {
+    const storage = guard((c) => {
+      c.rulesFiles('storage');
+      return [];
+    });
+    await expect(runGuard(storage, reader)).resolves.toBeUndefined();
+    const firestore = guard((c) => {
+      c.rulesFiles('firestore');
+      return [];
+    });
+    await expect(runGuard(firestore, reader)).rejects.toThrow("its scope reached no file, so it checked nothing there: the layout's firestore rules files");
   });
 
   it('MUST FAIL — a finding fails the run with the description and every place', async () => {

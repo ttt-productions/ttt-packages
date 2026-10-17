@@ -101,7 +101,7 @@ retry, surface, and capture:
   into the earlier ones. It settles on a `ResumableOutcome` — the merged answer plus
   `interruption`: a failure on the first call rejects the request; a failure on a later one settles
   on the merged progress, never `complete`, with that failure as `interruption`, so earlier calls'
-  committed work is never lost.
+  committed work is never lost. A `merge` that throws rejects the request.
 
 The policy (`CallablePolicy`) is everything app-specific; the package names no app copy and
 imports no toast or monitoring module (QUALITY-102):
@@ -110,9 +110,10 @@ imports no toast or monitoring module (QUALITY-102):
 - `resolveLimitedUseAppCheck(requested)` — the effective limited-use mode for a callable declared
   limited-use or not.
 - `captureFault(error, context)` — receives every `callCallable` report (failures and the
-  recovered-fallback report) for a call whose kind owns its capture; `captureRecoveredFallback`
-  receives them instead for a reader or a `captureFaults: false` action, and keeps only the
-  recovered-fallback report. Each failure reaches exactly one of the two, once.
+  recovered-fallback report) for a call whose kind owns its capture. For a reader or a
+  `captureFaults: false` action, `captureRecoveredFallback` receives only the recovered-fallback
+  report — the package filters it out by its own marker — and the failure is captured by neither,
+  since another layer owns it.
 - `onActionError(error, { showErrorToast, answeredRefusals, isAnswerSurfacedByCaller })` — called
   once for every failed call of every kind, with the call site's routing (defaults `true` and
   `[]`), so the app owns which answers have their own surface and which failures toast.

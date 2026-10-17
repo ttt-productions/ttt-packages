@@ -8,7 +8,7 @@ import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 let repo: TempRepo;
 let layout: RepoLayout;
 beforeAll(() => {
-  repo = tempRepo({ 'src/index.ts': 'export {};' });
+  repo = tempRepo({ 'src/index.ts': 'export {};', 'functions/src/index.ts': 'export {};', 'edge/src/index.ts': 'export {};' });
   layout = { repoRoot: repo.root, roots: { app: { path: 'src', anchor: 'src/index.ts' } } };
 });
 afterAll(() => repo.remove());
@@ -54,6 +54,38 @@ describe('a guard config', () => {
       'generic.always: owner is missing',
       'generic.optional is declared absent with no why',
     ]);
+  });
+});
+
+describe('a declared absence of a guard over one tree', () => {
+  /** A stand-in guard over the Functions tree, and one over the Worker trees. */
+  const overFunctions: GenericGuardDefinition<never> = { id: 'overFunctions', absentWhen: 'the app has no Functions tree', absentOnlyWithoutRoot: 'functions', factProblems: () => [], build: () => [] };
+  const overWorkers: GenericGuardDefinition<never> = { id: 'overWorkers', absentWhen: 'the app deploys no Worker', absentOnlyWithoutRoot: 'workers', factProblems: () => [], build: () => [] };
+  const absent = { overFunctions: { absent: 'no Functions tree' }, overWorkers: { absent: 'no Worker' } };
+
+  it('is allowed where the layout declares no root of that tree', () => {
+    expect(configProblems({ layout, generic: absent, business: [] }, [overFunctions, overWorkers])).toEqual([]);
+  });
+
+  it('MUST FAIL — an absence the layout contradicts, with a Functions root or a Worker root declared', () => {
+    const withTrees: RepoLayout = {
+      ...layout,
+      roots: { ...layout.roots, functions: { path: 'functions/src', anchor: 'functions/src/index.ts' }, workers: { edge: { path: 'edge', anchor: 'edge/src/index.ts' } } },
+    };
+    expect(configProblems({ layout: withTrees, generic: absent, business: [] }, [overFunctions, overWorkers])).toEqual([
+      'generic.overFunctions is declared absent, but the layout declares a functions root for it to check',
+      'generic.overWorkers is declared absent, but the layout declares a workers root for it to check',
+    ]);
+  });
+
+  it("binds each of the package's Functions-tree and Worker guards to its tree", () => {
+    const bound = Object.fromEntries(GENERIC_GUARDS.filter((d) => d.absentOnlyWithoutRoot).map((d) => [d.id, d.absentOnlyWithoutRoot]));
+    expect(bound).toEqual({
+      secretBindings: 'functions',
+      testSourceRoot: 'functions',
+      workerBoundedBody: 'workers',
+      workerConfigIsolation: 'workers',
+    });
   });
 });
 

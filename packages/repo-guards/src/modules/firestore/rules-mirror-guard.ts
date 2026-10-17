@@ -19,9 +19,8 @@ import {
 import { closerOf, fieldOf, loneString, operandAfter, operandBefore, tokenize, type Token } from './rules-tokens.js';
 import { requireLoader, requireName } from './support.js';
 
+/** Every Firestore rules file the layout lists is read; the facts name no file of their own. */
 export interface RulesMirrorFacts {
-  /** The repo-relative Firestore rules file. */
-  rulesFile: string;
   /**
    * Every collection the core declares, as its path from the root with a `{variable}` for each
    * parent document and a parent's fixed id written as itself: `users`, `users/{userId}/settings`,
@@ -309,7 +308,6 @@ export const rulesMirrorGuard: GenericGuardDefinition<RulesMirrorFacts> = {
   absentWhen: false,
   factProblems(facts) {
     const problems = [
-      ...requireName(facts?.rulesFile, 'rulesFile'),
       ...requireLoader(facts?.collections, 'collections'),
       ...requireLoader(facts?.collectionGroups, 'collectionGroups'),
       ...requireLoader(facts?.fixedDocuments, 'fixedDocuments'),
@@ -334,7 +332,8 @@ export const rulesMirrorGuard: GenericGuardDefinition<RulesMirrorFacts> = {
       {
         title: 'the Firestore rules mirror the core exactly',
         description:
-          'The Firestore rules cannot import the core, so their copy of it is pinned here. Every collection the core ' +
+          'The Firestore rules cannot import the core, so their copy of it is pinned here. In every Firestore rules ' +
+          'file the layout lists, every collection the core ' +
           'declares has its own explicit match block (top level, or under its declared parent) and every block names ' +
           'a declared collection; no block matches a collection name with a variable, and a recursive wildcard appears ' +
           'only in the top-level deny-all catch-all and in a {path=**}/<group>/{id} block naming a declared collection ' +
@@ -342,7 +341,9 @@ export const rulesMirrorGuard: GenericGuardDefinition<RulesMirrorFacts> = {
           'field to or list for it, is one the core declares; a function that spells a declared list spells it ' +
           'exactly. Fix: change the rules to match the core, or the core and the rules together.',
         async run(context) {
-          return rulesMirrorFindings(context.file(facts.rulesFile), facts);
+          const findings: Finding[] = [];
+          for (const file of context.rulesFiles('firestore')) findings.push(...(await rulesMirrorFindings(file, facts)));
+          return findings;
         },
       },
     ];

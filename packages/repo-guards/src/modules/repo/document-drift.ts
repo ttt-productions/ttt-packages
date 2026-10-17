@@ -1,6 +1,7 @@
 // A document kept word for word identical across sibling repositories: this checkout's copy is
-// compared with each sibling's. CI checks out one repository, so a sibling that is not beside this
-// checkout shows the comparison SKIPPED with that reason — never passed.
+// compared with each sibling's. CI checks out one repository, so a sibling checkout that is not beside
+// this one shows the comparison SKIPPED with that reason — never passed. A sibling checkout that is
+// there but has lost its copy fails: that is drift, not an absent repository.
 
 import path from 'node:path';
 import type { GenericGuardDefinition } from '../../config.js';
@@ -42,20 +43,21 @@ export const documentDriftGuard: GenericGuardDefinition<DocumentDriftFacts> = {
   build(facts) {
     return facts.copies.map(
       (copy): Guard => {
-        const theirs = (repoRoot: string) => path.resolve(repoRoot, copy.checkout, facts.file);
+        const checkout = (repoRoot: string) => path.resolve(repoRoot, copy.checkout);
+        const theirs = (repoRoot: string) => path.resolve(checkout(repoRoot), facts.file);
         return {
           title: `${facts.file} matches ${copy.name}'s copy word for word`,
           description:
             `${facts.file} is one text kept identical in every repository that holds it. Make the same edit in every copy ` +
             'in the same change.',
           skipReason: (reader) =>
-            reader.readOutside(theirs(reader.layout.repoRoot)) === null
-              ? `${copy.name} is not checked out beside this repository (CI checks out one repository)`
-              : null,
+            reader.existsOutside(checkout(reader.layout.repoRoot))
+              ? null
+              : `${copy.name} is not checked out beside this repository (CI checks out one repository)`,
           run(context) {
             const ours = context.file(facts.file).text;
             const other = context.reader.readOutside(theirs(context.reader.layout.repoRoot));
-            if (other === null) return [{ file: facts.file, detail: `${copy.name}'s copy is gone` }];
+            if (other === null) return [{ file: facts.file, detail: `${copy.name} is checked out here but holds no copy of ${facts.file}` }];
             const line = firstDifferingLine(ours, other);
             return line === null ? [] : [{ file: facts.file, line, detail: `differs from ${copy.name}'s copy from this line on` }];
           },

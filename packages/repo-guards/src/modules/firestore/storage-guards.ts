@@ -12,9 +12,8 @@ import { nameListProblems, requireLoader, requireName, reviewedListProblems } fr
 
 type Loaded<T> = () => T | Promise<T>;
 
+/** Every Storage rules file the layout lists is read; the facts name no file of their own. */
 export interface StorageUploadOriginFacts {
-  /** The repo-relative Storage rules file. */
-  rulesFile: string;
   /** The rules function answering an origin's raw upload cap (`function <name>(origin)`). */
   capFunction: string;
   /** Every declared origin and its raw upload cap in bytes, from the core. */
@@ -104,7 +103,6 @@ export const storageUploadOriginGuard: GenericGuardDefinition<StorageUploadOrigi
   absentWhen: 'the app takes no client upload into Cloud Storage',
   factProblems(facts) {
     const problems = [
-      ...requireName(facts?.rulesFile, 'rulesFile'),
       ...requireName(facts?.capFunction, 'capFunction'),
       ...requireLoader(facts?.originCaps, 'originCaps'),
       ...requireName(facts?.stagingPath, 'stagingPath'),
@@ -124,13 +122,18 @@ export const storageUploadOriginGuard: GenericGuardDefinition<StorageUploadOrigi
       {
         title: 'the Storage rules restate the upload-origin registry exactly',
         description:
-          "The Storage rules cannot import the core, so their copy of the upload-origin registry is pinned to it: the cap " +
+          "The Storage rules cannot import the core, so in every Storage rules file the layout lists, their copy of the " +
+          'upload-origin registry is pinned to it: the cap ' +
           "function names every declared origin with exactly the core's raw cap, names no other origin, and falls back " +
           'to 0; every origin-list function lists exactly its declared origins; every declared content-type lane is ' +
           'stated; and the staging block refuses update and delete and grants neither. Fix: change the rules to match the ' +
           'core, or the core and the rules together.',
         async run(context) {
-          return (await uploadOriginProblems(context.file(facts.rulesFile).code, facts)).map((detail) => ({ file: facts.rulesFile, detail }));
+          const findings: Finding[] = [];
+          for (const file of context.rulesFiles('storage')) {
+            for (const detail of await uploadOriginProblems(file.code, facts)) findings.push({ file: file.path, detail });
+          }
+          return findings;
         },
       },
     ];

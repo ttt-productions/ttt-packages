@@ -10,13 +10,14 @@ const DOC = 'docs/preferences.md';
 let workspace: TempRepo | undefined;
 afterEach(() => workspace?.remove());
 
-/** A workspace holding this repository (`app/`) and, when given, a sibling (`sibling/`). */
-function setUp(ours: string, theirs: string | null) {
+/**
+ * A workspace holding this repository (`app/`) and its sibling (`sibling/`): the sibling's copy of the
+ * document, a sibling checkout that holds no copy (`'no copy'`), or no sibling checkout at all.
+ */
+function setUp(ours: string, theirs: string | 'no copy' | 'no checkout') {
   workspace = tempRepo({ 'app/src/index.ts': 'export {};', [`app/${DOC}`]: ours });
-  if (theirs !== null) {
-    mkdirSync(join(workspace.root, 'sibling', 'docs'), { recursive: true });
-    writeFileSync(join(workspace.root, 'sibling', DOC), theirs);
-  }
+  if (theirs !== 'no checkout') mkdirSync(join(workspace.root, 'sibling', 'docs'), { recursive: true });
+  if (theirs !== 'no checkout' && theirs !== 'no copy') writeFileSync(join(workspace.root, 'sibling', DOC), theirs);
   const reader = createRepoReader({ repoRoot: join(workspace.root, 'app'), roots: { app: { path: 'src', anchor: 'src/index.ts' } } });
   const [guard] = documentDriftGuard.build({ file: DOC, copies: [{ name: 'sibling', checkout: '../sibling' }] });
   return { reader, guard };
@@ -34,9 +35,15 @@ describe('a document kept identical across sibling repositories', () => {
     expect(await guard.run(contextOf(reader))).toEqual([{ file: DOC, line: 3, detail: "differs from sibling's copy from this line on" }]);
   });
 
-  it('is SKIPPED, with its reason, where the sibling is not checked out — never passed', () => {
-    const { reader, guard } = setUp('# One\n', null);
+  it('is SKIPPED, with its reason, only where the sibling checkout is absent — never passed', () => {
+    const { reader, guard } = setUp('# One\n', 'no checkout');
     expect(guard.skipReason!(reader)).toBe('sibling is not checked out beside this repository (CI checks out one repository)');
+  });
+
+  it('FLAGS a sibling checkout that is there but has lost its copy, rather than skipping it', async () => {
+    const { reader, guard } = setUp('# One\n', 'no copy');
+    expect(guard.skipReason!(reader)).toBeNull();
+    expect(await guard.run(contextOf(reader))).toEqual([{ file: DOC, detail: `sibling is checked out here but holds no copy of ${DOC}` }]);
   });
 
   it("fails when this repository's own copy is gone", async () => {

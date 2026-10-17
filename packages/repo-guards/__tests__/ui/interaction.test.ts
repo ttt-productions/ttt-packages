@@ -129,6 +129,23 @@ describe('pending feedback comes from the shared primitives', () => {
     ]);
   });
 
+  it("flags lucide's spinner icon under each of its exported aliases, and passes other icons", async () => {
+    const findings = await allFindings(loadingFeedbackGuard, facts, {
+      ...clean,
+      'src/ui/icons.tsx': [
+        "import { Loader2Icon } from 'lucide-react';",
+        "import { LucideLoader2 as Spin, LoaderCircleIcon } from 'lucide-react';",
+        "import { LucideLoaderCircle } from 'lucide-react';",
+        "import { Loader, LoaderPinwheel } from 'lucide-react';",
+      ].join('\n'),
+    });
+    expect(findings).toEqual([
+      "src/ui/icons.tsx:1 not on the reviewed list: import { Loader2Icon } from 'lucide-react'",
+      "src/ui/icons.tsx:2 not on the reviewed list: import { LucideLoader2 as Spin, LoaderCircleIcon } from 'lucide-react'",
+      "src/ui/icons.tsx:3 not on the reviewed list: import { LucideLoaderCircle } from 'lucide-react'",
+    ]);
+  });
+
   it('flags a reviewed reader that no longer reads the flag, and bans the container when the app has no wrapper', async () => {
     expect(await allFindings(loadingFeedbackGuard, { ...facts, pullToRefreshWrapper: null }, { ...clean, [READER]: 'export {};' })).toEqual([
       "src/ui/page-pull-to-refresh.tsx:1 not on the reviewed list: import { PullToRefreshContainer } from '@ttt-productions/mobile-core/react'",
@@ -149,7 +166,7 @@ describe('every show-more disclosure renders through the one toggle', () => {
       'src/ui/a.tsx': [
         "export const a = <button type=\"button\" onClick={() => setOpen((p) => !p)} aria-expanded={open}>{open ? 'Show less' : 'Show more'}</button>;",
         'export const b = <Button aria-expanded={open}>Chapters<ChevronRight className="icon-xs" /></Button>;',
-        'export const c = <details><summary>Tales</summary></details>;',
+        'export const c = <details><summary>Notes</summary></details>;',
       ].join('\n'),
       'src/ui/b.tsx': [
         'export const a = <ShowMoreToggle expanded={open} onExpandedChange={setOpen} openLabel="Show more" closeLabel="Show less" />;',
