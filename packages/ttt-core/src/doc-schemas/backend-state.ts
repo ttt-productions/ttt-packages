@@ -56,18 +56,35 @@ export const SweepDeferredRowSchema = z
   .strict();
 export type SweepDeferredRow = z.infer<typeof SweepDeferredRowSchema>;
 
+// The place a full `listUsers()` scan stopped partway through a lap. Firebase Auth lists accounts
+// only by page token — there is no key to resume after — so, unlike a rolling cursor, this keeps the
+// token itself. A token Auth no longer accepts restarts the lap from the first page.
+export const SweepAuthScanLapSchema = z
+  .object({
+    /** The `listUsers()` page token the next run starts from. */
+    pageToken: z.string().min(1),
+    /** Wall-clock ms the lap began. */
+    lapStartedAt: z.number().int().nonnegative(),
+  })
+  .strict();
+export type SweepAuthScanLap = z.infer<typeof SweepAuthScanLapSchema>;
+
 // sweepState/{sweepName} — durable cadence + cursor state for one scheduled pass: every persisted
 // sweep position in the app lives here, one doc per SWEEP_STATE_NAMES name. The fields a pass uses
 // are the ones it declares, so every field except `updatedAt` is optional. A pass over a bounded,
 // ordered source keeps its position in `rollingCursor` (a finished lap is `done`, stamped with
 // `lapCompletedAt` — the cadence stamp of a pass that runs a lap at a time), and the rows it moved
 // past without clearing in `deferred`. `fullScanLastRunAt` is the cadence of the ~weekly
-// `listUsers()` scan `orphanRegistrationCleanup` and `reconcileAccountStatus` run. The stamps are
-// wall-clock so a container recycle cannot reset the cadence.
+// `listUsers()` scan `orphanRegistrationCleanup` and `reconcileAccountStatus` run, stamped when a lap
+// reaches the last page; `fullScanLap` is that scan's place while a lap is still in progress
+// (AUTH_FULL_SCAN_EXAMINED_PER_RUN bounds each run). The stamps are wall-clock so a container
+// recycle cannot reset the cadence.
 export const SweepStateSchema = z
   .object({
-    /** Wall-clock ms the last full `listUsers()` scan ran (absent = never). */
+    /** Wall-clock ms the last full `listUsers()` scan lap completed (absent = never). */
     fullScanLastRunAt: z.number().optional(),
+    /** The full scan's place while a lap is in progress; absent when no lap is running. */
+    fullScanLap: SweepAuthScanLapSchema.optional(),
     rollingCursor: SweepRollingCursorSchema.optional(),
     deferred: z.array(SweepDeferredRowSchema).max(SWEEP_STATE_MAX_DEFERRED).optional(),
     updatedAt: z.number(),

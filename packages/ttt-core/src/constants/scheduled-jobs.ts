@@ -61,6 +61,20 @@ export const SWEEP_STATE_MAX_DEFERRED = 50;
  */
 export const HALL_MEDIA_REAPER_CLAIM_LEASE_MS = 60 * 60 * 1000;
 
+// --- Auth full scans ---
+
+/** Accounts per `listUsers()` page in a full scan — the most Firebase Auth returns in one call. */
+export const AUTH_LIST_USERS_PAGE_SIZE = 1000;
+
+/**
+ * Most Auth accounts one run of a full `listUsers()` scan examines (`reconcileAccountStatus`,
+ * `orphanRegistrationCleanup`) before it saves its place and stops: two `listUsers()` pages. The scan
+ * ends a run at a page boundary once it has examined this many, so a userbase of any size never
+ * outruns one run's timeout; the lap resumes from the saved page on the next run, and the scan's
+ * cadence stamp is written only when a lap reaches the last page.
+ */
+export const AUTH_FULL_SCAN_EXAMINED_PER_RUN = 2 * AUTH_LIST_USERS_PAGE_SIZE;
+
 // --- Sweep state ---
 
 /**

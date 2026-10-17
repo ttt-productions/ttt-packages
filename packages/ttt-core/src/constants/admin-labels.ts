@@ -294,6 +294,12 @@ export const ADMIN_DISPATCH_STATUS_LABELS: Record<AdminDispatch['status'], strin
   closed_unresolved: 'Closed',
 };
 
+/**
+ * Why a full admin cannot remove their own Admin standing: the server refuses it, and the roster
+ * panel withholds the control with the same words. Another full admin removes it.
+ */
+export const ADMIN_SELF_REVOKE_REFUSAL = "You can't revoke your own admin standing. Ask another full admin to do it.";
+
 /** The marker beside the sender of a support-thread message sent with admin authority. */
 export const ADMIN_SENDER_MARKER_LABEL = 'Admin';
 

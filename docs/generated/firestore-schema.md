@@ -2285,6 +2285,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | Field | Type | Optional |
 | --- | --- | --- |
 | `fullScanLastRunAt` | `number` | yes |
+| `fullScanLap` | `{ pageToken, lapStartedAt }` | yes |
 | `rollingCursor` | `{ state, afterKey, afterValue, lapStartedAt } \| { state, lapStartedAt, lapCompletedAt }` | yes |
 | `deferred` | `{ key, value, nextAttemptAt, attemptCount }[]` | yes |
 | `updatedAt` | `number` |  |

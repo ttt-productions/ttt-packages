@@ -190,6 +190,24 @@ describe('SweepStateSchema', () => {
     ).toBe(true);
   });
 
+  it("keeps a full scan's place partway through a lap beside the reaper's rolling cursor", () => {
+    const state = {
+      rollingCursor: { state: 'done' as const, lapStartedAt: 1_700_000_000_000, lapCompletedAt: 1_700_000_100_000 },
+      fullScanLap: { pageToken: 'opaque-auth-page-token', lapStartedAt: 1_700_000_200_000 },
+      fullScanLastRunAt: 1_699_000_000_000,
+      updatedAt: 1_700_000_300_000,
+    };
+    expect(SweepStateSchema.parse(state)).toEqual(state);
+  });
+
+  it('refuses a full-scan place with no page token, no lap start, or a field it does not declare', () => {
+    const at = (fullScanLap: unknown) => SweepStateSchema.safeParse({ fullScanLap, updatedAt: 1 }).success;
+    expect(at({ pageToken: '', lapStartedAt: 1 })).toBe(false);
+    expect(at({ pageToken: 't' })).toBe(false);
+    expect(at({ pageToken: 't', lapStartedAt: -1 })).toBe(false);
+    expect(at({ pageToken: 't', lapStartedAt: 1, examined: 5 })).toBe(false);
+  });
+
   it('accepts a first-write doc with no pass having run yet', () => {
     expect(SweepStateSchema.safeParse({ updatedAt: 1_700_000_000_000 }).success).toBe(true);
   });
