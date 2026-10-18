@@ -165,6 +165,38 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
   it('refuses facts with no runner config', () => {
     expect(lazyLoaderGuard.factProblems({ ...facts, testRunnerConfigs: [] })).toEqual(['testRunnerConfigs is empty']);
   });
+
+  it('reads every root the app names: a bare app import and an app test overlap are flagged, a reviewed other loader passes', async () => {
+    repo = backendRepo({
+      ...clean,
+      'src/lib/policy.ts': "const loadFirebase = lazyModule(() => import('./firebase.js'));",
+      'src/app/page.tsx': "const Redirector = dynamic(() => import('./redirector.js'));",
+      'src/lib/list.ts': "export async function read() { const { getDoc } = await import('firebase/firestore'); return getDoc; }",
+      'src/lib/list.test.ts': "await Promise.all([import('./list.js'), import('./list.js')]);",
+    });
+    const [guard] = lazyLoaderGuard.build({
+      ...facts,
+      roots: ['app', 'functions'],
+      otherLoaders: [{ name: 'dynamic', why: "the framework's memoized component loader" }],
+    });
+    expect(await repo.run(guard!)).toEqual([
+      { file: 'src/lib/list.ts', line: 1, detail: "import('firebase/firestore') is not a module-level lazyModule loader" },
+      { file: 'src/lib/list.test.ts', line: 1, detail: "import('./list.js') overlaps the other imports of a Promise combinator" },
+      { file: 'src/lib/list.test.ts', line: 1, detail: "import('./list.js') overlaps the other imports of a Promise combinator" },
+    ]);
+  });
+
+  it('FLAGS an other loader that wraps no import, and reads Functions alone when no roots are named', async () => {
+    repo = backendRepo({ ...clean, 'src/lib/list.ts': "export const load = () => import('./x.js');" });
+    const [guard] = lazyLoaderGuard.build({ ...facts, otherLoaders: [{ name: 'dynamic', why: 'a component loader' }] });
+    expect(await repo.run(guard!)).toEqual([{ file: '(otherLoaders)', detail: 'stale other loader: dynamic wraps no import' }]);
+  });
+
+  it('refuses a root that is not a root role, an empty root list, and an other loader with no why', () => {
+    expect(lazyLoaderGuard.factProblems({ ...facts, roots: [] })).toEqual(['roots is empty']);
+    expect(lazyLoaderGuard.factProblems({ ...facts, roots: ['web' as never] })).toEqual(['roots names web, which is not a root role']);
+    expect(lazyLoaderGuard.factProblems({ ...facts, otherLoaders: [{ name: 'dynamic', why: '' }] })).not.toEqual([]);
+  });
 });
 
 describe('light functions never statically reach a heavy module', () => {

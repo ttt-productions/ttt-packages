@@ -131,7 +131,15 @@ describe('callable transport through its owner', () => {
     ]);
   });
 
-  it('refuses no transports, and a transport with no owner or symbols', () => {
+  it('a transport with no owner is named by no app file', async () => {
+    const banned = { transports: [{ module: 'firebase/functions', symbols: ['httpsCallable'] }] };
+    expect(await findingsOf(callableTransportGuard, banned, { 'src/ok.tsx': "import { call } from '@/lib/policy';" })).toEqual([]);
+    expect(
+      await findingsOf(callableTransportGuard, banned, { 'src/lib/fb.ts': "import { httpsCallable } from 'firebase/functions';" }),
+    ).toEqual(['src/lib/fb.ts:1 no app file may name it: imports httpsCallable from firebase/functions']);
+  });
+
+  it('refuses no transports, and a transport with an empty owner or no symbols', () => {
     expect(callableTransportGuard.factProblems({ transports: [] })).toEqual(['transports is missing or empty']);
     expect(callableTransportGuard.factProblems({ transports: [{ module: 'm', symbols: [], owner: '' }] })).toEqual([
       "transport m's owner is missing",

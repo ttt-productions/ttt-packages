@@ -1,0 +1,38 @@
+{
+    "name": "@ttt-productions/module-core",
+    "version": "0.1.0",
+    "description": "How a module is loaded lazily: lazyModule, the one memoized dynamic import every lazy load goes through, so concurrent callers share one import. Tier 0 — no dependencies, no React, server-safe.",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ttt-productions/ttt-packages.git",
+        "directory": "packages/module-core"
+    },
+    "type": "module",
+    "main": "dist/index.js",
+    "module": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "clean": "rm -rf dist *.tsbuildinfo",
+        "typecheck": "tsc --noEmit",
+        "prepublishOnly": "npm run clean && npm run build",
+        "test": "vitest run"
+    },
+    "keywords": [
+        "lazy",
+        "dynamic-import",
+        "module"
+    ],
+    "author": "DJ (TTT Productions)",
+    "license": "MIT"
+}

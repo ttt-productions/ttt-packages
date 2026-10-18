@@ -10,6 +10,7 @@ import {
   UpdateAppConfigInputSchema,
   AdminReplayDeadLetterInputSchema,
   GetDeadLettersInputSchema,
+  CheckTrademarkInputSchema,
 } from '../src/schemas/admin.js';
 import { AppConfigSchema } from '../src/doc-schemas/system.js';
 import {
@@ -532,5 +533,16 @@ describe('GetReportedContentDetailResultSchema — resolved clearableSurface', (
     expect(
       MODERATION_CLEARABLE_TEXT_FIELDS[HALL_CONTENT_SURFACES_BY_WORK_TYPE.Television.subItemSurface],
     ).toEqual(['title', 'description']);
+  });
+});
+
+describe('CheckTrademarkInputSchema — the sub-item title is a title or absent', () => {
+  it('accepts a work title alone, and with a sub-item title', () => {
+    expect(CheckTrademarkInputSchema.safeParse({ workTitle: 'The Long Road' }).success).toBe(true);
+    expect(CheckTrademarkInputSchema.safeParse({ workTitle: 'The Long Road', subItemTitle: 'Chapter One' }).success).toBe(true);
+  });
+
+  it('refuses a null sub-item title — the client sends a title or leaves the field out', () => {
+    expect(CheckTrademarkInputSchema.safeParse({ workTitle: 'The Long Road', subItemTitle: null }).success).toBe(false);
   });
 });

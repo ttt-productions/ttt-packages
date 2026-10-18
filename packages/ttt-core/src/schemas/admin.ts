@@ -401,9 +401,9 @@ export type UpdateAdminListResult = z.infer<typeof UpdateAdminListResultSchema>;
 export const CheckTrademarkInputSchema = z.object({
   // Primary: the work project's title (franchise-level check).
   workTitle: z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH),
-  // Optional: the sub-item title (chapter, track, episode), checked secondarily; null or absent
-  // means there is none to check.
-  subItemTitle: z.string().max(MAX_WORK_PROJECT_TITLE_LENGTH).nullish(),
+  // Optional: the sub-item title (chapter, track, episode), checked secondarily; absent means there is
+  // none to check.
+  subItemTitle: z.string().max(MAX_WORK_PROJECT_TITLE_LENGTH).optional(),
 }).strict();
 export type CheckTrademarkInput = z.infer<typeof CheckTrademarkInputSchema>;
 

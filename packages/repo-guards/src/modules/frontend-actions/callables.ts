@@ -125,11 +125,15 @@ export const callableErrorCopyGuard: GenericGuardDefinition<CallableErrorCopyFac
 };
 
 // ---------------------------------------------------------------------------------------------
-// Callable transport: the callable SDK and its transport helpers are named only by their owner.
+// Callable transport: the callable SDK and its transport helpers are named only by their owner, or
+// by no app file at all.
 
 export interface CallableTransportFacts {
-  /** Each module that reaches a callable, the symbols that do, and the one file that may name them. */
-  transports: ReadonlyArray<{ module: string; symbols: readonly string[]; owner: string }>;
+  /**
+   * Each module that reaches a callable, the symbols that do, and the one file that may name them.
+   * A transport with no owner is named by no app file: the app reaches it only through a package.
+   */
+  transports: ReadonlyArray<{ module: string; symbols: readonly string[]; owner?: string }>;
 }
 
 /** Each reach of a transport symbol: imported, through a namespace, or called bare or as a member (`sdk.f(`). */
@@ -168,7 +172,7 @@ export const callableTransportGuard: GenericGuardDefinition<CallableTransportFac
     if (!Array.isArray(facts?.transports) || !facts.transports.length) return ['transports is missing or empty'];
     for (const t of facts.transports) {
       textProblem(t?.module, 'a transport module', problems);
-      textProblem(t?.owner, `transport ${String(t?.module)}'s owner`, problems);
+      if (t?.owner !== undefined) textProblem(t.owner, `transport ${String(t?.module)}'s owner`, problems);
       namesProblem(t?.symbols, `transport ${String(t?.module)}'s symbols`, problems);
     }
     return problems;
@@ -179,8 +183,9 @@ export const callableTransportGuard: GenericGuardDefinition<CallableTransportFac
         title: 'a callable is reached only through its transport owner',
         description:
           'The callable SDK and each transport helper are named only inside their owner module, which holds the ' +
-          "invocation deadline, the error normalization, and the one capture. Nothing else imports, re-exports, " +
-          'reaches through a namespace, or calls them: call the hook or function the owner exports.',
+          "invocation deadline, the error normalization, and the one capture — or, for a transport with no owner, by " +
+          'no app file at all. Nothing else imports, re-exports, reaches through a namespace, or calls them: call the ' +
+          'hook or function the owner exports.',
         run(context) {
           const findings: Finding[] = [];
           const held = new Set<string>();
@@ -188,11 +193,15 @@ export const callableTransportGuard: GenericGuardDefinition<CallableTransportFac
             for (const transport of facts.transports) {
               const hits = transportHits(file, transport);
               if (!hits.length) continue;
-              if (file.path === transport.owner) held.add(transport.owner);
-              else for (const hit of hits) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: `outside its owner ${transport.owner}: ${hit.detail}` });
+              if (transport.owner !== undefined && file.path === transport.owner) held.add(transport.owner);
+              else {
+                const where = transport.owner === undefined ? 'no app file may name it' : `outside its owner ${transport.owner}`;
+                for (const hit of hits) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: `${where}: ${hit.detail}` });
+              }
             }
           }
           for (const transport of facts.transports) {
+            if (transport.owner === undefined) continue;
             if (!context.reader.exists(transport.owner)) findings.push({ file: transport.owner, detail: 'the transport owner no longer exists' });
             else if (!held.has(transport.owner)) findings.push({ file: transport.owner, detail: `stale owner: it no longer names any of ${transport.symbols.join(', ')}` });
           }

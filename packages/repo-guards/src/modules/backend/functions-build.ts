@@ -1,13 +1,14 @@
 // The guards over how the Functions tree is built and loaded: limiter charges name their preset and
-// their surface, every dynamic import is a module-level lazy loader, light functions never reach
-// heavy modules, and a split-codebase manifest covers every export exactly once.
+// their surface, every dynamic import is a module-level lazy loader (in Functions and any other tree
+// the app names), light functions never reach heavy modules, and a split-codebase manifest covers
+// every export exactly once.
 
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../config.js';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
-import type { Reviewed } from '../../reader/layout.js';
+import { ROOT_ROLES, type Reviewed, type RootRole } from '../../reader/layout.js';
 import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
 import { namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
 import { moduleImports, namesModule } from '../../support/imports.js';
@@ -187,7 +188,14 @@ export const rateLimitGuard: GenericGuardDefinition<RateLimitFacts> = {
 export interface LazyLoaderFacts {
   /** The memoizing loader every lazy import goes through (`lazyModule`). */
   loader: string;
-  /** The Functions test runner configs, which never make every test concurrent. */
+  /** The roots whose code and tests the guard reads; `functions` alone when absent. */
+  roots?: readonly RootRole[];
+  /**
+   * Other module-level loaders whose `const x = name(() => import('…'))` is accepted, each with its
+   * why (a framework's own memoized component loader); one used nowhere is stale.
+   */
+  otherLoaders?: ReadonlyArray<{ name: string; why: string }>;
+  /** The test runner configs, which never make every test concurrent. */
   testRunnerConfigs: readonly string[];
   /** Test files that overlap imports on purpose (the loader's own premise test), each with its why. */
   testExceptions: readonly Reviewed[];
@@ -195,10 +203,19 @@ export interface LazyLoaderFacts {
 
 const isDynamicImport = (node: ts.Node): node is ts.CallExpression => ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword;
 
-/** Every dynamic import in production code that is not a module-level `const x = loader(() => import('…'))`. */
-export function strayDynamicImports(file: FileView, loader: string): { loaders: number; stray: ts.Node[] } {
+/**
+ * Every dynamic import in production code that is not a module-level `const x = name(() => import('…'))`
+ * for one of `names`. `loaders` counts the uses of `names[0]`, the main loader; `used` holds every
+ * name that wrapped an import.
+ */
+export function strayDynamicImports(
+  file: FileView,
+  names: string | readonly string[],
+): { loaders: number; used: Set<string>; stray: ts.Node[] } {
+  const accepted = typeof names === 'string' ? [names] : names;
   const sf = file.sourceFile;
   const stray: ts.Node[] = [];
+  const used = new Set<string>();
   let loaders = 0;
   forEachNode(sf, (node) => {
     if (!isDynamicImport(node)) return;
@@ -214,7 +231,7 @@ export function strayDynamicImports(file: FileView, loader: string): { loaders: 
       !!call &&
       ts.isCallExpression(call) &&
       ts.isIdentifier(call.expression) &&
-      call.expression.text === loader &&
+      accepted.includes(call.expression.text) &&
       call.arguments.length === 1 &&
       call.arguments[0] === arrow &&
       !!declaration &&
@@ -226,10 +243,13 @@ export function strayDynamicImports(file: FileView, loader: string): { loaders: 
       statement.parent === sf &&
       node.arguments.length === 1 &&
       ts.isStringLiteralLike(node.arguments[0]!);
-    if (ok) loaders += 1;
-    else stray.push(node);
+    if (ok) {
+      const name = (call as ts.CallExpression & { expression: ts.Identifier }).expression.text;
+      used.add(name);
+      if (name === accepted[0]) loaders += 1;
+    } else stray.push(node);
   });
-  return { loaders, stray };
+  return { loaders, used, stray };
 }
 
 const COMBINATORS = new Set(['Promise.all', 'Promise.allSettled', 'Promise.race', 'Promise.any']);
@@ -256,16 +276,25 @@ export const lazyLoaderGuard: GenericGuardDefinition<LazyLoaderFacts> = {
   factProblems(facts) {
     const problems: string[] = [];
     textProblem(facts?.loader, 'loader', problems);
+    if (facts?.roots !== undefined) {
+      namesProblem(facts.roots, 'roots', problems);
+      if (Array.isArray(facts.roots)) {
+        for (const root of facts.roots) if (!ROOT_ROLES.includes(root)) problems.push(`roots names ${String(root)}, which is not a root role`);
+      }
+    }
+    if (facts?.otherLoaders !== undefined) reviewedProblems(facts.otherLoaders, 'otherLoaders', problems, { key: 'name' });
     namesProblem(facts?.testRunnerConfigs, 'testRunnerConfigs', problems);
     reviewedProblems(facts?.testExceptions, 'testExceptions', problems);
     return problems;
   },
   build(facts) {
+    const roots = facts.roots ?? ['functions'];
+    const others = (facts.otherLoaders ?? []).map((other) => other.name);
     return [
       {
-        title: 'no Functions code can overlap two dynamic imports of one module',
+        title: 'no code can overlap two dynamic imports of one module',
         description:
-          `Every dynamic import in Functions production code is a module-level \`const load… = ${facts.loader}(() => import('…'))\` ` +
+          `Every dynamic import in production code is a module-level \`const load… = ${facts.loader}(() => import('…'))\` ` +
           '(or a static import when laziness buys nothing): its first call starts the one import and every concurrent call ' +
           'awaits it. A bare `import()` lets two concurrent calls overlap, and the test runner hands the second the REAL ' +
           'module for a mocked one. Tests never overlap their own imports — no concurrent tests, no concurrent runner ' +
@@ -274,17 +303,20 @@ export const lazyLoaderGuard: GenericGuardDefinition<LazyLoaderFacts> = {
         run(context) {
           const findings: Finding[] = [];
           let loaders = 0;
-          for (const file of context.files(FUNCTIONS_CODE)) {
-            const result = strayDynamicImports(file, facts.loader);
+          const used = new Set<string>();
+          for (const file of context.files({ roots, kinds: ['code'], tests: false })) {
+            const result = strayDynamicImports(file, [facts.loader, ...others]);
             loaders += result.loaders;
+            for (const name of result.used) used.add(name);
             for (const node of result.stray) {
               findings.push({ file: file.path, line: lineOfNode(file, node), detail: `${node.getText(file.sourceFile).slice(0, 80)} is not a module-level ${facts.loader} loader` });
             }
           }
-          if (!loaders) findings.push({ file: '(functions)', detail: `no ${facts.loader} loader found, so the guard checks nothing` });
+          if (!loaders) findings.push({ file: `(${roots.join(', ')})`, detail: `no ${facts.loader} loader found, so the guard checks nothing` });
+          for (const name of others) if (!used.has(name)) findings.push({ file: '(otherLoaders)', detail: `stale other loader: ${name} wraps no import` });
           const exceptions = new Set(facts.testExceptions.map((e) => e.path));
           const overlapping = new Set<string>();
-          for (const file of context.files({ roots: ['functions'], kinds: ['code'], tests: 'only' })) {
+          for (const file of context.files({ roots, kinds: ['code'], tests: 'only' })) {
             const hits = overlappingTestImports(file);
             if (hits.length) overlapping.add(file.path);
             if (exceptions.has(file.path)) continue;

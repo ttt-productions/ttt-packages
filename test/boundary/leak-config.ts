@@ -40,6 +40,7 @@ export const PACKAGE_LEAK_RULES: PackageLeakRule[] = [
   { dir: 'moderation-core', mode: 'hard' },
   { dir: 'edge-protocol-core', mode: 'hard' },
   { dir: 'input-format-core', mode: 'hard' },
+  { dir: 'module-core', mode: 'hard' },
 
   // Tier 1 — server-safe roots (React lives behind subpaths).
   { dir: 'file-input', mode: 'hard' },
