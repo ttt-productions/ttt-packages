@@ -59,7 +59,7 @@ export type UnarchiveGuildChatChannelInput = z.infer<typeof UnarchiveGuildChatCh
 
 // Tombstone (delete) a guild chat channel — same input shape as archive. The callable marks the
 // channel `isDeleted`, bumps configVersion, revokes grants, and re-projects members to `removed`;
-// storage is retained (never a physical purge). See ttt-prod docs/design/chat-realtime-system.md.
+// storage is retained (never a physical purge).
 export const DeleteGuildChatChannelInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   guildChatChannelId: guildChatChannelIdSchema,
@@ -88,9 +88,8 @@ export type GuildChatChannelEnforcement = z.infer<typeof GuildChatChannelEnforce
 // unarchive / update / delete): each answers with the id of the channel it acted on and
 // whether the chat Worker already enforces the change.
 // One named shape, not five aliases — the lanes deliberately share a result contract, and a
-// future divergence should be a visible schema split, not a silent drift between app-local
-// copies (the frontend once typed unarchive's result as `{ channelId }` against a backend
-// returning `guildChatChannelId`; both compiled). Non-strict (server → client result posture).
+// divergence must be a visible schema split, never a silent drift between app-local copies.
+// Non-strict (server → client result posture).
 export const GuildChatChannelLifecycleResultSchema = z.object({
   success: z.literal(true),
   guildChatChannelId: guildChatChannelIdSchema,
@@ -98,21 +97,20 @@ export const GuildChatChannelLifecycleResultSchema = z.object({
 });
 export type GuildChatChannelLifecycleResult = z.infer<typeof GuildChatChannelLifecycleResultSchema>;
 
-// Guild channels + invite threads moved to the realtime chat (Cloudflare DOs), which
-// sends through the DO client — NOT this callable. The Firestore send path is retained
-// PERMANENTLY for admin-support threads only (ttt-prod docs/design/chat-realtime-system.md).
+// The Firestore send path serves admin-support threads only; guild channels and invite threads
+// send through the realtime chat (Cloudflare DOs). ONE input for both sides of a support thread:
+// `sendGuildChatMessage` is the thread owner's reply and `adminSendGuildChatMessage` the admin's,
+// so the callable — never a flag in the input — says which side is speaking.
 export const SendGuildChatMessageInputSchema = z.object({
   threadKind: z.literal('adminSupport'),
   adminDispatchId: adminDispatchIdSchema,
-  isUserReply: z.boolean(),
   text: textFieldSchema(SUPPORT_THREAD_MESSAGE_INPUT),
   // No reply pointer: chat has no reply-authoring affordance, so a client could never
-  // legitimately send one. `.strict()` therefore REJECTS a client-sent `replyTo`
-  // (DJ ruling 2026-07-29).
+  // legitimately send one. `.strict()` therefore REJECTS a client-sent `replyTo`.
 }).strict();
 export type SendGuildChatMessageInput = z.infer<typeof SendGuildChatMessageInputSchema>;
 
-// Wire result contract for the sendGuildChatMessage callable — what the CLIENT relies on.
+// Wire result contract for both support-thread send callables — what the CLIENT relies on.
 // The backend core's internal result type extends this with composition-only
 // inline-materialize fields (backend↔backend contract; see runSendGuildChatMessage) —
 // those extra fields may appear on the wire and are not part of the client contract,
@@ -174,7 +172,7 @@ export const CreateAdminDispatchToUserInputSchema = z.object({
 }).strict();
 export type CreateAdminDispatchToUserInput = z.infer<typeof CreateAdminDispatchToUserInputSchema>;
 
-// CLIENT-CALLED wire contract for the `mintChatGrant` callable (Contract A; P3).
+// CLIENT-CALLED wire contract for the `mintChatGrant` callable.
 // Crosses the backend↔frontend boundary — the web client (and any future mobile/TV
 // client) constructs this payload — so it lives here per the callable-validation
 // convention, not locally in the functions repo. The REAL Firestore authorization
@@ -195,7 +193,7 @@ export const UpdateGuildChatChannelInputSchema = z.object({
 }).strict();
 export type UpdateGuildChatChannelInput = z.infer<typeof UpdateGuildChatChannelInputSchema>;
 
-// --- Admin chat moderation callables (review-only; ttt-prod docs/design/chat-realtime-system.md) ---
+// --- Admin chat moderation callables (review-only) ---
 
 // `adminModerateChatMessage` — queue a DO-owned hide/delete command. A chat message carries
 // no media (files live in the conversation's Conversation Files list), so this is a text-only

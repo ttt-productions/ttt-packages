@@ -137,10 +137,14 @@ describe('one conversation shape for every input that names a chat conversation'
 });
 
 describe('the admin-support send uses the one chat text bound', () => {
-  const send = { threadKind: 'adminSupport', adminDispatchId: 'd1', isUserReply: true };
+  const send = { threadKind: 'adminSupport', adminDispatchId: 'd1' };
 
   it('accepts text at the bound and refuses one character over', () => {
     expect(SendGuildChatMessageInputSchema.safeParse({ ...send, text: 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH) }).success).toBe(true);
     expect(SendGuildChatMessageInputSchema.safeParse({ ...send, text: 'x'.repeat(CHAT_MESSAGE_TEXT_MAX_LENGTH + 1) }).success).toBe(false);
+  });
+
+  it('carries no side-of-the-thread flag: the callable says who is speaking', () => {
+    expect(SendGuildChatMessageInputSchema.safeParse({ ...send, text: 'hi', isUserReply: true }).success).toBe(false);
   });
 });

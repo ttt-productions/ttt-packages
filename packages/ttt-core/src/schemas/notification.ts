@@ -222,7 +222,7 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     workProjectId: workProjectIdSchema,
   }).strict(),
   // Author feedback for a review decision. Mirrors what runReviewThresholdItem
-  // (ttt-prod) sends: only `needs_revision` is delivered today; `adminNotes` is
+  // (ttt-prod) sends: only `needs_revision` is delivered; `adminNotes` is
   // the reviewer's note, sent as null when the reviewer left none.
   z.object({
     type: z.literal('threshold_library_reviewed'),
@@ -385,20 +385,6 @@ export const CreateNotificationBroadcastInputSchema = z.object({
 }).strict();
 export type CreateNotificationBroadcastInput = z.infer<typeof CreateNotificationBroadcastInputSchema>;
 
-/** Archive scope: a single notification, or the caller's whole category. */
-export const ArchiveNotificationScopeSchema = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('single'), notificationId: activeNotificationIdSchema }).strict(),
-  z.object({ kind: z.literal('all') }).strict(),
-]);
-export type ArchiveNotificationScope = z.infer<typeof ArchiveNotificationScopeSchema>;
-
-// No `device` field on the archive input — archive metadata is server-derived.
-export const ArchiveNotificationInputSchema = z.object({
-  category: NotificationCategorySchema,
-  scope: ArchiveNotificationScopeSchema,
-}).strict();
-export type ArchiveNotificationInput = z.infer<typeof ArchiveNotificationInputSchema>;
-
 // Shared admin notifications have no per-admin seen state, so only the personal
 // `user` category can be marked seen.
 export const MarkNotificationsSeenInputSchema = z.object({
@@ -410,8 +396,7 @@ export type MarkNotificationsSeenInput = z.infer<typeof MarkNotificationsSeenInp
 // OBSERVED-GENERATION CALLABLE INPUT SCHEMAS
 //
 // The inputs of the observed-generation callables the notification tray invokes. The
-// category-wide callables take MarkNotificationsSeenInputSchema /
-// ArchiveNotificationInputSchema above.
+// category-wide mark-seen callable takes MarkNotificationsSeenInputSchema above.
 // ============================================================================
 
 // Max items per mark-seen call matches a sane notification tray page size.
@@ -485,13 +470,13 @@ export type ArchiveNotificationObservedScope = z.infer<typeof ArchiveNotificatio
  * audienceScope, requestId:activeId)`), so a single archive can never collide on another
  * card's history doc.
  *
- * `category` scopes which active-notification collection is archived
- * (`activeUserNotifications` vs `activeAdminNotifications`) and forms part of
- * the history doc path.
+ * The input names no category: `archiveNotification` archives the caller's own `user` cards and
+ * `adminArchiveNotification` the shared `admin` cards, so the callable — never a field a client
+ * sets — decides which active-notification collection is archived and which history path it
+ * forms part of.
  */
 export const ArchiveNotificationObservedInputSchema = z.object({
   requestId: z.string().min(1),
-  category: NotificationCategorySchema,
   scope: ArchiveNotificationObservedScopeSchema,
 }).strict();
 export type ArchiveNotificationObservedInput = z.infer<typeof ArchiveNotificationObservedInputSchema>;
@@ -509,19 +494,20 @@ export const ArchiveNotificationResultSchema = z.object({
 export type ArchiveNotificationResult = z.infer<typeof ArchiveNotificationResultSchema>;
 
 // ============================================================================
-// SERVER-OWNED ARCHIVE-ALL JOB (replaces the browser clear-all loop)
+// SERVER-OWNED ARCHIVE-ALL JOB
 //
-// `enqueueArchiveAll` enqueues ONE durable archive-all job scoped to the tab's
-// category (idempotent per user+category+requestId) and returns { jobId }; the
+// `enqueueArchiveAll` / `adminEnqueueArchiveAll` enqueue ONE durable archive-all job
+// scoped to the callable's category (idempotent per user+category+requestId) and return { jobId }; the
 // bounded server worker drains that category's active cards each in its own
 // atomic archive+audit txn (per-card observed-generation precondition preserved).
 // `getArchiveAllStatus` is polled by the thin client hook. Per-tab scoping is
 // REQUIRED — a job only ever archives its own category, never all tabs.
 // ============================================================================
 
+// No category, for the reason ArchiveNotificationObservedInputSchema gives: `enqueueArchiveAll`
+// clears the caller's `user` tab and `adminEnqueueArchiveAll` the shared `admin` tab.
 export const EnqueueArchiveAllInputSchema = z.object({
   requestId: z.string().min(1),
-  category: NotificationCategorySchema,
 }).strict();
 export type EnqueueArchiveAllInput = z.infer<typeof EnqueueArchiveAllInputSchema>;
 
@@ -551,6 +537,10 @@ export const DeadLetteredFanoutJobRowSchema = z.object({
   ageMs: z.number().nullable(),
 });
 export type DeadLetteredFanoutJobRow = z.infer<typeof DeadLetteredFanoutJobRowSchema>;
+
+/** The `listDeadLetteredFanoutJobs` input: the inventory takes no parameters, and anything sent is refused. */
+export const ListDeadLetteredFanoutJobsInputSchema = z.object({}).strict();
+export type ListDeadLetteredFanoutJobsInput = z.infer<typeof ListDeadLetteredFanoutJobsInputSchema>;
 
 export const ListDeadLetteredFanoutJobsResultSchema = z.object({
   jobs: z.array(DeadLetteredFanoutJobRowSchema),

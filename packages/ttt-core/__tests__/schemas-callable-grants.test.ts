@@ -1,14 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
+  AdminCreateMediaGrantInputSchema,
   CreateMediaGrantInputSchema,
   ChatGrantInputSchema,
   ResumeFanoutJobInputSchema,
 } from '../src/schemas/index.js';
 
-// These three client-called callable input schemas were migrated out of local
-// definitions in the functions repo (callable-validation convention: all callable
-// input schemas live in ttt-core/schemas). See ttt-prod
-// docs/design/callable-validation.md.
+// Client-called callable input schemas: every callable's input lives in ttt-core/schemas.
 
 describe('CreateMediaGrantInputSchema (media grant wire contract)', () => {
   it('accepts each scopeKind variant', () => {
@@ -27,7 +25,7 @@ describe('CreateMediaGrantInputSchema (media grant wire contract)', () => {
     expect(() => CreateMediaGrantInputSchema.parse({ scopeKind: 'wholeWork', workProjectId: 'wp1' })).toThrow();
   });
 
-  it('rejects the removed guildChannel scope — guild channels have no Conversation Files', () => {
+  it('rejects a guildChannel scope — guild channels have no Conversation Files', () => {
     expect(() =>
       CreateMediaGrantInputSchema.parse({ scopeKind: 'guildChannel', workProjectId: 'wp1', guildChatChannelId: 'ch1' }),
     ).toThrow();
@@ -38,6 +36,27 @@ describe('CreateMediaGrantInputSchema (media grant wire contract)', () => {
     expect(() =>
       CreateMediaGrantInputSchema.parse({ scopeKind: 'guildInvite', guildInviteId: 'gi1', extra: 'x' }),
     ).toThrow();
+  });
+});
+
+describe('the admin grant is a callable of its own', () => {
+  const review = { scopeKind: 'adminReview', reportGroupId: 'rg1', mediaAssetId: 'a1' };
+
+  it('a participant grant never takes the admin-only review scope', () => {
+    expect(CreateMediaGrantInputSchema.safeParse(review).success).toBe(false);
+  });
+
+  it('the admin grant takes the review, Work, and support-thread scopes', () => {
+    expect(AdminCreateMediaGrantInputSchema.safeParse(review).success).toBe(true);
+    expect(AdminCreateMediaGrantInputSchema.safeParse({ scopeKind: 'workProject', workProjectId: 'wp1' }).success).toBe(true);
+    expect(AdminCreateMediaGrantInputSchema.safeParse({ scopeKind: 'adminSupport', adminDispatchId: 'ad1' }).success).toBe(true);
+  });
+
+  it('the admin grant takes no participant-only scope', () => {
+    expect(AdminCreateMediaGrantInputSchema.safeParse({ scopeKind: 'guildInvite', guildInviteId: 'gi1' }).success).toBe(false);
+    expect(
+      AdminCreateMediaGrantInputSchema.safeParse({ scopeKind: 'workFileFolder', workProjectId: 'wp1', workFileFolderId: 'f1' }).success,
+    ).toBe(false);
   });
 });
 

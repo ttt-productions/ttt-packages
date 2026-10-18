@@ -1,8 +1,6 @@
-// Conversation Files contract tests — the package-side acceptance suite for the
-// "Conversation Files replace chat attachments" replacement. Covers the canonical
-// data model (ref union, owner record purity, path builders), the mode-varied
-// limits, the capability/origin coverage, and the removal of every chat-attachment
-// contract this package used to own.
+// Conversation Files contract tests: the canonical data model (ref union, owner record purity,
+// path builders), the mode-varied limits, the capability/origin coverage, and that no chat
+// message carries an attachment contract.
 
 import { describe, it, expect } from 'vitest';
 import {
@@ -128,7 +126,7 @@ describe('the conversation-file upload origin', () => {
       'videoFramePhotoDna',
       'audioSpoofGuard',
     ]);
-    // Coverage stays total over the origin registry after the swap.
+    // Coverage is total over the origin registry.
     for (const origin of FileOriginSchema.options) {
       expect(PHOTODNA_COVERAGE_MATRIX[origin]).toBeDefined();
     }
@@ -231,18 +229,17 @@ describe('the stored chat-message schema carries no file reference', () => {
     expect(parsed).toEqual(message);
   });
 
-  // Reply-to was removed end to end (DJ ruling 2026-07-29): no chat surface has an
-  // authoring affordance for replying to a specific message, so nothing could ever
-  // populate the field. Same rationale and same-day precedent as the `hidden` flag.
+  // No chat surface has an authoring affordance for replying to a specific message, so nothing
+  // could ever populate a reply pointer — the same reason the message carries no `hidden` flag.
   it('declares no reply pointer', () => {
     const keys = Object.keys(ChatMessageV1Schema.shape);
     expect(keys.filter((k) => /reply/i.test(k))).toEqual([]);
     expect(keys).not.toContain('replyTo');
   });
 
-  it('drops a legacy stored replyTo instead of persisting it forward', () => {
-    // The schema is deliberately non-strict, so an existing stored doc that still
-    // carries the key parses fine and the value is stripped — no migration needed.
+  it('strips a stored replyTo instead of persisting it forward', () => {
+    // The schema is deliberately non-strict, so a stored doc that carries the key parses and
+    // the value is stripped.
     const parsed = ChatMessageV1Schema.parse({
       ...message,
       replyTo: { messageId: 'm_1', senderId: 'u_2', messagePreview: 'earlier' },
@@ -256,7 +253,6 @@ describe('the sendGuildChatMessage input schema accepts no reply pointer', () =>
   const valid = {
     threadKind: 'adminSupport' as const,
     adminDispatchId: 'ad_1',
-    isUserReply: true,
     text: 'hello',
   };
 
@@ -265,9 +261,9 @@ describe('the sendGuildChatMessage input schema accepts no reply pointer', () =>
   });
 
   it('REJECTS a client-sent replyTo (the input schema is strict)', () => {
-    // Unlike the stored doc schema (non-strict, so legacy keys are stripped), the
-    // wire input is `.strict()` — a client that hand-rolls a reply pointer is
-    // rejected outright rather than silently ignored (DJ ruling 2026-07-29).
+    // Unlike the stored doc schema (non-strict, so unknown keys are stripped), the wire input
+    // is `.strict()` — a client that hand-rolls a reply pointer is rejected outright rather
+    // than silently ignored.
     expect(
       SendGuildChatMessageInputSchema.safeParse({
         ...valid,
@@ -322,8 +318,8 @@ describe('Conversation Files path builders + collection registration', () => {
 
 // ────────────────────────── Media serving / publication ──────────────────────────
 
-describe('media contracts after the replacement', () => {
-  it('the publication registry has conversationFile and neither removed attachment kind', () => {
+describe('media contracts for Conversation Files', () => {
+  it('the publication registry has conversationFile and no chat-attachment kind', () => {
     expect(MediaPublicationKindSchema.parse('conversationFile')).toBe('conversationFile');
     expect(MediaPublicationKindSchema.options).not.toContain('chatAttachment');
     expect(MediaPublicationKindSchema.options).not.toContain('adminSupportAttachment');
@@ -335,7 +331,7 @@ describe('media contracts after the replacement', () => {
     expect(() =>
       MediaServingScopeSchema.parse({ kind: 'guildChannel', workProjectId: 'w', guildChatChannelId: 'c' }),
     ).toThrow();
-    // Work media keeps its own scopes untouched.
+    // Work media has its own scopes.
     expect(MediaServingScopeSchema.parse({ kind: 'workProject', workProjectId: 'w' }).kind).toBe('workProject');
     expect(
       MediaServingScopeSchema.parse({ kind: 'workFileFolder', workProjectId: 'w', workFileFolderId: 'f' }).kind,
@@ -352,7 +348,7 @@ describe('media contracts after the replacement', () => {
     }
   });
 
-  it('the asset owner type is conversationFile, not the removed guildChatAttachment', () => {
+  it('the asset owner type is conversationFile, never guildChatAttachment', () => {
     expect(MediaAssetOwnerTypeSchema.parse('conversationFile')).toBe('conversationFile');
     expect(MediaAssetOwnerTypeSchema.options).not.toContain('guildChatAttachment');
   });
@@ -360,8 +356,8 @@ describe('media contracts after the replacement', () => {
 
 // ────────────────────────────── Capability coverage ──────────────────────────────
 
-describe('capability coverage is exhaustive after the rename', () => {
-  it('messaging.fileShare replaced messaging.attachment with the SAME adult/bilateral policy', () => {
+describe('capability coverage is exhaustive', () => {
+  it('messaging.fileShare carries the adult/bilateral policy, and no messaging.attachment exists', () => {
     const def = CAPABILITY_REGISTRY['messaging.fileShare'];
     expect(def.id).toBe('messaging.fileShare');
     expect(def.ageRequirement).toBe('adult18Plus');
@@ -502,7 +498,7 @@ describe('the safety target locator points at Conversation Files, not chat attac
       surfaceLabel: 'Conversation file',
       hasResolvedTarget: true,
     });
-    // A Conversation File is server-resolvable (TTT-hosted), like the locator it replaced.
+    // A Conversation File is server-resolvable (TTT-hosted).
     expect(isTttHostedLocator(invite)).toBe(true);
   });
 

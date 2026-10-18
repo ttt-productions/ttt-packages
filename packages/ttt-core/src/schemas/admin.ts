@@ -448,15 +448,14 @@ export const GetReportedContentDetailResultSchema = z.object({
    * Why the resolved surface and not the `workProjectType` it was resolved from: the surface is
    * what a consumer needs — `MODERATION_CLEARABLE_TEXT_FIELDS[clearableSurface]` is the exact
    * clearable field set, one canonical index with no re-derivation. Shipping the work-project type
-   * instead would make every consumer redo the routing AND the detail-vs-sub-item branch, which is
-   * precisely the hand-rolled duplication that map was created to end.
+   * instead would make every consumer redo the routing AND the detail-vs-sub-item branch — the
+   * hand-rolled duplication that map exists to prevent.
    *
-   * What it fixes: the in-flow clear's field picker offered the hall-family UNION
-   * (title/description/content) because the projection never said which surface the sub-item was —
-   * so an operator could tick `description` on a Tale chapter (title/content) or `content` on a
-   * Tune track (title/description), pass the wire refinement, and have the clear runner silently
-   * drop it. The picker now offers only this surface's fields, and the resolve path re-checks
-   * caller-supplied fields against the same set.
+   * Without it, the in-flow clear's field picker could only offer the hall-family UNION
+   * (title/description/content), so an operator could tick `description` on a Tale chapter
+   * (title/content) or `content` on a Tune track (title/description), pass the wire refinement,
+   * and have the clear runner silently drop it. The picker offers only this surface's fields, and
+   * the resolve path re-checks caller-supplied fields against the same set.
    *
    * `.nullish()`: absent on payloads produced before this field existed, and null when the
    * reported item is not a clearable text surface at all (a square post, a chat message, a
@@ -931,5 +930,9 @@ export const GetDeadLettersInputSchema = z
   .strict()
   .nullish();
 export type GetDeadLettersInput = z.infer<typeof GetDeadLettersInputSchema>;
+
+/** The `getOpsStatus` input: the snapshot takes no parameters, and anything sent is refused. */
+export const GetOpsStatusInputSchema = z.object({}).strict();
+export type GetOpsStatusInput = z.infer<typeof GetOpsStatusInputSchema>;
 
 
