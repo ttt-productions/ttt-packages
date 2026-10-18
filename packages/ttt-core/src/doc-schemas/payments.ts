@@ -2,8 +2,6 @@
 // server-only companions: provider refs (Stripe IDs), the idempotency sentinel, the
 // independent integrity trail, and the paid-event quarantine queue. Types inferred via
 // z.infer. Money data lives here, never in social.ts.
-// See ttt-prod docs/design/donation-payment-system.md (the design owner for the
-// pledge/Stripe flow).
 
 import { z } from 'zod';
 import { LegalReviewNoticeReceiptSchema } from './legal-review-notice.js';
@@ -132,7 +130,7 @@ export const PledgePaymentProviderRefSchema = z.object({
   // Server timestamp (ms) of the checkout's 18+/public-disclosure attestation, stamped at session
   // creation and carried through Stripe metadata. A paid session missing it is quarantined. It is
   // fraud-evidence plumbing, not transparency data, so it rides THIS server-only doc and never the
-  // member-readable pledgePayments ledger (docs/design/donation-payment-system.md § Data model).
+  // member-readable pledgePayments ledger.
   ageAttestedAt: z.number(),
   // The founder legal-review notice acknowledgment given at checkout (its own required checkbox
   // on every pledge while the notice is active): the revision and server time, stamped at session
@@ -248,6 +246,14 @@ export const PLEDGE_REFUND_REQUEST_STATUSES = [
 ] as const;
 export const PledgeRefundRequestStatusSchema = z.enum(PLEDGE_REFUND_REQUEST_STATUSES);
 export type PledgeRefundRequestStatus = z.infer<typeof PledgeRefundRequestStatusSchema>;
+
+/** What a Stripe refund event settles a request to: completed once the pledge is fully refunded,
+ * failed when the refund it carried failed. */
+export const PLEDGE_REFUND_EVENT_REQUEST_STATUSES = [
+  'completed',
+  'failed',
+] as const satisfies readonly PledgeRefundRequestStatus[];
+export type PledgeRefundEventRequestStatus = (typeof PLEDGE_REFUND_EVENT_REQUEST_STATUSES)[number];
 
 /** The statuses of a request in flight. A failed request is open too until its follow-up is resolved. */
 export const PLEDGE_REFUND_OPEN_STATUSES = [

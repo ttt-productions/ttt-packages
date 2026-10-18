@@ -97,6 +97,11 @@ export const COLLECTION_REFS = {
   adminDispatchConversationMessages: (adminDispatchId: string): [string, string, string] =>
     [COLLECTIONS.PENDING_ADMIN_DISPATCHES, adminDispatchId, NESTED_SUBCOLLECTIONS.CONVERSATION_MESSAGES],
 
+  // One feedback type's suggestions, which account erasure queries for the departing user's
+  // entries; the per-document counterpart is PATH_BUILDERS.userSuggestion.
+  userSuggestions: (feedbackType: string): [string, string, string] =>
+    [COLLECTIONS.FEEDBACK_SUBMISSIONS, feedbackType, NESTED_SUBCOLLECTIONS.USER_SUGGESTIONS],
+
   // The upload pipeline's pending-row collection and the archive it sweeps terminal rows
   // into. The sweep addresses both as COLLECTIONS (query the live one, write a row per
   // archived doc); the per-document counterparts are PATH_BUILDERS.pendingMedia /

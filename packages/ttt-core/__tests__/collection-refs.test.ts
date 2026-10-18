@@ -162,6 +162,10 @@ describe('COLLECTION_REFS', () => {
       );
     });
 
+    it('userSuggestions is the parent collection of userSuggestion, so a query reads the docs the writer wrote', () => {
+      expect(toPath(PATH_BUILDERS.userSuggestion('bug', 's1'))).toBe(`${toPath(COLLECTION_REFS.userSuggestions('bug'))}/s1`);
+    });
+
     it('adminDispatchConversationFiles stays the files collection, not the messages one', () => {
       expect(toPath(COLLECTION_REFS.adminDispatchConversationFiles('ad1'))).toBe(
         'pendingAdminDispatches/ad1/conversationFiles',

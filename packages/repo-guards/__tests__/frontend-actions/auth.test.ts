@@ -89,6 +89,20 @@ describe('client auth boundary', () => {
     ]);
   });
 
+  it('judges a context by what it holds — its type, the type that type names, its default — never the rest of its file', async () => {
+    expect(
+      await run({
+        'src/context/named.tsx': lines('interface SessionState { claimsLoading: boolean }', 'const S = createContext<SessionState | null>(null);'),
+        'src/context/defaulted.tsx': lines('const INITIAL = { isAuthenticated: false };', 'const S = React.createContext(INITIAL);'),
+        'src/app/dialog.tsx': lines(
+          'interface DialogState { open: boolean }',
+          'const D = createContext<DialogState | undefined>(undefined);',
+          'export function Gate() { const { isAuthenticated } = useAuth(); return isAuthenticated ? null : <p />; }',
+        ),
+      }),
+    ).toEqual(['src/context/defaulted.tsx:2 a second auth context', 'src/context/named.tsx:2 a second auth context']);
+  });
+
   it('leaves an effect that sends a signed-out visitor to sign in alone: where a visitor is sent is business', async () => {
     expect(
       await run({

@@ -23,21 +23,33 @@ import { AuditionModeSchema, AuditionTypeSchema } from "../../doc-schemas/commis
 import { SystemVideoSlotIdSchema } from "../../system-slots/system-slots.js";
 import { ConversationFileRefSchema } from "../conversation-file-ref.js";
 import { SquareStreetzPostMentionsSchema } from "../atoms.js";
+import {
+  auditionEntryIdSchema,
+  auditionIdSchema,
+  commissionListingIdSchema,
+  conversationFileIdSchema,
+  craftSkillIdSchema,
+  hallSubItemIdSchema,
+  itemIdSchema,
+  squareStreetzPostIdSchema,
+  userIdSchema,
+  workFileFolderIdSchema,
+  workFileIdSchema,
+  workProjectIdSchema,
+  workRealmIdSchema,
+} from "../../schemas/atoms.js";
 
 export const ProfilePicturePublicationArgsSchema = z
   .object({
-    userId: z.string().min(1),
-    // Accepted and never read: the picture a publish supersedes is read from the profile doc
-    // inside the publish transaction, so overlapping uploads each retire their own predecessor.
-    previousAssetId: z.string().optional(),
+    userId: userIdSchema,
   })
   .strict();
 export type ProfilePicturePublicationArgs = z.infer<typeof ProfilePicturePublicationArgsSchema>;
 
 export const CraftSkillMediaPublicationArgsSchema = z
   .object({
-    userId: z.string().min(1),
-    craftSkillId: z.string().min(1),
+    userId: userIdSchema,
+    craftSkillId: craftSkillIdSchema,
     name: z.string(),
     skillType: ContentMediaKindSchema,
     kind: CraftSkillKindSchema,
@@ -50,10 +62,10 @@ export type CraftSkillMediaPublicationArgs = z.infer<typeof CraftSkillMediaPubli
 
 export const WorkAssetPublicationArgsSchema = z
   .object({
-    workProjectId: z.string().min(1),
-    folderId: z.string().min(1),
-    workFileId: z.string().min(1),
-    userId: z.string().min(1),
+    workProjectId: workProjectIdSchema,
+    folderId: workFileFolderIdSchema,
+    workFileId: workFileIdSchema,
+    userId: userIdSchema,
     name: z.string(),
     size: z.number().int().nonnegative(),
     contentType: z.string().min(1),
@@ -65,22 +77,22 @@ export type WorkAssetPublicationArgs = z.infer<typeof WorkAssetPublicationArgsSc
 
 export const HallCoverPublicationArgsSchema = z
   .object({
-    workProjectId: z.string().min(1),
+    workProjectId: workProjectIdSchema,
     itemType: z.enum(HALL_CONTENT_DETAIL_SURFACES),
-    itemId: z.string().min(1),
+    itemId: itemIdSchema,
   })
   .strict();
 export type HallCoverPublicationArgs = z.infer<typeof HallCoverPublicationArgsSchema>;
 
-export const RealmCoverPublicationArgsSchema = z.object({ workRealmId: z.string().min(1) }).strict();
+export const RealmCoverPublicationArgsSchema = z.object({ workRealmId: workRealmIdSchema }).strict();
 export type RealmCoverPublicationArgs = z.infer<typeof RealmCoverPublicationArgsSchema>;
 
 export const WorkContentMediaPublicationArgsSchema = z
   .object({
-    workProjectId: z.string().min(1),
+    workProjectId: workProjectIdSchema,
     itemType: z.enum(HALL_CONTENT_SUB_ITEM_SURFACES),
-    parentId: z.string().min(1),
-    itemId: z.string().min(1),
+    parentId: itemIdSchema,
+    itemId: hallSubItemIdSchema,
   })
   .strict();
 export type WorkContentMediaPublicationArgs = z.infer<typeof WorkContentMediaPublicationArgsSchema>;
@@ -88,8 +100,8 @@ export type WorkContentMediaPublicationArgs = z.infer<typeof WorkContentMediaPub
 export const ConversationFilePublicationArgsSchema = z
   .object({
     conversation: ConversationFileRefSchema,
-    conversationFileId: z.string().min(1),
-    uploadedByUid: z.string().min(1),
+    conversationFileId: conversationFileIdSchema,
+    uploadedByUid: userIdSchema,
     name: z.string().min(1),
     mediaKind: ContentMediaKindSchema,
     contentType: z.string().min(1),
@@ -102,8 +114,8 @@ export type ConversationFilePublicationArgs = z.infer<typeof ConversationFilePub
 
 export const SquarePostMediaPublicationArgsSchema = z
   .object({
-    userId: z.string().min(1),
-    postId: z.string().min(1),
+    userId: userIdSchema,
+    postId: squareStreetzPostIdSchema,
     content: z.string(),
     mentions: SquareStreetzPostMentionsSchema,
     mediaType: ContentMediaKindSchema,
@@ -113,8 +125,8 @@ export type SquarePostMediaPublicationArgs = z.infer<typeof SquarePostMediaPubli
 
 export const CommissionListingMediaPublicationArgsSchema = z
   .object({
-    commissionListingId: z.string().min(1),
-    userId: z.string().min(1),
+    commissionListingId: commissionListingIdSchema,
+    userId: userIdSchema,
     title: z.string(),
     description: z.string(),
     requiredTradeProfessions: z.array(z.string()),
@@ -125,7 +137,7 @@ export const CommissionListingMediaPublicationArgsSchema = z
     // Id and type only: the Work's title and description resolve at render (ARCH-103).
     workProjectAssociatedWith: z
       .object({
-        workProjectId: z.string().min(1),
+        workProjectId: workProjectIdSchema,
         type: z.string().min(1),
       })
       .strict(),
@@ -135,8 +147,8 @@ export type CommissionListingMediaPublicationArgs = z.infer<typeof CommissionLis
 
 export const CommissionProposalMediaPublicationArgsSchema = z
   .object({
-    commissionListingId: z.string().min(1),
-    userId: z.string().min(1),
+    commissionListingId: commissionListingIdSchema,
+    userId: userIdSchema,
     coverLetterText: z.string(),
     replyFileType: ContentMediaKindSchema,
   })
@@ -153,9 +165,9 @@ const auditionPromptModeFields = {
 const WorkPromptPublicationArgsSchema = z
   .object({
     mode: z.literal("workPrompt"),
-    userId: z.string().min(1),
-    auditionId: z.string().min(1),
-    workProjectId: z.string().min(1),
+    userId: userIdSchema,
+    auditionId: auditionIdSchema,
+    workProjectId: workProjectIdSchema,
     title: z.string(),
     description: z.string(),
     entriesCloseAt: z.number(),
@@ -169,8 +181,8 @@ const WorkPromptPublicationArgsSchema = z
 const AdminPromptPublicationArgsSchema = z
   .object({
     mode: z.literal("adminPrompt"),
-    userId: z.string().min(1),
-    auditionId: z.string().min(1),
+    userId: userIdSchema,
+    auditionId: auditionIdSchema,
     auditionType: AuditionTypeSchema.exclude(["workAudition"]),
     title: z.string(),
     description: z.string(),
@@ -185,9 +197,9 @@ const AdminPromptPublicationArgsSchema = z
 const EntryPublicationArgsSchema = z
   .object({
     mode: z.literal("entry"),
-    userId: z.string().min(1),
-    auditionId: z.string().min(1),
-    auditionEntryId: z.string().min(1),
+    userId: userIdSchema,
+    auditionId: auditionIdSchema,
+    auditionEntryId: auditionEntryIdSchema,
     // The upload's submit time, which the entry deadline is judged by.
     submittedAt: z.number(),
   })

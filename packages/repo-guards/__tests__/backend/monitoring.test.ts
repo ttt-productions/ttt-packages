@@ -25,6 +25,7 @@ const facts: MonitoringFacts = {
   providerInitCall: 'Vendor.init',
   sdkInitFiles: [{ path: 'instrumentation-client.ts', why: "the browser's one SDK start" }],
   functionsTestRecorder: 'functions/src/test/recorder.ts',
+  reportedByCore: [],
 };
 
 const testHelpers = { testCodePaths: [{ path: 'functions/src/test', why: 'the Functions test seams' }] };
@@ -91,6 +92,58 @@ describe('monitoring', () => {
       { file: 'functions/src/b.test.ts', line: 1, detail: 'mocks @pkg/monitoring-core' },
       { file: 'functions/src/b.test.ts', line: 2, detail: 'mocks @pkg/monitoring-core' },
     ]);
+  });
+
+  it('passes an entry point whose reviewed core reports every failure, and flags each stale entry', async () => {
+    const coreCaptures = [
+      "import { captureException } from '@pkg/monitoring-core';",
+      'export async function runCore(e) { try { await work(e); } catch (err) { captureException(err); throw err; } }',
+    ].join('\n');
+    const delegates = ["import { runCore } from './run-core.js';", "export const t = onDocumentCreated('x/{id}', async (e) => runCore(e));"].join('\n');
+    const why = 'the core captures every failure and throws an expected redelivery signal';
+    const reviewedFacts: MonitoringFacts = {
+      ...facts,
+      reportedByCore: [
+        { path: 'functions/src/media/delegate.ts', core: 'functions/src/media/run-core.ts', why },
+        { path: 'functions/src/media/self.ts', core: 'functions/src/media/run-core.ts', why },
+        { path: 'functions/src/media/other.ts', core: 'functions/src/media/run-core.ts', why },
+        { path: 'functions/src/media/silent.ts', core: 'functions/src/media/run-silent.ts', why },
+        { path: 'functions/src/media/gone.ts', core: 'functions/src/media/run-core.ts', why },
+      ],
+    };
+    repo = backendRepo(
+      {
+        ...clean,
+        'functions/src/media/run-core.ts': coreCaptures,
+        'functions/src/media/run-silent.ts': 'export async function runSilent(e) { await work(e); }',
+        'functions/src/media/delegate.ts': delegates,
+        'functions/src/media/self.ts': [
+          "import { captureException } from '@pkg/monitoring-core';",
+          "import { runCore } from './run-core.js';",
+          "export const t = onDocumentCreated('x', async (e) => { try { await runCore(e); } catch (err) { captureException(err); throw err; } });",
+        ].join('\n'),
+        'functions/src/media/other.ts': ["import { other } from './elsewhere.js';", "export const t = onDocumentCreated('x', async (e) => other(e));"].join('\n'),
+        'functions/src/media/silent.ts': ["import { runSilent } from './run-silent.js';", "export const t = onDocumentCreated('x', async (e) => runSilent(e));"].join('\n'),
+      },
+      testHelpers,
+    );
+    const [entryPoints] = monitoringGuard.build(reviewedFacts);
+    expect(await repo.run(entryPoints!)).toEqual([
+      { file: 'functions/src/media/other.ts', detail: 'a reportedByCore entry names functions/src/media/run-core.ts, which the entry point does not import' },
+      { file: 'functions/src/media/self.ts', detail: 'a reportedByCore entry for an entry point that reports on its own' },
+      { file: 'functions/src/media/silent.ts', detail: 'a reportedByCore entry names functions/src/media/run-silent.ts, which reports no failure to monitoring' },
+      { file: 'functions/src/media/gone.ts', detail: 'a reportedByCore entry for a file the Functions code does not hold' },
+    ]);
+  });
+
+  it('refuses a config without reportedByCore, or with an entry missing its core or why', () => {
+    const { reportedByCore: _omitted, ...withoutList } = facts;
+    expect(monitoringGuard.factProblems(withoutList as MonitoringFacts)).toContain(
+      'reportedByCore is missing (declare [] when every entry point reports its own failures)',
+    );
+    expect(monitoringGuard.factProblems({ ...facts, reportedByCore: [{ path: 'functions/src/t.ts', core: '', why: ' ' }] })).toContain(
+      'a reportedByCore entry needs its entry file, its core module, and its why',
+    );
   });
 
   it('FLAGS an adapter that initializes twice, a reporter that never initializes, a layout that never mounts it, and a missing seam', async () => {

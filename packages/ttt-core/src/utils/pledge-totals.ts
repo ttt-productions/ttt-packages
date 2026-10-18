@@ -16,6 +16,13 @@ export const PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS = [
 /** Those fields' values for one pledge, or their sums over many (cents). */
 export type PledgePaymentAmountSums = Pick<PledgePayment, (typeof PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS)[number]>;
 
+/** The amounts a dispute closed as lost stamps on its pledge: the withdrawn amount and the
+ * recomputed net. Every other dispute transition moves only the dispute state and number. */
+export const PLEDGE_DISPUTE_LOST_STAMPED_FIELDS = [
+  'disputeLostAmount',
+  'netAmount',
+] as const satisfies readonly (typeof PLEDGE_PAYMENT_SUMMED_AMOUNT_FIELDS)[number][];
+
 /**
  * The counters from the summed pledge amounts. `totalRefunded` is money that left the platform:
  * refunds plus funds withdrawn by a lost dispute. `pledgeCount` is the number of those pledges that

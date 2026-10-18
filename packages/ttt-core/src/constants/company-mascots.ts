@@ -3,10 +3,9 @@
 //
 // The ONE home for the pure, server-safe Company business truths (id unions,
 // billing kinds, performance intents, selectability, roster order) AND the
-// DJ-approved VERBATIM character content (studies, click lines, footers,
-// companion-switch exchanges, Yorick block lines, signed-out dock lines,
-// onboarding cameos). Moved here losslessly from the app's staging modules
-// (`src/lib/company-contract` + `src/lib/company-mascots.tsx`).
+// VERBATIM character content (studies, click lines, footers, companion-switch
+// exchanges, Yorick block lines, signed-out dock lines, onboarding cameos, the
+// first-visit site tour).
 //
 // This module is pure data: NO React, NO JSX, NO Next links, NO CSS, NO SVG,
 // NO functions inside the data. Rich copy is modelled as discriminated
@@ -37,8 +36,7 @@ export type CompanyBillingKind = 'foundingPlayer' | 'player' | 'standIn';
  *  performances (page-grabs, standing ovations) land as content, not code. */
 export type CompanyPerformanceIntent = 'bow' | 'hop' | 'wave';
 
-/** The performance intents, in demo-button order. The app previously
- *  hand-mirrored this union in two places; consumers derive from this array. */
+/** The performance intents, in demo-button order; consumers derive from this array. */
 export const COMPANY_PERFORMANCE_INTENTS: readonly CompanyPerformanceIntent[] = ['bow', 'hop', 'wave'];
 
 /** The characters a user may cast as their dock companion (never a Stand-In). */
@@ -402,3 +400,93 @@ export const ONBOARDING_CAMEOS: OnboardingCameos = {
     yorick: "You'll forget me. It's fine. Go.",
   },
 };
+
+// ── First-visit site tour ─────────────────────────────────────────────────────
+// The tour layer reads these records and never inlines its own strings. A `speaker` names the
+// mascot whose headshot sits beside the line.
+
+/** The permanent shell controls a tour step can highlight. */
+export const SITE_TOUR_ANCHORS = ['homeAndHelp', 'accountArea', 'dock', 'pageActions'] as const;
+export type SiteTourAnchor = (typeof SITE_TOUR_ANCHORS)[number];
+
+export interface SiteTourLine {
+  speaker: CompanyCharacterId;
+  text: string;
+}
+
+export interface SiteTourStepCopy {
+  /** Which permanent shell control this step highlights. */
+  anchor: SiteTourAnchor;
+  /** The mascot who leads this step. */
+  speaker: CompanyCharacterId;
+  /** Bold lead-in headline. */
+  heading: string;
+  /** Body paragraphs (verbatim), each its own paragraph. */
+  body: readonly string[];
+  /** Non-Artisan replacement for the FINAL body paragraph, when present. */
+  bodyNonArtisanFinal?: string;
+}
+
+/** The three-mascot greeting + invitation lines. */
+export const SITE_TOUR_INVITATION_LINES: readonly SiteTourLine[] = [
+  {
+    speaker: 'bill',
+    text:
+      'Welcome to TTT! Before the curtain rises, may we show you the few controls that will help you find your way around?',
+  },
+  { speaker: 'kit', text: 'Four quick stops. He rehearsed twelve.' },
+  { speaker: 'yorick', text: 'I was told there would be snacks.' },
+];
+
+/** The four-step tour copy. */
+export const SITE_TOUR_STEPS: readonly SiteTourStepCopy[] = [
+  {
+    anchor: 'homeAndHelp',
+    speaker: 'bill',
+    heading: "TTT brings you home. Help is where you look when you're lost.",
+    body: [
+      'TTT always returns you to Center Stage. Help opens the Backstage Guide, where you can learn how the theatre works and replay this tour.',
+    ],
+  },
+  {
+    anchor: 'accountArea',
+    speaker: 'kit',
+    heading: 'Most of the theatre waits behind your account menu.',
+    body: [
+      'Use it to visit The Town, open Your Corner, change settings, or sign out. Artisans also have a separate My Work button for reaching their Works quickly.',
+    ],
+    bodyNonArtisanFinal:
+      'If you become an Artisan, My Work will appear here for reaching your Works quickly.',
+  },
+  {
+    anchor: 'dock',
+    speaker: 'yorick',
+    heading:
+      'Your companion lives here. Click them for a little company—or hide them from the notification tray when you need some quiet.',
+    body: [
+      'The tray also lets you reduce motion across the whole theatre while keeping your companion visible and still.',
+      'The bell opens notifications. After you scroll down a page, an arrow appears to carry you back to the top.',
+      'I am, apparently, not eligible for the companion position.',
+    ],
+  },
+  {
+    anchor: 'pageActions',
+    speaker: 'kit',
+    heading: 'Some pages place their special actions in this corner.',
+    body: [
+      'You may find controls for creating something, reviewing activity, or performing another action unique to that page. If the corner is empty, there is nothing waiting for you there.',
+    ],
+  },
+];
+
+/** The three-mascot curtain-call lines. */
+export const SITE_TOUR_CURTAIN_CALL_LINES: readonly SiteTourLine[] = [
+  {
+    speaker: 'bill',
+    text: 'That is the whole house. You can revisit this tour from Help whenever you need it.',
+  },
+  { speaker: 'kit', text: 'Four stops. Barely an epic.' },
+  { speaker: 'yorick', text: 'I still think we missed the refreshments.' },
+];
+
+export const SITE_TOUR_TOTAL_STEPS = SITE_TOUR_STEPS.length;

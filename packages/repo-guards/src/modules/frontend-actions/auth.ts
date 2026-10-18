@@ -7,6 +7,7 @@ import type { Finding, Guard } from '../../guard.js';
 import type { Reviewed } from '../../reader/layout.js';
 import type { Scope } from '../../reader/reader.js';
 import type { FileView } from '../../reader/view.js';
+import { calleeName, forEachNode } from '../../support/ast.js';
 import { namesProblem, objectProblem, reviewedProblems, textProblem } from '../../support/facts.js';
 import { fromStatements, moduleImports, namesModule } from '../../support/imports.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
@@ -71,6 +72,7 @@ export function boundaryDerivations(file: FileView, facts: Pick<ClientAuthBounda
 export function secondAuthAccessors(
   path: string,
   code: string,
+  sourceFile: ts.SourceFile,
   facts: Pick<ClientAuthBoundaryFacts, 'accessor' | 'authContextVocabulary' | 'boundaryModules'>,
 ): Array<{ index: number; detail: string }> {
   const out: Array<{ index: number; detail: string }> = [];
@@ -84,11 +86,52 @@ export function secondAuthAccessors(
   }
   if (!facts.boundaryModules.some((m) => m.path === path)) {
     const vocabulary = new RegExp(`\\b(?:${facts.authContextVocabulary.map(escapeRegExp).join('|')})\\b`);
-    if (vocabulary.test(code)) {
-      for (const m of code.matchAll(/\bcreateContext\s*[<(]/g)) out.push({ index: m.index!, detail: 'a second auth context' });
+    for (const call of contextCreations(sourceFile)) {
+      if (contextShapeTexts(call, sourceFile, code).some((text) => vocabulary.test(text))) {
+        out.push({ index: call.getStart(sourceFile), detail: 'a second auth context' });
+      }
     }
   }
   return out;
+}
+
+/** Every `createContext(…)` call in a file, bare or through a namespace. */
+function contextCreations(sourceFile: ts.SourceFile): ts.CallExpression[] {
+  const calls: ts.CallExpression[] = [];
+  forEachNode(sourceFile, (node) => {
+    if (ts.isCallExpression(node) && calleeName(node) === 'createContext') calls.push(node);
+  });
+  return calls;
+}
+
+/**
+ * The comment-free text of what a context holds: its type argument, the same-file interface or type
+ * alias that argument names, its default value, and the same-file constant that value names. Only
+ * these say whether the context carries auth state; the rest of the file does not.
+ */
+function contextShapeTexts(call: ts.CallExpression, sourceFile: ts.SourceFile, code: string): string[] {
+  const textOf = (node: ts.Node) => code.slice(node.getStart(sourceFile), node.getEnd());
+  const declared = (name: string): ts.Node[] => {
+    const found: ts.Node[] = [];
+    forEachNode(sourceFile, (node) => {
+      if ((ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) && node.name.text === name) found.push(node);
+      if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.name.text === name && node.initializer) found.push(node.initializer);
+    });
+    return found;
+  };
+  const texts: string[] = [];
+  for (const typeArg of call.typeArguments ?? []) {
+    texts.push(textOf(typeArg));
+    forEachNode(typeArg, (node) => {
+      if (ts.isTypeReferenceNode(node) && ts.isIdentifier(node.typeName)) texts.push(...declared(node.typeName.text).map(textOf));
+    });
+  }
+  const initial = call.arguments[0];
+  if (initial) {
+    texts.push(textOf(initial));
+    if (ts.isIdentifier(initial)) texts.push(...declared(initial.text).map(textOf));
+  }
+  return texts;
 }
 
 export const clientAuthBoundaryGuard: GenericGuardDefinition<ClientAuthBoundaryFacts> = {
@@ -124,7 +167,7 @@ export const clientAuthBoundaryGuard: GenericGuardDefinition<ClientAuthBoundaryF
             const inBoundary = facts.boundaryModules.some((m) => m.path === file.path);
             const hits = [
               ...(inBoundary ? [] : boundaryDerivations(file, facts)),
-              ...secondAuthAccessors(file.path, file.code, facts),
+              ...secondAuthAccessors(file.path, file.code, file.sourceFile, facts),
             ];
             for (const hit of hits) findings.push({ file: file.path, line: file.lineOf(hit.index), detail: hit.detail });
           }

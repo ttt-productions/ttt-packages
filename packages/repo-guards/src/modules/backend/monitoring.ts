@@ -12,6 +12,7 @@ import type { Reviewed } from '../../reader/layout.js';
 import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
 import { loaderProblem, namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
 import { MODULE_LOADS, moduleImports, namesModule } from '../../support/imports.js';
+import { resolveRelative } from '../../support/paths.js';
 import { escapeRegExp } from '../../support/text.js';
 
 const FUNCTIONS_CODE: Scope = { roots: ['functions'], kinds: ['code'], tests: false };
@@ -55,6 +56,31 @@ export interface MonitoringFacts {
   sdkInitFiles: readonly Reviewed[];
   /** The Functions test seam that records captures; tests use it instead of mocking the package. */
   functionsTestRecorder: string;
+  /**
+   * Entry points whose failures their core reports: the entry file, the core module it hands every
+   * event to, and the why (`[]` when there is none). An entry is stale when the core no longer
+   * captures, the entry file no longer imports it, or the entry file reports on its own.
+   */
+  reportedByCore: ReadonlyArray<{ path: string; core: string; why: string }>;
+}
+
+/** A module path without its source or emitted extension, for comparing an import to a file. */
+const withoutExtension = (path: string): string => path.replace(/\.(?:[cm]?[jt]sx?)$/, '');
+
+/** True when a file imports the module at `corePath` for its values. */
+function importsModule(file: FileView, corePath: string): boolean {
+  const target = withoutExtension(corePath);
+  return file.imports.some(({ spec, typeOnly }) => {
+    if (typeOnly) return false;
+    const resolved = resolveRelative(file.path, spec);
+    return resolved !== null && !resolved.escapes && withoutExtension(resolved.path) === target;
+  });
+}
+
+/** True when a file imports the monitoring package and calls one of its capture calls. */
+function reportsToMonitoring(file: FileView, facts: Pick<MonitoringFacts, 'monitoringPackage' | 'captureCalls'>): boolean {
+  const importsMonitoring = moduleImports(file.sourceFile, MODULE_LOADS).some(({ spec, typeOnly }) => !typeOnly && namesModule(spec, facts.monitoringPackage));
+  return importsMonitoring && facts.captureCalls.some((capture) => new RegExp(`\\b${escapeRegExp(capture)}\\s*\\(`).test(file.code));
 }
 
 /** Every Cloud Functions entry-point shape, with the label a finding reports. */
@@ -75,9 +101,7 @@ export function unmonitoredEntryPoint(file: FileView, facts: Pick<MonitoringFact
   const shapes = ENTRY_POINT_SHAPES.filter(({ re }) => re.test(file.code)).map(({ shape }) => shape);
   if (!shapes.length) return [];
   if (facts.callableExits.some((exit) => callPattern(exit).test(file.code))) return [];
-  const importsMonitoring = moduleImports(file.sourceFile, MODULE_LOADS).some(({ spec, typeOnly }) => !typeOnly && namesModule(spec, facts.monitoringPackage));
-  const captures = facts.captureCalls.some((capture) => new RegExp(`\\b${escapeRegExp(capture)}\\s*\\(`).test(file.code));
-  return importsMonitoring && captures ? [] : shapes;
+  return reportsToMonitoring(file, facts) ? [] : shapes;
 }
 
 /** Every import of a provider SDK package. */
@@ -115,6 +139,10 @@ export const monitoringGuard: GenericGuardDefinition<MonitoringFacts> = {
     textProblem(facts?.providerInitCall, 'providerInitCall', problems);
     reviewedProblems(facts?.sdkInitFiles, 'sdkInitFiles', problems);
     textProblem(facts?.functionsTestRecorder, 'functionsTestRecorder', problems);
+    if (!Array.isArray(facts?.reportedByCore)) problems.push('reportedByCore is missing (declare [] when every entry point reports its own failures)');
+    for (const entry of facts?.reportedByCore ?? []) {
+      if (!entry?.path || !entry.core || !entry.why?.trim()) problems.push('a reportedByCore entry needs its entry file, its core module, and its why');
+    }
     return problems;
   },
   build(facts) {
@@ -127,12 +155,33 @@ export const monitoringGuard: GenericGuardDefinition<MonitoringFacts> = {
         `or database trigger — either exits its callable through ${facts.callableExits.join(' / ') || 'the app\'s callable exit'} ` +
         `or imports ${facts.monitoringPackage} and calls ${facts.captureCalls.join(' / ')} on its failure path. A failure ` +
         'path that only writes a log line is not monitored: nothing watches the log, so a background trigger fails ' +
-        'invisibly. An import that is never called is not monitoring either.',
+        'invisibly. An import that is never called is not monitoring either. An entry point whose core reports every ' +
+        'failure is a reviewed entry naming that core, with its why; it is stale when the core no longer captures, ' +
+        'the entry point no longer imports it, or the entry point reports on its own.',
       run(context) {
         const findings: Finding[] = [];
+        const reviewed = new Map(facts.reportedByCore.map((entry) => [entry.path, entry]));
+        const seen = new Set<string>();
         for (const file of context.files(FUNCTIONS_CODE)) {
           const shapes = unmonitoredEntryPoint(file, facts);
-          if (shapes.length) findings.push({ file: file.path, detail: `defines ${shapes.join(', ')} and reports no failure to monitoring` });
+          const entry = reviewed.get(file.path);
+          if (!entry) {
+            if (shapes.length) findings.push({ file: file.path, detail: `defines ${shapes.join(', ')} and reports no failure to monitoring` });
+            continue;
+          }
+          seen.add(file.path);
+          if (!ENTRY_POINT_SHAPES.some(({ re }) => re.test(file.code))) {
+            findings.push({ file: file.path, detail: 'a reportedByCore entry for a file that defines no entry point' });
+          } else if (!shapes.length) {
+            findings.push({ file: file.path, detail: 'a reportedByCore entry for an entry point that reports on its own' });
+          } else if (!importsModule(file, entry.core)) {
+            findings.push({ file: file.path, detail: `a reportedByCore entry names ${entry.core}, which the entry point does not import` });
+          } else if (!context.reader.exists(entry.core) || !reportsToMonitoring(context.file(entry.core), facts)) {
+            findings.push({ file: file.path, detail: `a reportedByCore entry names ${entry.core}, which reports no failure to monitoring` });
+          }
+        }
+        for (const entry of facts.reportedByCore) {
+          if (!seen.has(entry.path)) findings.push({ file: entry.path, detail: 'a reportedByCore entry for a file the Functions code does not hold' });
         }
         return findings;
       },

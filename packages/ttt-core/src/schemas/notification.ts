@@ -76,23 +76,21 @@ export const NOTIFICATION_TYPE_VALUES = [
   'hall_content_change_request_resolved',
   'admin_announcement',
   'followed_content_published',
-  // The two audience-fanout triggers (see ttt-prod docs/design/notification-system.md).
+  // The two audience-fanout triggers.
   // `member_content_published`: the Hall-publish MEMBER job ("your work was published!") — same
   //   `thresholdItemId` eventId as the follower job, different type so `deliveryId` stays distinct.
   // `followed_craft_skill_published`: craft-skill publish → the artisan's followers
   //   (`staticRelight` strategy — count 1 forever, static copy, no count shown).
   'member_content_published',
   'followed_craft_skill_published',
-  // Reporter feedback (DJ ruling 2026-07-06): when a report a user submitted is
+  // Reporter feedback: when a report a user submitted is
   // closed as a REAL case WITH action (ordinary report root flips to `actioned`),
   // the reporter gets one light informational card. Never sent on dismissals.
   // Generic copy only — the card must not reveal the reported user, reason, or
   // remedy (a bad-faith reporter must not be able to probe moderation outcomes).
   'report_action_taken',
-  // Appellant feedback for a content-appeal decision (DJ ruling 2026-07-10 —
-  // gap found by the hosted E2E build: reviewContentAppeal decided appeals with
-  // NO channel reporting the outcome to the appellant). Fired on BOTH approve
-  // and deny. It is the appellant's OWN appeal, so unlike report_action_taken
+  // Appellant feedback for a content-appeal decision, so the appellant always learns the
+  // outcome. Fired on BOTH approve and deny. It is the appellant's OWN appeal, so unlike report_action_taken
   // there is no privacy ceiling: the card states the outcome plainly and
   // targets My Uploads, where the resulting upload state lives.
   'content_appeal_reviewed',
@@ -112,6 +110,32 @@ export const NOTIFICATION_TYPE_VALUES = [
 
 export const NotificationTypeSchema = z.enum(NOTIFICATION_TYPE_VALUES);
 export type NotificationType = z.infer<typeof NotificationTypeSchema>;
+
+/** The notification types delivered on the reliable single/shared lane: each occurrence gets a
+ * deterministic delivery row, so a source write never commits while its notification vanishes.
+ * Every other type rides the audience-fanout lane. */
+export const RELIABLE_NOTIFICATION_TYPES = [
+  'content_report',
+  'admin_dispatch_reply',
+  'admin_dispatch_created',
+  'guild_invite',
+  'threshold_library_submission',
+  'threshold_library_reviewed',
+  'hall_content_change_request_resolved',
+  'report_action_taken',
+  'content_appeal_reviewed',
+  'realm_file_share_requested',
+  'realm_file_share_resolved',
+] as const satisfies readonly NotificationType[];
+export type ReliableNotificationType = (typeof RELIABLE_NOTIFICATION_TYPES)[number];
+
+/** The reliable types materialized inline at their origin; every other reliable type is
+ * materialized by the queued drain. */
+export const REALTIME_RELIABLE_NOTIFICATION_TYPES = [
+  'content_report',
+  'admin_dispatch_reply',
+  'admin_dispatch_created',
+] as const satisfies readonly ReliableNotificationType[];
 
 /** Delivery channels. Only `inApp` is implemented at launch; `email`/`push` are
  * reserved for future channel handlers. */
@@ -180,7 +204,7 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     type: z.literal('admin_dispatch_reply'),
     adminDispatchId: adminDispatchIdSchema,
     // Party-generic dispatch: present on workProject-party threads so the card routes
-    // to the Work's correspondence surface. Absent on user-party threads (legacy shape).
+    // to the Work's correspondence surface. Absent on user-party threads.
     partyKind: z.enum(['user', 'workProject']).optional(),
     workProjectId: workProjectIdSchema.optional(),
   }).strict(),
@@ -213,7 +237,7 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
   // Proposer feedback for a published change-request decision. Mirrors what
   // runReviewHallContentChangeRequest (ttt-prod) sends: `resolutionReason` is
   // required on a deny, optional on an approve — null when absent. The realm
-  // grain (R1) sends `workRealmId` with `hallItemId` null; hall grains the
+  // grain sends `workRealmId` with `hallItemId` null; hall grains the
   // reverse.
   z.object({
     type: z.literal('hall_content_change_request_resolved'),
@@ -238,7 +262,7 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     hallItemTitle: storedTitleSchema,
     hallSubItemType: HallSubItemTypeSchema,
   }).strict(),
-  // P7 Hall-publish MEMBER job — same Hall-publication fields as the follower type (it describes
+  // Hall-publish MEMBER job — same Hall-publication fields as the follower type (it describes
   // the SAME publication to the work's members; the work route + "your work was published!" copy
   // are set by the emitter via targetPath/title, not metadata).
   z.object({
@@ -250,7 +274,7 @@ export const NotificationMetadataByTypeSchema = z.discriminatedUnion('type', [
     hallItemTitle: storedTitleSchema,
     hallSubItemType: HallSubItemTypeSchema,
   }).strict(),
-  // P7 craft-skill publish — points at the artisan whose skills updated. The actor name
+  // Craft-skill publish — points at the artisan whose skills updated. The actor name
   // ("X uploaded new craft skills") + the profile/skills route resolve from `artisanUid` at
   // render time (Display Identity Invariant); `staticRelight` shows no count.
   z.object({
@@ -368,7 +392,7 @@ export const ArchiveNotificationScopeSchema = z.discriminatedUnion('kind', [
 ]);
 export type ArchiveNotificationScope = z.infer<typeof ArchiveNotificationScopeSchema>;
 
-// No `device` field on the archive input — archive metadata is server-derived (A1).
+// No `device` field on the archive input — archive metadata is server-derived.
 export const ArchiveNotificationInputSchema = z.object({
   category: NotificationCategorySchema,
   scope: ArchiveNotificationScopeSchema,
@@ -383,12 +407,11 @@ export const MarkNotificationsSeenInputSchema = z.object({
 export type MarkNotificationsSeenInput = z.infer<typeof MarkNotificationsSeenInputSchema>;
 
 // ============================================================================
-// OBSERVED-GENERATION CALLABLE INPUT SCHEMAS (P6 tray)
+// OBSERVED-GENERATION CALLABLE INPUT SCHEMAS
 //
-// These are for the NEW observed-generation callables the P6 notification tray
-// will invoke. The LEGACY schemas above (MarkNotificationsSeenInputSchema /
-// ArchiveNotificationInputSchema) remain intact — the legacy callables still use
-// them.
+// The inputs of the observed-generation callables the notification tray invokes. The
+// category-wide callables take MarkNotificationsSeenInputSchema /
+// ArchiveNotificationInputSchema above.
 // ============================================================================
 
 // Max items per mark-seen call matches a sane notification tray page size.
@@ -405,7 +428,7 @@ const SeenItemSchema = z.object({
 }).strict();
 
 /**
- * Input for the new observed-generation mark-seen callable (P6 tray).
+ * Input for the observed-generation mark-seen callable.
  *
  * The UI sends only the rows it actually rendered plus their observed
  * `activityGeneration` tokens. The server sets `seenAt = now` ONLY when the
@@ -435,9 +458,8 @@ export type MarkNotificationsSeenObservedInput = z.infer<typeof MarkNotification
  *   single observed generation for the whole category. (Design choice: archive-all
  *   carries no observedActivityGeneration at the top level; the server reads each
  *   card's current generation as its own precondition. This is consistent with the
- *   frozen "mark-all/archive-all run bounded pages with stable cursors until
- *   exhausted" protocol (ttt-prod docs/design/notification-system.md) and the
- *   archive-history identity formula
+ *   "mark-all/archive-all run bounded pages with stable cursors until exhausted"
+ *   protocol and the archive-history identity formula
  *   which keys each occurrence on requestId independently.)
  */
 export const ArchiveNotificationObservedScopeSchema = z.discriminatedUnion('kind', [
@@ -453,15 +475,15 @@ export const ArchiveNotificationObservedScopeSchema = z.discriminatedUnion('kind
 export type ArchiveNotificationObservedScope = z.infer<typeof ArchiveNotificationObservedScopeSchema>;
 
 /**
- * Input for the observed-generation archive callable (P6 tray).
+ * Input for the observed-generation archive callable.
  *
  * `requestId` is a per-call nonce — the tray mints a fresh uuid on every archive /
- * clear-all click, so it is NOT a replay-stability token (R39). Idempotency is provided
+ * clear-all click, so it is NOT a replay-stability token. Idempotency is provided
  * by ACTIVE-DOC DELETION: a replay finds the card already gone and no-ops, so an archive
  * never double-applies. The server combines `requestId` with the card's `activeId` to
  * form the deterministic history doc id (`hash('notification-archive', category,
  * audienceScope, requestId:activeId)`), so a single archive can never collide on another
- * card's history doc (R35).
+ * card's history doc.
  *
  * `category` scopes which active-notification collection is archived
  * (`activeUserNotifications` vs `activeAdminNotifications`) and forms part of

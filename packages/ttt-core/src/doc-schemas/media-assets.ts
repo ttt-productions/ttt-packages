@@ -76,6 +76,17 @@ export const MEDIA_VARIANT_KEYS = [
 export const MediaVariantKeySchema = z.enum(MEDIA_VARIANT_KEYS);
 export type MediaVariantKey = z.infer<typeof MediaVariantKeySchema>;
 
+/** The sizes a profile picture is produced in (`TTT_MEDIA_SPECS['profile-picture']`), largest first. */
+export const PROFILE_PICTURE_VARIANT_KEYS = ['full', 'medium', 'small'] as const satisfies readonly MediaVariantKey[];
+export type ProfilePictureVariantKey = (typeof PROFILE_PICTURE_VARIANT_KEYS)[number];
+
+/** Which variant renders a stored image as a single display: the largest servable one. An image
+ * origin carries exactly one of `main` / `full`; a profile picture adds the smaller sizes. */
+export const MEDIA_DISPLAY_VARIANT_PRECEDENCE = [
+  TIMED_MEDIA_MAIN_OUTPUT_KEY,
+  ...PROFILE_PICTURE_VARIANT_KEYS,
+] as const satisfies readonly MediaVariantKey[];
+
 /** Why this asset was created from its source.
  *
  * Chat is text-only and owns no media, so no copy is ever made for a chat message. A

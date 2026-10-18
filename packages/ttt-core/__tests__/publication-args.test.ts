@@ -135,19 +135,45 @@ describe('media publication args', () => {
     expect(AuditionMediaPublicationArgsSchema.safeParse({ ...entry, title: 'x' }).success).toBe(false);
   });
 
-  it('an empty id is refused', () => {
-    expect(RealmCoverPublicationArgsSchema.safeParse({ workRealmId: '' }).success).toBe(false);
-    expect(ProfilePicturePublicationArgsSchema.safeParse({ userId: '' }).success).toBe(false);
-    for (const field of ['workProjectId', 'parentId', 'itemId']) {
-      expect(WorkContentMediaPublicationArgsSchema.safeParse({
-        workProjectId: 'wp1', itemType: 'chapter', parentId: 'tale-1', itemId: 'ch-1', [field]: '',
-      }).success, field).toBe(false);
+  it('a stored job whose id is not one path segment is refused, in every id field of every kind', () => {
+    const notOneSegment = ['', '/', 'a/b', '.', '..', '__x__', 'x'.repeat(1501)];
+    const idFields: ReadonlyArray<[string, { safeParse: (v: unknown) => { success: boolean } }, Record<string, unknown>, string[]]> = [
+      ['profilePicture', ProfilePicturePublicationArgsSchema, { userId: 'u1' }, ['userId']],
+      ['squarePostMedia', SquarePostMediaPublicationArgsSchema, squarePost, ['userId', 'postId']],
+      ['workAsset', WorkAssetPublicationArgsSchema, workAsset, ['workProjectId', 'folderId', 'workFileId', 'userId']],
+      ['hallCover', HallCoverPublicationArgsSchema, { workProjectId: 'wp1', itemType: 'tale', itemId: 'tale-1' }, ['workProjectId', 'itemId']],
+      ['realmCover', RealmCoverPublicationArgsSchema, { workRealmId: 'realm-1' }, ['workRealmId']],
+      ['workContentMedia', WorkContentMediaPublicationArgsSchema, { workProjectId: 'wp1', itemType: 'chapter', parentId: 'tale-1', itemId: 'ch-1' }, ['workProjectId', 'parentId', 'itemId']],
+      ['auditionMedia workPrompt', AuditionMediaPublicationArgsSchema, workPrompt, ['userId', 'auditionId', 'workProjectId']],
+      ['auditionMedia adminPrompt', AuditionMediaPublicationArgsSchema, adminPrompt, ['userId', 'auditionId']],
+      ['auditionMedia entry', AuditionMediaPublicationArgsSchema, entry, ['userId', 'auditionId', 'auditionEntryId']],
+      ['commissionListingMedia', CommissionListingMediaPublicationArgsSchema, commissionListing, ['commissionListingId', 'userId']],
+      ['commissionProposalMedia', CommissionProposalMediaPublicationArgsSchema, commissionProposal, ['commissionListingId', 'userId']],
+      ['craftSkillMedia', CraftSkillMediaPublicationArgsSchema, craftSkill, ['userId', 'craftSkillId']],
+      ['conversationFile', ConversationFilePublicationArgsSchema, conversationFile, ['conversationFileId', 'uploadedByUid']],
+    ];
+    for (const [kind, schema, valid, fields] of idFields) {
+      expect(schema.safeParse(valid).success, kind).toBe(true);
+      for (const field of fields) {
+        for (const id of notOneSegment) {
+          expect(schema.safeParse({ ...valid, [field]: id }).success, `${kind}.${field} = ${JSON.stringify(id).slice(0, 20)}`).toBe(false);
+        }
+      }
+    }
+    for (const id of notOneSegment) {
+      expect(
+        CommissionListingMediaPublicationArgsSchema.safeParse({
+          ...commissionListing,
+          workProjectAssociatedWith: { workProjectId: id, type: 'tale' },
+        }).success,
+        `workProjectAssociatedWith.workProjectId = ${JSON.stringify(id).slice(0, 20)}`,
+      ).toBe(false);
     }
   });
 
-  it('a profile picture job may carry a superseded asset id or none', () => {
-    expect(ProfilePicturePublicationArgsSchema.safeParse({ userId: 'u1', previousAssetId: 'asset-0' }).success).toBe(true);
+  it('a profile picture job carries only its account; a stored superseded-asset id is refused', () => {
     expect(ProfilePicturePublicationArgsSchema.safeParse({ userId: 'u1' }).success).toBe(true);
+    expect(ProfilePicturePublicationArgsSchema.safeParse({ userId: 'u1', previousAssetId: 'asset-0' }).success).toBe(false);
   });
 });
 
