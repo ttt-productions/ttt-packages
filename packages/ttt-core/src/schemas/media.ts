@@ -100,3 +100,11 @@ export const AdminCreateMediaGrantInputSchema = z.discriminatedUnion('scopeKind'
   AdminReviewGrantScopeSchema,
 ]);
 export type AdminCreateMediaGrantInput = z.infer<typeof AdminCreateMediaGrantInputSchema>;
+
+/** Both grant callables answer the same signed grant, bound to the caller. */
+export const CreateMediaGrantResultSchema = z.object({
+  grant: z.string().min(1),
+  /** Epoch ms; a client refreshes under it. */
+  expiresAt: z.number().int().positive(),
+}).strict();
+export type CreateMediaGrantResult = z.infer<typeof CreateMediaGrantResultSchema>;

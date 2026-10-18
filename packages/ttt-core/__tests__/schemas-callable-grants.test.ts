@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   AdminCreateMediaGrantInputSchema,
   CreateMediaGrantInputSchema,
+  CreateMediaGrantResultSchema,
   ChatGrantInputSchema,
   ResumeFanoutJobInputSchema,
 } from '../src/schemas/index.js';
@@ -57,6 +58,21 @@ describe('the admin grant is a callable of its own', () => {
     expect(
       AdminCreateMediaGrantInputSchema.safeParse({ scopeKind: 'workFileFolder', workProjectId: 'wp1', workFileFolderId: 'f1' }).success,
     ).toBe(false);
+  });
+});
+
+describe('CreateMediaGrantResultSchema (the answer both grant callables give)', () => {
+  it('is the signed grant and its expiry', () => {
+    expect(CreateMediaGrantResultSchema.parse({ grant: 'v1.payload.sig', expiresAt: 1_700_000_000_000 })).toEqual({
+      grant: 'v1.payload.sig',
+      expiresAt: 1_700_000_000_000,
+    });
+  });
+
+  it('refuses an empty grant, a missing expiry, and extra keys', () => {
+    expect(() => CreateMediaGrantResultSchema.parse({ grant: '', expiresAt: 1 })).toThrow();
+    expect(() => CreateMediaGrantResultSchema.parse({ grant: 'g' })).toThrow();
+    expect(() => CreateMediaGrantResultSchema.parse({ grant: 'g', expiresAt: 1, scope: { w: 'wp1' } })).toThrow();
   });
 });
 
