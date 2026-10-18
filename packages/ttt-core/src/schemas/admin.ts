@@ -401,11 +401,8 @@ export type UpdateAdminListResult = z.infer<typeof UpdateAdminListResultSchema>;
 export const CheckTrademarkInputSchema = z.object({
   // Primary: the work project's title (franchise-level check).
   workTitle: z.string().min(1).max(MAX_WORK_PROJECT_TITLE_LENGTH),
-  // Optional: the sub-item title (chapter, track, episode). Checked secondarily.
-  // `.nullish()` (not `.optional()`): the Firebase callable client serializes an
-  // undefined argument as JSON null, and the work-view caller passes
-  // `subItemTitle: subItem?.title` which is undefined when the sub-item hasn't
-  // loaded — that arrives here as null. A bare `.optional()` would 400 on it.
+  // Optional: the sub-item title (chapter, track, episode), checked secondarily; null or absent
+  // means there is none to check.
   subItemTitle: z.string().max(MAX_WORK_PROJECT_TITLE_LENGTH).nullish(),
 }).strict();
 export type CheckTrademarkInput = z.infer<typeof CheckTrademarkInputSchema>;
@@ -869,7 +866,7 @@ export const NormalReportInputSchema = z
     adminNote: textFieldSchema(CLOSE_OUT_ADMIN_NOTE_INPUT).optional(),
   })
   .strict();
-export type ResolveAdminTaskInput = z.infer<typeof NormalReportInputSchema>;
+export type NormalReportInput = z.infer<typeof NormalReportInputSchema>;
 
 export const ResolveAdminTaskResultSchema = z.object({
   success: z.literal(true),
@@ -946,6 +943,8 @@ export const SafetyCaseInputSchema = z
   })
   .strict();
 export type SafetyCaseInput = z.infer<typeof SafetyCaseInputSchema>;
+// `resolveAdminTask` parses one of the two closes, chosen by `caseType`.
+export type ResolveAdminTaskInput = NormalReportInput | SafetyCaseInput;
 
 export const ReopenSafetyCaseInputSchema = z
   .object({
