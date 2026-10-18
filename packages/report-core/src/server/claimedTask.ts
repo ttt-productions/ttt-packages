@@ -18,6 +18,8 @@ export function toClaimedTask(
     originalPath: taskData.originalPath as string,
     summary: taskData.summary as string,
     priority: taskData.priority as number,
+    createdAt: taskData.createdAt as number,
+    lastUpdatedAt: taskData.lastUpdatedAt as number,
     checkedOutAt: checkoutDetails.checkedOutAt,
     expiresAt: checkoutDetails.expiresAt,
     status,

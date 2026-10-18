@@ -20,6 +20,8 @@ const answer: CheckoutNextImportantTaskResult = {
     originalPath: 'items/item1',
     summary: 'mock',
     priority: 3,
+    createdAt: 1,
+    lastUpdatedAt: 1,
     checkedOutAt: 1,
     expiresAt: 2,
     status: 'checkedOut',

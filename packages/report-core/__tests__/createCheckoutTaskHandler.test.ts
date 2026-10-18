@@ -203,6 +203,21 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
     expect(updates.some((u) => u.path === 'adminTasks/task1' && u.data.status === 'checkedOut')).toBe(true);
   });
 
+  it("answers with the task's own createdAt and lastUpdatedAt, so the claim is a full checked-out task", async () => {
+    const { db } = createMockDb({
+      docs: {
+        'adminTasks/task1': { ...baseTask, status: 'pending', createdAt: 111, lastUpdatedAt: 222 },
+        'activeReportGroups/group1': GROUP_DOC,
+      },
+    });
+    const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH });
+
+    const result = await handler({ taskType: 'userReport', specificTaskId: 'task1' }, { uid: 'admin1', token: {} });
+
+    expect(result.task.createdAt).toBe(111);
+    expect(result.task.lastUpdatedAt).toBe(222);
+  });
+
   it('rejects a COMPLETED (resolved) task — no re-checkout, no write', async () => {
     const { db, updates } = createMockDb({
       docs: {

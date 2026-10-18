@@ -49,18 +49,10 @@ export interface CheckedOutTask<TTaskType extends string = string> extends Admin
   checkoutDetails: NonNullable<AdminTask<TTaskType>['checkoutDetails']>;
 }
 
-/** The task a checkout answers with: the claim it holds, without the task's own timestamps. */
-export interface ClaimedTask<TTaskType extends string = string> {
-  id: string;
-  taskType: TTaskType;
-  taskId: string;
-  originalPath: string;
-  summary: string;
-  priority: number;
+/** The task a checkout answers with: the checked-out task and the claim it holds. */
+export interface ClaimedTask<TTaskType extends string = string> extends CheckedOutTask<TTaskType> {
   checkedOutAt: number;
   expiresAt: number;
-  status: AdminTaskStatus;
-  checkoutDetails: CheckoutDetails;
   /** The task's original document, or null when it no longer exists. */
   itemData: unknown;
 }

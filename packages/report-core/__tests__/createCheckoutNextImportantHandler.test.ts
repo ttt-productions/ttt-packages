@@ -244,6 +244,21 @@ describe('createCheckoutNextImportantHandler', () => {
     expect((result.task as any).itemData).toEqual({ reportedItemType: 'post' });
   });
 
+  it("answers with the task's own createdAt and lastUpdatedAt, so the claim is a full checked-out task", async () => {
+    const { db } = createMockDb({
+      docs: {
+        'adminTasks/task1': { ...pendingTask('group1', 10, 111), lastUpdatedAt: 222 },
+        'activeReportGroups/group1': { reportedItemType: 'post' },
+      },
+    });
+    const handler = createCheckoutNextImportantHandler({ config: TEST_CONFIG, db, auth: { adminUserIds: ['admin1'] } });
+
+    const result = await handler({}, { uid: 'admin1', token: null });
+
+    expect(result.task.createdAt).toBe(111);
+    expect(result.task.lastUpdatedAt).toBe(222);
+  });
+
   it('picks the highest-priority pending task', async () => {
     const { db } = createMockDb({
       docs: {
