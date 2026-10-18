@@ -47,6 +47,13 @@ export const CreateChapterInputSchema = z.object({
 }).strict();
 export type CreateChapterInput = z.infer<typeof CreateChapterInputSchema>;
 
+export const CreateChapterResultSchema = z.object({
+  success: z.literal(true),
+  chapterId: chapterIdSchema,
+  order: z.number().int(),
+});
+export type CreateChapterResult = z.infer<typeof CreateChapterResultSchema>;
+
 export const CreateTelevisionEpisodeInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   televisionId: televisionIdSchema,
@@ -54,12 +61,26 @@ export const CreateTelevisionEpisodeInputSchema = z.object({
 }).strict();
 export type CreateTelevisionEpisodeInput = z.infer<typeof CreateTelevisionEpisodeInputSchema>;
 
+export const CreateTelevisionEpisodeResultSchema = z.object({
+  success: z.literal(true),
+  episodeId: episodeIdSchema,
+  order: z.number().int(),
+});
+export type CreateTelevisionEpisodeResult = z.infer<typeof CreateTelevisionEpisodeResultSchema>;
+
 export const CreateTuneTrackInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   tuneId: tuneIdSchema,
   title: textFieldSchema(TUNE_TRACK_TITLE_INPUT),
 }).strict();
 export type CreateTuneTrackInput = z.infer<typeof CreateTuneTrackInputSchema>;
+
+export const CreateTuneTrackResultSchema = z.object({
+  success: z.literal(true),
+  trackId: trackIdSchema,
+  order: z.number().int(),
+});
+export type CreateTuneTrackResult = z.infer<typeof CreateTuneTrackResultSchema>;
 
 // The reviewer's checklist. Each confirmation is optional so a `needs_revision` decision validates;
 // the review core requires every one `true` on an `approved` decision, and `teachesSomething` only
@@ -78,6 +99,15 @@ export const ReviewThresholdItemInputSchema = z.object({
   confirmedConsistentFormat: z.boolean().nullish(),
 }).strict();
 export type ReviewThresholdItemInput = z.infer<typeof ReviewThresholdItemInputSchema>;
+
+export const ReviewThresholdItemResultSchema = z.object({
+  success: z.literal(true),
+  hallItemId: hallItemIdSchema,
+  thresholdItemId: thresholdItemIdSchema,
+  itemId: itemIdSchema,
+  decision: z.enum(['approved', 'needs_revision']),
+});
+export type ReviewThresholdItemResult = z.infer<typeof ReviewThresholdItemResultSchema>;
 
 // `depictsRealPeople` is the author's attestation that the Work depicts real people (parody,
 // satire, commentary); it is stored on the threshold item as `hasRealPeople` and, when true, the
@@ -102,12 +132,27 @@ export const SubmitForThresholdLibraryReviewInputSchema = z.object({
 }).strict();
 export type SubmitForThresholdLibraryReviewInput = z.infer<typeof SubmitForThresholdLibraryReviewInputSchema>;
 
+export const SubmitForThresholdLibraryReviewResultSchema = z.object({
+  success: z.literal(true),
+  hallItemId: hallItemIdSchema,
+  thresholdItemIds: z.array(thresholdItemIdSchema),
+});
+export type SubmitForThresholdLibraryReviewResult = z.infer<typeof SubmitForThresholdLibraryReviewResultSchema>;
+
 // Member-initiated pull-back of a still-pending threshold submission. The runner derives
 // everything else from the threshold doc; rejects unless reviewStatus === 'pending'.
 export const WithdrawFromThresholdLibraryReviewInputSchema = z.object({
   thresholdItemId: thresholdItemIdSchema,
 }).strict();
 export type WithdrawFromThresholdLibraryReviewInput = z.infer<typeof WithdrawFromThresholdLibraryReviewInputSchema>;
+
+export const WithdrawFromThresholdLibraryReviewResultSchema = z.object({
+  success: z.literal(true),
+  hallItemId: hallItemIdSchema,
+  thresholdItemId: thresholdItemIdSchema,
+  itemId: itemIdSchema,
+});
+export type WithdrawFromThresholdLibraryReviewResult = z.infer<typeof WithdrawFromThresholdLibraryReviewResultSchema>;
 
 // Published change request (text-only at launch): the member proposes new values for TEXT
 // fields on a PUBLISHED surface — one pipeline, three grains:
@@ -170,6 +215,12 @@ export const SubmitHallContentChangeRequestInputSchema = z.object({
 });
 export type SubmitHallContentChangeRequestInput = z.infer<typeof SubmitHallContentChangeRequestInputSchema>;
 
+export const SubmitHallContentChangeRequestResultSchema = z.object({
+  success: z.literal(true),
+  changeRequestId: changeRequestIdSchema,
+});
+export type SubmitHallContentChangeRequestResult = z.infer<typeof SubmitHallContentChangeRequestResultSchema>;
+
 // Admin decision on a published change request. `resolutionReason` is REQUIRED on a deny
 // (the member is shown why); optional note on approve.
 export const ReviewHallContentChangeRequestInputSchema = z.object({
@@ -183,6 +234,13 @@ export const ReviewHallContentChangeRequestInputSchema = z.object({
 });
 export type ReviewHallContentChangeRequestInput = z.infer<typeof ReviewHallContentChangeRequestInputSchema>;
 
+export const ReviewHallContentChangeRequestResultSchema = z.object({
+  success: z.literal(true),
+  changeRequestId: changeRequestIdSchema,
+  decision: z.enum(['approved', 'denied']),
+});
+export type ReviewHallContentChangeRequestResult = z.infer<typeof ReviewHallContentChangeRequestResultSchema>;
+
 export const UpdateChapterDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   taleId: taleIdSchema,
@@ -191,6 +249,12 @@ export const UpdateChapterDetailsInputSchema = z.object({
   content: textFieldSchema(CHAPTER_CONTENT_INPUT).optional(),
 }).strict();
 export type UpdateChapterDetailsInput = z.infer<typeof UpdateChapterDetailsInputSchema>;
+
+export const UpdateChapterDetailsResultSchema = z.object({
+  success: z.literal(true),
+  chapterId: chapterIdSchema,
+});
+export type UpdateChapterDetailsResult = z.infer<typeof UpdateChapterDetailsResultSchema>;
 
 export const UpdateTelevisionEpisodeDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
@@ -201,6 +265,12 @@ export const UpdateTelevisionEpisodeDetailsInputSchema = z.object({
 }).strict();
 export type UpdateTelevisionEpisodeDetailsInput = z.infer<typeof UpdateTelevisionEpisodeDetailsInputSchema>;
 
+export const UpdateTelevisionEpisodeDetailsResultSchema = z.object({
+  success: z.literal(true),
+  episodeId: episodeIdSchema,
+});
+export type UpdateTelevisionEpisodeDetailsResult = z.infer<typeof UpdateTelevisionEpisodeDetailsResultSchema>;
+
 export const UpdateTuneTrackDetailsInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   tuneId: tuneIdSchema,
@@ -210,6 +280,12 @@ export const UpdateTuneTrackDetailsInputSchema = z.object({
 }).strict();
 export type UpdateTuneTrackDetailsInput = z.infer<typeof UpdateTuneTrackDetailsInputSchema>;
 
+export const UpdateTuneTrackDetailsResultSchema = z.object({
+  success: z.literal(true),
+  trackId: trackIdSchema,
+});
+export type UpdateTuneTrackDetailsResult = z.infer<typeof UpdateTuneTrackDetailsResultSchema>;
+
 export const UpdateTaleWorkGenresInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   taleId: taleIdSchema,
@@ -217,6 +293,12 @@ export const UpdateTaleWorkGenresInputSchema = z.object({
   action: addRemoveActionSchema,
 }).strict();
 export type UpdateTaleWorkGenresInput = z.infer<typeof UpdateTaleWorkGenresInputSchema>;
+
+export const UpdateTaleWorkGenresResultSchema = z.object({
+  success: z.literal(true),
+  taleId: taleIdSchema,
+});
+export type UpdateTaleWorkGenresResult = z.infer<typeof UpdateTaleWorkGenresResultSchema>;
 
 export const UpdateTelevisionWorkGenresInputSchema = z.object({
   workProjectId: workProjectIdSchema,
@@ -226,6 +308,12 @@ export const UpdateTelevisionWorkGenresInputSchema = z.object({
 }).strict();
 export type UpdateTelevisionWorkGenresInput = z.infer<typeof UpdateTelevisionWorkGenresInputSchema>;
 
+export const UpdateTelevisionWorkGenresResultSchema = z.object({
+  success: z.literal(true),
+  televisionId: televisionIdSchema,
+});
+export type UpdateTelevisionWorkGenresResult = z.infer<typeof UpdateTelevisionWorkGenresResultSchema>;
+
 export const UpdateTuneWorkGenresInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   tuneId: tuneIdSchema,
@@ -234,8 +322,13 @@ export const UpdateTuneWorkGenresInputSchema = z.object({
 }).strict();
 export type UpdateTuneWorkGenresInput = z.infer<typeof UpdateTuneWorkGenresInputSchema>;
 
-// --- Per-user Hall viewing-state doc ---
-// One core (`runX`) owns the single privateData doc per ARCH-001; writes are CALLABLE-ONLY —
+export const UpdateTuneWorkGenresResultSchema = z.object({
+  success: z.literal(true),
+  tuneId: tuneIdSchema,
+});
+export type UpdateTuneWorkGenresResult = z.infer<typeof UpdateTuneWorkGenresResultSchema>;
+
+// The per-user Hall viewing-state doc: one core (`runX`) owns the single privateData doc per ARCH-001; writes are CALLABLE-ONLY —
 // no direct client Firestore writes anywhere in this system. Every list on the doc is capped
 // (HALL_LIBRARY_PREFS_CAPS in ../constants/business.js); cap enforcement is the backend
 // core's job, not this input-validation layer.
@@ -246,6 +339,14 @@ export const UpdateHallWorkHiddenInputSchema = z.object({
 }).strict();
 export type UpdateHallWorkHiddenInput = z.infer<typeof UpdateHallWorkHiddenInputSchema>;
 
+export const UpdateHallWorkHiddenResultSchema = z.object({
+  success: z.literal(true),
+  hidden: z.boolean(),
+  /** True when the requested state already held, so nothing was written. */
+  idempotent: z.boolean(),
+});
+export type UpdateHallWorkHiddenResult = z.infer<typeof UpdateHallWorkHiddenResultSchema>;
+
 // "Inked" save-for-later watchlist toggle (My Playbill) — deliberately separate from
 // follows (Inked is private organization; follow is semi-public with a counter + notifications).
 export const UpdateHallInkedWorkInputSchema = z.object({
@@ -253,6 +354,14 @@ export const UpdateHallInkedWorkInputSchema = z.object({
   inked: z.boolean(),
 }).strict();
 export type UpdateHallInkedWorkInput = z.infer<typeof UpdateHallInkedWorkInputSchema>;
+
+export const UpdateHallInkedWorkResultSchema = z.object({
+  success: z.literal(true),
+  inked: z.boolean(),
+  /** True when the requested state already held, so nothing was written. */
+  idempotent: z.boolean(),
+});
+export type UpdateHallInkedWorkResult = z.infer<typeof UpdateHallInkedWorkResultSchema>;
 
 // Playback-progress heartbeat (throttled client-side to ~60s during playback, plus writes on
 // pause / pane-exit / media-end). `durationSeconds` is optional — not always known up front.
@@ -264,6 +373,12 @@ export const UpdateHallPlaybackProgressInputSchema = z.object({
 }).strict();
 export type UpdateHallPlaybackProgressInput = z.infer<typeof UpdateHallPlaybackProgressInputSchema>;
 
+export const UpdateHallPlaybackProgressResultSchema = z.object({
+  success: z.literal(true),
+  hallItemId: hallItemIdSchema,
+});
+export type UpdateHallPlaybackProgressResult = z.infer<typeof UpdateHallPlaybackProgressResultSchema>;
+
 // Recently-viewed / History rail record. `itemId` is optional — a work-level view (no
 // sub-item selected yet) still records History.
 export const UpdateHallRecentlyViewedInputSchema = z.object({
@@ -272,9 +387,21 @@ export const UpdateHallRecentlyViewedInputSchema = z.object({
 }).strict();
 export type UpdateHallRecentlyViewedInput = z.infer<typeof UpdateHallRecentlyViewedInputSchema>;
 
+export const UpdateHallRecentlyViewedResultSchema = z.object({
+  success: z.literal(true),
+  hallItemId: hallItemIdSchema,
+});
+export type UpdateHallRecentlyViewedResult = z.infer<typeof UpdateHallRecentlyViewedResultSchema>;
+
 export const UpdateHallLibrarySettingsInputSchema = z.object({
   tunesAutoplay: z.boolean(),
 }).strict();
 export type UpdateHallLibrarySettingsInput = z.infer<typeof UpdateHallLibrarySettingsInputSchema>;
+
+export const UpdateHallLibrarySettingsResultSchema = z.object({
+  success: z.literal(true),
+  settings: z.object({ tunesAutoplay: z.boolean() }),
+});
+export type UpdateHallLibrarySettingsResult = z.infer<typeof UpdateHallLibrarySettingsResultSchema>;
 
 

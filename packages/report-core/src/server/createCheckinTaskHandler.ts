@@ -1,6 +1,7 @@
 import type { ServerFirestore, ServerReportCoreConfig, OnAuditEvent } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';
 import type { CheckinTaskRequest } from '../schemas/index.js';
+import type { TaskLifecycleResult } from '../types-admin-task.js';
 
 export interface CheckinTaskHandlerConfig {
   config: ServerReportCoreConfig;
@@ -36,7 +37,7 @@ export function createCheckinTaskHandler({
   return async (
     data: CheckinTaskRequest,
     authContext: { uid: string; token?: unknown },
-  ): Promise<{ success: boolean; alreadyResolved?: true }> => {
+  ): Promise<TaskLifecycleResult> => {
     const { taskId, resolved, resolution } = data;
     const userId = authContext.uid;
     const now = Date.now();

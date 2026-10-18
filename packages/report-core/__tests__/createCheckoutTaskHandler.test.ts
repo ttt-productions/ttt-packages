@@ -43,10 +43,9 @@ interface MockDbOptions {
 
 /**
  * Live-store mock: queries filter/sort the CURRENT store (outside any transaction),
- * transactions read/write specific docs. Two invariants of the checkout fix are
- * enforced structurally:
- *   - a range query inside the transaction THROWS (the range-lock contention bug —
- *     candidate discovery must run outside; doc-level claims only), and
+ * transactions read/write specific docs. Two invariants are enforced structurally:
+ *   - a range query inside the transaction THROWS (it would range-lock the whole queue —
+ *     candidate discovery runs outside; doc-level claims only), and
  *   - all transactional reads must precede writes (real Firestore throws otherwise).
  */
 function createMockDb(opts: MockDbOptions = {}) {
@@ -316,10 +315,10 @@ describe('createCheckoutTaskHandler — specificTaskId status guard', () => {
     });
     const handler = createCheckoutTaskHandler({ config: TEST_CONFIG, db, auth: AUTH, onAuditEvent });
 
-    const result = (await handler(
+    const result = await handler(
       { taskType: 'userReport', specificTaskId: 'task1' },
       { uid: 'admin1', token: {} },
-    )) as { success: boolean; alreadyHeld: boolean; task: Record<string, unknown> };
+    );
 
     expect(result.success).toBe(true);
     expect(result.alreadyHeld).toBe(true);

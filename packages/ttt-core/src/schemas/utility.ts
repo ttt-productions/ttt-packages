@@ -46,16 +46,43 @@ export const CreateShortLinkInputSchema = z.discriminatedUnion('targetType', [
 ]);
 export type CreateShortLinkInput = z.infer<typeof CreateShortLinkInputSchema>;
 
+export const CreateShortLinkResultSchema = z.object({
+  shortId: shortLinkIdSchema,
+  shortUrl: z.string().min(1),
+});
+export type CreateShortLinkResult = z.infer<typeof CreateShortLinkResultSchema>;
+
 // No-input seed callables (Ready for Launch tab). Each prepopulates one system
 // dataset from a canonical backend constant; the input is intentionally empty.
 export const SeedProfanityListInputSchema = z.object({}).strict();
 export type SeedProfanityListInput = z.infer<typeof SeedProfanityListInputSchema>;
 
+export const SeedProfanityListResultSchema = z.object({
+  success: z.literal(true),
+  alreadySeeded: z.boolean(),
+  wordCount: z.number().int().nonnegative(),
+});
+export type SeedProfanityListResult = z.infer<typeof SeedProfanityListResultSchema>;
+
 export const SeedReservedUsernamesInputSchema = z.object({}).strict();
 export type SeedReservedUsernamesInput = z.infer<typeof SeedReservedUsernamesInputSchema>;
 
+export const SeedReservedUsernamesResultSchema = z.object({
+  success: z.literal(true),
+  added: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative(),
+});
+export type SeedReservedUsernamesResult = z.infer<typeof SeedReservedUsernamesResultSchema>;
+
 export const SeedBlockedFranchiseNamesInputSchema = z.object({}).strict();
 export type SeedBlockedFranchiseNamesInput = z.infer<typeof SeedBlockedFranchiseNamesInputSchema>;
+
+export const SeedBlockedFranchiseNamesResultSchema = z.object({
+  success: z.literal(true),
+  added: z.number().int().nonnegative(),
+  total: z.number().int().nonnegative(),
+});
+export type SeedBlockedFranchiseNamesResult = z.infer<typeof SeedBlockedFranchiseNamesResultSchema>;
 
 // Public-document seed callables (Ready for Launch tab), one per PublicDocumentId. Each
 // publishes its document's launch content as v1 through the public-document release owner,
@@ -69,6 +96,15 @@ export type SeedFuturePlansInput = z.infer<typeof SeedFuturePlansInputSchema>;
 
 export const SeedTermsPageInputSchema = z.object({}).strict();
 export type SeedTermsPageInput = z.infer<typeof SeedTermsPageInputSchema>;
+
+// ONE result for every public-document seed callable.
+export const SeedPublicDocumentResultSchema = z.object({
+  success: z.literal(true),
+  /** False when the document was already published, so nothing was written. */
+  seeded: z.boolean(),
+  version: z.number().int().positive(),
+});
+export type SeedPublicDocumentResult = z.infer<typeof SeedPublicDocumentResultSchema>;
 
 export const SeedPrivacyPageInputSchema = z.object({}).strict();
 export type SeedPrivacyPageInput = z.infer<typeof SeedPrivacyPageInputSchema>;
@@ -97,8 +133,7 @@ export const CurateProfanityListInputSchema = z
   });
 export type CurateProfanityListInput = z.infer<typeof CurateProfanityListInputSchema>;
 
-/** The `curateProfanityList` answer: the terms it added and removed, and the list's size after it.
- *  Non-strict (server → client result posture). */
+/** The `curateProfanityList` answer: the terms it added and removed, and the list's size after it. */
 export const CurateProfanityListResultSchema = z.object({
   success: z.literal(true),
   added: z.array(z.string()),
@@ -120,10 +155,22 @@ export const SubmitFeedbackInputSchema = z.object({
 }).strict();
 export type SubmitFeedbackInput = z.infer<typeof SubmitFeedbackInputSchema>;
 
+export const SubmitFeedbackResultSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+});
+export type SubmitFeedbackResult = z.infer<typeof SubmitFeedbackResultSchema>;
+
 export const TrackShortLinkClickInputSchema = z.object({
   shortId: shortLinkIdSchema.max(64),
 }).strict();
 export type TrackShortLinkClickInput = z.infer<typeof TrackShortLinkClickInputSchema>;
+
+export const TrackShortLinkClickResultSchema = z.object({
+  success: z.literal(true),
+  destinationUrl: z.string().min(1),
+});
+export type TrackShortLinkClickResult = z.infer<typeof TrackShortLinkClickResultSchema>;
 
 // The caller marks the thread seen through the newest message it has on screen. The server
 // moves the caller's OWN marker (AdminDispatchReadMarkerSchema) to that time, never past the
@@ -135,7 +182,6 @@ export const MarkAdminDispatchReadInputSchema = z.object({
 }).strict();
 export type MarkAdminDispatchReadInput = z.infer<typeof MarkAdminDispatchReadInputSchema>;
 
-// --- Authoritative mutation RESULTS (non-strict server → client posture) ---
 
 /** The caller's committed marker — the client patches its cached thread rows from it. */
 export const MarkAdminDispatchReadResultSchema = z.object({
@@ -154,7 +200,7 @@ export const SubmitContentAppealResultSchema = z.object({
   appealStatus: z.literal('pending'),
   appealedAt: z.number(),
   /** Operation-receipt audit id — the `content.appealSubmitted` event written in the same
-   * transaction. Optional/additive; the domain id (`violationId`) is already carried above. */
+   * transaction. */
   auditEventId: z.string().min(1).optional(),
 });
 export type SubmitContentAppealResult = z.infer<typeof SubmitContentAppealResultSchema>;
@@ -167,7 +213,7 @@ export const AcceptViolationDecisionResultSchema = z.object({
   /** True when the record was already gone (idempotent accept). */
   alreadyRemoved: z.boolean(),
   /** Operation-receipt audit id — the `content.violationAccepted` event written in the same
-   * transaction. Optional/additive; the domain id (`violationId`) is already carried above. */
+   * transaction. */
   auditEventId: z.string().min(1).optional(),
 });
 export type AcceptViolationDecisionResult = z.infer<typeof AcceptViolationDecisionResultSchema>;

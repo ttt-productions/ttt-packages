@@ -1,16 +1,22 @@
 import { z } from 'zod';
-import { auditionIdSchema, auditionEntryIdSchema } from './atoms.js';
+import { auditionIdSchema, auditionEntryIdSchema, workProjectIdSchema } from './atoms.js';
 
 export const CloseAuditionInputSchema = z.object({
   auditionId: auditionIdSchema,
 }).strict();
 export type CloseAuditionInput = z.infer<typeof CloseAuditionInputSchema>;
 
+export const CloseAuditionResultSchema = z.object({
+  success: z.literal(true),
+  auditionId: auditionIdSchema,
+  workProjectId: workProjectIdSchema,
+});
+export type CloseAuditionResult = z.infer<typeof CloseAuditionResultSchema>;
+
 // Acceptance result of the audition-entry CREATE flow (startUpload with fileOrigin
 // 'audition-entry'). Creation itself is asynchronous via the media pipeline; the entry
 // doc id is the CALLER's uid (one entry per user — processAuditionMedia writes
 // auditionEntryId: userId), so it is knowable at accept time without any read.
-// Non-strict (server → client result posture).
 export const CreateAuditionEntryAcceptedResultSchema = z.object({
   success: z.literal(true),
   auditionId: auditionIdSchema,

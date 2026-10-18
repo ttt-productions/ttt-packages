@@ -18,13 +18,9 @@ interface SubmitReportInput {
   confirmUpgrade?: boolean;
 }
 
-/** Default callable name; the consuming app may override via `config.submitCallableName`. */
-const DEFAULT_SUBMIT_CALLABLE_NAME = 'submitReport';
-
 /**
- * Mutation hook to submit a report via the Trust & Safety `submitReport` callable.
+ * Mutation hook to submit a report through the app's `submitReportFn` (ReportCoreProvider).
  *
- * The callable name is configurable (`config.submitCallableName ?? 'submitReport'`).
  * It maps the UI input onto the strict request shape and returns the callable's
  * `SubmitReportResult` verbatim (discriminated on `outcome`).
  *
@@ -34,8 +30,7 @@ const DEFAULT_SUBMIT_CALLABLE_NAME = 'submitReport';
  * re-calls with `confirmUpgrade: true` (→ `outcome: 'upgraded'`). The consumer branches on `outcome`.
  */
 export function useReportSubmit() {
-  const { callFunction, config } = useReportCoreContext();
-  const callableName = config.submitCallableName ?? DEFAULT_SUBMIT_CALLABLE_NAME;
+  const { submitReportFn } = useReportCoreContext();
 
   return useMutation({
     mutationFn: async (input: SubmitReportInput): Promise<SubmitReportResult> => {
@@ -49,7 +44,7 @@ export function useReportSubmit() {
         ...(input.confirmUpgrade ? { confirmUpgrade: true } : {}),
       };
 
-      return callFunction<SubmitReportRequest, SubmitReportResult>(callableName, request);
+      return submitReportFn(request);
     },
   });
 }

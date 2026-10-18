@@ -29,6 +29,8 @@ export * from './public-documents.js';
 export {
   AddToMentionHistoryResultSchema,
   type AddToMentionHistoryResult,
+  CreateSquareStreetzTextPostResultSchema,
+  type CreateSquareStreetzTextPostResult,
 } from '../doc-schemas/social.js';
 export {
   CreateCommissionProposalTextResultSchema,

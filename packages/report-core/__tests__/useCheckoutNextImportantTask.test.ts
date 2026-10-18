@@ -1,39 +1,57 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useCheckoutNextImportantTask } from '../src/hooks/useCheckoutNextImportantTask.js';
+import type { CheckoutNextImportantTaskResult } from '../src/types-admin-task.js';
 import React from 'react';
 
-function makeWrapper() {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
-  });
+function makeWrapper(client: QueryClient) {
   return ({ children }: { children: React.ReactNode }) =>
     React.createElement(QueryClientProvider, { client }, children);
 }
 
+const answer: CheckoutNextImportantTaskResult = {
+  success: true,
+  task: {
+    id: 't1',
+    taskType: 'sample-review',
+    taskId: 'item1',
+    originalPath: 'items/item1',
+    summary: 'mock',
+    priority: 3,
+    checkedOutAt: 1,
+    expiresAt: 2,
+    status: 'checkedOut',
+    checkoutDetails: { userId: 'u1', checkedOutAt: 1, expiresAt: 2, workLaterUntil: null },
+    itemData: null,
+  },
+};
+
 describe('useCheckoutNextImportantTask', () => {
-  it('calls callFunction with an empty object, never undefined', async () => {
-    const callFunction = vi.fn().mockResolvedValue({
-      success: true,
-      task: { id: 't1', type: 'sample-review', summary: 'mock' },
-    });
+  it("runs the app's checkout call once and answers with its claim", async () => {
+    const checkoutNextImportantTaskFn = vi.fn().mockResolvedValue(answer);
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
 
     const { result } = renderHook(
-      () => useCheckoutNextImportantTask({ callFunction, userId: 'u1' }),
-      { wrapper: makeWrapper() }
+      () => useCheckoutNextImportantTask({ checkoutNextImportantTaskFn, userId: 'u1' }),
+      { wrapper: makeWrapper(client) },
     );
 
+    await expect(result.current.mutateAsync()).resolves.toEqual(answer);
+    expect(checkoutNextImportantTaskFn).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes the admin’s checked-out tasks after a claim', async () => {
+    const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
+    const invalidate = vi.spyOn(client, 'invalidateQueries');
+
+    const { result } = renderHook(
+      () => useCheckoutNextImportantTask({ checkoutNextImportantTaskFn: vi.fn().mockResolvedValue(answer), userId: 'u1' }),
+      { wrapper: makeWrapper(client) },
+    );
     await result.current.mutateAsync();
 
-    await waitFor(() => expect(callFunction).toHaveBeenCalledTimes(1));
-
-    // Critical: second arg must be {} not undefined. undefined serializes to null
-    // over the Firebase callable wire and the server's z.object({}).strict() rejects it.
-    expect(callFunction).toHaveBeenCalledWith('checkoutNextImportantTask', {});
-    const callArgs = callFunction.mock.calls[0];
-    expect(callArgs[1]).not.toBeUndefined();
-    expect(callArgs[1]).toEqual({});
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['report-core', 'checkedOutTasks', 'u1'] });
   });
 });

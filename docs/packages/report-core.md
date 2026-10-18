@@ -8,7 +8,9 @@ Generic report-filing UI and admin-task queue package.
   app's `submitReport` callable. Report data itself has no canonical stored shape here; the app owns the
   Firestore report document and report-group shape.
 - The report-filing dialog (`ReportDialog`, `ReportButton`, `useReportButton`) and its contract types.
-- Generic admin task, checkout, activity, status, and priority shapes, and the queue handler factories.
+- Generic admin task, checkout, activity, status, and priority shapes, the queue answers
+  (`CheckoutTaskResult`, `CheckoutNextImportantTaskResult` — each carrying a `ClaimedTask` — and
+  `TaskLifecycleResult`), and the queue handler factories.
 - Type-level generics for the consuming app's task-type union.
 
 ## Entry points
@@ -81,6 +83,15 @@ package carries no product copy and no product routing:
 it returns `retryState` (query-core `useReadRetryState`): the listener's failure held through its
 `refetch`, which restarts the listener and clears `error` while it reconnects — so a failure seat
 keeps its Try again on screen, pending, instead of turning into a loading state.
+
+## Calling the app's callables (`./react`)
+
+The package names no callable and holds no transport. The app passes each call already typed and
+bound to its own callable: `ReportCoreProvider`'s `submitReportFn(request)` for the report dialog,
+and each queue hook's own function — `useCheckoutTask({ checkoutTaskFn })`,
+`useCheckoutNextImportantTask({ checkoutNextImportantTaskFn })`, `useCheckinTask({ checkinTaskFn })`,
+`useReleaseTask({ releaseTaskFn })`, `useWorkLater({ markWorkLaterFn })`. A hook answers with what
+its function answered and refreshes the admin's checked-out tasks on success.
 
 ## The admin-task queue handlers (`./server`)
 

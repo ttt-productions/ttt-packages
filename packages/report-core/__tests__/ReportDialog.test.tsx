@@ -28,7 +28,7 @@ import { ReportCoreProvider } from '../src/context/ReportCoreProvider.js';
 import { ReportDialog } from '../src/components/ReportDialog.js';
 import type { ReportCoreConfig } from '../src/config.js';
 import type { AdditionalReportAction, ReportDialogCopy, ReportDialogProps } from '../src/types-ui-props.js';
-import type { SubmitReportResult } from '../src/schemas/index.js';
+import type { SubmitReportRequest, SubmitReportResult } from '../src/schemas/index.js';
 
 const config = {
   collections: { reports: 'r', reportGroups: 'g', adminTasks: 't' },
@@ -91,10 +91,10 @@ function setup(
 ) {
   const providerConfig = { ...config, ...options.config } as ReportCoreConfig;
   const answers = [...(options.answers ?? [])];
-  const callFunction = vi.fn(async () => {
+  const submitReportFn = vi.fn(async (_request: SubmitReportRequest): Promise<SubmitReportResult> => {
     const next = answers.shift();
     if (next instanceof Error) throw next;
-    return next;
+    return next as SubmitReportResult | Promise<SubmitReportResult>;
   });
   const onOpenChange = vi.fn();
   const onSubmitSuccess = vi.fn();
@@ -114,14 +114,14 @@ function setup(
   };
   const ui = (p: ReportDialogProps) => (
     <QueryClientProvider client={queryClient}>
-      <ReportCoreProvider config={providerConfig} callFunction={callFunction as never} additionalReportActions={options.actions}>
+      <ReportCoreProvider config={providerConfig} submitReportFn={submitReportFn} additionalReportActions={options.actions}>
         <ReportDialog {...p} />
       </ReportCoreProvider>
     </QueryClientProvider>
   );
   const view = render(ui(props));
   return {
-    callFunction,
+    submitReportFn,
     onOpenChange,
     onSubmitSuccess,
     onSubmitError,
@@ -150,7 +150,7 @@ describe('ReportDialog outcomes', () => {
     typeComment('bad post');
     await clickSubmit();
 
-    expect(t.callFunction).toHaveBeenCalledWith('submitReport', {
+    expect(t.submitReportFn).toHaveBeenCalledWith({
       itemType: 'post',
       reportedItemId: 'p1',
       reportedUserId: 'owner1',
@@ -187,7 +187,7 @@ describe('ReportDialog outcomes', () => {
 
     await clickSubmit('copy:upgrade');
 
-    expect(t.callFunction).toHaveBeenLastCalledWith('submitReport', expect.objectContaining({
+    expect(t.submitReportFn).toHaveBeenLastCalledWith(expect.objectContaining({
       reason: 'Child Safety',
       comment: 'now worse',
       confirmUpgrade: true,
@@ -288,8 +288,7 @@ describe('ReportDialog comments', () => {
     pick('Spam');
     typeComment('  why  ');
     await clickSubmit();
-    expect(t.callFunction).toHaveBeenCalledWith(
-      'submitReport',
+    expect(t.submitReportFn).toHaveBeenCalledWith(
       expect.objectContaining({ reason: 'Spam', comment: 'why' }),
     );
   });
@@ -327,7 +326,7 @@ describe('ReportDialog additional actions', () => {
     expect(handOff.mock.calls[0]).toEqual([
       { itemType: 'post', itemId: 'p1', parentItemId: undefined, reportedUserId: 'owner1' },
     ]);
-    expect(t.callFunction).not.toHaveBeenCalled();
+    expect(t.submitReportFn).not.toHaveBeenCalled();
     expect(t.onOpenChange).toHaveBeenCalledWith(false);
     expect(t.onSubmitSuccess).not.toHaveBeenCalled();
   });
@@ -353,7 +352,7 @@ describe('ReportDialog additional actions', () => {
     await clickSubmit('Mark evidence');
 
     expect(mark).toHaveBeenCalledWith(expect.objectContaining({ itemId: 'p1' }), 'why');
-    expect(t.callFunction).not.toHaveBeenCalled();
+    expect(t.submitReportFn).not.toHaveBeenCalled();
     expect(t.onSubmitSuccess).toHaveBeenCalledWith({ outcome: 'actionCompleted', actionId: 'evidence' });
   });
 });

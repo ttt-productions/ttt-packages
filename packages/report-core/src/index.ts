@@ -1,12 +1,13 @@
-// ============================================
-// TYPES
-// ============================================
 export type {
   TaskPriority,
   AdminTask,
   AdminTaskStatus,
   CheckoutDetails,
   CheckedOutTask,
+  ClaimedTask,
+  CheckoutTaskResult,
+  CheckoutNextImportantTaskResult,
+  TaskLifecycleResult,
   ActivityAction,
   ActivityLogEntry,
   TaskQueueConfig,
@@ -24,9 +25,6 @@ export type {
   PriorityBadgeProps,
 } from './types.js';
 
-// ============================================
-// CONFIG
-// ============================================
 export type {
   ReportCoreConfig,
   ReportCoreCollections,

@@ -1,43 +1,25 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import type { CheckedOutTask } from '../types.js';
-
-interface CheckoutNextImportantTaskResult {
-  success: boolean;
-  task: CheckedOutTask;
-}
+import type { CheckoutNextImportantTaskResult } from '../types-admin-task.js';
 
 interface UseCheckoutNextImportantTaskOptions {
-  /** The callable function invoker. App provides this (e.g. useFunctions().callFunction). */
-  callFunction: <TReq, TRes>(name: string, data?: TReq) => Promise<TRes>;
-  /** Current admin user ID — used to invalidate checked-out tasks query. */
+  /** The app's call to its callable, typed and bound once by the app. */
+  checkoutNextImportantTaskFn: () => Promise<CheckoutNextImportantTaskResult>;
+  /** Current admin user ID — used to invalidate the checked-out tasks query. */
   userId?: string;
 }
 
 /**
- * Mutation to checkout the highest-priority pending task across all queues.
- * The server handler picks the task automatically — no input needed.
- * The app provides the `callFunction` wrapper so report-core
- * doesn't depend on a specific Firebase Functions setup.
+ * Mutation to check out the highest-priority pending task across all queues; the server picks it.
  */
-export function useCheckoutNextImportantTask({
-  callFunction,
-  userId,
-}: UseCheckoutNextImportantTaskOptions) {
+export function useCheckoutNextImportantTask({ checkoutNextImportantTaskFn, userId }: UseCheckoutNextImportantTaskOptions) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (): Promise<CheckoutNextImportantTaskResult> => {
-      return callFunction<Record<string, never>, CheckoutNextImportantTaskResult>(
-        'checkoutNextImportantTask',
-        {},
-      );
-    },
+    mutationFn: (): Promise<CheckoutNextImportantTaskResult> => checkoutNextImportantTaskFn(),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['report-core', 'checkedOutTasks', userId],
-      });
+      queryClient.invalidateQueries({ queryKey: ['report-core', 'checkedOutTasks', userId] });
     },
   });
 }

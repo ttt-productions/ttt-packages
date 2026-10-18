@@ -37,7 +37,7 @@ const config = {
 } as unknown as ReportCoreConfig;
 
 function wrapper({ children }: { children: React.ReactNode }) {
-  return React.createElement(ReportCoreProvider, { config, callFunction: vi.fn() as never, children });
+  return React.createElement(ReportCoreProvider, { config, submitReportFn: vi.fn(), children });
 }
 
 beforeEach(() => {

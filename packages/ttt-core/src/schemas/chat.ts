@@ -89,7 +89,6 @@ export type GuildChatChannelEnforcement = z.infer<typeof GuildChatChannelEnforce
 // whether the chat Worker already enforces the change.
 // One named shape, not five aliases — the lanes deliberately share a result contract, and a
 // divergence must be a visible schema split, never a silent drift between app-local copies.
-// Non-strict (server → client result posture).
 export const GuildChatChannelLifecycleResultSchema = z.object({
   success: z.literal(true),
   guildChatChannelId: guildChatChannelIdSchema,
@@ -130,7 +129,7 @@ export const StartAdminSupportThreadInputSchema = z.object({
 export type StartAdminSupportThreadInput = z.infer<typeof StartAdminSupportThreadInputSchema>;
 
 // Authoritative result of startAdminSupportThread — both ids are minted inside the
-// creating transaction. Non-strict (server → client result posture).
+// creating transaction.
 export const StartAdminSupportThreadResultSchema = z.object({
   success: z.literal(true),
   adminDispatchId: z.string().min(1),
@@ -161,6 +160,13 @@ export const CreateAdminDispatchToWorkProjectInputSchema = z.object({
 }).strict();
 export type CreateAdminDispatchToWorkProjectInput = z.infer<typeof CreateAdminDispatchToWorkProjectInputSchema>;
 
+// ONE result for both dispatch-creation callables (to a user, to a Work).
+export const CreateAdminDispatchResultSchema = z.object({
+  success: z.literal(true),
+  adminDispatchId: adminDispatchIdSchema,
+});
+export type CreateAdminDispatchResult = z.infer<typeof CreateAdminDispatchResultSchema>;
+
 // Admin-initiated dispatch to a USER party (partyKind 'user' — the thread owner is the target
 // `userId`). Sibling of the workProject dispatch above and the same admin-initiated contract:
 // lands unread in the target user's Messages tray, creates NO admin task. No `contextRef` —
@@ -172,11 +178,8 @@ export const CreateAdminDispatchToUserInputSchema = z.object({
 }).strict();
 export type CreateAdminDispatchToUserInput = z.infer<typeof CreateAdminDispatchToUserInputSchema>;
 
-// CLIENT-CALLED wire contract for the `mintChatGrant` callable.
-// Crosses the backend↔frontend boundary — the web client (and any future mobile/TV
-// client) constructs this payload — so it lives here per the callable-validation
-// convention, not locally in the functions repo. The REAL Firestore authorization
-// check happens in the callable; this schema pins the scope shape.
+// CLIENT-CALLED wire contract for the `mintChatGrant` callable. The REAL Firestore
+// authorization check happens in the callable; this schema pins the scope shape.
 export const ChatGrantInputSchema = z.discriminatedUnion('kind', [
   GuildChatChannelConversationSchema,
   GuildInviteConversationRefSchema,
@@ -192,8 +195,6 @@ export const UpdateGuildChatChannelInputSchema = z.object({
   requiredGuildStandings: z.array(z.string().min(1).max(64)).max(20).optional(),
 }).strict();
 export type UpdateGuildChatChannelInput = z.infer<typeof UpdateGuildChatChannelInputSchema>;
-
-// --- Admin chat moderation callables (review-only) ---
 
 // `adminModerateChatMessage` — queue a DO-owned hide/delete command. A chat message carries
 // no media (files live in the conversation's Conversation Files list), so this is a text-only
@@ -238,14 +239,14 @@ export const ChatContextMessageSchema = z.object({
 });
 export type ChatContextMessage = z.infer<typeof ChatContextMessageSchema>;
 
-/** The `adminReadChannelContext` answer. Non-strict (server → client result posture). */
+/** The `adminReadChannelContext` answer. */
 export const AdminReadChannelContextResultSchema = z.object({
   messages: z.array(ChatContextMessageSchema),
 });
 export type AdminReadChannelContextResult = z.infer<typeof AdminReadChannelContextResultSchema>;
 
 /** The `mintChatGrant` answer: the signed grant and when it expires (epoch ms) — the client
- *  refreshes before then. Non-strict (server → client result posture). */
+ *  refreshes before then. */
 export const MintChatGrantResultSchema = z.object({
   grant: z.string().min(1),
   expiresAt: z.number(),

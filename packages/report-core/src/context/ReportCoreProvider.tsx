@@ -4,14 +4,14 @@ import { createContext, useContext, type ReactNode } from 'react';
 import type { ReportCoreConfig, PriorityThreshold } from '../config.js';
 import { DEFAULT_PRIORITY_THRESHOLDS } from '../config.js';
 import type { AdditionalReportAction } from '../types-ui-props.js';
+import type { SubmitReportRequest, SubmitReportResult } from '../schemas/index.js';
 
-// ============================================
-// CONTEXT
-// ============================================
+/** The app's call to its report-intake callable, typed and bound once by the app. */
+export type SubmitReportFn = (request: SubmitReportRequest) => Promise<SubmitReportResult>;
 
 export interface ReportCoreContextValue {
   config: ReportCoreConfig;
-  callFunction: <TReq, TRes>(name: string, data?: TReq) => Promise<TRes>;
+  submitReportFn: SubmitReportFn;
   /** Resolved priority thresholds (from config or defaults) */
   priorityThresholds: PriorityThreshold[];
   /** Consumer-supplied extra picker actions (see `AdditionalReportAction`). Default: none. */
@@ -20,13 +20,9 @@ export interface ReportCoreContextValue {
 
 const ReportCoreContext = createContext<ReportCoreContextValue | null>(null);
 
-// ============================================
-// PROVIDER
-// ============================================
-
 export interface ReportCoreProviderProps {
   config: ReportCoreConfig;
-  callFunction: <TReq, TRes>(name: string, data?: TReq) => Promise<TRes>;
+  submitReportFn: SubmitReportFn;
   children: ReactNode;
   /** Consumer-supplied extra picker actions (already filtered for visibility, e.g. admin-only). */
   additionalReportActions?: AdditionalReportAction[];
@@ -40,7 +36,7 @@ export interface ReportCoreProviderProps {
  *
  * report-core's data hooks read Firestore through query-core's hooks, so this
  * provider must sit **inside** query-core's `<FirestoreProvider db={...}>` (the
- * single Firestore source). report-core no longer takes its own `db`.
+ * single Firestore source).
  *
  * @example
  * ```tsx
@@ -48,39 +44,31 @@ export interface ReportCoreProviderProps {
  * import { ReportCoreProvider } from "@ttt-productions/report-core/react";
  * import { reportConfig } from "@/lib/report-config";
  * import { getFirebaseDb } from "@/lib/firebase";
- * import { callFunction } from "@/lib/firebase-functions";
+ * import { submitReport } from "@/lib/callables";
  *
  * <FirestoreProvider db={getFirebaseDb()}>
- *   <ReportCoreProvider config={reportConfig} callFunction={callFunction}>
+ *   <ReportCoreProvider config={reportConfig} submitReportFn={submitReport}>
  *     {children}
  *   </ReportCoreProvider>
  * </FirestoreProvider>
  * ```
  */
-export function ReportCoreProvider({ config, callFunction, children, additionalReportActions = [] }: ReportCoreProviderProps) {
+export function ReportCoreProvider({ config, submitReportFn, children, additionalReportActions = [] }: ReportCoreProviderProps) {
   const priorityThresholds = config.priorityThresholds ?? DEFAULT_PRIORITY_THRESHOLDS;
 
   return (
-    <ReportCoreContext.Provider value={{ config, callFunction, priorityThresholds, additionalReportActions }}>
+    <ReportCoreContext.Provider value={{ config, submitReportFn, priorityThresholds, additionalReportActions }}>
       {children}
     </ReportCoreContext.Provider>
   );
 }
 
-// ============================================
-// HOOK
-// ============================================
-
-/**
- * Access report-core context.
- * Throws if used outside of ReportCoreProvider.
- */
 export function useReportCoreContext(): ReportCoreContextValue {
   const context = useContext(ReportCoreContext);
   if (!context) {
     throw new Error(
       'useReportCoreContext must be used within a ReportCoreProvider. ' +
-      'Wrap your app or admin layout with <ReportCoreProvider config={...} callFunction={...}>.'
+      'Wrap your app or admin layout with <ReportCoreProvider config={...} submitReportFn={...}>.'
     );
   }
   return context;

@@ -3,8 +3,7 @@
 // The Trust & Safety operator surface (safety case console, evidence reveal, NCMEC
 // manual-portal completion, per-account safety actions, operator TOTP step-up, retained-
 // evidence inventory, party panel, TAKE IT DOWN request detail, protected-context re-fetch)
-// crosses the backend↔frontend boundary, so its callable input contracts live here — the
-// single source of truth — instead of being redefined locally in `functions/src/safety/`.
+// crosses the backend↔frontend boundary, so its callable contracts live here.
 //
 // Every object schema is `.strict()` so an unknown field on a privileged operator/admin
 // action is REJECTED rather than silently accepted (defense-in-depth on the highest-risk
@@ -41,6 +40,7 @@ import {
   ReportDispositionSchema,
   ReportReasonSchema,
   SafetyCaseClosureV1Schema,
+  TargetLocatorV1Schema,
 } from '../doc-schemas/safety/foundation.js';
 import {
   reportTargetItemIdSchema,
@@ -54,6 +54,7 @@ import {
 import { SafetySlaMonitorV1Schema } from '../doc-schemas/safety/monitors.js';
 import { NciiCaseLaneSchema, NciiCaseV1Schema } from '../doc-schemas/ncii/cases.js';
 import {
+  AuthorityProofScanStatusSchema,
   NciiRetainedEvidenceInventoryV1Schema,
   TakeItDownRequestRootV1Schema,
 } from '../doc-schemas/ncii/requests.js';
@@ -79,11 +80,10 @@ export { SafetyCaseLaneSchema, type SafetyCaseLane } from '../doc-schemas/safety
 import {
   SafetyEvidenceJobPhaseSchema,
   SafetyEvidenceJobStatusSchema,
+  SafetyEvidenceManifestV1Schema,
 } from '../doc-schemas/safety/evidence.js';
 
-// ---------------------------------------------------------------------------
 // commandAccountAction — apply a per-account safety action on a child-safety case.
-// ---------------------------------------------------------------------------
 
 /**
  * The per-account safety action the operator command applies — an ALIAS of the ONE
@@ -102,7 +102,7 @@ export const CommandAccountActionInputSchema = z
     reasonInternal: textFieldSchema(SAFETY_INTERNAL_REASON_INPUT),
     /** The generic owner-readable reason (no detail leaks). */
     reasonUserFacing: z.string().min(1).max(MAX_USER_FACING_REASON_LENGTH),
-    /** Per-account case role (A1b) — the canonical case enums, never re-declared. */
+    /** Per-account case role — the canonical case enums, never re-declared. */
     role: ChildSafetyAccountRoleSchema,
     subjectDisposition: ChildSafetyAccountSubjectDispositionSchema,
     confirmation: z.literal(SAFETY_ACCOUNT_ACTION_CONFIRMATION),
@@ -110,9 +110,7 @@ export const CommandAccountActionInputSchema = z
   .strict();
 export type CommandAccountActionInput = z.infer<typeof CommandAccountActionInputSchema>;
 
-// ---------------------------------------------------------------------------
 // getSafetyCaseConsole — paginated read of the active safety-case console.
-// ---------------------------------------------------------------------------
 
 /** Cursor for the next page of a paginated console source — the last row's `(orderField value, docId)`. */
 export const SafetyCaseConsoleCursorSchema = z
@@ -251,11 +249,9 @@ export const GetSafetyCaseConsoleResultSchema = z
   .strict();
 export type GetSafetyCaseConsoleResult = z.infer<typeof GetSafetyCaseConsoleResultSchema>;
 
-// ---------------------------------------------------------------------------
 // The console patch — what a console action changed, so the console's loaded pages are patched in
 // place rather than reloaded (FRONTEND-103). Its rows come from Functions-only collections the
 // client cannot read, so the action answers with them, built by the console's own row projection.
-// ---------------------------------------------------------------------------
 
 /**
  * One console row an action changed, keyed by the id its source keys it by. `row` is the row as the
@@ -292,7 +288,7 @@ export type SafetyCaseConsolePatch = z.infer<typeof SafetyCaseConsolePatchSchema
 
 // The answers of the console's actions. Each carries its console patch when the read after the
 // commit succeeded; a failed read never fails an action that already committed (ENG-009), and the
-// client keeps its loaded pages when `console` is absent. Non-strict (server → client result posture).
+// client keeps its loaded pages when `console` is absent.
 
 /** `decideTakeItDownValidity`. */
 export const DecideTakeItDownValidityResultSchema = z.object({
@@ -380,9 +376,7 @@ export const AdminReplayDeadLetterResultSchema = z
   });
 export type AdminReplayDeadLetterResult = z.infer<typeof AdminReplayDeadLetterResultSchema>;
 
-// ---------------------------------------------------------------------------
 // getSafetyCaseById — full-admin read of a terminal safety case by id.
-// ---------------------------------------------------------------------------
 
 export const GetSafetyCaseByIdInputSchema = z
   .object({
@@ -423,9 +417,7 @@ export const SafetyCaseByIdResultSchema = z.discriminatedUnion('caseType', [
 ]);
 export type SafetyCaseByIdResult = z.infer<typeof SafetyCaseByIdResultSchema>;
 
-// ---------------------------------------------------------------------------
 // getSafetyCaseParties — server-resolved party panel for a safety case.
-// ---------------------------------------------------------------------------
 
 export const GetSafetyCasePartiesInputSchema = z
   .object({
@@ -435,9 +427,26 @@ export const GetSafetyCasePartiesInputSchema = z
   .strict();
 export type GetSafetyCasePartiesInput = z.infer<typeof GetSafetyCasePartiesInputSchema>;
 
-// ---------------------------------------------------------------------------
+export const SafetyPartyRoleSchema = z.enum(['uploader', 'requester', 'distributor', 'questionable']);
+export type SafetyPartyRole = z.infer<typeof SafetyPartyRoleSchema>;
+
+export const SafetyCasePartySchema = z.object({
+  uid: userIdSchema,
+  /** Why this account is on the case, in words (e.g. "Content owner / uploader"). */
+  label: z.string(),
+  /** The default account-action role offered for this party; the operator may change it. */
+  suggestedRole: SafetyPartyRoleSchema,
+  /** The account status, when it could be read. */
+  accountStatus: z.string().optional(),
+});
+export type SafetyCaseParty = z.infer<typeof SafetyCasePartySchema>;
+
+export const GetSafetyCasePartiesResultSchema = z.object({
+  parties: z.array(SafetyCasePartySchema),
+});
+export type GetSafetyCasePartiesResult = z.infer<typeof GetSafetyCasePartiesResultSchema>;
+
 // getTakeItDownRequestDetail — operator detail read for one public TAKE IT DOWN request.
-// ---------------------------------------------------------------------------
 
 export const GetTakeItDownRequestDetailInputSchema = z
   .object({
@@ -446,9 +455,26 @@ export const GetTakeItDownRequestDetailInputSchema = z
   .strict();
 export type GetTakeItDownRequestDetailInput = z.infer<typeof GetTakeItDownRequestDetailInputSchema>;
 
-// ---------------------------------------------------------------------------
+export const GetTakeItDownRequestDetailResultSchema = z.object({
+  requestId: takeItDownRequestIdSchema,
+  /** The case a 'valid' ruling armed; absent until then. */
+  caseId: safetyCaseIdSchema.optional(),
+  requesterRole: TakeItDownRequestRootV1Schema.shape.requesterRole,
+  targetLocatorSummary: TakeItDownRequestRootV1Schema.shape.targetLocatorSummary,
+  completenessStatus: TakeItDownRequestRootV1Schema.shape.completenessStatus,
+  validityStatus: TakeItDownRequestRootV1Schema.shape.validityStatus,
+  publicStatus: TakeItDownRequestRootV1Schema.shape.publicStatus,
+  targetLocator: TargetLocatorV1Schema.optional(),
+  supportingFacts: z.string().optional(),
+  /** An authorized representative only: the basis of authority they asserted. */
+  authorityBasis: z.string().optional(),
+  /** An authorized representative only: whether an authority-proof file is attached. */
+  hasAuthorityEvidence: z.boolean().optional(),
+  authorityProofScanStatus: AuthorityProofScanStatusSchema.optional(),
+});
+export type GetTakeItDownRequestDetailResult = z.infer<typeof GetTakeItDownRequestDetailResultSchema>;
+
 // listRetainedEvidenceInventory — paginated retained-evidence inventory read.
-// ---------------------------------------------------------------------------
 
 /** A retention list's cursor — the last row's `(createdAt, docId)`, newest first. */
 const createdAtCursorSchema = () => z.object({ createdAt: z.number(), id: documentIdSegmentSchema }).strict();
@@ -482,10 +508,8 @@ export const ListRetainedEvidenceInventoryResultSchema = z
   .strict();
 export type ListRetainedEvidenceInventoryResult = z.infer<typeof ListRetainedEvidenceInventoryResultSchema>;
 
-// ---------------------------------------------------------------------------
 // listRetainedChildSafetyCases — the Retention tab's paged list of closed child-safety cases whose
 // evidence is still preserved.
-// ---------------------------------------------------------------------------
 
 /**
  * A closed child-safety case is retained while its evidence is: every preservation status but
@@ -531,9 +555,7 @@ export const ListRetainedChildSafetyCasesResultSchema = z
   .strict();
 export type ListRetainedChildSafetyCasesResult = z.infer<typeof ListRetainedChildSafetyCasesResultSchema>;
 
-// ---------------------------------------------------------------------------
 // ncmecOperatorCommands — NCMEC manual-portal completion path.
-// ---------------------------------------------------------------------------
 
 export const RecordNcmecPortalReceiptArtifactInputSchema = z
   .object({
@@ -543,7 +565,7 @@ export const RecordNcmecPortalReceiptArtifactInputSchema = z
     evidenceVaultKey: z.string().min(1, 'An evidence vault object key is required.'),
     /** Optional operator description of what the artifact is (e.g. "NCMEC portal screenshot"). */
     description: textFieldSchema(NCMEC_ARTIFACT_DESCRIPTION_INPUT).optional(),
-    /** Explicit typed confirmation (interim control until the passkey profile lands). */
+    /** Explicit typed confirmation. */
     confirmation: z.literal(NCMEC_PORTAL_RECEIPT_CONFIRMATION),
   })
   .strict();
@@ -551,29 +573,35 @@ export type RecordNcmecPortalReceiptArtifactInput = z.infer<
   typeof RecordNcmecPortalReceiptArtifactInputSchema
 >;
 
+export const RecordNcmecPortalReceiptArtifactResultSchema = z.object({
+  success: z.literal(true),
+  artifactId: z.string().min(1),
+  objectGeneration: z.string().min(1),
+  sha256: z.string().min(1),
+});
+export type RecordNcmecPortalReceiptArtifactResult = z.infer<typeof RecordNcmecPortalReceiptArtifactResultSchema>;
+
 export const MarkNcmecPortalCompleteInputSchema = z
   .object({
     caseId: safetyCaseIdSchema,
     submissionId: documentIdSegmentSchema,
-    /** [Q13/H-06] The ID of an existing NcmecPortalReceiptArtifactV1 record bound to this (caseId, submissionId). */
+    /** The ID of an existing NcmecPortalReceiptArtifactV1 record bound to this (caseId, submissionId). */
     artifactId: documentIdSegmentSchema,
-    /** [Q13/H-06] The object generation recorded on the artifact at registration time (immutable-object peg). */
+    /** The object generation recorded on the artifact at registration time (immutable-object peg). */
     artifactObjectGeneration: z.string().min(1, 'The artifact object generation is required.'),
-    /** [Q13/H-06] The sha256 hex digest recorded on the artifact at registration time (content-integrity check). */
+    /** The sha256 hex digest recorded on the artifact at registration time (content-integrity check). */
     artifactSha256: z.string().regex(/^[0-9a-f]{64}$/, 'artifactSha256 must be a 64-character hex string.'),
     /** Optional operator free-text note describing the portal confirmation. */
     proofText: textFieldSchema(NCMEC_PORTAL_PROOF_TEXT_INPUT).optional(),
     /** The NCMEC-assigned report id — REQUIRED (it IS the proof; no "filed, number pending" grace). */
     ncmecReportId: z.string().min(1, 'The NCMEC report id is required to mark the report complete.'),
-    /** Explicit typed confirmation (interim control until the passkey profile lands). */
+    /** Explicit typed confirmation. */
     confirmation: z.literal(NCMEC_MANUAL_PORTAL_FILED_CONFIRMATION),
   })
   .strict();
 export type MarkNcmecPortalCompleteInput = z.infer<typeof MarkNcmecPortalCompleteInputSchema>;
 
-// ---------------------------------------------------------------------------
 // operatorStepUp — app-level TOTP step-up (confirm / verify an authenticator code).
-// ---------------------------------------------------------------------------
 
 export const OperatorStepUpCodeInputSchema = z
   .object({
@@ -588,28 +616,65 @@ export const OperatorStepUpCodeInputSchema = z
   .strict();
 export type OperatorStepUpCodeInput = z.infer<typeof OperatorStepUpCodeInputSchema>;
 
-// ---------------------------------------------------------------------------
+export const EnrollOperatorStepUpInputSchema = z.object({}).strict();
+export type EnrollOperatorStepUpInput = z.infer<typeof EnrollOperatorStepUpInputSchema>;
+
+export const EnrollOperatorStepUpResultSchema = z.object({
+  otpauthUri: z.string().min(1),
+  secret: z.string().min(1),
+});
+export type EnrollOperatorStepUpResult = z.infer<typeof EnrollOperatorStepUpResultSchema>;
+
+export const ConfirmOperatorStepUpResultSchema = z.object({
+  success: z.literal(true),
+});
+export type ConfirmOperatorStepUpResult = z.infer<typeof ConfirmOperatorStepUpResultSchema>;
+
+export const VerifyOperatorStepUpResultSchema = z.object({
+  grantExpiresAt: z.number(),
+});
+export type VerifyOperatorStepUpResult = z.infer<typeof VerifyOperatorStepUpResultSchema>;
+
 // revealCaseEvidence — metadata→evidence reveal under reauth.
-// ---------------------------------------------------------------------------
 
 export const RevealCaseEvidenceInputSchema = z
   .object({
     caseId: safetyCaseIdSchema,
-    /** Explicit typed confirmation (interim control until the passkey profile lands). */
+    /** Explicit typed confirmation. */
     confirmation: z.literal(REVEAL_CASE_EVIDENCE_CONFIRMATION),
     /** The operator's child-safety warning acknowledgement, carried so the backend can persist it
      * in the reveal audit trail. This schema serves ONLY the safety-console reveal-under-reauth
      * flow (its sibling `confirmation` literal gates the same surface), so the acknowledgement is a
-     * required `true` — consistent with the existing explicit-confirmation style. Server-side
-     * enforcement + audit persistence land app-side. */
+     * required `true`. */
     warningAcknowledged: z.literal(true),
   })
   .strict();
 export type RevealCaseEvidenceInput = z.infer<typeof RevealCaseEvidenceInputSchema>;
 
-// ---------------------------------------------------------------------------
+// Metadata only: no bytes and no serving URL ever leave the reveal.
+export const RevealedEvidenceMetadataSchema = z.object({
+  manifestId: z.string().min(1),
+  sourceKind: SafetyEvidenceManifestV1Schema.shape.sourceKind,
+  original: z
+    .object({ contentType: z.string(), sizeBytes: z.number(), sha256: z.string(), md5: z.string() })
+    .optional(),
+  variants: z.array(z.object({ variantKey: z.string(), sha256: z.string(), sizeBytes: z.number() })).optional(),
+  detectorSource: z.string().optional(),
+});
+export type RevealedEvidenceMetadata = z.infer<typeof RevealedEvidenceMetadataSchema>;
+
+export const RevealCaseEvidenceResultSchema = z.object({
+  success: z.literal(true),
+  caseId: safetyCaseIdSchema,
+  metadata: RevealedEvidenceMetadataSchema,
+  /** When the reveal window closes; no token is minted. */
+  expiresAt: z.number(),
+  /** The answer must never be cached by any layer. */
+  noStore: z.literal(true),
+});
+export type RevealCaseEvidenceResult = z.infer<typeof RevealCaseEvidenceResultSchema>;
+
 // refetchProtectedCaseContext — operator manual re-fetch of protected chat context.
-// ---------------------------------------------------------------------------
 
 export const RefetchProtectedCaseContextInputSchema = z
   .object({
@@ -619,9 +684,7 @@ export const RefetchProtectedCaseContextInputSchema = z
   .strict();
 export type RefetchProtectedCaseContextInput = z.infer<typeof RefetchProtectedCaseContextInputSchema>;
 
-// ---------------------------------------------------------------------------
 // recordNcmecPortalCorrection — record an operator's NCMEC manual-portal correction filing.
-// ---------------------------------------------------------------------------
 
 export const RecordNcmecPortalCorrectionInputSchema = z
   .object({
@@ -634,11 +697,9 @@ export const RecordNcmecPortalCorrectionInputSchema = z
   .strict();
 export type RecordNcmecPortalCorrectionInput = z.infer<typeof RecordNcmecPortalCorrectionInputSchema>;
 
-// ---------------------------------------------------------------------------
 // submitReport — the one report-intake callable. The target ids are HINTS the server re-derives
 // (never owner or target authority): each is bounded and shaped as the path it could become, and
 // `parentItemId` may be a chat channel or conversation-file reference of two ids joined by "/".
-// ---------------------------------------------------------------------------
 /** A report's comment — the field schema the report intake and report-core's submit schema share. */
 export const reportCommentFieldSchema = textFieldSchema(REPORT_COMMENT_INPUT);
 /** An admin task's check-in resolution note — the field report-core's check-in schema takes. */

@@ -5,19 +5,10 @@ import {
   guildInviteIdSchema,
 } from './atoms.js';
 
-// Mirrors the StakeShareOperation TS type in packages/ttt-core/src/types/work-project.ts.
-// Each branch is .strict() so unknown keys are a contract violation.
-//
-// NOTE: The original StakeShareOperation type had an optional `workProjectData: FullWorkProject`
-// field. It was dead: no call site in ttt-prod populated it and the
-// stake-share operation handler never read it. Removed during the Zod migration.
-//
-// Per-branch shape decisions:
-// - All branches accept optional `amount`, `user`, `sourceId` to match the
-//   existing TS type. Business-logic checks (for example, "add-pending requires
-//   user OR sourceId") live in stake-share-operations.ts, not in this schema.
-// - The accept-proposalArtisan operation has been removed; acceptance now flows
-//   through guild-invite handling.
+// The StakeShareOperation type is this schema's inference. Each branch is .strict() so unknown
+// keys are a contract violation. Every branch accepts optional `amount`, `user`, `sourceId`;
+// business-logic checks (for example, "add-pending requires user OR sourceId") live in
+// stake-share-operations.ts, not in this schema.
 
 const userRefSchema = z.object({
   uid: userIdSchema,
@@ -109,3 +100,9 @@ export const PublicManageWorkProjectStakeSharesInputSchema = z.object({
 }).strict();
 
 export type PublicManageWorkProjectStakeSharesInput = z.infer<typeof PublicManageWorkProjectStakeSharesInputSchema>;
+
+export const ManageWorkProjectStakeSharesResultSchema = z.object({
+  success: z.literal(true),
+  message: z.string(),
+});
+export type ManageWorkProjectStakeSharesResult = z.infer<typeof ManageWorkProjectStakeSharesResultSchema>;

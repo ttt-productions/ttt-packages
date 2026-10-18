@@ -6,13 +6,16 @@
 // rather than the broad root barrel, so they don't pull the UI/server surface
 // into scope.
 
-// --- Data shapes ---
 export type {
   TaskPriority,
   AdminTask,
   AdminTaskStatus,
   CheckoutDetails,
   CheckedOutTask,
+  ClaimedTask,
+  CheckoutTaskResult,
+  CheckoutNextImportantTaskResult,
+  TaskLifecycleResult,
   ActivityAction,
   ActivityLogEntry,
   TaskQueueConfig,
@@ -20,7 +23,6 @@ export type {
   PriorityConfig,
 } from './types.js';
 
-// --- Config shapes + constants ---
 export type {
   ReportCoreConfig,
   ReportCoreCollections,
@@ -32,7 +34,6 @@ export {
   USER_REPORT_TASK_TYPE,
 } from './config.js';
 
-// --- Pure wire schemas (zod) ---
 export {
   CheckoutTaskRequestSchema,
   createCheckinTaskRequestSchema,

@@ -1,6 +1,7 @@
 import type { ServerFirestore, ServerReportCoreConfig, OnAuditEvent } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';
 import type { ReleaseTaskRequest } from '../schemas/index.js';
+import type { TaskLifecycleResult } from '../types-admin-task.js';
 
 export interface ReleaseTaskHandlerConfig {
   config: ServerReportCoreConfig;
@@ -31,9 +32,7 @@ export interface ReleaseTaskHandlerConfig {
  * The missing-doc branch cannot distinguish a deleted task from a nonexistent
  * `taskId` (the wire schema only requires a non-empty string), and that is safe:
  * releasing writes nothing and audits nothing on this branch, so a bogus id is a
- * pure no-op with no state to corrupt and no existence oracle to leak. No caller
- * reads the old `not-found` signal — every consumer treats release as
- * fire-and-forget-then-navigate, which is exactly the behavior that was breaking.
+ * pure no-op with no state to corrupt and no existence oracle to leak.
  */
 export function createReleaseTaskHandler({
   config,
@@ -44,7 +43,7 @@ export function createReleaseTaskHandler({
   return async (
     data: ReleaseTaskRequest,
     authContext: { uid: string; token?: unknown },
-  ): Promise<{ success: boolean; alreadyResolved?: true }> => {
+  ): Promise<TaskLifecycleResult> => {
     const { taskId } = data;
     const userId = authContext.uid;
 
@@ -65,9 +64,7 @@ export function createReleaseTaskHandler({
         // Nothing is held, so the caller's goal state already holds. Same
         // contract (and same `alreadyResolved` discriminant) as
         // createCheckinTaskHandler; there is no task data left to update or
-        // audit. Throwing here surfaced the terminal state as a spurious error
-        // and stranded the admin on a work view for a task that no longer
-        // exists.
+        // audit.
         return { success: true, alreadyResolved: true };
       }
 
@@ -76,10 +73,8 @@ export function createReleaseTaskHandler({
 
       // Idempotent no-op: no live checkout means the caller's goal state already
       // holds (the checkout lapsed/expired, an earlier release landed, or the task
-      // was resolved). Throwing here surfaced as a spurious 'internal' 500 to
-      // clients draining stale checkout cards whose server-side checkout had
-      // already lapsed. A checkout held by ANOTHER admin is still a real conflict
-      // and still throws.
+      // was resolved). A checkout held by ANOTHER admin is a real conflict and
+      // throws.
       if (!checkoutDetails) {
         return { success: true };
       }

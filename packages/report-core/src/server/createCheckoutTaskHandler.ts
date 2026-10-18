@@ -9,6 +9,8 @@ import type {
 import { ReportCoreTaskError } from './taskError.js';
 import { createCandidateCursor } from './claimCandidates.js';
 import type { CheckoutTaskRequest } from '../schemas/index.js';
+import type { AdminTaskStatus, CheckoutDetails, CheckoutTaskResult } from '../types-admin-task.js';
+import { toClaimedTask } from './claimedTask.js';
 
 export interface CheckoutTaskHandlerConfig {
   config: ServerReportCoreConfig;
@@ -21,7 +23,7 @@ export interface CheckoutTaskHandlerConfig {
 }
 
 type ClaimOutcome =
-  | { kind: 'claimed'; result: Record<string, unknown> }
+  | { kind: 'claimed'; result: CheckoutTaskResult }
   | { kind: 'contended' }
   | { kind: 'refused' };
 
@@ -37,20 +39,10 @@ type ClaimOutcome =
 const MAX_CLAIM_ROUNDS = 5;
 
 /**
- * Factory that returns the handler for the checkoutTask callable function.
- *
- * Behavior:
- * 1. Verifies admin auth (requireAdmin function or adminUserIds fallback)
- * 2. If specificTaskId provided, checks out that task
- * 3. Otherwise finds the highest-priority pending task of the given type
- * 4. Falls back to expired checked-out tasks
- * 5. Asks the app's claim guard, inside the claim transaction, whether the task may be
- *    claimed — a refused specific task is answered `failed-precondition` with the app's
- *    message; a refused queue candidate is skipped for the next one
- * 6. Sets checkout details with expiration
- * 7. Logs activity
- *
- * @returns An async handler: (data, authContext) => Promise<result>
+ * The checkoutTask handler: the named task, else the highest-priority pending task of the type,
+ * else the longest-expired checked-out one. The app's claim guard decides inside the claim
+ * transaction — a refused named task is answered `failed-precondition` with the app's message,
+ * a refused queue candidate is skipped for the next one.
  */
 export function createCheckoutTaskHandler({
   config,
@@ -60,17 +52,14 @@ export function createCheckoutTaskHandler({
   assertTaskClaimable,
 }: CheckoutTaskHandlerConfig) {
   const verifyAdmin = async (uid: string, authToken: unknown): Promise<void> => {
-    // Try requireAdmin first
     if (auth.requireAdmin) {
       try {
         await auth.requireAdmin(uid, authToken);
         return;
       } catch {
-        // Fall through to adminUserIds check
       }
     }
 
-    // Fallback to hardcoded list
     if (auth.adminUserIds?.includes(uid)) return;
 
     throw new ReportCoreTaskError('permission-denied', 'Administrator access required');
@@ -79,7 +68,7 @@ export function createCheckoutTaskHandler({
   return async (
     data: CheckoutTaskRequest,
     authContext: { uid: string; token: unknown },
-  ): Promise<Record<string, unknown>> => {
+  ): Promise<CheckoutTaskResult> => {
     const { taskType, specificTaskId } = data;
     const userId = authContext.uid;
 
@@ -134,25 +123,19 @@ export function createCheckoutTaskHandler({
           // the task as held, and change nothing — no lock extension, no audit event.
           const originalDocRef = db.doc(taskData.originalPath as string);
           const originalDoc = await transaction.get(originalDocRef);
-          const heldCheckout = taskData.checkoutDetails as Record<string, unknown>;
+          const heldCheckout = taskData.checkoutDetails as CheckoutDetails;
           return {
             kind: 'claimed',
             result: {
               success: true,
               alreadyHeld: true,
-              task: {
-                id: taskDoc.id,
-                taskType: taskData.taskType,
-                taskId: taskData.taskId,
-                originalPath: taskData.originalPath,
-                summary: taskData.summary,
-                priority: taskData.priority,
-                checkedOutAt: heldCheckout.checkedOutAt,
-                expiresAt: heldCheckout.expiresAt,
-                status,
-                checkoutDetails: heldCheckout,
-                itemData: originalDoc.exists ? originalDoc.data() : null,
-              },
+              task: toClaimedTask(
+                taskDoc.id,
+                taskData,
+                status as AdminTaskStatus,
+                heldCheckout,
+                originalDoc.exists ? originalDoc.data() : null,
+              ),
             },
           };
         }
@@ -170,7 +153,6 @@ export function createCheckoutTaskHandler({
           return { kind: 'contended' };
         }
 
-        // Fetch original document (must read before any writes in the transaction)
         const originalDocRef = db.doc(taskData.originalPath as string);
         const originalDoc = await transaction.get(originalDocRef);
 
@@ -239,19 +221,13 @@ export function createCheckoutTaskHandler({
           kind: 'claimed',
           result: {
             success: true,
-            task: {
-              id: taskDoc.id,
-              taskType: taskData.taskType,
-              taskId: taskData.taskId,
-              originalPath: taskData.originalPath,
-              summary: taskData.summary,
-              priority: taskData.priority,
-              checkedOutAt: now,
-              expiresAt,
-              status: 'checkedOut',
+            task: toClaimedTask(
+              taskDoc.id,
+              taskData,
+              'checkedOut',
               checkoutDetails,
-              itemData: originalDoc.exists ? originalDoc.data() : null,
-            },
+              originalDoc.exists ? originalDoc.data() : null,
+            ),
           },
         };
       });
@@ -262,7 +238,7 @@ export function createCheckoutTaskHandler({
       // Doc-level transaction on the named task; the status guard and the claim guard throw
       // the precise error, so this path only ever answers `claimed`.
       const claim = await claimTask(tasksRef.doc(specificTaskId), { onConflict: 'throw' });
-      return (claim as { kind: 'claimed'; result: Record<string, unknown> }).result;
+      return (claim as { kind: 'claimed'; result: CheckoutTaskResult }).result;
     }
 
     // Candidate discovery — OUTSIDE the transaction (see MAX_CLAIM_ROUNDS): the

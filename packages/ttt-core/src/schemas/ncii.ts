@@ -6,6 +6,7 @@ import {
   safetyCaseIdSchema,
   nciiAllegationIdSchema,
   takeItDownRequestIdSchema,
+  mediaAssetIdSchema,
 } from './atoms.js';
 import {
   ReportableItemTypeSchema,
@@ -13,6 +14,7 @@ import {
   TakeItDownRequesterRoleSchema,
 } from '../doc-schemas/safety/foundation.js';
 import { TakeItDownSignatureMethodSchema } from '../doc-schemas/ncii/requests.js';
+import { NciiAllegationV1Schema } from '../doc-schemas/ncii/allegations.js';
 import {
   MAX_NCII_AUTHORITY_EVIDENCE_REF_LENGTH,
   MAX_NCII_LOCATOR_URL_LENGTH,
@@ -35,13 +37,11 @@ import {
 } from '../constants/text-fields.js';
 import { textFieldSchema } from './text-field.js';
 
-// NCII / TAKE IT DOWN callable-input schemas. Cross-boundary contracts for the
-// `functions/src/ncii/` callables — moved here from local `functions/` definitions so the
-// callable-validation standard (parse `request.data` with a `.strict()` ttt-core schema before any
-// auth check) is met from one authoritative place. See ttt-prod docs/design/callable-validation.md.
+// NCII / TAKE IT DOWN callable schemas: the cross-boundary contracts of the `functions/src/ncii/`
+// callables.
 
 // Operator sets the child-safety crossover minorAssessment on an NCII case (CSAM possible-minor
-// crossover — DECISION 2026-07-01: operator-only, no automated age signal). A routing action: it
+// crossover — operator-only, no automated age signal). A routing action: it
 // opens/links a PARALLEL child-safety review + deny-serving + PhotoDNA, WITHOUT touching the NCII
 // removal clock and WITHOUT auto-NCMEC (that still needs a validated hash or explicit human
 // confirmApparentViolation). Writes the `ncii.minorAssessmentSet` audit event.
@@ -51,23 +51,45 @@ export const SetNciiMinorAssessmentInputSchema = z.object({
 }).strict();
 export type SetNciiMinorAssessmentInput = z.infer<typeof SetNciiMinorAssessmentInputSchema>;
 
-// ===========================================================================
 // listNciiEvidencePool — admin-only pool read for the find-&-link flow.
 // Optional caseId selects the currently-linked evidence to also return.
-// ===========================================================================
 export const ListNciiEvidencePoolInputSchema = z.object({
   caseId: safetyCaseIdSchema.optional(),
 }).strict();
 export type ListNciiEvidencePoolInput = z.infer<typeof ListNciiEvidencePoolInputSchema>;
 
-// ===========================================================================
+export const NciiEvidencePoolItemSchema = z.object({
+  allegationId: nciiAllegationIdSchema,
+  targetLocator: NciiAllegationV1Schema.shape.targetLocator,
+  itemType: z.string().optional(),
+  ownerUid: z.string().optional(),
+  allegationReason: z.string(),
+  submittedAt: z.number(),
+});
+export type NciiEvidencePoolItem = z.infer<typeof NciiEvidencePoolItemSchema>;
+
+export const ListNciiEvidencePoolResultSchema = z.object({
+  pool: z.array(NciiEvidencePoolItemSchema),
+  linked: z.array(NciiEvidencePoolItemSchema),
+});
+export type ListNciiEvidencePoolResult = z.infer<typeof ListNciiEvidencePoolResultSchema>;
+
 // linkNciiEvidenceToCase / unlinkNciiEvidenceFromCase — find-&-link step 2 (+ reverse).
-// ===========================================================================
 export const LinkNciiEvidenceToCaseInputSchema = z.object({
   allegationId: nciiAllegationIdSchema,
   caseId: safetyCaseIdSchema,
 }).strict();
 export type LinkNciiEvidenceToCaseInput = z.infer<typeof LinkNciiEvidenceToCaseInputSchema>;
+
+export const LinkNciiEvidenceToCaseResultSchema = z.object({
+  success: z.literal(true),
+  caseId: safetyCaseIdSchema,
+  allegationId: nciiAllegationIdSchema,
+  /** The owner or uploader, when resolved: the default account-action target. */
+  ownerUid: z.string().min(1).nullable(),
+  holdRefId: z.string().min(1),
+});
+export type LinkNciiEvidenceToCaseResult = z.infer<typeof LinkNciiEvidenceToCaseResultSchema>;
 
 export const UnlinkNciiEvidenceFromCaseInputSchema = z.object({
   allegationId: nciiAllegationIdSchema,
@@ -75,10 +97,13 @@ export const UnlinkNciiEvidenceFromCaseInputSchema = z.object({
 }).strict();
 export type UnlinkNciiEvidenceFromCaseInput = z.infer<typeof UnlinkNciiEvidenceFromCaseInputSchema>;
 
-// ===========================================================================
+export const UnlinkNciiEvidenceFromCaseResultSchema = z.object({
+  success: z.literal(true),
+});
+export type UnlinkNciiEvidenceFromCaseResult = z.infer<typeof UnlinkNciiEvidenceFromCaseResultSchema>;
+
 // markNciiEvidence — admin-only "NCII linked evidence" intake (find-&-link step 1).
 // Client ids are HINTS; the target is re-resolved server-side.
-// ===========================================================================
 export const MarkNciiEvidenceInputSchema = z.object({
   itemType: ReportableItemTypeSchema,
   reportedItemId: reportTargetItemIdSchema,
@@ -88,9 +113,14 @@ export const MarkNciiEvidenceInputSchema = z.object({
 }).strict();
 export type MarkNciiEvidenceInput = z.infer<typeof MarkNciiEvidenceInputSchema>;
 
-// ===========================================================================
+export const MarkNciiEvidenceResultSchema = z.object({
+  success: z.literal(true),
+  allegationId: nciiAllegationIdSchema,
+  alreadyExisted: z.boolean(),
+});
+export type MarkNciiEvidenceResult = z.infer<typeof MarkNciiEvidenceResultSchema>;
+
 // decideTakeItDownValidity — the nciiRequestReviewer-gated validity determination.
-// ===========================================================================
 
 /** Enumerated invalid-ruling reasons (never free-form). */
 export const TakeItDownInvalidReasonCodeSchema = z.enum([
@@ -113,18 +143,15 @@ export const DecideTakeItDownValidityInputSchema = z.object({
   result: z.enum(['valid', 'invalid', 'unableToLocate']),
   /** Required for an 'invalid' result; an enumerated reason (never free-form). */
   reasonCode: TakeItDownInvalidReasonCodeSchema.optional(),
-  /** [EUAS-010] The operator's written rationale for this ruling. Persisted as an IMMUTABLE
-   *  restricted rationale row that `rationaleRef` then points at — the UI no longer fabricates a
-   *  `rationale:<requestId>` pointer. Required + substantive (non-placeholder). */
+  /** The operator's written rationale for this ruling, persisted as an IMMUTABLE restricted
+   *  rationale row that `rationaleRef` points at. Required + substantive (non-placeholder). */
   rationaleText: textFieldSchema(TAKE_IT_DOWN_VALIDITY_RATIONALE_INPUT),
-  /** Explicit typed confirmation (interim control until the passkey profile lands). */
+  /** Explicit typed confirmation. */
   confirmation: z.literal(TAKE_IT_DOWN_VALIDITY_CONFIRMATION),
 }).strict();
 export type DecideTakeItDownValidityInput = z.infer<typeof DecideTakeItDownValidityInputSchema>;
 
-// ===========================================================================
 // The statutory intake fields both entries share (in-app and no-login).
-// ===========================================================================
 const nciiIdempotencyKeySchema = z
   .string()
   .min(NCII_IDEMPOTENCY_KEY_MIN_LENGTH)
@@ -144,10 +171,8 @@ const ONE_CONTACT_METHOD_REQUIRED = {
 const hasContactMethod = (body: { contactEmail?: string; contactPhone?: string }): boolean =>
   Boolean(body.contactEmail) || Boolean(body.contactPhone);
 
-// ===========================================================================
 // submitInAppNciiRequest — logged-in entry to the one NCII statutory intake core.
 // Client ids are HINTS; the target is re-resolved server-side.
-// ===========================================================================
 export const SubmitInAppNciiRequestInputSchema = z
   .object({
     idempotencyKey: nciiIdempotencyKeySchema,
@@ -167,12 +192,18 @@ export const SubmitInAppNciiRequestInputSchema = z
   .refine(hasContactMethod, ONE_CONTACT_METHOD_REQUIRED);
 export type SubmitInAppNciiRequestInput = z.infer<typeof SubmitInAppNciiRequestInputSchema>;
 
-// ===========================================================================
+export const SubmitInAppNciiRequestResultSchema = z.object({
+  requestReference: z.string().min(1),
+  requestId: takeItDownRequestIdSchema,
+  completenessStatus: z.literal('complete'),
+  created: z.boolean(),
+});
+export type SubmitInAppNciiRequestResult = z.infer<typeof SubmitInAppNciiRequestResultSchema>;
+
 // POST /api/take-it-down — the PUBLIC, no-login statutory intake body. It is url-ONLY by design:
 // it never carries a TTT-hosted locator the server would resolve and hold, so an anonymous caller
 // cannot take platform content down without an account. A report of TTT content goes through the
 // authenticated report path. The route parses this before it reads anything else of the request.
-// ===========================================================================
 export const PublicTakeItDownLocatorSchema = z
   .object({ kind: z.literal('url'), url: z.string().min(1).max(MAX_NCII_LOCATOR_URL_LENGTH) })
   .strict();
@@ -225,13 +256,17 @@ export const TakeItDownIntakeBodySchema = z
   });
 export type TakeItDownIntakeBody = z.infer<typeof TakeItDownIntakeBodySchema>;
 
-// ===========================================================================
 // resolveNciiReportPreview — logged-in read resolving a reported item to a previewable asset.
 // Client ids are HINTS; the target is re-resolved server-side.
-// ===========================================================================
 export const ResolveNciiReportPreviewInputSchema = z.object({
   itemType: ReportableItemTypeSchema,
   reportedItemId: reportTargetItemIdSchema,
   parentItemId: reportTargetParentRefSchema.optional(),
 }).strict();
 export type ResolveNciiReportPreviewInput = z.infer<typeof ResolveNciiReportPreviewInputSchema>;
+
+export const ResolveNciiReportPreviewResultSchema = z.object({
+  mediaAssetId: mediaAssetIdSchema.optional(),
+  mediaKind: z.enum(['image', 'video', 'audio']).optional(),
+});
+export type ResolveNciiReportPreviewResult = z.infer<typeof ResolveNciiReportPreviewResultSchema>;

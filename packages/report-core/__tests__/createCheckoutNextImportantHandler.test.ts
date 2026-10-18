@@ -41,10 +41,9 @@ interface MockDbOptions {
 
 /**
  * Live-store mock: queries filter/sort the CURRENT store (outside any transaction),
- * transactions read/write specific docs. Two invariants of the checkout fix are
- * enforced structurally:
- *   - a range query inside the transaction THROWS (the range-lock contention bug —
- *     candidate discovery must run outside; doc-level claims only), and
+ * transactions read/write specific docs. Two invariants are enforced structurally:
+ *   - a range query inside the transaction THROWS (it would range-lock the whole queue —
+ *     candidate discovery runs outside; doc-level claims only), and
  *   - all transactional reads must precede writes (real Firestore throws otherwise).
  */
 function createMockDb(opts: MockDbOptions = {}) {
@@ -312,7 +311,6 @@ describe('createCheckoutNextImportantHandler', () => {
       auth: { adminUserIds: ['admin1', 'admin2'] },
     });
 
-    // Should succeed for admin2
     const result = await handler({}, { uid: 'admin2', token: null });
     expect(result.success).toBe(true);
   });
@@ -404,12 +402,12 @@ describe('createCheckoutNextImportantHandler', () => {
     const result = await handler({}, { uid: 'admin-1', token: {} });
 
     expect(result.success).toBe(true);
-    expect((result.task as Record<string, unknown>).itemData).toEqual({
+    expect(result.task.itemData).toEqual({
       groupId: 'report-group-1',
     });
   });
 
-  // ── The range-lock contention fix (candidate query OUTSIDE the transaction) ──
+  // ── The candidate query runs OUTSIDE the transaction ──
 
   it('never issues a range query inside the transaction (doc-level claim only)', async () => {
     const { db, transaction } = createMockDb({

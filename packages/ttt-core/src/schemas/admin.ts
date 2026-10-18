@@ -112,6 +112,13 @@ export const MarkWorkLaterInputSchema = z.object({
 }).strict();
 export type MarkWorkLaterInput = z.infer<typeof MarkWorkLaterInputSchema>;
 
+// `alreadyResolved` answers a task already gone: nothing was written.
+export const MarkWorkLaterResultSchema = z.object({
+  success: z.literal(true),
+  alreadyResolved: z.literal(true).optional(),
+});
+export type MarkWorkLaterResult = z.infer<typeof MarkWorkLaterResultSchema>;
+
 /** The two appeal-review decisions (ONE canonical declaration — shared by the review
  * input and its authoritative result). */
 export const ContentAppealDecisionSchema = z.enum(['approved', 'denied']);
@@ -125,7 +132,7 @@ export const ReviewContentAppealInputSchema = z.object({
 }).strict();
 export type ReviewContentAppealInput = z.infer<typeof ReviewContentAppealInputSchema>;
 
-// Authoritative result of reviewContentAppeal. Non-strict (server → client posture).
+// Authoritative result of reviewContentAppeal.
 export const ReviewContentAppealResultSchema = z.object({
   success: z.literal(true),
   violationId: violationIdSchema,
@@ -135,12 +142,11 @@ export const ReviewContentAppealResultSchema = z.object({
    * underlying violation was already gone and only the stale task was cleared). */
   userId: z.string(),
   /** Operation-receipt audit id — the `admin.contentAppealReviewed` event written in the same
-   * transaction. Optional/additive so an older backend that omits it still type-checks. */
+   * transaction. */
   auditEventId: z.string().min(1).optional(),
 });
 export type ReviewContentAppealResult = z.infer<typeof ReviewContentAppealResultSchema>;
 
-// --- Public-document content inputs ---
 // The Admin editors' strict CONTENT schemas, one per public document. A working copy is saved
 // through `SavePublicDocumentDraftInputSchema` (./public-documents.ts), which pairs each
 // document id with its content schema here; the content is FULL (a version is the whole
@@ -290,6 +296,12 @@ export const UpdateAppConfigInputSchema = z.object({
 }).strict();
 export type UpdateAppConfigInput = z.infer<typeof UpdateAppConfigInputSchema>;
 
+export const UpdateAppConfigResultSchema = z.object({
+  success: z.literal(true),
+  updatedFields: z.array(z.string()),
+});
+export type UpdateAppConfigResult = z.infer<typeof UpdateAppConfigResultSchema>;
+
 // recordAppModeFlip records the deployed app mode; it never sets it, so the only input is the
 // admin's optional milestone evidence.
 export const RecordAppModeFlipInputSchema = z.object({
@@ -298,7 +310,7 @@ export const RecordAppModeFlipInputSchema = z.object({
 export type RecordAppModeFlipInput = z.infer<typeof RecordAppModeFlipInputSchema>;
 
 // What recordAppModeFlip answers: whether this call recorded a change (false when the marker
-// already matched the deployed mode) and the mode before and after. Server → client: non-strict.
+// already matched the deployed mode) and the mode before and after.
 export const RecordAppModeFlipResultSchema = z.object({
   success: z.literal(true),
   recorded: z.boolean(),
@@ -307,14 +319,19 @@ export const RecordAppModeFlipResultSchema = z.object({
 });
 export type RecordAppModeFlipResult = z.infer<typeof RecordAppModeFlipResultSchema>;
 
-// --- System slots ---
-
 // clearSystemVideoSlot empties one video slot; the server refuses while the slot's upload is still
 // pending or processing.
 export const ClearSystemVideoSlotInputSchema = z.object({
   slotId: SystemVideoSlotIdSchema,
 }).strict();
 export type ClearSystemVideoSlotInput = z.infer<typeof ClearSystemVideoSlotInputSchema>;
+
+export const ClearSystemVideoSlotResultSchema = z.object({
+  success: z.literal(true),
+  /** False when the slot already held no video, so nothing changed. */
+  cleared: z.boolean(),
+});
+export type ClearSystemVideoSlotResult = z.infer<typeof ClearSystemVideoSlotResultSchema>;
 
 // updateSystemUidSlot sets one account slot: a `uid` slot takes one account id (null clears it), a
 // `uidList` slot an ordered list (empty clears it). The value's shape must match the slot's kind.
@@ -330,7 +347,12 @@ export const UpdateSystemUidSlotInputSchema = z.union([
 ]);
 export type UpdateSystemUidSlotInput = z.infer<typeof UpdateSystemUidSlotInputSchema>;
 
-// --- Admin list mutations ---
+export const UpdateSystemUidSlotResultSchema = z.object({
+  success: z.literal(true),
+  /** False when the slot already held this value, so nothing was written. */
+  changed: z.boolean(),
+});
+export type UpdateSystemUidSlotResult = z.infer<typeof UpdateSystemUidSlotResultSchema>;
 
 const uidSchema = z.string().min(1).max(128);
 
@@ -363,7 +385,6 @@ export type UpdateAdminListInput = z.infer<typeof UpdateAdminListInputSchema>;
 
 // Authoritative result of updateAdminList — the grant/revoke delta counts computed inside
 // the roster transaction (uids already in their target state are no-ops and not counted).
-// Non-strict (server → client result posture).
 export const UpdateAdminListResultSchema = z.object({
   success: z.literal(true),
   adminsGranted: z.number().int().nonnegative(),
@@ -371,13 +392,11 @@ export const UpdateAdminListResultSchema = z.object({
   jrAdminsGranted: z.number().int().nonnegative(),
   jrAdminsRevoked: z.number().int().nonnegative(),
   /** Operation-receipt audit id — the `admin.systemRoleGranted` / `admin.systemRoleRevoked`
-   * event(s) key off the same roster transaction. Optional/additive. (No single domain id: a
+   * event(s) key off the same roster transaction. (No single domain id: a
    * roster edit spans multiple uids, so only the audit id is a meaningful receipt handle.) */
   auditEventId: z.string().min(1).optional(),
 });
 export type UpdateAdminListResult = z.infer<typeof UpdateAdminListResultSchema>;
-
-// --- Admin moderation: hide / restore / retitle content + Work/Realm objects ---
 
 export const CheckTrademarkInputSchema = z.object({
   // Primary: the work project's title (franchise-level check).
@@ -391,13 +410,21 @@ export const CheckTrademarkInputSchema = z.object({
 }).strict();
 export type CheckTrademarkInput = z.infer<typeof CheckTrademarkInputSchema>;
 
+export const CheckTrademarkResultSchema = z.object({
+  curatedMatch: z.boolean(),
+  matchedEntry: z.string().nullable(),
+  advisory: z.string(),
+  checkedAt: z.number(),
+});
+export type CheckTrademarkResult = z.infer<typeof CheckTrademarkResultSchema>;
+
 export const GetReportedContentDetailInputSchema = z.object({
   reportGroupId: reportGroupIdSchema,
 }).strict();
 export type GetReportedContentDetailInput = z.infer<typeof GetReportedContentDetailInputSchema>;
 
-// --- getReportedContentDetail result (cross-boundary: produced by the callable in functions/,
-// consumed by the admin report work-view) ---
+// getReportedContentDetail's result: produced by the callable in functions/, consumed by the admin
+// report work-view.
 
 /** One display-text field of the reported doc, labeled for the review panel. The server returns
  *  EVERY configured non-empty text field for the item type (title, description, body, …) in
@@ -457,13 +484,12 @@ export const GetReportedContentDetailResultSchema = z.object({
    * and have the clear runner silently drop it. The picker offers only this surface's fields, and
    * the resolve path re-checks caller-supplied fields against the same set.
    *
-   * `.nullish()`: absent on payloads produced before this field existed, and null when the
-   * reported item is not a clearable text surface at all (a square post, a chat message, a
-   * profile picture).
+   * `.nullish()`: null when the reported item is not a clearable text surface at all (a square
+   * post, a chat message, a profile picture).
    */
   clearableSurface: moderationClearableSurfaceSchema.nullish(),
   /** The FROZEN report-time snapshot (captured at intake), so the operator sees what was
-   *  reported even if the author edited the live doc to evade. Null for older reports. */
+   *  reported even if the author edited the live doc to evade. Null when the report holds none. */
   reportTimeSnapshot: z.object({
     capturedText: z.string().nullable(),
     capturedMediaAssetIds: z.array(z.string()),
@@ -481,6 +507,11 @@ export const HideHallSubItemInputSchema = z.object({
 }).strict();
 export type HideHallSubItemInput = z.infer<typeof HideHallSubItemInputSchema>;
 
+export const HideHallSubItemResultSchema = z.object({
+  success: z.literal(true),
+});
+export type HideHallSubItemResult = z.infer<typeof HideHallSubItemResultSchema>;
+
 export const RestoreHallSubItemInputSchema = z.object({
   hallItemId: hallItemIdSchema,
   workProjectType: workProjectTypeSchema,
@@ -488,17 +519,34 @@ export const RestoreHallSubItemInputSchema = z.object({
 }).strict();
 export type RestoreHallSubItemInput = z.infer<typeof RestoreHallSubItemInputSchema>;
 
+export const RestoreHallSubItemResultSchema = z.object({
+  success: z.literal(true),
+});
+export type RestoreHallSubItemResult = z.infer<typeof RestoreHallSubItemResultSchema>;
+
 export const HideWorkProjectInputSchema = z.object({
   workProjectId: workProjectIdSchema,
   reason: textFieldSchema(HIDE_REASON_INPUT),
 }).strict();
 export type HideWorkProjectInput = z.infer<typeof HideWorkProjectInputSchema>;
 
+export const HideWorkProjectResultSchema = z.object({
+  success: z.literal(true),
+  cascadeId: z.string().min(1),
+});
+export type HideWorkProjectResult = z.infer<typeof HideWorkProjectResultSchema>;
+
 export const HideWorkRealmInputSchema = z.object({
   workRealmId: workRealmIdSchema,
   reason: textFieldSchema(HIDE_REASON_INPUT),
 }).strict();
 export type HideWorkRealmInput = z.infer<typeof HideWorkRealmInputSchema>;
+
+export const HideWorkRealmResultSchema = z.object({
+  success: z.literal(true),
+  cascadeId: z.string().min(1),
+});
+export type HideWorkRealmResult = z.infer<typeof HideWorkRealmResultSchema>;
 
 // `cascadeId` is OPTIONAL: the app backends derive all active cascades for the target when it is
 // omitted, and restore just that one cascade when it is supplied.
@@ -508,11 +556,21 @@ export const RestoreWorkProjectInputSchema = z.object({
 }).strict();
 export type RestoreWorkProjectInput = z.infer<typeof RestoreWorkProjectInputSchema>;
 
+export const RestoreWorkProjectResultSchema = z.object({
+  success: z.literal(true),
+});
+export type RestoreWorkProjectResult = z.infer<typeof RestoreWorkProjectResultSchema>;
+
 export const RestoreWorkRealmInputSchema = z.object({
   workRealmId: workRealmIdSchema,
   cascadeId: documentIdSegmentSchema.optional(),
 }).strict();
 export type RestoreWorkRealmInput = z.infer<typeof RestoreWorkRealmInputSchema>;
+
+export const RestoreWorkRealmResultSchema = z.object({
+  success: z.literal(true),
+});
+export type RestoreWorkRealmResult = z.infer<typeof RestoreWorkRealmResultSchema>;
 
 export const RequireWorkProjectRetitleInputSchema = z.object({
   reason: textFieldSchema(RETITLE_REASON_INPUT),
@@ -526,7 +584,13 @@ export const RequireWorkRealmRetitleInputSchema = z.object({
 }).strict();
 export type RequireWorkRealmRetitleInput = z.infer<typeof RequireWorkRealmRetitleInputSchema>;
 
-// --- Page-level "Clear text (moderation)" callables (per-field extension of the retitle family) ---
+// ONE result for both Work and Realm retitle callables.
+export const RequireRetitleResultSchema = z.object({
+  success: z.literal(true),
+});
+export type RequireRetitleResult = z.infer<typeof RequireRetitleResultSchema>;
+
+// Page-level "Clear text (moderation)" callables: the per-field extension of the retitle family.
 
 // The clearable SHELL fields (raw doc field names) for the workProject + workRealm contexts.
 // Derived from the canonical clearable-field map — the two shell surfaces share the same fields.
@@ -547,6 +611,12 @@ export const ClearWorkRealmTextInputSchema = z.object({
 }).strict();
 export type ClearWorkRealmTextInput = z.infer<typeof ClearWorkRealmTextInputSchema>;
 
+// ONE result for both Work and Realm text-clear callables.
+export const ClearModerationTextResultSchema = z.object({
+  success: z.literal(true),
+});
+export type ClearModerationTextResult = z.infer<typeof ClearModerationTextResultSchema>;
+
 // The clearable TEXT fields across the whole hall content family — derived from the canonical
 // map (union of every hall surface's fields), never restated literals.
 const HallClearFieldSchema = z.enum(HALL_CLEARABLE_TEXT_FIELD_NAMES);
@@ -561,7 +631,12 @@ export const ClearHallContentTextInputSchema = z.object({
 }).strict();
 export type ClearHallContentTextInput = z.infer<typeof ClearHallContentTextInputSchema>;
 
-// --- getLatestHideCascade — resolve the latest hide-cascade id for a Work/Realm ---
+export const ClearHallContentTextResultSchema = z.object({
+  success: z.literal(true),
+});
+export type ClearHallContentTextResult = z.infer<typeof ClearHallContentTextResultSchema>;
+
+// getLatestHideCascade resolves the latest hide-cascade id for a Work/Realm.
 
 export const GetLatestHideCascadeInputSchema = z.object({
   entityId: documentIdSegmentSchema,
@@ -569,7 +644,20 @@ export const GetLatestHideCascadeInputSchema = z.object({
 }).strict();
 export type GetLatestHideCascadeInput = z.infer<typeof GetLatestHideCascadeInputSchema>;
 
-// --- moderateReportedContent — hide / restore / soft perma-remove an individual reported item ---
+export const GetLatestHideCascadeResultSchema = z.object({
+  cascadeId: z.string().min(1).nullable(),
+});
+export type GetLatestHideCascadeResult = z.infer<typeof GetLatestHideCascadeResultSchema>;
+
+export const GetPendingGuildInviteCountInputSchema = z.object({}).strict();
+export type GetPendingGuildInviteCountInput = z.infer<typeof GetPendingGuildInviteCountInputSchema>;
+
+export const GetPendingGuildInviteCountResultSchema = z.object({
+  count: z.number().int().nonnegative(),
+});
+export type GetPendingGuildInviteCountResult = z.infer<typeof GetPendingGuildInviteCountResultSchema>;
+
+// moderateReportedContent hides, restores, or soft perma-removes an individual reported item.
 
 // The single-item content-action target set (SUBSET of ReportableItemType — excludes the
 // close-out-only hall-library-sub-item).
@@ -594,7 +682,7 @@ export const ModerateReportedContentInputSchema = z.object({
   reportedItemId: reportTargetItemIdSchema,
   parentItemId: reportTargetParentRefSchema.optional(),
   action: z.enum(['hide', 'restore', 'remove']),
-  // [EUAS-023] A destructive action (hide/remove) MUST carry a reason; restore is a reversal.
+  // A destructive action (hide/remove) MUST carry a reason; restore is a reversal.
   reason: textFieldSchema(MODERATION_ACTION_REASON_INPUT).optional(),
 })
   .strict()
@@ -609,9 +697,9 @@ export const ModerateReportedContentInputSchema = z.object({
   });
 export type ModerateReportedContentInput = z.infer<typeof ModerateReportedContentInputSchema>;
 
-// --- resolveAdminTask — the ONE guided close-out for EVERY admin case type ---
+// resolveAdminTask — the ONE guided close-out for EVERY admin case type.
 
-// [EUAS-005] The content-action target set ALSO accepts hall-library-sub-item (hide/restore only),
+// The content-action target set ALSO accepts hall-library-sub-item (hide/restore only),
 // which routes to the dedicated `runSetHallSubItemHidden` core (not `runModerateReportedContent`).
 const CONTENT_ACTION_TARGET_TYPES = [
   'square-streetz-post',
@@ -673,8 +761,8 @@ const WorkObjectActionSchema = z
   })
   .strict();
 
-// --- The in-flow clear-content disposition (staged counterpart of the page-level clear-text
-// callables) ---
+// The in-flow clear-content disposition: the staged counterpart of the page-level clear-text
+// callables.
 
 /** The three targets the in-flow text clear can neutralize — the Work/Realm shells plus a single
  *  published hall sub-item. Compile-linked subset of the canonical reportable-item enum. */
@@ -783,6 +871,12 @@ export const NormalReportInputSchema = z
   .strict();
 export type ResolveAdminTaskInput = z.infer<typeof NormalReportInputSchema>;
 
+export const ResolveAdminTaskResultSchema = z.object({
+  success: z.literal(true),
+  auditEventId: z.string().min(1).optional(),
+});
+export type ResolveAdminTaskResult = z.infer<typeof ResolveAdminTaskResultSchema>;
+
 const SafetyDispositionActionSchema = z
   .object({
     button: z.literal('setReportDisposition'),
@@ -801,7 +895,7 @@ const SafetyDispositionActionSchema = z
 
 const QuarantineActionSchema = z.object({ button: z.literal('quarantinePreserveFile') }).strict();
 
-// [C-01/EUAS-002] No client-supplied requestId — the linked statutory request id(s) are derived
+// No client-supplied requestId — the linked statutory request id(s) are derived
 // SERVER-SIDE from the case's `requestLinks` inside `enqueueNciiRemovalForCase`.
 const HashRemoveActionSchema = z.object({ button: z.literal('hashRemoveFile') }).strict();
 
@@ -842,12 +936,12 @@ export const SafetyCaseInputSchema = z
     resolutionSummary: z.string().trim().min(1).max(MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH),
     actions: z.array(SafetyStagedActionSchema).max(16).default([]),
     adminNote: textFieldSchema(CLOSE_OUT_ADMIN_NOTE_INPUT).optional(),
-    // [EUAS-017] Optimistic-concurrency token (`childSafetyCaseList.revision` / `nciiCases.revision`).
+    // Optimistic-concurrency token (`childSafetyCaseList.revision` / `nciiCases.revision`).
     // The close is rejected if the case changed since the operator loaded it — concurrent stale closes
-    // can't silently overwrite. Optional for backward compatibility; the console always supplies it.
+    // can't silently overwrite. Optional; the console always supplies it.
     expectedRevision: z.number().int().nonnegative().optional(),
-    // Interim reauth: a single explicit typed confirmation for the privileged safety actions,
-    // standing in for the passkey two-step until [H-17]. The callable is full-admin gated.
+    // Reauth: a single explicit typed confirmation for the privileged safety actions. The
+    // callable is full-admin gated.
     confirmation: z.literal(SAFETY_ACTIONS_CONFIRMATION),
   })
   .strict();
@@ -864,9 +958,7 @@ export const ReopenSafetyCaseInputSchema = z
   .strict();
 export type ReopenSafetyCaseInput = z.infer<typeof ReopenSafetyCaseInputSchema>;
 
-// ---------------------------------------------------------------------------
 // Dead-letter operations — adminReplayDeadLetter + getDeadLetters (Ops Repairs).
-// ---------------------------------------------------------------------------
 
 /** Every ledger the dead-letter replay callable supports. */
 export const DeadLetterCollectionSchema = z.enum([

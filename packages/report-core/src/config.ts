@@ -5,33 +5,21 @@ import type {
   TaskQueueConfig,
 } from './types.js';
 
-// ============================================
-// REPORT CORE CONFIG
-// ============================================
-
 export interface ReportCoreCollections {
-  /** Collection for individual reports. Default: "contentReports" */
   reports: string;
-  /** Collection for grouped reports. Default: "activeReportGroups" */
   reportGroups: string;
-  /** Collection for admin tasks. Default: "adminTasks" */
   adminTasks: string;
 }
 
 export interface ReportCoreConfig {
-  /** Firestore collection paths */
   collections: ReportCoreCollections;
 
-  /** Map of item types that can be reported */
   reportableItems: Record<string, ReportableItemConfig>;
 
-  /** List of reasons a user can select when reporting */
   reportReasons: string[];
 
-  /** Priority scoring configuration */
   priorityConfig: PriorityConfig;
 
-  /** Task queue definitions keyed by task type string */
   taskQueues: Record<string, TaskQueueConfig>;
 
   /**
@@ -42,12 +30,6 @@ export interface ReportCoreConfig {
 
   /** Priority thresholds for PriorityBadge display (score → label/color) */
   priorityThresholds?: PriorityThreshold[];
-
-  /**
-   * Name of the report-intake callable invoked by `useReportSubmit`.
-   * Defaults to `'submitReport'` (the Trust & Safety report spine) when omitted.
-   */
-  submitCallableName?: string;
 }
 
 export interface PriorityThreshold {
@@ -59,10 +41,7 @@ export interface PriorityThreshold {
   className: string;
 }
 
-/**
- * Default priority thresholds.
- * Apps can override via config.priorityThresholds.
- */
+/** Used when the app sets no `config.priorityThresholds`. */
 export const DEFAULT_PRIORITY_THRESHOLDS: PriorityThreshold[] = [
   { minScore: 800, label: 'CRITICAL', className: 'rc-priority-critical' },
   { minScore: 300, label: 'HIGH', className: 'rc-priority-high' },
@@ -77,10 +56,6 @@ export const DEFAULT_PRIORITY_THRESHOLDS: PriorityThreshold[] = [
  */
 export const USER_REPORT_TASK_TYPE = 'userReport' as const;
 
-/**
- * Admin task status constants.
- * Shared between client and server.
- */
 export const ADMIN_TASK_STATUS = {
   PENDING: 'pending',
   CHECKED_OUT: 'checkedOut',

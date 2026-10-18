@@ -1,35 +1,24 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-
-interface CheckoutTaskInput {
-  taskType: string;
-}
-
-interface CheckoutTaskResult {
-  success: boolean;
-  task: Record<string, unknown>;
-}
+import type { CheckoutTaskRequest } from '../schemas/index.js';
+import type { CheckoutTaskResult } from '../types-admin-task.js';
 
 interface UseCheckoutTaskOptions {
-  /** The callable function invoker. App provides this (e.g. useFunctions().callFunction). */
-  callFunction: <TReq, TRes>(name: string, data?: TReq) => Promise<TRes>;
-  /** Current admin user ID — used to invalidate checked-out tasks query. */
+  /** The app's call to its callable, typed and bound once by the app. */
+  checkoutTaskFn: (input: CheckoutTaskRequest) => Promise<CheckoutTaskResult>;
+  /** Current admin user ID — used to invalidate the checked-out tasks query. */
   userId?: string;
 }
 
 /**
- * Mutation to checkout a task from a queue.
- * The app provides the `callFunction` wrapper so report-core
- * doesn't depend on a specific Firebase Functions setup.
+ * Mutation to check out a task from a queue.
  */
-export function useCheckoutTask({ callFunction, userId }: UseCheckoutTaskOptions) {
+export function useCheckoutTask({ checkoutTaskFn, userId }: UseCheckoutTaskOptions) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: CheckoutTaskInput): Promise<CheckoutTaskResult> => {
-      return callFunction<CheckoutTaskInput, CheckoutTaskResult>('checkoutTask', input);
-    },
+    mutationFn: (input: CheckoutTaskRequest): Promise<CheckoutTaskResult> => checkoutTaskFn(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report-core', 'checkedOutTasks', userId] });
     },

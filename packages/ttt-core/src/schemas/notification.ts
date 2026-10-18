@@ -57,10 +57,6 @@ const reportedItemIdSchema = documentIdSegmentSchema.max(128);
 const reportIdSchema = documentIdSegmentSchema;
 const appealIdSchema = documentIdSegmentSchema;
 
-// ============================================================================
-// TYPE + CHANNEL CATALOG
-// ============================================================================
-
 export const NOTIFICATION_TYPE_VALUES = [
   'content_report',
   'guild_invite',
@@ -177,10 +173,6 @@ export const NOTIFICATION_TYPE_CATALOG: Record<NotificationType, NotificationTyp
   realm_file_share_requested: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
   realm_file_share_resolved: { category: 'user', delivery: 'queued', defaultChannels: ['inApp'] },
 };
-
-// ============================================================================
-// PER-TYPE METADATA (discriminated union, keyed by `type`)
-// ============================================================================
 
 /**
  * Typed `metadata` payload for each notification type. The generic package
@@ -342,10 +334,6 @@ export function validateNotificationMetadata(
   return NotificationMetadataByTypeSchema.parse({ ...metadata, type });
 }
 
-// ============================================================================
-// BROADCAST AUDIENCE SELECTOR
-// ============================================================================
-
 /**
  * Admin broadcast audience selector. Stored on a broadcast job; the scheduled
  * fan-out worker resolves a page of it into uids (domain-aware queries live in
@@ -371,10 +359,6 @@ export const BroadcastAudienceSelectorSchema = z.discriminatedUnion('kind', [
 ]);
 export type BroadcastAudienceSelector = z.infer<typeof BroadcastAudienceSelectorSchema>;
 
-// ============================================================================
-// CALLABLE INPUT SCHEMAS
-// ============================================================================
-
 export const CreateNotificationBroadcastInputSchema = z.object({
   // Client-generated idempotency key — the app derives the broadcast eventId
   // deterministically from (actorUid, requestId) so a lost-ack retry is idempotent.
@@ -385,6 +369,12 @@ export const CreateNotificationBroadcastInputSchema = z.object({
 }).strict();
 export type CreateNotificationBroadcastInput = z.infer<typeof CreateNotificationBroadcastInputSchema>;
 
+export const CreateNotificationBroadcastResultSchema = z.object({
+  success: z.literal(true),
+  jobId: z.string().min(1),
+});
+export type CreateNotificationBroadcastResult = z.infer<typeof CreateNotificationBroadcastResultSchema>;
+
 // Shared admin notifications have no per-admin seen state, so only the personal
 // `user` category can be marked seen.
 export const MarkNotificationsSeenInputSchema = z.object({
@@ -392,12 +382,8 @@ export const MarkNotificationsSeenInputSchema = z.object({
 }).strict();
 export type MarkNotificationsSeenInput = z.infer<typeof MarkNotificationsSeenInputSchema>;
 
-// ============================================================================
-// OBSERVED-GENERATION CALLABLE INPUT SCHEMAS
-//
 // The inputs of the observed-generation callables the notification tray invokes. The
 // category-wide mark-seen callable takes MarkNotificationsSeenInputSchema above.
-// ============================================================================
 
 // Max items per mark-seen call matches a sane notification tray page size.
 const MARK_SEEN_MAX_ITEMS = 50;
@@ -430,6 +416,12 @@ export const MarkNotificationsSeenObservedInputSchema = z.object({
 }).strict();
 export type MarkNotificationsSeenObservedInput = z.infer<typeof MarkNotificationsSeenObservedInputSchema>;
 
+export const MarkNotificationsSeenResultSchema = z.object({
+  success: z.literal(true),
+  updated: z.number().int().nonnegative(),
+});
+export type MarkNotificationsSeenResult = z.infer<typeof MarkNotificationsSeenResultSchema>;
+
 /**
  * Archive scope for the observed-generation callable.
  *
@@ -440,12 +432,8 @@ export type MarkNotificationsSeenObservedInput = z.infer<typeof MarkNotification
  * `all` — archive every card in the category. The per-card generation
  *   precondition is applied server-side per card during bounded-page sweeps;
  *   the caller supplies no single generation token here because there is no
- *   single observed generation for the whole category. (Design choice: archive-all
- *   carries no observedActivityGeneration at the top level; the server reads each
- *   card's current generation as its own precondition. This is consistent with the
- *   "mark-all/archive-all run bounded pages with stable cursors until exhausted"
- *   protocol and the archive-history identity formula
- *   which keys each occurrence on requestId independently.)
+ *   single observed generation for the whole category: the server reads each card's
+ *   current generation as its own precondition.
  */
 export const ArchiveNotificationObservedScopeSchema = z.discriminatedUnion('kind', [
   z.object({
@@ -484,7 +472,7 @@ export type ArchiveNotificationObservedInput = z.infer<typeof ArchiveNotificatio
 /**
  * The `archiveNotification` answer: how many cards this call archived (0 when a single card was
  * relit after it rendered, so the row stays active), and for an archive-all, `hasMore` when the
- * call's bound stopped it before the category was empty. Non-strict (server → client posture).
+ * call's bound stopped it before the category was empty.
  */
 export const ArchiveNotificationResultSchema = z.object({
   success: z.literal(true),
@@ -493,16 +481,12 @@ export const ArchiveNotificationResultSchema = z.object({
 });
 export type ArchiveNotificationResult = z.infer<typeof ArchiveNotificationResultSchema>;
 
-// ============================================================================
-// SERVER-OWNED ARCHIVE-ALL JOB
-//
-// `enqueueArchiveAll` / `adminEnqueueArchiveAll` enqueue ONE durable archive-all job
+// The server-owned archive-all job: `enqueueArchiveAll` / `adminEnqueueArchiveAll` enqueue ONE durable archive-all job
 // scoped to the callable's category (idempotent per user+category+requestId) and return { jobId }; the
 // bounded server worker drains that category's active cards each in its own
 // atomic archive+audit txn (per-card observed-generation precondition preserved).
 // `getArchiveAllStatus` is polled by the thin client hook. Per-tab scoping is
 // REQUIRED — a job only ever archives its own category, never all tabs.
-// ============================================================================
 
 // No category, for the reason ArchiveNotificationObservedInputSchema gives: `enqueueArchiveAll`
 // clears the caller's `user` tab and `adminEnqueueArchiveAll` the shared `admin` tab.
@@ -517,9 +501,7 @@ export const GetArchiveAllStatusInputSchema = z.object({
 export type GetArchiveAllStatusInput = z.infer<typeof GetArchiveAllStatusInputSchema>;
 
 // Wire contract for the `resumeFanoutJob` callable — the admin console re-arms a
-// dead-lettered notification fanout job by id. Admin console-invoked, but still a
-// wire contract, so it lives here (callable-validation convention) rather than as a
-// local schema in the functions repo.
+// dead-lettered notification fanout job by id.
 export const ResumeFanoutJobInputSchema = z.object({
   jobId: notificationFanoutJobIdSchema,
 }).strict();
@@ -527,7 +509,7 @@ export type ResumeFanoutJobInput = z.infer<typeof ResumeFanoutJobInputSchema>;
 
 // One dead-lettered fanout job in the Ops Repairs inventory (`listDeadLetteredFanoutJobs`, oldest
 // first): the job's own identity, type, and priority, when it parked and why, and how long it has
-// been parked. Server → client posture: non-strict, so the backend may add fields.
+// been parked.
 export const DeadLetteredFanoutJobRowSchema = z.object({
   jobId: notificationFanoutJobIdSchema,
   notificationType: z.string(),
@@ -554,10 +536,6 @@ export const ResumeFanoutJobResultSchema = z.object({
   reason: z.string().optional(),
 });
 export type ResumeFanoutJobResult = z.infer<typeof ResumeFanoutJobResultSchema>;
-
-// ============================================================================
-// AUDIT EVENT PAYLOADS (admin-only)
-// ============================================================================
 
 /**
  * Payload of a `notification.broadcastSent` audit event — written when an admin

@@ -7,6 +7,8 @@ import type {
 } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';
 import { createCandidateCursor } from './claimCandidates.js';
+import type { CheckoutNextImportantTaskResult } from '../types-admin-task.js';
+import { toClaimedTask } from './claimedTask.js';
 
 export interface CheckoutNextImportantHandlerConfig {
   config: ServerReportCoreConfig;
@@ -19,7 +21,7 @@ export interface CheckoutNextImportantHandlerConfig {
 }
 
 type ClaimOutcome =
-  | { kind: 'claimed'; result: Record<string, unknown> }
+  | { kind: 'claimed'; result: CheckoutNextImportantTaskResult }
   | { kind: 'contended' }
   | { kind: 'refused' };
 
@@ -53,7 +55,6 @@ export function createCheckoutNextImportantHandler({
         await auth.requireAdmin(uid, authToken);
         return;
       } catch {
-        // Fall through
       }
     }
     if (auth.adminUserIds?.includes(uid)) return;
@@ -63,7 +64,7 @@ export function createCheckoutNextImportantHandler({
   return async (
     _data: unknown,
     authContext: { uid: string; token: unknown },
-  ): Promise<Record<string, unknown>> => {
+  ): Promise<CheckoutNextImportantTaskResult> => {
     const userId = authContext.uid;
     await verifyAdmin(userId, authContext.token);
 
@@ -95,7 +96,6 @@ export function createCheckoutNextImportantHandler({
         const taskData = taskDoc.data()!;
         if (taskData.status !== 'pending') return { kind: 'contended' };
 
-        // Fetch original document (READ — must happen before writes)
         const originalDocRef = db.doc(taskData.originalPath as string);
         const originalDoc = await transaction.get(originalDocRef);
 
@@ -110,7 +110,6 @@ export function createCheckoutNextImportantHandler({
           if (!verdict.claimable) return { kind: 'refused' };
         }
 
-        // ── COMPUTE ──
         const taskType = taskData.taskType as string;
         const queueConfig = config.taskQueues[taskType];
         const checkoutMinutes = queueConfig?.defaultCheckoutMinutes ?? 60;
@@ -147,19 +146,13 @@ export function createCheckoutNextImportantHandler({
           kind: 'claimed',
           result: {
             success: true,
-            task: {
-              id: taskDoc.id,
-              taskType,
-              taskId: taskData.taskId,
-              originalPath: taskData.originalPath,
-              summary: taskData.summary,
-              priority: taskData.priority,
-              checkedOutAt: now,
-              expiresAt,
-              status: 'checkedOut',
+            task: toClaimedTask(
+              taskDoc.id,
+              taskData,
+              'checkedOut',
               checkoutDetails,
-              itemData: originalDoc.exists ? originalDoc.data() : null,
-            },
+              originalDoc.exists ? originalDoc.data() : null,
+            ),
           },
         };
       });

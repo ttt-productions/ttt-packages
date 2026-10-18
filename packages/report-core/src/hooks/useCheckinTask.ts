@@ -1,28 +1,24 @@
 'use client';
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-
-interface CheckinTaskInput {
-  taskId: string;
-  resolved: boolean;
-  resolution?: string;
-}
+import type { CheckinTaskRequest } from '../schemas/index.js';
+import type { TaskLifecycleResult } from '../types-admin-task.js';
 
 interface UseCheckinTaskOptions {
-  callFunction: <TReq, TRes>(name: string, data?: TReq) => Promise<TRes>;
+  /** The app's call to its callable, typed and bound once by the app. */
+  checkinTaskFn: (input: CheckinTaskRequest) => Promise<TaskLifecycleResult>;
+  /** Current admin user ID — used to invalidate the checked-out tasks query. */
   userId?: string;
 }
 
 /**
- * Mutation to checkin (complete or unresolved-return) a task.
+ * Mutation to check in (complete or unresolved-return) a task.
  */
-export function useCheckinTask({ callFunction, userId }: UseCheckinTaskOptions) {
+export function useCheckinTask({ checkinTaskFn, userId }: UseCheckinTaskOptions) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: CheckinTaskInput): Promise<{ success: boolean }> => {
-      return callFunction<CheckinTaskInput, { success: boolean }>('checkinTask', input);
-    },
+    mutationFn: (input: CheckinTaskRequest): Promise<TaskLifecycleResult> => checkinTaskFn(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report-core', 'checkedOutTasks', userId] });
     },

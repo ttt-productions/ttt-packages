@@ -1,7 +1,5 @@
 ﻿// Social Firestore document SCHEMAS — SquareStreetz posts, mention history, and
-// follow edges. Types inferred via z.infer. (Pledge-payment ledger docs moved to
-// ../doc-schemas/payments.ts. SquareStreetzPostPayload is a transport shape, not a
-// stored doc — it stays in ../types/social.ts.)
+// follow edges. Types inferred via z.infer.
 
 import { z } from 'zod';
 import { MentionSchema, SquareStreetzPostMentionsSchema, refineMentionCorrespondence } from '../media/atoms.js';
@@ -74,12 +72,8 @@ export const SquareStreetzPostSchema = z.object({
   postType: SquareStreetzPostTypeSchema.optional(),
   relatedAssetId: z.string().optional(),
   // Admin moderation hide (reversible). When true the post is suppressed from all
-  // feeds/lists; restored by clearing it. `hidden` is the ONLY operative moderation
-  // flag on a post — the legacy pre-finalize upload-gating (`visible`) and automated
-  // text-moderation outcome (`moderationStatus`/`moderationReason`/`moderationLayer`)
-  // fields were removed 2026-07-03: nothing wrote them (posts are created only AFTER
-  // media finalize under pattern C), so they were dead. Durable owner:
-  // ttt-prod docs/design/streetz-social-feed.md.
+  // feeds/lists; restored by clearing it. `hidden` is the ONLY moderation flag on a post:
+  // posts are created only after their media finalizes, so no upload-gating flag exists.
   hidden: z.boolean(),
   hiddenBy: ModerationHiddenBySchema.optional(),
 }).superRefine((val, ctx) => {
@@ -100,6 +94,12 @@ export const SquareStreetzPostSchema = z.object({
   }
 });
 export type SquareStreetzPost = z.infer<typeof SquareStreetzPostSchema>;
+
+// The created post, homed beside its doc schema (see AddToMentionHistoryResultSchema for why).
+export const CreateSquareStreetzTextPostResultSchema = z.object({
+  post: SquareStreetzPostSchema,
+});
+export type CreateSquareStreetzTextPostResult = z.infer<typeof CreateSquareStreetzTextPostResultSchema>;
 
 /**
  * The create/announcement transport payload for a SquareStreetz post — the exact input
@@ -169,7 +169,7 @@ export type MentionHistoryDocument = z.infer<typeof MentionHistoryDocumentSchema
 // Declared HERE (not schemas/social.ts) because it composes MentionHistoryItemSchema
 // and this module already imports schemas/social.js (FollowableTargetTypeSchema) — the
 // reverse runtime import would be a module cycle. Re-exported on the ./schemas subpath
-// via schemas/index.ts. Non-strict (server → client result posture).
+// via schemas/index.ts.
 export const AddToMentionHistoryResultSchema = z.object({
   success: z.literal(true),
   itemCount: z.number().int().nonnegative(),

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { commissionListingIdSchema, commissionProposalIdSchema } from './atoms.js';
+import { commissionListingIdSchema, commissionProposalIdSchema, userIdSchema, workProjectIdSchema } from './atoms.js';
 import { COMMISSION_COVER_LETTER_INPUT } from '../constants/text-fields.js';
 import { textFieldSchema } from './text-field.js';
 
@@ -16,11 +16,27 @@ export const CloseCommissionInputSchema = z.object({
 }).strict();
 export type CloseCommissionInput = z.infer<typeof CloseCommissionInputSchema>;
 
+// ONE result for the member close and its admin-review twin.
+export const CloseCommissionResultSchema = z.object({
+  success: z.literal(true),
+  commissionListingId: commissionListingIdSchema,
+  workProjectId: workProjectIdSchema,
+});
+export type CloseCommissionResult = z.infer<typeof CloseCommissionResultSchema>;
+
 export const RejectCommissionProposalInputSchema = z.object({
   commissionListingId: commissionListingIdSchema,
   commissionProposalId: commissionProposalIdSchema,
 }).strict();
 export type RejectCommissionProposalInput = z.infer<typeof RejectCommissionProposalInputSchema>;
+
+export const RejectCommissionProposalResultSchema = z.object({
+  success: z.literal(true),
+  commissionListingId: commissionListingIdSchema,
+  commissionProposalId: commissionProposalIdSchema,
+  commissionProposerUid: userIdSchema,
+});
+export type RejectCommissionProposalResult = z.infer<typeof RejectCommissionProposalResultSchema>;
 
 export const SetCommissionProposalSavedInputSchema = z.object({
   commissionListingId: commissionListingIdSchema,
@@ -28,6 +44,14 @@ export const SetCommissionProposalSavedInputSchema = z.object({
   saved: z.boolean(),
 }).strict();
 export type SetCommissionProposalSavedInput = z.infer<typeof SetCommissionProposalSavedInputSchema>;
+
+export const SetCommissionProposalSavedResultSchema = z.object({
+  success: z.literal(true),
+  commissionListingId: commissionListingIdSchema,
+  commissionProposalId: commissionProposalIdSchema,
+  saved: z.boolean(),
+});
+export type SetCommissionProposalSavedResult = z.infer<typeof SetCommissionProposalSavedResultSchema>;
 
 export const CreateCommissionProposalTextInputSchema = z.object({
   commissionListingId: commissionListingIdSchema,
@@ -39,7 +63,7 @@ export type CreateCommissionProposalTextInput = z.infer<typeof CreateCommissionP
 // 'commission-proposal'). Creation itself is asynchronous via the media pipeline; the
 // proposal doc id is the CALLER's uid (one proposal per user per commission —
 // runCreateCommissionProposal: commissionProposalId = callerUid), so it is knowable at
-// accept time without any read. Non-strict (server → client result posture).
+// accept time without any read.
 // (The TEXT path's created-item result, CreateCommissionProposalTextResultSchema, lives
 // in ../doc-schemas/commissions.ts — it composes CommissionProposalSchema, and that
 // module imports THIS one, so declaring it here would be a module cycle. It is

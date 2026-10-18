@@ -76,7 +76,7 @@ describe('ReportButton', () => {
   function renderButton(reporterUserId: string | undefined, onSignInRequired = vi.fn()) {
     render(
       <QueryClientProvider client={new QueryClient()}>
-        <ReportCoreProvider config={config} callFunction={vi.fn() as never}>
+        <ReportCoreProvider config={config} submitReportFn={vi.fn()}>
           <ReportButton
             itemType="post"
             itemId="p1"

@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { adminDispatchIdSchema, guildInviteIdSchema, userIdSchema, workProjectIdSchema } from './atoms.js';
+import {
+  adminDispatchIdSchema,
+  guildInviteConversationStatusSchema,
+  guildInviteIdSchema,
+  userIdSchema,
+  workProjectIdSchema,
+} from './atoms.js';
 
 /** The two terminal dispatch-thread statuses a close can set (ONE canonical declaration —
  * shared by the close input and its authoritative result). */
@@ -31,6 +37,16 @@ export const UpdateInviteConfirmationInputSchema = z.discriminatedUnion('action'
 ]);
 export type UpdateInviteConfirmationInput = z.infer<typeof UpdateInviteConfirmationInputSchema>;
 
+export const UpdateGuildInviteConfirmationResultSchema = z.object({
+  success: z.literal(true),
+  status: guildInviteConversationStatusSchema,
+  workProjectId: workProjectIdSchema,
+  senderUid: userIdSchema,
+  recipientUid: userIdSchema,
+  callerUid: userIdSchema,
+});
+export type UpdateGuildInviteConfirmationResult = z.infer<typeof UpdateGuildInviteConfirmationResultSchema>;
+
 /**
  * The payload of the `workProject.guildInviteAccepted` event the finalizing agree writes: the
  * invite, the offer agreed to, and the account that gave the Work's agreement — the caller when
@@ -52,7 +68,17 @@ export const UpdateGuildInviteStakeSharesInputSchema = z.object({
 }).strict();
 export type UpdateGuildInviteStakeSharesInput = z.infer<typeof UpdateGuildInviteStakeSharesInputSchema>;
 
-// --- Authoritative mutation RESULTS (non-strict server → client posture) ---
+export const UpdateGuildInviteStakeSharesResultSchema = z.object({
+  success: z.literal(true),
+  newStakeShares: z.number().int(),
+  workProjectId: workProjectIdSchema,
+  senderUid: userIdSchema,
+  recipientUid: userIdSchema,
+  /** The outbox command written in the same transaction, delivered right after the commit. */
+  outboxCommandId: z.string().min(1),
+});
+export type UpdateGuildInviteStakeSharesResult = z.infer<typeof UpdateGuildInviteStakeSharesResultSchema>;
+
 
 export const UpdateAdminDispatchStatusResultSchema = z.object({
   success: z.literal(true),
@@ -62,7 +88,7 @@ export const UpdateAdminDispatchStatusResultSchema = z.object({
   /** Uid of the closer (the caller) — attribution for the server-composed close line. */
   closedBy: z.string().min(1),
   /** Operation-receipt audit id — the `chat.adminThreadStatusChanged` event written in the same
-   * transaction. Optional/additive; the domain id (`adminDispatchId`) is already carried above. */
+   * transaction. */
   auditEventId: z.string().min(1).optional(),
 });
 export type UpdateAdminDispatchStatusResult = z.infer<typeof UpdateAdminDispatchStatusResultSchema>;
