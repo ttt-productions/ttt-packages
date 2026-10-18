@@ -1,6 +1,6 @@
 {
     "name": "@ttt-productions/module-core",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "How a module is loaded lazily: lazyModule, the one memoized dynamic import every lazy load goes through, so concurrent callers share one import. Tier 0 — no dependencies, no React, server-safe.",
     "repository": {
         "type": "git",
