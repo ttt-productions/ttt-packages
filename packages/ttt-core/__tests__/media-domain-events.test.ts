@@ -34,8 +34,8 @@ describe('SquareStreetzPostCreatedEventSchema', () => {
   });
 });
 
-describe('removed chat-attachment domain event', () => {
-  it('the DomainEvent union no longer accepts chat.attachmentFinalized', () => {
+describe('chat attachments carry no domain event', () => {
+  it('the DomainEvent union rejects chat.attachmentFinalized', () => {
     expect(() =>
       DomainEventSchema.parse({
         type: 'chat.attachmentFinalized',
@@ -45,7 +45,7 @@ describe('removed chat-attachment domain event', () => {
   });
 });
 
-describe('commission.closed (renamed from the commission.deleted misnomer)', () => {
+describe('commission.closed (closing is the one end of a listing)', () => {
   it('accepts a valid event through the union', () => {
     const result = DomainEventSchema.parse({
       type: 'commission.closed',
@@ -54,7 +54,7 @@ describe('commission.closed (renamed from the commission.deleted misnomer)', () 
     expect(result.type).toBe('commission.closed');
   });
 
-  it('the DomainEvent union no longer accepts commission.deleted (commission deletion does not exist)', () => {
+  it('the DomainEvent union rejects commission.deleted (commission deletion does not exist)', () => {
     expect(() =>
       DomainEventSchema.parse({
         type: 'commission.deleted',
@@ -345,7 +345,7 @@ describe('hallLibrary event itemType enums equal the canonical surface projectio
 });
 
 describe('retired domain events', () => {
-  it('no longer accepts adminDispatch.systemMarked — it had no producer, so nothing may emit it', () => {
+  it('rejects adminDispatch.systemMarked — nothing produces it, so nothing may emit it', () => {
     expect(
       DomainEventSchema.safeParse({ type: 'adminDispatch.systemMarked', ids: { userId: 'u_1' } }).success,
     ).toBe(false);
@@ -375,5 +375,26 @@ describe('workProject.guildmateLeft (a committed departure from a Work)', () => 
         ids: { workProjectId: 'w1', userId: 'u1', stakeShares: 0 },
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('cache events with no write of their own: registration, a violation decision, an acceptance', () => {
+  const events = [
+    { type: 'auth.registrationCompleted', ids: { userId: 'u1' } },
+    { type: 'violation.decisionAccepted', ids: { userId: 'u1', violationId: 'v1' } },
+    { type: 'publicDocuments.acceptanceLanded', ids: { userId: 'u1' } },
+  ];
+
+  it('each is accepted through the union with exactly its ids', () => {
+    for (const event of events) expect(DomainEventSchema.parse(event)).toEqual(event);
+  });
+
+  it('each refuses a missing id and an unknown id (strict)', () => {
+    expect(DomainEventSchema.safeParse({ type: 'auth.registrationCompleted', ids: {} }).success).toBe(false);
+    expect(DomainEventSchema.safeParse({ type: 'violation.decisionAccepted', ids: { userId: 'u1' } }).success).toBe(false);
+    expect(DomainEventSchema.safeParse({ type: 'publicDocuments.acceptanceLanded', ids: {} }).success).toBe(false);
+    for (const event of events) {
+      expect(DomainEventSchema.safeParse({ ...event, ids: { ...event.ids, extra: 'x' } }).success).toBe(false);
+    }
   });
 });

@@ -191,6 +191,10 @@ Each entry (`exact`, `prefix`, `predicate`) carries an `action`:
 - `'reset'` returns the matched queries to their initial state and refetches the active ones from
   scratch; its promise settles once those fresh reads land.
 
+A remove or reset acts on exactly the queries its entry matched when it was applied: its second
+step (the removal after the cancel, the refetch after the reset) never re-applies the filter, so a
+predicate over a query's state — its failure, its fetch — reaches every query it matched.
+
 A refresh and a remove of the same key are different entries and never deduplicated together.
 
 ## Domain-event invalidation is awaitable

@@ -606,6 +606,41 @@ describe('applyInvalidations — remove and reset entries', () => {
     unsubscribe();
   });
 
+  it('a reset entry whose predicate reads the failure re-reads every failed query it reset', async () => {
+    const client = makeClient();
+    const failedKey = ['refused', 'a'];
+    const healthyKey = ['healthy', 'b'];
+    const failedRead = vi.fn<() => Promise<string>>().mockRejectedValueOnce(new Error('refused')).mockResolvedValueOnce('answered');
+    const healthyRead = vi.fn(async () => 'fine');
+    const offFailed = observe(client, failedKey, failedRead);
+    const offHealthy = observe(client, healthyKey, healthyRead);
+    await flush();
+    expect(client.getQueryState(failedKey)?.status).toBe('error');
+
+    // The reset clears each matched query's failure, so a predicate over it matches nothing once
+    // the reset has run: the reset acts on the queries it matched when it was applied.
+    await applyInvalidations(client, [predicate('refused', (query) => query.state.error !== null, { action: 'reset' })]);
+    expect(failedRead).toHaveBeenCalledTimes(2);
+    expect(client.getQueryData(failedKey)).toBe('answered');
+    expect(healthyRead).toHaveBeenCalledTimes(1);
+    offFailed();
+    offHealthy();
+  });
+
+  it('a remove entry whose predicate reads the fetch state removes every query it matched', async () => {
+    const client = makeClient();
+    const key = ['violation', 'v1'];
+    const read = deferred<string>();
+    const unsubscribe = observe(client, key, sequencedQueryFn([read]));
+    await flush();
+
+    // Cancelling the matched read idles it, so a predicate over fetchStatus would no longer match
+    // it by the time it is removed.
+    await applyInvalidations(client, [predicate('in flight', (query) => query.state.fetchStatus === 'fetching', { action: 'remove' })]);
+    expect(client.getQueryCache().find({ queryKey: key, exact: true })).toBeUndefined();
+    unsubscribe();
+  });
+
   it('a remove and a refresh of the same key are two entries, never merged as duplicates', () => {
     expect(serializeInvalidation(exact(['users', '1'], { action: 'remove' }))).toBe('remove:exact:["users","1"]');
     expect(serializeInvalidation(predicate('refused', () => true, { action: 'reset' }))).toBe('reset:predicate:refused');

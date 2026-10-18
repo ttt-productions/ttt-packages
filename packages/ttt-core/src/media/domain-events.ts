@@ -9,6 +9,8 @@ import {
   FollowRemovedEventSchema,
   MentionReadEventSchema,
   AuthStatusChangedEventSchema,
+  AuthRegistrationCompletedEventSchema,
+  PublicDocumentsAcceptanceLandedEventSchema,
   ProfileDisplayNameChangedEventSchema,
 } from "./domain-events-user.js";
 import {
@@ -49,6 +51,7 @@ import {
   AdminAppealReviewedEventSchema,
   AdminDispatchReviewedEventSchema,
   ViolationAppealSubmittedEventSchema,
+  ViolationDecisionAcceptedEventSchema,
   AdminDisplayNameResetForcedEventSchema,
   HallContentChangeRequestApprovedEventSchema,
   SystemSlotUidUpdatedEventSchema,
@@ -120,6 +123,9 @@ export const DomainEventSchema = z.discriminatedUnion('type', [
   WorkRealmDetailsUpdatedEventSchema,
   HallContentChangeRequestApprovedEventSchema,
   SystemSlotUidUpdatedEventSchema,
+  AuthRegistrationCompletedEventSchema,
+  PublicDocumentsAcceptanceLandedEventSchema,
+  ViolationDecisionAcceptedEventSchema,
 ]);
 
 export type DomainEvent = z.infer<typeof DomainEventSchema>;

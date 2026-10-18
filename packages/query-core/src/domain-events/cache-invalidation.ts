@@ -84,6 +84,17 @@ function cancelPendingInitialReads(queryClient: QueryClient, filters: QueryFilte
 }
 
 /**
+ * Exactly the queries `filters` matches now. A remove or reset acts in two steps — cancel then
+ * remove, reset then refetch — and the first step changes the state a predicate may read (a reset
+ * clears the failure, a cancel idles the fetch), so the second step re-applying the filter would
+ * miss the queries the entry matched.
+ */
+function matchedNow(queryClient: QueryClient, filters: QueryFilters): QueryFilters {
+  const matched = new Set(queryClient.getQueryCache().findAll(filters));
+  return { predicate: (query) => matched.has(query) };
+}
+
+/**
  * Dispatch a deduplicated list of cache invalidations.
  *
  * Returns a promise that resolves once every `invalidateQueries` call it issued
@@ -127,15 +138,16 @@ export function applyInvalidations(
     const action: CacheAction = inv.action ?? "refresh";
 
     if (action === "remove") {
+      const matched = matchedNow(queryClient, filters);
       // Removing a query abandons its read in flight silently, so that read never puts the dropped
       // answer back, but a screen still watching it would go on showing it as fetching. Cancelled
       // first, the read ends visibly and the watcher reads idle.
-      void queryClient.cancelQueries(filters);
-      queryClient.removeQueries(filters);
+      void queryClient.cancelQueries(matched);
+      queryClient.removeQueries(matched);
       continue;
     }
     if (action === "reset") {
-      refreshes.push(queryClient.resetQueries(filters));
+      refreshes.push(queryClient.resetQueries(matchedNow(queryClient, filters)));
       continue;
     }
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // DomainEvent schemas for the user/identity domain — profile, craft skills,
-// follows, mentions, and auth status. Assembled into the discriminated union in
+// follows, mentions, auth status, registration, and public-document acceptance. Assembled into the discriminated union in
 // ./domain-events.ts.
 
 export const ProfilePictureUpdatedEventSchema = z
@@ -117,5 +117,22 @@ export const AuthStatusChangedEventSchema = z
         userId: z.string().min(1),
       })
       .strict(),
+  })
+  .strict();
+
+// A registration completed: the account has its profile.
+export const AuthRegistrationCompletedEventSchema = z
+  .object({
+    type: z.literal('auth.registrationCompleted'),
+    ids: z.object({ userId: z.string().min(1) }).strict(),
+  })
+  .strict();
+
+// A public-document acceptance landed for the account — accepted, or a token that fell behind
+// one made elsewhere was resynced — so every read the acceptance gate refused can answer.
+export const PublicDocumentsAcceptanceLandedEventSchema = z
+  .object({
+    type: z.literal('publicDocuments.acceptanceLanded'),
+    ids: z.object({ userId: z.string().min(1) }).strict(),
   })
   .strict();

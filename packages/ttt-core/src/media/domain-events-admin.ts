@@ -107,6 +107,19 @@ export const HallContentChangeRequestApprovedEventSchema = z
   })
   .strict();
 
+// The owner accepted a violation decision: the violation record and its upload are deleted.
+export const ViolationDecisionAcceptedEventSchema = z
+  .object({
+    type: z.literal('violation.decisionAccepted'),
+    ids: z
+      .object({
+        userId: z.string().min(1),
+        violationId: z.string().min(1),
+      })
+      .strict(),
+  })
+  .strict();
+
 export const ViolationAppealSubmittedEventSchema = z
   .object({
     type: z.literal('violation.appealSubmitted'),
