@@ -697,6 +697,13 @@ export const RecordNcmecPortalCorrectionInputSchema = z
   .strict();
 export type RecordNcmecPortalCorrectionInput = z.infer<typeof RecordNcmecPortalCorrectionInputSchema>;
 
+export const RecordNcmecPortalCorrectionResultSchema = z.object({
+  success: z.literal(true),
+  caseId: z.string().min(1),
+  correctionId: z.string().min(1),
+});
+export type RecordNcmecPortalCorrectionResult = z.infer<typeof RecordNcmecPortalCorrectionResultSchema>;
+
 // submitReport — the one report-intake callable. The target ids are HINTS the server re-derives
 // (never owner or target authority): each is bounded and shaped as the path it could become, and
 // `parentItemId` may be a chat channel or conversation-file reference of two ids joined by "/".

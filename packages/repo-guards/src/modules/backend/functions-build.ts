@@ -191,8 +191,9 @@ export interface LazyLoaderFacts {
   /** The roots whose code and tests the guard reads; `functions` alone when absent. */
   roots?: readonly RootRole[];
   /**
-   * Other module-level loaders whose `const x = name(() => import('…'))` is accepted, each with its
-   * why (a framework's own memoized component loader); one used nowhere is stale.
+   * Other module-level loaders whose `const x = name(() => import('…'), …options)` is accepted — the
+   * import may be projected with one `.then(…)` — each with its why (a framework's own memoized
+   * component loader); one used nowhere is stale.
    */
   otherLoaders?: ReadonlyArray<{ name: string; why: string }>;
   /** The test runner configs, which never make every test concurrent. */
@@ -205,8 +206,11 @@ const isDynamicImport = (node: ts.Node): node is ts.CallExpression => ts.isCallE
 
 /**
  * Every dynamic import in production code that is not a module-level `const x = name(() => import('…'))`
- * for one of `names`. `loaders` counts the uses of `names[0]`, the main loader; `used` holds every
- * name that wrapped an import.
+ * for one of `names`. `names[0]` is the main loader and takes exactly that one-argument shape; every
+ * other name is a framework's memoized loader, which may take further arguments after the loader
+ * function (its options) and may project the module with one `.then(…)` (`import('x').then((m) =>
+ * m.X)`) — the framework still memoizes that one import. `loaders` counts the uses of `names[0]`;
+ * `used` holds every name that wrapped an import.
  */
 export function strayDynamicImports(
   file: FileView,
@@ -219,37 +223,44 @@ export function strayDynamicImports(
   let loaders = 0;
   forEachNode(sf, (node) => {
     if (!isDynamicImport(node)) return;
-    const arrow = node.parent;
-    const call = arrow?.parent;
-    const declaration = call?.parent;
-    const statement = declaration?.parent?.parent;
-    const ok =
-      !!arrow &&
-      ts.isArrowFunction(arrow) &&
-      arrow.body === node &&
-      arrow.parameters.length === 0 &&
-      !!call &&
-      ts.isCallExpression(call) &&
-      ts.isIdentifier(call.expression) &&
-      accepted.includes(call.expression.text) &&
-      call.arguments.length === 1 &&
-      call.arguments[0] === arrow &&
-      !!declaration &&
-      ts.isVariableDeclaration(declaration) &&
-      declaration.initializer === call &&
-      (declaration.parent.flags & ts.NodeFlags.Const) !== 0 &&
-      statement !== undefined &&
-      ts.isVariableStatement(statement) &&
-      statement.parent === sf &&
-      node.arguments.length === 1 &&
-      ts.isStringLiteralLike(node.arguments[0]!);
-    if (ok) {
-      const name = (call as ts.CallExpression & { expression: ts.Identifier }).expression.text;
+    const name = moduleLevelLoaderName(node, accepted);
+    if (name !== null) {
       used.add(name);
       if (name === accepted[0]) loaders += 1;
     } else stray.push(node);
   });
   return { loaders, used, stray };
+}
+
+/** The loader wrapping `node` when it is an accepted module-level loader, else null. */
+function moduleLevelLoaderName(node: ts.CallExpression, accepted: readonly string[]): string | null {
+  if (node.arguments.length !== 1 || !ts.isStringLiteralLike(node.arguments[0]!)) return null;
+  // The arrow's body is the import itself, or — for an other loader only — `import(…).then(cb)`.
+  let body: ts.Node = node;
+  const access = node.parent;
+  const projected =
+    !!access &&
+    ts.isPropertyAccessExpression(access) &&
+    access.expression === node &&
+    access.name.text === 'then' &&
+    ts.isCallExpression(access.parent) &&
+    access.parent.expression === access &&
+    access.parent.arguments.length === 1;
+  if (projected) body = access.parent;
+  const arrow = body.parent;
+  if (!arrow || !ts.isArrowFunction(arrow) || arrow.body !== body || arrow.parameters.length !== 0) return null;
+  const call = arrow.parent;
+  if (!call || !ts.isCallExpression(call) || !ts.isIdentifier(call.expression) || call.arguments[0] !== arrow) return null;
+  const name = call.expression.text;
+  if (!accepted.includes(name)) return null;
+  const isMain = name === accepted[0];
+  if (isMain && (projected || call.arguments.length !== 1)) return null;
+  const declaration = call.parent;
+  if (!declaration || !ts.isVariableDeclaration(declaration) || declaration.initializer !== call) return null;
+  if ((declaration.parent.flags & ts.NodeFlags.Const) === 0) return null;
+  const statement = declaration.parent.parent;
+  if (!statement || !ts.isVariableStatement(statement) || statement.parent !== node.getSourceFile()) return null;
+  return name;
 }
 
 const COMBINATORS = new Set(['Promise.all', 'Promise.allSettled', 'Promise.race', 'Promise.any']);

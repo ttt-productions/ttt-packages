@@ -51,17 +51,15 @@ describe('app-mode flip answer', () => {
 });
 
 describe('under-13 account close reason', () => {
-  it('is optional free text up to its own named length', () => {
-    expect(CLOSE_UNDER_13_REASON_INPUT).toMatchObject({ format: 'none', min: 0, max: MAX_UNDER_13_CLOSE_REASON_LENGTH });
+  it('is required free text up to its own named length', () => {
+    expect(CLOSE_UNDER_13_REASON_INPUT).toMatchObject({ format: 'none', min: 1, max: MAX_UNDER_13_CLOSE_REASON_LENGTH });
     expect(MAX_UNDER_13_CLOSE_REASON_LENGTH).toBe(1000);
     expect(constantsBarrel.CLOSE_UNDER_13_REASON_INPUT).toBe(CLOSE_UNDER_13_REASON_INPUT);
   });
 
-  it('as a nullish callable field it accepts null, blank, and the cap, trims, and refuses one more', () => {
-    const reason = textFieldSchema(CLOSE_UNDER_13_REASON_INPUT).nullish();
-    expect(reason.parse(null)).toBeNull();
-    expect(reason.parse(undefined)).toBeUndefined();
-    expect(reason.parse('   ')).toBe('');
+  it('as a callable field it refuses a blank reason, trims, takes the cap, and refuses one more', () => {
+    const reason = textFieldSchema(CLOSE_UNDER_13_REASON_INPUT);
+    expect(reason.safeParse('   ').success).toBe(false);
     expect(reason.parse(' confirmed age 11 ')).toBe('confirmed age 11');
     expect(reason.safeParse('a'.repeat(MAX_UNDER_13_CLOSE_REASON_LENGTH)).success).toBe(true);
     const over = reason.safeParse('a'.repeat(MAX_UNDER_13_CLOSE_REASON_LENGTH + 1));

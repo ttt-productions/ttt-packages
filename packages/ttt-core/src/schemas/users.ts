@@ -5,6 +5,7 @@ import {
   ACCOUNT_ACTION_REASON_INPUT,
   ARTISAN_REGION_INPUT,
   CLOSE_UNDER_13_REASON_INPUT,
+  DISPLAY_NAME_RESET_REASON_INPUT,
   USERNAME_INPUT,
 } from '../constants/text-fields.js';
 import { textFieldSchema } from './text-field.js';
@@ -263,7 +264,7 @@ export type SetUserStatusResult = z.infer<typeof SetUserStatusResultSchema>;
 export const ForceDisplayNameResetInputSchema = z.object({
   userId: userIdSchema,
   // Optional admin note recorded on the audit event.
-  reason: textFieldSchema(ACCOUNT_ACTION_REASON_INPUT).optional(),
+  reason: textFieldSchema(DISPLAY_NAME_RESET_REASON_INPUT).optional(),
 }).strict();
 export type ForceDisplayNameResetInput = z.infer<typeof ForceDisplayNameResetInputSchema>;
 
@@ -275,12 +276,17 @@ export type ForceDisplayNameResetResult = z.infer<typeof ForceDisplayNameResetRe
 
 // An admin closes an existing account found to belong to someone under 13 (COPPA). Strict, so it
 // never accepts a date of birth or any other new personal information about the child. The reason
-// is nullish because the Firebase callable client sends an omitted argument as null.
+// is required: it is the recorded basis for an irreversible closure.
 export const CloseAccountUnder13InputSchema = z.object({
   userId: userIdSchema,
-  reason: textFieldSchema(CLOSE_UNDER_13_REASON_INPUT).nullish(),
+  reason: textFieldSchema(CLOSE_UNDER_13_REASON_INPUT),
 }).strict();
 export type CloseAccountUnder13Input = z.infer<typeof CloseAccountUnder13InputSchema>;
+
+export const CloseAccountUnder13ResultSchema = z.object({
+  success: z.literal(true),
+});
+export type CloseAccountUnder13Result = z.infer<typeof CloseAccountUnder13ResultSchema>;
 
 // User completes a forced display-name reset by choosing a new name. Only honored while
 // the caller's userProfiles doc has `displayNameResetRequired === true`.

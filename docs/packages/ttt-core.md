@@ -588,10 +588,12 @@ are one field), `reportCommentFieldSchema` and `adminTaskResolutionFieldSchema` 
 report-core's submit and check-in schema factories take). The Work and Realm detail edits send only what changed:
 each field is optional and at least one is required. A feedback suggestion is stored lowercase.
 
-Two admin callables carry optional typed text with no form box: the app-mode flip's milestone evidence
-(`APP_MODE_FLIP_EVIDENCE_INPUT`, read by `RecordAppModeFlipInputSchema` in `schemas/admin`) and the under-13 account
-close reason (`CLOSE_UNDER_13_REASON_INPUT`, max `MAX_UNDER_13_CLOSE_REASON_LENGTH`), read by
-`CloseAccountUnder13InputSchema` in `schemas/users`.
+The app-mode flip's milestone evidence is optional typed text with no form box
+(`APP_MODE_FLIP_EVIDENCE_INPUT`, read by `RecordAppModeFlipInputSchema` in `schemas/admin`). The under-13 account
+close reason is required (`CLOSE_UNDER_13_REASON_INPUT`, max `MAX_UNDER_13_CLOSE_REASON_LENGTH`, read by
+`CloseAccountUnder13InputSchema` in `schemas/users`): it is the recorded basis for an irreversible closure. A forced
+display-name reset's note is optional and has its own declaration, `DISPLAY_NAME_RESET_REASON_INPUT`, read by both
+`ForceDisplayNameResetInputSchema` and the username close-out's `forceUsernameReset` button.
 The flip's answer is `RecordAppModeFlipResultSchema` (`schemas/admin`): `recorded` (false when the marker already
 matched the deployed mode) and the mode before and after, typed by `AppModeSchema` (`./doc-schemas`, the
 `_systemData/appMode` marker's `current` too) over `APP_MODES` (`constants/app-mode`), the one list `AppMode` derives from.

@@ -22,6 +22,7 @@ const answers: Array<[name: string, schema: ZodTypeAny, answer: Record<string, u
   ['setMyDisplayName', schemas.SetMyDisplayNameResultSchema, ok],
   ['setUserStatus', schemas.SetUserStatusResultSchema, { ...ok, message: 'User suspended.', auditEventId: 'a1' }],
   ['forceDisplayNameReset', schemas.ForceDisplayNameResetResultSchema, { ...ok, auditEventId: 'a1' }],
+  ['closeAccountUnder13', schemas.CloseAccountUnder13ResultSchema, ok],
   ['updateSiteTourPreference', schemas.UpdateSiteTourPreferenceResultSchema, ok],
   ['upgradeAccountToAdult', schemas.UpgradeAccountToAdultResultSchema, { ...ok, alreadyAdult: false }],
   ['createFileFolder', schemas.CreateFileFolderResultSchema, { ...ok, folderId: 'f1' }],
@@ -56,6 +57,9 @@ const answers: Array<[name: string, schema: ZodTypeAny, answer: Record<string, u
   ['confirmOperatorStepUp', schemas.ConfirmOperatorStepUpResultSchema, ok],
   ['recordNcmecPortalReceiptArtifact', schemas.RecordNcmecPortalReceiptArtifactResultSchema, {
     ...ok, artifactId: 'r1', objectGeneration: '17', sha256: 'abc',
+  }],
+  ['recordNcmecPortalCorrection', schemas.RecordNcmecPortalCorrectionResultSchema, {
+    ...ok, caseId: 'case1', correctionId: 'corr1',
   }],
   ['linkNciiEvidenceToCase', schemas.LinkNciiEvidenceToCaseResultSchema, {
     ...ok, caseId: 'case1', allegationId: 'al1', ownerUid: null, holdRefId: 'hold1',

@@ -61,6 +61,7 @@ import {
 } from '../constants/business.js';
 import {
   ACCOUNT_ACTION_REASON_INPUT,
+  DISPLAY_NAME_RESET_REASON_INPUT,
   ACCOUNT_REINSTATE_REASON_INPUT,
   ADMIN_DISPATCH_MESSAGE_INPUT,
   ADMIN_DISPATCH_SUBJECT_INPUT,
@@ -98,11 +99,6 @@ import {
 
 export const CheckoutNextImportantTaskInputSchema = z.object({}).strict();
 export type CheckoutNextImportantTaskInput = z.infer<typeof CheckoutNextImportantTaskInputSchema>;
-
-export const GetContentViolationInputSchema = z.object({
-  violationId: violationIdSchema,
-}).strict();
-export type GetContentViolationInput = z.infer<typeof GetContentViolationInputSchema>;
 
 // No task type: the server derives it from the task doc, since a client-sent one could be forged.
 // Callers pass only the task id + the extension window.
@@ -746,7 +742,7 @@ const ReinstateUserSchema = z
   .strict();
 
 const ForceUsernameResetSchema = z
-  .object({ button: z.literal('forceUsernameReset'), userId: userIdSchema, reason: textFieldSchema(ACCOUNT_ACTION_REASON_INPUT).optional() })
+  .object({ button: z.literal('forceUsernameReset'), userId: userIdSchema, reason: textFieldSchema(DISPLAY_NAME_RESET_REASON_INPUT).optional() })
   .strict();
 
 /** Whole-object Work/Realm remedies — `reportedItemId` is the workProjectId / workRealmId. */

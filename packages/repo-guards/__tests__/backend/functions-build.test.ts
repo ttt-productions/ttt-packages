@@ -186,6 +186,33 @@ describe('no Functions code can overlap two dynamic imports of one module', () =
     ]);
   });
 
+  it("passes an other loader's options argument and its import('…').then(…) projection; the main loader stays one-argument", async () => {
+    repo = backendRepo({
+      ...clean,
+      'src/app/page.tsx': [
+        "const Sidebar = dynamic(() => import('./sidebar.js').then((mod) => mod.Sidebar), { ssr: false });",
+        "const Redirector = dynamic(() => import('./redirector.js'), { ssr: false, loading: () => null });",
+        "const Computed = dynamic(() => import(name).then((mod) => mod.X), { ssr: false });",
+        "const Nested = dynamic(() => import('./n.js').then((mod) => mod.X).then((x) => x), { ssr: false });",
+      ].join('\n'),
+      'src/lib/policy.ts': [
+        "const loadA = lazyModule(() => import('./a.js'), { eager: true });",
+        "const loadB = lazyModule(() => import('./b.js').then((mod) => mod.B));",
+      ].join('\n'),
+    });
+    const [guard] = lazyLoaderGuard.build({
+      ...facts,
+      roots: ['app', 'functions'],
+      otherLoaders: [{ name: 'dynamic', why: "the framework's memoized component loader" }],
+    });
+    expect(await repo.run(guard!)).toEqual([
+      { file: 'src/app/page.tsx', line: 3, detail: 'import(name) is not a module-level lazyModule loader' },
+      { file: 'src/app/page.tsx', line: 4, detail: "import('./n.js') is not a module-level lazyModule loader" },
+      { file: 'src/lib/policy.ts', line: 1, detail: "import('./a.js') is not a module-level lazyModule loader" },
+      { file: 'src/lib/policy.ts', line: 2, detail: "import('./b.js') is not a module-level lazyModule loader" },
+    ]);
+  });
+
   it('FLAGS an other loader that wraps no import, and reads Functions alone when no roots are named', async () => {
     repo = backendRepo({ ...clean, 'src/lib/list.ts': "export const load = () => import('./x.js');" });
     const [guard] = lazyLoaderGuard.build({ ...facts, otherLoaders: [{ name: 'dynamic', why: 'a component loader' }] });

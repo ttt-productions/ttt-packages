@@ -188,11 +188,13 @@ export const RETITLE_REASON_INPUT = defineInputFormat({ label: 'Reason', format:
 export const CLEAR_TEXT_REASON_INPUT = defineInputFormat({ label: 'Reason', format: 'none', min: 1, max: MAX_REQUIRE_RETITLE_REASON_LENGTH });
 /** The reason on a reported item's hide or removal; the action itself requires it. */
 export const MODERATION_ACTION_REASON_INPUT = defineInputFormat({ label: 'Reason', format: 'none', min: 0, max: MAX_INTERNAL_REASON_LENGTH });
-/** An admin's reason for an account action — a suspension, a ban, a forced username reset —
- *  or a forced display-name reset's note. */
+/** An admin's reason for an account action — a suspension or a ban. */
 export const ACCOUNT_ACTION_REASON_INPUT = defineInputFormat({ label: 'Reason', format: 'none', min: 1, max: MAX_INTERNAL_REASON_LENGTH });
 /** An admin's optional note on a reinstatement. */
 export const ACCOUNT_REINSTATE_REASON_INPUT = defineInputFormat({ label: 'Reason', format: 'none', min: 0, max: MAX_INTERNAL_REASON_LENGTH });
+/** An admin's optional note on a forced display-name reset — the User Management action and the
+ *  username report's close-out — recorded on its audit event. */
+export const DISPLAY_NAME_RESET_REASON_INPUT = defineInputFormat({ label: 'Reason', format: 'none', min: 0, max: MAX_INTERNAL_REASON_LENGTH });
 export const USER_FACING_REASON_DETAIL_INPUT = defineInputFormat({ label: 'Reason detail', format: 'none', min: 0, max: MAX_USER_FACING_REASON_DETAIL_LENGTH });
 /** The admin note on a report's or a safety case's close-out. */
 export const CLOSE_OUT_ADMIN_NOTE_INPUT = defineInputFormat({ label: 'Admin note', format: 'none', min: 0, max: MAX_SAFETY_ADMIN_NOTE_LENGTH });
@@ -213,8 +215,8 @@ export const ANNOUNCEMENT_MESSAGE_INPUT = defineInputFormat({ label: 'Announceme
 export const APP_VERSION_INPUT = defineInputFormat({ label: 'App version', format: 'none', min: 1, max: MAX_APP_VERSION_LENGTH });
 /** The optional milestone evidence an admin records with an app-mode flip. */
 export const APP_MODE_FLIP_EVIDENCE_INPUT = defineInputFormat({ label: 'Milestone evidence', format: 'none', min: 0, max: MAX_INTERNAL_REASON_LENGTH });
-/** The optional reason an admin records when closing an account discovered to be under 13. */
-export const CLOSE_UNDER_13_REASON_INPUT = defineInputFormat({ label: 'Reason', format: 'none', min: 0, max: MAX_UNDER_13_CLOSE_REASON_LENGTH });
+/** The reason an admin records when closing an account discovered to be under 13. */
+export const CLOSE_UNDER_13_REASON_INPUT = defineInputFormat({ label: 'Reason', format: 'none', min: 1, max: MAX_UNDER_13_CLOSE_REASON_LENGTH });
 
 // --- The safety console ---
 
