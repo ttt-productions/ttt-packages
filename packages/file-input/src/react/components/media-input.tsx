@@ -22,7 +22,7 @@ import { cn } from "@ttt-productions/ui-core";
 import { MediaPreview } from "@ttt-productions/media-viewer/react";
 
 import type { FileInputError, MediaInputHandle, MediaInputProps, SelectedMediaMeta } from "../../types.js";
-import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from "../../index.js";
+import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from "../../progress-bar.js";
 import { RecordDialog } from "./record-dialog.js";
 import { ensureFileWithContentType } from "../../lib/infer-content-type.js";
 import { NEUTRAL_CONTENT_TYPE, projectAcceptTokens } from "@ttt-productions/media-schemas";

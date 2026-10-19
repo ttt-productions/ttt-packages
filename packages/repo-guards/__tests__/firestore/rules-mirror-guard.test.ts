@@ -4,7 +4,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { rulesMirrorFindings, rulesMirrorGuard, type RulesMirrorFacts } from '../../src/modules/firestore/rules-mirror-guard.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { viewOfText } from '../../src/reader/view.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';

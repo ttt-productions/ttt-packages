@@ -8,7 +8,7 @@ import {
   adminDispatchIdSchema,
   hallItemIdSchema,
 } from './atoms.js';
-import { FEEDBACK_TYPES } from '../constants/business.js';
+import { FEEDBACK_TYPES } from '../constants/business-admin.js';
 import { MAX_CURATED_PROFANITY_TERMS_PER_REQUEST } from '../constants/moderation.js';
 import {
   APPEAL_MESSAGE_INPUT,

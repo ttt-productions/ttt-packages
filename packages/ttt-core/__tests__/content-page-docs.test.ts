@@ -9,7 +9,8 @@ import {
   LegalPageContentInputSchema,
   TakeItDownPageCopyContentInputSchema,
 } from '../src/schemas/admin';
-import { COLLECTIONS, PATH_BUILDERS, SPECIAL_DOCS } from '../src/paths';
+import { COLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
+import { PATH_BUILDERS } from '../src/paths/path-builders';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
 
 const section = { id: 's1', heading: 'Part 1', level: 1, body: 'First paragraph.\n\nSecond paragraph.', order: 0 };

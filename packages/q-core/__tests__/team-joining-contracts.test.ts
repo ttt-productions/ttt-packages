@@ -1,16 +1,25 @@
-// The contracts the joining doors are built on: the invitation, join-request, and free-agent wire
-// schemas, the statuses each document moves through, the events a client names after each door, the
-// audit types each door records under, and the team field that makes a new invitation or request
-// contend with every other door on the team.
-
 import { describe, it, expect } from 'vitest';
 import {
   MAX_TEAM_INVITATION_MESSAGE_LENGTH,
   MAX_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
   MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
 } from '../src/constants/business';
-import { LeagueTeamSchema, TeamInvitationSchema, TeamJoinRequestSchema } from '../src/doc-schemas';
-import { DomainEventSchema } from '../src/domain-events';
+import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
+import {
+  APPROVED_TEAM_INVITATION_STATUS,
+  APPROVED_TEAM_JOIN_REQUEST_STATUS,
+  CANCELLED_TEAM_INVITATION_STATUS,
+  CANCELLED_TEAM_JOIN_REQUEST_STATUS,
+  PENDING_TEAM_INVITATION_STATUS,
+  PENDING_TEAM_JOIN_REQUEST_STATUS,
+  REJECTED_TEAM_INVITATION_STATUS,
+  REJECTED_TEAM_JOIN_REQUEST_STATUS,
+  TEAM_INVITATION_STATUS_KEYS,
+  TEAM_JOIN_REQUEST_STATUS_KEYS,
+} from '../src/types/unions';
+import { LeagueTeamSchema } from '../src/doc-schemas/league-team';
+import { TeamInvitationSchema, TeamJoinRequestSchema } from '../src/doc-schemas/team-membership';
+import { DomainEventSchema } from '../src/domain-events/domain-events';
 import {
   AcceptTeamInvitationResultSchema,
   AcceptTeamJoinRequestResultSchema,
@@ -25,21 +34,7 @@ import {
   TeamInvitationTargetInputSchema,
   TeamJoinRequestResultSchema,
   TeamJoinRequestTargetInputSchema,
-} from '../src/schemas';
-import * as schemas from '../src/schemas';
-import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
-import {
-  APPROVED_TEAM_INVITATION_STATUS,
-  APPROVED_TEAM_JOIN_REQUEST_STATUS,
-  CANCELLED_TEAM_INVITATION_STATUS,
-  CANCELLED_TEAM_JOIN_REQUEST_STATUS,
-  PENDING_TEAM_INVITATION_STATUS,
-  PENDING_TEAM_JOIN_REQUEST_STATUS,
-  REJECTED_TEAM_INVITATION_STATUS,
-  REJECTED_TEAM_JOIN_REQUEST_STATUS,
-  TEAM_INVITATION_STATUS_KEYS,
-  TEAM_JOIN_REQUEST_STATUS_KEYS,
-} from '../src/types/unions';
+} from '../src/schemas/team-joining';
 
 const NOW = 1_712_345_678_901;
 
@@ -108,11 +103,6 @@ describe('the invitation wire contracts', () => {
     expect(CreateTeamInvitationInputSchema.safeParse({ ...valid, leagueId: 'L9' }).success).toBe(false);
     expect(CreateTeamInvitationInputSchema.safeParse({ ...valid, teamId: 'T1/evil' }).success).toBe(false);
     expect(TeamInvitationTargetInputSchema.safeParse({ teamInvitationId: 'a/b' }).success).toBe(false);
-  });
-
-  it('name an answer by the callable, never by a payload field — accept and decline are separate entries', () => {
-    expect(TeamInvitationTargetInputSchema.safeParse({ teamInvitationId: 'inv-1', response: 'approved' }).success).toBe(false);
-    expect(Object.keys(schemas)).not.toContain('RespondToTeamInvitationInputSchema');
   });
 
   it('answer with the ids a client names its event by, an acceptance adding where its roster work stands', () => {

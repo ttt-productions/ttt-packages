@@ -3,26 +3,32 @@ import { z } from 'zod';
 import { CURLING_ROUND_COUNT, MAX_CURLING_ROUND_POINTS, STAT_HISTORY_PAGE_SIZE } from '../src/constants/sports';
 import {
   BasketballPlayerStatsSchema,
-  BasketballPlayerTotalsSchema,
-  COLLECTION_SCHEMAS,
   GameStatEventSchema,
-  GameStatHistoryFirstPageSchema,
-  GameStatHistoryPageSchema,
-  LeagueTeamSchema,
+  StatCorrectionEventSchema,
+  type GameStatEventType,
+} from '../src/doc-schemas/game-stats';
+import {
+  BasketballPlayerTotalsSchema,
   PlayerSeasonStatsSchema,
   SPORT_LINE_SCHEMAS,
-  SportGameSchema,
   SportHallOfFameSchema,
-  StatCorrectionEventSchema,
-  StatsOperationSchema,
   TeamSeasonStatsSchema,
   UserLifetimeStatsSchema,
-  UserProfileSchema,
-  repairReasonSchema,
-  type GameStatEventType,
-} from '../src/doc-schemas';
-import { BYE_TEAM_ID, buildGameRosterPlayerId, buildStatCorrectionId, buildStatVoidId } from '../src/ids';
-import { repairReasonSchema as callableRepairReasonSchema } from '../src/schemas';
+} from '../src/doc-schemas/aggregate-stats';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+import {
+  GameStatHistoryFirstPageSchema,
+  GameStatHistoryPageSchema,
+} from '../src/doc-schemas/game-stat-history';
+import { LeagueTeamSchema } from '../src/doc-schemas/league-team';
+import { SportGameSchema } from '../src/doc-schemas/sport-game';
+import { StatsOperationSchema } from '../src/doc-schemas/stats-operation';
+import { UserProfileSchema } from '../src/doc-schemas/user-profile';
+import { repairReasonSchema } from '../src/doc-schemas/atoms';
+import { BYE_TEAM_ID } from '../src/ids/minted-ids';
+import { buildGameRosterPlayerId } from '../src/ids/compound-ids';
+import { buildStatCorrectionId, buildStatVoidId } from '../src/ids/stat-event-ids';
+import { ReopenGameInputSchema } from '../src/schemas/stats';
 import { LEAGUE_TYPE_KEYS, SPORT_KEYS, SPORT_KEY_BY_LEAGUE_TYPE } from '../src/types/sports';
 import type { StatsOperationKind } from '../src/types/stats';
 
@@ -452,8 +458,8 @@ describe('stats operations', () => {
     expect(operation({ ...VALID_OPERATIONS.gameStatsCorrection, reason: '   no   ' })).toBe(false);
   });
 
-  it('stores a repair\'s reason through the one reason atom the repair callables take', () => {
-    expect(repairReasonSchema).toBe(callableRepairReasonSchema);
+  it("a repair callable's reason field takes the one reason atom the repair is stored with", () => {
+    expect(ReopenGameInputSchema.shape.reason).toBe(repairReasonSchema);
     expect(StatCorrectionEventSchema.shape.reason).toBe(repairReasonSchema);
     // A ghost removal is not a repair and takes no reason (BACKEND-212), so its operation's reason is
     // optional — and still the one atom when present.

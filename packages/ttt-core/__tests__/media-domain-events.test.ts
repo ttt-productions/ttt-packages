@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import {
-  DomainEventSchema,
-  ProfilePictureUpdatedEventSchema,
-  SquareStreetzPostCreatedEventSchema,
-  ModerationViolationCreatedEventSchema,
-} from '../src/media/domain-events.js';
+import { DomainEventSchema } from '../src/media/domain-events.js';
+import { ProfilePictureUpdatedEventSchema } from '../src/media/domain-events-user.js';
+import { SquareStreetzPostCreatedEventSchema } from '../src/media/domain-events-social.js';
+import { ModerationViolationCreatedEventSchema } from '../src/media/domain-events-admin.js';
 import {
   HallLibraryCoverUpdatedEventSchema,
   HallLibrarySubItemUpdatedEventSchema,
@@ -344,7 +342,7 @@ describe('hallLibrary event itemType enums equal the canonical surface projectio
   });
 });
 
-describe('retired domain events', () => {
+describe('domain events nothing produces', () => {
   it('rejects adminDispatch.systemMarked — nothing produces it, so nothing may emit it', () => {
     expect(
       DomainEventSchema.safeParse({ type: 'adminDispatch.systemMarked', ids: { userId: 'u_1' } }).success,

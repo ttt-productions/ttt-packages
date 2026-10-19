@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { uploadFileResumable } from '../src/storage/upload.js';
+import { uploadFileResumable } from '../src/browser/upload.js';
 import { UploadError } from '../src/storage/upload-error.js';
 
 // The byte transfer itself is not under test — reject at the ref step so each

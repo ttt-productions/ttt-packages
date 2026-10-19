@@ -22,8 +22,8 @@
             "default": "./dist/index.js"
         },
         "./contracts": {
-            "types": "./dist/contracts.d.ts",
-            "default": "./dist/contracts.js"
+            "types": "./dist/contracts/index.d.ts",
+            "default": "./dist/contracts/index.js"
         },
         "./react": {
             "types": "./dist/react/index.d.ts",

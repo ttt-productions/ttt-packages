@@ -14,7 +14,7 @@ import { z } from 'zod';
 import {
   MAX_SAFETY_RESOLUTION_SUMMARY_LENGTH,
   MAX_SAFETY_ADMIN_NOTE_LENGTH,
-} from '../../constants/business.js';
+} from '../../constants/business-admin.js';
 import { ConversationFileRefSchema } from '../../media/conversation-file-ref.js';
 
 // ===========================================================================
@@ -380,10 +380,7 @@ export type SafetyCaseClosureV1 = z.infer<typeof SafetyCaseClosureV1Schema>;
  * `awaitingManualFiling` from enqueue until the operator files on the NCMEC portal and records the
  * confirmation (markNcmecPortalComplete → `completed`). Jobs are born `awaitingManualFiling`; the
  * case-list `ncmecStatus` projection uses the same value (no separate `queued` state). There is no
- * in-app retraction — corrections are portal-manual (correction-lifecycle decision). The old
- * API-drive states
- * (opening/open/uploading/addingFileDetails/finishing/retryableFailure/ambiguousResult/permanentFailure)
- * were removed with the live-API client. */
+ * in-app retraction — corrections are portal-manual. */
 export const NcmecSubmissionStateSchema = z.enum([
   'awaitingManualFiling',
   'completed',
@@ -527,9 +524,8 @@ export type TakeItDownCompletenessStatus = z.infer<typeof TakeItDownCompleteness
 export const TakeItDownValidityStatusSchema = z.enum(['pending', 'valid', 'invalid', 'unableToLocate']);
 export type TakeItDownValidityStatus = z.infer<typeof TakeItDownValidityStatusSchema>;
 
-/** The public no-login status-page status set (root + statusProjection). No
- * appeal model — no `appealedCorrected` (the appeal/reinstatement flow was
- * removed; protected reports have no uploader appeal/notice/reinstatement). */
+/** The request root's public status set. No appeal model — no `appealedCorrected`
+ * (protected reports have no uploader appeal/notice/reinstatement). */
 export const TakeItDownPublicStatusSchema = z.enum([
   'received',
   'needsMoreInfo',

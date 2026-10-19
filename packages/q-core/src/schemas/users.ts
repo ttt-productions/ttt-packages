@@ -2,8 +2,8 @@
 
 import { z } from 'zod';
 import { MAX_ADMIN_LIST_CHANGES } from '../constants/business.js';
-import { userStatusSchema } from '../doc-schemas/atoms.js';
-import { countSchema, displayNameSchema, repairReasonSchema, userIdSchema } from './atoms.js';
+import { countSchema, repairReasonSchema, userIdSchema, userStatusSchema } from '../doc-schemas/atoms.js';
+import { displayNameSchema } from './atoms.js';
 
 // The signed-in caller finishes registration: profile, public identity, and the display-name
 // reservation are created for `request.auth.uid`. Email comes from the token, never the payload.

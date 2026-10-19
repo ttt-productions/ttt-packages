@@ -1,9 +1,9 @@
 // Runs one of this area's guard definitions over a throwaway repository: the app root is `src`, a
 // Functions root `functions/src` is declared when the files hold one, and `src/test` is test code.
 
-import type { GenericGuardDefinition } from '../../src/config.js';
+import type { GenericGuardDefinition } from '../../src/suite/config.js';
 import type { Finding } from '../../src/guard.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo } from '../helpers/temp-repo.js';
 

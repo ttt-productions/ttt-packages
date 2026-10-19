@@ -2,9 +2,6 @@ import type * as React from "react";
 import type { MediaDiagnosticAdapter, AssetStatusHint } from "./recovery.js";
 import type { AudioVisualizerMode } from "./visualizer.js";
 
-export type { MediaDiagnosticAdapter, AssetStatusHint, DiagnosisResult, RecoveryState } from "./recovery.js";
-export type { AudioVisualizerMode } from "./visualizer.js";
-
 export type MediaViewerType = "image" | "video" | "audio" | "other";
 export type FallbackMode = "none" | "link";
 

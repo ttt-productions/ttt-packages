@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { THEME_NAMES } from '@ttt-productions/theme-core';
-import { MAX_CONTACT_PHONE_LENGTH } from '../src';
-import { UserPrivateDataSchema, themeNameSchema } from '../src/doc-schemas';
-import { UpdateAccountSettingsInputSchema, UpdateAccountSettingsResultSchema } from '../src/schemas';
+import { MAX_CONTACT_PHONE_LENGTH } from '../src/constants/business';
+import { UserPrivateDataSchema, themeNameSchema } from '../src/doc-schemas/user-profile';
+import {
+  UpdateAccountSettingsInputSchema,
+  UpdateAccountSettingsResultSchema,
+} from '../src/schemas/account-settings';
 
 const PRIVATE_DATA = { email: 'player@example.test', updatedAt: 1_700_000_000_000 };
 

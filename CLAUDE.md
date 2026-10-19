@@ -29,7 +29,7 @@ One-line pointers; the rule file is authoritative:
 
 ## Package design docs (authoritative for ownership, tiers, entries, build/release order)
 
-- `docs/packages/package-architecture.md` — the one-stop model: tiers, root purity, subpath conventions, dependency-direction rules, build/release order, internal caret pinning, and the boundary-guard tests.
+- `docs/packages/package-architecture.md` — the one-stop model: tiers, entry purity, imports inside a package, subpath conventions, dependency-direction rules, build/release order, internal caret pinning, and the boundary-guard tests.
 - `docs/packages/*.md` — one short doc per package for what it owns, exposes, and guarantees.
 - `docs/design/upload-path-invariant.md`, `docs/design/react-safety.md`, `docs/design/display-identity-invariant.md` — cross-cutting package invariants.
 

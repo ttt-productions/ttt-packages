@@ -37,7 +37,8 @@
 //     change to the entire hold authority.
 
 import { createHash } from 'node:crypto';
-import type { MediaAsset, SafetyHoldResourceType } from '../doc-schemas/index.js';
+import type { MediaAsset } from '../doc-schemas/media-assets.js';
+import type { SafetyHoldResourceType } from '../doc-schemas/safety/foundation.js';
 
 /** Format/version tag for every canonical key. Bumping this re-keys ALL holds. */
 const KEY_FORMAT = 'safetyHoldKey/v1';

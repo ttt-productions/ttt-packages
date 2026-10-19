@@ -5,10 +5,13 @@ import { onProgressSchema } from './on-progress.js';
 import {
   MIN_CURATED_AUDITION_OPTIONS,
   MAX_CURATED_AUDITION_OPTIONS,
-} from '../constants/business.js';
+} from '../constants/business-content.js';
 import { AUDITION_DESCRIPTION_INPUT, AUDITION_TITLE_INPUT } from '../constants/text-fields.js';
+import {
+  AuditionDeadlineSchema,
+  refineAuditionDeadlineOrder,
+} from '../constants/audition-deadlines.js';
 import { textFieldSchema } from '../schemas/text-field.js';
-import { AuditionDeadlineSchema, refineAuditionDeadlineOrder } from '../constants/audition-deadlines.js';
 import { SponsoredAuditionAmountUSDSchema } from '../media/target-info.js';
 
 // The admin audition variables both types share.

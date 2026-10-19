@@ -6,7 +6,7 @@
 // The guard probes the core's own schemas, loaded by the app.
 
 import type { Finding } from '../../guard.js';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import { namesProblem, reviewedProblems, loaderProblem, type Loader, textProblem } from '../../support/facts.js';
 import { coreBuild } from './shared.js';
 

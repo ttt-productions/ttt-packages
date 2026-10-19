@@ -13,12 +13,14 @@ import { CommissionPostingTargetInfoSchema, CommissionProposalTargetInfoSchema }
 import { ReopenSafetyCaseInputSchema } from '../src/schemas/admin';
 import { SubmitReportInputSchema } from '../src/schemas/safety';
 import {
+  MAX_WORK_PROJECT_STAKE_SHARES,
+} from '../src/constants/business-work-project';
+import {
   MAX_INTERNAL_REASON_LENGTH,
   MAX_REPORT_COMMENT_LENGTH,
   MAX_USER_FACING_REASON_LENGTH,
   MIN_SAFETY_RATIONALE_LENGTH,
-  MAX_WORK_PROJECT_STAKE_SHARES,
-} from '../src/constants/business';
+} from '../src/constants/business-admin';
 
 const spec = (d: { format: string; min: number; max: number }) => ({ format: d.format, min: d.min, max: d.max });
 

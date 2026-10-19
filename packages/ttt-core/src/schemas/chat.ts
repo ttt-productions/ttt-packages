@@ -12,7 +12,7 @@ import {
   guildChatChannelRequirementSchema,
 } from './atoms.js';
 import { MAX_GUILD_CHAT_CHANNEL_REQUIRED_STANDINGS } from '../constants/chat.js';
-import { MAX_CHAT_MODERATION_REASON_LENGTH } from '../constants/business.js';
+import { MAX_CHAT_MODERATION_REASON_LENGTH } from '../constants/business-admin.js';
 import {
   ADMIN_DISPATCH_MESSAGE_INPUT,
   ADMIN_DISPATCH_SUBJECT_INPUT,

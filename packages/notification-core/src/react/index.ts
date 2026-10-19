@@ -1,18 +1,14 @@
 "use client";
 
 // Hooks
-export {
-  useActiveNotifications,
-  useNotificationHistory,
-  useUnreadCount,
-  useArchiveNotification,
-  useArchiveAllNotifications,
-} from './hooks/index.js';
+export { useActiveNotifications } from './hooks/useActiveNotifications.js';
+export { useNotificationHistory } from './hooks/useNotificationHistory.js';
+export { useUnreadCount } from './hooks/useUnreadCount.js';
+export { useArchiveNotification } from './hooks/useArchiveNotification.js';
+export { useArchiveAllNotifications } from './hooks/useArchiveAllNotifications.js';
 
 // Components
-export {
-  NotificationList,
-  NotificationHistoryList,
-  NotificationEmptyState,
-  NotificationUnreadBadge,
-} from './components/index.js';
+export { NotificationList } from './components/NotificationList.js';
+export { NotificationHistoryList } from './components/NotificationHistoryList.js';
+export { NotificationEmptyState } from './components/NotificationEmptyState.js';
+export { NotificationUnreadBadge } from './components/NotificationUnreadBadge.js';

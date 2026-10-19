@@ -1,5 +1,4 @@
 export type {
-  AudioVisualizerMode,
   MediaViewerType,
   FallbackMode,
   BaseMediaProps,
@@ -11,10 +10,6 @@ export type {
   MediaPlaybackProps,
   MediaPlaybackControls,
   MediaProgressSampleReason,
-  MediaDiagnosticAdapter,
-  AssetStatusHint,
-  DiagnosisResult,
-  RecoveryState,
 } from "./types.js";
 
 export {
@@ -26,8 +21,14 @@ export {
   backoffForAttempt,
   withinBudget,
 } from "./recovery.js";
+export type {
+  MediaDiagnosticAdapter,
+  AssetStatusHint,
+  DiagnosisResult,
+  RecoveryState,
+} from "./recovery.js";
 
 export { startWaveformLoop, drawIdleFrame } from "./visualizer.js";
-export type { StartWaveformLoopOptions } from "./visualizer.js";
+export type { StartWaveformLoopOptions, AudioVisualizerMode } from "./visualizer.js";
 
 export { resolveInfiniteDuration } from "./media-duration.js";

@@ -1,16 +1,18 @@
 import { describe, it, expect } from 'vitest';
+import { canonicalize, sha256Hex, hashPayload } from '../src/payload-hash.js';
 import {
-  canonicalize,
-  sha256Hex,
-  hashPayload,
   signInternalRequest,
   verifyInternalRequest,
-  signToken,
-  verifyToken,
-  decideVersionedApply,
+  type InternalRequestFields,
+} from '../src/internal-auth.js';
+import { signToken, verifyToken } from '../src/signed-token.js';
+import { decideVersionedApply } from '../src/versioned-apply.js';
+import {
   StructuredErrorSchema,
   EDGE_PROTOCOL_VERSION,
   isProtocolSupported,
+} from '../src/envelopes.js';
+import {
   ORIGIN_MARKER_HEADER,
   ORIGIN_MARKER_VALUE,
   EDGE_MARKER_HEADER,
@@ -20,6 +22,8 @@ import {
   EDGE_CLIENT_IP_HEADER,
   VERIFIED_CLIENT_IP_HEADER,
   EDGE_INTERNAL_HEADERS,
+} from '../src/provenance-headers.js';
+import {
   INTERNAL_AUTH_SIGNATURE_HEADER,
   INTERNAL_AUTH_TIMESTAMP_HEADER,
   INTERNAL_AUTH_VERSION_HEADER,
@@ -27,8 +31,7 @@ import {
   INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER,
   INTERNAL_AUTH_OPERATION_VERSION_HEADER,
   INTERNAL_AUTH_OPERATION_SIGNATURE_HEADER,
-  type InternalRequestFields,
-} from '../src/index.js';
+} from '../src/internal-auth-headers.js';
 
 describe('payload-hash', () => {
   it('canonicalize sorts object keys recursively and is order-independent', () => {

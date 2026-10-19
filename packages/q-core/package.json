@@ -32,18 +32,6 @@
             "types": "./dist/constants/index.d.ts",
             "default": "./dist/constants/index.js"
         },
-        "./constants/business": {
-            "types": "./dist/constants/business.d.ts",
-            "default": "./dist/constants/business.js"
-        },
-        "./constants/sports": {
-            "types": "./dist/constants/sports.d.ts",
-            "default": "./dist/constants/sports.js"
-        },
-        "./constants/storage-keys": {
-            "types": "./dist/constants/storage-keys.d.ts",
-            "default": "./dist/constants/storage-keys.js"
-        },
         "./utils": {
             "types": "./dist/utils/index.d.ts",
             "default": "./dist/utils/index.js"

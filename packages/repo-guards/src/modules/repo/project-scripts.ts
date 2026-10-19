@@ -4,9 +4,9 @@
 // production" — and it reaches collections through the declared builders or by discovering them,
 // never through a path written into the source.
 
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding } from '../../guard.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { escapeRegExp } from '../../support/text.js';
 import { namesProblem, objectProblem } from '../../support/facts.js';

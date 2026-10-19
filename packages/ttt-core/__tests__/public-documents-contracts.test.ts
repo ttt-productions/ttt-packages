@@ -7,7 +7,7 @@ import {
   PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT,
   type PublicDocumentId,
 } from '../src/constants/public-documents';
-import * as root from '../src/index';
+import * as constants from '../src/constants/index';
 import { COLLECTIONS, NESTED_SUBCOLLECTIONS, SPECIAL_DOCS } from '../src/paths/collections';
 import { PATH_BUILDERS, publicDocumentVersionDocId } from '../src/paths/path-builders';
 import { COLLECTION_REFS } from '../src/paths/collection-refs';
@@ -103,17 +103,17 @@ describe('public document identity', () => {
     expect(PUBLIC_DOCUMENTS_ACCEPTED_CLAIM).toBe('docsAccepted');
   });
 
-  it('names the registered-member claim once, on the server-safe root, apart from the acceptance claim', () => {
+  it('names the registered-member claim once, on the server-safe constants entry, apart from the acceptance claim', () => {
     expect(REGISTERED_MEMBER_CLAIM).toBe('registeredMember');
     expect(REGISTERED_MEMBER_CLAIM).not.toBe(PUBLIC_DOCUMENTS_ACCEPTED_CLAIM);
-    expect(root.REGISTERED_MEMBER_CLAIM).toBe(REGISTERED_MEMBER_CLAIM);
+    expect(constants.REGISTERED_MEMBER_CLAIM).toBe(REGISTERED_MEMBER_CLAIM);
   });
 
-  it("states the re-acceptance prompt's agreement line verbatim, on the server-safe root", () => {
+  it("states the re-acceptance prompt's agreement line verbatim, on the server-safe constants entry", () => {
     expect(PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT).toBe(
       'By choosing Accept, you agree to the current versions of the documents listed above.',
     );
-    expect(root.PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT).toBe(PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT);
+    expect(constants.PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT).toBe(PUBLIC_DOCUMENTS_REACCEPTANCE_STATEMENT);
   });
 
   it('has a content schema and a current projection for every document', () => {
@@ -490,7 +490,7 @@ describe('registration carries the versions the signup page showed', () => {
     agreements: { age: true, nudity: true, meet: true, cookies: true, terms: true },
   } as const;
 
-  it('requires the shown list — a registration can no longer omit what it agreed to', () => {
+  it('requires the shown list — a registration never omits what it agreed to', () => {
     expect(RegisterUserInputSchema.safeParse(registration).success).toBe(false);
     expect(
       RegisterUserInputSchema.safeParse({

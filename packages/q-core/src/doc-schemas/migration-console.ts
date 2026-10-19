@@ -6,7 +6,7 @@
 // dependents read — its latest preview, and, for a recorded step, what was recorded.
 
 import { z } from 'zod';
-import { MIGRATION_EVIDENCE_INPUT_FORMAT } from '../input-formats/index.js';
+import { MIGRATION_EVIDENCE_INPUT_FORMAT } from '../input-formats/input-formats.js';
 import { MIGRATION_ACTION_ID_KEYS } from '../migration-console/action-ids.js';
 import {
   MAX_MIGRATION_FINDING_TEXT_LENGTH,

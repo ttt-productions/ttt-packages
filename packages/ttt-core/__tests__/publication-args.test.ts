@@ -13,10 +13,10 @@ import {
   CommissionProposalMediaPublicationArgsSchema,
   AuditionMediaPublicationArgsSchema,
   SystemVideoSlotPublicationArgsSchema,
-} from '../src/media/publication/index.js';
+} from '../src/media/publication/publication-args.js';
 import { MediaPublicationKindSchema } from '../src/doc-schemas/media-assets.js';
 import { CRAFT_SKILL_TAG_VALUES } from '../src/constants/options.js';
-import { MAX_CRAFT_SKILL_TAGS } from '../src/constants/business.js';
+import { MAX_CRAFT_SKILL_TAGS } from '../src/constants/business-user.js';
 import { SYSTEM_SLOTS } from '../src/system-slots/system-slots.js';
 
 const NOW = 1_700_000_000_000;

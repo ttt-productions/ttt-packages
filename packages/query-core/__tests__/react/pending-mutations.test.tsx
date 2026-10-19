@@ -10,7 +10,6 @@ import {
   usePendingMutationTargets,
   usePendingMutationVariables,
 } from '../../src/react/pending-mutations.js';
-import * as reactEntry from '../../src/react/index.js';
 
 const SAVE_KEY = ['test-mutation', 'save'] as const;
 const OTHER_KEY = ['test-mutation', 'other'] as const;
@@ -59,11 +58,6 @@ function useGuardedSave(save: (variables: SaveVariables) => Promise<string>) {
 }
 
 describe('pending mutations', () => {
-  it('is exported from the react entry', () => {
-    expect(reactEntry.useDuplicateGuardedMutation).toBe(useDuplicateGuardedMutation);
-    expect(reactEntry.usePendingMutationTargets).toBe(usePendingMutationTargets);
-    expect(reactEntry.hasPendingMutation).toBe(hasPendingMutation);
-  });
 
   it('an in-flight mutation stays pending after the control that started it unmounts, and a remounted reader sees it', async () => {
     const queryClient = makeClient();

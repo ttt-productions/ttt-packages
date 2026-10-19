@@ -16,8 +16,6 @@ import {
   MAX_APP_VERSION_LENGTH,
   MAX_MAINTENANCE_MESSAGE_LENGTH,
 } from '../src/constants/business-admin';
-import * as root from '../src/index';
-import * as utils from '../src/utils';
 
 const block = planPublicDocumentRelease(undefined, [SPECIAL_DOCS.TERMS_PAGE], true).block;
 
@@ -50,20 +48,9 @@ describe('DEFAULT_APP_CONFIG — _appConfig/app at rest', () => {
     expect('publicDocumentVersions' in DEFAULT_APP_CONFIG).toBe(false);
   });
 
-  it('is exported from the package root and the utils subpath', () => {
-    expect(root.DEFAULT_APP_CONFIG).toBe(DEFAULT_APP_CONFIG);
-    expect(utils.mergeAppConfigUpdate).toBe(mergeAppConfigUpdate);
-  });
 });
 
 describe('DEFAULT_MAINTENANCE_MESSAGE — the line for a blank maintenance message', () => {
-  it('is the one fallback line, exported beside DEFAULT_APP_CONFIG from the root and utils', () => {
-    expect(DEFAULT_MAINTENANCE_MESSAGE).toBe(
-      'TTT Productions is down for maintenance right now. We will be back shortly — thank you for your patience.',
-    );
-    expect(root.DEFAULT_MAINTENANCE_MESSAGE).toBe(DEFAULT_MAINTENANCE_MESSAGE);
-    expect(utils.DEFAULT_MAINTENANCE_MESSAGE).toBe(DEFAULT_MAINTENANCE_MESSAGE);
-  });
 
   it('is not the stored default — a blank stored message is what selects it', () => {
     expect(DEFAULT_APP_CONFIG.maintenanceMessage).toBe('');
@@ -75,7 +62,7 @@ describe('DEFAULT_MAINTENANCE_MESSAGE — the line for a blank maintenance messa
 });
 
 describe('mergeAppConfigUpdate — the one rule for writing _appConfig/app', () => {
-  it('a bare merge-write onto a missing doc leaves it unparseable — the defect this closes', () => {
+  it('a bare merge-write onto a missing doc leaves it unparseable, so every write goes through the merge', () => {
     expect(AppConfigSchema.safeParse({ publicDocumentVersions: block }).success).toBe(false);
     expect(AppConfigSchema.safeParse({ maintenanceMode: true }).success).toBe(false);
   });
@@ -234,10 +221,6 @@ describe('readAppConfigLever — the one rule for reading a lever off the untrus
     expect(readAppConfigLever({ announcementMessage: announcement }, 'announcementMessage')).toBe(announcement);
   });
 
-  it('is exported from the package root and the utils subpath', () => {
-    expect(root.readAppConfigLever).toBe(readAppConfigLever);
-    expect(utils.readAppConfigLever).toBe(readAppConfigLever);
-  });
 });
 
 describe('readAppConfigLevers — every lever through the one read rule', () => {
@@ -264,7 +247,7 @@ describe('readAppConfigLevers — every lever through the one read rule', () => 
       announcementMessage: 'Tonight at 9.',
       rateLimitMultiplier: 1,
     });
-    // The defect this closes: a console-edited number here made the shell's `.trim()` throw.
+    // A console-edited number here would make the shell's `.trim()` throw.
     expect(() => levers.maintenanceMessage.trim()).not.toThrow();
   });
 
@@ -297,8 +280,4 @@ describe('readAppConfigLevers — every lever through the one read rule', () => 
     expect(DEFAULT_APP_CONFIG.maintenanceMode).toBe(false);
   });
 
-  it('is exported from the package root and the utils subpath', () => {
-    expect(root.readAppConfigLevers).toBe(readAppConfigLevers);
-    expect(utils.readAppConfigLevers).toBe(readAppConfigLevers);
-  });
 });

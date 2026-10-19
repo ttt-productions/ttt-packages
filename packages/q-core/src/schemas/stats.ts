@@ -5,7 +5,19 @@
 
 import { z } from 'zod';
 import { MAX_GAME_STATS_CORRECTION_TARGETS } from '../constants/sports.js';
-import { statCounterKeySchema, statsOperationIdSchema, statsValidationReportIdSchema } from '../doc-schemas/atoms.js';
+import {
+  countSchema,
+  gameIdSchema,
+  gameRosterPlayerIdSchema,
+  leagueIdSchema,
+  repairReasonSchema,
+  sportKeySchema,
+  statCounterKeySchema,
+  statsOperationIdSchema,
+  statsValidationReportIdSchema,
+  teamIdSchema,
+  userIdSchema,
+} from '../doc-schemas/atoms.js';
 import { StatsDestinationChangeSchema, StatsOperationCountsSchema } from '../doc-schemas/stats-operation.js';
 import {
   StatsValidationReportSchema,
@@ -19,16 +31,6 @@ import {
   GAME_STATS_REPAIR_OUTCOME_KEYS,
   UNROSTERED_STAT_LINE_RESOLUTION_OUTCOME_KEYS,
 } from '../types/stats.js';
-import {
-  countSchema,
-  gameIdSchema,
-  gameRosterPlayerIdSchema,
-  leagueIdSchema,
-  repairReasonSchema,
-  sportKeySchema,
-  teamIdSchema,
-  userIdSchema,
-} from './atoms.js';
 
 // `finalizeGame` (a captain or co-captain of either team) / `adminFinalizeGame` (an admin or a
 // referee): make a game's numbers permanent. Everything it writes is derived server-side from the

@@ -5,7 +5,7 @@ import {
   LookupUserByEmailOrUidInputSchema,
   UpdateSiteTourPreferenceInputSchema,
 } from '../src/schemas/users';
-import { MAX_USER_SEARCH_QUERY_LENGTH } from '../src/constants/business';
+import { MAX_USER_SEARCH_QUERY_LENGTH } from '../src/constants/business-admin';
 
 describe('BecomeArtisanCreatorInputSchema (18+ AND U.S.-person attestation + DOB)', () => {
   const dob = { year: 1990, month: 5, day: 17 };
@@ -36,7 +36,7 @@ describe('BecomeArtisanCreatorInputSchema (18+ AND U.S.-person attestation + DOB
     expect(BecomeArtisanCreatorInputSchema.safeParse({ usPersonAttested: true, dob }).success).toBe(false);
   });
 
-  it('rejects the old empty input', () => {
+  it('rejects an empty input', () => {
     expect(BecomeArtisanCreatorInputSchema.safeParse({}).success).toBe(false);
   });
 

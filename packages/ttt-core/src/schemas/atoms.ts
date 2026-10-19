@@ -3,16 +3,16 @@ import {
   MAX_WORK_PROJECT_TITLE_LENGTH,
   MAX_WORK_PROJECT_STAKE_SHARES,
   MAX_REALM_FILE_SHARE_REQUEST_ID_LENGTH,
-  MAX_REPORT_TARGET_ID_LENGTH,
-  FIRESTORE_DOCUMENT_ID_MAX_BYTES,
-} from '../constants/business.js';
-import { WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
-import { GUILD_STANDING_IDS } from '../permissions/work-project-permissions-data.js';
+} from '../constants/business-work-project.js';
+import { MAX_REPORT_TARGET_ID_LENGTH } from '../constants/business-admin.js';
+import { FIRESTORE_DOCUMENT_ID_MAX_BYTES } from '../constants/business-platform.js';
 import { TRADE_PROFESSION_OPTIONS } from '../constants/options.js';
 import {
   MODERATION_CLEARABLE_TEXT_FIELDS,
   type ModerationClearableSurface,
 } from '../constants/business-content.js';
+import { WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
+import { GUILD_STANDING_IDS } from '../permissions/work-project-permissions-data.js';
 
 /** A stake-share offer (a commission listing, an audition): whole, positive, within the Work total. */
 export const stakeSharesOfferedSchema = z.number().int().min(1).max(MAX_WORK_PROJECT_STAKE_SHARES);

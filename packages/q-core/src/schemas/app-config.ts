@@ -10,7 +10,7 @@ import {
   LANDING_ABOUT_TEXT_INPUT_FORMAT,
   LANDING_HERO_TITLE_INPUT_FORMAT,
   MAINTENANCE_MESSAGE_INPUT_FORMAT,
-} from '../input-formats/index.js';
+} from '../input-formats/input-formats.js';
 import { AppConfigSchema } from '../doc-schemas/system.js';
 
 // An admin changes one or more levers on `_appConfig/app`. A lever left out keeps its value.

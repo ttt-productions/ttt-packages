@@ -11,7 +11,7 @@ import {
 } from '../../src/modules/repo/cross-root.js';
 import { projectScriptGuard } from '../../src/modules/repo/project-scripts.js';
 import { moduleSpecifiers } from '../../src/modules/repo/specifiers.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { viewOfText } from '../../src/reader/view.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';

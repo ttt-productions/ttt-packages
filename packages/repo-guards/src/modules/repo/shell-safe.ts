@@ -5,9 +5,9 @@
 // passed in through a variable or a spread.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding } from '../../guard.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Scope } from '../../node/reader.js';
 import { viewOfText, type FileView } from '../../reader/view.js';
 import { calleeName, forEachNode, unwrap } from '../../support/ast.js';
 import { takesNoFacts } from '../../support/facts.js';

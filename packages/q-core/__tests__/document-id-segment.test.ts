@@ -7,7 +7,6 @@ import { describe, expect, it } from 'vitest';
 import {
   documentIdSegmentSchema,
   gameIdSchema,
-  gameLocationIdSchema,
   gameRosterPlayerIdSchema,
   leagueIdSchema,
   scheduleWeekIdSchema,
@@ -15,16 +14,16 @@ import {
   statsOperationIdSchema,
   teamIdSchema,
   userIdSchema,
-  waiverTemplateIdSchema,
-} from '../src/doc-schemas';
+} from '../src/doc-schemas/atoms';
+import { gameLocationIdSchema } from '../src/doc-schemas/game-location';
+import { waiverTemplateIdSchema } from '../src/doc-schemas/waiver-template';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids';
 import { MAX_DOCUMENT_ID_BYTES, isDocumentIdSegment } from '../src/paths/utils';
 import {
   AdminDeleteSportGameInputSchema,
   AdminUpdateScheduleWeekInputSchema,
-  teamInvitationIdSchema,
-  teamJoinRequestIdSchema,
-} from '../src/schemas';
+} from '../src/schemas/schedules';
+import { teamInvitationIdSchema, teamJoinRequestIdSchema } from '../src/schemas/atoms';
 
 const ID_ATOMS = {
   documentIdSegmentSchema,

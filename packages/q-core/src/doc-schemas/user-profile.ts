@@ -5,7 +5,7 @@
 
 import { z } from 'zod';
 import { THEME_NAMES } from '@ttt-productions/theme-core';
-import { CONTACT_PHONE_INPUT_FORMAT } from '../input-formats/index.js';
+import { CONTACT_PHONE_INPUT_FORMAT } from '../input-formats/input-formats.js';
 import { BasketballPlayerTotalsSchema, UserLifetimeStatsSchema } from './aggregate-stats.js';
 import { epochMsSchema, textFieldSchema, userStatusSchema } from './atoms.js';
 import { awardIdSchema } from './catalogs.js';

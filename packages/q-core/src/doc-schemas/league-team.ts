@@ -2,7 +2,7 @@
 // team, and who captains it, is `teamMemberships` — never a field here.
 
 import { z } from 'zod';
-import { CONTACT_PHONE_INPUT_FORMAT } from '../input-formats/index.js';
+import { CONTACT_PHONE_INPUT_FORMAT } from '../input-formats/input-formats.js';
 import {
   countSchema,
   epochMsSchema,

@@ -3,7 +3,7 @@
 
 import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { MODULE_LOADS, moduleImports, namesModule } from '../../support/imports.js';
 import { namesProblem } from '../../support/facts.js';

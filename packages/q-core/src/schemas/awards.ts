@@ -13,10 +13,9 @@ import {
   awardGroupGrantStatusSchema,
   awardGroupTypeSchema,
 } from '../doc-schemas/award-group-grant.js';
-import { countSchema, documentIdSegmentSchema, epochMsSchema } from '../doc-schemas/atoms.js';
+import { countSchema, documentIdSegmentSchema, epochMsSchema, userIdSchema } from '../doc-schemas/atoms.js';
 import { awardIdSchema } from '../doc-schemas/catalogs.js';
 import { AWARD_GRANT_SKIP_REASON_KEYS, FEATURED_AWARD_SLOT_KEYS } from '../types/unions.js';
-import { userIdSchema } from './atoms.js';
 
 const targetList = <T extends z.ZodTypeAny>(atom: T) => z.array(atom).max(MAX_AWARD_GRANT_TARGETS).optional();
 

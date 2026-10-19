@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 import { MAX_PLAYOFF_CUTOFF } from '../constants/business.js';
-import { LEAGUE_DESCRIPTION_INPUT_FORMAT, LEAGUE_TITLE_INPUT_FORMAT } from '../input-formats/index.js';
+import { LEAGUE_DESCRIPTION_INPUT_FORMAT, LEAGUE_TITLE_INPUT_FORMAT } from '../input-formats/input-formats.js';
 import {
   calendarDateSchema,
   textFieldSchema,

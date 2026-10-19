@@ -2,7 +2,6 @@ export * from './sports.js';
 export * from './stats.js';
 export * from './schedules.js';
 export * from './unions.js';
-export * from './documents.js';
 export * from './claims.js';
 export * from './audit.js';
 export * from './picture-owners.js';

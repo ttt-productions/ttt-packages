@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { checkInputFormat, type DeclaredInputFormat, type InputFormatIssue } from '@ttt-productions/input-format-core';
-import { REPAIR_REASON_INPUT_FORMAT } from '../input-formats/index.js';
+import { REPAIR_REASON_INPUT_FORMAT } from '../input-formats/input-formats.js';
 import { parseGameRosterPlayerId } from '../ids/compound-ids.js';
 import { isStagingId } from '../ids/picture-ids.js';
 import { isDocumentIdSegment } from '../paths/utils.js';

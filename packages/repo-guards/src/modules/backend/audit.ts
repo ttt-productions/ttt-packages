@@ -2,11 +2,11 @@
 // member-written text in an audit payload, and no handler wrapped around an audit write.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
-import type { Reviewed } from '../../reader/layout.js';
+import type { Reviewed } from '../../node/layout.js';
 import { ownerOnly, reviewedAllowlist, type Hit, type Matcher } from '../../shapes/shapes.js';
 import { calleeName, forEachNode, isPlainString, lineOfNode, unwrap } from '../../support/ast.js';
 import { namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';

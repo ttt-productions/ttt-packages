@@ -22,9 +22,7 @@ import {
   stakeSharesOfferedSchema,
 } from './atoms.js';
 import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
-import { GUILD_STANDING_VALUES } from '../permissions/index.js';
-import { FullWorkProjectSchema } from '../doc-schemas/work-project.js';
-import { MAX_CRAFT_SKILL_NAME_LENGTH } from '../constants/business.js';
+import { MAX_CRAFT_SKILL_NAME_LENGTH } from '../constants/business-user.js';
 import {
   GUILD_INVITE_MESSAGE_INPUT,
   REALM_DESCRIPTION_INPUT,
@@ -34,11 +32,13 @@ import {
   WORK_FILE_FOLDER_NAME_INPUT,
   WORK_TITLE_INPUT,
 } from '../constants/text-fields.js';
-import { textFieldSchema } from './text-field.js';
 import {
   REALM_SHARED_FILES_PAGE_LIMIT,
   REALM_FILE_PROMOTION_QUEUE_PAGE_LIMIT,
 } from '../constants/pagination.js';
+import { GUILD_STANDING_VALUES } from '../permissions/work-project-permissions-data.js';
+import { FullWorkProjectSchema } from '../doc-schemas/work-project.js';
+import { textFieldSchema } from './text-field.js';
 import {
   RealmFileApprovedStatusSchema,
   RealmFilePendingApprovalStatusSchema,

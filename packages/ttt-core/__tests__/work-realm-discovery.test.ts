@@ -3,7 +3,7 @@ import {
   RELEASED_PUBLIC_REALM_CRITERIA,
   RELEASED_PUBLIC_REALM_EQUALITY_FILTERS,
   isReleasedPublicRealm,
-} from '../src/utils';
+} from '../src/utils/work-realm-eligibility';
 import { ITEMS_PER_PAGE_REALM_WORKS } from '../src/constants/pagination';
 import { WorkRealmSchema } from '../src/doc-schemas/work-project';
 

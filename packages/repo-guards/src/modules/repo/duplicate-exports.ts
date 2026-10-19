@@ -5,7 +5,7 @@
 // a definition that lives elsewhere, and counting them would bury the real duplicates.
 
 import ts from 'typescript';
-import type { RepoReader, Scope } from '../../reader/reader.js';
+import type { RepoReader, Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { moduleImports } from '../../support/imports.js';
 

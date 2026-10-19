@@ -3,9 +3,9 @@ import {
   AdminCreateMediaGrantInputSchema,
   CreateMediaGrantInputSchema,
   CreateMediaGrantResultSchema,
-  ChatGrantInputSchema,
-  ResumeFanoutJobInputSchema,
-} from '../src/schemas/index.js';
+} from '../src/schemas/media.js';
+import { ChatGrantInputSchema } from '../src/schemas/chat.js';
+import { ResumeFanoutJobInputSchema } from '../src/schemas/notification.js';
 
 // Client-called callable input schemas: every callable's input lives in ttt-core/schemas.
 

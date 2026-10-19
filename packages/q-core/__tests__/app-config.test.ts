@@ -5,31 +5,33 @@ import {
   DEFAULT_MAINTENANCE_MESSAGE,
   MAINTENANCE_REFUSAL_CODE,
   MAINTENANCE_REFUSAL_REASON,
-  MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
-  MAX_APP_VERSION_LENGTH,
-  MAX_LANDING_ABOUT_TEXT_LENGTH,
-  MAX_LANDING_HERO_TITLE_LENGTH,
-  MAX_MAINTENANCE_MESSAGE_LENGTH,
-  PATH_BUILDERS,
   isAppConfigLeverRefused,
   isMaintenanceRefusalDetails,
   isMaintenanceRefusalError,
   mergeAppConfigUpdate,
   readAppConfigLever,
   readAppConfigLevers,
-  toPath,
-} from '../src';
+} from '../src/utils/app-config';
+import {
+  MAX_ANNOUNCEMENT_MESSAGE_LENGTH,
+  MAX_APP_VERSION_LENGTH,
+  MAX_LANDING_ABOUT_TEXT_LENGTH,
+  MAX_LANDING_HERO_TITLE_LENGTH,
+  MAX_MAINTENANCE_MESSAGE_LENGTH,
+} from '../src/constants/business';
+import { PATH_BUILDERS } from '../src/paths/path-builders';
+import { toPath } from '../src/paths/utils';
 import {
   AppConfigSchema,
-  COLLECTION_SCHEMAS,
   LandingPageConfigSchema,
   StatsBeaconSchema,
-} from '../src/doc-schemas';
+} from '../src/doc-schemas/system';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
 import {
   AdminUpdateLandingPageInputSchema,
   UpdateAppConfigInputSchema,
   UpdateAppConfigResultSchema,
-} from '../src/schemas';
+} from '../src/schemas/app-config';
 
 const COMPLETE = {
   appVersion: '2.0.1',

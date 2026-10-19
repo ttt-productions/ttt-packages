@@ -9,8 +9,9 @@ import {
   MIN_LEAGUE_DESCRIPTION_LENGTH,
   MIN_LEAGUE_TITLE_LENGTH,
 } from '../src/constants/business';
-import { LeagueTeamSchema, SportLeagueSchema } from '../src/doc-schemas';
-import { DomainEventSchema } from '../src/domain-events';
+import { LeagueTeamSchema } from '../src/doc-schemas/league-team';
+import { SportLeagueSchema } from '../src/doc-schemas/sport-league';
+import { DomainEventSchema } from '../src/domain-events/domain-events';
 import {
   AdminCreateSportLeagueInputSchema,
   AdminUpdateSportLeagueInputSchema,
@@ -20,8 +21,8 @@ import {
   LEAGUE_SETTINGS_FIELD_KEYS,
   SwitchLeagueModeInputSchema,
   SwitchLeagueModeResultSchema,
-} from '../src/schemas';
-import { SPORT_ADAPTER_LIST } from '../src/sports';
+} from '../src/schemas/leagues';
+import { SPORT_ADAPTER_LIST } from '../src/sports/registry';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
 import { LEAGUE_TYPE_KEYS } from '../src/types/sports';
 import {

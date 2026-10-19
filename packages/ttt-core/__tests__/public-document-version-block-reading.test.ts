@@ -7,7 +7,6 @@ import {
   requiredPublicDocumentAcceptanceLevelOfReading,
 } from '../src/utils/public-documents';
 import { SPECIAL_DOCS } from '../src/paths/collections';
-import * as root from '../src/index';
 import * as utils from '../src/utils';
 
 const TERMS = SPECIAL_DOCS.TERMS_PAGE;
@@ -129,8 +128,7 @@ describe('readPublicDocumentVersionBlock — the one reader of the release-owned
     expect(JSON.stringify(snapshot)).toBe(before);
   });
 
-  it('is exported from the package root and the utils subpath', () => {
-    expect(root.readPublicDocumentVersionBlock).toBe(readPublicDocumentVersionBlock);
+  it('is exported from the utils entry', () => {
     expect(utils.readPublicDocumentVersionBlock).toBe(readPublicDocumentVersionBlock);
   });
 });
@@ -162,8 +160,7 @@ describe('requiredPublicDocumentAcceptanceLevelOfReading — the level each read
     expect(requiredPublicDocumentAcceptanceLevelOfReading(read({ ...block, strayField: true }))).toBeNull();
   });
 
-  it('is exported from the package root and the utils subpath', () => {
-    expect(root.requiredPublicDocumentAcceptanceLevelOfReading).toBe(requiredPublicDocumentAcceptanceLevelOfReading);
+  it('is exported from the utils entry', () => {
     expect(utils.requiredPublicDocumentAcceptanceLevelOfReading).toBe(requiredPublicDocumentAcceptanceLevelOfReading);
   });
 });

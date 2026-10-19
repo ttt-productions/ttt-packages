@@ -4,7 +4,7 @@ import * as React from "react";
 import type { DocumentData } from "firebase/firestore";
 import { toMillis } from "@ttt-productions/firebase-helpers";
 import { useFirestoreLiveInfinite } from "@ttt-productions/query-core/react";
-import type { FirestoreSourceState } from "@ttt-productions/query-core";
+import type { FirestoreSourceState } from "@ttt-productions/query-core/types";
 import type { ChatMessageV1 } from "@ttt-productions/chat-core";
 import type { ChatCoreConfig } from "../types.js";
 import { messagesColPath } from "../firestore/queries.js";

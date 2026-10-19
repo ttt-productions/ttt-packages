@@ -1,8 +1,8 @@
 // Admin user-directory callable RESULT shapes — cross-boundary contracts (the backend
-// builds them, the admin User Management surface renders them), so they live HERE per the
-// Cross-Boundary Type Invariant (same rationale as admin-ops.ts). The account status tier
-// reuses the ONE canonical UserAccountStatus union (doc-schemas/user.ts) — never a
-// re-declared 'active' | 'suspended' | 'banned' literal (ARCH-102).
+// builds them, the admin User Management surface renders them), so they live in ttt-core
+// (ARCH-101). The account status tier reuses the ONE canonical UserAccountStatus union
+// (doc-schemas/user.ts) — never a re-declared 'active' | 'suspended' | 'banned' literal
+// (ARCH-102).
 
 import type { UserAccountStatus } from '../doc-schemas/user.js';
 
@@ -15,5 +15,3 @@ export interface PublicUserSearchResult {
   status: UserAccountStatus;
 }
 
-// The exact-match lookup's result shape is declared with its schema (schemas/users.ts).
-export type { AdminUserLookupResult, LookupUserByEmailOrUidResult } from '../schemas/users.js';

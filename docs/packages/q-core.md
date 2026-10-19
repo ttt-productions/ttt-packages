@@ -19,13 +19,13 @@ system model lives in Q-Sports' `docs/design/`.
 
 `exports` in `package.json` is the authoritative list:
 
-- `.` — types, paths, constants, utils, media, ids, domain events, input formats, migration console
+- `.` — what no folder entry owns: `input-formats/` and `migration-console/`
 - `./types`, `./paths`, `./utils`, `./ids`, `./media`, `./domain-events` — typed surfaces by concern
-- `./constants`, plus `./constants/business`, `./constants/sports`, `./constants/storage-keys` —
-  constant catalogs split by domain
+- `./constants` — every constant catalog under `constants/`
 - `./schemas` — callable input and wire schemas
 - `./upload-variables` — the browser upload mutations' variables schemas, parsed first by each hook
-- `./doc-schemas` — the whole-app Firestore document-schema registry (`COLLECTION_SCHEMAS`)
+- `./doc-schemas` — the whole-app Firestore document-schema registry (`COLLECTION_SCHEMAS`), the document
+  atoms, and every document type
 - `./sports` — the sport registry and adapters
 - `./notifications` — the admin-notification configuration
 

@@ -8,34 +8,37 @@ import {
   HARDWARE_CATALOG,
   MAX_AWARD_GRANT_TARGETS,
   MAX_AWARD_NAME_LENGTH,
-  MAX_STATS_VALIDATION_DISCREPANCIES,
+} from '../src/constants/business';
+import { MAX_STATS_VALIDATION_DISCREPANCIES } from '../src/constants/sports';
+import {
   MEDIA_ORIGIN_SPECS,
   PICTURE_KINDS,
   isPictureOrigin,
   isSignatureOrigin,
-} from '../src';
-import {
-  AwardDefinitionSchema,
-  HardwareLoanContractSchema,
-  PendingMediaTargetSchema,
-  StatsValidationReportSchema,
-  UserProfileSchema,
-} from '../src/doc-schemas';
-import { DomainEventSchema } from '../src/domain-events';
+} from '../src/media/file-origins';
+import { AwardDefinitionSchema } from '../src/doc-schemas/catalogs';
+import { HardwareLoanContractSchema } from '../src/doc-schemas/waivers-and-hardware';
+import { PendingMediaTargetSchema } from '../src/doc-schemas/pending-media';
+import { StatsValidationReportSchema } from '../src/doc-schemas/system';
+import { UserProfileSchema } from '../src/doc-schemas/user-profile';
+import { DomainEventSchema } from '../src/domain-events/domain-events';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
 import {
   AdminCorrectGameStatsInputSchema,
   AdminDeleteStatsValidationReportInputSchema,
   AdminDeleteStatsValidationReportResultSchema,
-  AdminCreateHardwareLoanContractInputSchema,
-  AdminUpdateAwardGrantsInputSchema,
   RecalculateLeagueStatsInputSchema,
   RunStatsValidationInputSchema,
+} from '../src/schemas/stats';
+import {
+  AdminCreateHardwareLoanContractInputSchema,
   SubmitHardwareLoanContractSignatureInputSchema,
+} from '../src/schemas/hardware-loan-contracts';
+import {
+  AdminUpdateAwardGrantsInputSchema,
   UpdateFeaturedAwardsInputSchema,
-  newAwardNameOf,
-  parseTargetInfo,
-} from '../src/schemas';
+} from '../src/schemas/awards';
+import { newAwardNameOf, parseTargetInfo } from '../src/schemas/uploads';
 
 const NOW = 1712345678901;
 

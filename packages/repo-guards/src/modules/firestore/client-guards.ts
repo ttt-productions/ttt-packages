@@ -4,9 +4,9 @@
 //     callables, apart from reviewed root providers.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../config.js';
-import type { Scope } from '../../reader/reader.js';
-import type { Reviewed } from '../../reader/layout.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { Scope } from '../../node/reader.js';
+import type { Reviewed } from '../../node/layout.js';
 import type { FileView } from '../../reader/view.js';
 import { reviewedAllowlist, type Hit } from '../../shapes/shapes.js';
 import { forEachNode } from '../../support/ast.js';

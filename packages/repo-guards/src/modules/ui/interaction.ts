@@ -2,7 +2,7 @@
 // pending feedback only through the shared primitives, one show-more control, one pending-name
 // seat, and the root layout's provider order.
 
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
 import { ownerOnly, reviewedAllowlist, type AllowlistEntry, type Hit, type Matcher } from '../../shapes/shapes.js';
 import { allowlistProblems, isText, namesProblem, objectProblem, pathProblem } from '../../support/facts.js';

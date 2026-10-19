@@ -3,7 +3,7 @@
 
 import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { isUnder } from '../../support/text.js';
 

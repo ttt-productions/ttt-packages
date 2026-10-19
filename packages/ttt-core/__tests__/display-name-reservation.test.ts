@@ -2,8 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { displayNameReservationKey } from '../src/utils/display-name-reservation';
 import { displayNameSchema } from '../src/schemas/users';
 import { documentIdSegmentSchema } from '../src/schemas/atoms';
-import * as root from '../src/index';
-import * as utils from '../src/utils/index';
 
 describe('displayNameReservationKey', () => {
   it('keys names that differ only by case to one reservation', () => {
@@ -32,9 +30,4 @@ describe('displayNameReservationKey', () => {
     }
   });
 
-  it('is exported from the root and the utils subpath, beside the Realm-name key', () => {
-    expect(root.displayNameReservationKey).toBe(displayNameReservationKey);
-    expect(utils.displayNameReservationKey).toBe(displayNameReservationKey);
-    expect(utils.workRealmNameReservationKey).toBe(root.workRealmNameReservationKey);
-  });
 });

@@ -5,7 +5,7 @@ import React from 'react';
 import {
   MarkUploadActivitySeenError,
   useMarkUploadActivitySeen,
-} from '../src/react/use-mark-upload-activity-seen.js';
+} from '../src/react/tray/use-mark-upload-activity-seen.js';
 
 function makeWrapper() {
   const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } });

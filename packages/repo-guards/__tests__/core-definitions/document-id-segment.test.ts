@@ -5,7 +5,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { documentIdSegmentGuard, type DocumentIdSegmentFacts } from '../../src/modules/core-definitions/document-id-segment.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo } from '../helpers/temp-repo.js';
 import { CORE, fixture, lines } from './fixture.js';

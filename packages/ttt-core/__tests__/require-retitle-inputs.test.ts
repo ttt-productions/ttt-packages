@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   RequireWorkProjectRetitleInputSchema,
   RequireWorkRealmRetitleInputSchema,
-} from '../src/schemas/index';
-import { MAX_REQUIRE_RETITLE_REASON_LENGTH } from '../src/index';
+} from '../src/schemas/admin';
+import { MAX_REQUIRE_RETITLE_REASON_LENGTH } from '../src/constants/business-admin';
 
 const NOT_ONE_SEGMENT = ['', 'a/b', '.', '..', '__reserved__'];
 

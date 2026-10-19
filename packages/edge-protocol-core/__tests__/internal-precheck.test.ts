@@ -3,12 +3,14 @@ import {
   precheckInternalHeaders,
   signInternalRequest,
   verifyInternalRequest,
+  type InternalRequestFields,
+} from '../src/internal-auth.js';
+import {
   INTERNAL_AUTH_OPERATION_TIMESTAMP_HEADER,
   INTERNAL_AUTH_OPERATION_VERSION_HEADER,
   INTERNAL_AUTH_TIMESTAMP_HEADER,
   INTERNAL_AUTH_VERSION_HEADER,
-  type InternalRequestFields,
-} from '../src/index.js';
+} from '../src/internal-auth-headers.js';
 
 const NOW = 1_700_000_000;
 const WINDOW = 300;

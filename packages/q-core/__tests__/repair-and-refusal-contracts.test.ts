@@ -2,14 +2,13 @@
 // changed on the game, value by value, and the details a team-delete and a ghost-removal refusal name.
 
 import { describe, it, expect } from 'vitest';
-import { buildGameRosterPlayerId } from '../src/ids';
+import { buildGameRosterPlayerId } from '../src/ids/compound-ids';
+import { GameRepairChangesSchema, GameStatsRepairResultSchema } from '../src/schemas/stats';
 import {
-  GameRepairChangesSchema,
-  GameStatsRepairResultSchema,
   GhostRemovalRefusalDetailsSchema,
   LEAGUE_TEAM_DELETE_REFUSAL_KEYS,
   LeagueTeamDeleteRefusalDetailsSchema,
-} from '../src/schemas';
+} from '../src/schemas/teams';
 
 const NO_CHANGES = { lines: [], scores: [] };
 

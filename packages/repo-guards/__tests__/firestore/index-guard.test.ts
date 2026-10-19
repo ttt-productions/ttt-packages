@@ -4,7 +4,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { collectionGroupIndexGuard, type CollectionGroupIndexFacts } from '../../src/modules/firestore/index-guard.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 

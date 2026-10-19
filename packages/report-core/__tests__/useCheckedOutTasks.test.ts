@@ -19,9 +19,9 @@ vi.mock('firebase/firestore', () => ({
   orderBy: mocks.orderByFn,
 }));
 
-import { useCheckedOutTasks } from '../src/hooks/useCheckedOutTasks.js';
-import { ReportCoreProvider } from '../src/context/ReportCoreProvider.js';
-import type { ReportCoreConfig } from '../src/config.js';
+import { useCheckedOutTasks } from '../src/react/hooks/useCheckedOutTasks.js';
+import { ReportCoreProvider } from '../src/react/context/ReportCoreProvider.js';
+import type { ReportCoreConfig } from '../src/contracts/config.js';
 
 const config = {
   collections: {

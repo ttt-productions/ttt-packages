@@ -8,8 +8,8 @@
 //   declared literal   declared values are banned, owned by their declaring files, or each covered
 
 import type { Finding, Guard, GuardContext, Sample } from '../guard.js';
-import type { Reviewed } from '../reader/layout.js';
-import type { Scope } from '../reader/reader.js';
+import type { Reviewed } from '../node/layout.js';
+import type { Scope } from '../node/reader.js';
 import { viewOfText, type FileView } from '../reader/view.js';
 import { allowlistProblems, textProblem } from '../support/facts.js';
 

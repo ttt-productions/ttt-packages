@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest';
 import {
   GetOwnAuditionEntryStatusInputSchema,
   GetOwnAuditionEntryStatusResultSchema,
+} from '../src/schemas/auditions';
+import {
   GetOwnHiddenCraftSkillCountInputSchema,
   GetOwnHiddenCraftSkillCountResultSchema,
-} from '../src/schemas';
+} from '../src/schemas/craft-skills';
 
 describe("the entrant's own-entry answer", () => {
   it('asks about one audition and nothing else — the caller is the owner', () => {

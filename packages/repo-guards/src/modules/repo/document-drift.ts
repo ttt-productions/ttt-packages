@@ -4,7 +4,7 @@
 // there but has lost its copy fails: that is drift, not an absent repository.
 
 import path from 'node:path';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Guard } from '../../guard.js';
 import { isText, pathProblem, textProblem } from '../../support/facts.js';
 

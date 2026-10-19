@@ -10,7 +10,8 @@
 
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS, WORK_PROJECT_TYPE_KEYS } from '../types/content.js';
-import { isGuildStandingId, type GuildStandingId } from '../permissions/index.js';
+import { isGuildStandingId } from '../permissions/work-project-permissions.js';
+import { type GuildStandingId } from '../permissions/work-project-permissions-data.js';
 import { ModerationHiddenBySchema } from './moderation.js';
 import { ContentMediaKindSchema } from './media-assets.js';
 

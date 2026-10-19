@@ -7,24 +7,23 @@ import {
   leagueJoinWarningActedOnSchema,
   leagueJoinWarningFindingSchema,
 } from '../utils/league-join-warning.js';
-import { documentIdSegmentSchema, membershipRosterSyncStatusSchema } from '../doc-schemas/atoms.js';
+import {
+  countSchema,
+  documentIdSegmentSchema,
+  gameIdSchema,
+  leagueIdSchema,
+  membershipRosterSyncStatusSchema,
+  teamIconSchema,
+  teamIdSchema,
+  teamRoleSchema,
+  teamTypeSchema,
+  userIdSchema,
+} from '../doc-schemas/atoms.js';
 import { buildGhostUserIdForRequest, isGhostUserId } from '../ids/minted-ids.js';
 import { isDocumentIdSegment } from '../paths/utils.js';
 import { GHOST_LINK_MEMBERSHIP_OUTCOME_KEYS, GHOST_REMOVAL_REFUSAL_KEYS } from '../types/stats.js';
 import { MEMBER_ASSIGNABLE_TEAM_ROLES } from '../types/unions.js';
-import {
-  contactPhoneSchema,
-  countSchema,
-  displayNameSchema,
-  gameIdSchema,
-  leagueIdSchema,
-  teamIconSchema,
-  teamIdSchema,
-  teamNameSchema,
-  teamRoleSchema,
-  teamTypeSchema,
-  userIdSchema,
-} from './atoms.js';
+import { contactPhoneSchema, displayNameSchema, teamNameSchema } from './atoms.js';
 
 // ---------------------------------------------------------------------------------------------
 // Team creation — `createLeagueTeam` (the creator becomes captain) and `adminCreateLeagueTeam`

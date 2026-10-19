@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { readBoundedBody, sha256Hex, type BoundedBodySource } from '../src/index.js';
+import { readBoundedBody, type BoundedBodySource } from '../src/bounded-body.js';
+import { sha256Hex } from '../src/payload-hash.js';
 
 const encoder = new TextEncoder();
 

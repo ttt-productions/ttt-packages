@@ -25,7 +25,7 @@ import type {
   TakeItDownRequesterRole,
   TargetLocatorV1,
   TargetLocatorSummaryV1,
-} from '../doc-schemas/index.js';
+} from '../doc-schemas/safety/foundation.js';
 
 /**
  * sha256-hex chokepoint. Aliased to `resourceKeyHash` (the single canonical hashing

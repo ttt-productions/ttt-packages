@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SquareStreetzPostSchema, SquareStreetzPostPayloadSchema, MediaTypeSchema } from '../src/doc-schemas/social';
-import { MAX_MENTIONS } from '../src/constants/business';
+import { MAX_MENTIONS } from '../src/constants/business-content';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
 
 const textOnlyPost = {

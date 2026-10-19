@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { CloseAccountUnder13InputSchema, CloseAccountUnder13OutcomeSchema, CloseAccountUnder13ResultSchema } from '../src/schemas/index';
-import { MAX_UNDER_13_CLOSE_REASON_LENGTH } from '../src/index';
+import {
+  CloseAccountUnder13InputSchema,
+  CloseAccountUnder13OutcomeSchema,
+  CloseAccountUnder13ResultSchema,
+} from '../src/schemas/users';
+import { MAX_UNDER_13_CLOSE_REASON_LENGTH } from '../src/constants/business-admin';
 
 describe('close under-13 account input', () => {
   it('requires a reason: an absent, null, empty, or whitespace-only one is refused', () => {

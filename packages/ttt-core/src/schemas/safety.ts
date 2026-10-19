@@ -15,8 +15,9 @@ import {
   MAX_REPORT_NARRATIVE_LENGTH,
   MAX_USER_FACING_REASON_LENGTH,
   OPERATOR_STEP_UP_CODE_LENGTH,
-} from '../constants/business.js';
-import { MAX_NCMEC_REPORT_NUMBER_LENGTH, MAX_EVIDENCE_VAULT_KEY_LENGTH } from '../constants/business-admin.js';
+  MAX_NCMEC_REPORT_NUMBER_LENGTH,
+  MAX_EVIDENCE_VAULT_KEY_LENGTH,
+} from '../constants/business-admin.js';
 import {
   ADMIN_TASK_RESOLUTION_INPUT,
   NCMEC_ARTIFACT_DESCRIPTION_INPUT,
@@ -25,7 +26,6 @@ import {
   REPORT_COMMENT_INPUT,
   SAFETY_INTERNAL_REASON_INPUT,
 } from '../constants/text-fields.js';
-import { textFieldSchema } from './text-field.js';
 import {
   SAFETY_ACCOUNT_ACTION_CONFIRMATION,
   NCMEC_PORTAL_RECEIPT_CONFIRMATION,
@@ -33,6 +33,7 @@ import {
   REVEAL_CASE_EVIDENCE_CONFIRMATION,
   NCMEC_PORTAL_CORRECTION_CONFIRMATION,
 } from '../constants/safety-confirmation-phrases.js';
+import { textFieldSchema } from './text-field.js';
 import { AccountActionSchema } from '../doc-schemas/safety/sagas.js';
 import {
   NciiInternalStatusSchema,
@@ -43,16 +44,6 @@ import {
   SafetyCaseClosureV1Schema,
   TargetLocatorV1Schema,
 } from '../doc-schemas/safety/foundation.js';
-import {
-  reportTargetItemIdSchema,
-  reportTargetParentRefSchema,
-  reportTargetUserIdSchema,
-  documentIdSegmentSchema,
-  unpaddedValueSchema,
-  safetyCaseIdSchema,
-  userIdSchema,
-  takeItDownRequestIdSchema,
-} from './atoms.js';
 import { SafetySlaMonitorV1Schema } from '../doc-schemas/safety/monitors.js';
 import { NciiCaseLaneSchema, NciiCaseV1Schema } from '../doc-schemas/ncii/cases.js';
 import {
@@ -60,11 +51,6 @@ import {
   NciiRetainedEvidenceInventoryV1Schema,
   TakeItDownRequestRootV1Schema,
 } from '../doc-schemas/ncii/requests.js';
-import {
-  DeadLetterCollectionSchema,
-  FlatDeadLetterCollectionSchema,
-  HallSubItemEdgeSyncReplayTargetSchema,
-} from './admin.js';
 import {
   ChildSafetyAccountRoleSchema,
   ChildSafetyAccountSubjectDispositionSchema,
@@ -75,31 +61,34 @@ import {
   ChildSafetyWorkStatusSchema,
   SafetyCaseLaneSchema,
 } from '../doc-schemas/safety/case.js';
-
-// The case-lane enum is declared beside the case shapes (a leaf both schema files import); it is
-// re-exported here with the console and case-lookup inputs that take it.
-export { SafetyCaseLaneSchema, type SafetyCaseLane } from '../doc-schemas/safety/case.js';
 import {
   SafetyEvidenceJobPhaseSchema,
   SafetyEvidenceJobStatusSchema,
   SafetyEvidenceManifestV1Schema,
 } from '../doc-schemas/safety/evidence.js';
+import {
+  reportTargetItemIdSchema,
+  reportTargetParentRefSchema,
+  reportTargetUserIdSchema,
+  documentIdSegmentSchema,
+  unpaddedValueSchema,
+  safetyCaseIdSchema,
+  userIdSchema,
+  takeItDownRequestIdSchema,
+} from './atoms.js';
+import {
+  DeadLetterCollectionSchema,
+  FlatDeadLetterCollectionSchema,
+  HallSubItemEdgeSyncReplayTargetSchema,
+} from './admin.js';
 
 // commandAccountAction — apply a per-account safety action on a child-safety case.
-
-/**
- * The per-account safety action the operator command applies — an ALIAS of the ONE
- * canonical `AccountActionSchema` (../doc-schemas/safety/sagas.ts), re-exported under
- * the callable-input name. Never a re-declared literal (ARCH-102).
- */
-export const CommandAccountActionSchema = AccountActionSchema;
-export type CommandAccountActionValue = z.infer<typeof CommandAccountActionSchema>;
 
 export const CommandAccountActionInputSchema = z
   .object({
     caseId: safetyCaseIdSchema,
     targetUid: userIdSchema,
-    action: CommandAccountActionSchema,
+    action: AccountActionSchema,
     /** Operator-facing internal rationale (LE-loggable). */
     reasonInternal: textFieldSchema(SAFETY_INTERNAL_REASON_INPUT),
     /** The generic owner-readable reason (no detail leaks). */

@@ -1,8 +1,8 @@
 // What a guard is: a named check over the files the reader hands it. Generic guards and an app's
 // business guards are the same thing to the suite.
 
-import type { RulesService } from './reader/layout.js';
-import type { RepoReader, Scope } from './reader/reader.js';
+import type { RulesService } from './node/layout.js';
+import type { RepoReader, Scope } from './node/reader.js';
 import type { FileView } from './reader/view.js';
 
 /** One place a guard failed. */

@@ -9,7 +9,7 @@ import {
   type ColumnSort,
   type SortDirection,
   type StatColumn,
-} from '../src/sports';
+} from '../src/sports/column-catalog';
 
 // A fixture sport, declared only here: no placeholder sport exists in q-core or the app.
 interface FixtureSeasonLine {

@@ -1,26 +1,18 @@
-// Trust & Safety — age attestation, registration nonce, and account age-fields
-// (Appendix A §A7 — "Age (full contract)" + the §A11 [H6] concrete AgePolicyConfigV1
-// default block).
+// Trust & Safety — age attestation, registration nonce, and account age-fields.
 //
 // This cluster owns:
 //   - `ageAttestationNonces/{nonceHash}` (AgeAttestationNonceV1) — the one-time,
 //     256-bit server-generated registration nonce. Only the SHA-256 of the nonce is
 //     the doc id; the raw nonce appears only inside the signed token.
-//   - The pinned `ageBracketAttestation` JWS payload-claims shape [M-09] — the DECODED
+//   - The pinned `ageBracketAttestation` JWS payload-claims shape — the DECODED
 //     claims of the compact JWS (JWT, RFC 7519, alg=HS256) issued at /api/age/attest
 //     and verified at /api/register/complete.
-//   - The `__Secure-ttt_age_session` cookie spec [F13] (an exported const, NOT a doc).
+//   - The `__Secure-ttt_age_session` cookie spec (an exported const, NOT a doc).
 //   - `AgePolicyConfigV1` (the `_serverData/agePolicy` singleton) + its pinned literal
-//     default const (§A11 [H6]).
+//     default const.
 //   - The teen→adult `ageUpgradeAttestation` token shape.
-//   - `UserPrivateDataAgeFieldsSchema` — the STANDALONE age-fields shape that the
-//     orchestrator merges into `UserPrivateDataSchema` (privateData/{uid}). This file
-//     does NOT edit user.ts.
-//
-// Every field/enum/optionality/bound is transcribed verbatim from the frozen Trust &
-// Safety spec (Appendix A); the durable design owners are ttt-prod
-// docs/design/age-gating-and-account-types.md and
-// docs/design/age-data-handling-profile.md — no invented values, no placeholders.
+//   - `UserPrivateDataAgeFieldsSchema` — the STANDALONE age-fields shape merged into
+//     `UserPrivateDataSchema` (privateData/{uid}).
 //
 // `RegistrationCompletionOutcome` is the DOMAIN outcome the registration-completion
 // route acts on (no outcome deletes the login); it is the SINGLE SOURCE in
@@ -34,12 +26,12 @@ import { z } from 'zod';
 import { RegistrationCompletionOutcomeSchema } from './foundation.js';
 
 // ===========================================================================
-// A7 — ageAttestationNonces/{nonceHash} (AgeAttestationNonceV1)
+// ageAttestationNonces/{nonceHash} (AgeAttestationNonceV1)
 // One-time, 256-bit server-generated nonce. Only the nonce's SHA-256 is the doc id;
 // the raw nonce appears only inside the signed token. 10-minute TTL; one successful
 // consume, transactionally bound to the new Auth uid AND the requestSessionHash;
 // expired/used/unknown fails closed. Spent records auto-delete ~24h after consume/expiry
-// via a Firestore native-TTL policy on `ttlExpireAt` (F-018) — no scheduled reaper.
+// via a Firestore native-TTL policy on `ttlExpireAt` — no scheduled reaper.
 // ===========================================================================
 
 /** Server-derived audience bracket — NEVER client-derived. */
@@ -58,18 +50,17 @@ export const AgeAttestationNonceV1Schema = z.object({
   bracket: AgeBracketSchema, // SERVER-derived audience bracket
   policyVersion: z.string().min(1), // the agePolicyVersion in force when issued
   signingKeyVersion: z.string().min(1), // the versioned KMS/Secret-Manager key that signs the token (= JWS `kid`)
-  requestSessionHash: z.string().min(1), // SHA-256 of the registering session/request marker — the binding (High-6 §D)
+  requestSessionHash: z.string().min(1), // SHA-256 of the registering session/request marker — the binding
   issuedAt: z.number(), // epoch ms
   expiresAt: z.number(), // epoch ms; issuedAt + 10-min TTL
   consumedAt: z.number().optional(), // epoch ms; set on the one successful consume
   consumedByUid: z.string().min(1).optional(), // the new Auth uid this nonce was transactionally bound to
   status: AgeAttestationNonceStatusSchema,
-  // [Q21.5 REVISED — DJ 2026-07-06] The nonce carries NO date of birth for ANY bracket.
-  // Registration never persists a DOB (adult or teen — only the derived bracket survives);
-  // the previous adult-bracket `dateOfBirth` carry field was removed. The ONLY place a DOB
-  // is ever persisted is becomeArtisanCreator ('artisanOnboarding') — see
-  // UserPrivateDataAgeFieldsSchema below. Raw DOBs remain no-log everywhere.
-  // [F-018] Firestore NATIVE-TTL field. Set to a real Firestore `Timestamp` of (consume/expire time +
+  // The nonce carries NO date of birth for ANY bracket. Registration never persists a DOB
+  // (adult or teen — only the derived bracket survives). The ONLY place a DOB is ever
+  // persisted is becomeArtisanCreator ('artisanOnboarding') — see
+  // UserPrivateDataAgeFieldsSchema below. Raw DOBs are no-log everywhere.
+  // Firestore NATIVE-TTL field (ARCH-105 exception). Set to a real Firestore `Timestamp` of (consume/expire time +
   // ~24h) at the moment the nonce becomes spent; a TTL policy on `ageAttestationNonces.ttlExpireAt`
   // then auto-deletes the spent single-use record (no scheduled reaper). DOCUMENTED EXCEPTION to this
   // file's epoch-ms-number convention: native TTL requires a real Timestamp, and this field is
@@ -81,7 +72,7 @@ export const AgeAttestationNonceV1Schema = z.object({
 export type AgeAttestationNonceV1 = z.infer<typeof AgeAttestationNonceV1Schema>;
 
 // ===========================================================================
-// A7 [M-09] — ageBracketAttestation JWS payload claims (the ONE pinned wire format)
+// ageBracketAttestation JWS payload claims (the ONE pinned wire format)
 //
 // The token is a COMPACT JWS (JWT, RFC 7519) with alg=HS256, signed by the versioned
 // KMS/Secret-Manager key. The schema below validates the DECODED PAYLOAD CLAIMS only.
@@ -115,7 +106,7 @@ export const AgeBracketAttestationClaimsV1Schema = z.object({
 export type AgeBracketAttestationClaimsV1 = z.infer<typeof AgeBracketAttestationClaimsV1Schema>;
 
 // ===========================================================================
-// A7 [F13] — Age-session cookie spec (`__Secure-ttt_age_session`)
+// Age-session cookie spec (`__Secure-ttt_age_session`)
 //
 // Pinned cookie attributes. The cookie VALUE is a cryptographically-random value
 // generated per registration attempt; only requestSessionHash = sha256(cookieValue)
@@ -147,13 +138,12 @@ export const AgePolicyConfigV1Schema = z.object({
   agePolicyVersion: z.string().min(1),
   registrationGracePeriodMinutes: z.number().int(),
   cleanupSchedule: z.string().min(1), // cron expression for the orphan-Auth cleanup worker
-  ageTokenTtlSeconds: z.number().int(), // [M-09] token TTL
-  keyRetirementVerificationMinutes: z.number().int(), // [M-09] retired-signingKeyVersion verification window (> TTL so no live token is orphaned by a rotation)
+  ageTokenTtlSeconds: z.number().int(), // token TTL
+  keyRetirementVerificationMinutes: z.number().int(), // retired-signingKeyVersion verification window (> TTL so no live token is orphaned by a rotation)
 }).strict();
 export type AgePolicyConfigV1 = z.infer<typeof AgePolicyConfigV1Schema>;
 
-/** The pinned literal default for `_serverData/agePolicy` (§A11 [H6] concrete config
- * values). Build defaults — transcribed verbatim from the frozen spec. */
+/** The pinned literal default for `_serverData/agePolicy` — the build defaults. */
 export const DEFAULT_AGE_POLICY_CONFIG_V1: AgePolicyConfigV1 = {
   agePolicyVersion: '2026-06-19.general-audience.v1',
   registrationGracePeriodMinutes: 30,
@@ -163,7 +153,7 @@ export const DEFAULT_AGE_POLICY_CONFIG_V1: AgePolicyConfigV1 = {
 };
 
 // ===========================================================================
-// A7 — teen→adult ageUpgradeAttestation token
+// teen→adult ageUpgradeAttestation token
 //
 // A SEPARATE token (not the registration nonce) issued to an authenticated,
 // recently-reauthenticated session. Binds uid + accountCapabilityVersion +
@@ -184,11 +174,10 @@ export const AgeUpgradeAttestationV1Schema = z.object({
 export type AgeUpgradeAttestationV1 = z.infer<typeof AgeUpgradeAttestationV1Schema>;
 
 // ===========================================================================
-// A7 — UserPrivateData age fields (STANDALONE shape for the orchestrator)
+// UserPrivateData age fields (STANDALONE shape)
 //
 // These fields live on `privateData/{uid}` (server-write-only). They are exported as
-// a STANDALONE object shape so the orchestrator can merge them into
-// `UserPrivateDataSchema` in user.ts WITHOUT this file editing user.ts.
+// a STANDALONE object shape that `UserPrivateDataSchema` (user.ts) merges in.
 // ===========================================================================
 
 /** Manual age-correction audit stub (who corrected, when, why) — embedded on the
@@ -200,7 +189,7 @@ export const UserPrivateDataAgeManualCorrectionSchema = z.object({
 }).strict();
 export type UserPrivateDataAgeManualCorrection = z.infer<typeof UserPrivateDataAgeManualCorrectionSchema>;
 
-/** STANDALONE age-fields shape — the orchestrator merges these into
+/** STANDALONE age-fields shape — merged into
  * `UserPrivateDataSchema` (privateData/{uid}, server-write-only). Exported as a raw
  * object shape (NOT a z.object) so it can be spread into the canonical schema. */
 export const UserPrivateDataAgeFieldsSchema = z.object({
@@ -211,8 +200,7 @@ export const UserPrivateDataAgeFieldsSchema = z.object({
   ageAttestedAt: z.number(), // epoch ms
   adultUpgradedAt: z.number().optional(), // epoch ms; set on a successful teen→adult upgrade
   ageManualCorrection: UserPrivateDataAgeManualCorrectionSchema.optional(),
-  // [Q21.5 REVISED — DJ 2026-07-06, counsel review pending in the lawyer packet] The DOB is
-  // persisted at EXACTLY ONE point: becomeArtisanCreator ('artisanOnboarding'). Registration
+  // The DOB is persisted at EXACTLY ONE point: becomeArtisanCreator ('artisanOnboarding'). Registration
   // and the teen→adult upgrade derive the bracket server-side and persist NO DOB for anyone
   // (the register screen's "It is not stored" notice is literally true). Rationale: the
   // payout-KYC cross-check (compare to Stripe KYC DOB before paying out) only ever applies to
@@ -226,7 +214,7 @@ export const UserPrivateDataAgeFieldsSchema = z.object({
 }).strict();
 export type UserPrivateDataAgeFields = z.infer<typeof UserPrivateDataAgeFieldsSchema>;
 
-/** The raw shape (for the orchestrator to `.extend(...)` / spread into
+/** The raw shape (to `.extend(...)` / spread into
  * `UserPrivateDataSchema` without re-wrapping). */
 export const userPrivateDataAgeFieldsShape = {
   accountType: AgeBracketSchema,
@@ -242,15 +230,11 @@ export const userPrivateDataAgeFieldsShape = {
 } as const;
 
 // ===========================================================================
-// A7 — Registration-completion RESULT (uses the IMPORTED domain enum)
+// Registration-completion RESULT
 //
-// `completeRegistration.ts` returns exactly one RegistrationCompletionOutcome. The
-// enum itself is the SINGLE SOURCE in ./foundation.js — re-exported here for cluster
-// convenience, NEVER redefined.
+// `completeRegistration.ts` returns exactly one RegistrationCompletionOutcome, the enum
+// declared in ./foundation.js and imported here, never redefined.
 // ===========================================================================
-
-export { RegistrationCompletionOutcomeSchema } from './foundation.js';
-export type { RegistrationCompletionOutcome } from './foundation.js';
 
 /** The result envelope `completeRegistration.ts` returns. `outcome` is the imported
  * domain enum (never a raw gRPC code) the completion route acts on. */

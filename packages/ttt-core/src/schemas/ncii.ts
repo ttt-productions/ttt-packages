@@ -24,7 +24,7 @@ import {
   MAX_NCII_CONTACT_EMAIL_LENGTH,
   NCII_CONTACT_PHONE_MIN_LENGTH,
   NCII_CONTACT_PHONE_MAX_LENGTH,
-} from '../constants/business.js';
+} from '../constants/business-admin.js';
 import { TAKE_IT_DOWN_VALIDITY_CONFIRMATION } from '../constants/safety-confirmation-phrases.js';
 import {
   NCII_AUTHORITY_BASIS_INPUT,

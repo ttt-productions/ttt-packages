@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { FullCommissionListingSchema, AuditionSchema } from '../src/doc-schemas/commissions';
 import { GuildInviteConversationSchema } from '../src/doc-schemas/messaging';
-import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business';
+import { MAX_WORK_PROJECT_STAKE_SHARES } from '../src/constants/business-work-project';
 
 const offered = (schema: { shape: Record<string, { safeParse: (v: unknown) => { success: boolean } }> }) =>
   schema.shape.stakeSharesOffered;

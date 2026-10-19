@@ -6,20 +6,17 @@ import {
   MAX_CURLING_ROUND_POINTS,
   STAT_EVENT_REFUSAL_COPY,
 } from '../src/constants/sports';
-import type { GameStatEvent, GameStats } from '../src/doc-schemas';
+import type { GameStatEvent } from '../src/doc-schemas/game-stats';
+import type { GameStats } from '../src/doc-schemas/sport-game';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids';
 import { buildStatCorrectionId, buildStatEventId, buildStatVoidId } from '../src/ids/stat-event-ids';
-import {
-  SPORT_ADAPTER_LIST,
-  basketballFantasyPoints,
-  gameScoreMirror,
-  getSportAdapter,
-  replayGameStats,
-  VOID_PLAY_DESCRIPTION,
-  type AnySportAdapter,
-  type StatEventBody,
-  type StatEventRoster,
-} from '../src/sports';
+import { SPORT_ADAPTER_LIST, getSportAdapter } from '../src/sports/registry';
+import { basketballFantasyPoints } from '../src/sports/basketball-scoring';
+import { gameScoreMirror } from '../src/sports/score-mirror';
+import { replayGameStats } from '../src/sports/replay';
+import { VOID_PLAY_DESCRIPTION } from '../src/sports/scoring-display';
+import { type AnySportAdapter } from '../src/sports/sport-adapter';
+import { type StatEventBody, type StatEventRoster } from '../src/sports/scoring';
 import {
   BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS,
   BASKETBALL_ASSIST_EVENT_TYPE,

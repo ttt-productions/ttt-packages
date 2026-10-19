@@ -38,7 +38,7 @@ import {
   MIN_REPAIR_REASON_LENGTH,
   MIN_TEAM_JOIN_REQUEST_MESSAGE_LENGTH,
   MIN_TEAM_NAME_LENGTH,
-} from '../src';
+} from '../src/constants/business';
 import {
   ANNOUNCEMENT_MESSAGE_INPUT_FORMAT,
   APP_VERSION_INPUT_FORMAT,
@@ -62,32 +62,38 @@ import {
   TEAM_NAME_INPUT_FORMAT,
   WAIVER_TEMPLATE_TEXT_INPUT_FORMAT,
   WAIVER_TEMPLATE_TITLE_INPUT_FORMAT,
-} from '../src/input-formats';
-import { LeagueTeamContactSchema } from '../src/doc-schemas';
+} from '../src/input-formats/input-formats';
+import { LeagueTeamContactSchema } from '../src/doc-schemas/league-team';
+import { repairReasonSchema, textFieldSchema } from '../src/doc-schemas/atoms';
 import {
   AdminUpdateLandingPageInputSchema,
+  UpdateAppConfigInputSchema,
+} from '../src/schemas/app-config';
+import {
   AdminUpdateLeagueTeamContactInputSchema,
   AdminUpdateLeagueTeamNameInputSchema,
-  contactPhoneSchema,
   CreateTeamGhostPlayerInputSchema,
+} from '../src/schemas/teams';
+import {
+  contactPhoneSchema,
   displayNameSchema,
+  teamInvitationMessageSchema,
+  teamJoinRequestMessageSchema,
+  teamNameSchema,
+} from '../src/schemas/atoms';
+import {
   gameLocationMemoSchema,
   gameLocationNameSchema,
   gameLocationStreetAddressSchema,
   gameLocationSubLocationSchema,
-  gameMemoSchema,
-  leagueDescriptionSchema,
-  leagueTitleSchema,
-  repairReasonSchema,
-  scheduleWeekTitleSchema,
-  teamInvitationMessageSchema,
-  teamJoinRequestMessageSchema,
-  teamNameSchema,
-  textFieldSchema,
-  UpdateAppConfigInputSchema,
+} from '../src/schemas/game-locations';
+import { gameMemoSchema } from '../src/schemas/scoring';
+import { leagueDescriptionSchema, leagueTitleSchema } from '../src/schemas/leagues';
+import { scheduleWeekTitleSchema } from '../src/schemas/schedules';
+import {
   waiverTemplateTextSchema,
   waiverTemplateTitleSchema,
-} from '../src/schemas';
+} from '../src/schemas/waiver-templates';
 
 describe('the repair reason', () => {
   it('is declared from the repair-reason limits, any character and line breaks allowed', () => {

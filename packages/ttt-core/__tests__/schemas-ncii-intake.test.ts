@@ -9,7 +9,7 @@ import {
   NCII_IDEMPOTENCY_KEY_MAX_LENGTH,
   MAX_NCII_CONTACT_EMAIL_LENGTH,
   NCII_CONTACT_PHONE_MAX_LENGTH,
-} from '../src/constants/business';
+} from '../src/constants/business-admin';
 
 const body = {
   idempotencyKey: 'a'.repeat(NCII_IDEMPOTENCY_KEY_MIN_LENGTH),

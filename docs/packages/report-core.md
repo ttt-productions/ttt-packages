@@ -15,14 +15,15 @@ Generic report-filing UI and admin-task queue package.
 
 ## Entry points
 
-- `.` — broad barrel: types, config, constants (server-safe). The report-dialog contract types
-  (`ReportTargetRef`, `AdditionalReportAction`, `ReportDialogCopy`, `ReportDialogSuccess`,
-  `ReportDialogProps`, `ReportButtonProps`, `UseReportButtonOptions`, `UseReportButtonResult`) are
-  type-only here, so importing them pulls in no React.
-- `./contracts` — pure, dependency-light surface: `AdminTask` and `ADMIN_TASK_STATUS` (admin-task
-  status — there is no `Report` type or report-status constant in this package), plus the pure Zod
-  wire schemas. No React, no server, no Admin SDK reachable from it. **Pure consumers (an app's data package,
-  its Cloud Functions) import from `./contracts`** instead of the broad root.
+- `.` — the report-dialog contract types (`ReportTargetRef`, `AdditionalReportAction`,
+  `ReportDialogCopy`, `ReportDialogSuccess`, `ReportDialogProps`, `ReportButtonProps`,
+  `UseReportButtonOptions`, `UseReportButtonResult`, and the timer and badge props), type-only, so
+  importing them pulls in no React.
+- `./contracts` — pure, dependency-light surface: the admin-task shapes (`AdminTask`, its status
+  union, the checkout and lifecycle results — there is no `Report` type or report-status constant in
+  this package), the provider config shapes, and the constants (`ADMIN_TASK_STATUS`,
+  `USER_REPORT_TASK_TYPE`, `DEFAULT_PRIORITY_THRESHOLDS`). No React, no server, no Admin SDK
+  reachable from it; an app's data package and its Cloud Functions import these from here.
 - `./react` — `ReportCoreProvider` / `useReportCoreContext`, the report dialog, the queue hooks, and
   `CountdownTimer` / `PriorityBadge`.
 - `./server` — the queue handler factories.

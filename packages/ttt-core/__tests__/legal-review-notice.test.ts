@@ -24,9 +24,8 @@ import {
 import { PUBLIC_DOCUMENT_IDS } from '../src/constants/public-documents';
 import { SPECIAL_DOCS } from '../src/paths/collections';
 import { LegalReviewNoticeReceiptSchema } from '../src/doc-schemas/legal-review-notice';
-import * as root from '../src/index';
 
-// The settled copy, verbatim from the design (CODE_CHANGE_no_legal_review_warnings.md).
+// The settled notice copy, verbatim.
 const FULL_NOTE =
   "A note from DJ, TTT's founder. These pages describe how I intend TTT to work: my principles and what I'm trying to build. I wrote them myself, with help from AI tools, before I could afford a lawyer, so none of it has had legal review, and I honestly don't know whether all of it is legally sound. Charter Season support keeps TTT running first; after that, it's how I'll get a lawyer to turn this into real, reviewed legal wording. The words may change when that happens. My intentions won't. If a change needs your agreement, I'll ask you before it applies.";
 const SHORT_LINE =
@@ -58,13 +57,6 @@ describe('founder legal-review notice — the switch', () => {
   it('is active, with an immutable revision id', () => {
     expect(LEGAL_REVIEW_NOTICE_ACTIVE).toBe(true);
     expect(LEGAL_REVIEW_NOTICE_REVISION).toBe('founder-note-v1');
-  });
-
-  it('lives in the server-safe root entry', () => {
-    expect(root.LEGAL_REVIEW_NOTICE_ACTIVE).toBe(LEGAL_REVIEW_NOTICE_ACTIVE);
-    expect(root.LEGAL_REVIEW_NOTICE_REVISION).toBe(LEGAL_REVIEW_NOTICE_REVISION);
-    expect(root.LEGAL_REVIEW_NOTICE_BODY).toBe(LEGAL_REVIEW_NOTICE_BODY);
-    expect(typeof root.legalReviewNoticePlainText).toBe('function');
   });
 
   it('pins the active revision to its exact copy', () => {

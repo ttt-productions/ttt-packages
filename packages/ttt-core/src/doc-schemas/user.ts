@@ -2,11 +2,11 @@
 // `userProfiles/{uid}` doc, its `privateData/{uid}` subdoc, and craft-skill shapes.
 // (The `publicUsers/{uid}` mirror lives in ./publicUser.) TypeScript types are
 // inferred from these schemas via `z.infer`, so a document's shape and its type
-// cannot drift apart. See docs/design/firestore-schema-registry.md (ttt-prod).
+// cannot drift apart.
 
 import { z } from 'zod';
 import { HALL_WING_TYPE_KEYS } from '../types/content.js';
-import { MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business.js';
+import { MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business-user.js';
 import { CRAFT_SKILL_TAG_VALUES } from '../constants/options.js';
 import { userPrivateDataAgeFieldsShape } from './safety/age.js';
 import { ContentMediaKindSchema } from './media-assets.js';
@@ -37,8 +37,7 @@ export function parseUserAccountStatus(value: unknown): UserAccountStatus {
   return value === undefined ? ABSENT_USER_ACCOUNT_STATUS : UserAccountStatusSchema.parse(value);
 }
 
-// Craft-skill kind — mandatory choice at upload, no default (see ttt-prod
-// docs/design/profile-and-craft-skills.md). 'original' = the artisan's own original creation;
+// Craft-skill kind — mandatory choice at upload, no default. 'original' = the artisan's own original creation;
 // 'mimicOnTtt' = a performance/recreation of work that originated in the TTT community
 // (requires a source reference); 'mimicOffTtt' = a performance/recreation of work from
 // outside TTT (covers covers + public-domain works, no source reference).
@@ -52,8 +51,7 @@ export const CRAFT_SKILL_KIND_REQUIRING_SOURCE: CraftSkillKind = 'mimicOnTtt';
 
 // Source reference for a 'mimicOnTtt' skill — the original artisan OR the original work,
 // linked mention-style (id only, no name snapshots, resolved at render per the Display
-// Identity Invariant). 'workProject' is the safe framing today; linking a specific hall
-// item is optional future scope.
+// Identity Invariant). The reference names an artisan or a Work, never a specific hall item.
 export const CraftSkillSourceReferenceSchema = z
   .object({
     type: z.enum(['user', 'workProject']),
@@ -81,7 +79,7 @@ const craftSkillBaseShape = {
   id: z.string(),
   name: z.string(),
   mediaAssetId: z.string(),
-  // Canonical discipline-tag allowlist — never open strings (DJ ruling 2026-07-13).
+  // Canonical discipline-tag allowlist — never open strings.
   tags: z.array(z.enum(CRAFT_SKILL_TAG_VALUES)),
   createdAt: z.number(),
   type: mediaKindSchema,
@@ -165,14 +163,13 @@ export const FullUserSchema = z.object({
   displayName: z.string(),
   displayName_lowercase: z.string(),
   // One asset, variants full/medium/small in the mediaAssets registry; URLs
-  // are built at render time (media-assets-and-protected-serving.md).
+  // are built at render time.
   profilePictureAssetId: z.string().nullable().optional(),
   artisanCreator: z.number().optional(),
   // Cosmetic supporter badge. Set true via the Admin SDK inside the Stripe webhook's
   // pledge-record transaction once the user completes a pledge; rendered on the profile
   // page. Lives here (not publicUsers) because userProfiles/{uid} is already readable by
   // any authenticated user, so other viewers see the badge with no mirror. Not PII.
-  // Revoked (→ false) on refund once refunds ship.
   hasPledged: z.boolean().optional(),
   status: UserAccountStatusSchema.optional(),
   // Stamped by the one status writer on every status change: when, and the acting admin/operator
@@ -181,7 +178,7 @@ export const FullUserSchema = z.object({
   // Either the authenticated actor's uid or a stable namespaced system actor
   // identifier (for example `system:autoHashLock`); never null.
   statusUpdatedBy: z.string().min(1).optional(),
-  // Chat-edge-rebuild account-access domain (Contract B / round-10 blocker 1): the
+  // Chat account-access domain: the
   // single ban/unban ordering version + state the chat `accountAccess` sync events key
   // on. Backend-only-writable. Deliberate defaults when ABSENT: a never-touched account
   // is `{ accountAccessVersion: 0, accountAccessState: 'active' }` (NOT banned) — bumped
@@ -195,7 +192,7 @@ export const FullUserSchema = z.object({
   ownedWorkProjects: z.array(OwnedWorkProjectSchema).optional(),
   associatedWorkProjects: z.array(AssociatedWorkProjectSchema).optional(),
   createdAt: z.number(),
-  // N3 data-deletion / GDPR erasure: epoch ms when the account-deletion scrub
+  // Data-deletion / GDPR erasure: epoch ms when the account-deletion scrub
   // anonymized this profile in place. When set, the identity fields have been
   // scrubbed (displayName → the FORMER_MEMBER_DISPLAY_NAME sentinel) and the
   // account is a tombstone. Backend-only-writable.
@@ -239,8 +236,7 @@ export type UserAgreements = z.infer<typeof UserAgreementsSchema>;
  *   4. otherwise → offer the tour.
  * Written ONLY by the `updateSiteTourPreference` callable via the Admin SDK; never
  * client-written. `notTodayDate` is a strict `YYYY-MM-DD` local-date string (same
- * date-string convention as the age cluster's `attestedDateOfBirth`). See
- * docs/design/landing-backstage-guide-and-first-visit-plan.md §10.
+ * date-string convention as the age cluster's `attestedDateOfBirth`).
  */
 export const UserSiteTourStateSchema = z.object({
   // The tour version the member completed. The callable stamps SITE_TOUR_CURRENT_VERSION
@@ -266,11 +262,11 @@ export const UserPrivateDataSchema = z.object({
   email: z.string(),
   // Epoch ms when the user applied for news/political posting (not a boolean) so the
   // applicant queue can be ordered/triaged by application date. Mirrors the
-  // `artisanCreator?: number` grant-timestamp pattern. Truthy when set, so existing
-  // truthiness reads keep working; absent until the user applies.
+  // `artisanCreator?: number` grant-timestamp pattern. Truthy when set, so truthiness reads
+  // work; absent until the user applies.
   isWaitingForNewsApproval: z.number().optional(),
   // Epoch ms when the user attested they are a U.S.-based person while becoming an artisan
-  // (required at artisan signup for now). Mirrors the ageAttested attestation pattern; written
+  // (required at artisan signup). Mirrors the ageAttested attestation pattern; written
   // server-side by becomeArtisanCreator.
   usPersonAttestedAt: z.number().optional(),
   // Non-U.S. artisan-interest "waitlist" recorded ONLY for adult accounts when a non-U.S. person
@@ -311,7 +307,7 @@ export const UserPrivateDataSchema = z.object({
   // Cleared when the account is reinstated to 'active'.
   statusReason: z.string().optional(),
   statusReasonAt: z.number().optional(),
-  // Trust & Safety (§A8): silent interim safety-lock flag. Backend-only-writable,
+  // Trust & Safety: silent interim safety-lock flag. Backend-only-writable,
   // restricted to the owner's view. Set true while a child-safety/NCII action is
   // pending against the account; the app gates the user accordingly.
   safetyLocked: z.boolean().optional(),
@@ -325,7 +321,7 @@ export const UserPrivateDataSchema = z.object({
   // the same document and conflict instead of both landing past the cap (BACKEND-116). Absent
   // until the first Craft change (read as 0); a moderation hide never writes it.
   craftSkillChangeMarker: z.number().int().nonnegative().optional(),
-  // Trust & Safety (§A7): server-write-only age/registration fields, merged from the
+  // Trust & Safety: server-write-only age/registration fields, merged from the
   // standalone age cluster shape (./safety/age.js) so the canonical schema and the
   // age cluster cannot drift.
   ...userPrivateDataAgeFieldsShape,

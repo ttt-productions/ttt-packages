@@ -6,22 +6,23 @@
 
 import { describe, it, expect } from 'vitest';
 import { MAX_CURLING_ROUND_POINTS, MAX_STAT_EVENTS_PER_WRITE, CURLING_ROUND_COUNT } from '../src/constants/sports';
-import { countSchema, type GameStatEvent, type GameStats } from '../src/doc-schemas';
+import { countSchema } from '../src/doc-schemas/atoms';
+import { type GameStatEvent } from '../src/doc-schemas/game-stats';
+import { type GameStats } from '../src/doc-schemas/sport-game';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids';
 import { buildStatEventId } from '../src/ids/stat-event-ids';
-import { RecordGameStatEventsInputSchema, type StatEventSubmission } from '../src/schemas';
+import { RecordGameStatEventsInputSchema, type StatEventSubmission } from '../src/schemas/scoring';
 import {
   BULK_ENTRY_COUNT_MESSAGE,
   BULK_ENTRY_TOO_LARGE_MESSAGE,
   bulkEntryCountField,
-  decideStatEventBatch,
-  getSportAdapter,
-  isStatVoid,
-  type AnySportAdapter,
   type BulkEntryContext,
-  type StatEventBody,
   type StatEventDraft,
-} from '../src/sports';
+} from '../src/sports/bulk-entry';
+import { decideStatEventBatch } from '../src/sports/store-driver';
+import { getSportAdapter } from '../src/sports/registry';
+import { isStatVoid, type StatEventBody } from '../src/sports/scoring';
+import { type AnySportAdapter } from '../src/sports/sport-adapter';
 import {
   BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS,
   BASKETBALL_BULK_EDIT_EVENT_TYPE,

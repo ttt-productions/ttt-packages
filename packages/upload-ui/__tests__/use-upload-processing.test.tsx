@@ -7,8 +7,8 @@ import {
   type FirestoreSubscribeFn,
   type FirestoreLikeSnapshot,
   type ParsedPendingMedia,
-} from '../src/react/in-flight-uploads-provider.js';
-import { useUploadProcessing } from '../src/react/use-upload-processing.js';
+} from '../src/react/tray/in-flight-uploads-provider.js';
+import { useUploadProcessing } from '../src/react/tray/use-upload-processing.js';
 
 function makeAdapter(): InFlightUploadsAdapter {
   return {

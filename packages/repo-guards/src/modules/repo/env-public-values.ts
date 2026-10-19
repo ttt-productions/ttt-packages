@@ -2,7 +2,7 @@
 // `.env`) carry public values only: every key is a declared public key, and no value is shaped like a
 // credential. A secret is bound from the secret manager, never written into a committed env file.
 
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding } from '../../guard.js';
 import { namesProblem, reviewedProblems } from '../../support/facts.js';
 

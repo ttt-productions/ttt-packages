@@ -11,7 +11,6 @@ import {
   DateOfBirthShapeSchema,
   UpgradeAccountToAdultInputSchema,
 } from '../src/schemas/users';
-import * as root from '../src/index';
 
 const asOf = new Date(Date.UTC(2030, 5, 15, 12)); // 15 June 2030, midday UTC
 
@@ -84,9 +83,6 @@ describe('deriveAgeBracket', () => {
     });
   });
 
-  it('is exported from the package root', () => {
-    expect(root.deriveAgeBracket).toBe(deriveAgeBracket);
-  });
 });
 
 describe('DateOfBirthSchema', () => {

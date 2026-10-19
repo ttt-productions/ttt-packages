@@ -8,9 +8,9 @@ import {
   createFirebaseStorageObjectStore,
   getMimeFromExt,
   ObjectAlreadyExistsError,
-  R2StorageError,
   type Bucket,
 } from '../src/server/storage-ops.js';
+import { R2StorageError } from '../src/server/r2-retry.js';
 import { UnreadableStorageObjectMetadataError } from '../src/server/staged-object.js';
 import { isObjectNotFoundError } from '../src/server/gcs-errors.js';
 

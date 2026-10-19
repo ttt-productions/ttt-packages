@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { hasDownloadToken, removeDownloadToken } from '../src/server/index.js';
+import { hasDownloadToken, removeDownloadToken } from '../src/server/download-token.js';
 
 describe('hasDownloadToken', () => {
   it('is true while the object metadata carries a Firebase download token', () => {

@@ -1,15 +1,18 @@
 import { z } from 'zod';
 import { AuditionModeSchema } from '../doc-schemas/commissions.js';
 import { workProjectIdSchema, stakeSharesOfferedSchema } from '../schemas/atoms.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import {
   MIN_CURATED_AUDITION_OPTIONS,
   MAX_CURATED_AUDITION_OPTIONS,
-} from '../constants/business.js';
+} from '../constants/business-content.js';
 import { AUDITION_DESCRIPTION_INPUT, AUDITION_TITLE_INPUT } from '../constants/text-fields.js';
-import { textFieldSchema } from '../schemas/text-field.js';
-import { AuditionDeadlineSchema, refineAuditionDeadlineOrder } from '../constants/audition-deadlines.js';
+import {
+  AuditionDeadlineSchema,
+  refineAuditionDeadlineOrder,
+} from '../constants/audition-deadlines.js';
 
 
 export const CreateWorkProjectAuditionVariablesSchema = z.object({

@@ -22,18 +22,18 @@ export {
   type FirestoreSubscribeFn,
   type FirestoreLikeSnapshot,
   type FirestoreLikeDocChange,
-} from '../in-flight-uploads-provider.js';
+} from './in-flight-uploads-provider.js';
 export {
   useClearUploadActivity,
   type ClearUploadActivityOptions,
-} from '../use-clear-upload-activity.js';
+} from './use-clear-upload-activity.js';
 export {
   useMarkUploadActivitySeen,
   MarkUploadActivitySeenError,
   type MarkUploadActivitySeenOptions,
-} from '../use-mark-upload-activity-seen.js';
+} from './use-mark-upload-activity-seen.js';
 export {
   useUploadProcessing,
   type UploadProcessingState,
   type UseUploadProcessingOptions,
-} from '../use-upload-processing.js';
+} from './use-upload-processing.js';

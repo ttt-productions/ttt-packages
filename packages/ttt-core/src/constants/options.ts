@@ -1,7 +1,7 @@
 // UI option lists shared between frontend and backend admin tooling.
 
 import type { HallWingType, WorkProjectType } from '../types/content.js';
-import type { AuditionType } from '../types/commissions.js';
+import type { AuditionType } from '../doc-schemas/commissions.js';
 
 // --- WorkProject Guild Standings ---
 // WorkProject guild-standing IDs, labels, and assignment policy live in ../permissions/.
@@ -133,7 +133,7 @@ export const CRAFT_SKILL_TAG_LABELS: Record<(typeof CRAFT_SKILL_TAG_OPTIONS)[num
 // --- WorkProject-Specific Genres ---
 
 /**
- * Genres shown for each workProject type. Curated final lists (kept in the doc's order,
+ * Genres shown for each workProject type. Curated final lists (kept in curated order,
  * not alphabetized). "Spooky" (not "Horror") is deliberate for V1: the name carries the
  * all-ages ceiling; "Horror" is the natural mature sibling if mature content ever ships.
  */
@@ -242,8 +242,8 @@ export const AUDITION_TYPES: Record<AuditionType, { label: string; description: 
   },
 };
 
-/** The audition board's "every type" filter sentinel — the ONE declaration (it was
- * previously hand-rolled app-locally). It doubles as the chip's own display label. */
+/** The audition board's "every type" filter sentinel — the ONE declaration. It doubles as the
+ * chip's own display label. */
 export const AUDITION_TYPE_FILTER_ALL = 'All';
 
 /** Audition-board type-filter state: one canonical audition type, or the ALL sentinel.
@@ -254,8 +254,7 @@ export type AuditionTypeFilter = AuditionType | typeof AUDITION_TYPE_FILTER_ALL;
 
 /**
  * The two sort options EVERY audition feed offers — declared ONCE and spread into each feed's
- * option set below (ENG-002). They used to be restated verbatim in all four feed entries, so
- * a label or field change had to be made four times to avoid drift.
+ * option set below (ENG-002), so a label or field change is made once.
  */
 const AUDITION_SORT_OPTIONS_BASE = {
   newest: { label: 'Newest First', field: 'createdOn', direction: 'desc' },

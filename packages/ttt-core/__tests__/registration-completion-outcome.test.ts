@@ -1,8 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-  RegistrationCompletionOutcomeSchema,
-  RegistrationCompletionResultV1Schema,
-} from '../src/doc-schemas/safety/age';
+import { RegistrationCompletionResultV1Schema } from '../src/doc-schemas/safety/age';
+import { RegistrationCompletionOutcomeSchema } from '../src/doc-schemas/safety/foundation';
 
 // The domain outcomes registration completion can end in: the age fields are written (now or by an
 // earlier run), a transient failure leaves the attestation retryable, or the attestation can never

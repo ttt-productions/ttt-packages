@@ -1,15 +1,5 @@
-// Money / pledge TYPES. Stored document shapes are inferred from the Zod doc-schemas in
-// ../doc-schemas/payments.ts (single source of truth per the schema registry) — money data
-// never lives in social.ts.
-
-export type {
-  PledgePayment,
-  PledgePaymentProviderRef,
-  ProcessedStripeEvent,
-  PledgePaymentLedgerEvent,
-  PaymentWebhookQuarantine,
-  PledgePaymentTotalsDoc,
-} from '../doc-schemas/payments.js';
+// Money / pledge view-model types. The stored pledge document shapes are declared with their
+// schemas in ../doc-schemas/payments.ts.
 
 /**
  * Totals view-model shared by every "total raised" surface. The stored source of truth is the

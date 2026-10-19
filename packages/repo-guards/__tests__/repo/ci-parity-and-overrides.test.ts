@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { ciParityGuard } from '../../src/modules/repo/ci-parity.js';
 import { dependencyOverrideGuard, overrideProblem } from '../../src/modules/repo/dependency-overrides.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 

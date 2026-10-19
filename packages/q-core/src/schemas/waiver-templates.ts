@@ -10,7 +10,7 @@ import { WAIVER_TEMPLATE_DELETE_OUTCOME_KEYS } from '../types/unions.js';
 import {
   WAIVER_TEMPLATE_TEXT_INPUT_FORMAT,
   WAIVER_TEMPLATE_TITLE_INPUT_FORMAT,
-} from '../input-formats/index.js';
+} from '../input-formats/input-formats.js';
 
 export const waiverTemplateTitleSchema = textFieldSchema(WAIVER_TEMPLATE_TITLE_INPUT_FORMAT);
 export const waiverTemplateTextSchema = textFieldSchema(WAIVER_TEMPLATE_TEXT_INPUT_FORMAT);

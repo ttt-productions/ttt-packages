@@ -1,6 +1,6 @@
-import type { GuildStandingId } from './work-project-permissions.js';
+import type { GuildStandingId } from './work-project-permissions-data.js';
+import { STEWARD_OWNER_GUILD_STANDING_ID } from './work-project-permissions-data.js';
 import {
-  STEWARD_OWNER_GUILD_STANDING_ID,
   getGuildStandingIdFromValue,
   isGuildStandingValue,
 } from './work-project-permissions.js';

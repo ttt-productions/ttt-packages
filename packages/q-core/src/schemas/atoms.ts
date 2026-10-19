@@ -1,6 +1,5 @@
-// Atoms for callable wire contracts. Enums, id atoms, the count, and the repair reason are the
-// document atoms — one declaration, re-exported here so a callable schema file imports its atoms from
-// one place.
+// Atoms only callable wire contracts use. Enums, id atoms, the count, and the repair reason are the
+// document atoms, declared once in doc-schemas/atoms.ts and imported from there.
 
 import { z } from 'zod';
 import {
@@ -9,28 +8,9 @@ import {
   TEAM_INVITATION_MESSAGE_INPUT_FORMAT,
   TEAM_JOIN_REQUEST_MESSAGE_INPUT_FORMAT,
   TEAM_NAME_INPUT_FORMAT,
-} from '../input-formats/index.js';
+} from '../input-formats/input-formats.js';
 
 import { documentIdSegmentSchema, textFieldSchema } from '../doc-schemas/atoms.js';
-
-export {
-  countSchema,
-  epochMsSchema,
-  gameIdSchema,
-  gameRosterPlayerIdSchema,
-  statEventIdSchema,
-  leagueIdSchema,
-  leagueModeSchema,
-  repairReasonSchema,
-  sportKeySchema,
-  textFieldSchema,
-  systemRoleSchema,
-  teamIdSchema,
-  teamIconSchema,
-  teamRoleSchema,
-  teamTypeSchema,
-  userIdSchema,
-} from '../doc-schemas/atoms.js';
 
 // Which entry of a member/admin twin pair of callables an action calls: the member entry, which
 // re-reads the caller's team membership, or the admin entry, which re-reads the role roster.

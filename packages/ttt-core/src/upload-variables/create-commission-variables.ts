@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import { workProjectIdSchema, stakeSharesOfferedSchema } from '../schemas/atoms.js';
+import { textFieldSchema } from '../schemas/text-field.js';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import { TRADE_PROFESSION_OPTIONS, TRADE_PROFESSION_VALUES } from '../constants/options.js';
 import { COMMISSION_DESCRIPTION_INPUT, COMMISSION_TITLE_INPUT } from '../constants/text-fields.js';
-import { textFieldSchema } from '../schemas/text-field.js';
 
 export const CreateCommissionVariablesSchema = z.object({
   workProjectId: workProjectIdSchema,

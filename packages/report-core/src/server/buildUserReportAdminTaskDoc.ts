@@ -1,5 +1,5 @@
 import type { ServerReportCoreConfig } from './types.js';
-import { USER_REPORT_TASK_TYPE } from '../config.js';
+import { USER_REPORT_TASK_TYPE } from '../contracts/config.js';
 
 export interface BuildUserReportAdminTaskDocArgs {
   config: ServerReportCoreConfig;

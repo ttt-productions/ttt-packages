@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { MAX_STAT_EVENTS_PER_WRITE } from '../src/constants/sports';
-import type { GameStatEvent } from '../src/doc-schemas';
+import type { GameStatEvent } from '../src/doc-schemas/game-stats';
 import { buildGameRosterPlayerId } from '../src/ids/compound-ids';
 import {
   MAX_SPORT_STAT_EVENT_ID_LENGTH,
@@ -17,15 +17,15 @@ import {
   RecordGameStatEventsInputSchema,
   StatEventRefusalDetailsSchema,
   type StatEventSubmission,
-} from '../src/schemas';
+} from '../src/schemas/scoring';
 import {
   decideStatEventBatch,
-  getSportAdapter,
-  replayGameStats,
   statEventIdsToRead,
   type StatEventBatch,
   type StatEventBatchDecision,
-} from '../src/sports';
+} from '../src/sports/store-driver';
+import { getSportAdapter } from '../src/sports/registry';
+import { replayGameStats } from '../src/sports/replay';
 import {
   BASKETBALL_ASSISTABLE_SHOT_EVENT_TYPE_KEYS,
   BASKETBALL_BULK_EDIT_EVENT_TYPE,

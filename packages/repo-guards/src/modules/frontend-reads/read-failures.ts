@@ -3,11 +3,11 @@
 // and with copy from the one failure-copy owner.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding, GuardContext } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
 import { matchPattern, ownerOnly, reviewedAllowlist, type Hit } from '../../shapes/shapes.js';
-import type { Reviewed } from '../../reader/layout.js';
+import type { Reviewed } from '../../node/layout.js';
 import { forEachNode, lineOfNode } from '../../support/ast.js';
 import { identifierProblem, pathProblem, reviewedProblems } from '../../support/facts.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';

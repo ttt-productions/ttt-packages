@@ -6,8 +6,8 @@ import {
   useLocalUploadGuard,
   useUnsavedWorkGuard,
   type LocalUploadGuardProviderProps,
-} from '../src/react/local-upload-guard-provider.js';
-import { useGuardedNavigation } from '../src/react/use-guarded-navigation.js';
+} from '../src/react/guard/local-upload-guard-provider.js';
+import { useGuardedNavigation } from '../src/react/guard/use-guarded-navigation.js';
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return React.createElement(LocalUploadGuardProvider, null, children);

@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
+import { ACCEPTANCE_REQUIRED_REASON } from '../src/acceptance';
 import {
-  ACCEPTANCE_REQUIRED_REASON,
   EMAIL_VERIFICATION_REQUIRED_REASON,
   isEmailVerificationRequiredDetails,
   isEmailVerificationRequiredError,
-} from '../src/index';
+} from '../src/email-verification';
 
 describe('isEmailVerificationRequiredDetails', () => {
   it('recognizes the refusal details', () => {

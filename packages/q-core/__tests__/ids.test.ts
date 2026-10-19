@@ -1,18 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import {
   BYE_TEAM_ID,
-  COMPOUND_ID_SEPARATOR,
-  buildLeagueFreeAgentId,
   buildGhostUserId,
   buildSportGameId,
-  buildTeamMembershipId,
-  buildSignedWaiverId,
   isByeTeamId,
   isGhostUserId,
+} from '../src/ids/minted-ids';
+import {
+  COMPOUND_ID_SEPARATOR,
+  buildLeagueFreeAgentId,
+  buildTeamMembershipId,
+  buildSignedWaiverId,
   parseLeagueFreeAgentId,
   parseTeamMembershipId,
   parseSignedWaiverId,
-} from '../src/ids';
+} from '../src/ids/compound-ids';
 
 const LEAGUE = 'Zx9Qw3Er7Ty1Ui5Op2As';
 const TEAM = 'aB3dE5gH7jK9mN1pQ3sT';

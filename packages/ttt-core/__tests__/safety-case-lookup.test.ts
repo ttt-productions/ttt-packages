@@ -8,7 +8,7 @@ import {
 import { SafetyCaseByIdResultSchema } from '../src/schemas/safety';
 import { ChildSafetyWorkStatusSchema, SafetyCaseLaneSchema } from '../src/doc-schemas/safety/case';
 import { NciiInternalStatusSchema, TakeItDownPublicStatusSchema } from '../src/doc-schemas/safety/foundation';
-import * as root from '../src/index';
+import * as constants from '../src/constants/index';
 import * as schemasBarrel from '../src/schemas';
 
 describe('active safety statuses', () => {
@@ -50,11 +50,11 @@ describe('active safety statuses', () => {
     isActiveSafetyCaseStatus({ caseType: 'csam', status: 'removed' });
   });
 
-  it('is importable from the server-safe root, where both trees read it', () => {
-    expect(root.CHILD_SAFETY_ACTIVE_WORK_STATUSES).toBe(CHILD_SAFETY_ACTIVE_WORK_STATUSES);
-    expect(root.NCII_ACTIVE_INTERNAL_STATUSES).toBe(NCII_ACTIVE_INTERNAL_STATUSES);
-    expect(root.TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES).toBe(TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES);
-    expect(root.isActiveSafetyCaseStatus).toBe(isActiveSafetyCaseStatus);
+  it('is importable from the server-safe constants entry, where both trees read it', () => {
+    expect(constants.CHILD_SAFETY_ACTIVE_WORK_STATUSES).toBe(CHILD_SAFETY_ACTIVE_WORK_STATUSES);
+    expect(constants.NCII_ACTIVE_INTERNAL_STATUSES).toBe(NCII_ACTIVE_INTERNAL_STATUSES);
+    expect(constants.TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES).toBe(TAKE_IT_DOWN_ACTIVE_PUBLIC_STATUSES);
+    expect(constants.isActiveSafetyCaseStatus).toBe(isActiveSafetyCaseStatus);
   });
 });
 

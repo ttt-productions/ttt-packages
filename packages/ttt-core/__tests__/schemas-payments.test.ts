@@ -11,7 +11,7 @@ import {
   MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
   PLEDGE_REFUND_REQUEST_WINDOW_MS,
   MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH,
-} from '../src/constants/business';
+} from '../src/constants/business-platform';
 
 const ATTEMPT_ID = 'f1f86a55-94f6-4c5e-9396-1c4e3f9b7a01';
 
@@ -125,8 +125,8 @@ describe('CreateStripeCheckoutSessionInputSchema', () => {
     });
   });
 
-  describe('message field removed', () => {
-    it('rejects any message field (messages were dropped; schema is .strict())', () => {
+  describe('message field', () => {
+    it('rejects any message field (schema is .strict())', () => {
       const result = CreateStripeCheckoutSessionInputSchema.safeParse(
         valid({ message: 'Thanks for your work!' }),
       );

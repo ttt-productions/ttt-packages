@@ -1,20 +1,18 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
 import { CURLING_ROUND_COUNT } from '../src/constants/sports';
-import {
-  SPORT_GAME_STATS_SCHEMAS,
-  SPORT_LINE_SCHEMAS,
-  SportGameSchema,
-  UserLifetimeStatsSchema,
-} from '../src/doc-schemas';
+import { SPORT_GAME_STATS_SCHEMAS, SportGameSchema } from '../src/doc-schemas/sport-game';
+import { SPORT_LINE_SCHEMAS, UserLifetimeStatsSchema } from '../src/doc-schemas/aggregate-stats';
 import {
   SPORT_ADAPTERS,
   SPORT_ADAPTER_LIST,
   UnknownSportError,
   getSportAdapter,
+} from '../src/sports/registry';
+import {
   type AnySportAdapter,
   type SportAdapter,
   type SportLine,
-} from '../src/sports';
+} from '../src/sports/sport-adapter';
 import {
   BASKETBALL_PLAYER_STAT_KEYS,
   BASKETBALL_STAT_EVENT_TYPE_KEYS,

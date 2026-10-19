@@ -6,20 +6,19 @@ import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BASKETBALL_PLAYER_STAT_KEYS } from '../src';
+import { BASKETBALL_PLAYER_STAT_KEYS } from '../src/types/sports';
+import { BasketballPlayerTotalsSchema } from '../src/doc-schemas/aggregate-stats';
+import { GallerySummarySchema } from '../src/doc-schemas/gallery';
+import { HistoricalStatsSchema } from '../src/doc-schemas/user-profile';
 import {
-  BasketballPlayerTotalsSchema,
-  GallerySummarySchema,
-  HistoricalStatsSchema,
   MembershipRosterSyncCursorSchema,
   MembershipRosterSyncSchema,
-  SportLeagueSchema,
-  appliedRevisionSchema,
-  countSchema,
-  playoffCutoffCountSchema,
-  revisionSchema,
-} from '../src/doc-schemas';
-import * as callableSchemas from '../src/schemas';
+} from '../src/doc-schemas/membership-roster-sync';
+import { SportLeagueSchema, playoffCutoffCountSchema } from '../src/doc-schemas/sport-league';
+import { appliedRevisionSchema, countSchema, revisionSchema } from '../src/doc-schemas/atoms';
+import { GameStatsCorrectionTargetSchema } from '../src/schemas/stats';
+import { UpdateAdminListResultSchema } from '../src/schemas/users';
+import { AdminRetryLeagueTeamRosterSyncResultSchema } from '../src/schemas/teams';
 import { AdminStatsSchema } from '../src/schemas/admin-stats';
 
 const SRC = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src');
@@ -209,8 +208,8 @@ describe('countSchema is the one count atom', () => {
     expect(appliedRevisionSchema.safeParse(0).success).toBe(true);
   });
 
-  it('the callable schemas re-export the document atom rather than declaring a second one', () => {
-    expect(callableSchemas.countSchema).toBe(countSchema);
+  it("a callable input's count field takes the one count atom, not a copy of its own", () => {
+    expect(GameStatsCorrectionTargetSchema.shape.value).toBe(countSchema);
   });
 
   it('the dashboard counts, a gallery’s count, and a league’s playoff cutoffs are the atom', () => {
@@ -227,13 +226,13 @@ describe('countSchema is the one count atom', () => {
   });
 
   it('the counts callables return are the atom', () => {
-    const results = callableSchemas.UpdateAdminListResultSchema.shape;
+    const results = UpdateAdminListResultSchema.shape;
     expect(results.adminsGranted).toBe(countSchema);
     expect(results.adminsRevoked).toBe(countSchema);
     expect(results.refereesGranted).toBe(countSchema);
     expect(results.refereesRevoked).toBe(countSchema);
-    expect(callableSchemas.AdminRetryLeagueTeamRosterSyncResultSchema.shape.retried).toBe(countSchema);
-    expect(callableSchemas.AdminRetryLeagueTeamRosterSyncResultSchema.shape.reconciled).toBe(countSchema);
+    expect(AdminRetryLeagueTeamRosterSyncResultSchema.shape.retried).toBe(countSchema);
+    expect(AdminRetryLeagueTeamRosterSyncResultSchema.shape.reconciled).toBe(countSchema);
   });
 });
 

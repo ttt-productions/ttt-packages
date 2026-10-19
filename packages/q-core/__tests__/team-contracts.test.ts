@@ -10,13 +10,10 @@ import {
   MIN_TEAM_NAME_LENGTH,
   TEAM_CREATION_CUTOFF_DAYS,
 } from '../src/constants/business';
-import {
-  LeagueTeamContactSchema,
-  LeagueTeamSchema,
-  MembershipRosterSyncSchema,
-  SignedWaiverSchema,
-} from '../src/doc-schemas';
-import { DomainEventSchema } from '../src/domain-events';
+import { LeagueTeamContactSchema, LeagueTeamSchema } from '../src/doc-schemas/league-team';
+import { MembershipRosterSyncSchema } from '../src/doc-schemas/membership-roster-sync';
+import { SignedWaiverSchema } from '../src/doc-schemas/waivers-and-hardware';
+import { DomainEventSchema } from '../src/domain-events/domain-events';
 import { buildGhostUserId, buildGhostUserIdForRequest, isGhostUserId } from '../src/ids/minted-ids';
 import { buildTeamMembershipId, parseTeamMembershipId } from '../src/ids/compound-ids';
 import { COLLECTIONS } from '../src/paths/collections';
@@ -24,18 +21,20 @@ import { PATH_BUILDERS } from '../src/paths/path-builders';
 import { toPath } from '../src/paths/utils';
 import {
   AdminCreateLeagueTeamInputSchema,
-  AdminCreateSignedWaiverInputSchema,
   AdminRetryLeagueTeamRosterSyncInputSchema,
-  AdminStartUploadInputSchema,
   CreateGameGhostPlayerInputSchema,
   CreateGhostPlayerResultSchema,
   CreateLeagueTeamInputSchema,
-  CreateSignedWaiverInputSchema,
   CreateTeamGhostPlayerInputSchema,
   GetLeagueJoinWarningInputSchema,
   GetLeagueJoinWarningResultSchema,
+} from '../src/schemas/teams';
+import {
+  AdminCreateSignedWaiverInputSchema,
+  CreateSignedWaiverInputSchema,
   GetSignedWaiverFileInputSchema,
-} from '../src/schemas';
+} from '../src/schemas/signed-waivers';
+import { AdminStartUploadInputSchema } from '../src/schemas/uploads';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
 import {
   ACTIVE_TEAM_MEMBERSHIP_STATUS,

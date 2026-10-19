@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SubmitReportInputSchema } from '../src/schemas/safety';
-import { MAX_REPORT_TARGET_ID_LENGTH, MAX_REPORT_NARRATIVE_LENGTH } from '../src/constants/business';
+import { MAX_REPORT_TARGET_ID_LENGTH, MAX_REPORT_NARRATIVE_LENGTH } from '../src/constants/business-admin';
 
 const input = {
   itemType: 'square-streetz-post',

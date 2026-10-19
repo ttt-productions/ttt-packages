@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { envPublicValuesGuard } from '../../src/modules/repo/env-public-values.js';
 import { installedPackagesAgnosticGuard } from '../../src/modules/repo/installed-packages-agnostic.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 

@@ -2,8 +2,8 @@ import { z } from 'zod';
 import { ClientMediaClaimSchema } from '@ttt-productions/media-schemas';
 import { onProgressSchema } from './on-progress.js';
 import { commissionListingIdSchema } from '../schemas/atoms.js';
-import { COMMISSION_COVER_LETTER_INPUT } from '../constants/text-fields.js';
 import { textFieldSchema } from '../schemas/text-field.js';
+import { COMMISSION_COVER_LETTER_INPUT } from '../constants/text-fields.js';
 
 
 export const ApplyToCommissionVariablesSchema = z.object({

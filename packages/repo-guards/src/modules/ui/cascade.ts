@@ -3,7 +3,7 @@
 // same-named Tailwind utility, and the theme token blocks.
 
 import { dirnameOf, normalizePath } from '../../support/paths.js';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
 import {

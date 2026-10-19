@@ -30,7 +30,6 @@ import type { MediaKind } from "./types.js";
 // accepts it (each new family still needs its processing/safety/serving policy
 // per the extension model).
 
-export { MediaFormatIdSchema };
 export type MediaFormatId = z.infer<typeof MediaFormatIdSchema>;
 
 export type MediaFormatFamily = "image" | "audio" | "av-container";

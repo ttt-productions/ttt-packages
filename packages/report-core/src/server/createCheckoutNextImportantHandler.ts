@@ -7,7 +7,7 @@ import type {
 } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';
 import { createCandidateCursor } from './claimCandidates.js';
-import type { CheckoutNextImportantTaskResult } from '../types-admin-task.js';
+import type { CheckoutNextImportantTaskResult } from '../contracts/types-admin-task.js';
 import { toClaimedTask } from './claimedTask.js';
 
 export interface CheckoutNextImportantHandlerConfig {

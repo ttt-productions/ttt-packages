@@ -3,7 +3,7 @@
 
 import ts from 'typescript';
 import type { Finding, Guard } from '../../guard.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { forEachNode, isPlainString, lineOfNode, unwrap } from '../../support/ast.js';
 

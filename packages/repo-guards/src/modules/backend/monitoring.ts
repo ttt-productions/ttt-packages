@@ -4,11 +4,11 @@
 // not use is named nowhere.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
-import type { Reviewed } from '../../reader/layout.js';
+import type { Reviewed } from '../../node/layout.js';
 import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
 import { loaderProblem, namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
 import { MODULE_LOADS, moduleImports, namesModule } from '../../support/imports.js';

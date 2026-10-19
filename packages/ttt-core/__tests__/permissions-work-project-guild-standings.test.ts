@@ -5,21 +5,25 @@ import {
   GUILD_STANDING_VALUES,
   WORK_PROJECT_ACTIONS,
   WORK_PROJECT_ACTION_IDS,
+  GUILD_INVITE_HANDLER_GUILD_STANDING_IDS,
+  STAKE_SHARE_POWER_GUILD_STANDING_IDS,
+  WORK_FILE_ADMIN_GUILD_STANDING_IDS,
+  type GuildStandingId,
+} from '../src/permissions/work-project-permissions-data.js';
+import {
   isGuildStandingId,
   isGuildStandingValue,
   isWorkProjectActionId,
   getActionsForGuildStanding,
   getGuildStandingValueFromId,
+  guildStandingsGrantAction,
+  isWorkFileAdmin,
+} from '../src/permissions/work-project-permissions.js';
+import {
   canAssignGuildStanding,
   NON_ASSIGNABLE_GUILD_STANDINGS,
   STEWARD_ONLY_ASSIGNABLE_GUILD_STANDINGS,
-  GUILD_INVITE_HANDLER_GUILD_STANDING_IDS,
-  STAKE_SHARE_POWER_GUILD_STANDING_IDS,
-  WORK_FILE_ADMIN_GUILD_STANDING_IDS,
-  guildStandingsGrantAction,
-  isWorkFileAdmin,
-  type GuildStandingId,
-} from '../src/permissions/index.js';
+} from '../src/permissions/guild-standing-assignment-policy.js';
 import { UpdateGuildmateStandingInputSchema } from '../src/schemas/work-project-management.js';
 
 describe('Guild standing identifiers', () => {

@@ -3,9 +3,9 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { defineInputFormat } from '@ttt-productions/input-format-core';
 import { render, renderHook, screen, cleanup, act, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReportCoreProvider } from '../src/context/ReportCoreProvider.js';
-import { ReportButton, useReportButton } from '../src/components/ReportButton.js';
-import type { ReportCoreConfig } from '../src/config.js';
+import { ReportCoreProvider } from '../src/react/context/ReportCoreProvider.js';
+import { ReportButton, useReportButton } from '../src/react/components/ReportButton.js';
+import type { ReportCoreConfig } from '../src/contracts/config.js';
 import type { ReportDialogCopy } from '../src/types-ui-props.js';
 
 afterEach(() => {

@@ -6,23 +6,24 @@
 
 import { describe, expect, it } from 'vitest';
 import { MAX_CURLING_ROUND_POINTS, STAT_HISTORY_PAGE_SIZE } from '../src/constants/sports';
-import type { GameStatEvent, GameStats } from '../src/doc-schemas';
+import type { GameStatEvent } from '../src/doc-schemas/game-stats';
+import type { GameStats } from '../src/doc-schemas/sport-game';
 import { buildGameRosterPlayerId, parseGameRosterPlayerId } from '../src/ids/compound-ids';
 import {
   applyStatLineDelta,
+  sumGameContributions,
+  type FinalizedGame,
+} from '../src/sports/contribution';
+import {
   buildFinalizedRecordPages,
   finalizedGameFromRecord,
-  gameScoreMirror,
-  getSportAdapter,
-  playedWeeks,
   readFinalizedRecord,
-  rollupDifferences,
-  seasonRankingRows,
-  sumGameContributions,
-  weekRankingRows,
-  type FinalizedGame,
-  type StatEventBody,
-} from '../src/sports';
+} from '../src/sports/finalized-record';
+import { gameScoreMirror } from '../src/sports/score-mirror';
+import { getSportAdapter } from '../src/sports/registry';
+import { playedWeeks, seasonRankingRows, weekRankingRows } from '../src/sports/rankings';
+import { rollupDifferences } from '../src/sports/rollup-check';
+import { type StatEventBody } from '../src/sports/scoring';
 import { CURLING_ROUND_SCORE_EVENT_TYPE, FOOTBALL_SCORE_EVENT_TYPE_KEYS } from '../src/types/sports';
 import { higherTeamRole } from '../src/types/unions';
 

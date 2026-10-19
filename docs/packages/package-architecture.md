@@ -1,7 +1,7 @@
 # Package architecture
 
 The one-stop reference for how the `@ttt-productions/*` monorepo is structured:
-tiers, the dependency graph, root purity, subpath conventions, direction rules,
+tiers, the dependency graph, entry purity, imports inside a package, subpath conventions, direction rules,
 build/release order, internal version pinning, and the boundary-guard tests.
 
 Code is the source of truth. This document explains the durable model; exact
@@ -93,19 +93,38 @@ Every other package has zero internal runtime dependencies. `ui-core`,
 a peer is not a runtime edge, but a package whose source imports one compiles
 against its `dist`, so the peer still builds and releases first.
 
-## Root purity rule
+## Entry purity rule
 
-Every package root (`.`) is either pure/universal (server-safe, no React, no
-browser Firebase, no Admin SDK, no Node-only or app-specific contract pulled in
-at runtime) or it is *intentionally* a non-pure surface. Anything that is
-browser/client-Firebase, React UI, Admin SDK, Node-only, or app-specific lives
-behind an explicit subpath or a separate package — never the root.
+Every package entry not declared runtime-specific (the subpaths under Subpath
+conventions) is pure/universal: no Node, React, or browser runtime import or
+type — `node:*` included — in its built JS or its `.d.ts`, and no app-specific
+contract pulled in at runtime. Anything that is browser/client-Firebase, React
+UI, Admin SDK, Node-only, or app-specific lives behind a runtime-specific
+subpath or a separate package (ARCH-202, ARCH-203).
 
-Two intentional exceptions exist today, both declared in the boundary suite:
-`media-processing-core` (server-only root) and `chat-react` (its root *is* the
-React surface). Every other root must stay clean.
+Three intentional exceptions exist, each declared in the boundary suite:
+`media-processing-core` (server-only root), `chat-react` (its root *is* the
+React surface), and `ttt-core`'s `./safety` (Node-only). Every other entry must
+stay clean. The native-load check runs over exactly the entries this rule calls
+universal or server.
+
+## Imports inside a package
+
+Inside a package, code imports the file that defines each name — never a folder
+`index`, a nested entry, or the package's own name. Tests do the same, except that
+an entry-surface test may import an entry `index` to prove it forwards a name.
+Only an entry `index` re-exports, and only files in its own subtree, each named
+directly; an index declares nothing of its own, and no `index.ts` exists that
+is not a package entry (ARCH-203). An
+entry-surface test is a file named `<name>.entry.test.ts`; no other test imports
+an entry index.
 
 ## Subpath conventions
+
+Every definition a package exports is exported by exactly one entry — the entry of the folder that
+holds it. A file-level entry exists only for a file no folder entry covers, and a root-level file
+with no entry of its own belongs to the root, so the root never forwards what a folder entry exports
+(ARCH-203; the repo-guards package-entry check holds it in the boundary suite).
 
 Subpath names are consistent across packages so an import site reads its own
 safety:
@@ -134,7 +153,10 @@ safety:
   another package's graph.
 - UI packages must not import server (`./server` / Admin SDK) packages.
 - Server packages must not import React/UI.
-- No dependency cycles.
+- No dependency cycles, and no runtime import cycle between a package's own
+  modules (the repo-guards cycle check, run on the import-paths analyzer's parse).
+- A foundation never depends on its adapters. The boundary suite fails a generic
+  package that imports `ttt-core` or `q-core`.
 - Backend chat schema/contract imports use `chat-schemas`, not `chat-core`.
 
 **Sanctioned exceptions** — a small number of generic packages carry a
@@ -301,12 +323,15 @@ The Step-0 boundary suite lives in `test/boundary/` (its own
 `vitest.config.ts`) and runs as part of the workspace test fan-out. It encodes
 the rules above so they fail loudly:
 
-- `root-runtime-leak.test.ts` (check #1) — for every package marked `hard` in
-  `leak-config.ts`, fails if the built root entry (`dist/index.js`)
-  transitively pulls a client/browser runtime (`react`, `firebase/*`, `next`,
-  `@tanstack/react-query`, `lucide-react`, `next-themes`, or any `*.css`). `media-processing-core`
-  and `chat-react` are `exempt` (intentionally non-pure roots). It warns rather
-  than fails when `dist/` is not built, so build the packages first.
+- `package-imports.test.ts` — runs repo-guards' package-architecture guards through
+  the suite entry: inside each package code imports the file that defines each
+  name and only an entry index re-exports (Imports inside a package); no package
+  has a runtime import cycle; every entry not declared runtime-specific reaches no
+  Node, React, or browser runtime in its built JavaScript or declaration files,
+  and every universal and Node entry loads under plain Node (Entry purity rule —
+  the runtime subpaths and the declared exceptions are this file's facts); and no
+  generic package depends on `ttt-core` or `q-core`. The guards read `dist/`, so
+  the build runs first, and an entry that is not built fails.
 - `internal-star-range.test.ts` (check #2) — **report-only** audit of
   `@ttt-productions/*: "*"` ranges in source manifests. Source `"*"` is expected;
   the hard-fail against published output lives in the release flow

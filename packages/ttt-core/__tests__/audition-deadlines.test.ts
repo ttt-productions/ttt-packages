@@ -10,7 +10,7 @@ import {
   defaultAuditionCloseAt,
   earliestAuditionEntriesCloseAt,
   earliestAuditionCloseAt,
-} from '../src/index';
+} from '../src/constants/audition-deadlines';
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;

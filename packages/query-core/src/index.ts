@@ -13,24 +13,7 @@ export {
 } from './cache-helpers.js';
 export type { PagedRows } from './cache-helpers.js';
 
-// Firestore Types & Pure Helpers
-export type {
-  WithId,
-  FirestoreSourceState,
-  WithSourceState,
-  BatchFirestoreDocOutcome,
-  FirestoreBaseOptions,
-  FirestoreDocOptions,
-  FirestoreCollectionOptions,
-  FirestoreInfiniteOptions,
-  FirestorePaginatedOptions,
-  InfinitePage,
-  PaginatedPage,
-  MutationOperation,
-  FirestoreMutationOptions,
-  FirestoreBatchOptions,
-} from './firestore/types.js';
-export { docWithId } from './firestore/types.js';
+// Firestore Pure Helpers
 export {
   flattenInfiniteData,
   getInfiniteDataCount,
@@ -45,18 +28,20 @@ export type {
 export { FIRESTORE_SEARCH_MIN_LENGTH, isSearchableText, normalizeSearchText } from './search/rule.js';
 
 // Domain-event invalidator (mechanism — consumers register their event registry)
+export { createDomainEventInvalidator } from "./domain-events/create-domain-event-invalidator.js";
 export {
-  createDomainEventInvalidator,
   exact,
   prefix,
   predicate,
   serializeInvalidation,
   applyInvalidations,
-} from "./domain-events/index.js";
+} from "./domain-events/cache-invalidation.js";
 export type {
   DomainEventInvalidator,
   DomainEventInvalidationRegistry,
+} from "./domain-events/create-domain-event-invalidator.js";
+export type {
   CacheAction,
   CacheInvalidation,
   RefetchType,
-} from "./domain-events/index.js";
+} from "./domain-events/cache-invalidation.js";

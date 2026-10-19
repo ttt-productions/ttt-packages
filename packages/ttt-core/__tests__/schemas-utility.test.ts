@@ -11,7 +11,7 @@ import {
   SeedDmcaPolicyInputSchema,
 } from '../src/schemas/utility';
 import * as schemasBarrel from '../src/schemas';
-import { FEEDBACK_TYPES } from '../src/constants/business';
+import { FEEDBACK_TYPES } from '../src/constants/business-admin';
 
 describe('public-document seed inputs (one per public document, intentionally empty)', () => {
   const seeds = {

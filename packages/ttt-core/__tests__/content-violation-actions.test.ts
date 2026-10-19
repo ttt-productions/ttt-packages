@@ -5,7 +5,6 @@ import {
   rejectedMediaAppealDeadline,
 } from '../src/constants/retention';
 import { contentViolationActions } from '../src/doc-schemas/moderation';
-import * as root from '../src/index';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const rejectedAt = 1_000_000;
@@ -23,9 +22,6 @@ describe('the appeal window', () => {
     expect(isRejectedMediaAppealOpen(rejectedAt, afterWindow)).toBe(false);
   });
 
-  it('is exported from the package root', () => {
-    expect(root.isRejectedMediaAppealOpen).toBe(isRejectedMediaAppealOpen);
-  });
 });
 
 describe('the actions a violation offers', () => {

@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { GuardContext } from '../../src/guard.js';
-import { createRepoReader, type Scope } from '../../src/reader/reader.js';
-import type { RepoLayout } from '../../src/reader/layout.js';
+import { createRepoReader, type Scope } from '../../src/node/reader.js';
+import type { RepoLayout } from '../../src/node/layout.js';
 import { declaredLiteral, matchPattern, ownerOnly, reviewedAllowlist, sampleHits } from '../../src/shapes/shapes.js';
 import { checkSamples } from '../../src/suite/run.js';
 import { contextOf } from '../helpers/context.js';

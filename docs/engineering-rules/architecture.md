@@ -94,7 +94,8 @@ app and turns it into a second home for a definition the app owns.
 
 **Rule.** Package roots stay server-safe: React exports live behind `./react`, Admin SDK behind
 `./server`, browser-only runtime behind `./browser`, CSS behind the style subpath. The intentional
-non-pure roots are declared in the boundary suite and nowhere else. A server-side module graph never
+non-pure roots are declared in the boundary suite and nowhere else. Every non-root entry follows the
+same purity (ARCH-203). A server-side module graph never
 pulls React, browser upload code, or app-shell code, and every client-only peer is declared `optional`
 so a server-only install never force-installs React.
 
@@ -112,14 +113,41 @@ client-only peer forces React into a server-only install.
 
 **Rule.** Never hide an unsafe import behind a re-export, and never create a compatibility barrel to
 smooth a package move. Canonical imports come from the package that owns the concept; an unused
-transitional subpath is deleted once no consumer remains.
+transitional subpath is deleted once no consumer remains. Every definition a package exports is
+exported by exactly one package entry — the entry of the folder that holds it; a file-level entry
+exists only for a file no folder entry covers, and a root-level file with no entry of its own belongs
+to the root — so the root and a deep entry never forward what a folder entry exports. A consumer
+imports each definition from its owning entry.
+
+Inside a package, code imports the file that defines each name — never a folder `index`, a nested
+entry, or the package's own name; tests too, except that an entry-surface test may import an entry
+`index` to prove it forwards a name. Only an entry `index` re-exports, and only files in its own
+subtree, each named directly; an index declares nothing of its own, and no `index.ts` exists that
+is not a package entry. An entry not
+declared runtime-specific carries no Node, React, or browser runtime import or type, `node:*`
+included; the runtime-specific entries are the subpaths `package-architecture.md` § Subpath
+conventions names plus the exceptions the boundary suite declares. No package has a runtime import
+cycle. Generic packages hold mechanisms, each application-data package holds its app's business,
+and a foundation never depends on its adapters. The repo-guards checks in the boundary suite enforce
+each of these.
 
 **Why.** A laundering re-export defeats the entry-point boundary silently; a compatibility barrel is
-a second name for one concept.
+a second name for one concept. Cross-folder imports through indexes manufacture import cycles and
+make a consumer evaluate a whole folder to use one name.
 
 **Prohibits.**
 - A re-export laundering a `/react`, browser, or Admin SDK import behind a server-safe path.
 - A new compatibility barrel; a dead transitional subpath kept after its consumers are gone.
+- Two entries of one package exporting the same definition.
+- Importing a folder `index`, a nested entry, or the package's own name from inside the package,
+  except an entry-surface test proving an entry forwards a name.
+- A re-export from any file but an entry `index`; an entry `index` forwarding a file outside its
+  subtree or through another index; an `index.ts` that is not an entry; a definition declared in an
+  index.
+- A Node, React, or browser runtime import or type (`node:*` included) in an entry not declared
+  runtime-specific.
+- A runtime import cycle inside a package.
+- A foundation depending on its adapter; a generic package importing `ttt-core` or `q-core`.
 
 **References.** ARCH-202; ENG-002.
 

@@ -37,12 +37,12 @@ import {
   activeNotificationIdSchema,
   unpaddedValueSchema,
 } from './atoms.js';
+import { MAX_HALL_CHANGE_REQUEST_REASON_LENGTH } from '../constants/business-content.js';
 import {
   MAX_THRESHOLD_REVIEW_NOTES_LENGTH,
-  MAX_HALL_CHANGE_REQUEST_REASON_LENGTH,
   MAX_NOTIFICATION_MESSAGE_LENGTH,
   MAX_BROADCAST_EXPLICIT_UIDS,
-} from '../constants/business.js';
+} from '../constants/business-admin.js';
 import { BROADCAST_MESSAGE_INPUT, BROADCAST_TITLE_INPUT } from '../constants/text-fields.js';
 import { HallSubItemTypeSchema } from '../doc-schemas/content.js';
 import { textFieldSchema } from './text-field.js';

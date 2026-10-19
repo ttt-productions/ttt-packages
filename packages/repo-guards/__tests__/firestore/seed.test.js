@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
-import { createRegistrySeedWriter, registeredSchemaForPath } from '../../src/seed/index.js';
+import { createRegistrySeedWriter, registeredSchemaForPath } from '../../src/seed/seed-writer.js';
 
 const ProfileSchema = z.object({ uid: z.string(), displayName: z.string(), bio: z.string().optional() });
 const PreferencesSchema = z.object({ theme: z.enum(['light', 'dark']) });

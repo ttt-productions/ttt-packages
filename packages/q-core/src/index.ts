@@ -1,9 +1,7 @@
-export * from './types/index.js';
-export * from './paths/index.js';
-export * from './constants/index.js';
-export * from './utils/index.js';
-export * from './media/index.js';
-export * from './ids/index.js';
-export * from './domain-events/index.js';
-export * from './input-formats/index.js';
-export * from './migration-console/index.js';
+// The package root carries only the modules no folder entry owns; every other definition is exported
+// by its own folder's entry alone (ARCH-203).
+
+export * from './input-formats/input-formats.js';
+export * from './migration-console/action-ids.js';
+export * from './migration-console/manifest.js';
+export * from './migration-console/run-state.js';

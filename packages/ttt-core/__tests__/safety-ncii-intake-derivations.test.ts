@@ -23,7 +23,7 @@ import {
   isTttHostedLocator,
 } from '../src/safety/ncii-intake-derivations.js';
 import { resourceKeyHash } from '../src/safety/resource-keys.js';
-import type { TargetLocatorV1 } from '../src/doc-schemas/index.js';
+import type { TargetLocatorV1 } from '../src/doc-schemas/safety/foundation.js';
 
 const SEP = '\x1f';
 

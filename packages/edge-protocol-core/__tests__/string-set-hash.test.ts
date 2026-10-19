@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashStringSet, sha256Hex } from '../src/index.js';
+import { hashStringSet, sha256Hex } from '../src/payload-hash.js';
 
 describe('hashStringSet — one canonical hash of a word-list style snapshot', () => {
   it('is the SHA-256 hex of the values sorted and joined with newlines', async () => {

@@ -4,10 +4,10 @@
 //   - each package is imported from the entry point that matches the runtime of the importing root;
 //   - nothing is imported from, or depended on at, a path outside the repository.
 
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding } from '../../guard.js';
-import { declaredRoots, type RepoLayout, type Reviewed, type RootRole } from '../../reader/layout.js';
-import type { Scope } from '../../reader/reader.js';
+import { declaredRoots, type RepoLayout, type Reviewed, type RootRole } from '../../node/layout.js';
+import type { Scope } from '../../node/reader.js';
 import { normalizePath, resolveRelative } from '../../support/paths.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';
 import { parseJsonc } from './jsonc.js';

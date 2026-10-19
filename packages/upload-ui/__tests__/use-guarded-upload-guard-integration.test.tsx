@@ -11,11 +11,11 @@ vi.mock('@ttt-productions/upload-core/browser', () => ({
 
 // --- imports after mocks ---
 
-import { useGuardedUpload } from '../src/react/use-guarded-upload.js';
+import { useGuardedUpload } from '../src/react/upload/use-guarded-upload.js';
 import {
   LocalUploadGuardProvider,
   useLocalUploadGuard,
-} from '../src/react/local-upload-guard-provider.js';
+} from '../src/react/guard/local-upload-guard-provider.js';
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return React.createElement(LocalUploadGuardProvider, null, children);

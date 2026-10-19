@@ -5,7 +5,6 @@ import {
   isAdminTaskResolvedByCheckin,
 } from '../src/constants/business-admin';
 import { AdminTaskTypeSchema } from '../src/doc-schemas/report-docs';
-import * as root from '../src/index';
 import { REPORT_TASK_QUEUES } from '../src/report/report-config-values';
 
 describe('admin-task resolution owners', () => {
@@ -43,10 +42,6 @@ describe('admin-task resolution owners', () => {
     expect(isAdminTaskResolvedByCheckin('__proto__')).toBe(false);
   });
 
-  it('is exported from the package root', () => {
-    expect(root.isAdminTaskResolvedByCheckin).toBe(isAdminTaskResolvedByCheckin);
-    expect(root.ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE).toBe(ADMIN_TASK_RESOLUTION_OWNER_BY_TYPE);
-  });
 });
 
 describe('the failed pledge refund task', () => {

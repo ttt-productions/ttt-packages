@@ -4,11 +4,11 @@
 // every export exactly once.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding, GuardContext } from '../../guard.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
-import { ROOT_ROLES, type Reviewed, type RootRole } from '../../reader/layout.js';
+import { ROOT_ROLES, type Reviewed, type RootRole } from '../../node/layout.js';
 import { calleeName, forEachNode, lineOfNode } from '../../support/ast.js';
 import { namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';
 import { moduleImports, namesModule } from '../../support/imports.js';

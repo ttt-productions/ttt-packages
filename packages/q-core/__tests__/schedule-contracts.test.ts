@@ -5,8 +5,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { MAX_SCHEDULE_WEEK_GAMES, MAX_SCHEDULE_WEEK_TITLE_LENGTH } from '../src/constants/business';
-import { SportGameSchema } from '../src/doc-schemas';
-import { DomainEventSchema } from '../src/domain-events';
+import { SportGameSchema } from '../src/doc-schemas/sport-game';
+import { DomainEventSchema } from '../src/domain-events/domain-events';
 import { BYE_TEAM_ID, buildScheduleWeekId, buildSportGameId, isByeTeamId } from '../src/ids/minted-ids';
 import { buildGameDeletionOperationId } from '../src/ids/stats-operation-ids';
 import { isDocumentIdSegment } from '../src/paths/utils';
@@ -22,8 +22,9 @@ import {
   AdminUpdateScheduleWeekResultSchema,
   AdminUpdateSportGameInputSchema,
   AdminUpdateSportGameResultSchema,
-} from '../src/schemas';
-import { gameScoreMirror, getSportAdapter } from '../src/sports';
+} from '../src/schemas/schedules';
+import { gameScoreMirror } from '../src/sports/score-mirror';
+import { getSportAdapter } from '../src/sports/registry';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
 import {
   SCHEDULE_CONFLICT_KIND_KEYS,

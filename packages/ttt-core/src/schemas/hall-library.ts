@@ -17,7 +17,7 @@ import {
   hallSubItemIdSchema,
   workRealmIdSchema,
 } from './atoms.js';
-import { MAX_HALL_LIBRARY_SUBMIT_BATCH } from '../constants/business.js';
+import { MAX_HALL_LIBRARY_SUBMIT_BATCH } from '../constants/business-admin.js';
 import {
   CHAPTER_CONTENT_INPUT,
   CHAPTER_TITLE_INPUT,
@@ -29,8 +29,8 @@ import {
   TUNE_TRACK_DESCRIPTION_INPUT,
   TUNE_TRACK_TITLE_INPUT,
 } from '../constants/text-fields.js';
-import { textFieldSchema } from './text-field.js';
 import { WORK_PROJECT_SPECIFIC_GENRES } from '../constants/options.js';
+import { textFieldSchema } from './text-field.js';
 
 // Canonical per-type genre enums. `WORK_PROJECT_SPECIFIC_GENRES.<type>` is a readonly
 // tuple of the exact genre strings the UI offers; the schema is the cross-boundary
@@ -330,7 +330,7 @@ export type UpdateTuneWorkGenresResult = z.infer<typeof UpdateTuneWorkGenresResu
 
 // The per-user Hall viewing-state doc: one core (`runX`) owns the single privateData doc per ARCH-001; writes are CALLABLE-ONLY —
 // no direct client Firestore writes anywhere in this system. Every list on the doc is capped
-// (HALL_LIBRARY_PREFS_CAPS in ../constants/business.js); cap enforcement is the backend
+// (HALL_LIBRARY_PREFS_CAPS in ../constants/business-content.js); cap enforcement is the backend
 // core's job, not this input-validation layer.
 
 export const UpdateHallWorkHiddenInputSchema = z.object({

@@ -2,7 +2,7 @@
 // each produced once, on first use. Pure — the reader supplies a loader that reads the disk.
 
 import ts from 'typescript';
-import { kindOfFile, type FileKind, type RootRole } from './layout.js';
+import { kindOfFile, type FileKind, type RootRole } from '../node/layout.js';
 import { moduleImports, type ModuleImport } from '../support/imports.js';
 import { stripCodeComments, stripRulesComments, stripStylesheetComments } from './strip-comments.js';
 

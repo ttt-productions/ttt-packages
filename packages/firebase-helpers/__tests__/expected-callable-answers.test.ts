@@ -4,7 +4,7 @@ import {
   callableRefusalCode,
   callableRefusalReason,
   isExpectedCallableAnswerCode,
-} from '../src/index.js';
+} from '../src/utils/expected-callable-answers.js';
 
 describe('isExpectedCallableAnswerCode', () => {
   it('accepts every code in the canonical set, bare and client-prefixed', () => {

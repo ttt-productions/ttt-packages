@@ -4,8 +4,8 @@
 // server-only collection, which needs no entry.
 
 import type { Finding } from '../../guard.js';
-import type { GenericGuardDefinition } from '../../config.js';
-import type { Reviewed } from '../../reader/layout.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
+import type { Reviewed } from '../../node/layout.js';
 import { reviewedProblems, loaderProblem, type Loader } from '../../support/facts.js';
 import { coreBuild } from './shared.js';
 

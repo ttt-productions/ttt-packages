@@ -3,7 +3,7 @@
 // mocked module hand the second caller the REAL module, while a loader's callers all get the mock.
 
 import { describe, it, expect, vi } from 'vitest';
-import { lazyModule } from '../src/index.js';
+import { lazyModule } from '../src/lazy-module.js';
 
 vi.mock('./fixtures/loaded-module.js', () => ({ mockedModule: true }));
 

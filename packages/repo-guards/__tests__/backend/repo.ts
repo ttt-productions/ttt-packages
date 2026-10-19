@@ -3,8 +3,8 @@
 
 import type { Guard } from '../../src/guard.js';
 import { sampleHits } from '../../src/shapes/shapes.js';
-import { createRepoReader, type RepoReader } from '../../src/reader/reader.js';
-import type { RepoLayout } from '../../src/reader/layout.js';
+import { createRepoReader, type RepoReader } from '../../src/node/reader.js';
+import type { RepoLayout } from '../../src/node/layout.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo } from '../helpers/temp-repo.js';
 

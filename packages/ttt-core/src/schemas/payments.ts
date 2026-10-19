@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { PLEDGE_REFUND_DENIAL_REASON_INPUT } from '../constants/text-fields.js';
-import { textFieldSchema } from './text-field.js';
 import {
   MIN_PLEDGE_PAYMENT_AMOUNT_CENTS,
   MAX_PLEDGE_PAYMENT_AMOUNT_CENTS,
   MAX_STRIPE_CHECKOUT_SESSION_ID_LENGTH,
-} from '../constants/business.js';
+} from '../constants/business-platform.js';
+import { textFieldSchema } from './text-field.js';
 import { PledgePaymentSchema, PledgeRefundRequestSchema } from '../doc-schemas/payments.js';
 import {
   LegalReviewNoticeAcknowledgedInputSchema,

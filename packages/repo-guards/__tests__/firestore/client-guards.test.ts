@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { firestoreRuntimeInUiGuard, liveSubscriptionGuard } from '../../src/modules/firestore/client-guards.js';
 import { checkSamples } from '../../src/suite/run.js';
 import type { Guard } from '../../src/guard.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 

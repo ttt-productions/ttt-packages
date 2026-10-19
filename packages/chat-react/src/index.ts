@@ -34,47 +34,46 @@ export { useChatMessages } from "./hooks/useChatMessages.js";
 // Realtime (Cloudflare Durable Object) transport — the client half of the chat
 // worker wire protocol. Opt-in via `ChatCoreConfig.transport === 'realtime'`; the
 // firestore transport stays the unchanged default. See docs/packages/chat-react.md.
+export { createRealtimeChatClient, createInboxClient } from "./realtime/transport.js";
+export { ChannelClient } from "./realtime/channel-client.js";
+export { InboxClient } from "./realtime/inbox-client.js";
+export { useRealtimeChatMessages } from "./realtime/useRealtimeChatMessages.js";
+export { browserSocketFactory } from "./realtime/socket.js";
 export {
-  createRealtimeChatClient,
-  createInboxClient,
-  ChannelClient,
-  InboxClient,
-  useRealtimeChatMessages,
-  browserSocketFactory,
   ChatAccessDeniedError,
   isChatAccessDeniedError,
   CHAT_INITIAL_LOAD_FAILURE_BUDGET_MS,
+} from "./realtime/shared.js";
+export {
   CHAT_SUBPROTOCOL,
   CHAT_CLOSE_CODES,
   CLIENT_FRAME,
   SERVER_FRAME,
   buildFrame,
   parseFrame,
-  CHAT_CLIENT_DIAGNOSTIC_EVENTS,
-} from "./realtime/index.js";
+} from "./realtime/wire.js";
+export { CHAT_CLIENT_DIAGNOSTIC_EVENTS } from "./realtime/diagnostics.js";
+export type { RealtimeChatClient, RealtimeTransportConfig } from "./realtime/transport.js";
 export type {
-  RealtimeChatClient,
-  RealtimeTransportConfig,
   ChatClientDiagnosticsOption,
   ChatClientDiagnosticsSink,
   ChatClientDiagnosticEventName,
-  ChannelClientState,
-  ChannelClientConfig,
+} from "./realtime/diagnostics.js";
+export type { ChannelClientState, ChannelClientConfig } from "./realtime/channel-client.js";
+export type {
   InboxClientState,
   InboxClientConfig,
   ChatMarkReadOutcome,
-  UseRealtimeChatMessagesResult,
-  GrantProvider,
-  TransportTimers,
-  RealtimeStatus,
-  RealtimeSocket,
-  SocketFactory,
-  SocketHandlers,
+} from "./realtime/inbox-client.js";
+export type { UseRealtimeChatMessagesResult } from "./realtime/useRealtimeChatMessages.js";
+export type { GrantProvider, TransportTimers, RealtimeStatus } from "./realtime/shared.js";
+export type { RealtimeSocket, SocketFactory, SocketHandlers } from "./realtime/socket.js";
+export type {
   WireMessageRow,
   WireInboxSnapshot,
   WireRegistryEntry,
   ServerFrame,
-} from "./realtime/index.js";
+} from "./realtime/wire.js";
 
 // TODO (re-export when a consumer needs them): the moderation-overlay helpers
 // `RevisionKind`, `ModerationOverlay`, `applyModerationOverlay`, `overlayFromRow`,

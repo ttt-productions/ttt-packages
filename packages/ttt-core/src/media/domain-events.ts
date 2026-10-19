@@ -57,11 +57,6 @@ import {
   SystemSlotUidUpdatedEventSchema,
 } from "./domain-events-admin.js";
 
-export * from "./domain-events-user.js";
-export * from "./domain-events-work.js";
-export * from "./domain-events-social.js";
-export * from "./domain-events-admin.js";
-
 // ============================================================================
 // DomainEvent — typed business actions emitted by mutations and upload
 // processors. The frontend registry (ttt-prod/src/lib/domain-events.ts) maps

@@ -2,7 +2,7 @@
 // reference. The venue catalog is ./game-location.ts.
 
 import { z } from 'zod';
-import { AWARD_NAME_INPUT_FORMAT } from '../input-formats/index.js';
+import { AWARD_NAME_INPUT_FORMAT } from '../input-formats/input-formats.js';
 import { countSchema, documentIdSegmentSchema, epochMsSchema, textFieldSchema } from './atoms.js';
 import { pictureIdSchema } from './gallery.js';
 

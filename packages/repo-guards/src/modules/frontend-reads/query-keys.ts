@@ -3,7 +3,7 @@
 // the signed-in account's own data carries that account's uid.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
 import { forEachNode, lineOfNode } from '../../support/ast.js';

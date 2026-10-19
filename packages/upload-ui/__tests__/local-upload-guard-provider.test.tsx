@@ -4,7 +4,7 @@ import React from 'react';
 import {
   LocalUploadGuardProvider,
   useLocalUploadGuard,
-} from '../src/react/local-upload-guard-provider.js';
+} from '../src/react/guard/local-upload-guard-provider.js';
 
 function wrapper({ children }: { children: React.ReactNode }) {
   return React.createElement(LocalUploadGuardProvider, null, children);

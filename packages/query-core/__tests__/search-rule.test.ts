@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { FIRESTORE_SEARCH_MIN_LENGTH, isSearchableText } from '../src/index.js';
+import { FIRESTORE_SEARCH_MIN_LENGTH, isSearchableText } from '../src/search/rule.js';
 
 describe('the search text rule', () => {
   it('searches a text whose trimmed length reaches the minimum', () => {

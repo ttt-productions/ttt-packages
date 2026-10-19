@@ -5,7 +5,7 @@
 // defaultTargetPath — never '/' as a pseudo-target).
 
 import { describe, it, expect } from 'vitest';
-import { TTT_NOTIFICATION_CONFIG } from '../src/notifications/index.js';
+import { TTT_NOTIFICATION_CONFIG } from '../src/notifications/notification-config.js';
 import {
   NOTIFICATION_TYPE_VALUES,
   NOTIFICATION_TYPE_CATALOG,

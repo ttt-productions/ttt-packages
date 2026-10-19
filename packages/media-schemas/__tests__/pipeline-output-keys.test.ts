@@ -4,7 +4,7 @@ import {
   MEDIA_PIPELINE_OUTPUT_KEYS,
   TIMED_MEDIA_MAIN_OUTPUT_KEY,
   VIDEO_POSTER_OUTPUT_KEY,
-} from "../src/index.js";
+} from "../src/pipeline-output-keys.js";
 
 describe("media pipeline output keys", () => {
   it("a video is written as its main output and its poster frame", () => {

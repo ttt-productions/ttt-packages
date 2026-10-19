@@ -4,7 +4,7 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { analyzeDuplicateExports, duplicateExportsReport, type DuplicateExportFacts } from '../../src/modules/repo/duplicate-exports.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { viewOfText } from '../../src/reader/view.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 

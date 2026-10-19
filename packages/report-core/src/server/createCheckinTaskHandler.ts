@@ -1,7 +1,7 @@
 import type { ServerFirestore, ServerReportCoreConfig, OnAuditEvent } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';
-import type { CheckinTaskRequest } from '../schemas/index.js';
-import type { TaskLifecycleResult } from '../types-admin-task.js';
+import type { CheckinTaskRequest } from '../schemas/requests.js';
+import type { TaskLifecycleResult } from '../contracts/types-admin-task.js';
 
 export interface CheckinTaskHandlerConfig {
   config: ServerReportCoreConfig;

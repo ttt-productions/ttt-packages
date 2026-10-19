@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_PRIORITY_THRESHOLDS, ADMIN_TASK_STATUS } from '../src/config';
+import { DEFAULT_PRIORITY_THRESHOLDS, ADMIN_TASK_STATUS } from '../src/contracts/config';
 
 describe('DEFAULT_PRIORITY_THRESHOLDS', () => {
   it('is sorted by minScore descending', () => {

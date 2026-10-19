@@ -39,7 +39,7 @@ vi.mock('firebase/storage', () => ({
   getDownloadURL: getDownloadURLMock,
 }));
 
-import { startResumableUpload, uploadFileResumable } from '../src/storage/upload.js';
+import { startResumableUpload, uploadFileResumable } from '../src/browser/upload.js';
 
 beforeEach(() => {
   upsertUploadSessionMock.mockReset();

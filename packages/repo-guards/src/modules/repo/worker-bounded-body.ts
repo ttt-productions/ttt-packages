@@ -4,9 +4,9 @@
 // fails. Reads of stored objects and fetch responses are not request bodies: the match keys on the
 // handler's request identifier (`request` / `req`).
 
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding } from '../../guard.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { escapeRegExp } from '../../support/text.js';
 import { identifierProblem, isText, objectProblem, reviewedProblems } from '../../support/facts.js';

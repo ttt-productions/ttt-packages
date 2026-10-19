@@ -5,13 +5,6 @@ import { ACTIVE_LIMITS } from './app-mode.js';
 import { HALL_LIBRARY_TARGET_FIELDS } from '../media/hall-library-target-fields.js';
 import type { WorkProjectType } from '../types/content.js';
 import { HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE } from './hall-content-routing.js';
-export {
-  HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE,
-  HALL_CONTENT_DETAIL_SURFACES,
-  HALL_CONTENT_SUB_ITEM_SURFACES,
-  type HallContentDetailSurface,
-  type HallContentSubItemSurface,
-} from './hall-content-routing.js';
 
 /** The maximum character length for a SquareStreetz post created on behalf of a workProject. */
 export const MAX_SQUARE_STREETZ_DESCRIPTION_LENGTH = 150;
@@ -125,7 +118,7 @@ export const HALL_CONTENT_TEXT_FIELDS = {
   chapter: MODERATION_CLEARABLE_TEXT_FIELDS.chapter,
   tuneTrack: MODERATION_CLEARABLE_TEXT_FIELDS.tuneTrack,
   televisionEpisode: MODERATION_CLEARABLE_TEXT_FIELDS.televisionEpisode,
-  // Realm grain (R1, 2026-07-12): targets the `workRealms/{id}` doc directly.
+  // Realm grain: targets the `workRealms/{id}` doc directly.
   workRealm: MODERATION_CLEARABLE_TEXT_FIELDS.workRealm,
 } as const satisfies Record<string, readonly string[]>;
 
@@ -149,9 +142,8 @@ export interface HallContentSurfaceRouting {
  * `HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE` owner; this map adds the clearable field tuples each
  * surface exposes. Cross-boundary: the backend text-clear and change-request
  * runners resolve `surface` from (workProjectType, is-sub-item?) through this map, and the admin
- * field pickers project their checkbox options from the same entry — three sites that each
- * hand-rolled the routing before (a ternary that fell through to the tuneTrack tuple for
- * Television, silently correct only because the two tuples happen to match today).
+ * field pickers project their checkbox options from the same entry, so no site routes a surface
+ * by its own branch.
  *
  * Every identity and field tuple is PROJECTED from its canonical owner — no surface or field
  * literal is restated here — and the `satisfies Record<WorkProjectType, …>` makes adding a
@@ -264,20 +256,19 @@ export const HALL_SUB_ITEM_REQUIREMENT_LABELS = {
  *  the member). One owner for the review callable schema AND the admin work-view input. */
 export const MAX_HALL_CHANGE_REQUEST_REASON_LENGTH = 2000;
 
-// --- Real-people / parody disclaimer (R3, 2026-07-12) ---
+// --- Real-people / parody disclaimer ---
 
 /**
  * The ONE standard platform disclaimer rendered on every published work whose
  * author attested it depicts real people (parody / satire / commentary). Two
- * layers, always shown together (DJ, 2026-07-12): the themed playbill HEADER
+ * layers, always shown together: the themed playbill HEADER
  * on top, the plain legal MESSAGE underneath. There is no free-text disclaimer
  * anywhere — these constants are the only wording, so a wording change is a
  * single edit here (display surfaces and any backend consumer read these; the
  * text is never persisted on docs). The MESSAGE deliberately never ADMITS the
  * work depicts real people — it hedges ("even those based on real people",
  * the standard film-boilerplate move) so the disclaimer never hands over the
- * depiction element of a claim. Legal wording pending counsel confirmation
- * (tracked in docs/ttt-prod-legal/).
+ * depiction element of a claim. Legal wording pending counsel confirmation.
  */
 export const REAL_PEOPLE_DISCLAIMER_HEADER =
   'A Notice from the Management: the faces may be familiar, but the players are pure ' +
@@ -291,12 +282,12 @@ export const REAL_PEOPLE_DISCLAIMER_MESSAGE =
   'real person. This work is not created by, affiliated with, sponsored by, or endorsed by ' +
   'any real person portrayed or referenced in it.';
 
-// --- Hall library per-user viewing-state doc (hall-viewing-experience Area 2, ruled 2026-07-04) ---
+// --- Hall library per-user viewing-state doc ---
 
 /**
  * Caps for the per-user Hall viewing-state doc (`HallLibraryPreferencesSchema`,
  * `userProfiles/{uid}/privateData/hallLibraryPreferences`). Every list on that doc is
- * capped for launch — no unbounded per-user lists. `hiddenWorkIds`/`inkedWorkIds` are
+ * capped — no unbounded per-user lists. `hiddenWorkIds`/`inkedWorkIds` are
  * oldest-pruned (or the write is rejected with a friendly message once full);
  * `inProgress` is LRU-pruned by `updatedAt`; `recentlyViewed` is capped, newest-kept.
  * Enforcement lives in the backend core (`runX`) that owns this doc — this is the

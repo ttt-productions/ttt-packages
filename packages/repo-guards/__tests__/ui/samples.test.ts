@@ -2,7 +2,7 @@
 // registers takes its facts under its own id.
 
 import { describe, expect, it } from 'vitest';
-import { UI_GUARDS, type UiGuardFacts } from '../../src/modules/ui/index.js';
+import { UI_GUARDS, type UiGuardFacts } from '../../src/modules/ui/guards.js';
 import { checkSamples } from '../../src/suite/run.js';
 
 const entryStylesheet = 'src/app/styles/globals.css';

@@ -1,26 +1,26 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
+import { GUIDE_VIDEO_DEFINITIONS, guideVideoSlotId } from '../src/system-slots/guide-videos';
 import {
-  GUIDE_VIDEO_DEFINITIONS,
-  guideVideoSlotId,
   SYSTEM_SLOTS,
   SystemSlotKindSchema,
   SystemVideoSlotIdSchema,
   SystemUidSlotIdSchema,
   SystemUidListSlotIdSchema,
   getSystemSlot,
-  HELP_VIDEO_DEFINITIONS,
-  helpVideoSlotId,
   SYSTEM_SLOT_GROUPS,
   isRequiredVideoSlot,
   systemSlotsByGroup,
-} from '../src/system-slots';
+} from '../src/system-slots/system-slots';
+import { HELP_VIDEO_DEFINITIONS, helpVideoSlotId } from '../src/system-slots/help-videos';
 import { SystemContentTargetInfoSchema, parseTargetInfo } from '../src/media/target-info';
 import { FileOriginSchema } from '../src/media/file-origin';
 import { fileOriginRowLabel } from '../src/media/upload-tray-display';
 import { DomainEventSchema } from '../src/media/domain-events';
 import { ClearSystemVideoSlotInputSchema, UpdateSystemUidSlotInputSchema } from '../src/schemas/admin';
-import { MAX_SYSTEM_UID_LIST } from '../src/constants/business';
-import { UploadSystemContentVariablesSchema } from '../src/upload-variables';
+import { MAX_SYSTEM_UID_LIST } from '../src/constants/business-admin';
+import {
+  UploadSystemContentVariablesSchema,
+} from '../src/upload-variables/upload-system-content-variables';
 import {
   EMPTY_SYSTEM_VIDEO_SLOTS_DOCUMENT,
   SystemUidSlotsDocumentSchema,

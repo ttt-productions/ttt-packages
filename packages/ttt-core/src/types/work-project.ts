@@ -1,19 +1,7 @@
-// WorkProject-related Firestore document types
+// The public guildmate projection: which GuildmateUser fields the public mirror copies, and
+// the one builder of that projection.
 import { FOUNDING_WORK_HOLDER_TYPE } from '../doc-schemas/work-project.js';
 import type { GuildmateUser, PublicGuildmateUser } from '../doc-schemas/work-project.js';
-
-export type {
-  GuildmateStatus,
-  RealmCanonStatus,
-  GuildmateUser,
-  PublicGuildmateUser,
-  WorkFileFolder,
-  WorkFile,
-  PendingStakeShares,
-  FullWorkProject,
-  PublicWorkProject,
-  WorkRealm,
-} from '../doc-schemas/work-project.js';
 
 /**
  * Single source of truth for which GuildmateUser fields the public mirror copies,
@@ -72,8 +60,3 @@ export function publicGuildmateUserPayloadEqual(
     a.tradeProfessions.every((profession, index) => profession === b.tradeProfessions[index])
   );
 }
-
-// StakeShareOperation types are defined by the Zod schema.
-// See packages/ttt-core/src/schemas/stake-share-operation.ts for the source of truth.
-// The old `workProjectData?: FullWorkProject` field was dead and has been removed.
-export type { StakeShareOperation, StakeShareOperationType } from '../schemas/stake-share-operation.js';

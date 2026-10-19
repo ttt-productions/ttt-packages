@@ -1,10 +1,7 @@
-// Trust & Safety — the report spine (Appendix A §A1, Finding-H1).
+// Trust & Safety — the report spine.
 //
 // The canonical report-target contract produced by the server `resolveReportTarget()`
-// resolver plus the protected report root + public projection. Every shape here is
-// transcribed verbatim from the frozen Trust & Safety spec (Appendix A §A1) — no
-// invented values, no placeholders; the durable design owner is ttt-prod
-// docs/design/content-moderation-and-reporting.md.
+// resolver plus the protected report root + public projection.
 //
 // SHARED enums + the target locator come from ./foundation.js (the single source for
 // every cross-cluster enum); they are NEVER redefined here.
@@ -12,8 +9,7 @@
 // Collection bindings (../registry.ts): `contentReports/{reportId}` →
 // `ProtectedReportRootV1Schema`, `contentReports/{reportId}/publicProjection/{reportId}`
 // → `ReportPublicProjectionV1Schema`, and `activeReportGroups/{groupKey}` →
-// `ReportGroupV1Schema`. These REPLACED the legacy loose-string report/group schemas; the
-// report DOC shape now lives entirely in this file.
+// `ReportGroupV1Schema`. The report DOC shape lives entirely in this file.
 
 import { z } from 'zod';
 import {
@@ -25,7 +21,7 @@ import {
 import {
   MAX_REPORT_NARRATIVE_LENGTH,
   MAX_REPORT_SNAPSHOT_TEXT_LENGTH,
-} from '../../constants/business.js';
+} from '../../constants/business-admin.js';
 import { MediaAssetOwnerTypeSchema } from '../media-assets.js';
 import {
   ModerationDecisionNumberSchema,
@@ -42,20 +38,19 @@ import {
 
 /** Version token folded into every canonical key formula below.
  *
- * v2 (pre-launch, no migration): two coordinated formula-input changes ride this
- * single bump —
- *   (1) `canonicalTargetKey` composition is now INJECTIVE: each field is
+ * v2 carries two formula-input properties —
+ *   (1) `canonicalTargetKey` composition is INJECTIVE: each field is
  *       length-prefixed (`len:value`) before joining, so no pair of adjacent
  *       attacker-controlled fields (chat `canonicalParentPath` + `canonicalItemId`)
  *       can produce a colliding preimage across different (channel, message) pairs.
  *   (2) `revision` is derived from CONTENT-relevant state only (the content-edit
  *       stamp `updatedAt`, falling back to `createdAt`) — NEVER the Firestore write
- *       clock (`updateTime`). Counter writes (likes/votes/follows) no longer fragment
+ *       clock (`updateTime`), so counter writes (likes/votes/follows) never fragment
  *       report groups or defeat per-reporter dedupe. */
 export const REPORT_CANONICAL_KEY_VERSION = 'v2';
 
 // ===========================================================================
-// A1 — Server resolver result (ResolvedReportTargetV1)
+// Server resolver result (ResolvedReportTargetV1)
 // ===========================================================================
 
 /** The server resolver result. The client `reportedItemId`/`reportedUserId` are
@@ -74,13 +69,13 @@ export const ResolvedReportTargetV1Schema = z.object({
   messageId: z.string().optional(),
   // (There is no `attachmentId` mirror: chat carries no media, and a Conversation File is
   // identified by its `conversationFile` locator + the `mediaAssetId` field above.)
-  locator: TargetLocatorV1Schema, // the §A11 discriminated locator for downstream hold/removal
+  locator: TargetLocatorV1Schema, // the discriminated locator for downstream hold/removal
   resolvedAt: z.number(),
 }).strict();
 export type ResolvedReportTargetV1 = z.infer<typeof ResolvedReportTargetV1Schema>;
 
 // ===========================================================================
-// A1 — Sanitized frozen snapshot (ReportTargetSnapshotV1)
+// Sanitized frozen snapshot (ReportTargetSnapshotV1)
 // ===========================================================================
 
 /** The sanitized frozen snapshot captured at resolve time — no reporter identity,
@@ -92,7 +87,7 @@ export const ReportTargetSnapshotV1Schema = z.object({
   revision: z.number(),
   contentSummaryRef: z.string(), // pointer to a sanitized content snapshot (restricted)
   contentHashes: z.array(z.string()).max(16).optional(),
-  // [H-11/EUAS-013/R14] The sanitized REPORTED CONTENT captured at report time, so an author can't edit
+  // The sanitized REPORTED CONTENT captured at report time, so an author can't edit
   // the violating text/media out before review and have the operator see only the cleaned live doc
   // (edit-to-evade). `capturedText` = the bounded reported text/title/description (NO PII);
   // `capturedMediaAssetIds` = the reported media asset ids. Frozen + immutable like the rest.
@@ -103,7 +98,7 @@ export const ReportTargetSnapshotV1Schema = z.object({
 export type ReportTargetSnapshotV1 = z.infer<typeof ReportTargetSnapshotV1Schema>;
 
 // ===========================================================================
-// A1 — Segregated reporter narrative (NarrativeRecordV1)
+// Segregated reporter narrative (NarrativeRecordV1)
 // ===========================================================================
 
 /** The reporter's free-text narrative — segregated reporter PII. Lives in a
@@ -121,7 +116,7 @@ export const NarrativeRecordV1Schema = z.object({
 export type NarrativeRecordV1 = z.infer<typeof NarrativeRecordV1Schema>;
 
 // ===========================================================================
-// A1 — Protected report root (ProtectedReportRootV1)
+// Protected report root (ProtectedReportRootV1)
 // ===========================================================================
 
 /** Cluster-local lifecycle status of the protected report root. */
@@ -133,10 +128,8 @@ export const ProtectedReportRootStatusSchema = z.enum([
 ]);
 export type ProtectedReportRootStatus = z.infer<typeof ProtectedReportRootStatusSchema>;
 
-/** The protected report root (restricted — reporter identity + narrative segregated).
- * FUTURE shape of the EXISTING `contentReports/{reportId}` collection (rebinding
- * deferred to the app leg). `protectedFork` is set ONLY by the protected branch
- * (Phase 1 step 2a). */
+/** The protected report root (restricted — reporter identity + narrative segregated),
+ * bound to `contentReports/{reportId}`. `protectedFork` is set ONLY by the protected branch. */
 export const ProtectedReportRootV1Schema = z.object({
   schemaVersion: z.literal(1),
   reportId: z.string().min(1), // = sha256(lp(version) + lp(reporterUid) + lp(canonicalTargetKey)) — see injective formulas below
@@ -146,7 +139,7 @@ export const ProtectedReportRootV1Schema = z.object({
   snapshotRef: z.string(), // → ReportTargetSnapshotV1
   canonicalTargetKey: z.string(), // see formula below
   narrativeRef: z.string().optional(),
-  protectedFork: ProtectedForkSchema.optional(), // set ONLY by the protected branch (Phase 1 step 2a)
+  protectedFork: ProtectedForkSchema.optional(), // set ONLY by the protected branch
   // Set when this ordinary report was escalated into its authoritative protected
   // safety case. The root remains a durable reporter record, not a second case.
   escalatedToCase: z.string().min(1).optional(),
@@ -157,7 +150,7 @@ export const ProtectedReportRootV1Schema = z.object({
 export type ProtectedReportRootV1 = z.infer<typeof ProtectedReportRootV1Schema>;
 
 // ===========================================================================
-// A1 — Public projection (ReportPublicProjectionV1)
+// Public projection (ReportPublicProjectionV1)
 // ===========================================================================
 
 /** Public projection — no reporter identity / narrative. */
@@ -172,7 +165,7 @@ export const ReportPublicProjectionV1Schema = z.object({
 export type ReportPublicProjectionV1 = z.infer<typeof ReportPublicProjectionV1Schema>;
 
 // ===========================================================================
-// A1 — Report group (ReportGroupV1) — dedup/count group keyed by canonicalTargetKey
+// Report group (ReportGroupV1) — dedup/count group keyed by canonicalTargetKey
 // ===========================================================================
 
 /** What an admin's content action left the reported content as. `admin_hidden` = hidden pending
@@ -206,7 +199,7 @@ export const ReportGroupV1Schema = z.object({
   highestReasonScore: z.number(),
   lastReportAt: z.number(),
   latestReason: ReportReasonSchema,
-  // [R12] close-lifecycle states. An ordinary report's admin close (hide/remove/restore) moves the
+  // Close-lifecycle states. An ordinary report's admin close (hide/remove/restore) moves the
   // group to `processing` and STAYS in the queue — it is NEVER cleared on the click. The group flips
   // to the terminal `resolved` ONLY when the edge serving-deny (hide/remove) or block-clear (restore)
   // VERIFIES. If the content-serving-sync saga exhausts its retries (dead-letter), the group moves to
@@ -293,15 +286,15 @@ export type ReportGroupCountedReport = z.infer<typeof ReportGroupCountedReportSc
 // ===========================================================================
 // Canonical keys (DEFINED — not inline prose). Computed server-side by the
 // resolver/writer; documented here, NOT computed in this schema layer. The
-// `version` token in each formula is `REPORT_CANONICAL_KEY_VERSION` above (now v2).
+// `version` token in each formula is `REPORT_CANONICAL_KEY_VERSION` above.
 //
 //   canonicalTargetKey = sha256( lp(version) + lp(itemType) + lp(canonicalParentPath)
 //                                + lp(canonicalItemId) + lp(String(revision)) )
-//                        // v2: INJECTIVE composition. lp(s) length-prefixes each field
+//                        // INJECTIVE composition. lp(s) length-prefixes each field
 //                        // as `<byteLength>:<s>` (or hash each field separately) so no ':'
 //                        // ambiguity can straddle two adjacent attacker-controlled fields.
-//                        // The old `[...].join(':')` was collision-prone for chat targets,
-//                        // whose canonicalParentPath + canonicalItemId are BOTH client-
+//                        // A plain `[...].join(':')` collides for chat targets, whose
+//                        // canonicalParentPath + canonicalItemId are BOTH client-
 //                        // derived strings (synthetic:chat:<channelRef> / <messageId>).
 //                        // `revision` is the CONTENT revision (content-edit stamp, never
 //                        // the Firestore write clock) — see REPORT_CANONICAL_KEY_VERSION.
@@ -309,7 +302,7 @@ export type ReportGroupCountedReport = z.infer<typeof ReportGroupCountedReportSc
 //   reportId           = sha256( lp(version) + lp(reporterUid) + lp(canonicalTargetKey) )
 //                        // deterministic dup-key: one report per reporter+target+revision.
 //                        // This determinism is what makes the protected branch's retry a
-//                        // no-op on the already-committed hold (Phase 1 step 2a).
+//                        // no-op on the already-committed hold.
 //
 //   reportGroupKey     = canonicalTargetKey
 //                        // grouping key: all reporters of the same target+revision.

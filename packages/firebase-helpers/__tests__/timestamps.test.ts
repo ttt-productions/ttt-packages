@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { serverNow, dateToTs, msToTs, tsToDate } from '../src/firestore/timestamps';
+import { serverNow, dateToTs, msToTs, tsToDate } from '../src/firestore-client/timestamps';
 import { serverTimestamp, Timestamp } from 'firebase/firestore';
 
 // Extend the Timestamp mock with fromMillis (not in global setup)

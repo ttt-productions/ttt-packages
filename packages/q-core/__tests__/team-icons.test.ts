@@ -2,7 +2,7 @@
 // key a team may already hold stays, in its place.
 
 import { describe, expect, it } from 'vitest';
-import { TEAM_ICON_KEYS } from '../src';
+import { TEAM_ICON_KEYS } from '../src/types/unions';
 import { teamIconSchema } from '../src/doc-schemas/atoms';
 
 // The set as first shipped. A team document may hold any of these, so none is renamed or removed.

@@ -6,7 +6,7 @@ import { localOnlyVariablesGuard, type LocalOnlyVariablesFacts } from '../../src
 import { workerBoundedBodyGuard, type WorkerBoundedBodyFacts } from '../../src/modules/repo/worker-bounded-body.js';
 import { workerConfigGuard, type WorkerConfigFacts } from '../../src/modules/repo/worker-config.js';
 import { readTables } from '../../src/modules/repo/wrangler-toml.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { checkSamples } from '../../src/suite/run.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';

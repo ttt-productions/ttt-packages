@@ -1,9 +1,9 @@
 // Running one UI guard definition over a throwaway repository, for the ui area's tests.
 
-import type { GenericGuardDefinition } from '../../src/config.js';
+import type { GenericGuardDefinition } from '../../src/suite/config.js';
 import type { Finding } from '../../src/guard.js';
-import type { RepoLayout } from '../../src/reader/layout.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import type { RepoLayout } from '../../src/node/layout.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo } from '../helpers/temp-repo.js';
 

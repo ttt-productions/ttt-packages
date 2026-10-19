@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { MAX_STAT_EVENTS_PER_WRITE } from '../constants/sports.js';
 import { isSportStatEventId } from '../ids/stat-event-ids.js';
-import { GAME_MEMO_INPUT_FORMAT } from '../input-formats/index.js';
+import { GAME_MEMO_INPUT_FORMAT } from '../input-formats/input-formats.js';
 import {
   BasketballAssistableShotEventSchema,
   BasketballBulkEditEventSchema,
@@ -35,7 +35,7 @@ import {
   teamIdSchema,
   textFieldSchema,
   userIdSchema,
-} from './atoms.js';
+} from '../doc-schemas/atoms.js';
 
 // ---------------------------------------------------------------------------------------------
 // Recording stat events

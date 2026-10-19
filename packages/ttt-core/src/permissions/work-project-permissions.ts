@@ -11,10 +11,6 @@ import {
   type WorkProjectActionId,
 } from "./work-project-permissions-data.js";
 
-// Re-export the standings/actions data catalog so the published permissions
-// surface is unchanged after the data/logic split.
-export * from "./work-project-permissions-data.js";
-
 const GUILD_STANDING_ID_BY_VALUE = Object.fromEntries(
   GUILD_STANDING_IDS.map((guildStandingId) => [GUILD_STANDING_VALUE_BY_ID[guildStandingId], guildStandingId]),
 ) as Record<GuildStandingValue, GuildStandingId>;

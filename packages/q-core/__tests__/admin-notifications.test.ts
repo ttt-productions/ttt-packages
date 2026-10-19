@@ -12,7 +12,7 @@ import {
   isAdminNotificationMetadata,
 } from '../src/doc-schemas/admin-notifications';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import { DomainEventSchema } from '../src/domain-events';
+import { DomainEventSchema } from '../src/domain-events/domain-events';
 import { buildLeagueFreeAgentId } from '../src/ids/compound-ids';
 import {
   buildAdminNotificationArchiveKey,
@@ -22,13 +22,15 @@ import {
   buildNotificationDeliveryId,
   parseNotificationArchiveAllJobId,
 } from '../src/ids/notification-ids';
+import { archiveAllPartialOutcomeMessage } from '../src/notifications/archive-all';
 import {
-  archiveAllPartialOutcomeMessage,
   ADMIN_NOTIFICATION_DEFINITIONS,
   NOTIFICATION_SYSTEM_CONFIG,
+} from '../src/notifications/admin-notification-config';
+import {
   leagueFreeAgentSignedUpNotification,
   leagueTeamCreatedNotification,
-} from '../src/notifications';
+} from '../src/notifications/occurrences';
 import { COLLECTIONS } from '../src/paths/collections';
 import { COLLECTION_REFS } from '../src/paths/collection-refs';
 import { PATH_BUILDERS } from '../src/paths/path-builders';
@@ -38,11 +40,13 @@ import {
   AdminArchiveNotificationInputSchema,
   AdminGetNotificationArchiveAllStatusInputSchema,
   AdminGetNotificationArchiveAllStatusResultSchema,
+} from '../src/schemas/admin-notifications';
+import {
   GetDeadLettersInputSchema,
   GetDeadLettersResultSchema,
   AdminReplayDeadLetterInputSchema,
   AdminReplayDeadLetterResultSchema,
-} from '../src/schemas';
+} from '../src/schemas/dead-letters';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
 import {
   ADMIN_NOTIFICATION_CATEGORY,

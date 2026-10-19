@@ -10,7 +10,8 @@
 // each is declared once, as its schema, and its type is inferred from it.
 
 import { z } from 'zod';
-import { teamIdSchema, teamInvitationIdSchema, teamJoinRequestIdSchema } from '../schemas/atoms.js';
+import { teamIdSchema } from '../doc-schemas/atoms.js';
+import { teamInvitationIdSchema, teamJoinRequestIdSchema } from '../schemas/atoms.js';
 
 // The four places a person can stand in a league.
 export const LEAGUE_JOIN_WARNING_STATE_KEYS = [

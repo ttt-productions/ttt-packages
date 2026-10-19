@@ -1,52 +1,52 @@
 import { describe, it, expect } from 'vitest';
 import type { MediaOriginSpec } from '@ttt-productions/media-schemas';
+import { COLLECTION_REFS } from '../src/paths/collection-refs';
+import { PATH_BUILDERS } from '../src/paths/path-builders';
+import { SPECIAL_DOCS } from '../src/paths/collections';
 import {
-  COLLECTION_REFS,
-  FILE_ORIGIN_KEYS,
-  GALLERY_OWNER_KIND_KEYS,
-  MEDIA_ORIGIN_SPECS,
-  PATH_BUILDERS,
-  PICTURE_ASPECT_RATIOS,
-  PICTURE_KINDS,
-  PICTURE_ORIGIN_KEYS,
-  PICTURE_UPLOAD_MAX_BYTES,
-  PICTURE_VARIANT_KEYS,
-  MAX_UPLOADS_MARKED_SEEN_PER_CALL,
-  SIGNATURE_ORIGIN_KEYS,
-  STALE_PENDING_MEDIA_AGE_MS,
-  UPLOAD_TRAY_WINDOW_MS,
-  SPECIAL_DOCS,
   STAGING_UPLOAD_PREFIX,
-  buildGalleryRetirementId,
   buildPictureObjectPath,
   buildPictureObjectPrefix,
   buildStagingUploadPath,
-  isGalleryOwnerKind,
+  parseStagingUploadPath,
+} from '../src/paths/storage-paths';
+import { toPath } from '../src/paths/utils';
+import {
+  FILE_ORIGIN_KEYS,
+  MEDIA_ORIGIN_SPECS,
+  PICTURE_KINDS,
+  PICTURE_ORIGIN_KEYS,
+  PICTURE_UPLOAD_MAX_BYTES,
+  SIGNATURE_ORIGIN_KEYS,
   isPictureOrigin,
   isSignatureOrigin,
-  isStagingId,
-  parseStagingUploadPath,
-  pictureAspectRatio,
-  toPath,
-} from '../src';
+} from '../src/media/file-origins';
+import { PICTURE_ASPECT_RATIOS, pictureAspectRatio } from '../src/media/picture-aspects';
+import { GALLERY_OWNER_KIND_KEYS, isGalleryOwnerKind } from '../src/types/picture-owners';
+import { PICTURE_VARIANT_KEYS } from '../src/types/unions';
 import {
-  COLLECTION_SCHEMAS,
-  PendingMediaSchema,
-  PendingMediaTargetSchema,
-  PictureRetirementSchema,
-} from '../src/doc-schemas';
+  MAX_UPLOADS_MARKED_SEEN_PER_CALL,
+  STALE_PENDING_MEDIA_AGE_MS,
+  UPLOAD_TRAY_WINDOW_MS,
+} from '../src/constants/media';
+import { buildGalleryRetirementId, isStagingId } from '../src/ids/picture-ids';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
+import { PendingMediaSchema, PendingMediaTargetSchema } from '../src/doc-schemas/pending-media';
+import { PictureRetirementSchema } from '../src/doc-schemas/picture-retirement';
 import {
   AdminClearUploadActivityInputSchema,
   AdminClearUploadActivityResultSchema,
-  AdminDeletePictureInputSchema,
   AdminMarkUploadsSeenInputSchema,
   AdminMarkUploadsSeenResultSchema,
-  AdminMovePictureInputSchema,
   AdminStartUploadInputSchema,
-  AdminUpdateFeaturedPictureInputSchema,
   parseTargetInfo,
-} from '../src/schemas';
-import { DomainEventSchema } from '../src/domain-events';
+} from '../src/schemas/uploads';
+import {
+  AdminDeletePictureInputSchema,
+  AdminMovePictureInputSchema,
+  AdminUpdateFeaturedPictureInputSchema,
+} from '../src/schemas/pictures';
+import { DomainEventSchema } from '../src/domain-events/domain-events';
 
 const STAGING_ID = '3f2b6c1e-9a4d-4e8b-b7c2-5d1a0e9f8c34';
 const UID = 'aB3dE5gH7jK9mN1pQ3sT5vW7xY9z';

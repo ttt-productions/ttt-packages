@@ -3,11 +3,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
-import { useCheckoutTask } from '../src/hooks/useCheckoutTask.js';
-import { useCheckinTask } from '../src/hooks/useCheckinTask.js';
-import { useReleaseTask } from '../src/hooks/useReleaseTask.js';
-import { useWorkLater } from '../src/hooks/useWorkLater.js';
-import type { CheckoutTaskResult } from '../src/types-admin-task.js';
+import { useCheckoutTask } from '../src/react/hooks/useCheckoutTask.js';
+import { useCheckinTask } from '../src/react/hooks/useCheckinTask.js';
+import { useReleaseTask } from '../src/react/hooks/useReleaseTask.js';
+import { useWorkLater } from '../src/react/hooks/useWorkLater.js';
+import type { CheckoutTaskResult } from '../src/contracts/types-admin-task.js';
 
 function wrapper({ children }: { children: React.ReactNode }) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });

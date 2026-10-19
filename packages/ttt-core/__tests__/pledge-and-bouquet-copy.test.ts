@@ -4,7 +4,6 @@ import {
   PLEDGE_BADGE_RECOGNITION_COPY,
 } from '../src/constants/pledge-and-bouquet-copy';
 import { BOUQUET_STAGE_1_LIVE, BOUQUET_STAGE_3_LIVE } from '../src/constants/release-flags';
-import * as root from '../src/index';
 import * as constants from '../src/constants';
 
 describe('pledge badge recognition copy', () => {
@@ -27,9 +26,7 @@ describe('Bouquets and payouts planned-not-built copy', () => {
 });
 
 describe('pledge and Bouquet copy exports', () => {
-  it('ship on the server-safe root and the constants subpath, so every consumer shares one sentence', () => {
-    expect(root.PLEDGE_BADGE_RECOGNITION_COPY).toBe(PLEDGE_BADGE_RECOGNITION_COPY);
-    expect(root.BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY).toBe(BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY);
+  it('ship on the server-safe constants entry, so every consumer shares one sentence', () => {
     expect(constants.PLEDGE_BADGE_RECOGNITION_COPY).toBe(PLEDGE_BADGE_RECOGNITION_COPY);
     expect(constants.BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY).toBe(BOUQUET_APPRECIATION_AND_PAYOUTS_PLANNED_COPY);
   });

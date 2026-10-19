@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider, useMutationState } from '@tanstack/react-query';
 import React from 'react';
-import { useClearUploadActivity } from '../src/react/use-clear-upload-activity.js';
+import { useClearUploadActivity } from '../src/react/tray/use-clear-upload-activity.js';
 
 function makeClient() {
   return new QueryClient({ defaultOptions: { mutations: { retry: false } } });

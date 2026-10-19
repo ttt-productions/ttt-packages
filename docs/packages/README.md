@@ -5,7 +5,7 @@ package **owns**, its **boundary** (what it must not own or depend on), and its
 public **entry points** — enough to use or change the package without reading its
 source. Read the relevant package's doc before importing from it or changing it.
 
-For the cross-cutting model — tiers, the dependency graph, root purity, subpath
+For the cross-cutting model — tiers, the dependency graph, entry purity, subpath
 conventions, direction rules, build/release order, internal version pinning, and
 the boundary-guard tests — see [`package-architecture.md`](./package-architecture.md).
 That doc is the source of truth for how the packages fit together; the

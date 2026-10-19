@@ -1,5 +1,6 @@
 import { describe, it, expectTypeOf } from 'vitest';
-import type { PublicUserSearchResult, AdminUserLookupResult } from '../src/types/admin-users';
+import type { PublicUserSearchResult } from '../src/types/admin-users';
+import type { AdminUserLookupResult } from '../src/schemas/users';
 import type { UserAccountStatus } from '../src/doc-schemas/user';
 
 describe('admin user-directory result types', () => {

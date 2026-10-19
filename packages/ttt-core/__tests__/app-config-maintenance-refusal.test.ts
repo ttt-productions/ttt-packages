@@ -7,8 +7,6 @@ import {
   isMaintenanceRefusalError,
   type MaintenanceRefusalDetails,
 } from '../src/utils/app-config';
-import * as root from '../src/index';
-import * as utils from '../src/utils';
 
 const details: MaintenanceRefusalDetails = { reason: MAINTENANCE_REFUSAL_REASON };
 
@@ -91,13 +89,3 @@ describe('isMaintenanceRefusalDetails', () => {
   });
 });
 
-describe('the maintenance refusal exports', () => {
-  it('ship beside DEFAULT_MAINTENANCE_MESSAGE from the package root and the utils subpath', () => {
-    expect(root.MAINTENANCE_REFUSAL_CODE).toBe(MAINTENANCE_REFUSAL_CODE);
-    expect(root.MAINTENANCE_REFUSAL_REASON).toBe(MAINTENANCE_REFUSAL_REASON);
-    expect(root.isMaintenanceRefusalDetails).toBe(isMaintenanceRefusalDetails);
-    expect(root.isMaintenanceRefusalError).toBe(isMaintenanceRefusalError);
-    expect(utils.isMaintenanceRefusalError).toBe(isMaintenanceRefusalError);
-    expect(utils.isMaintenanceRefusalDetails).toBe(isMaintenanceRefusalDetails);
-  });
-});

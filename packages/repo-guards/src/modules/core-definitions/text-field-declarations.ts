@@ -6,7 +6,7 @@
 
 import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { FileView } from '../../reader/view.js';
 import { lineOfNode } from '../../support/ast.js';
 import { namesProblem, reviewedProblems, loaderProblem, type Loader, textProblem } from '../../support/facts.js';

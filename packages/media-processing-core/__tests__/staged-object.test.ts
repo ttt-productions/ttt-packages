@@ -6,8 +6,8 @@ import {
   requireStorageObjectGeneration,
   stagedObjectGenerationFromMetadata,
   UnreadableStorageObjectMetadataError,
-  type Bucket,
-} from '../src/server/index.js';
+} from '../src/server/staged-object.js';
+import type { Bucket } from '../src/server/storage-ops.js';
 
 /** The metadata an Admin SDK `File` carries — what a processor holds as `sourceFile.metadata` after `file.get()`. */
 type AdminFileMetadata = ReturnType<Bucket['file']>['metadata'];

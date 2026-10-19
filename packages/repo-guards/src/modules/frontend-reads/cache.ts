@@ -4,7 +4,7 @@
 // event is produced, well formed, and awaited.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding, Guard, GuardContext } from '../../guard.js';
 import type { FileView } from '../../reader/view.js';
 import { identifierProblem, loaderProblem, pathProblem, reviewedProblems, type Loader } from '../../support/facts.js';

@@ -1,5 +1,5 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import { ANALYTICS_EVENT_NAMES, type AnalyticsEventName } from '../src/constants';
+import { ANALYTICS_EVENT_NAMES, type AnalyticsEventName } from '../src/constants/analytics';
 
 describe('analytics event names', () => {
   it('are the events the app logs: page views, sign-up, the creator funnel, and the payment funnel', () => {

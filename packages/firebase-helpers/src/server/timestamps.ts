@@ -1,5 +1,4 @@
 import { Timestamp, FieldValue } from "firebase-admin/firestore";
-export * from "../firestore/timestamps-universal.js";
 
 /** Firestore server timestamp (Admin SDK) */
 export const serverNow = () => FieldValue.serverTimestamp();

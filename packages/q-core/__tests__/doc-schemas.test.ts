@@ -1,12 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { BASKETBALL_POINTS_BY_EVENT_TYPE, CURLING_ROUND_COUNT } from '../src/constants/sports';
-import { DomainEventSchema } from '../src/domain-events';
-import {
-  GameStatEventSchema,
-  SportGameSchema,
-  TeamMembershipSchema,
-  SignedWaiverSchema,
-} from '../src/doc-schemas';
+import { DomainEventSchema } from '../src/domain-events/domain-events';
+import { GameStatEventSchema } from '../src/doc-schemas/game-stats';
+import { SportGameSchema } from '../src/doc-schemas/sport-game';
+import { TeamMembershipSchema } from '../src/doc-schemas/team-membership';
+import { SignedWaiverSchema } from '../src/doc-schemas/waivers-and-hardware';
 import {
   BASKETBALL_STAT_EVENT_TYPE_KEYS,
   LEAGUE_TYPE_BY_SPORT_KEY,

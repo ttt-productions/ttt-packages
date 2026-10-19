@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { UserPrivateDataSchema, NotificationArchiveAllJobSchema } from '../src/doc-schemas/index.js';
+import { UserPrivateDataSchema } from '../src/doc-schemas/user.js';
+import {
+  NotificationArchiveAllJobSchema,
+} from '../src/doc-schemas/notification-archive-all-jobs.js';
 
 const job = {
   schemaVersion: 1,

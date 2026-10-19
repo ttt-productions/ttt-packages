@@ -1,8 +1,8 @@
 "use client";
 
 // Query Client factory (client-only; requires @tanstack/react-query)
-export { createQueryClient } from '../query-client.js';
-export type { CreateQueryClientOptions } from '../query-client.js';
+export { createQueryClient } from './query-client.js';
+export type { CreateQueryClientOptions } from './query-client.js';
 
 // Provider
 export { QueryProvider } from './provider.js';
@@ -15,7 +15,6 @@ export type { FirestoreProviderProps } from './firestore/context.js';
 // Firestore Query Hooks
 export { useFirestoreDoc } from './firestore/use-firestore-doc.js';
 export { useFirestoreCollection } from './firestore/use-firestore-collection.js';
-export type { FirestoreSourceState, WithSourceState, BatchFirestoreDocOutcome } from '../firestore/types.js';
 export { useFirestoreInfinite } from './firestore/use-firestore-infinite.js';
 export { useFirestorePaginated } from './firestore/use-firestore-paginated.js';
 export type { UseFirestorePaginatedResult } from './firestore/use-firestore-paginated.js';

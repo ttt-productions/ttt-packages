@@ -1,9 +1,8 @@
 // Bounded transient-retry policy for the R2 object store.
 //
-// PRIVATE sibling of storage-ops.ts — imported ONLY by that module. It is
-// deliberately NOT re-exported from the server barrel (`server/index.ts`); the
-// only public surface is the `R2StorageError` type, which storage-ops re-exports
-// so callers can recognize an exhausted storage operation.
+// PRIVATE sibling of storage-ops.ts — imported ONLY by that module. The server
+// entry (`server/index.ts`) forwards only the `R2StorageError` type, so callers
+// can recognize an exhausted storage operation; the retry helper stays private.
 //
 // The policy applies to the idempotent-against-a-deterministic-key requests
 // only (putFile, copy, readToFile, and deleteCopy's read of the destination).

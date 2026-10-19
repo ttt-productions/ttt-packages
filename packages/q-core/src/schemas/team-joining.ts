@@ -6,16 +6,18 @@
 // (BACKEND-305).
 
 import { z } from 'zod';
-import { membershipRosterSyncStatusSchema } from '../doc-schemas/atoms.js';
 import {
   epochMsSchema,
   leagueIdSchema,
+  membershipRosterSyncStatusSchema,
   teamIdSchema,
+  userIdSchema,
+} from '../doc-schemas/atoms.js';
+import {
   teamInvitationIdSchema,
   teamInvitationMessageSchema,
   teamJoinRequestIdSchema,
   teamJoinRequestMessageSchema,
-  userIdSchema,
 } from './atoms.js';
 
 // ---------------------------------------------------------------------------------------------

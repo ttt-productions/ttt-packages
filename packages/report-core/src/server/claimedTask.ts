@@ -1,4 +1,4 @@
-import type { AdminTaskStatus, CheckoutDetails, ClaimedTask } from '../types-admin-task.js';
+import type { AdminTaskStatus, CheckoutDetails, ClaimedTask } from '../contracts/types-admin-task.js';
 
 /**
  * The one shape both checkout handlers answer with. The task document is read from Firestore

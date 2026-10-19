@@ -11,7 +11,7 @@
 // as the worker splits Channel DOs from the Inbox DO.
 
 import { ChannelClient, type ChannelClientConfig, type ChannelClientState } from './channel-client.js';
-import { InboxClient, type InboxClientConfig, type InboxClientState } from './inbox-client.js';
+import { InboxClient, type InboxClientConfig } from './inbox-client.js';
 import { browserSocketFactory, type SocketFactory } from './socket.js';
 import type { GrantProvider, TransportTimers } from './shared.js';
 import type { ChatClientDiagnosticsOption } from './diagnostics.js';
@@ -106,5 +106,3 @@ export function createInboxClient(config: {
     diagnostics: config.diagnostics,
   });
 }
-
-export type { ChannelClientState, InboxClientState };

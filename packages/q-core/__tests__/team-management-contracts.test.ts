@@ -4,8 +4,12 @@
 // name.
 
 import { describe, it, expect } from 'vitest';
-import { GhostPlayerStatsOperationSchema, LeagueTeamSchema, StatsOperationSchema } from '../src/doc-schemas';
-import { DomainEventSchema } from '../src/domain-events';
+import {
+  GhostPlayerStatsOperationSchema,
+  StatsOperationSchema,
+} from '../src/doc-schemas/stats-operation';
+import { LeagueTeamSchema } from '../src/doc-schemas/league-team';
+import { DomainEventSchema } from '../src/domain-events/domain-events';
 import { buildGameDeletionOperationId, buildGhostLinkOperationId } from '../src/ids/stats-operation-ids';
 import {
   AdminDeleteLeagueTeamInputSchema,
@@ -18,7 +22,7 @@ import {
   DeleteTeamMembershipInputSchema,
   LinkGhostPlayerInputSchema,
   UpdateTeamMembershipRoleInputSchema,
-} from '../src/schemas';
+} from '../src/schemas/teams';
 import { AUDIT_EVENT_TYPE_KEYS } from '../src/types/audit';
 import {
   CAPTAIN_TEAM_ROLES,

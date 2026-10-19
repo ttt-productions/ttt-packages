@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { render, fireEvent, act, renderHook } from '@testing-library/react';
 import React from 'react';
-import { LocalUploadGuardProvider, useLocalUploadGuard } from '../src/react/local-upload-guard-provider.js';
-import { GuardedLink } from '../src/react/guarded-link.js';
-import { useGuardedNavigation } from '../src/react/use-guarded-navigation.js';
+import { LocalUploadGuardProvider, useLocalUploadGuard } from '../src/react/guard/local-upload-guard-provider.js';
+import { GuardedLink } from '../src/react/guard/guarded-link.js';
+import { useGuardedNavigation } from '../src/react/guard/use-guarded-navigation.js';
 
 function Wrapper({ children }: { children: React.ReactNode }) {
   return <LocalUploadGuardProvider>{children}</LocalUploadGuardProvider>;

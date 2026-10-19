@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import { parseNotificationArchiveAllJobId } from '../ids/notification-ids.js';
 import { ADMIN_NOTIFICATION_CATEGORY, NOTIFICATION_ARCHIVE_ALL_JOB_STATE_KEYS } from '../types/notifications.js';
-import { countSchema } from './atoms.js';
+import { countSchema } from '../doc-schemas/atoms.js';
 
 // A card's document id as notification-core derives it: a hex digest. Bounding it to letters and
 // digits keeps a client-sent id from addressing anything but a document of the card collection.

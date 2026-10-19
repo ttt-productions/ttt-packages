@@ -11,7 +11,7 @@ import {
   isRequiredVideoSlot,
   ruleGroupVideoSlotId,
   systemSlotsByGroup,
-} from '../src/system-slots';
+} from '../src/system-slots/system-slots';
 
 const group = { id: 'world-engine', name: 'The World Engine', order: 0 };
 const plan = { id: 'p1', title: 'Build whole worlds', description: 'Words.', groupId: 'world-engine', order: 0 };

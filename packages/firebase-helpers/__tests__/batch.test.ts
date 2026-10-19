@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { commitInBatches } from '../src/firestore/batch';
+import { commitInBatches } from '../src/firestore-client/batch';
 import { writeBatch } from 'firebase/firestore';
 
 // writeBatch is mocked in test/setup.ts globally

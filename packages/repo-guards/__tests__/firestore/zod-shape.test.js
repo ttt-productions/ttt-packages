@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { arrayElement, compositeMembers, kindOf, knownKeys, objectShape, unwrap } from '../../src/zod-shape/index.js';
+import { arrayElement, compositeMembers, kindOf, knownKeys, objectShape, unwrap } from '../../src/zod-shape/zod-shape.js';
 
 describe('zod-shape', () => {
   const Inner = z.object({ a: z.string(), b: z.number().optional() });

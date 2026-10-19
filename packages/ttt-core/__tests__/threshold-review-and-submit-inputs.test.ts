@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   ReviewThresholdItemInputSchema,
   SubmitForThresholdLibraryReviewInputSchema,
-} from '../src/schemas/index';
-import { MAX_HALL_LIBRARY_SUBMIT_BATCH } from '../src/index';
+} from '../src/schemas/hall-library';
+import { MAX_HALL_LIBRARY_SUBMIT_BATCH } from '../src/constants/business-admin';
 
 const REVIEWER_CHECKLIST = [
   'confirmedNoBegging',

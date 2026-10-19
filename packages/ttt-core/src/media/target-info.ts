@@ -1,5 +1,15 @@
 import { z } from "zod";
 import { AuditionModeSchema } from "../doc-schemas/commissions.js";
+import { MediaTypeSchema } from "../doc-schemas/social.js";
+import {
+  CraftSkillKindSchema,
+  CraftSkillAttestationSchema,
+  CraftSkillSourceReferenceSchema,
+  CRAFT_SKILL_KIND_REQUIRING_SOURCE,
+  type CraftSkillKind,
+  type CraftSkillAttestation,
+  type CraftSkillSourceReference,
+} from "../doc-schemas/user.js";
 import {
   workProjectIdSchema,
   commissionListingIdSchema,
@@ -15,6 +25,7 @@ import {
   workFileFolderIdSchema,
   stakeSharesOfferedSchema,
 } from "../schemas/atoms.js";
+import { textFieldSchema } from "../schemas/text-field.js";
 import type { FileOrigin } from "./file-origin.js";
 import { ConversationFileRefSchema } from "./conversation-file-ref.js";
 import { SquareStreetzPostMentionsSchema } from "./atoms.js";
@@ -23,25 +34,18 @@ import {
   TRADE_PROFESSION_VALUES,
   CRAFT_SKILL_TAG_VALUES,
 } from "../constants/options.js";
-import { MediaTypeSchema } from "../doc-schemas/social.js";
-import {
-  CraftSkillKindSchema,
-  CraftSkillAttestationSchema,
-  CraftSkillSourceReferenceSchema,
-  CRAFT_SKILL_KIND_REQUIRING_SOURCE,
-  type CraftSkillKind,
-  type CraftSkillAttestation,
-  type CraftSkillSourceReference,
-} from "../doc-schemas/user.js";
 import { CRAFT_SKILL_STATEMENT_VERSION } from "../constants/craft-skill-statements.js";
 import { HALL_CONTENT_DETAIL_SURFACES } from "../constants/hall-content-routing.js";
-import { AuditionDeadlineSchema, refineAuditionDeadlineOrder } from "../constants/audition-deadlines.js";
 import {
-  MAX_CRAFT_SKILL_TAGS,
+  AuditionDeadlineSchema,
+  refineAuditionDeadlineOrder,
+} from "../constants/audition-deadlines.js";
+import {
   MAX_SPONSORED_AUDITION_AMOUNT_USD,
   MIN_CURATED_AUDITION_OPTIONS,
   MAX_CURATED_AUDITION_OPTIONS,
-} from "../constants/business.js";
+} from "../constants/business-content.js";
+import { MAX_CRAFT_SKILL_TAGS } from "../constants/business-user.js";
 import {
   AUDITION_DESCRIPTION_INPUT,
   AUDITION_TITLE_INPUT,
@@ -49,7 +53,6 @@ import {
   COMMISSION_DESCRIPTION_INPUT,
   COMMISSION_TITLE_INPUT,
 } from "../constants/text-fields.js";
-import { textFieldSchema } from "../schemas/text-field.js";
 import { SystemVideoSlotIdSchema } from "../system-slots/system-slots.js";
 
 export const ProfilePictureTargetInfoSchema = z.object({}).strict();
@@ -133,8 +136,8 @@ export type CraftSkillUploadAttestation = z.infer<typeof CraftSkillUploadAttesta
 // dance and no app-local copy of the attestation shape on either layer.
 export const CraftSkillMediaTargetInfoSchema = z
   .object({
-    // No craftSkillId: the backend mints the craft-skill doc id from the pendingMedia id;
-    // a client-supplied id was dead input the processor ignored, so it is not accepted.
+    // No craftSkillId: the backend mints the craft-skill doc id from the pendingMedia id,
+    // so a client-supplied id is not accepted.
     // The canonical display/transport media-type family — never re-declared (ARCH-102).
     skillType: MediaTypeSchema,
     originalFileName: z.string().min(1),

@@ -18,8 +18,9 @@ import {
   isPledgeRefundApprovable,
   pledgeRefundRequestRefusal,
   PLEDGE_REFUND_REQUEST_REFUSALS,
-} from '../src/utils';
-import { PLEDGE_REFUND_REQUEST_WINDOW_MS, MAX_INTERNAL_REASON_LENGTH } from '../src/constants/business';
+} from '../src/utils/pledge-refund-eligibility';
+import { MAX_INTERNAL_REASON_LENGTH } from '../src/constants/business-admin';
+import { PLEDGE_REFUND_REQUEST_WINDOW_MS } from '../src/constants/business-platform';
 import { GuildmateUserSchema, PendingStakeSharesSchema } from '../src/doc-schemas/work-project';
 
 describe('the refund request lifecycle', () => {

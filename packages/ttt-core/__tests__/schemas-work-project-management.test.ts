@@ -8,8 +8,8 @@ import {
   CreateWorkProjectResultSchema,
   realmWorkingTitleSchema,
 } from '../src/schemas/work-project-management';
-import { ListGuildInvitesResultSchema } from '../src/schemas';
-import { MAX_GUILD_INVITE_MESSAGE_LENGTH } from '../src/constants/business';
+import { ListGuildInvitesResultSchema } from '../src/doc-schemas/messaging';
+import { MAX_GUILD_INVITE_MESSAGE_LENGTH } from '../src/constants/business-content';
 
 const validStandaloneSource = { type: 'standalone' } as const;
 
@@ -113,7 +113,7 @@ describe('InviteSourceSchema', () => {
     ).toThrow();
   });
 
-  it('rejects a snapshotted commissionTitle (dropped — resolve at render)', () => {
+  it('rejects a snapshotted commissionTitle (titles resolve at render)', () => {
     expect(() =>
       InviteSourceSchema.parse({
         type: 'commission',
@@ -122,7 +122,7 @@ describe('InviteSourceSchema', () => {
     ).toThrow();
   });
 
-  it('rejects a snapshotted auditionTitle (dropped — resolve at render)', () => {
+  it('rejects a snapshotted auditionTitle (titles resolve at render)', () => {
     expect(() =>
       InviteSourceSchema.parse({
         type: 'audition',
@@ -223,7 +223,7 @@ describe('ListGuildInvitesInputSchema', () => {
     ).toEqual([...statuses]);
   });
 
-  it('rejects the removed dead "error" status', () => {
+  it('rejects an "error" status', () => {
     expect(() =>
       ListGuildInvitesInputSchema.parse({ workProjectId: 'workProject-1', statuses: ['error'] }),
     ).toThrow();

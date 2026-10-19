@@ -4,8 +4,7 @@
 
 import { z } from 'zod';
 import { HARDWARE_CATALOG, HARDWARE_CATALOG_ITEM_IDS } from '../constants/business.js';
-import { epochMsSchema, hardwareLoanContractIdSchema } from '../doc-schemas/atoms.js';
-import { userIdSchema } from './atoms.js';
+import { epochMsSchema, hardwareLoanContractIdSchema, userIdSchema } from '../doc-schemas/atoms.js';
 import { stagingUploadPathSchema } from './uploads.js';
 
 export const hardwareCatalogItemIdSchema = z.enum(HARDWARE_CATALOG_ITEM_IDS);

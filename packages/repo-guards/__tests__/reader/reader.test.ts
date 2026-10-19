@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import { join, sep } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { createRepoReader, layoutProblems } from '../../src/reader/reader.js';
-import { kindOfFile, type RepoLayout } from '../../src/reader/layout.js';
+import { createRepoReader, layoutProblems } from '../../src/node/reader.js';
+import { kindOfFile, type RepoLayout } from '../../src/node/layout.js';
 import { viewOfText } from '../../src/reader/view.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 

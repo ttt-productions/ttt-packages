@@ -8,7 +8,7 @@ import {
   moderationClearableSurfaceSchema,
   storedTitleSchema,
 } from '../src/schemas/atoms';
-import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../src/constants/business';
+import { MAX_WORK_PROJECT_TITLE_LENGTH } from '../src/constants/business-work-project';
 import { MODERATION_CLEARABLE_TEXT_FIELDS } from '../src/constants/business-content';
 
 describe('atom schemas', () => {

@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   ACCEPTANCE_REQUIRED_REASON,
-  EMAIL_VERIFICATION_REQUIRED_REASON,
   isAcceptanceRequiredDetails,
   isAcceptanceRequiredError,
   normalizeAcceptanceLevel,
-} from '../src/index';
+} from '../src/acceptance';
+import { EMAIL_VERIFICATION_REQUIRED_REASON } from '../src/email-verification';
 
 describe('normalizeAcceptanceLevel', () => {
   it('keeps a whole non-negative level', () => {

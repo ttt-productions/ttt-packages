@@ -8,7 +8,6 @@ import {
   type BlockedCraftSkillKind,
 } from '../src/constants/craft-skill-statements';
 import { CraftSkillKindSchema, type CraftSkillKind } from '../src/doc-schemas/user';
-import * as root from '../src/index';
 
 describe('off-TTT craft refusal copy', () => {
   it('is the settled sentence, verbatim', () => {
@@ -17,9 +16,6 @@ describe('off-TTT craft refusal copy', () => {
     );
   });
 
-  it('ships on the server-safe root, so the picker and the upload callable share one sentence', () => {
-    expect(root.CRAFT_SKILL_MIMIC_OFF_TTT_UNAVAILABLE_MESSAGE).toBe(CRAFT_SKILL_MIMIC_OFF_TTT_UNAVAILABLE_MESSAGE);
-  });
 });
 
 describe('craft kinds blocked at launch — one owner', () => {
@@ -63,9 +59,4 @@ describe('craft kinds blocked at launch — one owner', () => {
     expect(untyped('constructor')).toBe(false);
   });
 
-  it('ships on the server-safe root for the upload callable and the picker', () => {
-    expect(root.BLOCKED_CRAFT_SKILL_KINDS).toBe(BLOCKED_CRAFT_SKILL_KINDS);
-    expect(root.CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES).toBe(CRAFT_SKILL_KIND_UNAVAILABLE_MESSAGES);
-    expect(root.isBlockedCraftSkillKind).toBe(isBlockedCraftSkillKind);
-  });
 });

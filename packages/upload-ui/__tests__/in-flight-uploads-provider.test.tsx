@@ -12,7 +12,7 @@ import {
   type FirestoreSubscribeFn,
   type FirestoreLikeSnapshot,
   type ParsedPendingMedia,
-} from '../src/react/in-flight-uploads-provider.js';
+} from '../src/react/tray/in-flight-uploads-provider.js';
 
 function makeAdapter(overrides: Partial<InFlightUploadsAdapter> = {}): InFlightUploadsAdapter {
   return {

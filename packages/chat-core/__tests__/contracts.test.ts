@@ -1,11 +1,7 @@
-import { describe, it, expect, expectTypeOf } from 'vitest';
-import * as chatCore from '../src/index.js';
-import type { ChatNameResolution, ChatNameResolver, ChatThreadV1 } from '../src/index.js';
+import { describe, it, expectTypeOf } from 'vitest';
+import type { ChatNameResolution, ChatNameResolver, ChatThreadV1 } from '../src/types.js';
 
 describe('chat-core contracts', () => {
-  it('declares no message-length bound — the one send bound belongs to the wire contract', () => {
-    expect('MAX_CHAT_MESSAGE_LENGTH' in chatCore).toBe(false);
-  });
 
   it('a thread carries no access list — access is the app\'s decision, never a stored list', () => {
     expectTypeOf<ChatThreadV1>().not.toHaveProperty('allowedUserIds');

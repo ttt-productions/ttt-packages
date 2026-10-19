@@ -78,7 +78,7 @@ export function createGuardProfile({
   });
 }
 
-import { objectShape, unwrap, kindOf } from '../../zod-shape/index.js';
+import { objectShape, unwrap, kindOf } from '../../zod-shape/zod-shape.js';
 
 // ---------------------------------------------------------------------------
 // Violation kinds

@@ -9,7 +9,10 @@
 // bundles that load it.
 
 import type { ChildSafetyWorkStatus, SafetyCaseLane } from '../doc-schemas/safety/case.js';
-import type { NciiInternalStatus, TakeItDownPublicStatus } from '../doc-schemas/safety/foundation.js';
+import type {
+  NciiInternalStatus,
+  TakeItDownPublicStatus,
+} from '../doc-schemas/safety/foundation.js';
 
 const CHILD_SAFETY_WORK_STATUS_IS_ACTIVE: Record<ChildSafetyWorkStatus, boolean> = {
   new: true,

@@ -5,8 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { GuardContext } from '../../src/guard.js';
 import { contextOf } from '../helpers/context.js';
 import { runWriteGuard, testPathGuard, writeGuard, type WriteGuardFacts } from '../../src/modules/firestore/guard.js';
-import { createRepoReader, type RepoReader } from '../../src/reader/reader.js';
-import type { RepoLayout } from '../../src/reader/layout.js';
+import { createRepoReader, type RepoReader } from '../../src/node/reader.js';
+import type { RepoLayout } from '../../src/node/layout.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 
 const MAPS = ['COLLECTIONS', 'COLLECTION_GROUPS', 'USER_PROFILE_SUBCOLLECTIONS', 'SPORT_GAME_SUBCOLLECTIONS', 'WAIVER_TEMPLATE_SUBCOLLECTIONS', 'SPECIAL_DOCS'];

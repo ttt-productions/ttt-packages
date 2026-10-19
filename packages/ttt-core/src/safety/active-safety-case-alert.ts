@@ -23,8 +23,9 @@
 // writer only needs `tx.create(ref, data)`, `db.doc(path)`, and `ref.delete()`. The real
 // Admin SDK `Transaction` / `Firestore` / `DocumentReference` satisfy them structurally.
 
-import { PATH_BUILDERS, toPath } from '../paths/index.js';
-import type { SafetyCaseAlertV1, SafetyCaseAlertKind } from '../doc-schemas/index.js';
+import { PATH_BUILDERS } from '../paths/path-builders.js';
+import { toPath } from '../paths/utils.js';
+import type { SafetyCaseAlertV1, SafetyCaseAlertKind } from '../doc-schemas/safety/case-alert.js';
 
 const SCHEMA_VERSION = 1 as const;
 

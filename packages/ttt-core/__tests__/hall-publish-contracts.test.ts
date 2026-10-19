@@ -33,11 +33,11 @@ import {
   HALL_SUB_ITEM_REQUIRED_FIELDS_BY_WORK_TYPE,
   HALL_SUB_ITEM_REQUIREMENT_LABELS,
   HALL_CONTENT_SURFACES_BY_WORK_TYPE,
-  HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE,
   MODERATION_CLEARABLE_TEXT_FIELDS,
   WORK_SHELL_TEXT_FIELD_TO_HALL_ITEM_FIELD,
   HALL_DETAIL_TEXT_FIELD_TO_WORK_SHELL_FIELD,
 } from '../src/constants/business-content';
+import { HALL_CONTENT_SURFACE_NAMES_BY_WORK_TYPE } from '../src/constants/hall-content-routing';
 import { MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH } from '../src/constants/business-admin';
 import {
   HALL_LIBRARY_TARGET_FIELDS,
@@ -459,7 +459,7 @@ describe('a Hall detail clear reaches the Work', () => {
     }
   });
 
-  it('the section docs no longer hold detail text', () => {
+  it('the section docs hold no detail text', () => {
     for (const schema of [FullTaleSchema, FullTuneSchema, FullTelevisionSchema] as AnySchema[]) {
       expect(declares(schema, 'title')).toBe(false);
       expect(declares(schema, 'description')).toBe(false);

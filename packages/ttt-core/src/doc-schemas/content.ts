@@ -14,11 +14,11 @@ import {
 } from './moderation.js';
 import { MAX_THRESHOLD_PUBLISH_PARKED_REASON_LENGTH } from '../constants/business-admin.js';
 import { FIRESTORE_INDEXED_VALUE_MAX_BYTES } from '../constants/business-platform.js';
-import { LegalReviewNoticeReceiptSchema } from './legal-review-notice.js';
 import {
   HALL_CONTENT_DETAIL_SURFACES,
   HALL_CONTENT_SUB_ITEM_SURFACES,
 } from '../constants/hall-content-routing.js';
+import { LegalReviewNoticeReceiptSchema } from './legal-review-notice.js';
 
 const contentStatusSchema = z.enum(['unpublished', 'pending_approval', 'published']);
 

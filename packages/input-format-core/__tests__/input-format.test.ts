@@ -7,7 +7,7 @@ import {
   type InputFormat,
   type InputFormatSpec,
   type DeclaredInputFormat,
-} from '../src/index.js';
+} from '../src/input-format.js';
 
 const spec = (format: InputFormat, min = 0, max = 100, keepAsTyped?: true): InputFormatSpec =>
   keepAsTyped ? { format, min, max, keepAsTyped } : { format, min, max };

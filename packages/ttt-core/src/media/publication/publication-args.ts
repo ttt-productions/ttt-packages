@@ -8,12 +8,15 @@
 
 import { z } from "zod";
 import { CRAFT_SKILL_TAG_VALUES } from "../../constants/options.js";
-import { MAX_CRAFT_SKILL_TAGS } from "../../constants/business.js";
+import { MAX_CRAFT_SKILL_TAGS } from "../../constants/business-user.js";
 import {
   HALL_CONTENT_DETAIL_SURFACES,
   HALL_CONTENT_SUB_ITEM_SURFACES,
 } from "../../constants/hall-content-routing.js";
-import { ContentMediaKindSchema, type MediaPublicationKind } from "../../doc-schemas/media-assets.js";
+import {
+  ContentMediaKindSchema,
+  type MediaPublicationKind,
+} from "../../doc-schemas/media-assets.js";
 import {
   CraftSkillAttestationSchema,
   CraftSkillKindSchema,

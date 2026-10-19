@@ -7,8 +7,6 @@ import {
   SWEEP_STATE_MAX_DEFERRED,
   HALL_MEDIA_REAPER_PAGE_SIZE,
 } from '../src/constants/scheduled-jobs.js';
-import * as constantsBarrel from '../src/constants/index.js';
-import * as packageRoot from '../src/index.js';
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -50,14 +48,4 @@ describe('Hall-media orphan reaper policy constants', () => {
     expect(HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBeLessThan(DAY_MS);
   });
 
-  it('is importable from the constants barrel and the package root', () => {
-    for (const surface of [constantsBarrel, packageRoot]) {
-      expect(surface.HALL_MEDIA_ORPHAN_GRACE_MS).toBe(HALL_MEDIA_ORPHAN_GRACE_MS);
-      expect(surface.HALL_MEDIA_REAPER_PAGE_SIZE).toBe(HALL_MEDIA_REAPER_PAGE_SIZE);
-      expect(surface.HALL_MEDIA_REAPER_BACKOFF_BASE_MS).toBe(HALL_MEDIA_REAPER_BACKOFF_BASE_MS);
-      expect(surface.HALL_MEDIA_REAPER_BACKOFF_MAX_MS).toBe(HALL_MEDIA_REAPER_BACKOFF_MAX_MS);
-      expect(surface.SWEEP_STATE_MAX_DEFERRED).toBe(SWEEP_STATE_MAX_DEFERRED);
-      expect(surface.HALL_MEDIA_REAPER_CLAIM_LEASE_MS).toBe(HALL_MEDIA_REAPER_CLAIM_LEASE_MS);
-    }
-  });
 });

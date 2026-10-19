@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../src/storage/upload', () => ({
+vi.mock('../src/browser/upload', () => ({
   startResumableUpload: vi.fn(),
 }));
 
@@ -9,8 +9,8 @@ vi.mock('../src/utils/upload-store', () => ({
   removeUploadSession: vi.fn(),
 }));
 
-import { UploadQueue } from '../src/queue/upload-queue';
-import { startResumableUpload } from '../src/storage/upload';
+import { UploadQueue } from '../src/browser/upload-queue';
+import { startResumableUpload } from '../src/browser/upload';
 import type { StartUploadArgs } from '../src/browser/types';
 
 function makeMockController(id = 'ctrl') {

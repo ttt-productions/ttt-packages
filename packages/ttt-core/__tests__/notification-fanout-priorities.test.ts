@@ -1,11 +1,11 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import { NOTIFICATION_FANOUT_PRIORITIES, type NotificationFanoutPriority } from '../src/index';
+import { NOTIFICATION_FANOUT_PRIORITIES, type NotificationFanoutPriority } from '../src/constants/business-platform';
 import * as constantsBarrel from '../src/constants/index';
 import { NotificationFanoutPrioritySchema } from '../src/doc-schemas/index';
 import { DeadLetteredFanoutJobRowSchema } from '../src/schemas/notification';
 
 describe('notification fanout priority tiers', () => {
-  it('are 0 urgent, 1 normal, 2 bulk, from the root and the constants barrel', () => {
+  it('are 0 urgent, 1 normal, 2 bulk, from the constants entry', () => {
     expect(NOTIFICATION_FANOUT_PRIORITIES).toEqual([0, 1, 2]);
     expect(constantsBarrel.NOTIFICATION_FANOUT_PRIORITIES).toBe(NOTIFICATION_FANOUT_PRIORITIES);
     expectTypeOf<NotificationFanoutPriority>().toEqualTypeOf<0 | 1 | 2>();

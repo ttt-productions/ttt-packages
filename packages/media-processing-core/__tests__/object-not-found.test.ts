@@ -2,7 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { createR2ObjectStore, isObjectNotFoundError, R2StorageError } from '../src/server/index.js';
+import { createR2ObjectStore } from '../src/server/storage-ops.js';
+import { isObjectNotFoundError } from '../src/server/gcs-errors.js';
+import { R2StorageError } from '../src/server/r2-retry.js';
 
 const R2_NO_SUCH_KEY_BODY =
   '<?xml version="1.0" encoding="UTF-8"?><Error><Code>NoSuchKey</Code><Message>The specified key does not exist.</Message></Error>';

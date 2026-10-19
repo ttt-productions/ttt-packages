@@ -9,7 +9,7 @@ import {
   MAX_RESUMABLE_CALLS,
   type CallablePolicy,
   type CallableErrorRouting,
-} from '../src/react/index';
+} from '../src/react/create-callables';
 
 const TIMEOUT_MS = 30_000;
 const functionsInstance = {} as Functions;

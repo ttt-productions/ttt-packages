@@ -2,18 +2,18 @@ import { describe, it, expect } from 'vitest';
 import { BASKETBALL_FANTASY_POINT_WEIGHTS } from '../src/constants/sports';
 import {
   COLUMN_CATALOG_KEYS,
-  COLUMN_CATALOG_LINE_KINDS,
-  GAMES_PLAYED_COLUMN,
-  SPORT_ADAPTERS,
-  SPORT_ADAPTER_LIST,
-  TEAM_SEASON_BASE_COLUMN,
-  TEAM_SEASON_BASE_COLUMNS,
-  basketballFantasyPoints,
   perGameAverage,
-  type AnySportAdapter,
   type ColumnCatalog,
   type PerGameColumn,
-} from '../src/sports';
+} from '../src/sports/column-catalog';
+import { COLUMN_CATALOG_LINE_KINDS, type AnySportAdapter } from '../src/sports/sport-adapter';
+import {
+  GAMES_PLAYED_COLUMN,
+  TEAM_SEASON_BASE_COLUMN,
+  TEAM_SEASON_BASE_COLUMNS,
+} from '../src/sports/shared-columns';
+import { SPORT_ADAPTERS, SPORT_ADAPTER_LIST } from '../src/sports/registry';
+import { basketballFantasyPoints } from '../src/sports/basketball-scoring';
 import { LEAGUE_TYPE_KEYS, type LeagueType } from '../src/types/sports';
 import type { StatLineKind } from '../src/types/stats';
 

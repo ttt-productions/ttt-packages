@@ -10,7 +10,7 @@ import {
   GAME_LOCATION_NAME_INPUT_FORMAT,
   GAME_LOCATION_STREET_ADDRESS_INPUT_FORMAT,
   GAME_LOCATION_SUB_LOCATION_INPUT_FORMAT,
-} from '../input-formats/index.js';
+} from '../input-formats/input-formats.js';
 
 export const gameLocationNameSchema = textFieldSchema(GAME_LOCATION_NAME_INPUT_FORMAT);
 export const gameLocationStreetAddressSchema = textFieldSchema(GAME_LOCATION_STREET_ADDRESS_INPUT_FORMAT);

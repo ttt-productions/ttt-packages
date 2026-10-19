@@ -13,7 +13,7 @@ import {
 } from '../../src/modules/frontend-reads/cache.js';
 import { runDefinition } from './run.js';
 import { runGuard } from '../../src/suite/run.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { tempRepo } from '../helpers/temp-repo.js';
 
 const KEYS = 'src/lib/query-keys.ts';

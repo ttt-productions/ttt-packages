@@ -2,8 +2,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useCheckoutNextImportantTask } from '../src/hooks/useCheckoutNextImportantTask.js';
-import type { CheckoutNextImportantTaskResult } from '../src/types-admin-task.js';
+import { useCheckoutNextImportantTask } from '../src/react/hooks/useCheckoutNextImportantTask.js';
+import type { CheckoutNextImportantTaskResult } from '../src/contracts/types-admin-task.js';
 import React from 'react';
 
 function makeWrapper(client: QueryClient) {

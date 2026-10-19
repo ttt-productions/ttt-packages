@@ -4,7 +4,7 @@
 
 import ts from 'typescript';
 import type { Finding, GuardContext } from '../../guard.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { identifierProblem, loaderProblem, namesProblem, pathProblem, reviewedProblems, type Loader } from '../../support/facts.js';
 import { escapeRegExp, isUnder } from '../../support/text.js';

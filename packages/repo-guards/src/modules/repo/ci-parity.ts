@@ -4,7 +4,7 @@
 // mirror of a check CI dropped cannot linger. Audit commands are mirrored by the gate itself.
 
 import { parse as parseYaml } from 'yaml';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding } from '../../guard.js';
 import { isText, loaderProblem, textProblem } from '../../support/facts.js';
 

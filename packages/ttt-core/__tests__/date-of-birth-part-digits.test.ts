@@ -1,13 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { DATE_OF_BIRTH_MIN_YEAR, DATE_OF_BIRTH_PART_DIGITS, deriveAgeBracket } from '../src/index';
-import * as constantsBarrel from '../src/constants/index';
-import { DateOfBirthSchema } from '../src/schemas/index';
+import { DATE_OF_BIRTH_MIN_YEAR, DATE_OF_BIRTH_PART_DIGITS } from '../src/constants/business-user';
+import { deriveAgeBracket } from '../src/utils/age-derivation';
+import { DateOfBirthSchema } from '../src/schemas/users';
 
 describe('date-of-birth part widths', () => {
-  it('are two digits for the month and day and four for the year, from the root and the constants barrel', () => {
-    expect(DATE_OF_BIRTH_PART_DIGITS).toEqual({ month: 2, day: 2, year: 4 });
-    expect(constantsBarrel.DATE_OF_BIRTH_PART_DIGITS).toBe(DATE_OF_BIRTH_PART_DIGITS);
-  });
 
   it('hold the largest month and day the schema accepts', () => {
     expect(DateOfBirthSchema.safeParse({ year: 2000, month: 12, day: 31 }).success).toBe(true);

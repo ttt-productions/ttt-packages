@@ -20,14 +20,18 @@ import { HALL_LIBRARY_TARGET_FIELDS } from '../src/media/hall-library-target-fie
 import { SquareStreetzPostTextSchema } from '../src/media/atoms.js';
 import { CreateSquareStreetzTextPostInputSchema } from '../src/schemas/social.js';
 import {
+  MAX_WORK_PROJECT_STAKE_SHARES,
+} from '../src/constants/business-work-project.js';
+import {
   MAX_COMMISSION_DESCRIPTION_LENGTH,
   MAX_AUDITION_DESCRIPTION_LENGTH,
-  MAX_WORK_PROJECT_STAKE_SHARES,
   MAX_SPONSORED_AUDITION_AMOUNT_USD,
   MAX_MENTIONS,
   MAX_POST_LENGTH,
+} from '../src/constants/business-content.js';
+import {
   MAX_CRAFT_SKILL_TAGS,
-} from '../src/constants/business.js';
+} from '../src/constants/business-user.js';
 import { CRAFT_SKILL_STATEMENT_VERSION } from '../src/constants/craft-skill-statements.js';
 import { CRAFT_SKILL_TAG_OPTIONS } from '../src/constants/options.js';
 
@@ -389,7 +393,7 @@ describe('HallLibraryCoverSquareTargetInfoSchema (typed IDs)', () => {
   it('accepts itemType television', () => {
     expect(() => HallLibraryCoverSquareTargetInfoSchema.parse({ ...valid, itemType: 'television' })).not.toThrow();
   });
-  it('rejects legacy { docPath, fields } shape', () => {
+  it('rejects a { docPath, fields } shape', () => {
     expect(() =>
       HallLibraryCoverSquareTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/workProjectTales/tale_1', fields: { full: 'coverPhotoSquare' } })
     ).toThrow();
@@ -411,7 +415,7 @@ describe('ChapterPhotoTargetInfoSchema (typed IDs)', () => {
   it('accepts valid typed IDs', () => {
     expect(() => ChapterPhotoTargetInfoSchema.parse(valid)).not.toThrow();
   });
-  it('rejects legacy { docPath, fields } shape', () => {
+  it('rejects a { docPath, fields } shape', () => {
     expect(() =>
       ChapterPhotoTargetInfoSchema.parse({ docPath: 'allWorkProjects/p_1/workProjectTales/tale_1/taleChapters/ch_1', fields: { full: 'photoUrl' } })
     ).toThrow();
@@ -447,7 +451,7 @@ describe('ConversationFileTargetInfoSchema (strict — the ConversationFileRef a
       kind: 'adminSupport', adminDispatchId: 'ad_1', guildInviteId: 'inv_1',
     })).toThrow();
   });
-  it('rejects the removed chat-attachment payload fields (text, replyTo, messageId, isUserReply)', () => {
+  it('rejects chat-attachment payload fields (text, replyTo, messageId, isUserReply)', () => {
     expect(() => ConversationFileTargetInfoSchema.parse({
       kind: 'adminSupport', adminDispatchId: 'ad_1', isUserReply: true,
     })).toThrow();
@@ -460,7 +464,7 @@ describe('ConversationFileTargetInfoSchema (strict — the ConversationFileRef a
       kind: 'guildInvite', guildInviteId: 'inv_1', messageId: 'm_1',
     })).toThrow();
   });
-  it('rejects the legacy threadKind discriminant', () => {
+  it('rejects a threadKind discriminant', () => {
     expect(() => ConversationFileTargetInfoSchema.parse({
       threadKind: 'guildInvite', guildInviteId: 'inv_1',
     })).toThrow();
@@ -476,7 +480,7 @@ describe('TuneTrackPhotoTargetInfoSchema (typed IDs)', () => {
   it('accepts valid typed IDs', () => {
     expect(() => TuneTrackPhotoTargetInfoSchema.parse(valid)).not.toThrow();
   });
-  it('rejects legacy { docPath, fields } shape', () => {
+  it('rejects a { docPath, fields } shape', () => {
     expect(() =>
       TuneTrackPhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } })
     ).toThrow();
@@ -488,7 +492,7 @@ describe('TelevisionEpisodePhotoTargetInfoSchema (typed IDs)', () => {
   it('accepts valid typed IDs', () => {
     expect(() => TelevisionEpisodePhotoTargetInfoSchema.parse(valid)).not.toThrow();
   });
-  it('rejects legacy { docPath, fields } shape', () => {
+  it('rejects a { docPath, fields } shape', () => {
     expect(() =>
       TelevisionEpisodePhotoTargetInfoSchema.parse({ docPath: 'x', fields: { full: 'photoUrl' } })
     ).toThrow();

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { shellSafeGuard, shellWithArgsArray } from '../../src/modules/repo/shell-safe.js';
 import { testSourceRootGuard } from '../../src/modules/repo/test-source-root.js';
 import { walkerReadFailureGuard } from '../../src/modules/repo/walker-read-failure.js';
-import { createRepoReader } from '../../src/reader/reader.js';
+import { createRepoReader } from '../../src/node/reader.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 

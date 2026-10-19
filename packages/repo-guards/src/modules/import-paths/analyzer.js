@@ -122,8 +122,62 @@ function namesReadFromCall(call) {
   return '*';
 }
 
+const isClassExtends = (node) =>
+  ts.isHeritageClause(node.parent) &&
+  node.parent.token === ts.SyntaxKind.ExtendsKeyword &&
+  (ts.isClassDeclaration(node.parent.parent) || ts.isClassExpression(node.parent.parent));
+
+/** A declaration's own name, or a property name read off an object — never a reference to a binding. */
+function isNameNotReference(node) {
+  const p = node.parent;
+  if (!p) return false;
+  if (ts.isPropertyAccessExpression(p) || ts.isQualifiedName(p)) return p.name === node || p.right === node;
+  return (
+    (ts.isPropertyAssignment(p) ||
+      ts.isPropertyDeclaration(p) ||
+      ts.isMethodDeclaration(p) ||
+      ts.isGetAccessorDeclaration(p) ||
+      ts.isSetAccessorDeclaration(p) ||
+      ts.isEnumMember(p) ||
+      ts.isBindingElement(p) ||
+      ts.isLabeledStatement(p) ||
+      ts.isJsxAttribute(p)) &&
+    p.name === node
+  );
+}
+
 /**
- * One module's import edges, re-exports, and exported names.
+ * Every name the module reads as a value. An imported binding read only in type positions is erased
+ * by the build, so its import loads nothing at run time.
+ */
+function valueReferencedNames(sf) {
+  const used = new Set();
+  const visit = (node) => {
+    if (ts.isImportDeclaration(node) || ts.isImportEqualsDeclaration(node)) return;
+    if (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) return;
+    if (ts.isExpressionWithTypeArguments(node)) {
+      if (isClassExtends(node)) visit(node.expression);
+      return;
+    }
+    if (ts.isTypeNode(node)) return;
+    if (ts.isExportDeclaration(node)) {
+      if (node.isTypeOnly || node.moduleSpecifier || !node.exportClause || !ts.isNamedExports(node.exportClause)) return;
+      for (const el of node.exportClause.elements) if (!el.isTypeOnly) used.add((el.propertyName ?? el.name).text);
+      return;
+    }
+    if (ts.isIdentifier(node)) {
+      if (!isNameNotReference(node)) used.add(node.text);
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return used;
+}
+
+/**
+ * One module's import edges, re-exports, and exported names. An edge is `typeOnly` when the build
+ * erases it: written type-only, or binding only names the module reads in type positions.
  *
  * @param {string} path repo-relative, forward-slashed
  * @param {string} text
@@ -132,8 +186,10 @@ function namesReadFromCall(call) {
 export function parseModule(path, text, sourceFile = null) {
   // A module the reader already parsed is never parsed a second time.
   const sf = sourceFile ?? ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, scriptKindOf(path));
-  /** @type {Array<{ spec: string, kind: 'static' | 'dynamic' | 'mock' | 'export-from', names: string[] | '*' }>} */
+  /** @type {Array<{ spec: string, kind: 'static' | 'dynamic' | 'mock' | 'export-from', names: string[] | '*', typeOnly: boolean }>} */
   const imports = [];
+  let valueNames = null;
+  const readAsValue = (local) => (valueNames ??= valueReferencedNames(sf)).has(local);
   /** @type {Array<{ spec: string, name: string, imported: string, form: 'named' | 'aliased' | 'star' | 'namespace' | 'two-statement' }>} */
   const reExports = [];
   /** Names this module exports from its own declarations (not forwards). */
@@ -146,18 +202,25 @@ export function parseModule(path, text, sourceFile = null) {
     const { spec } = site;
     if (site.kind === 'import') {
       const names = [];
+      const valueLocals = [];
       if (site.defaultName) {
         names.push('default');
         importedBindings.set(site.defaultName, { spec, imported: 'default' });
+        valueLocals.push(site.defaultName);
       }
-      if (site.namespace) importedBindings.set(site.namespace, { spec, imported: '*' });
-      for (const { imported, local } of site.named) {
+      if (site.namespace) {
+        importedBindings.set(site.namespace, { spec, imported: '*' });
+        valueLocals.push(site.namespace);
+      }
+      for (const { imported, local, typeOnly } of site.named) {
         names.push(imported);
         importedBindings.set(local, { spec, imported });
+        if (!typeOnly) valueLocals.push(local);
       }
-      imports.push({ spec, kind: 'static', names: site.namespace ? '*' : names });
+      const typeOnly = site.typeOnly || (!site.sideEffect && !valueLocals.some(readAsValue));
+      imports.push({ spec, kind: 'static', names: site.namespace ? '*' : names, typeOnly });
     } else if (site.kind === 'importEquals') {
-      imports.push({ spec, kind: 'static', names: '*' });
+      imports.push({ spec, kind: 'static', names: '*', typeOnly: site.typeOnly });
     }
   }
 
@@ -172,12 +235,13 @@ export function parseModule(path, text, sourceFile = null) {
           reExports.push(site.namespace
             ? { spec, name: site.namespace, imported: '*', form: 'namespace' }
             : { spec, name: '*', imported: '*', form: 'star' });
-          imports.push({ spec, kind: 'export-from', names: '*' });
+          imports.push({ spec, kind: 'export-from', names: '*', typeOnly: site.typeOnly });
         } else {
           for (const { imported, local } of site.named) {
             reExports.push({ spec, name: local, imported, form: imported === local ? 'named' : 'aliased' });
           }
-          imports.push({ spec, kind: 'export-from', names: site.named.map((n) => n.imported) });
+          const typeOnly = site.typeOnly || (site.named.length > 0 && site.named.every((n) => n.typeOnly));
+          imports.push({ spec, kind: 'export-from', names: site.named.map((n) => n.imported), typeOnly });
         }
       } else if (clause && ts.isNamedExports(clause)) {
         for (const el of clause.elements) {
@@ -211,12 +275,12 @@ export function parseModule(path, text, sourceFile = null) {
   }
 
   for (const { kind, node, spec } of sites) {
-    if (kind === 'dynamic' || kind === 'require') imports.push({ spec, kind: 'dynamic', names: namesReadFromCall(node) });
-    else if (kind === 'mock') imports.push({ spec, kind: 'mock', names: '*' });
+    if (kind === 'dynamic' || kind === 'require') imports.push({ spec, kind: 'dynamic', names: namesReadFromCall(node), typeOnly: false });
+    else if (kind === 'mock') imports.push({ spec, kind: 'mock', names: '*', typeOnly: false });
     else if (kind === 'importType') {
       const q = node.qualifier;
       const first = q ? (ts.isIdentifier(q) ? q.text : q.left && ts.isIdentifier(q.left) ? q.left.text : null) : null;
-      imports.push({ spec, kind: 'static', names: first ? [first] : '*' });
+      imports.push({ spec, kind: 'static', names: first ? [first] : '*', typeOnly: true });
     }
   }
 
@@ -325,6 +389,193 @@ export function findUnusedIndexMembers({ files, roots, profile }) {
     if (unused.length) report.push({ file: indexPath, unused });
   }
   return report.sort((a, b) => (a.file < b.file ? -1 : 1));
+}
+
+/** The one kind of test that may import an entry index: one that proves the entry forwards a name. */
+const ENTRY_SURFACE_TEST = /\.entry\.(test|spec)\.[cm]?[jt]sx?$/;
+
+/**
+ * The import rules inside one package, over its module set:
+ *
+ *   1. Code imports the file that defines each name — never an index (a folder's, a nested
+ *      entry's, or the package root's) and never the package's own name. A test does the same,
+ *      except an entry-surface test (`<name>.entry.test.ts`), which may import an entry index.
+ *   2. Only an entry index re-exports, and only files inside its own folder, each named directly
+ *      (never through another index). An index declares nothing of its own, and an `index` that is
+ *      not a package entry does not exist.
+ *
+ * @param {{
+ *   files: Map<string, string | { text: string, sourceFile: import('typescript').SourceFile }>,
+ *   packageRoot: string,
+ *   packageName: string,
+ *   entryFiles: string[],
+ *   profile: ReturnType<typeof createImportPathProfile>,
+ * }} input
+ *   `packageRoot` is the package's repo-relative folder; `entryFiles` are the source modules its
+ *   `exports` are built from.
+ */
+export function analyzePackageImports({ files, packageRoot, packageName, entryFiles, profile }) {
+  if (!profile) throw new Error('repo-guards: analyzePackageImports needs a profile');
+  const model = buildModel(files, [packageRoot], profile);
+  const entries = new Set(entryFiles);
+  const source = `${packageRoot}/src`;
+  const violations = [];
+  const add = (kind, file, detail) => violations.push({ kind, file, detail });
+  const ownName = (spec) => spec === packageName || spec.startsWith(`${packageName}/`);
+  // Only the package's own code has indexes the rules govern; an index a test fixture holds models
+  // another package's entry.
+  const packageIndex = (p) => isIndexFile(p, profile) && within(p, source);
+
+  for (const [path, mod] of model.modules) {
+    const indexFile = packageIndex(path);
+    const entryIndex = indexFile && entries.has(path);
+    if (indexFile && !entryIndex) {
+      add('non-entry-index', path, 'an index that is not a package entry — delete it and import the files it forwarded directly');
+    }
+    if (entryIndex && mod.parsed.ownExports.size) {
+      const names = [...mod.parsed.ownExports].sort().join(', ');
+      add('index-declares', path, `declares ${names} — an index only forwards; move each definition into a named file and forward that file`);
+    }
+
+    const forwardedSpecs = new Set();
+    for (const re of mod.parsed.reExports) {
+      forwardedSpecs.add(re.spec);
+      const shown = re.form === 'star' ? `* from '${re.spec}'` : `${re.imported === re.name ? re.name : `${re.imported} as ${re.name}`} from '${re.spec}'`;
+      if (!entryIndex) {
+        // A non-entry index is reported once, as itself: deleting it removes its forwards too.
+        if (!indexFile) add('reexport-outside-entry', path, `${re.form} re-export of ${shown} — only an entry index re-exports`);
+        continue;
+      }
+      const target = model.resolve(path, re.spec);
+      if (target.kind === 'unresolved') continue; // reported once, on the import edge below
+      if (target.kind !== 'file' || !within(target.path, dirnameOf(path))) {
+        add('entry-forwards-outside-folder', path, `forwards ${shown}, which is outside ${dirnameOf(path)}/`);
+      } else if (packageIndex(target.path)) {
+        add('entry-forwards-index', path, `forwards ${shown}, an index — name the file that defines it`);
+      }
+    }
+
+    const entrySurfaceTest = profile.isTestFile(path) && ENTRY_SURFACE_TEST.test(path);
+    for (const edge of mod.parsed.imports) {
+      if (ownName(edge.spec)) {
+        add('import-own-package-name', path, `imports '${edge.spec}', the package's own name — import the file that defines each name`);
+        continue;
+      }
+      const target = model.resolve(path, edge.spec);
+      if (target.kind === 'unresolved') {
+        add('unresolved-import', path, `'${edge.spec}' names no module in the package (looked for ${target.base})`);
+        continue;
+      }
+      if (target.kind !== 'file' || target.path === path || !packageIndex(target.path)) continue;
+      // A forward is judged as a re-export above.
+      if (edge.kind === 'export-from' || (entryIndex && forwardedSpecs.has(edge.spec))) continue;
+      if (entrySurfaceTest && entries.has(target.path)) continue;
+      add('import-through-index', path, `imports '${edge.spec}', an index — import the file that defines each name`);
+    }
+  }
+
+  violations.sort((a, b) => (a.file === b.file ? (a.detail < b.detail ? -1 : 1) : a.file < b.file ? -1 : 1));
+  return { violations };
+}
+
+/**
+ * Every runtime import cycle among a module set: the strongly connected groups of its static
+ * imports and forwards, type-only edges and lazy `import()` left out (neither runs while a module
+ * evaluates). Each cycle is reported once, as one closed path through it.
+ *
+ * @param {{ files: Map<string, string | { text: string, sourceFile: import('typescript').SourceFile }>, roots: string[], profile: ReturnType<typeof createImportPathProfile> }} input
+ */
+export function findImportCycles({ files, roots, profile }) {
+  const model = buildModel(files, roots, profile);
+  const edges = new Map();
+  for (const [path, mod] of model.modules) {
+    const out = new Set();
+    for (const edge of mod.parsed.imports) {
+      if (edge.typeOnly || (edge.kind !== 'static' && edge.kind !== 'export-from')) continue;
+      const target = model.resolve(path, edge.spec);
+      if (target.kind === 'file') out.add(target.path);
+    }
+    edges.set(path, [...out].sort());
+  }
+
+  // Tarjan's strongly connected components, iterative so a deep import chain cannot overflow.
+  let counter = 0;
+  const index = new Map();
+  const low = new Map();
+  const stack = [];
+  const onStack = new Set();
+  const groups = [];
+  for (const start of [...edges.keys()].sort()) {
+    if (index.has(start)) continue;
+    const work = [{ node: start, next: 0 }];
+    index.set(start, counter);
+    low.set(start, counter);
+    counter += 1;
+    stack.push(start);
+    onStack.add(start);
+    while (work.length) {
+      const frame = work[work.length - 1];
+      const targets = edges.get(frame.node) ?? [];
+      if (frame.next < targets.length) {
+        const target = targets[frame.next];
+        frame.next += 1;
+        if (!index.has(target)) {
+          index.set(target, counter);
+          low.set(target, counter);
+          counter += 1;
+          stack.push(target);
+          onStack.add(target);
+          work.push({ node: target, next: 0 });
+        } else if (onStack.has(target)) {
+          low.set(frame.node, Math.min(low.get(frame.node), index.get(target)));
+        }
+        continue;
+      }
+      work.pop();
+      if (work.length) {
+        const parent = work[work.length - 1].node;
+        low.set(parent, Math.min(low.get(parent), low.get(frame.node)));
+      }
+      if (low.get(frame.node) === index.get(frame.node)) {
+        const group = [];
+        let member;
+        do {
+          member = stack.pop();
+          onStack.delete(member);
+          group.push(member);
+        } while (member !== frame.node);
+        if (group.length > 1 || (edges.get(frame.node) ?? []).includes(frame.node)) groups.push(group.sort());
+      }
+    }
+  }
+
+  return groups
+    .map((group) => {
+      const members = new Set(group);
+      const first = group[0];
+      // The shortest way back to the group's first module, through the group alone.
+      const previous = new Map([[first, null]]);
+      const queue = [first];
+      let closing = null;
+      while (queue.length && !closing) {
+        const node = queue.shift();
+        for (const target of edges.get(node) ?? []) {
+          if (!members.has(target)) continue;
+          if (target === first) {
+            closing = node;
+            break;
+          }
+          if (!previous.has(target)) {
+            previous.set(target, node);
+            queue.push(target);
+          }
+        }
+      }
+      const path = [];
+      for (let node = closing; node !== null; node = previous.get(node)) path.unshift(node);
+      return { file: first, modules: group, path: [...path, first] };
+    })
+    .sort((a, b) => (a.file < b.file ? -1 : 1));
 }
 
 function buildModel(files, roots, profile) {

@@ -5,7 +5,7 @@ import { MediaInput } from '../src/react/components/media-input';
 import { ImageCropperModal } from '../src/react/components/image-cropper-modal';
 import { PhotoCaptureModal } from '../src/react/components/photo-capture-modal';
 import { getCroppedImg } from '../src/lib/image-utils.js';
-import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from '../src/index.js';
+import { DEFAULT_PROGRESS_BAR_MIN_BYTES } from '../src/progress-bar.js';
 
 vi.mock('@ttt-productions/media-viewer/react', async () =>
   import('../../media-viewer/src/react/index.js'),

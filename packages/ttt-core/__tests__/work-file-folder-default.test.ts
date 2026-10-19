@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_WORK_FILE_FOLDER_ID, DEFAULT_WORK_FILE_FOLDER_NAME, buildDefaultWorkFileFolder } from '../src/utils';
+import {
+  DEFAULT_WORK_FILE_FOLDER_ID,
+  DEFAULT_WORK_FILE_FOLDER_NAME,
+  buildDefaultWorkFileFolder,
+} from '../src/utils/work-file-folder';
 import { WorkFileFolderSchema } from '../src/doc-schemas/work-project';
 import { documentIdSegmentSchema } from '../src/schemas/atoms';
 

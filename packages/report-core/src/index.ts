@@ -1,18 +1,4 @@
 export type {
-  TaskPriority,
-  AdminTask,
-  AdminTaskStatus,
-  CheckoutDetails,
-  CheckedOutTask,
-  ClaimedTask,
-  CheckoutTaskResult,
-  CheckoutNextImportantTaskResult,
-  TaskLifecycleResult,
-  ActivityAction,
-  ActivityLogEntry,
-  TaskQueueConfig,
-  ReportableItemConfig,
-  PriorityConfig,
   ReportTargetRef,
   AdditionalReportAction,
   ReportDialogCopy,
@@ -23,16 +9,4 @@ export type {
   UseReportButtonResult,
   CountdownTimerProps,
   PriorityBadgeProps,
-} from './types.js';
-
-export type {
-  ReportCoreConfig,
-  ReportCoreCollections,
-  PriorityThreshold,
-} from './config.js';
-
-export {
-  DEFAULT_PRIORITY_THRESHOLDS,
-  ADMIN_TASK_STATUS,
-  USER_REPORT_TASK_TYPE,
-} from './config.js';
+} from './types-ui-props.js';

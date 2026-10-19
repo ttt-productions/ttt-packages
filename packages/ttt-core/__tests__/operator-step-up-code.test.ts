@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { OPERATOR_STEP_UP_CODE_LENGTH } from '../src/index';
+import { OPERATOR_STEP_UP_CODE_LENGTH } from '../src/constants/business-admin';
 import * as constantsBarrel from '../src/constants/index';
 import { OperatorStepUpCodeInputSchema } from '../src/schemas/index';
 
 describe('operator step-up code length', () => {
-  it('is six digits, exported from the root and the constants barrel', () => {
+  it('is six digits, exported from the constants entry', () => {
     expect(OPERATOR_STEP_UP_CODE_LENGTH).toBe(6);
     expect(constantsBarrel.OPERATOR_STEP_UP_CODE_LENGTH).toBe(OPERATOR_STEP_UP_CODE_LENGTH);
   });

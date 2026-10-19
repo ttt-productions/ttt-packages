@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { createRef } from 'react';
-import type { DeferredUploadFormShellHandle } from '../src/react/deferred-upload-form-shell.js';
+import type { DeferredUploadFormShellHandle } from '../src/react/upload/deferred-upload-form-shell.js';
 
 // --- mocks (must precede component imports) ---
 
@@ -50,7 +50,7 @@ vi.mock('@ttt-productions/file-input/react', () => ({
 vi.mock('@ttt-productions/file-input', () => ({}));
 
 // --- component import (after mocks) ---
-import { DeferredUploadFormShell } from '../src/react/deferred-upload-form-shell.js';
+import { DeferredUploadFormShell } from '../src/react/upload/deferred-upload-form-shell.js';
 
 // --- helpers ---
 

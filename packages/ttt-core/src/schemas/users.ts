@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { userIdSchema, calendarDateSchema } from './atoms.js';
-import { MAX_ARTISAN_LOCATION_LENGTH, MAX_USER_SEARCH_QUERY_LENGTH } from '../constants/business.js';
+import { MAX_USER_SEARCH_QUERY_LENGTH } from '../constants/business-admin.js';
+import { MAX_ARTISAN_LOCATION_LENGTH } from '../constants/business-user.js';
 import {
   ACCOUNT_ACTION_REASON_INPUT,
   ARTISAN_REGION_INPUT,

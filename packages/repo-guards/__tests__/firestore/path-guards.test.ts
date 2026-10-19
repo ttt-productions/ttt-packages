@@ -3,8 +3,8 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 import { literalSegmentGuard, pathAssemblyGuard, retiredSegmentGuard, type PathAssemblyFacts, type RetiredSegmentFacts } from '../../src/modules/firestore/path-guards.js';
-import { createRepoReader } from '../../src/reader/reader.js';
-import type { RepoLayout } from '../../src/reader/layout.js';
+import { createRepoReader } from '../../src/node/reader.js';
+import type { RepoLayout } from '../../src/node/layout.js';
 import { contextOf } from '../helpers/context.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 

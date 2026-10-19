@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { GuardContext } from '../../src/guard.js';
 import { contextOf } from '../helpers/context.js';
 import { importPathGuard, unusedIndexMembers } from '../../src/modules/import-paths/guard.js';
-import { createRepoReader, type RepoReader } from '../../src/reader/reader.js';
+import { createRepoReader, type RepoReader } from '../../src/node/reader.js';
 import { tempRepo, type TempRepo } from '../helpers/temp-repo.js';
 
 let repo: TempRepo;

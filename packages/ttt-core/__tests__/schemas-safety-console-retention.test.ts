@@ -4,7 +4,6 @@ import {
   GetSafetyCaseConsoleResultSchema,
   ListRetainedEvidenceInventoryResultSchema,
   SafetyCaseFailedJobRefSchema,
-  SafetyCaseLaneSchema,
   TakeItDownRequestConsoleRowSchema,
   GetSafetyCaseConsoleInputSchema,
   ListRetainedChildSafetyCasesInputSchema,
@@ -13,7 +12,7 @@ import {
   RetainedChildSafetyCaseRowSchema,
   SafetyCaseConsoleSourceSchema,
 } from '../src/schemas/safety';
-import { ChildSafetyPreservationStatusSchema } from '../src/doc-schemas/safety/case';
+import { ChildSafetyPreservationStatusSchema, SafetyCaseLaneSchema } from '../src/doc-schemas/safety/case';
 import * as schemasBarrel from '../src/schemas';
 import * as docSchemasBarrel from '../src/doc-schemas';
 import { SafetyCaseInputSchema, ReopenSafetyCaseInputSchema } from '../src/schemas/admin';
@@ -159,7 +158,8 @@ describe('safety console — the one result shape both trees read', () => {
 describe('the safety-case lane', () => {
   it('is one declaration every case input takes — a third lane is refused everywhere', () => {
     expect(SafetyCaseLaneSchema.options).toEqual(['csam', 'ncii']);
-    expect(schemasBarrel.SafetyCaseLaneSchema).toBe(docSchemasBarrel.SafetyCaseLaneSchema);
+    expect(docSchemasBarrel.SafetyCaseLaneSchema).toBe(SafetyCaseLaneSchema);
+    expect('SafetyCaseLaneSchema' in schemasBarrel).toBe(false);
     expect(SafetyCaseInputSchema.shape.caseType).toBe(SafetyCaseLaneSchema);
     expect(ReopenSafetyCaseInputSchema.shape.caseType).toBe(SafetyCaseLaneSchema);
     expect(ReopenSafetyCaseInputSchema.safeParse({ caseType: 'dmca', caseId: 'c1', reasonInternal: 'reason' }).success).toBe(false);

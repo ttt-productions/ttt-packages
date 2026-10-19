@@ -3,10 +3,10 @@
 // test mocks of pure package roots.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding, Guard } from '../../guard.js';
-import type { Reviewed } from '../../reader/layout.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Reviewed } from '../../node/layout.js';
+import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { matchPattern, ownerOnly, reviewedAllowlist, type AllowlistEntry, type Hit } from '../../shapes/shapes.js';
 import { allowlistProblems, namesProblem, reviewedProblems, textProblem } from '../../support/facts.js';

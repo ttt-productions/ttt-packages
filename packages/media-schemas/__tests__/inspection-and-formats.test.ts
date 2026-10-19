@@ -4,10 +4,9 @@ import {
   MediaInspectionResultSchema,
   MediaSafetyPlanSchema,
   MediaAcceptSchema,
-  MEDIA_FORMATS,
   MediaFormatIdSchema,
-  projectAcceptTokens,
-} from "../src/index.js";
+} from "../src/schemas.js";
+import { MEDIA_FORMATS, projectAcceptTokens } from "../src/format-registry.js";
 
 describe("ClientMediaClaimSchema", () => {
   it("accepts each action source with a kind", () => {

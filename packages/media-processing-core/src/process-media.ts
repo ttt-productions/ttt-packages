@@ -4,8 +4,6 @@ import { processVideo } from "./video/video-processor.js";
 import { processAudio } from "./audio/audio-processor.js";
 import type { MediaProcessors, ProcessMediaContext, ProcessMediaOptions } from "./types.js";
 
-export type { MediaPipelineProgress, MediaProcessors, ProcessMediaContext, ProcessMediaOptions } from "./types.js";
-
 export const defaultMediaProcessors: MediaProcessors = {
   image: processImage,
   video: processVideo,

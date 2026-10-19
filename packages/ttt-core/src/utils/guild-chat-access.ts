@@ -5,13 +5,13 @@
  */
 
 import type { GuildmateUser } from '../doc-schemas/work-project.js';
-import { FOUNDING_WORK_HOLDER_TYPE } from '../doc-schemas/work-project.js';
 import type { GuildChatChannel } from '../doc-schemas/messaging.js';
+import { FOUNDING_WORK_HOLDER_TYPE } from '../doc-schemas/work-project.js';
 import type { GuildInviteConversationStatus } from '../schemas/atoms.js';
 import {
   GUILD_INVITE_HANDLER_GUILD_STANDING_IDS,
-  guildStandingsGrantAction,
-} from '../permissions/work-project-permissions.js';
+} from '../permissions/work-project-permissions-data.js';
+import { guildStandingsGrantAction } from '../permissions/work-project-permissions.js';
 
 /** The Guildmate facts a conversation rule reads. */
 export type GuildChatAccessMember = Pick<GuildmateUser, 'status' | 'holderType' | 'guildStandings' | 'tradeProfessions'>;

@@ -2,9 +2,9 @@
 // are held to the rules too) read through the one reader and handed to the analyzer.
 
 import type { Finding, GuardContext } from '../../guard.js';
-import type { RepoReader, Scope } from '../../reader/reader.js';
-import { isTestPath } from '../../reader/layout.js';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { RepoReader, Scope } from '../../node/reader.js';
+import { isTestPath } from '../../node/layout.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import { objectProblem, reviewedProblems } from '../../support/facts.js';
 import { analyzeImportPaths, createImportPathProfile, findUnusedIndexMembers } from './analyzer.js';
 

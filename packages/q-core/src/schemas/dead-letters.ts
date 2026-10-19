@@ -5,8 +5,12 @@
 // (ARCH-106).
 
 import { z } from 'zod';
-import { countSchema, documentIdSegmentSchema, epochMsSchema } from '../doc-schemas/atoms.js';
-import { repairReasonSchema } from './atoms.js';
+import {
+  countSchema,
+  documentIdSegmentSchema,
+  epochMsSchema,
+  repairReasonSchema,
+} from '../doc-schemas/atoms.js';
 
 /** Every ledger the dead-letter replay supports. */
 export const DEAD_LETTER_COLLECTION_KEYS = ['notificationDeliveries'] as const;

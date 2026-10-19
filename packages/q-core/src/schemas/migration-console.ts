@@ -17,8 +17,12 @@ import {
   migrationOperationIdSchema,
 } from '../doc-schemas/migration-console.js';
 import { MAX_MIGRATION_PAGE_SIZE, MIGRATION_RECORD_OUTCOME_KEYS } from '../migration-console/run-state.js';
-import { countSchema, epochMsSchema, repairReasonSchema } from './atoms.js';
-import { statsOperationIdSchema } from '../doc-schemas/atoms.js';
+import {
+  countSchema,
+  epochMsSchema,
+  repairReasonSchema,
+  statsOperationIdSchema,
+} from '../doc-schemas/atoms.js';
 
 // The operation ids a product control's record names: one per sport for the hall of fame, one
 // otherwise, none for a control that writes no operation.

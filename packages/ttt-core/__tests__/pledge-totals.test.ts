@@ -6,7 +6,7 @@ import {
   pledgePaymentTotalsOf,
 } from '../src/utils/pledge-totals';
 import { PledgePaymentSchema } from '../src/doc-schemas/payments';
-import * as root from '../src/index';
+import * as utils from '../src/utils/index';
 
 const refunded = { amount: 1000, refundedAmount: 400, disputeLostAmount: 0, netAmount: 600 };
 const disputeLost = { amount: 2500, refundedAmount: 0, disputeLostAmount: 2500, netAmount: 0 };
@@ -52,10 +52,10 @@ describe('the pledge-totals formula', () => {
     }
   });
 
-  it('is exported from the package root', () => {
-    expect(root.pledgePaymentTotalsOf).toBe(pledgePaymentTotalsOf);
-    expect(root.isPledgePaymentCounted).toBe(isPledgePaymentCounted);
-    expect(root.pledgePaymentContributionOf).toBe(pledgePaymentContributionOf);
+  it('is exported from the utils entry', () => {
+    expect(utils.pledgePaymentTotalsOf).toBe(pledgePaymentTotalsOf);
+    expect(utils.isPledgePaymentCounted).toBe(isPledgePaymentCounted);
+    expect(utils.pledgePaymentContributionOf).toBe(pledgePaymentContributionOf);
   });
 });
 

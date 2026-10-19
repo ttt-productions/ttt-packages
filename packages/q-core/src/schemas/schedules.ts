@@ -7,7 +7,7 @@
 import { z } from 'zod';
 import { MAX_SCHEDULE_WEEK_GAMES } from '../constants/business.js';
 import { textFieldSchema } from '../doc-schemas/atoms.js';
-import { SCHEDULE_WEEK_TITLE_INPUT_FORMAT } from '../input-formats/index.js';
+import { SCHEDULE_WEEK_TITLE_INPUT_FORMAT } from '../input-formats/input-formats.js';
 import {
   countSchema,
   epochMsSchema,

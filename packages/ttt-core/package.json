@@ -32,42 +32,6 @@
             "types": "./dist/constants/index.d.ts",
             "default": "./dist/constants/index.js"
         },
-        "./constants/business": {
-            "types": "./dist/constants/business.d.ts",
-            "default": "./dist/constants/business.js"
-        },
-        "./constants/moderation": {
-            "types": "./dist/constants/moderation.d.ts",
-            "default": "./dist/constants/moderation.js"
-        },
-        "./constants/options": {
-            "types": "./dist/constants/options.d.ts",
-            "default": "./dist/constants/options.js"
-        },
-        "./constants/pagination": {
-            "types": "./dist/constants/pagination.d.ts",
-            "default": "./dist/constants/pagination.js"
-        },
-        "./constants/retention": {
-            "types": "./dist/constants/retention.d.ts",
-            "default": "./dist/constants/retention.js"
-        },
-        "./constants/scheduled-jobs": {
-            "types": "./dist/constants/scheduled-jobs.d.ts",
-            "default": "./dist/constants/scheduled-jobs.js"
-        },
-        "./constants/storage-keys": {
-            "types": "./dist/constants/storage-keys.d.ts",
-            "default": "./dist/constants/storage-keys.js"
-        },
-        "./constants/company-mascots": {
-            "types": "./dist/constants/company-mascots.d.ts",
-            "default": "./dist/constants/company-mascots.js"
-        },
-        "./constants/center-stage-rooms": {
-            "types": "./dist/constants/center-stage-rooms.d.ts",
-            "default": "./dist/constants/center-stage-rooms.js"
-        },
         "./utils": {
             "types": "./dist/utils/index.d.ts",
             "default": "./dist/utils/index.js"
@@ -75,10 +39,6 @@
         "./schemas": {
             "types": "./dist/schemas/index.d.ts",
             "default": "./dist/schemas/index.js"
-        },
-        "./schemas/notification": {
-            "types": "./dist/schemas/notification.d.ts",
-            "default": "./dist/schemas/notification.js"
         },
         "./doc-schemas": {
             "types": "./dist/doc-schemas/index.d.ts",

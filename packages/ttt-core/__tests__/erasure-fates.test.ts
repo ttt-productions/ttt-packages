@@ -6,7 +6,6 @@ import {
   collectionPathsWithErasureFate,
 } from '../src/doc-schemas/erasure-fates';
 import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
-import * as docSchemasBarrel from '../src/doc-schemas';
 
 const fatesOf = (path: string): readonly string[] =>
   (ERASURE_FATES_BY_COLLECTION_PATH as Record<string, readonly string[]>)[path];
@@ -53,10 +52,6 @@ describe('erasure fate declaration', () => {
     for (const path of collectionPathsWithErasureFate('none')) expect(fatesOf(path)).toEqual(['none']);
   });
 
-  it('is exported from the doc-schemas entry point', () => {
-    expect(docSchemasBarrel.ERASURE_FATES_BY_COLLECTION_PATH).toBe(ERASURE_FATES_BY_COLLECTION_PATH);
-    expect(docSchemasBarrel.adminDispatchErasureFate).toBe(adminDispatchErasureFate);
-  });
 });
 
 describe('support-thread erasure fate', () => {

@@ -34,10 +34,6 @@ import {
 } from "./r2-retry.js";
 import { requireStorageObjectGeneration, UnreadableStorageObjectMetadataError } from "./staged-object.js";
 
-// Re-export the exhaustion error so callers can recognize an exhausted R2
-// operation. The rest of the retry helper stays private to this module.
-export { R2StorageError };
-
 /**
  * A copy found an object at its destination key that is not this copy's result, and
  * wrote nothing; that object is untouched. The key is a PROPERTY, never message text, so

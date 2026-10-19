@@ -25,9 +25,9 @@
 // calling it, and proving the call needs a call graph dependency injection defeats.
 
 import ts from 'typescript';
-import type { GenericGuardDefinition } from '../../config.js';
+import type { GenericGuardDefinition } from '../../suite/config.js';
 import type { Finding } from '../../guard.js';
-import type { Scope } from '../../reader/reader.js';
+import type { Scope } from '../../node/reader.js';
 import type { FileView } from '../../reader/view.js';
 import { forEachNode, unwrap } from '../../support/ast.js';
 import { identifierProblem, isText, namesProblem, objectProblem, reviewedProblems } from '../../support/facts.js';

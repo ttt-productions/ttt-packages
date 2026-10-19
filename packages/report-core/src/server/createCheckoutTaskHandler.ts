@@ -8,8 +8,8 @@ import type {
 } from './types.js';
 import { ReportCoreTaskError } from './taskError.js';
 import { createCandidateCursor } from './claimCandidates.js';
-import type { CheckoutTaskRequest } from '../schemas/index.js';
-import type { AdminTaskStatus, CheckoutDetails, CheckoutTaskResult } from '../types-admin-task.js';
+import type { CheckoutTaskRequest } from '../schemas/requests.js';
+import type { AdminTaskStatus, CheckoutDetails, CheckoutTaskResult } from '../contracts/types-admin-task.js';
 import { toClaimedTask } from './claimedTask.js';
 
 export interface CheckoutTaskHandlerConfig {

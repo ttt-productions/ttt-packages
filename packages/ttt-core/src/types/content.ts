@@ -1,15 +1,5 @@
 // Content types: Tales, Tunes, Television, HallLibrary
 
-// --- WorkProject content sub-docs (shapes in ../doc-schemas/content.ts) ---
-export type {
-  FullTale,
-  FullChapter,
-  FullTune,
-  FullTuneTrack,
-  FullTelevision,
-  FullTelevisionEpisode,
-} from '../doc-schemas/content.js';
-
 // --- HallLibrary Types ---
 
 export const HALL_WING_TYPE_KEYS = ['entertainment', 'educational', 'newsPolitical'] as const;
@@ -28,50 +18,17 @@ export type WorkProjectTypeFilter = WorkProjectType | 'All';
 export const RULE_GROUP_KEYS = ['generic', 'merchandising', 'hallWing', 'workRealm'] as const;
 export type RuleGroup = (typeof RULE_GROUP_KEYS)[number];
 
-export type { ItemsKey } from '../doc-schemas/content.js';
-
-// --- Threshold + Hall library items (shapes in ../doc-schemas/content.ts) ---
-export type {
-  ThresholdItem,
-  PublishedHallItem,
-  PublishedTuneTrack,
-  PublishedChapter,
-  PublishedTelevisionEpisode,
-  HallContentChangeRequest,
-  HallContentTextSurface,
-} from '../doc-schemas/content.js';
-
-export type {
-  HallLibraryPreferences,
-  HallLibraryInProgressEntry,
-  HallLibraryRecentlyViewedEntry,
-  HallLibrarySettings,
-} from '../doc-schemas/content.js';
-
 export type HallLibrarySortOption =
   | 'newest'
   | 'oldest'
   | 'most_followed';
 
-// V1 Hall browse filters on the big categories only (medium coins × wing coins). The genre
-// FILTER was removed for launch (DJ, 2026-07-27) — works still TAG per-medium genres at
-// creation and display them, so a browse genre filter can return post-launch once real
-// content data exists (options recorded in ttt-prod docs/post-launch).
+// Hall browse filters on the big categories only (medium coins × wing coins). There is no
+// genre filter: works still tag per-medium genres at creation and display them.
 export type HallLibraryFilters = {
   hallWingType: HallWingTypeFilter;
   workProjectType: WorkProjectTypeFilter;
   sortBy: HallLibrarySortOption;
 };
-
-// --- _config singleton docs (shapes in ../doc-schemas/content.ts) ---
-export type {
-  FuturePlanGroup,
-  FuturePlanItem,
-  FuturePlansDocument,
-  Rule,
-  AgreementPoint,
-  ArtisanAgreements,
-  RulesAndAgreements,
-} from '../doc-schemas/content.js';
 
 

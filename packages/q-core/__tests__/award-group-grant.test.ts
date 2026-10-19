@@ -6,16 +6,17 @@ import { buildAwardGroupGrantId, buildAwardGroupGrantTargetKey } from '../src/id
 import {
   AwardGroupGrantPersonSchema,
   AwardGroupGrantSchema,
-  COLLECTION_SCHEMAS,
   awardGroupGrantOpens,
-} from '../src/doc-schemas';
+} from '../src/doc-schemas/award-group-grant';
+import { COLLECTION_SCHEMAS } from '../src/doc-schemas/registry';
 import {
   AdminGetAwardGroupGrantStatusInputSchema,
   AdminGetAwardGroupGrantStatusResultSchema,
   AdminUpdateAwardGroupGrantInputSchema,
   AdminUpdateAwardGroupGrantResultSchema,
-} from '../src/schemas';
-import { PATH_BUILDERS, toPath } from '../src/paths';
+} from '../src/schemas/awards';
+import { PATH_BUILDERS } from '../src/paths/path-builders';
+import { toPath } from '../src/paths/utils';
 
 const target = { awardId: 'award-1', groupType: 'league', groupId: 'league-1' } as const;
 const targetKey = buildAwardGroupGrantTargetKey(target);

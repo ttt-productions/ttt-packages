@@ -21,22 +21,3 @@ export * from './voting.js';
 export * from './notification.js';
 export * from './conversation-files.js';
 export * from './public-documents.js';
-
-// Authoritative mutation results homed in ../doc-schemas (each composes a doc schema
-// whose module already imports from ./schemas — the reverse runtime import would be a
-// module cycle). Surfaced here so callables/hooks import ALL wire contracts from the
-// one ./schemas subpath.
-export {
-  AddToMentionHistoryResultSchema,
-  type AddToMentionHistoryResult,
-  CreateSquareStreetzTextPostResultSchema,
-  type CreateSquareStreetzTextPostResult,
-} from '../doc-schemas/social.js';
-export {
-  CreateCommissionProposalTextResultSchema,
-  type CreateCommissionProposalTextResult,
-} from '../doc-schemas/commissions.js';
-export {
-  ListGuildInvitesResultSchema,
-  type ListGuildInvitesResult,
-} from '../doc-schemas/messaging.js';
