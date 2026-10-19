@@ -217,6 +217,7 @@ See `firestore-schema.mmd` for the relationship (ER) diagram.
 | `requestedAt` | `number` |  |
 | `scheduledScrubAt` | `number` |  |
 | `graceDays` | `number` |  |
+| `origin` | `'memberRequest' \| 'discoveredUnder13'` |  |
 | `cancelledAt` | `number` | yes |
 | `tokenRevocationNextAttemptAt` | `number` | yes |
 | `tokensRevokedAt` | `number` | yes |

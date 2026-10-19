@@ -6,6 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import {
+  ACCOUNT_DELETION_REQUEST_ORIGINS,
   AccountDeletionRequestStatusSchema,
   AccountDeletionRequestV1Schema,
   ACTIVE_DELETION_REQUEST_STATUSES,
@@ -121,6 +122,7 @@ describe('AccountDeletionRequestV1Schema — the durable token-revocation obliga
     requestedAt: 1_700_000_000_000,
     scheduledScrubAt: 1_702_592_000_000,
     graceDays: 30,
+    origin: 'memberRequest',
     createdAt: 1_700_000_000_000,
     updatedAt: 1_700_000_000_000,
   });
@@ -169,5 +171,30 @@ describe('AccountDeletionRequestV1Schema — the durable token-revocation obliga
         tokenRevocationNextAttemptAt: null,
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('AccountDeletionRequestV1Schema — where a request came from', () => {
+  const request = (origin?: unknown) => ({
+    schemaVersion: 1,
+    uid: 'u1',
+    status: 'parkedOnHold',
+    requestedAt: 1_700_000_000_000,
+    scheduledScrubAt: 1_700_000_000_000,
+    graceDays: 0,
+    ...(origin === undefined ? {} : { origin }),
+    createdAt: 1_700_000_000_000,
+    updatedAt: 1_700_000_000_000,
+  });
+
+  it("holds the member's own request and an under-13 closure", () => {
+    expect(ACCOUNT_DELETION_REQUEST_ORIGINS).toEqual(['memberRequest', 'discoveredUnder13']);
+    for (const origin of ACCOUNT_DELETION_REQUEST_ORIGINS)
+      expect(AccountDeletionRequestV1Schema.parse(request(origin)).origin).toBe(origin);
+  });
+
+  it('refuses a request that does not say where it came from, or names any other origin', () => {
+    expect(AccountDeletionRequestV1Schema.safeParse(request()).success).toBe(false);
+    expect(AccountDeletionRequestV1Schema.safeParse(request('adminRequest')).success).toBe(false);
   });
 });

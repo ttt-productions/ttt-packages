@@ -10,7 +10,9 @@
 //   - hold     → `parkedOnHold` (re-checked periodically): resumes + `completed`
 //                once cleared, or → `superseded` if it becomes a ban-for-cause /
 //                evidence-preservation outcome (the erasure is overridden and the
-//                data retained as evidence).
+//                data retained as evidence). A request whose `origin` is
+//                `discoveredUnder13` (an admin's under-13 closure) is never
+//                superseded for a ban.
 //
 // The scrub itself deletes/anonymizes data across many collections; this doc is
 // ONLY the request lifecycle + the worker's resumable cursor.
@@ -41,6 +43,16 @@ export const AccountDeletionRequestStatusSchema = z.enum([
   'superseded', // overridden by a ban-for-cause / evidence-preservation outcome
 ]);
 export type AccountDeletionRequestStatus = z.infer<typeof AccountDeletionRequestStatusSchema>;
+
+/**
+ * Where a request came from: the member's own request, or an admin's closure of an account found to
+ * belong to someone under 13. A ban supersedes a member's request (its data is kept as the ban's
+ * evidence); it never supersedes an under-13 closure, whose data is deleted and kept only while a
+ * safety hold stands — a ban is not a legal hold.
+ */
+export const ACCOUNT_DELETION_REQUEST_ORIGINS = ['memberRequest', 'discoveredUnder13'] as const;
+export const AccountDeletionRequestOriginSchema = z.enum(ACCOUNT_DELETION_REQUEST_ORIGINS);
+export type AccountDeletionRequestOrigin = z.infer<typeof AccountDeletionRequestOriginSchema>;
 
 /**
  * ACTIVE = the request is still OPEN and still cancellable. This is the one predicate the
@@ -176,6 +188,7 @@ export const AccountDeletionRequestV1Schema = z
     // scheduledScrubAt <= now (composite index, ttt-prod firestore.indexes.json).
     scheduledScrubAt: z.number(),
     graceDays: z.number(), // recorded for the audit/compliance trail (30 at launch)
+    origin: AccountDeletionRequestOriginSchema,
     cancelledAt: z.number().optional(),
     // Token-revocation obligation — the request doc IS the durable ledger (BACKEND-302 /
     // QUALITY-104); no separate queue, worker collection, or dead-letter state exists.
