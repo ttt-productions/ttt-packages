@@ -47,6 +47,12 @@ const FACTS: UiGuardFacts = {
   textEntryBoxes: { reviewed: [] },
   schemaBounds: { exceptions: [] },
   pendingNameSeat: { seat: 'src/seat.tsx' },
+  accessibleControls: {
+    surfaceTrees: ['src/components'],
+    button: { component: 'Button', iconSizes: ['icon'] },
+    displayComponents: ['Badge'],
+  },
+  wholeInputNumbers: { surfaceTrees: ['src/components'], allowlist: [] },
 };
 
 describe('the ui area', () => {

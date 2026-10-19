@@ -3,6 +3,12 @@
 
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
 import {
+  accessibleControlsGuard,
+  wholeInputNumbersGuard,
+  type AccessibleControlFacts,
+  type WholeInputNumberFacts,
+} from './accessibility.js';
+import {
   stylesheetEntryGuard,
   tailwindSourcesGuard,
   themeTokensGuard,
@@ -64,6 +70,8 @@ export interface UiGuardFacts {
   textEntryBoxes: TextEntryFacts;
   schemaBounds: SchemaBoundFacts;
   pendingNameSeat: PendingNameSeatFacts;
+  accessibleControls: AccessibleControlFacts;
+  wholeInputNumbers: WholeInputNumberFacts;
 }
 
 export const UI_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.freeze([
@@ -86,4 +94,6 @@ export const UI_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Object.fr
   textEntryGuard,
   schemaBoundsGuard,
   pendingNameSeatGuard,
+  accessibleControlsGuard,
+  wholeInputNumbersGuard,
 ] as ReadonlyArray<GenericGuardDefinition<never>>);

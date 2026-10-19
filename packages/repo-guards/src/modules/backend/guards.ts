@@ -7,10 +7,12 @@ import {
   auditWriterGuard,
   failureAuditGuard,
   fireAndForgetGuard,
+  refusalAuditGuard,
   type AuditPayloadFacts,
   type AuditWriterFacts,
   type FailureAuditFacts,
   type FireAndForgetFacts,
+  type RefusalAuditFacts,
 } from './audit.js';
 import {
   adminClaimGuard,
@@ -54,6 +56,7 @@ export interface BackendGuardFacts {
   auditWriter: AuditWriterFacts | Absent;
   auditPayload: AuditPayloadFacts | Absent;
   failureAuditChain: FailureAuditFacts | Absent;
+  refusalAudit: RefusalAuditFacts | Absent;
   fireAndForget: FireAndForgetFacts;
   swallowedReadWrite: SwallowedReadWriteFacts;
   postCommitCapture: PostCommitCaptureFacts | Absent;
@@ -75,6 +78,7 @@ export const BACKEND_GUARDS: ReadonlyArray<GenericGuardDefinition<never>> = Obje
   auditWriterGuard,
   auditPayloadGuard,
   failureAuditGuard,
+  refusalAuditGuard,
   fireAndForgetGuard,
   swallowedReadWriteGuard,
   postCommitCaptureGuard,

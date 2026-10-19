@@ -1,5 +1,6 @@
 // The audit guards: one writer of the audit collection, one builder of person-actors, no
-// member-written text in an audit payload, and no handler wrapped around an audit write.
+// member-written text in an audit payload, no handler wrapped around an audit write, and a
+// refusal recorded through the failure entry points as the caller.
 
 import ts from 'typescript';
 import type { GenericGuardDefinition } from '../../node/suite/config.js';
@@ -379,6 +380,175 @@ export const failureAuditGuard: GenericGuardDefinition<FailureAuditFacts> = {
           for (const name of names)
             if (!called.has(name))
               findings.push({ file: '(failureEntryPoints)', detail: `${name} is called nowhere` });
+          return findings;
+        },
+      },
+    ];
+  },
+};
+
+// ---------------------------------------------------------------------------------------------
+// A refusal's failure event goes through the failure entry points, attributed to the caller.
+
+export interface RefusalAuditFacts {
+  /** The audit writer's plain entry point, which throws when its write fails (`writeAuditEventAs`). */
+  plainWriter: string;
+  /** The audit writer's best-effort failure entry points, which never throw. */
+  failureEntryPoints: readonly string[];
+  /** The calls that build a system actor (`systemActor`). */
+  systemActorBuilders: readonly string[];
+  /** The field and value that mark an actor literal as the system (`mode: 'system'`). */
+  systemActorMode: { field: string; value: string };
+  /** The calls that define a callable (`onCall`). */
+  callableFactories: readonly string[];
+}
+
+/** The name a function declaration or a `const f = …` function carries, if any. */
+function functionName(node: ts.Node): string | undefined {
+  if (ts.isFunctionDeclaration(node)) return node.name?.text;
+  if (
+    (ts.isArrowFunction(node) || ts.isFunctionExpression(node)) &&
+    ts.isVariableDeclaration(node.parent) &&
+    ts.isIdentifier(node.parent.name)
+  )
+    return node.parent.name.text;
+  return undefined;
+}
+
+/**
+ * In a module that defines a callable: each plain-writer failure event written outside a
+ * transaction, and each failure event or failure entry point handed a system actor. Calls inside a
+ * failure entry point's own body are the owner's and are not read. `called` names every declared
+ * plain writer, builder, and factory the file calls.
+ */
+export function refusalAuditShapes(
+  file: FileView,
+  facts: RefusalAuditFacts,
+): { hits: Array<{ node: ts.Node; detail: string }>; called: Set<string> } {
+  const sf = file.sourceFile;
+  const failureNames = new Set(facts.failureEntryPoints);
+  const builders = new Set(facts.systemActorBuilders);
+  const factories = new Set(facts.callableFactories);
+  const keyOf = (prop: ts.ObjectLiteralElementLike) =>
+    prop.name?.getText(sf).replace(/^['"`]|['"`]$/g, '') ?? '';
+  const called = new Set<string>();
+  const systemLocals = new Set<string>();
+  const isSystemActor = (expression: ts.Expression | undefined): boolean => {
+    if (!expression) return false;
+    const e = unwrap(expression);
+    if (ts.isCallExpression(e)) return builders.has(calleeName(e) ?? '');
+    if (ts.isIdentifier(e)) return systemLocals.has(e.text);
+    if (!ts.isObjectLiteralExpression(e)) return false;
+    return e.properties.some((prop) => {
+      if (!ts.isPropertyAssignment(prop) || keyOf(prop) !== facts.systemActorMode.field)
+        return false;
+      const value = unwrap(prop.initializer);
+      return ts.isStringLiteralLike(value) && value.text === facts.systemActorMode.value;
+    });
+  };
+  let definesCallable = false;
+  forEachNode(sf, (node) => {
+    if (ts.isCallExpression(node)) {
+      const name = calleeName(node) ?? '';
+      if (factories.has(name)) definesCallable = true;
+      if (name === facts.plainWriter || builders.has(name) || factories.has(name)) called.add(name);
+    }
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer &&
+      isSystemActor(node.initializer)
+    )
+      systemLocals.add(node.name.text);
+  });
+  const hits: Array<{ node: ts.Node; detail: string }> = [];
+  if (!definesCallable) return { hits, called };
+  const failureEvent = (call: ts.CallExpression) => {
+    for (const arg of call.arguments) {
+      const details = unwrap(arg);
+      if (!ts.isObjectLiteralExpression(details)) continue;
+      const result = details.properties.find(
+        (prop): prop is ts.PropertyAssignment =>
+          ts.isPropertyAssignment(prop) && keyOf(prop) === 'result',
+      );
+      const value = result && unwrap(result.initializer);
+      if (value && ts.isStringLiteralLike(value) && value.text === 'failure')
+        return { inTransaction: details.properties.some((prop) => keyOf(prop) === 'transaction') };
+    }
+    return undefined;
+  };
+  const walk = (node: ts.Node): void => {
+    if (failureNames.has(functionName(node) ?? '')) return;
+    if (ts.isCallExpression(node)) {
+      const name = calleeName(node) ?? '';
+      if (name === facts.plainWriter) {
+        const event = failureEvent(node);
+        if (event && !event.inTransaction)
+          hits.push({
+            node,
+            detail: `${name} writes a failure event outside a transaction`,
+          });
+        if (event && isSystemActor(node.arguments[0]))
+          hits.push({ node, detail: `${name} records a failure as the system` });
+      }
+      if (failureNames.has(name) && isSystemActor(node.arguments[0]))
+        hits.push({ node, detail: `${name} records a refusal as the system` });
+    }
+    ts.forEachChild(node, walk);
+  };
+  walk(sf);
+  return { hits, called };
+}
+
+export const refusalAuditGuard: GenericGuardDefinition<RefusalAuditFacts> = {
+  id: 'refusalAudit',
+  absentWhen: 'the app records no audit events',
+  factProblems(facts) {
+    const problems: string[] = [];
+    textProblem(facts?.plainWriter, 'plainWriter', problems);
+    namesProblem(facts?.failureEntryPoints, 'failureEntryPoints', problems);
+    namesProblem(facts?.systemActorBuilders, 'systemActorBuilders', problems);
+    textProblem(facts?.systemActorMode?.field, 'systemActorMode.field', problems);
+    textProblem(facts?.systemActorMode?.value, 'systemActorMode.value', problems);
+    namesProblem(facts?.callableFactories, 'callableFactories', problems);
+    if (facts?.failureEntryPoints?.includes(facts?.plainWriter))
+      problems.push('the plain writer is listed as a failure entry point');
+    return problems;
+  },
+  build(facts) {
+    return [
+      {
+        title: "a refusal's failure event goes through the failure entry points, as the caller",
+        description:
+          `In a module that defines a callable (${facts.callableFactories.join(', ')}), a failure event the plain writer ` +
+          `${facts.plainWriter} writes outside a transaction is a refusal's record, and the plain writer throws when that ` +
+          `write fails, so a failed record masks the refusal itself. Record it through a failure entry point ` +
+          `(${facts.failureEntryPoints.join(', ')}), which never throws; only a failure event committed with the state it ` +
+          'explains, in that transaction, uses the plain writer. A refusal is attributed to the person who was refused, ' +
+          `with the request's origin, never to the system (${facts.systemActorBuilders.join(', ')}, or an actor whose ` +
+          `${facts.systemActorMode.field} is '${facts.systemActorMode.value}'): use the operator's actor once they are ` +
+          'authorized and the request-bound entry point before. Every declared writer, builder, and factory must still ' +
+          'be called somewhere: one renamed away would pass unchecked.',
+        run(context) {
+          const findings: Finding[] = [];
+          const called = new Set<string>();
+          for (const file of context.files(FUNCTIONS_CODE)) {
+            const shapes = refusalAuditShapes(file, facts);
+            shapes.called.forEach((name) => called.add(name));
+            for (const hit of shapes.hits)
+              findings.push({
+                file: file.path,
+                line: lineOfNode(file, hit.node),
+                detail: hit.detail,
+              });
+          }
+          for (const name of [
+            facts.plainWriter,
+            ...facts.systemActorBuilders,
+            ...facts.callableFactories,
+          ])
+            if (!called.has(name))
+              findings.push({ file: '(refusalAudit)', detail: `${name} is called nowhere` });
           return findings;
         },
       },

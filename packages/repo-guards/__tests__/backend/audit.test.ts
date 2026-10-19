@@ -1,5 +1,6 @@
 // The audit guards: one writer of the audit collection, one builder of person-actors, no member text
-// in a payload, no handler on a failure-audit entry point, and no fire-and-forget work.
+// in a payload, no handler on a failure-audit entry point, a refusal recorded through the failure
+// entry points as the caller, and no fire-and-forget work.
 
 import { afterEach, describe, expect, it } from 'vitest';
 import {
@@ -7,7 +8,9 @@ import {
   auditWriterGuard,
   failureAuditGuard,
   fireAndForgetGuard,
+  refusalAuditGuard,
   type AuditWriterFacts,
+  type RefusalAuditFacts,
 } from '../../src/modules/backend/audit.js';
 import { backendRepo, samplesHold, type BackendRepo } from './repo.js';
 
@@ -285,6 +288,139 @@ describe('no handler chained onto a failure-audit entry point', () => {
   it('refuses an empty entry-point list', () => {
     expect(failureAuditGuard.factProblems({ failureEntryPoints: [] })).toEqual([
       'failureEntryPoints is empty',
+    ]);
+  });
+});
+
+describe("a refusal's failure event goes through the failure entry points, as the caller", () => {
+  const facts: RefusalAuditFacts = {
+    plainWriter: 'writeAuditEventAs',
+    failureEntryPoints: ['writeFailureAuditEventAs', 'writeRequestFailureAuditEvent'],
+    systemActorBuilders: ['systemActor'],
+    systemActorMode: { field: 'mode', value: 'system' },
+    callableFactories: ['onCall'],
+  };
+  const cleanFiles = {
+    'functions/src/audit/write.ts': [
+      'export async function writeAuditEventAs(actor: unknown, details: object) { return commit(actor, details); }',
+      'export async function writeFailureAuditEventAs(actor: unknown, details: object) {',
+      "  try { await writeAuditEventAs(actor, { ...details, result: 'failure' }); } catch (e) { report(e); }",
+      '}',
+      'export const writeRequestFailureAuditEvent = async (request: unknown, refusal: unknown, details: object) => {',
+      "  await writeAuditEventAs(systemActor('x'), { ...details, result: 'failure' });",
+      '};',
+    ].join('\n'),
+    'functions/src/jobs/sweep.ts':
+      "await writeAuditEventAs(systemActor('sweep'), { type: 'a.b' });",
+  };
+
+  it('FLAGS a refusal written through the plain writer and a refusal recorded as the system, in a callable module', async () => {
+    repo = backendRepo({
+      ...cleanFiles,
+      'functions/src/safety/command.ts': [
+        "const sweeper = systemActor('sweep');",
+        'async function recordRefusal(actor: unknown) {',
+        "  try { await writeAuditEventAs(actor, { type: 'a.b', result: 'failure' }); } catch { /* lost */ }",
+        '}',
+        'export const command = onCall(async (request) => {',
+        '  try { return await run(request); } catch (error) {',
+        "    await writeFailureAuditEventAs(systemActor('refused'), { type: 'a.b' });",
+        "    await writeFailureAuditEventAs({ mode: 'system' as const, uid: null }, { type: 'a.b' });",
+        "    await writeFailureAuditEventAs(sweeper, { type: 'a.b' });",
+        "    await writeAuditEventAs(sweeper, { type: 'a.b', result: 'failure', transaction: tx });",
+        '    throw error;',
+        '  }',
+        '});',
+      ].join('\n'),
+    });
+    const [guard] = refusalAuditGuard.build(facts);
+    expect(await repo.run(guard!)).toEqual([
+      {
+        file: 'functions/src/safety/command.ts',
+        line: 3,
+        detail: 'writeAuditEventAs writes a failure event outside a transaction',
+      },
+      {
+        file: 'functions/src/safety/command.ts',
+        line: 7,
+        detail: 'writeFailureAuditEventAs records a refusal as the system',
+      },
+      {
+        file: 'functions/src/safety/command.ts',
+        line: 8,
+        detail: 'writeFailureAuditEventAs records a refusal as the system',
+      },
+      {
+        file: 'functions/src/safety/command.ts',
+        line: 9,
+        detail: 'writeFailureAuditEventAs records a refusal as the system',
+      },
+      {
+        file: 'functions/src/safety/command.ts',
+        line: 10,
+        detail: 'writeAuditEventAs records a failure as the system',
+      },
+    ]);
+  });
+
+  it('PASSES an in-transaction failure event, the request-bound entry point, the operator as actor, the entry points themselves, and a worker module', async () => {
+    repo = backendRepo({
+      ...cleanFiles,
+      'functions/src/safety/command.ts': [
+        'export const command = onCall(async (request) => {',
+        '  const actor = await operatorActor(request);',
+        '  try { return await run(request); } catch (error) {',
+        "    await writeRequestFailureAuditEvent(request, error, { type: 'a.b' });",
+        "    await writeFailureAuditEventAs(actor, { type: 'a.b' });",
+        '    throw error;',
+        '  }',
+        '});',
+        'export async function step(tx: unknown, actor: unknown) {',
+        "  await writeAuditEventAs(actor, { type: 'a.b', result: 'failure', transaction: tx });",
+        "  await writeAuditEventAs(systemActor('cleanup'), { type: 'a.b', result: 'success' });",
+        "  // writeAuditEventAs(actor, { result: 'failure' }) in a comment is never read",
+        '}',
+      ].join('\n'),
+      'functions/src/chat/drain.ts': [
+        'export async function failCommand(actor: unknown) {',
+        "  await writeAuditEventAs(actor, { type: 'a.b', result: 'failure', eventId: 'x' });",
+        "  await writeFailureAuditEventAs(systemActor('drain'), { type: 'a.b' });",
+        '}',
+      ].join('\n'),
+      'functions/src/safety/command.test.ts': [
+        'onCall(handler);',
+        "await writeAuditEventAs(actor, { type: 'a.b', result: 'failure' });",
+      ].join('\n'),
+    });
+    const [guard] = refusalAuditGuard.build(facts);
+    expect(await repo.run(guard!)).toEqual([]);
+  });
+
+  it('FLAGS a declared writer, builder, or factory that is called nowhere', async () => {
+    repo = backendRepo(cleanFiles);
+    const [guard] = refusalAuditGuard.build({
+      ...facts,
+      systemActorBuilders: [...facts.systemActorBuilders, 'goneActor'],
+    });
+    expect(await repo.run(guard!)).toEqual([
+      { file: '(refusalAudit)', detail: 'goneActor is called nowhere' },
+      { file: '(refusalAudit)', detail: 'onCall is called nowhere' },
+    ]);
+  });
+
+  it('refuses missing facts and the plain writer listed as a failure entry point', () => {
+    expect(
+      refusalAuditGuard.factProblems({
+        plainWriter: 'writeAuditEventAs',
+        failureEntryPoints: ['writeAuditEventAs'],
+        systemActorBuilders: [],
+        systemActorMode: { field: 'mode', value: '' },
+        callableFactories: ['onCall'],
+      }),
+    ).toEqual([
+      'systemActorBuilders is empty',
+      'systemActorMode.value is missing',
+      'the plain writer is listed as a failure entry point',
     ]);
   });
 });
